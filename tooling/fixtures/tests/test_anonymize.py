@@ -856,5 +856,83 @@ class CliTests(unittest.TestCase):
             self.assertIn('href="/hfr/A/B/user2-photos-sujet_2_1.htm">user2 photos<', out)
 
 
+class PrivateFormCopyTests(unittest.TestCase):
+    """Composer and edit-form pages repeat MP text in `content_form` and in the review cell (#401)."""
+    SECRET = "Secret words of a real conversation"
+
+    @staticmethod
+    def page(subject, text, header=True):
+        head = ('<table><tr><th class="padding">Sujet : <h3>%s</h3></th></tr></table>' % subject) if header else ""
+        return ('<html><body>%s<form><input type="hidden" name="sujet" value="%s" />'
+                '<textarea name="content_form" rows="1">%s</textarea></form>'
+                '<table><tr><td class="messCase1bis">user1</td><td class="messCase2"><div>%s<br />more</div></td></tr>'
+                '</table></body></html>' % (head, subject, text, text))
+
+    def reasons(self, html):
+        return [r for _l, _c, r in leaks(html, private=True)]
+
+    def test_real_thread_composer_leaks_without_the_change_and_is_replaced_with_it(self):
+        page = self.page("Real conversation", self.SECRET)
+        self.assertIn("private form copy not replaced", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn(self.SECRET, out)
+        self.assertEqual(out.count(A.PRIVATE_PLACEHOLDER), 2)
+        self.assertEqual(self.reasons(out), [])
+
+    def test_fixture_thread_is_left_unchanged_and_not_flagged(self):
+        page = self.page("fixture-test-3", self.SECRET)
+        self.assertEqual(anon(page, private=True), page)
+        self.assertEqual(self.reasons(page), [])
+
+    def test_mixed_names_are_not_a_fixture_thread(self):
+        page = self.page("fixture-test-3", self.SECRET).replace("Sujet : <h3>fixture-test-3", "Sujet : <h3>Real")
+        self.assertNotIn(self.SECRET, anon(page, private=True))
+        self.assertIn("private form copy not replaced", self.reasons(page))
+
+    def test_page_without_thread_name_fails_closed(self):
+        page = self.page("x", self.SECRET, header=False).replace('<input type="hidden" name="sujet" value="x" />', "")
+        self.assertNotIn(self.SECRET, anon(page, private=True))
+        self.assertIn("private form copy not replaced", self.reasons(page))
+
+    def test_quote_attribute_order_and_empty_textarea(self):
+        page = self.page("Real", "").replace('type="hidden" name="sujet" value="Real"', 'value="Real" name="sujet"')
+        out = anon(page, private=True)
+        self.assertIn('<textarea name="content_form" rows="1"></textarea>', out)
+        self.assertEqual(self.reasons(out), [])
+
+    QUOTED = ('<table class="citation"><tr class="none"><td><p>quoted</p></td></tr></table><p>TAILSECRET</p>')
+
+    def quote_page(self, author):
+        return ('<html><body><input type="hidden" name="sujet" value="Real" /><table><tr><td class="messCase1bis">%s</td>'
+                '<td class="messCase2"><div>%s</div></td></tr></table></body></html>' % (author, self.QUOTED))
+
+    def test_quote_table_in_review_cell_is_replaced_to_the_end(self):
+        out = anon(self.quote_page("user1"), private=True)
+        self.assertNotIn("TAILSECRET", out)
+        self.assertNotIn("quoted", out)
+        self.assertEqual(self.reasons(out), [])
+
+    def test_dom_verifier_flags_quote_tail_and_markup_author(self):
+        for author in ("user1", "<b>user1</b>"):
+            found = A.verify_structure(self.quote_page(author), private=True)
+            self.assertTrue([f for f in found if "private form copy" in f[2]], author)
+            out = anon(self.quote_page(author), private=True)
+            self.assertNotIn("TAILSECRET", out)
+            self.assertEqual(A.verify_structure(out, private=True), [])
+
+    def test_dom_verifier_skips_fixture_thread(self):
+        page = self.quote_page("user1").replace('value="Real"', 'value="fixture-test-2"')
+        self.assertEqual(A.verify_structure(page, private=True), [])
+
+    def test_unquoted_sujet_attributes_fail_closed(self):
+        page = self.page("fixture-test-3", self.SECRET, header=False).replace(
+            'type="hidden" name="sujet" value="fixture-test-3"', 'type=hidden name=sujet value=fixture-test-3')
+        self.assertNotIn(self.SECRET, anon(page, private=True))
+
+    def test_not_private_mode_keeps_copies(self):
+        page = self.page("Real conversation", self.SECRET)
+        self.assertEqual(anon(page), page)
+
+
 if __name__ == "__main__":
     unittest.main()

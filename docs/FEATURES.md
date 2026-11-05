@@ -16,6 +16,31 @@ Every feature and lot follows these; a proposal that breaks one needs the operat
 - **Defaults keep the legacy UX; changes are opt-in settings** (operator, 2026-10-28). Example: one-to-one and group MPs in one list by default, two lists with a switch as a setting ([LOT-171, #297](https://github.com/ezzz/HFRnow/issues/297)).
 - **HFR links stay in the app** (operator, 2026-10-28). A link to a forum page, including the app's own topics in About, opens in the app's reader, not in Safari ([LOT-095, #187](https://github.com/ezzz/HFRnow/issues/187) routes the link, [LOT-137, #227](https://github.com/ezzz/HFRnow/issues/227) opens it in the reader; About: [LOT-120, #211](https://github.com/ezzz/HFRnow/issues/211)).
 
+**Classification (directive H.1, 2026-11-01; decided 2026-11-02).** Every FEAT is a UX evolution (b). Those that parity does not need are in milestone M5 ([#379](https://github.com/ezzz/HFRnow/issues/379)), never dropped; the decisions of the A/B choices are in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The Phase and Status columns below are unchanged: the milestone of each lot is in [LOTS.md](LOTS.md#m5--ux-evolutions) and on the boards.
+
+**Milestone of each FEAT (2026-11-02, derived from the Audit column of [LOTS.md](LOTS.md)):** a FEAT in M5 is an evolution kept for later, never dropped; the lots that stay in M1–M4 are the engine or the legacy part.
+- FEAT-001: LOT-090 (M3), LOT-092 (M3), LOT-143 (M5), LOT-144 (M5)
+- FEAT-002: LOT-110 (M5)
+- FEAT-003: LOT-167 (M3)
+- FEAT-004: LOT-112 (M5)
+- FEAT-005: LOT-091 (M3), LOT-092 (M3), LOT-141 (M5)
+- FEAT-006: LOT-153 (M5)
+- FEAT-007: LOT-090 (M3), LOT-111 (M2), LOT-178 (M5)
+- FEAT-008: LOT-125 (M2), LOT-177 (M5)
+- FEAT-009: LOT-142 (M5)
+- FEAT-010: LOT-122 (M4), LOT-166 (M4), LOT-169 (M1), LOT-180 (M5)
+- FEAT-011: LOT-107 (M2)
+- FEAT-012: LOT-096 (M3), LOT-151 (M5)
+- FEAT-013: LOT-097 (M3), LOT-152 (M5), LOT-184 (M5)
+- FEAT-014: LOT-109 (M2), LOT-176 (M5)
+- FEAT-015: LOT-090 (M3), LOT-145 (M5), LOT-172 (M3)
+- FEAT-016: LOT-147 (M5)
+- FEAT-017: LOT-148 (M5)
+- FEAT-018: LOT-154 (M5)
+- FEAT-019: LOT-103 (M2)
+- FEAT-020: LOT-095 (M3), LOT-138 (M5)
+- FEAT-021: LOT-149 (M5), LOT-150 (M5)
+
 ## Proposed by Bybifok (2026-10-26)
 
 Source: Bybifok's proposal message, PRs [ezzz/HFRnow#3–#6](https://github.com/ezzz/HFRnow/pulls) and prototype [moust4ki/ultra-hfr](https://github.com/moust4ki/ultra-hfr). Inventory and evidence: [research/bybifok-proposals.md](research/bybifok-proposals.md).
@@ -34,7 +59,7 @@ Source: Bybifok's proposal message, PRs [ezzz/HFRnow#3–#6](https://github.com/
 | FEAT-010 | **Appearance**: darker dark (#0B0B0C), OLED black, 1 pt separators, compact mode (now [LOT-169, #295](https://github.com/ezzz/HFRnow/issues/295)), one-line message header, single accent colour, live preview in settings, seasonal themes | 060 | Keep the legacy brightness and accent settings or migrate them | 4–5 | medium | proposed | [#154](https://github.com/ezzz/HFRnow/issues/154) |
 | FEAT-011 | **Image loading setting**: never / Wi-Fi / always | 060 (`ImageDisplayMode` exists) | — | 4 | medium | proposed | [#155](https://github.com/ezzz/HFRnow/issues/155) |
 | FEAT-012 | **Emoji refusal with smiley suggestion** | 012, 048, **new** emoji→smiley table | HFR truncates at the first non-BMP character, BMP emoji untested | 3–4 | medium | proposed | [#156](https://github.com/ezzz/HFRnow/issues/156) |
-| FEAT-013 | **Preview before send** (exact BBCode rendering) | **new** BBCode renderer | Module (HFRParsing or app) — ADR needed | 4 | medium | proposed | [#157](https://github.com/ezzz/HFRnow/issues/157) |
+| FEAT-013 | **Preview before send** (BBCode rendering as HFR's; "exact" per the operator's choice O-1) | LOT-097 (BBCode renderer), LOT-152, LOT-184 | [ADR 0014](adr/0014-bbcode-preview-renderer.md) (accepted): local renderer in HFRParsing through the LOT-034 normalizer, measured against HFR's own rendering; O-1 = (b) decided 2026-11-02 on #189: local preview (LOT-097, LOT-152) plus on-demand `/apercu.php` (LOT-184, M5) | 4 | medium | proposed | [#157](https://github.com/ezzz/HFRnow/issues/157) |
 | FEAT-014 | **HD gallery** with swipe between images | 034, 056 | — | 4 | medium | proposed | [#158](https://github.com/ezzz/HFRnow/issues/158) |
 | FEAT-015 | **State restoration**: forum, topic, page, position on return, fold, multi-window | **new** reading-position store | — | 4–5 | medium | proposed | [#159](https://github.com/ezzz/HFRnow/issues/159) |
 | FEAT-016 | **iPhone Duo / iPad columns**: two columns unfolded, tabs in a rail folded, sidebar pinned or on demand | — | Phase 5 design documentation | 5 | high | proposed | [#160](https://github.com/ezzz/HFRnow/issues/160) |

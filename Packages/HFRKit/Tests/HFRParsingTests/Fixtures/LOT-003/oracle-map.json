@@ -72,6 +72,18 @@
     "ownPseudo": "user2",
     "path": "../captures/R32b-topic-poll-logged-in-not-voted.html"
   },
+  "R96c.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207675&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R96c-mp-thread-owner-after-thread-delete.html"
+  },
+  "R96d.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207675&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R96d-mp-thread-recipient-after-thread-delete.html"
+  },
   "RA1.html": {
     "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207033&page=1",
     "kind": "topic",

@@ -24,6 +24,37 @@ public enum MPStoragePageParser {
     /// Reads the storage thread's first page: the first message's `numreponse` and its JSON document.
     /// - Throws: `MPStoragePageError`; the "not addressed" notice is a result, not an error.
     public static func readDocument(in html: String) throws(MPStoragePageError) -> MPStorageThreadPage {
+        guard case .message(let first) = try firstMessage(in: html) else { return .notAddressed }
+        // Legacy reads the first `<p>` of the message cell (`:882`); the content element holds the same one.
+        guard let paragraph = try? first.content.getElementsByTag("p").first() else { throw .missingParagraph }
+        // The page prints U+00A0 where HFR adds non-breaking spaces; legacy removed them all (`:883`).
+        let text = paragraph.rawText.replacing("\u{00A0}", with: "")
+        do {
+            let decoded = try MPStorageCodec.decode(text)
+            return .storage(MPStorageMessage(numreponse: first.block.numreponse, text: text, document: decoded))
+        } catch {
+            throw .invalidDocument
+        }
+    }
+
+    /// Locates the storage message on the thread's first page without reading its text: its `numreponse` and the edit
+    /// link of its toolbar (LOT-031). For a writer that reads the document from the edit form (LOT-052), so a document
+    /// HFR renders differently from its stored text still has a location.
+    /// - Throws: the `MPStoragePageError` cases of `readDocument` before the paragraph (`unreadablePage`, `noMessage`,
+    ///   `notFirstPage`, `notStorageThread`); the "not addressed" notice is a result.
+    public static func locateMessage(in html: String) throws(MPStoragePageError) -> MPStorageMessageLocation {
+        guard case .message(let first) = try firstMessage(in: html) else { return .notAddressed }
+        let actions = MessageActionsParser.actions(of: first)
+        return .message(numreponse: first.block.numreponse, editURL: actions.editURL)
+    }
+
+    private enum FirstMessage {
+        case message(ExtractedMessageBlock)
+        case notAddressed
+    }
+
+    /// The checks both readers share: a page of messages, its first block not a continuation, the storage subject.
+    private static func firstMessage(in html: String) throws(MPStoragePageError) -> FirstMessage {
         let document: Document
         let blocks: [ExtractedMessageBlock]
         do throws(ParsingError) {
@@ -44,16 +75,7 @@ public enum MPStoragePageParser {
         // Legacy trusted the cached `post` (`:878`); the subject check keeps another thread's message from being read
         // as the document, and later edited in its place.
         guard TopicPageMetadataParser.title(in: body) == MPStorageDocument.subject else { throw .notStorageThread }
-        // Legacy reads the first `<p>` of the message cell (`:882`); the content element holds the same one.
-        guard let paragraph = try? first.content.getElementsByTag("p").first() else { throw .missingParagraph }
-        // The page prints U+00A0 where HFR adds non-breaking spaces; legacy removed them all (`:883`).
-        let text = paragraph.rawText.replacing("\u{00A0}", with: "")
-        do {
-            let decoded = try MPStorageCodec.decode(text)
-            return .storage(MPStorageMessage(numreponse: first.block.numreponse, text: text, document: decoded))
-        } catch {
-            throw .invalidDocument
-        }
+        return .message(first)
     }
 
     /// Word of HFR's "Ce message ne vous est pas destiné, désolé" notice (`RA5`), the one legacy looks for.

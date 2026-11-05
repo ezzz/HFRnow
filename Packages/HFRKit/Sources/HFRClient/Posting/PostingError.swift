@@ -13,6 +13,9 @@ public enum PostingError: Error, Sendable, Equatable {
     /// The session is not logged in: the form came with an empty `hash_check` or `pseudo` (`R40b`), or HFR refused the
     /// write with its "vous devez être enregistré" sentence (`W17c`).
     case notLoggedIn
+    /// The session logged out, or logged in as another account, since the form was loaded: the form's `hash_check` and
+    /// `pseudo` are no longer the session's. Nothing was posted; load the form again.
+    case sessionChanged
     /// The form has no `action` on the forum origin; no default is substituted (HFR-PROTOCOL §3.1 step 4).
     case missingAction
     /// The form holds something this engine does not know how to send like a browser; `reason` names it.

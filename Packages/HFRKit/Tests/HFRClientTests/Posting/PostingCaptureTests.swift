@@ -129,8 +129,7 @@ struct PostingCaptureTests {
 
     @Test("New topic from R45a: subject and sub-category written at their places in document order")
     func newTopic() async throws {
-        // No public new-topic answer is captured: the MP creation answer (same sentence) stands in for HFR's reply.
-        let outcome = try await PostingHarness.run(form: "R45a", answer: "W10") { flow, form async throws(PostingError) in
+        let outcome = try await PostingHarness.run(form: "R45a", answer: "W40") { flow, form async throws(PostingError) in
             let subcategory = form.form.subcategories.last?.value ?? ""
             return try await flow.newTopic(subject: "a subject", subcategory: subcategory, text: "text", with: form)
         }

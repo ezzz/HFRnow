@@ -2,8 +2,10 @@ import HFRModels
 import HFRStorage
 import Observation
 
-/// The "Général" settings: each property reads its legacy key at creation and writes it back on every change, so what the
-/// screen shows is what the store holds (LOT-119).
+// Port of HFRswift/Swift/AppSettingsView.swift (AppSettingsView, "Général" section) @ 2440d79. Differences: the start-screen and
+// default-browser rows come from master; neither exists at 2440d79 (GAP-002, 150; UXD).
+/// The "Général" settings, one instance for the whole app (`SwiftHFRApp` owns it): each property reads its legacy key at
+/// creation and writes it back on every change, so what the screen shows is what the store holds (LOT-119).
 ///
 /// Settings of other lots are not here: favourites options (LOT-124), haptics and icon (LOT-123), theme (LOT-121),
 /// blocklists (LOT-118), maintenance and about (LOT-120).
@@ -28,9 +30,8 @@ final class GeneralSettingsModel {
             if opensLinksInDefaultBrowser != oldValue { store.set(opensLinksInDefaultBrowser, for: SettingKey.opensLinksInDefaultBrowser) }
         }
     }
-    /// In-app text size in percent, an offset on top of Dynamic Type (below 100 gives a denser display).
-    /// Follow-up (not applied yet): applying it across the screens is LOT-169 (#295);
-    /// until then it is stored only.
+    /// In-app text size in percent, an offset on top of Dynamic Type (below 100 gives a denser display); every screen
+    /// reads it as `textScale` (LOT-169).
     var textSizePercent: Int {
         didSet {
             // Whether or not the nested assignment runs this observer again, the final value is what gets stored.
@@ -46,14 +47,20 @@ final class GeneralSettingsModel {
         }
     }
     /// When third-party images load (`display_images`, FEAT-011): the reader reads the store on every page and image
-    /// request, so a change applies to the next page (images of an open page not yet requested follow it). HFR's own images and the always-blocked hosts are unaffected (policy C).
+    /// request, so a change applies to the next page (images of an open page not yet requested follow it).
+    /// HFR's own images and the always-blocked hosts are unaffected (policy C).
     var imageLoading: ImageDisplayMode {
         didSet { if imageLoading != oldValue { store.set(imageLoading, for: SettingKey.displayImages) } }
     }
-    /// Density: compact rows.
+    /// Density: compact rows; every list reads it as `listDensity` (LOT-169).
     var compactMode: Bool {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
     }
+
+    /// The app-wide type scale of `textSizePercent`.
+    var textScale: TextScale { TextScale(percent: textSizePercent) }
+    /// The list density of `compactMode`.
+    var listDensity: ListDensity { ListDensity(compactMode: compactMode) }
 
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let rotationChanged: @MainActor () -> Void
