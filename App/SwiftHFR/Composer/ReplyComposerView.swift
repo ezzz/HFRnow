@@ -1,7 +1,8 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode) @ 2440d79. Differences: no formatting, smiley, GIF or upload panel
-// yet (LOT-085, 102, 104, 155); errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode) @ 2440d79. Differences: no formatting, GIF or upload panel yet
+// (LOT-085, 102, 155), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
+// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
 /// `ReplyComposerModel`.
@@ -15,6 +16,12 @@ struct ReplyComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Field?
+    @State private var selection: TextSelection?
+    @State private var picker: SmileyPickerModel?
+    /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
+    @State private var smileyInserted = false
+    /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
+    @State private var rangeForSmiley: Range<String.Index>?
 
     private enum Field: Hashable {
         case recipient, subject, text
@@ -52,6 +59,9 @@ struct ReplyComposerView: View {
                 Text(keepDraftNote)
             }
         }
+        .sheet(item: $picker, onDismiss: { if smileyInserted { focused = .text } }, content: { picker in
+            SmileyPickerView(model: picker) { insertSmiley($0) }
+        })
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
@@ -89,8 +99,29 @@ struct ReplyComposerView: View {
         Binding(get: { model.isAskingClose }, set: { model.isAskingClose = $0 })
     }
 
+    /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
+    private var selectedRange: Range<String.Index>? {
+        guard case .selection(let range)? = selection?.indices else { return nil }
+        return range
+    }
+
+    private func openSmileys() {
+        let services = model.smileyServices
+        rangeForSmiley = selectedRange
+        smileyInserted = false
+        picker = SmileyPickerModel(
+            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account
+        )
+    }
+
+    private func insertSmiley(_ code: String) {
+        guard let caret = model.insert(smiley: code, replacing: rangeForSmiley) else { return }
+        smileyInserted = true
+        selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
+    }
+
     private var editor: some View {
-        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }))
+        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }), selection: $selection)
             .focused($focused, equals: .text)
             .scaledFont(.body)
             .disabled(!model.canEdit)
@@ -127,6 +158,10 @@ struct ReplyComposerView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button("Smileys", systemImage: "face.smiling", action: openSmileys)
+                .disabled(!model.canEdit)
+        }
         ToolbarItem(placement: .cancellationAction) {
             Button("Annuler") { Task { await model.requestClose() } }
             .disabled(model.isSending)
