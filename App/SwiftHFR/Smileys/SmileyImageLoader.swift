@@ -1,6 +1,8 @@
 import ImageIO
 import UIKit
 
+// Port of HFRswift/Swift/AnswerView.swift (SmileyThumbnailView.Coordinator image loading) @ 2440d79. Differences: policy-C
+// cookie-less fetch instead of URLSession.shared, no bundled GIFs, ImageIO only (GAP-087).
 /// Loads and caches smiley images for the picker (LOT-104; absorbs the Phase 4 item "image/GIF decoding (E-8)").
 ///
 /// Images come through `ReaderImageFetcher`, i.e. the cookie-less client and policy C: no forum cookie leaves the app
@@ -8,11 +10,16 @@ import UIKit
 /// host). Legacy bundled the GIFs and fell back to `URLSession.shared` for favourites (`AnswerView.swift:1651-1760`).
 /// An animated GIF becomes a `UIImage` animation, decoded with ImageIO as legacy's own fallback did (no SDWebImage).
 struct SmileyImageLoader: Sendable {
-    private nonisolated(unsafe) static let cache: NSCache<NSURL, UIImage> = {
-        let cache = NSCache<NSURL, UIImage>()
-        cache.countLimit = 400
-        return cache
-    }()
+    /// `NSCache` is thread-safe; the box only states it for the compiler.
+    private final class Cache: @unchecked Sendable {
+        let storage: NSCache<NSURL, UIImage> = {
+            let cache = NSCache<NSURL, UIImage>()
+            cache.countLimit = 400
+            return cache
+        }()
+    }
+
+    private static let shared = Cache()
 
     let fetcher: ReaderImageFetcher
 
@@ -23,7 +30,7 @@ struct SmileyImageLoader: Sendable {
 
     /// The image already decoded for `url`, if any (no work, no request).
     static func cached(_ url: URL) -> UIImage? {
-        cache.object(forKey: url as NSURL)
+        shared.storage.object(forKey: url as NSURL)
     }
 
     /// The image at `url`: from the cache, else downloaded and decoded; nil when it cannot be had.
@@ -31,7 +38,7 @@ struct SmileyImageLoader: Sendable {
         if let cached = Self.cached(url) { return cached }
         guard let (data, _) = try? await fetcher.image(at: url, allowsThirdParty: false),
               !Task.isCancelled, let image = Self.decode(data) else { return nil }
-        Self.cache.setObject(image, forKey: url as NSURL)
+        Self.shared.storage.setObject(image, forKey: url as NSURL)
         return image
     }
 

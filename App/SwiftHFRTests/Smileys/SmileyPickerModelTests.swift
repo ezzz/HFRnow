@@ -94,4 +94,21 @@ struct SmileyPickerModelTests {
         #expect(model.notice == "Erreur :/")
         #expect(model.favorites.isEmpty)
     }
+
+    @Test func unreadableFavouritesSaySoAndWritesAreRefused() async {
+        let store = AppSmileyFavoritesStore(persistence: UnreadableFavoritesPersistence())
+        let model = picker(store: store)
+        await model.loadFavorites()
+        #expect(model.notice?.contains("illisibles") == true)
+        #expect(model.favorites.isEmpty)
+        await model.setFavorite(favorite("[:fav]"), true)
+        #expect(model.notice == "Erreur :/")
+    }
+}
+
+/// A favourites file that cannot be read: the store then refuses every write.
+private struct UnreadableFavoritesPersistence: SmallStorePersistence {
+    func load() throws -> AppSmileyFavoritesDocument? { throw CocoaError(.fileReadNoPermission) }
+    func save(_ document: AppSmileyFavoritesDocument) throws {}
+    func quarantineUnreadableData() throws {}
 }

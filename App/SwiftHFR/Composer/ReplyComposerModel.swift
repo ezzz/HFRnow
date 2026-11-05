@@ -74,7 +74,7 @@ final class ReplyComposerModel: Identifiable {
     var closeNeedsChoice: Bool { hasText }
 
     /// What the smiley picker needs: the favourites store and the account key.
-    var smileyServices: (store: AppSmileyFavoritesStore, account: String)? {
+    var smileyServices: (store: AppSmileyFavoritesStore, account: String) {
         (services.smileyFavorites, services.account)
     }
 

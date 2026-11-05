@@ -13,6 +13,8 @@ struct ReplyComposerView: View {
     @FocusState private var editorFocused: Bool
     @State private var selection: TextSelection?
     @State private var picker: SmileyPickerModel?
+    /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
+    @State private var rangeForSmiley: Range<String.Index>?
 
     var body: some View {
         NavigationStack {
@@ -45,10 +47,10 @@ struct ReplyComposerView: View {
                 Text("Le brouillon est retrouvé à la prochaine réponse dans ce sujet.")
             }
         }
-        // Swiping down would close without the choice: blocked while there is text or a send runs.
         .sheet(item: $picker, onDismiss: { editorFocused = true }) { picker in
             SmileyPickerView(model: picker) { insertSmiley($0) }
         }
+        // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
@@ -79,14 +81,15 @@ struct ReplyComposerView: View {
     }
 
     private func openSmileys() {
-        guard let services = model.smileyServices else { return }
+        let services = model.smileyServices
+        rangeForSmiley = selectedRange
         picker = SmileyPickerModel(
             catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account
         )
     }
 
     private func insertSmiley(_ code: String) {
-        guard let caret = model.insert(smiley: code, replacing: selectedRange) else { return }
+        guard let caret = model.insert(smiley: code, replacing: rangeForSmiley) else { return }
         selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
     }
 
@@ -104,10 +107,9 @@ struct ReplyComposerView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .keyboard) {
+        ToolbarItem(placement: .primaryAction) {
             Button("Smileys", systemImage: "face.smiling", action: openSmileys)
                 .disabled(!model.canEdit)
-            Spacer()
         }
         ToolbarItem(placement: .cancellationAction) {
             Button("Annuler") { Task { await model.requestClose() } }

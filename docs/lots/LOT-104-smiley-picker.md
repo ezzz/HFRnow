@@ -21,7 +21,7 @@ Legacy app `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional re
 
 ## Behaviour
 
-- Button "Smileys" in the keyboard toolbar of the reply sheet opens the picker (large sheet). Choosing a smiley inserts
+- Button "Smileys" in the toolbar of the reply sheet opens the picker (large sheet). Choosing a smiley inserts
   ` code ` (the code between two spaces, as legacy) over the editor's selection, at the end when there is none, puts the
   caret after it and gives the editor focus back. The insertion goes through `ReplyComposerModel.update`, so the draft
   autosave and every composer rule apply; nothing is inserted before the draft was read.
@@ -40,11 +40,22 @@ Legacy app `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional re
 
 ## Not in this lot (pending, no capture invented)
 
-- "Smileys du forum" section (profile favourites, LOT-027's `UserProfileSmiley`) and the search with keywords and history
-  (LOT-053, `SmileySearchHistoryStore`): own lots. Legacy only adds a favourite from those two entry points (a basic
-  smiley has no detail), so **adding** a favourite is wired in the detail view and the model (`setFavorite`, tested) but
-  not reachable until they land; reading and removing are.
+- Search, keywords and history (GAP-088): LOT-105 ([#196](https://github.com/ezzz/HFRnow/issues/196)). Legacy only adds a
+  favourite from search results and from the forum section (a basic smiley has no detail), so **adding** a favourite is
+  in the detail view and the model (`setFavorite`, tested) but not reachable until LOT-105 lands; reading and removing are.
+- "Smileys du forum" section (GAP-087, profile favourites, `UserProfileSmiley`): no lot owned it; it has its own issue
+  (see the PR), so #195 stays open (`Refs`) until it is done or the operator cuts its scope.
 - Importing the legacy favourites file is LOT-067; iCloud mirroring is LOT-172.
+
+## Offline and failures
+
+Smileys are downloaded and cached in memory only: offline, each tile shows its code until the image arrives (never a
+blank tile); an empty catalogue shows "Catalogue de smileys indisponible.". Bundling the GIFs is an option for M5.
+
+## Entry point
+
+"Smileys" in the sheet's top toolbar (always visible, also with a hardware keyboard). The editor's selection is saved
+when the picker opens (the sheet takes focus) and used at insertion; hand check on iPhone and iPad.
 
 ## Tests
 

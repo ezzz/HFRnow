@@ -1,5 +1,7 @@
 import Foundation
 
+// Port of HFRswift/Swift/ReplyComposer.swift (ReplyTextInsertionEngine.insert) @ 2440d79. Differences: UTF-16 caret offset
+// for SwiftUI TextSelection, snippet fixed to the smiley one (GAP-087).
 /// Where a smiley code lands in the reply text (LOT-104).
 ///
 /// Port of `ReplyTextInsertionEngine.insert` (`HFRswift/Swift/ReplyComposer.swift:176-196` @ 2440d79) with the snippet

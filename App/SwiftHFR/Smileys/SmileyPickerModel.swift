@@ -10,6 +10,8 @@ struct PickerSmiley: Identifiable, Hashable, Sendable {
     var id: String { code }
 }
 
+// Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView state, updateFavoriteSmiley) @ 2440d79. Differences: no
+// forum-smiley section, no search (GAP-087, GAP-088), favourites from LOT-064's store.
 /// State of the smiley picker (LOT-104): the editor's catalogue, the account's app favourites, and what the user chose.
 ///
 /// Port of `CombinedSmileyPickerView` (`HFRswift/Swift/AnswerView.swift:1051-1470` @ 2440d79) without the forum-smiley
@@ -42,7 +44,7 @@ final class SmileyPickerModel: Identifiable {
         self.account = account
     }
 
-    /// Reads the bundled catalogue; empty (and the sheet says so) if the resource cannot be decoded.
+    /// Reads the bundled catalogue; empty if the resource cannot be decoded (the panel then says it is unavailable).
     static func bundledCatalogue() -> [CommonSmiley] {
         (try? CommonSmileyCatalog.bundled()) ?? []
     }

@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView, FavoriteSmileyDetailView) @ 2440d79. Differences: see the
+// doc comment and docs/lots/LOT-104-smiley-picker.md (GAP-087).
 /// The smiley panel of the reply sheet (legacy `CombinedSmileyPickerView`, `HFRswift/Swift/AnswerView.swift:1051` @ 2440d79).
 ///
 /// Differences: no forum-smiley section and no search (their own lots); section collapse states keep legacy's
@@ -20,7 +22,11 @@ struct SmileyPickerView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 18) {
                     section("Smileys basiques", count: model.basic.count, expanded: $basicExpanded) {
-                        grid(model.basic, columns: basicColumns, compact: true) { model.tap(basic: $0) }
+                        if model.basic.isEmpty {
+                            Text("Catalogue de smileys indisponible.").font(.subheadline).foregroundStyle(.secondary)
+                        } else {
+                            grid(model.basic, columns: basicColumns, compact: true) { model.tap(basic: $0) }
+                        }
                     }
                     section("Favoris de l’app", count: model.favorites.count, expanded: $favoritesExpanded) {
                         if model.favorites.isEmpty {
@@ -110,8 +116,12 @@ private struct SmileyCell: View {
     let smiley: PickerSmiley
     let compact: Bool
 
+    @State private var hasImage = false
+
     var body: some View {
-        SmileyThumbnailView(url: smiley.imageURL)
+        // The code shows until the image is there (offline, slow, refused): the tiles stay tellable apart.
+        SmileyThumbnailView(url: smiley.imageURL, hasImage: $hasImage)
+            .overlay { if !hasImage { Text(smiley.code).font(.caption2).foregroundStyle(.secondary).minimumScaleFactor(0.5).lineLimit(1) } }
             .frame(width: compact ? 40 : 70, height: compact ? 32 : 50)
             .frame(maxWidth: .infinity, minHeight: compact ? 40 : 58)
             .background(.quaternary, in: .rect(cornerRadius: compact ? 7 : 8))
