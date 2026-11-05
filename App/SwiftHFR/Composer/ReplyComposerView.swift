@@ -1,7 +1,8 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: no formatting, GIF or upload panel yet (LOT-085, 102, 155), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
+// Differences: formatting toolbar (LOT-085, GAP-085); no GIF or upload panel yet (LOT-102, 155), smiley picker as a sheet from
+// the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
@@ -28,6 +29,14 @@ struct ReplyComposerView: View {
         case recipient, subject, text
     }
 
+    @State private var formatting: ComposerFormattingModel
+
+    init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+        self.model = model
+        self.onClose = onClose
+        _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -48,10 +57,23 @@ struct ReplyComposerView: View {
                 }
                 if model.hasSubjectField { messageFields }
                 editor
+                FormattingToolbar(model: formatting) { focused = .text }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
+            .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
+                switch pending {
+                case .link:
+                    Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
+                    Button("Oui") { formatting.acceptPending(pending); focused = .text }
+                case .formatting:
+                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+                    Button("Insérer") { formatting.acceptPending(pending); focused = .text }
+                }
+            } message: { pending in
+                Text(pending.message)
+            }
             .confirmationDialog("Garder ce texte ?", isPresented: askingClose, titleVisibility: .visible) {
                 Button("Garder le brouillon") { Task { await model.keepDraftAndClose() } }
                 Button("Supprimer le brouillon", role: .destructive) { Task { await model.discardDraftAndClose() } }
@@ -67,6 +89,7 @@ struct ReplyComposerView: View {
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
+            formatting.placeCaretAtEnd()
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
@@ -110,6 +133,13 @@ struct ReplyComposerView: View {
         Binding(get: { model.isAskingClose }, set: { model.isAskingClose = $0 })
     }
 
+    private var askingClipboard: Binding<Bool> {
+        Binding(
+            get: { formatting.pending != nil },
+            set: { if !$0 { formatting.dismissPending(); focused = .text } }
+        )
+    }
+
     /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
     private var selectedRange: Range<String.Index>? {
         guard case .selection(let range)? = selection?.indices else { return nil }
@@ -141,6 +171,30 @@ struct ReplyComposerView: View {
                 if model.isRestoring { ProgressView() }
             }
             .accessibilityLabel(model.isNewMessage || model.isNewTopic ? "Texte du message" : "Texte de la réponse")
+            .onChange(of: selection) { _, newValue in
+                guard let newValue else { return }
+                formatting.selectedRange = Self.range(of: newValue, in: model.text)
+            }
+            .onChange(of: formatting.cursorRevision) {
+                // The edit already changed the text: place the caret where the engine says, never at the end.
+                let text = model.text
+                let offset = min(formatting.selectedRange.location, text.utf16.count)
+                // Focus is not taken here: `start()` places the caret too, and a new message opens on its recipient field.
+                selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: text))
+            }
+    }
+
+    private static func end(of text: String) -> NSRange { NSRange(location: text.utf16.count, length: 0) }
+
+    /// The first selected range as a UTF-16 `NSRange`.
+    private static func range(of selection: TextSelection, in text: String) -> NSRange {
+        switch selection.indices {
+        case .selection(let range) where range.upperBound <= text.endIndex: NSRange(range, in: text)
+        case .multiSelection(let set):
+            // A stale index (the text changed meanwhile) falls back to the end instead of trapping.
+            if let first = set.ranges.first, first.upperBound <= text.endIndex { NSRange(first, in: text) } else { end(of: text) }
+        default: end(of: text)
+        }
     }
 
     /// Recipient (private message) or sub-category (topic) and subject, one line each, like HFR's own forms (`R45a`, `R45b`).
