@@ -1,12 +1,10 @@
-// Port of HFRswift/Wrapped/LinkItem.m (iframe builder, :148-158) and Wrapped/ParseMessagesOperation.m (:238-300) @ 2440d79.
-// Differences: no auto-loaded iframe, a placeholder opens this sheet on tap (GAP-058, LOT-071 D-071-2, LOT-108); the
-// "open in browser" fallback is new, on the original link (LOT-108).
 import HFRModels
 import SwiftUI
 import WebKit
 
-// Port of HFRswift/Wrapped/LinkItem.m (video embeds) @ 2440d79. Differences: a placeholder, the player loads only on tap (GAP-058,
-// LOT-071 D-071-2).
+// Port of HFRswift/Wrapped/LinkItem.m (iframe builder, :148-158) and Wrapped/ParseMessagesOperation.m (:238-300) @ 2440d79.
+// Differences: no auto-loaded iframe, a placeholder opens this sheet on tap (GAP-058, LOT-071 D-071-2, LOT-108); the
+// "open the link" fallback is new, on the original link (LOT-108).
 /// The third-party video player, loaded only after the user tapped its placeholder (LOT-071 D-071-2).
 ///
 /// It runs in its own web view, never in the reader's: the reader keeps content JavaScript off and allows no frame,
@@ -25,7 +23,7 @@ struct VideoPlayerSheet: View {
                 } else {
                     ContentUnavailableView(
                         "Vidéo indisponible", systemImage: "play.slash",
-                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvrez la vidéo dans le navigateur.")
+                        description: Text("Le lecteur ne peut pas être chargé ici. Ouvrez le lien de la vidéo.")
                     )
                 }
             }
@@ -35,7 +33,7 @@ struct VideoPlayerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
                 if let link = VideoPlayerSheet.fallbackURL(for: embed) {
                     ToolbarItem(placement: .primaryAction) {
-                        Button("Ouvrir dans le navigateur", systemImage: "safari") { openURL(link) }
+                        Button("Ouvrir le lien", systemImage: "safari") { openURL(link) }
                     }
                 }
             }

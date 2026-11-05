@@ -53,6 +53,9 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         #expect((frames as? NSNumber)?.intValue == 0)
         let hosts = await transport.requests.compactMap { $0.url.host() } + controller.imageRequests.compactMap { $0.requested.host() }
         #expect(!hosts.contains { $0.contains("youtube") })
+        // Neither the embed nor the source URL is in the page: nothing could load them, not even a preconnect.
+        let page = try await evaluate("return document.documentElement.outerHTML;", in: controller) as? String
+        #expect(page?.contains("button") == true && page?.contains("youtube") == false)
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
         #expect(recorder.videos.isEmpty)
 

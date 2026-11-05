@@ -16,12 +16,13 @@ Placeholder `button.video` per `MessageContent.embeds` entry (`TopicHTMLBuilder.
 non-persistent store, `https` on the provider's hosts only, main frame kept on that host).
 
 ## What this lot adds
-- **Open in browser fallback** in `VideoPlayerSheet`: a toolbar button opening the member's original link (`MessageEmbed.sourceURL`)
+- **"Ouvrir le lien" fallback** in `VideoPlayerSheet`: a toolbar button opening the member's original link (`MessageEmbed.sourceURL`)
   through `openURL`, limited to `http`/`https` with a host (`fallbackURL(for:)`). It stays available when the player cannot load
-  (`playerURL` nil), where the sheet now explains it. "Open in app" is the system's choice: `openURL` hands a YouTube link to the
-  installed app (universal link) or to Safari; no provider-specific scheme is built (nothing to source it from).
+  (`playerURL` nil), where the sheet now explains it. The button deliberately goes straight to the system `openURL`, not through
+  the reader's "open links in the default browser" setting: it is an explicit tap on a video, and "open in app" is the system's
+  choice (a YouTube link goes to the installed app by universal link, else Safari). No provider-specific scheme is built.
 - **Tests**: `VideoPlayerSheetTests` (player URL and fallback rules); `ReaderWebControllerTests` drives the real web view: with embeds
-  the page holds no `iframe`, neither the transport nor the image policy saw a provider host, the web view stays on its reader page, and
+  the page holds no `iframe` and its serialized HTML names no provider URL, the transport and image policy saw no provider host, the web view stays on its reader page, and
   a tap reports exactly `(post, index, token)`.
 
 ## Edge cases
