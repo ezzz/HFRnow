@@ -15,9 +15,9 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 |---|---|
 | `ReplyComposer.swift` `BBCodeTag` (9 tags, labels, symbols) | `BBCodeTag` |
 | `ReplyComposer.swift` `ReplyTextInsertionEngine` (`wrapWithBBCode`, `wrapSelectionWithURL`, `splitQuote`, `insert`) | `ReplyTextInsertionEngine` |
-| `AnswerView.swift:54-86` `ReplyTextColor` (16 colours) | `ReplyTextColor` |
-| `AnswerView.swift:1205-1320` `performFormatting`, clipboard candidates; `:530-565` alert | `ComposerFormattingModel` + alert in `ReplyComposerView` |
-| `AnswerView.swift:1060-1135` toolbar and palette | `FormattingToolbar` |
+| `AnswerView.swift:54-86` @ 21173e7 `ReplyTextColor` (16 colours) | `ReplyTextColor` |
+| `AnswerView.swift:1205-1320` @ 21173e7 `performFormatting`, clipboard candidates; `:530-565` alert | `ComposerFormattingModel` + alert in `ReplyComposerView` |
+| `AnswerView.swift:1060-1135` @ 21173e7 toolbar and palette | `FormattingToolbar` |
 
 ## Behaviour (legacy parity)
 
