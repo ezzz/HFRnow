@@ -108,7 +108,8 @@ struct ReaderColumn: View {
             NavigationStack {
                 TopicReaderView(
                     model: model, services: reader, composer: composer,
-                    onFilterPosts: topic.topicID == nil ? nil : { navigation.filtering.start(opening: topic) }
+                    onFilterPosts: topic.topicID == nil ? nil : { navigation.filtering.start(opening: topic) },
+                    filterIsBusy: navigation.filtering.isBusy
                 )
             }
             .id(topic.id)

@@ -54,6 +54,18 @@ func filteredBatch(start: Int, end: Int, posts: Int = 2, maxPage: Int = 9, finis
     return FilteredPostsBatch(posts: kept, startPage: start, endPage: end, maxPage: maxPage, isFinished: finished)
 }
 
+/// A normalizer that holds the batch until the test releases it.
+final class BlockingNormalizer: MessageContentNormalizing, @unchecked Sendable {
+    let entered = DispatchSemaphore(value: 0)
+    let release = DispatchSemaphore(value: 0)
+
+    func normalize(contentHTML: String, pageURL: URL) throws(ParsingError) -> MessageContent {
+        entered.signal()
+        release.wait()
+        return MessageContent(html: contentHTML)
+    }
+}
+
 @MainActor @Suite(.timeLimit(.minutes(1)))
 struct FilteredPostsModelTests {
     private struct PassNormalizer: MessageContentNormalizing {
@@ -136,6 +148,25 @@ struct FilteredPostsModelTests {
         #expect(model.result == nil)
         #expect(model.errorMessage == nil)
         #expect(model.statusMessage == nil)
+    }
+
+    @Test func aRunCancelledWhileItsBatchIsBeingNormalizedNeverDelivers() async {
+        let blocking = BlockingNormalizer()
+        let services = FilteredPostsServices(
+            source: FakeFilteredSource { _, _, _ in filteredBatch(start: 1, end: 1) },
+            criteria: { FilteredPostsCriteria() }, normalizer: blocking
+        )
+        let model = FilteredPostsModel(services: services)
+        model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
+        // The normalizer runs off the main actor, so waiting for it here cannot deadlock.
+        blocking.entered.wait()
+        let stale = model.lastRun
+        model.cancel()
+        blocking.release.signal()
+        await stale?.value
+        #expect(model.result == nil)
+        #expect(model.statusMessage == nil)
+        #expect(!model.isBusy)
     }
 
     @Test func aSecondStartWhileRunningIsIgnored() async {

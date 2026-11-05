@@ -82,6 +82,9 @@ final class FilteredPostsModel {
         "\(countText(progress.resultCount)) | page \(progress.page)/\(max(progress.maxPage, 1))"
     }
 
+    /// A run is reading pages (first run or "Résultats suivants"): another cannot start.
+    var isBusy: Bool { isRunning || isAdvancing }
+
     /// The line the progress banner shows.
     var bannerText: String? {
         if let statusMessage { return statusMessage }
@@ -125,7 +128,7 @@ final class FilteredPostsModel {
             switch outcome {
             case .success(let batch):
                 guard let batch else { return }
-                if batch.count == 0 {
+                if batch.page.messages.isEmpty {
                     statusMessage = "Aucun post n'a été trouvé"
                 } else {
                     result = batch
@@ -151,7 +154,7 @@ final class FilteredPostsModel {
             switch outcome {
             case .success(let batch):
                 guard let batch else { return }
-                if batch.count == 0 {
+                if batch.page.messages.isEmpty {
                     result = shown.markingFinished()
                     statusMessage = "Aucun autre post trouvé"
                 } else {

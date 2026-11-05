@@ -16,6 +16,8 @@ struct TopicReaderView: View {
     var composer: ComposerServices?
     /// Starts the post filter on this topic (LOT-114); nil hides the menu entry.
     var onFilterPosts: (() -> Void)?
+    /// A filter run is reading pages: the menu entry is disabled meanwhile.
+    var filterIsBusy = false
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
@@ -56,6 +58,7 @@ struct TopicReaderView: View {
                     Button(action: onFilterPosts) {
                         Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
                     }
+                    .disabled(filterIsBusy)
                 }
             }
         }
