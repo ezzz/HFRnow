@@ -1,0 +1,15 @@
+{
+  "id": "T21",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://reho.st/",
+  "final_url": "https://reho.st/",
+  "status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "date": "Mon, 02 Nov 2026 09:37:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "reho.st home with the forum Referer (#134); Referer: https://forum.hardware.fr/",
+  "private": false
+}

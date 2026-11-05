@@ -1,0 +1,15 @@
+{
+  "id": "T12",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://<imgN>.hostingpics.net/pics/<n>.jpg",
+  "url": "https://img15.hostingpics.net/pics/423639fior.jpg",
+  "final_url": "https://img15.hostingpics.net/pics/423639fior.jpg",
+  "status": 0,
+  "content_type": null,
+  "date": null,
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "http-only host of R20 requested over https, cookie-less, no Referer (#301); network error: [Errno 8] nodename nor servname provided, or not known",
+  "private": false
+}

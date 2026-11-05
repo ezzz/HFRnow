@@ -1,0 +1,16 @@
+{
+  "id": "T02",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/api/getAlertesByTopic.php?topic_id=<topic>",
+  "url": "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=8680",
+  "final_url": "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=8680",
+  "status": 200,
+  "content_type": "text/xml;charset=UTF-8",
+  "date": "Mon, 02 Nov 2026 09:32:39 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "aq.super-h.fr alerts of one topic (a topic of T01 whose alert title holds entities), legacy MessagesView.swift MessagePopupActionSupport.isAQAlreadySignaled",
+  "file": "T02-aq-alerts-by-topic.xml",
+  "private": false
+}

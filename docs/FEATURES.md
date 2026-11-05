@@ -31,7 +31,7 @@ Every feature and lot follows these; a proposal that breaks one needs the operat
 - FEAT-010: LOT-122 (M4), LOT-166 (M4), LOT-169 (M1), LOT-180 (M5)
 - FEAT-011: LOT-107 (M2)
 - FEAT-012: LOT-096 (M3), LOT-151 (M5)
-- FEAT-013: LOT-097 (M3), LOT-152 (M5)
+- FEAT-013: LOT-097 (M3), LOT-152 (M5), LOT-184 (M5)
 - FEAT-014: LOT-109 (M2), LOT-176 (M5)
 - FEAT-015: LOT-090 (M3), LOT-145 (M5), LOT-172 (M3)
 - FEAT-016: LOT-147 (M5)
@@ -53,13 +53,13 @@ Source: Bybifok's proposal message, PRs [ezzz/HFRnow#3–#6](https://github.com/
 | FEAT-004 | **Page scrubber** on the right of a topic: bubble "p. N", jump on release, dot and snap at first-unread page, haptic every 100 pages | 022/024 (flag page), 033 | Accessibility (VoiceOver adjustable action) | 4 | medium | proposed | [#148](https://github.com/ezzz/HFRnow/issues/148) |
 | FEAT-005 | **"Vérifier HFR" App Intent**: background check of MPs and flags, local notification, run by Shortcuts automations | 044, 047, 065, **new** "check updates" flow (HFRClient) + "already notified" state (HFRStorage) | Minimum interval (politeness), never GET a topic page (flags), keep the legacy BGTask (LOT-047) | 4 | medium | proposed | [#149](https://github.com/ezzz/HFRnow/issues/149) |
 | FEAT-006 | **Quote tray and quick-reply bar**: count of checked quotes, reply takes them in topic order, tray emptied after a confirmed send | 042, 048, 049 | — | 4 | high | proposed | [#150](https://github.com/ezzz/HFRnow/issues/150) |
-| FEAT-007 | **"Nouveau" banner** at the first unread message; stable position while images load and after a network error | 022, 030 | — | 4 | high | proposed | [#151](https://github.com/ezzz/HFRnow/issues/151) |
+| FEAT-007 | **"Nouveau" banner** at the first unread message; stable position while images load and after a network error | 022, 030 | — | 4 | high | in progress ([spec](features/FEAT-007.md)) | [#151](https://github.com/ezzz/HFRnow/issues/151) |
 | FEAT-008 | **Uniform swipes** in every list: Lu (with "Annuler", stays until refresh), Dernière page, Super favori, Retirer | 045, 051, 064 | "Annuler" needs the previous flag URL | 4 | high | proposed | [#152](https://github.com/ezzz/HFRnow/issues/152) |
 | FEAT-009 | **Session expiry sheet**: draft kept, resent after re-login only when the server confirmed it was not posted | 037, 044, 048, 063 | Double-post risk | 4 | high | proposed | [#153](https://github.com/ezzz/HFRnow/issues/153) |
 | FEAT-010 | **Appearance**: darker dark (#0B0B0C), OLED black, 1 pt separators, compact mode (now [LOT-169, #295](https://github.com/ezzz/HFRnow/issues/295)), one-line message header, single accent colour, live preview in settings, seasonal themes | 060 | Keep the legacy brightness and accent settings or migrate them | 4–5 | medium | proposed | [#154](https://github.com/ezzz/HFRnow/issues/154) |
-| FEAT-011 | **Image loading setting**: never / Wi-Fi / always | 060 (`ImageDisplayMode` exists) | — | 4 | medium | proposed | [#155](https://github.com/ezzz/HFRnow/issues/155) |
+| FEAT-011 | **Image loading setting**: never / Wi-Fi / always | 060 (`ImageDisplayMode` exists) | — | 4 | medium | done | [#155](https://github.com/ezzz/HFRnow/issues/155) |
 | FEAT-012 | **Emoji refusal with smiley suggestion** | 012, 048, **new** emoji→smiley table | HFR truncates at the first non-BMP character, BMP emoji untested | 3–4 | medium | proposed | [#156](https://github.com/ezzz/HFRnow/issues/156) |
-| FEAT-013 | **Preview before send** (exact BBCode rendering) | **new** BBCode renderer | Module (HFRParsing or app) — ADR needed | 4 | medium | proposed | [#157](https://github.com/ezzz/HFRnow/issues/157) |
+| FEAT-013 | **Preview before send** (BBCode rendering as HFR's; "exact" per the operator's choice O-1) | LOT-097 (BBCode renderer), LOT-152, LOT-184 | [ADR 0014](adr/0014-bbcode-preview-renderer.md) (accepted): local renderer in HFRParsing through the LOT-034 normalizer, measured against HFR's own rendering; O-1 = (b) decided 2026-11-02 on #189: local preview (LOT-097, LOT-152) plus on-demand `/apercu.php` (LOT-184, M5) | 4 | medium | proposed | [#157](https://github.com/ezzz/HFRnow/issues/157) |
 | FEAT-014 | **HD gallery** with swipe between images | 034, 056 | — | 4 | medium | proposed | [#158](https://github.com/ezzz/HFRnow/issues/158) |
 | FEAT-015 | **State restoration**: forum, topic, page, position on return, fold, multi-window | **new** reading-position store | — | 4–5 | medium | proposed | [#159](https://github.com/ezzz/HFRnow/issues/159) |
 | FEAT-016 | **iPhone Duo / iPad columns**: two columns unfolded, tabs in a rail folded, sidebar pinned or on demand | — | Phase 5 design documentation | 5 | high | proposed | [#160](https://github.com/ezzz/HFRnow/issues/160) |
