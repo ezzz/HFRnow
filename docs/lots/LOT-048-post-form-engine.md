@@ -36,7 +36,7 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    document order. No form: the page's `.hop` is classified (LOT-037); the logged-out sentence gives `notLoggedIn`,
    anything else `formUnavailable(message:)` (`RA5`). An empty `hash_check` or `pseudo` (anonymous composer `R40b`) gives
    `notLoggedIn`. The form's token is recorded in the session, unless a login was adopted while the page was in flight (#308, LOT-043 edge cases). The returned `PostingForm` keeps the
-   session it came from, so it can only be posted through it (Q-8).
+   session it came from, so it can only be posted through it (Q-8), and the identity that session had: after a logout or a login of another account in that session, every write through it is refused right before the POST (`sessionChanged`, #342; a logout or an `md_user` expired meanwhile reads as a change too, and reloading the form then gives `notLoggedIn`); a change landing after that check is not caught locally and HFR's answer decides: `W17b` if the new cookies left with the old form, the write's own answer if the form's account's cookies did. A re-login of the same account still sends it, HFR judges the token (#315): the identity is compared, not #340's login generation, which every login moves (LOT-043 edge cases). A cancellation wins over a changed session (`network(.cancelled)`).
 2. **Shape** (`PostingForm.Shape`) — a non-empty `numreponse` is an edit form (`R43a`-`R44`); else a visible `sujet` with a
    `dest` field is a new MP (`R45b`), without one a new topic (`R45a`); else a reply composer (`R40a`, `R41a`, `R41b`, `R42`,
    `R47a`-`R47u1`). Each write requires its shape (`formMismatch`): `reply` ↔ reply, `newTopic` ↔ new topic,

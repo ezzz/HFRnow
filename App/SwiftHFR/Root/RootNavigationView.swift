@@ -37,6 +37,11 @@ struct RootNavigationView: View {
             }
         }
         .onChange(of: model.selectedDestination, initial: true) { _, destination in lastDestination = destination }
+        // A new session rebuilds the root: a filter run of the discarded one would keep reading pages with no control.
+        .onDisappear {
+            model.categories.filtering.cancel()
+            model.favorites.filtering.cancel()
+        }
     }
 
     private var usesSidebarRoot: Bool {

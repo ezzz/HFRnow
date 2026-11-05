@@ -28,6 +28,7 @@ struct ReplyComposerSendTests {
         .notLoggedIn,
         .formUnavailable(message: "Ce sujet est fermé"),
         .formUnavailable(message: nil),
+        .sessionChanged,
         .network(.offline),
         .network(.timedOut),
         .network(.httpStatus(code: 503, url: replyFormURL)),

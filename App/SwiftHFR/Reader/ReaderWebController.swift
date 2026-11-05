@@ -22,6 +22,8 @@ final class ReaderWebController: NSObject {
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped the menu button or the author of message `post` in document `token`.
+        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -183,32 +185,36 @@ final class ReaderWebController: NSObject {
     // MARK: - Messages from reader.js
 
     fileprivate func receive(_ message: WKScriptMessage) -> Any? {
-        guard message.frameInfo.isMainFrame, let body = message.body as? [String: Any],
-              let type = body["type"] as? String, let token = (body["token"] as? NSNumber)?.intValue,
-              let document, token == document.token else { return nil }
-        switch type {
-        case "images":
-            return decisions(for: body["urls"] as? [Any] ?? [])
-        case "tap":
-            return recordTap(body["url"] as? String)
-        case "ready":
-            documentIsReady(document, token: token)
+        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body),
+              let document, decoded.token == document.token else { return nil }
+        return handle(decoded.message, in: document)
+    }
+
+    /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
+    /// first); this one is internal only so tests can drive the actions without a web view round trip.
+    func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
+        switch message {
+        case .images(let urls):
+            return decisions(for: urls)
+        case .tap(let url):
+            return recordTap(url)
+        case .ready:
+            documentIsReady(document, token: document.token)
             return nil
-        case "video":
-            if let post = (body["post"] as? NSNumber)?.intValue, let index = (body["index"] as? NSNumber)?.intValue {
-                events.video(post, index, token)
-            }
+        case .video(let post, let index):
+            events.video(post, index, document.token)
             return nil
-        default:
+        case .menu(let post, let source):
+            events.menu(post, source, document.token)
             return nil
         }
     }
 
     /// One decision per image `src`, in order.
-    private func decisions(for urls: [Any]) -> [String] {
+    private func decisions(for urls: [String?]) -> [String] {
         let auto = autoLoadsThirdPartyImages()
         return urls.prefix(Self.maximumImages).map { value -> String in
-            guard let text = value as? String, let url = URL(string: text) else { return ImageDecision.block.rawValue }
+            guard let text = value, let url = URL(string: text) else { return ImageDecision.block.rawValue }
             return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
         }
     }

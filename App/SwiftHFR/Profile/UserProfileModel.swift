@@ -13,7 +13,7 @@ enum ProfileLinkAction: Equatable, Sendable {
     case ignored
 }
 
-// Port of HFRswift/Swift/UserProfileView.swift (UserProfileViewModel, UserProfileQuickActions) @ 21173e77. Differences: the
+// Port of HFRswift/Swift/UserProfileView.swift (UserProfileViewModel, UserProfileQuickActions) @ 2440d79. Differences: the
 // quick actions are hooks set by the lots that own them (LOT-128 MP, LOT-118 lists); see the LOT-116 spec.
 /// State of the profile screen (LOT-116): one member's profile, loaded once on appear, reloaded on demand; the profile on
 /// screen stays while a reload runs or fails (`ContentLoader`).

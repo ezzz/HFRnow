@@ -2,7 +2,7 @@ import HFRParsing
 import SwiftUI
 
 // Port of HFRswift/Swift/UserProfileView.swift (UserProfileView, UserProfileHeaderView, UserProfileQuickActionsView,
-// UserProfileSectionView, UserProfileFieldRow, UserProfileSmiliesView, UserProfileActionsView) @ 21173e77. Differences: images
+// UserProfileSectionView, UserProfileFieldRow, UserProfileSmiliesView, UserProfileActionsView) @ 2440d79. Differences: images
 // through the reader's cookie-less fetcher and image policy, not `AsyncImage`; no smiley favourite toggle (LOT-104); a
 // list instead of cards (LOT-116 spec).
 /// A member's public profile in a sheet (LOT-116): header (avatar, pseudo, status, figures), the page's sections, personal

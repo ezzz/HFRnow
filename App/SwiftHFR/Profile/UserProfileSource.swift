@@ -8,7 +8,7 @@ protocol UserProfileSource: Sendable {
     func profile(memberID: Int) async throws(ListLoadError) -> UserProfile
 }
 
-// Port of HFRswift/Swift/UserProfileView.swift (UserProfileService.fetchProfile) @ 21173e77. Differences: fetched without the
+// Port of HFRswift/Swift/UserProfileView.swift (UserProfileService.fetchProfile) @ 2440d79. Differences: fetched without the
 // account's cookies, and a page served at another URL is refused (LOT-116 spec, differences 1 and 2).
 /// The live source: `PageFetcher.profile` (LOT-045) **without cookies**, then `UserProfileParser` (LOT-027).
 ///

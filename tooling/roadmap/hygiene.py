@@ -76,7 +76,7 @@ def analyze(issues, pulls, lots, comments, now):
                 continue
             actions.append({'kind': 'close', 'issue': n, 'pr': p['number'], 'sha': (p.get('merge_commit_sha') or '')[:7]})
 
-    gate, m5_ready = [], []
+    gate, m5_ready, cap_gated = [], [], []
     pending_close = {a['issue'] for a in actions if a['kind'] == 'close'}
     for r in lots:
         n = r['issue']
@@ -100,6 +100,9 @@ def analyze(issues, pulls, lots, comments, now):
         if unknown and 'status: blocked' in lb:
             reports.append(f"#{n} {r['lot']}: dependency missing from lots.json (" + ', '.join(unknown) + '), left blocked')
             continue
+        if (deps is not None and 'status: blocked' in lb and not open_deps and n in capture and n not in pending_close
+                and 'status: ready' not in lb and 'status: claimed' not in lb and not is_m5(r)):
+            cap_gated.append(f"{r['lot']} #{n} ({st['capture'][str(n)]})")  # every lot dependency is done: the capture is the only gate
         if deps is None or 'status: ready' in lb or 'status: claimed' in lb or open_deps or n in capture or n in pending_close:
             continue
         if 'status: blocked' not in lb:
@@ -131,6 +134,8 @@ def analyze(issues, pulls, lots, comments, now):
 
     if m5_ready:
         reports.append('M5 lots with every dependency done, left blocked (M5 opens by the orchestrator): ' + ', '.join(m5_ready))
+    if cap_gated:
+        reports.append('blocked lots whose lot dependencies are all done, gated only by an open capture (check that the capture is still needed): ' + ', '.join(cap_gated))
     if gate:
         reports.append('blocked lots with a gate sentence as dependency (resolve by hand): ' + ', '.join(gate))
     for i in real:

@@ -1,6 +1,9 @@
 import Foundation
 
 /// The session's identity and token as a request left, read in one actor turn (issue #308).
+///
+/// The posting-side counterpart of `RefreshSeed` (`Session/RefreshUpdate.swift`), which also carries the cookies a
+/// refresh probe starts from; both feed the same compare-and-set rule.
 struct HashCheckSeed: Sendable, Equatable {
     /// Usable `md_user` value, nil when the session was logged out.
     let identity: String?
