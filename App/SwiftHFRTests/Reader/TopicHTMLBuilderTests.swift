@@ -24,6 +24,16 @@ struct TopicHTMLBuilderTests {
         ReaderPage(topicID: readerTopic, title: title, currentPage: 1, maxPage: 1, messages: messages)
     }
 
+    @Test func theFlagMessageIsFollowedByTheLegacySeparatorUnlessLast() {
+        let loaded = readerPage(page: 3)
+        let flagged = TopicHTMLBuilder.document(for: loaded, token: 1, separatorAfter: 300)
+        #expect(flagged.components(separatedBy: "<div class=\"separator1\"></div>").count == 2)
+        let line = flagged.range(of: "<div class=\"separator1\">")?.lowerBound
+        #expect(line.map { flagged[..<$0].contains("id=\"t300\"") && !flagged[..<$0].contains("id=\"t301\"") } == true)
+        #expect(!TopicHTMLBuilder.document(for: loaded, token: 1, separatorAfter: 301).contains("separator1"))
+        #expect(!TopicHTMLBuilder.document(for: loaded, token: 1).contains("separator1"))
+    }
+
     @Test func injectedValuesAreEscaped() {
         let hostile = "<script>alert(1)</script>\"' onmouseover=x"
         let html = TopicHTMLBuilder.document(

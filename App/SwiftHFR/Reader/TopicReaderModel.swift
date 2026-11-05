@@ -4,7 +4,8 @@ import HFRParsing
 import Observation
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
-// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167).
+// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167);
+// the reading position is recorded per account and the flag message is followed by the legacy separator (LOT-111, GAP-063, UXD-11).
 /// An HTML document handed to the web view. `token` is unique per model, so an event of an older document is recognised.
 struct ReaderDocument: Equatable, Sendable {
     /// Identity of this document; grows with every new document.
@@ -27,8 +28,6 @@ struct ScrollRequest: Equatable, Sendable {
     let anchor: Int
 }
 
-// Port of HFRswift/Swift/MessagesView.swift (anchors, `WebView.ScrollPosition`) @ 2440d79. Differences: one page at a time, position
-// recorded per account (LOT-111, GAP-063, UXD-11).
 /// State of the topic reader (LOT-083): one page at a time, page navigation, refresh, links.
 ///
 /// Loading rules (LOTS "Issues to open" #6 and #7, issues #107 and #108): one load at a time, a newer load or `cancel()`
@@ -78,6 +77,8 @@ final class TopicReaderModel {
     private let renderOptions: @Sendable () -> ReaderRenderOptions
     /// The options the document on screen was built with, to spot a setting that changed since.
     private var appliedOptions: ReaderRenderOptions?
+    /// The flag message the document draws a line after (legacy separator, LOT-111).
+    private var separatorAfter: Int?
     private var generation = 0
     private var nextToken = 0
     private var nextScrollID = 0
@@ -152,7 +153,7 @@ final class TopicReaderModel {
         nextToken += 1
         document = ReaderDocument(
             token: nextToken,
-            html: TopicHTMLBuilder.document(for: page, token: nextToken, options: options),
+            html: TopicHTMLBuilder.document(for: page, token: nextToken, options: options, separatorAfter: separatorAfter),
             anchor: nil,
             keepsScrollPosition: true
         )
@@ -377,9 +378,10 @@ final class TopicReaderModel {
             }
             let options = renderOptions()
             appliedOptions = options
+            separatorAfter = anchor.flatMap { rule == .target ? $0 : nil }
             document = ReaderDocument(
                 token: nextToken,
-                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options),
+                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options, separatorAfter: separatorAfter),
                 anchor: anchor,
                 keepsScrollPosition: keepsScrollPosition && anchor == nil
             )

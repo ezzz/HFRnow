@@ -53,22 +53,30 @@ struct ReaderPositionTests {
         #expect(await recorder.records.isEmpty)
     }
 
-    @Test func aFlagLinkLandsOnItsMessageAndALaterReportMovesOn() async throws {
-        let (reader, recorder) = await loadedReader(page: 2, anchor: 200)
-        #expect(reader.document?.anchor == 200)
-        let token = try #require(reader.document?.token)
-        await reader.recordPosition(post: 200, token: token)
-        await reader.recordPosition(post: 201, token: token)
-        #expect(await recorder.records.map(\.position.messageNumber) == [200, 201])
-    }
-
-    @Test func nothingIsRecordedWithoutARecorder() async throws {
+    @Test func aContinuationBlockIsNeverRecorded() async throws {
+        let recorder = RecordingPositions()
+        var page = readerPage(page: 2)
+        page.messages[0].isContinuation = true
         let reader = TopicReaderModel(
-            target: ReaderTarget(source: .topic(readerTopic), page: 2), title: "Sujet", source: FakeTopicPages()
+            target: ReaderTarget(source: .topic(readerTopic), page: 2), title: "Sujet",
+            source: FakeTopicPages { _ in page }
         )
+        reader.positions = recorder
         await reader.onAppear()
         let token = try #require(reader.document?.token)
-        await reader.recordPosition(post: 201, token: token)
-        #expect(reader.page?.currentPage == 2)
+        await reader.recordPosition(post: 200, token: token)
+        #expect(await recorder.records.isEmpty)
+    }
+
+    @Test func theLiveRecorderOnlyMovesForward() async throws {
+        let store = ReadingPositionStore(persistence: InMemoryReadingPositionPersistence())
+        let recorder = LiveReaderPositionRecorder(account: "compte", store: store)
+        await recorder.record(ReadingPosition(page: 2, messageNumber: 201), in: readerTopic)
+        await recorder.record(ReadingPosition(page: 2, messageNumber: 200), in: readerTopic)
+        #expect(await store.position(of: readerTopic, account: "compte")?.messageNumber == 201)
+    }
+
+    @Test func nobodyIsRecordedWhenLoggedOut() {
+        #expect(LiveReaderPositionRecorder.live(account: nil) == nil)
     }
 }

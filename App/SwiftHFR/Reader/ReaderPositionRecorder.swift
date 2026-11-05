@@ -17,6 +17,8 @@ struct LiveReaderPositionRecorder: ReaderPositionRecording {
 
     /// The account's key (`md_user` value).
     let account: String
+    /// The store written; the process-wide one unless a test gives its own.
+    var store = LiveReaderPositionRecorder.store
 
     /// The recorder of `account`, nil when logged out (nothing is recorded for a visitor).
     static func live(account: String?) -> LiveReaderPositionRecorder? {
@@ -25,6 +27,6 @@ struct LiveReaderPositionRecorder: ReaderPositionRecording {
 
     func record(_ position: ReadingPosition, in topic: TopicID) async {
         // A failed save (unreadable store, full disk) loses a position, never the reading: nothing to show for it.
-        _ = try? await Self.store.advance(topic, to: position, account: account)
+        _ = try? await store.advance(topic, to: position, account: account)
     }
 }

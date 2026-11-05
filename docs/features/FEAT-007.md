@@ -9,6 +9,7 @@ Opening a flagged topic lands on the first unread message and stays there while 
 ## Screens and states
 - Reader opened from a flagged row: the page of the flag link, scrolled to the flag's message (`#t<numreponse>`).
 - While images load the message stays at the top; the first touch, wheel or key press releases it.
+- The flag message is followed by the legacy dashed separator (not after the last message).
 - Network error after landing: the page on screen stays (LOT-083 rule), the position is untouched.
 
 ## HFR facts

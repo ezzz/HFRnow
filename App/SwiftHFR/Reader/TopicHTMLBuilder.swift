@@ -55,7 +55,11 @@ enum TopicHTMLBuilder {
     ].joined(separator: "; ")
 
     /// The full document for `page`. `token` identifies this document so a late event of an older one is ignored.
-    static func document(for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions()) -> String {
+    /// `separatorAfter` is the flag message: legacy draws a dashed line after it (not after the last message), so the
+    /// unread messages start below it (`ObjCTopicMessageContentBuilder.m:25-33` @ 2440d79).
+    static func document(
+        for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions(), separatorAfter: Int? = nil
+    ) -> String {
         var html = """
         <!DOCTYPE html>
         <html lang="fr" data-token="\(token)">
@@ -73,8 +77,11 @@ enum TopicHTMLBuilder {
         <main>
 
         """
-        for message in page.messages {
+        for (index, message) in page.messages.enumerated() {
             html += article(for: message, options: options)
+            if !message.isContinuation, message.numreponse == separatorAfter, index < page.messages.count - 1 {
+                html += "<div class=\"separator1\"></div>\n"
+            }
         }
         html += "</main>\n</body>\n</html>\n"
         return html

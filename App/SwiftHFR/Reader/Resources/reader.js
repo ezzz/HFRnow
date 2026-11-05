@@ -70,10 +70,18 @@
   let pinned = null;
   const releasePin = () => { pinned = null; };
   const settled = () => Array.from(document.images).every((img) => img.complete);
+  let settleTimer = null;
   const repin = () => {
     if (pinned === null) { return; }
-    if (pinned.scrollIntoView) { pinned.scrollIntoView({ block: "start" }); }
-    if (settled()) { releasePin(); }
+    pinned.scrollIntoView({ block: "start" });
+    // A failed image becomes a link of another height after this handler (see `load` above): release only after one more
+    // turn of the event loop, with a last scroll.
+    clearTimeout(settleTimer);
+    if (settled()) {
+      settleTimer = setTimeout(() => {
+        if (pinned !== null && settled()) { pinned.scrollIntoView({ block: "start" }); releasePin(); }
+      }, 0);
+    }
   };
   ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
     window.addEventListener(name, releasePin, { passive: true, capture: true }));
@@ -83,6 +91,7 @@
 
   window.hfrReader = {
     scrollToPost: (number) => {
+      releasePin();
       const element = document.getElementById("t" + number);
       if (element) { element.scrollIntoView({ block: "start" }); }
       return element !== null;
