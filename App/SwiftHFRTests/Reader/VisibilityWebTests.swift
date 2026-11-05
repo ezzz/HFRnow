@@ -45,9 +45,12 @@ struct VisibilityWebTests: ReaderWebTesting {
         try await evaluate(script, in: controller)
     }
 
-    private func plain(_ author: String, _ number: Int, _ body: String = "<p>texte</p>") -> ReaderMessage {
+    private func plain(
+        _ author: String, _ number: Int, _ body: String = "<p>texte</p>", avatar: Bool = false
+    ) -> ReaderMessage {
         ReaderMessage(
-            numreponse: number, author: author, isDeleted: false, isContinuation: false, avatarURL: nil,
+            numreponse: number, author: author, isDeleted: false, isContinuation: false,
+            avatarURL: avatar ? url("https://forum-images.hardware.fr/avatars/a.png") : nil,
             dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: body)
         )
     }
@@ -133,10 +136,35 @@ struct VisibilityWebTests: ReaderWebTesting {
         #expect(quote?[4] as? Bool == true)
     }
 
+    @Test func theQuoteOfAnAllowlistedAuthorIsTintedWithTheLoveColour() async throws {
+        let message = try Self.message(in: "R20-topic-p1-anon.html", quoting: "user4")
+        let (controller, _) = await show([message], policy: VisibilityPolicy(allowlist: ["user4"]))
+        let quote = try await evaluate(
+            """
+            const probe = document.createElement('span');
+            probe.style.color = 'var(--love-border)';
+            document.body.append(probe);
+            const style = getComputedStyle(document.querySelector('table.quote-allowed'));
+            return [style.backgroundColor, style.borderLeftWidth, style.borderLeftColor, getComputedStyle(probe).color,
+                    document.querySelector('table.quote-allowed p').checkVisibility(),
+                    document.querySelectorAll('table.quote-me, table.quote-blocked').length];
+            """, controller
+        ) as? [Any]
+        #expect((quote?[0] as? String)?.contains("0.3") == true, "\(String(describing: quote?[0]))")
+        #expect(quote?[1] as? String == "2px")
+        #expect(quote?[2] as? String == quote?[3] as? String)
+        #expect(quote?[4] as? Bool == true)
+        #expect((quote?[5] as? NSNumber)?.intValue == 0)
+    }
+
     @Test func aBlockedMessageIsOneClosedLineAndOwnAndAllowlistedMessagesAreTinted() async throws {
         let policy = VisibilityPolicy(ownPseudo: "moi", blocklist: ["Troll"], allowlist: ["Ami"])
         let (controller, _) = await show(
-            [plain("Troll", 1, "<p>message masqué</p>"), plain("moi", 2), plain("Ami", 3), plain("Inconnu", 4)], policy: policy
+            [
+                plain("Troll", 1, "<p>message masqué</p>"), plain("moi", 2, avatar: true), plain("Ami", 3, avatar: true),
+                plain("Inconnu", 4)
+            ],
+            policy: policy
         )
         let hidden = "return document.querySelector('article.blocked .content').checkVisibility();"
         #expect(try await evaluate(hidden, controller) as? Bool == false)
@@ -144,6 +172,7 @@ struct VisibilityWebTests: ReaderWebTesting {
         #expect(summary == "TrollMessage masqué")
         _ = try await evaluate("document.querySelector('article.blocked summary').click(); return true;", controller)
         #expect(try await evaluate(hidden, controller) as? Bool == true)
+        #expect(await settled(controller))
         #expect((try await evaluate("return document.querySelectorAll('details').length;", controller) as? NSNumber)?.intValue == 1)
         let tints = try await evaluate(
             """
@@ -154,7 +183,8 @@ struct VisibilityWebTests: ReaderWebTesting {
               actionColor: probe('var(--action)'), loveBorder: probe('var(--love-border)'),
               meContent: [style('.me', '.content').backgroundColor, style('.me', '.content').borderLeftColor],
               meHeader: [style('.me', '.header').borderLeftWidth, style('.me', '.header').borderLeftColor],
-              meAvatarRing: style('.me', '.header').borderLeftWidth,
+              meAvatar: [style('.me', '.avatar').borderLeftWidth, style('.me', '.avatar').borderLeftColor],
+              loveAvatar: [style('.whitelist', '.avatar').borderLeftWidth, style('.whitelist', '.avatar').borderLeftColor],
               loveContent: [style('.whitelist', '.content').backgroundColor, style('.whitelist', '.content').borderLeftColor],
               loveHeader: [style('.whitelist', '.header').backgroundColor, style('.whitelist', '.header').borderLeftColor],
               plainContent: style(':not(.me):not(.whitelist):not(.blocked)', '.content').borderLeftWidth
@@ -170,6 +200,8 @@ struct VisibilityWebTests: ReaderWebTesting {
         #expect((tints?["loveContent"] as? [String])?.last == love)
         #expect((tints?["loveHeader"] as? [String])?.first?.contains("0.4") == true)
         #expect((tints?["loveHeader"] as? [String])?.last == love)
+        #expect((tints?["meAvatar"] as? [String]) == ["2px", action ?? ""])
+        #expect((tints?["loveAvatar"] as? [String]) == ["2px", love ?? ""])
         #expect(tints?["plainContent"] as? String == "0px")
     }
 
