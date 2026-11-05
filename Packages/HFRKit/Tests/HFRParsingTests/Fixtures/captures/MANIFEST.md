@@ -78,6 +78,16 @@ pages, the preview equals the message body once whitespace is removed, apart fro
 wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the right one (`W64`); user1 deleted it too
 (`W65`, clean-up). Nothing of the thread is left on HFR. `flows.py form` gained `--cookie` (sent with the POST only).
 
+Run 10 (2026-11-02, `mac/capture-batch` batch 3, ezzz/HFRnow#133, #174, #134, #301 and #127, read-only, no account, 20
+requests: 4 to `forum.hardware.fr`, 16 to other hosts). `T` ids are third-party hosts. The Alertes Qualitaÿ feed and one
+topic's alert list (`T01`, `T02`, `aq.super-h.fr`) are anonymized by position: every initiator and reporter → `userN`, and
+the member-written alert titles and comments → one `x` per word, entities and punctuation kept (the encodings LOT-028 must
+decode); public topic titles stay. Image hosts were asked cookie-less for one image URL each of `R20`/`R22a` over `https`,
+then over `http` where `https` failed or redirected; a request that got no HTTP answer is recorded as status 0 with the
+error in the note (`flows.py get --record-network-error`), and a `Referer` sent is recorded in the note (`--referer`).
+Image bodies are not published (meta only). Three public topic pages were read only to look for a `reho.st` image and
+are not published (none found).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -256,6 +266,18 @@ wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the
 | R96d | `R96d-mp-thread-recipient-after-thread-delete.html` | Thread URL for the recipient afterwards: the same "pas destiné" `.hop` | X1 | 094, 030 |
 | R96a | `R96a-mp-list-past-last-page.html` | user1's MP list `page=8` of 7, with `MPStorage.m:694`'s query: 200, no redirect, no `.hop`, header row and no topic row; title "… - Page : 8"; the pager lists pages 1 to 7 as links (no current page), "Page Précédente" links page 7, no "Page Suivante" link | R14 | 023, 038, 047, 126 |
 | R96b | `R96b-mpstorage-thread-other-account-not-addressed.html` | user2 opens user1's MPStorage thread with legacy's read URL (`MPStorage.m:766`, as `R60a`): 200, the "pas destiné" `.hop` legacy's `parseMPStorage` checks (`MPStorage.m:837`) | R60 | 038 |
+| T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
+| T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
+| R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
+| R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
+| T10 | meta only | `https://nsa34.casimages.com/…jpg`: no DNS answer (status 0) | — | 056, 083 |
+| T11, T11h | meta only | `yelims.free.fr` image: `https` TCP refused (status 0); `http` 200 `image/gif` | — | 056, 083 |
+| T12 | meta only | `https://img15.hostingpics.net/…jpg`: no DNS answer | — | 056, 083 |
+| T13 | meta only | `https://si1.photorapide.com/…jpg`: 200 `image/jpeg` | — | 056, 083 |
+| T14, T14h | meta only | `www.camif.fr` image: `https` 404 `text/html`; `http` 301 → the `https` URL, then 404 | — | 056, 083 |
+| T15 | meta only | `https://bibi.hn.org/…`: no DNS answer | — | 056, 083 |
+| T20, T21, T24 | meta only | `https://reho.st/`: 403 `text/html` without `Referer`; 200 `text/html`, empty body, with `Referer: https://forum.hardware.fr/` or `https://forum.hardware.fr` | E26 | 056, 083, 109 |
+| T22, T23 | meta only | `https://reho.st/self/abc123.jpg` (legacy test path, no such image): 403 without `Referer`, 200 empty `text/html` with it | E26 | 056, 083, 109 |
 
 ## Not captured
 
@@ -271,5 +293,8 @@ wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the
 | X10 cookie-less multi-quote | Out of the approved scope or not needed. |
 | A cookie-less poll vote and the poll author's results view (run 8) | Captured, not published: held for an operator decision (see the run 8 PR). |
 | A reply to a locked topic, a ban refusal (run 8) | The locked topic's composer is served (200) but its POST was not sent (not an operator topic); no banned account. |
-| oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
+| oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. Run 10 looked for a `reho.st` image on three recent public topic pages and found none (`rehost.diberie.com` instead): the `Referer` gate is captured on `/` and on a path naming no image (`T20`-`T24`). |
+| AQ comment with an entity (#438) | None in the live feed of run 10 (`T01`); an entity in a pseudo cannot survive the alias. |
+| A real `reho.st` image (#134) | None found (see above); the `Referer` gate is captured on `/` and on a path naming no image. |
+| Giphy `search` / `trending` (#175) | Not captured: legacy uses the Giphy SDK (no traceable REST request) and no REST key is configured; decision asked on the issue. |
 | MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (pending capture [#272](https://github.com/ezzz/HFRnow/issues/272)). |

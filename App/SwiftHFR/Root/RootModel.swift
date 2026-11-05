@@ -114,7 +114,7 @@ final class RootModel {
             NavigationModel(
                 dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
-                startupSource: startup
+                filteredPosts: environment.filteredPosts, startupSource: startup
             )
         }
         self.init(

@@ -27,6 +27,12 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
+    /// Give each message a `⋯` button (LOT-087). Off until a message-menu handler is registered.
+    var showsMessageMenus = false
+    /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
+    var showsAuthorMenus = false
+    /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
+    var style = ThemeStyle.modern
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -53,7 +59,11 @@ enum TopicHTMLBuilder {
     ].joined(separator: "; ")
 
     /// The full document for `page`. `token` identifies this document so a late event of an older one is ignored.
-    static func document(for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions()) -> String {
+    /// `separatorAfter` is the flag message: legacy draws a dashed line after it (not after the last message), so the
+    /// unread messages start below it (`ObjCTopicMessageContentBuilder.m:25-33` @ 2440d79).
+    static func document(
+        for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions(), separatorAfter: Int? = nil
+    ) -> String {
         var html = """
         <!DOCTYPE html>
         <html lang="fr" data-token="\(token)">
@@ -67,12 +77,15 @@ enum TopicHTMLBuilder {
         <link rel="stylesheet" href="\(scheme)://resource/reader.css">
         <title>\(HTMLEscaping.text(page.title))</title>
         </head>
-        <body class="\(options.showsSignatures ? "signatures" : "nosig")">
+        <body class="\(options.showsSignatures ? "signatures" : "nosig") \(options.style == .classic ? "style-classic" : "style-modern")">
         <main>
 
         """
-        for message in page.messages {
+        for (index, message) in page.messages.enumerated() {
             html += article(for: message, options: options)
+            if !message.isContinuation, message.numreponse == separatorAfter, index < page.messages.count - 1 {
+                html += "<div class=\"separator1\"></div>\n"
+            }
         }
         html += "</main>\n</body>\n</html>\n"
         return html
@@ -94,8 +107,19 @@ enum TopicHTMLBuilder {
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
         }
-        html += "<span class=\"author\">\(author)</span>"
+        let showsMessageMenu = options.showsMessageMenus && !message.isContinuation
+        if options.showsAuthorMenus, !message.isContinuation {
+            // The author opens the author's menu (legacy: the avatar tap); the numbers are ours, never page text.
+            html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\">"
+            html += "\(author)</button>"
+        } else {
+            html += "<span class=\"author\">\(author)</span>"
+        }
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
+        if showsMessageMenu {
+            html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
+            html += " aria-label=\"Actions du message de \(author)\">⋯</button>"
+        }
         html += "</header>\n"
         if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
         if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }

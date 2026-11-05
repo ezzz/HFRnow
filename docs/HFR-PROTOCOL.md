@@ -82,8 +82,8 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 | New topic | `href` of `#md_btn_new_topic` on the topic list | `sujet` (text), `subcat` (select) | `ObjCTopicListParser.m:134-135` · D §2.5 |
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
-| Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:131-150` |
-| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, hidden inputs + chosen options; radio value semantics unverified | `PollData.swift:44-100` · D §2.9 |
+| Delete MP thread | the MP list's `form1` (`R95k`): action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`, checkbox `topic<i>` = thread `post` | legacy body `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`; the site form has no `type_page` and a second `hash_check` before `topic1`. Answers: **verified** 2026-11-02, see §6b "MP thread delete" | `MPListView.swift:127-154` @ 03e5e22 |
+| Poll vote | poll block in the topic page | POST `/user/vote.php?config=hfr.inc`, the form's controls in document order + `reponse=<1-based position>` + `sondage_submit=Voter` (`W42`, §6c LOT-054) | `PollData.swift:45-99` @ 2440d79 · D §2.9 |
 
 ### 3.2 Topic flags
 - Add to favourites: **state-changing GET** of the message's `addflag` link; toast text from `<div class="hop">`. `ParseMessagesOperation.m:383-384` · D §2.8
@@ -154,6 +154,7 @@ Fixture-backed (**live**) facts not covered by a row above. Ids refer to `Fixtur
 - **BMP emoji** (`W62`, `R95f`, `R95h`, 2026-11-02): U+2764, U+2764 U+FE0F, U+2714, U+2605 and a lone U+FE0F are accepted, stored unchanged (`content_form`) and rendered as UTF-8 characters, never as an image; only non-BMP characters truncate (`W12`).
 - **MP thread delete** (`W64x`, `W64`, `R95j`, `R95k`, `R96c`, `W65`, `R96d`, 2026-11-02): with a wrong `hash_check` the answer is the 99-byte plain text of `W17b` and nothing is deleted; success is a link-less `.hop` "Action effectuée avec succès" with a 1 s refresh to `/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&…`, no cookie set. The delete only removes the thread **from the deleting account's list**: the owner's list is empty and the thread URL answers the "pas destiné" `.hop` for it, while the recipient still lists it (`R95k`) until it deletes it too (`W65`, same answer, then "pas destiné" for it as well).
 - **MP list past the last page** (`R96a`, 2026-11-02, `page=8` of 7 with `MPStorage.m:694`'s query): 200, no redirect, no `.hop`, the header row and no topic row, `<title>` "… - Page : 8"; the pager lists 1 to 7 as links (no current page), "Page Précédente" links page 7, "Page Suivante" is plain text (not a link). It is an empty page, not a logged-out or error answer.
+- **Account deletion** (`R98a`, 2026-11-02, LOT-157): the forum has no deletion page or URL of its own. Every forum page's footer links `https://www.hardware.fr/html/donnees_personnelles/` ("Signaler un contenu illicite / Données personnelles", `R01`), an ISO-8859-1 page of hardware.fr that lists the GDPR rights, erasure included ("droit d'accès, de rectification, de portabilité et d'effacement"), exercised by e-mail to a dedicated address (redacted in `R98a`) or by post to "HARDWARE.FR - DPO", the request giving name, first name and customer number with a copy of an identity document. This URL is the procedure LOT-157 links (Q-10: no address in the app).
 
 ## 6c. Verified by parser tests
 
@@ -269,7 +270,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Refusals**: flood, empty body and logged out are `.hop` + link/input (`W11x`, `W13cx`, `W14x`, `W17a`, `W17c`, `W20a`, `W20b`); invalid `hash_check` is **plain text without any HTML** (`W17b`, 99 bytes). A write refusal carries no refresh (`W11x`-`W20b`); other refusals do (`W01` refresh to `/`).
 - **Read pages with a `.hop`**: `R12` (empty favourites) and `RA5` (message not addressed to the account) have the back link and no refresh; the empty lists `R08-1`/`R08-3` refresh to the forum list with a link-less `.hop`. None is a write answer and none classifies as success (corpus sweep test).
 - **Moderator alert** (`W46`, `R88`, `W47`, `R89`, **verified**, 2026-11-02): the submit answers `.hop` "Un message a été envoyé avec succès aux modérateurs" **with the back link and no refresh** (`W46`), so the success rule above does not fit it: an alert is confirmed by its own sentence, in the alert context. The alert page of a message the account already reported answers `.hop` "Votre demande de modération sur ce message n'est pas encore traitée." + back link, no form (`R88`). Without cookies both the page and the POST answer `.hop` "Vous devez être identifié pour prévenir les modérateurs" + back link (`R89`, `W47`).
-- **Poll vote** (`W42`-`W44`, **verified**, 2026-11-02): success is a link-less `.hop` "Votre vote a bien été pris en compte !" with `Refresh: 1; url=/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug), **without** "avec succès" (`W42`); a second vote, and a vote from a linked account of the same person, answer `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh (`W43`, `W44`). The cookie-less vote answer is not published (see the capture PR).
+- **Poll vote** (`W42`-`W44`, **verified**, 2026-11-02): success is a link-less `.hop` "Votre vote a bien été pris en compte !" with `Refresh: 1; url=/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug; page 1 from a form with `page=1`, another form page pending capture), **without** "avec succès" (`W42`); a second vote, and a vote from a linked account of the same person, answer `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh (`W43`, `W44`). The cookie-less vote answer is not published (see the capture PR).
 - Not captured: a ban refusal, a reply refused because the topic is locked (the composer of a locked topic is served, `message.php` 200, but its POST was not sent: not an operator topic).
 
 ### LOT-021 — forum list
@@ -351,13 +352,13 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
 ### LOT-056 — image hosts
 
 [LOT-056](lots/LOT-056-image-hosts.md), tests `RehostClientTests`, `RehostClientLoopbackTests`, `MultipartBodyTests` and `ImageHostTableTests`. Only the upload and its
-answer are captured (`U01`, `U02`, 2026-11-02, `img3.super-h.fr`); the `Referer` and thumbnail facts below are the **legacy code** (`ReplyService.swift:1958-2093`, `MessagesView.swift:5748-5762` @ `2440d79`) reproduced by tests, not **verified** against HFR or the hosts. Only the plain-HTTP host list comes from captures (as read by LOT-071).
+answer are captured (`U01`, `U02`, 2026-11-02, `img3.super-h.fr`); the thumbnail facts below are the **legacy code** (`ReplyService.swift:1958-2093`, `MessagesView.swift:5748-5762` @ `2440d79`) reproduced by tests, not **verified** against the hosts. The `reho.st` `Referer` gate and the hosts' `https` support are captured (`T10`-`T24`, 2026-11-02).
 
 - **Upload** (**verified**, `U01`): `POST <base>/api/1/upload/?key=<key>`, `multipart/form-data` with `imageCaption` (`Some Caption`) then `source` (`image/jpeg`, `snapshot_<random>.jpg`), no cookie, 60 s. The body is reproduced byte for byte (`matchesTheLegacyUploadLayout`).
 - **Answer** (**verified**, `U01`, `U02`): `application/json; charset=UTF-8`. Success: HTTP 200, `status_code` 200, `success.message` "file uploaded", `image.url` (`https://img3.super-h.fr/images/<yyyy>/<mm>/<dd>/<name>.<ext>`), `image.thumb.url` (the same with `.th.<ext>`), `image.width`/`height` as JSON numbers; for a 16×16 image `image.medium` is present with every field `null`, so a missing medium URL is normal. The answer also holds `image.delete_url` and `image.delete_hash` (secrets, redacted in `U01`). A wrong key: HTTP **400**, `{"status_code":400,"error":{"message":"Invalid API key.","code":100},"status_txt":"Bad Request"}`. The code's "numbers may be strings" tolerance is kept (one answer seen).
-- **`reho.st` `Referer`** (**code**, E26 still unsettled): legacy sends `Referer: https://forum.hardware.fr` (no trailing slash) for `reho.st` and its subdomains only; the table keeps that value as data until the cookie-less capture settles it.
+- **`reho.st` `Referer`** (legacy sends `Referer: https://forum.hardware.fr`, no trailing slash, for `reho.st` and its subdomains only). **Verified** (`T20`-`T24`, 2026-11-02, cookie-less GETs): without a `Referer`, `reho.st` (nginx) answers **403** `text/html` both on `/` (`T20`) and on an image path (`/self/abc123.jpg`, the legacy test path, `T22`); with `Referer: https://forum.hardware.fr/` (`T21`, `T23`) or the legacy value without the slash (`T24`) it answers 200 `text/html; charset=UTF-8` with an empty body. The image path names no existing file, so a real image served with the `Referer` is **not** observed: no `reho.st` image was found on three recent public topic pages (they carry `rehost.diberie.com` instead).
 - **Thumbnails** (**code**): `img3.super-h.fr/images/<name>.th.<ext>` loses `.th.`; `reho.st/thumb/` becomes `reho.st/`; `rehost.diberie.com/Picture/Get/t/` becomes `…/f/`.
-- **Plain-HTTP hosts** (captures `R20`, `R21`, `R22a`, via LOT-071): every reference to `hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr` and `hn.org` images is `http://`; whether `https` works is not measured (pending capture).
+- **Plain-HTTP hosts** (captures `R20`, `R21`, `R22a`, via LOT-071): every reference to `hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr` and `hn.org` images is `http://`. **Over `https`** (**verified**, `T10`-`T15`, `T11h`, `T14h`, 2026-11-02, one image URL of those pages per host, cookie-less, no `Referer`): `si1.photorapide.com` serves the image (200 `image/jpeg`, `T13`); `www.camif.fr` answers over `https` (404 for the old file, `T14`) and redirects `http` to `https` (301, `T14h`); `yelims.free.fr` refuses the TCP connection on 443 (`T11`) and serves the image over `http` (200 `image/gif`, `T11h`): the only http-only host observed; the sampled hostnames `nsa34.casimages.com`, `img15.hostingpics.net` and `bibi.hn.org` have no DNS answer (`T10`, `T12`, `T15`), whatever the scheme (other subdomains of those hosts were not tried).
 
 ### LOT-051 — flags and favourites
 
@@ -410,7 +411,8 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Search results pager** (`R50b`): `forum1.php?…&page=2&…&recherches=1&…&search=<TERMS>&…&searchall=0&cat=13…` (first results page: no `page`, parameters `recherches=1&cat&orderSearch&config&pseud&search&…`). It repeats `cat` and `trash`; it is a results page, not the topic list of `cat`.
 - **Favourites page filters** (`R11`): the page links `forum1f.php?config=hfr.inc&owntopic=<n>&new=<0|1>&nojs=0` with `owntopic` 0 and 2 beside the documented 1 and 3; the pages behind 0 and 2 are not captured.
 - **Slug segment = forum** (LOT-003 oracle, 20 topic pages): the `<cat>` segment of every canonical permalink maps through `ForumCatalogue` to the same `cat` the message's own quote link carries.
-- **Pending capture**: the AASA file of the site (#127), forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
+- **AASA** (`R97a`, **verified**, 2026-11-02): `GET /.well-known/apple-app-site-association` answers 200 `application/json`, old format: `applinks.apps` empty and one `details` entry, `appID` `QMG83DG7YP.hfrplus.red.super` with `paths` `/`, `/hfr/*`, `/forum2.php*`; `webcredentials.apps` names the same App ID. No other App ID: universal links and shared web credentials of the site are for that legacy App ID only (FEAT-020, Q-1).
+- **Pending capture**: forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
 
 ### LOT-084 — reply composer
 
@@ -474,6 +476,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **First block of a page** (`R20`, `R22a`, `R22b`, `R24`, **verified**): on page 1 it is the topic's opening post, on later pages the continuation block; on anonymous pages the advertisement block comes second.
 - **Page past the end** (`R24`, **verified**): `forum2.php?…&page=2202` of a 2201-page topic ends, after the canonical redirects, with a 302 to `…_2201.htm`, the last page.
 
+### LOT-094 — MP thread delete
+
+[LOT-094](lots/LOT-094-mp-thread-delete.md), tests `DeletePrivateMessageFlowTests`.
+
+- **Request** (`W64`, `W65`, `R95k`, **verified**): legacy's body, in `W64`'s order, byte for byte: `hash_check, topic0=<post>, valuecat0=prive, valueforum0=hardwarefr, topic1=-1, topic_statusno1=-1, action_reaction=valid_eff_prive, type_page=forum1`, to `R95k`'s `form1` action `/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0`. All fields but `type_page` and `topic_statusno1` are controls of that form (a 50-row list has `topic_statusno50`), whose only action is `valid_eff_prive`.
+- **Answers** (`W64`, `W65`, `W64x`, **verified**): the owner's and the recipient's success are the same link-less `.hop` "Action effectuée avec succès" with a refresh to `/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0`; the sentence names no action, so the refresh to the MP list is part of the confirmation. A wrong `hash_check` gets the plain-text refusal of `W17b` (`W64x`), status 200.
+- **Not captured**: the delete without cookies or with expired cookies, a repeated delete, a thread the account does not take part in.
+
 ### LOT-057 — REST API (anonymous)
 - **Requests** (`R57a`-`R57c`): `GET /webservices/rest_api.php?uri=forums/hardwarefr/categories/` (categories), `…?uri=forums/hardwarefr/categories/<cat>/topics/last/` (last topics), `…?uri=forums/hardwarefr/categories/<cat>/topics/<post>/` (one topic); anonymous, 200 `application/json`, no redirect, no `Set-Cookie`. The JSON writes non-ASCII as `\u` escapes and names with HTML entities (`&amp;`).
 - **Categories** (`R57a`): the home page's 20 forums (`R01`), same order and titles; each with `number_of_subcategories`, `force_subcat` and `/api/` hrefs (`subcategories/`, `topics/last/?page=1&results_per_page=25`).
@@ -489,12 +499,38 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 - **A posted video link** (`R20`, `R22a`, `R22b`, `R27`, `R28`, **verified**): `<a rel="nofollow" href="<url>" target="_blank" class="cLink">` with the URL or a title as text (`R20`: "Impasto a mano pizza napoletana"), usually straight in a paragraph of the message; HFR adds no player. The corpus has `http://` and `https://www.youtube.com/watch?v=` (`R20`, `R22a`), `https://youtu.be/<id>` with `t=1m5s` (`R20`) or `t=706` (`R28`), and `vimeo.com/<number>` (`R20`); the LOT-003 oracles turn 133 of them into iframes over 8 pages.
 - **Start time** (`R20`, `R28`): the captured `youtu.be` links carry their start as `t=1m5s` and as plain seconds, `t=706`.
 
+### LOT-054 — poll vote
+
+[LOT-054](lots/LOT-054-poll-vote.md), `PollVoteFlow`, tests `PollVoteFlowTests`, `HopResponsePollVoteTests`.
+
+- **Body** (`R83`, `W42`-`W44`, **verified**): the flow builds from `R83`'s form, answer 1, exactly the body `W42`-`W44` sent: `hash_check, cat, p, page, sondage, owntopic, subcat, numeropost, hash_check, reponse, sondage_submit=Voter`. `sondage` differs between polls (`1` on `R32b`, `2` on `R83`): it is read from the form, never written as a constant.
+- **Answers**: see the LOT-037 subsection (`W42` success, `W43`/`W44` already voted). The classifier reads them under `Context.pollVote`, the only context where the vote sentence is a confirmation.
+
 ### LOT-053 — smiley search and wiki
 
 Source: [LOT-053](lots/LOT-053-smiley-search-wiki.md), `SmileyLookupFlow`, checked against the LOT-005 oracles of `R53a`-`R53c` and `R54`.
 
 - **Wiki request** (`R54`, **verified**): `GET /wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D`, the code fully percent-encoded (`:` as `%3A`), answers the entry logged out, 200 in place, no cookie set.
 - **Search request encoding** (**not verified**): `R53a`-`R53c` were sent with raw `+` separators (`findsmilies=+chat+noir`); the app sends legacy's encoding (`findsmilies=chat%20noir`, and `%2Bchat%20%2Bnoir` for "all keywords"). Whether HFR reads them alike, and what a literal `+` does, is pending capture; `R53c` only shows that its two words were OR-ed.
+
+### LOT-097 — BBCode rendering
+
+Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (the lot's renderer PR, [#444](https://github.com/ezzz/HFRnow/pull/444)), checked by its `BBCodeRendererOracleTests` against HFR's own rendering: `POST /apercu.php` of `W61` (`R95d`) and `W62` (`R95h`), and the quote prefills `R41a`, `R42`, `R41b` against the thread page `R20` (messages 2666649, 2666682, 2666695); the round-trip facts are in §6b "BBCode round trip".
+
+- **Quote prefill as a source** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `[quotemsg=…]<source>[/quotemsg]` holds the message's stored source, HTML-escaped in the `textarea` (`&amp;` for `&`), with every `[img]U[/img]` rewritten `[url]U[/url]` and the citation the message starts with dropped.
+- **Colour** (`R41a` → `R20`, **verified**): the toolbar's `[#0055aa]x[/#0055aa]` renders `<span style="color:#0055aa">x</span>`; `[color=#FF0000]` is text (`R95d`).
+- **Crossed tags** (`R41a` → `R20`, **verified**, 13 occurrences; 3 other `[u][b]` pairs close nested): `[u][b]x[/u][/b]` renders `<span class="u"><strong>x</span></strong>`, crossed as typed; the browser repairs it.
+- **Smileys** (`R41a`, `R42`, `R41b` → `R20`, **verified**): `:ange:` → `<img src="https://forum-images.hardware.fr/icones/smilies/ange.gif" alt=":ange:" title=":ange:" />`; a code typed in another case keeps it in `alt` and gets the catalogue's in `title` (`:d` → `alt=":d" title=":D"`, `biggrin.gif`); a personal `[:name]` → `/images/perso/name.gif` with the code in `alt` and `title`.
+- **Links** (`R41a` → `R20`, **verified**): the text of `[url=U]x[/url]` and `[url]U[/url]` is trimmed of its leading and trailing spaces; a `U` without a scheme gets `http://` (`[url]G3Ferrari / Optima [/url]` → `href="http://G3Ferrari / Optima "`); external links carry `rel="nofollow" target="_blank"`.
+- **Whitespace** (`R41a` → `R20`, `R27b`, `R95d`, **verified**): in a run of spaces and CRs, the first becomes `&nbsp;` at a line start, then every second one; a LF becomes `<br />` and the CR before it stays in the text (`\r<br />`); in `code`, every run of two or more starts with `&nbsp;` (`code   text` → `code&nbsp; &nbsp;text`, four leading spaces → `&nbsp; &nbsp; `), an empty line is `<li></li>`. `€` is written `&euro;`.
+- **Paragraph** (`R20`, **verified**): the message's `<p>` is opened by HFR and never closed; the `<div style="clear: both;"> </div>` trailer that follows closes it.
+
+### LOT-050 — moderator alert
+
+[LOT-050](lots/LOT-050-moderator-alert.md), tests `ModeratorAlertPrepareTests`, `ModeratorAlertSubmitTests` and `HopFormParserTests.moderationLayout`.
+
+- **The link and the page** (`R21`, `R46`, **verified**): `R21`'s alert link of message 2666649 (`/user/modo.php?config=hfr.inc&cat=13&post=28563&numreponse=2666649&page=1&ref=1`) is `R46`'s request; HFR serves the form at that URL, 200, no redirect, and sends back `md_user` and `md_passs`. The form (§6b) is posted in document order: `hash_check`, `referer_page` (empty), `raison`, `Submit`.
+- **Captured since** (PR #394): the page of a message already reported (`R88`, the shape LOT-050 reads as already alerted), the answer to a submitted alert (`W46`, a `.hop` with a back link, returned as HFR's text) and the alert page and answer without a session (`R89`, `W47`, "Vous devez être identifié…", not `W17c`'s sentence). Their reading by LOT-037 is #395.
 
 ### LOT-058 — MP mark unread
 
@@ -529,7 +565,7 @@ Facts from the redface2 project documentation, rewritten here; each becomes *ver
 | Polls | Vote body order and `reponse` / `reponse<N>` fields; close and create flows | E10, E11 | Partly (E10): vote form `/user/vote.php?config=hfr.inc`, hidden fields `hash_check, cat, p, page, sondage, owntopic, subcat, numeropost` then a second `hash_check`, radio `reponse` = 1..N, shown logged out too (`R32a`, `R32b`); POST made (`W42`-`W44`, LOT-037 subsection; body in form order with `sondage_submit=Voter`). Poll creation by the first-post edit form (`W41`, LOT-048 subsection). A non-votable poll has no `<form>` and no input, only the results (`div.sondageLeft` bar + `sondageTop` percent and `N votes`, `div.sondageRight` option, `Total : N votes (M votes blancs)`): closed "Ce sondage est clos, vous ne pouvez plus voter" (`R33a`, locked topic), already voted from a linked account "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" under the question (`R33b`) |
 | Identity | `numreponse` is unique per category, not global: key posts by (cat, topic, numreponse) | E18 | Unsettled |
 | Posts per page | A user setting, not a constant 40 | E19 | **Settled**: setting `topicpp` on profile page 3 (`R55-p3`) |
-| Images | `reho.st` needs `Referer: https://forum.hardware.fr/`; some hosts are http-only: load images with a separate cookie-less client | E26 | Unsettled |
+| Images | `reho.st` needs `Referer: https://forum.hardware.fr/`; some hosts are http-only: load images with a separate cookie-less client | E26 | **Settled in part** (2026-11-02, §6c LOT-056): without a `Referer` `reho.st` answers 403, with either form 200 (`T20`-`T24`; a real image not observed); of the six http-only hosts, one sampled hostname each: only `yelims.free.fr` is http-only, `si1.photorapide.com` and `www.camif.fr` serve `https`, the three other sampled hostnames do not resolve (`T10`-`T15`) |
 | `quote_only=1` | Lists posts quoting a given post | E2 | Not captured (R34 dropped) |
 
 Points the two clients disagree on are listed in the comparison report §4.4 and must be part of the LOT-001 capture checklist.
@@ -543,7 +579,7 @@ Facts and open questions found by **Bybifok** ([`moust4ki`](https://github.com/m
 | List pager | The forum-list pager is a window (`1 … 10 20 … 100 200 … 500`): its last link is a lower bound, not the page count; the exact page count of a topic is in its row (`sujetCase4`) | B1 | **Shape settled** (§6c LOT-022, `R04`, `R05a`, `R05b`); "lower bound" follows from it; `sujetCase4` count to assert in a test |
 | List paging | Paging goes through the path `liste_sujet-<n>.htm`; `?page=` on `liste_sujet-1.htm` is ignored | B2 | Unsettled. Logged out, `forum1.php?…&page=<n>` answers 301 to `liste_sujet-<n>.htm` (R2) |
 | Search | Words shorter than 4 letters are not indexed | B3 | Unsettled |
-| AQ RSS | Titles and descriptions keep HTML entities (`&quot;`, `&#039;`) | B4 | Unsettled (LOT-028, pending AQ capture) |
+| AQ RSS | Titles and descriptions keep HTML entities (`&quot;`, `&#039;`) | B4 | **Settled** (`T01`, `T02`, 2026-11-02): the descriptions are CDATA HTML whose topic titles hold `&quot;`, `&#039;`, `&amp;`; the legacy parser returns them undecoded as `topicTitle` (4 of 25 items, oracle `LOT-028/T01.oracle.json`); the per-topic list carries `&quot;`/`&amp;` in its `nom` attributes. No item `<title>` and no reporter comment held an entity (comment case: #438) |
 | Search URLs | Intra-topic results are a plain GET `forum2.php?…&word=<UPPERCASED>&spseudo=&currentnum=<match>#t<match>`; a member's posts at `/hfr/recherche/pseudo-<name>.htm` | B5 | **Results URL settled** (§7 E28, `R52a`); member-posts URL unsettled |
 | Flags page | "Mes drapeaux" lists only followed topics with news and carries a `suppressflag.php` link, never to call without an explicit user action | B6 | Unsettled; cross-check with `R10` |
 | Row icons | `closedb_new` does not say whether a followed topic is read; icon paths depend on the account's theme (`images_forum/1` vs `images/defaut`): match on `alt` or file name | B7 | **First part consistent** (§6c LOT-022: `closedb_new.gif` on every anonymous row); theme-dependent paths unsettled |
@@ -567,7 +603,7 @@ Inventory, data sent to each host, owners, first-use notices and the decisions o
 
 | Service | Use | Notes | Source |
 |---|---|---|---|
-| `aq.super-h.fr` | "Alerte Qualitay" community reports | GET `/api/getAlertesByTopic.php?topic_id=`; POST `/api/addAlerte.php` (fixed field order, response `"1"` = success); RSS `/rss.php` (badge, "new since" `last_check_aq`, category 25 hidden unless pseudo `applereview`); unauthenticated, sends pseudo | D §2.7, `AQPlusView.swift:29-87` (decisions Q-4, Q-7) |
+| `aq.super-h.fr` | "Alerte Qualitay" community reports | **Captured** (`T01`, `T02`, 2026-11-02, no cookie, no account): `rss.php` is `application/rss+xml;charset=utf-8`, RSS 2.0, 25 items (`title` = alert title, `link`/`guid` = the reported post, `pubDate` RFC 822 with offset, `description` CDATA HTML: "Une qualitaÿ a été detectée sur <b>topic</b>", "signalée <b>N fois</b>", one `<li>[le dd-mm-yyyy à hh:mm:ss] <b>pseudo (initiateur)</b> : comment</li>` per reporter); `getAlertesByTopic.php` is **XML** (`text/xml;charset=UTF-8`), not JSON: `<alertes><alerte id nom pseudoInitiateur date="dd-mm-yyyy" postsIds/>…</alertes>`, newest first. GET `/api/getAlertesByTopic.php?topic_id=`; POST `/api/addAlerte.php` (fixed field order, response `"1"` = success); RSS `/rss.php` (badge, "new since" `last_check_aq`, category 25 hidden unless pseudo `applereview`); unauthenticated, sends pseudo | D §2.7, `AQPlusView.swift:29-87` (decisions Q-4, Q-7) |
 | Image rehost (Chevereto) | Image upload for posts | API key required (ADR 0007) | D §3.2 |
 | Giphy | GIF picker | API key required (ADR 0007) | E §6 |
 | Video players | YouTube, Vimeo, Streamable links shown as `<iframe>` players (`embedded_videos`) | Dailymotion, Coub, Twitch commented out in legacy; removed from the live app by `d645f52`; SwiftHFR shows a placeholder, player on tap (LOT-071 D-071-2) | `ParseMessagesOperation.m:238-300`, `LinkItem.m:149-158` |

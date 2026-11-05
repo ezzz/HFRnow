@@ -27,9 +27,12 @@ final class ScriptedPoster: ReplyPosting {
         /// Recipient and subject of a new private message; nil for a reply.
         var recipient: String?
         var subject: String?
+        /// Sub-category of a new topic (nil for the other writes, and for a topic sent without a choice).
+        var subcategory: String?
     }
 
     private let state: Mutex<(outcomes: [Result<PostingResult, PostingError>], calls: [Call])>
+    private let optionsState = Mutex<(answers: [Result<NewTopicOptions, PostingError>], requests: [URL])>(([], []))
     /// Suspends every reply until opened, when set.
     let gate: ReaderGate?
 
@@ -39,6 +42,27 @@ final class ScriptedPoster: ReplyPosting {
     }
 
     var calls: [Call] { state.withLock { $0.calls } }
+
+    /// Scripts the answers of `newTopicOptions` (the last one repeats); without any, the read fails like an unscripted request.
+    func scriptOptions(_ answers: [Result<NewTopicOptions, PostingError>]) {
+        optionsState.withLock { $0.answers = answers }
+    }
+
+    /// The form URLs `newTopicOptions` was asked for.
+    var optionRequests: [URL] { optionsState.withLock { $0.requests } }
+
+    func newTopicOptions(formURL: URL) async throws(PostingError) -> NewTopicOptions {
+        let answer = optionsState.withLock { state -> Result<NewTopicOptions, PostingError> in
+            state.requests.append(formURL)
+            if state.answers.count > 1 { return state.answers.removeFirst() }
+            return state.answers.first ?? .failure(.network(.unscripted))
+        }
+        return try answer.get()
+    }
+
+    func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult {
+        try await answer(Call(text: text, formURL: formURL, subject: subject, subcategory: subcategory))
+    }
 
     func reply(_ text: String, formURL: URL) async throws(PostingError) -> PostingResult {
         try await answer(Call(text: text, formURL: formURL))
