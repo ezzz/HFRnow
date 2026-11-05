@@ -38,6 +38,15 @@ struct MessageMenuOwnPostCaptureTests {
             #expect(links.quoteURL != nil && links.quoteSelection != nil && links.favoriteURL != nil && links.alertURL != nil)
             #expect(links.profileURL != nil)
             #expect((links.editURL != nil) == own, "edit link of \(context.numreponse)")
+            if own, let edit = links.editURL {
+                let items = Dictionary(
+                    uniqueKeysWithValues: (URLComponents(url: edit, resolvingAgainstBaseURL: false)?.queryItems ?? [])
+                        .map { ($0.name, $0.value ?? "") }
+                )
+                #expect(edit.path == "/message.php" && edit.fragment == "formulaire", "edit path of \(context.numreponse)")
+                #expect(items["cat"] == "6" && items["post"] == "9900001" && items["subcat"] == "173", "edit topic of \(context.numreponse)")
+                #expect(items["numreponse"] == String(context.numreponse), "edit message of \(context.numreponse)")
+            }
             #expect((links.privateMessageURL == nil) == own, "MP link of \(context.numreponse)")
         }
     }
