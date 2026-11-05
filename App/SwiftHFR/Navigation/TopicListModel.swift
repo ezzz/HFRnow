@@ -95,8 +95,8 @@ final class TopicListModel {
         return NewTopicTarget(path: content.newTopicPath, forum: content.categoryID)
     }
 
-    /// The new-topic sheet closed. After HFR's confirmation (it refreshes to the list, `PostingResult.refreshURL`; a public
-    /// new-topic answer is pending capture, so the new topic is not opened) page 1 is reloaded, where it appears. After an
+    /// The new-topic sheet closed. After HFR's confirmation (it refreshes to the category list and names no topic, `W40`, so
+    /// the new topic is not opened) page 1 is reloaded, where it appears. After an
     /// unconfirmed send page 1 is reloaded too, so the user sees whether it went. Closing with or without the draft changes
     /// nothing.
     func newTopicDidClose(_ reason: ReplyComposerModel.CloseReason) async {

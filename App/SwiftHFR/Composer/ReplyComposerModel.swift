@@ -104,7 +104,7 @@ final class ReplyComposerModel: Identifiable {
     /// and by the engine
     /// (HFR's answer to one is not captured).
     var canSend: Bool {
-        guard hasText, canEdit else { return false }
+        guard hasText, canEdit, !(isNewTopic && picker.isLoading) else { return false }
         if isNewMessage { return !Self.isBlank(recipient) && !Self.isBlank(subject) }
         return !isNewTopic || !Self.isBlank(subject)
     }
@@ -157,7 +157,8 @@ final class ReplyComposerModel: Identifiable {
     /// The user chose a sub-category of the form's list.
     func select(subcategory value: String) {
         guard isNewTopic, canEdit, picker.select(value) else { return }
-        errorMessage = nil
+        // Choosing does not answer an uncertain send: its warning stays until the text or subject changes.
+        if !mayHavePosted { errorMessage = nil }
     }
 
     /// The user typed: the draft is saved after a pause.

@@ -57,7 +57,7 @@ struct NewTopicTarget: Hashable, Sendable {
     /// messages pseudo-category (its button is the new-MP composer, LOT-128) or for a link that leaves the forum origin.
     init?(path: String?, forum: CategoryID?) {
         guard let path, let forum, case .forum = forum, let url = HFREndpoint.absoluteURL(href: path),
-              url.scheme == "https", url.host == HFRURL.forumHost, url.port == nil, url.user == nil else { return nil }
+              url.scheme == "https", url.host == HFRURL.forumHost, [nil, 443].contains(url.port), url.user == nil else { return nil }
         formURL = url
         self.forum = forum
     }

@@ -18,15 +18,15 @@ let newTopicTarget: NewTopicTarget = {
 /// The sub-categories of `R45a` (HFR-PROTOCOL §6c: 16 options, the first `value=""` "Aucune", none selected); three suffice here.
 let newTopicOptions = NewTopicOptions(
     subcategories: [
-        FormOption(value: "", label: "Aucune"), FormOption(value: "1", label: "Actualité"), FormOption(value: "2", label: "Politique")
+        FormOption(value: "", label: "Aucune"), FormOption(value: "422", label: "Actualité"), FormOption(value: "482", label: "Politique")
     ],
     preselected: ""
 )
 
-/// HFR's confirmation of a new topic: the sentence of `W10`/HFR-PROTOCOL §7 E15 (a public new-topic answer is pending capture).
+/// HFR's confirmation of a new topic (`W40`, HFR-PROTOCOL §7 E14: the category list, no topic id).
 let newTopicConfirmed = PostingResult(
     action: .newTopic, message: "Votre message a été posté avec succès !",
-    refreshURL: url("https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=0&sondage=0&owntopic=0")
+    refreshURL: url("https://forum.hardware.fr/hfr/Discussions/liste_sujet-1.htm")
 )
 
 /// The new topic composer (LOT-089): subject, sub-category and text, its draft, and what it sends.
@@ -74,13 +74,13 @@ struct NewTopicComposerTests {
         #expect(model.picker.options.map(\.label) == ["Aucune", "Actualité", "Politique"])
         #expect(model.picker.selected == "")
         #expect(poster.optionRequests == [newTopicTarget.formURL])
-        let preselected = NewTopicOptions(subcategories: newTopicOptions.subcategories, preselected: "2")
+        let preselected = NewTopicOptions(subcategories: newTopicOptions.subcategories, preselected: "482")
         let other = ScriptedPoster([])
         other.scriptOptions([.success(preselected)])
         let second = composer(other)
         await second.start()
         await second.loadSubcategories()
-        #expect(second.picker.selected == "2")
+        #expect(second.picker.selected == "482")
     }
 
     @Test func aChoiceIsSentAndOnlyAnOfferedOneCanBeChosen() async {
@@ -88,13 +88,13 @@ struct NewTopicComposerTests {
         let model = composer(poster)
         await model.start()
         await model.loadSubcategories()
-        model.select(subcategory: "1")
+        model.select(subcategory: "422")
         model.select(subcategory: "99")
-        #expect(model.picker.selected == "1")
+        #expect(model.picker.selected == "422")
         model.update(subject: "Mon sujet")
         model.update(text: "Bonjour")
         await model.send()
-        #expect(poster.calls == [.init(text: "Bonjour", formURL: newTopicTarget.formURL, subject: "Mon sujet", subcategory: "1")])
+        #expect(poster.calls == [.init(text: "Bonjour", formURL: newTopicTarget.formURL, subject: "Mon sujet", subcategory: "422")])
     }
 
     @Test func aFailedReadWarnsLetsSendAndRetryReadsTheOptions() async {
@@ -124,7 +124,7 @@ struct NewTopicComposerTests {
         let model = composer(poster)
         await model.start()
         await model.loadSubcategories()
-        model.select(subcategory: "2")
+        model.select(subcategory: "482")
         model.update(subject: "Sujet")
         model.update(text: "Texte")
         await model.send()
@@ -193,6 +193,19 @@ struct NewTopicComposerTests {
         await model.checkTopic()
         #expect(model.closeReason == .checkTopic)
         #expect(poster.calls.count == 1)
+    }
+
+    @Test func choosingASubcategoryKeepsTheUncertainSendWarning() async {
+        let poster = scripted([.failure(.unconfirmed(.transport(.timedOut)))])
+        let model = composer(poster)
+        await model.start()
+        await model.loadSubcategories()
+        model.update(subject: "Sujet")
+        model.update(text: "Bonjour")
+        await model.send()
+        model.select(subcategory: "482")
+        #expect(model.mayHavePosted)
+        #expect(model.errorMessage?.contains("liste des sujets") == true)
     }
 
     @Test func refusalsSpeakOfTheTopic() {

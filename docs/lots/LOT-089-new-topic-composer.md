@@ -57,9 +57,10 @@ LOT-084 rule) and posted with `PostingFlow.newTopic(subject:subcategory:text:wit
   unavailable form, unsupported form, session, unconfirmed → "Vérifiez la liste des sujets avant de renvoyer"). Only `unconfirmed`
   says it may have been posted; "Voir les sujets" closes with the draft kept and reloads page 1. Nothing is resent automatically.
 
-**Opening the new topic.** HFR's answer to a public new topic is not captured: `W10` is a private message, and its refresh names the
-list, not a thread (`PostingResult.refreshURL`, LOT-037). The app therefore does **not** open the new topic; it reloads page 1,
-where it appears. Pending capture below.
+**Opening the new topic.** Not possible: HFR's public new-topic answer (`W40`, HFR-PROTOCOL §7 E14) says "Votre message a été posté
+avec succès !" and refreshes to the **category** list `/hfr/<cat>/liste_sujet-1.htm` (even when a sub-category was chosen), with no
+topic id. #181's "on success open the new topic" is therefore met as far as HFR allows: the app reloads page 1, where the new row
+appears (observed on `W40`'s list), and shows HFR's sentence.
 
 **Drafts.** Context `.newTopic(forum:)`, same autosave, close choices, warnings and "Fermer sans enregistrer" as the reply composer
 (LOT-084). Subject and text are kept; the sub-category is not (a draft has no such field). A subject alone is a draft.
@@ -77,14 +78,14 @@ where it appears. Pending capture below.
 ## Fixtures
 
 No new capture. `R05a` and `R50b` hold the `#md_btn_new_topic` link (category path, also logged out); `R45a` (new-topic composer, 16
-`subcat` options, none selected) and `W10`'s sentence are LOT-048's, tested there (`PostingCaptureTests`, `PostingInputTests`).
+`subcat` options, none selected) and `W40`'s answer are LOT-048's, tested there (`PostingCaptureTests`, `PostingInputTests`).
 App tests use scripted `ReplyPosting` doubles with the sentences of HFR-PROTOCOL §7 E15.
 
 ## Tests
 
 `App/SwiftHFRTests/Composer/NewTopicComposerTests` and `TopicListNewTopicTests` (in `TopicListModelTests.swift`): target from the
 link (off-forum, missing, no category, private messages); options read and preselection honoured; only an offered value chosen and
-sent; a failed read warns, still sends, retry keeps the choice; confirmed topic sent once with trimmed subject, draft cleared;
+sent; a failed read warns, still sends, retry reads the options (the form's preselection); confirmed topic sent once with trimmed subject, draft cleared;
 subject and text required, no recipient; non-BMP in the subject refused before any request; unconfirmed: "liste des sujets", never
 resent; messages name the topic; draft per forum and restore; a subject alone is a draft; the list offers the target only with link
 and category, never on favourites; confirmed → page 1 reloaded and HFR's sentence; unconfirmed → reload without sentence; closing
@@ -93,8 +94,6 @@ PR's "Mac check needed".
 
 ## Pending capture
 
-- A public new-topic answer (`PostingResult.refreshURL` after a new topic in a forum): does it name the created topic? Only then can
-  the app open it (acceptance criterion "on success open the new topic" of #181). `W10` is a private message.
 - New-topic form served at a sub-category list's `message.php` link (`R06`): its shape and preselected `subcat` (the sheet reads
   both from the form, so only the capture is missing).
 - Forum where the account may not create a topic (#131): the button follows the page's link; HFR's sentence is shown if it serves no
