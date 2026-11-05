@@ -110,14 +110,7 @@ enum QuoteMarkup {
     /// quote table each entry of `quotes` stands for.
     static func annotate(_ html: String, quotes: [MessageQuote], policy: VisibilityPolicy) -> String {
         guard !quotes.isEmpty, !policy.isNeutral else { return html }
-        let tokens = quotes.map { quote -> String? in
-            switch policy.quote(by: quote.author) {
-            case .ofMe: "quote-me"
-            case .allowlisted: "quote-allowed"
-            case .blocked: policy.hidesBlockedPseudo ? "quote-blocked quote-hide-author" : "quote-blocked"
-            case .normal: nil
-            }
-        }
+        let tokens = quotes.map { token(for: policy.quote(by: $0.author), hidesAuthor: policy.hidesBlockedPseudo) }
         guard tokens.contains(where: { $0 != nil }) else { return html }
         let bytes = Array(html.utf8)
         var insertions: [(offset: Int, text: String)] = []
@@ -140,7 +133,16 @@ enum QuoteMarkup {
             copied = insertion.offset
         }
         result.append(contentsOf: bytes[copied...])
-        return String(decoding: result, as: UTF8.self)
+        return String(bytes: result, encoding: .utf8) ?? html
+    }
+
+    private static func token(for quote: VisibilityPolicy.Quote, hidesAuthor: Bool) -> String? {
+        switch quote {
+        case .ofMe: "quote-me"
+        case .allowlisted: "quote-allowed"
+        case .blocked: hidesAuthor ? "quote-blocked quote-hide-author" : "quote-blocked"
+        case .normal: nil
+        }
     }
 
     /// Offset of the next `<table` start tag at or after `from`.
@@ -197,6 +199,6 @@ enum QuoteMarkup {
     }
 
     private static func isQuote(_ value: ArraySlice<UInt8>) -> Bool {
-        String(decoding: value, as: UTF8.self).split(whereSeparator: \.isWhitespace).contains { quoteClasses.contains(String($0)) }
+        (String(bytes: value, encoding: .utf8) ?? "").split(whereSeparator: \.isWhitespace).contains { quoteClasses.contains(String($0)) }
     }
 }

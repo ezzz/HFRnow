@@ -98,25 +98,33 @@ enum TopicHTMLBuilder {
         if message.isContinuation { classes.append("continuation") }
         if message.isDeleted { classes.append("deleted") }
         let visibility = options.visibility.post(by: message.author)
-        switch visibility {
-        case .moderation: classes.append("mode")
-        case .own: classes.append("me")
-        case .allowlisted: classes.append("whitelist")
-        case .blocked: classes.append("blocked")
-        case .normal: break
-        }
+        if let visibilityClass = Self.cssClass(of: visibility) { classes.append(visibilityClass) }
         let hidesAuthor = visibility == .blocked && options.visibility.hidesBlockedPseudo
         let anchor = message.isContinuation ? "" : " id=\"t\(message.numreponse)\""
         var label = message.dateText.isEmpty ? "Message de \(author)" : "Message de \(author), \(date)"
         if hidesAuthor { label = "Message masqué" }
         var html = "<article class=\"\(classes.joined(separator: " "))\"\(anchor) data-post=\"\(message.numreponse)\""
         html += " aria-label=\"\(label)\">\n"
-        if visibility == .blocked {
-            // A native disclosure: no script is needed to read it, and the message menu (alert included) stays in the body.
-            html += "<details class=\"blocked-post\"><summary class=\"blocked-summary\">"
-            if !hidesAuthor { html += "<span class=\"blocked-author\">\(author)</span>" }
-            html += "<span class=\"blocked-note\">Message masqué</span></summary>\n"
+        if visibility == .blocked { html += Self.blockedSummary(author: author, hidesAuthor: hidesAuthor) }
+        html += header(of: message, author: author, date: date, options: options)
+        if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
+        if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }
+        // Body markup context only (LOT-034 contract).
+        let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
+        html += "<div class=\"content\">\(content)</div>\n"
+        html += videos(of: message)
+        if options.showsSignatures, let signature = message.content.signatureHTML {
+            html += "<div class=\"signature\">\(signature)</div>\n"
         }
+        html += trailer(of: message)
+        if visibility == .blocked { html += "</details>\n" }
+        html += "</article>\n"
+        return html
+    }
+
+    /// The message header: avatar, author (a button when the author menu is on), date and the `⋯` button.
+    private static func header(of message: ReaderMessage, author: String, date: String, options: ReaderRenderOptions) -> String {
+        var html = ""
         html += "<header class=\"header\">"
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
@@ -135,19 +143,24 @@ enum TopicHTMLBuilder {
             html += " aria-label=\"Actions du message de \(author)\">⋯</button>"
         }
         html += "</header>\n"
-        if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
-        if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }
-        // Body markup context only (LOT-034 contract).
-        let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
-        html += "<div class=\"content\">\(content)</div>\n"
-        html += videos(of: message)
-        if options.showsSignatures, let signature = message.content.signatureHTML {
-            html += "<div class=\"signature\">\(signature)</div>\n"
-        }
-        html += trailer(of: message)
-        if visibility == .blocked { html += "</details>\n" }
-        html += "</article>\n"
         return html
+    }
+
+    private static func cssClass(of visibility: VisibilityPolicy.Post) -> String? {
+        switch visibility {
+        case .moderation: "mode"
+        case .own: "me"
+        case .allowlisted: "whitelist"
+        case .blocked: "blocked"
+        case .normal: nil
+        }
+    }
+
+    /// A native disclosure: no script is needed to read it, and the message menu (alert included) stays in the body.
+    private static func blockedSummary(author: String, hidesAuthor: Bool) -> String {
+        var html = "<details class=\"blocked-post\"><summary class=\"blocked-summary\">"
+        if !hidesAuthor { html += "<span class=\"blocked-author\">\(author)</span>" }
+        return html + "<span class=\"blocked-note\">Message masqué</span></summary>\n"
     }
 
     /// A placeholder per video (LOT-071 D-071-2): nothing of the provider loads before a tap, which opens the player.

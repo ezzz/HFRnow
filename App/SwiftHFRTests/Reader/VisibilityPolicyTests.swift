@@ -223,7 +223,7 @@ struct VisibilityPolicyTests {
         let data = try LiveTopicPageSourceTests.capture(capture)
         let pageURL = url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm")
         let page = try LiveTopicPageSource.parse(
-            String(decoding: data, as: UTF8.self), pageURL: pageURL, normalizer: LiveContentNormalizer()
+            String(data: data, encoding: .utf8) ?? "", pageURL: pageURL, normalizer: LiveContentNormalizer()
         )
         let authored = page.messages.flatMap(\.quotes).compactMap(\.author)
         #expect(!authored.isEmpty)
