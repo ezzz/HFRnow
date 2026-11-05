@@ -1,0 +1,101 @@
+import SwiftUI
+
+// Port of HFRswift/Swift/Favorites.swift (FavoritesListDensity, :188-215) and Common.swift (compact_mode :228,
+// compactListSectionSpacing :309) @ 21173e77. Differences: every list follows the setting, not only the favourites and the
+// settings; compact rows also shorten the title, merge the meta lines and shrink the markers (LOT-169).
+/// The density of every list: regular rows, or compact rows (`compact_mode`) that show more of a list per screen.
+enum ListDensity: Sendable {
+    case regular
+    case compact
+
+    /// The density of the "Mode compact" setting.
+    init(compactMode: Bool) {
+        self = compactMode ? .compact : .regular
+    }
+
+    /// Row insets: legacy's favourites row (list inset 4 + content padding 2) in regular rows, legacy's compact insets in
+    /// compact rows.
+    var rowInsets: EdgeInsets {
+        switch self {
+        case .regular: EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16)
+        case .compact: EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12)
+        }
+    }
+
+    /// Space between list sections (legacy compact favourites: 6).
+    var sectionSpacing: ListSectionSpacing {
+        switch self {
+        case .regular: .default
+        case .compact: .custom(6)
+        }
+    }
+
+    /// Minimum row height, before Dynamic Type: the system's 44 in regular rows.
+    var minimumRowHeight: CGFloat {
+        switch self {
+        case .regular: 44
+        case .compact: 28
+        }
+    }
+
+    /// Text style of a row's title: legacy's favourites title is 14.3 pt at the default size (`Favorites.swift:1121`), close
+    /// to the subheadline's 15; compact rows go one step down.
+    var titleStyle: Font.TextStyle {
+        switch self {
+        case .regular: .subheadline
+        case .compact: .footnote
+        }
+    }
+
+    /// Most lines of a topic or conversation title.
+    var titleLineLimit: Int {
+        switch self {
+        case .regular: 3
+        case .compact: 2
+        }
+    }
+
+    /// Vertical space between a row's lines.
+    var lineSpacing: CGFloat {
+        switch self {
+        case .regular: 2
+        case .compact: 0
+        }
+    }
+
+    /// Diameter of the unread dot, before Dynamic Type and the type scale.
+    var markerSize: CGFloat {
+        switch self {
+        case .regular: 8
+        case .compact: 6
+        }
+    }
+
+    /// Side of a conversation's avatar, before Dynamic Type and the type scale.
+    var avatarSize: CGFloat {
+        switch self {
+        case .regular: 40
+        case .compact: 28
+        }
+    }
+
+    /// One meta line (who · last post) instead of two in a conversation row.
+    var mergesMetaLines: Bool { self == .compact }
+}
+
+extension EnvironmentValues {
+    /// The density of every list; the app root sets it from the "Mode compact" setting.
+    @Entry var listDensity = ListDensity.regular
+}
+
+extension View {
+    /// Applies the type scale and the list density to every screen below (LOT-169): the default font, the row height and
+    /// the section spacing of every list, and the environment values rows and the reader read.
+    func appTypography(_ scale: TextScale, density: ListDensity) -> some View {
+        scaledFont(.body)
+            .listSectionSpacing(density.sectionSpacing)
+            .environment(\.defaultMinListRowHeight, density.minimumRowHeight)
+            .environment(\.listDensity, density)
+            .environment(\.textScale, scale)
+    }
+}

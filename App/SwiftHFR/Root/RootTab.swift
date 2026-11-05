@@ -1,5 +1,7 @@
 import HFRModels
 
+// Port of HFRswift/Swift/Common.swift (RootTabIdentifier) and HFRswift/Swift/PlusTab.swift (PlusHomeView rows) @ 2440d79. Differences:
+// none in the order; `init(startup:)` and the start-screen setting come from master (GAP-002).
 /// The four root tabs of the iPhone tab bar, in legacy order (`RootTabIdentifier`, `Common.swift:25-30`).
 enum RootTab: Int, CaseIterable, Hashable, Sendable {
     case categories

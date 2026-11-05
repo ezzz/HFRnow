@@ -766,10 +766,10 @@ index 0000000..cbb51bc
 +}
 diff --git a/HFRswiftTests/OracleExportTopic.swift b/HFRswiftTests/OracleExportTopic.swift
 new file mode 100644
-index 0000000..77757c8
+index 0000000..c2c3456
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportTopic.swift
-@@ -0,0 +1,291 @@
+@@ -0,0 +1,293 @@
 +// Oracle exporter for SwiftHFR LOT-003: the topic-page pipeline. Local-only: never committed to hfrnow.
 +//
 +// Kind `topic` runs, offline, what the app runs for one topic page (ObjCTopicPageWorker.m:103-146):
@@ -928,6 +928,8 @@ index 0000000..77757c8
 +            "iLastPageNumber": plain(raw["iLastPageNumber"]), "iFirstPageNumber": plain(raw["iFirstPageNumber"]),
 +            "topicName": plain(raw["topicName"]), "itemCount": (raw["items"] as? [Any])?.count ?? 0
 +        ]
++        // #268: the topic flag the legacy controller reads (MessagesTableViewController.m:1556-1583, transliterated), not the worker.
++        result["fastAnswer"] = raw["exception"].map { ["exception": $0] } ?? (raw["fastAnswer"] ?? NSNull())
 +
 +        if let filter = options["filter"] as? [String: Any] {
 +            var spec: [String: Any] = filter
@@ -2581,10 +2583,10 @@ index 0000000..94787c3
 +@end
 diff --git a/HFRswiftTests/OracleObjCSafe.m b/HFRswiftTests/OracleObjCSafe.m
 new file mode 100644
-index 0000000..3c94bd5
+index 0000000..38101af
 --- /dev/null
 +++ b/HFRswiftTests/OracleObjCSafe.m
-@@ -0,0 +1,302 @@
+@@ -0,0 +1,351 @@
 +// Oracle exporter helper (SwiftHFR LOT-002, LOT-003): calls an Objective-C method through NSInvocation and
 +// turns a thrown NSException into data. The legacy parsers raise on malformed pages (nil URL,
 +// out-of-bounds child index...), and Swift cannot catch NSException, so a raise would kill the run.
@@ -2852,6 +2854,47 @@ index 0000000..3c94bd5
 +    return @{@"worker": worker, @"completion": completionOut};
 +}
 +
++/// #268: the topic-page flag of -[MessagesTableViewController setupFastAnswer:] (HFRswift/Wrapped/MessagesTableViewController.m:1556-1583).
++/// That controller is compiled into the SuperHFRplus target only, not into the HFRswift test host, so its lines are transliterated
++/// here on the real HTMLParser/HTMLNode calls, as OracleLegacyWrite.m does for the composers. Returns the three properties it sets:
++/// isFavoritesOrRead (href of the first `delflag` link of the body, else of the first `nonlu` link, else ""), isRedFlagged (that
++/// `delflag` link holds an image whose src contains `flagn0.gif`) and isUnreadable (YES only on the `nonlu` branch; the controller's
++/// -init sets NO, :92). A raise is returned as data.
++static id OracleFastAnswer(id htmlParser) {
++    @try {
++        SEL find = NSSelectorFromString(@"findChildWithAttribute:matchingName:allowPartial:");
++        SEL attr = NSSelectorFromString(@"getAttributeNamed:");
++        id (*findIMP)(id, SEL, NSString *, NSString *, BOOL) = (id (*)(id, SEL, NSString *, NSString *, BOOL))objc_msgSend;
++        NSString *(*attrIMP)(id, SEL, NSString *) = (NSString * (*)(id, SEL, NSString *))objc_msgSend;
++        id bodyNode = ((id (*)(id, SEL))objc_msgSend)(htmlParser, NSSelectorFromString(@"body"));
++        BOOL isRedFlagged = NO;                                                          // :1556
++        BOOL isUnreadable = NO;                                                          // -init, :92
++        NSString *isFavoritesOrRead = @"";                                               // :1560
++        id flagNode = findIMP(bodyNode, find, @"href", @"delflag", YES);                 // :1559
++        if (flagNode) {
++            isFavoritesOrRead = attrIMP(flagNode, attr, @"href");                        // :1563
++            if (findIMP(flagNode, find, @"src", @"flagn0.gif", YES)) {                  // :1564
++                isRedFlagged = YES;
++            }
++        } else {
++            id readNode = findIMP(bodyNode, find, @"href", @"nonlu", YES);               // :1571
++            if (readNode) {
++                isFavoritesOrRead = attrIMP(readNode, attr, @"href");                    // :1573
++                isUnreadable = YES;
++            } else {
++                isFavoritesOrRead = @"";
++            }
++        }
++        return @{
++            @"isFavoritesOrRead": isFavoritesOrRead ?: [NSNull null],
++            @"isRedFlagged": @(isRedFlagged),
++            @"isUnreadable": @(isUnreadable)
++        };
++    } @catch (NSException *exception) {
++        return @{@"exception": OracleExceptionString(exception)};
++    }
++}
++
 +/// ParseMessagesOperation on its own, as ObjCTopicPageWorker.m:110-112 (normal mode) and, for the parse call only,
 +/// FilterPostsQuotes.m:279-283 (filter mode; legacy does not wait for avatars there). Exposes what the worker drops:
 +/// iLastPageNumber, raw topicName. The avatar completions it queued for the main thread are drained before returning,
@@ -2875,7 +2918,15 @@ index 0000000..3c94bd5
 +        ((void (*)(id, SEL))objc_msgSend)(operation, NSSelectorFromString(@"waitForPendingAvatarLoads"));
 +        NSArray *items = [[operation valueForKey:@"workingArray"] copy] ?: @[];
 +        OracleDrainMainQueue();
++        // #268: the topic-page flag. -[MessagesTableViewController startParseDataHtml:] (MessagesTableViewController.m:357-372)
++        // runs ParseMessagesOperation on a parser, then hands the same parser to loadDataInTableView:, which calls
++        // setupFastAnswer: on its body (:923-959): read here on the same parser, after the parse. Normal mode only.
++        id fastAnswer = [NSNull null];
++        if (!filter) {
++            fastAnswer = OracleFastAnswer(htmlParser);
++        }
 +        return @{
++            @"fastAnswer": fastAnswer,
 +            @"items": items,
 +            @"topicName": [operation valueForKey:@"topicName"] ?: [NSNull null],
 +            @"iLastPageNumber": [operation valueForKey:@"iLastPageNumber"] ?: @0,
