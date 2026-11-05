@@ -19,6 +19,8 @@ struct TopicReaderView: View {
     @State private var video: VideoItem?
     @State private var askingPage = false
     @State private var pageText = ""
+    /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
+    @State private var swipeEnabled = true
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -27,6 +29,7 @@ struct TopicReaderView: View {
                 ReaderWebView(controller: controller, document: model.document, scrollRequest: model.scrollRequest)
                     .opacity(model.hasShownDocument ? 1 : 0)
                     .accessibilityHidden(!model.hasShownDocument)
+                    .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
             }
             overlay
         }
@@ -76,6 +79,15 @@ struct TopicReaderView: View {
         }
         .onAppear(perform: makeController)
         .task {
+            // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
+            swipeEnabled = services.settings.swipesPages()
+            model.applyDisplaySettings() // a change made while this reader was away
+            for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
+                swipeEnabled = services.settings.swipesPages()
+                model.applyDisplaySettings()
+            }
+        }
+        .task {
             installMenuActions()
             await model.onAppear()
         }
@@ -124,6 +136,19 @@ struct TopicReaderView: View {
                         model.clearMenuFeedback(serial: serial)
                     } catch {}
                 }
+        }
+    }
+
+    /// The legacy horizontal drag that changes the page, when the setting is on (read at the end of each drag).
+    private var pageSwipe: some Gesture {
+        DragGesture().onEnded { value in
+            guard services.settings.swipesPages(), let page = model.page,
+                  let swipe = PageSwipe.of(
+                      translation: value.translation, predictedEnd: value.predictedEndTranslation,
+                      page: page.currentPage, maxPage: page.maxPage
+                  )
+            else { return }
+            Task { await model.swipe(swipe) }
         }
     }
 

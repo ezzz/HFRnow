@@ -27,6 +27,15 @@ extension TopicReaderModel {
         self.registry = registry
     }
 
+    /// The display settings plus the menu buttons the registry can serve: what every document of this reader is built with
+    /// (a page load and a setting change alike, so neither drops the buttons).
+    func currentRenderOptions() -> ReaderRenderOptions {
+        var options = renderOptions()
+        options.showsMessageMenus = hasMessageMenus
+        options.showsAuthorMenus = hasAuthorMenus
+        return options
+    }
+
     /// Whether the document draws the `⋯` button: an action of the message menu is implemented.
     var hasMessageMenus: Bool { registry.offers(.message) }
 

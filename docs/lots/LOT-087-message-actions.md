@@ -60,8 +60,9 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
 2. Actions without a merged handler are hidden, never shown and ignored.
 3. "Link" copies to the pasteboard (issue scope); legacy opened the share sheet.
 4. "Supprimer" is hidden on the first message of the topic (first block of page 1); legacy hid it on the first message of every
-   page (`messageIndex != 0`, `MessagesView.swift:255`; `ObjCMessageActionsBuilder.m:43`). Deleting a topic's first post deletes the
-   whole topic (HFR-PROTOCOL §3.1, `W49`, `R92`); legacy never offered it. Own-message, favourite and delete flags derive from LOT-031's
+   page (`messageIndex != 0`, `MessagesView.swift:255`; `ObjCMessageActionsBuilder.m:43`). Deleting the first post of a public topic
+   deletes the whole topic (HFR-PROTOCOL §3.1 "First post" row: `W49`, `R92`; the private-thread variant differs, `R43a`); legacy
+   never offered it. Only "Link" has a handler in this lot, so "Supprimer" shows nowhere yet. Own-message, favourite and delete flags derive from LOT-031's
    `MessageActions`, not from the legacy builder's flags.
 5. The author menu opens from the pseudo (a button); legacy opened it from the avatar image, which stays inert here (a blocked or
    missing avatar would otherwise leave no way in).
