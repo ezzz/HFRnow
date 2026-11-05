@@ -32,7 +32,7 @@ struct PollModelTests {
     private static let options = [
         PollOption(id: 1, text: "Oui", fieldName: "reponse"), PollOption(id: 2, text: "Non", fieldName: "reponse")
     ]
-    private static let votable = Poll(question: "Q ?", kind: .votable(options: options, hiddenFields: ["cat": "13"]))
+    nonisolated private static let votable = Poll(question: "Q ?", kind: .votable(options: options, hiddenFields: ["cat": "13"]))
     private static let confirmation = PollVoteResult(
         topic: readerTopic, choice: 2, message: "Votre vote a bien été pris en compte !",
         refreshURL: url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm")
@@ -179,18 +179,26 @@ struct PollModelTests {
         #expect(model.holdsVote)
     }
 
-    @Test func theReaderKeepsTheVoteModelForTheSameAccountOnly() async {
+    @Test func theReaderKeepsTheVoteModelForTheSameAccountAndFeedsItTheReloadedPoll() async throws {
+        let results = Poll(question: "Q ?", kind: .results([PollResult(id: 1, label: "Oui", percentage: 100, voteCount: 1)]))
+        let loads = LoadCounter()
+        let votable = Self.votable
         let pages = FakeTopicPages { target in
             var page = readerPage(page: target.page)
-            page.poll = Self.votable
+            // The first load carries the voting form; the reload after the vote carries the results.
+            page.poll = loads.next() == 1 ? votable : results
             return page
         }
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: pages)
         await reader.onAppear()
         let voter = ScriptedVoter(.failure(.unconfirmed(.unrecognizedAnswer(message: nil))))
-        let first = try? #require(reader.pollModel(voter: voter, account: "user1"))
-        first?.toggle(1)
-        await first?.vote()
+        let first = try #require(reader.pollModel(voter: voter, account: "user1"))
+        first.toggle(1)
+        await first.vote()
+        #expect(first.phase == .settled)
+        #expect(pages.requests.count == 2)
+        #expect(first.poll == results)
+        #expect(!first.offersVote)
         #expect(reader.pollModel(voter: voter, account: "user1") === first)
         #expect(reader.pollModel(voter: voter, account: "user2") !== first)
     }
@@ -200,6 +208,14 @@ struct PollModelTests {
         await reader.onAppear()
         #expect(reader.pollModel(voter: nil, account: nil) == nil)
     }
+}
+
+/// Numbers the loads a scripted page source answers.
+private final class LoadCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func next() -> Int { lock.withLock { count += 1; return count } }
 }
 
 /// A voter that holds its answer until the gate opens.

@@ -33,7 +33,7 @@ GAP-059 (port, ezzz Swift layer).
 - Cost: when the page has a poll, `PollParser` parses the page a second time (whether HFR prints the poll beyond page 1 is not asserted, so no page-1 shortcut); polls are rare, measured: not.
 
 ## Edge cases
-Poll absent on later pages (the poll is read from each page; whether HFR prints it beyond page 1 is not asserted); poll on a page that fails to parse it; logged out; closed poll; poll voted with a linked pseudo (`R33b` notice); double tap on "Voter" (`sending` blocks it); a vote in flight (the sheet cannot be closed), a sheet reopened or a topic reselected after a vote that may have been counted (the model is held by `TopicReaderModel.pollModel`, keyed on the account: it is reused while it holds a vote, so no fresh form is offered; re-voting after an unconfirmed vote needs leaving the topic reader), another account (fresh model).
+Poll absent on later pages (the poll is read from each page; whether HFR prints it beyond page 1 is not asserted); poll on a page that fails to parse it; logged out; closed poll; poll voted with a linked pseudo (`R33b` notice); double tap on "Voter" (`sending` blocks it); a vote in flight (the sheet cannot be closed), a sheet reopened or a topic reselected after a vote that may have been counted (the model is held by `TopicReaderModel.pollModel`, keyed on the account: it is reused while it holds a vote, so no fresh form is offered; re-voting after an unconfirmed vote needs leaving the topic reader; a followed link to the same topic opens a new reader with no held model, whose page is fetched after the vote), another account (fresh model).
 
 ## Pending capture
 - Multi-choice polls (#111): not offered; the sheet says to vote on the site. The engine refuses them (`unsupportedPoll`).
