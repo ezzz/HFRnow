@@ -26,8 +26,8 @@ protocol ImageUploadHistoryStoring: Sendable {
 struct LiveImageUploadHistory: ImageUploadHistoryStoring {
     let store: RehostUploadHistoryStore
 
-    /// The file under Application Support.
-    static func live() -> LiveImageUploadHistory {
+    /// The file under Application Support. One store per process (one actor per file): see `ImageUploadServices.liveHistory`.
+    fileprivate static func make() -> LiveImageUploadHistory {
         LiveImageUploadHistory(store: RehostUploadHistoryStore(
             persistence: FileSmallStorePersistence(fileURL: URL.applicationSupportDirectory.appending(path: "RehostHistory/uploads.json"))
         ))
@@ -58,6 +58,9 @@ struct ImageUploadServices: Sendable {
     static let baseURLKey = "RehostBaseURL"
     static let apiKeyKey = "RehostAPIKey"
 
+    /// The single history store of the app: two stores over one file could overwrite each other's writes.
+    static let liveHistory = LiveImageUploadHistory.make()
+
     /// The app's live services: the key comes from the bundle, never from the source.
     static func live(bundle: Bundle = .main) -> ImageUploadServices {
         let configuration = Self.configuration(from: bundle.infoDictionary ?? [:])
@@ -65,7 +68,7 @@ struct ImageUploadServices: Sendable {
             uploader: configuration.map { RehostClient(configuration: $0) },
             hostName: configuration?.baseURL.host,
             preparer: ImageIOPreparer(),
-            history: LiveImageUploadHistory.live(),
+            history: liveHistory,
             settings: UserDefaultsSettingsStore()
         )
     }

@@ -44,7 +44,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
   The sheet's model lives as long as the composer: an upload that finishes after the sheet closed still lands in the list.
 - **Gate (N1)**: `ImageUploadModel.submit(_:)` stores the picked bytes and shows the notice when `rehost_notice_accepted` is not `true`
   in the settings store. Nothing is prepared or sent until "Continuer"; "Annuler" drops the bytes and the notice asks again next time.
-  The key is new (no legacy equivalent). A reset in Settings is **not** in this lot (left, see below).
+  The key is new (no legacy equivalent) and read raw: the `SettingKey` catalogue is the legacy one and its tests pin it, so the typed key waits for the Settings reset (below). "Continuer" stores the flag synchronously, then uploads in a task. A reset in Settings is **not** in this lot (left, see below).
 - **Prepare** (`ImageIOPreparer`): decode with ImageIO, apply the orientation, downscale to `rehost_resize_before_upload` on the longest side
   (never upscale; default 1200), re-encode JPEG at quality 1.0 with **no properties** besides the quality: no EXIF, TIFF or GPS block.
   The test builds a JPEG carrying GPS, EXIF and TIFF blocks, checks the fixture has them, then checks the output has none (properties and raw bytes),
@@ -55,7 +55,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
   unexpanded `$(NAME)` means "no key": uploading is off, the sheet says so, manual links still work. The values come from the untracked
   `.xcconfig` of ADR 0007; **wiring that file into the project is pending (Mac check)**. No key is in source, tests or logs; error messages are the
   client's already redacted ones.
-- **Errors** (French, the host's message kept): offline, timeout and other transport failures say the image may have been sent without the app knowing (the
+- **Errors** (French, the host's message kept): offline says nothing was sent; a timeout or another transport failure says the image may have been sent without the app knowing (the
   POST is never retried); HTTP and payload refusals show `Erreur de l'hébergeur (code) : message`. The composer text is never touched by a failure.
 - **History**: the engine's `RehostUploadHistoryStore` (LOT-064: versioned file, `Application Support/RehostHistory/uploads.json`, newest first,
   no duplicate id), read once per model (reopening the panel keeps what is in memory). Unreadable data is never overwritten: the store refuses writes,

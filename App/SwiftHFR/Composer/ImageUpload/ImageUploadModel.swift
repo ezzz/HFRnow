@@ -68,7 +68,9 @@ final class ImageUploadModel {
         guard !didLoad else { return }
         didLoad = true
         let stored = await services.history.load()
-        history = stored.images + history
+        let known = Set(history.map(\.id))
+        history += stored.images.filter { !known.contains($0.id) }
+        history.sort { $0.uploadedAt > $1.uploadedAt }
         if stored.isUnreadable {
             historyWarning = "L'historique des images est illisible : les nouvelles images ne seront pas enregistrées."
         }
@@ -89,12 +91,15 @@ final class ImageUploadModel {
         await upload(source)
     }
 
-    /// The user accepted the notice: it is remembered and the waiting image goes up.
-    func acceptNotice() async {
-        guard let source = pendingSource else { return }
+    /// The user accepted the notice: it is remembered at once (so the alert closes) and the waiting image goes up in the
+    /// returned task.
+    @discardableResult
+    func acceptNotice() -> Task<Void, Never>? {
+        guard let source = pendingSource else { return nil }
         pendingSource = nil
+        // Exception recorded in the spec: `SettingKey` is the legacy catalogue (its tests pin it), N1's flag is new.
         services.settings.setRawValue(.bool(true), forKey: Self.noticeKey)
-        await upload(source)
+        return Task { await upload(source) }
     }
 
     /// The user refused the notice: the image is dropped, nothing was sent and the notice will ask again.
@@ -133,6 +138,7 @@ final class ImageUploadModel {
         do {
             let jpeg = try await Task.detached { try preparer.prepare(source, maxDimension: dimension) }.value
             let image = try await uploader.upload(jpeg: jpeg)
+            history.removeAll { $0.id == image.id }
             history.insert(image, at: 0)
             await persist { try await $0.add(image) }
         } catch let error as RehostError {

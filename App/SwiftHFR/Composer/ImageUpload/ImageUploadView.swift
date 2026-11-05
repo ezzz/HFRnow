@@ -32,7 +32,7 @@ struct ImageUploadView: View {
             }
             .alert("Hébergeur d'images", isPresented: askingNotice) {
                 Button("Annuler", role: .cancel) { model.declineNotice() }
-                Button("Continuer") { Task { await model.acceptNotice() } }
+                Button("Continuer") { model.acceptNotice() }
             } message: {
                 Text(model.noticeMessage)
             }

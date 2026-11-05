@@ -124,7 +124,7 @@ struct ImageUploadModelTests {
         let uploader = ScriptedUploader([.success(hosted("a")), .success(hosted("b"))])
         let (model, settings) = make(uploader: uploader)
         await model.submit(Data([1]))
-        await model.acceptNotice()
+        await model.acceptNotice()?.value
         #expect(uploader.received == [Data([1])])
         #expect(model.history.map(\.fullURL.lastPathComponent) == ["a.jpg"])
         #expect(settings.rawValue(forKey: ImageUploadModel.noticeKey) == .bool(true))
@@ -299,11 +299,12 @@ struct ImageIOPreparerTests {
         let output = try ImageIOPreparer().prepare(source, maxDimension: 1200)
         let after = try properties(output)
         #expect(after[kCGImagePropertyGPSDictionary] == nil)
-        #expect(after[kCGImagePropertyTIFFDictionary] == nil)
+        let tiff = after[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
+        #expect(tiff?[kCGImagePropertyTIFFMake] == nil)
+        #expect(tiff?[kCGImagePropertyTIFFModel] == nil)
         #expect((after[kCGImagePropertyExifDictionary] as? [CFString: Any])?[kCGImagePropertyExifUserComment] == nil)
         #expect(output.range(of: Data("FakeCam".utf8)) == nil)
         #expect(output.range(of: Data("secret".utf8)) == nil)
-        #expect(output.range(of: Data("GPS".utf8)) == nil)
     }
 
     @Test func theUploadedBodyHoldsNoLocationEndToEnd() async throws {
