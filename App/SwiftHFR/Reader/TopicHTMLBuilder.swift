@@ -27,6 +27,8 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
+    /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
+    var style = ThemeStyle.modern
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -67,7 +69,7 @@ enum TopicHTMLBuilder {
         <link rel="stylesheet" href="\(scheme)://resource/reader.css">
         <title>\(HTMLEscaping.text(page.title))</title>
         </head>
-        <body class="\(options.showsSignatures ? "signatures" : "nosig")">
+        <body class="\(options.showsSignatures ? "signatures" : "nosig") \(options.style == .classic ? "style-classic" : "style-modern")">
         <main>
 
         """
