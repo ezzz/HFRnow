@@ -586,6 +586,14 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 
 - **Session token in a topic page** (`R20`, `R22a`, `R28` without cookies; `R21`, `R32b` logged in, **verified**): every `<input … name="hash_check" value="…">` of a page served without cookies is empty (four on each), while a logged-in page carries the token in each of them (six on `R21`, eight on `R32b`). No topic capture holds a `codehex` value, logged in or not; the logged-in list, home and profile pages do (`suppressflag.php`, `clearimage.php`, §5), and HFR prints it only for a session. The offline store refuses a page with a filled `hash_check` or with any `codehex` value before writing it to disk; the second rule is defence in depth.
 
+### LOT-092 — check-updates flow
+
+[LOT-092](lots/LOT-092-check-updates.md), tests `CheckUpdatesFlowTests`.
+
+- **The flags page does not move flags** (`R10`, `R73a`, **verified**): two GETs of user2's `forum1f.php?owntopic=1` two seconds apart (23:34:55, 23:34:57) return the same two flagged topics with the same flag links (`page=101#t9810000001`, `page=102#t9810000002`). Only an authenticated topic page moves a flag (E25). The check requests `/` and `/forum1f.php?owntopic=1` and no other page.
+- **Stale flags page** (`R70b`, **verified**): the same bytes as `R70a`, served at the requested URL with status 200 and no redirect; the flow reads it as an expiry only through #383's classifier and only while the account holds the cookies it sent.
+- **Not known:** whether a flagged topic has news cannot be read from the flags page alone: the flag link names the last read message (`#t<numreponse>`), the last-post link ends in `#bas`, and a flag link's `page=` can be stale (§6c "Flag facts from the same run"). *Pending capture:* a flags row and the last message number of the same topic.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
