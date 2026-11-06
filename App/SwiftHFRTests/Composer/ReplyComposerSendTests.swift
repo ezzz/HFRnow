@@ -130,6 +130,7 @@ struct ReplyComposerSendTests {
         await composer.start()
         composer.update(text: "Envoyé vite")
         await composer.send()
+        await composer.waitForAutosave() // a write that outlived the send lands here, before the check
         #expect(await ComposerFixture.storedText(drafts) == nil)
     }
 
