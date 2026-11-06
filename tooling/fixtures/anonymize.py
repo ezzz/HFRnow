@@ -138,13 +138,12 @@ def page_is_private(text):
     return bool(_PAGE_MP_RE.search(text))
 
 
-API_KEY_PARAM_RE = re.compile(r"api_key(?:=|%3D)([^&\"'\s<]*)", re.I)
+API_KEY_RE = re.compile(r"api_key(?:=|%3D|[\"']\s*:\s*[\"'])([^&\"'\s<]*)", re.I)
 
 
-def api_key_findings(text):
-    """A third-party `api_key` value outside the placeholder: refused in any page or meta (ADR 0007)."""
-    return [(text.count("\n", 0, m.start()) + 1, 0, "api_key value not replaced")
-            for m in API_KEY_PARAM_RE.finditer(text) if m.group(1) not in ("", "REDACTED")]
+def api_key_matches(text):
+    """A third-party `api_key` value outside the placeholder, in a query string or JSON (ADR 0007)."""
+    return [m for m in API_KEY_RE.finditer(text) if m.group(1) not in ("", REDACTED)]
 
 
 def meta_subject_findings(text):
@@ -1574,7 +1573,6 @@ class Anonymizer:
         self._reset()
         private = private or page_is_private(text)
         res = meta_subject_findings(text)
-        res += api_key_findings(text)
 
         def scan(chunk, base, where):
             def add(pos, reason, length=0):
@@ -1595,6 +1593,8 @@ class Anonymizer:
             for m in HASH_RE.finditer(chunk):
                 if m.group(2) != REDACTED:
                     add(m.start(), "hash_check value not REDACTED")
+            for m in api_key_matches(chunk):
+                add(m.start(), "api_key value not replaced")
             for m in COOKIE_RE.finditer(chunk):
                 if m.group(2).lower() not in COOKIE_OK:
                     add(m.start(), "cookie/session value (%s)" % m.group(1))
