@@ -195,6 +195,13 @@ struct SmileySearchModelTests {
         #expect(search.keywords == .idle)
     }
 
+    @Test func aKeywordRepeatedByTheWikiIsListedOnce() async {
+        let detail = SmileyWikiDetail(code: "[:a]", imageURL: nil, keywords: ["chat", "noir", "chat"])
+        let search = model(ScriptedLookups(wiki: ["[:a]": .success(detail)]))
+        await search.loadKeywords(for: "[:a]")
+        #expect(search.keywords == .loaded(["chat", "noir"]))
+    }
+
     @Test func unreadableKeywordsSayWhy() async {
         let search = model(ScriptedLookups(wiki: ["[:a]": .failure(.network(.offline))]))
         await search.loadKeywords(for: "[:a]")

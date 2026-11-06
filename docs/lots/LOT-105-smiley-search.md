@@ -11,8 +11,8 @@ Legacy `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional refere
 
 | Legacy | Replaced by |
 |---|---|
-| `AnswerView.swift:1230-1262` (search field, "Rechercher", "Tous les mots clés" toggle, `@AppStorage("AnswerView.smileys.search.allKeywords")`) | `SmileyPickerView.searchBar` (same key) |
-| `AnswerView.swift:1264-1345` (`performSearch`, `clearSearch`, `search(using:)`, `refreshSuggestions`) | `SmileySearchModel.search`, `clear`, `submit`, `refreshSuggestions` |
+| `AnswerView.swift:1230-1262` (search field, "Rechercher", "Tous les mots clés" toggle), `:1064` (`@AppStorage("AnswerView.smileys.search.allKeywords")`) | `SmileyPickerView.searchBar` (same key) |
+| `AnswerView.swift:1277-1345` (`performSearch`, `clearSearch`, `search(using:)`, `refreshSuggestions`) | `SmileySearchModel.search`, `clear`, `submit`, `refreshSuggestions` |
 | `AnswerView.swift:1088-1093` (`suggestionChips`: 5 chips, recent first, then top not already listed), `:1171-1190` (chip row) | `SmileySearchModel.suggestions`, `SmileyPickerView.suggestionChips` |
 | `AnswerView.swift:1103-1106`, `:1200-1206`, `:1262-1290` (results grid, back button, empty state "Aucun smiley trouvé") | `SmileyPickerView.searchResults` |
 | `AnswerView.swift:1473-1615` (`FavoriteSmileyDetailView`: "Mots clés" chips, tap → search), `:762-836` (`fetchSmileyKeywords`) | `SmileyDetailView.keywords`, `SmileySearchModel.loadKeywords` over `SmileyLookupFlow.wiki` (LOT-053) |
@@ -53,7 +53,7 @@ Legacy `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional refere
 
 - The chip row is shown in the catalogue state only (as legacy: `displayMode == .library`).
 - A keyword shorter than 3 characters ends in "Recherche trop courte" (legacy ignored it).
-- The server's duplicate in a result list (`R53c`) is dropped after the first.
+- The server's duplicate in a result list (`R53c`) is dropped after the first; a keyword repeated by the wiki is listed once.
 
 ## Pending capture (never hand-built, LESSONS 35-36)
 

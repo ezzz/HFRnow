@@ -96,6 +96,8 @@ final class SmileySearchModel {
     /// Searches `query` (the field's text when nil) and shows the outcome; a successful search is remembered.
     func search(_ query: String? = nil, requireAll: Bool) async {
         if let query, query != text { text = query }
+        // A request cancelled before it started must not touch the phase.
+        guard !Task.isCancelled else { return }
         let query = trimmed
         generation += 1
         let mine = generation
@@ -171,7 +173,9 @@ final class SmileySearchModel {
             return
         }
         guard mine == keywordsGeneration, !Task.isCancelled else { return }
-        keywords = .loaded(detail.keywords)
+        // A word repeated by the wiki would give two cells the same identity.
+        var seen = Set<String>()
+        keywords = .loaded(detail.keywords.filter { seen.insert($0).inserted })
     }
 
     /// Forgets the keywords of the detail that closed.
