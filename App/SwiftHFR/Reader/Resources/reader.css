@@ -52,7 +52,7 @@ a { color: var(--action); }
 /* `overflow-wrap: anywhere` on body makes an item's min-content one character, so at accessibility sizes the flex row shrank the
    pseudo to a column; break-word does not, the row wraps (date, then button) and a very long pseudo still breaks (min-width 0). */
 .message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
-.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: none; }
+.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 /* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
    (default) tints the header with the accent at 3 %, classic at 15 % and adds the 8 px content padding legacy gave it. */
 .style-modern .message .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
