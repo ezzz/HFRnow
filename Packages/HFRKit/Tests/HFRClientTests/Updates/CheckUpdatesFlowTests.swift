@@ -1,6 +1,5 @@
 import Foundation
 import HFRModels
-import HFRNetwork
 import Testing
 @testable import HFRClient
 @testable import HFRNetwork
@@ -208,7 +207,10 @@ struct CheckUpdatesFlowTests {
             try await poll.flaggedTopics()
         }
     }
+}
 
+// Cancellation (split out of the struct body for `type_body_length`).
+extension CheckUpdatesFlowTests {
     @Test("Cancelled between the two requests with a reader that ignores it: the flags are not requested")
     func cancelledBetweenTheRequests() async throws {
         let called = Called()
