@@ -402,7 +402,7 @@ def is_followed_row(block):
 def alias_followed_lists(text):
     """Alias every row of a list page that has a flagged or `owntopic` row, by position; any other page is unchanged.
 
-    One real row beside the aliased ones would give them away by subtraction, so the whole page goes."""
+    A list page is aliased whole, so its rows stay consistent."""
     blocks = [m.group(0) for m in FOLLOWED_BLOCK_RE.finditer(text)]
     if not any(is_followed_row(b) for b in blocks):
         return text
@@ -2213,7 +2213,7 @@ def verify_followed_lists(text):
     headers = any(r["header"] for r in rows)
     i = 0
     for row in rows:
-        # One flagged row makes the whole page a list to alias: a real row beside aliased ones would give them away.
+        # A list page is aliased whole, so its rows stay consistent.
         if not row["header"]:
             if not _row_has_cells(row):
                 continue
