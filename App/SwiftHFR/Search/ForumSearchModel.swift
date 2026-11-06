@@ -55,6 +55,8 @@ struct SearchContent: Sendable, Equatable {
     }
 }
 
+// Port of HFRswift/Swift/ForumSearchView.swift (ForumSearchViewModel) @ 2440d79 (GAP-132, GAP-133). Differences: see
+// ForumSearchView.swift and the LOT-115 spec.
 /// State of the forum search screen (LOT-115): the form, the results page on screen, the result opened in the reader.
 ///
 /// A banned word (Q-7) is refused here, before any request, with a warning. Results keep their rows while another page
