@@ -4,7 +4,7 @@ import SwiftUI
 /// The in-topic search sheet: a word, an author, HFR's answer as a message below them.
 struct TopicSearchSheet: View {
     let model: TopicSearchModel
-    /// Opens the match in the reader; the sheet closes after it.
+    /// Hands the match over and closes the sheet; the reader follows it once the sheet is gone.
     let open: (ReaderTarget) -> Void
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focus: Field?
@@ -59,8 +59,8 @@ struct TopicSearchSheet: View {
     private func submit() {
         Task {
             guard let target = await model.submit() else { return }
-            dismiss()
             open(target)
+            dismiss()
         }
     }
 }

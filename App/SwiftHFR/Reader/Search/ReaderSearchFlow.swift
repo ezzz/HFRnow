@@ -1,7 +1,8 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (the search menu entry, `handleSearchResult`) @ 2440d79. Differences: GAP-130,
-// GAP-135: the entry is in the secondary menu and only with an account; a match opens above the reader like a followed link.
+// GAP-135: the entry is in the secondary menu and only with an account; a match is followed like a link: scrolled to
+// in place when on the page shown (legacy always pushed a `MessagesView`), else a reader above.
 /// The reader's search entry (LOT-113): a toolbar button when an account is current and the page names its topic, and the
 /// search sheet. A match opens in the reader at its message.
 struct ReaderSearchFlow: ViewModifier {
@@ -9,6 +10,8 @@ struct ReaderSearchFlow: ViewModifier {
     /// The current account's services; nil when logged out (the search needs the account's `hash_check`).
     let composer: ComposerServices?
     @State private var search: TopicSearchModel?
+    /// The match found, followed when the sheet has finished closing (a push during the dismissal can be dropped).
+    @State private var pendingMatch: ReaderTarget?
 
     func body(content: Content) -> some View {
         content
@@ -22,8 +25,12 @@ struct ReaderSearchFlow: ViewModifier {
                     }
                 }
             }
-            .sheet(item: $search) { sheet in
-                TopicSearchSheet(model: sheet) { target in model.follow(target) }
-            }
+            .sheet(item: $search, onDismiss: {
+                guard let target = pendingMatch else { return }
+                pendingMatch = nil
+                model.follow(target)
+            }, content: { sheet in
+                TopicSearchSheet(model: sheet) { target in pendingMatch = target }
+            })
     }
 }

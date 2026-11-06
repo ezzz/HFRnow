@@ -1,3 +1,4 @@
+import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork

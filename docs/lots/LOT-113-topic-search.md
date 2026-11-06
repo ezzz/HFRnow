@@ -29,6 +29,7 @@ Legacy app: ezzz/HFRnow at `2440d79`.
 
 - The toolbar button and the sheet are shown only with an account (the POST needs the account's `hash_check`, LOT-046 `missingToken`); a logged-out reader has no button. Legacy showed the sheet to everyone and failed on submit. `b·needed`.
 - A refusal, an expired session and an unreadable answer are told apart from "no result" (LOT-046 intentional difference 4). `b·needed`.
+- A match on the page shown scrolls in place; legacy always pushed a new `MessagesView` (`handleSearchResult`, `MessagesView.swift:3885-3911`). `b·needed` (GAP-135): no second reader for a message already on screen. Any other match opens a reader above, as legacy.
 - Not ported yet: the "Filtrer les messages" and "Depuis le début du sujet" toggles, and the results mode with "next results" (`TopicSearchContext`): see Pending capture.
 
 ## Behaviour
@@ -52,14 +53,15 @@ None new: `R52a` (the `Location`, meta only) and `R52b` (no match) are LOT-046's
 
 ## Tests
 
-`App/SwiftHFRTests/Reader/Search/TopicSearchModelTests.swift`: target of a match (page left to HFR), no message number, no result, author alone, no criterion, every `TopicSearchError` message, second submit ignored, cancel drops the answer, cancelled search is not a failure, match on the page shown scrolls in place, a match elsewhere opens a reader above at its message. Gates use `ReaderGate` signals, no wall-clock waits. Written in the cloud, run by CI; mutation runs are left to the Mac check.
+`App/SwiftHFRTests/Reader/Search/TopicSearchModelTests.swift`: target of a match (page left to HFR), no message number, no result, author alone, no criterion, every `TopicSearchError` message, second submit ignored, cancel drops the answer, cancelled search is not a failure, match on the page shown scrolls in place, a match elsewhere opens a reader above at its message. `ReaderTarget(searchMatch:)` is tested directly (`R52a`'s Location, a differing `page=`, a foreign topic, no anchor). Gates use `ReaderGate` signals, no wall-clock waits. Written in the cloud, run by CI; mutation runs are left to the Mac check.
 
 ## Pending capture
 
+- **Filter (GAP-135 is parity, so this is a tracked loss):** `R122c`/`R122d` verify that the filtered results are a plain GET of the `R52a` `Location` plus `filter=1`. A filter could therefore be offered without the uncaptured POST (POST without `filter`, then GET `Location` + `filter=1`); it needs a reader source that takes a query, so it is a follow-up issue, not a silent drop.
 - `transsearch.php` POST **with `filter=1`**: whether it answers the `R52a` redirect plus `filter=1` (`R122c` is the GET). Until then the sheet has no "Filtrer" toggle and sends no `filter`.
 - A continued search (`firstnum`/`currentnum`, "next results"): "Stepping not tested" (HFR-PROTOCOL §7 E28). No results mode in the reader.
 - Searching a private conversation (`cat=prive`): `transsearch.php` and its `Location` there are not captured, so no entry is offered.
-- The `p` value of the topic page's search form is not exposed by `ReaderPage`; `R52a` sent `p=1` and the flow omits it. Whether HFR needs it is not captured (the POST answered with the legacy body is LOT-046's pending capture).
+- **Departure from legacy:** legacy sent the page form's hidden `p` (`TopicSearchService.swift:45-48`; `R52a` sent `p=1`). `ReaderPage` does not expose it, so the sheet omits it: a body neither legacy nor a capture sent. Needs a capture of a `transsearch.php` POST without `p` (`host: mac`) or `ReaderPage` exposing the form's `p`; the Mac check list asks for it.
 
 ## Intentional differences from legacy
 

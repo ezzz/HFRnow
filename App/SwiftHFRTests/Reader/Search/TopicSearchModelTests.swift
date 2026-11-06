@@ -46,6 +46,25 @@ struct TopicSearchModelTests {
         #expect(searcher.queries == [TopicSearchQuery(topic: readerTopic, word: "napolitaine", author: "", filterEnabled: false)])
     }
 
+    @Test func theTargetReadsTheMessageNumberAndNotThePage() throws {
+        // `R52a`'s Location as HFR sends it, resolved against the forum by the flow: `page=1`, message 2666649.
+        let target = try #require(ReaderTarget(searchMatch: matchURL, topic: readerTopic))
+        #expect(target.page == 1)
+        #expect(target.anchor == 2_666_649)
+        #expect(target.numreponse == 2_666_649)
+        // A `page=` that differs from the message's page changes nothing.
+        let other = try #require(ReaderTarget(
+            searchMatch: url("https://forum.hardware.fr/forum2.php?post=28563&cat=13&page=7&currentnum=42#t42"), topic: readerTopic
+        ))
+        #expect(other == ReaderTarget(source: .topic(readerTopic), anchor: 42, numreponse: 42))
+        // The topic is the searched one, never the link's.
+        let foreign = try #require(ReaderTarget(
+            searchMatch: url("https://forum.hardware.fr/forum2.php?post=1&cat=1&page=1#t42"), topic: readerTopic
+        ))
+        #expect(foreign.source == .topic(readerTopic))
+        #expect(ReaderTarget(searchMatch: url("https://forum.hardware.fr/forum2.php?post=28563&cat=13#bas"), topic: readerTopic) == nil)
+    }
+
     @Test func aMatchWithoutMessageNumberIsAMessageNotATarget() async {
         let searcher = ScriptedSearcher { _ in .match(url("https://forum.hardware.fr/forum2.php?post=28563&cat=13&page=1")) }
         let sheet = model(searcher)
