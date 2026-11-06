@@ -194,7 +194,7 @@ final class FavoritesOptionsModel {
     /// Drops the folded sections `page` no longer has (legacy `pruneCollapsedSections`); an empty page prunes nothing, so a
     /// failed or logged-out load never forgets the user's choices.
     func prune(to page: FavoritesPage) async {
-        guard let stores, !page.sections.isEmpty else { return }
+        guard stores != nil, !page.sections.isEmpty else { return }
         let valid = Set(page.sections.map(\.id))
         for section in collapsedSections.subtracting(valid).sorted() {
             await setCollapsed(false, section: section)
