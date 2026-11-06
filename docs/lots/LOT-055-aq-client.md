@@ -15,7 +15,7 @@ ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`:
 |---|---|
 | Feed + badge | `AQPlusView.swift:39` (`https://aq.super-h.fr/rss.php`), `:41-50` (`last_check_aq`, default 2010-01-01), `:52-57` (category-25 filter), `:60-92` (`AQBadgeCheckService`: GET, 20 s, cache ignored, `URLSession.shared`, count of `isNew`, stale-check guard `:86`), `:202-204` (`isNew = aqDate >= lastCheck`, unreadable date = now), `:248-322` (list view model, `:278` 20 s, sets `last_check_aq` on display) |
 | Launch trigger | `MainWindow.swift:1178-1192` (3 s after the main window, once per process, logged out too) |
-| Per-topic check | `MessagesView.swift:325-338` (`isAQAlreadySignaled`: GET `…/api/getAlertesByTopic.php?topic_id=`, `URLSession.shared`, default timeout, `content.contains(postID)`, nil on error), called at `:2001`, `:3716` |
+| Per-topic check | `MessagesView.swift:325-338` (`isAQAlreadySignaled`, URL `:327`: GET `…/api/getAlertesByTopic.php?topic_id=`, `URLSession.shared`, default timeout, `content.contains(postID)`, nil on error), called at `:2001`, `:3716` |
 | Create (not ported) | `MessagesView.swift:340-376` (`createAQ`: POST `…/api/addAlerte.php`, 5 s, form content type, ASCII lossy body, `"1"` = success), `:378-398` (`aqRequestBody`, fixed field order), `:434-437` (`legacyPercentEncode`), `:439-441` (pseudo lower-cased); toasts `:2038-2043` |
 
 ## Behaviour
@@ -67,7 +67,9 @@ is `unconfirmed`, and the N1 notice precedes the first one.
 ## Intentional differences from legacy
 - An item with an unreadable date is **not** new. Legacy dated it "now" (`AQPlusView.swift:203`), so it was new on every check and the
   badge never cleared. No such item in `T01`.
-- Requests carry no forum cookie (legacy: `URLSession.shared`, the jar holding `.hardware.fr` cookies; R1) and do not follow redirects.
+- Redirects are not followed. Legacy used `URLSession.shared`, whose jar holds the `.hardware.fr` cookies: it never sent them to the AQ host
+  (cookies are scoped by domain), but an AQ answer redirecting to a forum URL was followed with the session (R1). Requests now go through
+  the cookie-less transport and stop at the AQ host.
 - A failed check is an error, not `nil` (same meaning, typed); a non-listing body is an error instead of "not reported".
 - The check timeout is 20 s (legacy: `URLSession` default, 60 s).
 

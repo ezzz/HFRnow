@@ -2,11 +2,11 @@ import Foundation
 
 /// Where the AQ ("Alerte Qualitay") service lives. The base URL is injected (LOT-071 R2), never written in source.
 ///
-/// Legacy hard-coded `https://aq.super-h.fr` (`AQPlusView.swift:39`, `MessagesView.swift:326` @ 2440d79).
+/// Legacy hard-coded `https://aq.super-h.fr` (`AQPlusView.swift:39`, `MessagesView.swift:327` @ 2440d79).
 public struct AQConfiguration: Sendable, Equatable {
     /// Path of the RSS feed (`AQPlusView.swift:39` @ 2440d79, capture `T01`).
     static let feedPath = "/rss.php"
-    /// Path of the per-topic listing (`MessagesView.swift:326` @ 2440d79, capture `T02`).
+    /// Path of the per-topic listing (`MessagesView.swift:327` @ 2440d79, capture `T02`).
     static let alertsPath = "/api/getAlertesByTopic.php"
 
     /// Origin of the AQ host, for example `https://aq.super-h.fr`.

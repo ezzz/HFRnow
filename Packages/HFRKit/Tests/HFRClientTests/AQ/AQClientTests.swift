@@ -53,7 +53,7 @@ struct AQClientTests {
         #expect(request.body == nil)
         #expect(request.headers["Cookie"] == nil)
         #expect(request.redirectPolicy == .doNotFollow)
-        #expect(request.timeout == AQClient.timeout)
+        #expect(request.timeout == 20)
         #expect(request.maximumBodyBytes == AQClient.maximumResponseBytes)
     }
 

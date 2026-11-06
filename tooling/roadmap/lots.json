@@ -705,7 +705,7 @@
 "scope": "AQ client: per-topic check, create, RSS feed + \"new since\" badge; returns every item with its category (hiding Apple for reviewers is app policy, Q-7)",
 "module": "HFRClient",
 "diff": "easy",
-"model": "Sonnet → Opus",
+"model": "Opus → Fable",
 "deps": "028, 071",
 "audit": "D6",
 "prio": "low",
