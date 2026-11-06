@@ -156,6 +156,31 @@ struct OfflineSaveTests {
         #expect(try OfflineTopicStore(cache: cache.cache).topics().first?.title == "Titre de secours")
     }
 
+    @Test func leavingStopsARunAndNothingButTheButtonStartsOne() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        let html = try OfflineCorpus.html("R22a-topic-middle-page-anon.html")
+        let gate = ReaderGate()
+        let fetcher = FakeOfflineFetcher { FetchedOfflinePage(html: html, page: $0) }
+        let saver = OfflineSaveModel(
+            store: GatedStore(base: LiveOfflineStore(store: OfflineTopicStore(cache: cache.cache)), gate: gate, onPage: 2), fetcher: fetcher
+        )
+        var page = readerPage(page: 1)
+        page.maxPage = 5
+        saver.start(page: page, count: 5, fallbackTitle: "t")
+        #expect(saver.isSaving)
+        await gate.untilArrived()
+        saver.leave()
+        await gate.open()
+        while saver.isSaving { await Task.yield() }
+        #expect(saver.state == .stopped(saved: 2))
+        #expect(fetcher.requests == [1, 2])
+        // Nothing restarts a finished or stopped run: the state and the requests stay as they are.
+        saver.leave()
+        await Task.yield()
+        #expect(saver.state == .stopped(saved: 2) && fetcher.requests == [1, 2])
+    }
+
     @Test func theBudgetIsAppliedAfterEachRun() async throws {
         let store = EvictionSpy()
         let html = try OfflineCorpus.html("R20-topic-p1-anon.html")

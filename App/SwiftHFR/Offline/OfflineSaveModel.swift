@@ -3,8 +3,9 @@ import HFRModels
 import HFRStorage
 import Observation
 
-// Port of Classes/OfflineStorage.m (the download, `:145-294`, commented out) @ 2440d79: the save side that legacy never shipped. Differences: every page is fetched without cookies (no flag
-// moves, LOT-045), an explicit "save this page and the next ones" action, a reason when a page is refused (GAP-180, LOT-139).
+// Port of Classes/OfflineStorage.m (the download, `:145-294`, commented out) @ 2440d79: the save side that legacy never
+// shipped. Differences: every page is fetched without cookies (no flag moves, LOT-045), an explicit "save this page and the
+// next ones" action, a reason when a page is refused (GAP-180, LOT-139).
 /// Saves a topic's pages for offline reading: one page after the other, so a failure keeps what was saved before it.
 @MainActor
 @Observable
@@ -44,14 +45,37 @@ final class OfflineSaveModel {
     /// Saves `count` pages from the one on screen (fewer at the end of the topic), titled with the page's title, or `fallbackTitle`
     /// when HFR gave none. A private conversation or a page without a topic is ignored.
     func save(page: ReaderPage, count: Int, fallbackTitle: String) async {
-        guard let topic = page.topicID else { return }
+        await begin(page: page, count: count, fallbackTitle: fallbackTitle)?.value
+    }
+
+    /// Starts the same run without waiting for it, held by this model so `leave()` can stop it; the run exists when this returns.
+    /// The save button is the only thing that starts one: nothing restarts a run when a screen reappears.
+    func start(page: ReaderPage, count: Int, fallbackTitle: String) {
+        begin(page: page, count: count, fallbackTitle: fallbackTitle)
+    }
+
+    @discardableResult
+    private func begin(page: ReaderPage, count: Int, fallbackTitle: String) -> Task<Void, Never>? {
+        guard let topic = page.topicID else { return nil }
         let last = min(page.currentPage + max(1, count) - 1, page.maxPage)
-        await save(topic: topic, title: page.title.isEmpty ? fallbackTitle : page.title, pages: page.currentPage...max(page.currentPage, last))
+        return begin(
+            topic: topic, title: page.title.isEmpty ? fallbackTitle : page.title, pages: page.currentPage...max(page.currentPage, last)
+        )
+    }
+
+    /// The member left the topic (not merely covered it by a linked reader or the image viewer): stop after the page in progress.
+    /// What was saved stays.
+    func leave() {
+        task?.cancel()
     }
 
     /// Saves `pages` of `topic`, returning when done, failed or stopped. Ignored while another save runs.
     func save(topic: TopicID, title: String, pages: ClosedRange<Int>) async {
-        guard !isSaving, pages.lowerBound >= 1 else { return }
+        await begin(topic: topic, title: title, pages: pages)?.value
+    }
+
+    private func begin(topic: TopicID, title: String, pages: ClosedRange<Int>) -> Task<Void, Never>? {
+        guard !isSaving, pages.lowerBound >= 1 else { return nil }
         state = .saving(done: 0, total: pages.count)
         let task = Task {
             let outcome = await self.run(pages, of: topic, title: title)
@@ -60,8 +84,7 @@ final class OfflineSaveModel {
             await self.store.evict()
         }
         self.task = task
-        // The run follows the screen that asked for it: a cancelled caller stops it (a covered screen is not cancelled).
-        await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        return task
     }
 
     private func run(_ pages: ClosedRange<Int>, of topic: TopicID, title: String) async -> State {

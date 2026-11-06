@@ -8,20 +8,8 @@ struct ReaderOfflineSave: ViewModifier {
     static let pagesInBatch = 5
 
     let model: TopicReaderModel
-    @State private var saver: OfflineSaveModel?
-    /// The save asked for; the task below runs it, and ends with the screen (not when the screen is only covered).
-    @State private var request: SaveRequest?
-
-    private struct SaveRequest: Equatable {
-        let id = UUID()
-        let page: ReaderPage
-        let count: Int
-    }
-
-    init(model: TopicReaderModel, offline: OfflineServices?) {
-        self.model = model
-        _saver = State(initialValue: offline.map { OfflineSaveModel(store: $0.store, fetcher: $0.fetcher) })
-    }
+    /// Owned by the reader view, which stops its run when the member really leaves (`TopicReaderView.onDisappear`).
+    let saver: OfflineSaveModel?
 
     func body(content: Content) -> some View {
         content
@@ -33,10 +21,6 @@ struct ReaderOfflineSave: ViewModifier {
             .safeAreaInset(edge: .top) {
                 if let saver, saver.state != .idle { OfflineSaveBanner(saver: saver) }
             }
-            .task(id: request) {
-                guard let saver, let request else { return }
-                await saver.save(page: request.page, count: request.count, fallbackTitle: model.initialTitle)
-            }
     }
 
     @ViewBuilder
@@ -45,11 +29,11 @@ struct ReaderOfflineSave: ViewModifier {
             Button("Arrêter l’enregistrement", systemImage: "stop.circle") { saver.cancel() }
         } else {
             Button("Enregistrer cette page hors ligne", systemImage: "arrow.down.circle") {
-                request = SaveRequest(page: page, count: 1)
+                saver.start(page: page, count: 1, fallbackTitle: model.initialTitle)
             }
             // Disabled on the last page: there are no following pages to save.
             Button("Enregistrer cette page et les \(Self.pagesInBatch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
-                request = SaveRequest(page: page, count: Self.pagesInBatch)
+                saver.start(page: page, count: Self.pagesInBatch, fallbackTitle: model.initialTitle)
             }
             .disabled(page.currentPage >= page.maxPage)
         }
@@ -58,8 +42,8 @@ struct ReaderOfflineSave: ViewModifier {
 
 extension View {
     /// Adds the offline save menu of `model`'s topic.
-    func offlineSave(model: TopicReaderModel, offline: OfflineServices?) -> some View {
-        modifier(ReaderOfflineSave(model: model, offline: offline))
+    func offlineSave(model: TopicReaderModel, saver: OfflineSaveModel?) -> some View {
+        modifier(ReaderOfflineSave(model: model, saver: saver))
     }
 }
 

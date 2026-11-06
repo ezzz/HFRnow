@@ -4,8 +4,9 @@ import HFRNetwork
 import HFRParsing
 import HFRStorage
 
-// Port of Classes/OfflineStorage.m (getDataFromTopicOffline, `:430`, no caller) @ 2440d79. Differences: the saved HTML goes through the same parsers as a live page, so a parser fix
-// also applies to pages saved earlier; a page never saved is an error, not a blank page (GAP-180, LOT-139).
+// Port of Classes/OfflineStorage.m (getDataFromTopicOffline, `:430`, no caller) @ 2440d79. Differences: the saved HTML goes
+// through the same parsers as a live page, so a parser fix also applies to pages saved earlier; a page never saved is an
+// error, not a blank page (GAP-180, LOT-139).
 /// The reader's page source over the saved pages: no network, no session, nothing recorded.
 struct OfflinePageSource: TopicPageSource {
     let store: any OfflineStoring
