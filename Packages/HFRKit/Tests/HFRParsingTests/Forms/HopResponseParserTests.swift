@@ -150,7 +150,9 @@ struct HopResponseParserTests {
         // The MP thread delete (manageaction.php, LOT-094): a link-less `.hop` "Action effectuée avec succès".
         "W64-mp-thread-delete-owner-success", "W65-mp-thread-delete-recipient-success",
         // Group MP create (#336).
-        "W70-mp-create-group-success"
+        "W70-mp-create-group-success",
+        // New MP whose body starts with a line break (#130), and the sender's delete of its unread thread (W64's body).
+        "W130-mp-create-leading-newline-success", "W131-mp-thread-delete-owner-unread-recipient-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
         // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
         // (`HopResponseAlertTests`).

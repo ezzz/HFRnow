@@ -1,0 +1,20 @@
+{
+  "id": "R130c",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=prive&post=3208005&numrep=1980892197&ref=1&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208005&numrep=1980892197&ref=1&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208005&numrep=1980892197&ref=1&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 12:50:04 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R130c-mp-quote-form-leading-newline.html",
+  "private": true
+}

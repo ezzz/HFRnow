@@ -1,0 +1,21 @@
+{
+  "id": "R130e",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 12:50:57 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R130e-mp-list-recipient-after-sender-delete-unread.html",
+  "private": true
+}
