@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MainWindow.swift (CategoriesListView) @ 2440d79. Differences: collapsible sections with the sub-forums as rows
+// instead of a flat list and a sub-forum picker; no category icons (GAP-020, 021, 022; UXD).
 /// The Catégories list: every forum with its sub-forums (flags and favourites have their own tab, LOT-170).
 struct ForumListView: View {
     @Bindable var navigation: NavigationModel

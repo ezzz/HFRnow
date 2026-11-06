@@ -6,6 +6,8 @@ import HFRParsing
 ///
 /// It keeps the session that fetched it, so the form's `hash_check` and `pseudo` (the selected account's, echoed by
 /// HFR) always travel with that account's cookies: a form cannot be submitted as another account (decision Q-8).
+/// It also keeps the identity the session had when the form was fetched, so a form loaded before a logout or a login
+/// of another account in that same session is refused locally (`PostingError.sessionChanged`, issue #342).
 public struct PostingForm: Sendable {
     /// Which composer HFR served, read from the form itself.
     public enum Shape: String, Sendable, Hashable {
@@ -27,12 +29,15 @@ public struct PostingForm: Sendable {
     public let pageURL: URL
     let layout: HopFormLayout
     let session: any PostingSession
+    /// The session's identity and token as the form request left (`PostingFlow.loadForm`).
+    let seed: HashCheckSeed
 
-    init(form: ForumForm, layout: HopFormLayout, pageURL: URL, session: any PostingSession) {
+    init(form: ForumForm, layout: HopFormLayout, pageURL: URL, session: any PostingSession, seed: HashCheckSeed) {
         self.form = form
         self.layout = layout
         self.pageURL = pageURL
         self.session = session
+        self.seed = seed
         self.shape = Self.shape(of: form)
     }
 
@@ -43,8 +48,8 @@ public struct PostingForm: Sendable {
 
     /// True when the form itself says that deleting through it deletes the whole thread: the first post of a thread
     /// has a visible subject and its box reads "Effacer l'intégralité du sujet" (`R43a`; a later post: hidden subject,
-    /// "Effacer ce message", `R43b`). Either sign is enough. These signs are verified on private messages only: for a
-    /// public topic (pending capture) use `requiresWholeTopicConfirmation(isFirstPost:)`, which fails closed.
+    /// "Effacer ce message", `R43b`). Either sign is enough. Verified on private messages and on a public first post
+    /// (`R63b`); a public delete still goes through `requiresWholeTopicConfirmation(isFirstPost:)`, which fails closed.
     public var deletesWholeTopic: Bool {
         guard shape == .edit, canDelete else { return false }
         let label = layout.checkboxLabels[Self.deleteField]?.lowercased() ?? ""
@@ -58,8 +63,8 @@ public struct PostingForm: Sendable {
 
     /// True when a delete through this form must be confirmed as a whole-thread delete: the caller knows the message is
     /// the first post (`isFirstPost`, from the topic page), the form says so (`deletesWholeTopic`), or the thread is not
-    /// a private one. The first-post signs of a public topic's edit form are not captured, so every public delete is
-    /// treated as possibly deleting the topic until they are (fail closed).
+    /// a private one. The public first-post signs are captured (`R63b`), but trusting them is a decision not yet taken: every
+    /// public delete is treated as possibly deleting the topic (fail closed).
     public func requiresWholeTopicConfirmation(isFirstPost: Bool = false) -> Bool {
         isFirstPost || deletesWholeTopic || !isPrivateThread
     }

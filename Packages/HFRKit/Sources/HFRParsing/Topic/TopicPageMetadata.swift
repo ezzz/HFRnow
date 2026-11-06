@@ -20,11 +20,19 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
     /// Hidden inputs of the quick-answer form `hop`; empty when the page has none. Contains `hash_check`: never log it.
     public var answerFormFields: [String: String]
     /// True when the page has a link whose `href` contains `nonlu` (the "mark as unread" link, present on private conversations).
+    /// Legacy's rule, kept for the LOT-003 oracles: a member's posted link containing `nonlu` sets it too. To show or follow
+    /// the action, use `markUnreadURL`, never this flag.
     public var isUnreadable: Bool
+    /// The private conversation's "mark as unread" link (`/user/nonlu.php?…&cat=prive&post=<post>…`, `RA1`-`RA4`), on the
+    /// forum origin; nil when the page has none. A state-changing GET: follow it only through `TopicFlagFlow.markUnread`.
+    public var markUnreadURL: URL?
     /// True when the page has a poll block (`div.sondage`). The poll itself is `PollParser`'s job (LOT-026).
     public var hasPoll: Bool
     /// Inputs of the in-topic search form that legacy kept; nil when the page has no such form. Contains `hash_check`.
     public var searchFormFields: [String: String]?
+    /// The account's flag and the link that removes it, from the function bar; nil when the bar has no such link (logged
+    /// out, private conversation).
+    public var flag: TopicPageFlag?
 
     /// Creates a value; used by the parser and by tests.
     public init(
@@ -35,8 +43,10 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
         answerFormURL: URL? = nil,
         answerFormFields: [String: String] = [:],
         isUnreadable: Bool = false,
+        markUnreadURL: URL? = nil,
         hasPoll: Bool = false,
-        searchFormFields: [String: String]? = nil
+        searchFormFields: [String: String]? = nil,
+        flag: TopicPageFlag? = nil
     ) {
         self.topicID = topicID
         self.title = title
@@ -45,8 +55,10 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
         self.answerFormURL = answerFormURL
         self.answerFormFields = answerFormFields
         self.isUnreadable = isUnreadable
+        self.markUnreadURL = markUnreadURL
         self.hasPoll = hasPoll
         self.searchFormFields = searchFormFields
+        self.flag = flag
     }
 
     /// Summary that never prints the form fields (they hold the `hash_check` token).
@@ -68,8 +80,10 @@ public struct TopicPageMetadata: Sendable, Hashable, CustomStringConvertible, Cu
             "answerFormURL": answerFormURL as Any,
             "answerFormFields": "\(answerFormFields.count) fields, values redacted",
             "isUnreadable": isUnreadable,
+            "markUnreadURL": markUnreadURL as Any,
             "hasPoll": hasPoll,
-            "searchFormFields": searchFormFields.map { "\($0.count) fields, values redacted" } as Any
+            "searchFormFields": searchFormFields.map { "\($0.count) fields, values redacted" } as Any,
+            "flag": flag as Any
         ], displayStyle: .struct)
     }
 }

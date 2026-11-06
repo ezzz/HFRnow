@@ -1,4 +1,6 @@
+import Foundation
 import HFRModels
+import HFRParsing
 import HFRStorage
 import Observation
 
@@ -27,15 +29,18 @@ struct MessageListContent: Sendable, Equatable {
     var hasNext: Bool
     /// Why there is no row, when there is none.
     var emptyReason: EmptyReason?
+    /// The page's "new private message" link (`md_btn_new_topic`, `R13a`), resolved on the forum; nil when absent.
+    var newMessageURL: URL?
 
     /// Conversations of this page the member has not read; the mailbox total is the badge's (home page), not this.
     var unreadCount: Int { threads.filter(\.isUnread).count }
 
-    init(threads: [PrivateMessageThread], page: Int, hasNext: Bool, emptyReason: EmptyReason?) {
+    init(threads: [PrivateMessageThread], page: Int, hasNext: Bool, emptyReason: EmptyReason?, newMessageURL: URL? = nil) {
         self.threads = threads
         self.page = page
         self.hasNext = hasNext
         self.emptyReason = emptyReason
+        self.newMessageURL = newMessageURL
     }
 
     init(page list: PrivateMessageListPage) {
@@ -43,15 +48,16 @@ struct MessageListContent: Sendable, Equatable {
         page = list.navigation.current
         hasNext = list.navigation.nextPath != nil
         emptyReason = list.threads.isEmpty ? .nothing : nil
+        newMessageURL = list.newMessagePath.flatMap { HFRURL.absolute($0) }
     }
 
     /// What a logged-out visitor sees: no request is made, the list asks for a login.
     static let signedOut = MessageListContent(threads: [], page: 1, hasNext: false, emptyReason: .signInRequired(nil))
 }
 
-// Port of HFRswift/Swift/MPListView.swift (hasMultipleInterlocutors, :376-377) @ 2440d79. Differences: the group test is
-// `PrivateMessageThread.isGroup`, and the split (setting "Affichage des MP", switch "MP" / "MP multiples") has no legacy
-// counterpart: operator decision 2026-10-28, see docs/lots/LOT-171-mp-lists.md.
+// Port of HFRswift/Swift/MPListView.swift (MPListViewModel; hasMultipleInterlocutors, :376-377) @ 2440d79.
+// Differences: one page at a time (LOT-023, LOT-045), the group test is `PrivateMessageThread.isGroup`, and the split
+// (setting "Affichage des MP", switch "MP" / "MP multiples") has no legacy counterpart: operator decision 2026-10-28, see docs/lots/LOT-171-mp-lists.md.
 /// State of the private message list (LOT-126): one page at a time, the conversation opened in the reader.
 ///
 /// Same loading rules as the topic lists (one load at a time, rows kept while reloading or after a failure, refresh reloads
@@ -75,6 +81,8 @@ final class MessageListModel {
 
     /// Page of the last load that was asked for; a retry after a failure goes back to it.
     private(set) var requestedPage = 1
+    /// HFR's confirmation of the private message just sent (LOT-128), shown until dismissed.
+    private(set) var sentConfirmation: String?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -210,6 +218,38 @@ final class MessageListModel {
         }
         guard let target = ReaderTarget(opening: thread.summary) else { return nil }
         return (target, false)
+    }
+
+    /// The new-MP composer the page on screen links to (legacy `newTopic` on the MP list, `TopicsTableViewController.m:222-245`
+    /// with `forumNewTopicUrl` read from `md_btn_new_topic`, `ObjCTopicListParser.m:133-135` @ 21173e77); nil before a load,
+    /// logged out (no request, no page) or when the page has no such link.
+    var newMessageTarget: NewMessageTarget? {
+        loader.value?.newMessageURL.flatMap(NewMessageTarget.init(link:))
+    }
+
+    /// The new-MP sheet closed. After HFR's confirmation (`W10`: it names no thread and refreshes to the list), page 1 is
+    /// reloaded and the thread opens when exactly one row of it bears the subject sent (`R13a`, the list after `W10`, shows
+    /// the thread under that subject); otherwise the list stays. After an unconfirmed send, page 1 is reloaded so the user
+    /// sees whether it went. Closing with or without the draft changes nothing.
+    func newMessageDidClose(_ reason: ReplyComposerModel.CloseReason, subject: String) async {
+        switch reason {
+        case .sent(let result):
+            sentConfirmation = result.message
+            await load(page: 1)
+            let sent = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard loader.error == nil, let threads = loader.value?.threads else { return }
+            let matches = threads.filter { $0.summary.title == sent }
+            if matches.count == 1 { selected = matches[0] }
+        case .checkTopic:
+            await load(page: 1)
+        case .keptDraft, .discardedDraft, .closedWithoutSaving:
+            break
+        }
+    }
+
+    /// Hides the confirmation of the private message just sent.
+    func clearSentConfirmation() {
+        sentConfirmation = nil
     }
 
     /// Whether the row shows as unread: HFR's state, until the member has seen the conversation's last page.

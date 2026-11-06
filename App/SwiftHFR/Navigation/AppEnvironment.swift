@@ -19,21 +19,37 @@ struct AppEnvironment {
     let privateMessages: any PrivateMessageSource
     /// Reply composer of the current account (LOT-084); nil when logged out.
     let composer: ComposerServices?
+    /// The post filter (LOT-114): cookie-less page reads and the criteria from the settings.
+    let filteredPosts: FilteredPostsServices
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
-        let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
+        let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
+        let pages = RefreshingTopicPageSource(
+            base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+        )
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
-            settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi })
+            settings: .live(
+                store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
+                pseudoLists: { lists.current }
+            ),
+            profiles: LiveUserProfileSource(fetcher: fetcher),
+            positions: LiveReaderPositionRecorder.live(account: accountName)
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
             topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
-            composer: .live(session: session, account: accountName)
+            composer: .live(session: session, account: accountName),
+            // The same lists as the reader's, refreshed at the start of each run (a run can start from a topic list, with no reader
+            // load before it).
+            filteredPosts: .live(
+                store: UserDefaultsSettingsStore(), pseudo: accountName, allowlist: { lists.current.allowlistWithoutBlocked },
+                prepare: { await lists.refresh() }
+            )
         )
     }
 

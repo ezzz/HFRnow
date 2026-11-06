@@ -5,6 +5,7 @@ import io
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,8 @@ FORM_PAGE = """<html><body>
 
 class Handler(http.server.BaseHTTPRequestHandler):
     posts = []
+    gets = []
+    referers = []
 
     def log_message(self, *a):
         pass
@@ -49,6 +52,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body.encode())
 
     def do_GET(self):
+        Handler.gets.append((self.path, self.headers.get("Cookie", "")))
+        Handler.referers.append(self.headers.get("Referer"))
         if self.path.startswith("/form"):
             self._send(200, FORM_PAGE)
         elif self.path.startswith("/redir"):
@@ -66,6 +71,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(n).decode()
         Handler.posts.append((self.path, self.headers.get("Content-Type"), body, self.headers.get("Cookie", "")))
+        if "sujet=goredir" in body:
+            self._send(302, "", [("Location", "/after")])
+            return
         if self.path.startswith("/login_validation.php"):
             ok = "password=goodpw" in body
             hdr = [("Set-Cookie", "md_user=%s; expires=Wed, 01 Jan 2031 00:00:00 GMT; path=/" % JAR_SAMPLE)] if ok else []
@@ -98,6 +106,8 @@ class FlowTests(unittest.TestCase):
 
     def setUp(self):
         Handler.posts = []
+        Handler.gets = []
+        Handler.referers = []
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.work = os.path.join(self.tmp.name, "work")
@@ -124,6 +134,30 @@ class FlowTests(unittest.TestCase):
     def raw(self, name):
         with open(os.path.join(self.work, "captures-raw", name), encoding="utf-8") as fh:
             return fh.read()
+
+    def test_get_sends_referer_only_when_asked_and_notes_it(self):
+        rc, _o = self.run_cli("get", "--account", "anon", "--id", "I01", "--url", "/img.png")
+        self.assertEqual(rc, 0)
+        rc, _o = self.run_cli("get", "--account", "anon", "--id", "I02", "--url", "/img.png",
+                              "--referer", "https://forum.example/")
+        self.assertEqual(rc, 0)
+        self.assertEqual(Handler.referers, [None, "https://forum.example/"])
+        self.assertNotIn("note", json.loads(self.raw("I01.meta.json")))
+        self.assertIn("Referer: https://forum.example/", json.loads(self.raw("I02.meta.json"))["note"])
+
+    def test_get_records_a_network_error_only_when_asked(self):
+        closed = socket.socket()
+        closed.bind(("127.0.0.1", 0))
+        url = "http://127.0.0.1:%d/img.png" % closed.getsockname()[1]
+        closed.close()
+        rc, out = self.run_cli("get", "--account", "anon", "--id", "N01", "--url", url)
+        self.assertNotEqual(rc, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.work, "captures-raw", "N01.meta.json")))
+        rc, _o = self.run_cli("get", "--account", "anon", "--id", "N02", "--url", url, "--record-network-error")
+        self.assertEqual(rc, 0)
+        meta = json.loads(self.raw("N02.meta.json"))
+        self.assertEqual(meta["status"], 0)
+        self.assertIn("network error", meta["note"])
 
     def test_login_keeps_jar_only_on_success(self):
         rc, _o = self.run_cli("login", "--account", "user1", "--id", "W02", "--wrong-password")
@@ -212,6 +246,30 @@ class FlowTests(unittest.TestCase):
         self.assertIn("quotesx-1-2=|5|6", self.raw("Q1.html"))
         self.run_cli("get", "--account", "user1", "--id", "Q2", "--url", "/q")
         self.assertNotIn("quotesx", self.raw("Q2.html"))
+
+    def test_form_temp_cookie_sent_with_post_only(self):
+        self.run_cli("login", "--account", "user1", "--id", "W01")
+        rc, _o = self.run_cli("form", "--account", "user1", "--id", "QF", "--form-url", "/form/q",
+                              "--cookie", "quotesx-1-2=|5|6")
+        self.assertEqual(rc, 0)
+        self.assertIn("quotesx-1-2=|5|6", Handler.posts[-1][3])
+        self.assertNotIn("quotesx", self.raw("QF.form.html"))
+        self.assertIn("quotesx-1-2", json.loads(self.raw("QF.meta.json"))["note"])
+        self.assertNotIn("quotesx", Handler.gets[-1][1])  # the form GET
+        # A followed redirect after the POST does not carry it either.
+        rc, _o = self.run_cli("form", "--account", "user1", "--id", "QR", "--form-url", "/form/r",
+                              "--set", "sujet=goredir", "--cookie", "quotesx-1-2=|5|6")
+        self.assertEqual(rc, 0)
+        self.assertIn("quotesx-1-2=|5|6", Handler.posts[-1][3])
+        self.assertEqual(Handler.gets[-1][0], "/after")
+        self.assertNotIn("quotesx", Handler.gets[-1][1])
+        # A cookie the jar already holds (a session cookie) is refused, so it can never be dropped by mistake.
+        rc, _o = self.run_cli("form", "--account", "user1", "--id", "QS", "--form-url", "/form/s",
+                              "--cookie", "md_user=other")
+        self.assertEqual(rc, 1)
+        self.assertEqual(len([p for p in Handler.posts if p[0].endswith("bddpost.php?config=hfr.inc")]), 2)
+        self.run_cli("get", "--account", "user1", "--id", "Q3", "--url", "/q")
+        self.assertNotIn("quotesx", self.raw("Q3.html"))
 
     def test_stops_on_5xx_budget_and_block_page(self):
         rc, _o = self.run_cli("get", "--account", "anon", "--id", "L", "--url", "/limited")

@@ -48,6 +48,9 @@ public enum SettingKey {
             ? store.value(for: textSizeScale).rawValue
             : store.value(for: textSizePercent)
     }
+    /// `topic_page_swipe_navigation` (default on): a horizontal swipe changes the reader's page (`Common.swift:235-237` of
+    /// legacy `master` @21173e7, absent from `2440d79`).
+    public static let topicPageSwipe = Setting.bool("topic_page_swipe_navigation", default: true)
     /// `haptics`: tolerant of numbers and strings (`AppHaptics.isEnabled`).
     public static let haptics = Setting.bool("haptics", default: true)
     /// `landscape_mode`: any stored string other than `none` allows rotation, like the legacy `rawValue != "none"` test.
@@ -165,7 +168,7 @@ public enum SettingKey {
     public static let allKeys: [String] = [
         favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, compactMode.key,
         tabBarMinimizesOnScroll.key, textSizeScale.key, textSizePercent.key, haptics.key, landscapeMode.key, appIconName.key,
-        privateMessageBadge.key, startupScreen.key, opensLinksInDefaultBrowser.key, autoTheme.key, manualTheme.key,
+        privateMessageBadge.key, startupScreen.key, opensLinksInDefaultBrowser.key, topicPageSwipe.key, autoTheme.key, manualTheme.key,
         themeStyle.key, dayActionColor.key, nightActionColor.key, dayLoveColor.key, nightLoveColor.key, daySuperFavoriteColor.key,
         nightSuperFavoriteColor.key, nightBrightness.key, hideBlocklistedPosts.key, quoteFilterExceptions.key,
         quoteFilterMinimumCount.key, doubleSizeSmileys.key, embeddedVideos.key, displaySignatures.key,

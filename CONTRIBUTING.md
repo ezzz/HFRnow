@@ -30,12 +30,14 @@ A PR into `dev-swift` is merged only when **all** of these hold (enforced by the
   | `SwiftLint` | Style and conventions of the Swift code |
   | `HFRKit tests (Linux)` | The engine builds and its tests pass on Linux (Swift 6.2) |
   | `HFRKit tests (macOS) + iOS 27 build` | Same on macOS, plus a build for iOS 27; skipped, and counted as passed, when the PR touches neither `Packages/` nor `ci.yml` (if change detection fails, the gated checks run anyway) |
-  | `Analyze (swift)` | CodeQL static analysis (SAST) of the Swift code; skipped, and counted as passed, when the PR touches no Swift (if change detection fails, it runs anyway) |
+  | `App build + tests (iOS 27 simulator)` | The app builds and its tests pass on the iOS 27 simulator, plus an unsigned Release build; skipped, and counted as passed, when the PR touches neither `App/`, `Packages/` nor `ci.yml` |
   | `Analyze (actions)` | CodeQL analysis of the workflows |
   | `gitleaks` | No secret (password, cookie, key) in the PR's commits |
   | `review` | Dependency review (SCA): no dependency with a known vulnerability of moderate severity or more |
   | `Docs consistency` | Lot dependencies respect the module rules; markdown tables and links are valid |
   | `Fixture tooling tests` | The anonymizer works and the committed capture corpus holds no personal data |
+
+  While the PR is a **draft**, the macOS checks its change needs (HFRKit on macOS when `Packages/` changes, the app when `App/` or `Packages/` changes) do not use a macOS runner: a Linux gate fails them at once, and they run for real when the PR is marked ready for review. Iterate as a draft, mark it ready for the final run. CodeQL's Swift analysis (`Analyze (swift)`, macOS) is not required on PRs: it runs on every push to `dev-swift`, and on a PR when the PR carries the `codeql` label, which is wanted for session, cookie, token and posting changes ([#477](https://github.com/ezzz/HFRnow/issues/477), [ADR 0005](docs/adr/0005-ci-and-supply-chain-security.md)).
 - [ ] **No conflict** with `dev-swift`: rebase or merge `dev-swift` into the branch; everything runs again. The branch does not have to be up to date with `dev-swift` otherwise (requirement removed by the owner on 2026-10-28).
 - [ ] **Every conversation is resolved**, CodeRabbit's included: for each comment, either fix and push, or reply why not — **then resolve the conversation**. A reply alone does not unblock the merge.
 - [ ] The [definition of done](AGENTS.md#9-definition-of-done) is met.
@@ -48,3 +50,9 @@ Tool documentation: [CodeRabbit](https://docs.coderabbit.ai/) · [CodeQL](https:
 ## 3. License
 
 By contributing you agree that your contribution is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE), except contributions to `docs/HFR-PROTOCOL.md` and to fixtures under `Packages/HFRKit/Tests/**/Fixtures/`, which are licensed under [CC BY 4.0](LICENSE-docs.md).
+
+## 4. Pre-commit and ShellCheck
+
+[`.pre-commit-config.yaml`](.pre-commit-config.yaml) holds the syntax, secret and shell hooks; the **Pre-commit** CI job replays `pre-commit run --all-files` on every PR. Run it locally with `pip install pre-commit==4.7.0 && pre-commit run --all-files` (optionally `pre-commit install`).
+
+Pinned versions (update by hand, Dependabot does not read this file; hook repos are frozen to commit SHAs with the tag in a comment, as the workflow actions are): `pre-commit` 4.7.0 (CI), [`pre-commit-hooks`](https://github.com/pre-commit/pre-commit-hooks) v6.0.0, [`shellcheck-py`](https://github.com/shellcheck-py/shellcheck-py) v0.11.0.1 (ShellCheck 0.11.0). ShellCheck covers every `*.sh` and every executable file with a sh/bash shebang; a finding is fixed, or silenced with an inline `# shellcheck disable=SCxxxx # reason`. The hooks never reformat files, so captured fixtures stay byte-exact.

@@ -12,7 +12,7 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 | `generate.py` | Milestone membership (M1–M4) and the state of each lot; writes `milestones.json` |
 | `render.py` | Renders the board comments for #166 and #324 |
 | `unblocked.py` | After a merge: the lots whose dependencies are now all done |
-| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (`status: blocked` only), missing "Done in" closures, reports |
+| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (`status: blocked` only), missing "Done in" closures, reports (including the blocked lots gated only by an open capture, every lot dependency done) |
 | `weekly/build.py`, `weekly/shot.js` | The weekly 5-slide deck: `build.py OUTDIR` writes HTML from git and the tracker, `shot.js OUTDIR` renders 2880×1620 JPEGs with Playwright. Delivered to the maintainer, never posted |
 
 Tests: `scripts/tests/test_roadmap.py` (run by CI with the other `scripts/tests`).
@@ -33,6 +33,6 @@ python3 tooling/roadmap/generate.py && python3 tooling/roadmap/render.py 324 OUT
 python3 tooling/roadmap/hygiene.py             # daily sweep (add --apply for the routine part)
 ```
 
-M1/M2 membership is the only hand-kept data (`generate.py`); M3 is Phase 3 minus M1, M4 the rest.
+M1/M2 membership is hand-kept in `generate.py`, and the whole lots moved to M5 in `m5.py`; the (b) halves of the splits are the lots of the `## M5 · UX evolutions` section of `docs/LOTS.md`. M3 is Phase 3 minus M1, M4 the rest (M4 = validated legacy parity, M5 = evolutions, operator 2026-11-02). The sweep never unblocks an M5 lot: M5 opens by the orchestrator's decision.
 
 Owner: `cloud/docs-steward` (see #368).

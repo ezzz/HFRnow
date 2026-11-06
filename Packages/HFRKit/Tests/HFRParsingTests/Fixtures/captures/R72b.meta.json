@@ -1,0 +1,21 @@
+{
+  "id": "R72b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://forum.hardware.fr/",
+  "final_url": "https://forum.hardware.fr/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sun, 01 Nov 2026 23:53:18 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "same user2 jar right after S20 (unlog.php without token); same user2 jar right after unlog.php without token: still logged in, cookie values unchanged",
+  "file": "R72b-home-after-unlog-without-token.html",
+  "private": false
+}

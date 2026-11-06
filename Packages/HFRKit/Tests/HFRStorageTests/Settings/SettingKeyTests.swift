@@ -16,7 +16,7 @@ import Testing
             "embedded_videos", "display_sig", "display_images", "mpstorage_active", "mpstorage_last_rw",
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
-            "mp_list_display"
+            "topic_page_swipe_navigation", "mp_list_display"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -36,6 +36,7 @@ import Testing
         #expect(store.value(for: SettingKey.autoTheme) == .system)
         #expect(store.value(for: SettingKey.manualTheme) == .light)
         #expect(store.value(for: SettingKey.themeStyle) == .modern)
+        #expect(store.value(for: SettingKey.topicPageSwipe))
         #expect(store.value(for: SettingKey.dayActionColor) == nil)
         #expect(store.value(for: SettingKey.nightBrightness) == nil)
         #expect(!store.value(for: SettingKey.hideBlocklistedPosts))

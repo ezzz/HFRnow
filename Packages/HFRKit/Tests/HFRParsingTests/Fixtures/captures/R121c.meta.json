@@ -1,0 +1,17 @@
+{
+  "id": "R121c",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=5&post_cat_list=|14*hfr|5*hfr|10*hfr|6*hfr|8*hfr|13*hfr|&trash=0&orderSearch=0&recherches=1&resSearch=200&jour=0&mois=0&annee=0&titre=3&search=PIZZA+NAPOLITAINE&pseud=&daterange=2&searchtype=1&searchall=1",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=5&post_cat_list=|14*hfr|5*hfr|10*hfr|6*hfr|8*hfr|13*hfr|&trash=0&orderSearch=0&recherches=1&resSearch=200&jour=0&mois=0&annee=0&titre=3&search=PIZZA+NAPOLITAINE&pseud=&daterange=2&searchtype=1&searchall=1",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=5&post_cat_list=|14*hfr|5*hfr|10*hfr|6*hfr|8*hfr|13*hfr|&trash=0&orderSearch=0&recherches=1&resSearch=200&jour=0&mois=0&annee=0&titre=3&search=PIZZA+NAPOLITAINE&pseud=&daterange=2&searchtype=1&searchall=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Thu, 05 Nov 2026 22:14:13 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p"
+  ],
+  "file": "R121c-search-all-categories-pivot-category-5.html",
+  "private": false
+}

@@ -1,0 +1,15 @@
+{
+  "id": "R121d",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/search.php?config=hardwarefr.inc&cat=13&subcat=0",
+  "url": "https://forum.hardware.fr/search.php?config=hardwarefr.inc&cat=13&subcat=0",
+  "final_url": "https://forum.hardware.fr/search.php?config=hardwarefr.inc&cat=13&subcat=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Thu, 05 Nov 2026 18:13:20 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R121d-search-form-page.html",
+  "private": false
+}

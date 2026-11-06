@@ -312,6 +312,57 @@ class ScopedPhraseTests(unittest.TestCase):
                               [r for _l, _c, r in A.verify_structure(page)])
 
 
+AQ_LIST = ('<?xml version="1.0" encoding="UTF-8"?>\n<alertes><alerte id="7" nom="Le titre d&quot;une AQ, c&#039;est %s" '
+           'pseudoInitiateur="%s" date="01-01-2026" postsIds="11"/></alertes>' % (N, N))
+AQ_RSS = ('<?xml version="1.0" encoding="utf-8"?>\n<rss version="2.0"><channel><title>Alertes Qualitaÿ sur HFR</title>'
+          '<item><title>Titre d&#039;AQ de %s</title><link>https://forum.hardware.fr/x</link>'
+          '<description><![CDATA[<p>Une qualitaÿ a été detectée sur <b>Topic d&#039;exemple</b></p><ul>'
+          '<li>[le 11-10-2026 à 10:31:57] <b>%s (initiateur)</b> : post de Abcd &quot;ok&quot;</li>'
+          '<li>[le 12-10-2026 à 10:31:57] <b>Efgh</b> : idem</li></ul>]]></description></item></channel></rss>' % (N, N))
+# (test id, DISCOVER label, page, values that must disappear, text the output must contain)
+AQ_CASES = (
+    ("aq_initiator", "AQ initiator", AQ_LIST, [N, "titre"],
+     ['pseudoInitiateur="user1"', 'nom="x x x&quot;x x, x&#039;x x x"']),
+    ("aq_rss_member", "AQ RSS member", AQ_RSS, [N, "Efgh", "Abcd", "Titre"],
+     ["<b>user1 (initiateur)</b> : x x x &quot;x&quot;</li>", "<b>user2</b> : x</li>",
+      "<title>x x&#039;x x x x</title>", "<b>Topic d&#039;exemple</b>"]),
+)
+
+
+class AQTests(unittest.TestCase):
+    """Alertes Qualitaÿ (aq.super-h.fr): members aliased, member-written text masked, entities kept."""
+
+    def test_raw_files_fail_the_independent_check(self):
+        reasons = {r for _l, _c, r in A.verify_aq(AQ_LIST)}
+        self.assertEqual(reasons, {"AQ check: initiator not aliased (alert 7)", "AQ check: alert title not masked (alert 7)"})
+        reasons = {r for _l, _c, r in A.verify_aq(AQ_RSS)}
+        self.assertEqual(reasons, {"AQ check: RSS item 1 title not masked", "AQ check: RSS item 1 reporter not aliased",
+                                   "AQ check: RSS item 1 comment not masked"})
+
+    def test_anonymized_files_pass_every_check(self):
+        for _id, _label, page, gone, kept in AQ_CASES:
+            out = A.Anonymizer(A.Config()).anonymize(page)
+            for value in gone:
+                self.assertNotIn(value, out)
+            for text in kept:
+                self.assertIn(text, out)
+            self.assertEqual(A.Anonymizer(A.Config()).findings(out), [])
+
+    def test_other_files_are_not_aq(self):
+        self.assertEqual(A.verify_aq('<html><item><title>Real words</title></item></html>'), [])
+        page = '<ul><li>[le 1] <b>Real words</b> : more real words</li></ul><item><title>Real title</title></item>'
+        self.assertEqual(A.anonymize_aq_text(page), page)
+
+    def test_bom_does_not_skip_the_check(self):
+        self.assertTrue(A.verify_aq("\ufeff" + AQ_LIST))
+        self.assertIn('nom="x', A.anonymize_aq_text("\ufeff" + AQ_LIST))
+
+    def test_reporter_line_of_another_shape_fails_closed(self):
+        page = AQ_RSS.replace("<b>Efgh</b> : idem</li>", "<b>Efgh</b> : <i>Ijkl</i> &lt;b&gt;</li>")
+        out = A.Anonymizer(A.Config()).anonymize(page)
+        self.assertIn("AQ check: RSS item 1 reporter line of an unknown shape", {r for _l, _c, r in A.verify_aq(out)})
+
+
 class CoverageTests(unittest.TestCase):
     def test_every_discover_entry_has_a_position_test(self):
         # A new DISCOVER entry without a row here would go untested.
@@ -330,9 +381,10 @@ class CoverageTests(unittest.TestCase):
             "personal smiley title": "smiley_title", "avatar alt": "avatar_alt",
             "profile page title": "profile_page_title", "profile header": "profile_header",
             "profile pseudo": "profile_pseudo", "posts by pseudo path": "posts_by_pseudo_path",
-            "MP to text": "mp_to_text", "contact list text": "contact_list_text"}
+            "MP to text": "mp_to_text", "contact list text": "contact_list_text",
+            "AQ initiator": "aq_initiator", "AQ RSS member": "aq_rss_member"}
         self.assertEqual(sorted(d[0] for d in A.DISCOVER), sorted(covered))
-        ids = {c[0] for c in CASES}
+        ids = {c[0] for c in CASES} | {c[0] for c in AQ_CASES}
         self.assertTrue(set(covered.values()) <= ids)
 
 

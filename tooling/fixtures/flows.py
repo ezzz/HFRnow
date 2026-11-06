@@ -85,12 +85,14 @@ class _Recorder(urllib.request.HTTPRedirectHandler):
     """Records every redirect hop; refuses to follow when follow is False."""
 
     def __init__(self):
-        self.chain, self.follow = [], True
+        self.chain, self.follow, self.on_redirect = [], True, None
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         self.chain.append({"status": code, "location": headers.get("Location", "")})
         if not self.follow:
             return None
+        if self.on_redirect:
+            self.on_redirect()
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -135,12 +137,12 @@ class Client:
         except KeyError:
             pass
 
-    def request(self, path_or_url, fields=None, follow=True):
+    def request(self, path_or_url, fields=None, follow=True, referer=None):
         """One throttled request; fields (list of pairs) make it a POST. Returns a Response."""
         self.state.before_request()
         url = urllib.parse.urljoin(self.base + "/", path_or_url)
         body = None
-        headers = {}
+        headers = {"Referer": referer} if referer else {}
         if fields is not None:
             body = urllib.parse.urlencode(fields, encoding="utf-8").encode("ascii")
             headers["Content-Type"] = FORM_CONTENT_TYPE
@@ -157,9 +159,17 @@ class Client:
                 res = Response(url, exc.geturl() or url, exc.code, list(exc.headers.items()),
                                exc.read(), list(self.recorder.chain), fields)
         except urllib.error.URLError as exc:
-            raise C.CaptureError("network error: %s" % exc.reason) from None
+            raise NetworkError("network error: %s" % exc.reason, url, list(self.recorder.chain)) from None
         self.save_jar()
         return res
+
+
+class NetworkError(C.CaptureError):
+    """No HTTP answer (DNS, TCP, TLS): `get --record-network-error` records it instead of stopping."""
+
+    def __init__(self, message, url, chain):
+        super().__init__(message)
+        self.url, self.chain = url, chain
 
 
 class Response:
@@ -481,7 +491,13 @@ def cmd_get(ctx, a):
     for k, v in _pairs(a.cookie):
         temp.append((k, cl.set_temp_cookie(k, v)))
     try:
-        res = cl.request(a.url, follow=not a.no_redirect)
+        res = cl.request(a.url, follow=not a.no_redirect, referer=a.referer)
+    except NetworkError as exc:
+        if not a.record_network_error:
+            raise
+        # A third-party host may refuse TLS or the connection: that failure is the fact to record.
+        res = Response(exc.url, exc.url, 0, [], b"", exc.chain, None)
+        a.note = ((a.note + "; ") if a.note else "") + str(exc)
     finally:
         for k, dom in temp:
             cl.drop_cookie(k, dom)
@@ -489,6 +505,9 @@ def cmd_get(ctx, a):
     note = a.note
     if temp:
         note = ((note + "; ") if note else "") + "extra cookies: " + ", ".join(k for k, _d in temp)
+    if a.referer:
+        # The meta has no request headers: the note is the only record that a Referer was sent.
+        note = ((note + "; ") if note else "") + "Referer: " + a.referer
     ctx.done(a.id, res, a.account, "GET", a.template, note)
     return 0
 
@@ -540,8 +559,30 @@ def cmd_form(ctx, a):
         _ui.ok("would POST %d fields to %s" % (len(fields), ctx.safe(target)))
         return 0
     poster = ctx.client(a.post_account) if a.post_account else cl
-    res = poster.request(target, fields, follow=not a.no_redirect)
-    ctx.done(a.id, res, a.post_account or a.account, "POST", a.template, a.note)
+    # A browser posting a multi-quote reply still carries the selection cookie (HFR-PROTOCOL §4):
+    # send it with the POST only, never persist it.
+    extra = _pairs(a.cookie)
+    held = {c.name for c in poster.jar}
+    for k, _v in extra:
+        if k in held:
+            # The jar's own cookie (a session cookie) would be overwritten, then dropped with the temporary one.
+            raise C.CaptureError("--cookie %s: the jar already holds a cookie of that name" % k)
+    temp = [(k, poster.set_temp_cookie(k, v)) for k, v in extra]
+
+    def drop_temp():
+        for k, dom in temp:
+            poster.drop_cookie(k, dom)
+    poster.recorder.on_redirect = drop_temp  # POST only: a followed redirect never carries it
+    try:
+        res = poster.request(target, fields, follow=not a.no_redirect)
+    finally:
+        poster.recorder.on_redirect = None
+        drop_temp()
+        poster.save_jar()
+    note = a.note
+    if temp:
+        note = ((note + "; ") if note else "") + "extra cookies: " + ", ".join(k for k, _d in temp)
+    ctx.done(a.id, res, a.post_account or a.account, "POST", a.template, note)
     return 0
 
 
@@ -627,6 +668,9 @@ def build_parser():
     p.add_argument("--template")
     p.add_argument("--note")
     p.add_argument("--cookie", action="append", help="extra cookie name=value for this request only")
+    p.add_argument("--referer", help="Referer header for this request only (recorded in the note)")
+    p.add_argument("--record-network-error", action="store_true",
+                   help="record a request that got no HTTP answer (status 0, error in the note) instead of stopping")
     p.add_argument("--no-redirect", action="store_true")
     p.set_defaults(func=cmd_get)
 
@@ -656,6 +700,7 @@ def build_parser():
     p.add_argument("--set-json", action="append", help="name=<JSON string> (controls \\r\\n exactly)")
     p.add_argument("--drop", action="append")
     p.add_argument("--post-account", help="send the POST with another account's jar (anon = logged out)")
+    p.add_argument("--cookie", action="append", help="extra cookie name=value sent with the POST only")
     p.add_argument("--template")
     p.add_argument("--note")
     p.add_argument("--no-redirect", action="store_true")

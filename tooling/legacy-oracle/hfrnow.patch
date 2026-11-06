@@ -1,3 +1,25 @@
+diff --git a/HFRswift/Swift/AQPlusView.swift b/HFRswift/Swift/AQPlusView.swift
+index 4bd754e..dea9859 100644
+--- a/HFRswift/Swift/AQPlusView.swift
++++ b/HFRswift/Swift/AQPlusView.swift
+@@ -21,7 +21,7 @@ struct AQItem: Identifiable, Hashable {
+     var id: String { "\(link)|\(aqTitle)|\(relativeDate)" }
+ }
+ 
+-private struct AQParserContext {
++struct AQParserContext {
+     let lastCheckDate: Date
+     let shouldFilterCategory25: Bool
+ }
+@@ -91,7 +91,7 @@ actor AQBadgeCheckService {
+     }
+ }
+ 
+-private final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
++final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
+     private struct WorkingItem {
+         var title = ""
+         var link = ""
 diff --git a/HFRswiftTests/AccountsStoreTests.swift b/HFRswiftTests/AccountsStoreTests.swift
 index b0a205a..2c5f491 100644
 --- a/HFRswiftTests/AccountsStoreTests.swift
@@ -434,10 +456,10 @@ index 0000000..ca9d04a
 +}
 diff --git a/HFRswiftTests/OracleExportSmall.swift b/HFRswiftTests/OracleExportSmall.swift
 new file mode 100644
-index 0000000..cbb51bc
+index 0000000..385b4e1
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportSmall.swift
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,356 @@
 +// Oracle exporter for SwiftHFR LOT-005: the small parsers (search redirect, profile edit page, smiley search,
 +// smiley wiki keywords, topic poll, public profile). Local-only: never committed to hfrnow.
 +//
@@ -525,7 +547,7 @@ index 0000000..cbb51bc
 +}
 +
 +extension OracleExport {
-+    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile"]
++    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile", "aq-rss"]
 +    private static let placeholderHash = "HASH_PLACEHOLDER"
 +    private static let fakePseudoKey = "FAKE_PSEUDO_KEY"
 +    private static let fakeAvatarBytes = Data("AVATAR-BYTES".utf8)
@@ -553,6 +575,7 @@ index 0000000..cbb51bc
 +        case "smiley-search": return try runSmileySearch(data, options: options, extras: &extras)
 +        case "smiley-keywords": return runSmileyKeywords(data, options: options, extras: &extras)
 +        case "poll": return try runPoll(data, currentURL: currentURL ?? Self.defaultTopicPageURL, options: options, extras: &extras)
++        case "aq-rss": return try runAQRSS(data, options: options, extras: &extras)
 +        default: return try runProfile(data, options: options, extras: &extras)
 +        }
 +    }
@@ -742,6 +765,35 @@ index 0000000..cbb51bc
 +        return (result, nil)
 +    }
 +
++    // MARK: aq-rss
++
++    /// AQPlusView.swift:94-230 (`AQRSSParserDelegate`, run as `AQBadgeCheckService.refreshUnreadCount` and the AQ list run it:
++    /// `XMLParser(data:)`, delegate, `parse()`). The only edit to legacy is `private` dropped from the delegate and its context
++    /// (hfrnow.patch), so the test target can reach them. Options: `lastCheck` (ISO-8601, the `last_check_aq` default,
++    /// legacy default 2010-01-01 local time) and `filterCategory25` (Bool, legacy: true unless the account is `applereview`,
++    /// AQPlusView.swift:52-57). `relativeDate` is not exported: it reads Swift `Date()`, which the harness clock does not freeze.
++    private func runAQRSS(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let lastCheck: Date
++        if let iso = options["lastCheck"] as? String {
++            guard let date = ISO8601DateFormatter().date(from: iso) else { throw HarnessError(message: "bad lastCheck '\(iso)'") }
++            lastCheck = date
++        } else {
++            lastCheck = Date(timeIntervalSince1970: 0)
++        }
++        let filter = options["filterCategory25"] as? Bool ?? true
++        extras.context = ["lastCheck": options["lastCheck"] ?? NSNull(), "filterCategory25": filter]
++        let delegate = AQRSSParserDelegate(context: AQParserContext(lastCheckDate: lastCheck, shouldFilterCategory25: filter))
++        let parser = XMLParser(data: data)
++        parser.delegate = delegate
++        let parsed = parser.parse()
++        let items = delegate.items.map { item -> [String: Any] in
++            ["topicTitle": item.topicTitle, "aqTitle": item.aqTitle, "comment": item.comment, "initiator": item.initiator,
++             "link": item.link, "isNew": item.isNew]
++        }
++        return (["parsed": parsed, "parserError": parser.parserError.map { "\($0)" } ?? NSNull(),
++                 "items": items, "newCount": delegate.items.filter(\.isNew).count], nil)
++    }
++
 +    private static func profileDict(_ profile: UserProfile) -> [String: Any] {
 +        [
 +            "pseudo": profile.pseudo,
@@ -766,10 +818,10 @@ index 0000000..cbb51bc
 +}
 diff --git a/HFRswiftTests/OracleExportTopic.swift b/HFRswiftTests/OracleExportTopic.swift
 new file mode 100644
-index 0000000..77757c8
+index 0000000..c2c3456
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportTopic.swift
-@@ -0,0 +1,291 @@
+@@ -0,0 +1,293 @@
 +// Oracle exporter for SwiftHFR LOT-003: the topic-page pipeline. Local-only: never committed to hfrnow.
 +//
 +// Kind `topic` runs, offline, what the app runs for one topic page (ObjCTopicPageWorker.m:103-146):
@@ -928,6 +980,8 @@ index 0000000..77757c8
 +            "iLastPageNumber": plain(raw["iLastPageNumber"]), "iFirstPageNumber": plain(raw["iFirstPageNumber"]),
 +            "topicName": plain(raw["topicName"]), "itemCount": (raw["items"] as? [Any])?.count ?? 0
 +        ]
++        // #268: the topic flag the legacy controller reads (MessagesTableViewController.m:1556-1583, transliterated), not the worker.
++        result["fastAnswer"] = raw["exception"].map { ["exception": $0] } ?? (raw["fastAnswer"] ?? NSNull())
 +
 +        if let filter = options["filter"] as? [String: Any] {
 +            var spec: [String: Any] = filter
@@ -2581,10 +2635,10 @@ index 0000000..94787c3
 +@end
 diff --git a/HFRswiftTests/OracleObjCSafe.m b/HFRswiftTests/OracleObjCSafe.m
 new file mode 100644
-index 0000000..3c94bd5
+index 0000000..38101af
 --- /dev/null
 +++ b/HFRswiftTests/OracleObjCSafe.m
-@@ -0,0 +1,302 @@
+@@ -0,0 +1,351 @@
 +// Oracle exporter helper (SwiftHFR LOT-002, LOT-003): calls an Objective-C method through NSInvocation and
 +// turns a thrown NSException into data. The legacy parsers raise on malformed pages (nil URL,
 +// out-of-bounds child index...), and Swift cannot catch NSException, so a raise would kill the run.
@@ -2852,6 +2906,47 @@ index 0000000..3c94bd5
 +    return @{@"worker": worker, @"completion": completionOut};
 +}
 +
++/// #268: the topic-page flag of -[MessagesTableViewController setupFastAnswer:] (HFRswift/Wrapped/MessagesTableViewController.m:1556-1583).
++/// That controller is compiled into the SuperHFRplus target only, not into the HFRswift test host, so its lines are transliterated
++/// here on the real HTMLParser/HTMLNode calls, as OracleLegacyWrite.m does for the composers. Returns the three properties it sets:
++/// isFavoritesOrRead (href of the first `delflag` link of the body, else of the first `nonlu` link, else ""), isRedFlagged (that
++/// `delflag` link holds an image whose src contains `flagn0.gif`) and isUnreadable (YES only on the `nonlu` branch; the controller's
++/// -init sets NO, :92). A raise is returned as data.
++static id OracleFastAnswer(id htmlParser) {
++    @try {
++        SEL find = NSSelectorFromString(@"findChildWithAttribute:matchingName:allowPartial:");
++        SEL attr = NSSelectorFromString(@"getAttributeNamed:");
++        id (*findIMP)(id, SEL, NSString *, NSString *, BOOL) = (id (*)(id, SEL, NSString *, NSString *, BOOL))objc_msgSend;
++        NSString *(*attrIMP)(id, SEL, NSString *) = (NSString * (*)(id, SEL, NSString *))objc_msgSend;
++        id bodyNode = ((id (*)(id, SEL))objc_msgSend)(htmlParser, NSSelectorFromString(@"body"));
++        BOOL isRedFlagged = NO;                                                          // :1556
++        BOOL isUnreadable = NO;                                                          // -init, :92
++        NSString *isFavoritesOrRead = @"";                                               // :1560
++        id flagNode = findIMP(bodyNode, find, @"href", @"delflag", YES);                 // :1559
++        if (flagNode) {
++            isFavoritesOrRead = attrIMP(flagNode, attr, @"href");                        // :1563
++            if (findIMP(flagNode, find, @"src", @"flagn0.gif", YES)) {                  // :1564
++                isRedFlagged = YES;
++            }
++        } else {
++            id readNode = findIMP(bodyNode, find, @"href", @"nonlu", YES);               // :1571
++            if (readNode) {
++                isFavoritesOrRead = attrIMP(readNode, attr, @"href");                    // :1573
++                isUnreadable = YES;
++            } else {
++                isFavoritesOrRead = @"";
++            }
++        }
++        return @{
++            @"isFavoritesOrRead": isFavoritesOrRead ?: [NSNull null],
++            @"isRedFlagged": @(isRedFlagged),
++            @"isUnreadable": @(isUnreadable)
++        };
++    } @catch (NSException *exception) {
++        return @{@"exception": OracleExceptionString(exception)};
++    }
++}
++
 +/// ParseMessagesOperation on its own, as ObjCTopicPageWorker.m:110-112 (normal mode) and, for the parse call only,
 +/// FilterPostsQuotes.m:279-283 (filter mode; legacy does not wait for avatars there). Exposes what the worker drops:
 +/// iLastPageNumber, raw topicName. The avatar completions it queued for the main thread are drained before returning,
@@ -2875,7 +2970,15 @@ index 0000000..3c94bd5
 +        ((void (*)(id, SEL))objc_msgSend)(operation, NSSelectorFromString(@"waitForPendingAvatarLoads"));
 +        NSArray *items = [[operation valueForKey:@"workingArray"] copy] ?: @[];
 +        OracleDrainMainQueue();
++        // #268: the topic-page flag. -[MessagesTableViewController startParseDataHtml:] (MessagesTableViewController.m:357-372)
++        // runs ParseMessagesOperation on a parser, then hands the same parser to loadDataInTableView:, which calls
++        // setupFastAnswer: on its body (:923-959): read here on the same parser, after the parse. Normal mode only.
++        id fastAnswer = [NSNull null];
++        if (!filter) {
++            fastAnswer = OracleFastAnswer(htmlParser);
++        }
 +        return @{
++            @"fastAnswer": fastAnswer,
 +            @"items": items,
 +            @"topicName": [operation valueForKey:@"topicName"] ?: [NSNull null],
 +            @"iLastPageNumber": [operation valueForKey:@"iLastPageNumber"] ?: @0,

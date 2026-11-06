@@ -6,6 +6,9 @@ import HFRStorage
 import Observation
 import UIKit
 
+// Port of HFRswift/Swift/AccountsStore.swift (AccountsStore) and HFRswift/Swift/AccountSessionService.swift (ObjCAccountSessionService)
+// @ 2440d79. Differences: one HFRSession per account over the versioned credential store (LOT-065), typed errors, session check at
+// launch and on foreground (GAP-160, GAP-165).
 /// The accounts and their sessions: the single owner of `HFRSession`s in the app (LOT-081).
 ///
 /// Mirrors the credential store (LOT-065): the account list is always what the store holds, and an account whose

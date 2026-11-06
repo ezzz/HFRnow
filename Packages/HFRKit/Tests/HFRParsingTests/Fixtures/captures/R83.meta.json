@@ -1,0 +1,21 @@
+{
+  "id": "R83",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/hfr/Programmation/iOS/own-topic-subject-sujet_9900002_1.htm",
+  "url": "https://forum.hardware.fr/hfr/Programmation/iOS/own-topic-subject-sujet_9900002_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Programmation/iOS/own-topic-subject-sujet_9900002_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "own topic with its poll, user1 not voted",
+  "file": "R83-public-own-topic-poll-form-logged-in.html",
+  "private": false
+}
