@@ -1,3 +1,4 @@
+import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split
@@ -60,7 +61,7 @@ struct FavoritesTabView: View {
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
             TopicsColumn(navigation: navigation, composer: composer)
-                .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: navigation) } }
+                .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: navigation) } }
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
@@ -68,15 +69,45 @@ struct FavoritesTabView: View {
     }
 }
 
-/// Switches the Favoris tab between the favourites and the flags (legacy lists both there, setting `AppSettingsView.swift:130-131`).
+/// The Favoris tab's menu: which list it shows (legacy lists both there, setting `AppSettingsView.swift:130-131`) and the
+/// favourites options of LOT-124, so they are reachable from the screen and not only from Réglages.
 struct FavoritesSourceMenu: View {
     @Bindable var navigation: NavigationModel
 
     var body: some View {
-        Picker("Liste", selection: $navigation.selectedSource) {
-            ForEach(RootModel.favoritesSources, id: \.self) { source in
-                Text(source.title).tag(Optional(source))
+        Menu("Options", systemImage: "ellipsis.circle") {
+            Picker("Liste", selection: $navigation.selectedSource) {
+                ForEach(RootModel.favoritesSources, id: \.self) { source in
+                    Text(source.title).tag(Optional(source))
+                }
             }
+            if let options = navigation.favorites { FavoritesOptionsMenuItems(navigation: navigation, options: options) }
+        }
+    }
+}
+
+/// The favourites options as menu items: sort, folded sections, automatic refresh, fold all / unfold all.
+private struct FavoritesOptionsMenuItems: View {
+    let navigation: NavigationModel
+    @Bindable var options: FavoritesOptionsModel
+
+    private var page: FavoritesPage? {
+        navigation.selectedSource.flatMap { navigation.topicList(for: $0).loader.value?.favoritesPage }
+    }
+
+    var body: some View {
+        Section {
+            Toggle("Trier par catégorie", isOn: $options.groupedByCategory)
+            Toggle("Afficher les sections repliées", isOn: $options.showsCollapsedSections)
+            Toggle("Actualisation automatique des favoris", isOn: $options.autoRefresh)
+        }
+        Section {
+            Button("Tout replier", systemImage: "rectangle.compress.vertical") {
+                if let page { Task { await options.collapseAll(in: page) } }
+            }
+            .disabled(page.map { !options.canCollapseMore(in: $0) } ?? true)
+            Button("Tout déplier", systemImage: "rectangle.expand.vertical") { Task { await options.expandAll() } }
+                .disabled(!options.groupedByCategory || options.collapsedSections.isEmpty)
         }
     }
 }
