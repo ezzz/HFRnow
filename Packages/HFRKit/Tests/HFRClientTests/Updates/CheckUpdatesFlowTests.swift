@@ -189,7 +189,7 @@ struct CheckUpdatesFlowTests {
         #expect(await account.hashCheck == nil)
     }
 
-    @Test("The default probes keep a loopback-only account's host policy, so a test session cannot reach the forum")
+    @Test("The default probes keep a loopback-only account's host policy, asserted without sending")
     func defaultProbesKeepTheHostPolicy() async {
         let loopback = SessionHostPolicy.exactHost("127.0.0.1")
         let account = HFRSession(cookies: [], hashCheck: nil, now: Date(), configuration: .ephemeral, hosts: loopback)
@@ -197,11 +197,42 @@ struct CheckUpdatesFlowTests {
         #expect(await flags?.hosts == loopback)
         let production = FlaggedTopicsPoll(session: HFRSession()).probe(cookies: []) as? HFRSession
         #expect(await production?.hosts == .forum)
-        // The flags request itself is refused by that policy before any socket is opened.
-        let refused = FlaggedTopicsPoll(session: account)
-        await #expect(throws: FlaggedTopicsPollError.network(.invalidRequest(reason: "An account session only contacts hardware.fr"))) {
-            try await refused.flaggedTopics()
+    }
+
+    @Test("An answer served at another URL than the one requested is an unreadable page, not a list")
+    func flagsServedElsewhere() async throws {
+        let other = URL(string: "https://forum.hardware.fr/forum1f.php?owntopic=3") ?? Self.flagsURL
+        let probe = MockTransport(replies: [.success(try Capture.response("R10-favourites-owntopic1", url: other))])
+        let poll = FlaggedTopicsPoll(session: Self.account(), makeProbe: { _ in probe })
+        await #expect(throws: FlaggedTopicsPollError.page(.malformed("the flags page was not served in place (status 200)"))) {
+            try await poll.flaggedTopics()
         }
+    }
+
+    @Test("Cancelled between the two requests with a reader that ignores it: the flags are not requested")
+    func cancelledBetweenTheRequests() async throws {
+        let called = Called()
+        let flow = CheckUpdatesFlow(
+            readMessages: { () async throws(MPUnreadPollError) -> Int? in
+                withUnsafeCurrentTask { $0?.cancel() }
+                return 3
+            },
+            readFlags: { () async throws(FlaggedTopicsPollError) -> [TopicSummary]? in
+                called.mark()
+                return []
+            }
+        )
+        let task = Task { try await flow.check() }
+        await #expect(throws: CheckUpdatesCancelled()) { try await task.value }
+        #expect(!called.value)
+    }
+
+    /// Whether a reader that ignores cancellation was run.
+    final class Called: @unchecked Sendable {
+        private let lock = NSLock()
+        private var flag = false
+        func mark() { lock.lock(); flag = true; lock.unlock() }
+        var value: Bool { lock.lock(); defer { lock.unlock() }; return flag }
     }
 
     @Test("Cancelled before the first request: nothing is sent and nothing is returned")

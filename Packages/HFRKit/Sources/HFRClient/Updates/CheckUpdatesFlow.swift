@@ -12,7 +12,8 @@ public struct CheckUpdatesCancelled: Error, Sendable, Equatable {
 ///
 /// At most two requests, in this order, both through probe sessions that never write to the account (`MPUnreadPoll`,
 /// `FlaggedTopicsPoll`): `GET /` for the MP count, then `GET /forum1f.php?owntopic=1` for the flags. Neither is a topic page,
-/// the only page that moves a flag (HFR-PROTOCOL §7, E25), and neither endpoint is reachable from here with anything else.
+/// the only page that moves a flag (HFR-PROTOCOL §7, E25). The flags request does not follow redirects; the home request
+/// is LOT-047's and follows same-host ones, as it always did.
 /// When the first answer is HFR's stale-session page the second request is not sent: it would get the same answer.
 ///
 /// Each source reports its own outcome (`UpdateOutcome`): one failing does not hide the other, and a source that gave no
