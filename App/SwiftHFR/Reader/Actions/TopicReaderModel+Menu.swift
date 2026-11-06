@@ -52,7 +52,8 @@ extension TopicReaderModel {
         let isFirst = page.currentPage == 1 && !page.messages[..<index].contains { !$0.isContinuation }
         return MessageMenuContext(
             numreponse: post, author: message.author, actions: message.actions,
-            permalinkURL: Self.permalink(of: post, on: page), isFirstPostOfTopic: isFirst
+            permalinkURL: Self.permalink(of: post, on: page), isFirstPostOfTopic: isFirst,
+            isQuoteSelectionEnabled: message.actions.quoteSelection.map { quoteSelected.contains($0.numreponse) } ?? false
         )
     }
 

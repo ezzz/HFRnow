@@ -119,6 +119,9 @@ struct SettingsView: View {
                 }
                 Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
                 Toggle("Swipe changement de page", isOn: $topics.swipesPages)
+                Picker("Bouton +", selection: $topics.replyButton) {
+                    ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
             }
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
