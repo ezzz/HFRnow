@@ -197,7 +197,8 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
-    /// The handlers of the merged lots; today only "Link". A later lot adds its handler here, the policy is untouched.
+    /// The handlers of the merged lots: "Link", the quotes and "Favoris". A later lot adds its handler here, the policy is
+    /// untouched.
     private func installMenuActions() {
         // Weak: the model stores this registry, a strong capture would keep every reader alive.
         let confirm: @MainActor (String) -> Void = { [weak model] text in
@@ -209,6 +210,7 @@ struct TopicReaderView: View {
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
+        if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         model.install(MessageActionRegistry(handlers))
         controller?.offersSelectionQuote = model.canQuote
     }
@@ -260,6 +262,8 @@ struct ReaderServices: Sendable {
     var positions: (any ReaderPositionRecording)?
     /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
     var offline: OfflineServices?
+    /// Flag writes of the current account, for the message menu's "Favoris" (LOT-125); nil when logged out.
+    var flagActions: TopicFlagActions?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.
