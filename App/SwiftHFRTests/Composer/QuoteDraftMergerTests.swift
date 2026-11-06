@@ -30,6 +30,21 @@ struct QuoteDraftMergerTests {
         #expect(QuoteDraftMerger.merge(first + second, into: draft + second) == draft + second)
     }
 
+    @Test func aMultiQuoteAddsOnlyTheThirdBlockWhenTheDraftHoldsTwo() {
+        let blockA = "[quotemsg=10,1,1]A[/quotemsg]\n"
+        let blockB = "[quotemsg=20,1,1]B[/quotemsg]\n"
+        let blockC = "[quotemsg=30,1,1]C[/quotemsg]\n"
+        let draft = "Mon brouillon\n\n" + blockA + blockB
+        #expect(QuoteDraftMerger.merge(blockA + blockB + blockC, into: draft) == draft + "\n" + blockC)
+    }
+
+    @Test func aMultiQuoteWhoseBlocksTheDraftHoldsInAnotherOrderChangesNothing() {
+        let blockA = "[quotemsg=10,1,1]A[/quotemsg]\n"
+        let blockB = "[quotemsg=20,1,1]B[/quotemsg]\n"
+        let draft = blockB + "entre deux\n" + blockA
+        #expect(QuoteDraftMerger.merge(blockA + blockB, into: draft) == draft)
+    }
+
     @Test func aBlankQuoteChangesNothing() {
         #expect(QuoteDraftMerger.merge(" \n\t ", into: "Mon brouillon") == "Mon brouillon")
         #expect(QuoteDraftMerger.merge("", into: "") == "")
