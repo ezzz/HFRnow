@@ -1,4 +1,8 @@
 """Tests for tooling/roadmap: LOTS.md -> lots.json, tracker JSON -> state, hygiene sweep (no network)."""
+import contextlib
+import io
+import json
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -186,6 +190,36 @@ class Hygiene(unittest.TestCase):
         actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
         self.assertEqual(actions, [])  # the capture still gates it, so nothing is unblocked
         self.assertTrue(any("gated only by an open capture" in r and "LOT-002 #2" in r and "#60" in r for r in reports))
+
+    def test_a_closed_issue_loses_its_status_labels_and_an_open_one_keeps_them(self):
+        issues = [issue(1, "closed", labels=["status: ready", "type: lot"]), issue(2, "closed", labels=["type: lot"]),
+                  issue(3, "open", labels=["status: ready"]), issue(4, "closed", labels=["status: claimed", "status: blocked"])]
+        actions, _ = self.run_sweep(issues, [])
+        self.assertEqual([(a["kind"], a["issue"], a["labels"]) for a in actions if a["kind"] == "unlabel"],
+                         [("unlabel", 1, ["status: ready"]), ("unlabel", 4, ["status: blocked", "status: claimed"])])  # 2 has none, 3 is open
+
+    def _apply(self, current, actions):
+        calls = []
+        got = subprocess.CompletedProcess([], 0, stdout=json.dumps(current), stderr="")
+        out = io.StringIO()
+        with mock.patch.object(hygiene.subprocess, "run", return_value=got), \
+                mock.patch.object(hygiene, "gh", lambda method, path, fields=(): calls.append((method, path))), contextlib.redirect_stdout(out):
+            hygiene.apply(actions)
+        return calls, out.getvalue()
+
+    def test_apply_deletes_each_status_label_with_its_encoded_path_and_counts_them(self):
+        closed = {"state": "closed", "labels": [{"name": "status: ready"}, {"name": "status: needs-triage"}, {"name": "type: lot"}]}
+        act = {"kind": "unlabel", "issue": 5, "labels": ["status: ready", "status: needs-triage", "status: claimed"]}
+        calls, out = self._apply(closed, [act])
+        self.assertEqual(calls, [("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20needs-triage"),
+                                 ("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])  # `claimed` is not on the issue any more: no call
+        self.assertIn("status labels removed from closed issues: 2", out)
+
+    def test_apply_leaves_an_issue_reopened_meanwhile_alone(self):
+        calls, out = self._apply({"state": "open", "labels": [{"name": "status: ready"}]}, [{"kind": "unlabel", "issue": 5, "labels": ["status: ready"]}])
+        self.assertEqual(calls, [])
+        self.assertIn("skip (reopened meanwhile)", out)
+        self.assertIn("removed from closed issues: 0", out)
 
     def test_unblock_without_a_known_pr_is_only_reported(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]

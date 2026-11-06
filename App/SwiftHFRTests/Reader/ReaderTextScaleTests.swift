@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 @testable import SwiftHFR
 import Testing
 import WebKit
@@ -42,5 +43,39 @@ struct ReaderTextScaleTests: ReaderWebTesting {
         #expect(ReaderWebController.textScaleScript(TextScale(percent: 85))
             == "document.documentElement.style.setProperty('--text-scale', '0.85');")
         #expect(ReaderWebController.textScaleScript(.standard).hasSuffix("'1.00');"))
+    }
+
+    /// The header at a large text size. System Dynamic Type does not reach a `WKWebView` in a test host (the host stays at its
+    /// default), so `--text-scale` stands for it: it scales `body`, and the header is sized in em like at an accessibility size.
+    @Test func theMessageHeaderWrapsItsAuthorSensiblyAtALargeTextSize() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        let page = ReaderPage(
+            topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1,
+            messages: [ReaderMessage(
+                numreponse: 7, author: "auteur", isDeleted: false, isContinuation: false,
+                avatarURL: URL(string: "https://forum-images.hardware.fr/avatars/a.png"), dateText: "27-10-2026 10:00:00",
+                editNote: nil, quotedByCount: nil, content: MessageContent(html: "<p>texte</p>")
+            )]
+        )
+        let options = ReaderRenderOptions(showsMessageMenus: true, showsAuthorMenus: true)
+        controller.show(ReaderDocument(
+            token: 1, html: TopicHTMLBuilder.document(for: page, token: 1, options: options), anchor: nil, keepsScrollPosition: false
+        ))
+        #expect(await until { recorder.ready == [1] })
+        let measure = """
+            const header = document.querySelector('.message .header');
+            const author = header.querySelector('.author'), button = header.querySelector('.menu-button');
+            const text = document.createRange(); text.selectNodeContents(author);
+            const lines = new Set([...text.getClientRects()].map(r => Math.round(r.top))).size;
+            return [header.getBoundingClientRect().height, lines,
+                    button.getBoundingClientRect().width, button.getBoundingClientRect().height];
+            """
+        let normal = try #require(try await evaluate(measure, in: controller) as? [Double])
+        #expect(normal[1] == 1 && normal[0] < 40, "header at default: \(normal)")
+        _ = try await evaluate("document.documentElement.style.setProperty('--text-scale', '3'); return true;", in: controller)
+        let large = try #require(try await evaluate(measure, in: controller) as? [Double])
+        #expect(large[1] <= 2, "author lines at 300 %: \(large)")
+        // The "⋯" button stays a plain tap target (44 pt and up, not a block filling the header), and the default is unchanged.
+        #expect(large[2] >= 44 && large[3] >= 44 && large[3] <= 80, "button at 300 %: \(large)")
     }
 }
