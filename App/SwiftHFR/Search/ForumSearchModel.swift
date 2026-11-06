@@ -39,6 +39,7 @@ struct SearchContent: Sendable, Equatable {
     var page: Int
     var firstPath: String?
     var previousPath: String?
+    var lastPath: String?
     var nextPath: String?
     /// HFR's sentence when nothing matched.
     var notice: String?
@@ -48,6 +49,7 @@ struct SearchContent: Sendable, Equatable {
         page = list.navigation.current
         firstPath = list.navigation.firstPath
         previousPath = list.navigation.previousPath
+        lastPath = list.navigation.lastPath
         nextPath = list.navigation.nextPath
         notice = list.notice
     }
@@ -72,8 +74,6 @@ final class ForumSearchModel {
     private(set) var categories: [SearchCategory] = []
     /// The banned word the last submit was refused for; cleared by the next accepted search.
     private(set) var bannedWord: String?
-    /// A search was submitted (accepted), so an empty result is "no result" and not a blank form.
-    private(set) var hasSearched = false
     let loader = ContentLoader<SearchContent>()
     /// Result chosen in the list, shown by the reader.
     var selected: TopicSummary? {
@@ -122,7 +122,7 @@ final class ForumSearchModel {
 
     var canSubmit: Bool { !trimmedText.isEmpty && !loader.isLoading }
 
-    /// Words of 1 to 3 letters: HFR may not index them (HFR-PROTOCOL §7 "Search", unsettled), so the form only hints.
+    /// Words of 1 to 3 letters: HFR may not index them (HFR-PROTOCOL §7b B3, unsettled), so the form only hints.
     var hasShortWord: Bool {
         trimmedText.split(whereSeparator: \.isWhitespace).contains { $0.count < 4 }
     }
@@ -139,9 +139,12 @@ final class ForumSearchModel {
             return
         }
         bannedWord = nil
-        hasSearched = true
+        // A private-messages id cannot be searched (the picker never offers it); Discussions is the legacy default.
+        if case .privateMessages = category { category = .forum(13) }
         selected = nil
         requestedPath = nil
+        // A new query drops the previous one's rows and pager, as legacy did on failure (`ForumSearchView.swift:95-98`).
+        loader.reset()
         let query = GlobalSearchQuery(text: words, category: category, matchMode: matchMode, scope: scope, dateRange: dateRange())
         let source = source
         await loader.load { () async throws(ListLoadError) -> SearchContent in
@@ -151,14 +154,16 @@ final class ForumSearchModel {
 
     func goToNextPage() async { if canGoToNext, let path = loader.value?.nextPath { await load(path: path) } }
     func goToPreviousPage() async { if canGoToPrevious, let path = loader.value?.previousPath { await load(path: path) } }
+    func goToLastPage() async { if canGoToNext, let path = loader.value?.lastPath { await load(path: path) } }
     func goToFirstPage() async { if canGoToPrevious, let path = loader.value?.firstPath { await load(path: path) } }
 
     /// Asks again for what failed: the page asked for, or the whole search.
     func retry() async {
+        guard !loader.isLoading else { return }
         if let path = requestedPath { await load(path: path) } else { await search() }
     }
 
-    /// Stops the search in flight (leaving the screen, Annuler).
+    /// Stops the search in flight (leaving the screen, the Annuler button).
     func cancel() { loader.cancel() }
 
     /// The reader of `topic`, opened at the matching message; the same model while the result stays selected.

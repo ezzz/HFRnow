@@ -90,14 +90,17 @@ struct ForumSearchView: View {
                 }
             }
         }
-        if let error = loader.error {
+        if loader.isLoading {
+            Section {
+                HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
+                Button("Annuler") { model.cancel() }
+            }
+        } else if let error = loader.error {
             Section {
                 Label(error.title, systemImage: error.symbol)
                 Text(error.detail).font(.footnote).foregroundStyle(.secondary)
                 Button("Réessayer") { Task { await model.retry() } }
             }
-        } else if loader.isLoading {
-            Section { HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) } }
         }
     }
 
@@ -117,6 +120,9 @@ struct ForumSearchView: View {
                 Button { Task { await model.goToNextPage() } } label: { Image(systemName: "chevron.right") }
                     .disabled(!model.canGoToNext)
                     .accessibilityLabel("Page suivante")
+                Button { Task { await model.goToLastPage() } } label: { Image(systemName: "forward.end") }
+                    .disabled(!model.canGoToNext || content.lastPath == nil)
+                    .accessibilityLabel("Dernière page")
             }
             .padding(.horizontal)
             .padding(.vertical, 8)

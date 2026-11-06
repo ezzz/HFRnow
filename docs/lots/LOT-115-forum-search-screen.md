@@ -31,7 +31,7 @@ Legacy citations name `2440d79` of <https://github.com/ezzz/HFRnow>.
 
 ## Edge cases
 
-Blank text; banned word inside another word (`penguin`, as legacy and LOT-046); search while one runs (ignored); a new search drops the open result; a failed page then retry asks for the same page again; empty result keeps HFR's sentence.
+Blank text; banned word inside another word (`penguin`, as legacy and LOT-046); search while one runs (ignored); a new search drops the open result; a failed new query clears the old rows, a failed page then retry asks for the same page again; empty result keeps HFR's sentence.
 
 ## Pending capture / Mac check
 
@@ -43,12 +43,13 @@ Blank text; banned word inside another word (`penguin`, as legacy and LOT-046); 
 ## Intentional differences from legacy
 
 - Banned words refuse the search with a warning (Q-7, CHANGELOG-LEGACY row 45).
+- A new query clears the previous rows and pager at once (legacy cleared them only on failure, `ForumSearchView.swift:95-98`); "Annuler" and "Dernière page" are kept (row and bar, not toolbar/banner).
 - No haptic and no glass buttons (not ported); the status banner is a "Recherche en cours" row.
 - The reviewer-account rule hides the Apple *category* only; hiding the entry point itself (research note P450-510 #3) is not in the issue's scope and stays open.
 
 ## Tests
 
-`App/SwiftHFRTests/Search/ForumSearchModelTests.swift`: banned word (sends nothing, inside a word, warning cleared), accents, blank text, form to query, period dates, short-word hint, paging, failed page and retry, no result, failed search retry, categories and Q-7 list, stored category, result target, new search drops the selection.
+`App/SwiftHFRTests/Search/ForumSearchModelTests.swift`: banned word (sends nothing, inside a word, warning cleared), accents, blank text, form to query, period dates, short-word hint, paging, failed page and retry, no result, failed search retry, categories, Apple category hidden (logged out, review account), private-messages id fallback, stored category, result target, new search drops the selection.
 
 ## Learnings
 
