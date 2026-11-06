@@ -88,7 +88,8 @@ enum ReplyFormattingTarget: Equatable, Sendable {
     var rawTag: String {
         switch self {
         case .bbCode(let tag): tag.rawValue
-        case .color(let color): color.hex
+        // HFR's colour tag starts with `#` (`R41a`). Legacy wrote the bare hex; how HFR renders that form is not captured.
+        case .color(let color): "#\(color.hex)"
         }
     }
 
