@@ -1,10 +1,10 @@
-"""Weekly deck: 5 slides (HTML) from the tracker and git. Never posted anywhere; delivered to the maintainer only.
+"""Weekly deck: 6 slides (HTML) from the tracker and git. Never posted anywhere; delivered to the maintainer only.
 
   python3 tooling/roadmap/weekly/build.py OUTDIR [--since 2026-10-28]   # needs `gh`, git history (not shallow), state.json
   node tooling/roadmap/weekly/shot.js OUTDIR                             # slides/*.html -> 2880x1620 JPEG
 
 Slides: 1 progress + commits per day · 2 difference with the baseline date · 3 orchestration changes (text below)
-· 4 and 5 state of M1..M4: blockers, cloud enablers, Mac bottlenecks. Nothing names or ranks a person.
+· 4 and 5 state of M1..M4: blockers, cloud enablers, Mac bottlenecks · 6 progress model (commits, PRs by step, state of each step; `progress.py`). Nothing names or ranks a person.
 """
 import html
 import json
@@ -18,8 +18,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 import generate as G  # noqa: E402  (loads lots.json and state.json)
+import progress  # noqa: E402  (slide 6)
 from sync_state import REPO, gh_pages  # noqa: E402
 
+TOTAL = 6
 MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
 # Open Mac checks that gate a milestone but are not lots
 EXTRA_MAC = {'M1': [344, 322]}
@@ -81,7 +83,7 @@ def gather(since):
         'then': {'done': lots_done(end), 'prs': sum(p['merged_at'] <= end for p in pulls), 'commits': commits(base_rev) if base_rev else 0,
                  'tests': t0, 'lines': l0, 'issues': sum(i['created_at'] <= end for i in issues),
                  'open': sum(i['created_at'] <= end and not (i['state'] == 'closed' and i['closed_at'] <= end) for i in issues)},
-        'ms': per_ms, 'days': dict(sorted(days.items())),
+        'ms': per_ms, 'days': dict(sorted(days.items())), 'progress': progress.data(pulls, issues),
         'titles': {i['number']: i['title'] for i in issues if i['state'] == 'open'},
         'labels': {i['number']: [x['name'] for x in i['labels']] for i in issues if i['state'] == 'open'},
     }
@@ -188,7 +190,7 @@ def page(n, title, sub, inner, D):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"><style>{CSS}</style></head><body>
 <div><h1>{title}</h1><p class="sub">{sub}</p></div>
 <div class="body">{inner}</div>
-<div class="foot"><span><b>SwiftHFR</b> · réécriture native Swift / SwiftUI de HFR+ · point du {d.day} {MONTHS[d.month - 1]} {d.year}</span><span>{n} / 5</span></div></body></html>"""
+<div class="foot"><span><b>SwiftHFR</b> · réécriture native Swift / SwiftUI de HFR+ · point du {d.day} {MONTHS[d.month - 1]} {d.year}</span><span>{n} / {TOTAL}</span></div></body></html>"""
 
 
 def slides(D):
@@ -242,6 +244,7 @@ def slides(D):
 <div class="sec m"><h4>Goulots Mac ({v['n_mac']} lots prêts)</h4><ul>{mac}</ul></div></div>"""
     out[4] = page(4, "Jalons <b>M1 et M2</b> : blocages et leviers", "Les captures sur le Mac et les lots écran sont ce qui retient le plus ; le cloud avance le moteur en parallèle.", f'<div class="ms2">{card("M1")}{card("M2")}</div>', D)
     out[5] = page(5, "Jalons <b>M3 et M4</b> : blocages et leviers", "Le moteur (M3) tourne dans le cloud ; la version finale (M4) dépend de l'écran et de la parité.", f'<div class="ms2">{card("M3")}{card("M4")}</div>', D)
+    out[6] = progress.slide(D, page)
     return out
 
 
