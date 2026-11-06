@@ -109,7 +109,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-088 | Smiley search | HFR search, "all keywords" toggle, recent and top chips. | AnswerView.swift:1280-1317; SmileySearchService.swift:88-135 | Search, history and wiki keywords. | LOT-105, LOT-053 | same | port: ezzz Swift layer | a |
 | GAP-089 | GIFs | Giphy panel, rating R, recents. | AnswerView.swift:2294-2340 | Giphy client (injected key) and GIF picker. | LOT-098, LOT-155 | same | port: ezzz Swift layer | a |
 | GAP-090 | Image upload | Rehost with resize cap and three BBCode modes. | ReplyService.swift:1735-1810 | Rehost client with a host table, upload and insertion panel. | LOT-056, LOT-102 | ported with changes | port: ezzz Swift layer | a |
-| GAP-091 | Upload history | Local history, re-insert in four sizes. | ReplyService.swift:1812-1918 | Local upload history. | LOT-103, FEAT-019 | UX change | new UX: Bybifok (FEAT-019) | b·operator |
+| GAP-091 | Upload history | Local history, re-insert in four sizes; "Supprimer" removes an entry silently, which suggests the image is deleted. | ReplyService.swift:1812-1918; AnswerView.swift:1909 | Local upload history; removal asks first and says the image stays online on the host. | LOT-103, FEAT-019 | UX change | new UX: Bybifok (FEAT-019) | b·operator |
 | GAP-092 | Drafts | One global draft (`composerDraftText`) for replies, saved on dismiss. | MessagesView.swift:2668; AnswerView.swift:30-37 | Draft per topic and account, autosaved, 30-day expiry; swipe-down blocked with text. | LOT-084, LOT-063 | UX change | new UX: spec | b |
 | GAP-093 | Archived drafts | None at `2440d79`. | — | Picker in LOT-101, but LOT-084 says not ported (conflict). | LOT-101 | new | new UX: spec | b |
 | GAP-094 | Preview before send | None. | — | Exact BBCode rendering before send. | LOT-152, LOT-097, FEAT-013 | new | new UX: Bybifok (FEAT-013) | b |
@@ -318,7 +318,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
   - FEAT-003 (honest paging) is (b) needed.
   - FEAT-011 is the policy C setting.
   - FEAT-010 is themes (a-compatible) plus a single accent, live preview and a one-line header (b).
-  - FEAT-019 is a local history (a) plus a server-side delete (b, no API).
+  - FEAT-019 is a local history (a) plus a confirmed removal that says the image stays online (b, LOT-103); a server-side delete has no API.
 - **"legacy parity" labels with no source at `2440d79`:**
   - LOT-100 (poll creation; legacy only reads `have_sondage`);
   - LOT-101 (archived drafts: `master` only);
