@@ -28,6 +28,8 @@ struct TopicReaderView: View {
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
     @State private var swipeEnabled = true
+    /// `reply_button_behavior` (LOT-086), read again with the other settings.
+    @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -50,7 +52,7 @@ struct TopicReaderView: View {
         .safeAreaInset(edge: .bottom) {
             if model.page != nil { ReaderPageBar(model: model, askPage: askForPage) }
         }
-        .modifier(ReaderReplyFlow(model: model, composer: composer))
+        .modifier(ReaderReplyFlow(model: model, composer: composer, behavior: replyBehavior))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .toolbar {
@@ -97,12 +99,16 @@ struct TopicReaderView: View {
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
         .onAppear(perform: makeController)
+        // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
+        .onChange(of: model.canQuote) { _, canQuote in controller?.offersSelectionQuote = canQuote }
         .task {
             // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
             swipeEnabled = services.settings.swipesPages()
+            replyBehavior = services.settings.replyButton()
             model.applyDisplaySettings() // a change made while this reader was away
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
                 swipeEnabled = services.settings.swipesPages()
+                replyBehavior = services.settings.replyButton()
                 model.applyDisplaySettings()
             }
         }
@@ -186,16 +192,18 @@ struct TopicReaderView: View {
 
     /// The handlers of the merged lots; today only "Link". A later lot adds its handler here, the policy is untouched.
     private func installMenuActions() {
-        model.install(MessageActionRegistry([
-            LinkActionHandler(
-                copy: { UIPasteboard.general.string = $0.absoluteString },
-                // Weak: the model stores this registry, a strong capture would keep every reader alive.
-                confirm: { [weak model] text in
-                    model?.showMenuFeedback(text)
-                    AccessibilityNotification.Announcement(text).post()
-                }
-            )
-        ]))
+        // Weak: the model stores this registry, a strong capture would keep every reader alive.
+        let confirm: @MainActor (String) -> Void = { [weak model] text in
+            model?.showMenuFeedback(text)
+            AccessibilityNotification.Announcement(text).post()
+        }
+        model.quoting = composer?.quoting
+        var handlers: [any MessageActionHandler] = [
+            LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
+        ]
+        handlers += model.quoteHandlers(confirm: confirm)
+        model.install(MessageActionRegistry(handlers))
+        controller?.offersSelectionQuote = model.canQuote
     }
 
     private func makeController() {
@@ -218,13 +226,17 @@ struct TopicReaderView: View {
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
             position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
-            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) },
+            menu: { [model] post, source, token in Task { await model.openMenu(post: post, source: source, token: token) } },
+            quote: { [model] post, text, bold, token in
+                Task { await model.quoteSelection(post: post, text: text, bold: bold, token: token) }
+            },
             image: { images, index, _ in
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
             }
         )
         model.positions = services.positions
+        controller.offersSelectionQuote = model.canQuote
         self.controller = controller
     }
 }

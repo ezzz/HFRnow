@@ -2,7 +2,7 @@ import Foundation
 @testable import SwiftHFR
 import Testing
 
-/// The typed bridge: six known names, exact shapes, everything else rejected (LOT-087, audit C14).
+/// The typed bridge: eight known names, exact shapes, everything else rejected (LOT-087, audit C14).
 struct ReaderBridgeMessageTests {
     private func decode(_ body: Any) -> Result<ReaderBridgeMessage.Decoded, ReaderBridgeMessage.Failure> {
         do throws(ReaderBridgeMessage.Failure) { return .success(try ReaderBridgeMessage.decode(body)) } catch { return .failure(error) }
@@ -22,6 +22,33 @@ struct ReaderBridgeMessageTests {
             == .success(.init(token: 3, message: .position(post: 42))))
         #expect(decode(["type": "images", "token": 3, "urls": ["a", 7, "b"] as [Any]])
             == .success(.init(token: 3, message: .images(["a", nil, "b"]))))
+        #expect(decode(["type": "quote", "token": 3, "post": 42, "text": "tout le monde", "bold": false])
+            == .success(.init(token: 3, message: .quote(post: 42, text: "tout le monde", bold: false))))
+        #expect(decode(["type": "quote", "token": 3, "post": 42, "text": "a\nb", "bold": true])
+            == .success(.init(token: 3, message: .quote(post: 42, text: "a\nb", bold: true))))
+    }
+
+    @Test func aQuoteNeedsAMessageANonBlankTextOfBoundedSizeAndARealBoolean() {
+        let fine: [String: Any] = ["type": "quote", "token": 3, "post": 42, "text": "x", "bold": true]
+        func variant(_ key: String, _ value: Any?) -> [String: Any] {
+            var body = fine
+            body[key] = value
+            return body
+        }
+        #expect(decode(variant("post", nil)) == .failure(.invalidPayload))
+        #expect(decode(variant("post", 0)) == .failure(.invalidPayload))
+        #expect(decode(variant("post", "42")) == .failure(.invalidPayload))
+        #expect(decode(variant("text", nil)) == .failure(.invalidPayload))
+        #expect(decode(variant("text", 7)) == .failure(.invalidPayload))
+        #expect(decode(variant("text", " \n\t ")) == .failure(.invalidPayload))
+        #expect(decode(variant("text", String(repeating: "a", count: ReaderBridgeMessage.maximumQuoteText + 1)))
+            == .failure(.invalidPayload))
+        let longest = String(repeating: "a", count: ReaderBridgeMessage.maximumQuoteText)
+        #expect(decode(variant("text", longest)) == .success(.init(token: 3, message: .quote(post: 42, text: longest, bold: true))))
+        #expect(decode(variant("bold", nil)) == .failure(.invalidPayload))
+        // `1` and `"true"` are not booleans: only the page's own `true` / `false` count.
+        #expect(decode(variant("bold", NSNumber(value: 1))) == .failure(.invalidPayload))
+        #expect(decode(variant("bold", "true")) == .failure(.invalidPayload))
     }
 
     @Test func unknownNamesAreRejected() {

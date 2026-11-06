@@ -51,7 +51,7 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 **Pending capture:** #273 (own post on a public topic: edit link shape, which MP / flag / alert links remain). Until it lands the
 own-post rules are LOT-031's (`RA4`: edit on own posts of a private thread) and the legacy policy above; review #330 checks them.
 Not decided here, left to the lot of each handler: the alert mail fallback (legacy `onPopupAlertMailRequest`), the multi-quote cookie
-state (`isQuoteSelectionEnabled` stays false until LOT-086), and the "flag here" action (`favorite`: a state-changing GET, needs the
+state (LOT-086 reads it from the session: `TopicReaderModel.openMenu`), and the "flag here" action (`favorite`: a state-changing GET, needs the
 session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
 
 ## Intentional differences from legacy

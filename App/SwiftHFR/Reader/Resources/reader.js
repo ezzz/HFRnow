@@ -138,6 +138,22 @@
       if (element) { element.scrollIntoView({ block: "start" }); }
       return element !== null;
     },
+    // "Citer extrait" / "Citer gras" (LOT-086): reports the selection and the message it sits in. Only a selection that starts
+    // and ends inside the same message is reported: quoting message A with the words of message B would misattribute them.
+    quoteSelection: (bold) => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) { return false; }
+      const text = selection.toString();
+      if (text.trim().length === 0) { return false; }
+      const messageOf = (node) => {
+        const element = node instanceof Element ? node : (node ? node.parentElement : null);
+        return element ? element.closest("article[data-post]:not(.continuation)") : null;
+      };
+      const article = messageOf(selection.anchorNode);
+      if (article === null || article !== messageOf(selection.focusNode)) { return false; }
+      channel.postMessage({ type: "quote", token, post: Number(article.dataset.post), text: text.slice(0, 20000), bold: bold === true });
+      return true;
+    },
     // Scrolls to the message and keeps it there while the page settles.
     landOnPost: (number) => {
       const element = document.getElementById("t" + number);
