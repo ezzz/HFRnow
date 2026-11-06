@@ -55,6 +55,7 @@ struct TopicReaderView: View {
         .modifier(ReaderReplyFlow(model: model, composer: composer, behavior: replyBehavior))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
+        .offlineSave(model: model, offline: services.offline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
@@ -251,6 +252,8 @@ struct ReaderServices: Sendable {
     let profiles: any UserProfileSource
     /// Records the reading position of the current account (LOT-111); nil when logged out.
     var positions: (any ReaderPositionRecording)?
+    /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
+    var offline: OfflineServices?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.

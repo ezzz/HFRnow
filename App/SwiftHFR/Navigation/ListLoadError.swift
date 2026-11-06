@@ -15,6 +15,8 @@ enum ListLoadError: Error, Equatable, Sendable {
     case notAuthenticated(String)
     /// The page does not look like the expected list; retrying may help, the page may also have changed.
     case unreadable
+    /// The offline reader was asked for a page that was never saved (LOT-139).
+    case notSaved
     /// The load was superseded or cancelled: not shown to the user.
     case cancelled
     /// Any other transport failure.
@@ -49,6 +51,7 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .maintenance: "Forum en maintenance"
         case .notAuthenticated: "Connexion requise"
         case .unreadable: "Page illisible"
+        case .notSaved: "Page non enregistrée"
         case .cancelled, .other: "Chargement impossible"
         }
     }
@@ -61,6 +64,7 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .server(let status): "Le serveur a répondu avec le code \(status)."
         case .maintenance(let message), .notAuthenticated(let message): message
         case .unreadable: "HFR a renvoyé une page inattendue."
+        case .notSaved: "Cette page n’a pas été enregistrée pour la lecture hors ligne."
         case .cancelled, .other: "Réessayez."
         }
     }
@@ -72,7 +76,7 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .timedOut: "clock.badge.exclamationmark"
         case .maintenance: "wrench.and.screwdriver"
         case .notAuthenticated: "lock"
-        case .server, .unreadable, .cancelled, .other: "exclamationmark.triangle"
+        case .server, .unreadable, .notSaved, .cancelled, .other: "exclamationmark.triangle"
         }
     }
 }

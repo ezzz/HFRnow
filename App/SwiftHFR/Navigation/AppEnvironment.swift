@@ -40,7 +40,8 @@ struct AppEnvironment {
                 pseudoLists: { lists.current }
             ),
             profiles: LiveUserProfileSource(fetcher: fetcher),
-            positions: LiveReaderPositionRecorder.live(account: accountName)
+            positions: LiveReaderPositionRecorder.live(account: accountName),
+            offline: .live(fetcher: fetcher)
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
