@@ -1,8 +1,8 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split
-// and the tab bar stays visible; a Favoris / Drapeaux source menu (GAP-008, 032; UXD).
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split;
+// a Favoris / Drapeaux source menu (GAP-032; UXD). The reader hides the tab bar (GAP-008, UXD-02, see `TopicReaderView`).
 /// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus. Each tab keeps its own navigation, and the reader
 /// opens inside the tab (a collapsed split view is a stack).
 struct RootTabsView: View {

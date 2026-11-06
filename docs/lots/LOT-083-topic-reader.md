@@ -150,7 +150,7 @@ real page (`R28`) requests only forum images before a tap.
 Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-056 policy C, GAP-058 videos on tap: `b·needed` (operator 2026-10-27, LOT-071), **UXD-12** only confirms the image-setting default.
 - GAP-051 one-line message header instead of the grey band with "+": `b`, shipped, decided 2026-11-02, **UXD-09** (recommendation: legacy band by default, the new one as a "Style des messages" value).
-- GAP-008 tab bar visible in the reader: `b`, shipped, decided 2026-11-02, **UXD-02** (recommendation: hide it, as legacy).
+- GAP-008 tab bar in the reader: `b`, decided 2026-11-02, **UXD-02**: hidden as legacy (#424; it shipped visible).
 - GAP-060 page bar instead of ‹ › and the "…" menu: `b`, shipped, decided 2026-11-02, **UXD-10**.
 - GAP-053 body on `-apple-system-body`: `b·operator` (LOT-169, **UXD-13**). GAP-050, 055, 064: `a`.
 
