@@ -37,15 +37,10 @@ struct PlusEntryView: View {
     let environment: AppEnvironment
 
     var body: some View {
-<<<<<<< HEAD
         if entry == .search {
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
         } else if entry.isBuilt {
-            SettingsView(rotationChanged: { OrientationPolicy.refresh() })
-=======
-        if entry.isBuilt {
             SettingsView()
->>>>>>> origin/dev-swift
         } else {
             ContentUnavailableView(
                 entry.title, systemImage: entry.symbol,
