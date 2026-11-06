@@ -58,7 +58,7 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 
 | Host (subdomains) | Rule | Source |
 |---|---|---|
-| `reho.st` (yes) | `Referer: https://forum.hardware.fr`; extension-less; `/thumb/` to `/` | legacy `MessagesView.swift:5748-5762`; E26 **pending capture** |
+| `reho.st` (yes) | `Referer: https://forum.hardware.fr/` (trailing slash; legacy sent none); extension-less; `/thumb/` to `/` | legacy `MessagesView.swift:5748-5762`; E26 captured `T20`-`T24`, `T30`-`T33` |
 | `img3.super-h.fr` (no) | extension-less; `.th.` removed from the file name under `/images/` | legacy `MessagesView.swift:2202-2215` |
 | `rehost.diberie.com` (no) | extension-less; `/Picture/Get/t/` to `/Picture/Get/f/` | legacy `MessagesView.swift:2202-2215` |
 | `hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr`, `hn.org` (yes) | `observedHTTPOnly` | LOT-071 (captures `R20`, `R21`, `R22a`) |
@@ -103,8 +103,8 @@ tests use the payload shapes legacy reads; `ImageHostTableTests.thumbnailsMapToF
 
 **Pending capture** (issues: [#134](https://github.com/ezzz/HFRnow/issues/134) for 1, [#301](https://github.com/ezzz/HFRnow/issues/301) for 2, [#302](https://github.com/ezzz/HFRnow/issues/302) for 3):
 
-1. A `reho.st` image fetched cookie-less **with and without** `Referer: https://forum.hardware.fr/` (and `https://forum.hardware.fr`):
-   settles E26 and the exact value of the table's `referer`. Until then the rule is legacy's value (no trailing slash).
+1. ~~A `reho.st` image fetched cookie-less with and without `Referer`~~ — **done** (#134, reviewed in #328): 403 without, 200 `image/jpeg` with
+   `Referer: https://forum.hardware.fr/` on a real image (`T30`-`T33`), so the table's value now has the trailing slash. Left: the no-slash form on a real image was not captured.
 2. One `http://`-only host (`R20`/`R21`/`R22a`) requested over `https`: does it work or upgrade? Settles `observedHTTPOnly` and LOT-083's ATS choice.
 3. One real upload answer of the Chevereto host (success and an error such as a wrong key), anonymized: needs the key and publishes an image
    publicly, so it is the operator's decision. Until then the response shape is "as legacy reads it", not verified.

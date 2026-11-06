@@ -72,7 +72,7 @@ struct ReaderImageViewerBridgeTests: ReaderWebTesting {
         _ = try await fetcher.image(at: URL(string: "https://i.imgur.com/a.jpg")!, allowsThirdParty: true, hostTable: .standard)
         _ = try await fetcher.image(at: URL(string: "https://reho.st/self/b.jpg")!, allowsThirdParty: true)
         let requests = await transport.requests
-        #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil, nil])
+        #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr/", nil, nil])
         #expect(requests.allSatisfy { $0.redirectPolicy == .doNotFollow })
         let names = requests.flatMap { $0.headers.fields.keys }.map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
         #expect(!names.contains("cookie"))
@@ -88,7 +88,7 @@ struct ReaderImageViewerBridgeTests: ReaderWebTesting {
         let fetcher = ReaderImageFetcher(transport: transport)
         _ = try await fetcher.image(at: URL(string: "https://reho.st/self/a.jpg")!, allowsThirdParty: true, hostTable: .standard)
         let requests = await transport.requests
-        #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr", nil])
+        #expect(requests.map { $0.headers["Referer"] } == ["https://forum.hardware.fr/", nil])
     }
 
     /// `reader.js` in a real web view: which pictures a tap lists, and which taps open nothing.

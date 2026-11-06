@@ -4,8 +4,9 @@ import Foundation
 /// Hosts are recognised by the parsed host of the URL at a label boundary, never by a substring of the text
 /// (`reho.st.evil.example` and `notreho.st` are not `reho.st`).
 public struct ImageHostTable: Sendable, Equatable {
-    /// The `Referer` legacy sent to `reho.st` (`PhotoViewerNetworkRequestFactory`, no trailing slash).
-    public static let forumReferer = "https://forum.hardware.fr"
+    /// The `Referer` sent to `reho.st`: the forum origin with its trailing slash, the value captured with a real image (`T31`, `T33`,
+    /// #134). Legacy sent none (`PhotoViewerNetworkRequestFactory`); the no-slash form is only seen working on a path naming no file (`T24`).
+    public static let forumReferer = "https://forum.hardware.fr/"
 
     /// The rules SwiftHFR ships with. Each cites its source in LOT-056's spec.
     public static let standard = ImageHostTable(rules: [
