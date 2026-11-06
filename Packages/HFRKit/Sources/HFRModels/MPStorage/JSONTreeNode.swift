@@ -5,6 +5,9 @@ final class JSONTreeNode {
         case value(JSONValue)
         case object([String: JSONTreeNode])
         case array([JSONTreeNode])
+        /// What a super encoder writes, read when the tree is finished: the super may write a value, an array or an
+        /// object, and only then does the encoder know which.
+        case deferred(JSONTreeEncoder)
 
         func isSameKind(as other: Content) -> Bool {
             switch (self, other) {
@@ -24,6 +27,7 @@ final class JSONTreeNode {
         case .value(let value): value
         case .object(let members): .object(members.mapValues(\.value))
         case .array(let items): .array(items.map(\.value))
+        case .deferred(let encoder): encoder.node?.value ?? .object([:])
         }
     }
 
@@ -41,12 +45,10 @@ final class JSONTreeNode {
         content = .array(items)
     }
 
-    /// The number of items of an array node (the next item's index).
+    /// The number of items of an array node (the next item's index); only an unkeyed container, always backed by an
+    /// array node, asks.
     var count: Int {
-        switch content {
-        case .array(let items): items.count
-        case .object(let members): members.count
-        case .value: 1
-        }
+        guard case .array(let items) = content else { return 0 }
+        return items.count
     }
 }

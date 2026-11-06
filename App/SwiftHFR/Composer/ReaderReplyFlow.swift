@@ -1,3 +1,4 @@
+import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: reply action, composer sheet) and HFRswift/Swift/AnswerView.swift
@@ -8,6 +9,8 @@ struct ReaderReplyFlow: ViewModifier {
     let model: TopicReaderModel
     /// The current account's composer; nil when logged out.
     let composer: ComposerServices?
+    /// `reply_button_behavior`: `hidden` draws no button, `forum` the pencil, `quick` the plus (legacy `replyButtonSystemImage`).
+    var behavior = ReplyButtonBehavior.quick
     @State private var reply: ReplyComposerModel?
 
     func body(content: Content) -> some View {
@@ -24,13 +27,25 @@ struct ReaderReplyFlow: ViewModifier {
                 model.clearReplyConfirmation()
             }
             .toolbar {
-                if let composer, let target = model.replyTarget {
+                if composer != nil, model.replyTarget != nil, behavior != .hidden {
                     ToolbarItem(placement: .primaryAction) {
-                        Button { reply = ReplyComposerModel(target: target, services: composer) } label: {
-                            Label("Répondre", systemImage: "square.and.pencil")
+                        Button { Task { await model.requestReply() } } label: {
+                            Label("Répondre", systemImage: behavior == .forum ? "square.and.pencil" : "plus")
                         }
+                        .disabled(model.isLoadingQuote)
                     }
                 }
+            }
+            // The reply button and every quote ask the reader; it hands over once, to the sheet that is not open yet.
+            .onChange(of: model.pendingReply) { _, request in
+                guard request != nil, let taken = model.takePendingReply() else { return }
+                guard reply == nil else { return } // a sheet is open: the request was a double tap
+                guard let composer, let target = model.replyTarget else {
+                    // The answer form went away while the quote was fetched: say so instead of dropping the quote silently.
+                    model.showMenuFeedback("Réponse indisponible : la page a changé, réessayez.")
+                    return
+                }
+                reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
             }
             .sheet(item: $reply) { composer in
                 ReplyComposerView(model: composer) { reason in

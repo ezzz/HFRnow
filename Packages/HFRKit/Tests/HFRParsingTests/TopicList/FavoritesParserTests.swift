@@ -125,11 +125,18 @@ struct FavoritesDifferentialTests {
 
 @Suite("Favourites parser")
 struct FavoritesParserTests {
-    @Test("Colours and read position come from the flag cell: blue on a tracked list (R10), yellow on favourites (P03c)")
+    @Test("Colours and read position come from the flag cell: yellow on favourites (R10), blue once its icons are swapped, yellow on P03c")
     func flags() throws {
-        let tracked = try FavoritesParser.parse(Fixture.capture("R10-favourites-owntopic1"))
+        let favourites10 = try FavoritesParser.parse(Fixture.capture("R10-favourites-owntopic1"))
+        #expect(favourites10.sections.flatMap(\.topics).map(\.flag) == [.yellow, .yellow])
+        #expect(favourites10.sections.flatMap(\.topics).map(\.currentPage) == [101, 102])
+        // The blue flag of a tracked list is no longer captured on this account (R10 now lists favourites): swap the icon.
+        let original = try Fixture.capture("R10-favourites-owntopic1")
+        let swapped = original.replacing("1/favoris.gif", with: "1/flag1.gif")
+        try #require(swapped != original)
+        let tracked = try FavoritesParser.parse(swapped)
         #expect(tracked.sections.flatMap(\.topics).map(\.flag) == [.blue, .blue])
-        #expect(tracked.sections.flatMap(\.topics).map(\.currentPage) == [1700, 3763])
+        #expect(tracked.sections.flatMap(\.topics).map(\.currentPage) == [101, 102])
         let favourites = try FavoritesParser.parse(Fixture.capture("P03c-favourites-after-addflag"))
         #expect(favourites.sections.flatMap(\.topics).map(\.flag) == [.yellow])
     }
@@ -180,7 +187,7 @@ struct FavoritesParserTests {
         let rows = try FavoritesParser.parse(html).sections.flatMap(\.topics)
         #expect(rows.map(\.flagPath) == [nil, nil])
         #expect(rows.map(\.path) == rows.compactMap(\.lastPost?.path))
-        #expect(rows.map(\.currentPage) == [1815, 8639])
+        #expect(rows.map(\.currentPage) == [201, 202])
     }
 
     private static let secondRow = #"<tr class="sujet ligne_booleen cBackCouleurTab3 " >"#
@@ -191,9 +198,10 @@ struct FavoritesParserTests {
         let header = #"<tr class="cBackHeader fondForum1fCat"><th>"# + link + "</th></tr>"
         let html = try Fixture.capture("R10-favourites-owntopic1").replacing(Self.secondRow, with: header + Self.secondRow)
         let sections = try FavoritesParser.parse(html).sections
-        #expect(sections.map(\.forum.title) == ["Emploi & Etudes", "Other"])
-        #expect(sections.map { $0.categoryID?.queryValue } == ["8", "9"])
-        #expect(sections.map(\.topics.count) == [1, 1])
+        // The capture ends with a second, empty category header (aliased 102) after its two rows.
+        #expect(sections.map(\.forum.title) == ["Category 1", "Other", "Category 2"])
+        #expect(sections.map { $0.categoryID?.queryValue } == ["101", "9", "102"])
+        #expect(sections.map(\.topics.count) == [1, 1, 0])
     }
 
     @Test("A later header without link must not drop its rows silently: malformed, not a partial list")
