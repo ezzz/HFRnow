@@ -563,6 +563,15 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 - **The answer** (`W18`, **verified**): `.hop` "Le message a été marqué comme non lu avec succès", refresh to the MP list (`/forum1.php?config=hfr.inc&cat=prive&page=1&…`), no `Set-Cookie`; the list afterwards shows the conversation unread (`R13b`).
 - **MP quote** (`RA1`-`RA4`, `R47a`, **verified**): the conversations' quote links are `message.php?…&cat=prive&post=<post>&numrep=<n>&ref=<rank>…#formulaire`; `RA4`'s link to message 1980875030 is `R47a`'s request, whose prefill is the LOT-004 oracle's `content_form`.
 
+### LOT-049 — quote engine
+
+[LOT-049](lots/LOT-049-quote-engine.md), tests `QuoteCaptureTests` (LOT-004 oracles) and `QuoteFlowTests`.
+
+- **Quote of a quoting post** (`R41b`, **verified**): the prefill holds only the cited post's own text; the quote it contains (`R20`, message 2666695 citing 2666682) is not carried over. This one capture does not show whether HFR ever nests `[quotemsg]` in a prefill.
+- **Line breaks of a prefill** (`R41a`, `R41b`, `R42`, `R47a`, `R47c`, **verified** on the oracles' `contentFormRaw`): CRLF inside the quoted text, a bare LF after each `[/quotemsg]` (one after a single quote, two after each block of a multi-quote).
+- **Multi-quote composer** (`R42`, `R47c`, **verified**): the topic's answer link (§6c LOT-084, no `numrep`) sent with the cookie `quotes<forum>-<cat>-<post>` gives a reply composer whose hidden `cat` and `post` are the topic's and whose prefill holds one block per selected message. Both captures list the blocks by ascending message number; the cookie's order was not recorded.
+- **After the post** (`W14`, meta; `W62`, `W63`, #334): the answer deletes the host-only cookie `quoteshardwarefr-prive-<post>` (expired, path `/`, no `Domain`, §4); the `.hardware.fr` selection this client stores is left, so the client unselects the posted messages itself.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
