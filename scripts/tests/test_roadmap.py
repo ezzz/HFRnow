@@ -7,12 +7,14 @@ from pathlib import Path
 
 ROADMAP = Path(__file__).resolve().parents[2] / "tooling" / "roadmap"
 sys.path.insert(0, str(ROADMAP))
+sys.path.insert(0, str(ROADMAP / "weekly"))
 
 import generate  # noqa: E402
 import hygiene  # noqa: E402
 import m5  # noqa: E402
 import lots_from_md  # noqa: E402
 import sync_state  # noqa: E402
+import progress  # noqa: E402
 
 HEAD = "| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |\n|---|---|---|---|---|---|---|---|---|\n"
 NOW = datetime(2026, 11, 1, tzinfo=timezone.utc)
@@ -307,6 +309,34 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(hygiene.numeric_deps("—"), [])
         self.assertEqual(hygiene.numeric_deps("080, 043"), ["LOT-080", "LOT-043"])
         self.assertIsNone(hygiene.numeric_deps("all parsing lots"))
+
+
+class ProgressSlide(unittest.TestCase):
+    def test_audit_is_lot_000_to_005_and_other_lots_take_their_milestone(self):
+        self.assertEqual(progress.step_of_lot("LOT-000"), "Audit")
+        self.assertEqual(progress.step_of_lot("LOT-005"), "Audit")
+        self.assertEqual(progress.step_of_lot("LOT-080"), "M1")
+        self.assertEqual(progress.step_of_lot(next(iter(sorted(generate.M5)))), "M5")
+
+    def test_a_pr_goes_to_the_step_of_the_first_lot_of_its_title_then_its_body_else_infra(self):
+        self.assertEqual(progress.step_of_pr({"title": "LOT-080: app target", "body": "LOT-137"}), "M1")
+        self.assertEqual(progress.step_of_pr({"title": "docs: fix a typo", "body": "Refs LOT-080"}), "M1")
+        self.assertEqual(progress.step_of_pr({"title": "chore: ci", "body": "Direct-PR"}), progress.OTHER)
+        self.assertEqual(progress.step_of_pr({"title": "LOT-999: unknown lot", "body": ""}), progress.OTHER)
+
+    def test_a_lot_counts_in_exactly_one_bucket_by_priority(self):
+        lot = "LOT-080"
+        n = generate.rows[lot]["issue"]
+        with mock.patch.object(generate, "CLOSED", set()), mock.patch.object(generate, "CAPTURE", {}):
+            self.assertEqual(progress.bucket("LOT-087", {"host: mac"}), "mac")
+            self.assertEqual(progress.bucket("LOT-087", set()), "ready")
+            self.assertEqual(progress.bucket("LOT-087", {"priority: low"}), "low")
+            self.assertEqual(progress.bucket("LOT-087", {"priority: low", "host: mac"}), "mac")  # mac outranks low
+            self.assertEqual(progress.bucket("LOT-087", {"status: needs-triage", "host: mac"}), "human")  # human outranks mac
+            with mock.patch.object(generate, "CAPTURE", {generate.rows["LOT-087"]["issue"]: "#1"}):
+                self.assertEqual(progress.bucket("LOT-087", {"status: blocked", "host: mac"}), "human")  # capture-gated is not "blocked"
+        with mock.patch.object(generate, "CLOSED", {n}):
+            self.assertEqual(progress.bucket(lot, {"status: blocked", "host: mac"}), "done")  # done outranks everything
 
 
 if __name__ == "__main__":
