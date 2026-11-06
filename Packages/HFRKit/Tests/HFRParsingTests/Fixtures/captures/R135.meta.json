@@ -1,0 +1,21 @@
+{
+  "id": "R135",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=0&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=0&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=0&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 13:36:26 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R135-mp-list-group-added-member-row.html",
+  "private": true
+}

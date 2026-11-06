@@ -43,14 +43,14 @@ struct TopicOracle: Decodable {
     static let subdirectory = "Fixtures/LOT-003"
 
     /// The oracle of a case id such as `R20`.
-    static func load(_ caseID: String) throws -> TopicOracle {
-        let json = try Fixture.text("\(caseID).oracle", extension: "json", subdirectory: subdirectory)
+    static func load(_ caseID: String, folder: String? = nil) throws -> TopicOracle {
+        let json = try Fixture.text("\(caseID).oracle", extension: "json", subdirectory: folder.map { "Fixtures/\($0)" } ?? subdirectory)
         return try JSONDecoder().decode(TopicOracle.self, from: Data(json.utf8))
     }
 
     /// The oracle map, keyed by case id (`R20.html` → `R20`).
-    static func loadMap() throws -> [String: MapEntry] {
-        let json = try Fixture.text("oracle-map", extension: "json", subdirectory: subdirectory)
+    static func loadMap(folder: String? = nil) throws -> [String: MapEntry] {
+        let json = try Fixture.text("oracle-map", extension: "json", subdirectory: folder.map { "Fixtures/\($0)" } ?? subdirectory)
         let raw = try JSONDecoder().decode([String: MapEntry].self, from: Data(json.utf8))
         return Dictionary(uniqueKeysWithValues: raw.map { key, entry in
             (key.hasSuffix(".html") ? String(key.dropLast(5)) : key, entry)

@@ -20,6 +20,8 @@ struct TopicReaderView: View {
     /// A filter run is reading pages: the menu entry is disabled meanwhile.
     var filterIsBusy = false
     @State private var controller: ReaderWebController?
+    /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
+    @State private var saver: OfflineSaveModel?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109); a fresh model per tap.
@@ -57,6 +59,7 @@ struct TopicReaderView: View {
         .modifier(ReaderReplyFlow(model: model, composer: composer, behavior: replyBehavior))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
+        .offlineSave(model: model, saver: saver)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
@@ -101,6 +104,9 @@ struct TopicReaderView: View {
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
         .onAppear(perform: makeController)
+        .onAppear {
+            if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
+        }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
         .onChange(of: model.canQuote) { _, canQuote in controller?.offersSelectionQuote = canQuote }
         .task {
@@ -123,6 +129,7 @@ struct TopicReaderView: View {
             // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
             guard model.linkedReader == nil, viewer == nil else { return }
             model.cancel()
+            saver?.leave()
             controller?.stopLoading()
         }
     }
@@ -253,6 +260,8 @@ struct ReaderServices: Sendable {
     let profiles: any UserProfileSource
     /// Records the reading position of the current account (LOT-111); nil when logged out.
     var positions: (any ReaderPositionRecording)?
+    /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
+    var offline: OfflineServices?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.

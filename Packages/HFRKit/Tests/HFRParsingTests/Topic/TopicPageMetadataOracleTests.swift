@@ -11,11 +11,17 @@ struct TopicPageMetadataOracleTests {
         "P03m", "R20", "R21", "R22a", "R22b", "R23", "R24", "R26", "R27", "R27b", "R28", "R31", "R32a", "R32b",
         "RA1", "RA2", "RA3", "RA4", "RA5", "RU1", "RU2", "R96c", "R96d"
     ]
+        + MessageBlockOracleTests.m2Folders.keys.sorted()
 
-    @Test("the case list covers the oracle map")
+    @Test("the case list covers the oracle maps (LOT-003 and the M2 topic captures, #475)")
     func casesCoverTheMap() throws {
-        let map = try Self.jsonObject(Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/LOT-003"))
-        let mapped = Set(map.keys.map { $0.replacing(".html", with: "") })
+        var mapped = Set<String>()
+        for folder in ["LOT-003", "M2-readonly", "M2-misc"] {
+            let map = try Self.jsonObject(Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)"))
+            // The M2 folders also hold list, form and response cases; only the topic pages are parsed here.
+            let topics = map.filter { folder == "LOT-003" || (($0.value as? [String: Any])?["kind"] as? String) == "topic" }
+            mapped.formUnion(topics.keys.map { $0.replacing(".html", with: "") })
+        }
         #expect(mapped == Set(Self.cases))
     }
 
@@ -60,7 +66,8 @@ struct TopicPageMetadataOracleTests {
     }
 
     static func oracle(_ id: String) throws -> Oracle {
-        let root = try jsonObject(Fixture.text("\(id).oracle", extension: "json", subdirectory: "Fixtures/LOT-003"))
+        let folder = MessageBlockOracleTests.m2Folders[id] ?? "LOT-003"
+        let root = try jsonObject(Fixture.text("\(id).oracle", extension: "json", subdirectory: "Fixtures/\(folder)"))
         let input = try #require(root["input"] as? [String: Any])
         let result = try #require(root["result"] as? [String: Any])
         let file = try #require(input["file"] as? String)
