@@ -16,9 +16,9 @@ struct HopFormOracleTests {
 
     @Test("the case lists cover every LOT-004 and M2 write form case")
     func casesCoverTheMap() throws {
-        let m2 = try Lot004FormOracle.mappedFormCases(in: Lot004FormOracle.m2Subdirectory)
-        #expect(m2 == Lot004FormOracle.m2FormCases)
-        #expect(try Lot004FormOracle.mappedFormCases().union(m2) == Set(Self.composerCases + ["R46"]))
+        let m2Cases = try Lot004FormOracle.mappedFormCases(in: Lot004FormOracle.m2Subdirectory)
+        #expect(m2Cases == Lot004FormOracle.m2FormCases)
+        #expect(try Lot004FormOracle.mappedFormCases().union(m2Cases) == Set(Self.composerCases + ["R46"]))
     }
 
     @Test("action equals the legacy form action", arguments: composerCases)
