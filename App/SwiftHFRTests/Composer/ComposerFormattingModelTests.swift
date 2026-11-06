@@ -51,7 +51,7 @@ struct ComposerFormattingModelTests {
         formatting.isPaletteShown = true
         formatting.selectedRange = NSRange(location: 0, length: 1)
         formatting.tap(.color(ReplyTextColor.palette[4]))
-        #expect(composer.text == "[ff0000]a[/ff0000]")
+        #expect(composer.text == "[#ff0000]a[/#ff0000]")
         #expect(!formatting.isPaletteShown)
     }
 
