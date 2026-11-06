@@ -1,0 +1,16 @@
+{
+  "id": "R96d",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "GET /forum2.php?config=hfr.inc&cat=prive&post={post}&page={page}",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3207675&page=1",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3207675&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Mon, 02 Nov 2026 07:44:08 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "fixture-test-2 after W65, recipient view (#169)",
+  "file": "R96d-mp-thread-recipient-after-thread-delete.html",
+  "private": false
+}

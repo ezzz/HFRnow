@@ -92,6 +92,39 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(w1["request_body"], "pseudo=user1&dest=user2&hash_check=REDACTED")
         self.assertEqual(A.main(["check", "--quiet", "--corpus", self.dest]), 0)
 
+    def test_own_topic_named_only_by_the_request_is_aliased_in_the_meta(self):
+        # A `.hop` answer of a write on an own topic: the page never names the topic, its URL and body do.
+        with open(self.cfg, "w") as fh:
+            json.dump({"pseudos": [OPERATOR], "own_topics": [424242]}, fh)
+        caps = [{"raw": "H1", "id": "H1", "slug": "hop", "ext": "html", "private": False},
+                {"raw": "H2", "id": "H2", "slug": "vote", "ext": "html", "private": False}]
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": caps}, fh)
+        self.capture("H1", '<div class="hop"> Message envoy\u00e9 </div>',
+                     {"method": "POST", "url": "/user/modo.php?cat=10&post=424242&numreponse=7770001&config=hfr.inc"})
+        with open(os.path.join(self.raw, "H1.request.txt"), "w") as fh:
+            fh.write("POST /bdd.php\n\npost=424242&numreponse=7770001&sujet=Velo+rouge\n")
+        self.capture("H2", '<div class="hop"> D\u00e9sol\u00e9 </div>', {"method": "POST", "url": "/user/vote.php"})
+        with open(os.path.join(self.raw, "H2.request.txt"), "w") as fh:
+            fh.write("POST /user/vote.php\n\ncat=10&numeropost=424242&numreponse=8880001&reponse=1\n")
+        rc, out = self.run_publish()
+        self.assertEqual(rc, 0, out)
+        meta = self.read("H1.meta.json")
+        self.assertNotIn("424242", meta)
+        self.assertIn("post=%d" % A.OWN_TOPIC_FIRST, meta)
+        self.assertNotIn("Velo", meta)
+        self.assertIn("numeropost=%d" % A.OWN_TOPIC_FIRST, self.read("H2.meta.json"))
+        # Message ids named only by requests get distinct aliases from one batch-wide table.
+        vote = self.read("H2.meta.json")
+        self.assertNotIn("7770001", meta)
+        self.assertNotIn("8880001", vote)
+        alias = lambda text: __import__("re").search(r"numreponse=(\d+)", text).group(1)
+        self.assertNotEqual(alias(meta), alias(vote))
+        # Publishing one of them alone gives it the same alias as the batch publish did.
+        rc, out = self.run_publish("H2")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual(alias(self.read("H2.meta.json")), alias(vote))
+
     def test_publish_subset_and_unknown_id(self):
         rc, _out = self.run_publish("L1")
         self.assertEqual(rc, 0)
@@ -112,6 +145,83 @@ class PublishTests(unittest.TestCase):
         self.assertNotIn("Bravo", out)
         self.assertFalse(os.path.exists(os.path.join(self.dest, "L1-list.html")))
 
+    def test_publish_refuses_an_aq_answer_the_aq_gate_does_not_recognise(self):
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": [{"raw": "Q1", "id": "Q1", "slug": "aq", "ext": "xml", "private": False}]}, fh)
+        # No XML declaration: the AQ masking would not run, so member-written text would be published as is.
+        self.capture("Q1", '<alertes><alerte id="1" nom="Real words" pseudoInitiateur="user1"/></alertes>',
+                     {"url": "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=1"})
+        rc, out = self.run_publish("Q1")
+        self.assertEqual(rc, 1)
+        self.assertIn("AQ capture not recognized", out)
+        self.assertFalse(os.path.exists(os.path.join(self.dest, "Q1-aq.xml")))
+        # Hostnames are case-insensitive: an upper-case AQ host is refused too.
+        self.capture("Q1", '<alertes><alerte id="1" nom="Real words" pseudoInitiateur="user1"/></alertes>',
+                     {"url": "https://AQ.SUPER-H.FR/api/getAlertesByTopic.php?topic_id=1"})
+        rc, out = self.run_publish("Q1")
+        self.assertEqual(rc, 1)
+        self.assertIn("AQ capture not recognized", out)
+        self.assertFalse(P.is_aq_host("https://example.org/?u=aq.super-h.fr"))
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
+REPLAY = ('<html><body><div class="hop">Refused<br /><form action="/message.php?config=hfr.inc&amp;cat=prive&amp;post=5" '
+          'method="post"><input type="hidden" name="cat" value="prive" />'
+          '<input type="hidden" name="sujet" value="Weekend chez Marie" />'
+          '<textarea name="content_form" rows="3">words of Marie</textarea></form></div></body></html>')
+
+
+class MPWriteReplayTests(unittest.TestCase):
+    """A refused MP write (bddpost.php, no cat=prive in the URL, private: false) is private all the same."""
+
+    def publish(self, meta_extra, body, page=REPLAY, private=False):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw, dest = os.path.join(tmp, "raw"), os.path.join(tmp, "out")
+            os.makedirs(raw)
+            os.makedirs(dest)
+            with open(os.path.join(raw, "Z1.html"), "w", encoding="utf-8") as fh:
+                fh.write(page)
+            meta = dict({"id": "Z1", "method": "POST", "url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+                         "status": 200}, **meta_extra)
+            with open(os.path.join(raw, "Z1.meta.json"), "w", encoding="utf-8") as fh:
+                json.dump(meta, fh)
+            if body is not None:
+                with open(os.path.join(raw, "Z1.request.txt"), "w", encoding="utf-8") as fh:
+                    fh.write("POST /bddpost.php\n\n%s\n" % body)
+            cfg = os.path.join(tmp, "local.json")
+            with open(cfg, "w") as fh:
+                json.dump({"pseudos": [OPERATOR]}, fh)
+            manifest = os.path.join(tmp, "m.json")
+            with open(manifest, "w") as fh:
+                json.dump({"captures": [{"raw": "Z1", "id": "Z1", "slug": "z", "ext": "html", "private": private}]}, fh)
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                rc = P.main(["--config", cfg, "--raw", raw, "--dest", dest, "--manifest", manifest])
+            self.assertEqual(rc, 0)
+            with open(os.path.join(dest, "Z1-z.html"), encoding="utf-8") as fh:
+                page_out = fh.read()
+            with open(os.path.join(dest, "Z1.meta.json"), encoding="utf-8") as fh:
+                return page_out, json.load(fh)
+
+    def check_private(self, page, meta):
+        self.assertNotIn("Marie", page)
+        self.assertIn(A.PRIVATE_SUBJECT, page)
+        self.assertNotIn("words of", page)
+        self.assertNotIn("Marie", json.dumps(meta))
+        self.assertTrue(meta["private"])
+
+    def test_body_with_cat_prive_in_any_case(self):
+        for body in ("cat=prive&sujet=Weekend+chez+Marie", "Cat=PRIVE&Sujet=Weekend+chez+Marie"):
+            self.check_private(*self.publish({}, body))
+
+    def test_body_with_dest_is_an_mp_write(self):
+        self.check_private(*self.publish({}, "dest=Charlie&sujet=Weekend+chez+Marie"))
+
+    def test_the_page_alone_says_private(self):
+        # No request body and nothing in the meta: the hidden `cat` input of the replay form decides.
+        page, meta = self.publish({}, None)
+        self.assertNotIn("Marie", page)
+        self.assertNotIn("words of", page)
+        self.assertIn(A.PRIVATE_SUBJECT, page)

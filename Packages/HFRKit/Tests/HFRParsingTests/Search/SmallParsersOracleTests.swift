@@ -9,13 +9,15 @@ import Testing
 struct SmallParsersOracleTests {
     static let searchCases = ["R50a", "R50b", "R50c"]
     static let profileCases = ["R55-p1", "R55-p3", "R55-p5", "R55-p5u1"]
+    /// Profile pages answered to a stale session (R70c, R70d) or without cookies (R71a, R71b): a `.hop`, no form.
+    static let profileRefusalCases = ["R70c", "R70d", "R71a", "R71b"]
     static let smileySearchCases = ["R53a", "R53b", "R53c"]
     static let wikiCases = ["R54"]
 
     @Test("the case lists cover every LOT-005 case of these kinds")
     func casesCoverTheMap() throws {
         let kinds: Set = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords"]
-        let tested = Set(Self.searchCases + Self.profileCases + Self.smileySearchCases + Self.wikiCases)
+        let tested = Set(Self.searchCases + Self.profileCases + Self.profileRefusalCases + Self.smileySearchCases + Self.wikiCases)
         #expect(try Lot005Oracle.mappedCases(ofKinds: kinds) == tested)
     }
 
@@ -63,6 +65,14 @@ struct SmallParsersOracleTests {
             #expect(page.avatarURL == nil)
             #expect(legacyAvatar.hasSuffix("/aide.gif") || legacyAvatar.contains("matomo.php"))
         }
+    }
+
+    @Test("profile: a stale-session or logged-out page has no token, for legacy and for the parser", arguments: profileRefusalCases)
+    func profileEditRefused(id: String) throws {
+        let oracle = try Lot005Oracle.load(id)
+        #expect(oracle.result["outcome"] as? String == "error")
+        #expect(oracle.result["error"] as? String == "missingHash")
+        #expect(throws: ParsingError.missingElement("input name=hash_check")) { try ProfileEditPageParser.parse(oracle.html) }
     }
 
     // MARK: - Smiley search

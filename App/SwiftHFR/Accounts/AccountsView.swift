@@ -1,6 +1,9 @@
 import SwiftUI
 import UIKit
 
+// Port of HFRswift/Swift/AccountMenuViews.swift (AccountMenuRow, AccountAvatarView) and the "Déconnexion" item of
+// HFRswift/Swift/Favorites.swift (FavoritesListView) @ 2440d79. Differences: a manage screen where an account is removed after
+// confirmation (GAP-163).
 /// The accounts screen: select, add, log in again and remove accounts; shows a store problem with its way out.
 struct AccountsView: View {
     @Environment(AccountsModel.self) private var accounts
@@ -127,7 +130,7 @@ struct AccountRowView: View {
                             .foregroundStyle(.primary)
                         if let status = AccountRowView.statusText(row.status) {
                             Text(status)
-                                .font(.footnote)
+                                .scaledFont(.footnote)
                                 .foregroundStyle(row.status == .expired ? .red : .secondary)
                         }
                     }

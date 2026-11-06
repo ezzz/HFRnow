@@ -15,14 +15,22 @@ import argparse
 import json
 import os
 import sys
+import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _ui  # noqa: E402
 import anonymize as A  # noqa: E402
 
+AQ_HOST = "aq.super-h.fr"
 DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.json")
 META_KEYS = ("account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
              "redirects", "set_cookie_names", "request_fields", "note")
+
+
+def is_aq_host(url):
+    """True when url is on the AQ host (hostnames compare case-insensitively)."""
+    host = (urllib.parse.urlsplit(str(url or "")).hostname or "").rstrip(".").casefold()
+    return host == AQ_HOST or host.endswith("." + AQ_HOST)
 
 
 def load_manifest(path):
@@ -45,31 +53,43 @@ def request_body(raw_dir, raw_id):
         return fh.read().split("\n\n")[1].strip()
 
 
+def _raw_meta(raw_dir, raw_id):
+    with open(os.path.join(raw_dir, raw_id + ".meta.json"), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
 def publish_one(anon, raw_dir, dest, entry):
     """Anonymize one capture; return the list of findings (empty = written)."""
     raw_id = entry["raw"]
-    with open(os.path.join(raw_dir, raw_id + ".meta.json"), encoding="utf-8") as fh:
-        raw_meta = json.load(fh)
+    raw_meta = _raw_meta(raw_dir, raw_id)
+    body = request_body(raw_dir, raw_id)
+    private = bool(entry["private"]) or A.meta_is_private(raw_meta) or A.body_is_mp(body)
     page = enc = None
     if entry["ext"]:
         text, enc = A.read_text(os.path.join(raw_dir, raw_id + ".html"))
-        page = anon.anonymize(text, private=entry["private"])
+        # An AQ answer the AQ gate does not recognise would skip the masking of member-written text: refuse it.
+        if any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url")) and not A.is_aq_document(text):
+            return [(entry["id"], 1, 1, "AQ capture not recognized as an AQ feed or list: extend the anonymizer")]
+        page = anon.anonymize(text, private=private)
     else:
         anon._reset()
+    # A write answer (`.hop` page) or a meta-only capture rarely names its topic, while its URL or request body does:
+    # take the own-topic ids from the request too, so they are aliased in the meta like on the topic's own pages.
+    if not anon.own_ids:
+        anon._own_start(json.dumps(raw_meta, ensure_ascii=False) + "\n" + (body or ""))
     meta = {"id": entry["id"]}
     meta.update(anon.anonymize_meta({k: raw_meta[k] for k in META_KEYS if k in raw_meta}))
-    body = request_body(raw_dir, raw_id)
     if body is not None:
-        meta["request_body"] = anon.redact_text(body)
+        meta["request_body"] = A.private_request_body(anon.redact_text(body))
     name = None
     if page is not None:
         name = "%s-%s.%s" % (entry["id"], entry["slug"], entry["ext"])
         meta["file"] = name
-    meta["private"] = entry["private"]
+    meta["private"] = private
     mtext = json.dumps(meta, indent=2, ensure_ascii=False) + "\n"
     leaks = [(entry["id"] + ".meta.json",) + f for f in anon.findings(mtext)]
     if page is not None:
-        leaks += [(name,) + f for f in anon.findings(page, private=entry["private"])]
+        leaks += [(name,) + f for f in anon.findings(page, private=private)]
     if leaks:
         return leaks
     if page is not None:
@@ -102,7 +122,10 @@ def main(argv=None):
     texts = [A.read_text(os.path.join(args.raw, e["raw"] + ".html"))[0] for e in entries if e["ext"]]
     with _ui.Spinner("collecting member names"):
         known = A.known_member_names(texts)
-    anon = A.Anonymizer(cfg, known_names=known, own_ids=A.own_message_ids(texts, cfg.own_topics))
+    # Requests name message ids too (a `.hop` answer often names none): they join the batch-wide alias table.
+    requests = [json.dumps(_raw_meta(args.raw, e["raw"]), ensure_ascii=False) + "\n" + (request_body(args.raw, e["raw"]) or "")
+                for e in entries]  # every entry, like the pages: a subset publish keeps the same aliases
+    anon = A.Anonymizer(cfg, known_names=known, own_ids=A.own_message_ids(texts + requests, cfg.own_topics))
     os.makedirs(args.dest, exist_ok=True)
     bad = 0
     for entry in entries:

@@ -1,6 +1,8 @@
 import HFRModels
 import Observation
 
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) and HFRswift/Swift/Favorites.swift (FavoritesViewModel) @ 2440d79.
+// Differences: the page on screen is kept on refresh, with a retry banner (GAP-025).
 /// A group of rows under an optional heading (a favourites category); a forum list has one headless group.
 struct TopicGroup: Identifiable, Hashable, Sendable {
     let id: String
@@ -26,6 +28,9 @@ struct TopicListContent: Sendable, Equatable {
     /// A next page exists. Honest paging: the pager is a window, so only "there is a next page" is known, never a total.
     var hasNext: Bool
     var emptyReason: EmptyReason?
+    /// The page's "new topic" link (`md_btn_new_topic`, LOT-089) and the category it belongs to; nil on flags and favourites.
+    var newTopicPath: String?
+    var categoryID: CategoryID?
 
     var isEmpty: Bool { groups.allSatisfy { $0.topics.isEmpty } }
 
@@ -34,6 +39,8 @@ struct TopicListContent: Sendable, Equatable {
         self.page = page.navigation.current
         hasNext = page.navigation.nextPath != nil
         emptyReason = Self.reason(isEmpty: page.topics.isEmpty, notice: page.notice, isLoggedIn: isLoggedIn)
+        newTopicPath = page.newTopicPath
+        categoryID = page.categoryID
     }
 
     init(favorites: FavoritesPage, isLoggedIn: Bool) {
@@ -62,6 +69,8 @@ final class TopicListModel {
 
     /// Page of the last load that was asked for; a retry after a failure goes back to it.
     private(set) var requestedPage = 1
+    /// HFR's confirmation of the topic just created (LOT-089), shown above the list until hidden.
+    private(set) var sentConfirmation: String?
 
     private let dataSource: any ForumDataSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -77,6 +86,35 @@ final class TopicListModel {
     var currentPage: Int { loader.value?.page ?? 1 }
     var canGoToPrevious: Bool { source.isPaged && currentPage > 1 && !loader.isLoading }
     var canGoToNext: Bool { source.isPaged && (loader.value?.hasNext ?? false) && !loader.isLoading }
+
+    /// The new-topic composer the page on screen links to (legacy "+" button, `MainWindow.swift:748-757` @ 2440d79, enabled
+    /// when `newTopicURL`, GAP-098, read from `md_btn_new_topic`, exists); nil before a load, on flags and favourites, in the private
+    /// messages category, or without that link (logged out pages carry it too: the screen offers it to a current account only).
+    var newTopicTarget: NewTopicTarget? {
+        guard let content = loader.value else { return nil }
+        return NewTopicTarget(path: content.newTopicPath, forum: content.categoryID)
+    }
+
+    /// The new-topic sheet closed. After HFR's confirmation (it refreshes to the category list and names no topic, `W40`, so
+    /// the new topic is not opened) page 1 is reloaded, where it appears. After an
+    /// unconfirmed send page 1 is reloaded too, so the user sees whether it went. Closing with or without the draft changes
+    /// nothing.
+    func newTopicDidClose(_ reason: ReplyComposerModel.CloseReason) async {
+        switch reason {
+        case .sent(let result):
+            sentConfirmation = result.message
+            await load(page: 1)
+        case .checkTopic:
+            await load(page: 1)
+        case .keptDraft, .discardedDraft, .closedWithoutSaving:
+            break
+        }
+    }
+
+    /// Hides the confirmation of the topic just created.
+    func clearSentConfirmation() {
+        sentConfirmation = nil
+    }
 
     /// Loads page 1 once; later calls keep what is shown.
     func loadIfNeeded() async {

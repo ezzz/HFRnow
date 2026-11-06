@@ -74,6 +74,11 @@ whole (a multi-word pseudo is never split) and decoded from entities, `%`-escape
 `mesdiscussions-N` (also REST `tns3`), the third `[quotemsg=…,…,N]` value and the composer's smiley search
 `find_smilies_timer('hfr.inc',N)` (the logged-in member, R60b).
 
+**Alertes Qualitaÿ** (`aq.super-h.fr`, `T01`/`T02`): the `pseudoInitiateur` attribute of the per-topic list and every
+reporter of an RSS item (`<li>[le …] <b>X (initiateur)</b> : …`) are member positions; the member-written alert titles
+(`nom`, the item `<title>`) and comments become one `x` per word, entities and punctuation kept. `check` verifies these
+files with an XML parse of its own (`verify_aq`).
+
 **Free text**: a member name of 3+ characters that is not a function word or site/markup token (`COMMON_WORDS`, kept short on purpose: an ordinary noun used as a pseudo is still replaced in prose) is also replaced in text
 nodes (except the sub-forum labels: `a.cHeader` list links in the list page's `td.padding` bar, where HFR prints
 category names; a known name left in any other list link text fails `check`), text attributes (`title`, `alt`, `value`, `content`…), external URLs and internal topic slugs (also in the
@@ -117,6 +122,7 @@ first post, the storage JSON document, is kept when the thread header names the 
 keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
 document (`content_form`, the review cell after `td.messCase1bis`) must pass the same check, on both sides. `check --private`
 accepts that body only on a page whose `<title>` names the thread and whose JSON keys and strings are all in its own word list.
+On every other form page (composer, edit, quote prefill), `--private` also replaces the `content_form` textarea and the review cell after `td.messCase1bis` by the placeholder, unless the page names only fixture threads (`fixture-test-N` in every `sujet` input and "Sujet :" header); a page naming no thread fails closed. `check --private` flags both positions, in both verifiers (#401).
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.
 
@@ -155,6 +161,8 @@ $F get   --account user1 --id R42 --url '/message.php?…' --cookie 'quoteshardw
 $F form  --account user1 --id W10 --form-url '/message.php?…&dest=…' --set sujet=fixture-test-1 \
          --set-json 'content_form="line 1\r\nline 2"' [--mode browser] [--dry-run]
 $F post  --account user1 --id R52 --url /transsearch.php --field hash_check=@HASH --hash-from R21 --no-redirect
+$F get   --account anon  --id T22 --url 'https://reho.st/self/abc123.jpg' --referer https://forum.hardware.fr/
+$F get   --account anon  --id T11 --url 'https://yelims.free.fr/…' --record-network-error   # no HTTP answer → status 0
 $F peek  R21 --forms --links addflag                  # anonymized summary, never raw bytes
 ```
 

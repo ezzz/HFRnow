@@ -26,14 +26,17 @@ struct ConcurrentLoginTokenTests {
 
     @Test(
         "A read mark keeps the token of a login adopted during its GET (R21)",
-        arguments: [ConcurrentLogin(identity: "user1", hashCheck: fresher), ConcurrentLogin(identity: "user2", hashCheck: fresher)]
+        arguments: [
+            ConcurrentLogin(identity: "user1", hashCheck: fresher), ConcurrentLogin(identity: "user2", hashCheck: fresher),
+            ConcurrentLogin(identity: "user1", hashCheck: "old-token-0123")
+        ]
     )
     func markReadKeepsFresherToken(login: ConcurrentLogin) async throws {
         let session = ScriptedFlagSession([try FlagCapture.page("R21")], hashCheck: "old-token-0123")
         await session.adoptLoginDuringNextRequest(login)
         let mark = try await TopicFlagFlow().markRead(Self.cuisine, page: 1, through: session)
         #expect(mark.topic == Self.cuisine)
-        #expect(await session.hashCheck == Self.fresher)
+        #expect(await session.hashCheck == login.hashCheck)
         #expect(await session.hashChecks.isEmpty)
     }
 
@@ -45,6 +48,22 @@ struct ConcurrentLoginTokenTests {
         let session = ScriptedPostingSession([try PostingCapture.form("R40a")])
         await session.adoptLoginDuringNextRequest(login)
         _ = try await PostingFlow().loadForm(at: try PostingCapture.pageURL("R40a"), through: session)
+        #expect(await session.hashCheck == Self.fresher)
+        #expect(await session.hashChecks.isEmpty)
+    }
+
+    @Test(
+        "An alert form keeps the token of a login adopted during its GET (R46, LOT-050)",
+        arguments: [ConcurrentLogin(identity: "user1", hashCheck: fresher), ConcurrentLogin(identity: "user2", hashCheck: fresher)]
+    )
+    func alertFormKeepsFresherToken(login: ConcurrentLogin) async throws {
+        let session = ScriptedPostingSession([try ModeratorAlertHarness.formPage()])
+        await session.adoptLoginDuringNextRequest(login)
+        let page = try await ModeratorAlertFlow().prepare(link: ModeratorAlertHarness.link, through: session)
+        guard case .form = page else {
+            Issue.record("expected the form, got \(page)")
+            return
+        }
         #expect(await session.hashCheck == Self.fresher)
         #expect(await session.hashChecks.isEmpty)
     }
@@ -69,7 +88,7 @@ struct ConcurrentLoginTokenTests {
 
     @Test(
         "On a real session, a re-login, an account switch or a logout after the seed keeps the session's state",
-        arguments: ["relogin", "switch", "logout"]
+        arguments: ["relogin", "relogin-same-token", "switch", "logout"]
     )
     func changeAfterSeedWins(change: String) async throws {
         let session = HFRSession(cookies: cookies(user: "user1"), hashCheck: "old-token-0123", now: now)
@@ -77,13 +96,16 @@ struct ConcurrentLoginTokenTests {
         switch change {
         case "relogin":
             try await session.adoptLogin(cookies: cookies(user: "user1"), hashCheck: Self.fresher, now: now)
+        case "relogin-same-token":
+            // Issue #340: identity and token are the seed's again; only the login generation moved.
+            try await session.adoptLogin(cookies: cookies(user: "user1"), hashCheck: "old-token-0123", now: now)
         case "switch":
             try await session.adoptLogin(cookies: cookies(user: "user2"), hashCheck: Self.fresher, now: now)
         default:
             // A logout empties the jar and keeps the token: only the identity tells the change.
             await session.removeAllCookies()
         }
-        let expected = change == "logout" ? "old-token-0123" : Self.fresher
+        let expected = ["logout", "relogin-same-token"].contains(change) ? "old-token-0123" : Self.fresher
         #expect(await session.updateHashCheck("page-token-0789", since: seed, now: now) == false)
         #expect(await session.hashCheck == expected)
     }

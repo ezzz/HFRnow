@@ -47,6 +47,47 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 `01/01/2000` / `01-01-2000 à 00:00`, transaction counts → `0`. Category link texts (`liste_sujet-N.htm`,
 `forum1.php?…cat=`) are never rewritten, so a member named like a word of a category name leaves the category alone.
 
+Run 7 (2026-11-02, `mac/capture-batch` batch 1, ezzz/HFRnow#168, #173, #109, #141, #281, #282, #283, 16 requests,
+read-only apart from one tokenless `unlog.php` GET) logged user1 and user2 in and read their followed lists, then sent
+user2's jar with its own `md_user`/`md_id` and a wrong 32-hex `md_passs` (a stale session; the jar was edited outside the
+repository, nothing was sent to HFR beyond these GETs) to the home, `forum1f.php?owntopic=1` and profile pages 1 and 5.
+`md_passs` was identical after a second login of user2 (compared locally, never printed). The `Set-Cookie` attributes
+of `R74` are written in its meta `note` (values are never kept).
+
+Run 8 (2026-11-02, `mac/capture-batch` public writes, ezzz/HFRnow#275, #265, #138, #135, #136, #137 and #302, approved by
+the operator that day on #337, 27 HFR requests and 2 image-host uploads, one attempt per state): user1 created one
+throwaway topic `fixture-test` in Programmation › iOS (`W40`), added a two-answer poll to it by editing its first post
+(`W41`), voted (`W42`), voted again (`W43`); user2 sent the same vote (`W44`) and a moderator alert on the topic's first
+post whose text says it is a test of the app's developers to ignore (`W46`), then reopened the alert page (`R88`); the
+alert was also sent and opened without cookies (`W47`, `R89`). user1 then deleted the first post, which deleted the
+topic (`W49`, `R92`). The topic is an **own topic** for the anonymizer (aliased as above); `publish.py` now also takes
+the own topic from the request (URL, body, `numeropost=`) when a `.hop` answer does not name it. `U01`/`U02` are the
+`img3.super-h.fr` upload answers (a 16×16 grey JPEG, legacy multipart layout, the legacy key and a wrong one): the
+key, `delete_hash`, delete token and image id are redacted, the random file number is `1234567890`.
+
+Run 9 (2026-11-02, `mac/capture-batch` batch 2, ezzz/HFRnow#169, #114, #333, #334, #172 and #171, private MP writes
+between the operator's two accounts, 28 HFR requests including 3 static scripts of `forum-images.hardware.fr`, one attempt
+per state): user2 opened a throwaway thread `fixture-test-2` to user1 whose first post holds every composer toolbar tag
+(`W61`); user1 answered with BMP emoji (`W62`); user2 sent a multi-quote reply with the selection cookie written as the
+site's `forum2.js` `quoter()` writes it (`escape()`d value, host-only, path `/`) on both the composer GET and the POST
+(`R95g`, `W63`). The stored sources are the edit forms (`R95c`, `R95f`, `content_form` byte for byte what was sent); the
+rendered HTML is HFR's own preview `POST /apercu.php` (`R95d`, `R95h`, the `apercu_form` of the composer, fields as
+`editPost.js` `apercevoir()` sets them), because `--private` replaces the bodies of the thread pages. On the raw thread
+pages, the preview equals the message body once whitespace is removed, apart from the opening `<p>` the preview lacks
+(compared locally, not published). user2 then sent legacy's `manageaction.php` delete body (`MPListView.swift:131-150`) with a
+wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the right one (`W64`); user1 deleted it too
+(`W65`, clean-up). Nothing of the thread is left on HFR. `flows.py form` gained `--cookie` (sent with the POST only).
+
+Run 10 (2026-11-02, `mac/capture-batch` batch 3, ezzz/HFRnow#133, #174, #134, #301 and #127, read-only, no account, 20
+requests: 4 to `forum.hardware.fr`, 16 to other hosts). `T` ids are third-party hosts. The Alertes Qualitaÿ feed and one
+topic's alert list (`T01`, `T02`, `aq.super-h.fr`) are anonymized by position: every initiator and reporter → `userN`, and
+the member-written alert titles and comments → one `x` per word, entities and punctuation kept (the encodings LOT-028 must
+decode); public topic titles stay. Image hosts were asked cookie-less for one image URL each of `R20`/`R22a` over `https`,
+then over `http` where `https` failed or redirected; a request that got no HTTP answer is recorded as status 0 with the
+error in the note (`flows.py get --record-network-error`), and a `Referer` sent is recorded in the note (`--referer`).
+Image bodies are not published (meta only). Three public topic pages were read only to look for a `reho.st` image and
+are not published (none found).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -77,9 +118,9 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | R28 | `R28-topic-images-videos-anon.html` | 42 images, quotes, spoiler, YouTube | R28, R29 | 034, 035, 056 |
 | R31 | `R31-topic-locked-anon.html` | Locked, sticky, single-page topic | R31 | 033, 036 |
 | R32a | `R32a-topic-poll-anon.html` | Poll topic logged out: vote form `/user/vote.php?config=hfr.inc` shown, radio `reponse` | R32 | 005, 026, 054 |
-| R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 005, 026, 054 |
+| R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 005, 026, 033, 054 |
 | R33a | `R33a-topic-poll-closed-anon.html` | Closed poll (locked topic), logged out: results only (bars, `N votes`, `Total`), no form, "Ce sondage est clos, vous ne pouvez plus voter" | R33 | 005, 026, 054 |
-| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 054 |
+| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 033, 054 |
 | R40a | `R40a-reply-form-logged-in.html` | Reply composer (`message.php`), logged in: `hop` form to `/bddpost.php?config=hfr.inc`, `verifrequet=1100`, pseudo echoed, checkboxes | R40 | 036, 048 |
 | R40b | `R40b-reply-form-anon.html` | Same composer logged out: empty `hash_check`, visible pseudo/password | R40 | 036, 048 |
 | R41a | `R41a-quote-form.html` | Quote form (`numrep=<cited>&ref=1`): prefill `[quotemsg=<numreponse>,1,<author id>]` | R41 | 036, 049 |
@@ -169,31 +210,115 @@ gets `Profile field removed.` or, for dates, `01/01/2000`; post count → `100`,
 | RU2 | `RU2-mp-thread-recipient-after-owner-delete.html` | Recipient can still read the whole thread | W19, X1 | 030, 048 |
 | R61b | `R61b-public-reply-composer.html` | Reply composer of a public topic (cat 13, `#repondre_form` action), user2: same 43-field `hop` form as `R40a`, action `/bddpost.php?config=hfr.inc` | P01 | 036, 048 |
 | W30 | `W30-public-reply-success.html` | Public reply, browser semantics: "Votre réponse a été postée avec succès !", refresh to **page 1** `…sujet_<post>_1.htm#bas` (the post landed on the last page, 30) | P01 | 048, 037 |
-| R61d | `R61d-public-topic-last-page-own-post.html` | Last page with the own reply: edit link `message.php?…&cat=13&…&numreponse=<n>&page=30…`, quote link | P01 | 030, 031, 048 |
+| R61d | `R61d-public-topic-last-page-own-post.html` | Last page with the own reply: edit link `message.php?…&cat=13&…&numreponse=<n>&page=30…`, quote link | P01 | 030, 031, 033, 048 |
 | R62a | `R62a-public-edit-form-later-post.html` | Edit form of the own later post of a public topic: action `/bdd.php?config=hfr.inc`, hidden `sujet`, `stickold` `0`, delete label "Effacer ce message" | P01, R43 | 036, 048 |
 | W31 | `W31-public-edit-success.html` | Public edit (no `delete` sent): "Votre message a été édité avec succès !", refresh `…sujet_<post>_<page>.htm#t<numreponse>` | P01 | 048, 037 |
 | R62b | `R62b-public-edit-form-after-edit.html` | Same edit form after `W31`: stored text with the edit | P01 | 036, 048 |
 | W32 | `W32-public-delete-post-success.html` | Public delete of the later post (`delete=1`): "Message effacé avec succès !", refresh `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (no slug, no anchor) | P01 | 048, 037 |
-| R61e | `R61e-public-topic-after-delete.html` | Same last page afterwards: the post is gone | P01 | 048 |
-| R63a | `R63a-public-own-topic-first-page.html` | Page 1 of a public topic started by user1 (**own topic**: topic and message ids, subject, slug, texts, related topics and dates replaced, see below) | P01 | 030, 048 |
+| R61e | `R61e-public-topic-after-delete.html` | Same last page afterwards: the post is gone | P01 | 033, 048 |
+| R63a | `R63a-public-own-topic-first-page.html` | Page 1 of a public topic started by user1 (**own topic**: topic and message ids, subject, slug, texts, related topics and dates replaced, see below) | P01 | 030, 033, 048 |
 | R63b | `R63b-public-edit-form-first-post.html` | Edit form of the own topic's first post: action `/bdd.php?config=hfr.inc`, visible `sujet` (maxlength 70), `subcat` select, poll fields, "Effacer l'intégralité du sujet". Never submitted with `delete` | P01, R43 | 036, 048 |
 | W34 | `W34-public-first-post-edit-success.html` | First-post edit (one line appended): "Votre message a été édité avec succès !", refresh `…sujet_<post>_1.htm#t<numreponse>` | P01 | 048, 037 |
 | W35 | `W35-public-first-post-restore-success.html` | Same edit sending the original fields back: same answer; the stored text and subject were then byte-identical to the original | P01 | 048 |
-| R63e | `R63e-public-own-topic-after-restore.html` | Page 1 afterwards (same replacements) | P01 | 048 |
+| R63e | `R63e-public-own-topic-after-restore.html` | Page 1 afterwards (same replacements) | P01 | 033, 048 |
 | W33 | `W33-public-reply-empty-body-rejected.html` | Public reply with an empty body: "Vous devez remplir tous les champs avant de poster ce message" (as `W17a`), nothing posted | P01, W17 | 037, 048 |
 | R60a | `R60a-mpstorage-thread-first-post.html` | user1's MPStorage thread (subject `MP_NAME`) opened with the legacy read URL (`MPStorage.m:766`): one post, `div#para<numreponse>` > `p` holding the JSON document (`"` as `&#034;`, a `div` clear inside the `p`); the live document is the empty structure the legacy app creates (three empty sections, `sourceName` `iOS`, 568 bytes); JSON body kept, see Run 5 | R13, X8 | 038, 052 |
 | R60b | `R60b-mpstorage-edit-form-first-post.html` | Edit form of that first post (toolbar `edit-in` link of R60a), GET only: `hop` form to `/bdd.php?config=hfr.inc`, `numreponse` of the first post, `sujet` = `MP_NAME`, `content_form` = the same JSON as R60a's rendered text, recipient row (aliased) | X8, E23 | 038, 052, 036 |
+| R70a | `R70a-home-stale-session.html` | Home with a stale session (user2's `md_user`/`md_id`, wrong `md_passs`): 200, 1569 bytes (anonymized), `.hop` "Identifiants invalides !", `Refresh: 1; url=/unlog.php?config=hfr.inc`, no `Set-Cookie` | R01 | 044, 047, 092 |
+| R70b | `R70b-favourites-owntopic1-stale-session.html` | `forum1f.php?owntopic=1`, same stale jar: the same bytes as `R70a` | R10 | 024, 092 |
+| R70c | `R70c-profile-edit-page1-stale-session.html` | `editprofil.php?page=1`, same stale jar: the same bytes as `R70a` (no redirect, no `Set-Cookie`) | R55 | 044 |
+| R70d | `R70d-profile-edit-page5-stale-session.html` | Page 5, same stale jar: the same bytes as `R70a` | R55 | 043, 044 |
+| R71a | `R71a-profile-edit-page5-anon.html` | Page 5 without cookies: 200, `.hop` "Mot de passe incorrect !", `Refresh: 1; url=../login.php?config=hfr.inc` | R55 | 043, 044 |
+| R71b | `R71b-profile-edit-page1-anon.html` | Page 1 without cookies: the same `.hop` as `R71a` | R55 | 044 |
+| R72a | (meta only) | `GET /unlog.php?config=hfr.inc` (the `R70a` refresh target, no `codehex`) with a valid jar: 200, empty body, no `Set-Cookie` | — | 044 |
+| R72b | `R72b-home-after-unlog-without-token.html` | Home with the same jar right after `R72a`: still logged in, the same cookie values | R03 | 044 |
+| R73a | `R73a-favourites-owntopic1-two-categories.html` | user2's followed list: two categories, two rows, a closed topic (`lock.gif`) and a poll (`sondage.gif`), `flag1.gif` | R10 | 024, 092 |
+| R73b | `R73b-favourites-owntopic1-thirteen-categories.html` | user1's followed list: 13 categories, 88 rows (27 polls), `favoris.gif` on 84 rows and `flag1.gif` on 4, theme images under `images/defaut/` | R10 | 024, 092 |
+| R74 | (meta only) | Profile page 1 logged in (as `R55-p1`): `md_user` and `md_passs` each set twice, a value for `.hardware.fr` (+30 days) and `deleted` for `.forum.hardware.fr` (expired 1970), see its `note` | R55 | 043, 044 |
+| W40 | `W40-public-new-topic-success.html` | New topic (Programmation › iOS, browser semantics): "Votre message a été posté avec succès !", refresh to the **category** list `/hfr/<cat>/liste_sujet-1.htm`, no topic id; sets `md_data` | E14 | 048, 037 |
+| W41 | `W41-public-first-post-edit-add-poll-success.html` | First-post edit adding a poll (`have_sondage=1`, `textreponse0..2`, legacy semantics): "Votre message a été édité avec succès !", refresh `…sujet_<post>_1.htm#t<numreponse>` | E11, P01 | 048, 054 |
+| R83 | `R83-public-own-topic-poll-form-logged-in.html` | The own topic after `W41`, user1, not voted: vote form as `R32b` (`sondage=2`), the author's own first post | R32 | 026, 054 |
+| W42 | `W42-poll-vote-success.html` | Vote (`reponse=1`, `sondage_submit=Voter`, form order): link-less `.hop` "Votre vote a bien été pris en compte !", refresh `/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug), no "avec succès" | E10 | 037, 054 |
+| W43 | `W43-poll-vote-already-voted.html` | Same body again: `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh | E10 | 037, 054 |
+| W44 | `W44-poll-vote-linked-account-already-voted.html` | Same body from user2 (linked account, multipseudo notice on its page): the same sentence | E10 | 037, 054 |
+| W46 | `W46-modo-alert-success.html` | Moderator alert submitted (user2, browser semantics): `.hop` "Un message a été envoyé avec succès aux modérateurs" **+ back link**, no refresh | R46 | 037, 050 |
+| R88 | `R88-modo-alert-already-reported.html` | Alert page of the message just reported: `.hop` "Votre demande de modération sur ce message n'est pas encore traitée." + back link, no form | R46 | 037, 050 |
+| W47 | `W47-modo-alert-logged-out-rejected.html` | Alert body without cookies, empty `hash_check`: `.hop` "Vous devez être identifié pour prévenir les modérateurs" + back link | R46, W17 | 037, 050 |
+| R89 | `R89-modo-alert-page-logged-out.html` | Alert page without cookies: the same `.hop` as `W47` | R46 | 037, 050 |
+| W49 | `W49-public-first-post-delete-topic-success.html` | First-post delete (`delete=1`, legacy semantics): "Message effacé avec succès !", refresh to the **sub-category** list `/hfr/<cat>/<sub>/liste_sujet-1.htm` | P01, X1 | 048, 037 |
+| R92 | `R92-topic-after-first-post-delete-404.html` | The topic URL afterwards: **404**, `.hop` "Désolé, ce sujet n'existe pas" + back link | R20 | 030, 048 |
+| U01 | `U01-rehost-upload-success.json` | `img3.super-h.fr` upload, legacy key: 200 JSON "file uploaded", `image.url`, `image.thumb.url` (`.th.`), `image.medium` all `null`, numbers as numbers; delete fields redacted | — | 056 |
+| U02 | `U02-rehost-upload-wrong-key.json` | Same upload with a wrong key: 400 JSON "Invalid API key." code 100 | — | 056 |
+| W61 | `W61-mp-create-bbcode-success.html` | New MP `fixture-test-2` (user2 → user1) whose first post holds b, i, u, strike, spoiler, quote, url (both forms), img, fixed, code, cpp, color, list, nested and unclosed tags, and raw `<b>`/`&`/`"`: "Votre message a été posté avec succès !", refresh to the MP list | W10 | 048, 097 |
+| R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post, `[img]` written as a link there | R43 | 097, 036 |
+| R95d | `R95d-apercu-bbcode-preview.html` | `POST /apercu.php` (`hash_check`, `apercu_contenu` = the `W61` source, `apercu_smiley=0`, `config`): 200, the rendered BBCode in `body.reponse`, line breaks written `\r<br />` (the CR kept) | — | 097, 152 |
+| W62 | `W62-mp-reply-bmp-emoji-success.html` | Reply (user1) with U+2764, U+2764 U+FE0F, U+2714, U+2605 and a lone U+FE0F: success | W12 | 048, 096, 151 |
+| R95f | `R95f-mp-edit-form-bmp-emoji-source.html` | Edit form of `W62` (user1): `content_form` keeps every BMP emoji and both U+FE0F unchanged | R43, X9 | 096, 151, 036 |
+| R95h | `R95h-apercu-bmp-emoji-preview.html` | Preview of the `W62` source: the emoji and U+FE0F written as UTF-8 characters, no `<img>` | — | 096, 151, 097 |
+| R95g | `R95g-mp-composer-multiquote-cookie-escaped.html` | MP composer (user2) with `quoteshardwarefr-prive-<post>=%7C<a>%7C<b>` (the site JS's `escape()`d form): two `[quotemsg=<n>,1,<id>]` blocks prefilled, as `R47c` with the raw `\|` form | W14 | 049, 086 |
+| W63 | `W63-mp-reply-multiquote-cookie-deleted.html` | Reply posted with that prefill and the cookie sent: success; the answer sets `quoteshardwarefr-prive-<post>=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/`, **no `Domain`** (host-only); `W62`, sent without the cookie, carries the same header | W14 | 049, 086 |
+| W64x | `W64x-mp-thread-delete-bad-token-rejected.html` | Thread delete, legacy body, wrong `hash_check`: the 99-byte plain text of `W17b`, nothing deleted | X1 | 094, 037 |
+| W64 | `W64-mp-thread-delete-owner-success.html` | Thread delete by the owner (`topic0=<post>`, `valuecat0=prive`, `valueforum0=hardwarefr`, `topic1=-1`, `topic_statusno1=-1`, `action_reaction=valid_eff_prive`, `type_page=forum1`): link-less `.hop` "Action effectuée avec succès", refresh 1 s to `/forum1.php?config=hfr.inc&cat=prive&page=1&subcat=&…`, no cookie set | X1 | 094, 037 |
+| R95j | `R95j-mp-list-owner-after-thread-delete.html` | Owner's MP list afterwards: no row, no pager | R13 | 094, 023 |
+| R95k | `R95k-mp-list-recipient-after-thread-delete.html` | Recipient's list (user1) afterwards: the thread is still there (row 1); 50 rows, 7 pages; the MPStorage row is row 42 of page 1 | R13, R14 | 094, 023, 038 |
+| R96c | `R96c-mp-thread-owner-after-thread-delete.html` | Thread URL for the owner afterwards: 200, `.hop` "Ce message ne vous est pas destiné, désolé" (as `RA5`) | X1 | 094, 030 |
+| W65 | `W65-mp-thread-delete-recipient-success.html` | The recipient deletes it too (same body, its own `hash_check`): the same `.hop` | X1 | 094, 037 |
+| R96d | `R96d-mp-thread-recipient-after-thread-delete.html` | Thread URL for the recipient afterwards: the same "pas destiné" `.hop` | X1 | 094, 030 |
+| R96a | `R96a-mp-list-past-last-page.html` | user1's MP list `page=8` of 7, with `MPStorage.m:694`'s query: 200, no redirect, no `.hop`, header row and no topic row; title "… - Page : 8"; the pager lists pages 1 to 7 as links (no current page), "Page Précédente" links page 7, no "Page Suivante" link | R14 | 023, 038, 047, 126 |
+| R96b | `R96b-mpstorage-thread-other-account-not-addressed.html` | user2 opens user1's MPStorage thread with legacy's read URL (`MPStorage.m:766`, as `R60a`): 200, the "pas destiné" `.hop` legacy's `parseMPStorage` checks (`MPStorage.m:837`) | R60 | 038 |
+| W70 | `W70-mp-create-group-success.html` | New MP to two recipients (#336, 2026-11-05): user1 posts `dest=<user2>,<third member>` (comma, no space), a neutral subject and body, to `bddpost.php`: "Votre message a été posté avec succès !", refresh to the MP list | N07 | 058 |
+| R123k | `R123k-new-mp-form-recipients-comma-hint.html` | The new-MP form as the list link opens it (`dest=` empty, user1): the `dest` hint reads "Entrez le(s) pseudo(s) du ou des destinataires, séparés par des virgules." | R45 | 058, 036 |
+| R123a | `R123a-mp-list-group-owner.html` | user1's MP list right after `W70`: the group row (`Interlocuteurs multiples` span with the roster as `title`, `[non lu]` "pas été lu par" with lower-cased names) and 12 older group threads (13 group rows in all) | N07, R13 | 058, 023, 171 |
+| R123b | `R123b-mp-thread-group-owner.html` | The group thread seen by its owner (one message, no roster on the page) | N07 | 058, 030 |
+| R123c | `R123c-mp-reply-composer-group-owner-newdest.html` | The owner's `message.php` reply form: the extra "Destinataires" row with `newdest` ("a, b", the members other than the owner) | N07, R47 | 058, 036 |
+| R123d | `R123d-mp-thread-group-member.html` | The same thread seen by user2, a non-owner member (no roster) | N07 | 058, 030 |
+| R123e | `R123e-mp-reply-composer-group-member-no-roster.html` | The member's reply form: no "Destinataires" row, no `newdest` (the roster is not read-only text here) | N07, R47 | 058, 036 |
+| R123f | `R123f-mp-list-group-member.html` | user2's MP list with the group row (roster in the span `title`, only the third member left in "pas été lu par") | N07, R13 | 058, 023, 171 |
+| R123g | `R123g-favourites-owntopic1-empty-after-delflag.html` | user2's `forum1f.php?owntopic=1` with nothing flagged (operator-run capture, #109): the list body with title "Vos sujets", no `.hop`, no topic row, marker `topic0`, the "Discussions" header and the placeholder row "Aucun nouveau message" | R73a, R12 | 024, 092 |
+| (oracles) | `../M2-writes/` | Legacy oracles of `R123a`-`R123g` and `R123k` (`run-oracle.sh`, legacy `2440d79`): `mp` for the lists, `favorites` (`R123g`), `topic` for `R123b`/`R123d`, `form` (`reply`, `mp`) for `R123c`/`R123e`/`R123k`; own folder and map | R123a-R123g, R123k | 058, 023, 024, 030, 036 |
+| T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
+| T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
+| R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
+| R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
+| T10 | meta only | `https://nsa34.casimages.com/…jpg`: no DNS answer (status 0) | — | 056, 083 |
+| T11, T11h | meta only | `yelims.free.fr` image: `https` TCP refused (status 0); `http` 200 `image/gif` | — | 056, 083 |
+| T12 | meta only | `https://img15.hostingpics.net/…jpg`: no DNS answer | — | 056, 083 |
+| T13 | meta only | `https://si1.photorapide.com/…jpg`: 200 `image/jpeg` | — | 056, 083 |
+| T14, T14h | meta only | `www.camif.fr` image: `https` 404 `text/html`; `http` 301 → the `https` URL, then 404 | — | 056, 083 |
+| T15 | meta only | `https://bibi.hn.org/…`: no DNS answer | — | 056, 083 |
+| T20, T21, T24 | meta only | `https://reho.st/`: 403 `text/html` without `Referer`; 200 `text/html`, empty body, with `Referer: https://forum.hardware.fr/` or `https://forum.hardware.fr` | E26 | 056, 083, 109 |
+| T22, T23 | meta only | `https://reho.st/self/abc123.jpg` (legacy test path, no such image): 403 without `Referer`, 200 empty `text/html` with it | E26 | 056, 083, 109 |
+| R122a | `R122a-topic-locked-logged-in.html` | The locked topic of `R31` seen by user2 (#122, 2026-11-05): 200, no `#repondre_form`, no `.hop`, no bottom answer link; the per-message quote links (`quote.gif`, `quote+.gif`/`quote-.gif`) are still there; header flag link `delflag` with `flagn0.gif` | R31 | 033, 031, 113 |
+| R122b | `R122b-topic-logged-in-favourite-owntopic1.html` | A favourite topic (user1) opened with the row link of a `forum1f.php?owntopic=1` list: the header `delflag` link carries `owntopic=1` and `favorisn.gif`; the search form's `owntopic` is `1`; the page holds no post of an operator account | P03, R10 | 033, 051 |
+| R122c | `R122c-topic-search-filter-checked.html` | Intra-topic search result with the **filter** box checked: a plain GET of the `R52a` target plus `&filter=1` (user2): 200, only the 31 messages that contain the word (one page, no pager), `<input name="filter" … checked="checked">`, `word` prefilled, `currentnum` present without value, no `dep`/`firstnum` field | R52 | 033, 093, 113 |
+| R122d | `R122d-topic-search-word-no-filter.html` | The same GET without `filter`: a normal page 1 (40 messages, pager), `word` prefilled, `filter` unchecked | R52 | 033, 113 |
+| R121a | `R121a-mp-list-logged-out.html` | `forum1.php?config=hfr.inc&cat=prive&page=1` without cookies: 200, bare `<body>` with the `.hop` "Désolé, vous ne faites pas partie des membres ayant accès à cette catégorie" and a back link; no list | R13 | 022, 023 |
+| R121b | `R121b-search-all-categories-first-category.html` | Global search with an empty `cat` ("Toutes les catégories", cookie-less GET of the `R50b` URL): **302** to `forum1.php?config=hfr.inc&cat=<first category with a hit>&post_cat_list=\|14*hfr\|5*hfr\|…&…&searchall=1`; the page lists that category's hits (1 row) under a form "Le moteur de recherche a trouvé des résultats dans les catégories suivantes" with a `cat` select | R50 | 022, 046, 115 |
+| R121c | `R121c-search-all-categories-pivot-category-5.html` | The same results for another category of the pivot (`cat=5`, same `post_cat_list`, `searchall=1`): 4 rows, the pivot form again | R50 | 022, 046, 115 |
+| R121d | `R121d-search-form-page.html` | `search.php?config=hardwarefr.inc&cat=13&subcat=0` without cookies: the search form (POST `/search.php?config=hfr.inc`), `cat` select whose first option is "Toutes les catégories" with the **empty** value | S1 | 046, 115 |
+| R121e | `R121e-list-cat22-p1-logged-in.html` | Category list page 1 logged in (user1, 301 to the canonical `liste_sujet-1.htm`): 53 rows (3 sticky), 6 with a flag link in `sujetCase5` (4 `flag0.gif`, 2 `flag1.gif`) and 47 with the empty cell, 24 single-page topics | R04 | 022, 024, 092 |
+| R121f | `R121f-list-cat32-single-page-anon.html` | List of category 32 (Intelligence Artificielle), anonymous: 39 rows (1 sticky), a single page (no "Page Suivante") | R04 | 022 |
+| (oracles) | `../M2-readonly/` | Legacy oracles of `R121a`, `R121b`, `R121c`, `R121e`, `R121f` and `R122a`-`R122d` (`run-oracle.sh`, legacy `2440d79`), in their own folder and map: the LOT-002/LOT-003 guard tests list every case of their maps, so wiring these into a differential test is a follow-up | — | 022, 023, 033 |
+| T30, T31 | meta only | A real `reho.st` image (`https://reho.st/preview/self/<hash>.jpg`, cookie-less, #134): **403** `text/html` (nginx) without `Referer`; **200** `image/jpeg` (134 kB) with `Referer: https://forum.hardware.fr/` | E26 | 056, 083, 109 |
+| T32, T33 | meta only | The same for an `http://reho.st/self/<hash>.jpg` image: 403 without `Referer`, 200 `image/jpeg` with it; no redirect to https | E26 | 056, 083, 109 |
 
 ## Not captured
 
 | Rows | Why |
 |---|---|
+| MPStorage row on page 2 or later (#333) | Not reachable on the kit's accounts: user1's storage row is row 42 of 50 on page 1 (`R95k`); pushing it down takes about 9 newer conversations, and HFR allows one new MP per account per 60 minutes (`W11x`). user2 has no storage thread. |
+| Thread pages of `fixture-test-2` (run 9) | Captured, not published: `--private` replaces their bodies; the render is published as the `/apercu.php` previews `R95d`, `R95h`. The site scripts read for the cookie and preview code (`forum2.js`, `editPost.js`, `message.js`) are not committed. |
 | W02 | Dropped: W01's refusal already gives the failure page; a second failed login was not worth the lockout risk. |
 | R63c, R63d | Captured, not published: the own topic's edit form after the edit and after the restore, read back only to verify the restore byte for byte (R63d equals R63b apart from the connected-users count). |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
 | R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
-| X10 cookie-less multi-quote, poll vote | Out of the approved scope or not needed. |
-| Public new topic, public first-post delete | Not authorised (run 4): pending capture. |
-| oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
+| X10 cookie-less multi-quote | Out of the approved scope or not needed. |
+| A cookie-less poll vote and the poll author's results view (run 8) | Captured, not published: held for an operator decision (see the run 8 PR). |
+| A reply to a locked topic, a ban refusal (run 8) | The locked topic's composer is served (200) but its POST was not sent (not an operator topic); no banned account. |
+| oldcitation, Streamable/Dailymotion/Twitch | Not present on the pages picked; synthetic or a later capture. (`reho.st` images: `T30`-`T33`.) |
+| AQ comment with an entity (#438) | None in the live feed of run 10 (`T01`); an entity in a pseudo cannot survive the alias. |
+| Giphy `search` / `trending` (#175) | Not captured: legacy uses the Giphy SDK (no traceable REST request) and no REST key is configured; decision asked on the issue. |
 | MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (pending capture [#272](https://github.com/ezzz/HFRnow/issues/272)). |
+| Rare list rows (#121): a `sujetCase3` with a second link outside search results, reply counts with separators, a row without last-post link or without `<b>` author, a pager with a non-cryptlink "Page Suivante" | Searched, not found (2026-11-05): page 1 of 20 category lists (anonymous, plus `R121e` logged in) and the three global-search pages hold none of them: every row has its last-post link and author, counts are bare digits, the pager link is a cryptlink. Stays pending capture. |
+| A message whose quote or edit link is printed in clear instead of `md_noclass_cryptlink` (#274) | Not seen in any page of the corpus (`R122a`-`R122d` included: 610 quote and 17 edit toolbar images, all inside `md_noclass_cryptlink` spans, 2026-11-05 scan); the multi-quote `quote+.gif` link and the "Edition rapide" link are plain `<a href>` but sit beside them (`R63a`). May not exist on today's HFR. |

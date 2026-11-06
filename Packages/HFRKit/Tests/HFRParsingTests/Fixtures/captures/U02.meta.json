@@ -1,0 +1,22 @@
+{
+  "id": "U02",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "https://img3.super-h.fr/api/1/upload/?key=<key>",
+  "url": "https://img3.super-h.fr/api/1/upload/?key=<WRONG-KEY>",
+  "final_url": "https://img3.super-h.fr/api/1/upload/?key=<WRONG-KEY>",
+  "status": 400,
+  "content_type": "application/json; charset=UTF-8",
+  "date": "2026-11-02T05:39:17Z",
+  "redirects": [],
+  "set_cookie_names": [
+    "PHPSESSID"
+  ],
+  "request_fields": [
+    "imageCaption",
+    "source"
+  ],
+  "note": "Chevereto upload, legacy multipart layout (imageCaption \"Some Caption\", source snapshot_<n>.jpg image/jpeg), 16x16 grey JPEG, wrong key; delete_hash, delete token and image id redacted",
+  "file": "U02-rehost-upload-wrong-key.json",
+  "private": false
+}

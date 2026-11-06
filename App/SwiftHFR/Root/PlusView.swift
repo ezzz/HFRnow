@@ -1,5 +1,6 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: an entry shows a placeholder until its lot lands.
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
     let model: RootModel
@@ -16,7 +17,7 @@ struct PlusView: View {
                         .foregroundStyle(entry.isDestructive ? Color.red : Color.primary)
                     Spacer()
                     Image(systemName: "chevron.forward")
-                        .font(.footnote.weight(.semibold))
+                        .scaledFont(.footnote).fontWeight(.semibold)
                         .foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
                 }
@@ -36,10 +37,15 @@ struct PlusEntryView: View {
     let environment: AppEnvironment
 
     var body: some View {
+<<<<<<< HEAD
         if entry == .search {
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
         } else if entry.isBuilt {
             SettingsView(rotationChanged: { OrientationPolicy.refresh() })
+=======
+        if entry.isBuilt {
+            SettingsView()
+>>>>>>> origin/dev-swift
         } else {
             ContentUnavailableView(
                 entry.title, systemImage: entry.symbol,

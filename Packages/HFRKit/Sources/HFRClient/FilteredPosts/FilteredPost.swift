@@ -9,4 +9,11 @@ public struct FilteredPost: Sendable, Equatable {
     public let block: MessageBlock
     /// Its quotes (LOT-032).
     public let quotes: [MessageQuote]
+
+    /// Creates a kept message.
+    public init(page: Int, block: MessageBlock, quotes: [MessageQuote]) {
+        self.page = page
+        self.block = block
+        self.quotes = quotes
+    }
 }

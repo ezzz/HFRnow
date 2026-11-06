@@ -1,0 +1,48 @@
+{
+  "case" : "R123g",
+  "exception" : null,
+  "input" : {
+    "bytes" : 29831,
+    "currentURL" : null,
+    "file" : "../captures/R123g-favourites-owntopic1-empty-after-delflag.html",
+    "now" : "2026-11-05T18:54:26Z",
+    "sha256" : "3771dc115dd47bde19c9d19680fdd0085d70c021486376c2551107230e25db40"
+  },
+  "kind" : "favorites",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "favorites" : [
+      {
+        "forum" : {
+          "aID" : "13",
+          "aTitle" : "Discussions",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "subCats" : [
+
+          ]
+        },
+        "order" : 0,
+        "topics" : [
+
+        ]
+      }
+    ],
+    "topicsSortedByLastPostDesc" : [
+
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : [
+
+    ],
+    "arrayCategoriesVisibleOrder" : [
+      "13"
+    ],
+    "hashCheck" : "REDACTED",
+    "nbMP" : 0,
+    "statusNotifications" : [
+
+    ]
+  }
+}

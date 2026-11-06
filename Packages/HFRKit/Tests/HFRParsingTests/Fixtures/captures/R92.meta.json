@@ -1,0 +1,16 @@
+{
+  "id": "R92",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/hfr/Programmation/iOS/own-topic-subject-sujet_9900002_1.htm",
+  "url": "https://forum.hardware.fr/hfr/Programmation/iOS/own-topic-subject-sujet_9900002_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Programmation/iOS/own-topic-subject-sujet_9900002_1.htm",
+  "status": 404,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "own topic URL after the first-post delete, user1",
+  "file": "R92-topic-after-first-post-delete-404.html",
+  "private": false
+}

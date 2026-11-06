@@ -26,6 +26,8 @@ let readerHostileContent = """
 final class ReaderWebRecorder {
     var ready: [Int] = []
     var links: [URL] = []
+    /// Video taps as (post, index, token).
+    var videos: [[Int]] = []
     /// Hosts the web view in a window, as on screen (keeps WebKit from treating it as hidden and throttling it).
     var window: UIWindow?
 }
@@ -41,7 +43,7 @@ extension ReaderWebTesting {
         )
         let recorder = ReaderWebRecorder()
         controller.events = ReaderWebController.Events(
-            ready: { recorder.ready.append($0) }, link: { recorder.links.append($0) }, video: { _, _, _ in }
+            ready: { recorder.ready.append($0) }, link: { recorder.links.append($0) }, video: { recorder.videos.append([$0, $1, $2]) }
         )
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
             let window = UIWindow(windowScene: scene)
@@ -54,11 +56,13 @@ extension ReaderWebTesting {
         return (controller, recorder)
     }
 
-    func document(token: Int, content: String = readerHostileContent) -> ReaderDocument {
+    func document(
+        token: Int, content: String = readerHostileContent, embeds: [MessageEmbed] = []
+    ) -> ReaderDocument {
         let message = ReaderMessage(
             numreponse: 7, author: "auteur", isDeleted: false, isContinuation: false,
             avatarURL: URL(string: "https://forum-images.hardware.fr/avatars/a.png"), dateText: "27-10-2026 10:00:00",
-            editNote: nil, quotedByCount: nil, content: MessageContent(html: content)
+            editNote: nil, quotedByCount: nil, content: MessageContent(html: content, embeds: embeds)
         )
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
         return ReaderDocument(
