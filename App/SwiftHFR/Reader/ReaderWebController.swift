@@ -26,6 +26,8 @@ final class ReaderWebController: NSObject {
         var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
         /// The user tapped the menu button or the author of message `post` in document `token`.
         var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
+        var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -58,7 +60,7 @@ final class ReaderWebController: NSObject {
     }
 
     private let imageFetcher: ReaderImageFetcher
-    private let autoLoadsThirdPartyImages: @Sendable () -> Bool
+    let autoLoadsThirdPartyImages: @Sendable () -> Bool
     private var document: ReaderDocument?
     private var savedOffset: CGPoint?
     private var appliedScrollID: Int?
@@ -67,7 +69,7 @@ final class ReaderWebController: NSObject {
     /// Third-party image URLs the user tapped in the current document, as `reader.js` reported them. Consent lives here,
     /// never in the image URL: the page's own markup can name the `hfrreader:` scheme (an `img` or a CSS `url()`), and
     /// WebKit's preload scanner requests it before `reader.js` runs.
-    private var consented: Set<String> = []
+    private(set) var consented: Set<String> = []
     /// Image requests of the current document and whether the policy let them through (tests read it).
     private(set) var imageRequests: [(requested: URL, allowed: Bool)] = []
 
@@ -211,15 +213,8 @@ final class ReaderWebController: NSObject {
         case .menu(let post, let source):
             events.menu(post, source, document.token)
             return nil
-        }
-    }
-
-    /// One decision per image `src`, in order.
-    private func decisions(for urls: [String?]) -> [String] {
-        let auto = autoLoadsThirdPartyImages()
-        return urls.prefix(Self.maximumImages).map { value -> String in
-            guard let text = value, let url = URL(string: text) else { return ImageDecision.block.rawValue }
-            return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
+        case .image(let urls, let index):
+            return openViewer(urls: urls, index: index, token: document.token)
         }
     }
 

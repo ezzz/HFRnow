@@ -90,6 +90,8 @@ struct FilteredPostsView: View {
     @State private var nextToken = 0
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    /// The open image viewer (LOT-109): the shared `reader.js` swallows a picture's tap, so this reader must open it.
+    @State private var viewer: ImageViewerModel?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -116,10 +118,15 @@ struct FilteredPostsView: View {
         .filteredPostsAlert(model, shown: model.result != nil)
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .onAppear(perform: makeController)
         // Only a new page of posts reloads the document: marking the topic finished keeps the scroll position.
         .onChange(of: model.result?.page, initial: true) { _, _ in show(model.result) }
-        .onDisappear { controller?.stopLoading() }
+        .onDisappear {
+            // The viewer covers this screen: the page stays as it is, or its pending pictures would turn into links.
+            guard viewer == nil else { return }
+            controller?.stopLoading()
+        }
     }
 
     private func show(_ result: FilteredPostsResult?) {
@@ -149,6 +156,9 @@ struct FilteredPostsView: View {
                       let message = model.result?.page.messages.first(where: { $0.numreponse == post }),
                       message.content.embeds.indices.contains(index) else { return }
                 video = VideoItem(embed: message.content.embeds[index])
+            },
+            image: { images, index, _ in
+                viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
             }
         )
         self.controller = controller
