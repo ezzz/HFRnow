@@ -186,7 +186,7 @@ public struct PostingFlow: Sendable {
         guard form.shape == shape else { throw .formMismatch(expected: shape, actual: form.shape) }
     }
 
-    private func checkText(_ text: String) throws(PostingError) {
+    func checkText(_ text: String) throws(PostingError) {
         try checkInput(text, as: .text)
     }
 
