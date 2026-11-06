@@ -11,7 +11,9 @@ struct HopFormOracleTests {
         "R40a", "R40b", "R41a", "R41b", "R42", "R43a", "R43b", "R43c", "R44", "R45a", "R45b", "R47a", "R47b", "R47c", "R47u1",
         "R60b", "R61b", "R62a", "R62b", "R63b", "R95c", "R95f", "R95g",
         // M2 write captures (#336): the group owner's composer (`newdest`), a group member's (none), the new-MP form.
-        "R123c", "R123e", "R123k"
+        "R123c", "R123e", "R123k",
+        // #507: the roster edits' composers (`newdest` with three, two or no member left, a member's without).
+        "R124", "R127", "R128", "R132", "R136", "R137", "R138", "R139"
     ]
 
     @Test("the case lists cover every LOT-004 and M2 write form case")

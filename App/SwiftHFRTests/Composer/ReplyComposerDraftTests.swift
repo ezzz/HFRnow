@@ -96,7 +96,8 @@ struct ReplyComposerDraftTests {
         composer.update(text: "À jeter")
         await composer.requestClose()
         await composer.discardDraftAndClose()
-        try await Task.sleep(for: .milliseconds(100))
+        // Returns at once when the discard settled the autosave; waits for the pending write, so a late one fails below.
+        await composer.waitForAutosave()
         #expect(composer.closeReason == .discardedDraft)
         #expect(await ComposerFixture.storedText(drafts) == nil)
     }
@@ -212,7 +213,7 @@ struct ReplyComposerDraftTests {
         #expect(composer.closeReason == .closedWithoutSaving)
         // The store works again: the autosave scheduled by the last keystroke must not land after the choice.
         persistence.failSaves(false)
-        try await Task.sleep(for: .milliseconds(100))
+        await composer.waitForAutosave() // a write that outlived the choice lands here, before the check
         #expect(await ComposerFixture.storedText(drafts) == "Ancien")
     }
 
