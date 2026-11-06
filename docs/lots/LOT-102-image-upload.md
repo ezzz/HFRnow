@@ -30,7 +30,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 | `ImageIOPreparer` | `ReplyService.swift (UIImage.rehostPreparedForUpload)` |
 | `ReplyComposerView` toolbar "Image" | `AnswerView.swift` (image button opening the panel) |
 
-## UX evolutions (GAP-091)
+## UX evolutions (GAP-090)
 
 - **b·needed** — Notice N1 before the first upload (LOT-071: legacy had none), per device.
 - **b·needed** — No EXIF/GPS in the uploaded JPEG (privacy label "Data Not Collected", #193 note of 2026-10-28).

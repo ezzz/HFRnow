@@ -4,8 +4,9 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView :1801-1982, ReplyUploadedImageRow :1984-2046) @ 2440d79 (GAP-091).
-// LOT-103 (UX evolution b·needed, GAP-091): removal asks first and says the image stays online (legacy :1909 deleted silently).
+// Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView :1801-1982, ReplyUploadedImageRow :1984-2046) @ 2440d79
+// (GAP-090, GAP-091).
+// LOT-103 (UX evolution b·operator, GAP-091): removal asks first and says the image stays online (legacy :1909 deleted silently).
 // Differences: `PhotosPicker` instead of the `PHPickerViewController` wrapper; no full-screen viewer of an uploaded image; no
 // "Preview" rendition (the engine has none); the first-use notice N1 before any upload.
 /// The panel "Insérer image": photos or camera, the size and BBCode choices, the uploaded images and a manual link. Thin: every

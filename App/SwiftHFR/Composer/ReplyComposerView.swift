@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-091), no GIF panel yet (155), smiley picker as a sheet from
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090), no GIF panel yet (155), smiley picker as a sheet from
 // the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new

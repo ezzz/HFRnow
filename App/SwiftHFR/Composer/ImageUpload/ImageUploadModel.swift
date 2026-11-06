@@ -5,7 +5,8 @@ import HFRStorage
 import Observation
 
 // Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView, startImageUpload :646-676) and HFRswift/Swift/ReplyService.swift
-// (RehostPreferences, RehostPreferencesStore, RehostUploadedImage.formattedSnippet) @ 2440d79 (GAP-091). Differences: the first-use
+// (RehostPreferences, RehostPreferencesStore, RehostUploadedImage.formattedSnippet) @ 2440d79
+// (GAP-090, GAP-091). Differences: the first-use
 // notice N1 (LOT-071) gates every upload; the upload client is the engine's `RehostClient` (LOT-056); the preview rendition does not
 // exist in the engine (`RehostedImage` has full, medium and mini); a failed upload never loses the composer text (it is not touched).
 /// State of the image panel of the composer (LOT-102): the pick, the notice, the upload, the history and the settings.
@@ -69,6 +70,7 @@ final class ImageUploadModel {
 
     /// Reads the remembered uploads, once per model: reopening the panel keeps what is in memory. Unreadable data is never overwritten.
     func load() async {
+        removalNotice = nil
         guard !didLoad else { return }
         didLoad = true
         let stored = await services.history.load()
@@ -131,7 +133,7 @@ final class ImageUploadModel {
     /// The removal confirmation (LOT-103, FEAT-019): only the local entry goes, the image stays public on the host. No server-side
     /// delete is evidenced (HFR-PROTOCOL §7b B12), so the app never claims one.
     static let removalMessage =
-        "Seule l'entrée de cet historique est effacée. L'image reste en ligne chez l'hébergeur et son adresse reste valable."
+        "Seule l'entrée de cet historique est effacée. L'image reste en ligne et publique chez l'hébergeur, son adresse reste valable."
 
     /// Notice shown after a removal.
     static let removedNotice = "Entrée retirée de l'historique. L'image reste en ligne chez l'hébergeur."
