@@ -19,6 +19,8 @@ struct ReplyComposerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
+    /// The first focus (once the draft is read) happened: later `canEdit` flips (a send) never steal it.
+    @State private var didFocus = false
     @State private var picker: SmileyPickerModel?
     /// The smiley search outlives the panel, as legacy's session state: reopening shows the last results (LOT-105).
     @State private var smileySearch: SmileySearchModel?
@@ -105,6 +107,12 @@ struct ReplyComposerView: View {
         .task {
             await model.start()
             formatting.placeCaretAtEnd()
+        }
+        // The fields are disabled until the draft is read: focus set in the same task as `start()` lands on a disabled field
+        // and is lost, so it waits for the view to enable them.
+        .onChange(of: model.canEdit) { _, canEdit in
+            guard canEdit, !didFocus else { return }
+            didFocus = true
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
@@ -123,16 +131,6 @@ struct ReplyComposerView: View {
     }
 
     /// Where typing starts: the first field of a new private message still empty, else the text.
-    private var firstEmptyField: Field {
-        guard model.hasSubjectField else { return .text }
-        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
-        return model.subject.isEmpty ? .subject : .text
-    }
-
-    private var title: String {
-        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
-    }
-
     private var checkTitle: String {
         model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
     }
@@ -300,6 +298,18 @@ struct ReplyComposerView: View {
                     .disabled(!model.canSend)
             }
         }
+    }
+}
+
+extension ReplyComposerView {
+    private var firstEmptyField: Field {
+        guard model.hasSubjectField else { return .text }
+        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
+        return model.subject.isEmpty ? .subject : .text
+    }
+
+    private var title: String {
+        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
     }
 }
 
