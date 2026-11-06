@@ -116,6 +116,36 @@ struct TopicRowActionsTests {
         #expect(model.isMarkedRead(topic))
     }
 
+    /// CodeRabbit on #542: refresh A starts after the mark, refresh B supersedes it; A returns (its page dropped) before B
+    /// fails. Only the page a load put on screen may drop marks, so the mark survives both.
+    @Test func aSupersededLoadNeverDropsAMark() async {
+        let topic = flaggedTopic(1, read: .unread)
+        let (model, data) = await forumList([topic])
+        model.markRead(topic)
+        let calls = CallCounter()
+        let first = AsyncGate()
+        let second = AsyncGate()
+        data.topicHandler = { (_, _) async throws(ListLoadError) -> TopicListPage in
+            if await calls.next() == 1 {
+                await first.wait()
+                return TopicListPage(topics: [topic], navigation: PageNavigation(current: 1, last: 1))
+            }
+            await second.wait()
+            throw .offline
+        }
+        let refreshA = Task { await model.refresh() }
+        while await calls.count < 1 { await Task.yield() }
+        let refreshB = Task { await model.refresh() }
+        while await calls.count < 2 { await Task.yield() }
+        await first.open()
+        await refreshA.value
+        #expect(model.isMarkedRead(topic))
+        await second.open()
+        await refreshB.value
+        #expect(model.loader.error == .offline)
+        #expect(model.isMarkedRead(topic))
+    }
+
     @Test func supprimerIsHiddenLoggedOutAndWithoutATopicNumber() async {
         let topic = flaggedTopic(1)
         let (loggedOut, _) = await favoritesList([topic], writer: nil)
@@ -234,5 +264,15 @@ actor AsyncGate {
         isOpen = true
         waiters.forEach { $0.resume() }
         waiters = []
+    }
+}
+
+/// Numbers the calls of a scripted handler.
+actor CallCounter {
+    private(set) var count = 0
+
+    func next() -> Int {
+        count += 1
+        return count
     }
 }

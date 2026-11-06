@@ -212,7 +212,7 @@ final class TopicListModel {
         let source = source
         let dataSource = dataSource
         let isLoggedIn = isLoggedIn
-        await loader.load { () async throws(ListLoadError) -> TopicListContent in
+        let applied = await loader.load { () async throws(ListLoadError) -> TopicListContent in
             let loggedIn = await isLoggedIn()
             switch source {
             case .subforum(let path, _):
@@ -227,7 +227,8 @@ final class TopicListModel {
                 return TopicListContent(favorites: try await dataSource.favorites(filter: .favorites), isLoggedIn: loggedIn)
             }
         }
-        guard loader.error == nil else { return }
+        // Only the page this call put on screen reconciles: a superseded load (its page dropped) or a failed one changes nothing.
+        guard applied else { return }
         // HFR's page now says what is read and flagged: the marks made before this load started are forgotten (legacy kept
         // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
         markedRead = markedRead.filter { $0.value > startedAfter }
