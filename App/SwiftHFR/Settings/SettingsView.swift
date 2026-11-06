@@ -65,6 +65,11 @@ struct SettingsView: View {
                 }
                 NavigationLink(value: SettingsDestination.icon) { Text(SettingsDestination.icon.title) }
             }
+            Section("Messages") {
+                Picker("Affichage des MP", selection: $general.mpListDisplay) {
+                    ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
             Section("Thème") {
                 NavigationLink(value: SettingsDestination.theme) {
                     Text(SettingsDestination.theme.title)

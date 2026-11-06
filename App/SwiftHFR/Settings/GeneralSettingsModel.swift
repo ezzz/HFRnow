@@ -45,6 +45,10 @@ final class GeneralSettingsModel {
             if minimizesTabBarOnScroll != oldValue { store.set(minimizesTabBarOnScroll, for: SettingKey.tabBarMinimizesOnScroll) }
         }
     }
+    /// "Affichage des MP": one list or two (LOT-171). Read by the Messages list each time it appears.
+    var mpListDisplay: MPListDisplay {
+        didSet { if mpListDisplay != oldValue { store.set(mpListDisplay, for: SettingKey.mpListDisplay) } }
+    }
     /// Density: compact rows.
     var compactMode: Bool {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
@@ -62,6 +66,7 @@ final class GeneralSettingsModel {
         opensLinksInDefaultBrowser = store.value(for: SettingKey.opensLinksInDefaultBrowser)
         textSizePercent = SettingKey.textSizePercent(from: store)
         compactMode = store.value(for: SettingKey.compactMode)
+        mpListDisplay = store.value(for: SettingKey.mpListDisplay)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 

@@ -16,6 +16,7 @@ struct MessageRowView: View {
                     .fontWeight(isUnread ? .semibold : .regular)
                     .lineLimit(2)
                 Text(who).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                if let counts { Text(counts).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                 if let last = lastPost { Text(last).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
             }
             Spacer(minLength: 0)
@@ -29,6 +30,14 @@ struct MessageRowView: View {
     /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`).
     private var who: String {
         thread.isGroup ? "Interlocuteurs multiples" : thread.summary.starterOrInterlocutors
+    }
+
+    /// Group rows read like topic rows (LOT-171): replies and pages, when the list row carries them.
+    private var counts: String? {
+        guard thread.isGroup, thread.summary.repliesCount > 0 else { return nil }
+        let pages = thread.summary.pageCount
+        let replies = FrenchPlural.count(thread.summary.repliesCount, "réponse", "réponses")
+        return pages > 1 ? "\(replies) · \(pages) pages" : replies
     }
 
     private var lastPost: String? {
