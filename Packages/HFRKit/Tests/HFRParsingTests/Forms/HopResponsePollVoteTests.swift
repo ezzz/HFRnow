@@ -3,13 +3,14 @@ import HFRModels
 import Testing
 @testable import HFRParsing
 
-/// LOT-054 (#395): the poll vote answers `W42`-`W44` under `Context.pollVote`, and the vote sentence nowhere else.
+/// LOT-054 (#395): the poll vote answers `W42`-`W45` under `Context.pollVote`, and the vote sentence nowhere else.
 @Suite("Hop response classifier: poll vote")
 struct HopResponsePollVoteTests {
-    /// Every capture whose classification is success under `.pollVote`: the vote confirmation and nothing else.
-    static let pollVoteConfirmations: Set<String> = ["W42-poll-vote-success"]
+    /// Every capture whose classification is success under `.pollVote`: the vote confirmation (`W42`) and the same
+    /// sentence answering a POST sent without cookies (`W45`), which the shape alone cannot tell apart.
+    static let pollVoteConfirmations: Set<String> = ["W42-poll-vote-success", "W45-poll-vote-logged-out"]
 
-    @Test("Sweep: across the whole capture corpus only the vote confirmation classifies as success under .pollVote")
+    @Test("Sweep: across the whole capture corpus only the two vote confirmations classify as success under .pollVote")
     func pollVoteCorpusSweep() throws {
         var successes: Set<String> = []
         for name in try Self.corpus() where try HopResponseParser.classify(
@@ -45,6 +46,19 @@ struct HopResponsePollVoteTests {
         #expect(response.refreshAnchor == nil)
         // The same page answering another write is not a confirmation: it lacks "avec succès".
         #expect(try HopResponseParser.classify(html: Fixture.capture("W42-poll-vote-success")).kind == .unrecognized)
+    }
+
+    @Test("W45: the answer to a vote POST without cookies has W42's shape, so it is a success under .pollVote")
+    func pollVoteWithoutCookiesHasConfirmationShape() throws {
+        let vote = try #require(URL(string: "https://forum.hardware.fr/user/vote.php?config=hfr.inc"))
+        let response = try HopResponseParser.classify(
+            html: Fixture.capture("W45-poll-vote-logged-out"), context: .pollVote, requestURL: vote
+        )
+        #expect(response.kind == .success)
+        #expect(response.message == "Votre vote a bien été pris en compte !")
+        #expect(response.refreshURL?.absoluteString == "https://forum.hardware.fr/hfr/Programmation/iOS/sujet_9900002_1.htm")
+        // Not a session proof: the same answer as W42's, so only the session check (LOT-054) can keep a guest vote out.
+        #expect(try HopResponseParser.classify(html: Fixture.capture("W45-poll-vote-logged-out")).kind == .unrecognized)
     }
 
     @Test("W43, W44: a second vote is a refusal under .pollVote, keeping HFR's sentence", arguments: [

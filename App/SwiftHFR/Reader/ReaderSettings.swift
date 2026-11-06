@@ -14,9 +14,15 @@ struct ReaderSettings: Sendable {
     let swipesPages: @Sendable () -> Bool
     /// "Navigateur par défaut" (LOT-119): web links open in the system browser rather than in Safari's view in the app.
     var opensLinksInDefaultBrowser: @Sendable () -> Bool = { false }
+    /// What the reply ("+") button does (`reply_button_behavior`, default `quick`, LOT-086).
+    var replyButton: @Sendable () -> ReplyButtonBehavior = { .quick }
 
-    /// Settings read from `store`, with `isOnWiFi` for the Wi-Fi only mode.
-    static func live(store: any SettingsStore, isOnWiFi: @escaping @Sendable () -> Bool) -> ReaderSettings {
+    /// Settings read from `store`, with `isOnWiFi` for the Wi-Fi only mode. `pseudo` is the current account's (nil logged out),
+    /// `pseudoLists` the lists the visibility policy reads each time a document is built (LOT-117; LOT-118 owns the lists).
+    static func live(
+        store: any SettingsStore, isOnWiFi: @escaping @Sendable () -> Bool, pseudo: String? = nil,
+        pseudoLists: @escaping @Sendable () -> PseudoLists = { PseudoLists() }
+    ) -> ReaderSettings {
         ReaderSettings(
             autoLoadsThirdPartyImages: {
                 autoLoad(store: store).loadsThirdPartyImages(onWiFi: isOnWiFi())
@@ -24,11 +30,21 @@ struct ReaderSettings: Sendable {
             renderOptions: {
                 ReaderRenderOptions(
                     showsSignatures: store.value(for: SettingKey.displaySignatures),
-                    style: store.value(for: SettingKey.themeStyle)
+                    style: store.value(for: SettingKey.themeStyle),
+                    visibility: visibility(store: store, pseudo: pseudo, lists: pseudoLists())
                 )
             },
             swipesPages: { store.value(for: SettingKey.topicPageSwipe) },
-            opensLinksInDefaultBrowser: { store.value(for: SettingKey.opensLinksInDefaultBrowser) }
+            opensLinksInDefaultBrowser: { store.value(for: SettingKey.opensLinksInDefaultBrowser) },
+            replyButton: { store.value(for: SettingKey.replyButtonBehavior) }
+        )
+    }
+
+    /// The visibility policy of the account `pseudo`: its lists and the "Masquer les pseudos blacklistés" setting.
+    static func visibility(store: any SettingsStore, pseudo: String?, lists: PseudoLists) -> VisibilityPolicy {
+        VisibilityPolicy(
+            ownPseudo: pseudo, blocklist: lists.blocklist, allowlist: lists.allowlist,
+            hidesBlockedPseudo: store.value(for: SettingKey.hideBlocklistedPosts)
         )
     }
 

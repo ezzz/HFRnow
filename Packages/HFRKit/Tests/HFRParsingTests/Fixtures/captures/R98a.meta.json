@@ -1,0 +1,16 @@
+{
+  "id": "R98a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/html/donnees_personnelles/",
+  "url": "https://www.hardware.fr/html/donnees_personnelles/",
+  "final_url": "https://www.hardware.fr/html/donnees_personnelles/",
+  "status": 200,
+  "content_type": "text/html",
+  "date": "Mon, 02 Nov 2026 09:34:40 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "footer link \"Signaler un contenu illicite / Données personnelles\" of every forum page (R01)",
+  "file": "R98a-hardware-fr-personal-data-page.html",
+  "private": false
+}

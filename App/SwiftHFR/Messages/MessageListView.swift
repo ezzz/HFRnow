@@ -2,7 +2,7 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
-// in the reader column (GAP-110).
+// in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
 struct MessageListView: View {
@@ -14,8 +14,8 @@ struct MessageListView: View {
     var body: some View {
         let loader = model.loader
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
-            if let content = loader.value {
-                ForEach(content.threads) { thread in
+            if loader.value != nil {
+                ForEach(model.visibleThreads) { thread in
                     MessageRowView(thread: thread, isUnread: model.isUnread(thread)).tag(thread)
                 }
             }
@@ -23,6 +23,9 @@ struct MessageListView: View {
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
+        .safeAreaInset(edge: .top) {
+            if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
+        }
         .safeAreaInset(edge: .top) {
             // Both can show: a message HFR confirmed stays confirmed when the reload after it fails.
             VStack(spacing: 8) {
@@ -66,7 +69,14 @@ struct MessageListView: View {
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<MessageListContent>) -> some View {
         if let content = loader.value {
-            if content.threads.isEmpty, let reason = content.emptyReason { EmptyMessagesView(reason: reason, refresh: model.refresh) }
+            if model.isSearchingSegment, model.visibleThreads.isEmpty {
+                ProgressView("Recherche des \(model.segment.title)")
+            } else if model.visibleThreads.isEmpty {
+                EmptyMessagesView(
+                    reason: content.emptyReason ?? .nothing, segment: model.display == .split ? model.segment : nil,
+                    refresh: model.refresh
+                )
+            }
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
@@ -96,6 +106,8 @@ private struct MessageSentBanner: View {
 
 private struct EmptyMessagesView: View {
     let reason: EmptyReason
+    /// The switch position when the list is split: the page may hold none of it though later pages exist.
+    let segment: MPSegment?
     let refresh: () async -> Void
 
     var body: some View {
@@ -110,7 +122,12 @@ private struct EmptyMessagesView: View {
 
     private var title: String {
         switch reason {
-        case .nothing: "Aucun message privé"
+        case .nothing:
+            switch segment {
+            case .group: "Aucun MP multiple"
+            case .oneToOne: "Aucun MP individuel"
+            case nil: "Aucun message privé"
+            }
         case .signInRequired: "Connexion requise"
         case .notice: "Rien à afficher"
         }
@@ -148,6 +165,27 @@ private struct MessagePageBar: View {
                 .disabled(!model.canGoToNext)
                 .accessibilityLabel("Page suivante")
         }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+}
+
+/// The "MP" / "MP multiples" switch of the split list, each segment with its own unread count (page-bounded).
+private struct MessageSegmentSwitch: View {
+    let model: MessageListModel
+
+    var body: some View {
+        Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in
+            model.chooseSegment(segment)
+            Task { await model.searchForSegment() }
+        })) {
+            ForEach(MPSegment.allCases, id: \.self) { segment in
+                let unread = model.unreadCount(in: segment)
+                Text(unread > 0 ? "\(segment.title) (\(unread))" : segment.title).tag(segment)
+            }
+        }
+        .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(.bar)

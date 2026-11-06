@@ -40,9 +40,9 @@ Legacy app `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional re
 
 ## Not in this lot (pending, no capture invented)
 
-- Search, keywords and history (GAP-088): LOT-105 ([#196](https://github.com/ezzz/HFRnow/issues/196)). Legacy only adds a
+- Search, keywords and history (GAP-088): LOT-105 ([#196](https://github.com/ezzz/HFRnow/issues/196), spec `LOT-105-smiley-search.md`). Legacy only adds a
   favourite from search results and from the forum section (a basic smiley has no detail), so **adding** a favourite is
-  in the detail view and the model (`setFavorite`, tested) but not reachable until LOT-105 lands; reading and removing are.
+  in the detail view and the model (`setFavorite`, tested) and reachable from the search results since LOT-105; reading and removing were already.
 - "Smileys du forum" section (GAP-087, profile favourites, `UserProfileSmiley`): no lot owned it; it has its own issue
   (see the PR), so #195 stays open (`Refs`) until it is done or the operator cuts its scope.
 - Importing the legacy favourites file is LOT-067; iCloud mirroring is LOT-172.

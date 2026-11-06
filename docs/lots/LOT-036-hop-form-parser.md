@@ -51,11 +51,11 @@ The moderation form has no `content_form` and no `select`: `fields` is `hash_che
 - Controls outside the form (the `#fastsearch` form with its own `hash_check`, a second `content_form`) are not read; the smiley container is looked up on the whole page, like legacy.
 - An input with no `name` (and `type="image"` without `name`) is skipped; `type="file"` and other types are kept with kind `.other`.
 - A select with no option is kept (`effectiveValue` nil); two options with `selected`: the first wins, as in legacy (a browser would take the last; no captured page has two).
-- A textarea starting with a newline keeps it (legacy, libxml, did too; a browser drops one newline after the tag). Every capture writes the text right after the tag, so HFR adds no newline of its own: a leading `\n` can only be part of the stored text, and keeping it makes the round trip exact. Verified: no capture starts with a newline; pending: a stored text that does (see "Pending capture").
+- A textarea starting with a newline keeps it (legacy, libxml, did too; a browser drops one newline after the tag). Every capture writes the text right after the tag, so HFR adds no newline of its own: a leading `\n` can only be part of the stored text, and keeping it makes the round trip exact. Verified (`R130b`, `R130c`, [HFR-PROTOCOL](../HFR-PROTOCOL.md) "Leading newline"): HFR stores a leading `\r\n` but its edit form serves the text without it (nothing for a browser to drop), and its quote form keeps it after the `[quotemsg=…]` tag, so keeping a textarea's own leading newline stays right and an unchanged edit loses the break at the server, not in the client.
 - Option values are not trimmed (legacy trimmed the id of a sub-category; captured values have no whitespace).
 
 ## Fixtures
-Captures `R40a, R40b, R41a, R41b, R42, R43a, R43b, R43c, R44, R45a, R45b, R46, R47a, R47b, R47c, R47u1` and their LOT-004 oracles (`Fixtures/LOT-004/<id>.oracle.json`, `result.legacy`); no new fixture. Tests: `HopFormOracleTests` (differential, every case of the oracle map, checked by a coverage test) and `HopFormParserTests` (facts of each capture, rules on small inline pages).
+Captures `R40a, R40b, R41a, R41b, R42, R43a, R43b, R43c, R44, R45a, R45b, R46, R47a, R47b, R47c, R47u1` and their LOT-004 oracles (`Fixtures/LOT-004/<id>.oracle.json`, `result.legacy`); no new fixture. Since #475 the M2 write form oracles (`Fixtures/M2-writes`: R123c, R123e, R123k) and the M2 misc ones (`Fixtures/M2-misc`: R130b the edit form, R130c the quote form of an MP whose body starts with a line break) are in the same cases; no difference from legacy on either (R130b's textarea starts with the word, R130c's with `[quotemsg`, CRLF read as LF). Tests: `HopFormOracleTests` (differential, every case of the oracle maps, checked by a coverage test) and `HopFormParserTests` (facts of each capture, rules on small inline pages).
 
 The differential test compares, per case: `action` with `formAction`; the legacy value-per-name map rebuilt from the parsed fields with the legacy rules (`MsgIcon`, checkbox `"1"`/`"0"`, select effective value) with `inputData`; field and select order with `loopOrder`; `textareaContent` with `contentForm` and with `contentFormRaw` after CRLF to LF; `isSubjectEditable`, `isSubcategoryEditable`, `recipient`, `subcategories` with `haveTitle`, `haveCategory`, `haveTo`, `subcats`; `dynamicSmileys` with `smileys`; `parseModerationForm` with the R46 case.
 
@@ -72,7 +72,6 @@ The differential test compares, per case: `action` with `formAction`; the legacy
 ## Pending capture
 Not hand-built (LESSONS 36); each is a parser state or a protocol fact, none blocks this lot:
 - **A new-topic form reached with a sub-category preselected** (`R45a` has no `selected` option, so `selectedValue` on HFR pages is only tested on inline pages).
-- **An edit or quote form whose stored text starts with a newline**: confirms that HFR does not add its own newline (all captures suggest so) and so that a browser would drop a real one.
 - **The reply form of a locked topic and of a topic where the account may not post**, to learn what the page serves instead of the form (LOT-037 reads the message).
 
 ## Learnings

@@ -1,0 +1,15 @@
+{
+  "id": "T22",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/self/abc123.jpg",
+  "url": "https://reho.st/self/abc123.jpg",
+  "final_url": "https://reho.st/self/abc123.jpg",
+  "status": 403,
+  "content_type": "text/html",
+  "date": "Mon, 02 Nov 2026 09:37:40 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "path of legacy HFRswiftTests/TopicPageURLRoutingTests.swift:45 (no such image), no Referer (#134)",
+  "private": false
+}

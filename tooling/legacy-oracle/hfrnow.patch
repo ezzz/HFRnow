@@ -1,3 +1,25 @@
+diff --git a/HFRswift/Swift/AQPlusView.swift b/HFRswift/Swift/AQPlusView.swift
+index 4bd754e..dea9859 100644
+--- a/HFRswift/Swift/AQPlusView.swift
++++ b/HFRswift/Swift/AQPlusView.swift
+@@ -21,7 +21,7 @@ struct AQItem: Identifiable, Hashable {
+     var id: String { "\(link)|\(aqTitle)|\(relativeDate)" }
+ }
+ 
+-private struct AQParserContext {
++struct AQParserContext {
+     let lastCheckDate: Date
+     let shouldFilterCategory25: Bool
+ }
+@@ -91,7 +91,7 @@ actor AQBadgeCheckService {
+     }
+ }
+ 
+-private final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
++final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
+     private struct WorkingItem {
+         var title = ""
+         var link = ""
 diff --git a/HFRswiftTests/AccountsStoreTests.swift b/HFRswiftTests/AccountsStoreTests.swift
 index b0a205a..2c5f491 100644
 --- a/HFRswiftTests/AccountsStoreTests.swift
@@ -434,10 +456,10 @@ index 0000000..ca9d04a
 +}
 diff --git a/HFRswiftTests/OracleExportSmall.swift b/HFRswiftTests/OracleExportSmall.swift
 new file mode 100644
-index 0000000..cbb51bc
+index 0000000..385b4e1
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportSmall.swift
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,356 @@
 +// Oracle exporter for SwiftHFR LOT-005: the small parsers (search redirect, profile edit page, smiley search,
 +// smiley wiki keywords, topic poll, public profile). Local-only: never committed to hfrnow.
 +//
@@ -525,7 +547,7 @@ index 0000000..cbb51bc
 +}
 +
 +extension OracleExport {
-+    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile"]
++    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile", "aq-rss"]
 +    private static let placeholderHash = "HASH_PLACEHOLDER"
 +    private static let fakePseudoKey = "FAKE_PSEUDO_KEY"
 +    private static let fakeAvatarBytes = Data("AVATAR-BYTES".utf8)
@@ -553,6 +575,7 @@ index 0000000..cbb51bc
 +        case "smiley-search": return try runSmileySearch(data, options: options, extras: &extras)
 +        case "smiley-keywords": return runSmileyKeywords(data, options: options, extras: &extras)
 +        case "poll": return try runPoll(data, currentURL: currentURL ?? Self.defaultTopicPageURL, options: options, extras: &extras)
++        case "aq-rss": return try runAQRSS(data, options: options, extras: &extras)
 +        default: return try runProfile(data, options: options, extras: &extras)
 +        }
 +    }
@@ -742,6 +765,35 @@ index 0000000..cbb51bc
 +        return (result, nil)
 +    }
 +
++    // MARK: aq-rss
++
++    /// AQPlusView.swift:94-230 (`AQRSSParserDelegate`, run as `AQBadgeCheckService.refreshUnreadCount` and the AQ list run it:
++    /// `XMLParser(data:)`, delegate, `parse()`). The only edit to legacy is `private` dropped from the delegate and its context
++    /// (hfrnow.patch), so the test target can reach them. Options: `lastCheck` (ISO-8601, the `last_check_aq` default,
++    /// legacy default 2010-01-01 local time) and `filterCategory25` (Bool, legacy: true unless the account is `applereview`,
++    /// AQPlusView.swift:52-57). `relativeDate` is not exported: it reads Swift `Date()`, which the harness clock does not freeze.
++    private func runAQRSS(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let lastCheck: Date
++        if let iso = options["lastCheck"] as? String {
++            guard let date = ISO8601DateFormatter().date(from: iso) else { throw HarnessError(message: "bad lastCheck '\(iso)'") }
++            lastCheck = date
++        } else {
++            lastCheck = Date(timeIntervalSince1970: 0)
++        }
++        let filter = options["filterCategory25"] as? Bool ?? true
++        extras.context = ["lastCheck": options["lastCheck"] ?? NSNull(), "filterCategory25": filter]
++        let delegate = AQRSSParserDelegate(context: AQParserContext(lastCheckDate: lastCheck, shouldFilterCategory25: filter))
++        let parser = XMLParser(data: data)
++        parser.delegate = delegate
++        let parsed = parser.parse()
++        let items = delegate.items.map { item -> [String: Any] in
++            ["topicTitle": item.topicTitle, "aqTitle": item.aqTitle, "comment": item.comment, "initiator": item.initiator,
++             "link": item.link, "isNew": item.isNew]
++        }
++        return (["parsed": parsed, "parserError": parser.parserError.map { "\($0)" } ?? NSNull(),
++                 "items": items, "newCount": delegate.items.filter(\.isNew).count], nil)
++    }
++
 +    private static func profileDict(_ profile: UserProfile) -> [String: Any] {
 +        [
 +            "pseudo": profile.pseudo,
@@ -762,6 +814,227 @@ index 0000000..cbb51bc
 +                 "kind": "\(action.kind)"]
 +            }
 +        ]
++    }
++}
+diff --git a/HFRswiftTests/OracleExportStores.swift b/HFRswiftTests/OracleExportStores.swift
+new file mode 100644
+index 0000000..c442a6d
+--- /dev/null
++++ b/HFRswiftTests/OracleExportStores.swift
+@@ -0,0 +1,215 @@
++// Oracle exporter for SwiftHFR #347 (LOT-067 import): the bytes the legacy app writes in its five small on-device stores,
++// produced by the REAL legacy code on synthetic data. Local-only: never committed to hfrnow.
++//
++// Inert unless HFR_ORACLE_STORES_OUT is set (run-oracle.sh -s). Writes into that folder:
++//   defaults-<variant>.plist          UserDefaults domain, ONLY the keys of the case, as `defaults export` prints it (xml1)
++//   smiley-favorites-<variant>.archive / .xml.plist   Documents/smiley_favorites_cache2 (NSKeyedArchiver bytes; plutil xml view)
++//   search-history-<variant>.json     the Data stored under `smileySearchHistory_v1`
++//   upload-history-<variant>.json     Documents/rehostImagesSwiftUI.json
++//
++// Real code: FavoritesSuperFavoriteStore / FavoritesCollapsedSectionsStore (Favorites.swift:112-155), SmileyCache
++// -AddAndSaveDicFavoritesApp (OracleLegacyStores.m), SmileySearchHistoryStore.record (SmileySearchService.swift:94-116),
++// RehostUploadHistoryStore.load/save (ReplyService.swift:1898-1911). Dates are rewritten to fixed instants (the legacy code
++// stamps Date()) and re-encoded with the same default JSONEncoder; nothing else is edited.
++
++import XCTest
++@testable import HFRswift
++
++final class OracleStores: XCTestCase {
++    private let superKey = "SuperFavoritesIds"
++    private let collapsedKey = "CollapsedFavoriteSectionIDs"
++    private let historyKey = "smileySearchHistory_v1"
++    /// 2024-01-01T00:00:00Z
++    private let base: TimeInterval = 1_704_067_200
++
++    private var out: URL!
++
++    func testExportLegacyStores() throws {
++        guard let path = ProcessInfo.processInfo.environment["HFR_ORACLE_STORES_OUT"], !path.isEmpty else {
++            throw XCTSkip("HFR_ORACLE_STORES_OUT not set")
++        }
++        out = URL(fileURLWithPath: path, isDirectory: true)
++        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
++        try exportSmileyFavorites()
++        try exportSearchHistory()
++        try exportUploadHistory()
++        try exportDefaults() // last: the typical state stays in the domain for the real `defaults export` taken by the script
++    }
++
++    // MARK: helpers
++
++    private func write(_ data: Data, _ name: String) throws { try data.write(to: out.appendingPathComponent(name)) }
++
++    private func clearDefaults() {
++        for key in [superKey, collapsedKey, historyKey] { UserDefaults.standard.removeObject(forKey: key) }
++        UserDefaults.standard.synchronize()
++    }
++
++    /// The domain restricted to `keys`, in the `defaults export` form (XML property list).
++    private func dump(_ keys: [String]) throws -> Data {
++        var domain: [String: Any] = [:]
++        for key in keys { if let value = UserDefaults.standard.object(forKey: key) { domain[key] = value } }
++        return try PropertyListSerialization.data(fromPropertyList: domain, format: .xml, options: 0)
++    }
++
++    private func date(_ offset: TimeInterval) -> Date { Date(timeIntervalSince1970: base + offset) }
++
++    // MARK: 1 + 2, UserDefaults arrays
++
++    private func exportDefaults() throws {
++        let both = [superKey, collapsedKey]
++        // fresh install: neither key written
++        clearDefaults()
++        try write(try dump(both), "defaults-absent.plist")
++        try write(try dump([historyKey]), "defaults-search-history-absent.plist")
++        // empty: what the legacy save writes after the last topic is un-flagged and the last section expanded
++        FavoritesSuperFavoriteStore.save([])
++        FavoritesCollapsedSectionsStore.save([])
++        try write(try dump(both), "defaults-empty.plist")
++        // boundary: Int32 maximum and 1 (smallest id the store keeps), section ids of every shape sectionIdentifier(for:) builds
++        // (Favorites.swift:502-520), with a space, an accent and a colon (forum-title is lowercased, Favorites.swift:511)
++        FavoritesSuperFavoriteStore.save([2_147_483_647, 1, 2_000_000])
++        FavoritesCollapsedSectionsStore.save([
++            "forum-id:13", "forum-url:/forum1.php?config=hfr.inc&cat=25", "forum-title:jeux vidéo",
++            "favorite-order:2", "favorite-first-post:2000001", "favorite-unknown"
++        ])
++        try write(try dump(both), "defaults-boundary.plist")
++        // the same topic number flagged once: legacy keys a super-favourite by the number alone (postID), so a topic of
++        // another category with the same number shows as flagged too (Favorites.swift:381, FavoritesTableViewController.m:81-82)
++        FavoritesSuperFavoriteStore.save([777])
++        FavoritesCollapsedSectionsStore.save([])
++        try write(try dump(both), "defaults-same-number-two-categories.plist")
++        // the Objective-C favourites screen (FavoritesTableViewController.m:1639-1657, transliterated: not in the test host)
++        // writes its mutable array as is: insertion order, NSNumber, unsorted
++        UserDefaults.standard.removeObject(forKey: collapsedKey)
++        let objc = NSMutableArray()
++        for id in [4_100_000, 99, 3_050_500, 12] {
++            let number = NSNumber(value: Int32(id))
++            if !objc.contains(number) { objc.add(number) } // :1642
++        }
++        UserDefaults.standard.set(objc, forKey: superKey) // :1657
++        UserDefaults.standard.synchronize()
++        try write(try dump([superKey]), "defaults-objc-insertion-order.plist")
++        // typical (left in the domain for the real `defaults export`)
++        clearDefaults()
++        FavoritesSuperFavoriteStore.save([3_050_500, 99, 4_100_000, 12])
++        FavoritesCollapsedSectionsStore.save(["forum-id:13", "forum-id:25", "forum-title:hardware"])
++        UserDefaults.standard.synchronize()
++        try write(try dump(both), "defaults-typical.plist")
++        // sanity: what the real loaders read back
++        XCTAssertEqual(FavoritesSuperFavoriteStore.load(), [12, 99, 3_050_500, 4_100_000])
++        XCTAssertEqual(FavoritesCollapsedSectionsStore.load().count, 3)
++        // cfprefsd writes the domain file asynchronously: wait for it, the script reads it once the simulator is shut down
++        CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication)
++        Thread.sleep(forTimeInterval: 2)
++    }
++
++    // MARK: 3, smiley_favorites_cache2
++
++    private func exportSmileyFavorites() throws {
++        let helper = try XCTUnwrap(NSClassFromString("OracleLegacyStores") as? NSObject.Type)
++        func archive(_ name: String, _ items: [(String, String, TimeInterval)]) throws {
++            let spec = items.map { ["code": $0.0, "url": $0.1, "dateAdded": base + $0.2] as [String: Any] }
++            let result = helper.perform(NSSelectorFromString("smileyArchive:"), with: spec)?.takeUnretainedValue()
++            let data = try XCTUnwrap(result as? Data, name)
++            try write(data, "smiley-favorites-\(name).archive")
++            let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
++            try write(try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0), "smiley-favorites-\(name).xml.plist")
++        }
++        let host = "https://forum-images.hardware.fr/images/perso"
++        try archive("empty", [])
++        try archive("typical", [
++            ("[:fake1]", "\(host)/fake1.gif", 0), ("[:fake2]", "\(host)/fake2.gif", 60), ("[:fake3:2]", "\(host)/fake3.gif", 120)
++        ])
++        try archive("boundary", [
++            ("[:Exemple]", "\(host)/Exemple.gif", 0), ("[:exemple]", "\(host)/exemple.gif", 0), // codes differing by case, equal dates
++            ("[:ünï]", "https://example.invalid/a b/ü.gif?x=1&y=2", 0.5),                      // non-ASCII, space, query, fractional date
++            ("[:old]", "\(host)/old.gif", -86_400)                                              // a date before the others
++        ])
++    }
++
++    // MARK: 4, smileySearchHistory_v1
++
++    /// Entries of the key as the real store reads them, dates replaced by `base + 60 * rank` (rank by original date), re-encoded
++    /// with the default JSONEncoder (what `record` does), array order unchanged.
++    private func normalizedHistory(_ name: String) throws {
++        var entries = SmileySearchHistoryStore.load()
++        let ranks = entries.indices.sorted { entries[$0].lastDate < entries[$1].lastDate }
++        for (rank, index) in ranks.enumerated() { entries[index].lastDate = date(Double(rank) * 60) }
++        let data = try JSONEncoder().encode(entries)
++        UserDefaults.standard.set(data, forKey: historyKey)
++        try write(data, "search-history-\(name).json")
++        try write(try dump([historyKey]), "defaults-search-history-\(name).plist")
++    }
++
++    private func exportSearchHistory() throws {
++        clearDefaults()
++        // typical: repeats, a case-insensitive merge, a 2-character query and a zero-result query that are ignored
++        for (text, results) in [("chat", 3), ("Chien", 5), ("chat", 2), ("CHAT", 1), ("ok", 4), ("rire", 0), ("rire", 7), ("Éclair", 2)] {
++            SmileySearchHistoryStore.record(query: text, resultCount: results)
++        }
++        try normalizedHistory("typical")
++        // boundary: exactly 50 entries
++        clearDefaults()
++        for index in 0..<50 { SmileySearchHistoryStore.record(query: String(format: "term%03d", index), resultCount: 1) }
++        try normalizedHistory("50-entries")
++        // a repeat at 50 (case differs) adds nothing; a 51st distinct query evicts the oldest
++        SmileySearchHistoryStore.record(query: "TERM010", resultCount: 1)
++        try normalizedHistory("50-entries-after-case-merge")
++        SmileySearchHistoryStore.record(query: "term050", resultCount: 1)
++        try normalizedHistory("51st-evicts-oldest")
++        // corrupt data under the key: the real load answers [], the next record rewrites a one-entry history
++        clearDefaults()
++        let truncated = Data(try Data(contentsOf: out.appendingPathComponent("search-history-typical.json")).prefix(40)) // a real value cut short
++        UserDefaults.standard.set(truncated, forKey: historyKey)
++        try write(truncated, "search-history-corrupt-before.bin")
++        XCTAssertTrue(SmileySearchHistoryStore.load().isEmpty)
++        SmileySearchHistoryStore.record(query: "after", resultCount: 1)
++        try normalizedHistory("after-corrupt-rewrite")
++    }
++
++    // MARK: 5, rehostImagesSwiftUI.json
++
++    private func exportUploadHistory() throws {
++        let file = try XCTUnwrap(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).last).appendingPathComponent("rehostImagesSwiftUI.json")
++        let fm = FileManager.default
++        let saved = try? Data(contentsOf: file)
++        try? fm.removeItem(at: file)
++        defer { if let saved { try? saved.write(to: file) } else { try? fm.removeItem(at: file) } }
++
++        // The only uploader is img3 (ReplyService.swift:1958-2035, answer shape U01): full, medium and thumb URLs, previewURL nil;
++        // the file names are synthetic hashes.
++        func image(_ name: String, w: Int?, h: Int?, medium: Bool, mini: Bool, at offset: TimeInterval) -> RehostUploadedImage {
++            let dir = "https://img3.super-h.fr/images/2024/01/01/\(name)"
++            return RehostUploadedImage(fullWidth: w, fullHeight: h, fullURL: "\(dir).jpg",
++                                       mediumURL: medium ? "\(dir).md.jpg" : nil, previewURL: nil,
++                                       miniURL: mini ? "\(dir).th.jpg" : nil, timeStamp: date(offset))
++        }
++        func store(_ name: String, _ images: [RehostUploadedImage]) throws {
++            RehostUploadHistoryStore.save(images)
++            try write(try Data(contentsOf: file), "upload-history-\(name).json")
++            XCTAssertEqual(RehostUploadHistoryStore.load(), images, name)
++        }
++        try store("empty", [])
++        let typical = [
++            image("c3d4e5f6a7b8", w: 1600, h: 1200, medium: true, mini: true, at: 7200), // newest first, as the screen inserts
++            image("b2c3d4e5f6a7", w: 800, h: 600, medium: true, mini: true, at: 3600),
++            image("a1b2c3d4e5f6", w: 4032, h: 3024, medium: true, mini: true, at: 0)
++        ]
++        try store("typical", typical)
++        try store("boundary", [
++            image("0123456789ab", w: nil, h: nil, medium: false, mini: false, at: 0.123), // every optional nil, fractional instant
++            image("0123456789ab", w: nil, h: nil, medium: false, mini: false, at: 60),     // same URL, another upload
++            image("0123456789ab", w: nil, h: nil, medium: false, mini: false, at: 60),     // identical id twice (legacy never dedupes)
++            image("ünï-é", w: 1, h: 1, medium: false, mini: true, at: -1)          // non-ASCII URL, date before base
++        ])
++        // corrupt file: the real load answers [], the next upload is saved over it (what the next onChange writes)
++        let truncated = Data(try Data(contentsOf: out.appendingPathComponent("upload-history-typical.json")).prefix(60)) // a real value cut short
++        try write(truncated, "upload-history-corrupt-before.bin")
++        try truncated.write(to: file)
++        XCTAssertTrue(RehostUploadHistoryStore.load().isEmpty)
++        var images = RehostUploadHistoryStore.load()
++        images.insert(image("f0e1d2c3b4a5", w: 640, h: 480, medium: true, mini: true, at: 10_800), at: 0)
++        try store("after-corrupt-rewrite", images)
 +    }
 +}
 diff --git a/HFRswiftTests/OracleExportTopic.swift b/HFRswiftTests/OracleExportTopic.swift
@@ -1801,6 +2074,63 @@ index 0000000..e901b5e
 +        out[@"exception"] = SmallException(exception);
 +    }
 +    return out;
++}
++
++@end
+diff --git a/HFRswiftTests/OracleLegacyStores.m b/HFRswiftTests/OracleLegacyStores.m
+new file mode 100644
+index 0000000..f29f3d4
+--- /dev/null
++++ b/HFRswiftTests/OracleLegacyStores.m
+@@ -0,0 +1,51 @@
++// Oracle exporter helper (SwiftHFR #347): the on-device smiley favourites archive written by the REAL SmileyCache.
++// Local-only: never committed to hfrnow.
++#import <Foundation/Foundation.h>
++#import <objc/message.h>
++
++@interface OracleLegacyStores : NSObject
+++ (NSData *)smileyArchive:(NSArray *)smileys;
++@end
++
++static NSString *StoresDocuments(void) {
++    return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
++}
++
++@implementation OracleLegacyStores
++
++/// Bytes of Documents/smiley_favorites_cache2 after the real SmileyCache.m:389-439 -AddAndSaveDicFavoritesApp:source:addSmiley:
++/// archived `smileys` [{code, url, dateAdded (seconds since 1970)}]. The legacy add stamps [NSDate now]; to keep fixed dates the
++/// favourites are put in dicFavoritesSmileys as SmileyFavorite objects (the class the legacy add creates), then one real add and
++/// one real remove of a dummy code make the real save path archive the dictionary (a remove is the legacy way to reach an empty one).
+++ (NSData *)smileyArchive:(NSArray *)smileys {
++    NSString *file = [StoresDocuments() stringByAppendingPathComponent:@"smiley_favorites_cache2"];
++    NSFileManager *fm = [NSFileManager defaultManager];
++    NSData *saved = [fm fileExistsAtPath:file] ? [NSData dataWithContentsOfFile:file] : nil;
++    [fm removeItemAtPath:file error:nil];
++    NSData *result = nil;
++    @try {
++        id cache = [[NSClassFromString(@"SmileyCache") alloc] init];
++        NSMutableDictionary *dic = [NSMutableDictionary dictionary];
++        for (NSDictionary *item in smileys) {
++            id favorite = [[NSClassFromString(@"SmileyFavorite") alloc] init];
++            [favorite setValue:item[@"code"] forKey:@"sCode"];
++            [favorite setValue:item[@"url"] forKey:@"sRawUrl"];
++            [favorite setValue:[NSDate dateWithTimeIntervalSince1970:[item[@"dateAdded"] doubleValue]] forKey:@"dateAdded"];
++            dic[item[@"code"]] = favorite;
++        }
++        [cache setValue:dic forKey:@"dicFavoritesSmileys"];
++        [cache setValue:[NSMutableArray array] forKey:@"arrFavoritesSmileysApp"];
++        SEL sel = NSSelectorFromString(@"AddAndSaveDicFavoritesApp:source:addSmiley:");
++        BOOL (*call)(id, SEL, NSString *, NSString *, BOOL) = (BOOL (*)(id, SEL, NSString *, NSString *, BOOL))objc_msgSend;
++        BOOL added = call(cache, sel, @"[:oracle-dummy]", @"https://example.invalid/dummy.gif", YES);
++        BOOL removed = call(cache, sel, @"[:oracle-dummy]", @"https://example.invalid/dummy.gif", NO);
++        if (added && removed) result = [NSData dataWithContentsOfFile:file];
++    } @catch (NSException *exception) {
++        result = nil;
++    }
++    [fm removeItemAtPath:file error:nil];
++    if (saved) [saved writeToFile:file atomically:YES];
++    return result;
 +}
 +
 +@end

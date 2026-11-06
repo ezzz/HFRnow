@@ -1,0 +1,15 @@
+{
+  "id": "T23",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/self/abc123.jpg",
+  "url": "https://reho.st/self/abc123.jpg",
+  "final_url": "https://reho.st/self/abc123.jpg",
+  "status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "date": "Mon, 02 Nov 2026 09:37:43 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "path of legacy HFRswiftTests/TopicPageURLRoutingTests.swift:45 (no such image) (#134); Referer: https://forum.hardware.fr/",
+  "private": false
+}

@@ -59,8 +59,10 @@ final class ReplyComposerModel: Identifiable {
     /// Unique per sheet.
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
 
-    private let services: ComposerServices
+    let services: ComposerServices
     private let autosaveDelay: Duration
+    /// What the sheet opens with besides the draft (LOT-086): merged into the restored text. Only a reply takes one.
+    private let initialQuote: ReplyQuote?
     private var hasRestored = false
     /// A close was asked and is writing the draft; typing would schedule a save that outlives the choice.
     private var isClosing = false
@@ -68,16 +70,21 @@ final class ReplyComposerModel: Identifiable {
 
     /// A composer for `target`; nothing is read before `start()`. `autosaveDelay` debounces draft writes (LOT-063: every
     /// save rewrites the file).
-    init(composing target: ComposerTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1)) {
+    init(
+        composing target: ComposerTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1), quote: ReplyQuote? = nil
+    ) {
         self.target = target
         self.services = services
         self.autosaveDelay = autosaveDelay
+        if case .reply = target { initialQuote = quote } else { initialQuote = nil }
         if case .newPrivateMessage(let message) = target { recipient = message.recipient }
     }
 
     /// A reply composer for `target`.
-    convenience init(target: ReplyTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1)) {
-        self.init(composing: .reply(target), services: services, autosaveDelay: autosaveDelay)
+    convenience init(
+        target: ReplyTarget, services: ComposerServices, autosaveDelay: Duration = .seconds(1), quote: ReplyQuote? = nil
+    ) {
+        self.init(composing: .reply(target), services: services, autosaveDelay: autosaveDelay, quote: quote)
     }
 
     /// The new-topic form's sub-category select (LOT-089): options, choice, loading and warning.
@@ -113,10 +120,13 @@ final class ReplyComposerModel: Identifiable {
     /// Closing asks whether to keep the draft (swiping the sheet down is blocked meanwhile, so it never loses the text).
     var closeNeedsChoice: Bool { hasText || !Self.isBlank(subject) }
 
-    /// What the smiley picker needs: the favourites store and the account key.
-    var smileyServices: (store: AppSmileyFavoritesStore, account: String) {
-        (services.smileyFavorites, services.account)
+    /// What the smiley picker needs: the favourites store, the account key and a fresh search (LOT-105).
+    var smileyServices: SmileyPanelServices {
+        services.smileyPanel
     }
+
+    /// What the image panel needs (LOT-102).
+    var imageUploadServices: ImageUploadServices { services.imageUpload }
 
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
@@ -140,6 +150,9 @@ final class ReplyComposerModel: Identifiable {
         if hasSubjectField { subject = draft?.subject ?? "" }
         isRestoring = false
         hasRestored = true
+        // The quote the sheet was opened with goes after the restored draft, like typing: saved after a pause, so closing the
+        // sheet on it keeps it in the draft.
+        if let quote = initialQuote { update(text: QuoteDraftMerger.merge(quote.text, into: text)) }
     }
 
     /// Reads the new-topic form's sub-category select; the sheet runs it beside `start()` so the editor never waits for the
@@ -215,8 +228,11 @@ final class ReplyComposerModel: Identifiable {
         // failed write does not stop the send; the warning stays on screen.
         _ = await saveNow()
         do throws(PostingError) {
+            let sent = text
             let result = try await post()
-            // The reply is posted: the sheet closes even if the draft cannot be deleted (spec, edge cases).
+            // The reply is posted: the selection it quotes is released, only on HFR's confirmation (LOT-086), and the sheet
+            // closes even if the draft cannot be deleted (spec, edge cases).
+            if let release = initialQuote?.release { await services.quoting?.release(release, postedText: sent) }
             _ = await discardDraft()
             isSending = false
             closeReason = .sent(result)
@@ -229,26 +245,6 @@ final class ReplyComposerModel: Identifiable {
                 picker.reset()
                 await loadSubcategories()
             }
-        }
-    }
-
-    /// One write through the poster, with the fields as they are now. Recipient and subject are trimmed, as legacy Swift did
-    /// (`AnswerView.swift:1474`, `MessagesView.swift:4213` @ 21173e77); a line break inside one is refused by the engine.
-    private func post() async throws(PostingError) -> PostingResult {
-        switch target {
-        case .reply(let reply):
-            return try await services.poster.reply(text, formURL: reply.formURL)
-        case .newPrivateMessage(let message):
-            return try await services.poster.newPrivateMessage(
-                to: recipient.trimmingCharacters(in: .whitespacesAndNewlines),
-                subject: subject.trimmingCharacters(in: .whitespacesAndNewlines),
-                text: text, formURL: message.formURL
-            )
-        case .newTopic(let topic):
-            return try await services.poster.newTopic(
-                subject: subject.trimmingCharacters(in: .whitespacesAndNewlines), subcategory: picker.selected,
-                text: text, formURL: topic.formURL
-            )
         }
     }
 

@@ -82,7 +82,12 @@ enum PostingCapture {
         "R45a": "R45a-new-topic-form", "R45b": "R45b-new-mp-form", "R47a": "R47a-mp-quote-form", "R47b": "R47b-mp-reply-composer",
         "R47c": "R47c-mp-composer-multiquote-cookie", "R47u1": "R47u1-mp-reply-composer-recipient",
         "R61b": "R61b-public-reply-composer", "R62a": "R62a-public-edit-form-later-post",
-        "R63b": "R63b-public-edit-form-first-post"
+        "R63b": "R63b-public-edit-form-first-post", "R123c": "R123c-mp-reply-composer-group-owner-newdest",
+        "R123e": "R123e-mp-reply-composer-group-member-no-roster",
+        "R124": "R124-mp-reply-composer-after-removal-no-newdest", "R127": "R127-mp-reply-composer-group-owner-three-members",
+        "R128": "R128-mp-reply-composer-group-owner-two-members", "R132": "R132-mp-reply-composer-group-owner-roster-restored",
+        "R136": "R136-mp-reply-composer-group-owner-after-refusal", "R137": "R137-mp-reply-composer-group-owner-after-empty-newdest",
+        "R138": "R138-mp-reply-composer-group-member-no-roster", "R139": "R139-mp-reply-composer-group-owner-after-member-newdest"
     ]
 
     /// The write answers, by capture id.
@@ -95,6 +100,8 @@ enum PostingCapture {
         "W17b": "W17b-mp-reply-bad-token-rejected", "W17c": "W17c-mp-reply-logged-out-rejected",
         "W19": "W19-mp-delete-first-post-success", "W20a": "W20a-mp-reply-flood", "W20b": "W20b-mp-reply-flood-again",
         "W32": "W32-public-delete-post-success", "W40": "W40-public-new-topic-success",
+        "W71": "W71-mp-group-reply-roster-unchanged-old-thread", "W74": "W74-mp-group-reply-remove-member-success",
+        "W75": "W75-mp-group-reply-add-member-success", "W76": "W76-mp-group-reply-unknown-pseudo-refused",
         "W41": "W41-public-first-post-edit-add-poll-success", "W49": "W49-public-first-post-delete-topic-success"
     ]
 

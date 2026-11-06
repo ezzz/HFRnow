@@ -33,6 +33,8 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var showsAuthorMenus = false
     /// Message layout (`theme_style`): the legacy default is modern (`AppSettingsView.swift:98` @ 2440d79 reads 1).
     var style = ThemeStyle.modern
+    /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
+    var visibility = VisibilityPolicy.none
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -59,7 +61,14 @@ enum TopicHTMLBuilder {
     ].joined(separator: "; ")
 
     /// The full document for `page`. `token` identifies this document so a late event of an older one is ignored.
-    static func document(for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions()) -> String {
+    /// `separatorAfter` is the flag message: legacy draws a dashed line after it (not after the last message), so the
+    /// unread messages start below it (`ObjCTopicMessageContentBuilder.m:25-33` @ 2440d79).
+    static func document(
+        for page: ReaderPage, token: Int, options: ReaderRenderOptions = ReaderRenderOptions(), separatorAfter: Int? = nil
+    ) -> String {
+        var options = options
+        // "Ego" highlights are not applied on private messages (legacy comment, `MessagesTableViewController.m:1401`).
+        if page.topicID?.category == .privateMessages { options.visibility = options.visibility.withoutOwnHighlights() }
         var html = """
         <!DOCTYPE html>
         <html lang="fr" data-token="\(token)">
@@ -77,8 +86,11 @@ enum TopicHTMLBuilder {
         <main>
 
         """
-        for message in page.messages {
+        for (index, message) in page.messages.enumerated() {
             html += article(for: message, options: options)
+            if !message.isContinuation, message.numreponse == separatorAfter, index < page.messages.count - 1 {
+                html += "<div class=\"separator1\"></div>\n"
+            }
         }
         html += "</main>\n</body>\n</html>\n"
         return html
@@ -92,10 +104,34 @@ enum TopicHTMLBuilder {
         var classes = ["message"]
         if message.isContinuation { classes.append("continuation") }
         if message.isDeleted { classes.append("deleted") }
+        let visibility = options.visibility.post(by: message.author)
+        if let visibilityClass = Self.cssClass(of: visibility) { classes.append(visibilityClass) }
+        let hidesAuthor = visibility == .blocked && options.visibility.hidesBlockedPseudo
         let anchor = message.isContinuation ? "" : " id=\"t\(message.numreponse)\""
-        let label = message.dateText.isEmpty ? "Message de \(author)" : "Message de \(author), \(date)"
+        var label = message.dateText.isEmpty ? "Message de \(author)" : "Message de \(author), \(date)"
+        if hidesAuthor { label = "Message masqué" }
         var html = "<article class=\"\(classes.joined(separator: " "))\"\(anchor) data-post=\"\(message.numreponse)\""
         html += " aria-label=\"\(label)\">\n"
+        if visibility == .blocked { html += Self.blockedSummary(author: author, hidesAuthor: hidesAuthor) }
+        html += header(of: message, author: author, date: date, options: options)
+        if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
+        if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }
+        // Body markup context only (LOT-034 contract).
+        let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
+        html += "<div class=\"content\">\(content)</div>\n"
+        html += videos(of: message)
+        if options.showsSignatures, let signature = message.content.signatureHTML {
+            html += "<div class=\"signature\">\(signature)</div>\n"
+        }
+        html += trailer(of: message)
+        if visibility == .blocked { html += "</details>\n" }
+        html += "</article>\n"
+        return html
+    }
+
+    /// The message header: avatar, author (a button when the author menu is on), date and the `⋯` button.
+    private static func header(of message: ReaderMessage, author: String, date: String, options: ReaderRenderOptions) -> String {
+        var html = ""
         html += "<header class=\"header\">"
         if let avatar = message.avatarURL {
             html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
@@ -114,17 +150,24 @@ enum TopicHTMLBuilder {
             html += " aria-label=\"Actions du message de \(author)\">⋯</button>"
         }
         html += "</header>\n"
-        if message.isContinuation { html += "<p class=\"continuation-note\">Reprise du message précédent</p>\n" }
-        if message.isDeleted { html += "<p class=\"deleted-note\">Message supprimé</p>\n" }
-        // Body markup context only (LOT-034 contract).
-        html += "<div class=\"content\">\(message.content.html)</div>\n"
-        html += videos(of: message)
-        if options.showsSignatures, let signature = message.content.signatureHTML {
-            html += "<div class=\"signature\">\(signature)</div>\n"
-        }
-        html += trailer(of: message)
-        html += "</article>\n"
         return html
+    }
+
+    private static func cssClass(of visibility: VisibilityPolicy.Post) -> String? {
+        switch visibility {
+        case .moderation: "mode"
+        case .own: "me"
+        case .allowlisted: "whitelist"
+        case .blocked: "blocked"
+        case .normal: nil
+        }
+    }
+
+    /// A native disclosure: no script is needed to read it, and the message menu (alert included) stays in the body.
+    private static func blockedSummary(author: String, hidesAuthor: Bool) -> String {
+        var html = "<details class=\"blocked-post\"><summary class=\"blocked-summary\">"
+        if !hidesAuthor { html += "<span class=\"blocked-author\">\(author)</span>" }
+        return html + "<span class=\"blocked-note\">Message masqué</span></summary>\n"
     }
 
     /// A placeholder per video (LOT-071 D-071-2): nothing of the provider loads before a tap, which opens the player.

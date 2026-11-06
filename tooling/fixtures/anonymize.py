@@ -13,6 +13,7 @@ positions, so a position missing from DISCOVER is reported instead of silently k
 Python 3 stdlib only. Output is English; colors are disabled without a TTY or with NO_COLOR.
 """
 import argparse
+import datetime
 import html
 import html.entities
 import html.parser
@@ -79,6 +80,129 @@ PRIVATE_SUBJECT = "Private subject"
 # LOT-038 needs to locate the storage MP.
 MPSTORAGE_SUBJECT = "a2bcc09b796b8c6fab77058ff8446c34"
 KEEP_SUBJECT_RE = re.compile(r"\s*(?:fixture-test-\d+|%s|%s)\s*$" % (MPSTORAGE_SUBJECT, re.escape(PRIVATE_SUBJECT)))
+# The thread's own subject is printed again in the header of its thread page and of its reply/edit form:
+# the page `<title>`, the `h1` breadcrumb (`open.gif`, then the subject, plain or as the `a.Ext` link), the
+# `th` "Sujet : <h3>…</h3>" and the form's "Sujet : …" row. `--private` replaces each one, whatever the
+# subject, unless it is a kept subject (KEEP_SUBJECT_RE). Positions, never content (LESSONS 39).
+_H1_THREAD = r"<h1\b[^>]*\bid=[\"']md_arbo_tree_(?:b_)?3[\"'][^>]*>"
+THREAD_SUBJECT_RES = tuple(re.compile(rx, re.I | re.S) for rx in (
+    r"(<title>)([^<]*?)( - Messages priv(?:é|&eacute;|&#0*233;)s - FORUM HardWare\.fr</title>)",
+    # The level-3 h1: the subject is its text, plain (after any icons) or the text of its `a.Ext` link.
+    r"(%s(?:\s|&nbsp;|<[^>]*>)*?)([^<>]+?)(\s*</h1>)" % _H1_THREAD,
+    r"(%s(?:(?!</h1>).)*?<a\b[^>]*\bclass=[\"']Ext[\"'][^>]*>)([^<]*)(</a>\s*</h1>)" % _H1_THREAD,
+    r"(Sujet\s*:\s*<h3>)([^<]*)(</h3>)",
+    r"(<th\b[^>]*>\s*Sujet\s*:\s*)([^<]+?)(\s*</th>)",
+    # The hidden (or visible) `sujet` input of a reply, edit or new-MP form; empty stays empty.
+    r"(<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*?\bvalue=\")([^\"]+)(\")",
+    r"(<input\b(?=[^>]*\bname=[\"']sujet[\"'])[^>]*?\bvalue=')([^']+)(')"))
+
+
+def private_thread_subjects(text):
+    """Replace the thread subject in every header position of a thread or form page; returns (text, count)."""
+    count = 0
+
+    def sub(m):
+        nonlocal count
+        if KEEP_SUBJECT_RE.match(_strip_tags(html.unescape(m.group(2)))):
+            return m.group(0)
+        count += 1
+        return m.group(1) + PRIVATE_SUBJECT + m.group(3)
+    for rx in THREAD_SUBJECT_RES:
+        text = rx.sub(sub, text)
+    return text, count
+
+
+def body_is_mp(body):
+    """True for a recorded POST body that writes an MP: `cat=prive` (any case) or a `dest` field."""
+    if not isinstance(body, str):
+        return False
+    return any((k.lower() == "cat" and v.strip().lower() == "prive") or k.lower() in ("dest", "newdest")
+               for k, v in urllib.parse.parse_qsl(body, keep_blank_values=True))
+
+
+def meta_is_private(meta):
+    """A capture is private when its meta says so, its URL is in the MP category (`cat=prive`) or its request
+    body writes an MP: the manifest flag alone is not trusted, a thread page or a refused write marked public
+    must not escape the private checks."""
+    return bool(meta.get("private")) or body_is_mp(meta.get("request_body")) or any(
+        "cat=prive" in str(meta.get(k) or "").lower() for k in ("url", "final_url", "url_template"))
+
+
+# A refused write answers with a replay form that carries the MP's category as a hidden `cat` input.
+_PAGE_MP_RE = re.compile(
+    r"<input\b(?=[^>]*\bname=[\"']cat[\"'])(?=[^>]*\bvalue=[\"']prive[\"'])[^>]*>", re.I)
+
+
+def page_is_private(text):
+    """True when the page itself says it belongs to the MP category (hidden `cat` input = prive)."""
+    return bool(_PAGE_MP_RE.search(text))
+
+
+API_KEY_RE = re.compile(r"api_key(?:=|%3D|[\"']\s*:\s*[\"'])([^&\"'\s<]*)", re.I)
+
+
+def api_key_matches(text):
+    """A third-party `api_key` value outside the placeholder, in a query string or JSON (ADR 0007)."""
+    return [m for m in API_KEY_RE.finditer(text) if m.group(1) not in ("", REDACTED)]
+
+
+def meta_subject_findings(text):
+    """[(line, col, reason)] for a `sujet` field of a meta's `request_body` that is not kept. Independent of
+    REQUEST_SUBJECT_RE: the body is parsed as a query string."""
+    if not looks_json(text):
+        return []
+    try:
+        doc = json.loads(text)
+    except ValueError:
+        return []
+    body = doc.get("request_body") if isinstance(doc, dict) else None
+    if not isinstance(body, str):
+        return []
+    line = next((i + 1 for i, l in enumerate(text.split("\n")) if '"request_body"' in l), 1)
+    fields = urllib.parse.parse_qsl(body, keep_blank_values=True)
+    # Only MP writes: the subject of a public topic is public (its body says `cat=<number>`).
+    if not meta_is_private(doc):
+        return []
+    subject = next((v.strip() for k, v in fields if k.lower() == "sujet"), None)
+    kept_thread = subject is not None and subject != PRIVATE_SUBJECT and (
+        _V_FIXTURE_SUBJECT.fullmatch(subject) or subject == MPSTORAGE_SUBJECT)
+    content = [(line, 0, "request body message text not replaced")
+               for k, v in fields if k.lower() == "content_form" and v.strip() and v.strip() != PRIVATE_PLACEHOLDER
+               and not kept_thread]
+    return content + [(line, 0, "request body subject not replaced")
+            for k, v in fields
+            if k.lower() == "sujet" and v.strip() and not (
+                v.strip() in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT, OWN_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(v.strip()))]
+
+
+def _subject_kept(value):
+    return bool(KEEP_SUBJECT_RE.match(value))
+
+
+def private_request_body(body):
+    """Recorded POST body of an MP write: the message text (`content_form`) is replaced unless the write goes to a
+    kept thread (fixture thread or MPStorage, whose bodies are the operator's own neutral text), then the subject."""
+    if body_is_mp(body):
+        fields = urllib.parse.parse_qsl(body, keep_blank_values=True)
+        subject = next((v for k, v in fields if k.lower() == "sujet"), None)
+        if subject is None or not _subject_kept(urllib.parse.unquote_plus(subject).strip()) or subject.strip() == PRIVATE_SUBJECT:
+            body = re.sub(r"((?:^|&)content_form=)([^&]*)",
+                          lambda m: m.group(1) + urllib.parse.quote_plus(PRIVATE_PLACEHOLDER), body, flags=re.I)
+        return private_request_subject(body)
+    return body
+
+
+REQUEST_SUBJECT_RE = re.compile(r"((?:^|&)sujet=)([^&]*)", re.I)
+
+
+def private_request_subject(body):
+    """The `sujet` field of a recorded POST body, replaced unless it is a kept subject (see KEEP_SUBJECT_RE)."""
+    return REQUEST_SUBJECT_RE.sub(
+        lambda m: m.group(0) if (KEEP_SUBJECT_RE.match(urllib.parse.unquote_plus(m.group(2)))
+                                 or urllib.parse.unquote_plus(m.group(2)) == OWN_SUBJECT)
+        else m.group(1) + urllib.parse.quote_plus(PRIVATE_SUBJECT), body)
+
+
 # The MPStorage thread page (live R60a): its first post is the storage JSON document LOT-038 parses, so
 # --private keeps that one body when the thread header (`th.padding` "Sujet : <h3>MP_NAME</h3>") says it
 # is the storage thread and the document only holds what is known to be impersonal. Fail closed: a
@@ -241,6 +365,127 @@ def _own_lines(inner):
                    for part in re.split(r"(\r\n|\n|\r)", inner))
 
 
+# List rows are aliased by position so fixtures stay stable and carry no live data (`forum1f.php?owntopic=1|2|3`, a
+# category list with `owntopic=`, or any list row with a flag cell, in the `forum2.php` or the rewritten
+# `/hfr/…-sujet_N_P.htm` link form): topic and message ids, title and slug, sub-category, page numbers, counts and
+# dates of every such row. Kept: row shape, flag and topic icons, link forms, category structure, `page=1`,
+# `numreponse=0`, a zero count. `verify_followed_lists` is the independent check: any number of such a row that is not
+# an alias fails.
+# Three digits at most for `cat`: legacy's `wordAfterString:@"cat="` looks for the closing `&` within 4 characters.
+FOLLOWED_TOPIC_FIRST = 9800001
+FOLLOWED_MESSAGE_FIRST = 9810000001
+FOLLOWED_SUBCAT_FIRST = 960001
+FOLLOWED_CAT_FIRST = 101
+FOLLOWED_TITLE = "Followed topic %d"
+FOLLOWED_SLUG = "followed-topic-%d"
+FOLLOWED_SUBCAT_SLUG = "subcategory-%d"
+FOLLOWED_CATEGORY = "Category %d"
+FOLLOWED_LAST_PAGE_BASE = 200
+FOLLOWED_READ_PAGE_BASE = 100
+FOLLOWED_REPLIES_BASE = 5000
+FOLLOWED_VIEWS_BASE = 300000
+FOLLOWED_BLOCK_RE = re.compile(
+    r"<tr\b[^>]*\bclass=\"(?:[^\"]*\bfondForum1fCat\b[^\"]*|sujet\b[^\"]*)\"[^>]*>.*?</tr>", re.S)
+FOLLOWED_LINK_RE = re.compile(r"[?&;]owntopic=[123](?!\d)")
+FOLLOWED_FLAG_CELL_RE = re.compile(r"<td\b[^>]*\bclass=\"sujetCase5\b[^\"]*\"[^>]*>\s*<(?:a|img)\b", re.S)
+FOLLOWED_CELL_RE = re.compile(r"(<td\b[^>]*\bclass=\"sujetCase(\d+)\b[^\"]*\"[^>]*>)(.*?)(</td>)", re.S)
+FOLLOWED_DATE_RE = re.compile(r"\b\d{2}-\d{2}-\d{4}((?:&nbsp;|\s| )+à(?:&nbsp;|\s| )+)\d{2}:\d{2}")
+FOLLOWED_NOT_ONE = r"(?!1(?!\d))\d+"
+FOLLOWED_SUJET_URL_RE = re.compile(
+    r"(/hfr/)((?:[^/\"'\s<>#?]+/)+)([^/\"'\s<>#?]*?)-?sujet_(\d+)_(\d+)(\.htm)")
+FOLLOWED_EPOCH = datetime.datetime(2000, 1, 1)
+
+
+def followed_date(i):
+    """(day, hour) of the alias date of row i (1-based): unique and ordered, so a sort by last post is deterministic."""
+    d = FOLLOWED_EPOCH + datetime.timedelta(days=i, minutes=i)
+    return d.strftime("%d-%m-%Y"), d.strftime("%H:%M")
+
+
+def is_followed_row(block):
+    """A list row linking with `owntopic=1|2|3`, or showing a flag (a link or an image in its flag cell)."""
+    return "sujetCase" in block and bool(FOLLOWED_LINK_RE.search(block) or FOLLOWED_FLAG_CELL_RE.search(block))
+
+
+def alias_followed_lists(text):
+    """Alias every row of a list page that has a flagged or `owntopic` row, by position; any other page is unchanged.
+
+    A list page is aliased whole, so its rows stay consistent."""
+    blocks = [m.group(0) for m in FOLLOWED_BLOCK_RE.finditer(text)]
+    if not any(is_followed_row(b) for b in blocks):
+        return text
+    has_headers = any("fondForum1fCat" in b.split(">")[0] for b in blocks)
+    cats, subs, subdirs, state = {}, {}, {}, {"row": 0}
+
+    def cat_alias(real):
+        # One browsed category (no category header rows) is in the page's own URL: nothing to hide.
+        return str(FOLLOWED_CAT_FIRST + cats.setdefault(real, len(cats))) if has_headers else real
+
+    def rewritten(frag, i, page):
+        def one(m):
+            dirs = [d for d in m.group(2).split("/") if d]
+            keep = dirs[:1] + [FOLLOWED_SUBCAT_SLUG % (subdirs.setdefault(d, len(subdirs)) + 1) for d in dirs[1:]]
+            shown = "1" if m.group(5) == "1" else str(page)
+            return "%s%s/%s-sujet_%d_%s%s" % (m.group(1), "/".join(keep), FOLLOWED_SLUG % i,
+                                              FOLLOWED_TOPIC_FIRST + i - 1, shown, m.group(6))
+        return FOLLOWED_SUJET_URL_RE.sub(one, frag)
+
+    def generic(frag, i, page=None):
+        frag = rewritten(frag, i, page)
+        frag = re.sub(r"\bpost=\d+", "post=%d" % (FOLLOWED_TOPIC_FIRST + i - 1), frag)
+        frag = re.sub(r"\bnumreponse=[1-9]\d*", "numreponse=%d" % (FOLLOWED_MESSAGE_FIRST + i - 1), frag)
+        frag = re.sub(r"#t\d+", "#t%d" % (FOLLOWED_MESSAGE_FIRST + i - 1), frag)
+        frag = re.sub(r"\bsubcat=(\d+)",
+                      lambda m: "subcat=%d" % (FOLLOWED_SUBCAT_FIRST + subs.setdefault(m.group(1), len(subs))), frag)
+        frag = re.sub(r"\bcat=(\d+)", lambda m: "cat=" + cat_alias(m.group(1)), frag)
+        frag = re.sub(r"\bref=\d+", "ref=1", frag)
+        return re.sub(r"(Sujet n°)\d+", lambda m: m.group(1) + str(FOLLOWED_TOPIC_FIRST + i - 1), frag)
+
+    def cell(m, i):
+        head, kind, inner, tail = m.group(1), int(m.group(2)), m.group(3), m.group(4)
+        last, read = FOLLOWED_LAST_PAGE_BASE + i, FOLLOWED_READ_PAGE_BASE + i
+        page = last
+        if kind == 3:
+            inner = re.sub(r"(<a\b[^>]*\bcCatTopic[^>]*>).*?(</a>)",
+                           lambda a: a.group(1) + FOLLOWED_TITLE % i + a.group(2), inner, flags=re.S)
+        elif kind == 4:
+            inner = re.sub(r"\bpage=" + FOLLOWED_NOT_ONE, "page=%d" % last, inner)
+            inner = re.sub(r">\s*\d+\s*</a>", ">%d</a>" % last, inner)
+        elif kind == 5:
+            page = read
+            inner = re.sub(r"\bpage=" + FOLLOWED_NOT_ONE, "page=%d" % read, inner)
+            inner = re.sub(r"\(p\.(?!1\))\d+\)", "(p.%d)" % read, inner)
+        elif kind in (7, 8):
+            alias = (FOLLOWED_REPLIES_BASE if kind == 7 else FOLLOWED_VIEWS_BASE) + i
+            inner = re.sub(r"(?<![\w#&])(?!0\s*$)\d+", str(alias), inner)
+        elif kind == 9:
+            inner = re.sub(r"\bpage=" + FOLLOWED_NOT_ONE, "page=%d" % last, inner)
+            day, hour = followed_date(i)
+            inner = FOLLOWED_DATE_RE.sub(lambda d: day + d.group(1) + hour, inner)
+        elif kind == 10:
+            inner = re.sub(r"(name=\"topic\d+\"\s+value=\")\d+", lambda t: t.group(1) + str(FOLLOWED_TOPIC_FIRST + i - 1), inner)
+            inner = re.sub(r"(name=\"valuecat\d+\"\s+value=\")(\d+)", lambda t: t.group(1) + cat_alias(t.group(2)), inner)
+        return generic(head, i) + generic(inner, i, page) + tail
+
+    def block(m):
+        frag = m.group(0)
+        if "fondForum1fCat" in frag.split(">")[0]:
+            real = re.search(r"\bcat=(\d+)", frag)
+            if real is None:
+                return frag
+            alias = cat_alias(real.group(1))
+            number = int(alias) - FOLLOWED_CAT_FIRST + 1 if has_headers else 0
+            frag = re.sub(r"\bcat=\d+", "cat=" + alias, frag)
+            return re.sub(r"(<a\b[^>]*\bcHeader[^>]*>)[^<]*(</a>)",
+                          lambda a: a.group(1) + FOLLOWED_CATEGORY % number + a.group(2), frag)
+        if "sujetCase" not in frag:
+            return frag
+        state["row"] += 1
+        return FOLLOWED_CELL_RE.sub(lambda c: cell(c, state["row"]), frag)
+
+    return FOLLOWED_BLOCK_RE.sub(block, text)
+
+
 def _profile_number(m):
     if m.group(1):
         return "01%s01%s2000" % (m.group(1), m.group(1))
@@ -273,6 +518,40 @@ def profile_field_value(label, value):
     return PROFILE_PLACEHOLDER
 
 
+# Alertes Qualitaÿ free text, written by members: the alert title (`nom`, RSS item `<title>`) and each
+# reporter's comment. Every word becomes `x`; entities and punctuation stay, so a parser still meets
+# the encodings HFR-PROTOCOL §7b B4 is about (#105). The topic title in the RSS description is the
+# public HFR subject and is kept like any list page's.
+AQ_TEXT_RES = tuple(re.compile(rx, re.I | re.S) for rx in (
+    r"(<alerte\b[^>]*?\bnom=\")([^\"]*)(\")",
+    r"(<item>\s*<title>)(.*?)(</title>)",
+    r"(<li>\s*\[[^\]<>]*\]\s*<b>[^<>]*</b>\s*:)([^<]*)(</li>)"))
+AQ_WORD = "x"
+
+
+def mask_aq_text(value):
+    """`value` with every word replaced by AQ_WORD, entities and punctuation kept."""
+    # Zero-width characters go too: inside a word they would split it into several `x`.
+    value = re.sub("[%s]" % ZERO_WIDTH, "", value)
+    return "".join(part if re.fullmatch(r"&#?\w+;", part) else re.sub(r"\w+", AQ_WORD, part)
+                   for part in re.split(r"(&#?\w+;)", value))
+
+
+def is_aq_document(text):
+    """An Alertes Qualitaÿ feed (RSS) or per-topic list (XML): only those get the AQ text masking."""
+    head = text.lstrip("\ufeff \t\r\n")[:400]
+    return head.startswith("<?xml") and bool(re.search(r"<alertes\b|Alertes Qualita", head))
+
+
+def anonymize_aq_text(text):
+    """Mask the member-written free text of an Alertes Qualitaÿ feed or list (no-op on other files)."""
+    if not is_aq_document(text):
+        return text
+    for rx in AQ_TEXT_RES:
+        text = rx.sub(lambda m: m.group(1) + mask_aq_text(m.group(2)) + m.group(3), text)
+    return text
+
+
 def anonymize_profile_fields(text):
     """Replace the public-profile value cells (personal rows, dates, counters, transaction counts)."""
     if not PROFILE_PAGE_RE.search(text):
@@ -293,7 +572,7 @@ PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
 _E = r"(?:é|&eacute;|&#0*233;)"
 _AGRAVE = r"(?:à|&agrave;|&#0*224;)"
 _Q = r"[\"']"
-_PARAMS = r"(?:spseudo|pseudo|dest|auteur)"
+_PARAMS = r"(?:spseudo|pseudo|newdest|dest|auteur)"
 DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx, group, mode in (
     # Topic and MP pages: the author cell; `b.s2` elsewhere (poll question) is not a member.
     ("post author", r"<td\b[^>]*\bclass=%smessCase1%s[^>]*>(?:(?!</td>).)*?<b\b[^>]*\bclass=%ss2%s[^>]*>(.*?)</b>"
@@ -354,6 +633,10 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
     ("posts by pseudo path", r"/hfr/recherche/pseudo-([^\"'<>/?#\s]{1,240}?)\.htm\b", 1, "path"),
     # REST API (R57*): author objects.
     ("REST author", r"\"(?:last_)?author\"\s*:\s*\{[^{}]*?\"title\"\s*:\s*\"((?:[^\"\\]|\\.)*)\"", 1, "json"),
+    # Alertes Qualitaÿ (aq.super-h.fr, T01/T02; legacy AQPlusView.swift, MessagesView.swift): the initiator
+    # attribute of the per-topic list, and every reporting member of an RSS item ("[le …] <b>X (initiateur)</b>").
+    ("AQ initiator", r"<alerte\b[^>]*?\bpseudoInitiateur=\"([^\"<>]*)\"", 1, "name"),
+    ("AQ RSS member", r"<li>\s*\[[^\]<>]*\]\s*<b>\s*([^<>]{1,80}?)(?:\s+\(initiateur\))?\s*</b>", 1, "name"),
 ))
 SMILEY_MODES = {"smiley", "smileypath", "smileyparam"}
 # "smilie perso": the fixed alt of the first personal smiley on a public profile (live raw R56c = corpus R56b).
@@ -889,6 +1172,12 @@ class Anonymizer:
                     mode = "name"
                 if mode == "param":
                     raw = param_value(raw, text[max(0, m.start(group) - 400):m.start(group)])
+                # `dest` lists several recipients separated by commas: each one is a name.
+                if (mode == "param" and text[:m.start(group)].lower().endswith("dest=")) or (
+                        mode == "name" and re.search(r"\bname=[\"'](?:new)?dest[\"']", m.group(0), re.I)):
+                    for item in decode_name(raw, mode).split(","):
+                        found.append((item.strip(), base + m.start(group), mode))
+                    continue
                 found.append((decode_name(raw, mode), base + m.start(group), mode))
         return sorted((f for f in found if f[0]), key=lambda f: f[1])
 
@@ -939,6 +1228,17 @@ class Anonymizer:
             return alias + "".join(ZW_TOKEN_RE.findall(raw))
         return alias
 
+    def _rewrite_dest(self, raw):
+        """A `dest` URL value holds several recipients separated by a comma (`,` or `%2C`): alias each one."""
+        out = []
+        for part in re.split(r"(%2C|,)", raw, flags=re.I):
+            m = re.fullmatch(r"((?:\+|%20|\s)*)(.*?)((?:\+|%20|\s)*)", part, re.S | re.I)
+            if part.lower() in ("%2c", ",") or not m.group(2):
+                out.append(part)
+            else:
+                out.append(m.group(1) + self._rewrite(m.group(2), "param") + m.group(3))
+        return "".join(out)
+
     def _structural(self, s):
         """Replace the names of every DISCOVER position."""
         for _label, rx, group, mode in DISCOVER:
@@ -953,6 +1253,10 @@ class Anonymizer:
                 if mode == "param":
                     raw = param_value(raw, m.string[max(0, m.start(group) - 400):m.start(group)])
                     end = start + len(raw)
+                    if m.group(0)[:start].lower().endswith("dest="):
+                        return m.group(0)[:start] + self._rewrite_dest(raw) + m.group(0)[end:]
+                elif mode == "name" and re.search(r"\bname=[\"'](?:new)?dest[\"']", m.group(0), re.I):
+                    return m.group(0)[:start] + self._rewrite(raw, "list") + m.group(0)[end:]
                 return m.group(0)[:start] + self._rewrite(raw, mode) + m.group(0)[end:]
             s = rx.sub(sub, s)
         return s
@@ -1186,6 +1490,8 @@ class Anonymizer:
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
         text = self._own_start(text)
+        private = private or page_is_private(text)
+        text = alias_followed_lists(text)
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
@@ -1210,6 +1516,7 @@ class Anonymizer:
             self.stats["private_blocks"] += copies
             text = SUBJECT_RE.sub(lambda m: m.group(0) if KEEP_SUBJECT_RE.match(_strip_tags(m.group(2)))
                                   else m.group(1) + PRIVATE_SUBJECT + m.group(3), text)
+            text, _n = private_thread_subjects(text)
         for open_re, placeholder in PERSONAL_BLOCKS:
             parts, last = [], 0
             for start, end in _find_para_blocks(text, open_re):
@@ -1219,6 +1526,7 @@ class Anonymizer:
                 last = end
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
+        text = anonymize_aq_text(text)
         # Dropping `selected` from personal fields is an intended markup change too: do it first.
         text = PERSONAL_SELECT_RE.sub(lambda m: m.group(1) + SELECTED_RE.sub("", m.group(2)) + m.group(3), text)
         before = markup_signature(text)
@@ -1258,12 +1566,13 @@ class Anonymizer:
         return walk(meta)
 
     # -- verification -----------------------------------------------------------
-    def findings(self, text, private=False):
+    def findings(self, text, private=False, account=None):
         """Return [(line, column, reason)] for every leak left in text (including decoded links).
 
         Never the offending value or its neighbourhood: CI logs are public and a neighbour may leak too."""
         self._reset()
-        res = []
+        private = private or page_is_private(text)
+        res = meta_subject_findings(text)
 
         def scan(chunk, base, where):
             def add(pos, reason, length=0):
@@ -1284,6 +1593,8 @@ class Anonymizer:
             for m in HASH_RE.finditer(chunk):
                 if m.group(2) != REDACTED:
                     add(m.start(), "hash_check value not REDACTED")
+            for m in api_key_matches(chunk):
+                add(m.start(), "api_key value not replaced")
             for m in COOKIE_RE.finditer(chunk):
                 if m.group(2).lower() not in COOKIE_OK:
                     add(m.start(), "cookie/session value (%s)" % m.group(1))
@@ -1322,6 +1633,9 @@ class Anonymizer:
                     res.append((line_of(text, start), column_of(text, start), "known member name in a list link text"))
         res += verify_structure(text, private=private)
         res += verify_own_topic(text)
+        res += verify_followed_lists(text)
+        res += verify_operator_members(text, account)
+        res += verify_aq(text)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
                 scan(decoded, pos, " (in obfuscated link)")
@@ -1422,7 +1736,7 @@ _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id id_user=", r"id_user=(\d+)"), ("member id avatar", r"mesdiscussions-(\d+)"),
     ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"),
     ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"))}
-_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
+_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|newdest|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
 _V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
 # Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
 _V_PROFILE_PERSONAL = re.compile(r"(?:Email|Date de naissance|Sexe|Ville|Profession|Loisirs|Site\b.*|Homepage|"
@@ -1494,8 +1808,10 @@ class StructuralVerifier(html.parser.HTMLParser):
             if s[:m.start(2)].count("'") % 2:  # inside a JS single-quoted string
                 value = value.split("'")[0]
             value = html.unescape(urllib.parse.unquote_plus(value))
-            if value:
-                self._name("URL parameter %s=" % m.group(1).lower(), value, line)
+            # `dest` lists several recipients separated by commas.
+            for item in (value.split(",") if m.group(1).lower() in ("dest", "newdest") else [value]):
+                if item.strip():
+                    self._name("URL parameter %s=" % m.group(1).lower(), item, line)
         for m in _V_SMILEY.finditer(s):
             self._name("personal smiley code", m.group(1), line)
         if "%5B%3A" in s.upper():
@@ -1538,8 +1854,10 @@ class StructuralVerifier(html.parser.HTMLParser):
                     decoded = decode_payload(c[len(prefix):])
                     if decoded:
                         self.check_value(decoded)
-        if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "dest", "auteur") and a.get("value"):
-            self._name("pseudo input", a["value"])
+        if tag == "input" and a.get("name", "").lower() in ("pseudo", "spseudo", "newdest", "dest", "auteur") and a.get("value"):
+            for item in (a["value"].split(",") if a.get("name", "").lower() in ("dest", "newdest") else [a["value"]]):
+                if item.strip():
+                    self._name("pseudo input", item)
         if tag == "img" and "/images/perso/" in a.get("src", ""):
             for k in ("alt", "title"):
                 v = a.get(k, "")
@@ -1551,6 +1869,12 @@ class StructuralVerifier(html.parser.HTMLParser):
             self.profile_page = True
         if self.profile_page and tag == "body" and self.title is not None:
             self._name("profile page title", re.sub(r"\s+-\s+FORUM HardWare\.fr\s*$", "", self.title.strip()))
+        if self.private and tag == "input" and a.get("name", "").lower() == "sujet":
+            # The subject field of a reply, edit or new-MP form: empty, the placeholder, a fixture subject or the title
+            # of the MPStorage thread, whatever the input type.
+            value = html.unescape(a.get("value", "")).strip()
+            if value and not (value in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(value)):
+                self._bad("private MP subject input", value)
         if tag in _V_VOID:
             return
         where = None
@@ -1598,6 +1922,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             for item in a["title"].split(","):
                 if item.strip():
                     self._name("MP correspondents", item)
+        elif self.private and (tag == "th" or (tag == "h1" and re.fullmatch(r"md_arbo_tree_(?:b_)?3", a.get("id", "")))):
+            where = "thread header"
         params = []
         if tag == "a":
             # A link to a member (profile, MP) whose text is an alias must carry the same alias.
@@ -1633,6 +1959,10 @@ class StructuralVerifier(html.parser.HTMLParser):
                 text = re.sub(r"^par\s+", "", text)
             if e["where"] == "page title":
                 self.title = text
+                m = re.match(r"(.+) - Messages privés - FORUM HardWare\.fr$", text, re.S)
+                subject = m.group(1).strip() if m and self.private else None
+                if subject and not (subject in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(subject)):
+                    self._bad("private MP thread subject", subject, e["line"])
             elif e["where"] == "form label":
                 self.form_label = text.lower()
             elif e["where"] == "MP form recipient":
@@ -1653,6 +1983,12 @@ class StructuralVerifier(html.parser.HTMLParser):
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
                     self._bad("private form copy", text, e["line"])
+            elif e["where"] == "thread header":
+                # The thread's own subject in the h1 breadcrumb (after open.gif) or a "Sujet : …" th.
+                m = re.match(r"Sujet\s*:\s*(.+)$", text, re.S) if e["tag"] == "th" else re.match(r"(.+)$", text, re.S)
+                if m and not (m.group(1).strip() in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT)
+                              or _V_FIXTURE_SUBJECT.fullmatch(m.group(1).strip())):
+                    self._bad("private MP thread subject", m.group(1), e["line"])
             elif e["where"] == "private MP subject":
                 # Any text but the placeholder, a fixture thread or the MPStorage title (digits too).
                 if text and not (text in (PRIVATE_SUBJECT, MPSTORAGE_SUBJECT) or _V_FIXTURE_SUBJECT.fullmatch(text)):
@@ -1765,6 +2101,336 @@ def verify_own_topic(text):
     return res
 
 
+# Independent verifier of the aliased list rows and of the member positions of list rows: an html.parser walk with its
+# own patterns (LESSONS 33), not the redactor's regexes. Pseudos compare in the normalised form `pseudo_key` (HFR
+# inserts U+200B in long ones).
+_VF_TOPIC_RANGE = range(9800001, 9810000)
+_VF_CAT_RANGE = range(101, 200)
+_VF_SUBCAT_RANGE = range(960001, 960100)
+_VF_PARAM = re.compile(r"(?:^|[?&;])(\w+)=([^&#;'\"\s]*)")
+_VF_SMALL_PARAMS = {"owntopic", "sondage", "trash", "trash_post", "print", "quote_only", "new", "nojs", "p",
+                    "moderation", "subcatgroup", "ref"}
+_VF_FREE_PARAMS = {"config", "id_user", "codehex", "pseudo", "hash_check", "type_page", "type"}
+_VF_DATE = re.compile(r"(\d{2}-\d{2}-\d{4})[\s ]+à[\s ]+(\d{2}:\d{2})")
+_VF_OPERATOR_ALIASES = {"user1", "user2"}
+_VF_ALTS = {"", "On", "Off", "flag", "closed", "poll", "sticky", "Sondage"}
+_VF_TITLES = (
+    r"Nouveau message", r"Pas de nouveau message", r"Sujet fermé", r"Sujet n°\d+",
+    r"Aller au dernier message lu sur ce sujet \(p\.\d+\)", r"Réinitialiser les (?:drapeaux|favoris) de cette catégorie",
+    r"Sondage", r"Sujet épinglé")
+_VF_HREF_OK = re.compile(r"(?:/forum2\.php\?|/profilebdd\.php\?|/hfr/[^\s]*sujet_\d+_\d+\.htm|#)")
+_VF_HEADER_HREF_OK = re.compile(r"(?:/forum1\.php\?|/forum1f\.php\?|#\d*$|javascript:)")
+_VF_SKIP_ATTRS = {"colspan", "rowspan", "width", "height", "scope", "rel", "type", "checked", "style"}
+_VF_CLASS_TOKEN = re.compile(r"\b(?:cBackCouleurTab|sujetCase|fondForum1?f?|cBackHeader)\w*")
+_VF_ROLL = re.compile(r"md_process_roll_over\(this,[01]\)|this\.style\.backgroundColor='#[0-9A-Fa-f]{3,6}'")
+_VF_NAME_OK = re.compile(r"(?:topic|valuecat|valueforum)\d+")
+_VF_SUJET_PATH = re.compile(r"/hfr/((?:[^/\s'\"]+/)+)([^/\s'\"]*?)-?sujet_(\d+)_(\d+)\.htm")
+_VF_PRIVATE_LINK = re.compile(r"(?:^|[?&;])cat=prive\b|/hfr/prive/")
+
+
+def pseudo_key(s):
+    """Normalised form of a pseudo: HFR inserts U+200B in long ones, and case or punctuation do not matter."""
+    return re.sub("[^0-9a-z]", "", html.unescape(s).lower())
+
+
+class _RowWalker(html.parser.HTMLParser):
+    """Collects, for every `tr.sujet` and every category header row, its attributes, texts and member texts."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.rows = []
+        self.row = None
+        self.cell = None
+        self.stack = []
+
+    def handle_starttag(self, tag, attrs):
+        pos = self.getpos()
+        classes = (dict(attrs).get("class") or "").split()
+        if tag == "tr" and ("sujet" in classes or "fondForum1fCat" in classes):
+            self.row = {"header": "sujet" not in classes, "carriers": [], "members": [], "pos": pos}
+            self.rows.append(self.row)
+            self.cell = None
+            self.stack = []
+            for name, value in attrs:
+                if value is not None:
+                    self.row["carriers"].append(("attr", name, value, pos, None))
+            return
+        if self.row is None:
+            return
+        if tag == "td":
+            kinds = [c for c in classes if re.fullmatch(r"sujetCase\d+", c)]
+            self.cell = int(kinds[0][len("sujetCase"):]) if kinds else None
+        self.stack.append((tag, self.cell))
+        for name, value in attrs:
+            if value is not None:
+                self.row["carriers"].append(("attr", name, value, pos, self.cell))
+
+    def handle_endtag(self, tag):
+        if tag == "tr" and self.row is not None:
+            self.row, self.cell, self.stack = None, None, []
+            return
+        while self.stack and tag != "br":
+            top = self.stack.pop()[0]
+            if top == tag:
+                break
+
+    def handle_data(self, data):
+        if self.row is None or not data.strip():
+            return
+        pos = self.getpos()
+        self.row["carriers"].append(("text", self.cell, data, pos, self.cell))
+        tags = [t for t, _c in self.stack]
+        if self.cell == 6 and "a" in tags:
+            self.row["members"].append((data, pos))
+        if self.cell == 9 and "b" in tags:
+            self.row["members"].append((data, pos))
+
+
+def _walk_rows(text):
+    w = _RowWalker()
+    w.feed(text)
+    w.close()
+    return w.rows
+
+
+def _row_links(row):
+    return [c[2] for c in row["carriers"] if c[0] == "attr" and c[1] in ("href", "ondblclick")]
+
+
+def _row_followed(row):
+    """Own-list link (`owntopic=1|2|3`), or a link or a flag image in the flag cell (case 5)."""
+    if any(re.search(r"(?:^|[?&;])owntopic=[123]\b", html.unescape(v)) for v in _row_links(row)):
+        return True
+    return any(c[0] == "attr" and c[4] == 5 and (c[1] == "href" or (c[1] == "src" and re.search(r"flag|favoris", c[2])))
+               for c in row["carriers"])
+
+
+def _row_has_cells(row):
+    return any(c[4] is not None for c in row["carriers"])
+
+
+def verify_followed_lists(text):
+    """[(line, column, reason)] for every value of an aliased list row that is not an alias; [] otherwise."""
+    rows = _walk_rows(text)
+    if not any(_row_followed(r) for r in rows if not r["header"]):
+        return []
+    res = []
+
+    def bad(pos, what):
+        res.append((pos[0], pos[1] + 1, "list-row check: %s not aliased" % what))
+
+    page_cats = set()
+    headers = any(r["header"] for r in rows)
+    i = 0
+    for row in rows:
+        # A list page is aliased whole, so its rows stay consistent.
+        if not row["header"]:
+            if not _row_has_cells(row):
+                continue
+            i += 1
+        topic = FOLLOWED_TOPIC_FIRST + i - 1
+        message = FOLLOWED_MESSAGE_FIRST + i - 1
+        last, read = FOLLOWED_LAST_PAGE_BASE + i, FOLLOWED_READ_PAGE_BASE + i
+        day, hour = followed_date(i)
+        for kind, name, raw, pos, cell in row["carriers"]:
+            s = html.unescape(raw)
+            if kind == "attr":
+                if name == "title":
+                    if not any(re.fullmatch(t, s) for t in _VF_TITLES):
+                        bad(pos, "title attribute")
+                    for m in re.finditer(r"Sujet n°(\d+)", s):
+                        if int(m.group(1)) != topic:
+                            bad(pos, "topic number")
+                    for m in re.finditer(r"\(p\.(\d+)\)", s):
+                        if int(m.group(1)) not in (1, read):
+                            bad(pos, "read page")
+                    continue
+                if name == "alt":
+                    if s not in _VF_ALTS:
+                        bad(pos, "alt text")
+                    continue
+                if name == "src":
+                    if not re.fullmatch(r"https://forum-images\.hardware\.fr/[\w./-]+\.(?:gif|png|jpe?g)", s):
+                        bad(pos, "image link")
+                    continue
+                if name == "class":
+                    s = _VF_CLASS_TOKEN.sub(" ", s)
+                elif name == "name":
+                    if _VF_NAME_OK.fullmatch(s) or re.fullmatch(r"[A-Za-z_]+", s):
+                        continue
+                elif name in _VF_SKIP_ATTRS:
+                    continue
+                elif name in ("onmouseover", "onmouseout"):
+                    s = _VF_ROLL.sub(" ", s)
+                if name in ("href", "ondblclick"):
+                    target = re.search(r"location\.href='([^']*)'", s)
+                    url = target.group(1) if target else s
+                    ok = _VF_HEADER_HREF_OK if row["header"] else _VF_HREF_OK
+                    if not ok.match(url):
+                        bad(pos, "link form")
+                    for m in _VF_SUJET_PATH.finditer(s):
+                        dirs = [d for d in m.group(1).split("/") if d]
+                        if any(not re.fullmatch(r"subcategory-\d+", d) for d in dirs[1:]):
+                            bad(pos, "sub-category path")
+                        if m.group(2) != FOLLOWED_SLUG % i:
+                            bad(pos, "slug")
+                        if int(m.group(3)) != topic:
+                            bad(pos, "topic id in path")
+                        if int(m.group(4)) not in (1, last, read):
+                            bad(pos, "page in path")
+                    s = _VF_SUJET_PATH.sub(" ", s)
+            elif not s.isspace():
+                if cell == 3 and not re.fullmatch(r"\s*(?: |Followed topic \d+)?\s*", s):
+                    bad(pos, "title")
+                if row["header"] and not re.fullmatch(r"\s*Category \d+\s*", s):
+                    bad(pos, "category title")
+            s = re.sub(r"[A-Za-z_]+\d*[a-z]?\.php", " ", s)
+            for m in _VF_DATE.finditer(s):
+                if (m.group(1), m.group(2)) != (day, hour):
+                    bad(pos, "date")
+            s = _VF_DATE.sub(" ", s)
+            for m in re.finditer(r"#t(\d+)", s):
+                if int(m.group(1)) != message:
+                    bad(pos, "message id")
+            s = re.sub(r"#t\d+", " ", s)
+            for m in re.finditer(r"n°(\d+)", s):
+                if int(m.group(1)) != topic:
+                    bad(pos, "topic number")
+            s = re.sub(r"n°\d+", " ", s)
+            for m in re.finditer(r"\(p\.(\d+)\)", s):
+                if int(m.group(1)) not in (1, read):
+                    bad(pos, "read page")
+            s = re.sub(r"\(p\.\d+\)", " ", s)
+            for m in re.finditer(r"Followed topic (\d+)", s):
+                if int(m.group(1)) != i:
+                    bad(pos, "title")
+            s = re.sub(r"Followed topic \d+", " ", s)
+            for m in re.finditer(r"Category (\d+)", s):
+                if int(m.group(1)) - 1 not in range(0, 100):
+                    bad(pos, "category title")
+            s = re.sub(r"Category \d+", " ", s)
+            s = re.sub(r"user\d+", " ", s)
+            if kind == "attr":
+                for m in _VF_PARAM.finditer(s):
+                    key, value = m.group(1), m.group(2)
+                    num = int(value) if value.isdigit() else None
+                    if key in _VF_FREE_PARAMS:
+                        ok = True
+                    elif key in _VF_SMALL_PARAMS:
+                        ok = num is None or num <= 3
+                    elif key == "post":
+                        ok = num == topic
+                    elif key == "numreponse":
+                        ok = num == 0 or num == message
+                    elif key == "page":
+                        ok = num == 1 or (name in ("href", "ondblclick") and num in (last, read))
+                    elif key == "cat":
+                        if num is not None and num in _VF_CAT_RANGE:
+                            ok = True
+                        else:
+                            ok = num is None or not headers
+                            if num is not None:
+                                page_cats.add(num)
+                    elif key == "subcat":
+                        ok = value == "" or num in _VF_SUBCAT_RANGE
+                    else:
+                        ok = num is None
+                    if not ok:
+                        bad(pos, "link parameter %s" % key)
+                s = _VF_PARAM.sub(" ", s)
+                if name == "value" and re.fullmatch(r"\s*\d+\s*", s):
+                    value = int(s)
+                    if value in (0, 1, topic) or value in _VF_CAT_RANGE:
+                        pass
+                    elif not headers:
+                        page_cats.add(value)
+                    else:
+                        bad(pos, "form value")
+                    s = " "
+            for m in re.finditer(r"\d+", s):
+                n = int(m.group(0))
+                if n in (0, 1) or n in (topic, message, last, read, FOLLOWED_REPLIES_BASE + i, FOLLOWED_VIEWS_BASE + i):
+                    continue
+                bad(pos, "number")
+    if len(page_cats) > 1:
+        res.append((1, 1, "list-row check: several real categories on a page without category headers"))
+    return res
+
+
+def verify_operator_members(text, account):
+    """[(line, column, reason)] for an alias user1 or user2 in a member position of a list row that links a real id.
+
+    Only for a page labelled with user1 or user2. A row is exempt only when all its topic links are private
+    threads; `post=` and `sujet_N_` forms both count."""
+    if not re.search(r"\buser[12]\b", account or ""):
+        return []
+    res = []
+    for row in _walk_rows(text):
+        if row["header"]:
+            continue
+        real = False
+        for c in row["carriers"]:
+            if c[0] != "attr" or c[1] not in ("href", "ondblclick"):
+                continue
+            s = html.unescape(c[2])
+            if _VF_PRIVATE_LINK.search(s):
+                continue
+            ids = re.findall(r"(?:^|[?&;])post=(\d+)", s) + re.findall(r"sujet_(\d+)_", s)
+            for raw_id in ids:
+                if int(raw_id) not in _VF_TOPIC_RANGE and not re.fullmatch(r"99000\d\d", raw_id):
+                    real = True
+        if real:
+            for value, pos in row["members"]:
+                if pseudo_key(value) in _VF_OPERATOR_ALIASES:
+                    res.append((pos[0], pos[1] + 1, "alias in a member position next to a real id"))
+    return res
+
+
+# Alertes Qualitaÿ, checked apart from DISCOVER / AQ_TEXT_RES: an XML parse of the document, then the
+# HTML of each RSS description scanned with this verifier's own patterns.
+_V_AQ_MASKED = re.compile(r"(?:x|&#?[0-9A-Za-z]+;|[^\w&])*")
+_V_AQ_REPORTER = re.compile(r"<li>(?:(?!</li>).)*?\]\s*<b>([^<]*)</b>\s*:([^<]*)</li>", re.S)
+_V_AQ_LI = re.compile(r"<li\b.*?</li>|<li\b.*", re.S | re.I)
+
+
+def _v_aq_alias(name):
+    return FAKE_NAME_RE.fullmatch(re.sub(r"\s+\(initiateur\)$", "", html.unescape(name).strip())) is not None
+
+
+def verify_aq(text):
+    """[(line, column, reason)] for every Alertes Qualitaÿ member or free-text value left real; [] for other files."""
+    import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+    head = text.lstrip("\ufeff \t\r\n")[:400]
+    if not head.startswith("<?xml") or not re.search(r"<alertes\b|Alertes Qualita", head):
+        return []
+    res = []
+
+    def bad(reason):
+        res.append((1, 1, "AQ check: " + reason))
+    try:
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
+    except ET.ParseError:
+        return [(1, 1, "AQ check: not well-formed XML")]
+    for alert in root.iter("alerte"):
+        if not FAKE_NAME_RE.fullmatch(alert.get("pseudoInitiateur", "")):
+            bad("initiator not aliased (alert %s)" % alert.get("id", "?"))
+        if not _V_AQ_MASKED.fullmatch(html.escape(alert.get("nom", ""), quote=False)):
+            bad("alert title not masked (alert %s)" % alert.get("id", "?"))
+    for n, item in enumerate(root.iter("item"), 1):
+        if not _V_AQ_MASKED.fullmatch(html.escape(item.findtext("title", ""), quote=False)):
+            bad("RSS item %d title not masked" % n)
+        description = item.findtext("description", "")
+        # Fail closed: a reporter line of any other shape is neither masked nor checked by the rules above.
+        if any(not _V_AQ_REPORTER.fullmatch(li) for li in _V_AQ_LI.findall(description)):
+            bad("RSS item %d reporter line of an unknown shape" % n)
+        for who, comment in _V_AQ_REPORTER.findall(description):
+            if not _v_aq_alias(who):
+                bad("RSS item %d reporter not aliased" % n)
+            if not _V_AQ_MASKED.fullmatch(comment.strip()):
+                bad("RSS item %d comment not masked" % n)
+    return res
+
+
 def verify_structure(text, private=False):
     """Independent check of every member position (HTML or JSON), and of MP subjects when private; [] when clean."""
     if looks_json(text):
@@ -1811,7 +2477,7 @@ def cmd_anonymize(args):
 
 
 def corpus_entries(folder):
-    """[(path, private)] for every capture of a corpus folder, from its <id>.meta.json files.
+    """[(path, private, account)] for every capture of a corpus folder, from its <id>.meta.json files.
 
     Raises ValueError for a meta without a matching file or a capture file no meta describes."""
     entries, described = [], set()
@@ -1821,13 +2487,13 @@ def corpus_entries(folder):
         meta_path = os.path.join(folder, name)
         with open(meta_path, encoding="utf-8") as fh:
             meta = json.load(fh)
-        entries.append((meta_path, False))
+        entries.append((meta_path, False, None))
         described.add(name)
         if meta.get("file"):
             path = os.path.join(folder, meta["file"])
             if not os.path.isfile(path):
                 raise ValueError("%s: file %s is missing" % (name, meta["file"]))
-            entries.append((path, bool(meta.get("private"))))
+            entries.append((path, meta_is_private(meta), meta.get("account")))
             described.add(meta["file"])
     orphans = [n for n in sorted(os.listdir(folder)) if n not in described and not n.endswith(".md")]
     if orphans:
@@ -1839,19 +2505,19 @@ def cmd_check(args):
     """CLI: verify files (or a whole corpus); exit non-zero when any file leaks."""
     anon = Anonymizer(Config.load(args.config) if args.config else Config())
     try:
-        entries = corpus_entries(args.corpus) if args.corpus else [(f, args.private) for f in args.files]
+        entries = corpus_entries(args.corpus) if args.corpus else [(f, args.private, args.account) for f in args.files]
     except (OSError, ValueError) as exc:
         _ui.ko(str(exc))
         return 1
     bad = 0
-    for path, private in entries:
+    for path, private, account in entries:
         try:
             text, _enc = read_text(path)
         except OSError as exc:
             _ui.ko("%s: %s" % (path, exc.strerror))
             bad += 1
             continue
-        leaks = anon.findings(text, private=private)
+        leaks = anon.findings(text, private=private, account=account)
         for line, col, reason in leaks:
             _ui.ko("%s:%d:%d: %s" % (path, line, col, reason))
         if leaks:
@@ -1871,6 +2537,7 @@ def main(argv=None):
         p.add_argument("--config", help="local JSON config: also look for the operator pseudos, e-mails, ids")
         p.add_argument("--private", action="store_true", help="also require message bodies to be replaced")
         p.add_argument("--corpus", help="check every capture of this folder (--private read from each meta)")
+        p.add_argument("--account", help="capture account label of the files (`user1`, `user2`, `anon`; with --corpus it is read from each meta)")
         p.add_argument("--quiet", action="store_true", help="print failures only")
         p.add_argument("files", nargs="*")
         args = p.parse_args(argv[1:])

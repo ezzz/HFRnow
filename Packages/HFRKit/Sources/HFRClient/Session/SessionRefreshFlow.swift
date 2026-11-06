@@ -35,7 +35,8 @@ public struct SessionRefreshFlow: Sendable {
     ///
     /// `valid` merges the cookies HFR set or removed and the page's `hash_check` into `session`; on every other outcome,
     /// and every thrown error, the flow writes nothing (concurrent requests may still change `session`). A session
-    /// without a usable `md_user` is `expired` and nothing is sent.
+    /// without a usable `md_user` is `expired` and nothing is sent; HFR's stale-session page (`R70c`) is `expired` too,
+    /// unless the session changed while the request ran.
     /// - Throws: the transport's `NetworkError` (4xx/5xx, timeout, offline, cancelled).
     public func refresh(_ session: HFRSession, now: Date = Date()) async throws(NetworkError) -> SessionHealth {
         let seed = await session.refreshSeed(now: now)
@@ -45,6 +46,10 @@ public struct SessionRefreshFlow: Sendable {
         request.redirectPolicy = .doNotFollow
         let probe = probe(for: session, cookies: seed.cookies, now: now)
         let response = try await probe.send(request)
+        // HFR's own word that it refuses these cookies (`R70c`); checked before the token, on the same exact URL.
+        if StaleSessionAnswer.matches(response, requestedURL: request.url) {
+            return try await session.confirmStaleSession(seed: seed, now: now)
+        }
         guard let token = Self.accountToken(in: response, expectedURL: request.url) else {
             return .unconfirmed(.unrecognizedPage)
         }

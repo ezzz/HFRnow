@@ -8,12 +8,26 @@ import Testing
 struct HFRLinkRouteCorpusTests {
     /// Distinct `href` values of every captured page, resolved against the forum root; in-page anchors, mailto, javascript
     /// and the like are not URLs the router sees. Entities are decoded by `HFRURL.absolute`.
+    /// A page served by the forum host: its relative links resolve against the forum. `R98a` is a `www.hardware.fr` page,
+    /// whose relative links (`/prix/`, `/html/news/`) are not forum paths.
+    static func isForumPage(_ page: String, in directory: URL) throws -> Bool {
+        // `<id>-<slug>.html`, and an id may hold a dash (`R55-p5u1`): the meta is `<id>.meta.json` for one of the prefixes.
+        let parts = page.split(separator: "-")
+        for count in (1..<parts.count).reversed() {
+            let meta = directory.appending(path: parts.prefix(count).joined(separator: "-") + ".meta.json")
+            guard FileManager.default.fileExists(atPath: meta.path) else { continue }
+            let object = try JSONSerialization.jsonObject(with: Data(contentsOf: meta)) as? [String: Any]
+            return (object?["final_url"] as? String).flatMap { URL(string: $0)?.host } == HFRURL.forumHost
+        }
+        return true
+    }
+
     static func corpusLinks() throws -> [URL] {
         let directory = try #require(Bundle.module.url(forResource: "captures", withExtension: nil, subdirectory: "Fixtures"))
         let pages = try FileManager.default.contentsOfDirectory(atPath: directory.path).filter { $0.hasSuffix(".html") }
         var links = Set<String>()
-        for page in pages {
-            let html = try String(contentsOf: directory.appending(path: page), encoding: .utf8)
+        for page in pages where try Self.isForumPage(page, in: directory) {
+            let html = try Fixture.decoded(Data(contentsOf: directory.appending(path: page)))
             for match in html.matches(of: /href="([^"]*)"/) {
                 // `#bas` and the like point inside the page being read; they have no route of their own.
                 let href = String(match.output.1)
@@ -49,6 +63,11 @@ struct HFRLinkRouteCorpusTests {
         // `forum1.php` with no `cat` at all: which list it names is not documented, so it is not guessed.
         if url.path == "/forum1.php", url.query == "config=hfr.inc" { return true }
         if url.path == "/forum2.php" { return link.contains("print=1") || link.contains("quote_only=1") }
+        // Real shapes of R121c whose target is not traced (LOT-095, pending capture): the `hardwarefr` rules link and the
+        // filtered list `liste_sujet_filtre-<n>-<m>` (meaning of `n` and `m` not captured).
+        let path = url.path
+        if path.wholeMatch(of: #/\/hardwarefr\/[\w-]+\/sujet-[0-9]+-[0-9]+\.htm/#) != nil { return true }
+        if path.wholeMatch(of: #/\/hfr\/[\w-]+\/liste_sujet_filtre-[0-9]+-[0-9]+\.htm/#) != nil { return true }
         return url.path == "/forum1f.php" && (link.contains("owntopic=0") || link.contains("owntopic=2"))
     }
 
@@ -79,7 +98,7 @@ struct HFRLinkRouteCorpusTests {
         var forum2 = 0
         for url in try Self.corpusLinks() where url.host == HFRURL.forumHost {
             let link = url.absoluteString
-            let isCanonical = url.path.contains("-sujet_")
+            let isCanonical = url.path.hasPrefix("/hfr/") && url.path.contains(/sujet_[0-9]+_[0-9]+\.htm$/)
             guard isCanonical || url.path == "/forum2.php" else { continue }
             let topic: HFRTopicLink
             switch HFRLinkRoute.route(for: url) {

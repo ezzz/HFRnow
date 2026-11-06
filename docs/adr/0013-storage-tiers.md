@@ -219,6 +219,7 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `display_sig` | `AppSettingsView.swift:110` | No | None | 1 | **iCloud KVS** | Content rendering. |
 | `embedded_videos` | removed from `master` by `d645f52` ("désactive les vidéos intégrées": picker and key deleted from `AppSettingsView.swift`); no reader nor writer at `21173e7` | No | None | — | **Dropped**: the LOT-060 catalogue key `embeddedVideos` gets `scope: .device` until LOT-060's "not ported" list removes it; never synced | Legacy dropped the feature after the audit (`2440d79` still had it). |
 | `display_images` (`yes`/`no`/`wifi`) | forced `yes` in legacy (audit E §3.1); default `wifi` (LOT-060, policy C) | No | None | 1 | **Device-only** | Network policy differs per device. |
+| `mp_list_display` — new (LOT-171), no legacy | none | No | None | 1 | **iCloud KVS** | Behaviour: one MP list or two; a preference, not a device fact. |
 | `mp_badge_enabled` | `AppSettingsView.swift:114`, `MainWindow.swift:1349` | No | None | 1 | **Device-only** | Badges are per device. |
 | `recherche_categorie` (last search category) | `ForumSearchView.swift:111` | No | None | 1 | **Device-only** | Transient UI state. |
 | `rehost_use_link`, `rehost_resize_before_upload` | `ReplyService.swift:1837`; `RehostImageViewController.m:84-99, 580-622` | No | None | 2 | **iCloud KVS** | Posting preference. |

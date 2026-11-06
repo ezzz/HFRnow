@@ -45,15 +45,14 @@ extension KeyedDecodingContainer {
     /// Like `decodeLenientInt`, nil when the key is absent or null.
     func decodeLenientIntIfPresent(forKey key: Key) throws -> Int? {
         guard contains(key), try !decodeNil(forKey: key) else { return nil }
-        if let value = try? decode(Int.self, forKey: key) { return value }
-        if let value = try? decode(Double.self, forKey: key), let integer = Self.wholeInteger(value) { return integer }
-        if let text = try? decode(String.self, forKey: key) {
-            if let lexeme = JSONNumberBox.lexeme(text) {
-                if let value = Int(lexeme) { return value }
-                if let value = Double(lexeme), let integer = Self.wholeInteger(value) { return integer }
-            } else if let value = Int(text.trimmingCharacters(in: .whitespaces)) {
-                return value
-            }
+        switch try decode(JSONValue.self, forKey: key) {
+        case .number(let number):
+            if let value = Int(number.lexeme) { return value }
+            if let value = Double(number.lexeme), let integer = Self.wholeInteger(value) { return integer }
+        case .string(let text):
+            if let value = Int(text.trimmingCharacters(in: .whitespaces)) { return value }
+        case .null, .bool, .array, .object:
+            break
         }
         throw DecodingError.typeMismatch(Int.self, .init(codingPath: codingPath + [key], debugDescription: "Not an integer"))
     }
@@ -66,26 +65,25 @@ extension KeyedDecodingContainer {
     /// Reads a string written as a string or a number.
     func decodeLenientStringIfPresent(forKey key: Key) throws -> String? {
         guard contains(key), try !decodeNil(forKey: key) else { return nil }
-        if let value = try? decode(String.self, forKey: key) {
-            guard let lexeme = JSONNumberBox.lexeme(value) else { return value }
-            if let integer = Int(lexeme) { return String(integer) }
-            return Double(lexeme).map { String($0) } ?? lexeme
+        switch try decode(JSONValue.self, forKey: key) {
+        case .string(let text):
+            return text
+        case .number(let number):
+            if let integer = Int(number.lexeme) { return String(integer) }
+            return Double(number.lexeme).map { String($0) } ?? number.lexeme
+        case .null, .bool, .array, .object:
+            break
         }
-        if let value = try? decode(Int.self, forKey: key) { return String(value) }
-        if let value = try? decode(Double.self, forKey: key) { return String(value) }
         throw DecodingError.typeMismatch(String.self, .init(codingPath: codingPath + [key], debugDescription: "Not a string"))
     }
 
     /// Reads a millisecond timestamp (number or numeric string) as a `Date`; non-finite or out-of-range values are rejected.
     func decodeMillisecondDateIfPresent(forKey key: Key) throws -> Date? {
         guard contains(key), try !decodeNil(forKey: key) else { return nil }
-        let milliseconds: Double?
-        if let value = try? decode(Double.self, forKey: key) {
-            milliseconds = value
-        } else if let text = try? decode(String.self, forKey: key) {
-            milliseconds = Double(JSONNumberBox.lexeme(text) ?? text.trimmingCharacters(in: .whitespaces))
-        } else {
-            milliseconds = nil
+        let milliseconds: Double? = switch try decode(JSONValue.self, forKey: key) {
+        case .number(let number): Double(number.lexeme)
+        case .string(let text): Double(text.trimmingCharacters(in: .whitespaces))
+        case .null, .bool, .array, .object: nil
         }
         guard let milliseconds, milliseconds.isFinite, abs(milliseconds) <= maximumTimestampMilliseconds else {
             let context = DecodingError.Context(codingPath: codingPath + [key], debugDescription: "Not a valid timestamp")

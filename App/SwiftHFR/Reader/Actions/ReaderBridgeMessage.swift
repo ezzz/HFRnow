@@ -5,7 +5,7 @@ import Foundation
 // untyped values and ignored bad shapes silently.
 
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
-/// selector: the decoder knows five names and takes only numbers and strings of the shape each one needs; anything else
+/// selector: the decoder knows eight names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.
 enum ReaderBridgeMessage: Equatable, Sendable {
     /// `src` of every image of the document, in order; an entry that is not a string is kept as nil (blocked).
@@ -18,6 +18,16 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     case video(post: Int, index: Int)
     /// The user tapped the menu button (`message`) or the author (`avatar`) of message `post`.
     case menu(post: Int, source: MessageMenuSource)
+    /// Scrolling paused with message `post` topmost (LOT-111: recorded as the reading position).
+    case position(post: Int)
+
+    /// The user chose "Citer extrait" (`bold` false) or "Citer gras" over `text`, selected inside message `post` (LOT-086). The
+    /// page's `text` is a claim: the app only hands it to the quote formatter, never to the page or the network.
+    case quote(post: Int, text: String, bold: Bool)
+
+    /// The user tapped a posted picture: the `src` of the pictures the page shows (in order) and the tapped one's position
+    /// among them (LOT-109). The app re-checks every entry; the page's list is a claim.
+    case image(urls: [String], index: Int)
 
     /// Why a body was rejected.
     enum Failure: Error, Equatable, Sendable {
@@ -36,6 +46,9 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         /// The message.
         var message: ReaderBridgeMessage
     }
+
+    /// Longest selection kept, in characters: a message holds far less, so a longer one is not a selection of it.
+    static let maximumQuoteText = 20_000
 
     /// Most array entries read from one body: the images of a page, as the controller already caps them.
     static let maximumImages = 5_000
@@ -57,18 +70,64 @@ enum ReaderBridgeMessage: Equatable, Sendable {
             return .tap(url: url)
         case "ready":
             return .ready
+        default:
+            return try messageAboutAPost(ofType: type, in: object)
+        }
+    }
+
+    /// The names whose payload starts with a message number.
+    private static func messageAboutAPost(ofType type: String, in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        switch type {
         case "video":
-            guard let post = integer(object["post"]), let index = integer(object["index"]), post > 0, index >= 0 else {
-                throw .invalidPayload
-            }
-            return .video(post: post, index: index)
+            return try video(in: object)
         case "menu":
-            guard let post = integer(object["post"]), post > 0, let name = object["source"] as? String,
+            guard let post = positivePost(in: object), let name = object["source"] as? String,
                   let source = MessageMenuSource(rawValue: name) else { throw .invalidPayload }
             return .menu(post: post, source: source)
+        case "image":
+            return try image(in: object)
+        case "quote":
+            return try quote(in: object)
+        case "position":
+            guard let post = positivePost(in: object) else { throw .invalidPayload }
+            return .position(post: post)
         default:
             throw .unknownType
         }
+    }
+
+    private static func video(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let post = positivePost(in: object), let index = integer(object["index"]), index >= 0 else {
+            throw .invalidPayload
+        }
+        return .video(post: post, index: index)
+    }
+
+    private static func quote(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let post = positivePost(in: object), let text = object["text"] as? String,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.count <= maximumQuoteText,
+              let bold = boolean(object["bold"]) else { throw .invalidPayload }
+        return .quote(post: post, text: text, bold: bold)
+    }
+
+    private static func image(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let list = object["urls"] as? [Any], list.count <= maximumImages, let index = integer(object["index"]),
+              index >= 0, index < list.count else { throw .invalidPayload }
+        // One entry that is not a string rejects the whole message: the index must keep pointing at the same picture.
+        let urls = list.compactMap { $0 as? String }
+        guard urls.count == list.count else { throw .invalidPayload }
+        return .image(urls: urls, index: index)
+    }
+
+    /// The message number a body names: a whole number above zero, nothing else.
+    private static func positivePost(in object: [String: Any]) -> Int? {
+        integer(object["post"]).flatMap { $0 > 0 ? $0 : nil }
+    }
+
+    /// A real boolean from WebKit's bridge: `1` and `0` are numbers, not booleans.
+    private static func boolean(_ value: Any?) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        guard let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() else { return nil }
+        return number.boolValue
     }
 
     /// A whole number from WebKit's bridge: an `NSNumber` that is not a boolean and has no fraction; nothing else.

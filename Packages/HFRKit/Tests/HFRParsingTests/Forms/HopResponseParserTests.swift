@@ -12,9 +12,13 @@ struct HopResponseParserTests {
         "W34", "W35"
     ]
 
-    @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases)
+    /// The group roster answers (#507), whose oracles are in `M2-writes/`.
+    static let rosterCases = ["W71", "W72", "W74", "W75", "W76", "W77", "W78"]
+
+    @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases + rosterCases)
     func followsOracle(id: String) throws {
-        let oracle = try HopResponseOracle.load(id)
+        let folder = Self.rosterCases.contains(id) ? "Fixtures/M2-writes" : "Fixtures/LOT-004"
+        let oracle = try HopResponseOracle.load(id, subdirectory: folder)
         let response = try HopResponseParser.classify(html: oracle.html)
         let legacyKind = try #require(oracle.legacy["classification"] as? String)
         // `loggedOut` refines the legacy "rejected" (W17c, difference 2 of the spec); nothing else changes kind.
@@ -148,9 +152,20 @@ struct HopResponseParserTests {
         "W49-public-first-post-delete-topic-success",
         "W61-mp-create-bbcode-success", "W62-mp-reply-bmp-emoji-success", "W63-mp-reply-multiquote-cookie-deleted",
         // The MP thread delete (manageaction.php, LOT-094): a link-less `.hop` "Action effectuée avec succès".
-        "W64-mp-thread-delete-owner-success", "W65-mp-thread-delete-recipient-success"
+        "W64-mp-thread-delete-owner-success", "W65-mp-thread-delete-recipient-success",
+        // Group MP create (#336).
+        "W70-mp-create-group-success",
+        // Group roster edits (#507): the owner's replies (unchanged, one member removed or added, empty `newdest`), a member's
+        // reply with an unserved `newdest`, the new group of three. `W76` (unknown pseudo) is a refusal, so it is not here.
+        "W71-mp-group-reply-roster-unchanged-old-thread", "W72-mp-group-reply-remove-member-to-two-person",
+        "W73-mp-create-group-three-recipients-success", "W74-mp-group-reply-remove-member-success",
+        "W75-mp-group-reply-add-member-success", "W77-mp-group-reply-empty-newdest-success",
+        "W78-mp-group-reply-member-unserved-newdest-success",
+        // New MP whose body starts with a line break (#130), and the sender's delete of its unread thread (W64's body).
+        "W130-mp-create-leading-newline-success", "W131-mp-thread-delete-owner-unread-recipient-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
-        // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) needs its own rule (LOT-050).
+        // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
+        // (`HopResponseAlertTests`).
     ]
 
     @Test("Sweep: across the whole capture corpus only the write confirmations classify as success")

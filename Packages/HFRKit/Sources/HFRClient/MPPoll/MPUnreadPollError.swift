@@ -7,4 +7,6 @@ public enum MPUnreadPollError: Error, Sendable, Equatable {
     case network(NetworkError)
     /// HFR answered, but the page is in maintenance or unreadable (`ListPageFailure`).
     case page(ListPageFailure)
+    /// HFR refused the account's cookies (its stale-session page, `R70a`), as `SessionRefreshFlow` reports it (#383).
+    case sessionExpired(SessionExpiry)
 }

@@ -2,11 +2,11 @@
   "case" : "P03c",
   "exception" : null,
   "input" : {
-    "bytes" : 32166,
+    "bytes" : 32199,
     "currentURL" : null,
     "file" : "../captures/P03c-favourites-after-addflag.html",
     "now" : "2026-10-26T03:42:45Z",
-    "sha256" : "1c5de9df7032e3ef3246037737f5681527048c6f9c52490613511cb4ffdcacbb"
+    "sha256" : "31399f97bbda321bf88f98888db2a98113eefb7231d8ac23441de90220ff353a"
   },
   "kind" : "favorites",
   "legacyCommit" : "2440d79",
@@ -14,9 +14,9 @@
     "favorites" : [
       {
         "forum" : {
-          "aID" : "13",
-          "aTitle" : "Discussions",
-          "aURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "aID" : "101",
+          "aTitle" : "Category 1",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=101&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
           "subCats" : [
 
           ]
@@ -26,19 +26,19 @@
           {
             "aAuthorOfLastPost" : "user4",
             "aAuthorOrInter" : "",
-            "aDateOfLastPost" : "il y a 1 h",
-            "aDateOfLastPostKind" : "relative",
-            "aRepCount" : 88008,
-            "aTitle" : "Topic pizza maison",
+            "aDateOfLastPost" : "02/01/00",
+            "aDateOfLastPostKind" : "absolute",
+            "aRepCount" : 5001,
+            "aTitle" : "Followed topic 1",
             "aTypeOfFlag" : "",
-            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t2666649",
-            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t9810000001",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
             "aURLOfFlag" : "",
-            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
-            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
-            "catID" : 13,
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 101,
             "curTopicPage" : 1,
-            "dDateOfLastPost" : "2026-10-26T01:50:00Z",
+            "dDateOfLastPost" : "2000-01-01T23:01:00Z",
             "isClosed" : false,
             "isLocallyViewedInApp" : false,
             "isPoll" : false,
@@ -46,8 +46,8 @@
             "isSuperFavorite" : false,
             "isViewed" : false,
             "isViewedFromForumAtLoad" : false,
-            "maxTopicPage" : 2201,
-            "postID" : 28563,
+            "maxTopicPage" : 201,
+            "postID" : 9800001,
             "sLastSearchPostContent" : null,
             "sLastSearchPostURL" : null
           }
@@ -56,9 +56,9 @@
     ],
     "topicsSortedByLastPostDesc" : [
       {
-        "aTitle" : "Topic pizza maison",
-        "catID" : 13,
-        "postID" : 28563
+        "aTitle" : "Followed topic 1",
+        "catID" : 101,
+        "postID" : 9800001
       }
     ]
   },
@@ -68,7 +68,7 @@
 
     ],
     "arrayCategoriesVisibleOrder" : [
-      "13"
+      "101"
     ],
     "hashCheck" : "REDACTED",
     "nbMP" : 1,

@@ -8,6 +8,10 @@ struct TopicGroup: Identifiable, Hashable, Sendable {
     let id: String
     let title: String?
     let topics: [TopicSummary]
+    /// Favourites: the header offers to fold the rows (a section without a topic has nothing to fold).
+    var isCollapsible = false
+    /// Favourites: the header shows, the rows do not.
+    var isCollapsed = false
 }
 
 /// Why a list has no row, so the screen says what to do instead of showing a blank page.
@@ -31,6 +35,8 @@ struct TopicListContent: Sendable, Equatable {
     /// The page's "new topic" link (`md_btn_new_topic`, LOT-089) and the category it belongs to; nil on flags and favourites.
     var newTopicPath: String?
     var categoryID: CategoryID?
+    /// The favourites page the groups come from, kept so the layout options apply without a new request; nil for a forum list.
+    var favoritesPage: FavoritesPage?
 
     var isEmpty: Bool { groups.allSatisfy { $0.topics.isEmpty } }
 
@@ -47,6 +53,7 @@ struct TopicListContent: Sendable, Equatable {
         groups = favorites.sections.map { TopicGroup(id: $0.id, title: $0.forum.title, topics: $0.topics) }
         page = 1
         hasNext = false
+        favoritesPage = favorites
         let isEmpty = favorites.sections.allSatisfy { $0.topics.isEmpty }
         emptyReason = Self.reason(isEmpty: isEmpty, notice: favorites.notice, isLoggedIn: isLoggedIn)
     }
@@ -72,14 +79,40 @@ final class TopicListModel {
     /// HFR's confirmation of the topic just created (LOT-089), shown above the list until hidden.
     private(set) var sentConfirmation: String?
 
+    /// Layout options, collapsed sections and super-favourites of the favourites lists (LOT-124); nil for forum lists.
+    let favorites: FavoritesOptionsModel?
+
     private let dataSource: any ForumDataSource
     private let isLoggedIn: @Sendable () async -> Bool
 
-    /// Creates the model; `isLoggedIn` is read when a load starts.
-    init(source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false }) {
+    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only.
+    init(
+        source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false },
+        favorites: FavoritesOptionsModel? = nil
+    ) {
         self.source = source
         self.dataSource = dataSource
         self.isLoggedIn = isLoggedIn
+        self.favorites = source.isFavoritesList ? favorites : nil
+    }
+
+    /// The groups to show: the loaded ones, laid out by the favourites options when there are some.
+    var displayedGroups: [TopicGroup] {
+        guard let content = loader.value else { return [] }
+        guard let favorites, let page = content.favoritesPage else { return content.groups }
+        return favorites.groups(for: page)
+    }
+
+    /// The page has topics but the options hide every section: the screen says so instead of looking empty.
+    var allSectionsHidden: Bool {
+        guard let content = loader.value, content.favoritesPage != nil, !content.isEmpty else { return false }
+        return displayedGroups.isEmpty
+    }
+
+    /// Whether `topic` is a super-favourite (tinted row).
+    func isSuperFavorite(_ topic: TopicSummary) -> Bool {
+        guard let favorites else { return false }
+        return FavoritesPresentation.isSuper(topic, in: favorites.superFavorites)
     }
 
     /// Page on screen; 1 before the first load.
@@ -124,8 +157,16 @@ final class TopicListModel {
 
     /// The list became visible: first load, or a refresh for flags and favourites, whose content changes while the user
     /// reads elsewhere. Rows stay meanwhile. Forum pages are left alone: the user refreshes those.
+    ///
+    /// Favourites refresh on their own only with "Actualisation automatique" (`favorites_auto_refresh`, legacy default off):
+    /// otherwise the list is refreshed by pull or by the refresh action.
     func onAppear() async {
-        if loader.value == nil { await loadIfNeeded() } else if !source.isPaged, !loader.isLoading { await refresh() }
+        await favorites?.reload()
+        if loader.value == nil {
+            await loadIfNeeded()
+        } else if !source.isPaged, !loader.isLoading, favorites?.autoRefresh ?? true {
+            await refresh()
+        }
     }
 
     /// Reloads the page on screen.
@@ -158,5 +199,6 @@ final class TopicListModel {
                 return TopicListContent(favorites: try await dataSource.favorites(filter: .favorites), isLoggedIn: loggedIn)
             }
         }
+        if loader.error == nil, let page = loader.value?.favoritesPage { await favorites?.prune(to: page) }
     }
 }

@@ -17,21 +17,30 @@ import HFRParsing
 /// The result is `PrivateMessageBadgeParser`'s: a number, `0` for an entry without a number, `nil` for no entry at all.
 /// `nil` means "no information" (logged out, or a page that is not the expected one, including a logged-in home whose markup
 /// changed, which the app cannot tell apart), never "no unread": it must not be stored as 0 and it is not proof the session
-/// expired.
+/// expired. The one answer that is such proof, HFR's stale-session page (`R70a`, #383), throws `.sessionExpired` instead,
+/// with `SessionRefreshFlow`'s reason and under its rule: only while the account still holds the cookies the poll sent.
 public struct MPUnreadPoll: Sendable {
     private let account: HFRSession
     private let makeProbe: (@Sendable ([StoredCookie]) -> any HTTPTransport)?
+    private let redirectPolicy: RedirectPolicy
 
     /// Creates a poll that reads the home page with the cookies of `session`, without ever changing it.
-    public init(session: HFRSession) {
+    /// - Parameter redirectPolicy: `.follow` (the default, legacy's behaviour) or `.doNotFollow`, which makes a redirect
+    ///   answer a `.page(.malformed)` failure instead of sending the cookies on to wherever it leads (LOT-092).
+    public init(session: HFRSession, redirectPolicy: RedirectPolicy = .follow) {
         self.account = session
         self.makeProbe = nil
+        self.redirectPolicy = redirectPolicy
     }
 
     /// Creates a poll with another probe factory (tests).
-    init(session: HFRSession, makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport) {
+    init(
+        session: HFRSession, redirectPolicy: RedirectPolicy = .follow,
+        makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport
+    ) {
         self.account = session
         self.makeProbe = makeProbe
+        self.redirectPolicy = redirectPolicy
     }
 
     /// The transport the poll sends through: the test factory's, else a fresh session seeded with `cookies` that keeps
@@ -41,19 +50,39 @@ public struct MPUnreadPoll: Sendable {
     }
 
     /// Fetches the home page and returns the unread private messages count it announces.
-    /// - Throws: `MPUnreadPollError.network` when the page could not be fetched, `.page` on maintenance or an unreadable page.
+    /// - Throws: `MPUnreadPollError.network` when the page could not be fetched, `.page` on maintenance or an unreadable page,
+    ///   `.sessionExpired` when HFR answered with its stale-session page (`R70a`) to the account's current cookies.
     public func unreadCount() async throws(MPUnreadPollError) -> Int? {
         let page: RawPage
-        let probe = probe(cookies: await account.cookies())
+        let requestedURL: URL
+        let seed = await account.refreshSeed(now: Date())
+        let probe = probe(cookies: seed.cookies)
         do {
             // The 5 s background timeout of the legacy check (`MPBackgroundService.swift:86`), not the page default.
-            let request = try HFREndpoint.privateMessageCheck()
+            var request = try HFREndpoint.privateMessageCheck()
+            request.redirectPolicy = redirectPolicy
+            requestedURL = request.url
             if Task.isCancelled { throw NetworkError.cancelled }
             page = RawPage(response: try await probe.send(request))
         } catch let error as NetworkError {
             throw .network(error)
         } catch {
             throw .network(.invalidRequest(reason: "request could not be built"))
+        }
+        if StaleSessionAnswer.matches(page, requestedURL: requestedURL) {
+            // HFR's own word that it refuses these cookies (`R70a`, the same bytes as `R70c`): the account session's
+            // verdict, not a count. A session that changed meanwhile gets no verdict from an answer to its old cookies.
+            let health: SessionHealth
+            do {
+                health = try await account.confirmStaleSession(seed: seed, now: Date())
+            } catch {
+                throw .network(error)
+            }
+            if case .expired(let reason) = health { throw .sessionExpired(reason) }
+            return nil
+        }
+        if redirectPolicy == .doNotFollow, !(200..<300).contains(page.statusCode) || page.finalURL != requestedURL {
+            throw .page(.malformed("the home page was not served in place (status \(page.statusCode))"))
         }
         do {
             return try PrivateMessageBadgeParser.unreadCount(in: page.text)

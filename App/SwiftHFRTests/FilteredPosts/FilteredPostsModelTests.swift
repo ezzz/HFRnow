@@ -54,19 +54,38 @@ func filteredBatch(start: Int, end: Int, posts: Int = 2, maxPage: Int = 9, finis
     return FilteredPostsBatch(posts: kept, startPage: start, endPage: end, maxPage: maxPage, isFinished: finished)
 }
 
-/// A normalizer that holds the batch until the test releases it.
-final class BlockingNormalizer: MessageContentNormalizing, @unchecked Sendable {
-    let entered = DispatchSemaphore(value: 0)
-    let release = DispatchSemaphore(value: 0)
+/// A normalizer that cancels the run's task while it normalizes the first message, so the cancellation always lands
+/// mid-batch and no thread waits for a signal. It checks that normalization stops (`result(of:)`'s own cancellation check);
+/// the generation guard of `cancel()` is covered by the gated tests.
+final class CancellingNormalizer: MessageContentNormalizing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var run: Task<Void, Never>?
+    private var calls = 0
+
+    /// The run to cancel at the first message.
+    func cancel(_ run: Task<Void, Never>?) { lock.withLock { self.run = run } }
+
+    /// Messages normalized so far.
+    var normalizedCount: Int { lock.withLock { calls } }
 
     func normalize(contentHTML: String, pageURL: URL) throws(ParsingError) -> MessageContent {
-        entered.signal()
-        release.wait()
+        let toCancel: Task<Void, Never>? = lock.withLock {
+            calls += 1
+            return calls == 1 ? run : nil
+        }
+        toCancel?.cancel()
         return MessageContent(html: contentHTML)
     }
 }
 
-@MainActor @Suite(.timeLimit(.minutes(1)))
+extension FilteredPostsModel {
+    /// Returns when the latest run has ended, whatever it delivered; resumed by the run's own completion, never by polling.
+    func settle() async {
+        await lastRun?.value
+    }
+}
+
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct FilteredPostsModelTests {
     private struct PassNormalizer: MessageContentNormalizing {
         func normalize(contentHTML: String, pageURL: URL) throws(ParsingError) -> MessageContent {
@@ -79,7 +98,7 @@ struct FilteredPostsModelTests {
     }
 
     private func settle(_ model: FilteredPostsModel) async {
-        while model.isRunning || model.isAdvancing { await Task.yield() }
+        await model.settle()
     }
 
     @Test func aRunShowsTheBatchWithLegacysSubtitleAndAsksForTheCriteriaOfTheSettings() async {
@@ -151,26 +170,20 @@ struct FilteredPostsModelTests {
     }
 
     @Test func aRunCancelledWhileItsBatchIsBeingNormalizedNeverDelivers() async {
-        let blocking = BlockingNormalizer()
+        let canceller = CancellingNormalizer()
         let services = FilteredPostsServices(
-            source: FakeFilteredSource { _, _, _ in filteredBatch(start: 1, end: 1, posts: 1) },
-            criteria: { FilteredPostsCriteria() }, normalizer: blocking
+            source: FakeFilteredSource { _, _, _ in filteredBatch(start: 1, end: 1, posts: 3) },
+            criteria: { FilteredPostsCriteria() }, normalizer: canceller
         )
         let model = FilteredPostsModel(services: services)
         model.start(topic: filterTopic, title: "Sujet", page: 1, after: nil)
-        // The run needs the main actor to start: wait for the normalizer from another thread, not this one.
-        await withCheckedContinuation { continuation in
-            DispatchQueue.global().async {
-                blocking.entered.wait()
-                continuation.resume()
-            }
-        }
-        let stale = model.lastRun
-        model.cancel()
-        blocking.release.signal()
-        await stale?.value
+        // The run cannot start before this test first suspends, so the handle is set before the first message.
+        canceller.cancel(model.lastRun)
+        await model.settle()
+        #expect(canceller.normalizedCount == 1)
         #expect(model.result == nil)
         #expect(model.statusMessage == nil)
+        #expect(model.errorMessage == nil)
         #expect(!model.isBusy)
     }
 

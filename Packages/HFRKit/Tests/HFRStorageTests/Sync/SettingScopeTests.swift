@@ -7,7 +7,7 @@ import Testing
     static let matrix: [String: SettingScope] = [
         "vos_sujets": .synced, "sujets_avec_cat": .synced, "favorites_auto_refresh": .synced,
         "HFRswiftStartupScreen": .synced, "open_links_in_default_browser": .synced,
-        "topic_page_swipe_navigation": .synced,
+        "topic_page_swipe_navigation": .synced, "mp_list_display": .synced, "reply_button_behavior": .synced,
         "auto_theme": .synced, "theme": .synced, "theme_style": .synced,
         "theme_day_color_action": .synced, "theme_night_color_action": .synced,
         "theme_day_color_love": .synced, "theme_night_color_love": .synced,
@@ -18,6 +18,7 @@ import Testing
         "compact_mode": .device, "tabbar_minimize_on_scroll": .device, "text_size_scale": .device,
         "text_size_percent": .device, "haptics": .device, "landscape_mode": .device, "icon": .device,
         "mp_badge_enabled": .device, "display_images": .device, "recherche_categorie": .device,
+        "FavoritesShowCollapsedSections": .device,
         // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `embedded_videos` was removed from
         // legacy by `d645f52`, `mpstorage_active` becomes the per-account record of §7, `mpstorage_last_rw` is this
         // device's last sync.

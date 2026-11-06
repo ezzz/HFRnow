@@ -49,3 +49,41 @@ import Testing
         #expect(SettingKey.textSizePercent(from: high) == 130)
     }
 }
+
+/// The key LOT-171 added: a new setting, so the default must leave the single list untouched.
+@Suite struct MPListDisplayKeyTests {
+    @Test func absentReadsAsSingleAndRoundTrips() {
+        let store = InMemorySettingsStore()
+        #expect(store.value(for: SettingKey.mpListDisplay) == .single)
+        store.set(.split, for: SettingKey.mpListDisplay)
+        #expect(store.rawValue(forKey: "mp_list_display") == .string("split"))
+        #expect(store.value(for: SettingKey.mpListDisplay) == .split)
+    }
+
+    @Test(arguments: [SettingRawValue.string(""), .string("two"), .int(1), .bool(true)])
+    func unknownValueReadsAsSingle(raw: SettingRawValue) {
+        let store = InMemorySettingsStore([SettingKey.mpListDisplay.key: raw])
+        #expect(store.value(for: SettingKey.mpListDisplay) == .single)
+    }
+}
+
+/// The key LOT-086 added: legacy's raw values, and an unknown one reads as the default like `?? .quick`.
+@Suite struct ReplyButtonBehaviorKeyTests {
+    @Test func absentReadsAsQuickAndRoundTripsLegacyValues() {
+        let store = InMemorySettingsStore()
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .quick)
+        for (raw, behavior) in [("forum", ReplyButtonBehavior.forum), ("hidden", .hidden), ("quick", .quick)] {
+            store.set(behavior, for: SettingKey.replyButtonBehavior)
+            #expect(store.rawValue(forKey: "reply_button_behavior") == .string(raw))
+            #expect(store.value(for: SettingKey.replyButtonBehavior) == behavior)
+        }
+    }
+
+    @Test func importedLegacyValueIsRead() {
+        let store = InMemorySettingsStore()
+        store.setRawValue(.string("forum"), forKey: "reply_button_behavior")
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .forum)
+        store.setRawValue(.string("nonsense"), forKey: "reply_button_behavior")
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .quick)
+    }
+}

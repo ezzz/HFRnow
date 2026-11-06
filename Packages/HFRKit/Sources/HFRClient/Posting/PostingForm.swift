@@ -61,6 +61,19 @@ public struct PostingForm: Sendable {
         form.field(named: "cat")?.value == "prive"
     }
 
+    /// The other members of a group private thread, read from the form's `newdest` input, which HFR serves only on the
+    /// group **owner**'s reply composer ("a, b", every member but the owner, `R123c`); nil when the form has none: a
+    /// one-to-one thread (`R47b`, `R47u1`), a member who does not own the group (`R123e`), any public form. A member's
+    /// roster is the MP list row's (`PrivateMessageThread.interlocutors`, `R123f`). Also nil on a `newdest` served empty,
+    /// which no capture shows: no list of members can be told from it, and `GroupRosterFlow` treats the form as serving none.
+    /// A reply sends `newdest` back as served, as legacy did (oracle of `R123c`); `GroupRosterFlow` changes it.
+    public var groupMembers: [String]? {
+        guard let roster = form.field(named: Self.groupMembersField) else { return nil }
+        // The form joins the names with ", ", the list row of the same thread with "," (`R123a`): split on the comma alone.
+        let members = roster.value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return members.isEmpty ? nil : members
+    }
+
     /// True when a delete through this form must be confirmed as a whole-thread delete: the caller knows the message is
     /// the first post (`isFirstPost`, from the topic page), the form says so (`deletesWholeTopic`), or the thread is not
     /// a private one. The public first-post signs are captured (`R63b`), but trusting them is a decision not yet taken: every
@@ -75,6 +88,7 @@ public struct PostingForm: Sendable {
     }
 
     static let deleteField = "delete"
+    static let groupMembersField = "newdest"
 
     /// An edit form names its message (`numreponse`); a composer with a visible subject starts a thread, with a
     /// recipient field a private one. Reply, quote and multi-quote composers have none of these (`R40a`-`R47u1`).

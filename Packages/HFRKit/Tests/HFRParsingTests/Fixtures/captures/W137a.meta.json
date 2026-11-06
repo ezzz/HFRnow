@@ -1,0 +1,16 @@
+{
+  "id": "W137a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3208005&page=1&p=1&sondage=0&owntopic=0&new=0",
+  "url": "https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3208005&page=1&p=1&sondage=0&owntopic=0&new=0",
+  "final_url": "https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&subcat=0&post=3208005&page=1&p=1&sondage=0&owntopic=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 12:50:32 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "mark unread link of the fixture thread, sent without any cookie (#137, LOT-058)",
+  "file": "W137a-mp-mark-unread-logged-out.html",
+  "private": true
+}

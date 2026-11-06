@@ -18,6 +18,12 @@ enum Fixture {
         guard let url = Bundle.module.url(forResource: name, withExtension: fileExtension, subdirectory: subdirectory) else {
             throw Missing(path: "\(subdirectory)/\(name).\(fileExtension)")
         }
-        return try String(contentsOf: url, encoding: .utf8)
+        return try decoded(Data(contentsOf: url))
+    }
+
+    /// UTF-8, else ISO-8859-1: `R98a` (a `www.hardware.fr` page) is Latin-1, as the legacy login reader allows
+    /// (`LoginService.swift:137-140`, `anonymize.py read_text`).
+    static func decoded(_ data: Data) -> String {
+        String(data: data, encoding: .utf8) ?? String(String.UnicodeScalarView(data.map { Unicode.Scalar($0) }))
     }
 }

@@ -1,18 +1,24 @@
 """Tests for tooling/roadmap: LOTS.md -> lots.json, tracker JSON -> state, hygiene sweep (no network)."""
+import contextlib
+import io
+import json
+import subprocess
 import sys
 import unittest
 from unittest import mock
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROADMAP = Path(__file__).resolve().parents[2] / "tooling" / "roadmap"
 sys.path.insert(0, str(ROADMAP))
+sys.path.insert(0, str(ROADMAP / "weekly"))
 
 import generate  # noqa: E402
 import hygiene  # noqa: E402
 import m5  # noqa: E402
 import lots_from_md  # noqa: E402
 import sync_state  # noqa: E402
+import progress  # noqa: E402
 
 HEAD = "| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |\n|---|---|---|---|---|---|---|---|---|\n"
 NOW = datetime(2026, 11, 1, tzinfo=timezone.utc)
@@ -185,6 +191,36 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])  # the capture still gates it, so nothing is unblocked
         self.assertTrue(any("gated only by an open capture" in r and "LOT-002 #2" in r and "#60" in r for r in reports))
 
+    def test_a_closed_issue_loses_its_status_labels_and_an_open_one_keeps_them(self):
+        issues = [issue(1, "closed", labels=["status: ready", "type: lot"]), issue(2, "closed", labels=["type: lot"]),
+                  issue(3, "open", labels=["status: ready"]), issue(4, "closed", labels=["status: claimed", "status: blocked"])]
+        actions, _ = self.run_sweep(issues, [])
+        self.assertEqual([(a["kind"], a["issue"], a["labels"]) for a in actions if a["kind"] == "unlabel"],
+                         [("unlabel", 1, ["status: ready"]), ("unlabel", 4, ["status: blocked", "status: claimed"])])  # 2 has none, 3 is open
+
+    def _apply(self, current, actions):
+        calls = []
+        got = subprocess.CompletedProcess([], 0, stdout=json.dumps(current), stderr="")
+        out = io.StringIO()
+        with mock.patch.object(hygiene.subprocess, "run", return_value=got), \
+                mock.patch.object(hygiene, "gh", lambda method, path, fields=(): calls.append((method, path))), contextlib.redirect_stdout(out):
+            hygiene.apply(actions)
+        return calls, out.getvalue()
+
+    def test_apply_deletes_each_status_label_with_its_encoded_path_and_counts_them(self):
+        closed = {"state": "closed", "labels": [{"name": "status: ready"}, {"name": "status: needs-triage"}, {"name": "type: lot"}]}
+        act = {"kind": "unlabel", "issue": 5, "labels": ["status: ready", "status: needs-triage", "status: claimed"]}
+        calls, out = self._apply(closed, [act])
+        self.assertEqual(calls, [("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20needs-triage"),
+                                 ("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])  # `claimed` is not on the issue any more: no call
+        self.assertIn("status labels removed from closed issues: 2", out)
+
+    def test_apply_leaves_an_issue_reopened_meanwhile_alone(self):
+        calls, out = self._apply({"state": "open", "labels": [{"name": "status: ready"}]}, [{"kind": "unlabel", "issue": 5, "labels": ["status: ready"]}])
+        self.assertEqual(calls, [])
+        self.assertIn("skip (reopened meanwhile)", out)
+        self.assertIn("removed from closed issues: 0", out)
+
     def test_unblock_without_a_known_pr_is_only_reported(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
         actions, reports = self.run_sweep(issues, [])
@@ -307,6 +343,81 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(hygiene.numeric_deps("—"), [])
         self.assertEqual(hygiene.numeric_deps("080, 043"), ["LOT-080", "LOT-043"])
         self.assertIsNone(hygiene.numeric_deps("all parsing lots"))
+
+
+class ProgressSlide(unittest.TestCase):
+    def test_audit_is_lot_000_to_005_and_other_lots_take_their_milestone(self):
+        self.assertEqual(progress.step_of_lot("LOT-000"), "Audit")
+        self.assertEqual(progress.step_of_lot("LOT-005"), "Audit")
+        self.assertEqual(progress.step_of_lot("LOT-080"), "M1")
+        self.assertEqual(progress.step_of_lot(next(iter(sorted(generate.M5)))), "M5")
+
+    def test_a_pr_goes_to_the_step_of_the_first_lot_of_its_title_then_its_body_else_infra(self):
+        self.assertEqual(progress.step_of_pr({"title": "LOT-080: app target", "body": "LOT-137"}), "M1")
+        self.assertEqual(progress.step_of_pr({"title": "docs: fix a typo", "body": "Refs LOT-080"}), "M1")
+        self.assertEqual(progress.step_of_pr({"title": "chore: ci", "body": "Direct-PR"}), progress.OTHER)
+        self.assertEqual(progress.step_of_pr({"title": "LOT-999: unknown lot", "body": ""}), progress.OTHER)
+
+    def test_a_blocked_lot_whose_lot_dependencies_are_all_done_needs_a_human_not_other_lots(self):
+        r = next(r for l, r in generate.rows.items() if generate.deps(r))
+        lot = r["lot"]
+        with mock.patch.object(generate, "CAPTURE", {}), mock.patch.object(generate, "CLOSED", set()):
+            with mock.patch.object(generate, "miss0", lambda row: ["LOT-X"]):
+                self.assertEqual(progress.bucket(lot, {"status: blocked"}), "blocked")
+            with mock.patch.object(generate, "miss0", lambda row: []):
+                self.assertEqual(progress.bucket(lot, {"status: blocked"}), "human")
+
+    def test_a_pr_naming_an_unknown_lot_then_a_known_one_goes_to_the_known_step(self):
+        self.assertEqual(progress.step_of_pr({"title": "LOT-999 / LOT-080", "body": ""}), "M1")
+
+    def test_data_bins_by_utc_day_then_week_and_never_drops_a_late_day(self):
+        pulls = [{"merged_at": "2026-11-07T01:00:00Z", "title": "LOT-080", "body": ""}, {"merged_at": "2026-11-05T10:00:00Z", "title": "ci", "body": ""}]
+        d = progress.data(pulls, [], per_day={"2026-11-05": 2, "2026-11-06": 1}, today=date(2026, 11, 6))  # a PR dated after "today"
+        self.assertFalse(d["weekly"])
+        self.assertEqual(list(d["bins"]), ["2026-11-05", "2026-11-06", "2026-11-07"])
+        self.assertEqual(d["bins"]["2026-11-07"], {"M1": 1})
+        self.assertEqual(d["cum"][-1], ("2026-11-07", 3))  # cumulative up to the latest day seen
+        old = [{"merged_at": "2026-09-30T10:00:00Z", "title": "ci", "body": ""}]  # a Wednesday: its bin is the Monday before
+        w = progress.data(old, [], per_day={"2026-09-30": 1}, today=date(2026, 11, 6))
+        self.assertTrue(w["weekly"])
+        self.assertEqual(next(iter(w["bins"])), "2026-09-28")
+        self.assertEqual(w["bins"]["2026-09-28"], {progress.OTHER: 1})
+
+    def test_data_without_commits_or_prs_does_not_crash_and_the_charts_say_so(self):
+        d = progress.data([], [], per_day={}, today=date(2026, 11, 6))
+        self.assertEqual((d["cum"], d["bins"]), ([], {}))
+        self.assertIn("Aucun commit", progress._line_chart(d["cum"]))
+        self.assertIn("Aucune PR", progress._stacked(d["bins"], d["weekly"]))
+        self.assertIn("0 %", progress._donut("M5", {}))  # zero lots in a step
+
+    def test_a_lot_closed_not_planned_is_left_out_of_its_step(self):
+        lot = "LOT-087"
+        i = {"number": generate.rows[lot]["issue"], "state": "closed", "state_reason": "not_planned", "labels": []}
+        before = sum(progress.data([], [], per_day={}, today=date(2026, 11, 6))["steps"][progress.step_of_lot(lot)].values())
+        after = sum(progress.data([], [i], per_day={}, today=date(2026, 11, 6))["steps"][progress.step_of_lot(lot)].values())
+        self.assertEqual(after, before - 1)
+
+    def test_a_lot_counts_in_exactly_one_bucket_by_priority(self):
+        m4_app = next(l for l in sorted(generate.M4) if generate.rows[l]["module"] == "App")  # not coded by the cloud yet
+        m2_app = next(l for l in sorted(generate.M2) if generate.rows[l]["module"] == "App")  # the cloud codes these (2026-11-05)
+        n4, n2 = generate.rows[m4_app]["issue"], generate.rows[m2_app]["issue"]
+        quiet = (mock.patch.object(generate, "CLOSED", set()), mock.patch.object(generate, "CAPTURE", {}),
+                 mock.patch.object(generate, "CLAIMED", set()), mock.patch.object(generate, "PRS", {}))
+        with quiet[0], quiet[1], quiet[2], quiet[3]:
+            self.assertEqual(progress.bucket(m4_app, {"host: mac"}), "mac")
+            self.assertEqual(progress.bucket(m2_app, {"host: mac"}), "ready")  # a host: mac App lot of M2 the cloud can code
+            self.assertEqual(progress.bucket(m4_app, set()), "ready")
+            self.assertEqual(progress.bucket(m4_app, {"priority: low"}), "low")
+            self.assertEqual(progress.bucket(m4_app, {"priority: low", "host: mac"}), "mac")  # mac outranks low
+            self.assertEqual(progress.bucket(m4_app, {"status: needs-triage", "host: mac"}), "human")  # human outranks mac
+            with mock.patch.object(generate, "CAPTURE", {n4: "#1"}):
+                self.assertEqual(progress.bucket(m4_app, set()), "mac")  # a capture is Mac-only work
+            with mock.patch.object(generate, "CLAIMED", {n4}):
+                self.assertEqual(progress.bucket(m4_app, {"host: mac", "status: blocked"}), "progress")  # claimed: never macOS nor ready
+            with mock.patch.object(generate, "PRS", {m2_app: (1, "review", "Opus")}):
+                self.assertEqual(progress.bucket(m2_app, {"host: mac"}), "progress")  # an open PR names the lot
+        with mock.patch.object(generate, "CLOSED", {n2}), mock.patch.object(generate, "CLAIMED", {n2}):
+            self.assertEqual(progress.bucket(m2_app, {"status: blocked", "host: mac"}), "done")  # done outranks everything
 
 
 if __name__ == "__main__":

@@ -52,14 +52,15 @@ struct TopicListParserTests {
     func flaggedRow() throws {
         let url = "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=2"
         let page = try TopicListParser.parse(Fixture.capture("R08-2-list-cat13-owntopic2"), pageURL: url)
-        let row = try #require(page.topics.first)
-        #expect(page.topics.count == 1)
-        #expect(row.topicID == TopicID(category: .forum(13), topic: 28_563))
+        // The rows are aliased by position (9_800_001...); the first is a sticky.
+        #expect(page.topics.count == 3)
+        let row = page.topics[1]
+        #expect(row.topicID == TopicID(category: .forum(13), topic: 9_800_002))
         #expect(row.flag == .red)
-        #expect(row.currentPage == 2)
-        #expect(row.flagPath?.contains("&post=28563&page=2&") == true)
-        #expect(row.flagPath?.hasSuffix("#t3204775") == true)
-        #expect(row.starterOrInterlocutors == "user3\u{200B}")
+        #expect(row.currentPage == 102)
+        #expect(row.flagPath?.contains("&post=9800002&page=102&") == true)
+        #expect(row.flagPath?.hasSuffix("#t9810000002") == true)
+        #expect(row.starterOrInterlocutors == "user4\u{200B}")
         #expect(row.readState == .unread)
     }
 

@@ -8,8 +8,8 @@ import HFRNetwork
 /// the list or the topic to see the state instead of resending on its own.
 /// No case carries a token or a cookie; `rejected` carries HFR's own sentence.
 public enum TopicFlagError: Error, Sendable, Equatable {
-    /// The link is not an `https` `forum.hardware.fr` link of this write (path, `config=hfr.inc`, one forum `cat`, one
-    /// positive `post`); nothing was requested.
+    /// The link is not an `https` `forum.hardware.fr` link of this write (path, `config=hfr.inc`, one `cat`: a forum for
+    /// the flag writes, `prive` for `markUnread`; one positive `post`); nothing was requested.
     case invalidLink
     /// The topic is not a forum topic with a positive number, or the page is below 1; nothing was requested.
     case invalidTopic

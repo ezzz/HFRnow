@@ -33,10 +33,14 @@ struct PlusView: View {
 /// The screen behind a Plus entry: the built screen, or a placeholder until the owning lot (`PlusEntry.owningLot`) brings it.
 struct PlusEntryView: View {
     let entry: PlusEntry
+    let model: RootModel
+    let environment: AppEnvironment
 
     var body: some View {
-        if entry.isBuilt {
-            SettingsView()
+        if entry == .search {
+            ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
+        } else if entry.isBuilt {
+            SettingsView(reader: environment.reader)
         } else {
             ContentUnavailableView(
                 entry.title, systemImage: entry.symbol,

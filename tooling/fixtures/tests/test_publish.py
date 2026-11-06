@@ -145,6 +145,83 @@ class PublishTests(unittest.TestCase):
         self.assertNotIn("Bravo", out)
         self.assertFalse(os.path.exists(os.path.join(self.dest, "L1-list.html")))
 
+    def test_publish_refuses_an_aq_answer_the_aq_gate_does_not_recognise(self):
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": [{"raw": "Q1", "id": "Q1", "slug": "aq", "ext": "xml", "private": False}]}, fh)
+        # No XML declaration: the AQ masking would not run, so member-written text would be published as is.
+        self.capture("Q1", '<alertes><alerte id="1" nom="Real words" pseudoInitiateur="user1"/></alertes>',
+                     {"url": "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=1"})
+        rc, out = self.run_publish("Q1")
+        self.assertEqual(rc, 1)
+        self.assertIn("AQ capture not recognized", out)
+        self.assertFalse(os.path.exists(os.path.join(self.dest, "Q1-aq.xml")))
+        # Hostnames are case-insensitive: an upper-case AQ host is refused too.
+        self.capture("Q1", '<alertes><alerte id="1" nom="Real words" pseudoInitiateur="user1"/></alertes>',
+                     {"url": "https://AQ.SUPER-H.FR/api/getAlertesByTopic.php?topic_id=1"})
+        rc, out = self.run_publish("Q1")
+        self.assertEqual(rc, 1)
+        self.assertIn("AQ capture not recognized", out)
+        self.assertFalse(P.is_aq_host("https://example.org/?u=aq.super-h.fr"))
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
+REPLAY = ('<html><body><div class="hop">Refused<br /><form action="/message.php?config=hfr.inc&amp;cat=prive&amp;post=5" '
+          'method="post"><input type="hidden" name="cat" value="prive" />'
+          '<input type="hidden" name="sujet" value="Weekend chez Marie" />'
+          '<textarea name="content_form" rows="3">words of Marie</textarea></form></div></body></html>')
+
+
+class MPWriteReplayTests(unittest.TestCase):
+    """A refused MP write (bddpost.php, no cat=prive in the URL, private: false) is private all the same."""
+
+    def publish(self, meta_extra, body, page=REPLAY, private=False):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw, dest = os.path.join(tmp, "raw"), os.path.join(tmp, "out")
+            os.makedirs(raw)
+            os.makedirs(dest)
+            with open(os.path.join(raw, "Z1.html"), "w", encoding="utf-8") as fh:
+                fh.write(page)
+            meta = dict({"id": "Z1", "method": "POST", "url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
+                         "status": 200}, **meta_extra)
+            with open(os.path.join(raw, "Z1.meta.json"), "w", encoding="utf-8") as fh:
+                json.dump(meta, fh)
+            if body is not None:
+                with open(os.path.join(raw, "Z1.request.txt"), "w", encoding="utf-8") as fh:
+                    fh.write("POST /bddpost.php\n\n%s\n" % body)
+            cfg = os.path.join(tmp, "local.json")
+            with open(cfg, "w") as fh:
+                json.dump({"pseudos": [OPERATOR]}, fh)
+            manifest = os.path.join(tmp, "m.json")
+            with open(manifest, "w") as fh:
+                json.dump({"captures": [{"raw": "Z1", "id": "Z1", "slug": "z", "ext": "html", "private": private}]}, fh)
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                rc = P.main(["--config", cfg, "--raw", raw, "--dest", dest, "--manifest", manifest])
+            self.assertEqual(rc, 0)
+            with open(os.path.join(dest, "Z1-z.html"), encoding="utf-8") as fh:
+                page_out = fh.read()
+            with open(os.path.join(dest, "Z1.meta.json"), encoding="utf-8") as fh:
+                return page_out, json.load(fh)
+
+    def check_private(self, page, meta):
+        self.assertNotIn("Marie", page)
+        self.assertIn(A.PRIVATE_SUBJECT, page)
+        self.assertNotIn("words of", page)
+        self.assertNotIn("Marie", json.dumps(meta))
+        self.assertTrue(meta["private"])
+
+    def test_body_with_cat_prive_in_any_case(self):
+        for body in ("cat=prive&sujet=Weekend+chez+Marie", "Cat=PRIVE&Sujet=Weekend+chez+Marie"):
+            self.check_private(*self.publish({}, body))
+
+    def test_body_with_dest_is_an_mp_write(self):
+        self.check_private(*self.publish({}, "dest=Charlie&sujet=Weekend+chez+Marie"))
+
+    def test_the_page_alone_says_private(self):
+        # No request body and nothing in the meta: the hidden `cat` input of the replay form decides.
+        page, meta = self.publish({}, None)
+        self.assertNotIn("Marie", page)
+        self.assertNotIn("words of", page)
+        self.assertIn(A.PRIVATE_SUBJECT, page)

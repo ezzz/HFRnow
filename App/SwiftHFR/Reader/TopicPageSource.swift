@@ -75,6 +75,7 @@ struct LiveTopicPageSource: TopicPageSource {
             var messages: [ReaderMessage] = []
             messages.reserveCapacity(blocks.count)
             for (index, block) in blocks.enumerated() {
+                let content = try normalizer.normalize(contentHTML: block.contentHTML, pageURL: pageURL)
                 messages.append(ReaderMessage(
                     numreponse: block.numreponse,
                     author: block.author,
@@ -84,7 +85,8 @@ struct LiveTopicPageSource: TopicPageSource {
                     dateText: block.dateText,
                     editNote: block.editNote,
                     quotedByCount: block.quotedByCount,
-                    content: try normalizer.normalize(contentHTML: block.contentHTML, pageURL: pageURL),
+                    content: content,
+                    quotes: ReaderMessage.quotes(of: content),
                     actions: hasActions ? actionSets[index] : MessageActions()
                 ))
             }

@@ -7,11 +7,17 @@ import Testing
 @Suite("Private message list parser")
 struct PrivateMessageListParserTests {
     static let listURL = "/forum1.php?config=hfr.inc&cat=prive&page=1"
-    static let cases = ["R13a", "R13b", "R13c", "R13u1", "R13u1b"]
+    /// The group MP lists of the owner and of a member (#336), whose oracles are in `Fixtures/M2-writes`.
+    static let groupCases = ["R123a", "R123f", "R126", "R130", "R135"]
+    static let cases = ["R13a", "R13b", "R13c", "R13u1", "R13u1b"] + groupCases
+
+    static func oracle(_ name: String) throws -> TopicListOracle {
+        try TopicListOracle.load(name, folder: groupCases.contains(name) ? "M2-writes" : "LOT-002")
+    }
 
     @Test("Rows reproduce the oracle: order, topic, title, replies, last page, own read state, interlocutor", arguments: cases)
     func matchesOracle(_ name: String) throws {
-        let oracle = try TopicListOracle.load(name)
+        let oracle = try Self.oracle(name)
         let legacy = try #require(oracle.result)
         let page = try PrivateMessageListParser.parse(oracle.capture(), pageURL: try #require(oracle.input.currentURL))
         let expected = try #require(legacy.topics)
@@ -37,9 +43,9 @@ struct PrivateMessageListParserTests {
         }
     }
 
-    @Test("`[non lu]` tooltips and group names equal what the raw rows hold", arguments: ["R13a", "R13u1", "R13u1b"])
+    @Test("`[non lu]` tooltips and group names equal what the raw rows hold", arguments: ["R13a", "R13u1", "R13u1b"] + groupCases)
     func namesMatchRawRows(_ name: String) throws {
-        let oracle = try TopicListOracle.load(name)
+        let oracle = try Self.oracle(name)
         let html = try oracle.capture()
         let rows = CaptureRowEvidence(html: html).rows
         let page = try PrivateMessageListParser.parse(html, pageURL: Self.listURL)
@@ -77,6 +83,23 @@ struct PrivateMessageListParserTests {
         #expect(readButMarked.isUnreadByOthers)
         let plain = page.threads[5]
         #expect(!plain.isUnread && !plain.isUnreadByOthers && plain.unreadBy.isEmpty)
+    }
+
+    @Test("R123a/R123f: the group thread of #336 names every member, the owner first, for the owner and for a member")
+    func groupThreadRoster() throws {
+        let owner = try PrivateMessageListParser.parse(Fixture.capture("R123a-mp-list-group-owner"), pageURL: Self.listURL)
+        let member = try PrivateMessageListParser.parse(Fixture.capture("R123f-mp-list-group-member"), pageURL: Self.listURL)
+        #expect(owner.threads.filter(\.isGroup).count == 13)
+        let seenByOwner = try #require(owner.threads.first)
+        let seenByMember = try #require(member.threads.first)
+        for thread in [seenByOwner, seenByMember] {
+            #expect(thread.summary.topicID == TopicID(category: .privateMessages, topic: 3207958))
+            #expect(thread.isGroup)
+            #expect(thread.interlocutors == ["user1", "user2", "user3"])
+        }
+        // Nobody had opened it in R123a; user2 opened it before R123f.
+        #expect(seenByOwner.unreadBy == ["user3", "user2"])
+        #expect(seenByMember.unreadBy == ["user3"])
     }
 
     @Test("R13a/R13b: marking a thread unread (W18) flips the member's state, not the `[non lu]` marker")

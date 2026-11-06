@@ -12,6 +12,7 @@ The iOS app target (SwiftUI, iOS 27), `App/SwiftHFR.xcodeproj` ([ADR 0012](../do
 | `SwiftHFR/Composer/` | Reply composer ([LOT-084](../docs/lots/LOT-084-reply-composer.md)): `ReplyComposerModel` (text, draft restore and debounced autosave, send, close choice), `ReplyComposerView` (sheet), `ReaderReplyFlow` (the reader's "Répondre" button, sheet and confirmation banner), `LiveReplyPoster` (LOT-048 through the current account's session), `ComposerServices` (poster, the app's single `DraftStore`, account), `ComposerMessages` (French texts per `PostingError`); the same sheet writes a new private message ([LOT-128](../docs/lots/LOT-128-mp-composer.md): `ComposerTarget`, `NewMessageTarget`, recipient and subject fields) |
 | `SwiftHFR/Composer/` (toolbar) | Formatting toolbar ([LOT-085](../docs/lots/LOT-085-composer-toolbar.md)): `ReplyTextInsertionEngine`, `ComposerFormattingModel`, `FormattingToolbar`, `SystemClipboard` |
 | `SwiftHFR/Messages/` | Private messages ([LOT-126](../docs/lots/LOT-126-mp-list.md)): `MessageListModel` (paged list, logged-out state, opens a thread in the reader), `PrivateMessageSource` (`PageFetcher` + `PrivateMessageListParser`), `MessagesRootView` (Messages tab: list, then reader), `MessagesListColumn` + `MessageReaderColumn` (iPad content and detail columns); `RootModel.messages` holds the one list model both layouts share; "Nouveau message" and "Répondre" on a conversation ([LOT-128](../docs/lots/LOT-128-mp-composer.md)) |
+| `SwiftHFR/Profile/` | Member profile ([LOT-116](../docs/lots/LOT-116-user-profile-screen.md)): `UserProfileModel` (load, reload, links, MP hook for LOT-128), `LiveUserProfileSource` (`PageFetcher.profile` **without cookies** + `UserProfileParser`, served URL checked), `UserProfileView` (sheet opened from a profile link in the reader) |
 | `SwiftHFR/FilteredPosts/` | Post filter ([LOT-114](../docs/lots/LOT-114-filter-posts-view.md)): `FilteredPostsModel` (run, progress, batch, "Résultats suivants"), `FilteredPostsServices` (cookie-less source of LOT-093, criteria from the settings), `FilteredPostsView` (banner, sheet, bottom bar); started from a favourite's context menu and the reader menu |
 | `SwiftHFRTests/` | Unit tests (Swift Testing), hosted by the app |
 
@@ -32,3 +33,11 @@ Release to TestFlight (maintainer's Mac): `scripts/release-testflight.sh --versi
 ([LOT-161](../docs/lots/LOT-161-release-pipeline.md); credentials stay outside the repository).
 
 Signing is automatic with the team `QMG83DG7YP` and bundle id `hfrplus.red.super`; a device build needs that team's account in Xcode. Never commit certificates, profiles or `xcuserdata/`.
+
+## API keys (ADR 0007)
+
+The image-rehost key reaches the build through `App/Config/Shared.xcconfig`, which includes the untracked `App/Config/Secrets.xcconfig` when it exists, and `App/Config/Info-Keys.plist` (merged into the generated Info.plist: `RehostBaseURL`, `RehostAPIKey`).
+
+- Local build: copy `App/Config/Secrets.xcconfig.example` to `App/Config/Secrets.xcconfig` and fill in the values (git-ignored; write `//` as `/$()/` in a URL).
+- No `Secrets.xcconfig` (fresh clone, CI tests): the build works, both values are empty and the composer hides image upload (LOT-102).
+- CI/release builds that must upload need `REHOST_BASE_URL` and `REHOST_API_KEY` written into `Secrets.xcconfig` from Actions secrets by the build job; the maintainer sets them.

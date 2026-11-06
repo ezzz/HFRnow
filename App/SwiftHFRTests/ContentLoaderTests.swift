@@ -1,32 +1,18 @@
 @testable import SwiftHFR
 import Testing
 
-/// Lets a test hold a load open until it decides to finish it.
-private actor Gate {
-    private var continuation: CheckedContinuation<Void, Never>?
-    private var opened = false
-    private var arrived = false
-
-    /// Returns once a load is parked on `wait()`.
-    func untilArrived() async {
-        while !arrived { await Task.yield() }
-    }
-
-    func wait() async {
-        arrived = true
-        if opened { return }
-        await withCheckedContinuation { continuation = $0 }
-    }
-
-    func open() {
-        opened = true
-        continuation?.resume()
-        continuation = nil
-    }
-}
-
-@MainActor
+// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct ContentLoaderTests {
+    @Test func resetForgetsTheValueAndTheError() async {
+        let loader = ContentLoader<Int>()
+        await loader.load { () async throws(ListLoadError) -> Int in 1 }
+        await loader.load { () async throws(ListLoadError) -> Int in throw .offline }
+        #expect(loader.value == 1 && loader.error == .offline)
+        loader.reset()
+        #expect(loader.value == nil && loader.error == nil && !loader.isLoading)
+    }
+
     @Test func aSuccessfulLoadStoresTheValue() async {
         let loader = ContentLoader<Int>()
         await loader.load { 1 }
@@ -49,9 +35,9 @@ struct ContentLoaderTests {
     @Test func contentStaysVisibleWhileAReloadRuns() async {
         let loader = ContentLoader<Int>()
         await loader.load { 1 }
-        let gate = Gate()
-        let reload = Task { await loader.load { await gate.wait(); return 2 } }
-        await gate.untilArrived()
+        let gate = CheckGate()
+        let reload = gate.run { await loader.load { await gate.wait(); return 2 } }
+        guard await gate.entered() else { Issue.record("The reload never started"); return }
         #expect(loader.value == 1)
         #expect(loader.isLoading)
         await gate.open()
@@ -61,9 +47,9 @@ struct ContentLoaderTests {
 
     @Test func aSupersededLoadCannotOverwriteTheNewerOne() async {
         let loader = ContentLoader<Int>()
-        let gate = Gate()
-        let slow = Task { await loader.load { await gate.wait(); return 1 } }
-        await gate.untilArrived()
+        let gate = CheckGate()
+        let slow = gate.run { await loader.load { await gate.wait(); return 1 } }
+        guard await gate.entered() else { Issue.record("The load never started"); return }
         await loader.load { 2 }
         await gate.open()
         await slow.value
@@ -81,9 +67,9 @@ struct ContentLoaderTests {
 
     @Test func cancelStopsTheLoadAndDropsItsResult() async {
         let loader = ContentLoader<Int>()
-        let gate = Gate()
-        let slow = Task { await loader.load { await gate.wait(); return 1 } }
-        await gate.untilArrived()
+        let gate = CheckGate()
+        let slow = gate.run { await loader.load { await gate.wait(); return 1 } }
+        guard await gate.entered() else { Issue.record("The load never started"); return }
         loader.cancel()
         await gate.open()
         await slow.value

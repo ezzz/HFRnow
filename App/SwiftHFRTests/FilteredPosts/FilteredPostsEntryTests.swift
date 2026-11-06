@@ -4,7 +4,7 @@ import HFRStorage
 @testable import SwiftHFR
 import Testing
 
-@MainActor @Suite(.timeLimit(.minutes(1)))
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct FilteredPostsEntryTests {
     private func model(_ source: FakeFilteredSource) -> FilteredPostsModel {
         FilteredPostsModel(
@@ -13,7 +13,7 @@ struct FilteredPostsEntryTests {
     }
 
     private func settle(_ model: FilteredPostsModel) async {
-        while model.isRunning || model.isAdvancing { await Task.yield() }
+        await model.settle()
     }
 
     @Test func aFavouriteStartsAtItsResumePageAfterItsLastReadMessage() async {

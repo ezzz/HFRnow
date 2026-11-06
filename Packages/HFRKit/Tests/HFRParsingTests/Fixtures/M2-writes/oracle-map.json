@@ -1,0 +1,218 @@
+{
+  "R123a.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-05T18:51:45Z",
+    "path": "../captures/R123a-mp-list-group-owner.html"
+  },
+  "R123b.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207958&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R123b-mp-thread-group-owner.html"
+  },
+  "R123c.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R123c-mp-reply-composer-group-owner-newdest.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207958&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R123d.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207958&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R123d-mp-thread-group-member.html"
+  },
+  "R123e.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R123e-mp-reply-composer-group-member-no-roster.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207958&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R123f.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-05T18:52:12Z",
+    "path": "../captures/R123f-mp-list-group-member.html"
+  },
+  "R123g.html": {
+    "kind": "favorites",
+    "now": "2026-11-05T18:54:26Z",
+    "path": "../captures/R123g-favourites-owntopic1-empty-after-delflag.html"
+  },
+  "R123k.html": {
+    "kind": "form",
+    "mode": "mp",
+    "path": "../captures/R123k-new-mp-form-recipients-comma-hint.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0"
+  },
+  "R124.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R124-mp-reply-composer-after-removal-no-newdest.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207958&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R125.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3207958&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R125-mp-thread-after-removal-system-message.html"
+  },
+  "R126.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-06T13:45:00Z",
+    "path": "../captures/R126-mp-list-removed-member-no-row.html"
+  },
+  "R127.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R127-mp-reply-composer-group-owner-three-members.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R128.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R128-mp-reply-composer-group-owner-two-members.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R129.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R129-mp-thread-group-after-removal-system-message.html"
+  },
+  "R130.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-06T13:45:00Z",
+    "path": "../captures/R130-mp-list-group-removed-member-no-row.html"
+  },
+  "R132.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R132-mp-reply-composer-group-owner-roster-restored.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R133.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R133-mp-thread-group-after-add-system-message.html"
+  },
+  "R134.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1",
+    "kind": "topic",
+    "ownPseudo": "user2",
+    "path": "../captures/R134-mp-thread-group-added-member-view.html"
+  },
+  "R135.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-06T13:45:00Z",
+    "path": "../captures/R135-mp-list-group-added-member-row.html"
+  },
+  "R136.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R136-mp-reply-composer-group-owner-after-refusal.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R137.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R137-mp-reply-composer-group-owner-after-empty-newdest.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R138.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R138-mp-reply-composer-group-member-no-roster.html",
+    "session": {
+      "pseudo": "user2"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R139.html": {
+    "kind": "form",
+    "mode": "reply",
+    "path": "../captures/R139-mp-reply-composer-group-owner-after-member-newdest.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "R140.html": {
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1",
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R140-mp-thread-group-after-all-steps.html"
+  },
+  "W71.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W71-mp-group-reply-roster-unchanged-old-thread.html"
+  },
+  "W72.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W72-mp-group-reply-remove-member-to-two-person.html"
+  },
+  "W73.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W73-mp-create-group-three-recipients-success.html"
+  },
+  "W74.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W74-mp-group-reply-remove-member-success.html"
+  },
+  "W75.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W75-mp-group-reply-add-member-success.html"
+  },
+  "W76.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W76-mp-group-reply-unknown-pseudo-refused.html"
+  },
+  "W77.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W77-mp-group-reply-empty-newdest-success.html"
+  },
+  "W78.html": {
+    "flow": "reply",
+    "kind": "response",
+    "path": "../captures/W78-mp-group-reply-member-unserved-newdest-success.html"
+  }
+}

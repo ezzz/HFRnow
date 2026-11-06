@@ -32,8 +32,10 @@ answer is a transport failure, decided before parsing).
 |---|---|---|
 | `.hop` (class exactly `hop`) with an `<a>` or `<input>`, text contains "vous devez être enregistré" | `loggedOut` | `W17c` |
 | same, `context: .write` (except the `loggedOut` rule above, which wins in both contexts) | `rejected` | flood (`W11x`, `W13cx`, `W14x`, `W20a/b`), empty body (`W17a`), and the read pages `R12`, `RA5` (back link, no refresh: rejected by shape, this is not a read-page classifier); `message` is the sentence |
-| same, `context: .alertPrepare` (except the `loggedOut` rule above) | `alreadyAlerted` | legacy structural rule, text not captured. **For LOT-050:** every `.hop` + link/input page comes back `alreadyAlerted` here (flood, `RA5`, `R12`, `W17a` included; legacy rule, fails safe), so LOT-050 must show HFR's own `message`, never a fixed text |
-| `.hop` with no link/input, an affirmative sentence containing "avec succès" (no negation word: `ne`, `n'`, `pas`, `aucun`, `impossible`, `erreur`, `échec`, `jamais`; none occurs in the 14 captures), **and** a refresh meta to an `https` forum URL (port absent or 443), `context: .write` | `success` | `W10`, `W11`, `W12`, `W13b`, `W13c`, `W14`, `W15`, `W16a`, `W16b`, `W19`, `W18`, `P03a`, `P03b`, `P03d` (all say "avec succès"; login failure `W01`, login success `W01b`/`W03`, empty lists `R08-1`/`R08-3` and the search wait `R50a` refresh with a link-less `.hop` but never say it, so they are `unrecognized`); `refreshURL` resolved against `requestURL`, `refreshAnchor` = fragment without `#` (nil when none) |
+| same, `context: .alertPrepare` (except the `loggedOut` rules: `W17c` above, `R89` below) | `alreadyAlerted` | legacy structural rule, `R88` (captured, #395). **For LOT-050:** every `.hop` + link/input page comes back `alreadyAlerted` here (flood, `RA5`, `R12`, `W17a` included; legacy rule, fails safe), so LOT-050 must show HFR's own `message`, never a fixed text |
+| `.hop` with a link or input whose whole text is "Vous devez être identifié pour prévenir les modérateurs", `context: .alertPrepare` or `.alertSubmit` | `loggedOut` | `R89`, `W47` (#395); under `.write`/`.pollVote` it stays `rejected` (not captured there) |
+| `.hop` with a link or input whose whole text is "Un message a été envoyé avec succès aux modérateurs", `context: .alertSubmit` | `success` | `W46` (#395): HFR's alert confirmation has the back link and no refresh; `refreshURL`/`refreshAnchor` nil. Any other link/input `.hop` under `.alertSubmit` is `rejected` (`R88`, flood) |
+| `.hop` with no link/input, an affirmative sentence containing "avec succès" (no negation word: `ne`, `n'`, `pas`, `aucun`, `impossible`, `erreur`, `échec`, `jamais`; none occurs in the 14 captures), **and** a refresh meta to an `https` forum URL (port absent or 443), `context: .write` | `success` | `W10`, `W11`, `W12`, `W13b`, `W13c`, `W14`, `W15`, `W16a`, `W16b`, `W19`, `W18`, `P03a`, `P03b`, `P03d` (all say "avec succès"; login failure `W01`, login success `W01b`/`W03`, empty lists `R08-1`/`R08-3` and the search wait `R50a` refresh with a link-less `.hop` but never say it, so they are `unrecognized`; the alert sentence of `W46` is excluded: it says "avec succès" but confirms an alert only); `refreshURL` resolved against `requestURL`, `refreshAnchor` = fragment without `#` (nil when none) |
 | no `.hop`, body text starts "Une erreur est survenue lors de l'envoi des données" | `rejected` | invalid `hash_check`, `W17b` |
 | anything else | `unrecognized` (message kept when a `.hop` exists) | `W01`/`W01b`/`W03`, `R08-1`/`R08-3`, `R50a`, R44 and R46 (forms), empty body, `.hop` without refresh or without "avec succès", refresh without `.hop`, refresh off the forum |
 
@@ -41,14 +43,16 @@ answer is a transport failure, decided before parsing).
 précédente" link or button. `refreshURL` and `refreshAnchor` are set on
 `success` only, so a caller never follows the refresh of a refusal.
 
-`context` exists because the same shape (`.hop` with a link) is a refusal after a write and "already alerted" before the alert
-form; the page alone cannot say which.
+`context` exists because the same shape (`.hop` with a link) is a refusal after a write, "already alerted" before the alert
+form and the confirmation after an alert (`W46`); the page alone cannot say which. A vote or alert sentence is a success in
+its own context only (`.pollVote`, `.alertSubmit`); corpus sweeps check each context (`HopResponseParserTests`,
+`HopResponsePollVoteTests`, `HopResponseAlertTests`).
 
 ## Edge cases
 - Refresh target: `&amp;` decoded, relative resolved, only `https` on `forum.hardware.fr` accepted (same rule as `SearchRedirectParser`, LESSONS 37; `http://forum.hardware.fr:80/…`, other hosts, `//host/…`, `javascript:` are not a confirmation). A refresh without `url=` is ignored. The first valid-looking refresh meta decides.
 - A delete's refresh has no fragment (`W16a`, `W19`): `refreshAnchor` is nil. The post to scroll to is the caller's `numreponse`, as in legacy.
 - A `.hop` with an empty sentence is never a success. A test sweeps the whole capture corpus: only the 14 write confirmations above classify as success.
-- `.alertPrepare` never returns `success`: the alert's own success page is not captured. On the alert form page (`R46`, no `.hop`) it returns `unrecognized`, which is **not** a go-ahead for LOT-050: the alert flow submits only when LOT-036 finds the alert form (`form[action~=modo.php]`, field `raison`); the classifier only answers "already alerted or not".
+- `.alertPrepare` never returns `success`: the alert's success is `W46`, read under `.alertSubmit`. On the alert form page (`R46`, no `.hop`) it returns `unrecognized`, which is **not** a go-ahead for LOT-050: the alert flow submits only when LOT-036 finds the alert form (`form[action~=modo.php]`, field `raison`); the classifier only answers "already alerted or not".
 - Latin-1 pages (`ASIHTTPRequest+Tools` quirk 13) are the caller's decoding concern; this parser takes a `String`.
 
 ## Fixtures
@@ -69,10 +73,9 @@ captured state.
 
 ## Pending capture
 Capture issues: [#135](https://github.com/ezzz/HFRnow/issues/135), [#136](https://github.com/ezzz/HFRnow/issues/136), [#137](https://github.com/ezzz/HFRnow/issues/137), [#138](https://github.com/ezzz/HFRnow/issues/138), [#131](https://github.com/ezzz/HFRnow/issues/131). None blocks the lot; until captured, each state is classified conservatively.
-- **Alert already sent** (`modo.php` GET on a message the account already reported): the page text and whether the shape is really `.hop` + link/input. `alreadyAlerted` rests on the legacy rule alone.
-- **Alert submitted, success**: text and whether a refresh is present. Until captured, the alert write cannot be classified `success` by this parser (a `.hop` without refresh is `unrecognized`).
-- **Logged-out variants of other writes** (flag GET, alert, vote): `loggedOut` is detected only by the `W17c` sentence; a login-form page (legacy `isLoggedOutForm`) is not interpreted.
-- **Poll vote answer** (LOT-054) and **topic/MP create, edit with a ban or locked topic**: any other refusal sentence is `rejected` by shape, but unverified.
+- Captured since (PR #394, read by #395): alert already sent (`R88`, `.hop` + back link, the legacy shape), alert submitted (`W46`), alert page and submit without a session (`R89`, `W47`), poll vote answers (`W42`-`W44`, LOT-054), the vote answer without cookies (`W45`: the confirmation page of `W42`, so `success` under `.pollVote` whatever the session; LOT-054's session check is what keeps a guest vote out).
+- **Logged-out variants of other writes** (flag GET, vote): `loggedOut` is detected only by the `W17c` sentence (and the alert's own sentence in the alert contexts); a login-form page (legacy `isLoggedOutForm`) is not interpreted.
+- **Topic/MP create, edit with a ban or locked topic**: any other refusal sentence is `rejected` by shape, but unverified.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

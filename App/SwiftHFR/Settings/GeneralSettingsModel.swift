@@ -52,6 +52,10 @@ final class GeneralSettingsModel {
     var imageLoading: ImageDisplayMode {
         didSet { if imageLoading != oldValue { store.set(imageLoading, for: SettingKey.displayImages) } }
     }
+    /// "Affichage des MP": one list or two (LOT-171). Read by the Messages list each time it appears.
+    var mpListDisplay: MPListDisplay {
+        didSet { if mpListDisplay != oldValue { store.set(mpListDisplay, for: SettingKey.mpListDisplay) } }
+    }
     /// Density: compact rows; every list reads it as `listDensity` (LOT-169).
     var compactMode: Bool {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
@@ -102,6 +106,7 @@ final class GeneralSettingsModel {
         textSizePercent = SettingKey.textSizePercent(from: store)
         compactMode = store.value(for: SettingKey.compactMode)
         imageLoading = store.value(for: SettingKey.displayImages)
+        mpListDisplay = store.value(for: SettingKey.mpListDisplay)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
         filterMinimumQuotes = store.value(for: SettingKey.quoteFilterMinimumCount)
         filterIncludesAllowlist = store.value(for: SettingKey.quoteFilterExceptions).contains(.allowlistedAuthors)

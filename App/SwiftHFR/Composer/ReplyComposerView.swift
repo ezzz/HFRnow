@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); no GIF or upload panel yet (LOT-102, 155), smiley picker as a sheet from
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090), no GIF panel yet (155), smiley picker as a sheet from
 // the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
@@ -19,7 +19,11 @@ struct ReplyComposerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
+    /// The first focus (once the draft is read) happened: later `canEdit` flips (a send) never steal it.
+    @State private var didFocus = false
     @State private var picker: SmileyPickerModel?
+    /// The smiley search outlives the panel, as legacy's session state: reopening shows the last results (LOT-105).
+    @State private var smileySearch: SmileySearchModel?
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
@@ -30,11 +34,19 @@ struct ReplyComposerView: View {
     }
 
     @State private var formatting: ComposerFormattingModel
+    /// Lives as long as the composer, so an upload finishing after the panel closed still lands in the list.
+    @State private var imageUpload: ImageUploadModel
+    @State private var isShowingImages = false
+    /// A snippet was inserted by the closed panel: focus goes back to the editor.
+    @State private var imageInserted = false
+    /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
+    @State private var rangeImage = NSRange(location: 0, length: 0)
 
     init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
         self.onClose = onClose
         _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
+        _imageUpload = State(initialValue: ImageUploadModel(services: model.imageUploadServices))
     }
 
     var body: some View {
@@ -85,11 +97,22 @@ struct ReplyComposerView: View {
         .sheet(item: $picker, onDismiss: { if smileyInserted { focused = .text } }, content: { picker in
             SmileyPickerView(model: picker) { insertSmiley($0) }
         })
+        .imageUploadSheet(
+            isPresented: $isShowingImages, model: imageUpload,
+            onDismiss: { if imageInserted { focused = .text } },
+            onInsert: { formatting.selectedRange = rangeImage; formatting.insert($0); imageInserted = true }
+        )
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
             formatting.placeCaretAtEnd()
+        }
+        // The fields are disabled until the draft is read: focus set in the same task as `start()` lands on a disabled field
+        // and is lost, so it waits for the view to enable them.
+        .onChange(of: model.canEdit) { _, canEdit in
+            guard canEdit, !didFocus else { return }
+            didFocus = true
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
@@ -108,16 +131,6 @@ struct ReplyComposerView: View {
     }
 
     /// Where typing starts: the first field of a new private message still empty, else the text.
-    private var firstEmptyField: Field {
-        guard model.hasSubjectField else { return .text }
-        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
-        return model.subject.isEmpty ? .subject : .text
-    }
-
-    private var title: String {
-        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
-    }
-
     private var checkTitle: String {
         model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
     }
@@ -148,11 +161,11 @@ struct ReplyComposerView: View {
 
     private func openSmileys() {
         let services = model.smileyServices
+        smileySearch = smileySearch ?? services.search
         rangeForSmiley = selectedRange
         smileyInserted = false
-        picker = SmileyPickerModel(
-            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account
-        )
+        let catalogue = SmileyPickerModel.bundledCatalogue()
+        picker = SmileyPickerModel(catalogue: catalogue, store: services.store, account: services.account, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
@@ -269,6 +282,10 @@ struct ReplyComposerView: View {
             Button("Smileys", systemImage: "face.smiling", action: openSmileys)
                 .disabled(!model.canEdit)
         }
+        ToolbarItem(placement: .primaryAction) {
+            Button("Image", systemImage: "photo") { imageInserted = false; rangeImage = formatting.selectedRange; isShowingImages = true }
+                .disabled(!model.canEdit)
+        }
         ToolbarItem(placement: .cancellationAction) {
             Button("Annuler") { Task { await model.requestClose() } }
             .disabled(model.isSending)
@@ -281,6 +298,18 @@ struct ReplyComposerView: View {
                     .disabled(!model.canSend)
             }
         }
+    }
+}
+
+extension ReplyComposerView {
+    private var firstEmptyField: Field {
+        guard model.hasSubjectField else { return .text }
+        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
+        return model.subject.isEmpty ? .subject : .text
+    }
+
+    private var title: String {
+        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
     }
 }
 

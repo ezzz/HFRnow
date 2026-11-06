@@ -4,7 +4,8 @@ import HFRParsing
 import Observation
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
-// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167).
+// another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167);
+// the reading position is recorded per account and the flag message is followed by the legacy separator (LOT-111, GAP-063, UXD-11).
 /// State of the topic reader (LOT-083): one page at a time, page navigation, refresh, links.
 ///
 /// Loading rules (LOTS "Issues to open" #6 and #7, issues #107 and #108): one load at a time, a newer load or `cancel()`
@@ -13,6 +14,8 @@ import Observation
 /// is prefetched.
 @MainActor
 @Observable
+// The reader's state is one class (LOT-083); LOT-086 adds the quote request to it. Splitting it is a refactor of its own.
+// swiftlint:disable:next type_body_length
 final class TopicReaderModel {
     /// The page shown, nil before the first successful load.
     private(set) var page: ReaderPage?
@@ -37,6 +40,12 @@ final class TopicReaderModel {
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
     var menuFeedbackSerial = 0
+    /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
+    var pendingReply: ReplyRequest?
+    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    var isLoadingQuote = false
+    /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
+    var quoteSelected: Set<Int> = []
     /// Title until the page gives its own.
     let initialTitle: String
 
@@ -49,15 +58,22 @@ final class TopicReaderModel {
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
 
+    /// Where reading positions go (LOT-111); nil when logged out or in a preview.
+    @ObservationIgnored var positions: (any ReaderPositionRecording)?
+
     /// The poll sheet's model, kept here (not in a view) so it outlives the view: a vote in flight or possibly counted is
     /// never offered again from a fresh form when the topic is reopened (LOT-136).
     private var heldPoll: PollModel?
 
     private let source: any TopicPageSource
     var registry = MessageActionRegistry()
+    /// The multi-quote selection and the quote engine of the current account; nil when logged out (LOT-086).
+    @ObservationIgnored var quoting: (any QuoteOpening)?
     let renderOptions: @Sendable () -> ReaderRenderOptions
     /// The options the document on screen was built with, to spot a setting that changed since.
     private var appliedOptions: ReaderRenderOptions?
+    /// The flag message the document draws a line after (legacy separator, LOT-111).
+    private var separatorAfter: Int?
     private var generation = 0
     private var nextToken = 0
     private var nextScrollID = 0
@@ -132,7 +148,7 @@ final class TopicReaderModel {
         nextToken += 1
         document = ReaderDocument(
             token: nextToken,
-            html: TopicHTMLBuilder.document(for: page, token: nextToken, options: options),
+            html: TopicHTMLBuilder.document(for: page, token: nextToken, options: options, separatorAfter: separatorAfter),
             anchor: nil,
             keepsScrollPosition: true
         )
@@ -279,10 +295,12 @@ final class TopicReaderModel {
     /// What tapping `url` does. Topic and private message links of the forum, as LOT-095's router reads them, open in the
     /// app at their page and post (issue #106); other web links open in the browser `defaultBrowser` names (legacy
     /// `MessagesView.swift:3963-3968` at `21173e77`). A forum page the router sends elsewhere (a list, a profile, a page
-    /// view it does not own) opens in the browser too, never in the reader with the session.
+    /// view it does not own) opens in the browser too, never in the reader with the session; a profile opens the profile
+    /// sheet (LOT-116), which fetches it without cookies.
     func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
+        if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
     }
 
@@ -350,17 +368,19 @@ final class TopicReaderModel {
             presentedMenu = nil
             let anchor: Int? = switch rule {
             case .target:
+                // The flag message, or the first one after it when it was deleted (legacy `closePostID`, LOT-111).
                 target.anchor.flatMap { anchor in
-                    loaded.messages.contains { !$0.isContinuation && $0.numreponse == anchor } ? anchor : nil
+                    loaded.messages.first { !$0.isContinuation && $0.numreponse >= anchor }?.numreponse
                 }
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
             }
             let options = currentRenderOptions()
             appliedOptions = options
+            separatorAfter = rule == .target ? target.anchor : nil
             document = ReaderDocument(
                 token: nextToken,
-                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options),
+                html: TopicHTMLBuilder.document(for: loaded, token: nextToken, options: options, separatorAfter: separatorAfter),
                 anchor: anchor,
                 keepsScrollPosition: keepsScrollPosition && anchor == nil
             )

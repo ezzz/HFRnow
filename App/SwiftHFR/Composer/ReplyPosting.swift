@@ -148,6 +148,16 @@ struct LiveReplyPoster: ReplyPosting {
     }
 }
 
+/// What the smiley panel needs when it opens (LOT-104, LOT-105).
+struct SmileyPanelServices {
+    /// The app favourites of every account.
+    let store: AppSmileyFavoritesStore
+    /// The current account's key.
+    let account: String
+    /// The forum search; nil when there is no account to search with.
+    let search: SmileySearchModel?
+}
+
 /// What the reply composer needs, for the current account only (nil when logged out: HFR shows no answer form then).
 struct ComposerServices: Sendable {
     /// Sends through the current account's session.
@@ -158,13 +168,38 @@ struct ComposerServices: Sendable {
     let account: String
     /// Votes in the current account's polls (LOT-136); nil in tests that do not vote.
     var pollVoter: (any PollVoting)?
+    /// Searches a topic as the current account (LOT-113); nil in tests that do not search, and the reader then offers no search.
+    var topicSearcher: (any TopicSearching)?
+    /// The multi-quote selection and the quote engine of the current account (LOT-086); nil in tests that do not quote.
+    var quoting: (any QuoteOpening)?
     /// The smiley favourites of every account (LOT-064), read by the smiley picker (LOT-104); not touched until it opens.
     var smileyFavorites: AppSmileyFavoritesStore = liveSmileyFavorites
+    /// The forum search and wiki lookups of the smiley panel (LOT-105); nil without an account, and the panel then has no search.
+    var smileyLookups: (any SmileyLookups)?
+    /// The device's smiley search history (LOT-064), read and written by the smiley search; not touched until it is used.
+    var smileySearchHistory: SmileySearchHistoryStore = liveSmileySearchHistory
+    /// The image panel's services (LOT-102): built with the struct, nothing is read or written until the panel is used.
+    var imageUpload: ImageUploadServices = .live()
+
+    /// What the smiley panel opens with: a new search model over the lookups, none without an account.
+    @MainActor var smileyPanel: SmileyPanelServices {
+        SmileyPanelServices(
+            store: smileyFavorites, account: account,
+            search: smileyLookups.map { SmileySearchModel(lookups: $0, history: smileySearchHistory) }
+        )
+    }
 
     /// The single store of the app's smiley favourites (one actor per file), `Application Support/SmileyFavorites/`.
     static let liveSmileyFavorites = AppSmileyFavoritesStore(
         persistence: FileSmallStorePersistence(
             fileURL: URL.applicationSupportDirectory.appending(path: "SmileyFavorites/favorites.json")
+        )
+    )
+
+    /// The single store of the smiley search history (one actor per file), `Application Support/SmileySearchHistory/`.
+    static let liveSmileySearchHistory = SmileySearchHistoryStore(
+        persistence: FileSmallStorePersistence(
+            fileURL: URL.applicationSupportDirectory.appending(path: "SmileySearchHistory/history.json")
         )
     )
 
@@ -177,7 +212,9 @@ struct ComposerServices: Sendable {
     static func live(session: HFRSession, account: String?) -> ComposerServices? {
         guard let account else { return nil }
         return ComposerServices(
-            poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account, pollVoter: LivePollVoter(session: session)
+            poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account, pollVoter: LivePollVoter(session: session),
+            topicSearcher: LiveTopicSearcher(session: session), quoting: LiveQuoter(session: session),
+            smileyLookups: LiveSmileyLookups(session: session)
         )
     }
 }
