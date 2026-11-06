@@ -14,11 +14,20 @@ struct TopicReaderView: View {
     let services: ReaderServices
     /// The current account's composer; nil when logged out.
     var composer: ComposerServices?
+    /// Starts the post filter on this topic (LOT-114); nil hides the menu entry.
+    var onFilterPosts: (() -> Void)?
+    /// A filter run is reading pages: the menu entry is disabled meanwhile.
+    var filterIsBusy = false
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    /// The open image viewer (LOT-109); a fresh model per tap.
+    @State private var viewer: ImageViewerModel?
+    @State private var profile: UserProfileModel?
     @State private var askingPage = false
     @State private var pageText = ""
+    /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
+    @State private var swipeEnabled = true
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -27,6 +36,7 @@ struct TopicReaderView: View {
                 ReaderWebView(controller: controller, document: model.document, scrollRequest: model.scrollRequest)
                     .opacity(model.hasShownDocument ? 1 : 0)
                     .accessibilityHidden(!model.hasShownDocument)
+                    .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
             }
             overlay
         }
@@ -41,10 +51,19 @@ struct TopicReaderView: View {
             if model.page != nil { ReaderPageBar(model: model, askPage: askForPage) }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
+        .modifier(ReaderPollFlow(model: model, composer: composer))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                     .disabled(model.isLoading)
+            }
+            if let onFilterPosts {
+                ToolbarItem(placement: .secondaryAction) {
+                    Button(action: onFilterPosts) {
+                        Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                    .disabled(filterIsBusy)
+                }
             }
         }
         .alert("Aller à la page", isPresented: $askingPage) {
@@ -56,17 +75,44 @@ struct TopicReaderView: View {
         } message: {
             if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
+        .confirmationDialog(
+            "Actions du message", isPresented: Binding(get: { model.presentedMenu != nil }, set: { if !$0 { model.dismissMenu() } }),
+            titleVisibility: .hidden, presenting: model.presentedMenu
+        ) { menu in
+            ForEach(menu.entries, id: \.kind) { action in
+                Button(role: action.isDestructive ? .destructive : nil) {
+                    Task { await model.perform(action, in: menu) }
+                } label: { Label(action.title, systemImage: action.systemImageName) }
+            }
+            Button("Annuler", role: .cancel) {}
+        }
+        .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
+        .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
         .onAppear(perform: makeController)
-        .task { await model.onAppear() }
+        .task {
+            // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
+            swipeEnabled = services.settings.swipesPages()
+            model.applyDisplaySettings() // a change made while this reader was away
+            for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
+                swipeEnabled = services.settings.swipesPages()
+                model.applyDisplaySettings()
+            }
+        }
+        .task {
+            installMenuActions()
+            await model.onAppear()
+        }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
-            guard model.linkedReader == nil else { return }
+            // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
+            guard model.linkedReader == nil, viewer == nil else { return }
             model.cancel()
             controller?.stopLoading()
         }
@@ -93,6 +139,38 @@ struct TopicReaderView: View {
         }
     }
 
+    @ViewBuilder
+    private var menuFeedbackBanner: some View {
+        if let feedback = model.menuFeedback {
+            Text(feedback)
+                .font(.callout)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .padding(.bottom, 56)
+                .task(id: model.menuFeedbackSerial) { [serial = model.menuFeedbackSerial] in
+                    // A cancelled sleep (a newer confirmation, the view going away) must not clear anything.
+                    do {
+                        try await Task.sleep(for: .seconds(2))
+                        model.clearMenuFeedback(serial: serial)
+                    } catch {}
+                }
+        }
+    }
+
+    /// The legacy horizontal drag that changes the page, when the setting is on (read at the end of each drag).
+    private var pageSwipe: some Gesture {
+        DragGesture().onEnded { value in
+            guard services.settings.swipesPages(), let page = model.page,
+                  let swipe = PageSwipe.of(
+                      translation: value.translation, predictedEnd: value.predictedEndTranslation,
+                      page: page.currentPage, maxPage: page.maxPage
+                  )
+            else { return }
+            Task { await model.swipe(swipe) }
+        }
+    }
+
     private var linkedReader: Binding<LinkedReader?> {
         Binding(
             get: { model.linkedReader.map(LinkedReader.init) },
@@ -105,6 +183,20 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
+    /// The handlers of the merged lots; today only "Link". A later lot adds its handler here, the policy is untouched.
+    private func installMenuActions() {
+        model.install(MessageActionRegistry([
+            LinkActionHandler(
+                copy: { UIPasteboard.general.string = $0.absoluteString },
+                // Weak: the model stores this registry, a strong capture would keep every reader alive.
+                confirm: { [weak model] text in
+                    model?.showMenuFeedback(text)
+                    AccessibilityNotification.Announcement(text).post()
+                }
+            )
+        ]))
+    }
+
     private func makeController() {
         guard controller == nil else { return }
         let controller = ReaderWebController(
@@ -115,6 +207,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
+                case .profile(let memberID): profile = UserProfileModel(memberID: memberID, source: services.profiles)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -122,18 +215,29 @@ struct TopicReaderView: View {
             },
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
+            },
+            position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
+            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) },
+            image: { images, index, _ in
+                // The controller already checked the document token (a stale page's tap never gets here).
+                viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
             }
         )
+        model.positions = services.positions
         self.controller = controller
     }
 }
 
-/// What the reader shares across pages: the image client and the settings it reads.
+/// What the reader shares across pages: the image client, the settings it reads and the position recorder.
 struct ReaderServices: Sendable {
     /// Images through the cookie-less client.
     let imageFetcher: ReaderImageFetcher
     /// Image mode and display choices.
     let settings: ReaderSettings
+    /// Public profiles opened from a link (LOT-116), fetched without cookies.
+    let profiles: any UserProfileSource
+    /// Records the reading position of the current account (LOT-111); nil when logged out.
+    var positions: (any ReaderPositionRecording)?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.
@@ -171,7 +275,7 @@ private struct ReaderPageBar: View {
 }
 
 /// Hosts the controller's web view and hands it the model's document and scroll requests.
-private struct ReaderWebView: UIViewRepresentable {
+struct ReaderWebView: UIViewRepresentable {
     let controller: ReaderWebController
     let document: ReaderDocument?
     let scrollRequest: ScrollRequest?
@@ -194,19 +298,19 @@ private struct LinkedReader: Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(model)) }
 }
 
-private struct ExternalLink: Identifiable {
+struct ExternalLink: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
 }
 
-private struct VideoItem: Identifiable {
+struct VideoItem: Identifiable {
     let embed: MessageEmbed
     var id: String { embed.embedURL.absoluteString }
 }
 
 /// A web link opened outside the reader, in Safari's own view (LOT-071 T8): Safari's data, not the app's. Legacy
 /// `SafariInAppView` (`MessagesView.swift:2874-2885` at `21173e77`).
-private struct SafariView: UIViewControllerRepresentable {
+struct SafariView: UIViewControllerRepresentable {
     let url: URL
 
     func makeUIViewController(context: Context) -> SFSafariViewController {

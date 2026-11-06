@@ -22,6 +22,12 @@ final class ReaderWebController: NSObject {
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
+        var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
+        /// The user tapped the menu button or the author of message `post` in document `token`.
+        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
+        var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -54,7 +60,7 @@ final class ReaderWebController: NSObject {
     }
 
     private let imageFetcher: ReaderImageFetcher
-    private let autoLoadsThirdPartyImages: @Sendable () -> Bool
+    let autoLoadsThirdPartyImages: @Sendable () -> Bool
     private var document: ReaderDocument?
     private var savedOffset: CGPoint?
     private var appliedScrollID: Int?
@@ -63,7 +69,7 @@ final class ReaderWebController: NSObject {
     /// Third-party image URLs the user tapped in the current document, as `reader.js` reported them. Consent lives here,
     /// never in the image URL: the page's own markup can name the `hfrreader:` scheme (an `img` or a CSS `url()`), and
     /// WebKit's preload scanner requests it before `reader.js` runs.
-    private var consented: Set<String> = []
+    private(set) var consented: Set<String> = []
     /// Image requests of the current document and whether the policy let them through (tests read it).
     private(set) var imageRequests: [(requested: URL, allowed: Bool)] = []
 
@@ -172,44 +178,43 @@ final class ReaderWebController: NSObject {
         return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
     }
 
-    private func scroll(to anchor: Int) {
-        Task {
-            _ = try? await webView.callAsyncJavaScript(
-                "return window.hfrReader.scrollToPost(n);", arguments: ["n": anchor], in: nil, contentWorld: Self.world
-            )
-        }
+    /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
+    /// document scrolls once.
+    private func scroll(to anchor: Int, landing: Bool = false) {
+        let script = "return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);"
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["n": anchor], in: nil, contentWorld: Self.world) }
     }
 
     // MARK: - Messages from reader.js
 
     fileprivate func receive(_ message: WKScriptMessage) -> Any? {
-        guard message.frameInfo.isMainFrame, let body = message.body as? [String: Any],
-              let type = body["type"] as? String, let token = (body["token"] as? NSNumber)?.intValue,
-              let document, token == document.token else { return nil }
-        switch type {
-        case "images":
-            return decisions(for: body["urls"] as? [Any] ?? [])
-        case "tap":
-            return recordTap(body["url"] as? String)
-        case "ready":
-            documentIsReady(document, token: token)
-            return nil
-        case "video":
-            if let post = (body["post"] as? NSNumber)?.intValue, let index = (body["index"] as? NSNumber)?.intValue {
-                events.video(post, index, token)
-            }
-            return nil
-        default:
-            return nil
-        }
+        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body),
+              let document, decoded.token == document.token else { return nil }
+        return handle(decoded.message, in: document)
     }
 
-    /// One decision per image `src`, in order.
-    private func decisions(for urls: [Any]) -> [String] {
-        let auto = autoLoadsThirdPartyImages()
-        return urls.prefix(Self.maximumImages).map { value -> String in
-            guard let text = value as? String, let url = URL(string: text) else { return ImageDecision.block.rawValue }
-            return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
+    /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
+    /// first); this one is internal only so tests can drive the actions without a web view round trip.
+    func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
+        switch message {
+        case .images(let urls):
+            return decisions(for: urls)
+        case .tap(let url):
+            return recordTap(url)
+        case .ready:
+            documentIsReady(document, token: document.token)
+            return nil
+        case .position(let post):
+            events.position(post, document.token)
+            return nil
+        case .video(let post, let index):
+            events.video(post, index, document.token)
+            return nil
+        case .menu(let post, let source):
+            events.menu(post, source, document.token)
+            return nil
+        case .image(let urls, let index):
+            return openViewer(urls: urls, index: index, token: document.token)
         }
     }
 
@@ -226,7 +231,7 @@ final class ReaderWebController: NSObject {
         applyTextScale()
         applyTheme()
         if let anchor = document.anchor {
-            scroll(to: anchor)
+            scroll(to: anchor, landing: true)
         } else if let offset = savedOffset {
             webView.scrollView.setContentOffset(offset, animated: false)
         }

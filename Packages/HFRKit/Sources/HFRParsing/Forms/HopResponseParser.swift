@@ -2,13 +2,15 @@ import Foundation
 import HFRModels
 import SwiftSoup
 
-/// Classifies the page HFR answers after a write (reply, edit, delete, new topic, MP, flag, alert): LOT-037.
+/// Classifies the page HFR answers after a write (reply, edit, delete, new topic, MP, flag, alert, poll
+/// vote): LOT-037.
 ///
 /// HFR answers HTTP 200 whether the write worked or not; only the page tells. Every page is a `div.hop` message,
 /// optionally with a `<meta http-equiv="Refresh">`. A page is `success` only when HFR confirmed it: a refresh to the
 /// forum, a `.hop` with no link and no input, **and** a sentence saying "avec succès" (every captured write success has
 /// it; login pages, empty lists and the search waiting page also refresh but never say it); anything else that is not clearly a refusal is
-/// `unrecognized`, so callers never report a success they did not see.
+/// `unrecognized`, so callers never report a success they did not see. A poll vote is confirmed by its own sentence instead
+/// (`Context.pollVote`, `W42`).
 public enum HopResponseParser {
     /// What the request was, which decides how the same `.hop` shape is read.
     public enum Context: Sendable {
@@ -17,6 +19,9 @@ public enum HopResponseParser {
         /// The page that precedes the moderator alert form: a `.hop` with a link or input means "already alerted"
         /// (`ReplyService.swift:1564-1572`, `AlerteModoViewController.m:154-163`), the form itself has no `.hop`.
         case alertPrepare
+        /// The answer to a poll vote (LOT-054): HFR confirms it with its own sentence, without "avec succès" (`W42`), and
+        /// that sentence is a confirmation in this context only. A `.hop` with a link or input is a refusal (`W43`, `W44`).
+        case pollVote
     }
 
     /// Classifies `html`; `requestURL` resolves a relative refresh target (the forum root by default).
@@ -40,7 +45,7 @@ public enum HopResponseParser {
             if isLoggedOutMessage(message) { return HopResponse(kind: .loggedOut, message: message) }
             return HopResponse(kind: context == .alertPrepare ? .alreadyAlerted : .rejected, message: message)
         }
-        guard context == .write, isSuccessSentence(message), let target = refreshTarget(in: document, requestURL: requestURL) else {
+        guard isConfirmation(message, in: context), let target = refreshTarget(in: document, requestURL: requestURL) else {
             return HopResponse(kind: .unrecognized, message: message)
         }
         return HopResponse(kind: .success, message: message, refreshURL: target, refreshAnchor: anchor(of: target))
@@ -55,6 +60,8 @@ public enum HopResponseParser {
     /// Words that turn a sentence negative; none occurs in a captured confirmation (`non lu` of `W18` is not one).
     /// Apostrophes split words, so `n'a` yields `n`.
     private static let negations: Set<String> = ["ne", "n", "pas", "aucun", "aucune", "impossible", "erreur", "échec", "jamais"]
+    /// The whole `.hop` text of an accepted poll vote (`W42`), whitespace collapsed.
+    static let pollVoteConfirmation = "Votre vote a bien été pris en compte !"
     /// Part of the `.hop` text of a write sent without a session (`W17c`).
     private static let loggedOutMarker = "vous devez être enregistré"
 
@@ -94,6 +101,16 @@ public enum HopResponseParser {
     private static func hasLinkOrInput(_ hop: Element) -> Bool {
         guard let found = try? hop.select("a, input") else { return false }
         return !found.isEmpty()
+    }
+
+    /// The sentence that confirms a write of `context`: an affirmative "avec succès" one for `.write`, exactly the vote
+    /// sentence for `.pollVote` (a write confirmation is not a vote's, nor the reverse), none before the alert form.
+    private static func isConfirmation(_ message: String?, in context: Context) -> Bool {
+        switch context {
+        case .write: isSuccessSentence(message)
+        case .pollVote: message == pollVoteConfirmation
+        case .alertPrepare: false
+        }
     }
 
     /// Positive confirmation: a refresh plus a `.hop` sentence is not enough (`W01` refusal, `R08-1`, `R50a` have both).

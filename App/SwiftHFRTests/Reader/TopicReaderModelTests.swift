@@ -136,6 +136,22 @@ struct TopicReaderModelTests {
         #expect(linked.document?.anchor == nil)
     }
 
+    @Test func aDeletedFlagMessageLandsOnTheNextOneWithoutSeparator() async {
+        let reader = model(FakeTopicPages(), page: 2, anchor: 150)
+        await reader.onAppear()
+        #expect(reader.document?.anchor == 200)
+        #expect(reader.document?.html.contains("separator1") == false)
+    }
+
+    @Test func aTargetWithAnAnchorDrawsTheSeparatorAfterIt() async {
+        let withAnchor = model(FakeTopicPages(), page: 2, anchor: 200)
+        await withAnchor.onAppear()
+        #expect(withAnchor.document?.html.contains("separator1") == true)
+        let without = model(FakeTopicPages(), page: 2)
+        await without.onAppear()
+        #expect(without.document?.html.contains("separator1") == false)
+    }
+
     @Test func aPostLinkOnThePageShownScrollsWithoutRefetching() async throws {
         let pages = FakeTopicPages()
         let reader = model(pages, page: 2)
@@ -259,10 +275,24 @@ extension TopicReaderModelTests {
         let reader = model(FakeTopicPages())
         let web = url("https://example.com/a")
         #expect(reader.action(forLink: web, defaultBrowser: true) == .defaultBrowser(web))
-        // A forum page the router does not open as a topic (a profile) is a web link too.
-        let profile = url("https://forum.hardware.fr/hfr/profil-12345.htm")
-        #expect(reader.action(forLink: profile, defaultBrowser: true) == .defaultBrowser(profile))
-        #expect(reader.action(forLink: profile, defaultBrowser: false) == .inAppBrowser(profile))
+        // A forum page the router does not open as a topic (a topic list) is a web link too.
+        let list = url("https://forum.hardware.fr/hfr/Discussions/liste_sujet-1.htm")
+        #expect(reader.action(forLink: list, defaultBrowser: true) == .defaultBrowser(list))
+        #expect(reader.action(forLink: list, defaultBrowser: false) == .inAppBrowser(list))
+    }
+
+    /// LOT-116: a member's profile link opens the profile sheet whatever the browser setting (legacy
+    /// `OnlineMessagesTableViewController.m:1953-1964`); a look-alike on another host or path stays a web link.
+    @Test func aProfileLinkOpensTheProfileSheet() {
+        let reader = model(FakeTopicPages())
+        for link in ["https://forum.hardware.fr/hfr/profil-12345.htm", "http://forum.hardware.fr/hfr/profil-12345.htm"] {
+            #expect(reader.action(forLink: url(link), defaultBrowser: true) == .profile(memberID: 12345))
+            #expect(reader.action(forLink: url(link), defaultBrowser: false) == .profile(memberID: 12345))
+        }
+        let foreign = url("https://evil.example/hfr/profil-12345.htm")
+        #expect(reader.action(forLink: foreign, defaultBrowser: false) == .inAppBrowser(foreign))
+        let notProfile = url("https://forum.hardware.fr/hfr/profil-abc.htm")
+        #expect(reader.action(forLink: notProfile, defaultBrowser: false) == .inAppBrowser(notProfile))
     }
 
     /// LOT-095 follow-up: a link carrying `cat` and `post` that the router does not route as a topic page (an answer link, a

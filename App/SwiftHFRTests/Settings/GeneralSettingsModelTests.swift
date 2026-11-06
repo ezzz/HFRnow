@@ -1,3 +1,4 @@
+import Foundation
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
@@ -95,5 +96,39 @@ struct GeneralSettingsModelTests {
         model.textSizePercent = 500
         #expect(model.textSizePercent == 130)
         #expect(store.rawValue(forKey: "text_size_percent") == .int(130))
+    }
+
+    @Test func imageLoadingDefaultsToWiFiAndReadsLegacyValues() {
+        #expect(GeneralSettingsModel(store: InMemorySettingsStore()).imageLoading == .wifiOnly)
+        for (raw, mode) in [("yes", ImageDisplayMode.always), ("no", .never), ("wifi", .wifiOnly)] {
+            let model = GeneralSettingsModel(store: InMemorySettingsStore(["display_images": .string(raw)]))
+            #expect(model.imageLoading == mode)
+        }
+    }
+
+    @Test func imageLoadingChangeIsWrittenAndReachesTheReaderPolicy() {
+        let store = InMemorySettingsStore()
+        let model = GeneralSettingsModel(store: store)
+        model.imageLoading = .never
+        #expect(store.rawValue(forKey: "display_images") == .string("no"))
+        #expect(ReaderSettings.autoLoad(store: store) == .onTap)
+        model.imageLoading = .always
+        #expect(store.rawValue(forKey: "display_images") == .string("yes"))
+        let settings = ReaderSettings.live(store: store, isOnWiFi: { false })
+        #expect(settings.autoLoadsThirdPartyImages())
+        model.imageLoading = .wifiOnly
+        #expect(!ReaderSettings.live(store: store, isOnWiFi: { false }).autoLoadsThirdPartyImages())
+        #expect(ReaderSettings.live(store: store, isOnWiFi: { true }).autoLoadsThirdPartyImages())
+    }
+
+    @Test func privateHostsStayBlockedWhateverTheSetting() throws {
+        let url = try #require(URL(string: "http://192.168.1.1/a.png"))
+        let store = InMemorySettingsStore()
+        let model = GeneralSettingsModel(store: store)
+        for mode in ImageDisplayMode.allCases {
+            model.imageLoading = mode
+            let auto = ReaderSettings.live(store: store, isOnWiFi: { true }).autoLoadsThirdPartyImages()
+            #expect(ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto, tapped: true) == .block)
+        }
     }
 }

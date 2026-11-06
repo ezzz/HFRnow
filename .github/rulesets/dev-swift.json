@@ -30,7 +30,7 @@
           { "context": "Docs consistency" },
           { "context": "Fixture tooling tests" },
           { "context": "gitleaks" },
-          { "context": "Analyze (swift)" },
+          { "context": "App build + tests (iOS 27 simulator)" },
           { "context": "Analyze (actions)" },
           { "context": "review" }
         ]

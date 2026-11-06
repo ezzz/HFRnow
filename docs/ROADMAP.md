@@ -10,7 +10,7 @@ Every lot of [LOTS.md](LOTS.md) belongs to one milestone. Each milestone has a l
 
 | Milestone | Scope | Exit criteria |
 |---|---|---|
-| 🚀 M1 · MVP | First usable build: log in, browse forums, topics and flags, read, reply (the audit and tooling lots 000–005 and 071, the engine lots the MVP needs, and the app lots 080–084, 119, 137, 160, 161, 169, 170) | Every M1 lot done; the fixes that touch the MVP merged; the #322 light, dark and Dynamic Type XL checks done; a TestFlight build installed by the maintainer |
+| 🚀 M1 · MVP | First usable build: log in, browse forums, topics and flags, read, reply (the audit and tooling lots 000–005 and 071, the engine lots the MVP needs, and the app lots 080–084, 119, 137, 160, 169, 170; the release pipeline LOT-161 moved to M4, operator 2026-11-05) | Every M1 lot done; the fixes that touch the MVP merged; the #322 light, dark and Dynamic Type XL checks done; a TestFlight build installed by the maintainer |
 | 📖 M2 · Read & reply complete | Every reading and answering feature of the legacy app: quotes, formatting, smileys, images, edit and delete, new topic, polls, search, filters, page tools, offline reading, MPs | Every M2 lot done; TestFlight beta 2 |
 | ⚙️ M3 · Engine complete | Every `HFRKit` lot not already in M1 | Every M3 lot done; LOT-070 parity gates green |
 | 🏁 M4 · Final version | The validated legacy parity: everything else that parity needs (MPStorage sync, notifications, appearance, compliance, accessibility, App Store); the evolutions are in M5 | LOT-164 parity gate passed; the LOT-165 App Store submission accepted by App Review; every lot done |

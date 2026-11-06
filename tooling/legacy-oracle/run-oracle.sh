@@ -92,7 +92,7 @@ spin() {
 for tool in git xcodebuild xcrun carthage; do
   command -v "$tool" >/dev/null 2>&1 || die "missing tool: $tool"
 done
-[ -d "$HFRNOW/.git" ] || die "legacy checkout not found at $HFRNOW (set HFRNOW)"
+[ -e "$HFRNOW/.git" ] || die "legacy checkout not found at $HFRNOW (set HFRNOW)"
 [ -f "$IN_DIR/oracle-map.json" ] || die "no oracle-map.json in $IN_DIR"
 mkdir -p "$WORK" "$OUT_DIR" || die "cannot create $WORK or $OUT_DIR"
 OUT_DIR=$(cd "$OUT_DIR" && pwd)
