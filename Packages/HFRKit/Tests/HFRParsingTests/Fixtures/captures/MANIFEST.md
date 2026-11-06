@@ -247,6 +247,7 @@ already gone for user2). Nothing of the thread is left on HFR. One message, no e
 | W42 | `W42-poll-vote-success.html` | Vote (`reponse=1`, `sondage_submit=Voter`, form order): link-less `.hop` "Votre vote a bien été pris en compte !", refresh `/hfr/<cat>/<sub>/sujet_<post>_1.htm` (no slug), no "avec succès" | E10 | 037, 054 |
 | W43 | `W43-poll-vote-already-voted.html` | Same body again: `.hop` "Désolé, vous avez déjà voté !" + back link, no refresh | E10 | 037, 054 |
 | W44 | `W44-poll-vote-linked-account-already-voted.html` | Same body from user2 (linked account, multipseudo notice on its page): the same sentence | E10 | 037, 054 |
+| W45 | `W45-poll-vote-logged-out.html` | Vote POST without cookies on an operator poll: the answer of `W42` (one observation); proves nothing about the session (#137) | W45 | 037, 054 |
 | W46 | `W46-modo-alert-success.html` | Moderator alert submitted (user2, browser semantics): `.hop` "Un message a été envoyé avec succès aux modérateurs" **+ back link**, no refresh | R46 | 037, 050 |
 | R88 | `R88-modo-alert-already-reported.html` | Alert page of the message just reported: `.hop` "Votre demande de modération sur ce message n'est pas encore traitée." + back link, no form | R46 | 037, 050 |
 | W47 | `W47-modo-alert-logged-out-rejected.html` | Alert body without cookies, empty `hash_check`: `.hop` "Vous devez être identifié pour prévenir les modérateurs" + back link | R46, W17 | 037, 050 |
