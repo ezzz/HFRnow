@@ -51,6 +51,7 @@ struct TopicReaderView: View {
             if model.page != nil { ReaderPageBar(model: model, askPage: askForPage) }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
+        .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

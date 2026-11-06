@@ -158,6 +158,8 @@ struct ComposerServices: Sendable {
     let account: String
     /// Votes in the current account's polls (LOT-136); nil in tests that do not vote.
     var pollVoter: (any PollVoting)?
+    /// Searches a topic as the current account (LOT-113); nil in tests that do not search, and the reader then offers no search.
+    var topicSearcher: (any TopicSearching)?
     /// The smiley favourites of every account (LOT-064), read by the smiley picker (LOT-104); not touched until it opens.
     var smileyFavorites: AppSmileyFavoritesStore = liveSmileyFavorites
     /// The image panel's services (LOT-102): built with the struct, nothing is read or written until the panel is used.
@@ -179,7 +181,8 @@ struct ComposerServices: Sendable {
     static func live(session: HFRSession, account: String?) -> ComposerServices? {
         guard let account else { return nil }
         return ComposerServices(
-            poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account, pollVoter: LivePollVoter(session: session)
+            poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account, pollVoter: LivePollVoter(session: session),
+            topicSearcher: LiveTopicSearcher(session: session)
         )
     }
 }
