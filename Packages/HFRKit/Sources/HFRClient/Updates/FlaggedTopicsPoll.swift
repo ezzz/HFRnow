@@ -20,8 +20,9 @@ public enum FlaggedTopicsPollError: Error, Sendable, Equatable {
 /// **It cannot mark a flag read.** HFR moves a flag on an authenticated *topic* page (HFR-PROTOCOL §7, E25, `R21`), which
 /// this poll never requests: the request is built by `HFREndpoint.favorites(filter: .flagged)` and sent with
 /// `redirectPolicy = .doNotFollow`, so even a redirect cannot lead the account's cookies to a topic page. The flags page
-/// itself is read-only: two GETs of it two seconds apart (`R10`, `R73a`) show the same two flags at the same positions, and
-/// the legacy app loads it on every refresh without ever moving a flag.
+/// itself is not known to move flags, and the committed captures (`R10`, `R73a`) cannot show it: the fixture kit re-aliases
+/// ids and pages by row position. What holds is structural: no topic page is requested and redirects are refused (E25).
+/// Pending capture: two raw flags pages around a poll, compared without publishing values (HFR-PROTOCOL §6c, LOT-092).
 ///
 /// Like `MPUnreadPoll`, the request runs in an ephemeral probe `HFRSession` seeded with a snapshot of the account's
 /// cookies (a logged-in answer sets `md_user` and `md_passs` again, `R10` meta) and nothing is written back, so a poll that

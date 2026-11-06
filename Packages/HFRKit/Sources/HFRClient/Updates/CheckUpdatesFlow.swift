@@ -28,19 +28,20 @@ public struct CheckUpdatesFlow: Sendable {
 
     /// Creates a flow that reads with the cookies of `session`, without ever changing it.
     public init(session: HFRSession) {
-        self.init(messages: MPUnreadPoll(session: session, redirectPolicy: .doNotFollow), flags: FlaggedTopicsPoll(session: session))
+        self.init(session: session, makeHomeProbe: nil, makeFlagsProbe: nil)
     }
 
-    /// Creates a flow over scripted probes, through the same polls and policies as the public init (tests).
+    /// The one place the polls and their redirect policies are built: the public init passes no probe factory, tests pass
+    /// scripted ones, so a policy dropped here fails the tests.
     init(
         session: HFRSession,
-        makeHomeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport,
-        makeFlagsProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport
+        makeHomeProbe: (@Sendable ([StoredCookie]) -> any HTTPTransport)?,
+        makeFlagsProbe: (@Sendable ([StoredCookie]) -> any HTTPTransport)?
     ) {
-        self.init(
-            messages: MPUnreadPoll(session: session, redirectPolicy: .doNotFollow, makeProbe: makeHomeProbe),
-            flags: FlaggedTopicsPoll(session: session, makeProbe: makeFlagsProbe)
-        )
+        let messages = makeHomeProbe.map { MPUnreadPoll(session: session, redirectPolicy: .doNotFollow, makeProbe: $0) }
+            ?? MPUnreadPoll(session: session, redirectPolicy: .doNotFollow)
+        let flags = makeFlagsProbe.map { FlaggedTopicsPoll(session: session, makeProbe: $0) } ?? FlaggedTopicsPoll(session: session)
+        self.init(messages: messages, flags: flags)
     }
 
     private init(messages: MPUnreadPoll, flags: FlaggedTopicsPoll) {

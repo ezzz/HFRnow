@@ -83,6 +83,7 @@ struct CheckUpdatesFlowTests {
         let redirect = HTTPResponse(statusCode: 302, headers: ["Location": topic.absoluteString], url: Self.homeURL, body: Data())
         let ready = Self.ready(home: .success(redirect), flags: try Self.flags("R10-favourites-owntopic1"))
         let summary = try await ready.flow.check()
+        // MockTransport never follows: the guarantee is the policy sent to the transport, checked just below.
         #expect(await ready.home.requests.map(\.url) == [Self.homeURL])
         #expect(await ready.home.requests.first?.redirectPolicy == .doNotFollow)
         guard case .failed(.page(.malformed)) = summary.unreadPrivateMessages else {
