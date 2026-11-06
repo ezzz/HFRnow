@@ -1,0 +1,37 @@
+{
+  "R117a.html": {
+    "kind": "topics",
+    "now": "2026-11-06T13:11:34Z",
+    "path": "../captures/R117a-forum-list-header-badge-n7.html",
+    "currentURL": "/hfr/OSAlternatifs/liste_sujet-200.htm"
+  },
+  "R130a.html": {
+    "kind": "topic",
+    "ownPseudo": "user1",
+    "path": "../captures/R130a-mp-thread-leading-newline.html",
+    "currentURL": "/forum2.php?config=hfr.inc&cat=prive&post=3208005&page=1"
+  },
+  "R130b.html": {
+    "kind": "form",
+    "mode": "edit",
+    "path": "../captures/R130b-mp-edit-form-leading-newline.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208005&numreponse=1980892197&page=1&p=1&subcat=0&sondage=0&owntopic=0"
+  },
+  "R130c.html": {
+    "kind": "form",
+    "mode": "quote",
+    "path": "../captures/R130c-mp-quote-form-leading-newline.html",
+    "session": {
+      "pseudo": "user1"
+    },
+    "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208005&numrep=1980892197&ref=1&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0"
+  },
+  "W130.html": {
+    "kind": "response",
+    "flow": "reply",
+    "path": "../captures/W130-mp-create-leading-newline-success.html"
+  }
+}
