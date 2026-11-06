@@ -100,9 +100,12 @@ for tool in git xcodebuild xcrun carthage; do
 done
 [ -e "$HFRNOW/.git" ] || die "legacy checkout not found at $HFRNOW (set HFRNOW)"
 [ -n "$STORES_DIR" ] || [ -f "$IN_DIR/oracle-map.json" ] || die "no oracle-map.json in $IN_DIR"
-mkdir -p "$WORK" "$OUT_DIR" || die "cannot create $WORK or $OUT_DIR"
-OUT_DIR=$(cd "$OUT_DIR" && pwd)
-[ -n "$STORES_DIR" ] || IN_DIR=$(cd "$IN_DIR" && pwd)
+mkdir -p "$WORK" || die "cannot create $WORK"
+if [ -z "$STORES_DIR" ]; then # the parser folders are not needed in stores mode
+  mkdir -p "$OUT_DIR" || die "cannot create $OUT_DIR"
+  OUT_DIR=$(cd "$OUT_DIR" && pwd)
+  IN_DIR=$(cd "$IN_DIR" && pwd)
+fi
 
 # --- 1. legacy checkout at the expected commit ---
 head=$(git -C "$HFRNOW" rev-parse HEAD) || die "cannot read $HFRNOW HEAD"
