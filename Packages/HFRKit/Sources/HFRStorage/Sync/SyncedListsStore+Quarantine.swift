@@ -21,15 +21,11 @@ extension SyncedListsStore {
         let names = await listNames(slot)
         var values: [String: SyncedValue] = [:]
         for name in names {
-            let key = slotKey(slot, name: name)
-            if let value = await localValue(slot, name: name) { values[key] = value }
-            if digests, let digest = synced[key] { values[Self.digestPrefix + key] = .string(digest) }
+            if let value = await localValue(slot, name: name) { values[slotKey(slot, name: name)] = value }
         }
-        if digests, slot == .allowlist || slot == .superFavorites || slot == .smileyFavorites {
-            // The digest of a list emptied here since its last sync: an empty list holds no name.
-            for (key, digest) in synced where slot.owns(key) && values[Self.digestPrefix + key] == nil {
-                values[Self.digestPrefix + key] = .string(digest)
-            }
+        // Every digest of this store's lists, those emptied here since their last sync included (they hold no name).
+        if digests {
+            for (key, digest) in synced where slot.owns(key) { values[Self.digestPrefix + key] = .string(digest) }
         }
         quarantine(values, for: previous)
         var emptied = true
