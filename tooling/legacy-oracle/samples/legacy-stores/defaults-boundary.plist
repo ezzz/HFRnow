@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CollapsedFavoriteSectionIDs</key>
+	<array>
+		<string>favorite-first-post:2000001</string>
+		<string>favorite-order:2</string>
+		<string>forum-id:13</string>
+		<string>forum-title:Z</string>
+		<string>forum-title:jeux vidéo</string>
+		<string>forum-url:/forum1.php?config=hfr.inc&amp;cat=25</string>
+	</array>
+	<key>SuperFavoritesIds</key>
+	<array>
+		<integer>1</integer>
+		<integer>2000000</integer>
+		<integer>2147483647</integer>
+	</array>
+</dict>
+</plist>

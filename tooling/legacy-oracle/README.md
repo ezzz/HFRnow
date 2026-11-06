@@ -100,3 +100,11 @@ git -C ~/Git/hfrnow diff --no-color > tooling/legacy-oracle/hfrnow.patch
 
 Samples are synthetic. Real captures are anonymized first ([FIXTURES](../../docs/FIXTURES.md)); never put a
 real pseudo, cookie or hash in this folder.
+
+## On-device stores (#347)
+
+`run-oracle.sh -s DIR` runs `OracleStores` instead of the parsers: the real legacy stores (`Favorites.swift`, `SmileyCache`,
+`SmileySearchService.swift`, `ReplyService.swift`) write synthetic data and the bytes are copied to DIR; see
+`samples/legacy-stores/` and the MANIFEST of the capture corpus. `HFR_ORACLE_SIM` names the simulator to use; the run needs
+`-parallel-testing-enabled NO` (set by the script) so the test host's data stays in the device it exports from. Only the two
+`defaults export` keys of the issue are kept: the domain also holds settings.

@@ -4,19 +4,22 @@
 # on saved HTML/JSON inputs and write <case>.oracle.json files.
 # macOS + Xcode 27 only. Nothing is ever committed or pushed in the legacy checkout.
 #
-# Usage: run-oracle.sh [-i INPUT_DIR] [-o OUTPUT_DIR]
+# Usage: run-oracle.sh [-i INPUT_DIR] [-o OUTPUT_DIR] [-s STORES_DIR]
 #   INPUT_DIR   *.html pages and *.json specs, plus oracle-map.json   (default: ./samples next to this script)
 #   OUTPUT_DIR  receives <case>.oracle.json, errors.json (default: ./out next to this script). Only the cases
 #               exported by this run are replaced, and only once the export completed; other files are kept.
+#   STORES_DIR  instead of the parsers, run OracleStores (#347): the bytes the legacy app writes in its small on-device stores,
+#               on synthetic data, into STORES_DIR (the key-restricted `defaults export` of the final state included)
 # Environment:
 #   HFRNOW            legacy checkout            (default: $HOME/Git/hfrnow)
+#   HFR_ORACLE_SIM    simulator name, reused or created (default: agent-m1-iphone)
 #   HFR_ORACLE_WORK   DerivedData and step logs  (default: ./.work next to this script)
 #   NO_COLOR          disable colors (also off when stdout is not a terminal)
 set -u
 set -o pipefail
 
 LEGACY_COMMIT=2440d79
-SIM_NAME=agent-m1-iphone
+SIM_NAME=${HFR_ORACLE_SIM:-agent-m1-iphone}
 SIM_DEVICE_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro
 SIM_RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-0
 
@@ -25,11 +28,13 @@ HFRNOW=${HFRNOW:-$HOME/Git/hfrnow}
 WORK=${HFR_ORACLE_WORK:-$HERE/.work}
 IN_DIR=$HERE/samples
 OUT_DIR=$HERE/out
+STORES_DIR=
 
-while getopts "i:o:h" opt; do
+while getopts "i:o:s:h" opt; do
   case $opt in
     i) IN_DIR=$OPTARG ;;
     o) OUT_DIR=$OPTARG ;;
+    s) STORES_DIR=$OPTARG ;;
     *) awk 'NR == 1 { next } !/^#/ { exit } { sub(/^# ?/, ""); print }' "$0"; exit 2 ;;
   esac
 done
@@ -93,10 +98,10 @@ for tool in git xcodebuild xcrun carthage; do
   command -v "$tool" >/dev/null 2>&1 || die "missing tool: $tool"
 done
 [ -e "$HFRNOW/.git" ] || die "legacy checkout not found at $HFRNOW (set HFRNOW)"
-[ -f "$IN_DIR/oracle-map.json" ] || die "no oracle-map.json in $IN_DIR"
+[ -n "$STORES_DIR" ] || [ -f "$IN_DIR/oracle-map.json" ] || die "no oracle-map.json in $IN_DIR"
 mkdir -p "$WORK" "$OUT_DIR" || die "cannot create $WORK or $OUT_DIR"
 OUT_DIR=$(cd "$OUT_DIR" && pwd)
-IN_DIR=$(cd "$IN_DIR" && pwd)
+[ -n "$STORES_DIR" ] || IN_DIR=$(cd "$IN_DIR" && pwd)
 
 # --- 1. legacy checkout at the expected commit ---
 head=$(git -C "$HFRNOW" rev-parse HEAD) || die "cannot read $HFRNOW HEAD"
@@ -135,6 +140,45 @@ else
   udid=$(xcrun simctl create "$SIM_NAME" "$SIM_DEVICE_TYPE" "$SIM_RUNTIME") \
     || die "cannot create simulator (is the iOS 27.0 runtime installed?)"
   ok "simulator $SIM_NAME created ($udid)"
+fi
+
+# --- 5a. on-device stores (#347) ---
+if [ -n "$STORES_DIR" ]; then
+  mkdir -p "$STORES_DIR" || die "cannot create $STORES_DIR"
+  STORES_DIR=$(cd "$STORES_DIR" && pwd)
+  STAGE=$WORK/stores
+  rm -rf "$STAGE" || die "cannot clear $STAGE"
+  mkdir -p "$STAGE" || die "cannot create $STAGE"
+  spin "$HFRNOW" "xcodebuild test (OracleStores)" "$WORK/xcodebuild-stores.log" \
+    env TEST_RUNNER_HFR_ORACLE_STORES_OUT="$STAGE" \
+    xcodebuild test -project SuperHFRplus.xcodeproj -scheme HFRswift -destination "id=$udid" \
+      -derivedDataPath "$WORK/build" CODE_SIGNING_ALLOWED=NO -only-testing:HFRswiftTests/OracleStores -parallel-testing-enabled NO \
+    || exit 1
+  # The real `defaults export` of the final (typical) state, restricted to the two keys of the issue: the domain also holds
+  # settings and paths of the machine, which must never be committed.
+  domain=${HFR_ORACLE_DOMAIN:-hfrplus.red.super}
+  # A sandboxed app's domain lives in its container: `simctl spawn defaults` does not see it, so the host's `defaults export` reads the file.
+  # (get_app_container needs a booted device, which the test run shut down)
+  xcrun simctl bootstatus "$udid" -b >/dev/null 2>&1 || die "cannot boot $SIM_NAME"
+  container=$(xcrun simctl get_app_container "$udid" "$domain" data); rc=$?
+  xcrun simctl shutdown "$udid" >/dev/null 2>&1
+  [ "$rc" -eq 0 ] || die "no data container for $domain"
+  # (the copy matters: cfprefsd answers an empty domain for a file under the simulator's folder)
+  cp "$container/Library/Preferences/$domain.plist" "$WORK/domain-copy.plist" || die "no preferences file for $domain"
+  defaults export "$WORK/domain-copy.plist" - >"$WORK/domain-full.plist" || die "defaults export failed"
+  python3 -I - "$WORK/domain-full.plist" "$STAGE/defaults-export-typical.plist" <<'PY' || die "cannot restrict the defaults export"
+import plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    domain = plistlib.load(f)
+keep = {k: domain[k] for k in ("SuperFavoritesIds", "CollapsedFavoriteSectionIDs") if k in domain}
+if len(keep) != 2:
+    sys.exit("expected keys missing from the exported domain")
+with open(sys.argv[2], "wb") as f:
+    plistlib.dump(keep, f, fmt=plistlib.FMT_XML)
+PY
+  mv -f "$STAGE"/* "$STORES_DIR/" || die "cannot move the samples to $STORES_DIR"
+  ok "samples in $STORES_DIR"
+  exit 0
 fi
 
 # --- 5. export ---
