@@ -7,19 +7,19 @@ import HFRParsing
 /// audit D5).
 ///
 /// `prepare` reads the message's alert link (LOT-031): HFR either says the message was already reported or serves the
-/// form (`R46`). `submit` posts the form like a browser, once, never retried. HFR's answer to it is not read until #395,
-/// so it is never reported as a success: the app shows HFR's own sentence. The mailto fallback is the app's (LOT-135).
+/// form (`R46`). `submit` posts the form like a browser, once, never retried, and reports a success only on HFR's own
+/// confirmation sentence (`W46`, LOT-037 `.alertSubmit`, #395). The mailto fallback is the app's (LOT-135).
 public struct ModeratorAlertFlow: Sendable {
     /// Creates the flow.
     public init() {}
 
     /// Fetches the alert page at `link` (`MessageActions.alertURL`) through `session`.
     ///
-    /// A session without a usable identity (logged out, or its `md_user` expired) is `notLoggedIn` before any request:
-    /// HFR's alert page without a session (`R89`) would otherwise read as already alerted until #395.
+    /// A session without a usable identity (logged out, or its `md_user` expired) is `notLoggedIn` before any request.
     ///
-    /// LOT-037's `.alertPrepare` classification comes first: a `.hop` with a link or an input is "already alerted"
-    /// (legacy rule, `AlerteModoViewController.m:154-160`). Otherwise the page must hold the alert form (LOT-036) with a
+    /// LOT-037's `.alertPrepare` classification comes first: HFR's sentence for a missing session (`R89`, `W17c`) is
+    /// `notLoggedIn`; any other `.hop` with a link or an input is "already alerted" (legacy rule,
+    /// `AlerteModoViewController.m:154-160`, `R88`). Otherwise the page must hold the alert form (LOT-036) with a
     /// `raison` textarea, a non-empty `hash_check`, which is recorded in the session, and an action naming the same
     /// message.
     /// - Throws: `invalidLink`, `notLoggedIn`, `formUnavailable`, `network`.
@@ -30,11 +30,12 @@ public struct ModeratorAlertFlow: Sendable {
     /// Posts `form` with `reason` in `raison`, line breaks as CRLF like a browser (legacy: `\n` → `\r\n`,
     /// `AlerteModoViewController.m:210`).
     ///
-    /// Every answer HFR gives with a sentence comes back as `ModeratorAlertAnswer`, whether LOT-037 would read it as a
-    /// refusal or not: HFR's success page has a back link (`W46`), so it would otherwise read as a refusal and invite a
-    /// second alert (its reading is #395). Only HFR's logged-out sentence (`W17c`) is read: it is `notLoggedIn`.
+    /// HFR's answer is read by LOT-037 `.alertSubmit`: its confirmation sentence (`W46`, back link, no refresh) is the
+    /// only success; its logged-out sentences (`W47`, `W17c`) are `notLoggedIn`; any other `.hop` with a link or an input,
+    /// or the plain-text token refusal, is `rejected`; anything else is `unconfirmed`.
     /// - Throws: `emptyReason`, `unsupportedCharacters`, `unsupportedForm`, `sessionChanged` before sending; `network` when the request
-    ///   could not be sent; `notLoggedIn`; `unconfirmed` when the request may have left and no sentence was read.
+    ///   could not be sent; `notLoggedIn`, `rejected`; `unconfirmed` when the request may have left and HFR's answer was
+    ///   neither its confirmation nor a refusal.
     public func submit(reason: String, with form: ModeratorAlertForm) async throws(ModeratorAlertError) -> ModeratorAlertAnswer {
         guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyReason }
         let refused = PostCharacterCheck.truncatingCharacters(in: reason)
@@ -145,12 +146,19 @@ public struct ModeratorAlertFlow: Sendable {
         return ParsedAlertForm(form: form, layout: layout, submitURL: submitURL)
     }
 
-    /// HFR's sentence, or why there is none to show.
+    /// HFR's confirmation, or why the alert is not confirmed.
     static func answer(in response: HTTPResponse, requestURL: URL) throws(ModeratorAlertError) -> ModeratorAlertAnswer {
-        let page = try? HopResponseParser.classify(html: response.decodedText().text, context: .write, requestURL: requestURL)
-        if page?.kind == .loggedOut { throw .notLoggedIn }
-        guard let message = page?.message else { throw .unconfirmed(.unrecognizedAnswer(message: nil)) }
-        return ModeratorAlertAnswer(message: message)
+        // Redirects are not followed: a redirect's body is not HFR's answer to the alert (`W46` is served at the action).
+        guard !response.isRedirect else { throw .unconfirmed(.unrecognizedAnswer(message: nil)) }
+        let page = try? HopResponseParser.classify(html: response.decodedText().text, context: .alertSubmit, requestURL: requestURL)
+        switch page?.kind {
+        case .success?:
+            guard let message = page?.message else { throw .unconfirmed(.unrecognizedAnswer(message: nil)) }
+            return ModeratorAlertAnswer(message: message)
+        case .loggedOut?: throw .notLoggedIn
+        case .rejected?: throw .rejected(message: page?.message)
+        case .alreadyAlerted?, .unrecognized?, nil: throw .unconfirmed(.unrecognizedAnswer(message: page?.message))
+        }
     }
 
     /// The textarea holding the user's reason (`R46`).

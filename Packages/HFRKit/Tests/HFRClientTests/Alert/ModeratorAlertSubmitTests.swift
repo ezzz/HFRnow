@@ -6,8 +6,8 @@ import Testing
 @testable import HFRClient
 
 /// LOT-050 `submit`: `R46`'s form posted like a browser (the LOT-004 oracle's fields, `raison` filled), once, never
-/// retried; HFR's answer to `modo.php` (`W46`) is not read until #395, so it and other captured answers stand in for
-/// its shapes and none of them is reported as a success.
+/// retried; HFR's answer is read by LOT-037 `.alertSubmit` (#395): its confirmation (`W46`) is the only success, its
+/// logged-out sentence (`W47`) is `notLoggedIn`, the other captured `.hop` refusals are `rejected`.
 @Suite("Moderator alert: submit")
 struct ModeratorAlertSubmitTests {
     private static func answer(_ id: String) throws -> Result<HTTPResponse, NetworkError> {
@@ -53,36 +53,65 @@ struct ModeratorAlertSubmitTests {
         #expect(outcome.post == nil)
     }
 
-    @Test(
-        "Every answer with a sentence is returned as HFR's own text, never a success or a refusal (#395 pending)",
-        arguments: ["W10", "W20a", "W17a", "W17b"]
-    )
-    func answers(id: String) async throws {
-        let outcome = await ModeratorAlertHarness.run(
-            page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: try Self.answer(id)
-        )
-        let html = try Capture.page(PostingCapture.answers[id] ?? id)
-        let expected = try #require(try HopResponseParser.classify(html: html).message)
-        #expect(outcome.answer == .success(ModeratorAlertAnswer(message: expected)))
-        #expect(outcome.requests.filter { $0.method == .post }.count == 1)
+    private static func served(_ file: String) throws -> Result<HTTPResponse, NetworkError> {
+        .success(try Capture.response(file, url: ModeratorAlertHarness.link))
     }
 
-    @Test("W46, HFR's answer to a submitted alert, is returned as HFR's text, one POST (its reading as a success is #395)")
+    @Test("W46, HFR's confirmation of a submitted alert, is the success, with HFR's sentence, one POST")
     func capturedAnswer() async throws {
-        let answer = Result<HTTPResponse, NetworkError>.success(
-            try Capture.response("W46-modo-alert-success", url: ModeratorAlertHarness.link)
+        let outcome = await ModeratorAlertHarness.run(
+            page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: try Self.served("W46-modo-alert-success")
         )
-        let outcome = await ModeratorAlertHarness.run(page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: answer)
-        let expected = try #require(try HopResponseParser.classify(html: Capture.page("W46-modo-alert-success")).message)
-        #expect(outcome.answer == .success(ModeratorAlertAnswer(message: expected)))
+        #expect(outcome.answer == .success(ModeratorAlertAnswer(message: "Un message a été envoyé avec succès aux modérateurs")))
         #expect(outcome.requests.map(\.method) == [.get, .post])
     }
 
-    @Test("HFR's logged-out sentence after the POST (W17c) is notLoggedIn")
-    func loggedOutAnswer() async throws {
-        let outcome = await ModeratorAlertHarness.run(
-            page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: try Self.answer("W17c")
+    @Test("The other captured refusals are rejected with HFR's own sentence, one POST", arguments: [
+        "W20a", "W17a", "W17b", "R88-modo-alert-already-reported", "W43-poll-vote-already-voted"
+    ])
+    func rejectedAnswers(id: String) async throws {
+        let isCapture = id.contains("-")
+        let answer = isCapture ? try Self.served(id) : try Self.answer(id)
+        let outcome = await ModeratorAlertHarness.run(page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: answer)
+        let html = try Capture.page(isCapture ? id : PostingCapture.answers[id] ?? id)
+        let expected = try #require(try HopResponseParser.classify(html: html).message)
+        #expect(outcome.error == .rejected(message: expected))
+        #expect(outcome.requests.filter { $0.method == .post }.count == 1)
+    }
+
+    @Test("Another write's confirmation (W10, W42) is not an alert's: unconfirmed, with HFR's sentence", arguments: [
+        "W10", "W42-poll-vote-success"
+    ])
+    func otherConfirmations(id: String) async throws {
+        let isCapture = id.contains("-")
+        let answer = isCapture ? try Self.served(id) : try Self.answer(id)
+        let outcome = await ModeratorAlertHarness.run(page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: answer)
+        let html = try Capture.page(isCapture ? id : PostingCapture.answers[id] ?? id)
+        let expected = try #require(try HopResponseParser.classify(html: html).message)
+        #expect(outcome.error == .unconfirmed(.unrecognizedAnswer(message: expected)))
+    }
+
+    @Test("W46's body served as a redirect is not HFR's answer: unconfirmed")
+    func redirectedConfirmation() async throws {
+        let body = try Capture.response("W46-modo-alert-success", url: ModeratorAlertHarness.link).body
+        let redirect = HTTPResponse(
+            statusCode: 302,
+            headers: ["Content-Type": "text/html; charset=utf-8", "Location": "/user/modo.php"],
+            url: ModeratorAlertHarness.link,
+            body: body
         )
+        let outcome = await ModeratorAlertHarness.run(
+            page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: .success(redirect)
+        )
+        #expect(outcome.error == .unconfirmed(.unrecognizedAnswer(message: nil)))
+    }
+
+    @Test("HFR's logged-out sentences after the POST (W47 for an alert, W17c) are notLoggedIn", arguments: [
+        "W47-modo-alert-logged-out-rejected", "W17c"
+    ])
+    func loggedOutAnswer(id: String) async throws {
+        let answer = id.contains("-") ? try Self.served(id) : try Self.answer(id)
+        let outcome = await ModeratorAlertHarness.run(page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: answer)
         #expect(outcome.error == .notLoggedIn)
     }
 
@@ -141,7 +170,7 @@ struct ModeratorAlertSubmitTests {
     func sameAccountRelogin(duringPrepare: Bool) async throws {
         let relogin = ConcurrentLogin(identity: "user1", hashCheck: Self.fresher)
         let outcome = await ModeratorAlertHarness.run(
-            page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: try Self.answer("W20a"),
+            page: try ModeratorAlertHarness.formPage(), reason: "Spam", answer: try Self.served("W46-modo-alert-success"),
             duringPrepare: duringPrepare ? relogin : nil, between: duringPrepare ? nil : relogin
         )
         #expect(outcome.error == nil)

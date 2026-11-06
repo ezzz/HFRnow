@@ -12,7 +12,8 @@ public enum ModeratorAlertError: Error, Sendable, Equatable {
     /// The page is neither the form nor "already alerted"; `message` is its `.hop` text, if any.
     case formUnavailable(message: String?)
     /// The session is not logged in: the form came with an empty `hash_check`, or HFR answered with its "vous devez être
-    /// enregistré" sentence (`W17c`).
+    /// enregistré" sentence (`W17c`) or its alert one, "Vous devez être identifié pour prévenir les modérateurs" (`R89`,
+    /// `W47`).
     case notLoggedIn
     /// The session logged out, or logged in as another account, since the alert page was read: the form's `hash_check`
     /// is no longer the session's. Nothing was sent; prepare the alert again.
@@ -24,6 +25,9 @@ public enum ModeratorAlertError: Error, Sendable, Equatable {
     /// The reason holds characters outside the Basic Multilingual Plane (most emoji), refused before sending as for
     /// posts (decision Q-3); distinct characters in order. Legacy removed them silently (`AlerteModoViewController.m:209`).
     case unsupportedCharacters([Character])
+    /// HFR refused the alert: a `.hop` with a back link that is not its confirmation (flood `W20a`, empty body `W17a`),
+    /// or its plain-text token refusal (`W17b`). `message` is HFR's own sentence.
+    case rejected(message: String?)
     /// The alert may have been sent, but HFR's answer was not read. Never retried automatically.
     case unconfirmed(PostingUncertainty)
     /// The page could not be fetched, or the request could not be sent: nothing was sent.

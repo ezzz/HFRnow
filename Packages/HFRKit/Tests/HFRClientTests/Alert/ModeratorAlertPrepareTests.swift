@@ -61,16 +61,16 @@ struct ModeratorAlertPrepareTests {
         #expect(outcome.hashChecks.isEmpty)
     }
 
-    @Test("HFR's logged-out sentence (W17c) is notLoggedIn, not 'already alerted'")
-    func loggedOut() async throws {
-        let page = Result<HTTPResponse, NetworkError>.success(
-            try Capture.response("W17c-mp-reply-logged-out-rejected", url: ModeratorAlertHarness.link)
-        )
+    @Test("HFR's logged-out sentences (R89, the alert page without a session, and W17c) are notLoggedIn, not 'already alerted'",
+          arguments: ["R89-modo-alert-page-logged-out", "W17c-mp-reply-logged-out-rejected"])
+    func loggedOut(file: String) async throws {
+        let page = Result<HTTPResponse, NetworkError>.success(try Capture.response(file, url: ModeratorAlertHarness.link))
         let outcome = await ModeratorAlertHarness.run(page: page)
         #expect(outcome.error == .notLoggedIn)
+        #expect(outcome.hashChecks.isEmpty)
     }
 
-    @Test("A logged-out session is notLoggedIn before any request (R89 would read as already alerted until #395)")
+    @Test("A logged-out session is notLoggedIn before any request")
     func loggedOutSession() async throws {
         let session = ScriptedPostingSession([try ModeratorAlertHarness.formPage()])
         await session.adoptLogin(ConcurrentLogin(identity: nil, hashCheck: ""))

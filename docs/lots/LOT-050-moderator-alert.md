@@ -36,11 +36,10 @@ Code in `Sources/HFRClient/Alert/`, tests in `Tests/HFRClientTests/Alert/`.
    sent. The topic-level `modo.php?…&ref=0` link of `R21` has no `numreponse` and is refused: its page is not captured.
    A private conversation has no alert link (`RA1`-`RA4`), so `cat=prive` is refused too.
 2. **Prepare** — a session without a usable identity (logged out, or its `md_user` expired) is `notLoggedIn` before
-   any request: its form would be refused at submit, and HFR's alert page without a session (`R89`) reads as already
-   alerted until #395. Otherwise `prepare(link:in:)` GETs the link through the account's session (redirects followed, as
+   any request: its form would be refused at submit. Otherwise `prepare(link:in:)` GETs the link through the account's session (redirects followed, as
    for LOT-048's form pages). The final URL must still be a forum page (`invalidLink`). Then, in legacy's order:
    - LOT-037 `.alertPrepare`: `alreadyAlerted` gives `ModeratorAlertPage.alreadyAlerted(message:)` with HFR's own sentence,
-     never a fixed text; `loggedOut` (`W17c`'s sentence) is `notLoggedIn`;
+     never a fixed text (`R88`); `loggedOut` (`W17c`'s sentence, or the alert page's own, `R89`) is `notLoggedIn`;
    - otherwise the page must hold the alert form (LOT-036 `parseModerationForm` and `moderationLayout`) with a `raison`
      textarea, else `formUnavailable(message:)` with the page's `.hop` text if any;
    - the form's action, resolved against the page, must be the alert page of **the same message** (same parsed target as
@@ -56,15 +55,16 @@ Code in `Sources/HFRClient/Alert/`, tests in `Tests/HFRClientTests/Alert/`.
    the submit is `sessionChanged` with nothing sent, as for posts (#342). A re-login of the same account still sends. A
    cancellation before the POST, during that identity lookup included, is `network(.cancelled)`. One POST to the action,
    redirects not followed, 60 s timeout, never retried.
-4. **Answer** — Every answer with a sentence (the `.hop` text, or the plain-text body LOT-037 reads) is returned as
-   `ModeratorAlertAnswer(message:)`: neither a success nor a refusal, until #395 reads them. HFR's success page has a
-   back link (`W46`), so LOT-037's write rule would read it as a refusal and invite a second alert.
-   Only HFR's logged-out sentence (`W17c`) is read: `notLoggedIn`. A page without a sentence, or a failed exchange, is
-   `unconfirmed` (`unrecognizedAnswer`, `transport`); a request the session refuses to send is `network`.
+4. **Answer** (#395) — read by LOT-037 `.alertSubmit`. HFR's confirmation, the `.hop` "Un message a été envoyé avec
+   succès aux modérateurs" with its back link and no refresh (`W46`), is the only success: `ModeratorAlertAnswer(message:)`.
+   HFR's logged-out sentences (`W47`, `W17c`) are `notLoggedIn`. Any other `.hop` with a link or an input (flood `W20a`,
+   `W17a`, `R88`'s sentence) and `W17b`'s plain text are `rejected(message:)` with HFR's sentence. Another write's or the
+   vote's confirmation (`W10`, `W42`), a redirect, a page without a sentence, or a failed exchange is `unconfirmed`
+   (`unrecognizedAnswer`, `transport`); a request the session refuses to send is `network`.
 5. **Errors** (`ModeratorAlertError`) — before anything leaves: `invalidLink`, `formUnavailable`, `notLoggedIn`,
    `unsupportedForm` (a control a browser cannot send), `emptyReason`, `unsupportedCharacters`, `sessionChanged`,
    `network`. After the
-   POST left: `notLoggedIn`, `unconfirmed`. No case carries the reason, a token or a cookie.
+   POST left: `notLoggedIn`, `rejected`, `unconfirmed`. No case carries the reason, a token or a cookie.
 
 ## Edge cases
 
@@ -77,8 +77,9 @@ Code in `Sources/HFRClient/Alert/`, tests in `Tests/HFRClientTests/Alert/`.
 
 ## Intentional differences from legacy
 
-1. **No success claimed**: legacy showed any `.hop` text as a success (`AlerteModoViewController.m:229-236`,
-   `ReplyService.swift:1495-1499`); here it is HFR's text, uninterpreted, until #395. CHANGELOG-LEGACY row 66.
+1. **Success only on HFR's confirmation**: legacy showed any `.hop` text as a success (`AlerteModoViewController.m:229-236`,
+   `ReplyService.swift:1495-1499`); here only `W46`'s sentence is, refusals are `rejected` and the logged-out page and
+   answer (`R89`, `W47`) `notLoggedIn` where legacy read the page as already alerted. CHANGELOG-LEGACY rows 66 and 74.
 2. **Emoji refused, not removed**: Objective-C legacy removed them silently (`:209`), the Swift service sent them; the
    reason is refused with the characters listed, as for posts (Q-3). Row 66.
 3. **No default action**: legacy Swift posted to `defaultSubmitURL()` when the action could not be read (`:1455`);
@@ -90,19 +91,20 @@ Code in `Sources/HFRClient/Alert/`, tests in `Tests/HFRClientTests/Alert/`.
 ## Tests
 
 Captures only: `R46` and its LOT-004 oracle (form, POST), `R21` (link); `R88` (already reported), `W17a`, `W20a`, `RA5`
-(the same shape), `W17c` (logged out), `R20` (no form); `W46` (HFR's answer to an alert) and `W10`, `W17a`, `W17b`,
-`W20a` for the answer's shapes.
+(the same shape), `W17c` and `R89` (logged out), `R20` (no form); `W46` (HFR's confirmation of an alert), `W47` (logged
+out), and `R88`, `W10`, `W17a`, `W17b`, `W20a`, `W42`, `W43` for the answer's other shapes. LOT-037's reading of them:
+`HopResponseAlertTests`.
 Small fragments give the form rules' inputs (empty token, no `raison`, another action).
 
 - `ModeratorAlertPrepareTests`: `R21`'s link of message 2666649 is `R46`'s request; the prepared form equals the oracle
   (inputs, submit URL), one GET, token recorded; a logged-out session refused before any request; already alerted with HFR's sentence (`R88` and three pages of the same
-  shape); logged out; no form; empty token;
+  shape); logged out (`W17c`, `R89`); no form; empty token;
   no `raison`; four actions refused; nine links refused before any request; an off-forum redirect refused for a form and
   for a `.hop` page; the public entry point sends through the account's session.
 - `ModeratorAlertSubmitTests`: the POST carries the oracle's pairs, in document order, to the oracle's URL, form content
-  type, redirects not followed, 60 s; CRLF; blank and non-BMP reasons refused before sending; `W46` and four other
-  captured answers returned as HFR's text, one POST each; `W17c` after the POST; no sentence or a timeout is
-  `unconfirmed`; a refused request is `network`; a logout or a login of another account after the prepare, or a login of
+  type, redirects not followed, 60 s; CRLF; blank and non-BMP reasons refused before sending; `W46` is the success, one
+  POST; five captured refusals `rejected` with HFR's sentence; `W10` and `W42` and `W46` served as a redirect
+  `unconfirmed`; `W47` and `W17c` after the POST `notLoggedIn`; no sentence or a timeout is `unconfirmed`; a refused request is `network`; a logout or a login of another account after the prepare, or a login of
   another account while the alert page is in flight, is `sessionChanged` with no POST; a re-login of the same account
   still posts; a cancellation during the identity lookup is a plain cancellation, switched or not.
 - `HopFormParserTests.moderationLayout`: `R46`'s controls in document order, `raison` between the hidden inputs and
@@ -116,11 +118,6 @@ check after it, the login generation compared instead of the identity, no identi
 
 ## Captured since, read by #395
 
-PR #394 captured the pages this lot was written without. `R88` (already reported) has the shape legacy's rule reads, and
-is tested above. The rest is #395's (LOT-037's classifier), and this lot keeps its cautious reading until then:
-- `W46`, HFR's answer to a submitted alert ("Un message a été envoyé avec succès aux modérateurs" with a back link, no
-  refresh), is returned as HFR's text, not as a success.
-- `R89`, the alert page without a session, and `W47`, an alert sent without one, say "Vous devez être identifié pour
-  prévenir les modérateurs", which is not `W17c`'s sentence. A session known to be logged out never requests the page
-  (step 2); if HFR dropped the session anyway, `R89` reads as already alerted and `W47` as HFR's text, both with that
-  sentence, instead of `notLoggedIn`.
+PR #394 captured the pages this lot was written without; #395 reads them (steps 2 and 4): `R88` already alerted, `W46`
+the success, `R89` and `W47` `notLoggedIn` (their sentence, "Vous devez être identifié pour prévenir les modérateurs",
+is not `W17c`'s, and is read in the alert contexts only).

@@ -152,7 +152,8 @@ struct HopResponseParserTests {
         // Group MP create (#336).
         "W70-mp-create-group-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
-        // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) needs its own rule (LOT-050).
+        // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
+        // (`HopResponseAlertTests`).
     ]
 
     @Test("Sweep: across the whole capture corpus only the write confirmations classify as success")
