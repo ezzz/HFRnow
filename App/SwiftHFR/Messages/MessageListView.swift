@@ -20,7 +20,7 @@ struct MessageListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
         .safeAreaInset(edge: .top) {
-            if model.display == .split, loader.value != nil { MessageSegmentSwitch(model: model) }
+            if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
         }
         .safeAreaInset(edge: .top) {
             if let error = loader.error, loader.value != nil {
@@ -125,7 +125,10 @@ private struct MessageSegmentSwitch: View {
     let model: MessageListModel
 
     var body: some View {
-        Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in Task { await model.select(segment) } })) {
+        Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in
+            model.segment = segment
+            Task { await model.select(segment) }
+        })) {
             ForEach(MPSegment.allCases, id: \.self) { segment in
                 let unread = model.unreadCount(in: segment)
                 Text(unread > 0 ? "\(segment.title) (\(unread))" : segment.title).tag(segment)

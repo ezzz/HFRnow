@@ -121,26 +121,36 @@ final class MessageListModel {
     /// while later pages exist, the next pages are loaded (bounded) instead of showing an empty list.
     func select(_ segment: MPSegment) async {
         self.segment = segment
+        dropSelectionHiddenBySegment()
+        // A search for the previous segment is stopped, not left to walk on for this one.
+        if isSearchingSegment { loader.cancel() }
         await advanceWhileSegmentEmpty()
     }
 
-    /// The setting changed (or the screen read it): a split list may need later pages to show its first segment.
-    func setDisplay(_ display: MPListDisplay) async {
-        self.display = display
-        await advanceWhileSegmentEmpty()
+    /// Whether the "MP" / "MP multiples" switch is shown: a split list that has rows (not logged out, not an empty mailbox).
+    var showsSegmentSwitch: Bool { display == .split && loader.value.map { !$0.threads.isEmpty } == true }
+
+    /// The reader must not keep showing a conversation the list no longer offers (iPad, regular width).
+    private func dropSelectionHiddenBySegment() {
+        if display == .split, let selected, !segment.contains(selected) { self.selected = nil }
     }
 
     /// True while that search for the segment's rows runs, so the screen shows progress, not "empty".
     private(set) var isSearchingSegment = false
+    /// Searches started so far; a search stops when a newer one has started.
+    private var searchCount = 0
 
     /// Loads the next pages while the segment has no row on screen, a next page exists and the bound is not reached.
     /// Stops at once when anything else loaded meanwhile (a pull to refresh, a pager tap) or a load failed.
     private func advanceWhileSegmentEmpty() async {
         var steps = 0
         let start = loadCount
+        searchCount += 1
+        let token = searchCount
         isSearchingSegment = true
-        defer { isSearchingSegment = false }
-        while display == .split, !loader.isLoading, loader.error == nil, visibleThreads.isEmpty,
+        // Only the newest search clears the flag: an older one ending late must not hide a running one.
+        defer { if token == searchCount { isSearchingSegment = false } }
+        while token == searchCount, display == .split, !loader.isLoading, loader.error == nil, visibleThreads.isEmpty,
               loader.value?.hasNext == true, steps < Self.maxAutoAdvance, loadCount == start + steps {
             steps += 1
             await load(page: currentPage + 1, advancing: false)
@@ -156,6 +166,7 @@ final class MessageListModel {
     /// Rows stay meanwhile.
     func onAppear() async {
         if let settings { display = settings.value(for: SettingKey.mpListDisplay) }
+        dropSelectionHiddenBySegment()
         guard !loader.isLoading else { return }
         await load(page: loader.value == nil ? 1 : currentPage)
     }

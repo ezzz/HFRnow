@@ -38,8 +38,10 @@ A group thread opens in the same reader as a one-to-one MP (`MessageListModel.re
 
 ## Edge cases
 - A mailbox of only group threads: "MP" is empty after the bounded search; "MP multiples" shows them.
-- Logged out: `.signedOut` (no row, no next page): the switch is hidden, "Connexion requise" shown.
-- Switching segment mid-load: a newer load supersedes the search (`loadCount`).
+- Logged out or empty mailbox: no row, so the switch is hidden (`showsSegmentSwitch`); "Connexion requise" / "Aucun message privé" shown.
+- Switching segment during a search: the search is cancelled and restarted for the new segment from the page on screen (`searchCount`); a refresh supersedes it through `loadCount`.
+- A conversation the new segment hides is closed (`selected = nil`), so the reader never shows a row the list does not offer.
+- Known limit: once the bound of 5 pages is hit, each appearance of the list reloads the page on screen and may search 5 pages further, so the page can move forward without a tap. Accepted for now; **Mac check** whether it surprises on a real mailbox.
 
 ## Fixtures
 Existing captures only (`R13u1`: group and one-to-one rows, 7 pages; `R04`, `R08-2`). Tests over the fake source cover paging; the parser's `isGroup` is LOT-023's oracle-tested fact.
