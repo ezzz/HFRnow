@@ -98,7 +98,7 @@ struct HFRLinkRouteCorpusTests {
         var forum2 = 0
         for url in try Self.corpusLinks() where url.host == HFRURL.forumHost {
             let link = url.absoluteString
-            let isCanonical = url.path.contains("sujet_") && url.path.hasPrefix("/hfr/")
+            let isCanonical = url.path.hasPrefix("/hfr/") && url.path.contains(/sujet_[0-9]+_[0-9]+\.htm$/)
             guard isCanonical || url.path == "/forum2.php" else { continue }
             let topic: HFRTopicLink
             switch HFRLinkRoute.route(for: url) {
