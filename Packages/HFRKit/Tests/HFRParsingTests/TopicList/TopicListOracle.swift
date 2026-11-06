@@ -70,9 +70,9 @@ struct TopicListOracle: Decodable {
         let dDateOfLastPost: String?
     }
 
-    /// Loads `Fixtures/LOT-002/<case>.oracle.json`.
-    static func load(_ name: String) throws -> TopicListOracle {
-        let json = try Fixture.text("\(name).oracle", extension: "json", subdirectory: "Fixtures/LOT-002")
+    /// Loads `Fixtures/<folder>/<case>.oracle.json`: `LOT-002`, or `M2-writes` for the M2 write captures (#336), same schema.
+    static func load(_ name: String, folder: String = "LOT-002") throws -> TopicListOracle {
+        let json = try Fixture.text("\(name).oracle", extension: "json", subdirectory: "Fixtures/\(folder)")
         return try JSONDecoder().decode(TopicListOracle.self, from: Data(json.utf8))
     }
 
