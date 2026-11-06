@@ -187,6 +187,13 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])  # the capture still gates it, so nothing is unblocked
         self.assertTrue(any("gated only by an open capture" in r and "LOT-002 #2" in r and "#60" in r for r in reports))
 
+    def test_a_closed_issue_loses_its_status_labels_and_an_open_one_keeps_them(self):
+        issues = [issue(1, "closed", labels=["status: ready", "type: lot"]), issue(2, "closed", labels=["type: lot"]),
+                  issue(3, "open", labels=["status: ready"]), issue(4, "closed", labels=["status: claimed", "status: blocked"])]
+        actions, _ = self.run_sweep(issues, [])
+        self.assertEqual([(a["kind"], a["issue"], a["labels"]) for a in actions if a["kind"] == "unlabel"],
+                         [("unlabel", 1, ["status: ready"]), ("unlabel", 4, ["status: blocked", "status: claimed"])])  # 2 has none, 3 is open
+
     def test_unblock_without_a_known_pr_is_only_reported(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
         actions, reports = self.run_sweep(issues, [])

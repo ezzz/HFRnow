@@ -7,6 +7,8 @@ Does (routine, ORCHESTRATION.md "unblock procedure" and AGENTS.md §8 closure):
   unblock  open lot, every numeric dependency closed, not captured-blocked, not claimed -> `status: ready`
            (drops `status: blocked`), comment `Unblocked by #PR`
   close    merged dev-swift PR with `Closes #N` whose issue is still open -> `Done in #PR (merged as <sha>)`, close
+  unlabel  closed issue still carrying a `status:*` label -> remove it (rule of 2026-11-06 on #368: whoever closes an issue
+           drops its status labels; closing here drops them too), count reported
 Only reports (never changes): claims silent for 72 h, several labels on one axis, no status, `ready`+`claimed`,
 ready lots with an open dependency, ready engine lots without `external: ready`, unblocks with no known PR.
 Needs `gh` (or run after `sync_state.py` for the lots/state files). Reads lots.json: refresh it first with
@@ -18,6 +20,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import m5
 from m5 import is_m5 as _is_m5
@@ -76,6 +79,11 @@ def analyze(issues, pulls, lots, comments, now):
                 continue
             actions.append({'kind': 'close', 'issue': n, 'pr': p['number'], 'sha': (p.get('merge_commit_sha') or '')[:7]})
 
+    for i in real:  # a closed issue carries no `status:` label (operator, 2026-11-06)
+        if i['state'].lower() == 'closed':
+            stale = sorted(x for x in labels(i) if x.startswith('status: '))
+            if stale:
+                actions.append({'kind': 'unlabel', 'issue': i['number'], 'labels': stale})
     gate, m5_ready, cap_gated = [], [], []
     pending_close = {a['issue'] for a in actions if a['kind'] == 'close'}
     for r in lots:
@@ -174,15 +182,31 @@ def gh(method, path, fields=()):
         raise RuntimeError(r.stderr.strip()[:200])
 
 
+def drop_status(base, lb):
+    """Remove every `status:*` label of an issue, one DELETE per label (never replaces the set)."""
+    for x in sorted(x for x in lb if x.startswith('status: ')):
+        gh('DELETE', base + '/labels/' + quote(x, safe=':'))
+
+
 def apply(actions):
     """Routine part only. Re-reads each issue first, adds/removes single labels (never replaces the set),
-    closes before commenting, and keeps going after a failure."""
+    closes before commenting, and keeps going after a failure. Reports how many status labels it dropped."""
+    dropped = 0
     for a in actions:
         n = a['issue']
         base = f'repos/{REPO}/issues/{n}'
         try:
             cur = json.loads(subprocess.run(['gh', 'api', '-X', 'GET', base], capture_output=True, text=True, check=True).stdout)
             lb = labels(cur)
+            if a['kind'] == 'unlabel':
+                if cur['state'] == 'open':
+                    print('skip (reopened meanwhile)', a)
+                    continue
+                gone = [x for x in a['labels'] if x in lb]
+                drop_status(base, set(gone))
+                dropped += len(gone)
+                print('applied', a)
+                continue
             if cur['state'] != 'open':
                 print('skip (closed meanwhile)', a)
                 continue
@@ -196,9 +220,12 @@ def apply(actions):
             else:
                 gh('PATCH', base, fields=['state=closed', 'state_reason=completed'])
                 gh('POST', base + '/comments', fields=[f"body=Done in #{a['pr']} (merged as {a['sha']}){FOOT}"])
+                drop_status(base, lb)  # closing drops the status labels in the same step
+                dropped += len([x for x in lb if x.startswith('status: ')])
             print('applied', a)
         except (RuntimeError, subprocess.CalledProcessError) as e:
             print('FAILED', a, str(e)[:150])
+    print(f'status labels removed from closed issues: {dropped}')
 
 
 if __name__ == '__main__':
@@ -215,6 +242,8 @@ if __name__ == '__main__':
 
     actions, reports = analyze(issues, pulls, lots, comments, datetime.now(timezone.utc))
     print(f'== {len(actions)} routine action(s) ({"APPLYING" if do_apply else "dry-run"})')
+    stale = [a for a in actions if a['kind'] == 'unlabel']
+    print(f'   of which {len(stale)} closed issue(s) with a stale status label ({sum(len(a["labels"]) for a in stale)} label(s))')
     for a in actions:
         print(' ', a)
     print(f'== {len(reports)} report(s) for the orchestrator')
