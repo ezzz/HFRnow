@@ -49,3 +49,20 @@ import Testing
         #expect(SettingKey.textSizePercent(from: high) == 130)
     }
 }
+
+/// The key LOT-171 added: a new setting, so the default must leave the single list untouched.
+@Suite struct MPListDisplayKeyTests {
+    @Test func absentReadsAsSingleAndRoundTrips() {
+        let store = InMemorySettingsStore()
+        #expect(store.value(for: SettingKey.mpListDisplay) == .single)
+        store.set(.split, for: SettingKey.mpListDisplay)
+        #expect(store.rawValue(forKey: "mp_list_display") == .string("split"))
+        #expect(store.value(for: SettingKey.mpListDisplay) == .split)
+    }
+
+    @Test(arguments: [SettingRawValue.string(""), .string("two"), .int(1), .bool(true)])
+    func unknownValueReadsAsSingle(raw: SettingRawValue) {
+        let store = InMemorySettingsStore([SettingKey.mpListDisplay.key: raw])
+        #expect(store.value(for: SettingKey.mpListDisplay) == .single)
+    }
+}

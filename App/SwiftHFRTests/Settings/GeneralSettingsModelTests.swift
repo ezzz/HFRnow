@@ -98,6 +98,15 @@ struct GeneralSettingsModelTests {
         #expect(store.rawValue(forKey: "text_size_percent") == .int(130))
     }
 
+    @Test func theMessageListDisplayDefaultsToOneListAndIsWritten() {
+        let store = InMemorySettingsStore()
+        let model = GeneralSettingsModel(store: store)
+        #expect(model.mpListDisplay == .single)
+        model.mpListDisplay = .split
+        #expect(store.rawValue(forKey: "mp_list_display") == .string("split"))
+        #expect(GeneralSettingsModel(store: store).mpListDisplay == .split)
+    }
+
     @Test func imageLoadingDefaultsToWiFiAndReadsLegacyValues() {
         #expect(GeneralSettingsModel(store: InMemorySettingsStore()).imageLoading == .wifiOnly)
         for (raw, mode) in [("yes", ImageDisplayMode.always), ("no", .never), ("wifi", .wifiOnly)] {

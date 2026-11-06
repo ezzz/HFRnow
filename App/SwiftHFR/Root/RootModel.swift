@@ -20,6 +20,8 @@ final class RootModel {
     let messages: MessageListModel
     /// The favourites options the Favoris tab shares with its lists (LOT-124); nil in tests that do not need them.
     let favoriteOptions: FavoritesOptionsModel?
+    /// The forum search form and results (LOT-115), shared by the tab bar and the sidebar so a size-class change keeps them.
+    let search: ForumSearchModel
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -78,6 +80,7 @@ final class RootModel {
     /// it was on (`MainWindow.swift:1276-1278`, `:1357-1362`).
     init(
         forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
+        search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil
     ) {
         self.favoriteOptions = favoriteOptions
@@ -85,6 +88,7 @@ final class RootModel {
         self.categories = categories
         self.favorites = favorites
         self.messages = messages
+        self.search = search
         self.store = store
         let destination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
         selectedDestination = destination
@@ -103,10 +107,10 @@ final class RootModel {
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
-    private static func messageList(_ environment: AppEnvironment) -> MessageListModel {
+    private static func messageList(_ environment: AppEnvironment, store: any SettingsStore) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions
+            renderOptions: environment.reader.settings.renderOptions, settings: store
         )
     }
 
@@ -127,7 +131,12 @@ final class RootModel {
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
             favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options),
-            messages: Self.messageList(environment), store: store, initial: initial, favoriteOptions: options
+            messages: Self.messageList(environment, store: store),
+            search: ForumSearchModel(
+                source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
+                renderOptions: environment.reader.settings.renderOptions, store: store
+            ),
+            store: store, initial: initial, favoriteOptions: options
         )
     }
 

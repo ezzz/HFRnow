@@ -27,6 +27,15 @@ private actor Gate {
 
 @MainActor
 struct ContentLoaderTests {
+    @Test func resetForgetsTheValueAndTheError() async {
+        let loader = ContentLoader<Int>()
+        await loader.load { () async throws(ListLoadError) -> Int in 1 }
+        await loader.load { () async throws(ListLoadError) -> Int in throw .offline }
+        #expect(loader.value == 1 && loader.error == .offline)
+        loader.reset()
+        #expect(loader.value == nil && loader.error == nil && !loader.isLoading)
+    }
+
     @Test func aSuccessfulLoadStoresTheValue() async {
         let loader = ContentLoader<Int>()
         await loader.load { 1 }

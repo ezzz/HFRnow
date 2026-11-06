@@ -572,6 +572,12 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 - **Multi-quote composer** (`R42`, `R47c`, **verified**): the topic's answer link (§6c LOT-084, no `numrep`) sent with the cookie `quotes<forum>-<cat>-<post>` gives a reply composer whose hidden `cat` and `post` are the topic's and whose prefill holds one block per selected message. Both captures list the blocks by ascending message number; the cookie's order was not recorded.
 - **After the post** (`W14`, meta; `W62`, `W63`, #334): the answer deletes the host-only cookie `quoteshardwarefr-prive-<post>` (expired, path `/`, no `Domain`, §4); the `.hardware.fr` selection this client stores is left, so the client unselects the posted messages itself.
 
+### LOT-073 — MPStorage JSON tokenizer
+
+[LOT-073](lots/LOT-073-mpstorage-json-tokenizer.md), tests `JSONTokenizerTests`, `JSONTreeDecoderTests`, `JSONWriterTests` and `MPStoragePageParserTests.writtenAsBefore`.
+
+- **The stored document** (`R60a`, **verified**): it reads through the tokenizer to the document LOT-038 read, and is written back byte for byte as `JSONEncoder` wrote it (integers only, keys sorted, slashes unescaped). No new forum fact: what other clients write beyond `R60a` is still the pending capture of LOT-038 (#272).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
