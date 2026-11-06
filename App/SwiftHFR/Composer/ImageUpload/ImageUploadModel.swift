@@ -27,6 +27,10 @@ final class ImageUploadModel {
     private(set) var history: [RehostedImage] = []
     /// A picked image waits for the notice: nothing is prepared or sent until it is accepted.
     private(set) var pendingSource: Data?
+    /// The history entry the user asked to forget; it stays until the removal is confirmed (LOT-103).
+    private(set) var pendingRemoval: RehostedImage?
+    /// What the last removal did, in French; says the image is still online. Cleared by the next upload or removal request.
+    private(set) var removalNotice: String?
 
     /// How a snippet is written (legacy `rehost_use_link`, kept under its legacy key).
     var linkMode: RehostLinkMode { didSet { services.settings.set(linkMode, for: SettingKey.rehostLinkMode) } }
@@ -80,6 +84,7 @@ final class ImageUploadModel {
     func submit(_ source: Data) async {
         guard !isUploading, !isAskingNotice else { return }
         errorMessage = nil
+        removalNotice = nil
         guard canUpload else {
             errorMessage = Self.message(for: .notConfigured)
             return
@@ -121,6 +126,33 @@ final class ImageUploadModel {
     func manualSnippet(for text: String) -> String? {
         guard let url = Self.manualURL(text) else { return nil }
         return RehostedImage(fullURL: url, uploadedAt: now()).snippet(variant: .full, mode: Self.mode(linkMode))
+    }
+
+    /// The removal confirmation (LOT-103, FEAT-019): only the local entry goes, the image stays public on the host. No server-side
+    /// delete is evidenced (HFR-PROTOCOL §7b B12), so the app never claims one.
+    static let removalMessage =
+        "Seule l'entrée de cet historique est effacée. L'image reste en ligne chez l'hébergeur et son adresse reste valable."
+
+    /// Notice shown after a removal.
+    static let removedNotice = "Entrée retirée de l'historique. L'image reste en ligne chez l'hébergeur."
+
+    /// The user swiped an entry: asks for confirmation, nothing is removed yet.
+    func requestRemoval(_ image: RehostedImage) {
+        removalNotice = nil
+        pendingRemoval = image
+    }
+
+    /// The user backed out of the confirmation.
+    func cancelRemoval() {
+        pendingRemoval = nil
+    }
+
+    /// The user confirmed `image` (the entry the dialog was shown for: SwiftUI clears its state before the button runs): forgets it,
+    /// then says the image stays online.
+    func confirmRemoval(_ image: RehostedImage) async {
+        pendingRemoval = nil
+        await remove(image)
+        removalNotice = Self.removedNotice
     }
 
     /// Forgets an image of the history (the host keeps it).

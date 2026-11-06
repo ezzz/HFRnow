@@ -186,6 +186,53 @@ struct ImageUploadModelTests {
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["old.jpg"])
     }
 
+    @Test func askingToRemoveAnEntryChangesNothingUntilConfirmed() async {
+        let history = MemoryHistory([hosted("a", at: 1), hosted("b", at: 2)])
+        let (model, _) = make(uploader: nil, history: history)
+        await model.load()
+        model.requestRemoval(model.history[0])
+        #expect(model.pendingRemoval?.fullURL.lastPathComponent == "b.jpg")
+        #expect(model.history.count == 2)
+        model.cancelRemoval()
+        #expect(model.pendingRemoval == nil)
+        #expect(model.removalNotice == nil)
+        #expect(history.stored.count == 2)
+    }
+
+    @Test func confirmingARemovalForgetsOnlyThatEntryAndSaysTheImageStaysOnline() async {
+        let history = MemoryHistory([hosted("a", at: 1), hosted("b", at: 2)])
+        let (model, _) = make(uploader: nil, history: history)
+        await model.load()
+        let target = model.history[0]
+        model.requestRemoval(target)
+        await model.confirmRemoval(target)
+        #expect(model.history.map(\.fullURL.lastPathComponent) == ["a.jpg"])
+        #expect(history.stored.map(\.fullURL.lastPathComponent) == ["a.jpg"])
+        #expect(model.pendingRemoval == nil)
+        #expect(model.removalNotice?.contains("reste en ligne") == true)
+        #expect(ImageUploadModel.removalMessage.contains("reste en ligne"))
+    }
+
+    @Test func aRemovalWhoseSaveFailsStillHidesTheEntryAndWarns() async {
+        let history = MemoryHistory([hosted("a")], failWrites: true)
+        let (model, _) = make(uploader: nil, history: history)
+        await model.load()
+        let target = model.history[0]
+        await model.confirmRemoval(target)
+        #expect(model.history.isEmpty)
+        #expect(model.historyWarning == "L'historique des images n'a pas pu être enregistré.")
+    }
+
+    @Test func aKeptEntryStaysUsableAfterAnotherIsRemoved() async {
+        let (model, _) = make(uploader: nil, history: MemoryHistory([hosted("keep", at: 1), hosted("drop", at: 2)]))
+        await model.load()
+        let drop = model.history[0]
+        await model.confirmRemoval(drop)
+        let kept = model.history[0]
+        #expect(model.snippet(for: kept, variant: .full).contains("keep.jpg"))
+        #expect(!model.history.contains { $0.id == drop.id })
+    }
+
     @Test func anUnreadableHistoryIsNeverOverwrittenAndUploadsStillWork() async {
         let history = MemoryHistory([hosted("precious")], unreadable: true)
         let (model, _) = make(uploader: ScriptedUploader([.success(hosted("a"))]), history: history, accepted: true)
