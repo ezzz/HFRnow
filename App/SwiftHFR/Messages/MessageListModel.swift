@@ -57,7 +57,8 @@ struct MessageListContent: Sendable, Equatable {
 
 // Port of HFRswift/Swift/MPListView.swift (MPListViewModel; hasMultipleInterlocutors, :376-377) @ 2440d79.
 // Differences: one page at a time (LOT-023, LOT-045), the group test is `PrivateMessageThread.isGroup`, and the split
-// (setting "Affichage des MP", switch "MP" / "MP multiples") has no legacy counterpart: operator decision 2026-10-28, see docs/lots/LOT-171-mp-lists.md.
+// (setting "Affichage des MP", switch "MP" / "MP multiples") has no legacy counterpart: operator decision
+// 2026-10-28, see docs/lots/LOT-171-mp-lists.md.
 /// State of the private message list (LOT-126): one page at a time, the conversation opened in the reader.
 ///
 /// Same loading rules as the topic lists (one load at a time, rows kept while reloading or after a failure, refresh reloads
