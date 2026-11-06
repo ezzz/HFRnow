@@ -182,7 +182,7 @@ struct ImageUploadModelTests {
         #expect(model.history.map(\.fullURL.lastPathComponent) == ["old.jpg"])
         await model.submit(Data([1]))
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["new.jpg", "old.jpg"])
-        await model.remove(model.history[0])
+        await model.confirmRemoval(model.history[0])
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["old.jpg"])
     }
 

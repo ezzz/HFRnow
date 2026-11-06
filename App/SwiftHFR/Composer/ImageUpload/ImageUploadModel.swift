@@ -30,7 +30,7 @@ final class ImageUploadModel {
     private(set) var pendingSource: Data?
     /// The history entry the user asked to forget; it stays until the removal is confirmed (LOT-103).
     private(set) var pendingRemoval: RehostedImage?
-    /// What the last removal did, in French; says the image is still online. Cleared by the next upload or removal request.
+    /// What the last removal did, in French; says the image is still online. Cleared by the next request, upload or reopening.
     private(set) var removalNotice: String?
 
     /// How a snippet is written (legacy `rehost_use_link`, kept under its legacy key).
@@ -158,12 +158,6 @@ final class ImageUploadModel {
         removalNotice = Self.removedNotice
         await persist { try await $0.remove(id: image.id) }
         if historyWarning == Self.saveWarning { removalNotice = nil }
-    }
-
-    /// Forgets an image of the history (the host keeps it).
-    func remove(_ image: RehostedImage) async {
-        history.removeAll { $0.id == image.id }
-        await persist { try await $0.remove(id: image.id) }
     }
 
     private func upload(_ source: Data) async {
