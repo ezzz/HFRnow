@@ -31,7 +31,11 @@ struct HFRLinkRouteTests {
         ("/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_6.htm#bas", topic(13, 28563, page: 6, anchor: nil)),
         ("/hfr/Programmation/Divers-6/hfr-android-sujet_148745_1.htm", topic(10, 148745, page: 1, anchor: nil)),
         ("/hfr/Discussions/slug-sujet_1_2.htm", topic(13, 1, page: 2, anchor: nil)),
-        ("/hfr/ia/slug-sujet_7_3.htm#t9", topic(32, 7, page: 3, anchor: 9))
+        ("/hfr/ia/slug-sujet_7_3.htm#t9", topic(32, 7, page: 3, anchor: 9)),
+        // Empty title slug (R121e: `/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm`, with and without `#bas`).
+        ("/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm", topic(22, 39106, page: 1, anchor: nil)),
+        ("/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm#bas", topic(22, 39106, page: 1, anchor: nil)),
+        ("/hfr/Discussions/sujet_7_3.htm#t9", topic(13, 7, page: 3, anchor: 9))
     ])
     func canonicalTopic(path: String, expected: HFRTopicLink) throws {
         #expect(try Self.route(Self.host + path) == .topic(expected))
@@ -218,6 +222,11 @@ struct HFRLinkRouteTests {
         // Canonical shapes with a page or id that is not a positive integer.
         "/hfr/Discussions/slug-sujet_5_0.htm", "/hfr/Discussions/slug-sujet_0_1.htm", "/hfr/Discussions/liste_sujet-0.htm",
         "/hfr/profil-0.htm", "/hfr/profil-abc.htm", "/hfr/profil-1.htm/x",
+        // Empty-slug shape: same refusals (zero id or page, extra or missing segments, unknown or re-cased forum).
+        "/hfr/Discussions/sujet_0_1.htm", "/hfr/Discussions/sujet_5_0.htm", "/hfr/Discussions/a/b/sujet_1_1.htm",
+        "/hfr/sujet_1_1.htm", "/hfr/Apple/sujet_1_1.htm", "/hfr/Discussions/-sujet_1_1.htm",
+        // Pending capture (R121c): `hardwarefr` prefix with hyphens and no slug, and the filtered list; targets not traced.
+        "/hardwarefr/JeuxVideo/sujet-47511-1.htm", "/hfr/JeuxVideo/liste_sujet_filtre-2-1.htm",
         // Encoded slashes cannot create segments, and extra segments are not guessed.
         "/hfr/Discussions%2FCuisine/slug-sujet_1_1.htm", "/hfr/Discussions/a/b/slug-sujet_1_1.htm", "/hfr/slug-sujet_1_1.htm"
     ])
