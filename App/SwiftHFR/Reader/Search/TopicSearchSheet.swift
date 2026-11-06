@@ -53,6 +53,9 @@ struct TopicSearchSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        // A swipe down clears the sheet's item at once but `onDisappear` comes after the animation: no dismissal while a
+        // search runs, so a late answer never opens a reader behind the user's back ("Annuler" still cancels).
+        .interactiveDismissDisabled(model.state == .searching)
         .onDisappear { model.cancel() }
     }
 

@@ -57,11 +57,11 @@ None new: `R52a` (the `Location`, meta only) and `R52b` (no match) are LOT-046's
 
 ## Pending capture
 
-- **Filter (GAP-135 is parity, so this is a tracked loss):** `R122c`/`R122d` verify that the filtered results are a plain GET of the `R52a` `Location` plus `filter=1`. A filter could therefore be offered without the uncaptured POST (POST without `filter`, then GET `Location` + `filter=1`); it needs a reader source that takes a query, so it is a follow-up issue, not a silent drop.
+- **Filter (GAP-135 is parity, so this is a tracked loss):** `R122c`/`R122d` verify that the filtered results are a plain GET of the `R52a` `Location` plus `filter=1`. A filter could therefore be offered without the uncaptured POST (POST without `filter`, then GET `Location` + `filter=1`); it needs a reader source that takes a query, so it is a follow-up, tracked on [#491](https://github.com/ezzz/HFRnow/issues/491), not a silent drop.
 - `transsearch.php` POST **with `filter=1`**: whether it answers the `R52a` redirect plus `filter=1` (`R122c` is the GET). Until then the sheet has no "Filtrer" toggle and sends no `filter`.
 - A continued search (`firstnum`/`currentnum`, "next results"): "Stepping not tested" (HFR-PROTOCOL §7 E28). No results mode in the reader.
 - Searching a private conversation (`cat=prive`): `transsearch.php` and its `Location` there are not captured, so no entry is offered.
-- **Departure from legacy:** legacy sent the page form's hidden `p` (`TopicSearchService.swift:45-48`; `R52a` sent `p=1`). `ReaderPage` does not expose it, so the sheet omits it: a body neither legacy nor a capture sent. Needs a capture of a `transsearch.php` POST without `p` (`host: mac`) or `ReaderPage` exposing the form's `p`; the Mac check list asks for it.
+- **Departure from legacy:** legacy sent the page form's hidden `p` (`TopicSearchService.swift:45-48`; `R52a` sent `p=1`). `ReaderPage` does not expose it, so the sheet omits it: a body neither legacy nor a capture sent. Needs a capture of a `transsearch.php` POST without `p` (`host: mac`) or `ReaderPage` exposing the form's `p`; tracked on [#491](https://github.com/ezzz/HFRnow/issues/491).
 
 ## Intentional differences from legacy
 
