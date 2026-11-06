@@ -48,7 +48,7 @@ Réglages is an entry of the LOT-170 root navigation: the first row of the Plus 
 | Sujets: Style des messages (`theme_style`) | LOT-106 | not built | Keep: LOT-106 rebuilds the message style choice (GAP-052, UXD-09). |
 | Sujets: Masquer les pseudos blacklistés (`blacklist_hide_pseudo`), Liste noire, Liste blanche | LOT-118 | not built | Keep: blacklist features stay; LOT-118 owns the lists and the toggle. |
 | Sujets: Swipe changement de page (`topic_page_swipe_navigation`), Afficher les signatures (`display_sig`), Taille des smileys (`size_smileys`, commented out in legacy) | LOT-106 | not built | Keep: LOT-106 owns the reader; the smiley size is dropped (commented out in legacy, no effect). |
-| Sujets: Bouton + (`reply_button_behavior`) | LOT-084 | not built | Keep: LOT-084 owns the reply button. |
+| Sujets: Bouton + (`reply_button_behavior`) | LOT-086 | built by LOT-086 | Keep: LOT-086 owns the reply button modes and the picker. |
 | Filtrer les posts: Minimum de citations (`filter_posts_min_quotes`), Inclure les pseudos whitelistés (`filter_posts_quotes`) | LOT-114 | not built | Keep: LOT-114 owns the post filter. |
 | Notifications MP: Badge messages non lus (`mp_badge_enabled`) | LOT-140 | not built | Keep: LOT-140 owns the unread badge. |
 | Stockage MP: Activer (`mpstorage_active`), Dernier accès (`mpstorage_last_rw`), Resynchroniser | LOT-130 | not built | Keep: LOT-130 owns MP storage; the sync-location ADR may move where it lives, not the setting. |

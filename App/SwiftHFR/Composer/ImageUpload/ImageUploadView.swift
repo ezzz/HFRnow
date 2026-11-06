@@ -4,7 +4,9 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView :1801-1982, ReplyUploadedImageRow :1984-2046) @ 2440d79 (GAP-155).
+// Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView :1801-1982, ReplyUploadedImageRow :1984-2046) @ 2440d79
+// (GAP-090, GAP-091).
+// LOT-103 (UX evolution b·operator, GAP-091): removal asks first and says the image stays online (legacy :1909 deleted silently).
 // Differences: `PhotosPicker` instead of the `PHPickerViewController` wrapper; no full-screen viewer of an uploaded image; no
 // "Preview" rendition (the engine has none); the first-use notice N1 before any upload.
 /// The panel "Insérer image": photos or camera, the size and BBCode choices, the uploaded images and a manual link. Thin: every
@@ -36,6 +38,14 @@ struct ImageUploadView: View {
             } message: {
                 Text(model.noticeMessage)
             }
+            .confirmationDialog(
+                "Retirer de l'historique ?", isPresented: askingRemoval, titleVisibility: .visible, presenting: model.pendingRemoval
+            ) { image in
+                Button("Retirer de l'historique", role: .destructive) { Task { await model.confirmRemoval(image) } }
+                Button("Annuler", role: .cancel) {}
+            } message: { _ in
+                Text(ImageUploadModel.removalMessage)
+            }
             .fullScreenCover(isPresented: $isShowingCamera) {
                 CameraPicker(
                     onCancel: { isShowingCamera = false },
@@ -64,6 +74,11 @@ struct ImageUploadView: View {
     private var askingNotice: Binding<Bool> {
         // The alert's buttons decide: SwiftUI also sets this to false on "Continuer", before the accept runs.
         Binding(get: { model.isAskingNotice }, set: { _ in })
+    }
+
+    private var askingRemoval: Binding<Bool> {
+        // A tap outside the dialog cancels; the confirm button gets the image from `presenting`, not from the cleared state.
+        Binding(get: { model.pendingRemoval != nil }, set: { if !$0 { model.cancelRemoval() } })
     }
 
     private var canUseCamera: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
@@ -113,7 +128,12 @@ struct ImageUploadView: View {
             }
             ForEach(model.history) { image in
                 UploadedImageRow(image: image) { variant in onInsert(model.snippet(for: image, variant: variant)) }
-                    .swipeActions { Button("Supprimer", systemImage: "trash", role: .destructive) { Task { await model.remove(image) } } }
+                    .swipeActions(allowsFullSwipe: false) {
+                        Button("Retirer", systemImage: "trash") { model.requestRemoval(image) }.tint(.red)
+                    }
+            }
+            if let notice = model.removalNotice {
+                Text(notice).font(.footnote).foregroundStyle(.secondary)
             }
         }
     }

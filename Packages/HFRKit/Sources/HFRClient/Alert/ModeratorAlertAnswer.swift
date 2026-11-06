@@ -1,8 +1,8 @@
-/// HFR's answer to a submitted alert, as served.
+/// HFR's confirmation of a submitted alert (`W46`, LOT-037 `.alertSubmit`): the alert reached the moderators.
 ///
-/// Neither a success nor a refusal: HFR's answer to `modo.php` (`W46`) is not read until #395, so the client does not
-/// decide what it means. The app shows `message`, HFR's own sentence (legacy showed it as a success, `AlerteModoViewController.m:229-236`).
+/// Returned only for HFR's own confirmation sentence; every other answer is an error (#395). The app shows `message`,
+/// HFR's own sentence (legacy showed any answer as a success, `AlerteModoViewController.m:229-236`).
 public struct ModeratorAlertAnswer: Sendable, Equatable {
-    /// The `.hop` text of HFR's answer, or its plain-text body (LOT-037), whitespace collapsed.
+    /// The `.hop` text of HFR's confirmation, whitespace collapsed, without the back link.
     public let message: String
 }

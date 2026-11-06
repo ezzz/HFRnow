@@ -106,10 +106,12 @@ extension HFRLinkRoute {
         throw Refused()
     }
 
+    // The title slug is optional (empty-slug links of R121e). `/hardwarefr/…/sujet-<post>-<page>.htm` and `liste_sujet_filtre`
+    // are not routed, targets not captured: see LOT-095.
     // `Regex` is not `Sendable`; these literals capture only `Substring`s (same reasoning as `HFRURL`).
     nonisolated(unsafe) private static let profilePattern = /\/hfr\/profil-([0-9]+)\.htm/
     nonisolated(unsafe) private static let topicPattern =
-        /\/hfr\/([^\/]+)\/(?:[^\/]+\/)?[^\/]+-sujet_([0-9]+)_([0-9]+)\.htm/
+        /\/hfr\/([^\/]+)\/(?:[^\/]+\/)?(?:[^\/]+-)?sujet_([0-9]+)_([0-9]+)\.htm/
     nonisolated(unsafe) private static let listPattern =
         /\/hfr\/([^\/]+)\/(?:([^\/]+)\/)?liste_sujet-([0-9]+)\.htm/
 }
