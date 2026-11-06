@@ -16,7 +16,7 @@ import Testing
             "embedded_videos", "display_sig", "display_images", "mpstorage_active", "mpstorage_last_rw",
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
-            "topic_page_swipe_navigation", "mp_list_display", "reply_button_behavior"
+            "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -26,6 +26,7 @@ import Testing
         #expect(store.value(for: SettingKey.favoritesSource) == .flagsAndFavorites)
         #expect(store.value(for: SettingKey.favoritesGroupedByCategory))
         #expect(!store.value(for: SettingKey.favoritesAutoRefresh))
+        #expect(!store.value(for: SettingKey.favoritesShowsCollapsedSections))
         #expect(!store.value(for: SettingKey.compactMode))
         #expect(store.value(for: SettingKey.tabBarMinimizesOnScroll))
         #expect(store.value(for: SettingKey.textSizeScale) == .percent100)

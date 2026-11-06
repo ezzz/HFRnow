@@ -8,9 +8,17 @@ final class NavigationModel {
     let forums: ForumListModel
     /// Forum, flags or favourites chosen in the sidebar.
     var selectedSource: TopicSource? {
-        // Another source starts from a fresh reader: a cached one could still hold a followed link's reader (CodeRabbit, #389).
-        didSet { if selectedSource != oldValue { selectedTopic = nil; currentReader = nil } }
+        didSet {
+            guard selectedSource != oldValue else { return }
+            // Another source starts from a fresh reader: a cached one could still hold a followed link's reader (CodeRabbit, #389).
+            selectedTopic = nil
+            currentReader = nil
+            // Picking the flags or the favourites is the favourites mode (`vos_sujets`), so it is what the tab opens on next time.
+            if let mode = selectedSource?.favoritesMode { favorites?.mode = mode }
+        }
     }
+    /// Options of the favourites lists (LOT-124); nil on the Catégories tab.
+    let favorites: FavoritesOptionsModel?
     /// Topic chosen in the middle column, shown by the reader in the detail column.
     var selectedTopic: TopicSummary?
     /// The post filter (LOT-114), started from a favourite or the reader menu; one per navigation, so a run survives a
@@ -34,8 +42,10 @@ final class NavigationModel {
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         filteredPosts: FilteredPostsServices = .unavailable,
-        startupSource: TopicSource? = nil
+        startupSource: TopicSource? = nil,
+        favorites: FavoritesOptionsModel? = nil
     ) {
+        self.favorites = favorites
         filtering = FilteredPostsModel(services: filteredPosts)
         self.dataSource = dataSource
         self.topicPages = topicPages
@@ -56,7 +66,10 @@ final class NavigationModel {
     /// The model of `source`, created once so going back keeps rows, page and scroll position.
     func topicList(for source: TopicSource) -> TopicListModel {
         if let existing = topicLists[source] { return existing }
-        let model = TopicListModel(source: source, dataSource: dataSource, isLoggedIn: { [weak self] in await self?.isLoggedIn() ?? false })
+        let model = TopicListModel(
+            source: source, dataSource: dataSource, isLoggedIn: { [weak self] in await self?.isLoggedIn() ?? false },
+            favorites: favorites
+        )
         topicLists[source] = model
         return model
     }

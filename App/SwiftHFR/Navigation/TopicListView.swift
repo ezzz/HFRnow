@@ -17,10 +17,14 @@ struct TopicListView: View {
     var body: some View {
         let loader = model.loader
         List(selection: $selection) {
-            if let content = loader.value {
-                ForEach(content.groups) { group in
+            if loader.value != nil {
+                ForEach(model.displayedGroups) { group in
                     if let title = group.title {
-                        Section(title) { rows(group.topics) }
+                        Section {
+                            if !group.isCollapsed { rows(group.topics) }
+                        } header: {
+                            header(group, title: title)
+                        }
                     } else {
                         rows(group.topics)
                     }
@@ -34,6 +38,13 @@ struct TopicListView: View {
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
                     TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                }
+                if let problem = model.favorites?.storeProblem {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                        .font(.footnote)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.bar)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
@@ -69,7 +80,10 @@ struct TopicListView: View {
 
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
-            TopicRowView(topic: topic).tag(topic)
+            let isSuper = model.isSuperFavorite(topic)
+            TopicRowView(topic: topic, isSuperFavorite: isSuper)
+                .tag(topic)
+                .listRowBackground(isSuper ? Color.orange.opacity(0.12) : nil)
                 .contextMenu {
                     if model.source == .favorites, let filtering, topic.topicID != nil {
                         Button { filtering.start(opening: topic) } label: {
@@ -77,18 +91,64 @@ struct TopicListView: View {
                         }
                         .disabled(filtering.isBusy)
                     }
+                    if let favorites = model.favorites, favorites.canMarkSuperFavorites, topic.topicID != nil {
+                        Button(isSuper ? "Retirer des super favoris" : "Ajouter aux super favoris", systemImage: "star.circle") {
+                            Task { await favorites.toggleSuperFavorite(topic) }
+                        }
+                    }
                 }
+        }
+    }
+
+    /// A category header with its topic count and, when the section has topics, the fold chevron (legacy `sectionHeader`).
+    private func header(_ group: TopicGroup, title: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text("\(group.topics.count)").font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
+            if group.isCollapsible, let favorites = model.favorites {
+                Button {
+                    Task { await favorites.toggleCollapsed(group.id) }
+                } label: {
+                    Image(systemName: group.isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .frame(width: 32, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(group.isCollapsed ? "Déplier \(title)" : "Plier \(title)")
+            }
         }
     }
 
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<TopicListContent>) -> some View {
         if let content = loader.value {
-            if content.isEmpty, let reason = content.emptyReason { EmptyListView(reason: reason, refresh: model.refresh) }
+            if content.isEmpty, let reason = content.emptyReason {
+                EmptyListView(reason: reason, refresh: model.refresh)
+            } else if model.allSectionsHidden, let favorites = model.favorites {
+                AllSectionsCollapsedView(options: favorites)
+            }
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
             ProgressView("Chargement des sujets")
+        }
+    }
+}
+
+/// Every section is folded and the options hide folded sections (legacy `allSectionsCollapsedState`).
+private struct AllSectionsCollapsedView: View {
+    let options: FavoritesOptionsModel
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Toutes les sections sont repliées", systemImage: "list.bullet.circle")
+        } description: {
+            Text("La vue filtrée masque les sections repliées.")
+        } actions: {
+            Button("Afficher les sections repliées") { options.showsCollapsedSections = true }
+            Button("Tout déplier") { Task { await options.expandAll() } }
         }
     }
 }

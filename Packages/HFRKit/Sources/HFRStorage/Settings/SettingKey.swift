@@ -20,6 +20,9 @@ public enum SettingKey {
     public static let favoritesGroupedByCategory = Setting.bool("sujets_avec_cat", default: true)
     /// `favorites_auto_refresh`.
     public static let favoritesAutoRefresh = Setting.bool("favorites_auto_refresh", default: false)
+    /// `FavoritesShowCollapsedSections` (`Favorites.swift` @ 2440d79, `FavoritesListView`): show the collapsed sections, and the empty ones
+    /// in the "flags and favorites" mode. Legacy never registered a default: absent reads false.
+    public static let favoritesShowsCollapsedSections = Setting.bool("FavoritesShowCollapsedSections", default: false)
 
     // MARK: Interface
 
@@ -169,7 +172,8 @@ public enum SettingKey {
 
     /// Every key of the catalogue, for tests and diagnostics.
     public static let allKeys: [String] = [
-        favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, compactMode.key,
+        favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, favoritesShowsCollapsedSections.key,
+        compactMode.key,
         tabBarMinimizesOnScroll.key, textSizeScale.key, textSizePercent.key, haptics.key, landscapeMode.key, appIconName.key,
         privateMessageBadge.key, startupScreen.key, opensLinksInDefaultBrowser.key, topicPageSwipe.key, autoTheme.key, manualTheme.key,
         themeStyle.key, dayActionColor.key, nightActionColor.key, dayLoveColor.key, nightLoveColor.key, daySuperFavoriteColor.key,
