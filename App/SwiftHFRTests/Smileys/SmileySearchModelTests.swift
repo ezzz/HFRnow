@@ -158,7 +158,7 @@ struct SmileySearchModelTests {
         #expect(search.suggestions.map(\.text) == ["chats", "chameau", "souris", "chat noir", "chien"])
     }
 
-    @Test func aFrequentSearchOlderThanTheFiveRecentOnesCompletesTheChips() async {
+    @Test func fewerMatchesThanTheLimitAllShowMostRecentFirst() async {
         let store = history()
         let start = Date(timeIntervalSince1970: 1_000)
         for _ in 0..<3 { _ = try? await store.record("chaud", resultCount: 1, at: start) }
@@ -168,7 +168,7 @@ struct SmileySearchModelTests {
         let search = model(ScriptedLookups(), history: store)
         search.text = "cha"
         await search.refreshSuggestions()
-        // Three recent matches, then the frequent one not already listed.
+        // Four matches, under the limit of five: every match shows, most recent first ("chaud", the oldest, last).
         #expect(search.suggestions.map(\.text) == ["chat3", "chat2", "chat1", "chaud"])
     }
 
