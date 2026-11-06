@@ -208,6 +208,24 @@ extension SyncedListsStoreTests {
         #expect(fixture.quarantine()["apple-2"] == nil)
     }
 
+    @Test func aResumedSyncRunsTheInitialSyncRuleForListsAndPositions() async throws {
+        let positions = [ReadingPositionRecord(topic: Self.other, position: Self.position(page: 7, at: 5))]
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        fixture.deviceState.failsToSave = true
+        let second: [String: SyncedValue?] = [
+            Self.superKey: Self.envelope([Self.favorite(Self.other)]), Self.positionsKey: Self.envelope(positions)
+        ]
+        await fixture.switchAppleID(to: "apple-2", values: second)
+        // An add made while the sync is paused has no last-synced state: the Apple ID's cloud list wins, as at a
+        // first sync, and its own list is never overwritten by one built over an empty store.
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        fixture.deviceState.failsToSave = false
+        await fixture.sync.handle(.listsChanged)
+        #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite(Self.other)])
+        #expect(fixture.cloudSuperFavorites() == [Self.favorite(Self.other)])
+        #expect(await fixture.positions.position(of: Self.other, account: "Alice")?.page == 7)
+    }
+
     @Test func aQuarantineKeptInMemoryReachesTheFileOnceItCanBeSaved() async throws {
         let fixture = await Self.make()
         try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)

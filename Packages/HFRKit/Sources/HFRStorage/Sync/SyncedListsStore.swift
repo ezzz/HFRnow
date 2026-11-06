@@ -182,8 +182,7 @@ public actor SyncedListsStore {
     /// Handles one event (see the type's rules).
     func handle(_ event: Event) async {
         guard deviceStateLoaded else { return }
-        if stateUnsaved { saveDeviceState() }
-        await settleStaleStores()
+        await catchUp()
         switch event {
         case .cloud(let change):
             await handle(change)
@@ -205,6 +204,15 @@ public actor SyncedListsStore {
         case .graceEnded:
             await endGrace()
         }
+    }
+
+    /// Before each event: a paused device file saved again (the sync then resumes with the initial-sync rule for every
+    /// list and every account's positions, as after a switch), then the stale stores.
+    private func catchUp() async {
+        let wasPaused = stateUnsaved
+        if stateUnsaved { saveDeviceState() }
+        await settleStaleStores()
+        if wasPaused, !stateUnsaved { await reconcile() }
     }
 
     private func pushPendingPositions() async {
