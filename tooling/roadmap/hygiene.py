@@ -182,16 +182,18 @@ def gh(method, path, fields=()):
         raise RuntimeError(r.stderr.strip()[:200])
 
 
-def drop_status(base, lb):
-    """Remove every `status:*` label of an issue, one DELETE per label (never replaces the set)."""
+def drop_status(base, lb, count):
+    """Remove every `status:*` label of an issue, one DELETE per label (never replaces the set).
+    `count` is a one-item list bumped after each DELETE, so a failure half-way still reports what really went."""
     for x in sorted(x for x in lb if x.startswith('status: ')):
         gh('DELETE', base + '/labels/' + quote(x, safe=':'))
+        count[0] += 1
 
 
 def apply(actions):
     """Routine part only. Re-reads each issue first, adds/removes single labels (never replaces the set),
     closes before commenting, and keeps going after a failure. Reports how many status labels it dropped."""
-    dropped = 0
+    dropped = [0]
     for a in actions:
         n = a['issue']
         base = f'repos/{REPO}/issues/{n}'
@@ -202,9 +204,7 @@ def apply(actions):
                 if cur['state'] == 'open':
                     print('skip (reopened meanwhile)', a)
                     continue
-                gone = [x for x in a['labels'] if x in lb]
-                drop_status(base, set(gone))
-                dropped += len(gone)
+                drop_status(base, {x for x in a['labels'] if x in lb}, dropped)
                 print('applied', a)
                 continue
             if cur['state'] != 'open':
@@ -220,12 +220,15 @@ def apply(actions):
             else:
                 gh('PATCH', base, fields=['state=closed', 'state_reason=completed'])
                 gh('POST', base + '/comments', fields=[f"body=Done in #{a['pr']} (merged as {a['sha']}){FOOT}"])
-                drop_status(base, lb)  # closing drops the status labels in the same step
-                dropped += len([x for x in lb if x.startswith('status: ')])
+                try:
+                    drop_status(base, lb, dropped)  # closing drops the status labels in the same step
+                except RuntimeError as e:  # the issue is closed and commented: say so, the next sweep removes the labels
+                    print('applied (closed and commented), status label removal failed', a, str(e)[:150])
+                    continue
             print('applied', a)
-        except (RuntimeError, subprocess.CalledProcessError) as e:
+        except (RuntimeError, subprocess.CalledProcessError, ValueError, KeyError) as e:
             print('FAILED', a, str(e)[:150])
-    print(f'status labels removed from closed issues: {dropped}')
+    print(f'status labels removed from closed issues: {dropped[0]}')
 
 
 if __name__ == '__main__':
