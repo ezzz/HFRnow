@@ -58,7 +58,7 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 
 | Host (subdomains) | Rule | Source |
 |---|---|---|
-| `reho.st` (yes) | `Referer: https://forum.hardware.fr/` (trailing slash; legacy sent none); extension-less; `/thumb/` to `/` | legacy `MessagesView.swift:5748-5762`; E26 captured `T20`-`T24`, `T30`-`T33` |
+| `reho.st` (yes) | `Referer: https://forum.hardware.fr/` (with a trailing slash; legacy sends the same value without it); extension-less; `/thumb/` to `/` | legacy `MessagesView.swift:5748-5762`; E26 captured `T20`-`T24`, `T30`-`T33` |
 | `img3.super-h.fr` (no) | extension-less; `.th.` removed from the file name under `/images/` | legacy `MessagesView.swift:2202-2215` |
 | `rehost.diberie.com` (no) | extension-less; `/Picture/Get/t/` to `/Picture/Get/f/` | legacy `MessagesView.swift:2202-2215` |
 | `hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr`, `hn.org` (yes) | `observedHTTPOnly` | LOT-071 (captures `R20`, `R21`, `R22a`) |
