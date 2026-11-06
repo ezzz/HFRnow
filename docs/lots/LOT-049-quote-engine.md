@@ -53,7 +53,8 @@ Code in `Sources/HFRClient/Quote/`, tests in `Tests/HFRClientTests/Quote/`.
 - The answer link served without the prefill (`R47b` standing for a composer whose cookie HFR did not use): `noQuote`, selection kept.
 - Another topic's token with `R47c`'s form: another conversation number, the same number in a forum category, another forum topic: `otherTopic`, nothing unselected.
 - A quote of a post that itself quotes (`R41b`): in that capture HFR's prefill holds only that post's own text; whether HFR ever nests `[quotemsg]` is not captured, and the formatter looks for the selection in each block's text as served.
-- A member's own bracketed text (e.g. `[1]`) is treated as a tag: a selection on it is never bolded (prefill unchanged).
+- A member's own bracketed text (e.g. `[1]`) is treated as a tag: an occurrence of the selection inside it is skipped, so a
+  later occurrence outside any tag is bolded instead, and with none the prefill is unchanged.
 - Selecting a digit or an author number that only a tag holds (`900002` in `R47c`'s tags) bolds nothing (legacy matched the tag).
 - Large message numbers stay as served (legacy ObjC rebuilt the tag with `%d`).
 
