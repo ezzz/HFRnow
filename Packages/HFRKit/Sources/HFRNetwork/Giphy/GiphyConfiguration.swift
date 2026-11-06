@@ -8,7 +8,7 @@ public struct GiphyConfiguration: Sendable, Equatable {
     /// Validates the injected values; the key never appears in this type's description.
     ///
     /// A blank key throws `.notConfigured` so a build without a key switches the feature off. The base URL must be
-    /// `https`, or `http` on a loopback host (tests), without userinfo, query or fragment: the key travels in the query.
+    /// `https`, or `http` on `127.0.0.1` or `localhost` (tests), without userinfo, query or fragment: the key travels in the query.
     public init(baseURL: URL, apiKey: String) throws(GiphyError) {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { throw .notConfigured }
@@ -34,7 +34,7 @@ public struct GiphyConfiguration: Sendable, Equatable {
               parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
               let host = parts.host?.lowercased(), !host.isEmpty, let scheme = parts.scheme?.lowercased() else { return false }
         if scheme == "https" { return true }
-        return scheme == "http" && ["127.0.0.1", "localhost", "::1"].contains(host)
+        return scheme == "http" && ["127.0.0.1", "localhost"].contains(host)
     }
 }
 
@@ -43,4 +43,9 @@ extension GiphyConfiguration: CustomStringConvertible, CustomDebugStringConverti
     public var description: String { "GiphyConfiguration(baseURL: \(baseURL.absoluteString))" }
     /// Same as `description`.
     public var debugDescription: String { description }
+}
+
+extension GiphyConfiguration: CustomReflectable {
+    /// `dump` and `Mirror` show the base URL only, never the key.
+    public var customMirror: Mirror { Mirror(self, children: ["baseURL": baseURL]) }
 }

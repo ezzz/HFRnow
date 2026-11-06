@@ -35,7 +35,7 @@ struct GiphyClientTests {
     @Test func theBaseURLMustBeHTTPSOrLoopbackWithoutQueryOrUserinfo() throws {
         let refused = [
             "http://api.giphy.com", "ftp://api.giphy.com", "https://api.giphy.com?x=1",
-            "https://u:p@api.giphy.com", "https://api.giphy.com#f", "api.giphy.com"
+            "https://u:p@api.giphy.com", "https://u@api.giphy.com", "https://api.giphy.com#f", "api.giphy.com"
         ]
         for text in refused {
             let url = try #require(URL(string: text))
@@ -48,6 +48,9 @@ struct GiphyClientTests {
         let configuration = try GiphyConfiguration(baseURL: Self.base, apiKey: Self.dummyKey)
         #expect(!"\(configuration)".contains(Self.dummyKey))
         #expect(!String(reflecting: configuration).contains(Self.dummyKey))
+        var dumped = ""
+        dump(GiphyClient(configuration: configuration), to: &dumped)
+        #expect(!dumped.contains(Self.dummyKey), "dump and Mirror must not show the key")
     }
 
     // MARK: Requests (T40, T41 shapes)

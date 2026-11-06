@@ -32,8 +32,8 @@ None: engine lot.
 All in `Packages/HFRKit/Sources/HFRNetwork/Giphy/`. Nothing else is imported besides Foundation; `HFRModels` is not touched (the result types live in HFRNetwork).
 
 - `GiphyConfiguration(baseURL:apiKey:)`: the two injected values (ADR 0007). A blank key throws `GiphyError.notConfigured`: a build without a key switches the
-  feature off (the app lot tests the entry point, LOT-155). The base URL must be `https` (or `http` on `127.0.0.1`, `localhost`, `::1` for tests), with no userinfo, query or
-  fragment. `description` shows the base URL only. Suggested build settings, for LOT-080's wiring: `GIPHY_BASE_URL` (`https://api.giphy.com`, as in the captures), `GIPHY_API_KEY`.
+  feature off (the app lot tests the entry point, LOT-155). The base URL must be `https` (or `http` on `127.0.0.1`, `localhost` for tests), with no userinfo, query or
+  fragment. `description`, `debugDescription`, `dump` and `Mirror` show the base URL only. Suggested build settings, for LOT-080's wiring: `GIPHY_BASE_URL` (`https://api.giphy.com`, as in the captures), `GIPHY_API_KEY`.
 - `GiphyClient.search(_:limit:offset:rating:)` and `trending(limit:offset:rating:)` build `GET <base>/v1/gifs/search?q=…&limit=…&offset=…&rating=…&api_key=…` and
   `GET <base>/v1/gifs/trending?limit=…&offset=…&rating=…&api_key=…` (`T40`, `T41`). `q` is trimmed and percent-encoded (a space is `%20`, `+` is `%2B`); an empty one is
   `emptyQuery` and sends nothing. `limit` is clamped to 1...50 (default 25) and `offset` to 0 or more: the bounds are this lot's choice, not a Giphy fact. `rating` defaults
@@ -51,6 +51,9 @@ All in `Packages/HFRKit/Sources/HFRNetwork/Giphy/`. Nothing else is imported bes
 
 - The `cid` of every captured media URL is derived from the API key (MANIFEST `T40`). `originalURL` keeps it as served; a link posted into a message should not publish it
   if the CDN serves the URL without the query. **Pending capture**: one fetch of an `originalURLWithoutTracking`. Until then LOT-155 chooses and says which one it posts.
+- The media URLs are checked for `https` only, not for host (the captures show `media*.giphy.com` only): a hijacked API host could point a GIF anywhere.
+  LOT-155 decides whether to restrict what it previews and posts to `*.giphy.com`.
+- The request sent (no `lang`) differs from the captured one (`lang=en` on search): the omission is not verified, Giphy documents `lang` as optional.
 - `rating` is a ceiling: `rating=r` returned `g` items.
 - `pagination` of another shape is ignored (not fatal); one bad item does not fail the page.
 - `meta.status` is not read: the HTTP status decides.
