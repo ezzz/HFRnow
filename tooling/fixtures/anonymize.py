@@ -138,6 +138,15 @@ def page_is_private(text):
     return bool(_PAGE_MP_RE.search(text))
 
 
+API_KEY_PARAM_RE = re.compile(r"api_key(?:=|%3D)([^&\"'\s<]*)", re.I)
+
+
+def api_key_findings(text):
+    """A third-party `api_key` value outside the placeholder: refused in any page or meta (ADR 0007)."""
+    return [(text.count("\n", 0, m.start()) + 1, 0, "api_key value not replaced")
+            for m in API_KEY_PARAM_RE.finditer(text) if m.group(1) not in ("", "REDACTED")]
+
+
 def meta_subject_findings(text):
     """[(line, col, reason)] for a `sujet` field of a meta's `request_body` that is not kept. Independent of
     REQUEST_SUBJECT_RE: the body is parsed as a query string."""
@@ -1565,6 +1574,7 @@ class Anonymizer:
         self._reset()
         private = private or page_is_private(text)
         res = meta_subject_findings(text)
+        res += api_key_findings(text)
 
         def scan(chunk, base, where):
             def add(pos, reason, length=0):
