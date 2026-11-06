@@ -100,7 +100,7 @@ Shown to fail with the behaviour removed (each mutation caught):
 
 ## Intentional differences from legacy
 
-1. **Offline reading works**: the legacy app had none in use (download commented out, list never called).
+1. **Offline storage exists**: the legacy app had none in use (download commented out, list unreachable). Saving and opening pages in the app come with LOT-139; this lot is the store.
 2. **Caches instead of Documents**: device-only, not backed up, reclaimable (ADR 0013); legacy's list code archived to `Documents/`, backed up.
 3. **No session token on disk**: a page fetched with the session is refused.
 4. **Topics by category and number** (legacy keyed them by the number alone, `:41-82`, as for super-favourites, CHANGELOG row 41).
