@@ -33,14 +33,7 @@ struct CheckUpdatesFlowTests {
     ) -> Ready {
         let homeProbe = MockTransport(replies: [home])
         let flagsProbe = MockTransport(replies: [flags])
-        let flow = CheckUpdatesFlow(
-            readMessages: { () async throws(MPUnreadPollError) -> Int? in
-                try await MPUnreadPoll(session: account, makeProbe: { _ in homeProbe }).unreadCount()
-            },
-            readFlags: { () async throws(FlaggedTopicsPollError) -> [TopicSummary]? in
-                try await FlaggedTopicsPoll(session: account, makeProbe: { _ in flagsProbe }).flaggedTopics()
-            }
-        )
+        let flow = CheckUpdatesFlow(session: account, makeHomeProbe: { _ in homeProbe }, makeFlagsProbe: { _ in flagsProbe })
         return Ready(flow: flow, home: homeProbe, flags: flagsProbe, account: account)
     }
 
@@ -82,6 +75,21 @@ struct CheckUpdatesFlowTests {
         let ready = Self.ready(home: try Self.home("R03-home-logged-in-no-unread-mp"), flags: try Self.flags("R10-favourites-owntopic1"))
         _ = try await ready.flow.check()
         #expect(await ready.flags.requests.first?.redirectPolicy == .doNotFollow)
+    }
+
+    @Test("A redirect on the home page is not followed: one request, `.failed(.page)`, and the flags still answer")
+    func homeRedirectIsNotFollowed() async throws {
+        let topic = URL(string: "https://forum.hardware.fr/forum2.php?post=1") ?? URL(fileURLWithPath: "/")
+        let redirect = HTTPResponse(statusCode: 302, headers: ["Location": topic.absoluteString], url: Self.homeURL, body: Data())
+        let ready = Self.ready(home: .success(redirect), flags: try Self.flags("R10-favourites-owntopic1"))
+        let summary = try await ready.flow.check()
+        #expect(await ready.home.requests.map(\.url) == [Self.homeURL])
+        #expect(await ready.home.requests.first?.redirectPolicy == .doNotFollow)
+        guard case .failed(.page(.malformed)) = summary.unreadPrivateMessages else {
+            Issue.record("expected a malformed outcome, got \(summary.unreadPrivateMessages)")
+            return
+        }
+        #expect(await ready.flags.requests.map(\.url) == [Self.flagsURL])
     }
 
     @Test("A redirect answer on the flags page is an unreadable page, not an empty list")

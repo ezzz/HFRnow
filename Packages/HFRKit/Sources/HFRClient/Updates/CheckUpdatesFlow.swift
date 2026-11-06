@@ -12,8 +12,8 @@ public struct CheckUpdatesCancelled: Error, Sendable, Equatable {
 ///
 /// At most two requests, in this order, both through probe sessions that never write to the account (`MPUnreadPoll`,
 /// `FlaggedTopicsPoll`): `GET /` for the MP count, then `GET /forum1f.php?owntopic=1` for the flags. Neither is a topic page,
-/// the only page that moves a flag (HFR-PROTOCOL §7, E25). The flags request does not follow redirects; the home request
-/// is LOT-047's and follows same-host ones, as it always did.
+/// the only page that moves a flag (HFR-PROTOCOL §7, E25). Neither request follows redirects: a redirect answer is
+/// `.failed(.page(.malformed))` for its source, so the account's cookies never reach a topic page and no third request exists.
 /// When the first answer is HFR's stale-session page the second request is not sent: it would get the same answer.
 ///
 /// Each source reports its own outcome (`UpdateOutcome`): one failing does not hide the other, and a source that gave no
@@ -28,8 +28,22 @@ public struct CheckUpdatesFlow: Sendable {
 
     /// Creates a flow that reads with the cookies of `session`, without ever changing it.
     public init(session: HFRSession) {
-        let messages = MPUnreadPoll(session: session)
-        let flags = FlaggedTopicsPoll(session: session)
+        self.init(messages: MPUnreadPoll(session: session, redirectPolicy: .doNotFollow), flags: FlaggedTopicsPoll(session: session))
+    }
+
+    /// Creates a flow over scripted probes, through the same polls and policies as the public init (tests).
+    init(
+        session: HFRSession,
+        makeHomeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport,
+        makeFlagsProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport
+    ) {
+        self.init(
+            messages: MPUnreadPoll(session: session, redirectPolicy: .doNotFollow, makeProbe: makeHomeProbe),
+            flags: FlaggedTopicsPoll(session: session, makeProbe: makeFlagsProbe)
+        )
+    }
+
+    private init(messages: MPUnreadPoll, flags: FlaggedTopicsPoll) {
         self.init(readMessages: { () async throws(MPUnreadPollError) -> Int? in try await messages.unreadCount() },
                   readFlags: { () async throws(FlaggedTopicsPollError) -> [TopicSummary]? in try await flags.flaggedTopics() })
     }
