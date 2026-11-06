@@ -4,8 +4,9 @@ import SwiftUI
 import WebKit
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
-// page bar first / previous / page / next / last instead of ‹ › and the "…" menu; the tab bar stays visible; videos on tap (GAP-008,
-// 058, 060; UXD).
+// page bar first / previous / page / next / last instead of ‹ › and the "…" menu; videos on tap (GAP-058, 060; UXD). The tab bar is
+// hidden while a topic is open, as legacy does (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256;
+// GAP-008, UXD-02).
 /// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
 /// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
 /// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
@@ -44,6 +45,7 @@ struct TopicReaderView: View {
         }
         .navigationTitle(model.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .top) {
             if let error = model.error, model.page != nil {
                 LoadFailureBanner(error: error, retry: model.retry)
