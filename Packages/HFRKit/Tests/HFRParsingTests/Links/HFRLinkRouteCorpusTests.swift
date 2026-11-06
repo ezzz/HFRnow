@@ -63,9 +63,9 @@ struct HFRLinkRouteCorpusTests {
         // `forum1.php` with no `cat` at all: which list it names is not documented, so it is not guessed.
         if url.path == "/forum1.php", url.query == "config=hfr.inc" { return true }
         if url.path == "/forum2.php" { return link.contains("print=1") || link.contains("quote_only=1") }
-        // Real shapes from R121c, R121e; routed by #482, which removes this.
+        // Real shapes of R121c whose target is not traced (LOT-095, pending capture): the `hardwarefr` rules link and the
+        // filtered list `liste_sujet_filtre-<n>-<m>` (meaning of `n` and `m` not captured).
         let path = url.path
-        if path.wholeMatch(of: #/\/hfr\/[\w-]+(\/[\w-]+)?\/sujet_[0-9]+_[0-9]+\.htm/#) != nil { return true }
         if path.wholeMatch(of: #/\/hardwarefr\/[\w-]+\/sujet-[0-9]+-[0-9]+\.htm/#) != nil { return true }
         if path.wholeMatch(of: #/\/hfr\/[\w-]+\/liste_sujet_filtre-[0-9]+-[0-9]+\.htm/#) != nil { return true }
         return url.path == "/forum1f.php" && (link.contains("owntopic=0") || link.contains("owntopic=2"))
@@ -98,7 +98,7 @@ struct HFRLinkRouteCorpusTests {
         var forum2 = 0
         for url in try Self.corpusLinks() where url.host == HFRURL.forumHost {
             let link = url.absoluteString
-            let isCanonical = url.path.contains("-sujet_")
+            let isCanonical = url.path.hasPrefix("/hfr/") && url.path.contains(/sujet_[0-9]+_[0-9]+\.htm$/)
             guard isCanonical || url.path == "/forum2.php" else { continue }
             let topic: HFRTopicLink
             switch HFRLinkRoute.route(for: url) {

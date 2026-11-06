@@ -413,7 +413,9 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **Favourites page filters** (`R11`): the page links `forum1f.php?config=hfr.inc&owntopic=<n>&new=<0|1>&nojs=0` with `owntopic` 0 and 2 beside the documented 1 and 3; the pages behind 0 and 2 are not captured.
 - **Slug segment = forum** (LOT-003 oracle, 20 topic pages): the `<cat>` segment of every canonical permalink maps through `ForumCatalogue` to the same `cat` the message's own quote link carries.
 - **AASA** (`R97a`, **verified**, 2026-11-02): `GET /.well-known/apple-app-site-association` answers 200 `application/json`, old format: `applinks.apps` empty and one `details` entry, `appID` `QMG83DG7YP.hfrplus.red.super` with `paths` `/`, `/hfr/*`, `/forum2.php*`; `webcredentials.apps` names the same App ID. No other App ID: universal links and shared web credentials of the site are for that legacy App ID only (FEAT-020, Q-1).
-- **Pending capture**: forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`.
+- **Empty-slug topic links** (`R121e` as captured in c56916f (#474); the committed copy no longer holds them, #511 aliased the slug away, #520; #482): a topic whose title yields no slug is linked `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (e.g. `/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm`, with and without `#bas`), as the title link carrying `title="Sujet n°39106"` and in the "last page" cell. It is the canonical shape with the slug and its hyphen left out; the router reads post and page from it like any canonical topic link.
+- **Shapes seen and not traced** (`R121c`, #482): the forum's rules link `/hardwarefr/<cat>/sujet-<post>-<page>.htm` (hyphen form, `hardwarefr` prefix, empty slug) and the list filter `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm` ("100% Jeux Video", `-2-1`). No capture follows either link, so where they land and what `n` and `m` mean is unknown: the router leaves both `.external`.
+- **Pending capture**: forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target, the pages behind `forum1f.php?owntopic=0|2` and `forum2.php3`, the targets of `/hardwarefr/<cat>/sujet-<post>-<page>.htm` and `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm`, and an empty-slug link in the committed corpus (#520).
 
 ### LOT-084 — reply composer
 
@@ -579,6 +581,12 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 [LOT-073](lots/LOT-073-mpstorage-json-tokenizer.md), tests `JSONTokenizerTests`, `JSONTreeDecoderTests`, `JSONWriterTests` and `MPStoragePageParserTests.writtenAsBefore`.
 
 - **The stored document** (`R60a`, **verified**): it reads through the tokenizer to the document LOT-038 read, and is written back byte for byte as `JSONEncoder` wrote it (integers only, keys sorted, slashes unescaped). No new forum fact: what other clients write beyond `R60a` is still the pending capture of LOT-038 (#272).
+
+### LOT-028 — AQ listing and RSS feed
+
+- `T01` (`rss.php`): every item has `title`, `link` = `guid`, `pubDate` (`Sun, 11 Oct 2026 10:31:57 +0200`: the instant of the `[le dd-mm-yyyy à hh:mm:ss]` Paris time of the description) and a CDATA HTML `description`. 23 of 25 links are `forum2.php?…&cat=<n>&…`, 2 are canonical `/hfr/…-sujet_<post>_<page>.htm` with no `cat`.
+- `T02` (`getAlertesByTopic.php`): `postsIds` is a comma-separated list that can repeat a message number (`"47934539,47934539"`); `nom` may end with a space; XML entities (`&quot;`, `&amp;`) in `nom` are decoded by an XML reader.
+- Pending capture ([#438](https://github.com/ezzz/HFRnow/issues/438)): a reporter comment holding an entity.
 
 ### LOT-068 — offline pages
 
