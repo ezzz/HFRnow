@@ -579,6 +579,12 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 
 - **The stored document** (`R60a`, **verified**): it reads through the tokenizer to the document LOT-038 read, and is written back byte for byte as `JSONEncoder` wrote it (integers only, keys sorted, slashes unescaped). No new forum fact: what other clients write beyond `R60a` is still the pending capture of LOT-038 (#272).
 
+### LOT-028 — AQ listing and RSS feed
+
+- `T01` (`rss.php`): every item has `title`, `link` = `guid`, `pubDate` (`Sun, 11 Oct 2026 10:31:57 +0200`: the instant of the `[le dd-mm-yyyy à hh:mm:ss]` Paris time of the description) and a CDATA HTML `description`. 23 of 25 links are `forum2.php?…&cat=<n>&…`, 2 are canonical `/hfr/…-sujet_<post>_<page>.htm` with no `cat`.
+- `T02` (`getAlertesByTopic.php`): `postsIds` is a comma-separated list that repeats a message number when several members reported it (`"47934539,47934539"`); `nom` may end with a space; XML entities (`&quot;`, `&amp;`) in `nom` are decoded by an XML reader.
+- Pending capture ([#438](https://github.com/ezzz/HFRnow/issues/438)): a reporter comment holding an entity.
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).
