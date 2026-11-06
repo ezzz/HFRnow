@@ -1,7 +1,7 @@
 # LOT-049 — Quote engine
 
 - **Module:** HFRClient
-- **Difficulty / model:** medium (Opus 5.5 → Fable; taken by an Opus contributor, `ext/bybifok-opus-1`)
+- **Difficulty / model:** medium (Opus 5.5 → Fable; written by an Opus contributor, `ext/bybifok-opus-1`, and taken over by `ext/francoisgn-opus-1` in #485)
 - **Issue:** [#75](https://github.com/ezzz/HFRnow/issues/75)
 - **Depends on:** LOT-048 (#74): `PostingFlow.loadForm`, `reply`, `PostingForm`; LOT-031 (#58): `MessageActions.quoteURL`, `quoteSelection`; LOT-042 (#68): the session's multi-quote cookie (`MultiQuoteCookie`, `multiQuote(for:)`, `toggleQuote`). Also reads LOT-033's `TopicPage.answerFormURL` (the multi-quote composer).
 - **Audit:** D4 (`docs/audit/D-posting.md` §2.2).
@@ -86,7 +86,7 @@ Shown to fail with the behaviour removed (each mutation caught): no unselect aft
 ## Intentional differences from legacy
 
 1. **The posted messages are unselected** once HFR confirmed the reply (legacy left the cookie for its hour, and the next composer quoted them again). Only those: later selections and other topics stay; on any error nothing changes. [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 69.
-2. **Selection looked for in the quoted text only, tags kept as served** (legacy Swift searched and rebuilt the tags, ObjC through `int`; a selection matching a tag could bold inside it). Row 70.
+2. **Selection looked for in the quoted text only, tags kept as served** (legacy Swift searched and rebuilt the tags, ObjC through `int`; a selection matching a tag could bold inside it, the `[quotemsg]` tags or a tag in the text such as `[url=…]`). Row 70.
 3. **Line breaks**: the prefill keeps LOT-036's `\n`, as legacy did (`ReplyService.swift:788-790`); HFR serves CRLF inside the quoted text and bare LF after the blocks (oracle `contentFormRaw`), and the reply is posted with CRLF either way (`W14`'s body). The issue asked for CRLF kept as served: the differential test compares both oracle fields, and the selection formatter needs `\n` to match a selection over several lines.
 4. **The selected account's session** loads the composer and posts the reply (legacy Swift used the main account's cookies, `AccountSessionService.swift:77-105`): LOT-048's decision Q-8.
 

@@ -101,6 +101,20 @@ struct QuoteSelectionFormatterTests {
         #expect(format(Self.captured, "900002", bold: false) == Self.captured)
     }
 
+    @Test("A selection is never matched inside a tag in the text: a link's label is bolded, not its attribute")
+    func innerTagsAreNotSearched() {
+        let link = "[quotemsg=1,2,3]Voir [url=https://example.org]example.org[/url][/quotemsg]\n"
+        #expect(
+            format(link, "example.org", bold: true)
+                == "[quotemsg=1,2,3]Voir [url=https://example.org][b]example.org[/b][/url][/quotemsg]\n"
+        )
+        #expect(format(link, "https", bold: true) == link)
+        // Several blocks: the block whose visible text holds the selection, not one whose tag does.
+        let blocks = "[quotemsg=1,2,3]Lien [url=https://example.org]ici[/url][/quotemsg]\n"
+            + "[quotemsg=4,5,6]example.org en clair[/quotemsg]\n"
+        #expect(format(blocks, "example.org", bold: false) == "[quotemsg=4,5,6]example.org[/quotemsg]\n")
+    }
+
     @Test("Tags are kept as served, never rebuilt")
     func tagsKeptAsServed() {
         let upper = "[QUOTEMSG=1,2,3]Bonjour tout le monde[/QUOTEMSG]\n"
