@@ -48,8 +48,7 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 
 `R20` (logged out) and `R21` (logged in) through `LiveTopicPageSource` (`messagesCarryTheirToolbarActions`). No new capture.
 
-**Pending capture:** #273 (own post on a public topic: edit link shape, which MP / flag / alert links remain). Until it lands the
-own-post rules are LOT-031's (`RA4`: edit on own posts of a private thread) and the legacy policy above; review #330 checks them.
+**Own post on a public topic** (#273 captured as `R63a` and `R63e`, review #330): `MessageMenuOwnPostCaptureTests` runs the policy on both pages through LOT-031's parser. The viewer's posts carry edit, quick edit, quote, multi-quote, favourite and alert links and no MP link; the policy gives quote, multi-quote, edit, favourite, link and delete (not on the first post), and the profile alone from the author. The alert link is printed on one's own post but the policy keeps hiding "Alerter" there (legacy `!isOwnMessage`, `MessagesView.swift` @ 2440d79: nothing to alert about oneself); the test pins that choice. The capture confirms the policy, no change of behaviour.
 Not decided here, left to the lot of each handler: the alert mail fallback (legacy `onPopupAlertMailRequest`), the multi-quote cookie
 state (LOT-086 reads it from the session: `TopicReaderModel.openMenu`), and the "flag here" action (`favorite`: a state-changing GET, needs the
 session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).

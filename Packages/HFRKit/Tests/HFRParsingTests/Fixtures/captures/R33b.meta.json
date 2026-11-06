@@ -15,7 +15,7 @@
     "md_passs",
     "md_passs"
   ],
-  "note": "poll already voted from the operator's accounts (results only, no vote form, \"Multipseudo detecté\" notice); logged in (user1), link from forum1f.php?owntopic=1; marks the topic read for user1",
+  "note": "poll already voted (results only, no vote form, \"Multipseudo detecté\" notice); logged in (user1)",
   "file": "R33b-topic-poll-already-voted.html",
   "private": false
 }

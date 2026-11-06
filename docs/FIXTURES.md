@@ -40,6 +40,7 @@ Public forum post content may stay when needed for the test; prefer neutral exce
 - The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps it, and only it,
   when the page is the storage thread and the document holds known keys and the strings `0.1` and `iOS` (R60a); any other
   key or string (a blacklisted pseudo, another client's data) stops the anonymizer until that position gets aliasing.
+- List rows (rows linking with `owntopic=1|2|3`, or showing a flag, in the `forum2.php` or the rewritten link form) are aliased **row by row** by position (topic and message ids, title and slug, categories, page numbers, counts, dates), so fixtures stay stable and carry no live data. `check` fails on any number of such a row that is not an alias ([kit README](../tooling/fixtures/README.md#list-rows)).
 A reviewer must check anonymization; `check --corpus` and gitleaks run on every push as safety nets.
 
 ## Capture

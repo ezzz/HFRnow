@@ -38,4 +38,4 @@ The viewer decodes in the app, not in WebKit's process: `ViewerImageCheck` refus
 `ImageViewerCheckTests`, a real-`WKWebView` test of the `reader.js` tap, `ImageGalleryTests`, `ImageViewerModelTests`, `ReaderImageViewerBridgeTests` (decoder, controller filtering by consent, `Referer` per host and per hop).
 
 ## Pending capture / Mac check
-#134 (see FEAT-014); device look and behaviour: see the PR's "Mac check needed".
+Capture #134 is reviewed (#328): a real `reho.st` image answers 403 without `Referer` and 200 `image/jpeg` with `Referer: https://forum.hardware.fr/` (`T30`-`T33`, `https` and `http`, no redirect). The viewer's full-resolution fetch now sends that value (legacy sent no trailing slash, seen working only on a path naming no file, `T24`); `ReaderImageFetcherTests.theViewerFetchSendsTheRefererTheCaptureRequires` runs on the metas and fails with the no-slash value. Not observed: `https://reho.st/self/<hash>.jpg` (the app upgrades `http` to `https`; `https` was captured on `/preview/self/` only). Device look and behaviour: see the PR's "Mac check needed".
