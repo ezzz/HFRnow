@@ -21,6 +21,10 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     /// Scrolling paused with message `post` topmost (LOT-111: recorded as the reading position).
     case position(post: Int)
 
+    /// The user tapped a posted picture: the `src` of the pictures the page shows (in order) and the tapped one's position
+    /// among them (LOT-109). The app re-checks every entry; the page's list is a claim.
+    case image(urls: [String], index: Int)
+
     /// Why a body was rejected.
     enum Failure: Error, Equatable, Sendable {
         /// The body is not a dictionary, or has no string `type` and integer `token`.
@@ -68,20 +72,35 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     private static func messageAboutAPost(ofType type: String, in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
         switch type {
         case "video":
-            guard let post = positivePost(in: object), let index = integer(object["index"]), index >= 0 else {
-                throw .invalidPayload
-            }
-            return .video(post: post, index: index)
+            return try video(in: object)
         case "menu":
             guard let post = positivePost(in: object), let name = object["source"] as? String,
                   let source = MessageMenuSource(rawValue: name) else { throw .invalidPayload }
             return .menu(post: post, source: source)
+        case "image":
+            return try image(in: object)
         case "position":
             guard let post = positivePost(in: object) else { throw .invalidPayload }
             return .position(post: post)
         default:
             throw .unknownType
         }
+    }
+
+    private static func video(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let post = positivePost(in: object), let index = integer(object["index"]), index >= 0 else {
+            throw .invalidPayload
+        }
+        return .video(post: post, index: index)
+    }
+
+    private static func image(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
+        guard let list = object["urls"] as? [Any], list.count <= maximumImages, let index = integer(object["index"]),
+              index >= 0, index < list.count else { throw .invalidPayload }
+        // One entry that is not a string rejects the whole message: the index must keep pointing at the same picture.
+        let urls = list.compactMap { $0 as? String }
+        guard urls.count == list.count else { throw .invalidPayload }
+        return .image(urls: urls, index: index)
     }
 
     /// The message number a body names: a whole number above zero, nothing else.

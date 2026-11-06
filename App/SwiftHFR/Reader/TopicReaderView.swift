@@ -21,6 +21,8 @@ struct TopicReaderView: View {
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    /// The open image viewer (LOT-109); a fresh model per tap.
+    @State private var viewer: ImageViewerModel?
     @State private var profile: UserProfileModel?
     @State private var askingPage = false
     @State private var pageText = ""
@@ -87,6 +89,7 @@ struct TopicReaderView: View {
         .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
@@ -108,7 +111,8 @@ struct TopicReaderView: View {
         }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
-            guard model.linkedReader == nil else { return }
+            // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
+            guard model.linkedReader == nil, viewer == nil else { return }
             model.cancel()
             controller?.stopLoading()
         }
@@ -213,7 +217,11 @@ struct TopicReaderView: View {
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
             position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
-            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) }
+            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) },
+            image: { images, index, _ in
+                // The controller already checked the document token (a stale page's tap never gets here).
+                viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
+            }
         )
         model.positions = services.positions
         self.controller = controller
