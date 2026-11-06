@@ -44,7 +44,13 @@ struct TopicSearchSheet: View {
             .navigationTitle("Rechercher")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    // Cancel first: `onDisappear` runs after the dismissal, when a late answer could already be on its way.
+                    Button("Annuler") {
+                        model.cancel()
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(action: submit) { Label("Rechercher", systemImage: "magnifyingglass") }.disabled(!model.canSubmit)
                 }
