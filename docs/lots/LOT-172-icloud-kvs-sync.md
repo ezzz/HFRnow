@@ -52,6 +52,60 @@ No synced key holds a cookie, a token or a draft (test over `syncedKeys`); accou
 ### Account key
 The per-account suffix of part 2's keys is `AccountKey.make` (LOT-064, ADR 0013 §7: U+200B removed, then lower-cased, nothing else), already pinned by `AccountKeyTests`; LOT-072 left it untouched.
 
+## Part 2
+
+### What syncs, under which key
+One cloud key per list, holding the whole list as JSON (`SyncedValue.data`; sorted keys, dates as seconds since 1970) in an envelope `{"version":1,"items":[…]}`; **last writer wins on the whole list** (ADR 0013 §3). The account key is `AccountKey.make` of the account's `md_user` (ADR 0013 §7).
+
+| Cloud key | Local copy (master on the device) | Items |
+|---|---|---|
+| `allowlist` | `PseudoListStore` allowlist (LOT-061, global) | LOT-061 entries `{word, alias, mode}` |
+| `superfavorites.<account key>` | `SuperFavoritesStore` (LOT-064) | `{topic: {category, topic}, addedAt}` |
+| `smileyfavorites.<account key>` | `AppSmileyFavoritesStore` (LOT-064) | `{code, url, addedAt}` |
+| `positions.<account key>` | `ReadingPositionStore` (LOT-090) | LOT-090 records `{topic, position: {page, messageNumber, offset, updatedAt}}`, the **200** most recently updated |
+
+- **Allowlist entries carry no date**: LOT-061 never kept one, and a whole-list last-writer-wins needs none. The ADR's `{id, addedAt}` holds for the two per-account lists.
+- **Empty is a value**: a push after a local change always writes the envelope, `{"version":1,"items":[]}` included, so removing the last item reaches the other devices; an empty cloud envelope replaces the local list. Only the seeding push of the initial-sync rule skips an empty local list.
+- **A key longer than 64 bytes** (UTF-8; Apple's limit, a very long pseudo) is not synced: that account's lists stay on the device and the account is reported in `unsyncedAccounts`. An account whose key is empty is skipped.
+- **Accounts**: the sync is given the app's accounts (`Account.id`, the `md_user` value as `AccountBook` stores it, one account per key). Applies and pushes of per-account keys go through that spelling; `ReadingPositionStore` records under another spelling of the same key are neither pushed nor merged. A cloud key of an account the app does not have is left alone.
+
+### `SyncedListsStore`
+An actor over the cloud store, the four local stores, the accounts and its own device-state file (`SyncDeviceStateDocument`, separate from the settings mirror's: one writer per file). Its sources (the cloud's `changes()`, each store's `changes()`, the accounts, the reading-position timer) feed one internal `AsyncStream` of events from child tasks of a task group, and `run()` handles the events one at a time: a push never interleaves with an apply, and always starts from the local list as it is after every change already received. Store streams buffer the newest event only (a push reads the live list).
+
+| Event | Rule |
+|---|---|
+| local change of a list (each store's `changes()`) | the list is pushed when it differs from the cloud's, compared decoded (an apply that changed the local copy compares equal and pushes nothing) |
+| local change of the reading positions | **debounced**: pushed `positionsDelay` (30 s) after the last change, the 200 newest records; `flushPositions()` pushes a pending change at once (#447 calls it when the app goes to the background and before `synchronize()`) |
+| server change of one of these keys | a list replaces the local copy (`replace`); positions are **merged** (below) |
+| initial sync, first launch | for each account and the allowlist: a cloud list replaces the local one (positions merge); a non-empty local list the cloud lacks is pushed (first device, LOT-067 import) |
+| account change | see "Account change" |
+| accounts added | the initial-sync rule for that account |
+| quota violation | local copy kept; keys in `quotaViolations` |
+
+- **Positions merge** (`ReadingPositionStore.merge`): per topic, the record with the newest `updatedAt` wins, **whatever its page** (a `reset` to an earlier page on another device is a newer point in time; `advance`'s forward-only rule is the reader's, not the sync's). On equal dates with different positions, the one ahead wins (`isAhead`), so every device converges on the same list and nothing ping-pongs. An incoming `updatedAt` later than this device's clock is clamped to now before the merge: a device whose clock runs ahead cannot pin a position (a refinement of ADR 0013 §3: a position is a point in time, never a future one). The local bound (500) applies after the merge, newest kept.
+- **Unreadable envelope** (not JSON, another shape, or a `version` above 1): the local copy is kept and the key is not written, as the settings mirror does for `data` values.
+- **Schema version**: the part 1 guard (`schemaVersion` above 1) stops these writes and applies too.
+- **A local store that cannot load** (LOT-061/064/090 failure guard) is neither pushed nor overwritten while it fails.
+
+### Account change
+Seen live (`accountChange`) or at launch (the device file keeps the last Apple ID seen, as in part 1).
+
+- **Quarantine**: the local synced lists are enumerated **from the stores** (every account key they hold, not only the app's accounts, and the allowlist), saved under the previous Apple ID as envelopes (positions in full, up to 500 per account), then removed from the stores. Device-scoped data (blocklists, drafts, histories) is never touched. 90 days, kept in memory when the file cannot be saved, as in part 1.
+- **Owner stamp**: the device file records which Apple ID the local lists belong to, written after each quarantine and each initial sync. A store that could not load at the change keeps its content; when it loads again, a content older than the stamp is quarantined under its owner before anything else, and never pushed.
+- **Restore**: the new Apple ID's quarantine comes back where the local list is empty; then the initial-sync rule.
+- **Launch-time change**: after a change seen at launch, lists are neither applied nor pushed until the first notification of the store (`accountChange`, `initialSync` or `serverChange`) or 5 s after `synchronize()`, which narrows part 1's known limitation (the old account's content still in the store under the new identity).
+- **Local add racing an apply**: a user's add saved between the sync's read of the cloud and its `replace` is overwritten by the cloud list (whole-list last writer wins); the UI drops it at its next reload. Accepted: the window is one apply.
+
+### Local store additions
+- `SuperFavoritesStore.replace(_:account:)`, `AppSmileyFavoritesStore.replace(_:account:)`, `PseudoListStore.replaceAllowlist(with:)` (entries, aliases and modes kept), `ReadingPositionStore.merge(_:account:)`: each normalises what it receives with the store's own rules (duplicates, order, bound) and returns whether anything changed; plus the account keys each holds, for the quarantine.
+- Each store gets `changes()`, yielded after a successful save (the account, or the allowlist); the blocklist (MPStorage's, not iCloud's) yields nothing. The app's screens can use the same streams to refresh after an apply (#447).
+
+### Budget
+Measured, not estimated: encoded as above, the worst case of the ADR 0013 appendix is about 26 KiB of positions (200), 14 KiB of super-favourites (200) and 13 KiB of smiley favourites (100) per account, so about 270 KiB for 5 accounts with the allowlist and the settings, in 54 keys: under Apple's 1 MB and 1024 keys, but above the appendix's "< 200 KiB" (its 40 B per position was a third of the real size). The test builds that worst case with realistic values and checks < 320 KiB and ≤ 60 keys; ADR 0013 gets an amendment with the measured bound.
+
+### Not in this lot
+The app wiring (building `SyncedListsStore`, starting `run()`, `flushPositions()` on background, a notice after an account change) is #447, with the settings mirror. The MPStorage sync-state record of §7 belongs to LOT-130.
+
 ## Edge cases
 - A synced key the cloud holds as `data` (a newer format) is not a setting value: the mirror keeps its own value.
 - `run()` ends when the store's stream ends; the app starts it once and calls `synchronize()` at launch and on foreground (ADR 0013 §4, #447).
