@@ -26,24 +26,24 @@ struct SmileyPickerView: View {
                 if let search = model.search, search.isSearching {
                     searchResults(search)
                 } else {
-                LazyVStack(alignment: .leading, spacing: 18) {
-                    section("Smileys basiques", count: model.basic.count, expanded: $basicExpanded) {
-                        if model.basic.isEmpty {
-                            Text("Catalogue de smileys indisponible.").font(.subheadline).foregroundStyle(.secondary)
-                        } else {
-                            grid(model.basic, columns: basicColumns, compact: true) { model.tap(basic: $0) }
+                    LazyVStack(alignment: .leading, spacing: 18) {
+                        section("Smileys basiques", count: model.basic.count, expanded: $basicExpanded) {
+                            if model.basic.isEmpty {
+                                Text("Catalogue de smileys indisponible.").font(.subheadline).foregroundStyle(.secondary)
+                            } else {
+                                grid(model.basic, columns: basicColumns, compact: true) { model.tap(basic: $0) }
+                            }
+                        }
+                        section("Favoris de l’app", count: model.favorites.count, expanded: $favoritesExpanded) {
+                            if model.favorites.isEmpty {
+                                Text("Aucun favori dans l’app pour le moment.").font(.subheadline).foregroundStyle(.secondary)
+                            } else {
+                                grid(model.favorites, columns: favoriteColumns, compact: false) { model.tap(favorite: $0) }
+                            }
                         }
                     }
-                    section("Favoris de l’app", count: model.favorites.count, expanded: $favoritesExpanded) {
-                        if model.favorites.isEmpty {
-                            Text("Aucun favori dans l’app pour le moment.").font(.subheadline).foregroundStyle(.secondary)
-                        } else {
-                            grid(model.favorites, columns: favoriteColumns, compact: false) { model.tap(favorite: $0) }
-                        }
-                    }
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 10)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 10)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -54,7 +54,7 @@ struct SmileyPickerView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
             }
-            .overlay(alignment: .bottom) { noticeBanner }
+            .overlay(alignment: .top) { noticeBanner }
         }
         .presentationDetents([.large])
         .sheet(item: $model.presented) { smiley in
@@ -90,7 +90,7 @@ struct SmileyPickerView: View {
                 .font(.callout)
                 .padding(10)
                 .background(.regularMaterial, in: Capsule())
-                .padding(.bottom, 12)
+                .padding(.top, 8)
         }
     }
 
@@ -136,7 +136,7 @@ struct SmileyPickerView: View {
             if !search.suggestions.isEmpty, !search.isSearching { suggestionChips(search) }
             HStack(spacing: 8) {
                 if search.isSearching {
-                    Button { search.clear() } label: { Image(systemName: "chevron.left").padding(8) }
+                    Button { searchFocused = false; search.clear() } label: { Image(systemName: "chevron.left").padding(8) }
                         .accessibilityLabel("Retour aux smileys")
                 }
                 HStack {

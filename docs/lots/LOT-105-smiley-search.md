@@ -26,6 +26,7 @@ Legacy `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional refere
 | GAP-088 | A text under 3 characters shows why ("Saisissez au moins 3 caractères…") under the field, and the search button stays disabled; legacy silently did nothing | b·needed (acceptance criterion of #196) |
 | GAP-088 | A search that failed (offline, HFR answer unreadable) says so with a reason and "Retour aux smileys"; legacy showed "Aucun smiley trouvé" (LESSONS 44: not found ≠ could not read) | b·needed |
 | GAP-088 | Results are listed once per code (HFR serves one twice, `R53c`); legacy's grid listed it twice | b·needed (the grid identifies cells by code) |
+| GAP-088 | While a search is in flight the catalogue and the chips give way to "Recherche…" (legacy kept them and spun the button) | b |
 | GAP-088 | Wiki keywords failing to load show the reason; the detail is a sheet (LOT-104), now also resizable to large | b |
 
 ## Behaviour
@@ -44,6 +45,7 @@ Legacy `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional refere
   when typing; 5 at most, never the same text twice) refresh as the text changes; a tap runs the search.
 - Detail: opening it reads the wiki entry (`SmileyLookupFlow.wiki`, cookie-less) and lists the keywords in the order served.
   A tap on a keyword closes the detail and searches it. An entry with no keyword shows no section.
+- The search model lives as long as the reply sheet (legacy's session state): closing the panel to insert a smiley and reopening it shows the same text and results. Closing the panel drops a request in flight and returns to the catalogue.
 - A history write that the store refuses never hides the results (the history is a convenience; the store reports its own
   failure when read).
 

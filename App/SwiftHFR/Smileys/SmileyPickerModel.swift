@@ -15,7 +15,7 @@ struct PickerSmiley: Identifiable, Hashable, Sendable {
 /// State of the smiley picker (LOT-104): the editor's catalogue, the account's app favourites, and what the user chose.
 ///
 /// Port of `CombinedSmileyPickerView` (`HFRswift/Swift/AnswerView.swift:1051-1470` @ 2440d79) without the forum-smiley
-/// section (another lot, see the spec); the search is `SmileySearchModel`: the basic palette inserts on tap; an app favourite opens its
+/// section (another lot, see the spec); the search is `SmileySearchModel`. The basic palette inserts on tap; an app favourite opens its
 /// detail, which inserts or removes it. Favourites are LOT-064's store (legacy `SmileyCache` semantics).
 @MainActor
 @Observable

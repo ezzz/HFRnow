@@ -132,9 +132,10 @@ struct SmileySearchModelTests {
         let inFlight = Task { await search.search("aaa", requireAll: false) }
         await lookups.waitUntilStarted("aaa")
         search.stop()
+        #expect(search.phase == .library)
         await lookups.release("aaa")
         await inFlight.value
-        #expect(search.phase == .loading)
+        #expect(search.phase == .library)
     }
 
     // MARK: Chips
@@ -155,6 +156,20 @@ struct SmileySearchModelTests {
         let search = model(ScriptedLookups(), history: await seeded())
         await search.refreshSuggestions()
         #expect(search.suggestions.map(\.text) == ["chats", "chameau", "souris", "chat noir", "chien"])
+    }
+
+    @Test func aFrequentSearchOlderThanTheFiveRecentOnesCompletesTheChips() async {
+        let store = history()
+        let start = Date(timeIntervalSince1970: 1_000)
+        for _ in 0..<3 { _ = try? await store.record("chaud", resultCount: 1, at: start) }
+        for (index, text) in ["chat1", "chat2", "chat3"].enumerated() {
+            _ = try? await store.record(text, resultCount: 1, at: start + TimeInterval(10 + index))
+        }
+        let search = model(ScriptedLookups(), history: store)
+        search.text = "cha"
+        await search.refreshSuggestions()
+        // Three recent matches, then the frequent one not already listed.
+        #expect(search.suggestions.map(\.text) == ["chat3", "chat2", "chat1", "chaud"])
     }
 
     @Test func withATextTheChipsAreRecentMatchesThenFrequentOnesNotAlreadyListed() async {

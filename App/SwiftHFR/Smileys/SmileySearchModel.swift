@@ -2,6 +2,7 @@ import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork
+import HFRParsing
 import HFRStorage
 import Observation
 
@@ -86,6 +87,8 @@ final class SmileySearchModel {
 
     /// Starts a search for `query` (the field's text when nil), replacing the one in flight.
     func submit(_ query: String? = nil, requireAll: Bool) {
+        // The field shows the text at once, not when the task starts.
+        if let query, query != text { text = query }
         searchTask?.cancel()
         searchTask = Task { await search(query, requireAll: requireAll) }
     }
@@ -124,11 +127,13 @@ final class SmileySearchModel {
         phase = .library
     }
 
-    /// Drops everything in flight when the panel closes.
+    /// Drops everything in flight when the panel closes; a search dropped while loading goes back to the catalogue, so the
+    /// reopened panel never waits for an answer that will not come.
     func stop() {
         searchTask?.cancel()
         generation += 1
         keywordsGeneration += 1
+        if phase == .loading { phase = .library }
     }
 
     // MARK: History

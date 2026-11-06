@@ -20,6 +20,8 @@ struct ReplyComposerView: View {
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
     @State private var picker: SmileyPickerModel?
+    /// The smiley search outlives the panel, as legacy's session state: reopening shows the last results (LOT-105).
+    @State private var smileySearch: SmileySearchModel?
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
@@ -161,12 +163,11 @@ struct ReplyComposerView: View {
 
     private func openSmileys() {
         let services = model.smileyServices
+        smileySearch = smileySearch ?? services.search
         rangeForSmiley = selectedRange
         smileyInserted = false
-        picker = SmileyPickerModel(
-            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account,
-            search: services.search
-        )
+        let catalogue = SmileyPickerModel.bundledCatalogue()
+        picker = SmileyPickerModel(catalogue: catalogue, store: services.store, account: services.account, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
