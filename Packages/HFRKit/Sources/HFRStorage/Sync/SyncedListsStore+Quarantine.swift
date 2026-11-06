@@ -94,7 +94,6 @@ extension SyncedListsStore {
     /// the Apple ID it belongs to, unless that Apple ID owns the lists again. A store found empty (its unreadable data
     /// discarded, which signals it) has nothing of that Apple ID left.
     func settleStaleStores() async {
-        guard !stale.isEmpty else { return }
         for (prefix, staleOwner) in stale.sorted(by: { $0.key < $1.key }) {
             guard let slot = Slot(rawValue: prefix) else {
                 stale[prefix] = nil
@@ -108,7 +107,8 @@ extension SyncedListsStore {
             }
         }
         saveDeviceState()
-        // The owner's own lists that could not come back into a stale store come back now.
+        // The owner's quarantined lists that could not come back (a stale store, a switch paused by an unwritable device
+        // file) come back as soon as they can.
         if let owner, cloud.isCurrentAccount(owner), !stateUnsaved { await restore(for: owner) }
     }
 
@@ -128,6 +128,7 @@ extension SyncedListsStore {
         for (holder, entry) in saved.sorted(by: { $0.key < $1.key }) {
             let left = await restore(entry.values)
             _ = try? device.mutate { document throws(SmallStoreError) in
+                guard left != entry.values else { return false }
                 document.quarantine[holder] = left.isEmpty ? nil : SyncQuarantineEntry(savedAt: entry.savedAt, values: left)
                 return true
             }
@@ -202,19 +203,29 @@ extension SyncedListsStore {
         }
     }
 
-    /// Saves the owner, the stale stores and the digests; while the file lags behind, the sync pauses (`isActive`).
+    /// Saves the owner, the stale stores, the digests and any quarantine kept in memory; while the file lags behind,
+    /// the sync pauses (`isActive`).
     func saveDeviceState() {
         let owner = owner
         let stale = stale
         let synced = synced
+        let unsaved = unsaved
         do throws(SmallStoreError) {
             _ = try device.mutate { document throws(SmallStoreError) in
-                guard document.owner != owner || document.stale != stale || document.synced != synced else { return false }
+                guard document.owner != owner || document.stale != stale || document.synced != synced || !unsaved.isEmpty
+                else { return false }
                 document.owner = owner
                 document.stale = stale
                 document.synced = synced
+                for (holder, entry) in unsaved {
+                    var merged = document.quarantine[holder] ?? entry
+                    merged.values.merge(entry.values) { _, new in new }
+                    merged.savedAt = max(merged.savedAt, entry.savedAt)
+                    document.quarantine[holder] = merged
+                }
                 return true
             }
+            self.unsaved = [:]
             stateUnsaved = false
         } catch {
             stateUnsaved = true

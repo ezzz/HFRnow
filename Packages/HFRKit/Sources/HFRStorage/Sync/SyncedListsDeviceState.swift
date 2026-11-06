@@ -34,4 +34,18 @@ public struct SyncedListsDeviceState: SmallStoreDocument {
         self.quarantine = quarantine
         self.synced = synced
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, owner, stale, quarantine, synced
+    }
+
+    /// Decodes a document; a field a later version of this type adds reads as its default when missing.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(Int.self, forKey: .version)
+        owner = try container.decodeIfPresent(String.self, forKey: .owner)
+        stale = try container.decodeIfPresent([String: String].self, forKey: .stale) ?? [:]
+        quarantine = try container.decodeIfPresent([String: SyncQuarantineEntry].self, forKey: .quarantine) ?? [:]
+        synced = try container.decodeIfPresent([String: String].self, forKey: .synced) ?? [:]
+    }
 }

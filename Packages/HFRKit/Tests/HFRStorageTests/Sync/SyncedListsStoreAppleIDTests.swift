@@ -152,6 +152,38 @@ extension SyncedListsStoreTests {
         #expect(fixture.cloudSuperFavorites() == [Self.favorite(Self.other)])
     }
 
+    @Test func aSwitchPausedByTheDeviceFileRestoresOnceItCanSave() async throws {
+        let second = SyncQuarantineEntry(savedAt: Self.start, values: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
+        let fixture = await Self.make(deviceState: SyncedListsDeviceState(owner: "apple-1", quarantine: ["apple-2": second]))
+        fixture.deviceState.failsToSave = true
+        await fixture.switchAppleID(to: "apple-2")
+        #expect(await fixture.superFavorites.favorites(for: "Alice").isEmpty)
+
+        fixture.deviceState.failsToSave = false
+        await fixture.sync.handle(.listsChanged)
+        #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite(Self.other)])
+        #expect(fixture.quarantine()["apple-2"] == nil)
+    }
+
+    @Test func aQuarantineKeptInMemoryReachesTheFileOnceItCanBeSaved() async throws {
+        let fixture = await Self.make()
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        fixture.deviceState.failsToSave = true
+        await fixture.switchAppleID(to: "apple-2")
+        #expect(fixture.quarantine()["apple-1"] == nil)
+        fixture.deviceState.failsToSave = false
+        await fixture.sync.handle(.listsChanged)
+        #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
+    }
+
+    @Test func aDocumentWithoutTheNewerFieldsStillLoads() throws {
+        let decoder = JSONDecoder()
+        let document = try decoder.decode(SyncedListsDeviceState.self, from: Data(#"{"version":1,"owner":"apple-1"}"#.utf8))
+        #expect(document.owner == "apple-1")
+        #expect(document.synced.isEmpty && document.stale.isEmpty && document.quarantine.isEmpty)
+    }
+
     @Test func quarantinedListsAreDeletedAfterNinetyDays() async throws {
         let old = SyncQuarantineEntry(savedAt: Self.start, values: [Self.superKey: Self.envelope([Self.favorite()])])
         let fixture = await Self.make(deviceState: SyncedListsDeviceState(owner: "apple-1", quarantine: ["apple-0": old]))
