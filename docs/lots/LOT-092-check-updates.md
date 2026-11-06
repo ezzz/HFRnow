@@ -49,7 +49,7 @@ The flow does not decide on its own that a topic "has news": the flags page does
 ## Fixtures
 None added. Captures read in place: `R01`, `R02`, `R03` (home), `R70a` (stale home), `R10`, `R73a` (flags, two rows), `R123g` (empty flags), `R12` (flags, logged out), `R70b` (stale flags), `R20` (a topic page, as the wrong page). `R70b` was captured at `forum1f.php?config=hfr.inc&owntopic=1`; its bytes equal `R70a`'s, and the test serves it at the URL the flow requests (`?owntopic=1`, as `R10`), so the stale check's same-URL rule applies to the real request.
 
-**Pending capture:** none required. HFR-PROTOCOL §7 B6 (unsettled) says the flags page may list only topics with news: then `.value([])` means "no listed topic", not "nothing flagged"; a fully read flagged topic, listed or not, settles it. Not captured, hence not claimed: a flags page whose flag position and last post can be compared (see above); the flags page of an account whose jar HFR half-accepts (neither stale nor valid).
+**Pending capture** (none blocks the lot): a fully read flagged topic on `owntopic=1` (§7 B6), and a flags row whose flag position can be compared with the topic's last message. HFR-PROTOCOL §7 B6 (unsettled) says the flags page may list only topics with news: then `.value([])` means "no listed topic", not "nothing flagged"; a fully read flagged topic, listed or not, settles it. Not captured, hence not claimed: a flags page whose flag position and last post can be compared (see above); the flags page of an account whose jar HFR half-accepts (neither stale nor valid).
 
 ## Intentional differences from legacy
 | # | Legacy | Port | Why |
