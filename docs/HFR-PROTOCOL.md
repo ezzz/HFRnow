@@ -596,6 +596,16 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 
 - **The stored document** (`R60a`, **verified**): it reads through the tokenizer to the document LOT-038 read, and is written back byte for byte as `JSONEncoder` wrote it (integers only, keys sorted, slashes unescaped). No new forum fact: what other clients write beyond `R60a` is still the pending capture of LOT-038 (#272).
 
+### LOT-098 — Giphy REST client
+
+[LOT-098](lots/LOT-098-giphy-client.md), tests `GiphyClientTests`, on the captures `T40` (search) and `T41` (trending) of 2026-11-06 (#539). Not an HFR fact: Giphy's own API, called from the app. The request shapes are from Giphy's public API reference (legacy used the SDK, so none is traceable there).
+
+- **Requests** (verified, `T40`/`T41`): `GET <base>/v1/gifs/search?q=<text>&limit=<n>&offset=<n>&rating=<r>&api_key=<key>` and `GET <base>/v1/gifs/trending?limit=<n>&offset=<n>&rating=<r>&api_key=<key>`; the captures also sent `lang=en` on search, which the client does not send (that exact request, without `lang`, was never captured: unverified). Search text is the only user data. The answer is `200 application/json`, no cookie set.
+- **Envelope** (verified): `{data, meta, pagination}`; `pagination` = `total_count`, `count`, `offset`; each `data[]` item has `id`, `title`, `rating` and `images.<rendition>` with `url`, and `width`/`height`/`size` as **strings**. The client reads `id`, `title`, `rating`, `images.original` (`url`, `width`, `height`), `images.fixed_width_small.url` and `pagination.total_count`/`offset`, nothing else.
+- **`rating` is a ceiling** (verified): `rating=r` answers carried `rating: g` on every item.
+- **Tracking query** (verified): every media URL ends in `?cid=<8 hex derived from the API key><response id>&ep=v1_gifs_<endpoint>&rid=<file>&ct=g`. The `cid` prefix comes from the key, so a link posted into a message with that query publishes a value derived from the key. Whether the CDN serves the URL without its query is **pending capture**; `GiphyGIF.originalURLWithoutTracking` exists for it, `originalURL` is the verified form.
+- **Not captured, so not decoded**: an error answer (invalid key, rate limit: only the HTTP status is kept), the `meta` block beyond what `T40`/`T41` show, `limit` bounds (the client clamps to 1...50 as its own choice).
+
 ### LOT-028 — AQ listing and RSS feed
 
 - `T01` (`rss.php`): every item has `title`, `link` = `guid`, `pubDate` (`Sun, 11 Oct 2026 10:31:57 +0200`: the instant of the `[le dd-mm-yyyy à hh:mm:ss]` Paris time of the description) and a CDATA HTML `description`. 23 of 25 links are `forum2.php?…&cat=<n>&…`, 2 are canonical `/hfr/…-sujet_<post>_<page>.htm` with no `cat`.
