@@ -177,8 +177,8 @@ private struct MessageSegmentSwitch: View {
 
     var body: some View {
         Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in
-            model.segment = segment
-            Task { await model.select(segment) }
+            model.chooseSegment(segment)
+            Task { await model.searchForSegment() }
         })) {
             ForEach(MPSegment.allCases, id: \.self) { segment in
                 let unread = model.unreadCount(in: segment)

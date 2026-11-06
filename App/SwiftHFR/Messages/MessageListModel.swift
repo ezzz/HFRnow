@@ -129,6 +129,14 @@ final class MessageListModel {
     /// The switch moved. No server filter of the MP list is known, so when the page on screen holds nothing of the new segment
     /// while later pages exist, the next pages are loaded (bounded) instead of showing an empty list.
     func select(_ segment: MPSegment) async {
+        chooseSegment(segment)
+        await searchForSegment()
+    }
+
+    /// The synchronous part of a switch change, applied in the order the member made the changes: the position, the
+    /// conversation it hides, and the stop of a search running for the previous position. The search itself is
+    /// `searchForSegment()`, which always reads the latest position, so an older task can never restore an older segment.
+    func chooseSegment(_ segment: MPSegment) {
         self.segment = segment
         dropSelectionHiddenBySegment()
         // A search for the previous segment is stopped, not left to walk on for this one.
@@ -137,8 +145,10 @@ final class MessageListModel {
             loadCount += 1
             loader.cancel()
         }
-        await advanceWhileSegmentEmpty()
     }
+
+    /// Looks for rows of the current segment in later pages when the page on screen has none (bounded).
+    func searchForSegment() async { await advanceWhileSegmentEmpty() }
 
     /// Whether the "MP" / "MP multiples" switch is shown: a split list that has rows (not logged out, not an empty mailbox).
     var showsSegmentSwitch: Bool { display == .split && loader.value.map { !$0.threads.isEmpty } == true }
@@ -236,11 +246,16 @@ final class MessageListModel {
         switch reason {
         case .sent(let result):
             sentConfirmation = result.message
-            await load(page: 1)
+            // The reload must stay on page 1: a search for the segment could move past the row just sent.
+            await load(page: 1, advancing: false)
             let sent = subject.trimmingCharacters(in: .whitespacesAndNewlines)
             guard loader.error == nil, let threads = loader.value?.threads else { return }
             let matches = threads.filter { $0.summary.title == sent }
-            if matches.count == 1 { selected = matches[0] }
+            if matches.count == 1, let match = matches.first {
+                // The row must stay visible: show the segment it belongs to.
+                if display == .split { segment = match.isGroup ? .group : .oneToOne }
+                selected = match
+            }
         case .checkTopic:
             await load(page: 1)
         case .keptDraft, .discardedDraft, .closedWithoutSaving:

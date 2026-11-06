@@ -176,6 +176,40 @@ struct MessageListSplitTests {
         #expect(!model.isUnread(unread))
     }
 
+    @Test func twoQuickSwitchChangesEndOnTheLastOne() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(page)], page: page, last: 3) }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        // The view applies each change at once and starts a search task after it; the tasks run later, in any order.
+        model.chooseSegment(.group)
+        let first = Task { await model.searchForSegment() }
+        model.chooseSegment(.oneToOne)
+        let second = Task { await model.searchForSegment() }
+        await second.value
+        await first.value
+        #expect(model.segment == .oneToOne)
+        #expect(model.visibleThreads.map(\.id) == [messageThread(1).id])
+        #expect(source.requests == [1])
+    }
+
+    @Test func aSentMessageReloadsPageOneWithoutSearchingAndShowsItsSegment() async {
+        let source = FakePrivateMessages()
+        // Page 1 holds only group rows; the sent one-to-one MP "Sujet 5" is on it too.
+        source.handler = { page in
+            pageOf([messageThread(1, group: true), messageThread(5)], page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        let before = source.requests
+        await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
+        #expect(source.requests == before + [1])
+        #expect(model.segment == .oneToOne)
+        #expect(model.selected?.summary.topicID?.topic == 5)
+        #expect(model.visibleThreads.contains { $0.id == model.selected?.id })
+    }
+
     @Test func theSwitchIsHiddenWithoutRows() async {
         let source = FakePrivateMessages()
         let model = model(source, display: .split)
