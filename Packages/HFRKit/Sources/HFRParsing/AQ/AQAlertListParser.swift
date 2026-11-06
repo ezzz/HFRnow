@@ -19,7 +19,7 @@ public enum AQAlertListParser {
         let document = try AQXMLDocument.document(from: xml)
         let records: Elements
         do {
-            guard try !document.select("alertes").isEmpty() else { throw ParsingError.missingElement("alertes") }
+            guard document.children().first()?.tagName() == "alertes" else { throw ParsingError.missingElement("alertes") }
             records = try document.select("alertes > alerte")
         } catch let error as ParsingError {
             throw error

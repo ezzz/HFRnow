@@ -4,11 +4,11 @@ import SwiftSoup
 
 /// Reads the RSS feed of "Alerte Qualitay" (`GET https://aq.super-h.fr/rss.php`, capture `T01`, HFR-PROTOCOL §8).
 ///
-/// Port of `AQRSSParserDelegate` (`AQPlusView.swift:97-221` @ `2440d79`). Each `<item>` has `<title>` (the AQ title), `<link>` (the
+/// Port of `AQRSSParserDelegate` (`AQPlusView.swift:94-245` @ `2440d79`). Each `<item>` has `<title>` (the AQ title), `<link>` (the
 /// reported message), `<pubDate>` (RFC 822) and a CDATA HTML `<description>` holding the topic title, the report count and one
 /// `<li>` per reporter; legacy read the description with four regular expressions, and so does this port.
 public enum AQFeedParser {
-    /// Legacy placeholders when the description does not give a topic title or an initiator (`AQPlusView.swift:101-107`).
+    /// Legacy placeholders when the description does not give a topic title or an initiator (`AQPlusView.swift:101, 103`).
     public static let missingTopicTitle = "(sans titre)"
     /// See `missingTopicTitle`.
     public static let missingInitiator = "(sans auteur)"
@@ -17,7 +17,8 @@ public enum AQFeedParser {
     /// (hiding the Apple review category is app policy, Q-7: see `category(of:)`).
     ///
     /// Titles, initiator and comment are entity-decoded (legacy left `&quot;` and `&#039;` in the topic title: bug B4).
-    /// An item without a usable `http(s)` link is skipped, as legacy skipped an empty link (`AQPlusView.swift:152-158`).
+    /// An item whose link is not an `https` link to the forum host is skipped (legacy skipped only an empty link,
+    /// `AQPlusView.swift:174-180`): the feed comes from a third party and the app follows these links.
     /// - Throws: `missingElement` when the document is not an RSS feed (an HTML error page, an empty body),
     ///   so it cannot read as "no alert".
     public static func parse(_ xml: String) throws(ParsingError) -> [AQFeedItem] {
@@ -35,7 +36,7 @@ public enum AQFeedParser {
     }
 
     /// Category (`cat` parameter) of an item's link; nil when absent. Legacy hid `&cat=25&post` links by substring
-    /// (`AQPlusView.swift:152-158`); callers compare this number with 25 instead.
+    /// (`AQPlusView.swift:174-180`); callers compare this number with 25 instead.
     public static func category(of item: AQFeedItem) -> Int? {
         HFRURL.queryValue(named: "cat", in: item.link.absoluteString).flatMap(Int.init)
     }
@@ -43,7 +44,8 @@ public enum AQFeedParser {
     // MARK: - Implementation
 
     private static func item(from element: Element) -> AQFeedItem? {
-        guard let rawLink = text(of: "link", in: element), let link = HFRURL.absolute(rawLink) else { return nil }
+        guard let rawLink = text(of: "link", in: element), let link = HFRURL.absolute(rawLink),
+              link.host() == HFRURL.forumHost else { return nil }
         let description = text(of: "description", in: element) ?? ""
         let details = Details(description: description)
         return AQFeedItem(
@@ -64,14 +66,14 @@ public enum AQFeedParser {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// The four fields legacy extracted from the CDATA description (`AQPlusView.swift:169-189`).
+    /// The four fields legacy extracted from the CDATA description (`AQPlusView.swift:182-199`).
     private struct Details {
         var topicTitle: String?
         var initiator: String?
         var comment: String?
 
         init(description: String) {
-            // The feed's own channel blurb is not an item description (`AQPlusView.swift:170-172`).
+            // The feed's own channel blurb is not an item description (`AQPlusView.swift:183-185`).
             guard !description.contains("Pour ne rien rater du meilleur d'HFR, en toutes circonstances") else { return }
             topicTitle = Self.capture(of: /detect[ée]e[^<]*<b>([^<]+)/, in: description)
             initiator = Self.capture(of: />([^<]+)\s+\(initiateur\)/, in: description)
@@ -80,7 +82,7 @@ public enum AQFeedParser {
 
         /// First capture, trimmed and entity-decoded; nil when absent or empty (legacy tested the raw capture, then trimmed).
         private static func capture(of pattern: Regex<(Substring, Substring)>, in text: String) -> String? {
-            let ignoringCase = pattern.ignoresCase().dotMatchesNewlines()
+            let ignoringCase = pattern.ignoresCase()
             guard let match = text.firstMatch(of: ignoringCase) else { return nil }
             let raw = String(match.output.1)
             guard !raw.isEmpty else { return nil }

@@ -9,7 +9,7 @@ Implemented: `AQFeedParser` (RSS, `T01`), `AQAlertListParser` (listing, `T02`), 
 Background: the AQ capture ([#133](https://github.com/ezzz/HFRnow/issues/133), third-party host `aq.super-h.fr`, LOT-001 checklist row P08) and the oracle of the legacy RSS parser exist (see Fixtures). Q-4 is decided: AQ is kept, with a first-use notice (LOT-071).
 
 ## Legacy sources
-`AQPlusView.swift:29-87` (ezzz/HFRnow @ `2440d79`; HFR-PROTOCOL §8, `aq.super-h.fr` row): `getAlertesByTopic.php?topic_id=` (XML `<alertes>` of `<alerte …/>`, `T02`; legacy only checks `content.contains(postID)`) and `rss.php` (RSS 2.0, `T01`). `AQRSSParserDelegate` is `AQPlusView.swift:97-221` @ `2440d79`: item fields `103-146`, keep rule (empty link, `&cat=25&post`) `152-158`, description regexes `169-189`, date `191-196`, relative label `198-221` (app, not ported). `getAlertesByTopic` is read at `MessagesView.swift` `isAQAlreadySignaled` (`content.contains(postID)`).
+`AQPlusView.swift` (ezzz/HFRnow @ `2440d79`; HFR-PROTOCOL §8, `aq.super-h.fr` row): `getAlertesByTopic.php?topic_id=` (XML `<alertes>` of `<alerte …/>`, `T02`; legacy only checks `content.contains(postID)`) and `rss.php` (RSS 2.0, `T01`). `AQRSSParserDelegate` is `AQPlusView.swift:94-245` @ `2440d79`: item fields `135-172`, placeholders `101, 103`, keep rule (empty link, `&cat=25&post`) `174-180`, description guard `183-185` and regexes `187-199`, date `113-118, 201-206`, relative label `208-231` (app, not ported). `getAlertesByTopic` is read at `MessagesView.swift` `isAQAlreadySignaled` (`content.contains(postID)`).
 
 ## Behaviour
 Inputs: the `getAlertesByTopic` response and the RSS feed. Outputs: the AQ item models of LOT-012 (`HFRModels/AQ`), every item with its category (hiding the Apple category is app policy, Q-7).
@@ -47,13 +47,14 @@ Also handled, each tested on `T01`/`T02`:
 
 ## Intentional differences from legacy
 - Topic titles, initiators and comments are entity-decoded; legacy returned `&quot;`/`&#039;` in `topicTitle` (B4, 4 of 25 items of `T01`). Decoding the comment and initiator is untested on a capture (*pending capture*, #438): same function, same HTML context.
-- An unreadable or non-`http(s)` `<link>` skips the item (legacy skipped only an empty one); links go through `HFRURL.absolute`, so a hostile feed cannot hand the app a `javascript:` URL.
+- A `<link>` that is not an `https` link to `forum.hardware.fr` skips the item (legacy skipped only an empty one): the feed is third-party and the app follows the links (LESSONS 43). All 25 `T01` links are forum links. Links go through `HFRURL.absolute` (scheme and user-info checks).
 - An unreadable `pubDate` is `publishedAt == nil` (legacy: now, so the item counted as new); only `±hhmm`/`GMT` offsets and four-digit years are read (`T01` shape); the 2-digit-year form of legacy's `yy` is not captured and not accepted.
+- The category filter is by `cat` parameter (`category(of:) == 25`), not legacy's `&cat=25&post` substring: a link with `cat=25` in another position is now hidden too.
 - `isNew`, the relative label ("il y a 3 h"), the unread count and the category-25 filter are app logic, not parsed; `isNew` is `publishedAt >= lastCheck` (the test checks this against the oracle).
 - The listing is parsed (legacy only searched the text), strictly: a missing attribute or a non-integer `id`/`postsIds` entry throws instead of being skipped. `isReported` compares whole numbers (legacy `contains` also matched `7539691` inside `75396914`). The listing format is the one captured in `T02`, which settles the LOT-012 "unverified" note.
 
 ## Tests
-`Tests/HFRParsingTests/AQ/AQParsersTests.swift`: differential on all 25 `T01` items (title, comment, initiator, link, topic title = decoded oracle; `isNew` and `newCount`), `pubDate` against the description's printed Paris time, `T02` (123 alerts) and errors. Each rule was checked to fail without it (entity decoding, link skip, offset, duplicate numbers).
+`Tests/HFRParsingTests/AQ/AQParsersTests.swift`: differential on all 25 `T01` items (title, comment, initiator, link, topic title = decoded oracle; `isNew` and `newCount`), `pubDate` against the description's printed Paris time, `T02` (123 alerts) and errors. Each rule was checked to fail without it (entity decoding, link skip, host restriction, offset, duplicate numbers, channel-blurb guard, case-insensitive captures, `postsIds` of 0, root element).
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

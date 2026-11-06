@@ -3,7 +3,7 @@ import Foundation
 /// RSS `pubDate` as `aq.super-h.fr` writes it: `Sun, 11 Oct 2026 10:31:57 +0200` (capture `T01`).
 ///
 /// Legacy used `DateFormatter("E, d MMM yy HH:mm:ss Z")` in `en_US_POSIX` and fell back to *now* on failure
-/// (`AQPlusView.swift:119-123, 191-196`); here an unreadable date is nil.
+/// (`AQPlusView.swift:113-118, 201-206`); here an unreadable date is nil.
 enum RFC822Date {
     private static let months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 

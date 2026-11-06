@@ -123,6 +123,25 @@ struct AQParsersTests {
         #expect(try AQFeedParser.parse(hostile).count == 24)
     }
 
+    @Test("feed: a link to another host is skipped, the other items stay")
+    func feedSkipsOffForumLinks() throws {
+        let xml = try Self.feedXML()
+        let first = try #require(xml.firstMatch(of: /<link>[^<]*<\/link>\s*<guid>/))
+        let offSite = xml.replacing(first.output, with: "<link>https://example.invalid/x?cat=13</link><guid>", maxReplacements: 1)
+        #expect(try AQFeedParser.parse(offSite).count == 24)
+    }
+
+    @Test("feed: captures are case-insensitive and the channel blurb is not an item description")
+    func feedDescriptionReading() throws {
+        let xml = try Self.feedXML()
+        let shouted = xml.replacing("detectée", with: "DETECTÉE", maxReplacements: 1)
+        #expect(try AQFeedParser.parse(shouted).first?.topicTitle == AQFeedParser.parse(xml).first?.topicTitle)
+        let sentence = "Pour ne rien rater du meilleur d'HFR, en toutes circonstances"
+        let blurb = xml.replacing("Une qualitaÿ a été", with: "\(sentence) Une qualitaÿ a été", maxReplacements: 1)
+        let item = try #require(AQFeedParser.parse(blurb).first)
+        #expect(item.topicTitle == AQFeedParser.missingTopicTitle)
+    }
+
     @Test("feed: a description without the expected sentences gets the legacy placeholders")
     func feedPlaceholders() throws {
         let xml = try Self.feedXML()
@@ -198,6 +217,12 @@ struct AQParsersTests {
         }
         #expect(throws: ParsingError.invalidValue(field: "postsIds")) {
             try AQAlertListParser.parse(xml.replacing("postsIds=\"75396914\"", with: "postsIds=\"75396914,\"", maxReplacements: 1))
+        }
+        #expect(throws: ParsingError.invalidValue(field: "postsIds")) {
+            try AQAlertListParser.parse(xml.replacing("postsIds=\"75396914\"", with: "postsIds=\"0\"", maxReplacements: 1))
+        }
+        #expect(throws: ParsingError.missingElement("alertes")) {
+            try AQAlertListParser.parse("<wrap>" + xml + "</wrap>")
         }
         #expect(throws: ParsingError.invalidValue(field: "date")) {
             try AQAlertListParser.parse(xml.replacing("date=\"11-10-2026\"", with: "date=\"2026-10-11\"", maxReplacements: 1))
