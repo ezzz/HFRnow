@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CollapsedFavoriteSectionIDs</key>
+	<array>
+		<string>forum-id:13</string>
+		<string>forum-id:25</string>
+		<string>forum-title:hardware</string>
+	</array>
+	<key>SuperFavoritesIds</key>
+	<array>
+		<integer>12</integer>
+		<integer>99</integer>
+		<integer>3050500</integer>
+		<integer>4100000</integer>
+	</array>
+</dict>
+</plist>
