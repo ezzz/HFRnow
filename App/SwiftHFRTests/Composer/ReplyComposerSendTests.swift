@@ -130,7 +130,6 @@ struct ReplyComposerSendTests {
         await composer.start()
         composer.update(text: "Envoyé vite")
         await composer.send()
-        try await Task.sleep(for: .milliseconds(100))
         #expect(await ComposerFixture.storedText(drafts) == nil)
     }
 
