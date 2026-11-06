@@ -364,18 +364,26 @@ class ProgressSlide(unittest.TestCase):
         self.assertEqual(after, before - 1)
 
     def test_a_lot_counts_in_exactly_one_bucket_by_priority(self):
-        lot = "LOT-080"
-        n = generate.rows[lot]["issue"]
-        with mock.patch.object(generate, "CLOSED", set()), mock.patch.object(generate, "CAPTURE", {}):
-            self.assertEqual(progress.bucket("LOT-087", {"host: mac"}), "mac")
-            self.assertEqual(progress.bucket("LOT-087", set()), "ready")
-            self.assertEqual(progress.bucket("LOT-087", {"priority: low"}), "low")
-            self.assertEqual(progress.bucket("LOT-087", {"priority: low", "host: mac"}), "mac")  # mac outranks low
-            self.assertEqual(progress.bucket("LOT-087", {"status: needs-triage", "host: mac"}), "human")  # human outranks mac
-            with mock.patch.object(generate, "CAPTURE", {generate.rows["LOT-087"]["issue"]: "#1"}):
-                self.assertEqual(progress.bucket("LOT-087", {"status: blocked", "host: mac"}), "human")  # capture-gated is not "blocked"
-        with mock.patch.object(generate, "CLOSED", {n}):
-            self.assertEqual(progress.bucket(lot, {"status: blocked", "host: mac"}), "done")  # done outranks everything
+        m4_app = next(l for l in sorted(generate.M4) if generate.rows[l]["module"] == "App")  # not coded by the cloud yet
+        m2_app = next(l for l in sorted(generate.M2) if generate.rows[l]["module"] == "App")  # the cloud codes these (2026-11-05)
+        n4, n2 = generate.rows[m4_app]["issue"], generate.rows[m2_app]["issue"]
+        quiet = (mock.patch.object(generate, "CLOSED", set()), mock.patch.object(generate, "CAPTURE", {}),
+                 mock.patch.object(generate, "CLAIMED", set()), mock.patch.object(generate, "PRS", {}))
+        with quiet[0], quiet[1], quiet[2], quiet[3]:
+            self.assertEqual(progress.bucket(m4_app, {"host: mac"}), "mac")
+            self.assertEqual(progress.bucket(m2_app, {"host: mac"}), "ready")  # a host: mac App lot of M2 the cloud can code
+            self.assertEqual(progress.bucket(m4_app, set()), "ready")
+            self.assertEqual(progress.bucket(m4_app, {"priority: low"}), "low")
+            self.assertEqual(progress.bucket(m4_app, {"priority: low", "host: mac"}), "mac")  # mac outranks low
+            self.assertEqual(progress.bucket(m4_app, {"status: needs-triage", "host: mac"}), "human")  # human outranks mac
+            with mock.patch.object(generate, "CAPTURE", {n4: "#1"}):
+                self.assertEqual(progress.bucket(m4_app, set()), "mac")  # a capture is Mac-only work
+            with mock.patch.object(generate, "CLAIMED", {n4}):
+                self.assertEqual(progress.bucket(m4_app, {"host: mac", "status: blocked"}), "progress")  # claimed: never macOS nor ready
+            with mock.patch.object(generate, "PRS", {m2_app: (1, "review", "Opus")}):
+                self.assertEqual(progress.bucket(m2_app, {"host: mac"}), "progress")  # an open PR names the lot
+        with mock.patch.object(generate, "CLOSED", {n2}), mock.patch.object(generate, "CLAIMED", {n2}):
+            self.assertEqual(progress.bucket(m2_app, {"status: blocked", "host: mac"}), "done")  # done outranks everything
 
 
 if __name__ == "__main__":

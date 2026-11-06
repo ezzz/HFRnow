@@ -138,8 +138,12 @@ private struct LegacyPairs: Decodable {
 /// form (legacy: the account's stored token, here the oracle's fake one).
 @Suite("Posting body: legacy oracle")
 struct PostingBodyOracleTests {
+    /// The group composers of #336 (`R123c` owner, with `newdest`; `R123e` member), whose oracles are in `M2-writes/`.
+    private static let groupComposers: Set = ["R123c", "R123e"]
+
     private static func oracle(_ id: String) throws -> LegacyFormOracle {
-        let url = Capture.directory.deletingLastPathComponent().appendingPathComponent("LOT-004/\(id).oracle.json")
+        let folder = groupComposers.contains(id) ? "M2-writes" : "LOT-004"
+        let url = Capture.directory.deletingLastPathComponent().appendingPathComponent("\(folder)/\(id).oracle.json")
         return try JSONDecoder().decode(LegacyFormOracle.self, from: try Data(contentsOf: url))
     }
 
@@ -147,7 +151,7 @@ struct PostingBodyOracleTests {
         "Same fields and values as legacy on every captured composer",
         arguments: [
             "R40a", "R41a", "R41b", "R42", "R43a", "R43b", "R43c", "R44", "R45a", "R45b", "R47a", "R47b", "R47c", "R47u1", "R61b", "R62a",
-            "R63b"
+            "R63b", "R123c", "R123e"
         ]
     )
     func legacyPairs(id: String) throws {

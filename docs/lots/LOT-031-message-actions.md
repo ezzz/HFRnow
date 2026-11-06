@@ -60,6 +60,7 @@ Checked on the captures (facts in HFR-PROTOCOL §6c "LOT-031"):
 
 - Logged out (`R20`, `R22a`, `R22b`, `R23`, `R24`, `R26`–`R28`, `R31`, `R32a`): quote and profile only.
 - Logged in on a public topic (`R21`, `R32b`): quote, multi-quote, profile, MP, favourite, alert on every post (none of them the viewer's).
+- Own posts on a public topic (`R63a`, `R63e`: posts 1, 6, 9): edit, quote, multi-quote, profile, favourite, alert, no MP; the other nine posts as above plus no edit.
 - Private conversations (`RA1`–`RA4`, `RU1`, `RU2`): edit on the viewer's own posts only, MP on the other account's posts, multi-quote with
   `cat=prive`, no favourite, no alert.
 - A post without profile link (`R22a`, 3 posts of one member): quote link only.
@@ -72,10 +73,8 @@ Checked on the captures (facts in HFR-PROTOCOL §6c "LOT-031"):
   parameter values naming another action's path (four one-change derivations of `R21`), wrong paths or `numreponse`,
   and a page derived from `R21` (one change: a block's toolbar moved into its content, labelled derived in the test).
 
-**Pending capture** (implemented from legacy code, positive test on inline blocks only):
+**Pending capture** (implemented from legacy code, positive test on inline blocks only). The viewer's own post on a public topic is captured (`R63a`, `R63e`, #273; HFR-PROTOCOL §6c "Own post on a public topic"): edit, quick edit, quote, multi-quote, favourite and alert links, no MP; the menu rules on it are tested by LOT-087 (#330):
 
-- The viewer's own post on a **public** topic: the edit link shape there and which other links (MP, favourite, alert) remain. Every edit
-  link of the corpus is in a private conversation. Issue [#273](https://github.com/ezzz/HFRnow/issues/273).
 - A quote or edit link printed in clear instead of `md_noclass_cryptlink`. Legacy, like this parser, reads only the wrapper's `class`, so
   only a path in clear **in the class** is supported (inline test); a wrapper `<a href>` without obfuscated class gives nil in both and
   would need a capture before being read. Issue [#274](https://github.com/ezzz/HFRnow/issues/274).

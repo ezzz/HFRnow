@@ -41,7 +41,7 @@ makes the row resume at its last post.
 - Non-regression ([#102](https://github.com/ezzz/HFRnow/issues/102)): a link without `href` must not break the parser. The favourites page has no pager; the
   equivalent is the last-page link of a row, tested without `href` (row kept, one page). A header link without `href` is tested too.
 - The oracle's `isViewed` is true only for a row with no flag link; every captured row has one.
-- Flag colour differs by page: `flag1.gif` (blue) on `owntopic=1` (R10), `favoris.gif` (yellow) on `owntopic=3` (P03c).
+- Flag colour differs by page: `flag1.gif` (blue) on a tracked `owntopic=1` list (R10 when captured on 2026-10-26; the 2026-11-06 re-capture lists favourites, `favoris.gif`, so the blue case is derived from it in `FavoritesParserTests.flags`), `favoris.gif` (yellow) on `owntopic=3` (P03c).
 - An empty favourites list is a list page (R11, P03e), not a failure: `sections` is empty.
 
 ## Fixtures
@@ -49,7 +49,7 @@ Captures in `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/`; oracles 
 
 | Capture | Covers |
 |---|---|
-| R10 | `owntopic=1`, one category, two flagged topics (thousands of pages, `#t` anchors), badge 0 |
+| R10 | `owntopic=1`, two category headers (the first with two flagged topics, pages 201 and 202, `#t` anchors; the second empty), `favoris.gif`, badge 0 |
 | P03c | `owntopic=3`, one favourite, yellow flag, badge 1 |
 | R11, P03e | `owntopic=3`, no favourite: list body, no row |
 | R12 | logged out: `.hop` "Aucun sujet que vous avez lu n'est connu", legacy raised `FavoritesLoadError`; here an empty page with `notice` |
@@ -60,7 +60,7 @@ list equals the map's `favorites` list, R12 included); R12's legacy exception an
 in `FavoritesParserTests.swift`; the mutations of captures there (last-page link without `href`, foreign flag link, header without link, a second header inserted before R10's second row, the same header without link) are the
 only derived pages and are built by replacing or inserting one element in a capture.
 
-**Pending capture** (no page is hand-built, the derived ones are listed above; `captures/MANIFEST.md` says R10 has "two categories"; the capture has one category with two topics (the MANIFEST is the capture owner's file, left as is)):
+**Pending capture** (no page is hand-built, the derived ones are listed above; `captures/MANIFEST.md` says R10 has two topics in two categories: the oracle has two sections, "Category 1" with two topics and "Category 2" with none):
 - favourites spanning two or more categories (section order, grouping, the second header);
 - a favourites row without flag link (resume at the last post, legacy `isViewed`), a single-page topic, a sticky, closed or poll topic;
 - `forum1f.php?owntopic=1` logged in with no flagged topic: either the list body (as R11 for `owntopic=3`) or a `.hop` page. The parser returns an empty
