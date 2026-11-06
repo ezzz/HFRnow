@@ -43,6 +43,8 @@ final class JSONTreeEncoder: Encoder {
     }
 
     /// The node of this encoder: an existing object or array is reused, as `JSONEncoder` does for repeated requests.
+    /// A request for another kind replaces the node where `JSONEncoder` traps: only a malformed `encode(to:)` does it,
+    /// and the codec then writes its last container instead of crashing the app.
     private func claim(_ content: JSONTreeNode.Content) -> JSONTreeNode {
         if let node, node.content.isSameKind(as: content) { return node }
         let created = JSONTreeNode(content)
@@ -140,9 +142,7 @@ final class JSONTreeEncoder: Encoder {
 
         private func superEncoder(named name: String, path: [any CodingKey]) -> any Encoder {
             let child = JSONTreeEncoder(codingPath: path)
-            let placeholder = JSONTreeNode(.object([:]))
-            child.node = placeholder
-            node.set(name, placeholder)
+            node.set(name, JSONTreeNode(.deferred(child)))
             return child
         }
     }
@@ -176,9 +176,7 @@ final class JSONTreeEncoder: Encoder {
 
         mutating func superEncoder() -> any Encoder {
             let child = JSONTreeEncoder(codingPath: codingPath + [IndexKey(count)])
-            let placeholder = JSONTreeNode(.object([:]))
-            child.node = placeholder
-            node.append(placeholder)
+            node.append(JSONTreeNode(.deferred(child)))
             return child
         }
     }
