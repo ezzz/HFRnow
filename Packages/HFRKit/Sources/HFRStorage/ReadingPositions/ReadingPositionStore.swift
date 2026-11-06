@@ -23,6 +23,7 @@ public actor ReadingPositionStore {
     public let limitPerAccount: Int
     private let persistence: any ReadingPositionPersistence
     private var state = State.unloaded
+    private var feed = ChangeFeed()
 
     /// Creates a store over `persistence`; nothing is read until the first call.
     public init(persistence: any ReadingPositionPersistence, limitPerAccount: Int = ReadingPositionStore.defaultLimitPerAccount) {
@@ -42,10 +43,20 @@ public actor ReadingPositionStore {
         Self.newestFirst(document?.accounts[account] ?? [])
     }
 
+    /// The accounts holding positions, as stored; empty while the stored data is unreadable.
+    public func accounts() -> [String] {
+        (document?.accounts.keys).map { $0.sorted() } ?? []
+    }
+
     /// The reason writes are refused, or nil when the store is usable (loading it if needed).
     public func loadFailure() -> ReadingPositionError? {
         if case .failed(let error) = loadedState() { return error }
         return nil
+    }
+
+    /// A signal after each saved change, for the iCloud copy (LOT-172).
+    public func changes() -> AsyncStream<Void> {
+        feed.stream()
     }
 
     // MARK: Writing
@@ -73,6 +84,35 @@ public actor ReadingPositionStore {
             }
             list.remove(at: index)
             document.accounts[account] = list.isEmpty ? nil : list
+            return true
+        }
+    }
+
+    /// Merges `records` (another device's, through iCloud, LOT-172) into the account's positions: per topic the newest
+    /// `updatedAt` wins whatever the page (a move back elsewhere is newer), equal dates go to the position ahead, so
+    /// every device ends with the same records. Invalid records are skipped; beyond the limit the newest are kept.
+    /// Returns false when nothing changed.
+    @discardableResult
+    public func merge(_ records: [ReadingPositionRecord], account: String) throws -> Bool {
+        guard !account.isEmpty else { throw ReadingPositionError.emptyAccount }
+        let limit = limitPerAccount
+        return try mutate { document in
+            let stored = document.accounts[account] ?? []
+            var byTopic = Dictionary(stored.map { ($0.topic, $0.position) }, uniquingKeysWith: { first, _ in first })
+            for record in records where record.topic.topic > 0 && record.position.isValid {
+                guard let current = byTopic[record.topic] else {
+                    byTopic[record.topic] = record.position
+                    continue
+                }
+                let incoming = record.position
+                if incoming.updatedAt > current.updatedAt
+                    || (incoming.updatedAt == current.updatedAt && incoming.isAhead(of: current)) {
+                    byTopic[record.topic] = incoming
+                }
+            }
+            let merged = Array(Self.newestFirst(byTopic.map { ReadingPositionRecord(topic: $0.key, position: $0.value) }).prefix(limit))
+            guard Set(merged) != Set(stored) else { return false }
+            document.accounts[account] = merged.isEmpty ? nil : merged
             return true
         }
     }
@@ -170,6 +210,7 @@ public actor ReadingPositionStore {
                 throw ReadingPositionError.saveFailed(reason: String(describing: error))
             }
             state = .loaded(updated)
+            feed.signal()
             return true
         }
     }
