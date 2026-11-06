@@ -22,17 +22,25 @@ import HFRParsing
 public struct MPUnreadPoll: Sendable {
     private let account: HFRSession
     private let makeProbe: (@Sendable ([StoredCookie]) -> any HTTPTransport)?
+    private let redirectPolicy: RedirectPolicy
 
     /// Creates a poll that reads the home page with the cookies of `session`, without ever changing it.
-    public init(session: HFRSession) {
+    /// - Parameter redirectPolicy: `.follow` (the default, legacy's behaviour) or `.doNotFollow`, which makes a redirect
+    ///   answer a `.page(.malformed)` failure instead of sending the cookies on to wherever it leads (LOT-092).
+    public init(session: HFRSession, redirectPolicy: RedirectPolicy = .follow) {
         self.account = session
         self.makeProbe = nil
+        self.redirectPolicy = redirectPolicy
     }
 
     /// Creates a poll with another probe factory (tests).
-    init(session: HFRSession, makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport) {
+    init(
+        session: HFRSession, redirectPolicy: RedirectPolicy = .follow,
+        makeProbe: @escaping @Sendable ([StoredCookie]) -> any HTTPTransport
+    ) {
         self.account = session
         self.makeProbe = makeProbe
+        self.redirectPolicy = redirectPolicy
     }
 
     /// The transport the poll sends through: the test factory's, else a fresh session seeded with `cookies` that keeps
@@ -51,7 +59,8 @@ public struct MPUnreadPoll: Sendable {
         let probe = probe(cookies: seed.cookies)
         do {
             // The 5 s background timeout of the legacy check (`MPBackgroundService.swift:86`), not the page default.
-            let request = try HFREndpoint.privateMessageCheck()
+            var request = try HFREndpoint.privateMessageCheck()
+            request.redirectPolicy = redirectPolicy
             requestedURL = request.url
             if Task.isCancelled { throw NetworkError.cancelled }
             page = RawPage(response: try await probe.send(request))
@@ -71,6 +80,9 @@ public struct MPUnreadPoll: Sendable {
             }
             if case .expired(let reason) = health { throw .sessionExpired(reason) }
             return nil
+        }
+        if redirectPolicy == .doNotFollow, !(200..<300).contains(page.statusCode) || page.finalURL != requestedURL {
+            throw .page(.malformed("the home page was not served in place (status \(page.statusCode))"))
         }
         do {
             return try PrivateMessageBadgeParser.unreadCount(in: page.text)

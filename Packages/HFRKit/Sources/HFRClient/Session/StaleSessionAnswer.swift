@@ -4,8 +4,8 @@ import HFRNetwork
 import HFRParsing
 
 /// HFR's answer to an account jar whose `md_passs` it refuses, as flows that send with the account's cookies meet it
-/// (#383): `SessionRefreshFlow` on profile page 1 (`R70c`), `MPUnreadPoll` on the home page (`R70a`); the LOT-092 check
-/// on the followed-topics page (`R70b`) is the next caller.
+/// (#383): `SessionRefreshFlow` on profile page 1 (`R70c`), `MPUnreadPoll` on the home page (`R70a`), `FlaggedTopicsPoll` on the
+/// followed-topics page (`R70b`, LOT-092).
 enum StaleSessionAnswer {
     /// The cookies HFR checks: the identity and the password it refused (`R70a`–`R70d` keep `md_id`, change `md_passs`).
     static let credentialNames: Set<String> = [HFRSession.identityCookieName, "md_passs"]
