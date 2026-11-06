@@ -5,7 +5,7 @@
 public enum SessionHealth: Sendable, Equatable {
     /// HFR served the account's own profile page with its token: refreshed cookies and `hash_check` were merged.
     case valid
-    /// The session cannot be authenticated; nothing was sent and nothing changed.
+    /// The session cannot be authenticated: no identity to send, or HFR refused the cookies. Nothing changed.
     case expired(SessionExpiry)
     /// HFR's answer proved neither state; the flow wrote nothing.
     case unconfirmed(UnconfirmedSession)
@@ -13,11 +13,13 @@ public enum SessionHealth: Sendable, Equatable {
 
 /// Why a session is known to be logged out.
 ///
-/// Only rules backed by legacy code or a capture belong here. HFR's answer to stale cookies is not captured yet
-/// (LOT-044 spec, pending capture): when it is, its shape becomes a new case.
+/// Only rules backed by legacy code or a capture belong here.
 public enum SessionExpiry: Sendable, Equatable {
     /// The jar holds no usable `md_user`: never logged in, cookie past its expiry, or `deleted` (`HFRSession.userKey`).
     case noIdentityCookie
+    /// HFR answered the account's cookies with its stale-session page (`.hop` "Identifiants invalides !" refreshing to
+    /// `unlog.php`, `R70a`–`R70d`): it refuses the stored `md_passs`, so the account must log in again (#383).
+    case credentialsRefused
 }
 
 /// Why an answer did not confirm the session.
