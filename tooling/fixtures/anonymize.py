@@ -138,6 +138,14 @@ def page_is_private(text):
     return bool(_PAGE_MP_RE.search(text))
 
 
+API_KEY_RE = re.compile(r"api_key(?:=|%3D|[\"']\s*:\s*[\"'])([^&\"'\s<]*)", re.I)
+
+
+def api_key_matches(text):
+    """A third-party `api_key` value outside the placeholder, in a query string or JSON (ADR 0007)."""
+    return [m for m in API_KEY_RE.finditer(text) if m.group(1) not in ("", REDACTED)]
+
+
 def meta_subject_findings(text):
     """[(line, col, reason)] for a `sujet` field of a meta's `request_body` that is not kept. Independent of
     REQUEST_SUBJECT_RE: the body is parsed as a query string."""
@@ -1585,6 +1593,8 @@ class Anonymizer:
             for m in HASH_RE.finditer(chunk):
                 if m.group(2) != REDACTED:
                     add(m.start(), "hash_check value not REDACTED")
+            for m in api_key_matches(chunk):
+                add(m.start(), "api_key value not replaced")
             for m in COOKIE_RE.finditer(chunk):
                 if m.group(2).lower() not in COOKIE_OK:
                     add(m.start(), "cookie/session value (%s)" % m.group(1))
