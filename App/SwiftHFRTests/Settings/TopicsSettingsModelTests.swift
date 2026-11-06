@@ -33,4 +33,24 @@ struct TopicsSettingsModelTests {
         #expect(store.rawValue(forKey: "display_sig") == .string("yes"))
         #expect(store.rawValue(forKey: "topic_page_swipe_navigation") == .bool(false))
     }
+
+    @Test func theReplyButtonDefaultsToQuickAndIsWrittenUnderLegacysKeyAndValues() {
+        let store = InMemorySettingsStore()
+        let model = TopicsSettingsModel(store: store)
+        #expect(model.replyButton == .quick)
+        #expect(store.rawValue(forKey: "reply_button_behavior") == nil) // creating writes nothing
+        model.replyButton = .forum
+        #expect(store.rawValue(forKey: "reply_button_behavior") == .string("forum"))
+        model.replyButton = .hidden
+        #expect(store.rawValue(forKey: "reply_button_behavior") == .string("hidden"))
+    }
+
+    @Test func anImportedReplyButtonValueIsShownAndAnUnknownOneReadsAsQuick() {
+        #expect(TopicsSettingsModel(store: InMemorySettingsStore(["reply_button_behavior": .string("hidden")])).replyButton == .hidden)
+        #expect(TopicsSettingsModel(store: InMemorySettingsStore(["reply_button_behavior": .string("floating")])).replyButton == .quick)
+    }
+
+    @Test func theTitlesAreLegacys() {
+        #expect(ReplyButtonBehavior.allCases.map(\.title) == ["Réponse rapide", "Répondre comme le forum", "Pas d'icône"])
+    }
 }

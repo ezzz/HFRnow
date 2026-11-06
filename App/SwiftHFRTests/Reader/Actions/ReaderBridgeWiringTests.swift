@@ -22,4 +22,13 @@ struct ReaderBridgeWiringTests: ReaderWebTesting {
         _ = controller.handle(.menu(post: 43, source: .message), in: shown)
         #expect(received == [MenuEvent(post: 42, source: .avatar, token: 7), MenuEvent(post: 43, source: .message, token: 7)])
     }
+
+    @Test func aQuoteMessageReachesTheScreenWithItsDocumentToken() {
+        let (controller, _) = makeController(transport: imageTransport())
+        var received: [String] = []
+        controller.events.quote = { post, text, bold, token in received.append("\(post)|\(text)|\(bold)|\(token)") }
+        let shown = document(token: 7)
+        _ = controller.handle(.quote(post: 42, text: "tout", bold: true), in: shown)
+        #expect(received == ["42|tout|true|7"])
+    }
 }

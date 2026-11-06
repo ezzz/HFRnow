@@ -182,8 +182,62 @@ struct ImageUploadModelTests {
         #expect(model.history.map(\.fullURL.lastPathComponent) == ["old.jpg"])
         await model.submit(Data([1]))
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["new.jpg", "old.jpg"])
-        await model.remove(model.history[0])
+        await model.confirmRemoval(model.history[0])
         #expect(history.stored.map(\.fullURL.lastPathComponent) == ["old.jpg"])
+    }
+
+    @Test func askingToRemoveAnEntryChangesNothingUntilConfirmed() async {
+        let history = MemoryHistory([hosted("a", at: 1), hosted("b", at: 2)])
+        let (model, _) = make(uploader: nil, history: history)
+        await model.load()
+        model.requestRemoval(model.history[0])
+        #expect(model.pendingRemoval?.fullURL.lastPathComponent == "b.jpg")
+        #expect(model.history.count == 2)
+        model.cancelRemoval()
+        #expect(model.pendingRemoval == nil)
+        #expect(model.removalNotice == nil)
+        #expect(history.stored.count == 2)
+    }
+
+    @Test func confirmingARemovalForgetsOnlyThatEntryAndSaysTheImageStaysOnline() async {
+        let history = MemoryHistory([hosted("a", at: 1), hosted("b", at: 2)])
+        let (model, _) = make(uploader: nil, history: history)
+        await model.load()
+        let target = model.history[0]
+        model.requestRemoval(target)
+        await model.confirmRemoval(target)
+        #expect(model.history.map(\.fullURL.lastPathComponent) == ["a.jpg"])
+        #expect(history.stored.map(\.fullURL.lastPathComponent) == ["a.jpg"])
+        #expect(model.pendingRemoval == nil)
+        #expect(model.removalNotice?.contains("reste en ligne") == true)
+        #expect(ImageUploadModel.removalMessage.contains("reste en ligne"))
+    }
+
+    @Test func aRemovalWhoseSaveFailsStillHidesTheEntryAndWarns() async {
+        let history = MemoryHistory([hosted("a")], failWrites: true)
+        let (model, _) = make(uploader: nil, history: history)
+        await model.load()
+        let target = model.history[0]
+        await model.confirmRemoval(target)
+        #expect(model.history.isEmpty)
+        #expect(model.historyWarning == "L'historique des images n'a pas pu être enregistré.")
+        #expect(model.removalNotice == nil)
+    }
+
+    @Test func aNewRequestOrUploadClearsThePreviousRemovalNotice() async {
+        let (model, _) = make(
+            uploader: ScriptedUploader([.success(hosted("n", at: 9))]), history: MemoryHistory([hosted("a", at: 1), hosted("b", at: 2)]),
+            accepted: true
+        )
+        await model.load()
+        await model.confirmRemoval(model.history[0])
+        #expect(model.removalNotice != nil)
+        model.requestRemoval(model.history[0])
+        #expect(model.removalNotice == nil)
+        await model.confirmRemoval(model.history[0])
+        #expect(model.removalNotice != nil)
+        await model.submit(Data([1]))
+        #expect(model.removalNotice == nil)
     }
 
     @Test func anUnreadableHistoryIsNeverOverwrittenAndUploadsStillWork() async {

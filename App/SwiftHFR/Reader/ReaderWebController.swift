@@ -26,6 +26,8 @@ final class ReaderWebController: NSObject {
         var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
         /// The user tapped the menu button or the author of message `post` in document `token`.
         var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
+        /// The user chose "Citer extrait" or "Citer gras" over `text`, selected in message `post` of document `token` (LOT-086).
+        var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
         var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
     }
@@ -39,7 +41,7 @@ final class ReaderWebController: NSObject {
     /// Image downloads in flight at once; the others wait their turn.
     static let maximumConcurrentImages = 6
 
-    let webView: WKWebView
+    let webView: QuoteMenuWebView
     var events = Events()
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
     var textScale = TextScale.standard {
@@ -89,8 +91,9 @@ final class ReaderWebController: NSObject {
         configuration.setURLSchemeHandler(proxy, forURLScheme: TopicHTMLBuilder.scheme)
         let messages = MessageProxy()
         configuration.userContentController.addScriptMessageHandler(messages, contentWorld: Self.world, name: Self.channel)
-        webView = WKWebView(frame: .zero, configuration: configuration)
+        webView = QuoteMenuWebView(frame: .zero, configuration: configuration)
         super.init()
+        webView.onQuoteSelection = { [weak self] bold in self?.requestSelectionQuote(bold: bold) }
         installUserScripts()
         proxy.owner = self
         messages.owner = self
@@ -206,6 +209,9 @@ final class ReaderWebController: NSObject {
             return nil
         case .position(let post):
             events.position(post, document.token)
+            return nil
+        case .quote(let post, let text, let bold):
+            events.quote(post, text, bold, document.token)
             return nil
         case .video(let post, let index):
             events.video(post, index, document.token)

@@ -14,6 +14,8 @@ struct ReaderSettings: Sendable {
     let swipesPages: @Sendable () -> Bool
     /// "Navigateur par défaut" (LOT-119): web links open in the system browser rather than in Safari's view in the app.
     var opensLinksInDefaultBrowser: @Sendable () -> Bool = { false }
+    /// What the reply ("+") button does (`reply_button_behavior`, default `quick`, LOT-086).
+    var replyButton: @Sendable () -> ReplyButtonBehavior = { .quick }
 
     /// Settings read from `store`, with `isOnWiFi` for the Wi-Fi only mode. `pseudo` is the current account's (nil logged out),
     /// `pseudoLists` the lists the visibility policy reads each time a document is built (LOT-117; LOT-118 owns the lists).
@@ -33,7 +35,8 @@ struct ReaderSettings: Sendable {
                 )
             },
             swipesPages: { store.value(for: SettingKey.topicPageSwipe) },
-            opensLinksInDefaultBrowser: { store.value(for: SettingKey.opensLinksInDefaultBrowser) }
+            opensLinksInDefaultBrowser: { store.value(for: SettingKey.opensLinksInDefaultBrowser) },
+            replyButton: { store.value(for: SettingKey.replyButtonBehavior) }
         )
     }
 
