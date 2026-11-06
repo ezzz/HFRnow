@@ -24,7 +24,8 @@ struct TopicRowView: View {
                     .padding(.top, scale.scaled(dynamicType * 6)).accessibilityLabel("Non lu")
             }
             if isSuperFavorite {
-                Image(systemName: "star.circle.fill").foregroundStyle(.orange).scaledFont(density.titleStyle).accessibilityLabel("Super favori")
+                Image(systemName: "star.circle.fill").foregroundStyle(.orange)
+                    .scaledFont(density.titleStyle).accessibilityLabel("Super favori")
             }
             flagIcon.scaledFont(density.titleStyle)
             VStack(alignment: .leading, spacing: density.lineSpacing) {
