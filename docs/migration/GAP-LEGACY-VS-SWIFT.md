@@ -109,7 +109,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-088 | Smiley search | HFR search, "all keywords" toggle, recent and top chips. | AnswerView.swift:1280-1317; SmileySearchService.swift:88-135 | Search, history and wiki keywords. | LOT-105, LOT-053 | same | port: ezzz Swift layer | a |
 | GAP-089 | GIFs | Giphy panel, rating R, recents. | AnswerView.swift:2294-2340 | Giphy client (injected key) and GIF picker. | LOT-098, LOT-155 | same | port: ezzz Swift layer | a |
 | GAP-090 | Image upload | Rehost with resize cap and three BBCode modes. | ReplyService.swift:1735-1810 | Rehost client with a host table, upload and insertion panel. | LOT-056, LOT-102 | ported with changes | port: ezzz Swift layer | a |
-| GAP-091 | Upload history | Local history, re-insert in four sizes. | ReplyService.swift:1812-1918 | Local upload history. | LOT-103, FEAT-019 | same | port: ezzz Swift layer | a |
+| GAP-091 | Upload history | Local history, re-insert in four sizes; "Supprimer" removes an entry silently, which suggests the image is deleted. | ReplyService.swift:1812-1918; AnswerView.swift:1909 | Local upload history; removal asks first and says the image stays online on the host. | LOT-103, FEAT-019 | UX change | new UX: Bybifok (FEAT-019) | b·operator |
 | GAP-092 | Drafts | One global draft (`composerDraftText`) for replies, saved on dismiss. | MessagesView.swift:2668; AnswerView.swift:30-37 | Draft per topic and account, autosaved, 30-day expiry; swipe-down blocked with text. | LOT-084, LOT-063 | UX change | new UX: spec | b |
 | GAP-093 | Archived drafts | None at `2440d79`. | — | Picker in LOT-101, but LOT-084 says not ported (conflict). | LOT-101 | new | new UX: spec | b |
 | GAP-094 | Preview before send | None. | — | Exact BBCode rendering before send. | LOT-152, LOT-097, FEAT-013 | new | new UX: Bybifok (FEAT-013) | b |
@@ -274,14 +274,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (109)
+### GAP rows of type `ported with changes`, `UX change` or `new` (110)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216 | 42 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
-| b·operator | 013, 016, 053, 065, 112, 141, 168, 169, 184, 185, 200 | 11 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200 | 12 |
 | b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 020, 022, 026, 051, 060, 092, 163, 212, 214. The `same` rows are (a).
@@ -300,13 +300,13 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
 
 | Class | Lots | Count |
 |---|---|---|
-| (a) port | 080, 086, 089, 102, 103, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 33 |
-| mixed | 081, 082, 083, 084, 085, 087, 088, 106, 109, 111, 115, 119, 120, 122, 125, 127, 128, 130, 134, 137, 157, 159, 169, 170, 171 | 25 |
+| (a) port | 080, 086, 089, 102, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 32 |
+| mixed | 081, 082, 083, 084, 085, 087, 088, 103, 106, 109, 111, 115, 119, 120, 122, 125, 127, 128, 130, 134, 137, 157, 159, 169, 170, 171 | 26 |
 | (b) evolution | 100, 101, 107, 108, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 173 | 22 |
 
 - **Mixed lots whose (b) part stays in M1–M4.**
   - Needed: LOT-083 (policy C), LOT-115 (banned words refused), LOT-130 (per-account MPStorage, merge), LOT-159 (App Review).
-  - Decided by the operator: LOT-137 (HFR links routed in the app), LOT-169 (slider), LOT-171 (two MP lists as an option).
+  - Decided by the operator: LOT-103 (removal says the image stays online), LOT-137 (HFR links routed in the app), LOT-169 (slider), LOT-171 (two MP lists as an option).
   - Decided 2026-11-02 (recommendation of each UXD row, table below): LOT-081, 082, 083, 084, 087, 106, 119, 170 (UXD-01 to 10, 15, 21, 24), and LOT-157 (UXD-21: the legacy mail composer stays unless App Review asks).
 - **Mixed lots with a (b) part in M5:** LOT-085, 088, 109, 111, 120, 122, 125, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#m5--ux-evolutions), new lots 174 to 183).
 - **(b) lots that stay:**
@@ -318,7 +318,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
   - FEAT-003 (honest paging) is (b) needed.
   - FEAT-011 is the policy C setting.
   - FEAT-010 is themes (a-compatible) plus a single accent, live preview and a one-line header (b).
-  - FEAT-019 is a local history (a) plus a server-side delete (b, no API).
+  - FEAT-019 is a local history (a) plus a confirmed removal that says the image stays online (b, LOT-103); no app-side delete is evidenced for a guest upload (`HFR-PROTOCOL` §7b B12).
 - **"legacy parity" labels with no source at `2440d79`:**
   - LOT-100 (poll creation; legacy only reads `have_sondage`);
   - LOT-101 (archived drafts: `master` only);

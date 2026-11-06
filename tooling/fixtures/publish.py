@@ -89,7 +89,7 @@ def publish_one(anon, raw_dir, dest, entry):
     mtext = json.dumps(meta, indent=2, ensure_ascii=False) + "\n"
     leaks = [(entry["id"] + ".meta.json",) + f for f in anon.findings(mtext)]
     if page is not None:
-        leaks += [(name,) + f for f in anon.findings(page, private=private)]
+        leaks += [(name,) + f for f in anon.findings(page, private=private, account=raw_meta.get("account"))]
     if leaks:
         return leaks
     if page is not None:

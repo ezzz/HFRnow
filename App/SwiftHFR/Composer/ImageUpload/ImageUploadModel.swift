@@ -5,7 +5,8 @@ import HFRStorage
 import Observation
 
 // Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView, startImageUpload :646-676) and HFRswift/Swift/ReplyService.swift
-// (RehostPreferences, RehostPreferencesStore, RehostUploadedImage.formattedSnippet) @ 2440d79 (GAP-155). Differences: the first-use
+// (RehostPreferences, RehostPreferencesStore, RehostUploadedImage.formattedSnippet) @ 2440d79
+// (GAP-090, GAP-091). Differences: the first-use
 // notice N1 (LOT-071) gates every upload; the upload client is the engine's `RehostClient` (LOT-056); the preview rendition does not
 // exist in the engine (`RehostedImage` has full, medium and mini); a failed upload never loses the composer text (it is not touched).
 /// State of the image panel of the composer (LOT-102): the pick, the notice, the upload, the history and the settings.
@@ -27,6 +28,10 @@ final class ImageUploadModel {
     private(set) var history: [RehostedImage] = []
     /// A picked image waits for the notice: nothing is prepared or sent until it is accepted.
     private(set) var pendingSource: Data?
+    /// The history entry the user asked to forget; it stays until the removal is confirmed (LOT-103).
+    private(set) var pendingRemoval: RehostedImage?
+    /// What the last removal did, in French; says the image is still online. Cleared by the next request, upload or reopening.
+    private(set) var removalNotice: String?
 
     /// How a snippet is written (legacy `rehost_use_link`, kept under its legacy key).
     var linkMode: RehostLinkMode { didSet { services.settings.set(linkMode, for: SettingKey.rehostLinkMode) } }
@@ -65,6 +70,7 @@ final class ImageUploadModel {
 
     /// Reads the remembered uploads, once per model: reopening the panel keeps what is in memory. Unreadable data is never overwritten.
     func load() async {
+        removalNotice = nil
         guard !didLoad else { return }
         didLoad = true
         let stored = await services.history.load()
@@ -80,6 +86,7 @@ final class ImageUploadModel {
     func submit(_ source: Data) async {
         guard !isUploading, !isAskingNotice else { return }
         errorMessage = nil
+        removalNotice = nil
         guard canUpload else {
             errorMessage = Self.message(for: .notConfigured)
             return
@@ -123,10 +130,34 @@ final class ImageUploadModel {
         return RehostedImage(fullURL: url, uploadedAt: now()).snippet(variant: .full, mode: Self.mode(linkMode))
     }
 
-    /// Forgets an image of the history (the host keeps it).
-    func remove(_ image: RehostedImage) async {
+    /// The removal confirmation (LOT-103, FEAT-019): only the local entry goes, the image stays public on the host. No server-side
+    /// delete is evidenced (HFR-PROTOCOL §7b B12), so the app never claims one.
+    static let removalMessage =
+        "Seule l'entrée de cet historique est effacée. L'image reste en ligne et publique chez l'hébergeur, son adresse reste valable."
+
+    /// Notice shown after a removal.
+    static let removedNotice = "Entrée retirée de l'historique. L'image reste en ligne chez l'hébergeur."
+
+    /// The user swiped an entry: asks for confirmation, nothing is removed yet.
+    func requestRemoval(_ image: RehostedImage) {
+        removalNotice = nil
+        pendingRemoval = image
+    }
+
+    /// The user backed out of the confirmation.
+    func cancelRemoval() {
+        pendingRemoval = nil
+    }
+
+    /// The user confirmed `image` (the entry the dialog was shown for: SwiftUI clears its state before the button runs): forgets it,
+    /// then says the image stays online.
+    func confirmRemoval(_ image: RehostedImage) async {
+        pendingRemoval = nil
         history.removeAll { $0.id == image.id }
+        // Set before the write is awaited: a request or upload arriving meanwhile clears it, a late write must not set it again.
+        removalNotice = Self.removedNotice
         await persist { try await $0.remove(id: image.id) }
+        if historyWarning == Self.saveWarning { removalNotice = nil }
     }
 
     private func upload(_ source: Data) async {

@@ -14,6 +14,8 @@ import Observation
 /// is prefetched.
 @MainActor
 @Observable
+// The reader's state is one class (LOT-083); LOT-086 adds the quote request to it. Splitting it is a refactor of its own.
+// swiftlint:disable:next type_body_length
 final class TopicReaderModel {
     /// The page shown, nil before the first successful load.
     private(set) var page: ReaderPage?
@@ -38,6 +40,12 @@ final class TopicReaderModel {
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
     var menuFeedbackSerial = 0
+    /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
+    var pendingReply: ReplyRequest?
+    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    var isLoadingQuote = false
+    /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
+    var quoteSelected: Set<Int> = []
     /// Title until the page gives its own.
     let initialTitle: String
 
@@ -59,6 +67,8 @@ final class TopicReaderModel {
 
     private let source: any TopicPageSource
     var registry = MessageActionRegistry()
+    /// The multi-quote selection and the quote engine of the current account; nil when logged out (LOT-086).
+    @ObservationIgnored var quoting: (any QuoteOpening)?
     let renderOptions: @Sendable () -> ReaderRenderOptions
     /// The options the document on screen was built with, to spot a setting that changed since.
     private var appliedOptions: ReaderRenderOptions?
