@@ -70,7 +70,7 @@ struct OfflineReadingTests {
         try Self.save("R20-topic-p1-anon.html", page: 1, into: cache)
         let file = cache.cache.url(for: .offlineTopics).appending(path: "13-28563/1.json")
         try Data("{".utf8).write(to: file)
-        await #expect(throws: ListLoadError.unreadable) {
+        await #expect(throws: ListLoadError.savedPageUnreadable) {
             try await Self.services(cache).pageSource.page(for: ReaderTarget(source: .topic(OfflineCorpus.pizza), page: 1))
         }
     }
@@ -108,6 +108,54 @@ struct OfflineReadingTests {
         #expect(model.topics.isEmpty && model.sizeOnDisk == 0 && model.hasLoaded)
     }
 
+    @Test func deleteAllEmptiesTheList() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        try Self.save("R20-topic-p1-anon.html", page: 1, into: cache)
+        let model = OfflineTopicsModel(services: Self.services(cache))
+        await model.load()
+        #expect(model.topics.count == 1)
+        await model.removeAll()
+        #expect(model.topics.isEmpty && model.errorMessage == nil)
+    }
+
+    @Test func aFailedDeletionKeepsItsReasonThroughTheReload() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        try Self.save("R20-topic-p1-anon.html", page: 1, into: cache)
+        let saved = try #require(try OfflineTopicStore(cache: cache.cache).topics().first)
+        let services = OfflineServices(
+            store: FailingDeleteStore(), fetcher: FakeOfflineFetcher { _ throws(ListLoadError) in throw .other },
+            normalizer: LiveContentNormalizer()
+        )
+        let model = OfflineTopicsModel(services: services)
+        await model.load()
+        await model.removeAll()
+        #expect(model.errorMessage == OfflineStoreError.fileFailed(reason: "x").message)
+        await model.remove(saved)
+        #expect(model.errorMessage == OfflineStoreError.fileFailed(reason: "x").message)
+    }
+
+    @Test func aDamagedSavedPageTellsTheMemberToDeleteIt() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        try Self.save("R20-topic-p1-anon.html", page: 1, into: cache)
+        try Data("{".utf8).write(to: cache.cache.url(for: .offlineTopics).appending(path: "13-28563/1.json"))
+        await #expect(throws: ListLoadError.savedPageUnreadable) {
+            try await Self.services(cache).pageSource.page(for: ReaderTarget(source: .topic(OfflineCorpus.pizza), page: 1))
+        }
+        #expect(ListLoadError.savedPageUnreadable.detail.contains("Supprimez"))
+    }
+
+    @Test func aPrivateConversationIsNotSaved() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        let topic = TopicID(category: .privateMessages, topic: 5)
+        await #expect(throws: ListLoadError.notSaved) {
+            try await Self.services(cache).pageSource.page(for: ReaderTarget(source: .topic(topic), page: 1))
+        }
+    }
+
     @Test func theListOrdersEqualDatesByForumThenTopic() throws {
         let cache = try OfflineTempCache()
         defer { cache.cleanUp() }
@@ -132,4 +180,15 @@ struct OfflineReadingTests {
         #expect(OfflinePageCount.text([4, 5, 6]) == "pages 4 à 6")
         #expect(OfflinePageCount.text([1, 5, 9]) == "3 pages")
     }
+}
+
+/// A store whose deletions fail and whose list is empty.
+private struct FailingDeleteStore: OfflineStoring {
+    func save(_ page: OfflinePage) async throws(OfflineStoreError) {}
+    func topics() async throws(OfflineStoreError) -> [OfflineTopic] { [] }
+    func page(_ number: Int, of topic: TopicID) async throws(OfflineStoreError) -> OfflinePage? { nil }
+    func remove(_ topic: TopicID) async throws(OfflineStoreError) { throw .fileFailed(reason: "x") }
+    func removeAll() async throws(OfflineStoreError) { throw .fileFailed(reason: "x") }
+    func sizeOnDisk() async -> Int { 0 }
+    func evict() async {}
 }

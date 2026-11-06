@@ -24,7 +24,7 @@ struct OfflineTopicsView: View {
             if model.topics.isEmpty, model.hasLoaded {
                 ContentUnavailableView(
                     "Aucun sujet enregistré", systemImage: "arrow.down.circle",
-                    description: Text("Dans un sujet, le menu « Enregistrer hors ligne » garde ses pages pour les lire sans réseau.")
+                    description: Text("Dans un sujet, le menu « … » puis « Enregistrer cette page hors ligne » garde ses pages pour les lire sans réseau.")
                 )
                 .listRowBackground(Color.clear)
             }

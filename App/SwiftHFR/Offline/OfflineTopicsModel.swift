@@ -17,6 +17,7 @@ final class OfflineTopicsModel {
     private(set) var errorMessage: String?
 
     let services: OfflineServices
+    private var generation = 0
 
     init(services: OfflineServices) {
         self.services = services
@@ -24,35 +25,51 @@ final class OfflineTopicsModel {
 
     /// Reads the saved topics and their size (off the main actor: one file is decoded per topic).
     func load() async {
+        generation += 1
+        let mine = generation
+        var found: [OfflineTopic]?
+        var failure: String?
         do throws(OfflineStoreError) {
-            let found = try await services.store.topics()
+            found = try await services.store.topics()
+        } catch {
+            failure = error.message
+        }
+        let size = await services.store.sizeOnDisk()
+        // An older read that finishes after a newer one must not put its list back.
+        guard mine == generation else { return }
+        if let found {
             topics = Self.displayOrder(found)
             errorMessage = nil
-        } catch {
-            errorMessage = error.message
+        } else {
+            errorMessage = failure
         }
-        sizeOnDisk = await services.store.sizeOnDisk()
+        sizeOnDisk = size
         hasLoaded = true
     }
 
     /// Deletes every saved page of `topic`.
     func remove(_ topic: OfflineTopic) async {
+        var failure: String?
         do throws(OfflineStoreError) {
             try await services.store.remove(topic.topic)
         } catch {
-            errorMessage = error.message
+            failure = error.message
         }
         await load()
+        // The reload's own success must not wipe the reason the deletion failed.
+        if let failure { errorMessage = failure }
     }
 
     /// Deletes every saved page.
     func removeAll() async {
+        var failure: String?
         do throws(OfflineStoreError) {
             try await services.store.removeAll()
         } catch {
-            errorMessage = error.message
+            failure = error.message
         }
         await load()
+        if let failure { errorMessage = failure }
     }
 
     /// The reader of `topic`, opened on its first saved page.

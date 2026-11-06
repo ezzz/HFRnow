@@ -17,6 +17,8 @@ protocol OfflineStoring: Sendable {
     func removeAll() async throws(OfflineStoreError)
     /// Bytes the saved pages take on disk.
     func sizeOnDisk() async -> Int
+    /// Applies the cache areas' eviction policies (`CacheDirectory.evictAll`: the offline area's 200 MB budget).
+    func evict() async
 }
 
 /// The device's store. `nonisolated` async functions of a `Sendable` struct run off the main actor, which is the point.
@@ -50,6 +52,10 @@ struct LiveOfflineStore: OfflineStoring {
         onStart()
         try store.removeAll()
     }
+    @concurrent func evict() async {
+        onStart()
+        _ = store.cache.evictAll()
+    }
     @concurrent func sizeOnDisk() async -> Int {
         onStart()
         return store.cache.size(of: .offlineTopics)
@@ -65,9 +71,7 @@ extension OfflineStoreError {
             "Ce sujet a déjà \(OfflineTopicStore.defaultMaximumPagesPerTopic) pages enregistrées, toutes après celle-ci."
         case .invalidTopic: "Seuls les sujets du forum peuvent être enregistrés."
         case .emptyPage: "La page est vide."
-        case .unsupportedVersion, .unreadable:
-            "Cette page enregistrée est illisible : supprimez-la puis enregistrez-la de nouveau."
-        case .unsafeFolder, .fileFailed:
+        case .unsafeFolder, .fileFailed, .unsupportedVersion, .unreadable:
             "L’enregistrement a échoué : le stockage de l’appareil est inaccessible."
         }
     }

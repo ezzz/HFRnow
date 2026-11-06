@@ -9,6 +9,14 @@ struct ReaderOfflineSave: ViewModifier {
 
     let model: TopicReaderModel
     @State private var saver: OfflineSaveModel?
+    /// The save asked for; the task below runs it, and ends with the screen (not when the screen is only covered).
+    @State private var request: SaveRequest?
+
+    private struct SaveRequest: Equatable {
+        let id = UUID()
+        let page: ReaderPage
+        let count: Int
+    }
 
     init(model: TopicReaderModel, offline: OfflineServices?) {
         self.model = model
@@ -25,6 +33,10 @@ struct ReaderOfflineSave: ViewModifier {
             .safeAreaInset(edge: .top) {
                 if let saver, saver.state != .idle { OfflineSaveBanner(saver: saver) }
             }
+            .task(id: request) {
+                guard let saver, let request else { return }
+                await saver.save(page: request.page, count: request.count, fallbackTitle: model.initialTitle)
+            }
     }
 
     @ViewBuilder
@@ -33,20 +45,14 @@ struct ReaderOfflineSave: ViewModifier {
             Button("Arrêter l’enregistrement", systemImage: "stop.circle") { saver.cancel() }
         } else {
             Button("Enregistrer cette page hors ligne", systemImage: "arrow.down.circle") {
-                save(saver, page: page, count: 1)
+                request = SaveRequest(page: page, count: 1)
             }
+            // Disabled on the last page: there are no following pages to save.
             Button("Enregistrer cette page et les \(Self.pagesInBatch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
-                save(saver, page: page, count: Self.pagesInBatch)
+                request = SaveRequest(page: page, count: Self.pagesInBatch)
             }
             .disabled(page.currentPage >= page.maxPage)
         }
-    }
-
-    private func save(_ saver: OfflineSaveModel, page: ReaderPage, count: Int) {
-        guard let topic = page.topicID else { return }
-        let last = min(page.currentPage + count - 1, page.maxPage)
-        let title = page.title.isEmpty ? model.initialTitle : page.title
-        Task { await saver.save(topic: topic, title: title, pages: page.currentPage...last) }
     }
 }
 

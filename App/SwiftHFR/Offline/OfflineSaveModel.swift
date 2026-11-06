@@ -3,8 +3,7 @@ import HFRModels
 import HFRStorage
 import Observation
 
-// Port of HFRswift/Swift/Common.swift (OfflineStorageTopicPageRenderer) @ 2440d79 for the save side that legacy never shipped: its
-// download method is commented out (`Classes/OfflineStorage.m:145-294`). Differences: every page is fetched without cookies (no flag
+// Port of Classes/OfflineStorage.m (the download, `:145-294`, commented out) @ 2440d79: the save side that legacy never shipped. Differences: every page is fetched without cookies (no flag
 // moves, LOT-045), an explicit "save this page and the next ones" action, a reason when a page is refused (GAP-180, LOT-139).
 /// Saves a topic's pages for offline reading: one page after the other, so a failure keeps what was saved before it.
 @MainActor
@@ -42,26 +41,42 @@ final class OfflineSaveModel {
         return false
     }
 
+    /// Saves `count` pages from the one on screen (fewer at the end of the topic), titled with the page's title, or `fallbackTitle`
+    /// when HFR gave none. A private conversation or a page without a topic is ignored.
+    func save(page: ReaderPage, count: Int, fallbackTitle: String) async {
+        guard let topic = page.topicID else { return }
+        let last = min(page.currentPage + max(1, count) - 1, page.maxPage)
+        await save(topic: topic, title: page.title.isEmpty ? fallbackTitle : page.title, pages: page.currentPage...max(page.currentPage, last))
+    }
+
     /// Saves `pages` of `topic`, returning when done, failed or stopped. Ignored while another save runs.
     func save(topic: TopicID, title: String, pages: ClosedRange<Int>) async {
         guard !isSaving, pages.lowerBound >= 1 else { return }
         state = .saving(done: 0, total: pages.count)
         let task = Task {
-            var saved = 0
-            for number in pages {
-                if Task.isCancelled { return self.finish(.stopped(saved: saved)) }
-                switch await self.savePage(number, of: topic, title: title) {
-                case .saved: break
-                case .stopped: return self.finish(.stopped(saved: saved))
-                case .failed(let message): return self.finish(.failed(message: message, saved: saved))
-                }
-                saved += 1
-                self.state = .saving(done: saved, total: pages.count)
-            }
-            self.finish(.finished(saved: saved))
+            let outcome = await self.run(pages, of: topic, title: title)
+            self.finish(outcome)
+            // Past 200 MB the pages saved longest ago go (ADR 0013, LOT-066): the budget is applied after each run and at launch.
+            await self.store.evict()
         }
         self.task = task
-        await task.value
+        // The run follows the screen that asked for it: a cancelled caller stops it (a covered screen is not cancelled).
+        await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+    }
+
+    private func run(_ pages: ClosedRange<Int>, of topic: TopicID, title: String) async -> State {
+        var saved = 0
+        for number in pages {
+            if Task.isCancelled { return .stopped(saved: saved) }
+            switch await savePage(number, of: topic, title: title) {
+            case .saved: break
+            case .stopped: return .stopped(saved: saved)
+            case .failed(let message): return .failed(message: message, saved: saved)
+            }
+            saved += 1
+            state = .saving(done: saved, total: pages.count)
+        }
+        return .finished(saved: saved)
     }
 
     private enum PageResult {

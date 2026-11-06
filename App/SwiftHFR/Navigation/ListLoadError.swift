@@ -17,6 +17,8 @@ enum ListLoadError: Error, Equatable, Sendable {
     case unreadable
     /// The offline reader was asked for a page that was never saved (LOT-139).
     case notSaved
+    /// A saved page exists but cannot be read (damaged, or written by another format version); it has to be deleted (LOT-139).
+    case savedPageUnreadable
     /// The load was superseded or cancelled: not shown to the user.
     case cancelled
     /// Any other transport failure.
@@ -52,6 +54,7 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .notAuthenticated: "Connexion requise"
         case .unreadable: "Page illisible"
         case .notSaved: "Page non enregistrée"
+        case .savedPageUnreadable: "Page enregistrée illisible"
         case .cancelled, .other: "Chargement impossible"
         }
     }
@@ -65,6 +68,7 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .maintenance(let message), .notAuthenticated(let message): message
         case .unreadable: "HFR a renvoyé une page inattendue."
         case .notSaved: "Cette page n’a pas été enregistrée pour la lecture hors ligne."
+        case .savedPageUnreadable: "Supprimez ce sujet dans la liste hors ligne (Réglages), puis enregistrez-le de nouveau."
         case .cancelled, .other: "Réessayez."
         }
     }
@@ -76,7 +80,7 @@ enum ListLoadError: Error, Equatable, Sendable {
         case .timedOut: "clock.badge.exclamationmark"
         case .maintenance: "wrench.and.screwdriver"
         case .notAuthenticated: "lock"
-        case .server, .unreadable, .notSaved, .cancelled, .other: "exclamationmark.triangle"
+        case .server, .unreadable, .notSaved, .savedPageUnreadable, .cancelled, .other: "exclamationmark.triangle"
         }
     }
 }

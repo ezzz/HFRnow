@@ -120,6 +120,54 @@ struct OfflineSaveTests {
         #expect(try OfflineTopicStore(cache: cache.cache).topics().first?.pages == [1, 2])
     }
 
+    @Test func theServedPageNumberIsTheOneSavedNotTheOneAsked() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        let html = try OfflineCorpus.html("R22a-topic-middle-page-anon.html")
+        // HFR answers page N-1 (as a clamp to the last page would): the page is filed under what was served.
+        let saver = Self.model(cache, fetcher: FakeOfflineFetcher { FetchedOfflinePage(html: html, page: $0 - 1) })
+        await saver.save(topic: OfflineCorpus.pizza, title: "t", pages: 1100...1100)
+        #expect(try OfflineTopicStore(cache: cache.cache).topics().first?.pages == [1099])
+    }
+
+    @Test func aPageOfAnotherTopicIsNeverHandedOn() async throws {
+        // R23 is another topic's page: a redirect there must not be filed under the asked topic.
+        let other = "https://forum.hardware.fr/hfr/Loisirs/tequila-jose-cuervo-sujet_91031_1.htm"
+        let body = try Self.response("R23-topic-single-page-anon.html", url: other)
+        let fetcher = LiveOfflinePageFetcher(
+            fetcher: PageFetcher(session: MockTransport(replies: []), anonymous: MockTransport { _ in body }),
+            normalizer: LiveContentNormalizer()
+        )
+        await #expect(throws: ListLoadError.unreadable) { try await fetcher.fetch(topic: OfflineCorpus.pizza, page: 1) }
+    }
+
+    @Test func theBatchStopsAtTheLastPageAndTheTitleFallsBack() async throws {
+        let cache = try OfflineTempCache()
+        defer { cache.cleanUp() }
+        let html = try OfflineCorpus.html("R22a-topic-middle-page-anon.html")
+        let fetcher = FakeOfflineFetcher { FetchedOfflinePage(html: html, page: $0) }
+        let saver = Self.model(cache, fetcher: fetcher)
+        var page = readerPage(page: 4)
+        page.maxPage = 5
+        page.title = ""
+        await saver.save(page: page, count: 5, fallbackTitle: "Titre de secours")
+        #expect(fetcher.requests == [4, 5])
+        #expect(saver.state == .finished(saved: 2))
+        #expect(try OfflineTopicStore(cache: cache.cache).topics().first?.title == "Titre de secours")
+    }
+
+    @Test func theBudgetIsAppliedAfterEachRun() async throws {
+        let store = EvictionSpy()
+        let html = try OfflineCorpus.html("R20-topic-p1-anon.html")
+        let saver = OfflineSaveModel(store: store, fetcher: FakeOfflineFetcher { FetchedOfflinePage(html: html, page: $0) })
+        await saver.save(topic: OfflineCorpus.pizza, title: "t", pages: 1...2)
+        #expect(store.evictions == 1)
+        // A failed run also ends with it.
+        let failing = OfflineSaveModel(store: store, fetcher: FakeOfflineFetcher { _ throws(ListLoadError) in throw .timedOut })
+        await failing.save(topic: OfflineCorpus.pizza, title: "t", pages: 1...2)
+        #expect(store.evictions == 2)
+    }
+
     // MARK: - Off the main actor
 
     @Test func theStoreRunsOffTheMainThread() async throws {
@@ -166,4 +214,19 @@ struct GatedStore: OfflineStoring {
     func remove(_ topic: TopicID) async throws(OfflineStoreError) { try await base.remove(topic) }
     func removeAll() async throws(OfflineStoreError) { try await base.removeAll() }
     func sizeOnDisk() async -> Int { await base.sizeOnDisk() }
+    func evict() async { await base.evict() }
+}
+
+/// A store that only counts evictions.
+final class EvictionSpy: OfflineStoring, @unchecked Sendable {
+    private let count = Locked(0)
+    var evictions: Int { count.value }
+
+    func save(_ page: OfflinePage) async throws(OfflineStoreError) {}
+    func topics() async throws(OfflineStoreError) -> [OfflineTopic] { [] }
+    func page(_ number: Int, of topic: TopicID) async throws(OfflineStoreError) -> OfflinePage? { nil }
+    func remove(_ topic: TopicID) async throws(OfflineStoreError) {}
+    func removeAll() async throws(OfflineStoreError) {}
+    func sizeOnDisk() async -> Int { 0 }
+    func evict() async { count.set(count.value + 1) }
 }

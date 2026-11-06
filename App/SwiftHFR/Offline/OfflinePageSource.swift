@@ -4,8 +4,7 @@ import HFRNetwork
 import HFRParsing
 import HFRStorage
 
-// Port of HFRswift/Swift/Common.swift (OfflineStorageTopicPageRenderer) @ 2440d79; its `OfflineStorage.getDataFromTopicOffline` is
-// the legacy read of a saved page. Differences: the saved HTML goes through the same parsers as a live page, so a parser fix
+// Port of Classes/OfflineStorage.m (getDataFromTopicOffline, `:430`, no caller) @ 2440d79. Differences: the saved HTML goes through the same parsers as a live page, so a parser fix
 // also applies to pages saved earlier; a page never saved is an error, not a blank page (GAP-180, LOT-139).
 /// The reader's page source over the saved pages: no network, no session, nothing recorded.
 struct OfflinePageSource: TopicPageSource {
@@ -19,7 +18,11 @@ struct OfflinePageSource: TopicPageSource {
         do throws(OfflineStoreError) {
             saved = try await store.page(target.page, of: topic)
         } catch {
-            throw .unreadable
+            switch error {
+            case .invalidTopic: throw .notSaved
+            case .unsupportedVersion, .unreadable: throw .savedPageUnreadable
+            default: throw .unreadable
+            }
         }
         guard let saved else { throw .notSaved }
         if Task.isCancelled { throw .cancelled }
