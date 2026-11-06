@@ -76,6 +76,27 @@ extension SyncedListsStoreTests {
         #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
     }
 
+    @Test func aStoreThatCannotBeEmptiedAtTheChangeIsNeverPushedUnderTheNewAppleID() async throws {
+        let fixture = await Self.make()
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        fixture.superFavoritePersistence.failsToSave = true
+        await fixture.switchAppleID(to: "apple-2")
+        // Readable, still holding the first Apple ID's list: a later event must not push it.
+        #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite()])
+        try await fixture.pseudoLists.allow("Friend")
+        await fixture.sync.handle(.listsChanged)
+        await fixture.sync.handle(.accountsChanged)
+        #expect(fixture.cloud.value(forKey: Self.superKey) == nil)
+        #expect(fixture.cloud.value(forKey: SyncedListsStore.allowlistKey) != nil)
+
+        fixture.superFavoritePersistence.failsToSave = false
+        await fixture.sync.handle(.listsChanged)
+        #expect(await fixture.superFavorites.favorites(for: "Alice").isEmpty)
+        #expect(fixture.cloud.value(forKey: Self.superKey) == nil)
+        #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
+    }
+
     @Test func quarantinedListsAreDeletedAfterNinetyDays() async throws {
         let old = SyncQuarantineEntry(savedAt: Self.start, values: [Self.superKey: Self.envelope([Self.favorite()])])
         let fixture = await Self.make(deviceState: SyncedListsDeviceState(owner: "apple-1", quarantine: ["apple-0": old]))
