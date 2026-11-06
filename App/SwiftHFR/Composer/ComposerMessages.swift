@@ -33,6 +33,34 @@ enum ComposerMessages {
         }
     }
 
+    /// Why a quote could not be fetched: nothing is added to the reply and nothing was posted.
+    static func quote(_ error: QuoteError) -> String {
+        switch error {
+        case .form(.notLoggedIn):
+            return "Votre session a expiré : reconnectez-vous depuis le menu Comptes, puis citez à nouveau."
+        case .form(.formUnavailable(let message?)):
+            return message
+        case .form(.network(let failure)):
+            return quoteUnreachable(failure)
+        case .form, .noQuoteLink, .noQuote:
+            return "Le forum n’a pas fourni de citation : rien n’a été ajouté à la réponse."
+        case .emptySelection:
+            return "Aucun message n’est sélectionné pour la citation."
+        case .otherTopic:
+            return "Les messages sélectionnés ne sont pas ceux de ce sujet : rien n’a été cité."
+        }
+    }
+
+    private static func quoteUnreachable(_ error: NetworkError) -> String {
+        switch error {
+        case .offline: "Pas de connexion à internet : la citation n’a pas pu être récupérée."
+        case .timedOut: "Le forum ne répond pas : la citation n’a pas pu être récupérée. Réessayez dans quelques instants."
+        case .httpStatus(let code, _): "Le forum a renvoyé l’erreur \(code) : la citation n’a pas pu être récupérée."
+        case .cancelled, .invalidRequest, .invalidResponse, .transport, .unscripted:
+            "La connexion au forum a échoué : la citation n’a pas pu être récupérée. Réessayez."
+        }
+    }
+
     /// HFR served no composer and said nothing: what the user can expect.
     private static func unavailable(newMessage: Bool, newTopic: Bool) -> String {
         if newTopic { return "Le forum ne propose pas de créer un sujet ici. Rien n’a été envoyé." }

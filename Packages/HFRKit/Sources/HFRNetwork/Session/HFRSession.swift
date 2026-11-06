@@ -184,6 +184,19 @@ public actor HFRSession: HTTPTransport {
         return selected
     }
 
+    /// Unselects the messages `numbers` of `token`'s topic in one actor turn, so a toggle made meanwhile is never reversed; the
+    /// cookie goes once nothing is left. A number not selected is left alone (a toggle would select it).
+    public func unselectQuotes(_ numbers: [Int], of token: QuoteSelectionToken, now: Date = Date()) {
+        var selection = multiQuote(for: token, now: now)
+        var changed = false
+        for number in numbers where selection.contains(number) {
+            _ = selection.toggle(number)
+            changed = true
+        }
+        // Only a change renews the cookie's hour, as a toggle does: a send that released nothing leaves its life alone.
+        if changed { write(selection, now: now) }
+    }
+
     /// Deletes the multi-quote selection of `token`'s topic (for example once the quoting reply is posted).
     public func clearQuotes(for token: QuoteSelectionToken) {
         write(MultiQuoteCookie(token: token), now: Date())
