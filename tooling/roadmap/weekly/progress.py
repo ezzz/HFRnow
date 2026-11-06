@@ -18,9 +18,9 @@ OTHER = 'Infra / docs / captures'
 STEP_COLORS = {'Audit': '#6b7685', 'M1': '#4f7cff', 'M2': '#8b5cf6', 'M3': '#14b8a6', 'M4': '#f59e0b', 'M5': '#ec4899', OTHER: '#cbd2dc'}
 STEP_NAMES = {'Audit': 'Audit initial', 'M1': 'M1 · MVP', 'M2': 'M2 · Lecture et réponse', 'M3': 'M3 · Moteur', 'M4': 'M4 · Version finale', 'M5': 'M5 · Évolutions'}
 # Priority order of the buckets: a lot counts in exactly the first one that fits.
-BUCKETS = ['done', 'blocked', 'human', 'mac', 'low', 'ready']
-BUCKET_COLORS = {'done': '#14b8a6', 'blocked': '#dc5a4a', 'human': '#f59e0b', 'mac': '#8b5cf6', 'low': '#cbd2dc', 'ready': '#4f7cff'}
-BUCKET_NAMES = {'done': 'fait', 'blocked': 'bloqué (autres lots)', 'human': 'décision ou capture humaine', 'mac': 'macOS / Xcode requis',
+BUCKETS = ['done', 'progress', 'blocked', 'human', 'mac', 'low', 'ready']
+BUCKET_COLORS = {'done': '#14b8a6', 'progress': '#7dd3fc', 'blocked': '#dc5a4a', 'human': '#f59e0b', 'mac': '#8b5cf6', 'low': '#cbd2dc', 'ready': '#4f7cff'}
+BUCKET_NAMES = {'done': 'fait', 'progress': 'en cours (réclamé ou PR ouverte)', 'blocked': 'bloqué (autres lots)', 'human': 'décision humaine requise', 'mac': 'macOS / Xcode requis (capture ou Mac seul)',
                 'low': 'basse priorité / hors parité', 'ready': 'prêt'}
 LOT = re.compile(r'\bLOT-(\d{3})\b')
 MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
@@ -46,17 +46,21 @@ def step_of_pr(p):
 
 
 def bucket(lot, labels):
+    """The first bucket that fits, in the order of BUCKETS (operator decisions 2026-11-06, #368)."""
     r = G.rows[lot]
     if G.done(lot):
         return 'done'
     n = r['issue']
+    if n in G.CLAIMED or lot in G.PRS:  # claimed, or an open PR names the lot: it is being worked on, whatever its host
+        return 'progress'
     capture = n in G.CAPTURE
     if 'status: blocked' in labels and G.miss0(r) and not capture:  # waits on a lot of the plan that is not done
         return 'blocked'
-    # a capture, a triage, or a block with no lot left to wait for (gate sentence, M5 not open, a decision) needs a human
-    if capture or 'status: needs-triage' in labels or 'status: blocked' in labels:
+    # a triage, or a block with no lot left to wait for (gate sentence, M5 not open, a decision, a key or a setting) needs a human
+    if 'status: needs-triage' in labels or ('status: blocked' in labels and not capture):
         return 'human'
-    if 'host: mac' in labels:
+    # only the Mac can do it: a capture, or a `host: mac` lot the cloud may not code (the cloud codes the App lots of M2, 2026-11-05)
+    if capture or ('host: mac' in labels and not (r['module'] == 'App' and step_of_lot(lot) == 'M2')):
         return 'mac'
     if lot in G.M5 or 'priority: low' in labels:
         return 'low'
@@ -190,7 +194,7 @@ def _stacked(bins, weekly):
 def _donut(step, counts):
     total = sum(counts.values())
     r, sw, c = 68, 30, 2 * 3.14159265 * 68
-    s = f'<svg viewBox="0 0 180 180" width="170" height="170" role="img" aria-label="{html.escape(STEP_NAMES[step])}"><g transform="rotate(-90 90 90)">'
+    s = f'<svg viewBox="0 0 180 180" width="148" height="148" role="img" aria-label="{html.escape(STEP_NAMES[step])}"><g transform="rotate(-90 90 90)">'
     off = 0.0
     for bk in BUCKETS:
         v = counts.get(bk, 0)
@@ -206,7 +210,7 @@ def _donut(step, counts):
 
 
 CSS = """
-.pm{display:flex;flex-direction:column;gap:22px;justify-content:center}
+.pm{display:flex;flex-direction:column;gap:16px;justify-content:center}
 .pm .two{display:grid;grid-template-columns:1fr 1fr;gap:72px}
 .pm .lbl{margin-bottom:6px}
 .pm .leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mute);margin-top:2px}
@@ -230,8 +234,8 @@ def slide(D, page):
 </div>
 <div><div class="lbl">État des lots de chaque étape</div>
 <div class="donuts">{''.join(_donut(s, P['steps'][s]) for s in STEPS)}</div><div class="leg" style="justify-content:center;margin-top:8px">{legend_buckets}</div></div>
-<p class="note">Lecture : un lot compte dans une seule catégorie, la première qui convient dans l'ordre fait &gt; bloqué &gt; humain &gt; macOS &gt; basse priorité &gt; prêt.
-Bloqué : <code>status: blocked</code> et au moins un lot dont il dépend qui n'est pas fait, hors capture. Humain : attend une capture, une décision ou un tri (<code>needs-triage</code>, blocage sans lot à attendre, phrase-barrière), une clé ou un réglage.
-macOS : <code>host: mac</code>. Basse priorité : lot de M5 ou <code>priority: low</code>. Prêt : tout le reste, y compris les lots réclamés ou en cours. Les lots fermés « not planned » sont exclus. L'étape Audit regroupe LOT-000 à 005, qui sortent de M1 (la slide 4 compte M1 avec eux) ; une PR va à l'étape du premier LOT-XXX de son titre (sinon de son corps), et sans lot à « {OTHER} ».</p>
+<p class="note">Lecture : un lot compte dans une seule catégorie, la première qui convient dans l'ordre fait &gt; en cours &gt; bloqué &gt; humain &gt; macOS &gt; basse priorité &gt; prêt.
+En cours : réclamé (<code>status: claimed</code>) ou cité par une PR ouverte, quel que soit l'hôte. Bloqué : <code>status: blocked</code> et au moins un lot dont il dépend qui n'est pas fait, hors capture. Humain : attend une décision, une clé ou un réglage (<code>needs-triage</code>, blocage sans lot à attendre, phrase-barrière).
+macOS : seul le Mac peut le faire (une capture, ou un lot <code>host: mac</code> que le cloud ne code pas ; il code les lots App de M2) ; les vérifications d'appareil dues ne sont pas tracées par lot. Basse priorité : lot de M5 ou <code>priority: low</code>. Prêt : tout le reste, y compris les lots <code>host: mac</code> de M2 que le cloud peut coder. Lots fermés « not planned » exclus. Audit = LOT-000 à 005 (hors M1 ici) ; une PR va à l'étape du premier LOT-XXX de son titre, sinon de son corps, sinon à « {OTHER} ».</p>
 </div>"""
     return page(6, "Le <b>modèle de progression</b>", "Le rythme du chantier et l'état de chaque grande étape, de l'audit initial à M5.", inner, D)
