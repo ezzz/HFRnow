@@ -18,6 +18,8 @@ final class RootModel {
     /// The private message list and the open conversation of the Messages tab (LOT-126), shared by the tab bar and the
     /// sidebar so a size-class change keeps the page and the conversation on screen.
     let messages: MessageListModel
+    /// The forum search form and results (LOT-115), shared by the tab bar and the sidebar so a size-class change keeps them.
+    let search: ForumSearchModel
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -76,12 +78,14 @@ final class RootModel {
     /// it was on (`MainWindow.swift:1276-1278`, `:1357-1362`).
     init(
         forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
+        search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil
     ) {
         self.forums = forums
         self.categories = categories
         self.favorites = favorites
         self.messages = messages
+        self.search = search
         self.store = store
         let destination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
         selectedDestination = destination
@@ -120,6 +124,10 @@ final class RootModel {
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
             favorites: navigation(startup: Self.favoritesStartupSource), messages: Self.messageList(environment, store: store),
+            search: ForumSearchModel(
+                source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
+                renderOptions: environment.reader.settings.renderOptions, store: store
+            ),
             store: store, initial: initial
         )
     }
