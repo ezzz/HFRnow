@@ -115,6 +115,21 @@ import Testing
         #expect(text.contains(#""x":"123""#) && text.contains(#""y":"-0.0""#))
     }
 
+    @Test func aModelledStringWrittenAsANumberReadsItsText() throws {
+        // `sourceName` read from its lexeme, as with the boxed numbers: `1.50` reads `1.5`, `7` reads `7` (LOT-073).
+        let document = try MPStorageCodec.decode(#"{"data":[{"version":"0.1","sourceName":7}],"sourceName":1.50}"#)
+        #expect(document.sourceName == "1.5")
+        #expect(document.primary.sourceName == "7")
+    }
+
+    @Test func aStringStartingWithTheOldBoxMarkerStaysAString() throws {
+        // LOT-062 boxed numbers as strings starting with U+E000 U+E001, so such a string came back a number (LOT-073).
+        let boxed = "\u{E000}\u{E001}12"
+        let document = try MPStorageCodec.decode("{\"data\":[{\"version\":\"0.1\",\"x\":\"\(boxed)\"}]}")
+        #expect(document.primary.extra["x"] == .string(boxed))
+        #expect(try MPStorageCodec.encodeForWriting(document).contains("\"x\":\"\(boxed)\""))
+    }
+
     @Test(arguments: [#""\ud83d""#, #""a\uDC00b""#, #""\ud83d\u0041""#, #"{"k\ud800":1}"#])
     func loneSurrogateEscapesAreReportedClearly(value: String) {
         let json = #"{"data":[{"version":"0.1","x":\#(value)}]}"#
