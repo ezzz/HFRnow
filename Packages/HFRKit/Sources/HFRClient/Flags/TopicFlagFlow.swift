@@ -63,8 +63,8 @@ public struct TopicFlagFlow: Sendable {
     /// read the answer).
     ///
     /// Success only with HFR's own sentence for it ("Le message a été marqué comme non lu avec succès", `W18`); the MP list
-    /// then shows the conversation unread (`R13b`). The session is checked first, as for `addFavorite`: what HFR answers
-    /// to this GET without a session is not captured.
+    /// then shows the conversation unread (`R13b`). The session is checked first, as for `addFavorite`: without a session
+    /// HFR answers this GET with the "pas destiné" refusal of a thread the account cannot see (`W137a`), which proves nothing.
     /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func markUnread(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
         try await follow(.markUnread, link: link, through: session, after: check(session))
