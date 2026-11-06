@@ -125,7 +125,7 @@ struct FavoritesDifferentialTests {
 
 @Suite("Favourites parser")
 struct FavoritesParserTests {
-    @Test("Colours and read position come from the flag cell: yellow on favourites (R10), blue once its icons are swapped, yellow too on P03c")
+    @Test("Colours and read position come from the flag cell: yellow on favourites (R10), blue once its icons are swapped, yellow on P03c")
     func flags() throws {
         let favourites10 = try FavoritesParser.parse(Fixture.capture("R10-favourites-owntopic1"))
         #expect(favourites10.sections.flatMap(\.topics).map(\.flag) == [.yellow, .yellow])
