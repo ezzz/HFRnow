@@ -1,6 +1,6 @@
 # LOT-058 — MP actions: mark unread, MP quote, group members
 
-- **Module:** HFRClient (plus the mark-unread link in HFRParsing's topic page metadata)
+- **Module:** HFRClient (plus the mark-unread link in HFRParsing's topic page metadata; the group roster is read from the form LOT-036 parses)
 - **Difficulty / model:** easy (the plan routes Sonnet → Opus; written by an Opus contributor, `ext/bybifok-opus-1`, and taken over by `ext/francoisgn-opus-1` in #484, so the self-spawned reviewer is Fable)
 - **Issue:** [#84](https://github.com/ezzz/HFRnow/issues/84)
 - **Depends on:** LOT-042 (#68): `HFRSession`; LOT-045 (#71); LOT-036 (#63); the conventions of LOT-031 (#58, quote links), LOT-048 (#74, `PostingFlow.loadForm`) and LOT-051 (#77, `TopicFlagFlow`, the session check of #314).
@@ -16,7 +16,7 @@ Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
 | `MessagesTableViewController.m:1250-1272` (`markUnread`) | a GET of that link; any answer with a body is taken as done (the answer is never read), then the list is reloaded |
 | `Classes/ObjCTopicPageWorker.m:158` | `unreadable` set when the page has such a link |
 | `HFRswift/Wrapped/ParseMessagesOperation.m:371-372`, `HFRswift/Swift/ReplyService.swift:767-841` | the MP quote is the topic quote path: decoded quote link, then the form's `content_form` |
-| none | group MP members (`newdest`): redface2 E8 only |
+| none | group MP members: legacy has no roster; its composer sends every input it finds, so a reply from the owner's form sent `newdest` as served (LOT-004 rules, `R123c` oracle `post.pairs`) |
 
 ## Behaviour
 
@@ -41,7 +41,13 @@ No new code. A conversation's quote links (LOT-031 actions of `RA1`-`RA4`, `cat=
 
 ### Group MP members
 
-Not done: no group conversation is captured (capture issue [#336](https://github.com/ezzz/HFRnow/issues/336), which needs the operator's approval for a write). The one-to-one composers have no `newdest` (`R47b`, `R47u1`, HFR-PROTOCOL §7 E8). The PR uses `Refs #84` for that reason.
+Captures of #336 (PR #480, `R123a`-`R123f`, oracles in `Fixtures/M2-writes/`). The roster is **read**; changing it is *pending capture* (#507).
+
+- **Owner** (`PostingForm.groupMembers`): the `newdest` input of the reply composer (`R123c`, "user3, user2"): the members other than the owner, split on the comma and trimmed, blanks dropped (the form joins with ", ", the list row with ","). Nil when the form has no `newdest`: a member who does not own the group (`R123e`), a one-to-one composer (`R47b`, `R47u1`). It lives on `PostingForm` (HFRClient), so the composer that posts the reply is the one that shows the roster, and no `HFRModels` public type changes.
+- **Member**: no page but the MP list shows the roster (thread pages `R123b`, `R123d` and the member's composer `R123e` have none): `PrivateMessageThread.interlocutors` of LOT-023, owner first (`R123a`, `R123f`: "user1, user2,user3"). The owner's roster plus the owner names the same members.
+- **Reply**: `PostingFlow.reply` from the owner's composer sends `newdest` back as served, at its place in the form (after `pseudo`), as legacy did; the member's composer sends none. The reply's answer is LOT-048's (`Votre réponse a été postée avec succès !` on a one-to-one thread, `W11`); a group reply's answer is not captured, so it is read by the same rule and nothing more is claimed.
+- **Not offered**: adding or removing a member. redface2 E8 says an edited `newdest` in a normal reply does it, and the form says "Vous pouvez ajouter ou supprimer des destinataires (un destinataire au minimum !)", but HFR's answer to such a POST, the thread afterwards and the refusals are not captured (#507). No API takes a new roster; `PostingFlow` has no override for `newdest`.
+- redface2 E8's "non-owners see the roster as read-only text in `th.repCase1`" does not hold (`R123e`, HFR-PROTOCOL §6c "M2 write captures").
 
 ## Edge cases
 
@@ -50,21 +56,25 @@ Not done: no group conversation is captured (capture issue [#336](https://github
 
 ## Fixtures
 
-Captures only, nothing new: `RA1`-`RA5`, `RU1`, `RU2`, `R20`, `R21` (link); `W18` (answer), `R13b` (list after it), `P03a`, `P03d`, `W15`, `W17b`, `W17c` (other answers); `R47a` and its LOT-004 oracle (MP quote). The link rule's origin cases are small fragments.
+Captures only, nothing new. Group roster: `R123a`, `R123c`, `R123e`, `R123f` and their legacy oracles (`Fixtures/M2-writes/`, `form` and `mp` kinds, now in the LOT-036 form and LOT-023 list differential tests). Mark unread and quote: `RA1`-`RA5`, `RU1`, `RU2`, `R20`, `R21` (link); `W18` (answer), `R13b` (list after it), `P03a`, `P03d`, `W15`, `W17b`, `W17c` (other answers); `R47a` and its LOT-004 oracle (MP quote). The link rule's origin cases are small fragments.
 
 ## Tests
 
 - `MarkUnreadLinkTests` (HFRParsing): the link on `RA1`-`RA4` and `RU1`-`RU2`; none on `R20`, `R21` or `RA5`; message links, other origins and other paths refused.
 - `MarkUnreadTests`: `RA1`'s link is `W18`'s request, and `W18` confirms it after one GET with redirects not followed; `R13b` shows the conversation unread; other confirmations, a refusal, a logged-out page and a transport failure; eight refused links; the flag writes still refuse private links; the session gate.
 - `FlagSessionGateTests`: the gated and confirmed cases now include `markUnread` (answer `W18`).
+- `GroupMembersTests`: `R123c`'s roster in the form's order; none on `R123e`, `R47b`, `R47u1`; the roster plus the owner equals `R123a`'s row; separators (", ", ",", blanks) on an edited `R123c`; a reply from `R123c` sends `newdest` unchanged between `pseudo` and `password`, from `R123e` none (no answer scripted: only the body is checked).
+- `HopFormOracleTests`, `PostingBodyOracleTests` and `PrivateMessageListParserTests` now also run `R123c`, `R123e`, `R123k` (forms) and `R123a`, `R123f` (lists) against their oracles; `HopFormParserTests.groupComposers` and `PrivateMessageListParserTests.groupThreadRoster` read the raw facts.
 - `MPQuoteTests`: every quote link of `RA1`-`RA4` passes the loader's check; `RA4`'s link to message 1980875030 is `R47a`'s request, and its prefill equals the oracle; an off-forum link is refused before any request.
 
-Shown to fail with the behaviour removed (9 mutations, each caught): any `nonlu` link taken (legacy), the path matched by prefix, no forum-origin check, `cat=prive` accepted by every write, a forum category accepted by the unread write, a wrong link path, a wrong sentence, no session check, redirects followed.
+Group roster, shown to fail with the behaviour removed (3 mutations, each caught): no roster read, a split on ", " only, `newdest` left out of the body.
+
+Mark unread, shown to fail with the behaviour removed (9 mutations, each caught): any `nonlu` link taken (legacy), the path matched by prefix, no forum-origin check, `cat=prive` accepted by every write, a forum category accepted by the unread write, a wrong link path, a wrong sentence, no session check, redirects followed.
 
 ## Pending capture
 
 - `nonlu.php` answered without a session, and sent twice (capture issue [#137](https://github.com/ezzz/HFRnow/issues/137)); until then the session is checked first.
-- A group conversation seen by its owner and by a member (#336).
+- Changing a group's members (#507): the owner's reply with `newdest` unchanged, extended, reduced, emptied, or naming an unknown pseudo; the thread and lists afterwards ("Modération" message, per redface2 E8). Until then the roster is read-only.
 - A multi-page conversation's mark-unread link (whether its `page` follows the page shown).
 
 ## Intentional differences from legacy
@@ -72,6 +82,7 @@ Shown to fail with the behaviour removed (9 mutations, each caught): any `nonlu`
 1. **The answer is read**: only HFR's own sentence is a success (legacy took any answer with a body, `:1250-1272`). [CHANGELOG-LEGACY](../CHANGELOG-LEGACY.md) row 68.
 2. **The link is the header's, on the forum origin** (legacy took the first `href` containing `nonlu`, a member's link included, `:1571-1574`). Row 68.
 3. **The session is checked before the write**, as for the flags (#314).
+4. **The group roster is shown** to its owner (legacy never read `newdest`, it only sent it back); not a legacy fix, no CHANGELOG-LEGACY row.
 
 ## Learnings
 

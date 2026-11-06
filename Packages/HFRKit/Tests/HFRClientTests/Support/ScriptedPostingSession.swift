@@ -82,7 +82,8 @@ enum PostingCapture {
         "R45a": "R45a-new-topic-form", "R45b": "R45b-new-mp-form", "R47a": "R47a-mp-quote-form", "R47b": "R47b-mp-reply-composer",
         "R47c": "R47c-mp-composer-multiquote-cookie", "R47u1": "R47u1-mp-reply-composer-recipient",
         "R61b": "R61b-public-reply-composer", "R62a": "R62a-public-edit-form-later-post",
-        "R63b": "R63b-public-edit-form-first-post"
+        "R63b": "R63b-public-edit-form-first-post", "R123c": "R123c-mp-reply-composer-group-owner-newdest",
+        "R123e": "R123e-mp-reply-composer-group-member-no-roster"
     ]
 
     /// The write answers, by capture id.

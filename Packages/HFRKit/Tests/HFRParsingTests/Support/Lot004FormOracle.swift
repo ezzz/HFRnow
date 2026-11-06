@@ -2,7 +2,8 @@ import Foundation
 import Testing
 
 /// A LOT-004 `form` oracle (`Fixtures/LOT-004/<case>.oracle.json`, `docs/lots/LOT-004-forms-storage-oracle.md`): what the
-/// legacy composer code extracted from one capture, plus the capture itself.
+/// legacy composer code extracted from one capture, plus the capture itself. The M2 write captures (#336) keep their
+/// `form` oracles, same schema, in `Fixtures/M2-writes/` (HFR-PROTOCOL §6c "M2 write captures").
 struct Lot004FormOracle {
     /// Case id such as `R41a`.
     let id: String
@@ -11,11 +12,16 @@ struct Lot004FormOracle {
     /// `result.legacy`: the legacy extraction (`formAction`, `inputData`, `loopOrder`, `contentForm`, `subcats`, `smileys`…).
     let legacy: [String: Any]
 
-    private static let subdirectory = "Fixtures/LOT-004"
+    static let subdirectory = "Fixtures/LOT-004"
+    /// Folder of the M2 write captures' oracles (#336).
+    static let m2Subdirectory = "Fixtures/M2-writes"
+    /// The `form` cases of `Fixtures/M2-writes/`: the group owner's and a member's reply composers, the new-MP form.
+    static let m2FormCases: Set = ["R123c", "R123e", "R123k"]
 
-    /// The oracle of a case id.
+    /// The oracle of a case id, from `Fixtures/LOT-004`, or from `Fixtures/M2-writes` for an M2 case.
     static func load(_ id: String) throws -> Lot004FormOracle {
-        let root = try object(Fixture.text("\(id).oracle", extension: "json", subdirectory: subdirectory))
+        let folder = m2FormCases.contains(id) ? m2Subdirectory : subdirectory
+        let root = try object(Fixture.text("\(id).oracle", extension: "json", subdirectory: folder))
         #expect(root["kind"] as? String == "form")
         let input = try #require(root["input"] as? [String: Any])
         let file = try #require(input["file"] as? String)
@@ -24,9 +30,9 @@ struct Lot004FormOracle {
         return Lot004FormOracle(id: id, html: try Fixture.capture(capture), legacy: try #require(result["legacy"] as? [String: Any]))
     }
 
-    /// Case ids of `oracle-map.json` whose kind is `form`.
-    static func mappedFormCases() throws -> Set<String> {
-        let map = try object(Fixture.text("oracle-map", extension: "json", subdirectory: subdirectory))
+    /// Case ids of the `oracle-map.json` of `folder` (LOT-004 by default) whose kind is `form`.
+    static func mappedFormCases(in folder: String = subdirectory) throws -> Set<String> {
+        let map = try object(Fixture.text("oracle-map", extension: "json", subdirectory: folder))
         return Set(map.compactMap { key, value in
             (value as? [String: Any])?["kind"] as? String == "form" ? key.replacing(".html", with: "") : nil
         })

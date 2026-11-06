@@ -145,6 +145,21 @@ struct HopFormParserTests {
         #expect(recipient.dynamicSmileys.contains { $0.url.absoluteString.hasSuffix("/images/perso/1/user1.gif") })
     }
 
+    @Test("R123c and R123e: only the group owner's reply composer has the visible newdest roster (LOT-058)")
+    func groupComposers() throws {
+        let owner = try HopFormParser.parse(Fixture.capture("R123c-mp-reply-composer-group-owner-newdest"))
+        let roster = try #require(owner.field(named: "newdest"))
+        #expect(roster.value == "user3, user2")
+        #expect(roster.kind == .text)
+        #expect(owner.recipient == nil)
+        #expect(!owner.isSubjectEditable)
+        let member = try HopFormParser.parse(Fixture.capture("R123e-mp-reply-composer-group-member-no-roster"))
+        #expect(member.field(named: "newdest") == nil)
+        #expect(member.field(named: "pseudo")?.value == "user2")
+        // Same thread, same fields otherwise: the roster is the owner's only difference.
+        #expect(owner.fields.map(\.name).filter { $0 != "newdest" } == member.fields.map(\.name))
+    }
+
     @Test("R46: the moderation form is not a hop form; its action stays relative to /user/")
     func moderationForm() throws {
         let html = try Fixture.capture("R46-modo-alert-form")

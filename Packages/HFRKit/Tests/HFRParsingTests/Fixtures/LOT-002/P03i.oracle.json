@@ -2,11 +2,11 @@
   "case" : "P03i",
   "exception" : null,
   "input" : {
-    "bytes" : 32169,
+    "bytes" : 32180,
     "currentURL" : null,
     "file" : "../captures/P03i-favourites-after-browser-delflags.html",
     "now" : "2026-10-28T14:14:19Z",
-    "sha256" : "cca0b1bb021403223a339d73fc771089c39efc43da1441789b35fe4c69c9b430"
+    "sha256" : "e8b23886f52344168351be95d9364dd32dc260d115335007055c34abd7044f5c"
   },
   "kind" : "favorites",
   "legacyCommit" : "2440d79",
@@ -14,9 +14,9 @@
     "favorites" : [
       {
         "forum" : {
-          "aID" : "13",
-          "aTitle" : "Discussions",
-          "aURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "aID" : "101",
+          "aTitle" : "Category 1",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=101&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
           "subCats" : [
 
           ]
@@ -26,19 +26,19 @@
           {
             "aAuthorOfLastPost" : "user4",
             "aAuthorOrInter" : "",
-            "aDateOfLastPost" : "il y a 2 h",
-            "aDateOfLastPostKind" : "relative",
-            "aRepCount" : 30218,
-            "aTitle" : "Cuisinistes - les bons plans | les arnaques",
+            "aDateOfLastPost" : "02/01/00",
+            "aDateOfLastPostKind" : "absolute",
+            "aRepCount" : 5001,
+            "aTitle" : "Followed topic 1",
             "aTypeOfFlag" : "",
-            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t7567665",
-            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t9810000001",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
             "aURLOfFlag" : "",
-            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=756&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
-            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=756&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
-            "catID" : 13,
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 101,
             "curTopicPage" : 1,
-            "dDateOfLastPost" : "2026-10-28T11:17:00Z",
+            "dDateOfLastPost" : "2000-01-01T23:01:00Z",
             "isClosed" : false,
             "isLocallyViewedInApp" : false,
             "isPoll" : false,
@@ -46,8 +46,8 @@
             "isSuperFavorite" : false,
             "isViewed" : false,
             "isViewedFromForumAtLoad" : false,
-            "maxTopicPage" : 756,
-            "postID" : 55038,
+            "maxTopicPage" : 201,
+            "postID" : 9800001,
             "sLastSearchPostContent" : null,
             "sLastSearchPostURL" : null
           }
@@ -56,9 +56,9 @@
     ],
     "topicsSortedByLastPostDesc" : [
       {
-        "aTitle" : "Cuisinistes - les bons plans | les arnaques",
-        "catID" : 13,
-        "postID" : 55038
+        "aTitle" : "Followed topic 1",
+        "catID" : 101,
+        "postID" : 9800001
       }
     ]
   },
@@ -68,7 +68,7 @@
 
     ],
     "arrayCategoriesVisibleOrder" : [
-      "13"
+      "101"
     ],
     "hashCheck" : "REDACTED",
     "nbMP" : 0,

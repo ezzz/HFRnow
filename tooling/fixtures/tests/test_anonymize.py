@@ -1065,7 +1065,7 @@ class SubjectPositionTests(unittest.TestCase):
             with open(os.path.join(d, "X.meta.json"), "w", encoding="utf-8") as fh:
                 json.dump({"id": "X", "file": "X-a.html", "private": False,
                            "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=1"}, fh)
-            self.assertEqual([p for _f, p in A.corpus_entries(d) if _f.endswith(".html")], [True])
+            self.assertEqual([p for _f, p, _a in A.corpus_entries(d) if _f.endswith(".html")], [True])
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(A.main(["check", "--corpus", d]), 1)
 
@@ -1113,7 +1113,7 @@ class MPWriteSignalTests(unittest.TestCase):
                 json.dump({"id": "X", "file": "X-a.html", "private": False,
                            "url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc",
                            "request_body": "cat=prive&sujet=fixture-test-1"}, fh)
-            self.assertEqual([p for f, p in A.corpus_entries(d) if f.endswith(".html")], [True])
+            self.assertEqual([p for f, p, _a in A.corpus_entries(d) if f.endswith(".html")], [True])
 
 
 class NewDestTests(unittest.TestCase):

@@ -92,6 +92,26 @@ free text of every file. Names seen only as smiley codes are replaced in smiley 
 refuses to write a page whose markup (tag and attribute names, in order) changed, apart from the replaced
 message bodies, signatures, moods and personal `selected` options.
 
+## List rows
+
+List rows are aliased by position so fixtures stay stable and carry no live data. A row is aliased when it links with
+`owntopic=1|2|3` (`forum1f.php?owntopic=…`, a category list with `owntopic=2`) or shows a flag (a link or an image in its flag cell), in
+the `forum2.php` form or the rewritten `/hfr/…-sujet_N_P.htm` form, and then **every** row of the page is aliased (`alias_followed_lists`, no config needed): topic id `9800001`+row,
+last message `9810000001`+row, title `Followed topic N` (slug `followed-topic-N`, sub-category directory `subcategory-K`),
+last page `200+N`, read page `100+N` (also the `(p.N)` of the flag title), replies `5000+N`, views `300000+N`, date `01-01-2000` + N days
+and N minutes (unique and ordered, so a sort by last post stays deterministic), `subcat` `960001`+, and on a page with category header
+rows `cat` `101`+ (three digits at most: legacy's `wordAfterString:@"cat="` looks for the closing `&` within 4 characters) and the header
+title `Category N`. Kept: row shape, flag and topic icons, link forms, `page=1`, `numreponse=0`, a zero count, `&nbsp;` cells, the browsed
+category of a single-category list. Authors and last posters go through the normal pseudo aliasing.
+
+`check` verifies it with `verify_followed_lists` (an `html.parser` walk, not the redactor's patterns): on such a page, every attribute
+and text of a row (`tr` attributes included) must be an alias of that row or a known form: numbers, `title` forms, an `alt` whitelist,
+links to `forum2.php`, `profilebdd.php` or the rewritten form only, images from the forum image host. A second rule,
+`verify_operator_members`, runs on a page labelled with `user1` or `user2` (`account` of the meta, `--account` on the command line): an
+alias `user1` or `user2` in a member position (list author, last poster; compared as `re.sub('[^0-9a-z]','',html.unescape(s).lower())`, since
+HFR inserts U+200B in long pseudos) of a row linking a real id (`post=` or `sujet_N_`) fails; a row is exempt only if all its links are
+private threads. Tests: `tests/test_followed_lists.py`, one per position.
+
 ## Anonymize and verify
 
 ```sh
