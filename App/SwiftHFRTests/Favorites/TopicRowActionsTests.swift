@@ -20,7 +20,9 @@ struct TopicRowActionsTests {
         return (model, data)
     }
 
-    private func forumList(_ topics: [TopicSummary], writer: FakeFlagWriter) async -> TopicListModel {
+    private func forumList(
+        _ topics: [TopicSummary], writer: FakeFlagWriter = FakeFlagWriter()
+    ) async -> (TopicListModel, FakeDataSource) {
         let data = FakeDataSource()
         data.topicHandler = { _, _ in TopicListPage(topics: topics, navigation: PageNavigation(current: 1, last: 1)) }
         let model = TopicListModel(
@@ -28,47 +30,96 @@ struct TopicRowActionsTests {
             flagActions: TopicFlagActions(writer: writer)
         )
         await model.loadIfNeeded()
-        return model
+        return (model, data)
     }
 
     private func titles(_ model: TopicListModel) -> [String] { model.displayedGroups.flatMap(\.topics).map(\.title) }
 
-    @Test func luShowsTheRowReadSendsNothingAndLastsUntilTheNextLoad() async {
+    @Test func luShowsAnUnreadForumRowReadSendsNothingAndLastsUntilTheNextLoad() async {
         let writer = FakeFlagWriter()
-        let topic = flaggedTopic(1)
-        let (model, _) = await favoritesList([topic], writer: writer)
+        let topic = flaggedTopic(1, read: .unread)
+        let (model, _) = await forumList([topic], writer: writer)
         #expect(!model.isRead(topic))
         model.markRead(topic)
-        #expect(model.isRead(topic))
+        #expect(model.isRead(topic) && model.isMarkedRead(topic))
         #expect(writer.removed.isEmpty && writer.added.isEmpty)
         await model.refresh()
         #expect(!model.isRead(topic))
     }
 
-    @Test func aFailedLoadKeepsTheLocalMarks() async {
+    /// The favourites parser gives every flags and favourites row `.unknown` (LOT-024): no read mark, so nothing for "Lu" to clear.
+    @Test func luIsNotOfferedOnAFavouritesRowWithoutReadMark() async {
         let topic = flaggedTopic(1)
-        let (model, data) = await favoritesList([topic])
+        let (model, _) = await favoritesList([topic])
+        #expect(!model.canMarkRead(topic))
         model.markRead(topic)
-        data.favoritesHandler = { (_) async throws(ListLoadError) -> FavoritesPage in throw .offline }
+        #expect(!model.isMarkedRead(topic))
+        #expect(model.canRemoveFlag(topic))
+    }
+
+    @Test func aFailedLoadKeepsTheLocalMarks() async {
+        let topic = flaggedTopic(1, read: .unread)
+        let (model, data) = await forumList([topic])
+        model.markRead(topic)
+        data.topicHandler = { (_, _) async throws(ListLoadError) -> TopicListPage in throw .offline }
         await model.refresh()
         #expect(model.isRead(topic))
     }
 
     @Test func aForumRowWithoutFlagOffersNeitherSwipe() async {
-        let plain = flaggedTopic(1, flag: nil)
-        let flagged = flaggedTopic(2)
-        let model = await forumList([plain, flagged], writer: FakeFlagWriter())
+        let plain = flaggedTopic(1, flag: nil, read: .unread)
+        let flagged = flaggedTopic(2, read: .unread)
+        var linkOnly = flaggedTopic(3, flag: nil, read: .unread)
+        linkOnly.flagPath = "/forum2.php?config=hfr.inc&cat=13&post=3&page=1#t9"
+        let (model, _) = await forumList([plain, flagged, linkOnly])
         #expect(!model.canMarkRead(plain) && !model.canRemoveFlag(plain))
         model.markRead(plain)
         #expect(!model.isRead(plain))
         #expect(model.canMarkRead(flagged) && model.canRemoveFlag(flagged))
+        // Legacy `topicHasFlag` also accepts a flag link alone (an unknown flag image).
+        #expect(model.canMarkRead(linkOnly) && model.canRemoveFlag(linkOnly))
+    }
+
+    /// A reload that left before the removal brings HFR's page from before it: the row must not come back flagged.
+    @Test func aLoadThatStartedBeforeARemovalKeepsIt() async {
+        let topic = flaggedTopic(1)
+        let (model, data) = await favoritesList([topic])
+        let gate = AsyncGate()
+        data.favoritesHandler = { _ in
+            await gate.wait()
+            return FavoritesPage(sections: [favoriteSection(13, [topic])])
+        }
+        let reload = Task { await model.refresh() }
+        while !model.loader.isLoading { await Task.yield() }
+        await model.removeFlag(topic)
+        await gate.open()
+        await reload.value
+        #expect(titles(model).isEmpty)
+        #expect(!model.canRemoveFlag(topic))
+        await model.refresh()
+        #expect(titles(model) == ["Sujet 1"])
+    }
+
+    @Test func aLoadThatStartedBeforeALuKeepsIt() async {
+        let topic = flaggedTopic(1, read: .unread)
+        let (model, data) = await forumList([topic])
+        let gate = AsyncGate()
+        data.topicHandler = { _, _ in
+            await gate.wait()
+            return TopicListPage(topics: [topic], navigation: PageNavigation(current: 1, last: 1))
+        }
+        let reload = Task { await model.refresh() }
+        while !model.loader.isLoading { await Task.yield() }
+        model.markRead(topic)
+        await gate.open()
+        await reload.value
+        #expect(model.isMarkedRead(topic))
     }
 
     @Test func supprimerIsHiddenLoggedOutAndWithoutATopicNumber() async {
         let topic = flaggedTopic(1)
         let (loggedOut, _) = await favoritesList([topic], writer: nil)
         #expect(!loggedOut.canRemoveFlag(topic))
-        #expect(loggedOut.canMarkRead(topic))
         var anonymous = flaggedTopic(2)
         anonymous.topicID = nil
         let (model, _) = await favoritesList([anonymous])
@@ -88,8 +139,8 @@ struct TopicRowActionsTests {
     }
 
     @Test func aConfirmedRemovalKeepsAForumRowWithoutItsFlag() async {
-        let topic = flaggedTopic(3)
-        let model = await forumList([topic], writer: FakeFlagWriter())
+        let topic = flaggedTopic(3, read: .unread)
+        let (model, _) = await forumList([topic])
         await model.removeFlag(topic)
         #expect(titles(model) == ["Sujet 3"])
         #expect(!model.hasFlag(topic))

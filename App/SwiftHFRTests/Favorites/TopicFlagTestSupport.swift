@@ -38,8 +38,9 @@ func confirmed(_ action: TopicFlagAction, _ topic: TopicID, _ message: String) -
     TopicFlagResult(action: action, topic: topic, message: message, refreshURL: URL(string: "https://forum.hardware.fr/")!)
 }
 
-/// A flagged favourites row of category 13 (`flag: .blue`), on `pages` pages.
-func flaggedTopic(_ number: Int, pages: Int = 1, flag: TopicFlag? = .blue, read: TopicReadState = .unread) -> TopicSummary {
+/// A flagged row of category 13 (`flag: .blue`), on `pages` pages; `.unknown` read state as the favourites parser gives every
+/// flags and favourites row (LOT-024), `.unread` for a forum row with the unread marker.
+func flaggedTopic(_ number: Int, pages: Int = 1, flag: TopicFlag? = .blue, read: TopicReadState = .unknown) -> TopicSummary {
     TopicSummary(
         topicID: TopicID(category: .forum(13), topic: number), title: "Sujet \(number)", path: "/t13-\(number)",
         pageCount: pages, flag: flag, readState: read

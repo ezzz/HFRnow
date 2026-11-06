@@ -86,10 +86,14 @@ final class TopicListModel {
 
     // The row-action state is internal rather than `private(set)` only so `TopicListModel+RowActions.swift` can hold the
     // logic (this type is near its length limit): by convention that file and `load` are the only writers.
-    /// Rows marked "Lu" on this device (legacy `isLocallyViewedInApp`): nothing is sent, the next load forgets them.
-    var markedRead: Set<TopicSummary.ID> = []
-    /// Rows whose flag HFR confirmed removed; the next load shows HFR's own state.
-    var removedFlags: Set<TopicSummary.ID> = []
+    /// Rows marked "Lu" on this device (legacy `isLocallyViewedInApp`), with the `rowActionSerial` of the mark: nothing is
+    /// sent, and a load that starts after the mark forgets it.
+    var markedRead: [TopicSummary.ID: Int] = [:]
+    /// Rows whose flag HFR confirmed removed, with the `rowActionSerial` of the confirmation; a load that starts after it shows
+    /// HFR's own state.
+    var removedFlags: [TopicSummary.ID: Int] = [:]
+    /// Counts the row marks, so a load knows which ones its page already holds (one that left before a mark does not).
+    var rowActionSerial = 0
     /// Rows whose flag removal is in flight: offered once, never twice.
     var removingFlags: Set<TopicSummary.ID> = []
     /// Why the last row action did not end as asked, in French; the row stays as it was.
@@ -119,7 +123,7 @@ final class TopicListModel {
         guard source.isFavoritesList, !removedFlags.isEmpty else { return groups }
         return groups.map { group in
             var group = group
-            group.topics.removeAll { removedFlags.contains($0.id) }
+            group.topics.removeAll { removedFlags[$0.id] != nil }
             if group.topics.isEmpty { group.isCollapsible = false }
             return group
         }
@@ -203,6 +207,8 @@ final class TopicListModel {
 
     private func load(page: Int) async {
         requestedPage = page
+        // Marks made from here on are newer than the page this load brings: they outlive it.
+        let startedAfter = rowActionSerial
         let source = source
         let dataSource = dataSource
         let isLoggedIn = isLoggedIn
@@ -222,10 +228,10 @@ final class TopicListModel {
             }
         }
         guard loader.error == nil else { return }
-        // HFR's page now says what is read and flagged: the local marks of the rows are forgotten (legacy kept them in the
-        // rows it replaced on reload).
-        markedRead = []
-        removedFlags = []
+        // HFR's page now says what is read and flagged: the marks made before this load started are forgotten (legacy kept
+        // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
+        markedRead = markedRead.filter { $0.value > startedAfter }
+        removedFlags = removedFlags.filter { $0.value > startedAfter }
         if let page = loader.value?.favoritesPage { await favorites?.prune(to: page) }
     }
 }

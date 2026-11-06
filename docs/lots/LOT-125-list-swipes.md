@@ -32,7 +32,8 @@ None: same UX as legacy (GAP-028, 029, 034 and 035 keep their legacy half here; 
 
 ## Behaviour
 - `TopicFlagActions` (environment, nil when logged out) wraps `TopicFlagFlow` in the current account's session behind `TopicFlagWriting`; it turns each `TopicFlagError` into a French reason saying whether anything left. The lists use `removeFavorite`, the message menu `addFavorite` (`FavoriteActionHandler`, registered in the reader with "Link" and the quotes; not in the offline reader).
-- `TopicListModel` keeps the local state until the next successful load: `markedRead`, `removedFlags`, `removingFlags`, `actionFailure`. A failed load keeps them.
+- `TopicListModel` keeps the local state: `markedRead` and `removedFlags` (each mark with its `rowActionSerial`), `removingFlags`, `actionFailure`. A successful load forgets the marks made before it started; a failed load and a mark made while a load was in flight keep them (the page may predate the action).
+- "Lu" is offered on a flagged row the list shows unread: in practice forum rows (LOT-022 reads `sujetCase1`); flags and favourites rows are `.unknown` (LOT-024) and show no read mark, so it is not offered there. A row is flagged with a flag colour or a flag link (legacy `topicHasFlag`, `MainWindow.swift:444-449`).
 - `TopicQuickActions` builds a `TopicOpening` (target + "at the last message"); `NavigationModel.open(_:at:)` builds a new reader at it, even for the topic on screen (`readerGeneration` in the detail column's identity).
 - Quick action targets: Première page = page 1; Dernière page = the row's last-page link without its anchor; Dernière réponse = the last post's link at the page's last message, the flags list ("Drapeaux & Favoris", legacy context `.favorites`) the last page at its last message; Page numéro… = 1 to the row's page count, proposed at its read page; Copier le lien = the first page as an absolute forum link.
 
@@ -50,6 +51,8 @@ None for this lot. The removal sentence that HFR picks for the browser or the le
 - "Favoris" shows HFR's sentence or why it failed; legacy showed "Favori mis à jour" for any answer.
 - The page prompt lists the accepted pages ("Entre 1 et N"); legacy's sheet ignored an out-of-range page silently.
 - "Lu" lasts until the next load of the list; legacy kept the opened URL in the view's state, so a mark could outlive a reload while the row's link was the same.
+- "Lu" is not offered on the flags and favourites rows: legacy offered it there because those rows were bold until viewed (`Favorites.swift:977-980`); SwiftHFR rows carry no read mark there (GAP-026), so it would do nothing. LOT-177 owns a read state for them.
 
 ## Learnings
-- A row action whose state lives in the list model must survive a failed reload and give way to a successful one: HFR's page is the truth.
+- A row action whose state lives in the list model must survive a failed reload and a reload that left before it, and give way to a later one: HFR's page is the truth only when it was read after the action (Fable round 1).
+- Test row actions on the state the parser really gives each list (`.unknown` on favourites), not on a convenient synthetic one (LESSONS 2).
