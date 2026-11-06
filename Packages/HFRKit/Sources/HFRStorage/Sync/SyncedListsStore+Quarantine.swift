@@ -3,16 +3,17 @@ import Foundation
 extension SyncedListsStore {
     // MARK: Setting aside and restoring
 
-    /// Moves every synced local list, whatever its account, into the quarantine of `owner` and empties the stores. A
-    /// store that cannot be read or emptied is marked stale: never pushed, set aside as soon as it can be.
+    /// Moves every synced local list, whatever its account, into the quarantine of `owner` and empties the stores, with
+    /// the digests of the lists last synced for it, so a change made here before the switch is still pushed when it
+    /// comes back. A store that cannot be read or emptied is marked stale: never pushed, set aside as soon as it can be.
     func setAside(owner previous: String) async {
         for slot in Slot.allCases {
-            await setAside(slot, owner: previous)
+            await setAside(slot, owner: previous, digests: true)
         }
         saveDeviceState()
     }
 
-    func setAside(_ slot: Slot, owner previous: String) async {
+    func setAside(_ slot: Slot, owner previous: String, digests: Bool = false) async {
         guard await isReadable(slot) else {
             markStale(slot, owner: previous)
             return
@@ -20,7 +21,15 @@ extension SyncedListsStore {
         let names = await listNames(slot)
         var values: [String: SyncedValue] = [:]
         for name in names {
-            if let value = await localValue(slot, name: name) { values[slotKey(slot, name: name)] = value }
+            let key = slotKey(slot, name: name)
+            if let value = await localValue(slot, name: name) { values[key] = value }
+            if digests, let digest = synced[key] { values[Self.digestPrefix + key] = .string(digest) }
+        }
+        if digests, slot == .allowlist || slot == .superFavorites || slot == .smileyFavorites {
+            // The digest of a list emptied here since its last sync: an empty list holds no name.
+            for (key, digest) in synced where slot.owns(key) && values[Self.digestPrefix + key] == nil {
+                values[Self.digestPrefix + key] = .string(digest)
+            }
         }
         quarantine(values, for: previous)
         var emptied = true
@@ -103,13 +112,17 @@ extension SyncedListsStore {
                 stale[prefix] = nil
             } else if await isReadable(slot) {
                 stale[prefix] = nil
+                restoreDeferred = true
                 if await hasContent(slot) { await setAside(slot, owner: staleOwner) }
             }
         }
         saveDeviceState()
-        // The owner's quarantined lists that could not come back (a stale store, a switch paused by an unwritable device
-        // file) come back as soon as they can.
-        if let owner, cloud.isCurrentAccount(owner), !stateUnsaved { await restore(for: owner) }
+        // The owner's quarantined lists that could not come back at the switch (a stale store, a switch paused by an
+        // unwritable device file) come back once they can, once: a list the user empties later is not refilled.
+        if restoreDeferred, let owner, cloud.isCurrentAccount(owner), !stateUnsaved {
+            restoreDeferred = false
+            await restore(for: owner)
+        }
     }
 
     func hasContent(_ slot: Slot) async -> Bool {
@@ -135,13 +148,38 @@ extension SyncedListsStore {
         }
     }
 
-    /// Restores each list it can; returns the ones it could not.
+    /// Restores each list it can, with its digest; returns what it could not restore.
     private func restore(_ values: [String: SyncedValue]) async -> [String: SyncedValue] {
         var left: [String: SyncedValue] = [:]
-        for (key, value) in values.sorted(by: { $0.key < $1.key }) where await !restore(value, key: key) {
-            left[key] = value
+        for (key, value) in values.sorted(by: { $0.key < $1.key }) {
+            if key.hasPrefix(Self.digestPrefix) {
+                let listKey = String(key.dropFirst(Self.digestPrefix.count))
+                // A digest goes with its list; alone (the list was empty), it comes back where the list is empty.
+                guard values[listKey] == nil else { continue }
+                if await isEmptyLocally(listKey), case .string(let digest) = value {
+                    synced[listKey] = digest
+                } else {
+                    left[key] = value
+                }
+            } else if await restore(value, key: key) {
+                if case .string(let digest)? = values[Self.digestPrefix + key] { synced[key] = digest }
+            } else {
+                left[key] = value
+                left[Self.digestPrefix + key] = values[Self.digestPrefix + key]
+            }
         }
+        saveDeviceState()
         return left
+    }
+
+    private func isEmptyLocally(_ key: String) async -> Bool {
+        let name = String(key.drop { $0 != "." }.dropFirst())
+        switch slot(of: key) {
+        case .allowlist: return await allowlistItems()?.isEmpty == true
+        case .superFavorites: return await superFavoriteItems(name)?.isEmpty == true
+        case .smileyFavorites: return await smileyFavoriteItems(name)?.isEmpty == true
+        case .positions: return false
+        }
     }
 
     private func restore(_ value: SyncedValue, key: String) async -> Bool {

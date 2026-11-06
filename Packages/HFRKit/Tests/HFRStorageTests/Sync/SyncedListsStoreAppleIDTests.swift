@@ -57,15 +57,44 @@ extension SyncedListsStoreTests {
         // Nothing of the first Apple ID went to the second's store.
         #expect(fixture.cloud.value(forKey: SyncedListsStore.allowlistKey) == nil)
         #expect(fixture.cloud.value(forKey: Self.positionsKey) == nil)
-        #expect(fixture.quarantine()["apple-1"]?.values.keys.sorted()
-            == [SyncedListsStore.allowlistKey, "positions.Alice", Self.superKey])
+        #expect(Self.lists(fixture.quarantine()["apple-1"]) == [SyncedListsStore.allowlistKey, "positions.Alice", Self.superKey])
 
         await fixture.switchAppleID(to: "apple-1", values: [:])
         #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite()])
         #expect(await fixture.pseudoLists.allowlist().map(\.pseudo) == ["Friend"])
         #expect(await fixture.positions.position(of: Self.topic, account: "Alice")?.page == 2)
         #expect(fixture.quarantine()["apple-1"] == nil)
-        #expect(fixture.quarantine()["apple-2"]?.values.keys.sorted() == [Self.superKey])
+        #expect(Self.lists(fixture.quarantine()["apple-2"]) == [Self.superKey])
+    }
+
+    /// The lists of a quarantine entry, digests left out.
+    static func lists(_ entry: SyncQuarantineEntry?) -> [String] {
+        (entry?.values.keys.filter { !$0.hasPrefix(SyncedListsStore.digestPrefix) } ?? []).sorted()
+    }
+
+    @Test func aChangeMadeWhileSignedOutSurvivesAnotherAppleIDInBetween() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        await fixture.switchAppleID(to: nil)
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        await fixture.switchAppleID(to: "apple-2")
+        await fixture.switchAppleID(to: "apple-1", values: [Self.superKey: Self.envelope([Self.favorite()])])
+        #expect(fixture.cloudSuperFavorites()?.map(\.topic) == [Self.other, Self.topic])
+    }
+
+    @Test func aListEmptiedAfterADeferredRestoreIsNotRefilled() async throws {
+        let second = SyncQuarantineEntry(savedAt: Self.start, values: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
+        let fixture = await Self.make(deviceState: SyncedListsDeviceState(owner: "apple-1", quarantine: ["apple-2": second]))
+        fixture.deviceState.failsToSave = true
+        await fixture.switchAppleID(to: "apple-2")
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        fixture.deviceState.failsToSave = false
+        await fixture.sync.handle(.listsChanged)
+        // The deferred restore found a list already there: the quarantined one stays aside.
+        #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite()])
+        try await fixture.superFavorites.remove(Self.topic, account: "Alice")
+        await fixture.sync.handle(.listsChanged)
+        #expect(await fixture.superFavorites.favorites(for: "Alice").isEmpty)
+        #expect(fixture.cloudSuperFavorites() == [])
     }
 
     @Test func anAppleIDChangeWhileNotRunningIsHandledAtLaunchAfterTheStoreSpeaks() async throws {
@@ -216,6 +245,9 @@ extension SyncedListsStoreTests {
         let sync = await fixture.relaunched()
         let running = Task { await sync.run() }
         defer { running.cancel() }
+        for _ in 0..<1000 where await !sync.isListening {
+            try await Task.sleep(for: .milliseconds(1))
+        }
         try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
         for _ in 0..<1000 where fixture.cloudSuperFavorites() == nil {
             try await Task.sleep(for: .milliseconds(5))

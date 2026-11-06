@@ -35,6 +35,11 @@ public actor SyncedListsStore {
         case superFavorites = "superfavorites"
         case smileyFavorites = "smileyfavorites"
         case positions
+
+        /// Whether `key` is the cloud key of one of this store's lists.
+        func owns(_ key: String) -> Bool {
+            self == .allowlist ? key == SyncedListsStore.allowlistKey : key.hasPrefix("\(rawValue).")
+        }
     }
 
     let cloud: any SyncedKeyValueStore
@@ -60,6 +65,10 @@ public actor SyncedListsStore {
     /// Whether the device file lags behind the owner, the stale stores or the digests: the sync then pauses, since
     /// the next launch would read an older owner.
     var stateUnsaved = false
+    /// Whether a restore could not run when it was due (an owner change not yet saved, a stale store).
+    var restoreDeferred = false
+    /// Whether `run()` listens to the stores (tests wait for it).
+    var isListening = false
     var positionsTimer: Task<Void, Never>?
     var positionsPending = false
     var positionsGeneration = 0
@@ -107,12 +116,14 @@ public actor SyncedListsStore {
     /// Handles an Apple ID change made while the app was not running, then every event until the task is cancelled.
     /// Call it once.
     public func run() async {
-        await start()
+        // Listening first: a change saved while the launch runs is not missed.
         let cloudChanges = cloud.changes()
         let allowlistChanges = await pseudoLists.allowlistChanges()
         let superFavoriteChanges = await superFavorites.changes()
         let smileyFavoriteChanges = await smileyFavorites.changes()
         let positionChanges = await positions.changes()
+        isListening = true
+        await start()
         await withTaskGroup(of: Void.self) { group in
             let sink = sink
             group.addTask { for await change in cloudChanges { sink.yield(.cloud(change)) } }
@@ -213,7 +224,7 @@ public actor SyncedListsStore {
         if change.reason != .accountChange, cloud.accountIdentity() != nil,
            owner.map({ !cloud.isCurrentAccount($0) }) ?? true {
             // An Apple ID change whose notification was missed.
-            if change.reason == .quotaViolation { quotaViolations.formUnion(change.keys.filter(Self.isListKey)) }
+            if change.reason == .quotaViolation { refused(change.keys) }
             await accountChanged()
             return
         }
@@ -223,7 +234,7 @@ public actor SyncedListsStore {
         case .initialSync:
             await reconcile()
         case .quotaViolation:
-            quotaViolations.formUnion(change.keys.filter(Self.isListKey))
+            refused(change.keys)
             if wasWaiting { await reconcile() }
         case .serverChange:
             if wasWaiting {
@@ -232,6 +243,15 @@ public actor SyncedListsStore {
                 for key in change.keys where Self.isListKey(key) { await apply(key) }
             }
         }
+    }
+
+    /// Lists the cloud refused for quota: reported, and no longer taken as synced, so the cloud's older list never
+    /// replaces them and the next change or initial sync pushes them again.
+    private func refused(_ keys: [String]) {
+        let lists = keys.filter(Self.isListKey)
+        quotaViolations.formUnion(lists)
+        for key in lists where !Self.isPositionsKey(key) { synced[key] = Self.refusedDigest }
+        saveDeviceState()
     }
 
     // MARK: Apple ID
@@ -261,64 +281,15 @@ public actor SyncedListsStore {
         await setAside(owner: previous)
         synced = [:]
         setOwner(current)
-        guard !stateUnsaved else { return }
+        guard !stateUnsaved else {
+            restoreDeferred = true
+            return
+        }
         await restore(for: current)
     }
 
     func setOwner(_ identity: String) {
         owner = identity
         saveDeviceState()
-    }
-
-    // MARK: Keys
-
-    /// The cloud key of an account's list, nil when the account key is empty, or when the account's longest key
-    /// would exceed `maximumKeyLength`: an account syncs all its lists or none.
-    func cloudKey(_ slot: Slot, account: String) -> String? {
-        let accountKey = AccountKey.make(account)
-        guard !accountKey.isEmpty else { return nil }
-        let longest = Slot.allCases.map { $0.rawValue.utf8.count }.max() ?? 0
-        guard longest + 1 + accountKey.utf8.count <= Self.maximumKeyLength else {
-            unsyncedAccounts.insert(account)
-            return nil
-        }
-        return "\(slot.rawValue).\(accountKey)"
-    }
-
-    func slot(of key: String) -> Slot {
-        Slot(rawValue: String(key.prefix { $0 != "." })) ?? .allowlist
-    }
-
-    static func isPositionsKey(_ key: String) -> Bool {
-        key.hasPrefix("\(Slot.positions.rawValue).")
-    }
-
-    static func isListKey(_ key: String) -> Bool {
-        key == allowlistKey || Slot.allCases.contains { $0 != .allowlist && key.hasPrefix("\($0.rawValue).") }
-    }
-
-    var cloudSchemaIsReadable: Bool {
-        guard case .int(let version)? = cloud.value(forKey: SyncedSettingsStore.schemaVersionKey) else { return true }
-        return version <= SyncedSettingsStore.schemaVersion
-    }
-
-    /// Topics and places of positions, dates left out.
-    static func places(_ records: [ReadingPositionRecord]) -> Set<ReadingPositionRecord> {
-        Set(records.map { record in
-            var record = record
-            record.position.updatedAt = .distantPast
-            return record
-        })
-    }
-
-    @discardableResult
-    func schedule(_ event: Event, after delay: Duration) -> Task<Void, Never> {
-        let sink = sink
-        let sleep = sleep
-        return Task {
-            await sleep(delay)
-            guard !Task.isCancelled else { return }
-            sink.yield(event)
-        }
     }
 }

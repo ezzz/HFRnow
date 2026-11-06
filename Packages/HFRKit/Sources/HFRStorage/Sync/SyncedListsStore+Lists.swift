@@ -85,11 +85,17 @@ extension SyncedListsStore {
         }
     }
 
+    /// Another device's list: it replaces the local one, unless the local one changed here since its last sync (a
+    /// change whose signal is still queued, or one the cloud refused): this device then writes last.
     func applyCloudList<Item: Codable & Hashable & Sendable>(
         key: String, read: () async -> [Item]?, replace: ([Item]) async throws -> Void
     ) async {
-        guard await read() != nil, let value = cloud.value(forKey: key),
+        guard let local = await read(), let value = cloud.value(forKey: key),
               let envelope = SyncedListEnvelope<Item>(value) else { return }
+        if let last = synced[key], SyncedListEnvelope(items: local).value.digest != last {
+            push(local, forKey: key)
+            return
+        }
         await replaceLocal(key: key, with: envelope.items, read: read, replace: replace)
     }
 

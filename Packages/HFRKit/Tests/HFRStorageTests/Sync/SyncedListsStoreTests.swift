@@ -163,6 +163,27 @@ import Testing
         #expect(fixture.cloud.value(forKey: Self.superKey) == remote)
     }
 
+    @Test func aServerChangeNeverOverwritesALocalChangeStillQueued() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        // Another device's list arrives before this device handled its own add.
+        await fixture.receive([Self.superKey: Self.envelope([Self.favorite(Self.topic, at: 5)])])
+        #expect(fixture.cloudSuperFavorites()?.map(\.topic) == [Self.other, Self.topic])
+        #expect(await fixture.superFavorites.favorites(for: "Alice").count == 2)
+    }
+
+    @Test func aListRefusedForQuotaIsNeverReplacedByTheOlderCloudList() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        // The store refused the push and kept its older value.
+        fixture.cloud.set(Self.envelope([Self.favorite()]), forKey: Self.superKey)
+        await fixture.sync.handle(.cloud(SyncedStoreChange(reason: .quotaViolation, keys: [Self.superKey])))
+        await fixture.sync.handle(.cloud(SyncedStoreChange(reason: .initialSync)))
+        #expect(await fixture.superFavorites.favorites(for: "Alice").count == 2)
+        #expect(fixture.cloudSuperFavorites()?.count == 2)
+    }
+
     @Test func anUnchangedListNeverOverwritesAnotherDevicesPendingChange() async throws {
         let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
         // Another device's list landed in the store; its notification has not been handled yet.
