@@ -140,6 +140,11 @@ struct OfflineTopicStoreTests {
         #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/user/suppressflag.php?cat=13&CODEHEX=abc">x</a>"#))
         #expect(!OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?config=hardwarefr.inc&amp;codehex=">x</a>"#))
         #expect(!OfflinePageRecord.holdsSessionToken(#"<p>no codehexes here</p>"#))
+        // Written with character references, as a browser would still read it.
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?config=hardwarefr.inc&amp;codehex&#61;0123abcd">x</a>"#))
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?code&#104;ex&#x3D;0123abcd">x</a>"#))
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?codehex&equals;0123abcd">x</a>"#))
+        #expect(!OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?codehex&#61;">x</a>"#))
     }
 
     @Test("Only forum topics from page 1, with content, are saved", arguments: [
