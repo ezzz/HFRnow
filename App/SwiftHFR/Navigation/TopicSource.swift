@@ -1,4 +1,5 @@
 import HFRModels
+import HFRStorage
 
 /// What the middle column lists: a forum, the flagged topics or the favourites.
 enum TopicSource: Hashable, Sendable {
@@ -23,5 +24,25 @@ enum TopicSource: Hashable, Sendable {
         case .forum, .subforum: true
         case .flagged, .favorites: false
         }
+    }
+}
+
+extension TopicSource {
+    /// The two lists the favourites options apply to.
+    var isFavoritesList: Bool { self == .flagged || self == .favorites }
+
+    /// The favourites mode (`vos_sujets`) this source stands for: the flags list is "Drapeaux & Favoris", the favourites
+    /// list "Favoris uniquement" (`ObjCFavoritesLoaderWorker.m:45-48`).
+    var favoritesMode: FavoritesSource? {
+        switch self {
+        case .flagged: .flagsAndFavorites
+        case .favorites: .favoritesOnly
+        case .forum, .subforum: nil
+        }
+    }
+
+    /// The source a favourites mode opens.
+    init(mode: FavoritesSource) {
+        self = mode == .favoritesOnly ? .favorites : .flagged
     }
 }

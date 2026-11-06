@@ -8,6 +8,8 @@ import SwiftUI
 /// One topic row: title, flag, counters and last post. Pure display.
 struct TopicRowView: View {
     let topic: TopicSummary
+    /// A super-favourite of the account (LOT-124): the row carries an orange mark.
+    var isSuperFavorite = false
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -20,6 +22,9 @@ struct TopicRowView: View {
                 let marker = scale.scaled(dynamicType * density.markerSize)
                 Circle().fill(.tint).frame(width: marker, height: marker)
                     .padding(.top, scale.scaled(dynamicType * 6)).accessibilityLabel("Non lu")
+            }
+            if isSuperFavorite {
+                Image(systemName: "star.circle.fill").foregroundStyle(.orange).scaledFont(density.titleStyle).accessibilityLabel("Super favori")
             }
             flagIcon.scaledFont(density.titleStyle)
             VStack(alignment: .leading, spacing: density.lineSpacing) {

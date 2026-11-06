@@ -21,6 +21,8 @@ struct AppEnvironment {
     let composer: ComposerServices?
     /// The post filter (LOT-114): cookie-less page reads and the criteria from the settings.
     let filteredPosts: FilteredPostsServices
+    /// Folded favourites sections and super-favourites of the current account (LOT-124).
+    let favoriteStores: FavoritesStores
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
@@ -49,7 +51,8 @@ struct AppEnvironment {
             filteredPosts: .live(
                 store: UserDefaultsSettingsStore(), pseudo: accountName, allowlist: { lists.current.allowlistWithoutBlocked },
                 prepare: { await lists.refresh() }
-            )
+            ),
+            favoriteStores: .live(account: accountName)
         )
     }
 

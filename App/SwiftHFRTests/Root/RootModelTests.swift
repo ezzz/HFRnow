@@ -130,7 +130,7 @@ struct RootModelTests {
         #expect(root.categories.selectedSource == nil)
         #expect(root.favorites.selectedSource == .favorites)
         #expect(RootModel.favoritesSources == [.favorites, .flagged])
-        // The environment-built model passes these same two constants to its navigation models.
+        // The environment-built model passes the Catégories constant to its navigation model; Favoris opens on its mode's list.
         #expect(RootModel.categoriesStartupSource == nil)
         #expect(RootModel.favoritesStartupSource == .favorites)
     }
