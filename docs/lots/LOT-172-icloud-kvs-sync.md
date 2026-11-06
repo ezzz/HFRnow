@@ -125,3 +125,4 @@ Legacy had no sync at all: every synced key now follows the Apple ID (ADR 0013).
 
 ## Learnings
 - "Never upload account A's values under account B" holds by emptying the mirror at the change and taking the new account's content at once; waiting for an initial-sync notification is not safe, the system does not promise one. An account can change while the app is not running: keep the last one seen on the device.
+- Part 2: "cloud wins" at an initial sync silently drops a list changed here since its last sync (while signed out, or a signal still queued): keep, on the device, a digest of each list last synced and push a list that differs from it. A position date clamped to each device's clock makes devices disagree on the winner and push in turn: take dates as recorded.
