@@ -63,8 +63,13 @@ final class FavoritesOptionsModel {
     private(set) var collapsedSections: Set<String> = []
     /// Super-favourites of the current account.
     private(set) var superFavorites: Set<TopicID> = []
-    /// What the last store write or read could not do, in French; nil when everything worked.
-    private(set) var storeProblem: String?
+    /// What the last store read or write could not do, in French (shown by the list); nil when everything worked. A write
+    /// problem is not cleared by a later read.
+    var storeProblem: String? { writeProblem ?? readProblem }
+    private var writeProblem: String?
+    private var readProblem: String?
+    /// Counts local writes, so a `reload()` that read the stores before a write landed does not undo it.
+    @ObservationIgnored private var writeGeneration = 0
 
     @ObservationIgnored private let settings: any SettingsStore
     @ObservationIgnored private let stores: FavoritesStores?
@@ -103,6 +108,12 @@ final class FavoritesOptionsModel {
         groupedByCategory && !FavoritesPresentation.collapsibleSectionIDs(of: page, superFavorites: superFavorites).isEmpty
     }
 
+    /// Whether "Tout replier" has something to fold: grouped, and a foldable section is not folded yet (legacy `isSubset(of:)`).
+    func canCollapseMore(in page: FavoritesPage) -> Bool {
+        groupedByCategory && !FavoritesPresentation.collapsibleSectionIDs(of: page, superFavorites: superFavorites)
+            .isSubset(of: collapsedSections)
+    }
+
     /// Reads the settings again (Réglages may have changed them).
     func reloadSettings() {
         mode = settings.value(for: SettingKey.favoritesSource)
@@ -115,6 +126,7 @@ final class FavoritesOptionsModel {
     func reload() async {
         reloadSettings()
         guard let stores else { return }
+        let generation = writeGeneration
         let collapsed = await stores.layout.collapsedSections()
         var problem = await stores.layout.loadFailure()
         var supers: Set<TopicID> = []
@@ -122,40 +134,47 @@ final class FavoritesOptionsModel {
             supers = Set(await stores.superFavorites.favorites(for: account).map(\.topic))
             if problem == nil { problem = await stores.superFavorites.loadFailure() }
         }
+        readProblem = problem.map { _ in "Les préférences des favoris sont illisibles." }
+        guard generation == writeGeneration else { return }
         if collapsed != collapsedSections { collapsedSections = collapsed }
         if supers != superFavorites { superFavorites = supers }
-        storeProblem = problem.map { _ in "Les préférences des favoris sont illisibles." }
     }
 
     /// Folds or unfolds a section.
     func toggleCollapsed(_ section: String) async {
-        guard let stores else { return }
-        let collapse = !collapsedSections.contains(section)
+        await setCollapsed(!collapsedSections.contains(section), section: section)
+    }
+
+    /// Writes an explicit state, so "Tout replier" and "Tout déplier" never invert a section a tap just changed.
+    private func setCollapsed(_ collapse: Bool, section: String) async {
+        guard let stores, collapsedSections.contains(section) != collapse else { return }
+        writeGeneration += 1
         do throws(SmallStoreError) {
             _ = try await stores.layout.setCollapsed(collapse, section: section)
             if collapse { collapsedSections.insert(section) } else { collapsedSections.remove(section) }
+            writeProblem = nil
         } catch {
-            storeProblem = "Impossible d’enregistrer les sections repliées."
+            writeProblem = "Impossible d’enregistrer les sections repliées."
         }
     }
 
     /// Folds every section of `page` that has a topic (legacy "Tout replier").
     func collapseAll(in page: FavoritesPage) async {
-        for section in FavoritesPresentation.collapsibleSectionIDs(of: page, superFavorites: superFavorites).sorted()
-        where !collapsedSections.contains(section) {
-            await toggleCollapsed(section)
+        for section in FavoritesPresentation.collapsibleSectionIDs(of: page, superFavorites: superFavorites).sorted() {
+            await setCollapsed(true, section: section)
         }
     }
 
     /// Unfolds every section (legacy "Tout déplier").
     func expandAll() async {
-        for section in collapsedSections.sorted() { await toggleCollapsed(section) }
+        for section in collapsedSections.sorted() { await setCollapsed(false, section: section) }
     }
 
     /// Marks or unmarks `topic` as a super-favourite of the current account. No-op without account or topic identity.
     func toggleSuperFavorite(_ topic: TopicSummary) async {
         guard let stores, let account = stores.account, let id = topic.topicID else { return }
         let adding = !superFavorites.contains(id)
+        writeGeneration += 1
         do throws(SmallStoreError) {
             if adding {
                 _ = try await stores.superFavorites.add(id, account: account)
@@ -164,8 +183,9 @@ final class FavoritesOptionsModel {
                 _ = try await stores.superFavorites.remove(id, account: account)
                 superFavorites.remove(id)
             }
+            writeProblem = nil
         } catch {
-            storeProblem = "Impossible d’enregistrer les super favoris."
+            writeProblem = "Impossible d’enregistrer les super favoris."
         }
     }
 
@@ -175,12 +195,7 @@ final class FavoritesOptionsModel {
         guard let stores, !page.sections.isEmpty else { return }
         let valid = Set(page.sections.map(\.id))
         for section in collapsedSections.subtracting(valid).sorted() {
-            do throws(SmallStoreError) {
-                _ = try await stores.layout.setCollapsed(false, section: section)
-                collapsedSections.remove(section)
-            } catch {
-                storeProblem = "Impossible d’enregistrer les sections repliées."
-            }
+            await setCollapsed(false, section: section)
         }
     }
 }

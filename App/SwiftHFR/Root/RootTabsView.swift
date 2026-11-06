@@ -61,7 +61,7 @@ struct FavoritesTabView: View {
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
             TopicsColumn(navigation: navigation, composer: composer)
-                .toolbar { ToolbarItem(placement: .secondaryAction) { FavoritesSourceMenu(navigation: navigation) } }
+                .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: navigation) } }
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer)
         }
@@ -99,15 +99,15 @@ private struct FavoritesOptionsMenuItems: View {
         Section {
             Toggle("Trier par catégorie", isOn: $options.groupedByCategory)
             Toggle("Afficher les sections repliées", isOn: $options.showsCollapsedSections)
-            Toggle("Actualisation automatique", isOn: $options.autoRefresh)
+            Toggle("Actualisation automatique des favoris", isOn: $options.autoRefresh)
         }
         Section {
             Button("Tout replier", systemImage: "rectangle.compress.vertical") {
                 if let page { Task { await options.collapseAll(in: page) } }
             }
-            .disabled(page.map { !options.hasCollapsibleSections(in: $0) } ?? true)
+            .disabled(page.map { !options.canCollapseMore(in: $0) } ?? true)
             Button("Tout déplier", systemImage: "rectangle.expand.vertical") { Task { await options.expandAll() } }
-                .disabled(options.collapsedSections.isEmpty)
+                .disabled(!options.groupedByCategory || options.collapsedSections.isEmpty)
         }
     }
 }

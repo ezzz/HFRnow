@@ -99,3 +99,22 @@ struct FavoritesListModelTests {
         #expect(TopicSource(mode: .flagsAndFavorites) == .flagged)
     }
 }
+
+@MainActor
+struct FavoritesModeSyncTests {
+    @Test func aModeChangedInRéglagesSwitchesTheFavorisTabOnReload() async {
+        let store = InMemorySettingsStore()
+        let options = FavoritesOptionsModel(settings: store)
+        let data = FakeDataSource()
+        let forums = ForumListModel(dataSource: data)
+        let root = RootModel(
+            forums: forums, categories: NavigationModel(dataSource: data, forums: forums),
+            favorites: NavigationModel(dataSource: data, forums: forums, startupSource: .flagged, favorites: options),
+            messages: MessageListModel(source: FakePrivateMessages()), store: store, favoriteOptions: options
+        )
+        store.set(FavoritesSource.favoritesOnly, for: SettingKey.favoritesSource)
+        root.reloadSettings()
+        #expect(root.favorites.selectedSource == .favorites)
+        #expect(options.mode == .favoritesOnly)
+    }
+}

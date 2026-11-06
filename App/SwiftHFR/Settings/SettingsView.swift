@@ -65,7 +65,7 @@ struct SettingsView: View {
                 }
                 Toggle("Favoris triés par catégories", isOn: $favorites.groupedByCategory)
                 Toggle("Afficher les sections repliées et vides", isOn: $favorites.showsCollapsedSections)
-                Toggle("Actualisation automatique", isOn: $favorites.autoRefresh)
+                Toggle("Actualisation automatique des favoris", isOn: $favorites.autoRefresh)
                 Toggle("Mode compact", isOn: $general.compactMode)
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 VStack(alignment: .leading, spacing: 4) {
@@ -118,6 +118,8 @@ struct SettingsView: View {
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
+        // The Favoris tab's menu writes the same settings: show them as they are now (the Plus tab stays alive under the tab bar).
+        .onAppear { favorites.reloadSettings() }
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
     }

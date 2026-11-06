@@ -99,7 +99,7 @@ final class RootModel {
     /// Favoris tab opens on the list its favourites mode names instead (`TopicSource(mode:)`, LOT-124); this is the fallback of
     /// a model built without options.
     static let categoriesStartupSource: TopicSource? = nil
-    static let favoritesStartupSource: TopicSource? = .favorites
+    static let favoritesStartupSource: TopicSource? = .flagged
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
@@ -143,7 +143,11 @@ final class RootModel {
     func reloadSettings() {
         let badge = store.value(for: SettingKey.privateMessageBadge)
         let minimize = store.value(for: SettingKey.tabBarMinimizesOnScroll)
-        favoriteOptions?.reloadSettings()
+        if let options = favoriteOptions {
+            options.reloadSettings()
+            // The mode names the list (legacy reads `vos_sujets` on every load): a change made in Réglages switches the tab.
+            if favorites.selectedSource?.favoritesMode != options.mode { favorites.selectedSource = TopicSource(mode: options.mode) }
+        }
         if badge != privateMessageBadgeEnabled { privateMessageBadgeEnabled = badge }
         if minimize != minimizesTabBarOnScroll { minimizesTabBarOnScroll = minimize }
     }

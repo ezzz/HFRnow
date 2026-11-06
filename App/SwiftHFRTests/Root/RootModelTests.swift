@@ -128,11 +128,11 @@ struct RootModelTests {
     @Test func theCategoriesTabStartsWithoutASourceAndFavouritesOnTheFavourites() async {
         let root = await model()
         #expect(root.categories.selectedSource == nil)
-        #expect(root.favorites.selectedSource == .favorites)
+        #expect(root.favorites.selectedSource == .flagged)
         #expect(RootModel.favoritesSources == [.favorites, .flagged])
         // The environment-built model passes the Catégories constant to its navigation model; Favoris opens on its mode's list.
         #expect(RootModel.categoriesStartupSource == nil)
-        #expect(RootModel.favoritesStartupSource == .favorites)
+        #expect(RootModel.favoritesStartupSource == TopicSource(mode: .flagsAndFavorites))
     }
 
     @Test func settingsChangesShowAfterReloadSettings() async {

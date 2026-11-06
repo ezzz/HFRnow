@@ -134,3 +134,50 @@ struct FavoritesOptionsModelTests {
         #expect(options.groups(for: page).map(\.id) == ["cat:1", "cat:2"])
     }
 }
+
+/// A persistence whose writes are refused.
+private struct RefusingPersistence<Document: SmallStoreDocument>: SmallStorePersistence {
+    struct Refused: Error {}
+    func load() throws -> Document? { nil }
+    func save(_ document: Document) throws { throw Refused() }
+    func quarantineUnreadableData() throws {}
+}
+
+@MainActor
+struct FavoritesOptionsModelFailureTests {
+    @Test func aRefusedWriteLeavesTheStateAndIsReportedUntilAWriteWorks() async {
+        let options = FavoritesOptionsModel(
+            settings: InMemorySettingsStore(),
+            stores: FavoritesStores(
+                layout: FavoritesLayoutStore(persistence: RefusingPersistence()),
+                superFavorites: SuperFavoritesStore(persistence: RefusingPersistence()), account: "user1"
+            )
+        )
+        await options.toggleCollapsed("cat:1")
+        #expect(options.collapsedSections.isEmpty)
+        #expect(options.storeProblem != nil)
+        await options.reload()
+        #expect(options.storeProblem != nil)
+        await options.toggleSuperFavorite(favoriteTopic(1))
+        #expect(options.superFavorites.isEmpty)
+    }
+
+    @Test func unfoldAllNeverFoldsASectionAgain() async {
+        let options = favoritesOptions()
+        await options.toggleCollapsed("cat:1")
+        await options.toggleCollapsed("cat:2")
+        await options.expandAll()
+        await options.expandAll()
+        #expect(options.collapsedSections.isEmpty)
+    }
+
+    @Test func foldAllHasNothingToDoWhenEverythingIsFoldedOrFlat() async {
+        let options = favoritesOptions()
+        let page = FavoritesPage(sections: [favoriteSection(1, [favoriteTopic(1, category: 1)])])
+        #expect(options.canCollapseMore(in: page))
+        await options.collapseAll(in: page)
+        #expect(!options.canCollapseMore(in: page))
+        options.groupedByCategory = false
+        #expect(!options.canCollapseMore(in: page))
+    }
+}

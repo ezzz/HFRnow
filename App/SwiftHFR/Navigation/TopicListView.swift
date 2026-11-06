@@ -39,6 +39,13 @@ struct TopicListView: View {
                 if let confirmation = model.sentConfirmation {
                     TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
                 }
+                if let problem = model.favorites?.storeProblem {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                        .font(.footnote)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.bar)
+                }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
                 }

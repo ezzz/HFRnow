@@ -37,16 +37,20 @@ Code: `FavoritesPresentation` (pure layout rules), `FavoritesOptionsModel` (`@Ob
 - **Empty categories** (the fix asked on HFR+ topic p. 507): with "Afficher les sections repliées" on **and** the mode "Drapeaux & Favoris", categories without a topic are listed too (legacy rule). The toggle stays usable in both sorts: flat has no section to show or hide, so it changes nothing there (legacy disabled it in flat mode; here it keeps its state so switching sort back finds it).
 - **All folded**: when the page has topics but the options hide every section, the screen says "Toutes les sections sont repliées" with "Afficher les sections repliées" and "Tout déplier".
 - **Super favourites**: marked from a row's context menu ("Ajouter aux / Retirer des super favoris"; swipes are LOT-125), local, per account, keyed by category and topic (LOT-064). Grouped: a "Super favoris" section first, each topic only there (a row never appears twice, so the list selection stays unambiguous); flat: no section, the row carries the mark. Rows are tinted orange and carry a "Super favori" icon. Logged out: no entry. Setting `daySuperFavoriteColor` / `nightSuperFavoriteColor` (LOT-121) will replace the fixed orange.
-- **Automatic refresh** (`favorites_auto_refresh`, default off): the lists refresh on re-appearance only when on; otherwise pull-to-refresh and the refresh action reload. Forum lists are unchanged.
+- **Automatic refresh** (`favorites_auto_refresh`, default off): the lists refresh on re-appearance only when on; otherwise pull-to-refresh (and the button of the empty state) reloads. Forum lists are unchanged.
 - **No write**: this lot sends nothing to HFR. Flag writes (remove a favourite, mark read) stay in `TopicFlagFlow` and come with the swipes of LOT-125.
-- A store that cannot be read or written (LOT-064 failure guard) leaves the list as it was and sets `storeProblem`; the choices are never overwritten.
+- A store that cannot be read or written (LOT-064 failure guard) leaves the list as it was and `storeProblem` is shown as a banner above the list; a write problem is not cleared by a later read, only by a write that works. The choices are never overwritten.
+- "Tout replier" is enabled only when grouped and a foldable section is still unfolded; "Tout déplier" only when grouped and a section is folded (legacy `Favorites.swift:748-755`). Both write an explicit state per section, so a tap during the run is never inverted.
+- The Favoris tab opens on the list the mode names, so with the default mode it opens on "Drapeaux & Favoris" (the flags list), where it used to open on the favourites list. A mode changed in Réglages switches the open tab on the next settings reload (legacy reads `vos_sujets` on every load).
 
 ## Edge cases
 
 - Same topic number in two categories: only the marked one is a super-favourite (tested).
 - A row without `topicID` cannot be marked; no account: nothing can be marked.
 - A category whose topics are all super-favourites shows no section of its own (unless empty categories are on) and is not foldable.
-- Settings changed in Réglages while the tab is alive are read again by `RootModel.reloadSettings()` (UserDefaults change notification).
+- Settings changed in Réglages while the tab is alive are read again by `RootModel.reloadSettings()` (UserDefaults change notification); Réglages reads them again when it shows, so the tab's menu and the screen agree.
+- Both lists share one device-wide fold set, and each successful load forgets the folds its own sections do not have (legacy did the same when the mode changed).
+- The menu is the tab's primary toolbar action ("Options"), holding the list picker and the options.
 
 ## Fixtures
 
