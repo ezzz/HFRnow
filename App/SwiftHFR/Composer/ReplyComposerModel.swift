@@ -228,10 +228,11 @@ final class ReplyComposerModel: Identifiable {
         // failed write does not stop the send; the warning stays on screen.
         _ = await saveNow()
         do throws(PostingError) {
+            let sent = text
             let result = try await post()
             // The reply is posted: the selection it quotes is released, only on HFR's confirmation (LOT-086), and the sheet
             // closes even if the draft cannot be deleted (spec, edge cases).
-            if let release = initialQuote?.release { await services.quoting?.release(release, postedText: text) }
+            if let release = initialQuote?.release { await services.quoting?.release(release, postedText: sent) }
             _ = await discardDraft()
             isSending = false
             closeReason = .sent(result)
