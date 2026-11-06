@@ -22,9 +22,10 @@ Legacy app: `master` of ezzz/HFRnow (same lines as ezzz/HFRnow @ `2440d79`).
 2. `PrivateMessageBadgeParser.unreadCount(in:)` on the decoded text: a number, `0` for an entry without a number (R03), `nil` for no entry (R01).
 3. Failures are typed: `MPUnreadPollError.network(NetworkError)` (offline, timeout, HTTP 4xx/5xx, cancellation) and `.page(ListPageFailure)`
    (`.maintenance`, `.malformed`).
+4. HFR's stale-session page (`R70a`, #383) throws `.sessionExpired(.credentialsRefused)`, under LOT-044's rule (`StaleSessionAnswer`, `confirmStaleSession`): a 2xx at exactly `/` that `StaleSessionNoticeParser` recognizes, and only while the account session still holds the identity, login generation and `md_user`/`md_passs` the poll sent (else `nil`). Checked before the badge parser.
 
 **Contract for the app:** `nil` is "no information" (logged out, or a page without the entry), never "no unread": do not store it as 0, do not notify,
-do not clear the session on it. To find out whether the session expired, call `SessionRefreshFlow` (LOT-044). A logged-in home whose markup changed also gives `nil`; the app cannot tell that drift from a logged-out page.
+do not clear the session on it. To find out whether the session expired, call `SessionRefreshFlow` (LOT-044). `.sessionExpired` is that flow's `expired(.credentialsRefused)`, read from the poll's own answer: the app treats both alike (prompt a new login, LOT-043); the poll still writes nothing. A logged-in home whose markup changed also gives `nil`; the app cannot tell that drift from a logged-out page.
 The app owns scheduling (`BGAppRefreshTask`, foreground timer), comparing with the last count and notifying (LESSONS 48).
 
 **Session:** a logged-in `GET /` sets `md_user` x2 and `md_passs` x2 (R02, R03 metas), which `HFRSession.perform` would store. The poll
@@ -46,8 +47,11 @@ None added. Existing captures read in place (`Tests/HFRClientTests/Support/Captu
 
 **Oracle coverage:** the poll's result on R01-R03 equals the legacy oracle's `nbMP` (`MPUnreadPollTests.homePages`), so there is no difference from the oracle; D1 below is a difference from `MPBackgroundService`'s regex, which the oracle does not run.
 
-**Pending capture:** the home page served to a logged-in session whose cookies have expired (does HFR serve the logged-out home, or a `.hop` page?);
-until captured, the poll says `nil` in both cases (a `.hop` page has no `<body id>` home, so it also reads as `nil`). Capture issue [#168](https://github.com/ezzz/HFRnow/issues/168).
+**Captured** ([#168](https://github.com/ezzz/HFRnow/issues/168), Run 7): the home page answered to a jar whose `md_passs` HFR refuses is the stale-session `.hop` (`R70a`), the same bytes as profile page 1 (`R70c`), no `Set-Cookie`. Tests `MPUnreadPollStaleSessionTests`: `R70a` throws `.sessionExpired` with one GET and the account unchanged; `R71b`, `R12`, `R01` served at `/` stay `nil`; `R70a` served at another URL or with a 302 stays `nil`; a login adopted meanwhile gives `nil`; a cancellation meanwhile throws `.network(.cancelled)`.
+
+**Decision (#383, item 3): the poll reports the expiry** instead of `nil`. Evidence: `R70a` is byte-identical to `R70c`, which LOT-044 now classifies as `expired`; the parser matches no other page of the corpus (`StaleSessionNoticeParserTests`), so no page that reads as `nil` or a count today changes meaning; and HFR serves the same page to the next request with these cookies, so a `nil` would only make the app send a second request (`SessionRefreshFlow`) to read the same bytes. The LOT-092 check-updates flow (#184) reuses the same classifier on `R70a` and `R70b`. Kept conservative: the same session check as the refresh, and nothing written.
+
+**Pending capture:** cookies invalidated by HFR itself (a password changed elsewhere) rather than a wrong `md_passs`: likely the same page (HFR-PROTOCOL §6c LOT-044), not captured; another shape stays `nil`.
 
 ## Intentional differences from legacy
 | # | Legacy | Port | Why |
@@ -55,6 +59,7 @@ until captured, the poll says `nil` in both cases (a `.hop` page has no `<body i
 | D1 | no `cCatTopic red` node (nothing unread) returned nil, same as a failure | `0` for "entry without a number", `nil` for "no entry" (LOT-023 D2) | the caller can tell "none unread" from "not logged in" |
 | D2 | network errors printed and swallowed | typed `MPUnreadPollError` | the app counts failures and decides |
 | D3 | `URLSession.shared` and the shared cookie jar | a probe seeded from the account's `HFRSession`, never written back | one session per account, no stale write |
+| D5 | the stale-session page read as "no `cCatTopic red`", i.e. nothing new, silently | `.sessionExpired(.credentialsRefused)` | the member learns the stored password no longer works (#383) |
 | D4 | 5 s timeout (`MPBackgroundService.swift:86`) | kept: `HFREndpoint.privateMessageCheck()` (`RequestTimeout.background`), not the 30 s page default | a background task must not hang |
 
 ## Learnings
