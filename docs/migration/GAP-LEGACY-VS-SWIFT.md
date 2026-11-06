@@ -318,7 +318,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 020, 022,
   - FEAT-003 (honest paging) is (b) needed.
   - FEAT-011 is the policy C setting.
   - FEAT-010 is themes (a-compatible) plus a single accent, live preview and a one-line header (b).
-  - FEAT-019 is a local history (a) plus a confirmed removal that says the image stays online (b, LOT-103); a server-side delete has no API.
+  - FEAT-019 is a local history (a) plus a confirmed removal that says the image stays online (b, LOT-103); no app-side delete is evidenced for a guest upload (`HFR-PROTOCOL` §7b B12).
 - **"legacy parity" labels with no source at `2440d79`:**
   - LOT-100 (poll creation; legacy only reads `have_sondage`);
   - LOT-101 (archived drafts: `master` only);
