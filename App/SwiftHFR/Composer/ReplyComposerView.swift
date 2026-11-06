@@ -129,16 +129,6 @@ struct ReplyComposerView: View {
     }
 
     /// Where typing starts: the first field of a new private message still empty, else the text.
-    private var firstEmptyField: Field {
-        guard model.hasSubjectField else { return .text }
-        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
-        return model.subject.isEmpty ? .subject : .text
-    }
-
-    private var title: String {
-        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
-    }
-
     private var checkTitle: String {
         model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
     }
@@ -306,6 +296,18 @@ struct ReplyComposerView: View {
                     .disabled(!model.canSend)
             }
         }
+    }
+}
+
+extension ReplyComposerView {
+    private var firstEmptyField: Field {
+        guard model.hasSubjectField else { return .text }
+        if model.isNewMessage, model.recipient.isEmpty { return .recipient }
+        return model.subject.isEmpty ? .subject : .text
+    }
+
+    private var title: String {
+        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
     }
 }
 
