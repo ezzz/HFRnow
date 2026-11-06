@@ -1,0 +1,27 @@
+{
+  "id": "W131",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0",
+  "url": "https://forum.hardware.fr/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0",
+  "final_url": "https://forum.hardware.fr/modo/manageaction.php?config=hfr.inc&cat=prive&type_page=forum1&moderation=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 12:50:49 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "topic0",
+    "valuecat0",
+    "valueforum0",
+    "topic1",
+    "topic_statusno1",
+    "action_reaction",
+    "type_page"
+  ],
+  "note": "MP thread delete, owner user1, legacy body (clean-up of fixture-test-3)",
+  "request_body": "hash_check=REDACTED&topic0=3208005&valuecat0=prive&valueforum0=hardwarefr&topic1=-1&topic_statusno1=-1&action_reaction=valid_eff_prive&type_page=forum1",
+  "file": "W131-mp-thread-delete-owner-unread-recipient-success.html",
+  "private": true
+}

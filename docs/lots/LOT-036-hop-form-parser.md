@@ -51,7 +51,7 @@ The moderation form has no `content_form` and no `select`: `fields` is `hash_che
 - Controls outside the form (the `#fastsearch` form with its own `hash_check`, a second `content_form`) are not read; the smiley container is looked up on the whole page, like legacy.
 - An input with no `name` (and `type="image"` without `name`) is skipped; `type="file"` and other types are kept with kind `.other`.
 - A select with no option is kept (`effectiveValue` nil); two options with `selected`: the first wins, as in legacy (a browser would take the last; no captured page has two).
-- A textarea starting with a newline keeps it (legacy, libxml, did too; a browser drops one newline after the tag). Every capture writes the text right after the tag, so HFR adds no newline of its own: a leading `\n` can only be part of the stored text, and keeping it makes the round trip exact. Verified: no capture starts with a newline; pending: a stored text that does (see "Pending capture").
+- A textarea starting with a newline keeps it (legacy, libxml, did too; a browser drops one newline after the tag). Every capture writes the text right after the tag, so HFR adds no newline of its own: a leading `\n` can only be part of the stored text, and keeping it makes the round trip exact. Verified (`R130b`, `R130c`, [HFR-PROTOCOL](../HFR-PROTOCOL.md) "Leading newline"): HFR stores a leading `\r\n` but its edit form serves the text without it (nothing for a browser to drop), and its quote form keeps it after the `[quotemsg=…]` tag, so keeping a textarea's own leading newline stays right and an unchanged edit loses the break at the server, not in the client.
 - Option values are not trimmed (legacy trimmed the id of a sub-category; captured values have no whitespace).
 
 ## Fixtures
@@ -72,7 +72,6 @@ The differential test compares, per case: `action` with `formAction`; the legacy
 ## Pending capture
 Not hand-built (LESSONS 36); each is a parser state or a protocol fact, none blocks this lot:
 - **A new-topic form reached with a sub-category preselected** (`R45a` has no `selected` option, so `selectedValue` on HFR pages is only tested on inline pages).
-- **An edit or quote form whose stored text starts with a newline**: confirms that HFR does not add its own newline (all captures suggest so) and so that a browser would drop a real one.
 - **The reply form of a locked topic and of a topic where the account may not post**, to learn what the page serves instead of the form (LOT-037 reads the message).
 
 ## Learnings

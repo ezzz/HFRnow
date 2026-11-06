@@ -215,6 +215,16 @@
     {"raw": "M2-T30", "id": "T30", "slug": "rehost-image-no-referer-403", "ext": "", "private": false},
     {"raw": "M2-T31", "id": "T31", "slug": "rehost-image-forum-referer-200", "ext": "", "private": false},
     {"raw": "M2-T32", "id": "T32", "slug": "rehost-http-image-no-referer-403", "ext": "", "private": false},
-    {"raw": "M2-T33", "id": "T33", "slug": "rehost-http-image-forum-referer-200", "ext": "", "private": false}
+    {"raw": "M2-T33", "id": "T33", "slug": "rehost-http-image-forum-referer-200", "ext": "", "private": false},
+    {"raw": "R117d200", "id": "R117a", "slug": "forum-list-header-badge-n7", "ext": "html", "private": false},
+    {"raw": "W130", "id": "W130", "slug": "mp-create-leading-newline-success", "ext": "html", "private": false},
+    {"raw": "R130t", "id": "R130a", "slug": "mp-thread-leading-newline", "ext": "html", "private": true},
+    {"raw": "R130e", "id": "R130b", "slug": "mp-edit-form-leading-newline", "ext": "html", "private": true},
+    {"raw": "R130q", "id": "R130c", "slug": "mp-quote-form-leading-newline", "ext": "html", "private": true},
+    {"raw": "W131", "id": "W131", "slug": "mp-thread-delete-owner-unread-recipient-success", "ext": "html", "private": false},
+    {"raw": "R131t", "id": "R130d", "slug": "mp-thread-recipient-after-sender-delete-unread", "ext": "html", "private": false},
+    {"raw": "R131l", "id": "R130e", "slug": "mp-list-recipient-after-sender-delete-unread", "ext": "html", "private": true},
+    {"raw": "W137a", "id": "W137a", "slug": "mp-mark-unread-logged-out", "ext": "html", "private": false},
+    {"raw": "W137b", "id": "W137b", "slug": "mp-mark-unread-logged-out-again", "ext": "html", "private": false}
   ]
 }

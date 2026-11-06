@@ -28,7 +28,7 @@ Legacy app: `francoisgn/hfrnow` at `2440d79` (an ancestor of `origin/master`).
   - `isUnreadable` is unchanged: legacy's rule (any `href` containing `nonlu`, a member's posted link included), kept for the LOT-003 oracles. The app keys the action on `markUnreadURL` only.
 - **Write** (`TopicFlagFlow.markUnread(link:in:)`, a new `TopicFlagAction.markUnread`). It is LOT-051's link-write path:
   - the link must be an `https` forum page, path exactly `/user/nonlu.php`, `config=hfr.inc`, a single `cat=prive` and a single positive `post` (`FlagLink(…, privateThread: true)`). The flag writes still refuse `cat=prive`, and the unread write refuses a forum category;
-  - the session is checked first (LOT-044, #314): HFR's answer to this GET without a session is not captured;
+  - the session is checked first (LOT-044, #314): HFR answers this GET without a session with the "pas destiné" notice (`W137a`, `W137b`, sent twice, byte-identical, no cookie set), which carries no token and says nothing about the session;
   - then one GET of the link, redirects not followed, never retried. A failure after sending is `unconfirmed(.transport)`.
 - **Confirmation**: LOT-037's success **and** the action's own sentence, "Le message a été marqué comme non lu avec succès" (`W18`, refresh to the MP list).
   - Another write's confirmation (`P03a`, `P03d`, `W15`) is `unconfirmed(.unexpectedConfirmation)`.
@@ -73,7 +73,6 @@ Mark unread, shown to fail with the behaviour removed (9 mutations, each caught)
 
 ## Pending capture
 
-- `nonlu.php` answered without a session, and sent twice (capture issue [#137](https://github.com/ezzz/HFRnow/issues/137)); until then the session is checked first.
 - Changing a group's members (#507): the owner's reply with `newdest` unchanged, extended, reduced, emptied, or naming an unknown pseudo; the thread and lists afterwards ("Modération" message, per redface2 E8). Until then the roster is read-only.
 - A multi-page conversation's mark-unread link (whether its `page` follows the page shown).
 
