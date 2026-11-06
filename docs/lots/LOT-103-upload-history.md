@@ -14,12 +14,13 @@
 ## Scope
 LOT-102 already lists, persists and reinserts. This lot adds only what FEAT-019 still needs: a **confirmed removal** that says the image stays online. See the feature spec.
 
-## UX evolutions (GAP-155)
-- **b** — Removal asks first and states that the image stays public on the host (legacy removed silently; user feedback). Optional, no parity need.
+## UX evolutions (GAP-091)
+- **b·needed** — Removal asks first and states that the image stays public on the host (legacy removed silently): ≈14 user messages asked for a disclaimer ([user-feedback-p450-510.md](../research/user-feedback-p450-510.md), "Cannot delete uploaded images") and issue #194 requires it. GAP-091 row updated (a → b·needed).
 
 ## Behaviour
 - `requestRemoval(_:)` sets `pendingRemoval`; nothing changes until `confirmRemoval(_:)`. `cancelRemoval()` drops it.
-- `confirmRemoval(_:)` takes the entry the dialog was shown for (SwiftUI clears its state before the button runs), removes it through the existing `remove`, then sets `removalNotice`. A refused save keeps the existing history warning.
+- `confirmRemoval(_:)` takes the entry the dialog was shown for (SwiftUI clears its state before the button runs), removes it through the existing `remove`, then sets `removalNotice`. A refused save keeps the existing history warning and no "removed" notice (the entry is only hidden for the session). The notice is set before the write is awaited, so a later request or upload clears it for good.
+- The swipe button has no destructive role (the row must not slide out before the confirmation) and no full swipe.
 - Any new upload or removal request clears the previous notice.
 
 ## Pending capture

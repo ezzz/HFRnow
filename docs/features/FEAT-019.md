@@ -4,7 +4,7 @@
 - **Lots:** [LOT-102](../lots/LOT-102-image-upload.md) (the list and the reinsertion) · [LOT-103](../lots/LOT-103-upload-history.md) (removal; last lot of this feature)
 
 ## What and why
-A poster reinserts an image uploaded before instead of uploading it twice, and can forget an entry. Readers asked for it (≈14 messages).
+A poster reinserts an image uploaded before instead of uploading it twice, and can forget an entry. Readers asked for it (≈14 messages: [user feedback p. 450-510](../research/user-feedback-p450-510.md), "Cannot delete uploaded images").
 The proposal also asked for a **server-side delete**: not evidenced (HFR-PROTOCOL §7b B12: the host's `delete_url` answered 404 once without a browser session, not captured), so it is **out of scope**. The app never says or implies the image is deleted.
 
 ## Screens and states
@@ -21,6 +21,7 @@ One store over the file: the engine's `RehostUploadHistoryStore` (LOT-064), one 
 None new. Legacy removed an entry silently (`AnswerView.swift:1909` @ 2440d79) and never called the host.
 
 ## Edge cases
-- Removal confirmed while the save fails: the entry leaves the list for the session, the panel warns it was not saved.
+- Removal confirmed while the save fails: the entry leaves the list for the session and the panel warns it was not saved; it may come back after a relaunch.
 - Removing the entry of an image still referenced in the composer text changes nothing in the text.
-- The same image uploaded again gets a new entry (the host returns a new address; no de-duplication by content).
+- No de-duplication by content: one entry per answered address (an entry with the same `id` replaces the older one).
+- Removal confirmed while the save fails: no "removed" notice, only the save warning.

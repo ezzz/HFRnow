@@ -4,8 +4,8 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView :1801-1982, ReplyUploadedImageRow :1984-2046) @ 2440d79 (GAP-155).
-// LOT-103: removal asks first and says the image stays online (legacy :1909 deleted silently).
+// Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView :1801-1982, ReplyUploadedImageRow :1984-2046) @ 2440d79 (GAP-091).
+// LOT-103 (UX evolution b·needed, GAP-091): removal asks first and says the image stays online (legacy :1909 deleted silently).
 // Differences: `PhotosPicker` instead of the `PHPickerViewController` wrapper; no full-screen viewer of an uploaded image; no
 // "Preview" rendition (the engine has none); the first-use notice N1 before any upload.
 /// The panel "Insérer image": photos or camera, the size and BBCode choices, the uploaded images and a manual link. Thin: every
@@ -41,7 +41,7 @@ struct ImageUploadView: View {
                 "Retirer de l'historique ?", isPresented: askingRemoval, titleVisibility: .visible, presenting: model.pendingRemoval
             ) { image in
                 Button("Retirer de l'historique", role: .destructive) { Task { await model.confirmRemoval(image) } }
-                Button("Annuler", role: .cancel) { model.cancelRemoval() }
+                Button("Annuler", role: .cancel) {}
             } message: { _ in
                 Text(ImageUploadModel.removalMessage)
             }
@@ -127,7 +127,9 @@ struct ImageUploadView: View {
             }
             ForEach(model.history) { image in
                 UploadedImageRow(image: image) { variant in onInsert(model.snippet(for: image, variant: variant)) }
-                    .swipeActions { Button("Retirer", systemImage: "trash", role: .destructive) { model.requestRemoval(image) } }
+                    .swipeActions(allowsFullSwipe: false) {
+                        Button("Retirer", systemImage: "trash") { model.requestRemoval(image) }.tint(.red)
+                    }
             }
             if let notice = model.removalNotice {
                 Text(notice).font(.footnote).foregroundStyle(.secondary)

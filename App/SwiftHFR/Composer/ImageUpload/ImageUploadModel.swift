@@ -5,7 +5,7 @@ import HFRStorage
 import Observation
 
 // Port of HFRswift/Swift/AnswerView.swift (ReplyImageInsertionView, startImageUpload :646-676) and HFRswift/Swift/ReplyService.swift
-// (RehostPreferences, RehostPreferencesStore, RehostUploadedImage.formattedSnippet) @ 2440d79 (GAP-155). Differences: the first-use
+// (RehostPreferences, RehostPreferencesStore, RehostUploadedImage.formattedSnippet) @ 2440d79 (GAP-091). Differences: the first-use
 // notice N1 (LOT-071) gates every upload; the upload client is the engine's `RehostClient` (LOT-056); the preview rendition does not
 // exist in the engine (`RehostedImage` has full, medium and mini); a failed upload never loses the composer text (it is not touched).
 /// State of the image panel of the composer (LOT-102): the pick, the notice, the upload, the history and the settings.
@@ -151,8 +151,11 @@ final class ImageUploadModel {
     /// then says the image stays online.
     func confirmRemoval(_ image: RehostedImage) async {
         pendingRemoval = nil
-        await remove(image)
+        history.removeAll { $0.id == image.id }
+        // Set before the write is awaited: a request or upload arriving meanwhile clears it, a late write must not set it again.
         removalNotice = Self.removedNotice
+        await persist { try await $0.remove(id: image.id) }
+        if historyWarning == Self.saveWarning { removalNotice = nil }
     }
 
     /// Forgets an image of the history (the host keeps it).

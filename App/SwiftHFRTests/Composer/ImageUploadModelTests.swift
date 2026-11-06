@@ -221,16 +221,23 @@ struct ImageUploadModelTests {
         await model.confirmRemoval(target)
         #expect(model.history.isEmpty)
         #expect(model.historyWarning == "L'historique des images n'a pas pu être enregistré.")
+        #expect(model.removalNotice == nil)
     }
 
-    @Test func aKeptEntryStaysUsableAfterAnotherIsRemoved() async {
-        let (model, _) = make(uploader: nil, history: MemoryHistory([hosted("keep", at: 1), hosted("drop", at: 2)]))
+    @Test func aNewRequestOrUploadClearsThePreviousRemovalNotice() async {
+        let (model, _) = make(
+            uploader: ScriptedUploader([.success(hosted("n", at: 9))]), history: MemoryHistory([hosted("a", at: 1), hosted("b", at: 2)]),
+            accepted: true
+        )
         await model.load()
-        let drop = model.history[0]
-        await model.confirmRemoval(drop)
-        let kept = model.history[0]
-        #expect(model.snippet(for: kept, variant: .full).contains("keep.jpg"))
-        #expect(!model.history.contains { $0.id == drop.id })
+        await model.confirmRemoval(model.history[0])
+        #expect(model.removalNotice != nil)
+        model.requestRemoval(model.history[0])
+        #expect(model.removalNotice == nil)
+        await model.confirmRemoval(model.history[0])
+        #expect(model.removalNotice != nil)
+        await model.submit(Data([1]))
+        #expect(model.removalNotice == nil)
     }
 
     @Test func anUnreadableHistoryIsNeverOverwrittenAndUploadsStillWork() async {
