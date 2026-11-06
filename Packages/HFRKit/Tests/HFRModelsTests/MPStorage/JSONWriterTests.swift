@@ -72,11 +72,60 @@ struct JSONWriterTests {
         #expect(text == (try Self.foundation(Holder())))
     }
 
+    @Test(
+        "A super encoder keeps what the super writes, a value, an array or an object, as JSONEncoder does",
+        arguments: SuperShape.allCases
+    )
+    func superEncoders(shape: SuperShape) throws {
+        let value = Derived(shape: shape)
+        let text = JSONWriter.write(try JSONTreeEncoder.encode(value))
+        #expect(text == (try Self.foundation(value)))
+    }
+
     @Test("The tree coder refuses what JSONEncoder refuses: a non-finite double, a value that encodes nothing")
     func refusals() {
         #expect(throws: EncodingError.self) { try JSONTreeEncoder.encode(Double.infinity) }
         #expect(throws: EncodingError.self) { try JSONTreeEncoder.encode(JSONValue.number(JSONNumber(Double.nan))) }
         struct Nothing: Encodable { func encode(to encoder: any Encoder) throws {} }
         #expect(throws: EncodingError.self) { try JSONTreeEncoder.encode(Nothing()) }
+    }
+}
+
+/// What `Base` writes in the super encoders `Derived` asks for.
+enum SuperShape: CaseIterable, Sendable {
+    case single, unkeyed, keyed
+}
+
+private struct Base: Encodable {
+    let shape: SuperShape
+
+    func encode(to encoder: any Encoder) throws {
+        switch shape {
+        case .single:
+            var container = encoder.singleValueContainer()
+            try container.encode(1)
+        case .unkeyed:
+            var container = encoder.unkeyedContainer()
+            try container.encode(1)
+            try container.encode(2)
+        case .keyed:
+            var container = encoder.container(keyedBy: DynamicKey.self)
+            try container.encode(1, forKey: DynamicKey("base"))
+        }
+    }
+}
+
+/// Encodes `Base` through every super encoder: the keyed default (`super`), a keyed one for a key, and an unkeyed one.
+private struct Derived: Encodable {
+    let shape: SuperShape
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: DynamicKey.self)
+        try container.encode(2, forKey: DynamicKey("x"))
+        try Base(shape: shape).encode(to: container.superEncoder())
+        try Base(shape: shape).encode(to: container.superEncoder(forKey: DynamicKey("parent")))
+        var list = container.nestedUnkeyedContainer(forKey: DynamicKey("list"))
+        try list.encode(3)
+        try Base(shape: shape).encode(to: list.superEncoder())
     }
 }
