@@ -5,7 +5,8 @@ import Testing
 
 /// `MessageListModel`'s read state: which rows show as read, when a load brings back HFR's own state, and where a
 /// conversation opens.
-@MainActor
+// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct MessageListReadStateTests {
     private func model(_ source: FakePrivateMessages, loggedIn: Bool = true) -> MessageListModel {
         MessageListModel(source: source, isLoggedIn: { loggedIn })
@@ -87,7 +88,11 @@ struct MessageListReadStateTests {
         let first = slow.run { await model.refresh() }
         guard await slow.entered() else { Issue.record("The first refresh never asked for its page"); return }
         let second = slower.run { await model.refresh() }
-        guard await slower.entered() else { Issue.record("The second refresh never asked for its page"); return }
+        guard await slower.entered() else {
+            Issue.record("The second refresh never asked for its page")
+            await slow.open()
+            return
+        }
         await slow.open()
         await first.value
         // The newest load is still running: the older one must not have brought HFR's state back.

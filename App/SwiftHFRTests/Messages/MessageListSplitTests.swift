@@ -14,7 +14,8 @@ private func pageOf(_ threads: [PrivateMessageThread], page: Int, last: Int) -> 
     )
 }
 
-@MainActor
+// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct MessageListSplitTests {
     private func model(
         _ source: FakePrivateMessages, display: MPListDisplay, store: (any SettingsStore)? = nil
