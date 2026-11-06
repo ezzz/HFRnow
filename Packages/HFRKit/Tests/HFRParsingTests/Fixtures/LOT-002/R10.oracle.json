@@ -2,11 +2,11 @@
   "case" : "R10",
   "exception" : null,
   "input" : {
-    "bytes" : 34720,
+    "bytes" : 35701,
     "currentURL" : null,
     "file" : "../captures/R10-favourites-owntopic1.html",
     "now" : "2026-10-26T03:14:39Z",
-    "sha256" : "ac7aeb8db12495bde25cf6b69561a20f194d6b3e02a138a8b686c2b760722f33"
+    "sha256" : "d0e23a206c70e96a0f127ae842298a110051f6417da2c05ffbf2006f24b27c5c"
   },
   "kind" : "favorites",
   "legacyCommit" : "2440d79",
@@ -14,9 +14,9 @@
     "favorites" : [
       {
         "forum" : {
-          "aID" : "8",
-          "aTitle" : "Emploi & Etudes",
-          "aURL" : "/forum1.php?config=hfr.inc&cat=8&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "aID" : "101",
+          "aTitle" : "Category 1",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=101&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
           "subCats" : [
 
           ]
@@ -24,21 +24,21 @@
         "order" : 0,
         "topics" : [
           {
-            "aAuthorOfLastPost" : "user4",
+            "aAuthorOfLastPost" : "user4​",
             "aAuthorOrInter" : "",
-            "aDateOfLastPost" : "23/10/26",
+            "aDateOfLastPost" : "02/01/00",
             "aDateOfLastPostKind" : "absolute",
-            "aRepCount" : 72574,
-            "aTitle" : "• TU • Les questions relatives aux SALAIRES",
+            "aRepCount" : 5001,
+            "aTitle" : "Followed topic 1",
             "aTypeOfFlag" : "",
-            "aURL" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1700&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t5240788",
-            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=101&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t9810000001",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
             "aURLOfFlag" : "",
-            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1815&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
-            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=8&subcat=233&post=8081&page=1815&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
-            "catID" : 8,
-            "curTopicPage" : 1700,
-            "dDateOfLastPost" : "2026-10-23T08:37:00Z",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 101,
+            "curTopicPage" : 101,
+            "dDateOfLastPost" : "2000-01-01T23:01:00Z",
             "isClosed" : false,
             "isLocallyViewedInApp" : false,
             "isPoll" : false,
@@ -46,27 +46,27 @@
             "isSuperFavorite" : false,
             "isViewed" : false,
             "isViewedFromForumAtLoad" : false,
-            "maxTopicPage" : 1815,
-            "postID" : 8081,
+            "maxTopicPage" : 201,
+            "postID" : 9800001,
             "sLastSearchPostContent" : null,
             "sLastSearchPostURL" : null
           },
           {
             "aAuthorOfLastPost" : "user6",
             "aAuthorOrInter" : "",
-            "aDateOfLastPost" : "15/06/26",
+            "aDateOfLastPost" : "03/01/00",
             "aDateOfLastPostKind" : "absolute",
-            "aRepCount" : 345532,
-            "aTitle" : "• Le Cabinet Nwâr • nainjauneland - Paix & Amour",
+            "aRepCount" : 5002,
+            "aTitle" : "Followed topic 2",
             "aTypeOfFlag" : "",
-            "aURL" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=3763&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t5244372",
-            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=101&subcat=960002&post=9800002&page=102&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t9810000002",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960002&post=9800002&page=1&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
             "aURLOfFlag" : "",
-            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=8639&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
-            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=8&subcat=235&post=73795&page=8639&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
-            "catID" : 8,
-            "curTopicPage" : 3763,
-            "dDateOfLastPost" : "2026-06-15T19:42:00Z",
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960002&post=9800002&page=202&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=101&subcat=960002&post=9800002&page=202&p=1&sondage=0&owntopic=1&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 101,
+            "curTopicPage" : 102,
+            "dDateOfLastPost" : "2000-01-02T23:02:00Z",
             "isClosed" : true,
             "isLocallyViewedInApp" : false,
             "isPoll" : true,
@@ -74,24 +74,38 @@
             "isSuperFavorite" : false,
             "isViewed" : false,
             "isViewedFromForumAtLoad" : false,
-            "maxTopicPage" : 8639,
-            "postID" : 73795,
+            "maxTopicPage" : 202,
+            "postID" : 9800002,
             "sLastSearchPostContent" : null,
             "sLastSearchPostURL" : null
           }
+        ]
+      },
+      {
+        "forum" : {
+          "aID" : "102",
+          "aTitle" : "Category 2",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=102&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "subCats" : [
+
+          ]
+        },
+        "order" : 1,
+        "topics" : [
+
         ]
       }
     ],
     "topicsSortedByLastPostDesc" : [
       {
-        "aTitle" : "• TU • Les questions relatives aux SALAIRES",
-        "catID" : 8,
-        "postID" : 8081
+        "aTitle" : "Followed topic 2",
+        "catID" : 101,
+        "postID" : 9800002
       },
       {
-        "aTitle" : "• Le Cabinet Nwâr • nainjauneland - Paix & Amour",
-        "catID" : 8,
-        "postID" : 73795
+        "aTitle" : "Followed topic 1",
+        "catID" : 101,
+        "postID" : 9800001
       }
     ]
   },
@@ -101,7 +115,8 @@
 
     ],
     "arrayCategoriesVisibleOrder" : [
-      "8"
+      "101",
+      "102"
     ],
     "hashCheck" : "REDACTED",
     "nbMP" : 0,

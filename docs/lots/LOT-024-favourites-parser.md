@@ -41,7 +41,7 @@ makes the row resume at its last post.
 - Non-regression ([#102](https://github.com/ezzz/HFRnow/issues/102)): a link without `href` must not break the parser. The favourites page has no pager; the
   equivalent is the last-page link of a row, tested without `href` (row kept, one page). A header link without `href` is tested too.
 - The oracle's `isViewed` is true only for a row with no flag link; every captured row has one.
-- Flag colour differs by page: `flag1.gif` (blue) on `owntopic=1` (R10), `favoris.gif` (yellow) on `owntopic=3` (P03c).
+- Flag colour differs by page: `flag1.gif` (blue) on a tracked `owntopic=1` list (R10 when captured on 2026-10-26; the 2026-11-06 re-capture lists favourites, `favoris.gif`, so the blue case is derived from it in `FavoritesParserTests.flags`), `favoris.gif` (yellow) on `owntopic=3` (P03c).
 - An empty favourites list is a list page (R11, P03e), not a failure: `sections` is empty.
 
 ## Fixtures

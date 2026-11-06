@@ -98,10 +98,10 @@ are not published (none found).
 | R06 | `R06-list-subcat-cuisine-anon.html` | Sub-forum list `/hfr/Discussions/Cuisine/liste_sujet-1.htm` | R06 | 022 |
 | R07 | `R07-list-graphisme-anon.html` | Another forum's list page 1 (`/hfr/Graphisme/…`) | R07 | 021, 022 |
 | R08-1 | `R08-1-list-cat13-owntopic1-empty.html` | `owntopic=1`, logged in, empty: `.hop` "Aucun sujet auquel vous avez participé n'est connu" | R08 | 022, 024 |
-| R08-2 | `R08-2-list-cat13-owntopic2.html` | `owntopic=2` (read), one row: the topic read by R21 (E25), `flag0`/`flag1`/`favoris` icons | R08, R15/R58 | 022, 024, 045 |
+| R08-2 | `R08-2-list-cat13-owntopic2.html` | `owntopic=2` (read), cat 13: a sticky and two topics; rows aliased by position (topic ids `9800001`…, titles, counts and dates, [kit README](../../../../../tooling/fixtures/README.md#list-rows)), `flag0` icons; re-captured 2026-11-06 | R08, R15/R58 | 022, 024, 045 |
 | R08-3 | `R08-3-list-cat13-owntopic3-empty.html` | `owntopic=3`, empty: "Aucun favori n'est repertorié" | R08 | 022, 024 |
 | R09 | `R09-list-cat13-owntopic3-anon.html` | `owntopic=3` logged out: 301 to the plain list, filter silently dropped | R09 | 022, 037 |
-| R10 | `R10-favourites-owntopic1.html` | `forum1f.php?owntopic=1`, two tracked topics in two categories | R10 | 024 |
+| R10 | `R10-favourites-owntopic1.html` | `forum1f.php?owntopic=1`, two topics in two categories, rows aliased by position (see R08-2), `favoris.gif`; re-captured 2026-11-06 | R10 | 024 |
 | R11 | `R11-favourites-owntopic3-empty.html` | `forum1f.php?owntopic=3` with no favourite | R11 | 024 |
 | R12 | `R12-favourites-anon.html` | `forum1f.php` logged out: `<body>` without `id`, `.hop` "Aucun sujet que vous avez lu n'est connu" | R12 | 024, 037 |
 | R20 | `R20-topic-p1-anon.html` | Topic page 1, 40 posts, logged out: action links `message.php?…&numrep=N&ref=M…#formulaire` in `md_noclass_cryptlink` spans, ads | R20 | 030-033, 003 |
@@ -120,7 +120,7 @@ are not published (none found).
 | R32a | `R32a-topic-poll-anon.html` | Poll topic logged out: vote form `/user/vote.php?config=hfr.inc` shown, radio `reponse` | R32 | 005, 026, 054 |
 | R32b | `R32b-topic-poll-logged-in-not-voted.html` | Same, logged in, not voted | R32 | 005, 026, 033, 054 |
 | R33a | `R33a-topic-poll-closed-anon.html` | Closed poll (locked topic), logged out: results only (bars, `N votes`, `Total`), no form, "Ce sondage est clos, vous ne pouvez plus voter" | R33 | 005, 026, 054 |
-| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted from the operator's accounts, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 033, 054 |
+| R33b | `R33b-topic-poll-already-voted.html` | Poll already voted, logged in (user1): results only, no form, "(Multipseudo detecté, vous ne pourrez pas voter à ce sondage avec vos autres pseudos)" (user2 sees the same notice; the page does not tell which account voted) | R33 | 005, 026, 033, 054 |
 | R40a | `R40a-reply-form-logged-in.html` | Reply composer (`message.php`), logged in: `hop` form to `/bddpost.php?config=hfr.inc`, `verifrequet=1100`, pseudo echoed, checkboxes | R40 | 036, 048 |
 | R40b | `R40b-reply-form-anon.html` | Same composer logged out: empty `hash_check`, visible pseudo/password | R40 | 036, 048 |
 | R41a | `R41a-quote-form.html` | Quote form (`numrep=<cited>&ref=1`): prefill `[quotemsg=<numreponse>,1,<author id>]` | R41 | 036, 049 |
@@ -166,15 +166,15 @@ are not published (none found).
 | R13b | `R13b-mp-list-after-mark-unread.html` | MP list after W18: icon `closedbp.gif` (unread) | W18, R13 | 023 |
 | P03a | `P03a-addflag-success.html` | `addflag.php`: "Favori positionné avec succès", refresh to the sub-forum list | P03 | 051, 024 |
 | P03b | `P03b-addflag-again.html` | Same call again: same success text (idempotent) | P03 | 051 |
-| P03c | `P03c-favourites-after-addflag.html` | Favourites list with the flagged topic | P03 | 024 |
+| P03c | `P03c-favourites-after-addflag.html` | Favourites list with the flagged topic | P03 | 024 (rows aliased by position, re-run through the kit on the published page 2026-11-06: not re-captured) |
 | P03d | `P03d-delflag-favourite-success.html` | `delflag.php?…&owntopic=3`: "Drapeau effacé avec succès" | P03 | 051 |
 | P03e | `P03e-favourites-after-delflag-empty.html` | Favourites empty again (state restored) | P03 | 024 |
-| P03f | `P03f-list-owntopic2-after-delflag.html` | Read list after delflag: the topic's read flag is gone too | P03 | 024, 051 |
-| P03g | `P03g-favourites-two-rows.html` | `forum1f.php?owntopic=3` with two favourites: `form1` with marker index 2 (Run 6) | P03 | 024, 051 |
+| P03f | `P03f-list-owntopic2-after-delflag.html` | Read list after delflag: the topic's read flag is gone too | P03 | 024, 051 (rows aliased by position, re-run through the kit on the published page 2026-11-06: not re-captured) |
+| P03g | `P03g-favourites-two-rows.html` | `forum1f.php?owntopic=3` with two favourites: `form1` with marker index 2 (Run 6) | P03 | 024, 051 (rows aliased by position, re-run through the kit on the published page 2026-11-06: not re-captured) |
 | P03h | `P03h-manageaction-delflags-browser-one-of-two.html` | Browser body of `P03g`'s `form1`, first row checked (meta `request_body`): "Favoris supprimés avec succès", refresh `/forum1f.php?config=hfr.inc&owntopic=3&new=0&nojs=0` | P03 | 051, 037 |
-| P03i | `P03i-favourites-after-browser-delflags.html` | The list after `P03h`: only the unchecked row is left | P03 | 024, 051 |
+| P03i | `P03i-favourites-after-browser-delflags.html` | The list after `P03h`: only the unchecked row is left | P03 | 024, 051 (rows aliased by position, re-run through the kit on the published page 2026-11-06: not re-captured) |
 | P03j | `P03j-manageaction-delflags-legacy-body.html` | Legacy body (no `owntopic`, marker index 1, one topic): "Drapeaux effacés avec succès", refresh `/` | P03 | 051, 037 |
-| P03k | `P03k-favourites-three-rows.html` | Three favourites: `form1` with marker index 3 | P03 | 024, 051 |
+| P03k | `P03k-favourites-three-rows.html` | Three favourites: `form1` with marker index 3 | P03 | 024, 051 (rows aliased by position, re-run through the kit on the published page 2026-11-06: not re-captured) |
 | P03l | `P03l-manageaction-delflags-browser-three-rows.html` | Browser body, all three rows checked: same answer as `P03h` | P03 | 051, 037 |
 | P03m | `P03m-topic-p1-logged-in-favourite.html` | `R21`'s topic page 1, logged in (user2), topic in the favourites: header `delflag` link with `favorisn.gif` | P03 | 030, 033, 051 |
 | P03n | `P03n-delflag-owntopic0-success.html` | `delflag.php` with `owntopic=0` (the `P03m` link): "Drapeau effacé avec succès", refresh to the sub-forum list | P03 | 051, 037 |
@@ -232,8 +232,8 @@ are not published (none found).
 | R71b | `R71b-profile-edit-page1-anon.html` | Page 1 without cookies: the same `.hop` as `R71a` | R55 | 044 |
 | R72a | (meta only) | `GET /unlog.php?config=hfr.inc` (the `R70a` refresh target, no `codehex`) with a valid jar: 200, empty body, no `Set-Cookie` | — | 044 |
 | R72b | `R72b-home-after-unlog-without-token.html` | Home with the same jar right after `R72a`: still logged in, the same cookie values | R03 | 044 |
-| R73a | `R73a-favourites-owntopic1-two-categories.html` | user2's followed list: two categories, two rows, a closed topic (`lock.gif`) and a poll (`sondage.gif`), `flag1.gif` | R10 | 024, 092 |
-| R73b | `R73b-favourites-owntopic1-thirteen-categories.html` | user1's followed list: 13 categories, 88 rows (27 polls), `favoris.gif` on 84 rows and `flag1.gif` on 4, theme images under `images/defaut/` | R10 | 024, 092 |
+| R73a | `R73a-favourites-owntopic1-two-categories.html` | `forum1f.php?owntopic=1` (user2): two categories, two rows (aliased by position), a closed topic (`lock.gif`) and a poll (`sondage.gif`), `favoris.gif`; re-captured 2026-11-06 | R10 | 024, 092 |
+| R73b | `R73b-favourites-owntopic1-thirteen-categories.html` | `forum1f.php?owntopic=1` (user1): 13 categories, 88 rows (26 polls) aliased by position, `favoris.gif` on 84 rows and `flag1.gif` on 4, theme images under `images/defaut/`; re-captured 2026-11-06 | R10 | 024, 092 |
 | R74 | (meta only) | Profile page 1 logged in (as `R55-p1`): `md_user` and `md_passs` each set twice, a value for `.hardware.fr` (+30 days) and `deleted` for `.forum.hardware.fr` (expired 1970), see its `note` | R55 | 043, 044 |
 | W40 | `W40-public-new-topic-success.html` | New topic (Programmation › iOS, browser semantics): "Votre message a été posté avec succès !", refresh to the **category** list `/hfr/<cat>/liste_sujet-1.htm`, no topic id; sets `md_data` | E14 | 048, 037 |
 | W41 | `W41-public-first-post-edit-add-poll-success.html` | First-post edit adding a poll (`have_sondage=1`, `textreponse0..2`, legacy semantics): "Votre message a été édité avec succès !", refresh `…sujet_<post>_1.htm#t<numreponse>` | E11, P01 | 048, 054 |
@@ -289,16 +289,15 @@ are not published (none found).
 | T20, T21, T24 | meta only | `https://reho.st/`: 403 `text/html` without `Referer`; 200 `text/html`, empty body, with `Referer: https://forum.hardware.fr/` or `https://forum.hardware.fr` | E26 | 056, 083, 109 |
 | T22, T23 | meta only | `https://reho.st/self/abc123.jpg` (legacy test path, no such image): 403 without `Referer`, 200 empty `text/html` with it | E26 | 056, 083, 109 |
 | R122a | `R122a-topic-locked-logged-in.html` | The locked topic of `R31` seen by user2 (#122, 2026-11-05): 200, no `#repondre_form`, no `.hop`, no bottom answer link; the per-message quote links (`quote.gif`, `quote+.gif`/`quote-.gif`) are still there; header flag link `delflag` with `flagn0.gif` | R31 | 033, 031, 113 |
-| R122b | `R122b-topic-logged-in-favourite-owntopic1.html` | A favourite topic (user1) opened with the row link of a `forum1f.php?owntopic=1` list: the header `delflag` link carries `owntopic=1` and `favorisn.gif`; the search form's `owntopic` is `1`; the page holds no post of an operator account | P03, R10 | 033, 051 |
 | R122c | `R122c-topic-search-filter-checked.html` | Intra-topic search result with the **filter** box checked: a plain GET of the `R52a` target plus `&filter=1` (user2): 200, only the 31 messages that contain the word (one page, no pager), `<input name="filter" … checked="checked">`, `word` prefilled, `currentnum` present without value, no `dep`/`firstnum` field | R52 | 033, 093, 113 |
 | R122d | `R122d-topic-search-word-no-filter.html` | The same GET without `filter`: a normal page 1 (40 messages, pager), `word` prefilled, `filter` unchecked | R52 | 033, 113 |
 | R121a | `R121a-mp-list-logged-out.html` | `forum1.php?config=hfr.inc&cat=prive&page=1` without cookies: 200, bare `<body>` with the `.hop` "Désolé, vous ne faites pas partie des membres ayant accès à cette catégorie" and a back link; no list | R13 | 022, 023 |
 | R121b | `R121b-search-all-categories-first-category.html` | Global search with an empty `cat` ("Toutes les catégories", cookie-less GET of the `R50b` URL): **302** to `forum1.php?config=hfr.inc&cat=<first category with a hit>&post_cat_list=\|14*hfr\|5*hfr\|…&…&searchall=1`; the page lists that category's hits (1 row) under a form "Le moteur de recherche a trouvé des résultats dans les catégories suivantes" with a `cat` select | R50 | 022, 046, 115 |
 | R121c | `R121c-search-all-categories-pivot-category-5.html` | The same results for another category of the pivot (`cat=5`, same `post_cat_list`, `searchall=1`): 4 rows, the pivot form again | R50 | 022, 046, 115 |
 | R121d | `R121d-search-form-page.html` | `search.php?config=hardwarefr.inc&cat=13&subcat=0` without cookies: the search form (POST `/search.php?config=hfr.inc`), `cat` select whose first option is "Toutes les catégories" with the **empty** value | S1 | 046, 115 |
-| R121e | `R121e-list-cat22-p1-logged-in.html` | Category list page 1 logged in (user1, 301 to the canonical `liste_sujet-1.htm`): 53 rows (3 sticky), 6 with a flag link in `sujetCase5` (4 `flag0.gif`, 2 `flag1.gif`) and 47 with the empty cell, 24 single-page topics | R04 | 022, 024, 092 |
+| R121e | `R121e-list-cat22-p1-logged-in.html` | Category list page 1 logged in (user1, 301 to the canonical `liste_sujet-1.htm`): 53 rows (3 sticky), 6 with a flag link in `sujetCase5` (4 `flag0.gif`, 2 `favoris.gif`) and 47 with the empty cell, 24 single-page topics; every row is aliased by position (rewritten link form, slug included, [kit README](../../../../../tooling/fixtures/README.md#list-rows)) | R04 | 022, 024, 092 |
 | R121f | `R121f-list-cat32-single-page-anon.html` | List of category 32 (Intelligence Artificielle), anonymous: 39 rows (1 sticky), a single page (no "Page Suivante") | R04 | 022 |
-| (oracles) | `../M2-readonly/` | Legacy oracles of `R121a`, `R121b`, `R121c`, `R121e`, `R121f` and `R122a`-`R122d` (`run-oracle.sh`, legacy `2440d79`), in their own folder and map: the LOT-002/LOT-003 guard tests list every case of their maps, so wiring these into a differential test is a follow-up | — | 022, 023, 033 |
+| (oracles) | `../M2-readonly/` | Legacy oracles of `R121a`, `R121b`, `R121c`, `R121e`, `R121f`, `R122a`, `R122c` and `R122d` (`run-oracle.sh`, legacy `2440d79`), in their own folder and map: the LOT-002/LOT-003 guard tests list every case of their maps, so wiring these into a differential test is a follow-up | — | 022, 023, 033 |
 | T30, T31 | meta only | A real `reho.st` image (`https://reho.st/preview/self/<hash>.jpg`, cookie-less, #134): **403** `text/html` (nginx) without `Referer`; **200** `image/jpeg` (134 kB) with `Referer: https://forum.hardware.fr/` | E26 | 056, 083, 109 |
 | T32, T33 | meta only | The same for an `http://reho.st/self/<hash>.jpg` image: 403 without `Referer`, 200 `image/jpeg` with it; no redirect to https | E26 | 056, 083, 109 |
 
@@ -312,7 +311,7 @@ are not published (none found).
 | R63c, R63d | Captured, not published: the own topic's edit form after the edit and after the restore, read back only to verify the restore byte for byte (R63d equals R63b apart from the connected-users count). |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |
 | R34, R51, R58 | Dropped per the checklist (R51 covered by R50b, R58 by R08-2). |
-| R33, poll voted by the account itself without the multipseudo notice | Searched, not found: the poll topics of user1's followed list (`forum1f.php?owntopic=1`, 27 poll topics) were opened page 1 for four of them; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
+| R33, poll voted by the account itself without the multipseudo notice | Searched, not found: four poll topics of a `forum1f.php?owntopic=1` list were opened page 1; one is R33b (with the multipseudo notice, also for user2), the three others still offer the vote form. A plain "already voted" page would need a vote (P05, out of scope): synthetic per checklist §C N06 if a lot needs it. |
 | X10 cookie-less multi-quote | Out of the approved scope or not needed. |
 | A cookie-less poll vote and the poll author's results view (run 8) | Captured, not published: held for an operator decision (see the run 8 PR). |
 | A reply to a locked topic, a ban refusal (run 8) | The locked topic's composer is served (200) but its POST was not sent (not an operator topic); no banned account. |
