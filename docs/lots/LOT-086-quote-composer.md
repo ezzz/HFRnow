@@ -85,14 +85,17 @@ prefill was asked for). Only after HFR's confirmation of the reply (`PostingResu
 quotes (the first number of each `[quotemsg=n,…]`, LOT-049's rule) are unselected, one by one, each read again; a message selected
 after the prefill stays, a message the user unselected meanwhile is not selected again, another topic is untouched. A block the user
 deleted leaves its message selected. On every other outcome (`rejected`, `unconfirmed`, a local refusal) the selection is kept. A
-single quote never releases. Only a reply takes a quote: an edit or a new message ignores one, so an edit never re-posts a quote.
+quote that carries no selected message releases nothing. Whichever way the composer opens (reply button, "Citer", selection quote,
+even a failed multi-quote fetch) it carries the selection as it is then, so a restored draft that still quotes selected messages
+frees them once posted; the messages released are those the posted text quotes. The numbers of a multi-quote are read from HFR's
+prefill, and `HFRSession.unselectQuotes` unselects them in one actor turn (LESSONS 55). Only a reply takes a quote: an edit or a new message ignores one, so an edit never re-posts a quote.
 
 The composer still posts through a form fetched at send time (LOT-084), not through the `QuoteComposer` fetched when it opened (a
 form may be minutes old), so the release is the app's own, with LOT-049's rule; `QuoteFlow.reply` is not used.
 
 ## Edge cases
 
-- Logged out: `ComposerServices` is nil, so no quote handler is registered and no selection menu entry is offered.
+- Logged out: `ComposerServices` is nil, so the quote handlers decline (`canQuote`) and no quote entry or selection menu entry is offered.
 - A page without an answer form (closed topic, private conversation of the Messages tab): nothing to quote into.
 - A second quote while one is being fetched is ignored (legacy `isLoadingQuoteTemplate`).
 - A selection reported for a document that is no longer the one shown, or for a continuation copy: dropped.
@@ -115,6 +118,8 @@ HFR does; `R42` and `R47c` are ascending already).
 5. The reply button is not hidden in landscape on iPhone (legacy hid its floating "+" there because it covered the page; a toolbar
    item covers nothing).
 6. A short confirmation after each toggle.
+7. "Citer", "Citer extrait" and "Citer gras" merge into the topic's draft; legacy archived the draft and replaced it
+   (`replaceComposerDraft`, `MessagesView.swift:4265-4281` @ 21173e7). `ReplyQuoteDraftMerger` had no call site in legacy.
 
 ## Tests
 

@@ -151,7 +151,7 @@
       };
       const article = messageOf(selection.anchorNode);
       if (article === null || article !== messageOf(selection.focusNode)) { return false; }
-      channel.postMessage({ type: "quote", token, post: Number(article.dataset.post), text: text.slice(0, 20000), bold: bold === true });
+      channel.postMessage({ type: "quote", token, post: Number(article.dataset.post), text: Array.from(text).slice(0, 20000).join(""), bold: bold === true });
       return true;
     },
     // Scrolls to the message and keeps it there while the page settles.

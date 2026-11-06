@@ -1,8 +1,10 @@
 import Foundation
 
 // Port of HFRswift/Swift/MessagesView.swift (`ReplyQuoteDraftMerger`, :15-34) @ 21173e7 (`master`; the type is newer than
-// 2440d79). Differences: the "already in the draft" test is exact; legacy's `localizedStandardContains` also ignores case and
-// diacritics, so a draft that merely spells the quote's words in another case would have dropped the quote.
+// 2440d79 and has no call site there: legacy's quote entries archived the draft and replaced it, `replaceComposerDraft`).
+// Differences: the quote entries merge into the draft (docs/lots/LOT-086-quote-composer.md, difference 7); the "already in
+// the draft" test is exact; legacy's `localizedStandardContains` also ignores case and diacritics, so a draft that merely
+// spells the quote's words in another case would have dropped the quote.
 /// Puts a quote into the text already written (LOT-086).
 enum QuoteDraftMerger {
     /// `draft` with `quote` after it, a blank line between. An empty draft becomes the quote as served; a blank quote, or a

@@ -96,7 +96,6 @@ struct ReplyComposerQuoteTests {
         await model.send()
         #expect(model.closeReason == nil)
         #expect(quoter.releases.isEmpty)
-        #expect(quoter.selected == [100, 101])
     }
 
     @Test func aRefusedLocalSendKeepsTheSelectionToo() async {
@@ -110,7 +109,7 @@ struct ReplyComposerQuoteTests {
         #expect(quoter.releases.isEmpty)
     }
 
-    @Test func aSingleQuoteNeverTouchesTheSelection() async {
+    @Test func aQuoteWithoutASelectionToReleaseReleasesNothing() async {
         let quoter = ScriptedQuoter(selected: [100])
         let poster = ScriptedPoster([.success(replyConfirmed)])
         let model = composer(quote: ReplyQuote(text: block), poster: poster, quoter: quoter)
@@ -118,7 +117,6 @@ struct ReplyComposerQuoteTests {
         await model.send()
         #expect(model.closeReason == .sent(replyConfirmed))
         #expect(quoter.releases.isEmpty)
-        #expect(quoter.selected == [100])
     }
 
     @Test func aReplyWithoutAnyQuoteReleasesNothing() async {

@@ -64,19 +64,17 @@ struct LiveQuoter: QuoteOpening {
     }
 
     func selectionQuote(_ token: QuoteSelectionToken, answerFormURL: URL) async throws(QuoteError) -> ReplyQuote {
-        // The selection the engine reads before its request: HFR prefills these messages.
-        let numbers = await selectedNumbers(for: token)
         let composer = try await flow.multiQuote(token, answerFormURL: answerFormURL, in: session)
+        // The messages HFR prefilled are the ones to release, not a selection read around the request: a message toggled
+        // meanwhile is in the posted text or it is not, and the prefill says which.
+        let numbers = Self.quotedNumbers(in: composer.prefill).sorted()
         return ReplyQuote(text: MultiQuoteOrder.topicOrder(composer.prefill), release: QuoteRelease(token: token, numbers: numbers))
     }
 
     func release(_ release: QuoteRelease, postedText: String) async {
         let quoted = Self.quotedNumbers(in: postedText)
-        for number in release.numbers where quoted.contains(number) {
-            let message = QuoteSelectionToken(forum: release.token.forum, topic: release.token.topic, numreponse: number)
-            // Read again for each one: a toggle of a message the user unselected meanwhile would select it again.
-            if await session.isQuoteSelected(message) { await session.toggleQuote(message) }
-        }
+        // One actor turn (LESSONS 55): a message the user unselected meanwhile is not selected again.
+        await session.unselectQuotes(release.numbers.filter(quoted.contains), of: release.token)
     }
 
     /// The messages a text quotes: the first number of each `[quotemsg=<numreponse>,<ref>,<author>]`. The rule of

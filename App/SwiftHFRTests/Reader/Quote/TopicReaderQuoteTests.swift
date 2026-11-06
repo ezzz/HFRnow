@@ -24,15 +24,23 @@ struct TopicReaderQuoteTests {
 
     // MARK: Citer
 
-    @Test func quoteOpensTheComposerWithHFRsQuoteOfThatMessageAndLeavesTheSelectionAlone() async throws {
-        let quoter = ScriptedQuoter(selected: [101])
+    @Test func quoteOpensTheComposerWithHFRsQuoteOfThatMessage() async throws {
+        let quoter = ScriptedQuoter()
         quoter.scriptQuote(.success(prefill))
         let model = await reader(quoter: quoter)
         await model.quoteMessage(post: 100)
         #expect(quoter.quoteLinks == [quoteLink(100)])
         #expect(model.pendingReply?.quote == ReplyQuote(text: prefill, release: nil))
-        #expect(quoter.selected == [101])
         #expect(quoter.releases.isEmpty)
+    }
+
+    @Test func aQuoteCarriesTheSelectionSoTheDraftItRestoresReleasesItOnceSent() async {
+        // Messages 100 and 101 were selected and merged into a draft kept earlier; quoting 105 now must not strand them.
+        let quoter = ScriptedQuoter(selected: [100, 101])
+        quoter.scriptQuote(.success(prefill))
+        let model = await reader(quoter: quoter, page: quotablePage(numbers: [100, 101, 105]))
+        await model.quoteMessage(post: 105)
+        #expect(model.pendingReply?.quote == ReplyQuote(text: prefill, release: QuoteRelease(token: quoteToken(100), numbers: [100, 101])))
     }
 
     @Test func aFailedQuoteOpensNothingAndSaysWhy() async {
@@ -47,10 +55,26 @@ struct TopicReaderQuoteTests {
 
     @Test func aContinuationCopyAndAMessageTheTopicLacksAreNotQuoted() async {
         let quoter = ScriptedQuoter()
-        let model = await reader(quoter: quoter)
+        let model = await reader(quoter: quoter, page: quotablePage(numbers: [100, 101], continuation: 150))
+        await model.quoteMessage(post: 150)
         await model.quoteMessage(post: 999)
         #expect(quoter.quoteLinks.isEmpty)
         #expect(model.pendingReply == nil)
+    }
+
+    @Test func aSecondTapOnTheReplyButtonWaitsForTheFirstFetch() async {
+        let gate = ReaderGate()
+        let quoter = ScriptedQuoter(selected: [100], gate: gate)
+        quoter.scriptSelection(.success("blocs"))
+        let model = await reader(quoter: quoter)
+        let first = Task { await model.requestReply() }
+        await gate.untilArrived()
+        #expect(model.isLoadingQuote)
+        await model.requestReply()
+        #expect(quoter.selectionLinks.count == 1)
+        await gate.open()
+        await first.value
+        #expect(model.pendingReply?.quote?.text == "blocs")
     }
 
     @Test func aSecondQuoteWaitsForTheFirstOne() async throws {
@@ -188,10 +212,9 @@ struct TopicReaderQuoteTests {
         quoter.scriptSelection(.failure(.otherTopic))
         let model = await reader(quoter: quoter)
         await model.requestReply()
-        #expect(model.pendingReply != nil)
-        #expect(model.pendingReply?.quote == nil)
+        // It opens with no text but the selection to release, so a draft that quotes it frees it once posted.
+        #expect(model.pendingReply?.quote == ReplyQuote(text: "", release: QuoteRelease(token: quoteToken(100), numbers: [100])))
         #expect(model.menuFeedback == ComposerMessages.quote(.otherTopic))
-        #expect(quoter.selected == [100])
     }
 
     @Test func aPageWithoutAnAnswerFormHasNoReplyToOpen() async {

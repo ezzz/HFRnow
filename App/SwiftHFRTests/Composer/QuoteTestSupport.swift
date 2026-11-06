@@ -68,6 +68,7 @@ final class ScriptedQuoter: QuoteOpening {
             state.selectionLinks.append(answerFormURL)
             return (state.selection, state.selected)
         }
+        await gate?.wait()
         return ReplyQuote(text: try answer.text.get(), release: QuoteRelease(token: token, numbers: answer.numbers))
     }
 
@@ -87,10 +88,12 @@ func quoteToken(_ number: Int) -> QuoteSelectionToken {
 }
 
 /// A page of `readerTopic` whose messages `numbers` carry their quote link and multi-quote token, with the answer link of `R61d`.
-func quotablePage(numbers: [Int] = [100, 101], answerURL: URL? = replyFormURL, quotable: Bool = true) -> ReaderPage {
-    let messages = numbers.map { number in
+func quotablePage(
+    numbers: [Int] = [100, 101], continuation: Int? = nil, answerURL: URL? = replyFormURL, quotable: Bool = true
+) -> ReaderPage {
+    let messages = (numbers + (continuation.map { [$0] } ?? [])).map { number in
         ReaderMessage(
-            numreponse: number, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
+            numreponse: number, author: "auteur", isDeleted: false, isContinuation: number == continuation, avatarURL: nil,
             dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: "<p>x</p>"),
             actions: quotable ? MessageActions(quoteURL: quoteLink(number), quoteSelection: quoteToken(number)) : MessageActions()
         )

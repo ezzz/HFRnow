@@ -22,18 +22,20 @@ extension TopicReaderModel {
     /// composer still opens, so a failed quote never blocks a reply; the message says what was not added.
     func requestReply() async {
         guard replyTarget != nil, !isLoadingQuote, pendingReply == nil else { return }
+        // Busy before the first await: a second tap meanwhile must not start a second fetch.
+        isLoadingQuote = true
+        defer { isLoadingQuote = false }
         guard let quoting, let page, let answerURL = page.answerURL, let token = selectionToken(on: page),
               !(await quoting.selectedNumbers(for: token)).isEmpty else {
             pendingReply = ReplyRequest()
             return
         }
-        isLoadingQuote = true
-        defer { isLoadingQuote = false }
         do throws(QuoteError) {
             pendingReply = ReplyRequest(quote: try await quoting.selectionQuote(token, answerFormURL: answerURL))
         } catch {
             showMenuFeedback(ComposerMessages.quote(error))
-            pendingReply = ReplyRequest()
+            // Still opens, carrying the selection: a draft that quotes it releases it once posted.
+            pendingReply = ReplyRequest(quote: ReplyQuote(text: "", release: await currentRelease()))
         }
     }
 
@@ -43,7 +45,7 @@ extension TopicReaderModel {
         isLoadingQuote = true
         defer { isLoadingQuote = false }
         do throws(QuoteError) {
-            pendingReply = ReplyRequest(quote: ReplyQuote(text: try await quoting.quote(actions)))
+            pendingReply = ReplyRequest(quote: ReplyQuote(text: try await quoting.quote(actions), release: await currentRelease()))
         } catch {
             showMenuFeedback(ComposerMessages.quote(error))
         }
@@ -58,7 +60,8 @@ extension TopicReaderModel {
         defer { isLoadingQuote = false }
         do throws(QuoteError) {
             let prefill = try await quoting.quote(actions)
-            pendingReply = ReplyRequest(quote: ReplyQuote(text: QuoteSelectionFormatter.format(prefill, selection: text, bold: bold)))
+            let narrowed = QuoteSelectionFormatter.format(prefill, selection: text, bold: bold)
+            pendingReply = ReplyRequest(quote: ReplyQuote(text: narrowed, release: await currentRelease()))
         } catch {
             showMenuFeedback(ComposerMessages.quote(error))
         }
@@ -79,6 +82,14 @@ extension TopicReaderModel {
         let numbers = await quoting.selectedNumbers(for: token)
         quoteSelected = Set(numbers)
         return selected ? "Ajouté aux citations (\(numbers.count))" : "Retiré des citations (\(numbers.count))"
+    }
+
+    /// The selection as it is now, to release once a reply that quotes some of it is posted: whichever way the composer was
+    /// opened, the draft it restores may quote messages that are still selected. Nil when nothing is selected.
+    private func currentRelease() async -> QuoteRelease? {
+        guard let quoting, let token = selectionToken(on: page) else { return nil }
+        let numbers = await quoting.selectedNumbers(for: token)
+        return numbers.isEmpty ? nil : QuoteRelease(token: token, numbers: numbers)
     }
 
     /// The reply the screen has to open, handed over once.
