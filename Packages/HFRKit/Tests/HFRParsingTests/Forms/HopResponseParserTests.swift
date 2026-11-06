@@ -12,9 +12,13 @@ struct HopResponseParserTests {
         "W34", "W35"
     ]
 
-    @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases)
+    /// The group roster answers (#507), whose oracles are in `M2-writes/`.
+    static let rosterCases = ["W71", "W72", "W74", "W75", "W76", "W77", "W78"]
+
+    @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases + rosterCases)
     func followsOracle(id: String) throws {
-        let oracle = try HopResponseOracle.load(id)
+        let folder = Self.rosterCases.contains(id) ? "Fixtures/M2-writes" : "Fixtures/LOT-004"
+        let oracle = try HopResponseOracle.load(id, subdirectory: folder)
         let response = try HopResponseParser.classify(html: oracle.html)
         let legacyKind = try #require(oracle.legacy["classification"] as? String)
         // `loggedOut` refines the legacy "rejected" (W17c, difference 2 of the spec); nothing else changes kind.
