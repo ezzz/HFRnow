@@ -173,7 +173,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-106 | Reader display settings (layout, signatures, swipe pages; text size moved to LOT-169) | App | medium | Sonnet → Opus | 083, 060 | legacy parity | medium | [#197](https://github.com/ezzz/HFRnow/issues/197) |
 | LOT-107 | Image loading setting (never / Wi-Fi / always) | App | easy | Sonnet → Opus | 083, 060 | FEAT-011 | medium | [#198](https://github.com/ezzz/HFRnow/issues/198) |
 | LOT-108 | Video placeholder, player on tap | App | easy | Sonnet → Opus | 035, 083 | legacy parity (H.1: the placeholder is new, LOT-071 D-071-2) | low | [#199](https://github.com/ezzz/HFRnow/issues/199) |
-| LOT-109 | Image viewer: full screen, save, copy link (the HD gallery with swipe is LOT-176, M5) | App | medium | Sonnet → Opus | 083, 056, 160 | FEAT-014 | medium | [#200](https://github.com/ezzz/HFRnow/issues/200) |
+| LOT-109 | Image viewer: full screen, save, copy link, and the HD gallery with swipe (shipped together, #472) | App | medium | Sonnet → Opus | 083, 056, 160 | FEAT-014 | medium | [#200](https://github.com/ezzz/HFRnow/issues/200) |
 | LOT-110 | Page navigator | App | easy | Sonnet → Opus | 083, 033 | FEAT-002 | high | [#201](https://github.com/ezzz/HFRnow/issues/201) |
 | LOT-111 | First-unread landing and the legacy separator (the 'Nouveau' banner is LOT-178, M5) | App | medium | Sonnet → Opus | 083, 090 | FEAT-007 | high | [#202](https://github.com/ezzz/HFRnow/issues/202) |
 | LOT-112 | Page scrubber | App | medium | Sonnet → Opus | 110, 111 | FEAT-004 | medium | [#203](https://github.com/ezzz/HFRnow/issues/203) |
@@ -294,7 +294,7 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 |---|---|---|---|---|---|
 | 085b | LOT-085 → LOT-174 | insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (`AnswerView.swift:500-511`, `ReplyComposer.swift:141-175` @ 2440d79) | Visible formatting toolbar in the composer | 084, 085, 086 | 18 |
 | 088b | LOT-088 → LOT-175 | edit own messages (the first post too), delete with confirmation except on the first post | Delete the first post of a topic, which deletes the topic, with a confirmation | 097 | 14 |
-| 109b | LOT-109 → LOT-176 | full-screen viewer, save, copy link | HD image gallery with swipe between the images of a topic | 057 | — |
+| 109b | LOT-109 → LOT-176 | full-screen viewer, save, copy link | HD image gallery with swipe between the images of a topic: shipped in LOT-109 (#472, 2026-11-06), nothing left for LOT-176 | 057 | — |
 | 125b | LOT-125 → LOT-177 | legacy swipes (leading Lu, trailing Supprimer) and the legacy context menu: Première page, Dernière page, Dernière réponse, Page numéro…, Copier le lien (`Favorites.swift:1073-1097`, `Common.swift:3050-3093` @ 2440d79) | Uniform swipe set in every list: Lu with "Annuler", Super favori and Retirer swipes, FEAT-008 | 028, 029, 034 | 08 |
 | 111b | LOT-111 → LOT-178 | first-unread landing and legacy separator | "Nouveau" banner at the first unread message | 063 | 11 |
 | 120b | LOT-120 → LOT-179 | system-settings shortcut, version, static pages, About links in the app | Cache sizes and clearing in the settings | 152 | — |
@@ -307,7 +307,7 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 |---|---|---|---|---|---|---|---|---|
 | LOT-174 | Visible formatting toolbar in the composer (the (b) half of LOT-085; the Edit-menu actions stay there) | App | medium | Sonnet → Opus | 085 | UXD-18 · GAP 084, 085, 086 | low | [#414](https://github.com/ezzz/HFRnow/issues/414) |
 | LOT-175 | Delete the first post of a public topic, which deletes the whole topic, with a confirmation (the (b) half of LOT-088; in a private message the recipient keeps the thread, [HFR-PROTOCOL](HFR-PROTOCOL.md) §7 X1) | App | medium | Opus → Fable | 088 | UXD-14 · GAP 097 | low | [#415](https://github.com/ezzz/HFRnow/issues/415) |
-| LOT-176 | HD image gallery with swipe between the images of a topic (the (b) half of LOT-109) | App | medium | Sonnet → Opus | 109 | none · GAP 057 · FEAT-014 | low | [#416](https://github.com/ezzz/HFRnow/issues/416) |
+| LOT-176 | Nothing left beyond parity: the HD gallery with swipe shipped in LOT-109 (#472, operator decision 2026-11-06); to be closed as not planned | App | medium | Sonnet → Opus | 109 | none · GAP 057 · FEAT-014 | low | [#416](https://github.com/ezzz/HFRnow/issues/416) |
 | LOT-177 | Uniform swipe set in every list: Lu with "Annuler", Super favori and Retirer swipes, FEAT-008 (the (b) half of LOT-125) | App | medium | Opus → Fable | 125 | UXD-08 · GAP 028, 029, 034 · FEAT-008 | low | [#417](https://github.com/ezzz/HFRnow/issues/417) |
 | LOT-178 | "Nouveau" banner at the first unread message (the (b) half of LOT-111; the legacy separator stays there) | App | medium | Sonnet → Opus | 111 | UXD-11 · GAP 063 · FEAT-007 | low | [#418](https://github.com/ezzz/HFRnow/issues/418) |
 | LOT-179 | Cache sizes and clearing in the settings (the (b) half of LOT-120) | App | easy | Sonnet → Opus | 120 | none · GAP 152 | low | [#419](https://github.com/ezzz/HFRnow/issues/419) |

@@ -102,10 +102,10 @@ final class RootModel {
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
-    private static func messageList(_ environment: AppEnvironment) -> MessageListModel {
+    private static func messageList(_ environment: AppEnvironment, store: any SettingsStore) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions
+            renderOptions: environment.reader.settings.renderOptions, settings: store
         )
     }
 
@@ -123,7 +123,7 @@ final class RootModel {
         }
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
-            favorites: navigation(startup: Self.favoritesStartupSource), messages: Self.messageList(environment),
+            favorites: navigation(startup: Self.favoritesStartupSource), messages: Self.messageList(environment, store: store),
             search: ForumSearchModel(
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
                 renderOptions: environment.reader.settings.renderOptions, store: store

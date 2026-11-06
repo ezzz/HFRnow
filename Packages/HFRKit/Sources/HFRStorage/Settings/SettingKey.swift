@@ -66,6 +66,9 @@ public enum SettingKey {
     /// `HFRswiftStartupScreen` (`Common.swift:32-37`): an unknown value falls back to the favourites default, like
     /// `AppStartupScreen.rootTab(for:)`. Added by LOT-119, which owns the settings screen.
     public static let startupScreen = Setting.stringEnum("HFRswiftStartupScreen", default: StartupScreen.favorites)
+    /// `mp_list_display` (LOT-171, new key): "Tout en un" (`single`, default) or "Deux listes" (`split`). An unknown value
+    /// reads as the default.
+    public static let mpListDisplay = Setting.stringEnum("mp_list_display", default: MPListDisplay.single)
     /// `open_links_in_default_browser` (`Common.swift:239-241`): follow external links in the system browser instead of
     /// the in-app one. Added by LOT-119.
     public static let opensLinksInDefaultBrowser = Setting.bool("open_links_in_default_browser", default: false)
@@ -170,7 +173,7 @@ public enum SettingKey {
         nightSuperFavoriteColor.key, nightBrightness.key, hideBlocklistedPosts.key, quoteFilterExceptions.key,
         quoteFilterMinimumCount.key, doubleSizeSmileys.key, embeddedVideos.key, displaySignatures.key,
         displayImages.key, mpStorageActive.key, mpStorageLastSync.key, searchCategory.key, rehostLinkMode.key,
-        rehostMaxDimension.key
+        rehostMaxDimension.key, mpListDisplay.key
     ]
 
     private static func colorSetting(_ key: String) -> Setting<ThemeColor?> {

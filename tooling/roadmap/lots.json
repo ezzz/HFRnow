@@ -1346,7 +1346,7 @@
 {
 "lot": "LOT-109",
 "star": false,
-"scope": "Image viewer: full screen, save, copy link (the HD gallery with swipe is LOT-176, M5)",
+"scope": "Image viewer: full screen, save, copy link, and the HD gallery with swipe (shipped together, #472)",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",
@@ -2172,7 +2172,7 @@
 {
 "lot": "LOT-176",
 "star": false,
-"scope": "HD image gallery with swipe between the images of a topic (the (b) half of LOT-109)",
+"scope": "Nothing left beyond parity: the HD gallery with swipe shipped in LOT-109 (#472, operator decision 2026-11-06); to be closed as not planned",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",

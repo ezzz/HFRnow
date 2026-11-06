@@ -55,7 +55,16 @@ struct MessageRowView: View {
 
     /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`).
     private var who: String {
-        thread.isGroup ? "Interlocuteurs multiples" : thread.summary.starterOrInterlocutors
+        guard thread.isGroup else { return thread.summary.starterOrInterlocutors }
+        return ["Interlocuteurs multiples", counts].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    /// Group rows read like topic rows (LOT-171): replies and pages, when the list row carries them.
+    private var counts: String? {
+        guard thread.isGroup, thread.summary.repliesCount > 0 else { return nil }
+        let pages = thread.summary.pageCount
+        let replies = FrenchPlural.count(thread.summary.repliesCount, "réponse", "réponses")
+        return pages > 1 ? "\(replies) · \(pages) pages" : replies
     }
 
     private var lastPost: String? {
