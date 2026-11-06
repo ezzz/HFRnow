@@ -3,6 +3,7 @@ import HFRModels
 import HFRNetwork
 import HFRStorage
 @testable import SwiftHFR
+import Testing
 
 /// A throwaway cache folder for a store under test.
 struct OfflineTempCache {
@@ -39,6 +40,6 @@ enum OfflineCorpus {
     static let pizza = TopicID(category: .forum(13), topic: 28563)
 
     static func html(_ file: String) throws -> String {
-        String(decoding: try LiveTopicPageSourceTests.capture(file), as: UTF8.self)
+        try #require(String(bytes: try LiveTopicPageSourceTests.capture(file), encoding: .utf8))
     }
 }
