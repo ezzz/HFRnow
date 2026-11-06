@@ -45,7 +45,7 @@ public enum AQFeedParser {
 
     private static func item(from element: Element) -> AQFeedItem? {
         guard let rawLink = text(of: "link", in: element), let link = HFRURL.absolute(rawLink),
-              link.host() == HFRURL.forumHost else { return nil }
+              link.host() == HFRURL.forumHost, link.scheme == "https", link.port == nil else { return nil }
         let description = text(of: "description", in: element) ?? ""
         let details = Details(description: description)
         return AQFeedItem(

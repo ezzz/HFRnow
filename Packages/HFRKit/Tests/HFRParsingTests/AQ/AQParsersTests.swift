@@ -129,6 +129,10 @@ struct AQParsersTests {
         let first = try #require(xml.firstMatch(of: /<link>[^<]*<\/link>\s*<guid>/))
         let offSite = xml.replacing(first.output, with: "<link>https://example.invalid/x?cat=13</link><guid>", maxReplacements: 1)
         #expect(try AQFeedParser.parse(offSite).count == 24)
+        // `HFRURL.absolute` keeps `http` on an explicit port: the session must never travel over it.
+        let http = "<link>http://forum.hardware.fr:80/forum2.php?cat=13</link><guid>"
+        let plain = xml.replacing(first.output, with: http, maxReplacements: 1)
+        #expect(try AQFeedParser.parse(plain).count == 24)
     }
 
     @Test("feed: captures are case-insensitive and the channel blurb is not an item description")

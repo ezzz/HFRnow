@@ -47,7 +47,7 @@ Also handled, each tested on `T01`/`T02`:
 
 ## Intentional differences from legacy
 - Topic titles, initiators and comments are entity-decoded; legacy returned `&quot;`/`&#039;` in `topicTitle` (B4, 4 of 25 items of `T01`). Decoding the comment and initiator is untested on a capture (*pending capture*, #438): same function, same HTML context.
-- A `<link>` that is not an `https` link to `forum.hardware.fr` skips the item (legacy skipped only an empty one): the feed is third-party and the app follows the links (LESSONS 43). All 25 `T01` links are forum links. Links go through `HFRURL.absolute` (scheme and user-info checks).
+- A `<link>` that is not an `https` link to `forum.hardware.fr` (no explicit port) skips the item (legacy skipped only an empty one): the feed is third-party and the app follows the links (LESSONS 43). All 25 `T01` links are forum links. Links go through `HFRURL.absolute` (scheme and user-info checks).
 - An unreadable `pubDate` is `publishedAt == nil` (legacy: now, so the item counted as new); only `±hhmm`/`GMT` offsets and four-digit years are read (`T01` shape); the 2-digit-year form of legacy's `yy` is not captured and not accepted.
 - The category filter is by `cat` parameter (`category(of:) == 25`), not legacy's `&cat=25&post` substring: a link with `cat=25` in another position is now hidden too.
 - `isNew`, the relative label ("il y a 3 h"), the unread count and the category-25 filter are app logic, not parsed; `isNew` is `publishedAt >= lastCheck` (the test checks this against the oracle).
