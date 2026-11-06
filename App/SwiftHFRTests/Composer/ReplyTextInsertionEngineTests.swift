@@ -53,6 +53,15 @@ struct ReplyTextInsertionEngineTests {
         #expect(Set(ReplyTextColor.palette.map(\.hex)).count == 16)
     }
 
+    /// HFR's tag is `[#rrggbb]`: the capture `R41a` renders `[#0055aa]x[/#0055aa]` as coloured text.
+    @Test func aColourTagStartsWithItsHash() {
+        let red = ReplyFormattingTarget.color(ReplyTextColor(name: "Rouge", hex: "ff0000"))
+        let result = ReplyTextInsertionEngine.wrapWithBBCode(
+            rawTag: red.rawTag, in: "x", selectedUTF16Range: NSRange(location: 0, length: 1)
+        )
+        #expect(result.text == "[#ff0000]x[/#ff0000]")
+    }
+
     @Test func urlWrapsTheSelectionWithTheAddress() {
         let result = ReplyTextInsertionEngine.wrapSelectionWithURL(
             "https://example.org/", in: "voir ici", selectedUTF16Range: NSRange(location: 5, length: 3)
