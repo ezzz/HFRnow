@@ -140,6 +140,7 @@ public actor PseudoListStore {
             throw PseudoListError.saveFailed(reason: String(describing: error))
         }
         state = .loaded(PseudoListDocument())
+        allowlistFeed.signal()
     }
 
     // MARK: Internals

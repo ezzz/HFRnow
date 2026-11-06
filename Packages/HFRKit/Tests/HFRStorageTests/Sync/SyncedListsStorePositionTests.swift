@@ -86,4 +86,34 @@ extension SyncedListsStoreTests {
         #expect(pushed.count == SyncedListsStore.positionsLimit)
         #expect(Set(pushed.map(\.topic.topic)) == Set(51...250))
     }
+
+    @Test func aMergeThatCannotBeSavedPushesNothingOverTheCloud() async throws {
+        let remote = Self.envelope([ReadingPositionRecord(topic: Self.other, position: Self.position(page: 7, at: 5))])
+        let fixture = await Self.make()
+        try await fixture.positions.advance(Self.topic, to: Self.position(page: 2, at: 10), account: "Alice")
+        // Another device's positions landed; this device cannot save them.
+        fixture.cloud.set(remote, forKey: Self.positionsKey)
+        fixture.positionPersistence.failsToSave = true
+        await fixture.sync.handle(.positionsChanged)
+        await fixture.sync.handle(.flushPositions)
+        #expect(fixture.cloud.value(forKey: Self.positionsKey) == remote)
+    }
+
+    @Test func runPushesAPositionAfterTheDelayAndEndsWhenCancelled() async throws {
+        let fixture = await Self.make()
+        let sync = SyncedListsStore(
+            cloud: fixture.cloud, pseudoLists: fixture.pseudoLists, superFavorites: fixture.superFavorites,
+            smileyFavorites: fixture.smileyFavorites, positions: fixture.positions, deviceState: fixture.deviceState,
+            accounts: { ["Alice"] }, positionsDelay: .milliseconds(20)
+        )
+        let running = Task { await sync.run() }
+        try await Task.sleep(for: .milliseconds(20))
+        try await fixture.positions.advance(Self.topic, to: Self.position(page: 2, at: 0), account: "Alice")
+        for _ in 0..<1000 where fixture.cloudPositions() == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(fixture.cloudPositions()?.map(\.topic) == [Self.topic])
+        running.cancel()
+        await running.value
+    }
 }

@@ -55,8 +55,12 @@ public actor SyncedListsStore {
     var owner: String?
     var stale: [String: String] = [:]
     var unsaved: [String: SyncQuarantineEntry] = [:]
-    /// Per cloud key, the list as last applied or pushed: a push only follows a change made here since.
-    var known: [String: SyncedValue] = [:]
+    /// Per cloud key, the digest of the list last synced (`SyncedListsDeviceState.synced`).
+    var synced: [String: String] = [:]
+    /// Whether the device file lags behind the owner, the stale stores or the digests: the sync then pauses, since
+    /// the next launch would read an older owner.
+    var stateUnsaved = false
+    var positionsTimer: Task<Void, Never>?
     var positionsPending = false
     var positionsGeneration = 0
     var waitingForStore = false
@@ -119,11 +123,13 @@ public actor SyncedListsStore {
             for await event in events {
                 await handle(event)
             }
+            positionsTimer?.cancel()
             group.cancelAll()
         }
     }
 
-    /// Pushes a pending reading-position change now; the app calls it when it goes to the background.
+    /// Queues the push of a pending reading-position change, handled before any later event; the app calls it when it
+    /// goes to the background (the system uploads from its own queue afterwards).
     nonisolated public func flushPositions() {
         sink.yield(.flushPositions)
     }
@@ -142,6 +148,7 @@ public actor SyncedListsStore {
         deviceStateLoaded = true
         owner = document.owner
         stale = document.stale
+        synced = document.synced
         purge()
         await settleStaleStores()
         guard let current = cloud.accountIdentity() else { return }
@@ -164,6 +171,7 @@ public actor SyncedListsStore {
     /// Handles one event (see the type's rules).
     func handle(_ event: Event) async {
         guard deviceStateLoaded else { return }
+        if stateUnsaved { saveDeviceState() }
         await settleStaleStores()
         switch event {
         case .cloud(let change):
@@ -173,11 +181,13 @@ public actor SyncedListsStore {
         case .positionsChanged:
             positionsPending = true
             positionsGeneration += 1
-            schedule(.positionsDue(positionsGeneration), after: positionsDelay)
+            positionsTimer?.cancel()
+            positionsTimer = schedule(.positionsDue(positionsGeneration), after: positionsDelay)
         case .positionsDue(let generation):
             if generation == positionsGeneration { await pushPendingPositions() }
         case .flushPositions:
             positionsGeneration += 1
+            positionsTimer?.cancel()
             await pushPendingPositions()
         case .accountsChanged:
             await reconcile()
@@ -200,6 +210,13 @@ public actor SyncedListsStore {
     func handle(_ change: SyncedStoreChange) async {
         let wasWaiting = waitingForStore
         waitingForStore = false
+        if change.reason != .accountChange, cloud.accountIdentity() != nil,
+           owner.map({ !cloud.isCurrentAccount($0) }) ?? true {
+            // An Apple ID change whose notification was missed.
+            if change.reason == .quotaViolation { quotaViolations.formUnion(change.keys.filter(Self.isListKey)) }
+            await accountChanged()
+            return
+        }
         switch change.reason {
         case .accountChange:
             await accountChanged()
@@ -209,10 +226,7 @@ public actor SyncedListsStore {
             quotaViolations.formUnion(change.keys.filter(Self.isListKey))
             if wasWaiting { await reconcile() }
         case .serverChange:
-            if cloud.accountIdentity() != nil, owner.map({ !cloud.isCurrentAccount($0) }) ?? true {
-                // An Apple ID change whose notification was missed.
-                await accountChanged()
-            } else if wasWaiting {
+            if wasWaiting {
                 await reconcile()
             } else {
                 for key in change.keys where Self.isListKey(key) { await apply(key) }
@@ -225,13 +239,12 @@ public actor SyncedListsStore {
     /// Whether lists may be applied and pushed: an Apple ID signed in that owns the local lists, its store content
     /// trusted, a format this build reads.
     var isActive: Bool {
-        guard deviceStateLoaded, !waitingForStore, let owner, cloud.accountIdentity() != nil, cloud.isCurrentAccount(owner)
-        else { return false }
+        guard deviceStateLoaded, !stateUnsaved, !waitingForStore, let owner, cloud.accountIdentity() != nil,
+              cloud.isCurrentAccount(owner) else { return false }
         return cloudSchemaIsReadable
     }
 
     func accountChanged() async {
-        known = [:]
         // Signed out: the lists stay and nothing is pushed until an Apple ID signs in (Amendment 2).
         guard let current = cloud.accountIdentity() else { return }
         if let owner, !cloud.isCurrentAccount(owner) {
@@ -242,35 +255,42 @@ public actor SyncedListsStore {
         await reconcile()
     }
 
-    /// Sets the previous Apple ID's lists aside, brings back the new one's, and makes it the owner.
+    /// Sets the previous Apple ID's lists aside, makes the new one the owner, then brings back its lists, once the
+    /// device file names it: restored lists must never be set aside under the previous Apple ID at the next launch.
     func switchOwner(from previous: String, to current: String) async {
-        known = [:]
         await setAside(owner: previous)
-        await restore(for: current)
+        synced = [:]
         setOwner(current)
+        guard !stateUnsaved else { return }
+        await restore(for: current)
     }
 
     func setOwner(_ identity: String) {
         owner = identity
-        saveOwnership()
+        saveDeviceState()
     }
 
     // MARK: Keys
 
-    /// The cloud key of an account's list, nil when the account key is empty or the key too long.
+    /// The cloud key of an account's list, nil when the account key is empty, or when the account's longest key
+    /// would exceed `maximumKeyLength`: an account syncs all its lists or none.
     func cloudKey(_ slot: Slot, account: String) -> String? {
         let accountKey = AccountKey.make(account)
         guard !accountKey.isEmpty else { return nil }
-        let key = "\(slot.rawValue).\(accountKey)"
-        guard key.utf8.count <= Self.maximumKeyLength else {
+        let longest = Slot.allCases.map { $0.rawValue.utf8.count }.max() ?? 0
+        guard longest + 1 + accountKey.utf8.count <= Self.maximumKeyLength else {
             unsyncedAccounts.insert(account)
             return nil
         }
-        return key
+        return "\(slot.rawValue).\(accountKey)"
     }
 
     func slot(of key: String) -> Slot {
         Slot(rawValue: String(key.prefix { $0 != "." })) ?? .allowlist
+    }
+
+    static func isPositionsKey(_ key: String) -> Bool {
+        key.hasPrefix("\(Slot.positions.rawValue).")
     }
 
     static func isListKey(_ key: String) -> Bool {
@@ -291,11 +311,13 @@ public actor SyncedListsStore {
         })
     }
 
-    func schedule(_ event: Event, after delay: Duration) {
+    @discardableResult
+    func schedule(_ event: Event, after delay: Duration) -> Task<Void, Never> {
         let sink = sink
         let sleep = sleep
-        Task {
+        return Task {
             await sleep(delay)
+            guard !Task.isCancelled else { return }
             sink.yield(event)
         }
     }

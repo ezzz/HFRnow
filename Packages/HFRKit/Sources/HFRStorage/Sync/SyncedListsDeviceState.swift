@@ -16,17 +16,22 @@ public struct SyncedListsDeviceState: SmallStoreDocument {
     public var stale: [String: String]
     /// Lists set aside, by the identity of the Apple ID they belong to; values by slot, each an envelope (`.data`).
     public var quarantine: [String: SyncQuarantineEntry]
+    /// Per cloud key, the digest of the list last applied or pushed for `owner`: a local list that differs was changed
+    /// on this device since, for example while signed out.
+    public var synced: [String: String]
 
     /// Creates a document.
     public init(
         version: Int = Self.currentVersion,
         owner: String? = nil,
         stale: [String: String] = [:],
-        quarantine: [String: SyncQuarantineEntry] = [:]
+        quarantine: [String: SyncQuarantineEntry] = [:],
+        synced: [String: String] = [:]
     ) {
         self.version = version
         self.owner = owner
         self.stale = stale
         self.quarantine = quarantine
+        self.synced = synced
     }
 }

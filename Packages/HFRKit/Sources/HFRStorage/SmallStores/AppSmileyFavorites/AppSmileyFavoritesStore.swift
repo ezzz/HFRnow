@@ -101,6 +101,7 @@ public actor AppSmileyFavoritesStore {
     /// Only call it after the user agreed: this is the single way out of a failed load.
     public func discardUnreadableData() throws(SmallStoreError) {
         try state.discardUnreadableData()
+        feed.signal()
     }
 
     // MARK: Internals

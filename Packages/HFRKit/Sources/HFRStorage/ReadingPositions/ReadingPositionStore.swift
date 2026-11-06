@@ -143,6 +143,7 @@ public actor ReadingPositionStore {
             throw ReadingPositionError.saveFailed(reason: String(describing: error))
         }
         state = .loaded(ReadingPositionDocument())
+        feed.signal()
     }
 
     // MARK: Internals

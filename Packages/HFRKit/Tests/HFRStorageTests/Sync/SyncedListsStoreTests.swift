@@ -21,6 +21,22 @@ import Testing
         func advance(seconds: Double) { current.withLock { $0 = $0.addingTimeInterval(seconds) } }
     }
 
+    /// A positions persistence whose saves can be refused.
+    final class FlakyPositionPersistence: ReadingPositionPersistence, @unchecked Sendable {
+        // Tests drive one store from one task: no concurrent access.
+        var failsToSave = false
+        private var document: ReadingPositionDocument?
+
+        func load() throws -> ReadingPositionDocument? { document }
+
+        func save(_ document: ReadingPositionDocument) throws {
+            if failsToSave { throw SmallStoreTestFailure() }
+            self.document = document
+        }
+
+        func quarantineUnreadableData() throws { document = nil }
+    }
+
     struct Fixture {
         let sync: SyncedListsStore
         let cloud: InMemorySyncedKeyValueStore
@@ -29,7 +45,8 @@ import Testing
         let superFavoritePersistence: FailingSmallStorePersistence<SuperFavoritesDocument>
         let smileyFavorites: AppSmileyFavoritesStore
         let positions: ReadingPositionStore
-        let deviceState: InMemorySmallStorePersistence<SyncedListsDeviceState>
+        let positionPersistence: FlakyPositionPersistence
+        let deviceState: FailingSmallStorePersistence<SyncedListsDeviceState>
         let clock: Clock
 
         /// The sync the app would build at its next launch, over the same stores, cloud and device file.
@@ -67,7 +84,7 @@ import Testing
         }
 
         func quarantine() -> [String: SyncQuarantineEntry] {
-            (try? deviceState.load())??.quarantine ?? [:]
+            deviceState.saved?.quarantine ?? [:]
         }
     }
 
@@ -84,8 +101,9 @@ import Testing
         let pseudoLists = PseudoListStore(persistence: InMemoryPseudoListPersistence())
         let superFavorites = SuperFavoritesStore(persistence: superFavoritePersistence)
         let smileyFavorites = AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence<AppSmileyFavoritesDocument>())
-        let positions = ReadingPositionStore(persistence: InMemoryReadingPositionPersistence())
-        let persistence = InMemorySmallStorePersistence(deviceState ?? SyncedListsDeviceState(owner: owner))
+        let positionPersistence = FlakyPositionPersistence()
+        let positions = ReadingPositionStore(persistence: positionPersistence)
+        let persistence = FailingSmallStorePersistence(deviceState ?? SyncedListsDeviceState(owner: owner))
         let sync = SyncedListsStore(
             cloud: cloudStore, pseudoLists: pseudoLists, superFavorites: superFavorites, smileyFavorites: smileyFavorites,
             positions: positions, deviceState: persistence, accounts: { ["Alice"] }, clock: { clock.now },
@@ -95,7 +113,7 @@ import Testing
         return Fixture(
             sync: sync, cloud: cloudStore, pseudoLists: pseudoLists, superFavorites: superFavorites,
             superFavoritePersistence: superFavoritePersistence, smileyFavorites: smileyFavorites, positions: positions,
-            deviceState: persistence, clock: clock
+            positionPersistence: positionPersistence, deviceState: persistence, clock: clock
         )
     }
 
@@ -155,13 +173,23 @@ import Testing
     }
 
     @Test func theInitialSyncRuleCloudWinsAndSeedsWhatTheCloudLacks() async throws {
-        let fixture = await Self.make(owner: nil, cloud: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
-        // Owner recorded by the first launch; now give the device lists the cloud does or does not have.
+        // Lists made before any Apple ID signed in: the first sign-in meets a cloud that has one of them.
+        let fixture = await Self.make(identity: nil, owner: nil)
         try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
-        try await fixture.smileyFavorites.add(code: "[:a]", url: URL(string: "https://example.invalid/a.gif")!, account: "Alice")
-        await fixture.sync.handle(.cloud(SyncedStoreChange(reason: .initialSync)))
+        let url = try #require(URL(string: "https://example.invalid/a.gif"))
+        try await fixture.smileyFavorites.add(code: "[:a]", url: url, account: "Alice")
+        await fixture.switchAppleID(to: "apple-1", values: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
         #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite(Self.other)])
         #expect(fixture.cloud.value(forKey: Self.smileyKey) != nil)
+    }
+
+    @Test func aLocalChangeQueuedBehindAnotherEventIsPushedNotReplaced() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        // The add's signal is still queued when an account-list event runs the initial-sync rule.
+        await fixture.sync.handle(.accountsChanged)
+        await fixture.sync.handle(.listsChanged)
+        #expect(fixture.cloudSuperFavorites()?.map(\.topic) == [Self.other, Self.topic])
     }
 
     @Test func aFirstSignInSeedsTheCloudWithTheDeviceListsButNotEmptyOnes() async throws {
@@ -201,8 +229,9 @@ import Testing
         #expect(fixture.cloud.value(forKey: Self.positionsKey) == nil)
     }
 
-    @Test func aKeyLongerThanAppleAllowsIsNotSyncedAndReported() async throws {
-        let long = String(repeating: "x", count: 60)
+    @Test func anAccountWhoseLongestKeyIsTooLongSyncsNoList() async throws {
+        // `positions.` fits, `smileyfavorites.` does not: the account syncs none of its lists.
+        let long = String(repeating: "x", count: 50)
         let fixture = await Self.make()
         let sync = SyncedListsStore(
             cloud: fixture.cloud, pseudoLists: fixture.pseudoLists, superFavorites: fixture.superFavorites,
@@ -211,7 +240,11 @@ import Testing
         )
         await sync.start()
         try await fixture.superFavorites.add(Self.topic, account: long, at: Self.start)
+        try await fixture.positions.advance(Self.topic, to: Self.position(page: 2, at: 0), account: long)
         await sync.handle(.listsChanged)
+        await sync.handle(.positionsChanged)
+        await sync.handle(.flushPositions)
+        #expect(!fixture.cloud.values.keys.contains { $0.hasPrefix("positions.") || $0.hasPrefix("superfavorites.") })
         #expect(fixture.cloud.values.keys.allSatisfy { $0.utf8.count <= SyncedListsStore.maximumKeyLength })
         #expect(await sync.unsyncedAccounts == [long])
     }

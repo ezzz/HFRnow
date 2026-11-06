@@ -22,6 +22,28 @@ extension SyncedListsStoreTests {
         #expect(fixture.quarantine().isEmpty)
     }
 
+    @Test func changesMadeWhileSignedOutArePushedWhenTheSameAppleIDReturns() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        await fixture.switchAppleID(to: nil)
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        // A relaunch while signed out keeps the knowledge of what was last synced.
+        let relaunched = await fixture.relaunched()
+        let change = SyncedStoreChange(reason: .accountChange)
+        fixture.cloud.receive(change, updates: [Self.superKey: Self.envelope([Self.favorite()])], identity: .some("apple-1"))
+        await relaunched.handle(.cloud(change))
+        #expect(fixture.cloudSuperFavorites()?.map(\.topic) == [Self.other, Self.topic])
+        #expect(await fixture.superFavorites.favorites(for: "Alice").count == 2)
+    }
+
+    @Test func aMissedAppleIDChangeIsHandledOnAnyNotification() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        fixture.cloud.receive(SyncedStoreChange(reason: .accountChange), updates: [:], identity: .some("apple-2"))
+        await fixture.sync.handle(.cloud(SyncedStoreChange(reason: .initialSync)))
+        #expect(await fixture.superFavorites.favorites(for: "Alice").isEmpty)
+        #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
+    }
+
     @Test func anotherAppleIDGetsItsOwnListsAndTheFirstOnesComeBackWithIt() async throws {
         let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
         try await fixture.pseudoLists.allow("Friend")
@@ -95,6 +117,39 @@ extension SyncedListsStoreTests {
         #expect(await fixture.superFavorites.favorites(for: "Alice").isEmpty)
         #expect(fixture.cloud.value(forKey: Self.superKey) == nil)
         #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
+    }
+
+    @Test func aListThatCannotComeBackStaysInTheQuarantineUntilItCan() async throws {
+        let second = SyncQuarantineEntry(savedAt: Self.start, values: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
+        let fixture = await Self.make(deviceState: SyncedListsDeviceState(owner: "apple-1", quarantine: ["apple-2": second]))
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        fixture.superFavoritePersistence.failsToLoad = true
+        await fixture.superFavorites.reload()
+        await fixture.switchAppleID(to: "apple-2")
+        #expect(fixture.quarantine()["apple-2"]?.values[Self.superKey] != nil)
+
+        fixture.superFavoritePersistence.failsToLoad = false
+        await fixture.superFavorites.reload()
+        await fixture.sync.handle(.listsChanged)
+        #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite(Self.other)])
+        #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
+        #expect(fixture.quarantine()["apple-2"] == nil)
+    }
+
+    @Test func anUnwritableDeviceFileAtASwitchPausesTheSync() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        fixture.deviceState.failsToSave = true
+        await fixture.switchAppleID(to: "apple-2")
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        #expect(fixture.cloud.values.isEmpty)
+        #expect(fixture.deviceState.saved?.owner == "apple-1")
+
+        fixture.deviceState.failsToSave = false
+        await fixture.sync.handle(.listsChanged)
+        #expect(fixture.deviceState.saved?.owner == "apple-2")
+        #expect(fixture.cloudSuperFavorites() == [Self.favorite(Self.other)])
     }
 
     @Test func quarantinedListsAreDeletedAfterNinetyDays() async throws {

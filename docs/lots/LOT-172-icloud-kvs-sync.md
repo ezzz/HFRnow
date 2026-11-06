@@ -66,7 +66,7 @@ One cloud key per list, holding the whole list as JSON (`SyncedValue.data`; sort
 
 - **Allowlist entries carry no date**: LOT-061 never kept one, and a whole-list last-writer-wins needs none. The ADR's `{id, addedAt}` holds for the two per-account lists.
 - **Empty is a value**: a push after a local change always writes the envelope, `{"version":1,"items":[]}` included, so removing the last item reaches the other devices; an empty cloud envelope replaces the local list. Only the seeding push of the initial-sync rule skips an empty local list.
-- **A key longer than 64 bytes** (UTF-8; Apple's limit, a very long pseudo) is not synced: that account's lists stay on the device and the account is reported in `unsyncedAccounts`. An account whose key is empty is skipped.
+- **A key longer than 64 bytes** (UTF-8; Apple's limit, a very long pseudo): an account whose longest key (`smileyfavorites.<account key>`) would exceed it syncs none of its lists, which stay on the device; it is reported in `unsyncedAccounts`. An account whose key is empty is skipped.
 - **Accounts**: the sync is given the app's accounts (`Account.id`, the `md_user` value as `AccountBook` stores it, one account per key). Applies and pushes of per-account keys go through that spelling; `ReadingPositionStore` records under another spelling of the same key are neither pushed nor merged. A cloud key of an account the app does not have is left alone.
 
 ### `SyncedListsStore`
@@ -74,27 +74,27 @@ An actor over the cloud store, the four local stores, the accounts and its own d
 
 | Event | Rule |
 |---|---|
-| local change of a list (each store's `changes()`) | the list is pushed when it differs from the cloud's, compared decoded (an apply that changed the local copy compares equal and pushes nothing) |
-| local change of the reading positions | **debounced**: pushed `positionsDelay` (30 s) after the last change, the 200 newest records; `flushPositions()` pushes a pending change at once (#447 calls it when the app goes to the background and before `synchronize()`) |
+| local change of a list (each store's `changes()`) | the list is pushed when it differs from the list **last synced** under its key (applied or pushed), whose digest the device file keeps; a cloud list that changed meanwhile is another device's, applied when its notification comes, never overwritten by an unchanged local list |
+| local change of the reading positions | **debounced**: pushed `positionsDelay` (30 s) after the last change (one timer, restarted at each change), the 200 newest records; `flushPositions()` queues the pending push ahead of any later event (#447 calls it when the app goes to the background; the system uploads from its own queue) |
 | server change of one of these keys | a list replaces the local copy (`replace`); positions are **merged** (below) |
-| initial sync, first launch | for each account and the allowlist: a cloud list replaces the local one (positions merge); a non-empty local list the cloud lacks is pushed (first device, LOT-067 import) |
+| initial sync, first launch, accounts added | for each account and the allowlist: a list changed here since it was last synced is pushed (this device is its later writer); otherwise a cloud list replaces the local one (positions merge) and a non-empty local list the cloud lacks is pushed (first device, LOT-067 import) |
 | account change | see "Account change" |
-| accounts added | the initial-sync rule for that account |
 | quota violation | local copy kept; keys in `quotaViolations` |
 
 - **Positions merge** (`ReadingPositionStore.merge`): per topic, the record with the newest `updatedAt` wins, **whatever its page** (a `reset` to an earlier page on another device is a newer point in time; `advance`'s forward-only rule is the reader's, not the sync's). On equal dates with different positions, the one ahead wins (`isAhead`), so every device converges on the same list and nothing ping-pongs. Dates are taken as recorded, never clamped to this device's clock: a clamped date would depend on each device's clock, so two devices would disagree on the winner and push in turn. **Known limitation**: a device whose clock runs ahead wins conflicts on a topic until the others' clocks pass its dates (iOS sets the clock from the network by default, so the skew is normally seconds). The local bound (500) applies after the merge, newest kept.
 - **Unreadable envelope** (not JSON, another shape, or a `version` above 1): the local copy is kept and the key is not written, as the settings mirror does for `data` values.
 - **Schema version**: the part 1 guard (`schemaVersion` above 1) stops these writes and applies too.
-- **A local store that cannot load** (LOT-061/064/090 failure guard) is neither pushed nor overwritten while it fails.
+- **A local store that cannot load** (LOT-061/064/090 failure guard) is neither pushed nor overwritten while it fails. A replace or merge the store cannot save records nothing as synced and pushes nothing over the cloud.
+- **Device file**: it keeps the owner, the stale stores, the quarantine and the digests of the lists last synced. Unreadable, it stops the sync (the owner is unknown); a save that fails pauses it until a save succeeds, so the next launch never reads an owner older than the lists.
 
 ### Account change
 Operator decision (2026-11-06, ADR 0013 Amendment 2): **the lists stay on the device when the Apple ID signs out**; they are set aside only when a different Apple ID signs in. The device file keeps the **owner**: the Apple ID the local lists belong to (the last one signed in), recorded at the first sign-in seen.
 
 - **Signed out**: nothing is applied or pushed; the lists stay as they are and local changes keep accumulating for the owner.
-- **The owner signs in again**: nothing is set aside; the initial-sync rule runs (the cloud list wins where the cloud has one, so a change made while signed out is replaced by a newer one made on another device, as last-writer-wins on the whole list would do anyway).
-- **A different Apple ID signs in**, seen live or at launch: the local synced lists are enumerated **from the stores** (every account key they hold, not only the app's accounts, and the allowlist), saved under the owner as envelopes (positions in full, up to 500 per account), then removed from the stores. Device-scoped data (blocklists, drafts, histories) is never touched. The new Apple ID's quarantine comes back where the local list is empty, the new Apple ID becomes the owner, then the initial-sync rule. A quarantine lasts 90 days and is kept in memory when the file cannot be saved, as in part 1.
+- **The owner signs in again**: nothing is set aside; the initial-sync rule runs: a list changed while signed out is pushed (the digests survive a relaunch), the others take the cloud's.
+- **A different Apple ID signs in**, seen live or at launch: the local synced lists are enumerated **from the stores** (every account key they hold, not only the app's accounts, and the allowlist), saved under the owner as envelopes (positions in full, up to 500 per account), then removed from the stores. Device-scoped data (blocklists, drafts, histories) is never touched. The new Apple ID becomes the owner once the device file says so, its quarantine comes back where the local list is empty (a list that cannot come back stays in the quarantine), then the initial-sync rule. A quarantine lasts 90 days and is kept in memory when the file cannot be saved, as in part 1.
 - **No owner yet** (first launch, or never signed in): the first Apple ID seen becomes the owner and the initial-sync rule runs: the lists made without an account seed it where the cloud has none (ADR 0013 §5 step 2).
-- **A store that could not load** at the change keeps its content; the device file remembers which owner it holds. When it loads again, that content is set aside under its owner before anything else, and never pushed.
+- **A store that could not load or be emptied** at the change keeps its content; the device file remembers which owner it holds. When it can, that content is set aside under its owner before anything else, never pushed, and the current owner's quarantined lists come back into it; a store found empty (its unreadable data discarded, which signals it) only stops being stale.
 - **Launch-time change**: after a change seen at launch, lists are neither applied nor pushed until the first notification of the store (`accountChange`, `initialSync` or `serverChange`) or 5 s after `synchronize()`, which narrows part 1's known limitation (the previous Apple ID's content still in the store under the new identity).
 - **Local add racing an apply**: a user's add saved between the sync's read of the cloud and its `replace` is overwritten by the cloud list (whole-list last writer wins); the UI drops it at its next reload. Accepted: the window is one apply.
 - The settings mirror (part 1) keeps its own rule: scalar preferences are set aside at a sign-out (ADR 0013 Amendment 1).
@@ -111,7 +111,7 @@ The app wiring (building `SyncedListsStore`, starting `run()`, `flushPositions()
 
 ## Edge cases
 - A synced key the cloud holds as `data` (a newer format) is not a setting value: the mirror keeps its own value.
-- `run()` ends when the store's stream ends; the app starts it once and calls `synchronize()` at launch and on foreground (ADR 0013 §4, #447).
+- The settings mirror's `run()` ends when the store's stream ends; the list sync's `run()` ends when its task is cancelled. The app starts each once and calls `synchronize()` at launch and on foreground (ADR 0013 §4, #447).
 - Without the iCloud entitlement (LOT-160) or an iCloud account, `NSUbiquitousKeyValueStore` keeps values on the device; the mirror behaves the same.
 
 ## Fixtures

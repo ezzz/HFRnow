@@ -33,3 +33,20 @@ struct SyncedListEnvelope<Item: Codable & Hashable>: Codable, Hashable {
         self = envelope
     }
 }
+
+extension SyncedValue {
+    /// A stable fingerprint of a stored list (64-bit FNV-1a of its bytes), kept on the device to tell a list changed here
+    /// from the one last synced without keeping the list twice.
+    var digest: String {
+        let bytes: Data = switch self {
+        case .data(let data): data
+        default: Data(String(describing: self).utf8)
+        }
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in bytes {
+            hash ^= UInt64(byte)
+            hash &*= 0x0000_0100_0000_01b3
+        }
+        return String(hash, radix: 16)
+    }
+}
