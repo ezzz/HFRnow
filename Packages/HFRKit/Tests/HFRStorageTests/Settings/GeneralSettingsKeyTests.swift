@@ -66,3 +66,24 @@ import Testing
         #expect(store.value(for: SettingKey.mpListDisplay) == .single)
     }
 }
+
+/// The key LOT-086 added: legacy's raw values, and an unknown one reads as the default like `?? .quick`.
+@Suite struct ReplyButtonBehaviorKeyTests {
+    @Test func absentReadsAsQuickAndRoundTripsLegacyValues() {
+        let store = InMemorySettingsStore()
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .quick)
+        for (raw, behavior) in [("forum", ReplyButtonBehavior.forum), ("hidden", .hidden), ("quick", .quick)] {
+            store.set(behavior, for: SettingKey.replyButtonBehavior)
+            #expect(store.rawValue(forKey: "reply_button_behavior") == .string(raw))
+            #expect(store.value(for: SettingKey.replyButtonBehavior) == behavior)
+        }
+    }
+
+    @Test func importedLegacyValueIsRead() {
+        let store = InMemorySettingsStore()
+        store.setRawValue(.string("forum"), forKey: "reply_button_behavior")
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .forum)
+        store.setRawValue(.string("nonsense"), forKey: "reply_button_behavior")
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .quick)
+    }
+}

@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-155), no GIF panel yet (155), smiley picker as a sheet from
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090), no GIF panel yet (155), smiley picker as a sheet from
 // the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
@@ -20,6 +20,8 @@ struct ReplyComposerView: View {
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
     @State private var picker: SmileyPickerModel?
+    /// The smiley search outlives the panel, as legacy's session state: reopening shows the last results (LOT-105).
+    @State private var smileySearch: SmileySearchModel?
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
@@ -161,11 +163,11 @@ struct ReplyComposerView: View {
 
     private func openSmileys() {
         let services = model.smileyServices
+        smileySearch = smileySearch ?? services.search
         rangeForSmiley = selectedRange
         smileyInserted = false
-        picker = SmileyPickerModel(
-            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account
-        )
+        let catalogue = SmileyPickerModel.bundledCatalogue()
+        picker = SmileyPickerModel(catalogue: catalogue, store: services.store, account: services.account, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {

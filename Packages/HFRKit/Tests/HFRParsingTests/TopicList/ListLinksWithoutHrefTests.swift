@@ -74,11 +74,13 @@ struct ListLinksWithoutHrefTests {
         let original = try Fixture.capture("R08-2-list-cat13-owntopic2")
         let mutated = original.replacing(#/<td class="sujetCase5"><a href="[^"]*"/#, with: #"<td class="sujetCase5"><a"#)
         try #require(mutated != original)
-        let reference = try #require(TopicListParser.parse(original, pageURL: url).topics.first)
+        // Rows are aliased by position: the sticky first has no flag, the second is flagged at page 102.
+        let references = try TopicListParser.parse(original, pageURL: url).topics
+        let reference = try #require(references.dropFirst().first)
         let page = try TopicListParser.parse(mutated, pageURL: url)
-        let row = try #require(page.topics.first)
-        #expect(page.topics.count == 1)
-        #expect(reference.flagPath != nil && reference.currentPage == 2)
+        let row = try #require(page.topics.dropFirst().first)
+        #expect(page.topics.count == references.count)
+        #expect(reference.flagPath != nil && reference.currentPage == 102)
         #expect(row.flagPath == nil)
         #expect(row.currentPage == nil)
         #expect(row.topicID == reference.topicID)

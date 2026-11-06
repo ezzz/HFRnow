@@ -9,12 +9,16 @@ import Testing
 struct HopFormOracleTests {
     static let composerCases = [
         "R40a", "R40b", "R41a", "R41b", "R42", "R43a", "R43b", "R43c", "R44", "R45a", "R45b", "R47a", "R47b", "R47c", "R47u1",
-        "R60b", "R61b", "R62a", "R62b", "R63b", "R95c", "R95f", "R95g"
+        "R60b", "R61b", "R62a", "R62b", "R63b", "R95c", "R95f", "R95g",
+        // M2 write captures (#336): the group owner's composer (`newdest`), a group member's (none), the new-MP form.
+        "R123c", "R123e", "R123k"
     ]
 
-    @Test("the case lists cover every LOT-004 form case")
+    @Test("the case lists cover every LOT-004 and M2 write form case")
     func casesCoverTheMap() throws {
-        #expect(try Lot004FormOracle.mappedFormCases() == Set(Self.composerCases + ["R46"]))
+        let m2Cases = try Lot004FormOracle.mappedFormCases(in: Lot004FormOracle.m2Subdirectory)
+        #expect(m2Cases == Lot004FormOracle.m2FormCases)
+        #expect(try Lot004FormOracle.mappedFormCases().union(m2Cases) == Set(Self.composerCases + ["R46"]))
     }
 
     @Test("action equals the legacy form action", arguments: composerCases)
