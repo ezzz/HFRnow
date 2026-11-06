@@ -28,6 +28,44 @@ struct ReaderImageFetcherTests {
         #expect(requests.first?.redirectPolicy == .doNotFollow)
     }
 
+    /// Capture #134 (`T30`-`T33`, metas only): reho.st answered a real image 403 without a `Referer` and 200 `image/jpeg` with the
+    /// forum's. The double below serves exactly what the metas record, so a viewer fetch that sends another `Referer` fails here.
+    @Test(arguments: [("T30", "T31"), ("T32", "T33")])
+    func theViewerFetchSendsTheRefererTheCaptureRequires(denied: String, served: String) async throws {
+        func meta(_ id: String) throws -> [String: Any] {
+            let data = try LiveTopicPageSourceTests.capture("\(id).meta.json")
+            return try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        }
+        let deniedMeta = try meta(denied)
+        let servedMeta = try meta(served)
+        let imageURL = try #require((servedMeta["url"] as? String).flatMap(URL.init(string:)))
+        #expect(deniedMeta["status"] as? Int == 403)
+        #expect(servedMeta["status"] as? Int == 200)
+        #expect(servedMeta["content_type"] as? String == "image/jpeg")
+        #expect((servedMeta["redirects"] as? [Any])?.isEmpty == true)
+        let note = try #require(servedMeta["note"] as? String)
+        let referer = try #require(note.components(separatedBy: "Referer: ").last)
+        #expect(referer == "https://forum.hardware.fr/")
+
+        let host = MockTransport { request in
+            if request.headers["Referer"] == referer {
+                return self.image(request.url, type: "image/jpeg")
+            }
+            return HTTPResponse(statusCode: 403, headers: ["Content-Type": "text/html"], url: request.url, body: Data([1]))
+        }
+        let fetcher = ReaderImageFetcher(transport: host)
+        let result = try await fetcher.image(at: imageURL, allowsThirdParty: true, hostTable: .standard)
+        #expect(result.mimeType == "image/jpeg")
+        // The page's own images carry no Referer (LOT-071 R3) and reho.st refuses them: the capture's 403.
+        await #expect(throws: ReaderImageFetcher.Failure.unavailable) {
+            _ = try await fetcher.image(at: imageURL, allowsThirdParty: true)
+        }
+        let requests = await host.requests
+        #expect(requests.first?.headers["Cookie"] == nil)
+        // The capture saw `http` served as is; the app asks over https (ATS), which `T30`/`T31` observed.
+        #expect(requests.first?.url.scheme == "https")
+    }
+
     @Test func theLiveFetcherUsesTheCookielessTransport() {
         #expect(ReaderImageFetcher().transport is AnonymousTransport)
     }
