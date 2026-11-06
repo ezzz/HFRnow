@@ -97,7 +97,7 @@ Display-only and session fields of the oracle are not compared: `aDateOfLastPost
 
 **Pending capture:** maintenance page (`<body>` starting with `<p>`); a list behind a login wall other than the MP list (the MP list logged out is captured: R121a, `noAuth`, thrown by the port, D1; `wallMatchesOracle`); a `sujetCase3` with a second link
 outside search results; replies counts with separators; a row without last-post link or without `<b>` author; a pager with a non-cryptlink
-"Page Suivante"; search results across categories (pivot shapes, E12). None is hand-built.
+"Page Suivante". None is hand-built.
 
 **Follow-ups for other lots:**
 - LOT-045 fetchers: single-slash paths are kept as served, so raw spaces or U+200B in them are not percent-encoded; encode them before building a request.

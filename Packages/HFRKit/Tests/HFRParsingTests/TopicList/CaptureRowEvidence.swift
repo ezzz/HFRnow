@@ -47,6 +47,7 @@ struct CaptureRowEvidence {
     nonisolated(unsafe) private static let starterPattern = /class="sujetCase6[^"]*">(.*?)<\/td>/.dotMatchesNewlines()
     nonisolated(unsafe) private static let tagPattern = /<[^>]*>/
     nonisolated(unsafe) private static let topicNumberPattern = /title="Sujet n°([0-9]+)"/
-    nonisolated(unsafe) private static let legacyPollPattern = /src="[^"]*\/themes_static\/images\/defaut\/sondage\.gif"/
+    nonisolated(unsafe) private static let legacyPollPattern =
+        /src="https:\/\/forum-images\.hardware\.fr\/themes_static\/images\/defaut\/sondage\.gif"/
     nonisolated(unsafe) private static let pollPattern = /src="[^"]*\/sondage\.gif"/
 }

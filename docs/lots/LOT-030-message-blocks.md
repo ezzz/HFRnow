@@ -124,7 +124,7 @@ Captures (`Fixtures/captures/`, LOT-001, anonymized) and the LOT-003 oracles (`F
 | `dicoHTML` | `contentHTML` | **shape** comparison (`HTMLShape`): text and the element sequence with `href`, `src`, `alt`, `title`, `id`, `style`, after parsing both. Left out: `class` (legacy serialized after rewriting `oldcitation`→`citation` and marking `embedvideo`, LOT-032/035), empty `<p></p>` and formatting elements other than `a` (tree-builder differences, see below), percent-encoding of `href` (libxml2 escapes spaces) |
 
 The M2 topic captures (#475) are in the same test through `MessageBlockOracleTests.m2Folders`: R122a (locked topic, logged in, 1 message), R122c (filter checked,
-31 messages, difference 8), R122d (search word, no filter, 40 messages), R130a (MP thread, leading newline, 1 message). Their oracles are in `Fixtures/M2-readonly` and
+31 messages, difference 8), R122d (search word, no filter, 40 messages), R130a (MP thread, 1 message; its body is redacted in the corpus, so the leading newline is not checked here). Their oracles are in `Fixtures/M2-readonly` and
 `Fixtures/M2-misc`; the case list guard reads the three maps. `TopicPageMetadataOracleTests` (answer form, search form with `word` and the checked filter) and `TopicPageFlagOracleTests` (R122a/c/d overlap, R130a MP: nonlu link only, LOT-033 difference 5) take the same four cases.
 
 Out of scope, not compared (other lots): `urlQuote`, `urlEdit`, `urlProfil`, `urlAlert`, `addFlagUrl`, `quoteJS`, `MPUrl`, `url`, `iPage`

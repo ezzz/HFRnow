@@ -13,7 +13,7 @@ import Testing
 struct TopicPageFlagOracleTests {
     /// The bar link is the first `delflag` href of the page: legacy and #306 read the same link.
     static let overlap = ["P03m", "R21", "R32b", "R33b", "R61d", "R61e", "R63a", "R63e",
-                                "R122a", "R122c", "R122d"]
+             "R122a", "R122c", "R122d"]
     /// No `delflag` href anywhere and no `nonlu` href (anonymous pages, deleted conversations): legacy `""`, #306 nil.
     static let noLink = ["R20", "R22a", "R22b", "R23", "R24", "R26", "R27", "R27b", "R28", "R31", "R32a", "RA5", "R96c", "R96d"]
     /// Intentional difference (LOT-033 difference 5): private conversations have no flag, legacy's `isFavoritesOrRead` falls back
