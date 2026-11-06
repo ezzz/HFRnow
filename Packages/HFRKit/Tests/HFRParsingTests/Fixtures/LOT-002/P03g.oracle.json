@@ -2,11 +2,11 @@
   "case" : "P03g",
   "exception" : null,
   "input" : {
-    "bytes" : 34548,
+    "bytes" : 34590,
     "currentURL" : null,
     "file" : "../captures/P03g-favourites-two-rows.html",
     "now" : "2026-10-28T14:13:13Z",
-    "sha256" : "d9304150200d2a4b5e69cfc762850339dd82dfae594698cdf13e4d6c4aaadf5e"
+    "sha256" : "d1889396bd8836347a91e648f282577d6f05fe9426f0e484f84c40ee8ca1b74b"
   },
   "kind" : "favorites",
   "legacyCommit" : "2440d79",
@@ -14,9 +14,9 @@
     "favorites" : [
       {
         "forum" : {
-          "aID" : "13",
-          "aTitle" : "Discussions",
-          "aURL" : "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+          "aID" : "101",
+          "aTitle" : "Category 1",
+          "aURL" : "/forum1.php?config=hfr.inc&cat=101&page=1&subcat=&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
           "subCats" : [
 
           ]
@@ -26,19 +26,19 @@
           {
             "aAuthorOfLastPost" : "user4​",
             "aAuthorOrInter" : "",
-            "aDateOfLastPost" : "il y a 15 min",
-            "aDateOfLastPostKind" : "relative",
-            "aRepCount" : 88035,
-            "aTitle" : "Topic pizza maison",
+            "aDateOfLastPost" : "02/01/00",
+            "aDateOfLastPostKind" : "absolute",
+            "aRepCount" : 5001,
+            "aTitle" : "Followed topic 1",
             "aTypeOfFlag" : "",
-            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t2666649",
-            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t9810000001",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
             "aURLOfFlag" : "",
-            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
-            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=2201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
-            "catID" : 13,
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800001&page=201&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 101,
             "curTopicPage" : 1,
-            "dDateOfLastPost" : "2026-10-28T13:58:00Z",
+            "dDateOfLastPost" : "2000-01-01T23:01:00Z",
             "isClosed" : false,
             "isLocallyViewedInApp" : false,
             "isPoll" : false,
@@ -46,27 +46,27 @@
             "isSuperFavorite" : false,
             "isViewed" : false,
             "isViewedFromForumAtLoad" : false,
-            "maxTopicPage" : 2201,
-            "postID" : 28563,
+            "maxTopicPage" : 201,
+            "postID" : 9800001,
             "sLastSearchPostContent" : null,
             "sLastSearchPostURL" : null
           },
           {
             "aAuthorOfLastPost" : "user6",
             "aAuthorOrInter" : "",
-            "aDateOfLastPost" : "il y a 2 h",
-            "aDateOfLastPostKind" : "relative",
-            "aRepCount" : 30218,
-            "aTitle" : "Cuisinistes - les bons plans | les arnaques",
+            "aDateOfLastPost" : "03/01/00",
+            "aDateOfLastPostKind" : "absolute",
+            "aRepCount" : 5002,
+            "aTitle" : "Followed topic 2",
             "aTypeOfFlag" : "",
-            "aURL" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t7567665",
-            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURL" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800002&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#t9810000002",
+            "aURLOfFirstPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800002&page=1&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
             "aURLOfFlag" : "",
-            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=756&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
-            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=55038&page=756&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
-            "catID" : 13,
+            "aURLOfLastPage" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800002&page=202&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0",
+            "aURLOfLastPost" : "/forum2.php?config=hfr.inc&cat=101&subcat=960001&post=9800002&page=202&p=1&sondage=0&owntopic=3&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0&nojs=0#bas",
+            "catID" : 101,
             "curTopicPage" : 1,
-            "dDateOfLastPost" : "2026-10-28T11:17:00Z",
+            "dDateOfLastPost" : "2000-01-02T23:02:00Z",
             "isClosed" : false,
             "isLocallyViewedInApp" : false,
             "isPoll" : false,
@@ -74,8 +74,8 @@
             "isSuperFavorite" : false,
             "isViewed" : false,
             "isViewedFromForumAtLoad" : false,
-            "maxTopicPage" : 756,
-            "postID" : 55038,
+            "maxTopicPage" : 202,
+            "postID" : 9800002,
             "sLastSearchPostContent" : null,
             "sLastSearchPostURL" : null
           }
@@ -84,14 +84,14 @@
     ],
     "topicsSortedByLastPostDesc" : [
       {
-        "aTitle" : "Topic pizza maison",
-        "catID" : 13,
-        "postID" : 28563
+        "aTitle" : "Followed topic 2",
+        "catID" : 101,
+        "postID" : 9800002
       },
       {
-        "aTitle" : "Cuisinistes - les bons plans | les arnaques",
-        "catID" : 13,
-        "postID" : 55038
+        "aTitle" : "Followed topic 1",
+        "catID" : 101,
+        "postID" : 9800001
       }
     ]
   },
@@ -101,7 +101,7 @@
 
     ],
     "arrayCategoriesVisibleOrder" : [
-      "13"
+      "101"
     ],
     "hashCheck" : "REDACTED",
     "nbMP" : 0,
