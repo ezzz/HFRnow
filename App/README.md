@@ -33,3 +33,11 @@ Release to TestFlight (maintainer's Mac): `scripts/release-testflight.sh --versi
 ([LOT-161](../docs/lots/LOT-161-release-pipeline.md); credentials stay outside the repository).
 
 Signing is automatic with the team `QMG83DG7YP` and bundle id `hfrplus.red.super`; a device build needs that team's account in Xcode. Never commit certificates, profiles or `xcuserdata/`.
+
+## API keys (ADR 0007)
+
+The image-rehost key reaches the build through `App/Config/Shared.xcconfig`, which includes the untracked `App/Config/Secrets.xcconfig` when it exists, and `App/Config/Info-Keys.plist` (merged into the generated Info.plist: `RehostBaseURL`, `RehostAPIKey`).
+
+- Local build: copy `App/Config/Secrets.xcconfig.example` to `App/Config/Secrets.xcconfig` and fill in the values (git-ignored; write `//` as `/$()/` in a URL).
+- No `Secrets.xcconfig` (fresh clone, CI tests): the build works, both values are empty and the composer hides image upload (LOT-102).
+- CI/release builds that must upload need `REHOST_BASE_URL` and `REHOST_API_KEY` written into `Secrets.xcconfig` from Actions secrets by the build job; the maintainer sets them.
