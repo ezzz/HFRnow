@@ -12,17 +12,20 @@ import Testing
 @Suite("Topic page flag against the legacy oracle (#306, #268)")
 struct TopicPageFlagOracleTests {
     /// The bar link is the first `delflag` href of the page: legacy and #306 read the same link.
-    static let overlap = ["P03m", "R21", "R32b", "R33b", "R61d", "R61e", "R63a", "R63e"]
+    static let overlap = ["P03m", "R21", "R32b", "R33b", "R61d", "R61e", "R63a", "R63e",
+             "R122a", "R122c", "R122d"]
     /// No `delflag` href anywhere and no `nonlu` href (anonymous pages, deleted conversations): legacy `""`, #306 nil.
     static let noLink = ["R20", "R22a", "R22b", "R23", "R24", "R26", "R27", "R27b", "R28", "R31", "R32a", "RA5", "R96c", "R96d"]
     /// Intentional difference (LOT-033 difference 5): private conversations have no flag, legacy's `isFavoritesOrRead` falls back
     /// to the `nonlu` (mark unread) link there. #306 gives nil; the unread link is `TopicPageMetadata`'s, compared with
     /// the oracle's `unreadable` by `TopicPageMetadataOracleTests`.
-    static let unreadLinkOnly = ["RA1", "RA2", "RA3", "RA4", "RU1", "RU2"]
+    static let unreadLinkOnly = ["RA1", "RA2", "RA3", "RA4", "RU1", "RU2", "R130a"]
 
     /// The folder of each case: `LOT-003-flag` holds the logged-in captures with the link that `LOT-003` lacked.
     private static let folders = ["R33b": "LOT-003-flag", "R61d": "LOT-003-flag", "R61e": "LOT-003-flag",
-                                  "R63a": "LOT-003-flag", "R63e": "LOT-003-flag"]
+                                  "R63a": "LOT-003-flag", "R63e": "LOT-003-flag",
+                                  // M2 captures (#475): a locked topic and the two in-topic search pages, an MP thread.
+                                  "R122a": "M2-readonly", "R122c": "M2-readonly", "R122d": "M2-readonly", "R130a": "M2-misc"]
 
     private func load(_ caseID: String) throws -> (oracle: FlagOracle, html: String) {
         let folder = "Fixtures/" + (Self.folders[caseID] ?? "LOT-003")
@@ -83,15 +86,17 @@ struct TopicPageFlagOracleTests {
         #expect(try TopicPageMetadataParser.parse(html: html, pageURL: oracle.input.currentURL).flag == nil)
     }
 
-    @Test("Every topic oracle of LOT-003 and LOT-003-flag is in exactly one list")
+    @Test("Every topic oracle of LOT-003, LOT-003-flag and the M2 topic captures is in exactly one list")
     func listsCoverTheOracles() throws {
         let lists = Self.overlap + Self.noLink + Self.unreadLinkOnly
         #expect(Set(lists).count == lists.count)
         var mapped: Set<String> = []
-        for folder in ["LOT-003", "LOT-003-flag"] {
+        for folder in ["LOT-003", "LOT-003-flag", "M2-readonly", "M2-misc"] {
             let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)")
             let map = try #require(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
-            mapped.formUnion(map.keys.map { $0.replacing(".html", with: "") })
+            // The M2 folders also hold list, form and response cases; only the topic pages carry a flag link.
+            let entries = map.filter { folder.hasPrefix("LOT-") || (($0.value as? [String: Any])?["kind"] as? String) == "topic" }
+            mapped.formUnion(entries.keys.map { $0.replacing(".html", with: "") })
         }
         #expect(Set(lists) == mapped)
     }

@@ -447,7 +447,7 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 ### M2 read-only captures (#121, #122, #134, #109, 2026-11-05)
 
-Read-only GETs of `mac/m2-lead` (`R121a`-`R121f`, `R122a`, `R122c`, `R122d`, `T30`-`T33`); nothing was sent but the logins. Their legacy oracles (`R121a`, `R121b`, `R121c`, `R121e`, `R121f`, `R122a`, `R122c`, `R122d`) are in `Fixtures/M2-readonly/` with their own `oracle-map.json`, outside the LOT-002/LOT-003 maps whose guard tests list every case: no Swift test reads them yet.
+Read-only GETs of `mac/m2-lead` (`R121a`-`R121f`, `R122a`, `R122c`, `R122d`, `T30`-`T33`); nothing was sent but the logins. Their legacy oracles (`R121a`, `R121b`, `R121c`, `R121e`, `R121f`, `R122a`, `R122c`, `R122d`) are in `Fixtures/M2-readonly/` with their own `oracle-map.json`, read by the LOT-002/003/004 differential tests through their own case lists (#475).
 
 - **Locked topic, logged in** (`R122a`, **verified**): the page is a normal topic page with no way to answer: no `#repondre_form`, no bottom answer link, no `.hop` (as for the logged-out reader of `R31`). The per-message quote links stay (`quote.gif` "Répondre à ce message", the multi-quote `quote+.gif`/`quote-.gif` pair), and so does the header flag link (`delflag`, `flagn0.gif` for an account that only read the topic). A locked topic therefore keeps no `hop` for a logged-in account.
 - **Flag link from a list** (`R33b`, **verified**): the topic row link of a `forum1f.php?owntopic=1` list carries `owntopic=1`; the page it opens has the header `delflag` link with `owntopic=1&new=0` (icon `flagn1.gif`) and the in-topic search form's hidden `owntopic` is `1` (not `0` as on `R122a`/`R122c`). The `favorisn.gif` variant of that header is not captured.
