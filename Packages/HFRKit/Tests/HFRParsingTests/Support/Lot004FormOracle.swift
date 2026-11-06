@@ -15,8 +15,9 @@ struct Lot004FormOracle {
     static let subdirectory = "Fixtures/LOT-004"
     /// Folder of the M2 write captures' oracles (#336).
     static let m2Subdirectory = "Fixtures/M2-writes"
-    /// The `form` cases of `Fixtures/M2-writes/`: the group owner's and a member's reply composers, the new-MP form.
-    static let m2FormCases: Set = ["R123c", "R123e", "R123k"]
+    /// The `form` cases of `Fixtures/M2-writes/`: the group owner's and a member's reply composers (with and without `newdest`,
+    /// #336, #507), the new-MP form.
+    static let m2FormCases: Set = ["R123c", "R123e", "R123k", "R124", "R127", "R128", "R132", "R136", "R137", "R138", "R139"]
 
     /// Folder of the M2 misc captures' oracles (#527, wired by #475).
     static let miscSubdirectory = "Fixtures/M2-misc"
