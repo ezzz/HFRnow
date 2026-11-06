@@ -350,7 +350,7 @@ class OperatorMembers(unittest.TestCase):
 
     def test_zero_width_and_case_do_not_hide_an_alias(self):
         self.assertEqual(len(self.found(page(member_row("4242", "Us\u200ber2")))), 1)
-        self.assertEqual(A.pseudo_key("Us​er-2 "), "user2")
+        self.assertEqual(A.pseudo_key("Us\u200ber-2 "), "user2")
 
     def test_other_member_aliases_are_fine(self):
         self.assertEqual(self.found(page(member_row("4242", "user3"))), [])
