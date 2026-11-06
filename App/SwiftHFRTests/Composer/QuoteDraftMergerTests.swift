@@ -22,6 +22,14 @@ struct QuoteDraftMergerTests {
         #expect(QuoteDraftMerger.merge(quote, into: draft) == draft)
     }
 
+    @Test func aMultiQuoteAddsOnlyTheBlocksTheDraftLacks() {
+        let first = "[quotemsg=10,1,1]A[/quotemsg]\n"
+        let second = "[quotemsg=20,1,1]B[/quotemsg]\n"
+        let draft = "Mon brouillon\n\n" + first
+        #expect(QuoteDraftMerger.merge(first + second, into: draft) == draft + "\n" + second)
+        #expect(QuoteDraftMerger.merge(first + second, into: draft + second) == draft + second)
+    }
+
     @Test func aBlankQuoteChangesNothing() {
         #expect(QuoteDraftMerger.merge(" \n\t ", into: "Mon brouillon") == "Mon brouillon")
         #expect(QuoteDraftMerger.merge("", into: "") == "")
