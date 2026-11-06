@@ -3,9 +3,9 @@ import HFRModels
 @testable import SwiftHFR
 import Testing
 
+// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
 /// `MessageListModel`'s read state: which rows show as read, when a load brings back HFR's own state, and where a
 /// conversation opens.
-// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct MessageListReadStateTests {
     private func model(_ source: FakePrivateMessages, loggedIn: Bool = true) -> MessageListModel {
