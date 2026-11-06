@@ -41,12 +41,12 @@ No new code. A conversation's quote links (LOT-031 actions of `RA1`-`RA4`, `cat=
 
 ### Group MP members
 
-Captures of #336 (PR #480, `R123a`-`R123f`, oracles in `Fixtures/M2-writes/`). The roster is **read**; changing it is *pending capture* (#507).
+Captures of #336 (PR #480, `R123a`-`R123f`, oracles in `Fixtures/M2-writes/`). The roster is **read**; the edits of the owner's reply are captured (#507, `W71`-`W78`, `R124`-`R140`, [HFR-PROTOCOL](../HFR-PROTOCOL.md) §6c "M2 write captures"), so changing it is no longer pending capture: the app does not offer it yet.
 
 - **Owner** (`PostingForm.groupMembers`): the `newdest` input of the reply composer (`R123c`, "user3, user2"): the members other than the owner, split on the comma and trimmed, blanks dropped (the form joins with ", ", the list row with ","). Nil when the form has no `newdest`: a member who does not own the group (`R123e`), a one-to-one composer (`R47b`, `R47u1`). It lives on `PostingForm` (HFRClient), so the composer that posts the reply is the one that shows the roster, and no `HFRModels` public type changes.
 - **Member**: no page but the MP list shows the roster (thread pages `R123b`, `R123d` and the member's composer `R123e` have none): `PrivateMessageThread.interlocutors` of LOT-023, owner first (`R123a`, `R123f`: "user1, user2,user3"). The owner's roster plus the owner names the same members.
 - **Reply**: `PostingFlow.reply` from the owner's composer sends `newdest` back as served, at its place in the form (after `pseudo`), as legacy did; the member's composer sends none. The reply's answer is LOT-048's (`Votre réponse a été postée avec succès !` on a one-to-one thread, `W11`); a group reply's answer is not captured, so it is read by the same rule and nothing more is claimed.
-- **Not offered**: adding or removing a member. redface2 E8 says an edited `newdest` in a normal reply does it, and the form says "Vous pouvez ajouter ou supprimer des destinataires (un destinataire au minimum !)", but HFR's answer to such a POST, the thread afterwards and the refusals are not captured (#507). No API takes a new roster; `PostingFlow` has no override for `newdest`.
+- **Not offered yet** (captured, #507): HFR's behaviour is now known and a follow-up can offer it. An edited `newdest` in the owner's reply adds or removes the members (ordinary success answer, a "Modération" system post "a été ajouté / retiré de la conversation" after the reply: `W74`, `W75`, `R129`, `R133`); an unknown pseudo is refused and posts nothing (`W76`); an empty `newdest` is accepted as "no change" (`W77`); a non-owner's `newdest` is ignored (`W78`). The edit must not leave one other member: the composer then has no `newdest` and nobody can be added back (`W72`, `R124`). No API takes a new roster yet; `PostingFlow` has no override for `newdest`.
 - redface2 E8's "non-owners see the roster as read-only text in `th.repCase1`" does not hold (`R123e`, HFR-PROTOCOL §6c "M2 write captures").
 
 ## Edge cases
@@ -74,7 +74,7 @@ Mark unread, shown to fail with the behaviour removed (9 mutations, each caught)
 ## Pending capture
 
 - `nonlu.php` answered without a session, and sent twice (capture issue [#137](https://github.com/ezzz/HFRnow/issues/137)); until then the session is checked first.
-- Changing a group's members (#507): the owner's reply with `newdest` unchanged, extended, reduced, emptied, or naming an unknown pseudo; the thread and lists afterwards ("Modération" message, per redface2 E8). Until then the roster is read-only.
+- Changing a group's members (#507): captured, see above. Still pending: several members changed in one POST, an unknown pseudo at creation, the roster order rule.
 - A multi-page conversation's mark-unread link (whether its `page` follows the page shown).
 
 ## Intentional differences from legacy

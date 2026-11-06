@@ -150,7 +150,13 @@ struct HopResponseParserTests {
         // The MP thread delete (manageaction.php, LOT-094): a link-less `.hop` "Action effectuée avec succès".
         "W64-mp-thread-delete-owner-success", "W65-mp-thread-delete-recipient-success",
         // Group MP create (#336).
-        "W70-mp-create-group-success"
+        "W70-mp-create-group-success",
+        // Group roster edits (#507): the owner's replies (unchanged, one member removed or added, empty `newdest`), a member's
+        // reply with an unserved `newdest`, the new group of three. `W76` (unknown pseudo) is a refusal, so it is not here.
+        "W71-mp-group-reply-roster-unchanged-old-thread", "W72-mp-group-reply-remove-member-to-two-person",
+        "W73-mp-create-group-three-recipients-success", "W74-mp-group-reply-remove-member-success",
+        "W75-mp-group-reply-add-member-success", "W77-mp-group-reply-empty-newdest-success",
+        "W78-mp-group-reply-member-unserved-newdest-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
         // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
         // (`HopResponseAlertTests`).
