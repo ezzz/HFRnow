@@ -121,7 +121,7 @@ struct TopicsColumn: View {
     var body: some View {
         if let source = navigation.selectedSource {
             TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                          composer: composer)
+                          composer: composer, open: { navigation.open($0, at: $1) })
                 .id(source)
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
@@ -146,7 +146,8 @@ struct ReaderColumn: View {
                     filterIsBusy: navigation.filtering.isBusy
                 )
             }
-            .id(topic.id)
+            // A row menu's page (LOT-125) is a new reader even for the topic on screen.
+            .id("\(topic.id)#\(navigation.readerGeneration)")
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)
         }
