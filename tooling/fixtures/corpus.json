@@ -152,6 +152,7 @@
     {"raw": "W42", "id": "W42", "slug": "poll-vote-success", "ext": "html", "private": false},
     {"raw": "W43", "id": "W43", "slug": "poll-vote-already-voted", "ext": "html", "private": false},
     {"raw": "W44", "id": "W44", "slug": "poll-vote-linked-account-already-voted", "ext": "html", "private": false},
+    {"raw": "W45", "id": "W45", "slug": "poll-vote-logged-out", "ext": "html", "private": false},
     {"raw": "W46", "id": "W46", "slug": "modo-alert-success", "ext": "html", "private": false},
     {"raw": "R88", "id": "R88", "slug": "modo-alert-already-reported", "ext": "html", "private": false},
     {"raw": "W47", "id": "W47", "slug": "modo-alert-logged-out-rejected", "ext": "html", "private": false},
