@@ -583,7 +583,7 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 ### LOT-028 — AQ listing and RSS feed
 
 - `T01` (`rss.php`): every item has `title`, `link` = `guid`, `pubDate` (`Sun, 11 Oct 2026 10:31:57 +0200`: the instant of the `[le dd-mm-yyyy à hh:mm:ss]` Paris time of the description) and a CDATA HTML `description`. 23 of 25 links are `forum2.php?…&cat=<n>&…`, 2 are canonical `/hfr/…-sujet_<post>_<page>.htm` with no `cat`.
-- `T02` (`getAlertesByTopic.php`): `postsIds` is a comma-separated list that repeats a message number when several members reported it (`"47934539,47934539"`); `nom` may end with a space; XML entities (`&quot;`, `&amp;`) in `nom` are decoded by an XML reader.
+- `T02` (`getAlertesByTopic.php`): `postsIds` is a comma-separated list that can repeat a message number (`"47934539,47934539"`); `nom` may end with a space; XML entities (`&quot;`, `&amp;`) in `nom` are decoded by an XML reader.
 - Pending capture ([#438](https://github.com/ezzz/HFRnow/issues/438)): a reporter comment holding an entity.
 
 ### LOT-068 — offline pages

@@ -41,7 +41,7 @@ An entity inside a pseudo cannot survive anonymization (aliased).
 
 Also handled, each tested on `T01`/`T02`:
 - 2 of 25 feed links are canonical `/hfr/…-sujet_<post>_<page>.htm` paths with no `cat`: `category(of:)` is nil, legacy's substring test never hid them either.
-- `T02` repeats a message number inside one `postsIds` (several reporters of one message): kept as served.
+- `T02` repeats a message number inside one `postsIds` (why is not captured: the row names one initiator): kept as served.
 - `T02` `nom` can end with a space: kept.
 - Not a feed (HTML error page, empty body, the other AQ document) or not a listing: `missingElement`, never an empty list. An `<rss><channel>` with no item, or `<alertes/>`, is an empty list (format-implied; no capture of an empty answer).
 
