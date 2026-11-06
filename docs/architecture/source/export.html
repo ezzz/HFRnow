@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>@font-face { font-family: Virgil; src: url(Virgil-Regular.woff2) format('woff2'); }</style>
+<script src="excalidraw-utils.min.js"></script>
+</head><body>
+<script>
+// Converts MCP-style elements (label shorthand, cameraUpdate) into standard Excalidraw elements,
+// then exports an SVG with the official library. Result is exposed on window.result.
+const FONT = 'Virgil';
+const LINE = 1.25;
+let seed = 1;
+const base = (e) => ({
+  id: e.id, type: e.type, x: e.x, y: e.y, width: e.width ?? 0, height: e.height ?? 0, angle: 0,
+  strokeColor: e.strokeColor ?? '#1e1e1e', backgroundColor: e.backgroundColor ?? 'transparent',
+  fillStyle: e.fillStyle ?? 'solid', strokeWidth: e.strokeWidth ?? 2, strokeStyle: e.strokeStyle ?? 'solid',
+  roughness: 1, opacity: e.opacity ?? 100, groupIds: [], frameId: null,
+  roundness: e.roundness ?? null, strokeSharpness: e.roundness ? 'round' : 'sharp',
+  seed: seed++, version: 1, versionNonce: seed * 7919, isDeleted: false, boundElements: null,
+  updated: 1, link: null, locked: false,
+});
+const ctx = document.createElement('canvas').getContext('2d');
+function measure(text, size) {
+  ctx.font = `${size}px ${FONT}`;
+  const lines = text.split('\n');
+  return { w: Math.max(...lines.map(l => ctx.measureText(l).width)), h: lines.length * size * LINE };
+}
+function textEl(id, text, size, x, y, color, align) {
+  const m = measure(text, size);
+  return { ...base({ id, type: 'text', x, y, width: m.w, height: m.h, strokeColor: color }),
+    text, originalText: text, fontSize: size, fontFamily: 1, textAlign: align ?? 'left', verticalAlign: 'top',
+    // excalidraw-utils 0.1.x places line i at (i+1)*lineH - (height - baseline): baseline is the LAST line's.
+    baseline: Math.round(m.h - size * LINE + size * 0.9), containerId: null, lineHeight: LINE, autoResize: true };
+}
+async function run(src) {
+  await document.fonts.load(`20px ${FONT}`);
+  const out = [];
+  for (const e of src) {
+    if (e.type === 'cameraUpdate') continue;
+    if (e.type === 'text') { out.push(textEl(e.id, e.text, e.fontSize, e.x, e.y, e.strokeColor)); continue; }
+    if (e.type === 'arrow') {
+      out.push({ ...base(e), points: e.points, lastCommittedPoint: null, startBinding: null, endBinding: null,
+        startArrowhead: e.startArrowhead ?? null, endArrowhead: e.endArrowhead === undefined ? 'arrow' : e.endArrowhead });
+      if (e.label) {
+        const [dx, dy] = e.points[e.points.length - 1];
+        const m = measure(e.label.text, e.label.fontSize ?? 16);
+        out.push(textEl(e.id + '-label', e.label.text, e.label.fontSize ?? 16, e.x + dx / 2 - m.w - 10, e.y + dy / 2 - m.h / 2, '#9a3412'));
+      }
+      continue;
+    }
+    out.push(base(e));
+    if (e.label) {
+      const size = e.label.fontSize ?? 20;
+      const m = measure(e.label.text, size);
+      const t = textEl(e.id + '-label', e.label.text, size, e.x + (e.width - m.w) / 2, e.y + (e.height - m.h) / 2, '#1e1e1e', 'center');
+      out.push(t);
+    }
+  }
+  const svg = await ExcalidrawUtils.exportToSvg({
+    elements: out, appState: { exportBackground: true, viewBackgroundColor: '#ffffff', exportWithDarkMode: false }, files: null,
+  });
+  const file = { type: 'excalidraw', version: 2, source: 'https://github.com/francoisgn/ios-app_SwiftHFR',
+    elements: out, appState: { gridSize: null, viewBackgroundColor: '#ffffff' }, files: {} };
+  window.result = { svg: svg.outerHTML, file: JSON.stringify(file, null, 2) };
+}
+window.run = run;
+</script>
+</body></html>
