@@ -90,13 +90,26 @@ struct OfflinePageRecord: Codable {
     }
 
     /// `text` with its numeric character references (`&#95;`, `&#x5F;`, the `;` optional as in HTML) and the named
-    /// references of `_` (`&lowbar;`, `&UnderBar;`) decoded; any other reference is left as written.
+    /// references of `_` (`&lowbar;`, `&UnderBar;`) decoded; any other reference is left as written. As in a browser,
+    /// every digit belongs to the reference, leading zeros included (`&#000000061;` is `=`), and a code point that is
+    /// zero, a surrogate or out of range becomes U+FFFD.
     static func decodingCharacterReferences(_ text: String) -> String {
-        text.replacing(/&(?:#([0-9]{1,7})|#[xX]([0-9a-fA-F]{1,6})|(lowbar|UnderBar));?/) { match in
+        text.replacing(/&(?:#([0-9]+)|#[xX]([0-9a-fA-F]+)|(lowbar|UnderBar));?/) { match in
             if match.output.3 != nil { return "_" }
-            let code = match.output.1.flatMap { UInt32($0) } ?? match.output.2.flatMap { UInt32($0, radix: 16) }
+            let code: UInt32? = if let decimal = match.output.1 {
+                codePoint(decimal, radix: 10)
+            } else {
+                match.output.2.flatMap { codePoint($0, radix: 16) }
+            }
             guard let code, code != 0, let scalar = Unicode.Scalar(code) else { return "\u{FFFD}" }
             return String(Character(scalar))
         }
+    }
+
+    /// The value of a reference's digits, nil when it exceeds Unicode's range (the digits beyond it are not read).
+    private static func codePoint(_ digits: Substring, radix: Int) -> UInt32? {
+        let significant = digits.drop { $0 == "0" }
+        guard significant.count <= (radix == 16 ? 6 : 7) else { return nil }
+        return significant.isEmpty ? 0 : UInt32(significant, radix: radix)
     }
 }

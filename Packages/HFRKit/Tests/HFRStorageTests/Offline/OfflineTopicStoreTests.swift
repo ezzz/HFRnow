@@ -131,6 +131,8 @@ struct OfflineTopicStoreTests {
         #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash&unknown;check" value="t0k3n">"#))
         #expect(!OfflinePageRecord.holdsSessionToken(#"<input name="search" value="a&amp;b">"#))
         #expect(OfflinePageRecord.decodingCharacterReferences("a&#95;b&#x5F;c&lowbar;d&#0;e&amp;f") == "a_b_c_d\u{FFFD}e&amp;f")
+        #expect(OfflinePageRecord.decodingCharacterReferences("&#0000000095;&#x0005f;&#99999999;&#xD800;x") == "__\u{FFFD}\u{FFFD}x")
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash&#00000000095;check" value="t0k3n">"#))
     }
 
     @Test("A codehex token is refused even without a filled hash_check: the logged-in links carry it (HFR-PROTOCOL §5)")
@@ -145,6 +147,9 @@ struct OfflineTopicStoreTests {
         #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?code&#104;ex&#x3D;0123abcd">x</a>"#))
         #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?codehex&equals;0123abcd">x</a>"#))
         #expect(!OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?codehex&#61;">x</a>"#))
+        // Every digit belongs to the reference, leading zeros included, as a browser reads it.
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?codehex&#000000061;0123abcd">x</a>"#))
+        #expect(OfflinePageRecord.holdsSessionToken(#"<a href="/unlog.php?codehex&#x000000003D;0123abcd">x</a>"#))
     }
 
     @Test("Only forum topics from page 1, with content, are saved", arguments: [
