@@ -19,6 +19,8 @@ struct ReplyComposerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
+    /// The first focus (once the draft is read) happened: later `canEdit` flips (a send) never steal it.
+    @State private var didFocus = false
     @State private var picker: SmileyPickerModel?
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
@@ -103,6 +105,12 @@ struct ReplyComposerView: View {
         .task {
             await model.start()
             formatting.placeCaretAtEnd()
+        }
+        // The fields are disabled until the draft is read: focus set in the same task as `start()` lands on a disabled field
+        // and is lost, so it waits for the view to enable them.
+        .onChange(of: model.canEdit) { _, canEdit in
+            guard canEdit, !didFocus else { return }
+            didFocus = true
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
