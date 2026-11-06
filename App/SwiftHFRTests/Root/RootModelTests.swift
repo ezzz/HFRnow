@@ -125,7 +125,7 @@ struct RootModelTests {
         ])
     }
 
-    @Test func theCategoriesTabStartsWithoutASourceAndFavouritesOnTheFavourites() async {
+    @Test func theCategoriesTabStartsWithoutASourceAndFavouritesOnTheFlags() async {
         let root = await model()
         #expect(root.categories.selectedSource == nil)
         #expect(root.favorites.selectedSource == .flagged)

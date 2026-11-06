@@ -65,8 +65,10 @@ final class FavoritesOptionsModel {
     private(set) var superFavorites: Set<TopicID> = []
     /// What the last store read or write could not do, in French (shown by the list); nil when everything worked. A write
     /// problem is not cleared by a later read.
-    var storeProblem: String? { writeProblem ?? readProblem }
-    private var writeProblem: String?
+    var storeProblem: String? { layoutWriteProblem ?? superWriteProblem ?? readProblem }
+    /// One per store: a write that works on one never hides the other's refusal.
+    private var layoutWriteProblem: String?
+    private var superWriteProblem: String?
     private var readProblem: String?
     /// Counts local writes, so a `reload()` that read the stores before a write landed does not undo it.
     @ObservationIgnored private var writeGeneration = 0
@@ -152,9 +154,9 @@ final class FavoritesOptionsModel {
         do throws(SmallStoreError) {
             _ = try await stores.layout.setCollapsed(collapse, section: section)
             if collapse { collapsedSections.insert(section) } else { collapsedSections.remove(section) }
-            writeProblem = nil
+            layoutWriteProblem = nil
         } catch {
-            writeProblem = "Impossible d’enregistrer les sections repliées."
+            layoutWriteProblem = "Impossible d’enregistrer les sections repliées."
         }
     }
 
@@ -183,9 +185,9 @@ final class FavoritesOptionsModel {
                 _ = try await stores.superFavorites.remove(id, account: account)
                 superFavorites.remove(id)
             }
-            writeProblem = nil
+            superWriteProblem = nil
         } catch {
-            writeProblem = "Impossible d’enregistrer les super favoris."
+            superWriteProblem = "Impossible d’enregistrer les super favoris."
         }
     }
 
