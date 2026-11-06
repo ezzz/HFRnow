@@ -1,5 +1,6 @@
 import HFRModels
 import SwiftUI
+import UIKit
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79. Differences: no Tous / Favoris / Suivis / Lus filter; "Page N" without a fake total (GAP-023, 024;
@@ -12,7 +13,12 @@ struct TopicListView: View {
     var filtering: FilteredPostsModel?
     /// The current account's composer (LOT-089); nil when logged out, which hides "Nouveau sujet".
     var composer: ComposerServices?
+    /// Opens a row's topic at a page its menu names (LOT-125); nil hides those entries.
+    var open: ((TopicSummary, TopicOpening) -> Void)?
     @State private var newTopic: ReplyComposerModel?
+    /// The row whose "Page numéro…" prompt is shown.
+    @State private var pagePrompt: TopicSummary?
+    @State private var pageText = ""
 
     var body: some View {
         let loader = model.loader
@@ -76,27 +82,104 @@ struct TopicListView: View {
         }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
+        .alert(
+            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.actionFailure ?? "")
+        }
+        .alert(
+            "Page numéro", isPresented: Binding(get: { pagePrompt != nil }, set: { if !$0 { pagePrompt = nil } }),
+            presenting: pagePrompt
+        ) { topic in
+            TextField("Page", text: $pageText).keyboardType(.numberPad)
+            Button("Annuler", role: .cancel) {}
+            Button("Aller") {
+                let number = Int(pageText.trimmingCharacters(in: .whitespaces)) ?? 0
+                if let opening = TopicQuickActions.page(number, of: topic) { open?(topic, opening) }
+            }
+        } message: { topic in
+            Text("Entre 1 et \(topic.pageCount)")
+        }
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             let isSuper = model.isSuperFavorite(topic)
-            TopicRowView(topic: topic, isSuperFavorite: isSuper)
+            TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
                 .listRowBackground(isSuper ? Color.orange.opacity(0.12) : nil)
-                .contextMenu {
-                    if model.source == .favorites, let filtering, topic.topicID != nil {
-                        Button { filtering.start(opening: topic) } label: {
-                            Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
-                        }
-                        .disabled(filtering.isBusy)
-                    }
-                    if let favorites = model.favorites, favorites.canMarkSuperFavorites, topic.topicID != nil {
-                        Button(isSuper ? "Retirer des super favoris" : "Ajouter aux super favoris", systemImage: "star.circle") {
-                            Task { await favorites.toggleSuperFavorite(topic) }
-                        }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if model.canMarkRead(topic) {
+                        Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }
                     }
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if model.canRemoveFlag(topic) { removeButton(topic) }
+                }
+                .accessibilityActions {
+                    // The swipes, for VoiceOver (a swipe is not reachable there).
+                    if model.canMarkRead(topic) { Button("Lu") { model.markRead(topic) } }
+                    if model.canRemoveFlag(topic), !model.isRemovingFlag(topic) {
+                        Button("Supprimer") { Task { await model.removeFlag(topic) } }
+                    }
+                }
+                .contextMenu { menu(topic, isSuper: isSuper) }
+        }
+    }
+
+    /// "Supprimer" (legacy trailing swipe and menu entry): "Suppression…" and disabled while the removal is in flight.
+    private func removeButton(_ topic: TopicSummary) -> some View {
+        let removing = model.isRemovingFlag(topic)
+        return Button(role: .destructive) {
+            Task { await model.removeFlag(topic) }
+        } label: {
+            Label(removing ? "Suppression…" : "Supprimer", systemImage: removing ? "hourglass" : "trash")
+        }
+        .disabled(removing)
+    }
+
+    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter.
+    @ViewBuilder
+    private func menu(_ topic: TopicSummary, isSuper: Bool) -> some View {
+        if let open {
+            if let opening = TopicQuickActions.firstPage(of: topic) {
+                Button("Première page", systemImage: "backward.end") { open(topic, opening) }
+            }
+            if let opening = TopicQuickActions.lastPage(of: topic) {
+                Button("Dernière page", systemImage: "forward.end") { open(topic, opening) }
+            }
+            if let opening = TopicQuickActions.lastReply(of: topic, in: model.source) {
+                Button("Dernière réponse", systemImage: "text.append") { open(topic, opening) }
+            }
+            Button("Page numéro…", systemImage: "number") {
+                pageText = "\(TopicQuickActions.suggestedPage(of: topic))"
+                pagePrompt = topic
+            }
+        }
+        if let link = TopicQuickActions.link(of: topic) {
+            Button("Copier le lien", systemImage: "doc.on.doc") {
+                UIPasteboard.general.string = link.absoluteString
+                AccessibilityNotification.Announcement("Lien copié").post()
+            }
+        }
+        Divider()
+        if model.canMarkRead(topic) {
+            Button("Lu", systemImage: "checkmark") { model.markRead(topic) }
+        }
+        if let favorites = model.favorites, favorites.canMarkSuperFavorites, topic.topicID != nil {
+            Button(isSuper ? "Retirer des super favoris" : "Ajouter aux super favoris", systemImage: "star.circle") {
+                Task { await favorites.toggleSuperFavorite(topic) }
+            }
+        }
+        if model.canRemoveFlag(topic) { removeButton(topic) }
+        if model.source == .favorites, let filtering, topic.topicID != nil {
+            Divider()
+            Button { filtering.start(opening: topic) } label: {
+                Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+            }
+            .disabled(filtering.isBusy)
         }
     }
 

@@ -13,13 +13,15 @@ final class ContentLoader<Value: Sendable> {
     private(set) var error: ListLoadError?
 
     private var generation = 0
-    private var task: Task<Void, Never>?
+    private var task: Task<Bool, Never>?
 
-    /// Runs `operation` as the current load, superseding any load in flight, and returns when it has been applied or dropped.
+    /// Runs `operation` as the current load, superseding any load in flight, and returns when it has been applied or dropped:
+    /// true only when this call's value is now `value` (a superseded or failed load returns false).
     ///
     /// The work runs in its own task so that cancelling the caller (a pull-to-refresh that is dismissed) does not leave the
     /// screen in a half-loaded state; only a newer `load` or `cancel()` supersedes it.
-    func load(_ operation: @escaping @Sendable () async throws(ListLoadError) -> Value) async {
+    @discardableResult
+    func load(_ operation: @escaping @Sendable () async throws(ListLoadError) -> Value) async -> Bool {
         task?.cancel()
         generation += 1
         let mine = generation
@@ -31,10 +33,10 @@ final class ContentLoader<Value: Sendable> {
             } catch {
                 result = .failure(error)
             }
-            self?.finish(result, generation: mine)
+            return self?.finish(result, generation: mine) ?? false
         }
         self.task = task
-        await task.value
+        return await task.value
     }
 
     /// Stops the load in flight without changing the content.
@@ -52,18 +54,21 @@ final class ContentLoader<Value: Sendable> {
         error = nil
     }
 
-    private func finish(_ result: Result<Value, ListLoadError>, generation mine: Int) {
+    /// Applies `result` unless a newer load superseded it; true when it applied a value.
+    private func finish(_ result: Result<Value, ListLoadError>, generation mine: Int) -> Bool {
         // A superseded load is dropped whatever it carries.
-        guard mine == generation else { return }
+        guard mine == generation else { return false }
         isLoading = false
         switch result {
         case .success(let loaded):
             value = loaded
             error = nil
+            return true
         case .failure(.cancelled):
-            break
+            return false
         case .failure(let failure):
             error = failure
+            return false
         }
     }
 }
