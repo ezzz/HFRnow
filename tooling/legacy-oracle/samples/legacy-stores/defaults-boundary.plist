@@ -6,8 +6,8 @@
 	<array>
 		<string>favorite-first-post:2000001</string>
 		<string>favorite-order:2</string>
+		<string>favorite-unknown</string>
 		<string>forum-id:13</string>
-		<string>forum-title:Z</string>
 		<string>forum-title:jeux vidéo</string>
 		<string>forum-url:/forum1.php?config=hfr.inc&amp;cat=25</string>
 	</array>

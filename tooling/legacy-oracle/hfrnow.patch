@@ -818,10 +818,10 @@ index 0000000..385b4e1
 +}
 diff --git a/HFRswiftTests/OracleExportStores.swift b/HFRswiftTests/OracleExportStores.swift
 new file mode 100644
-index 0000000..802f9cc
+index 0000000..c442a6d
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportStores.swift
-@@ -0,0 +1,212 @@
+@@ -0,0 +1,215 @@
 +// Oracle exporter for SwiftHFR #347 (LOT-067 import): the bytes the legacy app writes in its five small on-device stores,
 +// produced by the REAL legacy code on synthetic data. Local-only: never committed to hfrnow.
 +//
@@ -885,16 +885,17 @@ index 0000000..802f9cc
 +        // fresh install: neither key written
 +        clearDefaults()
 +        try write(try dump(both), "defaults-absent.plist")
++        try write(try dump([historyKey]), "defaults-search-history-absent.plist")
 +        // empty: what the legacy save writes after the last topic is un-flagged and the last section expanded
 +        FavoritesSuperFavoriteStore.save([])
 +        FavoritesCollapsedSectionsStore.save([])
 +        try write(try dump(both), "defaults-empty.plist")
 +        // boundary: Int32 maximum and 1 (smallest id the store keeps), section ids of every shape sectionIdentifier(for:) builds
-+        // (Favorites.swift:502-520), with a space, an accent, a colon and an uppercase letter
++        // (Favorites.swift:502-520), with a space, an accent and a colon (forum-title is lowercased, Favorites.swift:511)
 +        FavoritesSuperFavoriteStore.save([2_147_483_647, 1, 2_000_000])
 +        FavoritesCollapsedSectionsStore.save([
 +            "forum-id:13", "forum-url:/forum1.php?config=hfr.inc&cat=25", "forum-title:jeux vidéo",
-+            "favorite-order:2", "favorite-first-post:2000001", "forum-title:Z"
++            "favorite-order:2", "favorite-first-post:2000001", "favorite-unknown"
 +        ])
 +        try write(try dump(both), "defaults-boundary.plist")
 +        // the same topic number flagged once: legacy keys a super-favourite by the number alone (postID), so a topic of
@@ -983,7 +984,7 @@ index 0000000..802f9cc
 +        try normalizedHistory("51st-evicts-oldest")
 +        // corrupt data under the key: the real load answers [], the next record rewrites a one-entry history
 +        clearDefaults()
-+        let truncated = Data("[{\"text\":\"chat\",\"count\":2,\"lastDate\":7".utf8)
++        let truncated = Data(try Data(contentsOf: out.appendingPathComponent("search-history-typical.json")).prefix(40)) // a real value cut short
 +        UserDefaults.standard.set(truncated, forKey: historyKey)
 +        try write(truncated, "search-history-corrupt-before.bin")
 +        XCTAssertTrue(SmileySearchHistoryStore.load().isEmpty)
@@ -1000,11 +1001,13 @@ index 0000000..802f9cc
 +        try? fm.removeItem(at: file)
 +        defer { if let saved { try? saved.write(to: file) } else { try? fm.removeItem(at: file) } }
 +
-+        func image(_ name: String, w: Int?, h: Int?, medium: Bool, preview: Bool, mini: Bool, at offset: TimeInterval) -> RehostUploadedImage {
-+            RehostUploadedImage(fullWidth: w, fullHeight: h, fullURL: "https://reho.st/self/\(name).jpg",
-+                                mediumURL: medium ? "https://reho.st/medium/\(name).jpg" : nil,
-+                                previewURL: preview ? "https://reho.st/preview/\(name).jpg" : nil,
-+                                miniURL: mini ? "https://reho.st/mini/\(name).jpg" : nil, timeStamp: date(offset))
++        // The only uploader is img3 (ReplyService.swift:1958-2035, answer shape U01): full, medium and thumb URLs, previewURL nil;
++        // the file names are synthetic hashes.
++        func image(_ name: String, w: Int?, h: Int?, medium: Bool, mini: Bool, at offset: TimeInterval) -> RehostUploadedImage {
++            let dir = "https://img3.super-h.fr/images/2024/01/01/\(name)"
++            return RehostUploadedImage(fullWidth: w, fullHeight: h, fullURL: "\(dir).jpg",
++                                       mediumURL: medium ? "\(dir).md.jpg" : nil, previewURL: nil,
++                                       miniURL: mini ? "\(dir).th.jpg" : nil, timeStamp: date(offset))
 +        }
 +        func store(_ name: String, _ images: [RehostUploadedImage]) throws {
 +            RehostUploadHistoryStore.save(images)
@@ -1013,24 +1016,24 @@ index 0000000..802f9cc
 +        }
 +        try store("empty", [])
 +        let typical = [
-+            image("c3", w: 1600, h: 1200, medium: true, preview: true, mini: true, at: 7200), // newest first, as the screen inserts
-+            image("b2", w: 800, h: 600, medium: true, preview: false, mini: true, at: 3600),
-+            image("a1", w: 4032, h: 3024, medium: true, preview: true, mini: true, at: 0)
++            image("c3d4e5f6a7b8", w: 1600, h: 1200, medium: true, mini: true, at: 7200), // newest first, as the screen inserts
++            image("b2c3d4e5f6a7", w: 800, h: 600, medium: true, mini: true, at: 3600),
++            image("a1b2c3d4e5f6", w: 4032, h: 3024, medium: true, mini: true, at: 0)
 +        ]
 +        try store("typical", typical)
 +        try store("boundary", [
-+            image("same", w: nil, h: nil, medium: false, preview: false, mini: false, at: 0.123), // every optional nil, fractional instant
-+            image("same", w: nil, h: nil, medium: false, preview: false, mini: false, at: 60),     // same URL, another upload
-+            image("same", w: nil, h: nil, medium: false, preview: false, mini: false, at: 60),     // identical id twice (legacy never dedupes)
-+            image("ünï é", w: 1, h: 1, medium: false, preview: false, mini: true, at: -1)          // non-ASCII URL, date before base
++            image("0123456789ab", w: nil, h: nil, medium: false, mini: false, at: 0.123), // every optional nil, fractional instant
++            image("0123456789ab", w: nil, h: nil, medium: false, mini: false, at: 60),     // same URL, another upload
++            image("0123456789ab", w: nil, h: nil, medium: false, mini: false, at: 60),     // identical id twice (legacy never dedupes)
++            image("ünï-é", w: 1, h: 1, medium: false, mini: true, at: -1)          // non-ASCII URL, date before base
 +        ])
 +        // corrupt file: the real load answers [], the next upload is saved over it (what the next onChange writes)
-+        let truncated = Data("[{\"fullURL\":\"https://reho.st/self/a1.jpg\",\"timeSt".utf8)
++        let truncated = Data(try Data(contentsOf: out.appendingPathComponent("upload-history-typical.json")).prefix(60)) // a real value cut short
 +        try write(truncated, "upload-history-corrupt-before.bin")
 +        try truncated.write(to: file)
 +        XCTAssertTrue(RehostUploadHistoryStore.load().isEmpty)
 +        var images = RehostUploadHistoryStore.load()
-+        images.insert(image("after", w: 640, h: 480, medium: true, preview: true, mini: true, at: 10_800), at: 0)
++        images.insert(image("f0e1d2c3b4a5", w: 640, h: 480, medium: true, mini: true, at: 10_800), at: 0)
 +        try store("after-corrupt-rewrite", images)
 +    }
 +}

@@ -13,6 +13,7 @@
 # Environment:
 #   HFRNOW            legacy checkout            (default: $HOME/Git/hfrnow)
 #   HFR_ORACLE_SIM    simulator name, reused or created (default: agent-m1-iphone)
+#   HFR_ORACLE_DOMAIN bundle id of the test host, whose domain `-s` exports (default: hfrplus.red.super)
 #   HFR_ORACLE_WORK   DerivedData and step logs  (default: ./.work next to this script)
 #   NO_COLOR          disable colors (also off when stdout is not a terminal)
 set -u
