@@ -14,18 +14,20 @@ extension SyncedListsStore {
     }
 
     func setAside(_ slot: Slot, owner previous: String, digests: Bool = false) async {
+        var values: [String: SyncedValue] = [:]
+        // Every digest of this store's lists, those emptied here since their last sync included (they hold no name).
+        // They live in memory: set aside even when the store cannot be read, its lists following once it can.
+        if digests {
+            for (key, digest) in synced where slot.owns(key) { values[Self.digestPrefix + key] = .string(digest) }
+        }
         guard await isReadable(slot) else {
+            quarantine(values, for: previous)
             markStale(slot, owner: previous)
             return
         }
         let names = await listNames(slot)
-        var values: [String: SyncedValue] = [:]
         for name in names {
             if let value = await localValue(slot, name: name) { values[slotKey(slot, name: name)] = value }
-        }
-        // Every digest of this store's lists, those emptied here since their last sync included (they hold no name).
-        if digests {
-            for (key, digest) in synced where slot.owns(key) { values[Self.digestPrefix + key] = .string(digest) }
         }
         quarantine(values, for: previous)
         var emptied = true
