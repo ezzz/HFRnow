@@ -27,7 +27,8 @@ Legacy citations name `2440d79` of <https://github.com/ezzz/HFRnow>.
 - **Results:** the page's rows with the excerpt (`SearchHit.snippet`), the page number, HFR's sentence when nothing matched (`R50c`). First / previous / next pagination follows the pager paths of `TopicListPage.navigation` (`GlobalSearchFlow.page(atPath:)`); like the forum lists, only "there is a next page" is shown, never a total.
 - **Open a result:** pushed in the Plus stack; the reader opens at the matching message (`SearchHit.postPath` through `ReaderTarget(link:)`), else as a topic row does.
 - **Failures:** `ListLoadError` (offline, timeout, maintenance, unreadable) with "Réessayer"; the rows stay on screen after a failed page. The waiting page without results link (`noResultsPage`) reads as "page illisible".
-- Leaving the screen cancels the search in flight.
+- "Annuler" stops the search in flight. Leaving the screen does not cancel it (a covered list must not drop its load, LOT-137 learning), so the reader pushed over a result and a layout change keep the load.
+- The category sent is the stored one only once the forum list vouches for it (Q-7), else Discussions.
 
 ## Edge cases
 
@@ -44,6 +45,7 @@ Blank text; banned word inside another word (`penguin`, as legacy and LOT-046); 
 
 - Banned words refuse the search with a warning (Q-7, CHANGELOG-LEGACY row 45).
 - A new query clears the previous rows and pager at once (legacy cleared them only on failure, `ForumSearchView.swift:95-98`); "Annuler" and "Dernière page" are kept (row and bar, not toolbar/banner).
+- A failed page keeps its rows (`ContentLoader`); legacy cleared them on any failure.
 - No haptic and no glass buttons (not ported); the status banner is a "Recherche en cours" row.
 - The reviewer-account rule hides the Apple *category* only; hiding the entry point itself (research note P450-510 #3) is not in the issue's scope and stays open.
 

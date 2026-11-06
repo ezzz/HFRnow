@@ -139,13 +139,11 @@ final class ForumSearchModel {
             return
         }
         bannedWord = nil
-        // A private-messages id cannot be searched (the picker never offers it); Discussions is the legacy default.
-        if case .privateMessages = category { category = .forum(13) }
         selected = nil
         requestedPath = nil
         // A new query drops the previous one's rows and pager, as legacy did on failure (`ForumSearchView.swift:95-98`).
         loader.reset()
-        let query = GlobalSearchQuery(text: words, category: category, matchMode: matchMode, scope: scope, dateRange: dateRange())
+        let query = GlobalSearchQuery(text: words, category: searchedCategory, matchMode: matchMode, scope: scope, dateRange: dateRange())
         let source = source
         await loader.load { () async throws(ListLoadError) -> SearchContent in
             SearchContent(page: try await source.search(query))
@@ -163,7 +161,7 @@ final class ForumSearchModel {
         if let path = requestedPath { await load(path: path) } else { await search() }
     }
 
-    /// Stops the search in flight (leaving the screen, the Annuler button).
+    /// Stops the search in flight (the Annuler button).
     func cancel() { loader.cancel() }
 
     /// The reader of `topic`, opened at the matching message; the same model while the result stays selected.
@@ -188,6 +186,12 @@ final class ForumSearchModel {
         }
         let parts = calendar.dateComponents([.day, .month, .year], from: date)
         return .since(day: parts.day ?? 1, month: parts.month ?? 1, year: parts.year ?? 2000)
+    }
+
+    /// The forum sent: the choice once the forum list vouches for it (Apple category filtered, Q-7, no private-messages id), else
+    /// Discussions, the legacy default, so a stored value is never sent unchecked while the list loads.
+    private var searchedCategory: CategoryID {
+        categories.contains { $0.id == category } ? category : .forum(13)
     }
 
     private var trimmedText: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }

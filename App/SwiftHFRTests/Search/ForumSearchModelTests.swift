@@ -64,7 +64,7 @@ struct ForumSearchModelTests {
         #expect(search.bannedWord == "jailbreak")
         #expect(source.sentQueries.isEmpty)
         #expect(search.loader.value == nil)
-        #expect(!search.hasSearched)
+        #expect(search.loader.error == nil)
     }
 
     @Test func aBannedWordInsideAnotherWordIsRefusedAndTheNextSearchClearsTheWarning() async {
@@ -94,7 +94,13 @@ struct ForumSearchModelTests {
         #expect(!search.canSubmit)
         await search.search()
         #expect(source.sentQueries.isEmpty)
-        #expect(!search.hasSearched)
+        #expect(search.loader.error == nil)
+    }
+
+    private static func forumList(_ ids: [Int]) -> ForumListContent {
+        let forums = ids.map { ForumCategory(categoryID: .forum($0), title: "Forum \($0)", path: "/p\($0)") }
+        let page = ForumListPage(forums: forums, isLoggedIn: true)
+        return ForumListContent(page: page, visibility: ForumVisibility(), accountName: "someone")
     }
 
     @Test func theFormReachesTheQueryWithLegacyDefaults() async {
@@ -103,6 +109,7 @@ struct ForumSearchModelTests {
         search.text = "ssd"
         await search.search()
         #expect(source.sentQueries == [GlobalSearchQuery(text: "ssd")])
+        search.setCategories(from: Self.forumList([1, 13]))
         search.category = .forum(1)
         search.matchMode = .anyWord
         search.scope = .title
@@ -193,7 +200,7 @@ struct ForumSearchModelTests {
         let search = model(source)
         search.text = "xyzzy"
         await search.search()
-        #expect(search.hasSearched)
+        #expect(search.loader.value != nil)
         #expect(search.loader.value?.topics.isEmpty == true)
         #expect(search.loader.value?.notice == "Aucune réponse n'a été trouvée")
     }
@@ -257,6 +264,16 @@ struct ForumSearchModelTests {
         search.setCategories(from: review)
         #expect(search.categories.map(\.id) == [.forum(13)])
         #expect(search.category == .forum(13))
+    }
+
+    @Test func aStoredAppleCategoryIsNotSentBeforeTheForumListVouchesForIt() async {
+        let source = FakeSearchSource()
+        let store = InMemorySettingsStore()
+        store.set(CategoryID.forum(25), for: SettingKey.searchCategory)
+        let search = model(source, store: store)
+        search.text = "ssd"
+        await search.search()
+        #expect(source.sentQueries.first?.category == .forum(13))
     }
 
     @Test func aStoredPrivateMessagesCategoryFallsBackToDiscussionsBeforeSending() async {

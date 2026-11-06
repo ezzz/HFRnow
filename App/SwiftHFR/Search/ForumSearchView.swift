@@ -30,7 +30,6 @@ struct ForumSearchView: View {
             }
         }
         .onChange(of: forums.loader.value, initial: true) { _, content in model.setCategories(from: content) }
-        .onDisappear { model.cancel() }
     }
 
     private var formSection: some View {
