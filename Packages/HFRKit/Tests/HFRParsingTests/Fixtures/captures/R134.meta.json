@@ -1,0 +1,20 @@
+{
+  "id": "R134",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3208009&page=1&p=1&sondage=0&owntopic=0&trash=0&trash_post=0&print=0&numreponse=0&quote_only=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 13:36:23 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R134-mp-thread-group-added-member-view.html",
+  "private": true
+}

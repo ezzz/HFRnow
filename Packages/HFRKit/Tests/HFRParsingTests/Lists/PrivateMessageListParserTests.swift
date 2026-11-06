@@ -8,7 +8,7 @@ import Testing
 struct PrivateMessageListParserTests {
     static let listURL = "/forum1.php?config=hfr.inc&cat=prive&page=1"
     /// The group MP lists of the owner and of a member (#336), whose oracles are in `Fixtures/M2-writes`.
-    static let groupCases = ["R123a", "R123f"]
+    static let groupCases = ["R123a", "R123f", "R126", "R130", "R135"]
     static let cases = ["R13a", "R13b", "R13c", "R13u1", "R13u1b"] + groupCases
 
     static func oracle(_ name: String) throws -> TopicListOracle {
