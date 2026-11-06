@@ -43,7 +43,7 @@ enum ComposerMessages {
         case .form(.network(let failure)):
             return quoteUnreachable(failure)
         case .form, .noQuoteLink, .noQuote:
-            return "Le forum ne propose pas de citation pour ce message."
+            return "Le forum n’a pas fourni de citation : rien n’a été ajouté à la réponse."
         case .emptySelection:
             return "Aucun message n’est sélectionné pour la citation."
         case .otherTopic:

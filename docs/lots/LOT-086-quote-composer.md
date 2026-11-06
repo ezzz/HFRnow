@@ -46,6 +46,7 @@ at `21173e7` (LESSONS: cite the revision with every line range).
 | The selection is released after HFR confirmed the reply (legacy: one hour, so the next composer quoted the same messages again) | GAP-083 | b·needed: leftovers of p. 505 (CHANGELOG-LEGACY 70) |
 | A short confirmation after each toggle ("Ajouté aux citations (2)") | GAP-083 | b: legacy toggled silently |
 | A selection that starts and ends in different messages is not quoted | GAP-082 | b·needed: legacy quoted the first message with the words of the other |
+| A single quote or a selection quote of a message that is selected releases it once the reply is posted (the posted text quotes it) | GAP-083 | b·operator: to confirm, issue #178 only says "cleared after a confirmed send" |
 | Blocks of a multi-quote are put in topic order | GAP-083 | b·needed: acceptance criterion; HFR's order for a cookie toggled out of order is not captured |
 
 The tray with a count stays LOT-153 (M5, UXD-17).
@@ -54,7 +55,7 @@ The tray with a count stays LOT-153 (M5, UXD-17).
 
 **"Citer"** (`.quote` handler). `QuoteFlow.quote` fetches the message's quote link in the current account's session; the prefill
 (HFR's own `[quotemsg=…]` block) is merged into the topic's draft when the composer opens. A failure opens nothing and says why
-(`ComposerMessages.quote`). The selection is never touched.
+(`ComposerMessages.quote`). The selection is not changed by the quote itself; see Release.
 
 **"Citer ☐/☑"** (`.quoteSelection` handler). Toggles the message in the topic's selection cookie (LOT-042; an exact-match
 selection, one cookie per topic). The session is an actor, so the menu reads the selection again before it opens
@@ -82,7 +83,7 @@ as served; a blank quote changes nothing; a quote the draft already holds whole 
 
 **Release.** The composer keeps the selection a multi-quote reply stands for (`QuoteRelease`: the numbers selected when HFR's
 prefill was asked for). Only after HFR's confirmation of the reply (`PostingResult`), the messages that the posted text still
-quotes (the first number of each `[quotemsg=n,…]`, LOT-049's rule) are unselected, one by one, each read again; a message selected
+quotes (the first number of each `[quotemsg=n,…]`, LOT-049's rule) are unselected in one actor turn (`HFRSession.unselectQuotes`, no cookie renewal when nothing changes); a message selected
 after the prefill stays, a message the user unselected meanwhile is not selected again, another topic is untouched. A block the user
 deleted leaves its message selected. On every other outcome (`rejected`, `unconfirmed`, a local refusal) the selection is kept. A
 quote that carries no selected message releases nothing. Whichever way the composer opens (reply button, "Citer", selection quote,

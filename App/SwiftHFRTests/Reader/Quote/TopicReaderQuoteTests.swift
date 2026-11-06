@@ -62,18 +62,19 @@ struct TopicReaderQuoteTests {
         #expect(model.pendingReply == nil)
     }
 
-    @Test func aSecondTapOnTheReplyButtonWaitsForTheFirstFetch() async {
+    @Test func aSecondTapDuringTheFirstReadOfTheSelectionStartsNoSecondFetch() async {
         let gate = ReaderGate()
-        let quoter = ScriptedQuoter(selected: [100], gate: gate)
+        let quoter = ScriptedQuoter(selected: [100], numbersGate: gate)
         quoter.scriptSelection(.success("blocs"))
         let model = await reader(quoter: quoter)
         let first = Task { await model.requestReply() }
         await gate.untilArrived()
         #expect(model.isLoadingQuote)
         await model.requestReply()
-        #expect(quoter.selectionLinks.count == 1)
+        #expect(quoter.selectionLinks.isEmpty)
         await gate.open()
         await first.value
+        #expect(quoter.selectionLinks == [replyFormURL])
         #expect(model.pendingReply?.quote?.text == "blocs")
     }
 

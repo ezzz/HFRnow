@@ -36,7 +36,7 @@ struct QuoteRelease: Equatable, Sendable {
 struct ReplyQuote: Equatable, Sendable {
     /// HFR's quote blocks, as served (selection quotes narrowed by `QuoteSelectionFormatter`).
     let text: String
-    /// Set for a multi-quote only: a single quote never touches the selection.
+    /// The messages selected when the composer opened: once a reply that quotes some of them is posted, those are unselected.
     var release: QuoteRelease?
 }
 

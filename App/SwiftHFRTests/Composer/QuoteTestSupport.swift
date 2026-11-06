@@ -24,9 +24,12 @@ final class ScriptedQuoter: QuoteOpening {
     private let state = Mutex(State())
     /// Suspends every single quote until opened, when set.
     let gate: ReaderGate?
+    /// Suspends every read of the selection until opened, when set.
+    let numbersGate: ReaderGate?
 
-    init(selected: [Int] = [], gate: ReaderGate? = nil) {
+    init(selected: [Int] = [], gate: ReaderGate? = nil, numbersGate: ReaderGate? = nil) {
         self.gate = gate
+        self.numbersGate = numbersGate
         state.withLock { $0.selected = selected }
     }
 
@@ -44,7 +47,10 @@ final class ScriptedQuoter: QuoteOpening {
     /// The selection now.
     var selected: [Int] { state.withLock { $0.selected } }
 
-    func selectedNumbers(for token: QuoteSelectionToken) async -> [Int] { selected }
+    func selectedNumbers(for token: QuoteSelectionToken) async -> [Int] {
+        await numbersGate?.wait()
+        return selected
+    }
 
     func toggle(_ token: QuoteSelectionToken) async -> Bool {
         state.withLock { state in

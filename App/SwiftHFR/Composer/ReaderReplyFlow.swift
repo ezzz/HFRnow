@@ -39,7 +39,8 @@ struct ReaderReplyFlow: ViewModifier {
             // The reply button and every quote ask the reader; it hands over once, to the sheet that is not open yet.
             .onChange(of: model.pendingReply) { _, request in
                 guard request != nil, let taken = model.takePendingReply() else { return }
-                guard let composer, let target = model.replyTarget, reply == nil else {
+                guard reply == nil else { return } // a sheet is open: the request was a double tap
+                guard let composer, let target = model.replyTarget else {
                     // The answer form went away while the quote was fetched: say so instead of dropping the quote silently.
                     model.showMenuFeedback("Réponse indisponible : la page a changé, réessayez.")
                     return
