@@ -108,7 +108,7 @@ struct ForumSearchView: View {
         if let content = model.loader.value, content.previousPath != nil || content.nextPath != nil {
             HStack {
                 Button { Task { await model.goToFirstPage() } } label: { Image(systemName: "backward.end") }
-                    .disabled(!model.canGoToPrevious)
+                    .disabled(!model.canGoToPrevious || content.firstPath == nil)
                     .accessibilityLabel("Première page")
                 Button { Task { await model.goToPreviousPage() } } label: { Image(systemName: "chevron.left") }
                     .disabled(!model.canGoToPrevious)
