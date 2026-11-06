@@ -17,7 +17,7 @@ struct RootSidebarView: View {
                 sidebar
             } detail: {
                 // A new identity per entry, so the stack drops what the previous entry had pushed.
-                NavigationStack { PlusEntryView(entry: entry) }
+                NavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
                     .id(entry)
             }
         } else {

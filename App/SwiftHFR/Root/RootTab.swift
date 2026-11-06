@@ -77,7 +77,7 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
     var owningLot: String? {
         switch self {
         case .settings: nil
-        case .search: "LOT-115"
+        case .search: nil
         case .bookmarks: "LOT-132"
         case .qualityAlerts: "LOT-133"
         case .credits, .charter: "LOT-120"

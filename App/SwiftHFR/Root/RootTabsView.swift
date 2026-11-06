@@ -21,7 +21,7 @@ struct RootTabsView: View {
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
                 NavigationStack {
                     PlusView(model: model)
-                        .navigationDestination(item: $model.plusEntry) { PlusEntryView(entry: $0) }
+                        .navigationDestination(item: $model.plusEntry) { PlusEntryView(entry: $0, model: model, environment: environment) }
                 }
             }
         }

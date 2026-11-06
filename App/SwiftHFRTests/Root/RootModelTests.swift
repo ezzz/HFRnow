@@ -99,9 +99,9 @@ struct RootModelTests {
         #expect(PlusEntry.allCases.filter(\.isDestructive) == [.deleteAccount])
     }
 
-    @Test func onlySettingsIsBuiltAndTheOthersNameTheirLot() {
+    @Test func settingsAndSearchAreBuiltAndTheOthersNameTheirLot() {
         let expected: [(PlusEntry, String?)] = [
-            (.settings, nil), (.search, "LOT-115"), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
+            (.settings, nil), (.search, nil), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
             (.credits, "LOT-120"), (.charter, "LOT-120"), (.deleteAccount, "LOT-157")
         ]
         #expect(expected.map(\.0) == PlusEntry.allCases)
