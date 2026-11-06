@@ -69,8 +69,8 @@ struct ForumSessionCheck: SessionChecking {
         }
     }
 
-    /// `expired` only when the jar itself holds no usable identity (`SessionExpiry`); every `unconfirmed` reason keeps
-    /// the session as it was (LOT-044: an unknown page never logs an account out).
+    /// `expired` only when the jar holds no usable identity or HFR refused its cookies (`SessionExpiry`); every
+    /// `unconfirmed` reason keeps the session as it was (LOT-044: an unknown page never logs an account out).
     static func result(of health: SessionHealth) -> SessionCheckResult {
         switch health {
         case .valid: .valid
