@@ -61,6 +61,8 @@ struct StaleSessionNoticeParserTests {
         ("url=/unlog.php?config=hfr.inc", "url=https://example.com/unlog.php?config=hfr.inc"),
         ("url=/unlog.php?config=hfr.inc", "url=https://forum.hardware.fr:8443/unlog.php?config=hfr.inc"),
         ("url=/unlog.php?config=hfr.inc", "url=/user/unlog.php?config=hfr.inc"),
+        // A target spelled with a character reference is not the captured page (the raw pre-filter, conservative side).
+        ("url=/unlog.php?config=hfr.inc", "url=/unlog&#46;php?config=hfr.inc"),
         ("<meta http-equiv=\"Refresh\" content=\"1; url=/unlog.php?config=hfr.inc\" />", ""),
         (
             "<meta http-equiv=\"Refresh\" content=\"1; url=/unlog.php?config=hfr.inc\" />",

@@ -45,7 +45,7 @@ public struct MPUnreadPoll: Sendable {
     /// - Throws: `MPUnreadPollError.network` when the page could not be fetched, `.page` on maintenance or an unreadable page,
     ///   `.sessionExpired` when HFR answered with its stale-session page (`R70a`) to the account's current cookies.
     public func unreadCount() async throws(MPUnreadPollError) -> Int? {
-        let response: HTTPResponse
+        let page: RawPage
         let requestedURL: URL
         let seed = await account.refreshSeed(now: Date())
         let probe = probe(cookies: seed.cookies)
@@ -54,13 +54,13 @@ public struct MPUnreadPoll: Sendable {
             let request = try HFREndpoint.privateMessageCheck()
             requestedURL = request.url
             if Task.isCancelled { throw NetworkError.cancelled }
-            response = try await probe.send(request)
+            page = RawPage(response: try await probe.send(request))
         } catch let error as NetworkError {
             throw .network(error)
         } catch {
             throw .network(.invalidRequest(reason: "request could not be built"))
         }
-        if StaleSessionAnswer.matches(response, requestedURL: requestedURL) {
+        if StaleSessionAnswer.matches(page, requestedURL: requestedURL) {
             // HFR's own word that it refuses these cookies (`R70a`, the same bytes as `R70c`): the account session's
             // verdict, not a count. A session that changed meanwhile gets no verdict from an answer to its old cookies.
             let health: SessionHealth
@@ -72,7 +72,6 @@ public struct MPUnreadPoll: Sendable {
             if case .expired(let reason) = health { throw .sessionExpired(reason) }
             return nil
         }
-        let page = RawPage(response: response)
         do {
             return try PrivateMessageBadgeParser.unreadCount(in: page.text)
         } catch {

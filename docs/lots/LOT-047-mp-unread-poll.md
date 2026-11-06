@@ -22,7 +22,7 @@ Legacy app: `master` of ezzz/HFRnow (same lines as ezzz/HFRnow @ `2440d79`).
 2. `PrivateMessageBadgeParser.unreadCount(in:)` on the decoded text: a number, `0` for an entry without a number (R03), `nil` for no entry (R01).
 3. Failures are typed: `MPUnreadPollError.network(NetworkError)` (offline, timeout, HTTP 4xx/5xx, cancellation) and `.page(ListPageFailure)`
    (`.maintenance`, `.malformed`).
-4. HFR's stale-session page (`R70a`, #383) throws `.sessionExpired(.credentialsRefused)`, under LOT-044's rule (`StaleSessionAnswer`, `confirmStaleSession`): a 2xx at exactly `/` that `StaleSessionNoticeParser` recognizes, and only while the account session still holds the identity, login generation and `md_user`/`md_passs` the poll sent (else `nil`). Checked before the badge parser.
+4. HFR's stale-session page (`R70a`, #383) throws `.sessionExpired(.credentialsRefused)`, under LOT-044's rule (`StaleSessionAnswer`, `confirmStaleSession`): a 2xx at exactly `/` that `StaleSessionNoticeParser` recognizes (a page without `unlog.php` in its raw text is not parsed for it), and only while the account session still holds the identity, login generation and `md_user`/`md_passs` the poll sent (else `nil`). Checked before the badge parser.
 
 **Contract for the app:** `nil` is "no information" (logged out, or a page without the entry), never "no unread": do not store it as 0, do not notify,
 do not clear the session on it. To find out whether the session expired, call `SessionRefreshFlow` (LOT-044). `.sessionExpired` is that flow's `expired(.credentialsRefused)`, read from the poll's own answer: the app treats both alike (prompt a new login, LOT-043); the poll still writes nothing. A logged-in home whose markup changed also gives `nil`; the app cannot tell that drift from a logged-out page.
@@ -59,7 +59,7 @@ None added. Existing captures read in place (`Tests/HFRClientTests/Support/Captu
 | D1 | no `cCatTopic red` node (nothing unread) returned nil, same as a failure | `0` for "entry without a number", `nil` for "no entry" (LOT-023 D2) | the caller can tell "none unread" from "not logged in" |
 | D2 | network errors printed and swallowed | typed `MPUnreadPollError` | the app counts failures and decides |
 | D3 | `URLSession.shared` and the shared cookie jar | a probe seeded from the account's `HFRSession`, never written back | one session per account, no stale write |
-| D5 | the stale-session page read as "no `cCatTopic red`", i.e. nothing new, silently | `.sessionExpired(.credentialsRefused)` | the member learns the stored password no longer works (#383) |
+| D5 | the stale-session page: no count found, `nb_mp` kept and `nb_mp_failure` incremented, nothing shown (`MPBackgroundService.swift:72-73, 90-98`) | `.sessionExpired(.credentialsRefused)` | the member learns the stored password no longer works (#383) |
 | D4 | 5 s timeout (`MPBackgroundService.swift:86`) | kept: `HFREndpoint.privateMessageCheck()` (`RequestTimeout.background`), not the 30 s page default | a background task must not hang |
 
 ## Learnings

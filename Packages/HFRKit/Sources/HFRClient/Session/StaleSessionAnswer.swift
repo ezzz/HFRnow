@@ -15,8 +15,17 @@ enum StaleSessionAnswer {
     /// Every other answer is false, so a caller keeps reading it as it did before.
     static func matches(_ response: HTTPResponse, requestedURL: URL) -> Bool {
         guard (200..<300).contains(response.statusCode), response.url == requestedURL else { return false }
-        let html = response.decodedText().text
-        return (try? StaleSessionNoticeParser.isStaleSessionNotice(html: html, requestURL: response.url)) == true
+        return matches(text: response.decodedText().text, servedAt: response.url)
+    }
+
+    /// Same rule on a page already decoded (`RawPage`), so a caller that reads the page anyway decodes it once.
+    static func matches(_ page: RawPage, requestedURL: URL) -> Bool {
+        guard (200..<300).contains(page.statusCode), page.finalURL == requestedURL else { return false }
+        return matches(text: page.text, servedAt: page.finalURL)
+    }
+
+    private static func matches(text: String, servedAt url: URL) -> Bool {
+        (try? StaleSessionNoticeParser.isStaleSessionNotice(html: text, requestURL: url)) == true
     }
 
     /// The credential cookies among `cookies`, the part of a jar the stale-session page is about.

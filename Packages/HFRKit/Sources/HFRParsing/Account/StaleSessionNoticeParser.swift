@@ -17,12 +17,17 @@ public enum StaleSessionNoticeParser {
     /// The path and query of its refresh target (`R70a`–`R70d`).
     static let refreshPath = "/unlog.php"
     static let refreshQuery = "config=hfr.inc"
+    /// The target's file name, which the raw page must contain before it is parsed.
+    static let unlogFileName = "unlog.php"
 
     /// True when `html` is HFR's stale-session page; `requestURL` resolves a relative refresh target.
     ///
     /// The status code and the URL the page was served at are not read here: callers check them first.
     /// - Throws: `malformedDocument` when the HTML backend cannot read the page.
     public static func isStaleSessionNotice(html: String, requestURL: URL = HFRURL.base) throws(ParsingError) -> Bool {
+        // Every caller runs this on ordinary pages first (a 65 KB home, `R02`): skip the parse when the target's file name
+        // is absent. A target spelled with character references then reads as not this page, the conservative side.
+        guard html.contains(unlogFileName) else { return false }
         let document = try HTMLDocumentLoader.document(from: html)
         let hops = document.descendants(matching: .exact("hop"))
         guard hops.count == 1, let hop = hops.first else { return false }
