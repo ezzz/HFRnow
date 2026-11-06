@@ -11,11 +11,11 @@ struct PickerSmiley: Identifiable, Hashable, Sendable {
 }
 
 // Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView state, updateFavoriteSmiley) @ 2440d79. Differences: no
-// forum-smiley section, no search (GAP-087, GAP-088), favourites from LOT-064's store.
+// forum-smiley section, search in SmileySearchModel (LOT-105, GAP-088), favourites from LOT-064's store.
 /// State of the smiley picker (LOT-104): the editor's catalogue, the account's app favourites, and what the user chose.
 ///
 /// Port of `CombinedSmileyPickerView` (`HFRswift/Swift/AnswerView.swift:1051-1470` @ 2440d79) without the forum-smiley
-/// section and the search (other lots, see the spec): the basic palette inserts on tap; an app favourite opens its
+/// section (another lot, see the spec); the search is `SmileySearchModel`: the basic palette inserts on tap; an app favourite opens its
 /// detail, which inserts or removes it. Favourites are LOT-064's store (legacy `SmileyCache` semantics).
 @MainActor
 @Observable
@@ -34,11 +34,15 @@ final class SmileyPickerModel: Identifiable {
     /// The smiley the user chose to insert; the sheet reads it once and closes.
     private(set) var chosen: PickerSmiley?
 
+    /// The forum search, history and wiki keywords (LOT-105); nil when there is no account to search with.
+    let search: SmileySearchModel?
+
     private let store: AppSmileyFavoritesStore
     private let account: String
 
     /// A picker over `catalogue` for `account`; call `loadFavorites()` when the sheet opens.
-    init(catalogue: [CommonSmiley], store: AppSmileyFavoritesStore, account: String) {
+    init(catalogue: [CommonSmiley], store: AppSmileyFavoritesStore, account: String, search: SmileySearchModel? = nil) {
+        self.search = search
         basic = catalogue.filter(\.isEditorSmiley).map { PickerSmiley(code: $0.code, imageURL: $0.url) }
         self.store = store
         self.account = account
@@ -70,6 +74,17 @@ final class SmileyPickerModel: Identifiable {
     /// A tap on a favourite opens its detail (legacy `tapBehavior: .showDetails`).
     func tap(favorite smiley: PickerSmiley) {
         presented = smiley
+    }
+
+    /// A tap on a search result opens its detail, like a favourite (legacy shows the same card for both).
+    func tap(result smiley: PickerSmiley) {
+        presented = smiley
+    }
+
+    /// A keyword of the detail was tapped: the detail closes and the keyword is searched (legacy `search(using:)`).
+    func searchKeyword(_ keyword: String, requireAll: Bool) {
+        presented = nil
+        search?.submit(keyword, requireAll: requireAll)
     }
 
     /// The detail's "Insérer": the smiley goes to the composer.

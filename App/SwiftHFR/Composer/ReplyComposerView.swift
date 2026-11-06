@@ -164,7 +164,8 @@ struct ReplyComposerView: View {
         rangeForSmiley = selectedRange
         smileyInserted = false
         picker = SmileyPickerModel(
-            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account
+            catalogue: SmileyPickerModel.bundledCatalogue(), store: services.store, account: services.account,
+            search: services.search
         )
     }
 

@@ -113,9 +113,9 @@ final class ReplyComposerModel: Identifiable {
     /// Closing asks whether to keep the draft (swiping the sheet down is blocked meanwhile, so it never loses the text).
     var closeNeedsChoice: Bool { hasText || !Self.isBlank(subject) }
 
-    /// What the smiley picker needs: the favourites store and the account key.
-    var smileyServices: (store: AppSmileyFavoritesStore, account: String) {
-        (services.smileyFavorites, services.account)
+    /// What the smiley picker needs: the favourites store, the account key and a fresh search (LOT-105).
+    var smileyServices: SmileyPanelServices {
+        services.smileyPanel
     }
 
     /// What the image panel needs (LOT-102).
