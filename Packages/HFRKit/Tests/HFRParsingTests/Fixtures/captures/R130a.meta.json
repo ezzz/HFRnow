@@ -1,0 +1,20 @@
+{
+  "id": "R130a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=prive&post=3208005&page=1",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3208005&page=1",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=3208005&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 06 Nov 2026 12:49:55 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R130a-mp-thread-leading-newline.html",
+  "private": true
+}

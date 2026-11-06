@@ -71,8 +71,9 @@ Existing captures and LOT-002 oracles (`Fixtures/captures`, `Fixtures/LOT-002`);
 `sideEffects.nbMP` (R01-R03) and, on the 18 list cases, with `needToUpdateMP`/`sNewMPNumber` (`PrivateMessageBadgeParserTests`). Tooltip names are
 checked against regexes over the raw rows, independent of SwiftSoup (LESSONS 33).
 
-**Pending capture:** the MP list page past the last page (after a deletion mid-walk); a one-to-one thread whose interlocutor was deleted or banned (the `sujetCase6` shape); the MP list logged out (the `.notAuthenticated` rule is checked on another list's `.hop` page); the header badge with N > 1 ("Vous avez N
-nouveaux messages privés" in `table.none`; the plural is captured on the home page only, so the digit rule is what is tested); a mailbox whose rows hold a
+**Captured since:** the header badge with N > 1 on a forum list (`R117a`, "Vous avez 7 nouveaux messages privés" in `table.none` `a.red`, legacy oracle `M2-misc/R117a.oracle.json`: `needToUpdateMP` true, `sNewMPNumber` 7).
+
+**Pending capture:** the MP list page past the last page (after a deletion mid-walk); a one-to-one thread whose interlocutor was deleted or banned (the `sujetCase6` shape); the MP list logged out (the `.notAuthenticated` rule is checked on another list's `.hop` page); a mailbox whose rows hold a
 closed-for-the-member thread or the ignore icon in another state (`ignore1.gif`); pseudos containing a comma; the badge on a page of another section (a topic
 page logged in: R20 is anonymous). None is hand-built.
 

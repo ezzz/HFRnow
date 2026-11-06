@@ -156,7 +156,9 @@ struct HopResponseParserTests {
         "W71-mp-group-reply-roster-unchanged-old-thread", "W72-mp-group-reply-remove-member-to-two-person",
         "W73-mp-create-group-three-recipients-success", "W74-mp-group-reply-remove-member-success",
         "W75-mp-group-reply-add-member-success", "W77-mp-group-reply-empty-newdest-success",
-        "W78-mp-group-reply-member-unserved-newdest-success"
+        "W78-mp-group-reply-member-unserved-newdest-success",
+        // New MP whose body starts with a line break (#130), and the sender's delete of its unread thread (W64's body).
+        "W130-mp-create-leading-newline-success", "W131-mp-thread-delete-owner-unread-recipient-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
         // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
         // (`HopResponseAlertTests`).

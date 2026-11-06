@@ -240,6 +240,16 @@
     {"raw": "Q6", "id": "W78", "slug": "mp-group-reply-member-unserved-newdest-success", "ext": "html", "private": false},
     {"raw": "Q6m", "id": "R138", "slug": "mp-reply-composer-group-member-no-roster", "ext": "html", "private": true},
     {"raw": "Q6o", "id": "R139", "slug": "mp-reply-composer-group-owner-after-member-newdest", "ext": "html", "private": true},
-    {"raw": "Q6t", "id": "R140", "slug": "mp-thread-group-after-all-steps", "ext": "html", "private": true}
+    {"raw": "Q6t", "id": "R140", "slug": "mp-thread-group-after-all-steps", "ext": "html", "private": true},
+    {"raw": "R117d200", "id": "R117a", "slug": "forum-list-header-badge-n7", "ext": "html", "private": false},
+    {"raw": "W130", "id": "W130", "slug": "mp-create-leading-newline-success", "ext": "html", "private": false},
+    {"raw": "R130t", "id": "R130a", "slug": "mp-thread-leading-newline", "ext": "html", "private": true},
+    {"raw": "R130e", "id": "R130b", "slug": "mp-edit-form-leading-newline", "ext": "html", "private": true},
+    {"raw": "R130q", "id": "R130c", "slug": "mp-quote-form-leading-newline", "ext": "html", "private": true},
+    {"raw": "W131", "id": "W131", "slug": "mp-thread-delete-owner-unread-recipient-success", "ext": "html", "private": false},
+    {"raw": "R131t", "id": "R130d", "slug": "mp-thread-recipient-after-sender-delete-unread", "ext": "html", "private": false},
+    {"raw": "R131l", "id": "R130e", "slug": "mp-list-recipient-after-sender-delete-unread", "ext": "html", "private": true},
+    {"raw": "W137a", "id": "W137a", "slug": "mp-mark-unread-logged-out", "ext": "html", "private": false},
+    {"raw": "W137b", "id": "W137b", "slug": "mp-mark-unread-logged-out-again", "ext": "html", "private": false}
   ]
 }

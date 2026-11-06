@@ -88,6 +88,12 @@ error in the note (`flows.py get --record-network-error`), and a `Referer` sent 
 Image bodies are not published (meta only). Three public topic pages were read only to look for a `reho.st` image and
 are not published (none found).
 
+Run 11 (2026-11-06, `mac/m2-lead` batch `m2-misc`, ezzz/HFRnow#117, #130 and #137, operator-ordered, 19 requests): user1's deep category
+list page for the badge (`R117a`); one new MP user1 → user2 `fixture-test-3` whose body starts with a line break (`W130`) and its
+thread, edit form and quote form read only (`R130a`-`R130c`); the mark-unread link of that thread sent twice without cookies
+(`W137a`, `W137b`); user1 then deleted the thread (`W131`) and user2's list and thread were read (`R130d`, `R130e`; the thread was
+already gone for user2). Nothing of the thread is left on HFR. One message, no edit POST, no retry.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -301,6 +307,17 @@ are not published (none found).
 | R139 | `R139-mp-reply-composer-group-owner-after-member-newdest.html` | The owner's composer after `W78`: roster unchanged | W78 | 058, 036 |
 | R140 | `R140-mp-thread-group-after-all-steps.html` | The new group's thread at the end: no post for the refused `W76`, no system post after `W77` or `W78`, none for the unchanged roster | W71-W78 | 058, 030 |
 | (oracles) | `../M2-writes/` | Legacy oracles of `R123a`-`R123g`, `R123k`, `R124`-`R140` and `W71`-`W78` (`run-oracle.sh`, legacy `2440d79`): `mp` for the lists, `favorites` (`R123g`), `topic` for `R123b`/`R123d`, `form` (`reply`, `mp`) for `R123c`/`R123e`/`R123k` and the composers `R124`, `R127`, `R128`, `R132`, `R136`-`R139`, `response` (`reply`) for `W71`-`W78`; own folder and map | R123a-R123g, R123k, R124-R140, W71-W78 | 058, 023, 024, 030, 036 |
+| R117a | `R117a-forum-list-header-badge-n7.html` | user1's `/hfr/OSAlternatifs/liste_sujet-200.htm` (#117, 2026-11-06; a deep page, no flagged row): the header badge in `table.none` reads "Vous avez 7 nouveaux messages privés" in `a.red` linking the MP list; | R02, R13 | 023 |
+| W130 | `W130-mp-create-leading-newline-success.html` | New MP user1 → user2 `fixture-test-3` (#130) whose body is `\r\n` + a word (meta `request_body` `content_form=%0D%0A…`): "Votre message a été posté avec succès !", refresh to the MP list | R45, W10 | 036, 048 |
+| R130a | `R130a-mp-thread-leading-newline.html` | The thread of `W130` for its owner (body replaced by `--private`; on the raw page it renders `<p>\r<br />word`, a normal message `<p>word`) | R13, R43 | 036, 030 |
+| R130b | `R130b-mp-edit-form-leading-newline.html` | Edit form of that message: the textarea holds the word **without** the leading break (HFR trims it itself); never submitted | R43 | 036, 048 |
+| R130c | `R130c-mp-quote-form-leading-newline.html` | Quote form of that message: `[quotemsg=<cited>,1,<id>]\r\nword[/quotemsg]\n`, the leading break kept | R47 | 036, 049 |
+| W137a | `W137a-mp-mark-unread-logged-out.html` | `nonlu.php` of the `W130` thread (link as the page serves it) sent **without any cookie**, no redirect followed: 200 `.hop` "Ce message ne vous est pas destiné, désolé" + back link, no refresh, no cookie set; byte for byte `R96c` (#137) | W18 | 058, 037, 044 |
+| W137b | `W137b-mp-mark-unread-logged-out-again.html` | The same request again: identical to `W137a` to the byte | W18 | 058 |
+| W131 | `W131-mp-thread-delete-owner-unread-recipient-success.html` | user1 deletes `W130`'s thread with `W64`'s body (clean-up): link-less `.hop` "Action effectuée avec succès" | X1 | 094, 037 |
+| R130d | `R130d-mp-thread-recipient-after-sender-delete-unread.html` | The thread URL for user2 afterwards: the "pas destiné" `.hop` (user2 had not opened it) | X1 | 094, 030 |
+| R130e | `R130e-mp-list-recipient-after-sender-delete-unread.html` | user2's MP list afterwards: no row ("Aucun message posté"), so no second delete was sent | X1, R13 | 094, 023 |
+| (oracles) | `../M2-misc/` | Legacy oracles (`run-oracle.sh`, legacy `2440d79`): `topics` for `R117a` (`needToUpdateMP` true, `sNewMPNumber` 7), `topic` for `R130a`, `form` (`edit`, `quote`) for `R130b`/`R130c`, `response` (`reply`) for `W130`; own folder and map. `W131`, `W137a`, `W137b`, `R130d`, `R130e` have no legacy parser to run | R117a, R130a-R130e, W130 | 023, 036 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
