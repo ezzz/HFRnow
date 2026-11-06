@@ -32,7 +32,7 @@ struct HFRLinkRouteTests {
         ("/hfr/Programmation/Divers-6/hfr-android-sujet_148745_1.htm", topic(10, 148745, page: 1, anchor: nil)),
         ("/hfr/Discussions/slug-sujet_1_2.htm", topic(13, 1, page: 2, anchor: nil)),
         ("/hfr/ia/slug-sujet_7_3.htm#t9", topic(32, 7, page: 3, anchor: 9)),
-        // Empty title slug (R121e: `/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm`, with and without `#bas`).
+        // Empty title slug (R121e as captured in c56916f, #520: `/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm`, with and without `#bas`).
         ("/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm", topic(22, 39106, page: 1, anchor: nil)),
         ("/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm#bas", topic(22, 39106, page: 1, anchor: nil)),
         ("/hfr/Discussions/sujet_7_3.htm#t9", topic(13, 7, page: 3, anchor: 9))

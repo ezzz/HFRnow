@@ -51,7 +51,7 @@ requests it with the account session.
 
 | Shape (HFR-PROTOCOL) | Route |
 |---|---|
-| `/hfr/<cat>/[<sub>/][<slug>-]sujet_<post>_<page>.htm[#t<n>]` (R5; empty slug seen in R121e, #482) | `.topic`: category from `ForumCatalogue` (exact match of the `<cat>` segment), `page`, anchor `n` |
+| `/hfr/<cat>/[<sub>/][<slug>-]sujet_<post>_<page>.htm[#t<n>]` (R5; empty slug seen in R121e as captured in c56916f; the committed copy lost it to #511, see #520) | `.topic`: category from `ForumCatalogue` (exact match of the `<cat>` segment), `page`, anchor `n` |
 | `/forum2.php?cat=<n>&post=<p>[&page=<n>][&numreponse=<m>][#t<m>]` | `.topic`; `cat=prive` gives `.privateMessageThread`. The page is read from `page=`, **except** when a message number is present (see below) |
 | `/hfr/<cat>/[<sub>/]liste_sujet-<page>.htm` | `.topicList`, filter `.all`, sub-forum as the path segment |
 | `/forum1.php?cat=<n>[&page=][&subcat=][&owntopic=0..3]` (R2) | `.topicList` (page 1 when absent, `subcat` empty or 0 means the whole forum); `cat=prive` gives `.privateMessageList(page)` (R4) |
@@ -91,7 +91,7 @@ Each test was shown to fail with the relevant rule reverted: port check removed,
 
 ## Pending capture
 - Site `apple-app-site-association` ([#127](https://github.com/ezzz/HFRnow/issues/127)): which App IDs and paths the site names. It does not change this router (it decides from the URL), but LOT-138 must not claim paths the router sends to `.external`, nor miss the ones it routes.
-- The targets of `/hardwarefr/<cat>/sujet-<post>-<page>.htm` and `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm` (R121c links; #482).
+- The targets of `/hardwarefr/<cat>/sujet-<post>-<page>.htm` and `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm` (R121c links; #482), and an empty-slug topic link in the committed corpus ([#520](https://github.com/ezzz/HFRnow/issues/520)).
 - Home rows without `id="cat<N>"` and full sub-forum lists ([#125](https://github.com/ezzz/HFRnow/issues/125)): completes the forum list; a forum the catalogue lacks is `.external` today.
 - `forum1.php?config=hfr.inc` (no `cat`, a link of a newer capture: which list it opens);
 - `forum1f.php?owntopic=0|2` (links of the favourites page, `forum1f.php?config=hfr.inc&owntopic=0&new=1`): meaning not captured; `profilebdd.php?pseudo=` redirect target; `/hfr/recherche/pseudo-<name>.htm`; the AQ RSS feed (LOT-028 still pending its capture): AQ links are tested only through the two topic shapes they are documented to use (`AQFeedItem.link`, `AQPlusView.swift:341-375`).

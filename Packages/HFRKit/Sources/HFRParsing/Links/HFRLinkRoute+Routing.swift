@@ -106,10 +106,8 @@ extension HFRLinkRoute {
         throw Refused()
     }
 
-    // The title slug is optional: topics whose title yields no slug are linked as `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm`
-    // (title links of R121e, `title="Sujet n°<post>"`). Not routed, pending capture (each with its reason in LOT-095):
-    // `/hardwarefr/<cat>/sujet-<post>-<page>.htm` (R121c "Règles du forum": the `hardwarefr` prefix and the topic's category
-    // are not shown to match) and `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm` (R121c "Filtre": what `n` and `m` mean is not captured).
+    // The title slug is optional (empty-slug links of R121e). `/hardwarefr/…/sujet-<post>-<page>.htm` and `liste_sujet_filtre`
+    // are not routed, targets not captured: see LOT-095.
     // `Regex` is not `Sendable`; these literals capture only `Substring`s (same reasoning as `HFRURL`).
     nonisolated(unsafe) private static let profilePattern = /\/hfr\/profil-([0-9]+)\.htm/
     nonisolated(unsafe) private static let topicPattern =
