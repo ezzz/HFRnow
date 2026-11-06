@@ -7,7 +7,7 @@ import html
 import re
 import subprocess
 from collections import Counter, OrderedDict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -27,7 +27,7 @@ MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 's
 
 
 def step_of_lot(lot):
-    """Audit is LOT-000..005 (Phase 0 of the ROADMAP: audit and tooling); every other lot has its milestone."""
+    """Audit is LOT-000..005 (the audit and tooling lots of Phase 0, ROADMAP); they leave M1 here, every other lot keeps its milestone."""
     if G.n(lot) <= 5:
         return 'Audit'
     for m, ms in (('M1', G.M1), ('M2', G.M2), ('M3', G.M3), ('M4', G.M4), ('M5', G.M5)):
@@ -39,9 +39,9 @@ def step_of_lot(lot):
 def step_of_pr(p):
     """The first LOT-XXX of the title, else of the body; no lot means infra, docs or captures."""
     for text in (p.get('title') or '', p.get('body') or ''):
-        m = LOT.search(text)
-        if m and f'LOT-{m.group(1)}' in G.rows:
-            return step_of_lot(f'LOT-{m.group(1)}') or OTHER
+        for m in LOT.finditer(text):
+            if f'LOT-{m.group(1)}' in G.rows:  # a number that is not a lot of the plan is skipped
+                return step_of_lot(f'LOT-{m.group(1)}') or OTHER
     return OTHER
 
 
@@ -50,11 +50,11 @@ def bucket(lot, labels):
     if G.done(lot):
         return 'done'
     n = r['issue']
-    has_numeric_deps = bool(G.deps(r))
     capture = n in G.CAPTURE
-    if 'status: blocked' in labels and has_numeric_deps and not capture:
+    if 'status: blocked' in labels and G.miss0(r) and not capture:  # waits on a lot of the plan that is not done
         return 'blocked'
-    if capture or 'status: needs-triage' in labels or ('status: blocked' in labels and not has_numeric_deps):
+    # a capture, a triage, or a block with no lot left to wait for (gate sentence, M5 not open, a decision) needs a human
+    if capture or 'status: needs-triage' in labels or 'status: blocked' in labels:
         return 'human'
     if 'host: mac' in labels:
         return 'mac'
@@ -64,36 +64,46 @@ def bucket(lot, labels):
 
 
 def git_days():
-    out = subprocess.run("git log origin/dev-swift --format=%cd --date=format:%Y-%m-%d", shell=True, capture_output=True, text=True,
-                         cwd=HERE.parents[2]).stdout.split()
+    out = subprocess.run("TZ=UTC git log origin/dev-swift --format=%cd --date=format-local:%Y-%m-%d", shell=True, capture_output=True, text=True,
+                         cwd=HERE.parents[2]).stdout.split()  # UTC days, like the PR timestamps
     return Counter(out)
 
 
-def data(pulls, issues):
-    """Numbers of the slide. `pulls`: merged PRs of dev-swift; `issues`: every issue (not PR) with its labels."""
+WEEKLY_FROM_DAYS = 21  # daily bars up to three weeks of history, weekly bars after
+
+
+def data(pulls, issues, per_day=None, today=None):
+    """Numbers of the slide. `pulls`: merged PRs of dev-swift; `issues`: every issue (not PR) with its labels.
+    `per_day` (commits per UTC day) and `today` are injectable for the tests."""
     by_n = {i['number']: i for i in issues}
-    # 1. commits per day, cumulative, from the first commit to today
-    per_day = git_days()
-    first = date.fromisoformat(min(per_day))
-    today = datetime.now().date()
-    cum, total, d = [], 0, first
-    while d <= today:
-        total += per_day.get(d.isoformat(), 0)
-        cum.append((d.isoformat(), total))
-        d += timedelta(days=1)
-    # 2. merged PRs per bin (a day while the project is young, a week from 6 weeks on), stacked by step
+    per_day = git_days() if per_day is None else per_day
     merged = [(date.fromisoformat(p['merged_at'][:10]), step_of_pr(p)) for p in pulls if p.get('merged_at')]
-    start = min(x for x, _ in merged)
-    weekly = (today - start).days >= 42
-    key = (lambda x: x - timedelta(days=x.weekday())) if weekly else (lambda x: x)
-    step = timedelta(days=7 if weekly else 1)
+    # today is the UTC day, never before the last commit or merge seen (a runner behind UTC must not drop them)
+    today = today or datetime.now(timezone.utc).date()
+    seen = [date.fromisoformat(d) for d in per_day] + [x for x, _ in merged]
+    today = max([today] + seen)
+    # 1. commits per day, cumulative, from the first commit to today
+    cum = []
+    if per_day:
+        total, d = 0, date.fromisoformat(min(per_day))
+        while d <= today:
+            total += per_day.get(d.isoformat(), 0)
+            cum.append((d.isoformat(), total))
+            d += timedelta(days=1)
+    # 2. merged PRs per bin (a day while the project is young, a week after), stacked by step
     bins = OrderedDict()
-    b = key(start)
-    while b <= today:
-        bins[b.isoformat()] = Counter()
-        b += step
-    for x, s in merged:
-        bins[key(x).isoformat()][s] += 1
+    weekly = False
+    if merged:
+        start = min(x for x, _ in merged)
+        weekly = (today - start).days >= WEEKLY_FROM_DAYS
+        key = (lambda x: x - timedelta(days=x.weekday())) if weekly else (lambda x: x)
+        step = timedelta(days=7 if weekly else 1)
+        b = key(start)
+        while b <= today:
+            bins[b.isoformat()] = Counter()
+            b += step
+        for x, s in merged:
+            bins.setdefault(key(x).isoformat(), Counter())[s] += 1
     # 3. state of each step: lots counted in exactly one bucket (dropped lots, closed not planned, are left out)
     steps = {s: Counter() for s in STEPS}
     for lot in G.rows:
@@ -119,7 +129,13 @@ def _ticks(mx, n=4):
     return list(range(0, mx + step, step))
 
 
+def _empty(msg):
+    return f'<svg viewBox="0 0 880 300" width="100%"><text x="440" y="150" text-anchor="middle" font-size="18" fill="#9aa4b2">{msg}</text></svg>'
+
+
 def _line_chart(cum):
+    if not cum:
+        return _empty('Aucun commit')
     W, H, L, B, T = 880, 300, 64, 44, 14
     ys = _ticks(cum[-1][1])
     top = ys[-1]
@@ -136,11 +152,13 @@ def _line_chart(cum):
     pts = ' '.join(f'{px(i):.1f},{py(v):.1f}' for i, (_, v) in enumerate(cum))
     s += f'<polyline points="{pts}" fill="none" stroke="#4f7cff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>'
     s += f'<circle cx="{px(len(cum) - 1)}" cy="{py(cum[-1][1])}" r="6" fill="#4f7cff"/><text x="{px(len(cum) - 1) - 10}" y="{py(cum[-1][1]) - 14}" text-anchor="end" font-size="20" font-weight="600" fill="#0f1720">{cum[-1][1]}</text>'
-    s += f'<text x="{L + (W - L) / 2}" y="{H - 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">date (jour du dernier commit de dev-swift)</text></svg>'
+    s += f'<text x="{L + (W - L) / 2}" y="{H - 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">jour (UTC)</text><text transform="rotate(-90 14 {T + (H - T - B) / 2})" x="14" y="{T + (H - T - B) / 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">commits (cumul)</text></svg>'
     return s
 
 
 def _stacked(bins, weekly):
+    if not bins:
+        return _empty('Aucune PR fusionnée')
     W, H, L, B, T = 880, 300, 64, 44, 14
     order = STEPS + [OTHER]
     tot = {k: sum(v.values()) for k, v in bins.items()}
@@ -165,7 +183,7 @@ def _stacked(bins, weekly):
             s += f'<text x="{x + bw / 2:.1f}" y="{py(acc) - 6:.1f}" text-anchor="middle" font-size="13" font-weight="600" fill="#0f1720">{tot[b]}</text>'
         if n <= 16 or k % 2 == 0:
             s += f'<text x="{x + bw / 2:.1f}" y="{H - 22}" text-anchor="middle" font-size="13" fill="#6b7685">{b[8:10]}/{b[5:7]}</text>'
-    s += f'<text x="{L + (W - L) / 2}" y="{H - 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">{"semaine (lundi)" if weekly else "jour de fusion"}</text></svg>'
+    s += f'<text x="{L + (W - L) / 2}" y="{H - 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">{"semaine (lundi, UTC)" if weekly else "jour de fusion (UTC)"}</text><text transform="rotate(-90 14 {T + (H - T - B) / 2})" x="14" y="{T + (H - T - B) / 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">PR fusionnées</text></svg>'
     return s
 
 
@@ -213,7 +231,7 @@ def slide(D, page):
 <div><div class="lbl">État des lots de chaque étape</div>
 <div class="donuts">{''.join(_donut(s, P['steps'][s]) for s in STEPS)}</div><div class="leg" style="justify-content:center;margin-top:8px">{legend_buckets}</div></div>
 <p class="note">Lecture : un lot compte dans une seule catégorie, la première qui convient dans l'ordre fait &gt; bloqué &gt; humain &gt; macOS &gt; basse priorité &gt; prêt.
-Bloqué : <code>status: blocked</code> avec des dépendances numériques, hors capture. Humain : attend une capture, une décision (phrase-barrière, <code>needs-triage</code>), une clé ou un réglage.
-macOS : <code>host: mac</code>. Basse priorité : lot de M5 ou <code>priority: low</code>. Les lots fermés « not planned » sont exclus. L'étape Audit regroupe LOT-000 à 005 ; une PR va à l'étape du premier LOT-XXX de son titre (sinon de son corps), et sans lot à « {OTHER} ».</p>
+Bloqué : <code>status: blocked</code> et au moins un lot dont il dépend qui n'est pas fait, hors capture. Humain : attend une capture, une décision ou un tri (<code>needs-triage</code>, blocage sans lot à attendre, phrase-barrière), une clé ou un réglage.
+macOS : <code>host: mac</code>. Basse priorité : lot de M5 ou <code>priority: low</code>. Prêt : tout le reste, y compris les lots réclamés ou en cours. Les lots fermés « not planned » sont exclus. L'étape Audit regroupe LOT-000 à 005, qui sortent de M1 (la slide 4 compte M1 avec eux) ; une PR va à l'étape du premier LOT-XXX de son titre (sinon de son corps), et sans lot à « {OTHER} ».</p>
 </div>"""
     return page(6, "Le <b>modèle de progression</b>", "Le rythme du chantier et l'état de chaque grande étape, de l'audit initial à M5.", inner, D)

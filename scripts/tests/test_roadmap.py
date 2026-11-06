@@ -2,7 +2,7 @@
 import sys
 import unittest
 from unittest import mock
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROADMAP = Path(__file__).resolve().parents[2] / "tooling" / "roadmap"
@@ -323,6 +323,45 @@ class ProgressSlide(unittest.TestCase):
         self.assertEqual(progress.step_of_pr({"title": "docs: fix a typo", "body": "Refs LOT-080"}), "M1")
         self.assertEqual(progress.step_of_pr({"title": "chore: ci", "body": "Direct-PR"}), progress.OTHER)
         self.assertEqual(progress.step_of_pr({"title": "LOT-999: unknown lot", "body": ""}), progress.OTHER)
+
+    def test_a_blocked_lot_whose_lot_dependencies_are_all_done_needs_a_human_not_other_lots(self):
+        r = next(r for l, r in generate.rows.items() if generate.deps(r))
+        lot = r["lot"]
+        with mock.patch.object(generate, "CAPTURE", {}), mock.patch.object(generate, "CLOSED", set()):
+            with mock.patch.object(generate, "miss0", lambda row: ["LOT-X"]):
+                self.assertEqual(progress.bucket(lot, {"status: blocked"}), "blocked")
+            with mock.patch.object(generate, "miss0", lambda row: []):
+                self.assertEqual(progress.bucket(lot, {"status: blocked"}), "human")
+
+    def test_a_pr_naming_an_unknown_lot_then_a_known_one_goes_to_the_known_step(self):
+        self.assertEqual(progress.step_of_pr({"title": "LOT-999 / LOT-080", "body": ""}), "M1")
+
+    def test_data_bins_by_utc_day_then_week_and_never_drops_a_late_day(self):
+        pulls = [{"merged_at": "2026-11-07T01:00:00Z", "title": "LOT-080", "body": ""}, {"merged_at": "2026-11-05T10:00:00Z", "title": "ci", "body": ""}]
+        d = progress.data(pulls, [], per_day={"2026-11-05": 2, "2026-11-06": 1}, today=date(2026, 11, 6))  # a PR dated after "today"
+        self.assertFalse(d["weekly"])
+        self.assertEqual(list(d["bins"]), ["2026-11-05", "2026-11-06", "2026-11-07"])
+        self.assertEqual(d["bins"]["2026-11-07"], {"M1": 1})
+        self.assertEqual(d["cum"][-1], ("2026-11-07", 3))  # cumulative up to the latest day seen
+        old = [{"merged_at": "2026-09-30T10:00:00Z", "title": "ci", "body": ""}]  # a Wednesday: its bin is the Monday before
+        w = progress.data(old, [], per_day={"2026-09-30": 1}, today=date(2026, 11, 6))
+        self.assertTrue(w["weekly"])
+        self.assertEqual(next(iter(w["bins"])), "2026-09-28")
+        self.assertEqual(w["bins"]["2026-09-28"], {progress.OTHER: 1})
+
+    def test_data_without_commits_or_prs_does_not_crash_and_the_charts_say_so(self):
+        d = progress.data([], [], per_day={}, today=date(2026, 11, 6))
+        self.assertEqual((d["cum"], d["bins"]), ([], {}))
+        self.assertIn("Aucun commit", progress._line_chart(d["cum"]))
+        self.assertIn("Aucune PR", progress._stacked(d["bins"], d["weekly"]))
+        self.assertIn("0 %", progress._donut("M5", {}))  # zero lots in a step
+
+    def test_a_lot_closed_not_planned_is_left_out_of_its_step(self):
+        lot = "LOT-087"
+        i = {"number": generate.rows[lot]["issue"], "state": "closed", "state_reason": "not_planned", "labels": []}
+        before = sum(progress.data([], [], per_day={}, today=date(2026, 11, 6))["steps"][progress.step_of_lot(lot)].values())
+        after = sum(progress.data([], [i], per_day={}, today=date(2026, 11, 6))["steps"][progress.step_of_lot(lot)].values())
+        self.assertEqual(after, before - 1)
 
     def test_a_lot_counts_in_exactly_one_bucket_by_priority(self):
         lot = "LOT-080"
