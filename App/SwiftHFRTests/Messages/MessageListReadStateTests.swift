@@ -3,34 +3,13 @@ import HFRModels
 @testable import SwiftHFR
 import Testing
 
+// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
 /// `MessageListModel`'s read state: which rows show as read, when a load brings back HFR's own state, and where a
 /// conversation opens.
-@MainActor
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct MessageListReadStateTests {
     private func model(_ source: FakePrivateMessages, loggedIn: Bool = true) -> MessageListModel {
         MessageListModel(source: source, isLoggedIn: { loggedIn })
-    }
-
-    /// Parks the calls of a scripted source until the test releases them.
-    actor Gate {
-        private var isOpen = false
-        private var waiters: [CheckedContinuation<Void, Never>] = []
-
-        func wait() async {
-            if isOpen { return }
-            await withCheckedContinuation { waiters.append($0) }
-        }
-
-        func open() {
-            isOpen = true
-            for waiter in waiters { waiter.resume() }
-            waiters = []
-        }
-    }
-
-    /// Waits (bounded) until the source has been asked `count` times.
-    private func waitForRequests(_ source: FakePrivateMessages, _ count: Int) async {
-        for _ in 0..<500 where source.requests.count < count { try? await Task.sleep(for: .milliseconds(5)) }
     }
 
     @Test func aThreadShownAsOpenedIsReadUntilTheNextLoad() async throws {
@@ -79,13 +58,13 @@ struct MessageListReadStateTests {
         let model = model(source)
         await model.onAppear()
         let unread = try #require(model.loader.value?.threads.first)
-        let gate = Gate()
+        let gate = CheckGate()
         source.handler = { page async throws(ListLoadError) -> PrivateMessageListPage in
             await gate.wait()
             return messagePage(page: page)
         }
-        let refreshing = Task { await model.refresh() }
-        await waitForRequests(source, 2)
+        let refreshing = gate.run { await model.refresh() }
+        guard await gate.entered() else { Issue.record("The refresh never asked for its page"); return }
         model.markOpened(unread, page: 1, of: 1)
         await gate.open()
         await refreshing.value
@@ -100,16 +79,20 @@ struct MessageListReadStateTests {
         await model.onAppear()
         let unread = try #require(model.loader.value?.threads.first)
         model.markOpened(unread, page: 1, of: 1)
-        let slow = Gate()
-        let slower = Gate()
+        let slow = CheckGate()
+        let slower = CheckGate()
         source.handler = { [source] page async throws(ListLoadError) -> PrivateMessageListPage in
             await (source.requests.count == 2 ? slow : slower).wait()
             return messagePage(page: page)
         }
-        let first = Task { await model.refresh() }
-        await waitForRequests(source, 2)
-        let second = Task { await model.refresh() }
-        await waitForRequests(source, 3)
+        let first = slow.run { await model.refresh() }
+        guard await slow.entered() else { Issue.record("The first refresh never asked for its page"); return }
+        let second = slower.run { await model.refresh() }
+        guard await slower.entered() else {
+            Issue.record("The second refresh never asked for its page")
+            await slow.open()
+            return
+        }
         await slow.open()
         await first.value
         // The newest load is still running: the older one must not have brought HFR's state back.

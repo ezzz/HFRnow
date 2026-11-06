@@ -14,7 +14,8 @@ private func pageOf(_ threads: [PrivateMessageThread], page: Int, last: Int) -> 
     )
 }
 
-@MainActor
+// The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct MessageListSplitTests {
     private func model(
         _ source: FakePrivateMessages, display: MPListDisplay, store: (any SettingsStore)? = nil
@@ -128,18 +129,18 @@ struct MessageListSplitTests {
         #expect(model.visibleThreads.isEmpty)
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func switchingSegmentDuringASearchStopsIt() async {
+    @Test func switchingSegmentDuringASearchStopsIt() async {
         let source = FakePrivateMessages()
-        let gate = Gate()
+        let gate = CheckGate()
         source.handler = { page in
             if page == 2 { await gate.wait() }
             return pageOf([messageThread(page)], page: page, last: 4)
         }
         let model = model(source, display: .split)
         await model.onAppear()
-        let search = Task { await model.select(.group) }
-        await gate.waitUntilWaiting()
+        let search = gate.run { await model.select(.group) }
+        // `entered()` is false, not a hang, if the search never reaches page 2.
+        guard await gate.entered() else { Issue.record("The search never asked for page 2"); return }
         #expect(model.isSearchingSegment)
         await model.select(.oneToOne)
         await gate.open()
@@ -153,10 +154,9 @@ struct MessageListSplitTests {
         #expect(model.visibleThreads.map(\.id) == [messageThread(1).id])
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func aCancelledSearchDoesNotUndoWhatWasReadMeanwhile() async {
+    @Test func aCancelledSearchDoesNotUndoWhatWasReadMeanwhile() async {
         let source = FakePrivateMessages()
-        let gate = Gate()
+        let gate = CheckGate()
         let unread = messageThread(1, unread: true)
         source.handler = { page in
             if page == 2 { await gate.wait() }
@@ -167,8 +167,8 @@ struct MessageListSplitTests {
         model.markOpened(unread, page: 1, of: 1)
         #expect(!model.isUnread(unread))
         // The group search is on page 2 when the member switches back.
-        let search = Task { await model.select(.group) }
-        await gate.waitUntilWaiting()
+        let search = gate.run { await model.select(.group) }
+        guard await gate.entered() else { Issue.record("The search never asked for page 2"); return }
         await model.select(.oneToOne)
         await gate.open()
         await search.value
@@ -255,33 +255,5 @@ struct MessageListSplitTests {
         #expect(!MPSegment.group.contains(messageThread(1)))
         #expect(MPSegment.oneToOne.contains(messageThread(1)))
         #expect(!MPSegment.oneToOne.contains(messageThread(1, group: true)))
-    }
-}
-
-/// Holds a fake source's answer until the test opens it, with no wall-clock wait.
-private actor Gate {
-    private var isOpen = false
-    private var waiter: CheckedContinuation<Void, Never>?
-    private var observers: [CheckedContinuation<Void, Never>] = []
-
-    func wait() async {
-        if isOpen { return }
-        await withCheckedContinuation { continuation in
-            waiter = continuation
-            observers.forEach { $0.resume() }
-            observers = []
-        }
-    }
-
-    /// Returns once a caller is parked in `wait()`.
-    func waitUntilWaiting() async {
-        if waiter != nil { return }
-        await withCheckedContinuation { observers.append($0) }
-    }
-
-    func open() {
-        isOpen = true
-        waiter?.resume()
-        waiter = nil
     }
 }
