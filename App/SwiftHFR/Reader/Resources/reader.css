@@ -47,10 +47,12 @@ a { color: var(--action); }
 
 .separator1 { border-top: 1px dashed var(--separator); }
 .message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
-.message .header { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
-.message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; }
-.message .author { font-weight: 600; }
-.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; }
+.message .header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
+.message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; flex: none; }
+/* `overflow-wrap: anywhere` on body makes an item's min-content one character, so at accessibility sizes the flex row shrank the
+   pseudo to a column; break-word does not, the row wraps (date, then button) and a very long pseudo still breaks (min-width 0). */
+.message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
+.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: none; }
 /* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
    (default) tints the header with the accent at 3 %, classic at 15 % and adds the 8 px content padding legacy gave it. */
 .style-modern .message .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
@@ -101,7 +103,7 @@ button.image-tap, button.video {
 /* Message menu (LOT-087): the author and the "⋯" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
-.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: 1.4em; line-height: 1; }
+.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: min(1.4em, 32px); line-height: 1; flex: none; }
 
 /* Visibility (LOT-117). Legacy style-liste-light.css:177-199, 314-325, 359-390, 606-619 and MessagesView.swift:2397-2410: own
    messages and whitelisted authors get a 2 px bar on the header and on the content, a tint, and a coloured avatar ring; the
