@@ -35,12 +35,12 @@ struct TopicSearchModelTests {
         TopicSearchModel(topic: readerTopic, searcher: searcher)
     }
 
-    @Test func aMatchOpensTheMessageWhateverPageHFRNamed() async {
+    @Test func aMatchOpensAtItsMessageNumber() async {
         let searcher = ScriptedSearcher { _ in .match(matchURL) }
         let sheet = model(searcher)
         sheet.word = " napolitaine "
         let target = await sheet.submit()
-        // `page=1` in the Location is not the page of the match: the message number lets HFR pick it (R25).
+        // The Location's `page=1` is not trusted: the message number lets HFR pick the page (R25).
         #expect(target == ReaderTarget(source: .topic(readerTopic), anchor: 2_666_649, numreponse: 2_666_649))
         #expect(sheet.state == .idle)
         #expect(searcher.queries == [TopicSearchQuery(topic: readerTopic, word: "napolitaine", author: "", filterEnabled: false)])
@@ -92,7 +92,7 @@ struct TopicSearchModelTests {
         (TopicSearchError.invalidLocation(matchURL), "Réponse inattendue du forum.")
     ])
     func aFailureIsToldAndNeverOpensAnything(error: TopicSearchError, message: String) async {
-        let sheet = model(ScriptedSearcher { _ in throw error })
+        let sheet = model(ScriptedSearcher { (_) async throws(TopicSearchError) -> TopicSearchResult in throw error })
         sheet.word = "a"
         #expect(await sheet.submit() == nil)
         #expect(sheet.state == .failed(message))
@@ -129,7 +129,9 @@ struct TopicSearchModelTests {
     }
 
     @Test func aCancelledSearchIsNotAFailure() async {
-        let sheet = model(ScriptedSearcher { _ in throw .network(.cancelled) })
+        let sheet = model(ScriptedSearcher { (_) async throws(TopicSearchError) -> TopicSearchResult in
+            throw TopicSearchError.network(.cancelled)
+        })
         sheet.word = "a"
         #expect(await sheet.submit() == nil)
         #expect(sheet.state == .idle)
@@ -143,8 +145,21 @@ struct TopicSearchModelTests {
         let target = try #require(ReaderTarget(
             searchMatch: url("https://forum.hardware.fr/forum2.php?post=28563&cat=13&page=1&currentnum=101#t101"), topic: readerTopic
         ))
-        await reader.open(target)
+        reader.follow(target)
         #expect(pages.requests.count == 1)
         #expect(reader.scrollRequest?.anchor == 101)
+        #expect(reader.linkedReader == nil)
+    }
+
+    @Test func aMatchOnAnotherPageOpensAReaderAboveAtItsMessage() async throws {
+        let pages = FakeTopicPages()
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "Sujet", source: pages)
+        await reader.onAppear()
+        let target = try #require(ReaderTarget(
+            searchMatch: url("https://forum.hardware.fr/forum2.php?post=28563&cat=13&page=1&currentnum=301#t301"), topic: readerTopic
+        ))
+        reader.follow(target)
+        #expect(reader.linkedReader?.requested == ReaderTarget(source: .topic(readerTopic), anchor: 301, numreponse: 301))
+        #expect(pages.requests.count == 1) // the pushed reader loads when it appears
     }
 }

@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Port of HFRswift/Swift/MessagesView.swift (the search menu entry, `handleSearchResult`) @ 2440d79. Differences: GAP-130,
+// GAP-135: the entry is in the secondary menu and only with an account; a match opens above the reader like a followed link.
 /// The reader's search entry (LOT-113): a toolbar button when an account is current and the page names its topic, and the
 /// search sheet. A match opens in the reader at its message.
 struct ReaderSearchFlow: ViewModifier {
@@ -11,8 +13,9 @@ struct ReaderSearchFlow: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let searcher = composer?.topicSearcher, let topic = model.page?.topicID {
-                    ToolbarItem(placement: .primaryAction) {
+                // Searching a private conversation (`cat=prive`) is not captured: no entry there.
+                if let searcher = composer?.topicSearcher, let topic = model.page?.topicID, !model.isPrivateConversation {
+                    ToolbarItem(placement: .secondaryAction) {
                         Button { search = TopicSearchModel(topic: topic, searcher: searcher) } label: {
                             Label("Rechercher dans le sujet", systemImage: "magnifyingglass")
                         }
@@ -20,7 +23,7 @@ struct ReaderSearchFlow: ViewModifier {
                 }
             }
             .sheet(item: $search) { sheet in
-                TopicSearchSheet(model: sheet) { target in Task { await model.open(target) } }
+                TopicSearchSheet(model: sheet) { target in model.follow(target) }
             }
     }
 }

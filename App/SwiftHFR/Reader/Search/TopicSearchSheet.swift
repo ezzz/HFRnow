@@ -59,8 +59,8 @@ struct TopicSearchSheet: View {
     private func submit() {
         Task {
             guard let target = await model.submit() else { return }
-            open(target)
             dismiss()
+            open(target)
         }
     }
 }

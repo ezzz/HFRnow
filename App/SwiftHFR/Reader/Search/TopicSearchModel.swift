@@ -5,8 +5,8 @@ import Observation
 
 // Port of HFRswift/Swift/TopicSearchSheetView.swift (TopicSearchSheetView) and HFRswift/Swift/TopicSearchService.swift
 // (TopicSearchParams, ObjCTopicSearchService) @ 2440d79. Differences: the search goes through HFRClient (LOT-046); a
-// refusal or an unreadable answer is told apart from "no result"; no "Filtrer" nor "Depuis le début" toggle (GAP: the
-// answer of a POST with `filter=1` and a continued search are not captured); a match opens at its message.
+// refusal or an unreadable answer is told apart from "no result"; no "Filtrer" nor "Depuis le début" toggle (GAP-135: the
+// answer of a POST with `filter=1` is not captured; GAP-136: a continued search is not captured); a match opens at its message.
 /// State of the in-topic search sheet (LOT-113): the two criteria, one search at a time, and the target of the match.
 @MainActor
 @Observable
@@ -106,7 +106,6 @@ final class TopicSearchModel: Identifiable {
     private static func outcome(of error: TopicSearchError) -> Outcome {
         switch error {
         case .network(.cancelled): .cancelled
-        case .network(.invalidRequest): .failed("Renseigne un mot-clé ou un pseudo pour lancer la recherche.")
         case .network: .failed("Impossible de joindre le forum.")
         case .missingToken, .notLoggedIn: .failed("Connecte-toi pour rechercher dans ce sujet.")
         case .rejected(let message): .failed(message ?? "Le forum a refusé la recherche.")
