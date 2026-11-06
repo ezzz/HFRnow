@@ -13,8 +13,8 @@ public enum FlaggedTopicsPollError: Error, Sendable, Equatable {
     case sessionExpired(SessionExpiry)
 }
 
-/// Reads the account's flagged topics with one request to the flags page (`GET /forum1f.php?owntopic=1`), the page legacy
-/// loaded for the same list (`ObjCFavoritesLoaderWorker.m:46-48`). When and how often to poll is the app's business.
+/// Reads the account's flagged topics (flags or favourites, see `TopicSummary.flag`) with one request to the
+/// flags page (`GET /forum1f.php?owntopic=1`), the page legacy loaded for the same list (`ObjCFavoritesLoaderWorker.m:46-48`). When and how often to poll is the app's business.
 ///
 /// **It cannot mark a flag read.** HFR moves a flag on an authenticated *topic* page (HFR-PROTOCOL §7, E25, `R21`), which
 /// this poll never requests: the request is built by `HFREndpoint.favorites(filter: .flagged)` and sent with

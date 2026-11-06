@@ -29,7 +29,8 @@ public enum UpdateOutcome<Value: Sendable & Equatable>: Sendable, Equatable {
 public struct UpdateSummary: Sendable, Equatable {
     /// The unread private messages count (`MPUnreadPoll`).
     public var unreadPrivateMessages: UpdateOutcome<Int>
-    /// The topics of the account's flags page, the most recent last post first (`FlaggedTopicsPoll`).
+    /// The topics of the account's flags page (flags and favourites, told apart by `TopicSummary.flag`),
+    /// the most recent last post first (`FlaggedTopicsPoll`).
     public var flaggedTopics: UpdateOutcome<[TopicSummary]>
 
     /// Creates a summary.
