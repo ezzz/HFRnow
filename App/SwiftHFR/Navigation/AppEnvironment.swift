@@ -27,18 +27,29 @@ struct AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
-        let pages = LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer())
+        let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
+        let pages = RefreshingTopicPageSource(
+            base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+        )
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
-            settings: .live(store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }),
+            settings: .live(
+                store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
+                pseudoLists: { lists.current }
+            ),
+            profiles: LiveUserProfileSource(fetcher: fetcher),
             positions: LiveReaderPositionRecorder.live(account: accountName)
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
             topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
             composer: .live(session: session, account: accountName),
-            // The allowlist stays empty until the pseudo lists reach the app (LOT-118).
-            filteredPosts: .live(store: UserDefaultsSettingsStore(), pseudo: accountName)
+            // The same lists as the reader's, refreshed at the start of each run (a run can start from a topic list, with no reader
+            // load before it).
+            filteredPosts: .live(
+                store: UserDefaultsSettingsStore(), pseudo: accountName, allowlist: { lists.current.allowlistWithoutBlocked },
+                prepare: { await lists.refresh() }
+            )
         )
     }
 

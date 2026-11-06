@@ -1,0 +1,20 @@
+{
+  "id": "R123e",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=prive&post=3207958&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207958&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3207958&page=1&p=1&subcat=0&sondage=0&owntopic=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Thu, 05 Nov 2026 18:52:09 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R123e-mp-reply-composer-group-member-no-roster.html",
+  "private": true
+}

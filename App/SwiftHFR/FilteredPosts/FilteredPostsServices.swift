@@ -31,6 +31,9 @@ struct FilteredPostsServices: Sendable {
     /// Read at the start of every run, so a change made in Réglages applies to the next one.
     let criteria: @Sendable () -> FilteredPostsCriteria
     let normalizer: any MessageContentNormalizing
+    /// Awaited at the start of every run, before the criteria are read: refreshes what they depend on (the pseudo lists, LOT-117),
+    /// since a run can start from a topic list with no reader load before it.
+    var prepare: @Sendable () async -> Void = {}
 
     /// Services for a build without a forum (previews, tests that never filter).
     static let unavailable = FilteredPostsServices(
@@ -40,12 +43,14 @@ struct FilteredPostsServices: Sendable {
     /// The live services. The criteria come from the settings (`filter_posts_min_quotes`, `filter_posts_quotes`), the
     /// account's pseudo and `allowlist`, the allowlist minus the blocklist (LOT-093: `FilteredPostsCriteria.allowlist`).
     static func live(
-        store: any SettingsStore, pseudo: String?, allowlist: @escaping @Sendable () -> [String] = { [] }
+        store: any SettingsStore, pseudo: String?, allowlist: @escaping @Sendable () -> [String] = { [] },
+        prepare: @escaping @Sendable () async -> Void = {}
     ) -> FilteredPostsServices {
         FilteredPostsServices(
             source: LiveFilteredPostsSource(),
             criteria: { criteria(store: store, pseudo: pseudo, allowlist: allowlist()) },
-            normalizer: LiveContentNormalizer()
+            normalizer: LiveContentNormalizer(),
+            prepare: prepare
         )
     }
 

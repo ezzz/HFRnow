@@ -1,0 +1,15 @@
+{
+  "id": "T15",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://bibi.hn.org/<path>.JPG",
+  "url": "https://bibi.hn.org/~bibi/user37/P0002208.JPG",
+  "final_url": "https://bibi.hn.org/~bibi/user37/P0002208.JPG",
+  "status": 0,
+  "content_type": null,
+  "date": null,
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "http-only host of R20 requested over https, cookie-less, no Referer (#301); network error: [Errno 8] nodename nor servname provided, or not known",
+  "private": false
+}

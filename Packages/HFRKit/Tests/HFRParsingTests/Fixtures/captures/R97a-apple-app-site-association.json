@@ -1,0 +1,14 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "QMG83DG7YP.hfrplus.red.super",
+                "paths": [ "/", "/hfr/*", "/forum2.php*" ]
+            }
+        ]
+    },
+    "webcredentials": {
+        "apps": [ "QMG83DG7YP.hfrplus.red.super" ]
+  }
+}

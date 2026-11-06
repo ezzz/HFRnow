@@ -78,6 +78,16 @@ pages, the preview equals the message body once whitespace is removed, apart fro
 wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the right one (`W64`); user1 deleted it too
 (`W65`, clean-up). Nothing of the thread is left on HFR. `flows.py form` gained `--cookie` (sent with the POST only).
 
+Run 10 (2026-11-02, `mac/capture-batch` batch 3, ezzz/HFRnow#133, #174, #134, #301 and #127, read-only, no account, 20
+requests: 4 to `forum.hardware.fr`, 16 to other hosts). `T` ids are third-party hosts. The Alertes Qualitaÿ feed and one
+topic's alert list (`T01`, `T02`, `aq.super-h.fr`) are anonymized by position: every initiator and reporter → `userN`, and
+the member-written alert titles and comments → one `x` per word, entities and punctuation kept (the encodings LOT-028 must
+decode); public topic titles stay. Image hosts were asked cookie-less for one image URL each of `R20`/`R22a` over `https`,
+then over `http` where `https` failed or redirected; a request that got no HTTP answer is recorded as status 0 with the
+error in the note (`flows.py get --record-network-error`), and a `Referer` sent is recorded in the note (`--referer`).
+Image bodies are not published (meta only). Three public topic pages were read only to look for a `reho.st` image and
+are not published (none found).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -256,6 +266,41 @@ wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the
 | R96d | `R96d-mp-thread-recipient-after-thread-delete.html` | Thread URL for the recipient afterwards: the same "pas destiné" `.hop` | X1 | 094, 030 |
 | R96a | `R96a-mp-list-past-last-page.html` | user1's MP list `page=8` of 7, with `MPStorage.m:694`'s query: 200, no redirect, no `.hop`, header row and no topic row; title "… - Page : 8"; the pager lists pages 1 to 7 as links (no current page), "Page Précédente" links page 7, no "Page Suivante" link | R14 | 023, 038, 047, 126 |
 | R96b | `R96b-mpstorage-thread-other-account-not-addressed.html` | user2 opens user1's MPStorage thread with legacy's read URL (`MPStorage.m:766`, as `R60a`): 200, the "pas destiné" `.hop` legacy's `parseMPStorage` checks (`MPStorage.m:837`) | R60 | 038 |
+| W70 | `W70-mp-create-group-success.html` | New MP to two recipients (#336, 2026-11-05): user1 posts `dest=<user2>,<third member>` (comma, no space), a neutral subject and body, to `bddpost.php`: "Votre message a été posté avec succès !", refresh to the MP list | N07 | 058 |
+| R123k | `R123k-new-mp-form-recipients-comma-hint.html` | The new-MP form as the list link opens it (`dest=` empty, user1): the `dest` hint reads "Entrez le(s) pseudo(s) du ou des destinataires, séparés par des virgules." | R45 | 058, 036 |
+| R123a | `R123a-mp-list-group-owner.html` | user1's MP list right after `W70`: the group row (`Interlocuteurs multiples` span with the roster as `title`, `[non lu]` "pas été lu par" with lower-cased names) and 12 older group threads (13 group rows in all) | N07, R13 | 058, 023, 171 |
+| R123b | `R123b-mp-thread-group-owner.html` | The group thread seen by its owner (one message, no roster on the page) | N07 | 058, 030 |
+| R123c | `R123c-mp-reply-composer-group-owner-newdest.html` | The owner's `message.php` reply form: the extra "Destinataires" row with `newdest` ("a, b", the members other than the owner) | N07, R47 | 058, 036 |
+| R123d | `R123d-mp-thread-group-member.html` | The same thread seen by user2, a non-owner member (no roster) | N07 | 058, 030 |
+| R123e | `R123e-mp-reply-composer-group-member-no-roster.html` | The member's reply form: no "Destinataires" row, no `newdest` (the roster is not read-only text here) | N07, R47 | 058, 036 |
+| R123f | `R123f-mp-list-group-member.html` | user2's MP list with the group row (roster in the span `title`, only the third member left in "pas été lu par") | N07, R13 | 058, 023, 171 |
+| R123g | `R123g-favourites-owntopic1-empty-after-delflag.html` | user2's `forum1f.php?owntopic=1` with nothing flagged (operator-run capture, #109): the list body with title "Vos sujets", no `.hop`, no topic row, marker `topic0`, the "Discussions" header and the placeholder row "Aucun nouveau message" | R73a, R12 | 024, 092 |
+| (oracles) | `../M2-writes/` | Legacy oracles of `R123a`-`R123g` and `R123k` (`run-oracle.sh`, legacy `2440d79`): `mp` for the lists, `favorites` (`R123g`), `topic` for `R123b`/`R123d`, `form` (`reply`, `mp`) for `R123c`/`R123e`/`R123k`; own folder and map | R123a-R123g, R123k | 058, 023, 024, 030, 036 |
+| T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
+| T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
+| R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
+| R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
+| T10 | meta only | `https://nsa34.casimages.com/…jpg`: no DNS answer (status 0) | — | 056, 083 |
+| T11, T11h | meta only | `yelims.free.fr` image: `https` TCP refused (status 0); `http` 200 `image/gif` | — | 056, 083 |
+| T12 | meta only | `https://img15.hostingpics.net/…jpg`: no DNS answer | — | 056, 083 |
+| T13 | meta only | `https://si1.photorapide.com/…jpg`: 200 `image/jpeg` | — | 056, 083 |
+| T14, T14h | meta only | `www.camif.fr` image: `https` 404 `text/html`; `http` 301 → the `https` URL, then 404 | — | 056, 083 |
+| T15 | meta only | `https://bibi.hn.org/…`: no DNS answer | — | 056, 083 |
+| T20, T21, T24 | meta only | `https://reho.st/`: 403 `text/html` without `Referer`; 200 `text/html`, empty body, with `Referer: https://forum.hardware.fr/` or `https://forum.hardware.fr` | E26 | 056, 083, 109 |
+| T22, T23 | meta only | `https://reho.st/self/abc123.jpg` (legacy test path, no such image): 403 without `Referer`, 200 empty `text/html` with it | E26 | 056, 083, 109 |
+| R122a | `R122a-topic-locked-logged-in.html` | The locked topic of `R31` seen by user2 (#122, 2026-11-05): 200, no `#repondre_form`, no `.hop`, no bottom answer link; the per-message quote links (`quote.gif`, `quote+.gif`/`quote-.gif`) are still there; header flag link `delflag` with `flagn0.gif` | R31 | 033, 031, 113 |
+| R122b | `R122b-topic-logged-in-favourite-owntopic1.html` | A favourite topic (user1) opened with the row link of a `forum1f.php?owntopic=1` list: the header `delflag` link carries `owntopic=1` and `favorisn.gif`; the search form's `owntopic` is `1`; the page holds no post of an operator account | P03, R10 | 033, 051 |
+| R122c | `R122c-topic-search-filter-checked.html` | Intra-topic search result with the **filter** box checked: a plain GET of the `R52a` target plus `&filter=1` (user2): 200, only the 31 messages that contain the word (one page, no pager), `<input name="filter" … checked="checked">`, `word` prefilled, `currentnum` present without value, no `dep`/`firstnum` field | R52 | 033, 093, 113 |
+| R122d | `R122d-topic-search-word-no-filter.html` | The same GET without `filter`: a normal page 1 (40 messages, pager), `word` prefilled, `filter` unchecked | R52 | 033, 113 |
+| R121a | `R121a-mp-list-logged-out.html` | `forum1.php?config=hfr.inc&cat=prive&page=1` without cookies: 200, bare `<body>` with the `.hop` "Désolé, vous ne faites pas partie des membres ayant accès à cette catégorie" and a back link; no list | R13 | 022, 023 |
+| R121b | `R121b-search-all-categories-first-category.html` | Global search with an empty `cat` ("Toutes les catégories", cookie-less GET of the `R50b` URL): **302** to `forum1.php?config=hfr.inc&cat=<first category with a hit>&post_cat_list=\|14*hfr\|5*hfr\|…&…&searchall=1`; the page lists that category's hits (1 row) under a form "Le moteur de recherche a trouvé des résultats dans les catégories suivantes" with a `cat` select | R50 | 022, 046, 115 |
+| R121c | `R121c-search-all-categories-pivot-category-5.html` | The same results for another category of the pivot (`cat=5`, same `post_cat_list`, `searchall=1`): 4 rows, the pivot form again | R50 | 022, 046, 115 |
+| R121d | `R121d-search-form-page.html` | `search.php?config=hardwarefr.inc&cat=13&subcat=0` without cookies: the search form (POST `/search.php?config=hfr.inc`), `cat` select whose first option is "Toutes les catégories" with the **empty** value | S1 | 046, 115 |
+| R121e | `R121e-list-cat22-p1-logged-in.html` | Category list page 1 logged in (user1, 301 to the canonical `liste_sujet-1.htm`): 53 rows (3 sticky), 6 with a flag link in `sujetCase5` (4 `flag0.gif`, 2 `flag1.gif`) and 47 with the empty cell, 24 single-page topics | R04 | 022, 024, 092 |
+| R121f | `R121f-list-cat32-single-page-anon.html` | List of category 32 (Intelligence Artificielle), anonymous: 39 rows (1 sticky), a single page (no "Page Suivante") | R04 | 022 |
+| (oracles) | `../M2-readonly/` | Legacy oracles of `R121a`, `R121b`, `R121c`, `R121e`, `R121f` and `R122a`-`R122d` (`run-oracle.sh`, legacy `2440d79`), in their own folder and map: the LOT-002/LOT-003 guard tests list every case of their maps, so wiring these into a differential test is a follow-up | — | 022, 023, 033 |
+| T30, T31 | meta only | A real `reho.st` image (`https://reho.st/preview/self/<hash>.jpg`, cookie-less, #134): **403** `text/html` (nginx) without `Referer`; **200** `image/jpeg` (134 kB) with `Referer: https://forum.hardware.fr/` | E26 | 056, 083, 109 |
+| T32, T33 | meta only | The same for an `http://reho.st/self/<hash>.jpg` image: 403 without `Referer`, 200 `image/jpeg` with it; no redirect to https | E26 | 056, 083, 109 |
 
 ## Not captured
 
@@ -271,5 +316,9 @@ wrong `hash_check`, which HFR refused (`W64x`), then deleted the thread with the
 | X10 cookie-less multi-quote | Out of the approved scope or not needed. |
 | A cookie-less poll vote and the poll author's results view (run 8) | Captured, not published: held for an operator decision (see the run 8 PR). |
 | A reply to a locked topic, a ban refusal (run 8) | The locked topic's composer is served (200) but its POST was not sent (not an operator topic); no banned account. |
-| oldcitation, Streamable/Dailymotion/Twitch, reho.st images | Not present on the pages picked; synthetic or a later capture. |
+| oldcitation, Streamable/Dailymotion/Twitch | Not present on the pages picked; synthetic or a later capture. (`reho.st` images: `T30`-`T33`.) |
+| AQ comment with an entity (#438) | None in the live feed of run 10 (`T01`); an entity in a pseudo cannot survive the alias. |
+| Giphy `search` / `trending` (#175) | Not captured: legacy uses the Giphy SDK (no traceable REST request) and no REST key is configured; decision asked on the issue. |
 | MPStorage document with other clients' namespaces, member pseudos (blacklist), near the 64 KiB cap or with a non-BMP character | None exists in the kit's accounts: user1's document is the empty legacy structure (R60a/R60b), user2 has no storage thread (R13a). Producing one needs a write to a document shared with the user's other clients: out of scope (pending capture [#272](https://github.com/ezzz/HFRnow/issues/272)). |
+| Rare list rows (#121): a `sujetCase3` with a second link outside search results, reply counts with separators, a row without last-post link or without `<b>` author, a pager with a non-cryptlink "Page Suivante" | Searched, not found (2026-11-05): page 1 of 20 category lists (anonymous, plus `R121e` logged in) and the three global-search pages hold none of them: every row has its last-post link and author, counts are bare digits, the pager link is a cryptlink. Stays pending capture. |
+| A message whose quote or edit link is printed in clear instead of `md_noclass_cryptlink` (#274) | Not seen in any page of the corpus (`R122a`-`R122d` included: 610 quote and 17 edit toolbar images, all inside `md_noclass_cryptlink` spans, 2026-11-05 scan); the multi-quote `quote+.gif` link and the "Edition rapide" link are plain `<a href>` but sit beside them (`R63a`). May not exist on today's HFR. |

@@ -1,0 +1,15 @@
+{
+  "id": "T13",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://si1.photorapide.com/invites/photos/<y>/<m>/<n>.jpg",
+  "url": "https://si1.photorapide.com/invites/photos/2014/11/0211xe.jpg",
+  "final_url": "https://si1.photorapide.com/invites/photos/2014/11/0211xe.jpg",
+  "status": 200,
+  "content_type": "image/jpeg",
+  "date": "Mon, 02 Nov 2026 09:35:48 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "http-only host of R22a requested over https, cookie-less, no Referer (#301)",
+  "private": false
+}

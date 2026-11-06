@@ -1,0 +1,16 @@
+{
+  "id": "R97a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/.well-known/apple-app-site-association",
+  "url": "https://forum.hardware.fr/.well-known/apple-app-site-association",
+  "final_url": "https://forum.hardware.fr/.well-known/apple-app-site-association",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Mon, 02 Nov 2026 09:34:47 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Apple universal-links file, well-known path (#127)",
+  "file": "R97a-apple-app-site-association.json",
+  "private": false
+}
