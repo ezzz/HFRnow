@@ -123,7 +123,11 @@ final class MessageListModel {
         self.segment = segment
         dropSelectionHiddenBySegment()
         // A search for the previous segment is stopped, not left to walk on for this one.
-        if isSearchingSegment { loader.cancel() }
+        // `loadCount` moves too, so the cancelled load's own follow-up (openedThreads, signed-out check) is dropped.
+        if isSearchingSegment {
+            loadCount += 1
+            loader.cancel()
+        }
         await advanceWhileSegmentEmpty()
     }
 

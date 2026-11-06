@@ -128,7 +128,8 @@ struct MessageListSplitTests {
         #expect(model.visibleThreads.isEmpty)
     }
 
-    @Test func switchingSegmentDuringASearchStopsIt() async {
+    @Test(.timeLimit(.minutes(1)))
+    func switchingSegmentDuringASearchStopsIt() async {
         let source = FakePrivateMessages()
         let gate = Gate()
         source.handler = { page in
@@ -147,6 +148,32 @@ struct MessageListSplitTests {
         #expect(source.requests == [1, 2])
         #expect(model.segment == .oneToOne)
         #expect(!model.isSearchingSegment)
+        // The cancelled page-2 answer never reaches the screen.
+        #expect(model.currentPage == 1)
+        #expect(model.visibleThreads.map(\.id) == [messageThread(1).id])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledSearchDoesNotUndoWhatWasReadMeanwhile() async {
+        let source = FakePrivateMessages()
+        let gate = Gate()
+        let unread = messageThread(1, unread: true)
+        source.handler = { page in
+            if page == 2 { await gate.wait() }
+            return pageOf([page == 1 ? unread : messageThread(page)], page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        model.markOpened(unread, page: 1, of: 1)
+        #expect(!model.isUnread(unread))
+        // The group search is on page 2 when the member switches back.
+        let search = Task { await model.select(.group) }
+        await gate.waitUntilWaiting()
+        await model.select(.oneToOne)
+        await gate.open()
+        await search.value
+        #expect(model.currentPage == 1)
+        #expect(!model.isUnread(unread))
     }
 
     @Test func theSwitchIsHiddenWithoutRows() async {
