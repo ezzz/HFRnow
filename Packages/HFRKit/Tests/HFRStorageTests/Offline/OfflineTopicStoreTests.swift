@@ -117,6 +117,22 @@ struct OfflineTopicStoreTests {
         #expect(OfflinePageRecord.holdsSessionToken(#"<input value="" name="x" title="oops><input name="hash_check" title="t"><p>"</p>"#))
     }
 
+    @Test("The input's name is read as a browser reads it: character references decoded, an unknown one fails closed")
+    func encodedNames() {
+        for name in ["hash&#95;check", "hash&#095;check", "hash&#x5f;check", "hash&#X5F;check", "hash&#95check", "hash&lowbar;check",
+                     "hash&UnderBar;check", "HASH&#95;CHECK"] {
+            #expect(OfflinePageRecord.holdsSessionToken("<input type=\"hidden\" name=\"\(name)\" value=\"t0k3n\">"), "\(name)")
+            #expect(!OfflinePageRecord.holdsSessionToken("<input type=\"hidden\" name=\"\(name)\" value=\"\">"), "\(name)")
+        }
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input name=hash&#95;check value='t0k3n'>"#))
+        // A decoded quote in the value never makes it look empty: the value is read as written.
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash&#95;check" value="&#34;t0k3n">"#))
+        // A reference the decoder does not know, in any input's name, cannot be read: the page is refused.
+        #expect(OfflinePageRecord.holdsSessionToken(#"<input name="hash&unknown;check" value="t0k3n">"#))
+        #expect(!OfflinePageRecord.holdsSessionToken(#"<input name="search" value="a&amp;b">"#))
+        #expect(OfflinePageRecord.decodingCharacterReferences("a&#95;b&#x5F;c&lowbar;d&#0;e&amp;f") == "a_b_c_d\u{FFFD}e&amp;f")
+    }
+
     @Test("A codehex token is refused even without a filled hash_check: the logged-in links carry it (HFR-PROTOCOL §5)")
     func codehexForms() {
         // Small fragments: the captures carry no codehex value (the anonymizer replaces it), so the rule's inputs are written here.
@@ -163,6 +179,14 @@ struct OfflineTopicStoreTests {
             #expect(try store.topics().first?.pages == [11, 12, 13])
             let floor = OfflineTopicStore(cache: CacheDirectory(root: URL.temporaryDirectory), maximumPagesPerTopic: 0)
             #expect(floor.maximumPagesPerTopic == 1)
+        }
+        // A page is refused only when it is lower than every page of a full topic: 12 fits in [10, 11, 13] and 10 goes.
+        try Self.withStore(limit: 3) { store, _ in
+            for number in [10, 11, 13] {
+                try store.save(OfflinePage(topic: Self.pizza, page: number, title: "t", html: "<p>\(number)</p>", savedAt: Self.now))
+            }
+            try store.save(OfflinePage(topic: Self.pizza, page: 12, title: "t", html: "<p>12</p>", savedAt: Self.now))
+            #expect(try store.topics().first?.pages == [11, 12, 13])
         }
     }
 
