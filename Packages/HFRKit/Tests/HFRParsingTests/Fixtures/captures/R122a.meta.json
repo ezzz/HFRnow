@@ -1,0 +1,29 @@
+{
+  "id": "R122a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=13&post=100217&page=1",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=100217&page=1",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Actualite/droits-auteurs-articles-sujet_100217_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Thu, 05 Nov 2026 18:12:05 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/droits-auteurs-articles-sujet_100217_1.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Actualite/droits-auteurs-articles-sujet_100217_1.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R122a-topic-locked-logged-in.html",
+  "private": false
+}

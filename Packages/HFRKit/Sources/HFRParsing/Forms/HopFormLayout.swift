@@ -47,6 +47,22 @@ extension HopFormParser {
         else {
             throw .missingElement("form name=hop")
         }
+        return layout(of: form)
+    }
+
+    /// The layout of the moderator alert form of `html`, the form `parseModerationForm(_:pageURL:)` reads (`R46`:
+    /// `hash_check`, `referer_page`, the `raison` textarea, `Submit`), with the same rules as `layout(_:)`.
+    /// - Throws: `missingElement` when the page has no form whose `action` contains `modo.php`.
+    public static func moderationLayout(_ html: String) throws(ParsingError) -> HopFormLayout {
+        let document = try HTMLDocumentLoader.document(from: html)
+        guard let form = document.descendants(attribute: "action", matching: .contains("modo.php")).first(where: { $0.tagName() == "form" })
+        else {
+            throw .missingElement("form action*=modo.php")
+        }
+        return layout(of: form)
+    }
+
+    private static func layout(of form: Element) -> HopFormLayout {
         let elements = ((try? form.getAllElements())?.array() ?? []).dropFirst()
         var controls: [HopFormLayout.Control] = []
         var inputs = 0

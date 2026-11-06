@@ -129,7 +129,7 @@ All use two **throwaway MP threads** titled `fixture-test-1`/`-2` created by W10
 | N04 | Moderator alert states: pending-mine/joined, treated (E3), already alerted | requires bothering moderators | hand-built `.hop` pages from E3 texts + `ReplyService.swift:1400-1531` test snippets |
 | N05 | Poll vote responses ("Votre vote a bien été pris en compte !", "déjà voté", E10) | public effect | hand-built from E10 texts |
 | N06 | Poll states not obtainable (already voted / closed) | depends on forum content | R32/R33 if found, else hand-built from R32 |
-| N07 | Group MP (`newdest`, "Interlocuteurs multiples", E8/E21 group row) | needs a third member | synthetic row from E21 DOM; R13 may contain one if user1 already has a group MP |
+| N07 | Group MP (`newdest`, "Interlocuteurs multiples", E8/E21 group row) | needs a third member | **captured 2026-11-05** (#336): `R123a`-`R123f`, `W70`, `R123k` (see HFR-PROTOCOL.md §6c "M2 write captures"), with a third account named by the operator |
 | N08 | Maintenance page, error pages (`<body><p>…`, B §6.3), NUL byte / invalid UTF-8 (C F25) | cannot be provoked | synthetic |
 | N09 | Locked-topic POST refusal (E16) | needs a locked topic we may post in | R31 + hand-built refusal `.hop` |
 | N10 | Login flood text (X5) | would lock an operator account | hand-built from X5 text |

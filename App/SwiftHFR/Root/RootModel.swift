@@ -18,6 +18,10 @@ final class RootModel {
     /// The private message list and the open conversation of the Messages tab (LOT-126), shared by the tab bar and the
     /// sidebar so a size-class change keeps the page and the conversation on screen.
     let messages: MessageListModel
+    /// The favourites options the Favoris tab shares with its lists (LOT-124); nil in tests that do not need them.
+    let favoriteOptions: FavoritesOptionsModel?
+    /// The forum search form and results (LOT-115), shared by the tab bar and the sidebar so a size-class change keeps them.
+    let search: ForumSearchModel
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -76,12 +80,15 @@ final class RootModel {
     /// it was on (`MainWindow.swift:1276-1278`, `:1357-1362`).
     init(
         forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
-        store: any SettingsStore, initial: SidebarDestination? = nil
+        search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
+        store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil
     ) {
+        self.favoriteOptions = favoriteOptions
         self.forums = forums
         self.categories = categories
         self.favorites = favorites
         self.messages = messages
+        self.search = search
         self.store = store
         let destination = initial ?? .tab(RootTab(startup: store.value(for: SettingKey.startupScreen)))
         selectedDestination = destination
@@ -92,16 +99,18 @@ final class RootModel {
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
-    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites.
+    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites. The environment-built
+    /// Favoris tab opens on the list its favourites mode names instead (`TopicSource(mode:)`, LOT-124); this is the fallback of
+    /// a model built without options.
     static let categoriesStartupSource: TopicSource? = nil
-    static let favoritesStartupSource: TopicSource? = .favorites
+    static let favoritesStartupSource: TopicSource? = .flagged
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
-    private static func messageList(_ environment: AppEnvironment) -> MessageListModel {
+    private static func messageList(_ environment: AppEnvironment, store: any SettingsStore) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions
+            renderOptions: environment.reader.settings.renderOptions, settings: store
         )
     }
 
@@ -110,17 +119,24 @@ final class RootModel {
         let forums = ForumListModel(
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
-        func navigation(startup: TopicSource?) -> NavigationModel {
+        let options = FavoritesOptionsModel(settings: store, stores: environment.favoriteStores)
+        func navigation(startup: TopicSource?, favorites: FavoritesOptionsModel? = nil) -> NavigationModel {
             NavigationModel(
                 dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
-                filteredPosts: environment.filteredPosts, startupSource: startup
+                filteredPosts: environment.filteredPosts, startupSource: startup, favorites: favorites
             )
         }
+        // The Favoris tab opens on the list the favourites mode names (legacy default: "Drapeaux & Favoris").
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
-            favorites: navigation(startup: Self.favoritesStartupSource), messages: Self.messageList(environment),
-            store: store, initial: initial
+            favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options),
+            messages: Self.messageList(environment, store: store),
+            search: ForumSearchModel(
+                source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
+                renderOptions: environment.reader.settings.renderOptions, store: store
+            ),
+            store: store, initial: initial, favoriteOptions: options
         )
     }
 
@@ -136,6 +152,11 @@ final class RootModel {
     func reloadSettings() {
         let badge = store.value(for: SettingKey.privateMessageBadge)
         let minimize = store.value(for: SettingKey.tabBarMinimizesOnScroll)
+        if let options = favoriteOptions {
+            options.reloadSettings()
+            // The mode names the list (legacy reads `vos_sujets` on every load): a change made in Réglages switches the tab.
+            if favorites.selectedSource?.favoritesMode != options.mode { favorites.selectedSource = TopicSource(mode: options.mode) }
+        }
         if badge != privateMessageBadgeEnabled { privateMessageBadgeEnabled = badge }
         if minimize != minimizesTabBarOnScroll { minimizesTabBarOnScroll = minimize }
     }

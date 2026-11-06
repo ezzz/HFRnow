@@ -78,6 +78,22 @@ struct MPStoragePageParserTests {
         #expect(message.text.contains("\"lastUpdate\":1745779603553"))
     }
 
+    @Test("R60a: the document is written back byte for byte as JSONEncoder wrote it before LOT-073's tokenizer")
+    func writtenAsBefore() throws {
+        guard case .storage(let message) = try MPStoragePageParser.readDocument(in: Fixture.capture("R60a-mpstorage-thread-first-post"))
+        else {
+            Issue.record("R60a is the storage thread")
+            return
+        }
+        // Its numbers are integers, which a plain `JSONDecoder`/`JSONEncoder` round trip keeps: the reference for the bytes.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        let plain = try JSONDecoder().decode(MPStorageDocument.self, from: Data(message.text.utf8))
+        let reference = try #require(String(validating: try encoder.encode(plain), as: UTF8.self))
+        #expect(try MPStorageCodec.encodeForWriting(message.document) == reference)
+        #expect(plain == message.document)
+    }
+
     @Test("RA5, HFR's \"pas destiné\" page, is the notAddressed result")
     func notAddressed() throws {
         let html = try Fixture.capture("RA5-mp-thread-after-delete-owner")

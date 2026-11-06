@@ -57,7 +57,7 @@ struct FlagSessionGateTests {
         arguments: TopicFlagAction.allCases, Unconfirmed.allCases
     )
     func unconfirmedSessionSendsNothing(action: TopicFlagAction, state: Unconfirmed) async throws {
-        let answer = ["P03q", "P03n", "P03j"][TopicFlagAction.allCases.firstIndex(of: action) ?? 0]
+        let answer = Self.answers(confirmed: false)[action] ?? "P03q"
         let run = try await run(
             action, answer: answer, loggedIn: state == .loginFormServed,
             probeReply: .success(try Capture.response("W00-login-form-anon"))
@@ -72,14 +72,14 @@ struct FlagSessionGateTests {
         arguments: TopicFlagAction.allCases
     )
     func confirmedSessionWrites(action: TopicFlagAction) async throws {
-        let answer = ["P03a", "P03n", "P03j"][TopicFlagAction.allCases.firstIndex(of: action) ?? 0]
+        let answer = Self.answers(confirmed: true)[action] ?? "P03a"
         let run = try await run(
             action, answer: answer, loggedIn: true,
             probeReply: .success(try Capture.response("R55-p1-profile-edit-page1"))
         )
         let result = try run.result.get()
         #expect(result.action == action)
-        #expect(result.topic == Self.cuisine)
+        #expect(result.topic == (action == .markUnread ? TopicID(category: .privateMessages, topic: 3207033) : Self.cuisine))
         #expect(action.confirmations.contains(result.message))
         #expect(run.checks.map(\.url) == [Capture.profilePage1])
         #expect(run.checks.first?.method == .get)
@@ -97,6 +97,7 @@ struct FlagSessionGateTests {
         await #expect(throws: expected) { try await flow.addFavorite(link: try FlagCapture.requestURL("P03a"), in: session) }
         await #expect(throws: expected) { try await flow.removeFlag(link: try FlagCapture.requestURL("P03n"), in: session) }
         await #expect(throws: expected) { try await flow.removeFavoriteFromList(Self.cuisine, in: session) }
+        await #expect(throws: expected) { try await flow.markUnread(link: try FlagCapture.requestURL("W18"), in: session) }
     }
 
     @Test(
@@ -115,10 +116,12 @@ struct FlagSessionGateTests {
         let flow = TopicFlagFlow(refresh: SessionRefreshFlow { cookies, now in factory.make(cookies: cookies, now: now) })
         let addLink = try FlagCapture.requestURL("P03a")
         let removeLink = try FlagCapture.requestURL("P03n")
+        let unreadLink = try FlagCapture.requestURL("W18")
         let errors = [
             await Self.failure { () async throws(TopicFlagError) in _ = try await flow.addFavorite(link: addLink, in: session) },
             await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFlag(link: removeLink, in: session) },
-            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFavoriteFromList(Self.cuisine, in: session) }
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.removeFavoriteFromList(Self.cuisine, in: session) },
+            await Self.failure { () async throws(TopicFlagError) in _ = try await flow.markUnread(link: unreadLink, in: session) }
         ]
         for error in errors {
             if profilePageServed {
@@ -131,7 +134,7 @@ struct FlagSessionGateTests {
                 #expect(error == .sessionNotConfirmed(.unconfirmed(.unrecognizedPage)))
             }
         }
-        #expect(factory.probes.count == 3)
+        #expect(factory.probes.count == 4)
         for probe in factory.probes {
             #expect(await probe.requests.map(\.url) == [Capture.profilePage1])
         }
@@ -213,14 +216,23 @@ struct FlagSessionGateTests {
         return ({ () async throws(NetworkError) -> SessionHealth in try await flow.refresh(account, now: now) }, factory)
     }
 
-    /// Runs `action` through the gate on the topic of `P03a` and `P03n`, the write answered by the capture `answer`.
+    /// The captured answer of each write: what HFR answers without a confirmed session (`P03q` for `addflag`), or its
+    /// confirmation (`W18` for `nonlu.php`, LOT-058, whose answer without a session is not captured).
+    private static func answers(confirmed: Bool) -> [TopicFlagAction: String] {
+        [.addFavorite: confirmed ? "P03a" : "P03q", .removeFlag: "P03n", .removeFavoriteFromList: "P03j", .markUnread: "W18"]
+    }
+
+    /// The captured request of each link write.
+    private static let links: [TopicFlagAction: String] = [.addFavorite: "P03a", .removeFlag: "P03n", .markUnread: "W18"]
+
+    /// Runs `action` through the gate on the topic of its captured link (`links`), the write answered by the capture `answer`.
     private func run(
         _ action: TopicFlagAction, answer: String, loggedIn: Bool, probeReply: Result<HTTPResponse, NetworkError>
     ) async throws -> Run {
         let (check, factory) = check(loggedIn: loggedIn, reply: probeReply)
         let session = ScriptedFlagSession([try FlagCapture.page(answer)], hashCheck: Self.token)
         let flow = TopicFlagFlow()
-        let link = try FlagCapture.requestURL(action == .removeFlag ? "P03n" : "P03a")
+        let link = try FlagCapture.requestURL(Self.links[action] ?? "P03a")
         let result: Result<TopicFlagResult, TopicFlagError>
         do throws(TopicFlagError) {
             if action == .removeFavoriteFromList {

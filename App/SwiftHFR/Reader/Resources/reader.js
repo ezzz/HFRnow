@@ -24,6 +24,8 @@
 
   const load = (img, src) => {
     img.addEventListener("error", () => replaceWithLink(img, src), { once: true });
+    // The viewer's list is the original `src` of the pictures this script loaded (the attribute itself is the proxied URL).
+    img.dataset.viewerSrc = src;
     img.setAttribute("src", proxied(src));
   };
 
@@ -61,6 +63,20 @@
       channel.postMessage({ type: "video", token, post: Number(video.dataset.post), index: Number(video.dataset.video) });
       return;
     }
+    // A loaded posted picture opens the viewer (LOT-109). Smileys and avatars have no `hfrplusimg` class; a picture that is
+    // still a placeholder or became a link is no longer an `img`, so it is not in the list the app receives.
+    const picture = target.closest("img.hfrplusimg");
+    if (picture && picture.closest(".content, .signature")) {
+      // A picture inside a closed spoiler is loaded but hidden: a swipe must not show it.
+      const pictures = Array.from(document.querySelectorAll(".content img.hfrplusimg[data-viewer-src], .signature img.hfrplusimg[data-viewer-src]"))
+        .filter((img) => !img.closest("table.spoiler:not(.open)"));
+      const index = pictures.indexOf(picture);
+      if (index >= 0) {
+        event.preventDefault();
+        channel.postMessage({ type: "image", token, urls: pictures.map((img) => img.dataset.viewerSrc), index });
+        return;
+      }
+    }
     const menu = target.closest("button[data-menu]");
     if (menu) {
       event.preventDefault();
@@ -68,17 +84,98 @@
       channel.postMessage({ type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu });
       return;
     }
+    const blocked = target.closest("table.quote-blocked");
+    if (blocked) {
+      // Collapsed: any tap opens it, even on the header link. Open: only its own header (not a nested quote's, not its body) closes it, and its link still works.
+      const onHeader = target.closest("b.s1")?.closest("table") === blocked;
+      if (!blocked.classList.contains("open") || (onHeader && !target.closest("a"))) {
+        event.preventDefault();
+        blocked.classList.toggle("open");
+        return;
+      }
+    }
     const spoiler = target.closest("table.spoiler");
     if (spoiler && !target.closest("a")) { spoiler.classList.toggle("open"); }
   });
 
+  // Landing on a message (LOT-111): images that load after the first scroll push the message down, so the document keeps
+  // it at the top until the user touches the page or every image has settled. WebKit has no scroll anchoring.
+  let pinned = null;
+  // `scrollY` right after the pin's own scroll: a scroll that moves away from it came from the user, including the ones that
+  // send no touch, wheel or key event (VoiceOver, status-bar tap).
+  let pinY = 0;
+  let scheduleReport = () => {};
+  const pinNow = () => { pinned.scrollIntoView({ block: "start" }); pinY = window.scrollY; };
+  const releasePin = () => {
+    if (pinned === null) { return; }
+    pinned = null;
+    scheduleReport(); // the landing may have produced no scroll event to report from
+  };
+  const settled = () => Array.from(document.images).every((img) => img.complete);
+  let settleTimer = null;
+  const repin = () => {
+    if (pinned === null) { return; }
+    pinNow();
+    // A failed image becomes a link of another height after this handler (see `load` above): release only after one more
+    // turn of the event loop, with a last scroll.
+    clearTimeout(settleTimer);
+    if (settled()) {
+      settleTimer = setTimeout(() => {
+        if (pinned !== null && settled()) { pinNow(); releasePin(); }
+      }, 0);
+    }
+  };
+  ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
+    window.addEventListener(name, releasePin, { passive: true, capture: true }));
+  document.addEventListener("load", repin, true);
+  document.addEventListener("error", repin, true);
+  new ResizeObserver(repin).observe(document.documentElement);
+
   window.hfrReader = {
     scrollToPost: (number) => {
+      releasePin();
       const element = document.getElementById("t" + number);
       if (element) { element.scrollIntoView({ block: "start" }); }
       return element !== null;
+    },
+    // Scrolls to the message and keeps it there while the page settles.
+    landOnPost: (number) => {
+      const element = document.getElementById("t" + number);
+      if (element) {
+        element.scrollIntoView({ block: "start" });
+        if (settled()) { pinned = null; scheduleReport(); } else { pinned = element; pinY = window.scrollY; }
+      }
+      return element !== null;
     }
   };
+
+  // The topmost message on screen, reported when scrolling pauses (the app records it as the reading position).
+  const topPost = () => {
+    const posts = document.querySelectorAll("article[data-post]:not(.continuation)");
+    for (const post of posts) {
+      const box = post.getBoundingClientRect();
+      if (box.bottom <= 1) { continue; }
+      // The first message below the top edge counts only when it is on screen: one entirely below the viewport is unread.
+      return box.top < window.innerHeight ? Number(post.dataset.post) : null;
+    }
+    return null;
+  };
+  let reported = null;
+  let timer = null;
+  scheduleReport = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const post = topPost();
+      if (post !== null && post !== reported) {
+        reported = post;
+        channel.postMessage({ type: "position", token, post });
+      }
+    }, 500);
+  };
+  window.addEventListener("scroll", () => {
+    if (pinned !== null && Math.abs(window.scrollY - pinY) > 4) { releasePin(); }
+    if (pinned === null) { scheduleReport(); }
+  }, { passive: true });
 
   const images = Array.from(document.querySelectorAll("img[src]"));
   const sources = images.map((img) => img.getAttribute("src"));

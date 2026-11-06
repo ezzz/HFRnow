@@ -21,6 +21,9 @@ struct TopicReaderView: View {
     @State private var controller: ReaderWebController?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    /// The open image viewer (LOT-109); a fresh model per tap.
+    @State private var viewer: ImageViewerModel?
+    @State private var profile: UserProfileModel?
     @State private var askingPage = false
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
@@ -48,6 +51,7 @@ struct TopicReaderView: View {
             if model.page != nil { ReaderPageBar(model: model, askPage: askForPage) }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
+        .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -86,6 +90,8 @@ struct TopicReaderView: View {
         .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
+        .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
+        .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -106,7 +112,8 @@ struct TopicReaderView: View {
         }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
-            guard model.linkedReader == nil else { return }
+            // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
+            guard model.linkedReader == nil, viewer == nil else { return }
             model.cancel()
             controller?.stopLoading()
         }
@@ -201,6 +208,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
+                case .profile(let memberID): profile = UserProfileModel(memberID: memberID, source: services.profiles)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -209,18 +217,28 @@ struct TopicReaderView: View {
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
-            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) }
+            position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
+            menu: { [model] post, source, token in model.requestMenu(post: post, source: source, token: token) },
+            image: { images, index, _ in
+                // The controller already checked the document token (a stale page's tap never gets here).
+                viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
+            }
         )
+        model.positions = services.positions
         self.controller = controller
     }
 }
 
-/// What the reader shares across pages: the image client and the settings it reads.
+/// What the reader shares across pages: the image client, the settings it reads and the position recorder.
 struct ReaderServices: Sendable {
     /// Images through the cookie-less client.
     let imageFetcher: ReaderImageFetcher
     /// Image mode and display choices.
     let settings: ReaderSettings
+    /// Public profiles opened from a link (LOT-116), fetched without cookies.
+    let profiles: any UserProfileSource
+    /// Records the reading position of the current account (LOT-111); nil when logged out.
+    var positions: (any ReaderPositionRecording)?
 }
 
 /// Previous / next page, first / last, and "page N / M" which asks for a page number.

@@ -20,6 +20,9 @@ public enum SettingKey {
     public static let favoritesGroupedByCategory = Setting.bool("sujets_avec_cat", default: true)
     /// `favorites_auto_refresh`.
     public static let favoritesAutoRefresh = Setting.bool("favorites_auto_refresh", default: false)
+    /// `FavoritesShowCollapsedSections` (`Favorites.swift` @ 2440d79, `FavoritesListView`): show the collapsed sections, and the empty ones
+    /// in the "flags and favorites" mode. Legacy never registered a default: absent reads false.
+    public static let favoritesShowsCollapsedSections = Setting.bool("FavoritesShowCollapsedSections", default: false)
 
     // MARK: Interface
 
@@ -66,6 +69,9 @@ public enum SettingKey {
     /// `HFRswiftStartupScreen` (`Common.swift:32-37`): an unknown value falls back to the favourites default, like
     /// `AppStartupScreen.rootTab(for:)`. Added by LOT-119, which owns the settings screen.
     public static let startupScreen = Setting.stringEnum("HFRswiftStartupScreen", default: StartupScreen.favorites)
+    /// `mp_list_display` (LOT-171, new key): "Tout en un" (`single`, default) or "Deux listes" (`split`). An unknown value
+    /// reads as the default.
+    public static let mpListDisplay = Setting.stringEnum("mp_list_display", default: MPListDisplay.single)
     /// `open_links_in_default_browser` (`Common.swift:239-241`): follow external links in the system browser instead of
     /// the in-app one. Added by LOT-119.
     public static let opensLinksInDefaultBrowser = Setting.bool("open_links_in_default_browser", default: false)
@@ -163,14 +169,15 @@ public enum SettingKey {
 
     /// Every key of the catalogue, for tests and diagnostics.
     public static let allKeys: [String] = [
-        favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, compactMode.key,
+        favoritesSource.key, favoritesGroupedByCategory.key, favoritesAutoRefresh.key, favoritesShowsCollapsedSections.key,
+        compactMode.key,
         tabBarMinimizesOnScroll.key, textSizeScale.key, textSizePercent.key, haptics.key, landscapeMode.key, appIconName.key,
         privateMessageBadge.key, startupScreen.key, opensLinksInDefaultBrowser.key, topicPageSwipe.key, autoTheme.key, manualTheme.key,
         themeStyle.key, dayActionColor.key, nightActionColor.key, dayLoveColor.key, nightLoveColor.key, daySuperFavoriteColor.key,
         nightSuperFavoriteColor.key, nightBrightness.key, hideBlocklistedPosts.key, quoteFilterExceptions.key,
         quoteFilterMinimumCount.key, doubleSizeSmileys.key, embeddedVideos.key, displaySignatures.key,
         displayImages.key, mpStorageActive.key, mpStorageLastSync.key, searchCategory.key, rehostLinkMode.key,
-        rehostMaxDimension.key
+        rehostMaxDimension.key, mpListDisplay.key
     ]
 
     private static func colorSetting(_ key: String) -> Setting<ThemeColor?> {

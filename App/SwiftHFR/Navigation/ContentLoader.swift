@@ -45,6 +45,13 @@ final class ContentLoader<Value: Sendable> {
         isLoading = false
     }
 
+    /// Stops the load in flight and forgets the value and the failure (a new query must not show the previous one's rows).
+    func reset() {
+        cancel()
+        value = nil
+        error = nil
+    }
+
     private func finish(_ result: Result<Value, ListLoadError>, generation mine: Int) {
         // A superseded load is dropped whatever it carries.
         guard mine == generation else { return }

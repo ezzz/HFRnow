@@ -1,0 +1,15 @@
+{
+  "id": "T11",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://yelims.free.fr/<path>.gif",
+  "url": "https://yelims.free.fr/Faim/Faim01.gif",
+  "final_url": "https://yelims.free.fr/Faim/Faim01.gif",
+  "status": 0,
+  "content_type": null,
+  "date": null,
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "http-only host of R20 (free.fr personal pages) requested over https, cookie-less, no Referer (#301); network error: [Errno 61] Connection refused",
+  "private": false
+}

@@ -1,0 +1,15 @@
+{
+  "id": "T11h",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "http://yelims.free.fr/<path>.gif",
+  "url": "http://yelims.free.fr/Faim/Faim01.gif",
+  "final_url": "http://yelims.free.fr/Faim/Faim01.gif",
+  "status": 200,
+  "content_type": "image/gif",
+  "date": "Mon, 02 Nov 2026 09:36:13 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "T11 over plain http, cookie-less, no Referer (#301)",
+  "private": false
+}

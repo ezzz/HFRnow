@@ -43,10 +43,13 @@ struct SettingsView: View {
     @Environment(GeneralSettingsModel.self) private var general
     /// The reader display rows of "Sujets" (LOT-106); the open reader follows the store, not this model.
     @State private var topics: TopicsSettingsModel
+    /// The favourites options (LOT-124); only the settings here, the folded sections and super-favourites belong to the Favoris tab.
+    @State private var favorites: FavoritesOptionsModel
 
     /// Reads the "Sujets" values from `store`.
     init(store: any SettingsStore = UserDefaultsSettingsStore()) {
         _topics = State(initialValue: TopicsSettingsModel(store: store))
+        _favorites = State(initialValue: FavoritesOptionsModel(settings: store))
     }
 
     var body: some View {
@@ -56,6 +59,13 @@ struct SettingsView: View {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
                     ForEach(StartupScreen.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+                Picker("Favoris", selection: $favorites.mode) {
+                    Text("Drapeaux & Favoris").tag(FavoritesSource.flagsAndFavorites)
+                    Text("Favoris uniquement").tag(FavoritesSource.favoritesOnly)
+                }
+                Toggle("Favoris triés par catégories", isOn: $favorites.groupedByCategory)
+                Toggle("Afficher les sections repliées et vides", isOn: $favorites.showsCollapsedSections)
+                Toggle("Actualisation automatique des favoris", isOn: $favorites.autoRefresh)
                 Toggle("Mode compact", isOn: $general.compactMode)
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 VStack(alignment: .leading, spacing: 4) {
@@ -93,6 +103,11 @@ struct SettingsView: View {
                 }
                 Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
             }
+            Section("Messages") {
+                Picker("Affichage des MP", selection: $general.mpListDisplay) {
+                    ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
@@ -108,6 +123,8 @@ struct SettingsView: View {
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
+        // The Favoris tab's menu writes the same settings: show them as they are now (the Plus tab stays alive under the tab bar).
+        .onAppear { favorites.reloadSettings() }
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
     }

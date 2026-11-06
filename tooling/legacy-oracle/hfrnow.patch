@@ -1,3 +1,25 @@
+diff --git a/HFRswift/Swift/AQPlusView.swift b/HFRswift/Swift/AQPlusView.swift
+index 4bd754e..dea9859 100644
+--- a/HFRswift/Swift/AQPlusView.swift
++++ b/HFRswift/Swift/AQPlusView.swift
+@@ -21,7 +21,7 @@ struct AQItem: Identifiable, Hashable {
+     var id: String { "\(link)|\(aqTitle)|\(relativeDate)" }
+ }
+ 
+-private struct AQParserContext {
++struct AQParserContext {
+     let lastCheckDate: Date
+     let shouldFilterCategory25: Bool
+ }
+@@ -91,7 +91,7 @@ actor AQBadgeCheckService {
+     }
+ }
+ 
+-private final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
++final class AQRSSParserDelegate: NSObject, XMLParserDelegate {
+     private struct WorkingItem {
+         var title = ""
+         var link = ""
 diff --git a/HFRswiftTests/AccountsStoreTests.swift b/HFRswiftTests/AccountsStoreTests.swift
 index b0a205a..2c5f491 100644
 --- a/HFRswiftTests/AccountsStoreTests.swift
@@ -434,10 +456,10 @@ index 0000000..ca9d04a
 +}
 diff --git a/HFRswiftTests/OracleExportSmall.swift b/HFRswiftTests/OracleExportSmall.swift
 new file mode 100644
-index 0000000..cbb51bc
+index 0000000..385b4e1
 --- /dev/null
 +++ b/HFRswiftTests/OracleExportSmall.swift
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,356 @@
 +// Oracle exporter for SwiftHFR LOT-005: the small parsers (search redirect, profile edit page, smiley search,
 +// smiley wiki keywords, topic poll, public profile). Local-only: never committed to hfrnow.
 +//
@@ -525,7 +547,7 @@ index 0000000..cbb51bc
 +}
 +
 +extension OracleExport {
-+    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile"]
++    static let smallKinds = ["search-redirect", "profile-edit", "smiley-search", "smiley-keywords", "poll", "profile", "aq-rss"]
 +    private static let placeholderHash = "HASH_PLACEHOLDER"
 +    private static let fakePseudoKey = "FAKE_PSEUDO_KEY"
 +    private static let fakeAvatarBytes = Data("AVATAR-BYTES".utf8)
@@ -553,6 +575,7 @@ index 0000000..cbb51bc
 +        case "smiley-search": return try runSmileySearch(data, options: options, extras: &extras)
 +        case "smiley-keywords": return runSmileyKeywords(data, options: options, extras: &extras)
 +        case "poll": return try runPoll(data, currentURL: currentURL ?? Self.defaultTopicPageURL, options: options, extras: &extras)
++        case "aq-rss": return try runAQRSS(data, options: options, extras: &extras)
 +        default: return try runProfile(data, options: options, extras: &extras)
 +        }
 +    }
@@ -740,6 +763,35 @@ index 0000000..cbb51bc
 +        _ = OracleRouteStub.drain()
 +        if !finished { return (nil, "profile fetch did not finish") }
 +        return (result, nil)
++    }
++
++    // MARK: aq-rss
++
++    /// AQPlusView.swift:94-230 (`AQRSSParserDelegate`, run as `AQBadgeCheckService.refreshUnreadCount` and the AQ list run it:
++    /// `XMLParser(data:)`, delegate, `parse()`). The only edit to legacy is `private` dropped from the delegate and its context
++    /// (hfrnow.patch), so the test target can reach them. Options: `lastCheck` (ISO-8601, the `last_check_aq` default,
++    /// legacy default 2010-01-01 local time) and `filterCategory25` (Bool, legacy: true unless the account is `applereview`,
++    /// AQPlusView.swift:52-57). `relativeDate` is not exported: it reads Swift `Date()`, which the harness clock does not freeze.
++    private func runAQRSS(_ data: Data, options: [String: Any], extras: inout TopicCaseExtras) throws -> (Any?, String?) {
++        let lastCheck: Date
++        if let iso = options["lastCheck"] as? String {
++            guard let date = ISO8601DateFormatter().date(from: iso) else { throw HarnessError(message: "bad lastCheck '\(iso)'") }
++            lastCheck = date
++        } else {
++            lastCheck = Date(timeIntervalSince1970: 0)
++        }
++        let filter = options["filterCategory25"] as? Bool ?? true
++        extras.context = ["lastCheck": options["lastCheck"] ?? NSNull(), "filterCategory25": filter]
++        let delegate = AQRSSParserDelegate(context: AQParserContext(lastCheckDate: lastCheck, shouldFilterCategory25: filter))
++        let parser = XMLParser(data: data)
++        parser.delegate = delegate
++        let parsed = parser.parse()
++        let items = delegate.items.map { item -> [String: Any] in
++            ["topicTitle": item.topicTitle, "aqTitle": item.aqTitle, "comment": item.comment, "initiator": item.initiator,
++             "link": item.link, "isNew": item.isNew]
++        }
++        return (["parsed": parsed, "parserError": parser.parserError.map { "\($0)" } ?? NSNull(),
++                 "items": items, "newCount": delegate.items.filter(\.isNew).count], nil)
 +    }
 +
 +    private static func profileDict(_ profile: UserProfile) -> [String: Any] {

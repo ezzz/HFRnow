@@ -1,0 +1,20 @@
+{
+  "id": "R123g",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum1f.php?owntopic=1",
+  "url": "https://forum.hardware.fr/forum1f.php?owntopic=1",
+  "final_url": "https://forum.hardware.fr/forum1f.php?owntopic=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Thu, 05 Nov 2026 18:54:26 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R123g-favourites-owntopic1-empty-after-delflag.html",
+  "private": false
+}
