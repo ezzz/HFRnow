@@ -3,6 +3,9 @@ import HFRModels
 import HFRParsing
 import Observation
 
+// One class holds the reader's state (below); its loading rules (#108, #566) stay next to the state they guard.
+// swiftlint:disable file_length
+
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
 // another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167);
 // the reading position is recorded per account and the flag message is followed by the legacy separator (LOT-111, GAP-063, UXD-11).
@@ -78,6 +81,10 @@ final class TopicReaderModel {
     /// The flag message the document draws a line after (legacy separator, LOT-111).
     private var separatorAfter: Int?
     private var generation = 0
+    /// The reader view instance that appeared last (`ReaderViewerID`): only its disappearance stops a load. Two views can
+    /// share this model (a replacement view appears before the old one disappears), and the old one must not stop the load
+    /// the new one waits for (issue #566).
+    private var viewer: Int?
     private var nextToken = 0
     private var nextScrollID = 0
     private var task: Task<Void, Never>?
@@ -108,11 +115,30 @@ final class TopicReaderModel {
     /// The web view has shown a document at least once (the first page appears at DOMContentLoaded, not blank before).
     var hasShownDocument: Bool { readyToken != nil }
 
-    /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing.
-    func onAppear() async {
+    /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing, unless
+    /// nothing is shown, loading or failed (a load stopped when a view went away): then it loads again. `viewer` names the
+    /// view that appears, which becomes the one whose disappearance may stop a load (`viewDidDisappear`).
+    func onAppear(viewer: Int? = nil) async {
+        if let viewer { self.viewer = viewer }
+        ReaderLog.debug(
+            "appear model=\(debugID) viewer=\(viewer ?? -1) page=\(page != nil) loading=\(isLoading) error=\(error != nil)"
+        )
         guard page == nil, !isLoading, error == nil else { return }
         await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
+
+    /// A reader view went away: stops the load in flight only when that view is the last one that appeared, so a view
+    /// replaced by another one on the same model never stops the new view's load (issue #566).
+    func viewDidDisappear(viewer: Int) {
+        let current = self.viewer == viewer
+        ReaderLog.debug("disappear model=\(debugID) viewer=\(viewer) current=\(current) loading=\(isLoading)")
+        guard current else { return }
+        self.viewer = nil
+        cancel()
+    }
+
+    /// A number for the debug trace that tells models apart; never shown.
+    private var debugID: Int { ObjectIdentifier(self).hashValue & 0xFFFF }
 
     /// Reloads the page on screen (not page 1, not the page first opened); the content stays while it runs and after a
     /// failure. Before anything is shown, retries the first load.
@@ -296,6 +322,7 @@ final class TopicReaderModel {
     /// Stops the load in flight; the content stays.
     func cancel() {
         let interrupted = task != nil
+        if interrupted { ReaderLog.debug("load cancelled model=\(debugID) generation=\(generation)") }
         task?.cancel()
         task = nil
         generation += 1
@@ -307,6 +334,14 @@ final class TopicReaderModel {
     func documentDidBecomeReady(token: Int) {
         guard token == document?.token else { return }
         readyToken = token
+    }
+
+    /// The web view could not show the document `token` (its navigation failed twice): the screen offers a retry instead of
+    /// waiting (issue #566). An older document's report, or one already shown, is ignored.
+    func documentDidFail(token: Int) {
+        guard token == document?.token, readyToken != token else { return }
+        ReaderLog.debug("document failed model=\(debugID) token=\(token)")
+        error = .other
     }
 
     // MARK: - Loading
@@ -333,13 +368,13 @@ final class TopicReaderModel {
         requestedAnchor = rule
         requestedFollowsPager = followsPager
         isLoading = true
+        ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
-            let result: Result<ReaderPage, ListLoadError>
-            do throws(ListLoadError) {
-                result = .success(try await source.page(for: target))
-            } catch {
-                result = .failure(error)
+            var result = await TopicReaderModel.fetch(target, from: source)
+            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (issue #566).
+            if case .failure(.cancelled) = result, !Task.isCancelled {
+                result = await TopicReaderModel.fetch(target, from: source)
             }
             self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
         }
@@ -348,10 +383,23 @@ final class TopicReaderModel {
         return generation == mine
     }
 
+    nonisolated private static func fetch(
+        _ target: ReaderTarget, from source: any TopicPageSource
+    ) async -> Result<ReaderPage, ListLoadError> {
+        do throws(ListLoadError) {
+            return .success(try await source.page(for: target))
+        } catch {
+            return .failure(error)
+        }
+    }
+
     private func finish(
         _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule,
         generation mine: Int
     ) {
+        ReaderLog.debug(
+            "load finish model=\(debugID) generation=\(mine) current=\(mine == generation) success=\(result.isSuccess)"
+        )
         // A superseded or cancelled load never delivers (issue #108).
         guard mine == generation else { return }
         isLoading = false
@@ -386,11 +434,18 @@ final class TopicReaderModel {
                 anchor: anchor,
                 keepsScrollPosition: keepsScrollPosition && anchor == nil
             )
-        case .failure(.cancelled):
-            break
         case .failure(let failure):
-            error = failure
+            // A cancellation that reaches here was not asked for and came twice: an error, never a screen left waiting with
+            // no page, no load and no error (issue #566).
+            error = failure == .cancelled ? .other : failure
         }
         applyDisplaySettings() // a setting changed while this load ran and did not deliver a page
+    }
+}
+
+private extension Result {
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
     }
 }

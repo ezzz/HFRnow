@@ -89,6 +89,8 @@ struct FilteredPostsView: View {
     @State private var controller: ReaderWebController?
     @State private var document: ReaderDocument?
     @State private var readyToken: Int?
+    /// The web view could not show the document (issue #566): a retry replaces the spinner.
+    @State private var failed = false
     @State private var nextToken = 0
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
@@ -103,7 +105,17 @@ struct FilteredPostsView: View {
                     .opacity(readyToken == nil ? 0 : 1)
                     .accessibilityHidden(readyToken == nil)
             }
-            if readyToken == nil { ProgressView("Chargement des messages") }
+            if readyToken == nil {
+                if failed {
+                    ContentUnavailableView {
+                        Label("Affichage impossible", systemImage: "exclamationmark.triangle")
+                    } actions: {
+                        Button("Réessayer") { show(model.result) }
+                    }
+                } else {
+                    ProgressView("Chargement des messages")
+                }
+            }
         }
         .navigationTitle(model.title)
         .navigationSubtitle(model.result?.subtitle ?? "")
@@ -122,6 +134,8 @@ struct FilteredPostsView: View {
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .onAppear(perform: makeController)
+        // A screen that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
+        .onAppear { controller?.show(document) }
         // Only a new page of posts reloads the document: marking the topic finished keeps the scroll position.
         .onChange(of: model.result?.page, initial: true) { _, _ in show(model.result) }
         .onDisappear {
@@ -135,6 +149,7 @@ struct FilteredPostsView: View {
         guard let result else { return }
         nextToken += 1
         readyToken = nil
+        failed = false
         document = ReaderDocument(
             token: nextToken,
             html: TopicHTMLBuilder.document(for: result.page, token: nextToken, options: services.settings.renderOptions()),
@@ -149,6 +164,7 @@ struct FilteredPostsView: View {
         )
         controller.events = ReaderWebController.Events(
             ready: { token in if token == document?.token { readyToken = token } },
+            failed: { token in if token == document?.token { failed = true } },
             link: { url in
                 guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return }
                 if services.settings.opensLinksInDefaultBrowser() { openURL(url) } else { external = ExternalLink(url: url) }

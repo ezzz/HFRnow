@@ -18,6 +18,8 @@ final class ReaderWebController: NSObject {
     struct Events {
         /// The document `token` reached DOMContentLoaded and its images were routed.
         var ready: @MainActor (Int) -> Void = { _ in }
+        /// The document `token` could not be shown: its navigation failed twice (issue #566).
+        var failed: @MainActor (Int) -> Void = { _ in }
         /// The user tapped a link.
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
@@ -68,7 +70,14 @@ final class ReaderWebController: NSObject {
 
     private let imageFetcher: ReaderImageFetcher
     let autoLoadsThirdPartyImages: @Sendable () -> Bool
-    private var document: ReaderDocument?
+    /// The document shown, or loading; nil before the first and after a load stopped before it was ready.
+    private(set) var document: ReaderDocument?
+    /// The token of the shown document once it reported ready; until then `stopLoading()` forgets the document (issue #566).
+    private var readyToken: Int?
+    /// The main-frame navigation of the shown document while it may still report ready; nil once stopped or failed.
+    private var pageNavigation: WKNavigation?
+    /// The shown document's navigation failed once and was started again; a second failure is reported (issue #566).
+    private var reloadedAfterFailure = false
     /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
@@ -93,9 +102,9 @@ final class ReaderWebController: NSObject {
         configuration.allowsInlineMediaPlayback = false
         configuration.mediaTypesRequiringUserActionForPlayback = .all
         configuration.upgradeKnownHostsToHTTPS = true
-        let proxy = SchemeProxy()
+        let proxy = ReaderSchemeProxy()
         configuration.setURLSchemeHandler(proxy, forURLScheme: TopicHTMLBuilder.scheme)
-        let messages = MessageProxy()
+        let messages = ReaderMessageProxy()
         configuration.userContentController.addScriptMessageHandler(messages, contentWorld: Self.world, name: Self.channel)
         webView = QuoteMenuWebView(frame: .zero, configuration: configuration)
         super.init()
@@ -113,14 +122,27 @@ final class ReaderWebController: NSObject {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
     }
 
-    /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state).
+    /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document
+    /// whose load `stopLoading()` cut before it was ready is no longer the one shown, so showing it again loads it (issue #566).
     func show(_ document: ReaderDocument?) {
-        guard let document, document.token != self.document?.token else { return }
+        guard let document else { return }
+        guard document.token != self.document?.token else {
+            ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
+            return
+        }
+        ReaderLog.debug("show loads token=\(document.token)")
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
         self.document = document
+        readyToken = nil
+        reloadedAfterFailure = false
         imageRequests.removeAll()
         consented.removeAll()
-        webView.load(URLRequest(url: Self.pageURL(token: document.token)))
+        loadPage(document)
+    }
+
+    /// Starts the main-frame navigation of `document`, remembered to tell its failures from those of another navigation.
+    func loadPage(_ document: ReaderDocument) {
+        pageNavigation = webView.load(URLRequest(url: Self.pageURL(token: document.token)))
     }
 
     /// Scrolls to a message of the shown document, once per request.
@@ -130,9 +152,17 @@ final class ReaderWebController: NSObject {
         scroll(to: request.anchor)
     }
 
-    /// Stops every image download in flight (the screen goes away).
+    /// Stops the page and every image download in flight (the screen goes away). A document that was not ready yet is
+    /// forgotten, so the next `show` of it loads it again (issue #566).
     func stopLoading() {
+        let wasReady = document != nil && readyToken == document?.token
+        ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
         webView.stopLoading()
+        pageNavigation = nil
+        if !wasReady {
+            document = nil
+            readyToken = nil
+        }
         for task in running.values { task.cancel() }
         running.removeAll()
         waiting.removeAll()
@@ -191,9 +221,14 @@ final class ReaderWebController: NSObject {
 
     // MARK: - Messages from reader.js
 
-    fileprivate func receive(_ message: WKScriptMessage) -> Any? {
-        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body),
-              let document, decoded.token == document.token else { return nil }
+    func receive(_ message: WKScriptMessage) -> Any? {
+        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body) else { return nil }
+        guard let document, decoded.token == document.token else {
+            if case .ready = decoded.message {
+                ReaderLog.debug("ready dropped token=\(decoded.token) shown=\(self.document?.token ?? -1)")
+            }
+            return nil
+        }
         return handle(decoded.message, in: document)
     }
 
@@ -243,12 +278,36 @@ final class ReaderWebController: NSObject {
             scroll(toReadingTop: readingTop)
         }
         savedReadingTop = nil
+        readyToken = token
+        ReaderLog.debug("ready accepted token=\(token)")
         events.ready(token)
     }
 
-    // MARK: - hfrreader: scheme
+    /// The shown document's navigation failed before it was ready: it is loaded once more, then the failure is reported, so
+    /// the screen never waits for a page that will not come (issue #566). Another navigation's failure (a link the policy
+    /// refused, a document replaced or stopped since) changes nothing.
+    func pageNavigationFailed(_ navigation: WKNavigation?, error: any Error) {
+        let code = (error as NSError).code
+        guard let document, let navigation, navigation === pageNavigation, readyToken != document.token else {
+            ReaderLog.debug("navigation failure ignored code=\(code)")
+            return
+        }
+        pageNavigation = nil
+        guard reloadedAfterFailure else {
+            ReaderLog.debug("navigation failed token=\(document.token) code=\(code): reloading")
+            reloadedAfterFailure = true
+            loadPage(document)
+            return
+        }
+        ReaderLog.debug("navigation failed again token=\(document.token) code=\(code): reported")
+        events.failed(document.token)
+    }
+}
 
-    fileprivate func start(_ task: any WKURLSchemeTask) {
+// MARK: - hfrreader: scheme
+
+extension ReaderWebController {
+    func start(_ task: any WKURLSchemeTask) {
         guard let url = task.request.url else { return fail(task) }
         switch url.host() {
         case "page":
@@ -267,7 +326,7 @@ final class ReaderWebController: NSObject {
         }
     }
 
-    fileprivate func stop(_ task: any WKURLSchemeTask) {
+    func stop(_ task: any WKURLSchemeTask) {
         let key = ObjectIdentifier(task)
         running[key]?.cancel()
         running[key] = nil
@@ -333,63 +392,5 @@ final class ReaderWebController: NSObject {
 
     private func fail(_ task: any WKURLSchemeTask) {
         task.didFailWithError(URLError(.resourceUnavailable))
-    }
-}
-
-// MARK: - Navigation: the web view never leaves the document
-
-extension ReaderWebController: WKNavigationDelegate, WKUIDelegate {
-    func webView(
-        _ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
-    ) {
-        let url = navigationAction.request.url
-        if let url, let document, navigationAction.targetFrame?.isMainFrame == true,
-           url == Self.pageURL(token: document.token), navigationAction.navigationType == .other {
-            return decisionHandler(.allow)
-        }
-        decisionHandler(.cancel)
-        if let url, navigationAction.navigationType == .linkActivated { events.link(url) }
-    }
-
-    func webView(
-        _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
-        for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures
-    ) -> WKWebView? {
-        if let url = navigationAction.request.url { events.link(url) }
-        return nil
-    }
-
-    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        // The content process died (memory pressure on a huge page): show the same document again.
-        guard let document else { return }
-        webView.load(URLRequest(url: Self.pageURL(token: document.token)))
-    }
-}
-
-/// Breaks the retain cycle configuration → handler → controller → web view → configuration.
-@MainActor
-private final class SchemeProxy: NSObject, WKURLSchemeHandler {
-    weak var owner: ReaderWebController?
-
-    func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
-        guard let owner else { return urlSchemeTask.didFailWithError(URLError(.cancelled)) }
-        owner.start(urlSchemeTask)
-    }
-
-    func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
-        owner?.stop(urlSchemeTask)
-    }
-}
-
-/// Same for the message channel, which `WKUserContentController` retains strongly.
-@MainActor
-private final class MessageProxy: NSObject, WKScriptMessageHandlerWithReply {
-    weak var owner: ReaderWebController?
-
-    func userContentController(
-        _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
-    ) async -> (Any?, String?) {
-        (owner?.receive(message), nil)
     }
 }
