@@ -250,6 +250,11 @@ class AQLocalTests(unittest.TestCase):
                 reasons = [r for _l, _c, r in A.verify_aq_local_answer(text, doc)]
                 self.assertEqual(reasons, ["AQ local check: answer holds a comment or an instruction"])
 
+    def test_an_instruction_named_like_the_prolog_fails(self):
+        text = LOCAL_XML.replace(LOCAL_XML[:LOCAL_XML.index("?>") + 2], "<?xml-note free text?>")
+        reasons = [r for _l, _c, r in A.verify_aq_local_answer(text, local_meta(get=True))]
+        self.assertEqual(reasons, ["AQ local check: answer holds a comment or an instruction"])
+
     def test_a_malformed_date_is_a_finding_that_prints_no_value(self):
         doc = dict(local_meta(get=True), date="planted value")
         reasons = [r for _l, _c, r in A.verify_aq_local_answer(LOCAL_XML, doc)]
