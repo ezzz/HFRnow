@@ -128,6 +128,7 @@ Every issue carries one label per axis:
 | Host | `host: mac` | Needs the maintainer's Mac (Xcode, legacy app, live captures); cloud sessions leave it alone |
 
 Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
+`beta-test finding` marks an issue reported during pre-beta or beta testing on a device (operator, 2026-11-07), kept on the issue for statistics.
 
 **Writing an issue:** it starts with `### Summary` (user story or two-line executive summary, §8), then scope, sources and acceptance criteria.
 
