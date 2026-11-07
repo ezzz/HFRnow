@@ -78,7 +78,17 @@ struct ThemeAppearance: Equatable, Sendable {
     /// The CSS variables `reader.css` reads: both accents and the dark surfaces at `darkBrightness`.
     var readerVariables: [(name: String, value: String)] {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
-            + Self.readerDarkSurfaces(darkStyle).map { ($0.variable, adjustedDark($0.color).cssRGB) }
+            + Self.readerDarkSurfaces(darkStyle).map { ($0.variable, readerSurface($0.variable, $0.color).cssRGB) }
+    }
+
+    /// A reader surface at `darkBrightness`. The darker and OLED styles never lift the page background above their own value:
+    /// at 150 % the darker background (#0B0B0C) would put a continuation date (secondary text at 75 % opacity on the tinted
+    /// header) under 4.5:1 (CodeRabbit on #589); the slider still darkens it, and still scales the other surfaces.
+    private func readerSurface(_ variable: String, _ color: ThemeColor) -> ThemeColor {
+        guard darkStyle != .standard, variable == "--app-dark-background", darkBrightness > 1 else { return adjustedDark(color) }
+        var capped = self
+        capped.darkBrightness = 1
+        return capped.adjustedDark(color)
     }
 
     /// The script that sets `readerVariables` on the document's root element; every value is an `rgb()` the app formats from

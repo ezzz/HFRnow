@@ -128,4 +128,23 @@ struct ThemeAppearanceTests {
         #expect(abs(ThemeColor(hex: 0x000000).contrast(with: ThemeColor(hex: 0xFFFFFF)) - 21) < 1e-9)
         #expect(abs(ThemeColor(hex: 0x777777).contrast(with: ThemeColor(hex: 0xFFFFFF)) - 4.48) < 0.01)
     }
+
+    /// A continuation message is drawn at 75 % opacity over the page (`.continuation`), its header tinted with 3 % of the accent:
+    /// its date, `--secondary` text, keeps 4.5:1 on that header at every brightness (CodeRabbit on #589 measured 4.46:1 at 150 %).
+    @Test(arguments: DarkStyle.allCases, [0.0, 0.5, 1.0, 1.25, 1.5])
+    func aContinuationDateKeepsItsContrastAtEveryBrightness(style: DarkStyle, brightness: Double) throws {
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = style
+        appearance.darkBrightness = brightness
+        let value = try #require(appearance.readerVariables.first { $0.name == "--app-dark-background" }?.value)
+        let channels = value.dropFirst(4).dropLast().split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        func mix(_ lhs: [Double], _ rhs: [Double], _ weight: Double) -> [Double] { zip(lhs, rhs).map { $0 * (1 - weight) + $1 * weight } }
+        func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
+        let accent = [appearance.nightAccent.red, appearance.nightAccent.green, appearance.nightAccent.blue].map { $0 * 255 }
+        let header = mix(channels, accent, 0.03)
+        // Opacity 0.75 blends the header and the text toward the page behind them.
+        let shownHeader = mix(channels, header, 0.75)
+        let shownText = mix(channels, [161, 161, 166], 0.75)
+        #expect(colour(shownText).contrast(with: colour(shownHeader)) >= 4.5, "\(style) at \(brightness): \(channels)")
+    }
 }
