@@ -23,7 +23,7 @@ FOLLOWUPS = {
     425: ('M2', 'Account menu: avatar in every list toolbar (UXD-03)'),
     426: ('M2', 'Reselecting a tab refreshes it, with a haptic (UXD-04)'),
     427: ('M2', 'Restore the legacy Catégories list and the Tous / Favoris / Suivis / Lus filter (UXD-05, 06)'),
-    428: ('M2', 'Reader page controls: the legacy layout (UXD-10)'),
+    428: ('M4', 'Reader page controls: the legacy layout (UXD-10), absorbed by LOT-186 (#545)'),
     429: ('M2', 'Composer: swipe-down saves the draft (UXD-15)'),
     430: ('M2', 'Account menu: restore "Déconnexion" (UXD-21)'),
     431: ('M2', 'Large iPhone in landscape: full-width reader (UXD-24)'),

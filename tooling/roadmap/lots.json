@@ -2050,7 +2050,7 @@
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",
-"deps": "070, 081, 083, 084, 085, 086, 087, 088, 089, 102, 103, 104, 105, 106, 107, 108, 109, 113, 114, 115, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 130, 131, 132, 133, 134, 135, 136, 137, 139, 140, 155, 156, 157, 158, 169, 170",
+"deps": "070, 081, 083, 084, 085, 086, 087, 088, 089, 102, 103, 104, 105, 106, 107, 108, 109, 113, 114, 115, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 130, 131, 132, 133, 134, 135, 136, 137, 139, 140, 155, 156, 157, 158, 169, 170, 185, 186",
 "audit": "legacy parity",
 "prio": "high",
 "issue": 254,
@@ -2070,6 +2070,34 @@
 "issue": 255,
 "sec": "Phase 4 — app: legacy parity and features",
 "sub": "Compliance and release"
+},
+{
+"lot": "LOT-185",
+"star": false,
+"scope": "Liquid Glass outside the reader, from the legacy `LiquidGlass.swift` helpers: glass on the floating toasts, the list pagers and the buttons of floating controls; notice cards keep their materials; bars as system toolbars; plain symbols (the reader is LOT-186, the composer bar LOT-174)",
+"module": "App",
+"diff": "easy",
+"model": "Sonnet → Opus",
+"deps": "—",
+"audit": "legacy parity (#545)",
+"prio": "high",
+"issue": 548,
+"sec": "Phase 4 — app: legacy parity and features",
+"sub": "Liquid Glass and the iOS 27 HIG"
+},
+{
+"lot": "LOT-186",
+"star": false,
+"scope": "Reader chrome for Liquid Glass and iOS 27: the legacy page controls as system glass bottom-bar items (absorbs #428, UXD-10), the web view under the bars, scroll restore, the reader toast, the reader's \"…\" menu moved to the overflow HIG; after #424 (hidden tab bar, PR #540)",
+"module": "App",
+"diff": "medium",
+"model": "Opus → Fable",
+"deps": "083",
+"audit": "legacy parity (#428; #545)",
+"prio": "high",
+"issue": 549,
+"sec": "Phase 4 — app: legacy parity and features",
+"sub": "Liquid Glass and the iOS 27 HIG"
 },
 {
 "lot": "LOT-147",

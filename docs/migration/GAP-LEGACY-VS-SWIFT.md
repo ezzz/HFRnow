@@ -233,17 +233,39 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list. | MainWindow.swift:1337-1345 | Entries in a two-column split; Plus opens Réglages. | LOT-170 | UX change | new UX: spec | b |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false. | HFRswift/Info.plist:206-208 | iPad multi-window. | LOT-146 | new | new UX: spec | b |
 
+## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
+
+Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is part of M4 parity, and **where the HIG and legacy differ, the HIG wins**. Each divergence is a row here, never a silent change. Two existing decisions conflict with the HIG and are kept (GAP-227, GAP-228).
+
+- **Legacy reference**: `HFRswift/Swift/LiquidGlass.swift` at `2440d79` (`git show 2440d79:HFRswift/Swift/LiquidGlass.swift`). Used by 9 files, 39 lines (`git grep -c 'glassEffect\|hfrGlass' 2440d79 -- HFRswift`, the helper file excluded).
+- **HIG pages read on 2026-11-07**: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets), [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode), [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
+- **Ported by**: LOT-185 (#548) outside the reader, LOT-186 (#549) for the reader chrome, which absorbs #428.
+- **Not in these rows**: the M5 items (the composer bar, LOT-174; the Duo and iPad layouts with the iOS 27.1 APIs, LOT-147; `Tab(role: .search)`; `tabViewBottomAccessory`) and the layered app icon (LOT-123).
+
+| Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
+|---|---|---|---|---|---|---|---|---|
+| GAP-220 | Liquid Glass helpers | `liquidGlassIfAvailable`, `hfrGlassSurface`, `hfrGlassButton`, `hfrToastSurface`, `hfrLoadingPanel` and `presentationGlassBackground`, each with a fallback below iOS 26 (materials, strokes). | LiquidGlass.swift:12-77 | Native `glassEffect` and `.buttonStyle(.glass)` in iOS 27 code. The minimum target is iOS 27, so the fallbacks go. | LOT-185, LOT-186 | ported with changes | port: ezzz Swift layer | a |
+| GAP-221 | Glass on floating elements | Glass on the toasts, the list pager and the reader page bar. | AnswerView.swift:2360; MessagesView.swift:6393; MainWindow.swift:981 | Glass on the floating toasts, the list pagers and the reader page bar (HIG Materials: glass for floating elements). | LOT-185, LOT-186 | ported with changes | port: ezzz Swift layer | a |
+| GAP-222 | Glass on content cards | Glass panels (`hfrGlassSurface`, `hfrLoadingPanel`) on cards in the content layer: loading panels and cards. | AddAccountView.swift:70; Favorites.swift:1137; ForumSearchView.swift:379; MessagesView.swift:4476; PollView.swift:162 | Materials stay on cards in the content layer. HIG Materials: "Don't use Liquid Glass in the content layer". Glass only where a card floats over scrolling content, justified in the lot spec. | LOT-185 | UX change | new UX: operator | b·operator |
+| GAP-223 | Sheet backgrounds | `presentationGlassBackground()` forces `.thinMaterial` on five sheets. | AnswerView.swift:1162, 1951; MessagesView.swift:4356, 4849, 5061 | System sheet background, no forced material (HIG Sheets). SwiftHFR never ported the forced background, so no code changes. | — | dropped | new UX: operator | — |
+| GAP-224 | Circled ellipsis symbols | Plain `ellipsis` on the Plus tab. | MainWindow.swift:1295 | Plain symbols. The circled ones of SwiftHFR (image viewer, root tabs, reader) become plain: HIG Toolbars says borders such as outlined circles are not necessary. | LOT-185, LOT-186 | same | port: ezzz Swift layer | a |
+| GAP-225 | Reader "…" page menu | A page menu behind a plain `ellipsis` in the reader. | MessagesView.swift:4722, 4970 | The "…" becomes the system overflow menu or another symbol, because the Duo HIG reserves the ellipsis for overflow (Designing for iPhone Duo). The page controls follow the legacy layout (#428). | LOT-186 (absorbs #428) | UX change | new UX: operator | b·operator |
+| GAP-226 | Glass buttons on floating controls | Glass buttons (`.buttonStyle(.glass)`, `.glassProminent`) through `hfrGlassButton`, 17 call sites. | LiquidGlass.swift:54-68 | Glass buttons on floating controls only (HIG Buttons: one or two prominent buttons per view). This reverses LOT-115:49, which dropped them. | LOT-185, LOT-186 | ported with changes | port: ezzz Swift layer | a |
+| GAP-227 | Reader tab bar | Root tab bar shown in every screen, the reader included. | MainWindow.swift:1268-1298 | Hidden while a topic is open (UXD-02, #424). **Kept despite the HIG** (Tab bars: "Make sure the tab bar is visible…"), by the decision of 2026-11-02. | LOT-083, LOT-170; #424 | UX change | new UX: operator | b·operator |
+| GAP-228 | Light / dark / auto setting | The appearance choice of GAP-142, in the app. | AppSettingsView.swift:127-134 | Same options. **Kept despite the HIG** (Dark Mode: "Avoid offering an app-specific appearance setting"), by the operator's decision of 2026-11-07. | LOT-121 | same | port: ezzz Swift layer | a |
+
 ## Counts
 
 | Gap | Rows |
 |---|---|
-| same | 36 |
-| ported with changes | 42 |
-| UX change | 39 |
+| same | 37 |
+| ported with changes | 45 |
+| ported with changes (engine only) | 1 |
+| UX change | 43 |
 | new | 28 |
-| dropped | 1 |
-| not planned | 9 |
-| **Total** | **155** |
+| dropped | 2 |
+| not planned | 8 |
+| **Total** | **164** |
 
 ## Convergence notes
 
@@ -274,14 +296,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (110)
+### GAP rows of type `ported with changes`, `UX change` or `new` (116)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216 | 42 |
+| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 226 | 45 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200 | 12 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 227 | 15 |
 | b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 020, 022, 026, 051, 060, 092, 163, 212, 214. The `same` rows are (a).
