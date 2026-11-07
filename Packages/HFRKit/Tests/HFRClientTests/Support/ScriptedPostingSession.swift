@@ -99,7 +99,8 @@ enum PostingCapture {
         "W16a": "W16a-mp-delete-post-success", "W16b": "W16b-mp-delete-post-again", "W17a": "W17a-mp-reply-empty-body-rejected",
         "W17b": "W17b-mp-reply-bad-token-rejected", "W17c": "W17c-mp-reply-logged-out-rejected",
         "W19": "W19-mp-delete-first-post-success", "W20a": "W20a-mp-reply-flood", "W20b": "W20b-mp-reply-flood-again",
-        "W32": "W32-public-delete-post-success", "W40": "W40-public-new-topic-success",
+        "W31": "W31-public-edit-success", "W32": "W32-public-delete-post-success", "W34": "W34-public-first-post-edit-success",
+        "W40": "W40-public-new-topic-success",
         "W71": "W71-mp-group-reply-roster-unchanged-old-thread", "W74": "W74-mp-group-reply-remove-member-success",
         "W75": "W75-mp-group-reply-add-member-success", "W76": "W76-mp-group-reply-unknown-pseudo-refused",
         "W41": "W41-public-first-post-edit-add-poll-success", "W49": "W49-public-first-post-delete-topic-success"

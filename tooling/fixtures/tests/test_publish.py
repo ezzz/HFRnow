@@ -163,6 +163,46 @@ class PublishTests(unittest.TestCase):
         self.assertIn("AQ capture not recognized", out)
         self.assertFalse(P.is_aq_host("https://example.org/?u=aq.super-h.fr"))
 
+    def test_publish_aliases_an_aq_create_on_an_own_topic(self):
+        """The AQ create answer is a bare `1`; the request and the list after it name the own topic by `topic_id`."""
+        with open(self.cfg, "w") as fh:
+            json.dump({"pseudos": [OPERATOR], "own_topics": [654321]}, fh)
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": [
+                {"raw": "A1", "id": "A1", "slug": "answer", "ext": "txt", "private": False},
+                {"raw": "A2", "id": "A2", "slug": "list", "ext": "xml", "private": False}]}, fh)
+        self.capture("A1", "1", {"method": "POST", "url": "https://aq.super-h.fr/api/addAlerte.php",
+                                 "date": "Mon, 03 Mar 2031 10:11:12 GMT"})
+        body = ("alerte_qualitay_id=-1&nom=Zxq+title&topic_id=654321&topic_titre=Vends+velo+Qzwx&pseudo=%s&post_id=8765432"
+                "&post_url=https%%3A%%2F%%2Fforum.hardware.fr%%2Fhfr%%2FCatqq%%2FSubqq%%2Fvends-velo-sujet_654321_1.htm%%23t8765432"
+                "&commentaire=post%%20de%%20%s" % (OPERATOR, OPERATOR))
+        with open(os.path.join(self.raw, "A1.request.txt"), "w") as fh:
+            fh.write("POST https://aq.super-h.fr/api/addAlerte.php\nContent-Type: x\n\n%s\n" % body)
+        self.capture("A2", '<?xml version="1.0" encoding="utf-8"?>\n<alertes><alerte id="13999" nom="Zxq title" '
+                           'pseudoInitiateur="%s" date="04-04-2031" postsIds="8765432"/></alertes>' % OPERATOR,
+                     {"url": "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=654321",
+                      "date": "Mon, 03 Mar 2031 10:11:30 GMT"})
+        rc, out = self.run_publish()
+        self.assertEqual(rc, 0, out)
+        with open(os.path.join(self.dest, "A1-answer.txt")) as fh:
+            self.assertEqual(fh.read(), "1")
+        with open(os.path.join(self.dest, "A2-list.xml")) as fh:
+            xml = fh.read()
+        with open(os.path.join(self.dest, "A1.meta.json")) as fh:
+            meta = fh.read()
+        with open(os.path.join(self.dest, "A2.meta.json")) as fh:
+            meta += fh.read()
+        for real in ("654321", "8765432", "13999", "Qzwx", "velo", "Zxq", "Catqq", "Subqq", OPERATOR, OPERATOR.lower(), "04-04-2031", "2031", "Mar 2031"):
+            self.assertNotIn(real, xml + meta)
+        self.assertIn("topic_id=%s" % A.OWN_TOPIC_FIRST, meta)
+        self.assertIn('postsIds="%s"' % A.OWN_MESSAGE_FIRST, xml)
+        self.assertIn('pseudoInitiateur="user1"', xml)
+        self.assertIn("own-category%2Fown-subcategory%2Fown-topic-subject-sujet_", meta)
+        self.assertIn("nom=Alert+title", meta)
+        # And the independent checks accept what was written.
+        for text in (xml, meta):
+            self.assertEqual(A.verify_aq_own(text), [])
+
 
 if __name__ == "__main__":
     unittest.main()
