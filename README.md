@@ -221,5 +221,5 @@ It is an independent community project, not affiliated with Hardware.fr.
 If SwiftHFR is useful to you, star the repository to follow it, and support its development:
 
 <p align="center">
-  <a href="https://buymeacoffee.com/francoisgn"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-%E2%98%95-FFDD00?style=for-the-badge&amp;logo=buymeacoffee&amp;logoColor=black" alt="Buy Me a Coffee"></a>
+  <a href="https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155"><img src="https://img.shields.io/badge/Leetchi-Cagnotte%20HFR%20App%20iOS-1A9EDB?style=for-the-badge" alt="Cagnotte Leetchi HFR App iOS"></a>
 </p>
