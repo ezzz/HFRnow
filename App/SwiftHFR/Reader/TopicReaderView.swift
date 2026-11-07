@@ -101,6 +101,12 @@ struct TopicReaderView: View {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                     .disabled(model.isLoading)
             }
+            // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
+            if let page = model.page, page.maxPage > 1 {
+                ToolbarItemGroup(placement: .secondaryAction) {
+                    ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage)
+                }
+            }
             if let onFilterPosts {
                 ToolbarItem(placement: .secondaryAction) {
                     Button(action: onFilterPosts) {

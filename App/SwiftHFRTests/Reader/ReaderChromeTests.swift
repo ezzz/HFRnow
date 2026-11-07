@@ -34,6 +34,29 @@ struct ReaderChromeTests {
         #expect(ReaderPageMenu.finalTargets(maxPage: 1200) == [1198, 1199, 1200])
     }
 
+    /// Legacy `pageChoiceMenuFinalTargets` (`MessagesView.swift:4206-4213` @ 2440d79), restated literally as the oracle.
+    private func legacyFinalTargets(_ maxPage: Int) -> [Int] {
+        guard maxPage > 1 else { return [] }
+        var seen: Set<Int> = [1]
+        return [maxPage - 2, maxPage - 1, maxPage].compactMap { target in
+            guard (2...maxPage).contains(target), seen.insert(target).inserted else { return nil }
+            return target
+        }
+    }
+
+    @Test func thePageMenuItemsFollowLegacyOrderAndAppearOnlyPastOnePage() {
+        #expect(ReaderPageMenu.items(maxPage: 1).isEmpty)
+        for maxPage in [2, 40] {
+            let expected: [ReaderPageMenu.Item] =
+                [.first, .ask] + legacyFinalTargets(maxPage).map(ReaderPageMenu.Item.page) + [.last, .lastPost]
+            #expect(ReaderPageMenu.items(maxPage: maxPage) == expected)
+        }
+        #expect(ReaderPageMenu.items(maxPage: 2).map(\.title)
+            == ["Première page", "Aller à la page…", "Page 2", "Dernière page", "Dernier post"])
+        #expect(ReaderPageMenu.items(maxPage: 40).map(\.title)
+            == ["Première page", "Aller à la page…", "Page 38", "Page 39", "Page 40", "Dernière page", "Dernier post"])
+    }
+
     /// Legacy ‹ opens the previous page at its last message, › the next one at its top, "Dernier post" the last page at its
     /// last message (`MessagesView.swift:4168-4178, 4234-4236` @ 2440d79).
     @Test func previousPageAndLastPostOpenAtTheLastMessageNextPageAtTheTop() async {
