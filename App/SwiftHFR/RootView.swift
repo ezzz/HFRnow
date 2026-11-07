@@ -7,6 +7,7 @@ import SwiftUI
 /// flags of the previous account never stay on screen.
 struct RootView: View {
     @Environment(AccountsModel.self) private var accounts
+    @Environment(\.avatarRefresh) private var avatarRefresh
     @State private var built: (generation: Int, environment: AppEnvironment)?
     /// Where the user was: a new session generation rebuilds the navigation but keeps the tab or destination (legacy keeps it,
     /// `MainWindow.swift:1276-1278`). Nil until the first creation, which applies the start-screen setting.
@@ -31,7 +32,7 @@ struct RootView: View {
 
     private func rebuild() {
         guard accounts.hasRestored else { return }
-        built = (accounts.currentSessionGeneration, AppEnvironment.current(of: accounts))
+        built = (accounts.currentSessionGeneration, AppEnvironment.current(of: accounts, avatarRefresh: avatarRefresh))
     }
 }
 
