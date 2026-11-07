@@ -110,7 +110,7 @@ struct PseudoListManagerTests {
     }
 
     /// An unreadable file refuses every write: nothing is saved, the stored data is never replaced by an empty list.
-    @Test func anUnreadableFileIsNeverOverwrittenByATogglePortOrRemoval() async throws {
+    @Test func anUnreadableFileIsNeverOverwrittenByAToggleOrARemoval() async throws {
         let persistence = UnreadablePersistence()
         let store = PseudoListStore(persistence: persistence)
         let lists = PseudoListManager(store: store, account: "moi")
@@ -226,5 +226,49 @@ struct PseudoListActionHandlerTests {
         let registry = MessageActionRegistry(PseudoListActionHandler.pair(manager: lists, confirm: { _ in }, rebuild: {}))
         let entries = registry.entries(for: context(), source: .avatar)
         #expect(entries == [.allowlist])
+    }
+}
+
+/// The profile buttons (LOT-118).
+@MainActor
+struct UserProfileListsTests {
+    private func model(account: String?) async throws -> (UserProfileModel, PseudoListStore) {
+        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let lists = PseudoListManager(store: store, account: account)
+        let model = UserProfileModel(memberID: 1, source: FakeUserProfiles([.success(profile)]), lists: lists)
+        await model.onAppear()
+        return (model, store)
+    }
+
+    @Test func theButtonsAppearOnceTheProfileNamesTheMemberAndToggleWithTheirState() async throws {
+        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let model = UserProfileModel(
+            memberID: 1, source: FakeUserProfiles([.success(profile)]),
+            lists: PseudoListManager(store: store, account: "moi")
+        )
+        #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
+        await model.onAppear()
+        #expect(model.offers(.blocklist) && model.offers(.allowlist) && !model.isBlocked)
+        await model.toggle(.blocklist)
+        #expect(model.isBlocked && model.listFeedback == "BIM! \(profile.pseudo) ajouté à la liste noire")
+        #expect(await store.isBlocked(profile.pseudo, account: "moi"))
+        await model.toggle(.blocklist)
+        #expect(!model.isBlocked)
+    }
+
+    @Test func loggedOutOnlyTheAllowlistButtonIsOffered() async throws {
+        let (model, _) = try await model(account: nil)
+        #expect(!model.offers(.blocklist) && model.offers(.allowlist))
+    }
+
+    @Test func theAccountsOwnProfileOffersNoList() async throws {
+        let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let lists = PseudoListManager(store: store, account: profile.pseudo.lowercased())
+        let model = UserProfileModel(memberID: 1, source: FakeUserProfiles([.success(profile)]), lists: lists)
+        await model.onAppear()
+        #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
     }
 }

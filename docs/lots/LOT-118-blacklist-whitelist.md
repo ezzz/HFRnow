@@ -23,6 +23,7 @@ All @ `2440d79`:
 ## UX evolutions (app lots)
 - Profile: the sheet stays open after a toggle and shows the sentence under the buttons (legacy dismissed the sheet, then `loadPage`); the reader rebuilds its page when the sheet closes. GAP-209, class `b`.
 - Message menu: the page on screen is rebuilt from the refreshed snapshot (`applyDisplaySettings()`), without legacy's page request. Same visible result, no network. Not a UX difference.
+- Profile buttons: legacy's "Ajouter WL / BL" order and labels, destructive role and `.slash` symbols are not kept: longer labels, blocklist first, fixed symbols (class `b`, same GAP-209 row). Not offered on the account's own profile (legacy `canToggleLists`). Legacy offered them only from the avatar's actions; here any profile page offers them.
 - An unreadable list file shows "illisibles, non modifiées" and a "Réessayer" button instead of an empty list. GAP-209, class `b·needed` (the empty list was the legacy wipe, audit E §7.2).
 
 ## Behaviour

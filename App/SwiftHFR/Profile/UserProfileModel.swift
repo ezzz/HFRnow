@@ -74,9 +74,10 @@ final class UserProfileModel: Identifiable {
     private(set) var isBlocked = false
     private(set) var isAllowed = false
 
-    /// The pseudo the list buttons act on: the member's, once the page named them.
+    /// The pseudo the list buttons act on: the member's, once the page named them; never the account's own
+    /// (legacy `canToggleLists = !isOwnMessage`, `MessagesView.swift:3582-3590`).
     var listPseudo: String? {
-        guard lists != nil, let pseudo = profile?.pseudo, !pseudo.isEmpty else { return nil }
+        guard let lists, let pseudo = profile?.pseudo, !pseudo.isEmpty, !lists.isOwn(pseudo) else { return nil }
         return pseudo
     }
 

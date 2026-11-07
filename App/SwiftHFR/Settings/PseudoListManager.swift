@@ -54,6 +54,9 @@ struct PseudoListManager: Sendable {
         self.snapshot = snapshot
     }
 
+    /// Whether `pseudo` is the current account's own pseudo (never offered for the lists, as legacy's `isOwnMessage`).
+    func isOwn(_ pseudo: String) -> Bool { account.map { PseudoNormalizer.matches($0, pseudo) } ?? false }
+
     /// Whether `kind` can be edited: the blocklist belongs to an account.
     func isAvailable(_ kind: PseudoListKind) -> Bool { kind == .allowlist || account != nil }
 
@@ -113,15 +116,18 @@ struct PseudoListManager: Sendable {
     func toggle(_ pseudo: String, in kind: PseudoListKind) async -> PseudoListToggleResult? {
         let name = PseudoNormalizer.cleaned(pseudo)
         guard !PseudoNormalizer.comparisonForm(name).isEmpty else { return nil }
+        let removing = await contains(name, in: kind)
         do {
-            if await contains(name, in: kind) {
-                try await remove(name, from: kind)
-                return PseudoListToggleResult(message: Self.removed(name, kind), changed: true)
+            // The check and the write are two hops: a concurrent change (double tap, iCloud) makes the write a no-op, and the page
+            // is then left alone.
+            if removing {
+                let changed = try await remove(name, from: kind)
+                return PseudoListToggleResult(message: Self.removed(name, kind), changed: changed)
             }
-            try await add(name, to: kind)
-            return PseudoListToggleResult(message: Self.added(name, kind), changed: true)
+            let changed = try await add(name, to: kind)
+            return PseudoListToggleResult(message: Self.added(name, kind), changed: changed)
         } catch {
-            return PseudoListToggleResult(message: Self.failed(name, kind), changed: false)
+            return PseudoListToggleResult(message: Self.failed(name, kind, removing: removing), changed: false)
         }
     }
 
@@ -135,7 +141,8 @@ struct PseudoListManager: Sendable {
         kind == .blocklist ? "BIM! \(name) ajouté à la liste noire" : "BOUM BOUM ! \(name) ajouté à la love list \u{2665}"
     }
 
-    private static func failed(_ name: String, _ kind: PseudoListKind) -> String {
-        kind == .blocklist ? "Erreur! \(name) n'a pas pu être modifié dans la liste noire" : "Whitelist impossible"
+    private static func failed(_ name: String, _ kind: PseudoListKind, removing: Bool) -> String {
+        guard kind == .blocklist else { return "Whitelist impossible" }
+        return "Erreur! \(name) n'a pas pu être \(removing ? "supprimé de" : "ajouté à") la liste noire"
     }
 }
