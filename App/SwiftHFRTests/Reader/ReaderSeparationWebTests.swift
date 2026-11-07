@@ -5,12 +5,13 @@ import Testing
 import UIKit
 
 /// Message separation in the real reader (#568): the even message sits on a tint of the text colour, the rule below a message is
-/// stronger than the quiet separator, in light and in dark, and a quote inside a tinted message keeps its own surface.
+/// stronger than the quiet separator, in light and in dark, and what sits inside a tinted message (plain quotes, the folded
+/// `quote-blocked` tint, the classic header band) is composed over `--background` so its small text keeps 4.5:1.
 @MainActor
 @Suite(.serialized)
 struct ReaderSeparationWebTests: ReaderWebTesting {
     /// Two messages, the second quoting someone, so the quote sits on an even (tinted) article.
-    private func twoMessages(token: Int) -> ReaderDocument {
+    private func twoMessages(token: Int, style: ThemeStyle) -> ReaderDocument {
         let plain = ReaderMessage(
             numreponse: 1, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
             dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: "<p>un</p>")
@@ -18,16 +19,19 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         let quoted = ReaderMessage(
             numreponse: 2, author: "autre", isDeleted: false, isContinuation: false, avatarURL: nil,
             dateText: "27-10-2026 10:01:00", editNote: nil, quotedByCount: nil,
-            content: MessageContent(html: "<table class=\"quote\"><tr><td><p>cité</p></td></tr></table><p>deux</p>")
+            content: MessageContent(html: """
+                <table class="quote"><tr><td><p>cité</p></td></tr></table>
+                <table class="quote quote-blocked"><tr><td><b class="s1">masqué</b></td></tr></table><p>deux</p>
+                """)
         )
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [plain, quoted])
-        return ReaderDocument(
-            token: token, html: TopicHTMLBuilder.document(for: page, token: token), anchor: nil, keepsScrollPosition: false
-        )
+        let html = TopicHTMLBuilder.document(for: page, token: token, options: ReaderRenderOptions(style: style))
+        return ReaderDocument(token: token, html: html, anchor: nil, keepsScrollPosition: false)
     }
 
     /// Rounded channels of: article 1 and 2 backgrounds, article 1's bottom rule, the quiet `--separator` (as a border colour, since the
-    /// app supplies it as rgb()), the quote's background; then the rule's width.
+    /// app supplies it as rgb()), the plain quote's background, the folded quote's background colour, the classic header's background
+    /// colour (empty in modern); then [rule width, folded quote has a tint layer, header has a tint layer].
     private let probe = """
         // color-mix() computes to color(srgb 0.95 …) in some engines and rgb() in others: both become rounded 0-255 channels.
         const channels = (c) => {
@@ -37,13 +41,19 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         const articles = document.querySelectorAll('article.message');
         const first = getComputedStyle(articles[0]), second = getComputedStyle(articles[1]);
         const quote = getComputedStyle(articles[1].querySelector('table.quote'));
+        const blocked = getComputedStyle(articles[1].querySelector('table.quote-blocked'));
+        const header = getComputedStyle(articles[1].querySelector('.header'));
+        const classic = document.body.classList.contains('style-classic');
         const quiet = document.createElement('div');
         quiet.style.cssText = 'border-top: 1px solid var(--separator)';
         document.body.appendChild(quiet);
         const separator = getComputedStyle(quiet).borderTopColor;
         quiet.remove();
         return JSON.stringify([channels(first.backgroundColor), channels(second.backgroundColor), channels(first.borderBottomColor),
-                               channels(separator), channels(quote.backgroundColor), [parseFloat(first.borderBottomWidth)]]);
+                               channels(separator), channels(quote.backgroundColor), channels(blocked.backgroundColor),
+                               classic ? channels(header.backgroundColor) : [],
+                               [parseFloat(first.borderBottomWidth), blocked.backgroundImage === 'none' ? 0 : 1,
+                                header.backgroundImage === 'none' ? 0 : 1]]);
         """
 
     /// RGB channels may differ by 1 (engines round a colour mix differently); alpha and the border width must be exact, so a
@@ -60,10 +70,12 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         }
     }
 
-    private func read(style: UIUserInterfaceStyle, token: Int, expected: [[Double]]) async -> (Bool, String) {
+    private func read(
+        style: UIUserInterfaceStyle, theme: ThemeStyle = .modern, token: Int, expected: [[Double]]
+    ) async -> (Bool, String) {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = style
-        controller.show(twoMessages(token: token))
+        controller.show(twoMessages(token: token, style: theme))
         guard await until({ recorder.ready == [token] }) else { return (false, "not ready: \(recorder.ready)") }
         let matched = await until(async: { self.matches(try? await self.evaluate(self.probe, in: controller) as? String, expected) })
         return (matched, ((try? await evaluate(probe, in: controller)) as? String) ?? "")
@@ -74,7 +86,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
     @Test func inLightTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .light, token: 1,
-            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [255, 255, 255], [1]]
+            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [255, 255, 255], [255, 255, 255], [], [1, 1, 0]]
         )
         #expect(matched, "seen: \(seen)")
     }
@@ -84,7 +96,25 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
     @Test func inDarkTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .dark, token: 2,
-            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0], [1]]
+            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0], [0, 0, 0], [], [1, 1, 0]]
+        )
+        #expect(matched, "seen: \(seen)")
+    }
+
+    // Classic: the 15 % accent band of an even header is a tint layer over --background (date at 4.5:1 or more).
+    @Test func inClassicLightTheEvenHeaderBandSitsOverTheBackground() async {
+        let (matched, seen) = await read(
+            style: .light, theme: .classic, token: 3,
+            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [255, 255, 255], [255, 255, 255],
+                       [255, 255, 255], [1, 1, 1]]
+        )
+        #expect(matched, "seen: \(seen)")
+    }
+
+    @Test func inClassicDarkTheEvenHeaderBandSitsOverTheBackground() async {
+        let (matched, seen) = await read(
+            style: .dark, theme: .classic, token: 4,
+            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 1, 1]]
         )
         #expect(matched, "seen: \(seen)")
     }

@@ -144,6 +144,13 @@ button.image-tap, button.video {
 .message.me .content { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); padding-left: 0.6em; }
 .message.whitelist .header { background: color-mix(in srgb, var(--love) 40%, transparent); border-left-color: var(--love-border); }
 .style-classic .message.whitelist .header { background: var(--love); }
+/* Classic header on an even message: the 15 % accent band over --background, so the date (--secondary) keeps 4.5:1 (it measured 4.48:1
+   light, 4.32:1 with Increase Contrast, over --surface-alt). Equal specificity to the classic rules above, which it follows. */
+.style-classic .message:where(:nth-of-type(even)) .header,
+.style-classic .message.me:where(:nth-of-type(even)) .header {
+  --tint: color-mix(in srgb, var(--action) 15%, transparent);
+  background: linear-gradient(var(--tint), var(--tint)), var(--background);
+}
 .message.whitelist .avatar { box-sizing: border-box; border: 2px solid var(--love-border); }
 .message.whitelist .content { background: color-mix(in srgb, var(--love) 40%, transparent); border-left: 2px solid var(--love-border); padding-left: 0.6em; }
 .style-classic .message.whitelist .content { background: var(--love); }
@@ -151,6 +158,21 @@ button.image-tap, button.video {
 table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
 table.quote-blocked { background: color-mix(in srgb, var(--text) 5%, transparent); }
+/* On an even message the three tints sit over --background, not over --surface-alt: the folded quote header (--secondary, 0.85rem)
+   measured 4.30:1 on tinted-over-tinted in light (4.13:1 with Increase Contrast), under 4.5:1. The same tint is a gradient layer over
+   the page colour; :where() keeps the specificity of the rules above, and these come after them. */
+:where(article.message:nth-of-type(even)) table.quote-me {
+  --tint: color-mix(in srgb, var(--action) 3%, transparent);
+  background: linear-gradient(var(--tint), var(--tint)), var(--background);
+}
+:where(article.message:nth-of-type(even)) table.quote-allowed {
+  --tint: color-mix(in srgb, var(--love) 30%, transparent);
+  background: linear-gradient(var(--tint), var(--tint)), var(--background);
+}
+:where(article.message:nth-of-type(even)) table.quote-blocked {
+  --tint: color-mix(in srgb, var(--text) 5%, transparent);
+  background: linear-gradient(var(--tint), var(--tint)), var(--background);
+}
 
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
 .message.blocked { padding: 0; }

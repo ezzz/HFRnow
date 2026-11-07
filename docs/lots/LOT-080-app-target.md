@@ -15,7 +15,7 @@ Read-only reference on ezzz/HFRnow `master`:
   - `SwiftHFRTests` (unit-test bundle hosted by the app), Swift Testing.
 - Shared scheme `SwiftHFR`; configurations Debug and Release.
 - Swift 6 language mode, strict concurrency `complete`, warnings as errors. No default `MainActor` isolation: types that need the main actor say so (AGENTS.md §4).
-- Generated Info.plist: display name `HFR` (as legacy), generated launch screen, scene manifest; empty `AppIcon` and `AccentColor` placeholders.
+- Generated Info.plist: display name `HFR` (as legacy), generated launch screen, scene manifest; empty `AccentColor` placeholder (the app icon is the legacy `Icon-RedFace3D`, #580).
 - Signing: automatic, team `QMG83DG7YP`, bundle id `hfrplus.red.super` (audit Q-1). Tests bundle id `hfrplus.red.super.tests`.
 - Placeholder UI: `RootView` lists the linked engine modules (`EngineInfo.linkedModules`, read from each module's `moduleName`). LOT-081/082 replace it.
 - CI job `App build + tests (iOS 27 simulator)` on `xcode-27`: picks an iPhone simulator on the iOS 27.0 runtime (falls back to any iOS 27 runtime), runs `xcodebuild build test` unsigned, then a Release build for `generic/platform=iOS` unsigned. Package resolution is frozen to the committed `Package.resolved`.
