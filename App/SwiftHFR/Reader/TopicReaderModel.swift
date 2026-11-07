@@ -85,6 +85,8 @@ final class TopicReaderModel {
     /// share this model (a replacement view appears before the old one disappears), and the old one must not stop the load
     /// the new one waits for (issue #566).
     private var viewer: Int?
+    /// The document `documentDidFail` reported: its error ends when that same document reports ready, never another one's.
+    private var failedToken: Int?
     private var nextToken = 0
     private var nextScrollID = 0
     private var task: Task<Void, Never>?
@@ -334,6 +336,11 @@ final class TopicReaderModel {
     func documentDidBecomeReady(token: Int) {
         guard token == document?.token else { return }
         readyToken = token
+        // The same document shown after all (loaded again when its screen came back): its own failure is over.
+        if failedToken == token {
+            failedToken = nil
+            error = nil
+        }
     }
 
     /// The web view could not show the document `token` (its navigation failed twice): the screen offers a retry instead of
@@ -341,6 +348,7 @@ final class TopicReaderModel {
     func documentDidFail(token: Int) {
         guard token == document?.token, readyToken != token else { return }
         ReaderLog.debug("document failed model=\(debugID) token=\(token)")
+        failedToken = token
         error = .other
     }
 

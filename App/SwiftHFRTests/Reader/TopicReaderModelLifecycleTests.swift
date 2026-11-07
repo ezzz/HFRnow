@@ -89,4 +89,18 @@ struct TopicReaderModelLifecycleTests {
         #expect(reader.error == nil)
         #expect(reader.document?.token == 3)
     }
+
+    /// The failed document is loaded again when its screen comes back and is shown: its error goes; a refresh's does not.
+    @Test func aFailedDocumentShownAfterAllClearsItsErrorOnly() async {
+        let pages = FakeTopicPages()
+        let reader = model(pages)
+        await reader.onAppear()
+        reader.documentDidFail(token: 1)
+        reader.documentDidBecomeReady(token: 1)
+        #expect(reader.error == nil)
+        pages.handler = { (_) async throws(ListLoadError) -> ReaderPage in throw .timedOut }
+        await reader.refresh()
+        reader.documentDidBecomeReady(token: 1)
+        #expect(reader.error == .timedOut)
+    }
 }
