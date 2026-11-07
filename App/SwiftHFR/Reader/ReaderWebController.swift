@@ -10,7 +10,8 @@ import WebKit
 ///   Policy (header and `<meta>`) allows nothing else, and content JavaScript is off;
 /// - the only script is `reader.js`, a user script in the app's own content world, which the page cannot reach;
 /// - images go through policy C and the cookie-less client (`ReaderImageFetcher`), decided per URL here;
-/// - the web view never navigates away: link taps are handed to the app, new windows are refused, link previews are off;
+/// - the web view never navigates away: link taps are handed to the app, new windows are refused, and a link's long-press
+///   menu is the app's own, without preview;
 /// - the data store is non-persistent: no cookie, cache or storage outlives the reader.
 @MainActor
 final class ReaderWebController: NSObject {
@@ -46,6 +47,8 @@ final class ReaderWebController: NSObject {
 
     let webView: QuoteMenuWebView
     var events = Events()
+    /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
+    var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
     var textScale = TextScale.standard {
         didSet {
@@ -118,7 +121,8 @@ final class ReaderWebController: NSObject {
         messages.owner = self
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsLinkPreview = false
+        // True so WebKit consults `contextMenuConfigurationForElement` (our menu, no preview); with it off it shows its own sheet.
+        webView.allowsLinkPreview = true
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground

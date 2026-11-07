@@ -51,7 +51,7 @@ extension ReplyComposerModel {
 
     /// What the smiley picker needs: the favourites store, the account key and a fresh search (LOT-105).
     var smileyServices: SmileyPanelServices {
-        services.smileyPanel
+        services.smileyPanel(formURL: target.formURL)
     }
 
     /// What the image panel needs (LOT-102).

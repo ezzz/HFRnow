@@ -100,11 +100,15 @@ Both accounts then deleted the thread with `W64`'s and `W65`'s body (not publish
 Three messages, no edit POST, no retry.
 
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
-published AQ server (`toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
+published AQ server (`roger21/toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
 replaced by `192.0.2.1` like any IP. They document what that code answers. Each meta keeps the status and `response_headers` (those of PHP's built-in server, not the live host's), and `body_length` when no file holds the
 bytes. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
 other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`user7` and a forum URL that names no real topic.
+
+Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 requests): the two logins, then GETs only. The
+personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
+the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
 
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
@@ -391,6 +395,16 @@ other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`us
 | T32, T33 | meta only | The same for an `http://reho.st/self/<hash>.jpg` image: 403 without `Referer`, 200 `image/jpeg` with it; no redirect to https | E26 | 056, 083, 109 |
 | T40 | `T40-giphy-search.json` | Giphy REST `GET https://api.giphy.com/v1/gifs/search?q=hello&limit=3&offset=0&rating=r&lang=en&api_key=<key>` (source: Giphy's public API reference, developers.giphy.com/docs/api/endpoint; legacy has no REST call, #175), 2026-11-06, key stripped from URL and body (the body never held it): 200 `application/json`, `{data, meta, pagination}`; `meta` = `status`, `msg`, `response_id`; `pagination` = `total_count` 500, `count` 3, `offset` 0; each `data[]` item: `type` `gif`, `id`, `url`, `slug`, `title`, `rating` (`g` for all three although `rating=r` asked: it is a ceiling), `username` (empty when no channel), `alt_text`, `analytics_response_payload`, and `images` with 23 renditions (`original`, `fixed_height`, `fixed_width_small`, `preview_gif`, `original_mp4`…): `url`, `width`/`height`/`size` as **strings**, `mp4`/`webp` variants on the main ones; media URLs carry the tracking query `cid=<8 hex><response_id>&ep=v1_gifs_search&rid=giphy.gif&ct=g`, where the 8-hex prefix is derived from the API key and is replaced by `00000000` everywhere, including inside the Base64 `e=` values of `analytics_response_payload` and the `onload`/`onclick`/`onsent` URLs (decoded, replaced, re-encoded; rescanned decoded); in the `analytics.onload, onclick, onsent` URLs the whole `analytics_response_payload` query value is replaced by `REDACTED` (its percent-encoded Base64 holds the same prefix and no code needs it); `trending_datetime` is `0000-00-00 00:00:00` on one item. Anonymization: channel names and the `user` object of an item replaced (`channel`, `redacted`) | E §6 | 098, 155, 071 |
 | T41 | `T41-giphy-trending.json` | `GET /v1/gifs/trending?limit=3&offset=0&rating=r&api_key=<key>`, same day: 200, same envelope (`total_count` 170), same item shape with `ep=v1_gifs_trending`, plus a `user` object (channel profile fields, all replaced by `redacted`; `is_verified` kept) on items that have a channel; `trending_datetime` set (`0000-00-00 00:00:00` on one item), the `cid` prefix replaced as in `T40` | E §6 | 098, 155, 071 |
+| R601a | `R601a-profile-edit-page5-personal-smileys.html` | `/user/editprofil.php?config=hfr.inc&page=5` (user1): row "Smilies persos", 6 codes and images, then the link `uploadsmil.php?config=hfr.inc` "Gérer ses smilies personnalisés" | R55 | 025, 104 |
+| R601b | `R601b-smiley-upload-page-owner.html` | `/user/uploadsmil.php?config=hfr.inc` (user1): `body#unique__user_page__manage_picture`, 11 slots `[:code]`, `[:code:1]`…`[:code:10]`, 6 with their image, 5 with a file input, one `keyword<N>` input per slot (values replaced); no pagination; the form is never sent | — | 104 |
+| R601c | `R601c-smiley-upload-page-no-smiley.html` | The same page for user2, no personal smiley: the 11 slots with a file input, no `/images/perso/` image | — | 104 |
+| R601d | meta only | The same page without cookies: 200 `text/html`, no redirect, no cookie set (empty body: run observation, a meta keeps no size) | — | 104 |
+| R603a | `R603a-list-cat13-owntopic1.html` | `forum1.php?…&cat=13&page=1&subcat=&…&owntopic=1…` (user1, the header link form of `R10`): 200 in place, 57 rows: 43 `favoris.gif`, 1 `flag1.gif`, 13 with an empty flag cell (all `closed.gif` "Off"); pager `1` alone; rows aliased by position (see R08-2) | R08 | 022, 024 |
+| R603b | `R603b-list-cat13-owntopic3.html` | The same with `owntopic=3`: 56 rows, 43 `favoris.gif`, 13 with an empty flag cell (all "Off"); pager `1` alone | R08 | 022, 024 |
+| R603c | `R603c-list-cat13-owntopic3-page2.html` | `page=2` of `R603b`: 200 in place, 56 rows, `<title>` with "Page : 2", pager `1` as a cryptlink to page 1 and the current page not printed, "Page Suivante" disabled, "Page Précédente" a cryptlink to page 1. Run observation: the same topics in the same order as `R603b` (row aliases cannot show it) | R08 | 022, 167 |
+| R603d | `R603d-list-subcat-owntopic3.html` | `owntopic=3` with `subcat=<s>`: 200 in place, 14 rows (12 `favoris.gif`, 2 with an empty flag cell), `<title>` "<sub-forum> - <category> - FORUM HardWare.fr", pager `1` alone | R08 | 022, 024 |
+| R603e | `R603e-favourites-owntopic2.html` | `forum1f.php?…&owntopic=2&new=0&nojs=0` (user2): title "Vos sujets", 3 category headers linking `owntopic=2`, 5 topic rows, one sticky, all `flag0.gif`, and under the second header no topic, only the row "Aucun nouveau message" | R10 | 024 |
+| R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); `tns3` can be absent | E1 | 057 |
 
 ## Not captured
 
@@ -398,6 +412,8 @@ other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`us
 |---|---|
 | MPStorage row on page 2 or later (#333) | Not reachable on the kit's accounts: user1's storage row is row 42 of 50 on page 1 (`R95k`); pushing it down takes about 9 newer conversations, and HFR allows one new MP per account per 60 minutes (`W11x`). user2 has no storage thread. |
 | Thread pages of `fixture-test-2` (run 9) | Captured, not published: `--private` replaces their bodies; the render is published as the `/apercu.php` previews `R95d`, `R95h`. The site scripts read for the cookie and preview code (`forum2.js`, `editPost.js`, `message.js`) are not committed. |
+| `forum1f.php?owntopic=0` (`new=0` and `new=1`, run 14) | Captured, not published: rows with live public titles, no filter of the account. What they show is in HFR-PROTOCOL `### Smiley page and filtered lists` as a run observation. |
+| `owntopic=2` of cat 13, pages 1-3, `owntopic=1` of the `R603d` sub-forum, the `forum1f.php` `owntopic=1\|3` of user1, `owntopic=2` of user1 (run 14) | Captured, not published: 0.5 to 1.8 MB for `owntopic=2`, the others repeat a published shape; compared on the raw files only (HFR-PROTOCOL, labelled run observations). |
 | W02 | Dropped: W01's refusal already gives the failure page; a second failed login was not worth the lockout risk. |
 | R63c, R63d | Captured, not published: the own topic's edit form after the edit and after the restore, read back only to verify the restore byte for byte (R63d equals R63b apart from the connected-users count). |
 | A second throwaway thread | HFR allows one new topic per 60 minutes (W11x); everything ran in one thread. |

@@ -20,12 +20,17 @@ struct SmileyPickerModelTests {
 
     private func picker(
         store: AppSmileyFavoritesStore = AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence()),
-        account: String = "user1"
+        account: String = "user1",
+        forumLoader: (@Sendable () async -> [ForumSmiley]?)? = nil
     ) -> SmileyPickerModel {
         SmileyPickerModel(
             catalogue: [entry(":)", editor: true), entry(":hidden:", editor: false), entry(":o", editor: true)],
-            store: store, account: account
+            store: store, account: account, forumLoader: forumLoader
         )
+    }
+
+    private func forumSmiley(_ code: String) -> ForumSmiley {
+        ForumSmiley(code: code, url: url(Self.base + "forum.gif"))
     }
 
     @Test func theBasicPaletteHoldsTheEditorSmileysInCatalogueOrder() {
@@ -105,6 +110,76 @@ struct SmileyPickerModelTests {
         await model.setFavorite(favorite("[:fav]"), true)
         #expect(model.notice == "Erreur :/")
     }
+
+    // MARK: Sections and favourites (#600)
+
+    @Test func sectionsComeInTheOperatorsOrderWithoutMySmileys() async {
+        let listed = [forumSmiley("[:forum]")]
+        let model = picker(forumLoader: { listed })
+        await model.loadForum()
+        #expect(model.sections.map(\.kind) == [.basic, .forum, .appFavorites])
+        #expect(model.sections.map(\.title) == ["Smileys de base", "Smileys du forum", "Favoris de l’app"])
+        #expect(model.sections[1].smileys.map(\.code) == ["[:forum]"])
+    }
+
+    @Test func theForumSectionIsLoadingThenListsTheAccountFavourites() async {
+        let listed = [forumSmiley("[:a]"), forumSmiley("[:b:2]")]
+        let model = picker(forumLoader: { listed })
+        #expect(model.sections[1].state == .loading)
+        await model.loadForum()
+        #expect(model.sections[1].state == .smileys)
+        #expect(model.sections[1].smileys.map(\.code) == ["[:a]", "[:b:2]"])
+    }
+
+    @Test func aFailedForumReadIsShownNotTurnedIntoAnEmptyList() async {
+        let model = picker(forumLoader: { nil })
+        await model.loadForum()
+        #expect(model.sections[1].smileys.isEmpty)
+        #expect(model.sections[1].state == .failed("Smileys du forum indisponibles pour le moment."))
+    }
+
+    @Test func aFailedForumReadCanBeRetriedWithoutReopeningThePicker() async {
+        let answers = LockedAnswers([nil, [forumSmiley("[:a]")]])
+        let model = picker(forumLoader: { answers.next() })
+        await model.loadForum()
+        #expect(model.sections[1].state == .failed("Smileys du forum indisponibles pour le moment."))
+        await model.retryForum()
+        #expect(model.sections[1].state == .smileys)
+        #expect(model.sections[1].smileys.map(\.code) == ["[:a]"])
+    }
+
+    @Test func anAccountWithoutForumFavouritesSaysSo() async {
+        let model = picker(forumLoader: { [] })
+        await model.loadForum()
+        #expect(model.sections[1].state == .empty("Aucun smiley favori sur votre compte HFR."))
+    }
+
+    @Test func theEmptyAppFavouritesExplainHowToAddOne() {
+        let section = picker().sections[2]
+        #expect(section.state == .empty(SmileyPickerModel.noFavoritesText))
+        #expect(SmileyPickerModel.noFavoritesText.contains("Ajouter aux favoris"))
+    }
+
+    @Test func theContextMenuActionAddsThenRemovesAnyKindOfSmiley() async {
+        let model = picker()
+        let basic = model.basic[0]
+        await model.toggleFavorite(basic)
+        #expect(model.isFavorite(basic))
+        #expect(model.sections[2].smileys == [basic])
+        await model.toggleFavorite(basic)
+        #expect(!model.isFavorite(basic))
+        #expect(model.sections[2].state == .empty(SmileyPickerModel.noFavoritesText))
+    }
+
+    @Test func tappingAForumFavouriteOpensItsDetail() async {
+        let listed = [forumSmiley("[:forum]")]
+        let model = picker(forumLoader: { listed })
+        await model.loadForum()
+        let smiley = model.sections[1].smileys[0]
+        model.tap(forum: smiley)
+        #expect(model.presented == smiley)
+        #expect(model.chosen == nil)
+    }
 }
 
 /// A favourites file that cannot be read: the store then refuses every write.
@@ -112,4 +187,18 @@ private struct UnreadableFavoritesPersistence: SmallStorePersistence {
     func load() throws -> AppSmileyFavoritesDocument? { throw CocoaError(.fileReadNoPermission) }
     func save(_ document: AppSmileyFavoritesDocument) throws {}
     func quarantineUnreadableData() throws {}
+}
+
+/// Scripted answers of a forum read, in order (the loader is `@Sendable`).
+private final class LockedAnswers: @unchecked Sendable {
+    private let lock = NSLock()
+    private var answers: [[ForumSmiley]?]
+
+    init(_ answers: [[ForumSmiley]?]) { self.answers = answers }
+
+    func next() -> [ForumSmiley]? {
+        lock.lock()
+        defer { lock.unlock() }
+        return answers.isEmpty ? nil : answers.removeFirst()
+    }
 }

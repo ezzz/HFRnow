@@ -1094,7 +1094,7 @@
 {
 "lot": "LOT-085",
 "star": false,
-"scope": "Composer insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (the visible toolbar is LOT-174, M5)",
+"scope": "Composer insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (the visible toolbar is LOT-174, M4)",
 "module": "App",
 "diff": "medium",
 "model": "Sonnet → Opus",
@@ -1102,6 +1102,20 @@
 "audit": "legacy parity",
 "prio": "medium",
 "issue": 177,
+"sec": "Phase 4 — app: legacy parity and features",
+"sub": "Posting"
+},
+{
+"lot": "LOT-174",
+"star": false,
+"scope": "Visible formatting toolbar in the composer: cells of 48 pt (40 pt in compact density) scaled with the text size, `[url]` in both forms, a distinct upload icon (beta-test finding #592; the Edit-menu actions stay in LOT-085)",
+"module": "App",
+"diff": "medium",
+"model": "Sonnet → Opus",
+"deps": "085",
+"audit": "UXD-18 · GAP 084, 085, 086",
+"prio": "low",
+"issue": 414,
 "sec": "Phase 4 — app: legacy parity and features",
 "sub": "Posting"
 },
@@ -2167,20 +2181,6 @@
 "prio": "low",
 "issue": 244,
 "sec": "Phase 5 — app: iOS 27 experience",
-"sub": null
-},
-{
-"lot": "LOT-174",
-"star": false,
-"scope": "Visible formatting toolbar in the composer (the (b) half of LOT-085; the Edit-menu actions stay there)",
-"module": "App",
-"diff": "medium",
-"model": "Sonnet → Opus",
-"deps": "085",
-"audit": "UXD-18 · GAP 084, 085, 086",
-"prio": "low",
-"issue": 414,
-"sec": "M5 · UX evolutions",
 "sub": null
 },
 {
