@@ -44,8 +44,11 @@ actor AvatarStore {
         let key = pseudo.lowercased()
         guard !pseudo.isEmpty, !inFlight.contains(key), AnonymousAvatarLoader.isAllowed(url), allowsDownload() else { return }
         // A cache that cannot be read (bad key, unsafe folder) cannot be written either.
-        guard let entry = try? cache.entry(forPseudo: pseudo) else { return }
-        if entry?.isFresh == true { return }
+        do {
+            if try cache.entry(forPseudo: pseudo)?.isFresh == true { return }
+        } catch {
+            return
+        }
         inFlight.insert(key)
         defer { inFlight.remove(key) }
         // Decoded once: bytes that are not an image are never stored.

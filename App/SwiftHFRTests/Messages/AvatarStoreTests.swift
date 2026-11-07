@@ -22,9 +22,12 @@ struct AvatarStoreTests {
         let stored: Counter
     }
 
-    private actor Counter {
-        private(set) var count = 0
-        func bump() { count += 1 }
+    /// Counts `onStored` calls; the store awaits the callback, so the count is final when `offer` returns.
+    private final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+        var count: Int { lock.withLock { value } }
+        func bump() { lock.withLock { value += 1 } }
     }
 
     private func rig(allows: Bool = true, reply: HTTPResponse? = nil) -> Rig {
@@ -35,7 +38,7 @@ struct AvatarStoreTests {
         let stored = Counter()
         let store = AvatarStore(
             cache: cache, loader: AnonymousAvatarLoader(transport: transport), allowsDownload: { allows },
-            onStored: { Task { await stored.bump() } }
+            onStored: { stored.bump() }
         )
         return Rig(store: store, transport: transport, cache: cache, stored: stored)
     }
@@ -46,6 +49,7 @@ struct AvatarStoreTests {
         #expect(await rig.transport.requests.count == 1)
         #expect(try rig.cache.entry(forPseudo: "user1")?.isFresh == true)
         #expect(await rig.store.generation == 1)
+        #expect(rig.stored.count == 1)
     }
 
     @Test func freshEntryIsNotDownloadedAgain() async throws {
@@ -54,6 +58,7 @@ struct AvatarStoreTests {
         await rig.store.offer(pseudo: "User1", url: Self.url)
         #expect(await rig.transport.requests.isEmpty)
         #expect(await rig.store.generation == 0)
+        #expect(rig.stored.count < 1)
     }
 
     @Test func staleEntryIsDownloadedAgain() async throws {
@@ -98,12 +103,18 @@ struct AvatarStoreTests {
     }
 
     @Test func settingMapsToDownloadPermission() {
-        let cases: [(ImageDisplayMode?, Bool, Bool)] = [
-            (.never, true, false), (.wifiOnly, true, true), (.wifiOnly, false, false),
-            (.always, false, true), (nil, true, true), (nil, false, false)
+        struct Case {
+            let mode: ImageDisplayMode?
+            let onWiFi: Bool
+            let expected: Bool
+        }
+        let cases = [
+            Case(mode: .never, onWiFi: true, expected: false), Case(mode: .wifiOnly, onWiFi: true, expected: true),
+            Case(mode: .wifiOnly, onWiFi: false, expected: false), Case(mode: .always, onWiFi: false, expected: true),
+            Case(mode: nil, onWiFi: true, expected: true), Case(mode: nil, onWiFi: false, expected: false)
         ]
-        for (mode, onWiFi, expected) in cases {
-            #expect(ImageAutoLoad(setting: mode).loadsThirdPartyImages(onWiFi: onWiFi) == expected)
+        for item in cases {
+            #expect(ImageAutoLoad(setting: item.mode).loadsThirdPartyImages(onWiFi: item.onWiFi) == item.expected)
         }
     }
 
