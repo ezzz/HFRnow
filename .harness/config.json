@@ -1,0 +1,18 @@
+{
+  "language": "en",
+  "exclude": [
+    ".claude/skills/feedback-triage/*",
+    ".github/ISSUE_TEMPLATE/*",
+    ".github/pull_request_template.md",
+    ".github/workflows/harness*",
+    ".markdownlint-cli2.jsonc",
+    "docs/lots/TEMPLATE.md",
+    ".github/labels.local.json"
+  ],
+  "protected_branches": [
+    "master",
+    "dev-swift"
+  ],
+  "integration_branch": "dev-swift",
+  "branch_model": "B"
+}

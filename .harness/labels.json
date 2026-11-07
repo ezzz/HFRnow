@@ -1,0 +1,31 @@
+[
+  { "name": "feedback", "color": "ededed", "axis": "parapluie", "description": "Retour de test à trier : issue parapluie avec tableau de suivi" },
+
+  { "name": "bug", "color": "d73a4a", "axis": "type", "aliases": ["type: bug"], "description": "Comportement incorrect ou plantage" },
+  { "name": "ux", "color": "c5def5", "axis": "type", "description": "Ergonomie, lisibilité, design" },
+  { "name": "feature", "color": "a2eeef", "axis": "type", "aliases": ["type: feature"], "description": "Nouvelle fonctionnalité" },
+  { "name": "docs", "color": "0075ca", "axis": "type", "aliases": ["type: docs"], "description": "README, docs/, CLAUDE.md, schémas" },
+  { "name": "ci", "color": "bfdadc", "axis": "type", "aliases": ["type: chore"], "description": "Workflows, outillage, qualité, réglages du dépôt" },
+  { "name": "sécurité", "color": "b60205", "axis": "type", "aliases": ["type: security"], "description": "Faille ou durcissement (jamais de détail public : SECURITY.md)" },
+  { "name": "release", "color": "c2e0c6", "axis": "type", "description": "Version, Nouveautés, promotion, publication" },
+
+  { "name": "P1 🔴", "color": "b60205", "axis": "priorité", "aliases": ["priority: high"], "description": "Bloquant ou résultat faux" },
+  { "name": "P2 🟠", "color": "ff9f1c", "axis": "priorité", "aliases": ["priority: medium"], "description": "Important, prochaine itération" },
+  { "name": "P3 🟢", "color": "0e8a16", "axis": "priorité", "aliases": ["priority: low"], "description": "Confort, plus tard" },
+
+  { "name": "modèle: haiku", "color": "bfd4f2", "axis": "modèle", "description": "Changement local ou mécanique, spec complète dans l'issue" },
+  { "name": "modèle: sonnet", "color": "7fb3e8", "axis": "modèle", "description": "Plusieurs fichiers, état, persistance, mise en page" },
+  { "name": "modèle: opus", "color": "2e6fb5", "axis": "modèle", "description": "Moteur, règles métier, sécurité, architecture, recherche" },
+  { "name": "modèle: fable", "color": "1b4f8a", "axis": "modèle", "description": "Décision structurante ou problème le plus risqué ; relit le travail d'Opus" },
+
+  { "name": "taille: S", "color": "e6f4ea", "axis": "taille", "description": "< 1 h, un fichier" },
+  { "name": "taille: M", "color": "b7e1c1", "axis": "taille", "description": "Quelques fichiers, tests ou migration" },
+  { "name": "taille: L", "color": "5fb877", "axis": "taille", "description": "Plusieurs couches (moteur + UI + données) : à découper en lots" },
+
+  { "name": "à clarifier", "color": "f9d0c4", "axis": "statut", "description": "Décision produit attendue avant de coder" },
+  { "name": "bloqué", "color": "000000", "axis": "statut", "aliases": ["status: blocked"], "description": "Dépend d'un prérequis (lot, capture, décision, accès)" },
+  { "name": "pris en charge", "color": "1d76db", "axis": "statut", "aliases": ["status: claimed"], "description": "Une session a pris l'issue (commentaire « Pris en charge — branche … »)" },
+  { "name": "hôte: mac", "color": "6e7781", "axis": "hôte", "aliases": ["host: mac"], "description": "Demande le Mac (Xcode, simulateur, appareil, captures) : les sessions cloud n'y touchent pas" },
+  { "name": "direct-pr", "color": "d93f0b", "axis": "suivi", "description": "PR sans issue (petit correctif, ligne Direct-PR:) : comptée pour le suivi" },
+  { "name": "dependencies", "color": "0366d6", "axis": "suivi", "description": "Mise à jour de dépendance (Dependabot)" }
+]

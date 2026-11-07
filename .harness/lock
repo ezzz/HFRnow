@@ -1,0 +1,25 @@
+# Verrou agentic-harness : écrit par scripts/harness-sync.sh, ne pas modifier à la main.
+version	0.1.0
+repo	francoisgn/agentic-harness
+commit	c966255f58fe78b9e641a4415b873c42af5a6d8f
+file	0a73c022f608b96879dee7a2ac71fcd2ae0039ae85e9d368a0bd4c4ee9fe11e3	.claude/skills/harness-update/SKILL.md
+file	5e271c58b21ac2fae2c6b6c76b109ba07e5095026bdb44e1126b6c7bafd18a7c	.claude/skills/lessons-check/SKILL.md
+file	4263e02113ccb608d37130c1b4371cfee1c1fbaa734182d29639e3b45e11fabf	.claude/skills/lot-finish/SKILL.md
+file	4cec4df61b169b993f2c22696abcc0c10b2d440060a9b167c63b36de7c07ce91	.claude/skills/lot-start/SKILL.md
+file	88fb15b5f1afec433cb86a972ec4f09a99465baf49cb8c99a0b0c63ea4f380c7	.claude/skills/review-round/SKILL.md
+file	97cc28dd1ae7193c57d6ad5dfbac3604a7a60249fe5d34b6a31f19c4d4faf8be	.harness/docs/ADOPTION.md
+file	452dc9c971dc7cd5c1b136ba027aea1ca40e1c7df24ffadf0fe66f552cd8ea88	.harness/docs/BRANCHING-RELEASE.md
+file	9269ac44fe78ccca5a20519fe4120cb2283e0d5f46b3b560f1ca46e3e78dc90a	.harness/docs/CI-BUDGET.md
+file	44a109b9dff46d4b69655251df6d9ce25dc9d3496b34ef9830e7d72a74611a89	.harness/docs/CONVENTIONS.md
+file	4deec1e87980cec3f2c4196458f8be08a015c8e56fc7633c659d2ad358f35c54	.harness/docs/ESSENTIEL.md
+file	bde3e4c12265371466e24e66dc7905017355880339322cd0ffdb20a654e67246	.harness/docs/LESSONS.md
+file	fc74cc48b1d29e43202696f974a351883f58edf16535e1e4ce695236c5c093a0	.harness/docs/MAC-HANDOFF.md
+file	ada63ebb96b637c9b425d64257bbaee2921b5360b723063ae36b8db560fbc8c8	.harness/docs/METHODOLOGY.md
+file	e993effce778aedcd5a21d2abd06980cde7ee67acfe714cbbfcf085d4609ba1d	.harness/docs/ORCHESTRATION.md
+file	97af6a56a306cc989eb529c565ce79ab53c569f9dee4cc6bfb11c634cd65bc67	.harness/docs/REVIEW-ROUNDS.md
+file	1a0090160ba093e920287bfe48fe91a41af947d1033a57fc492af83f5d9a7b20	.harness/docs/adr/0001-mecanisme-de-distribution.md
+file	18c2bca2ecf8c462dcfc4f2ba1dd1cf1b575115fa308940fa348caa1a256aebb	.harness/docs/adr/README.md
+file	0bd837ea43abd830360c75cad57f4f20153f0fb47b791de3dde9f216120dff16	.harness/docs/adr/TEMPLATE.md
+file	86ab61ff5ffc4c723a5fcf41d3ef9b5f4672b7eb0e1e8df342fc3444d446dedc	.harness/hooks/guard-git.py
+file	c903394bd5e8204f62a40f3b7c23a81538473eaad9a1bad171a98e5469b46146	.harness/hooks/session-start.sh
+file	3fc9339531b6f6e59474024828bcebd68841e3a3b800b3edae786035e4f9130c	.harness/labels.json

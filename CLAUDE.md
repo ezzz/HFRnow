@@ -12,3 +12,13 @@ AGENTS.md (imported above) holds every rule. These are the ones a Claude session
 - Consequential actions wait for the operator's confirmation (AGENTS.md §0): merges outside the AGENTS.md §8 merge policy, repository settings, anything on another repository, messages outside GitHub.
 - A merged PR closes its `Closes #N` issue (a `Refs #N` one stays open): every PR names its issue (`Closes #N`, or `Refs #N` for partial work); a PR without one (and without a `Direct-PR:` reason, Dependabot excepted) is still merged, but flagged to the orchestrator as a tracking blind spot; since merges into `dev-swift` do not close issues, whoever merges closes it right after with `Done in #PR (merged as <sha>)` and checks it is closed, and the author keeps that closure as a to-do until verified (AGENTS.md §8).
 - A PR is ready only when it meets the [merge criteria](CONTRIBUTING.md#2-merge-criteria); resolve every CodeRabbit conversation after fixing or answering it.
+
+<!-- harness:begin cadre -->
+## Shared framework: agentic-harness 0.1.0
+
+This block is managed by `scripts/harness-sync.sh` of the [agentic-harness](https://github.com/francoisgn/agentic-harness) framework: do not edit it here (propose changes in the framework). The rest of this file belongs to the project and wins over the framework on any conflict, to be reported in an issue.
+
+@.harness/docs/ESSENTIEL.md
+
+Read when relevant (not loaded by default; written in French): method `.harness/docs/METHODOLOGY.md`, conventions `.harness/docs/CONVENTIONS.md`, lessons `.harness/docs/LESSONS.md` (self-review before every PR, alongside the project's own lessons), reviews `.harness/docs/REVIEW-ROUNDS.md`, orchestration and model choice `.harness/docs/ORCHESTRATION.md`, branches and releases `.harness/docs/BRANCHING-RELEASE.md`, CI budget and security `.harness/docs/CI-BUDGET.md`, Mac handoff `.harness/docs/MAC-HANDOFF.md`.
+<!-- harness:end cadre -->
