@@ -61,6 +61,18 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         )
     }
 
+    /// Scrolls the page itself to `readingTop` (`scrollY`), then waits until the scroll view shows it below the bar: a native
+    /// `setContentOffset` reaches the page's `scrollY` and scroll events asynchronously, and can be undone by a late layout.
+    /// Waits `deadline`, so a CI log (durations, not messages) tells which step of a test failed.
+    private func scrollPage(
+        to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration
+    ) async throws -> Bool {
+        _ = try await evaluate("window.scrollTo(0, \(Double(readingTop))); return true;", in: controller)
+        let scrollView = controller.webView.scrollView
+        let top = controller.obscuredInsets.top
+        return await until({ abs(scrollView.contentOffset.y + top - readingTop) <= 1 }, timeout: deadline)
+    }
+
     @Test func theMessageHiddenUnderTheTopBarIsNotTheReadingPosition() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         let reports = PositionReports()
@@ -69,9 +81,11 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
-        // Message 1 ends 90 points into the screen, under the 100-point bar: message 2 is the first one the reader sees.
+        // Message 2 starts 10 points above the bar's edge: message 1 ends under the 100-point bar, so message 2 is the first
+        // one the reader sees. `scrollY` is the content at the bar's edge (checked on the scroll view).
         let second = try await top(of: 2, in: controller)
-        controller.webView.scrollView.setContentOffset(CGPoint(x: 0, y: second - 90), animated: false)
+        let offset = controller.webView.scrollView.contentOffset.y
+        #expect(try await scrollPage(to: second + 10, in: controller, deadline: .seconds(15)), "offset: \(offset)")
         // A report may already have come from the load (message 1, at the top): wait for the one after the scroll. The
         // message under the bar would be reported as 1 again, which the page does not repeat, so 2 never comes.
         #expect(await until({ reports.posts.last == 2 }, timeout: .seconds(20)), "reported: \(reports.posts)")
@@ -84,22 +98,27 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
         let scrollView = controller.webView.scrollView
-        scrollView.setContentOffset(CGPoint(x: 0, y: 900), animated: false) // content 1000 at the bar's edge
+        // Content 1000 at the bar's edge: offset 900 under the 100-point bar.
+        #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
         // A banner appears above the page: the content at the bars' edge stays.
         controller.obscuredInsets.top = 160
-        #expect(scrollView.contentOffset.y == 840, "offset after the banner: \(scrollView.contentOffset.y)")
-        #expect(controller.readingTop == 1000)
-        // The page counts from the bars' edge too: what a refresh restores is where the reader is.
-        let scrolled = try await evaluate("return window.scrollY;", in: controller) as? NSNumber
-        #expect(abs((scrolled?.doubleValue ?? -1) - 1000) <= 1, "scrollY: \(String(describing: scrolled))")
+        #expect(
+            await until({ abs(scrollView.contentOffset.y - 840) <= 1 }, timeout: .seconds(10)), "offset: \(scrollView.contentOffset.y)"
+        )
+        #expect(abs(controller.readingTop - 1000) <= 1)
+        // The page counts from the new bars' edge too: what a refresh restores is where the reader is.
+        let scrollY = { [self] in ((try? await evaluate("return window.scrollY;", in: controller)) as? NSNumber)?.doubleValue }
+        #expect(await until(async: { abs((await scrollY() ?? -1) - 1000) <= 1 }, timeout: .seconds(25)), "scrollY")
         // The refresh starts with the banner, which goes away before the new document is ready.
         controller.show(tallDocument(token: 2, keepsScrollPosition: true))
         controller.obscuredInsets.top = 100
-        // Distinct deadlines, so a CI log (which shows durations, not messages) tells which step failed.
         #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
         #expect(
             await until({ abs(scrollView.contentOffset.y - 900) <= 1 }, timeout: .seconds(30)), "offset: \(scrollView.contentOffset.y)"
         )
-        #expect(controller.readingTop == 1000)
+        // Still there once the document has finished loading (a late layout must not undo the restore).
+        #expect(await settled(controller))
+        #expect(abs(scrollView.contentOffset.y - 900) <= 1, "offset after load: \(scrollView.contentOffset.y)")
+        #expect(abs(controller.readingTop - 1000) <= 1)
     }
 }
