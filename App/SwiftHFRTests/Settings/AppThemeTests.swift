@@ -139,4 +139,54 @@ struct AppThemeTests {
         let shown = await until { bottomPixel(of: window)[0] == 11 }
         #expect(shown, "pushed: \(bottomPixel(of: window))")
     }
+
+    /// A three-column split view as the iPad layout builds it, with each column a list.
+    private struct SplitRoot: View {
+        let model: ThemeSettingsModel
+        var body: some View {
+            NavigationSplitView(columnVisibility: .constant(.all)) {
+                List { Text("") }.appScreenBackground()
+            } content: {
+                List { Text("") }.appScreenBackground()
+            } detail: {
+                List { Text("") }.appScreenBackground()
+            }
+            .appTheme(model)
+        }
+    }
+
+    /// The red channel at the given x, 20 pt above the bottom of the window.
+    private func pixel(of window: UIWindow, x: CGFloat) -> Int {
+        let image = UIGraphicsImageRenderer(size: window.bounds.size).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        var data = [UInt8](repeating: 0, count: 4)
+        let context = CGContext(
+            data: &data, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+        if let cgImage = image.cgImage {
+            let scale = image.scale
+            let canvas = CGRect(
+                x: -x * scale, y: -20 * scale, width: window.bounds.width * scale, height: window.bounds.height * scale
+            )
+            context?.draw(cgImage, in: canvas)
+        }
+        return Int(data[0])
+    }
+
+    /// iPad: the sidebar, the content and the detail column of a split view all show the dark style.
+    @Test func everySplitViewColumnShowsTheDarkStyle() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let store = InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1), "theme_dark_style": .int(1)])
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1100, height: 700)
+        window.rootViewController = UIHostingController(rootView: SplitRoot(model: ThemeSettingsModel(store: store)))
+        window.isHidden = false
+        defer { window.isHidden = true }
+        // Left, middle and right thirds: the three columns.
+        let xs: [CGFloat] = [60, 500, 900]
+        let shown = await until { xs.allSatisfy { pixel(of: window, x: $0) == 11 } }
+        #expect(shown, "columns: \(xs.map { pixel(of: window, x: $0) })")
+    }
 }

@@ -11,9 +11,9 @@ struct MessagesRootView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            MessageListView(model: model, composer: environment.composer)
+            MessageListView(model: model, composer: environment.composer).appScreenBackground()
         } detail: {
-            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer)
+            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer).appScreenBackground()
         }
         // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would; one it
         // closed (marked unread, LOT-127) goes back to the list, as legacy pops.

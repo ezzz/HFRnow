@@ -23,21 +23,21 @@ struct RootSidebarView: View {
             // Legacy: the Plus entries have no list, so a two-column split with the entry in a stack in the detail column
             // (`MainWindow.swift:1305-1311`, `:1744-1755`, `:1876-1891`).
             NavigationSplitView(columnVisibility: $visibility, preferredCompactColumn: $compactColumn) {
-                sidebar
+                sidebar.appScreenBackground()
             } detail: {
                 // A new identity per entry, so the stack drops what the previous entry had pushed.
                 ThemedNavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
                     .id(entry)
             }
-        } else {
+            } else {
             NavigationSplitView(columnVisibility: $visibility) {
-                sidebar
+                sidebar.appScreenBackground()
             } content: {
-                content
+                content.appScreenBackground()
             } detail: {
-                detail
+                detail.appScreenBackground()
             }
-        }
+            }
     }
 
     private var sidebar: some View {

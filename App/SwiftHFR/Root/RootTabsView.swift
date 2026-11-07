@@ -49,11 +49,11 @@ struct CategoriesTabView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            ForumListView(navigation: navigation)
+            ForumListView(navigation: navigation).appScreenBackground()
         } content: {
-            TopicsColumn(navigation: navigation, composer: composer)
+            TopicsColumn(navigation: navigation, composer: composer).appScreenBackground()
         } detail: {
-            ReaderColumn(navigation: navigation, reader: reader, composer: composer)
+            ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
         .filteredPosts(navigation.filtering, reader: reader)
     }
@@ -70,8 +70,9 @@ struct FavoritesTabView: View {
         NavigationSplitView(preferredCompactColumn: $column) {
             TopicsColumn(navigation: navigation, composer: composer)
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: navigation) } }
+                .appScreenBackground()
         } detail: {
-            ReaderColumn(navigation: navigation, reader: reader, composer: composer)
+            ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
         .filteredPosts(navigation.filtering, reader: reader)
     }

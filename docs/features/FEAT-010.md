@@ -9,7 +9,7 @@ The dark theme gets a choice of depth: the colours the app always had, a near-bl
 ## Screens and states
 - Réglages › Thème › **Style du thème sombre**: Standard (default) / Plus sombre / Noir OLED, with a sample of the chosen surfaces (message, quote, accent, separator) drawn in the dark colours whatever the current theme.
 - Only the dark theme changes. In light mode, and with **Standard**, every colour is what it was before this lot.
-- Plus sombre / Noir OLED paint the screen background of every list and form (and the reader's page, quotes and image placeholders) in #0B0B0C / #000000. Rows and cards keep the system's raised colour.
+- Plus sombre / Noir OLED paint the screen background of every list and form (iPad split-view columns included, and the reader's page, quotes and image placeholders) in #0B0B0C / #000000. Rows and cards keep the system's raised colour.
 - The brightness slider (LOT-121) still scales the reader's dark surfaces on top of the chosen style; at 0 % they are black.
 - Separators: the reader's message rule and alternate surface are #568's tokens (`--separator-strong`, `--surface-alt`), derived from the text and background colours, so they follow the chosen background; there is no second separator setting. Native list separators are the system's hairline.
 - Live: a change applies at once to every screen and to the open reader, no reload.
