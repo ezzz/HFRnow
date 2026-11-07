@@ -2,8 +2,9 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/Favorites.swift (TopicRowView) @ 2440d79. Differences: legacy "last-post author - date" becomes
-// "starter or interlocutors · replies · relative date of the last post" (replies added, starter instead of the last poster); no
-// "⚑ cur / max" footer; an unread dot instead of the unread capsule; the flag colour tints the icon, not the row (GAP-026, 027; UXD).
+// "starter or interlocutors · replies · relative date of the last post" (replies added, starter instead of the last poster), after the
+// "⚑ cur / max" footer; the unread-pages capsule (kept with the dot for unread rows); the flag colour tints the icon and the row
+// (GAP-026, 027, #584; `TopicRowCues`).
 // Density and text size: legacy TopicListRowView (Common.swift:3194-3245 @ 21173e77) and FavoritesListDensity (LOT-169).
 /// One topic row: title, flag, counters and last post. Pure display.
 struct TopicRowView: View {
@@ -49,6 +50,13 @@ struct TopicRowView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(density == .compact && !dynamicTypeSize.isAccessibilitySize ? 1 : nil)
             }
+            if let pages = TopicRowCues.unreadPages(topic), showsFlag {
+                Spacer(minLength: 0)
+                Text("\(pages)").scaledFont(.caption2).bold().foregroundStyle(.white)
+                    .padding(.horizontal, 6).padding(.vertical, 1)
+                    .background(.tint, in: Capsule())
+                    .accessibilityLabel(TopicRowCues.unreadPagesLabel(pages))
+            }
         }
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
@@ -56,6 +64,7 @@ struct TopicRowView: View {
 
     private var summary: String {
         var parts: [String] = []
+        if showsFlag, let footer = TopicRowCues.pageFooter(topic) { parts.append(footer) }
         if !topic.starterOrInterlocutors.isEmpty { parts.append(topic.starterOrInterlocutors) }
         parts.append(FrenchPlural.count(topic.repliesCount, "réponse", "réponses"))
         if let date = topic.lastPost?.date { parts.append(date.formatted(.relative(presentation: .named))) }

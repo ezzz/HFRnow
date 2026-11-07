@@ -104,11 +104,14 @@ struct TopicListView: View {
         }
     }
 
-    /// The orange tint of a super-favourite row, nil on the selected row so the iPad selection highlight shows (#570).
-    /// Over `.clear`: the row looked like this before (a translucent orange, whatever the list style), and a card colour
-    /// underneath would show as a grey block in a sidebar column.
-    static func superFavoriteTint(isSuper: Bool, isSelected: Bool) -> RowTint? {
-        isSuper && !isSelected ? RowTint(tint: .orange, base: .clear) : nil
+    /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
+    /// Over `.clear`: the super favourite looked like this before (a translucent orange, whatever the list style), and a card
+    /// colour underneath would show as a grey block in a sidebar column (#570, #584).
+    static func rowTint(topic: TopicSummary, isSuperFavorite: Bool, isSelected: Bool) -> RowTint? {
+        guard let accent = TopicRowCues.accent(flag: topic.flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
+            return nil
+        }
+        return RowTint(tint: accent.color, weight: accent.weight, base: .clear)
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
@@ -116,7 +119,7 @@ struct TopicListView: View {
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(TopicListView.superFavoriteTint(isSuper: isSuper, isSelected: selection == topic))
+                .listRowBackground(TopicListView.rowTint(topic: topic, isSuperFavorite: isSuper, isSelected: selection == topic))
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }
