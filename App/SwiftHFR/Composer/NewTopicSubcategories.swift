@@ -32,6 +32,11 @@ struct NewTopicSubcategories: Equatable, Sendable {
         selected = nil
     }
 
+    /// A read that brought no list: nothing to choose from, and no warning.
+    mutating func endLoading() {
+        isLoading = false
+    }
+
     mutating func fail(_ message: String) {
         isLoading = false
         warning = message

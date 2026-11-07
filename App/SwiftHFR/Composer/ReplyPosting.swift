@@ -74,8 +74,8 @@ struct NewTopicOptions: Equatable, Sendable {
     let preselected: String?
 }
 
-/// What a composer writes: a reply in a topic or private thread (LOT-084), a new private message (LOT-128) or a new topic
-/// (LOT-089).
+/// What a composer writes: a reply in a topic or private thread (LOT-084), a new private message (LOT-128), a new topic
+/// (LOT-089) or the edit of an own message (LOT-088).
 enum ComposerTarget: Hashable, Sendable {
     /// A reply through the page's answer link.
     case reply(ReplyTarget)
@@ -83,6 +83,8 @@ enum ComposerTarget: Hashable, Sendable {
     case newPrivateMessage(NewMessageTarget)
     /// A new topic through the forum's new-topic composer.
     case newTopic(NewTopicTarget)
+    /// An own message through its edit form.
+    case edit(EditTarget)
 
     /// The draft this composer restores and saves.
     var draftContext: DraftContext {
@@ -90,6 +92,7 @@ enum ComposerTarget: Hashable, Sendable {
         case .reply(let target): target.draftContext
         case .newPrivateMessage(let target): target.draftContext
         case .newTopic(let target): target.draftContext
+        case .edit(let target): target.draftContext
         }
     }
 }
@@ -110,6 +113,16 @@ protocol ReplyPosting: Sendable {
     /// Fetches the new-topic composer at `formURL` again (fresh token), then starts a topic. `subcategory` is one of the
     /// options' values. Same contract as `reply`.
     func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult
+
+    /// Fetches the message's edit form and reads what the composer opens with.
+    func editPrefill(_ target: EditTarget) async throws(PostingError) -> EditPrefill
+
+    /// Fetches the edit form again (fresh token), then replaces the message. `subject` and `subcategory` are the first post's,
+    /// nil on a later one. Same contract as `reply`.
+    func edit(_ text: String, subject: String?, subcategory: String?, target: EditTarget) async throws(PostingError) -> PostingResult
+
+    /// Fetches the edit form, then deletes the message; a first post is refused (LOT-175). Same contract as `reply`.
+    func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult
 }
 
 /// LOT-048's flow in the current account's session: the form is fetched when the user sends, so its `hash_check` is
@@ -145,6 +158,28 @@ struct LiveReplyPoster: ReplyPosting {
     func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult {
         let form = try await flow.loadForm(at: formURL, in: session)
         return try await flow.newTopic(subject: subject, subcategory: subcategory, text: text, with: form)
+    }
+
+    func editPrefill(_ target: EditTarget) async throws(PostingError) -> EditPrefill {
+        EditPrefill(form: try await editForm(of: target).form)
+    }
+
+    func edit(_ text: String, subject: String?, subcategory: String?, target: EditTarget) async throws(PostingError) -> PostingResult {
+        let form = try await editForm(of: target)
+        return try await flow.edit(text, subject: subject, subcategory: subcategory, with: form)
+    }
+
+    func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult {
+        let form = try await flow.loadForm(at: target.formURL, in: session)
+        return try await flow.deleteLaterPost(target.post, with: form)
+    }
+
+    /// The edit form at the target's link, which must be that message's: its fields are posted as served.
+    private func editForm(of target: EditTarget) async throws(PostingError) -> PostingForm {
+        let form = try await flow.loadForm(at: target.formURL, in: session)
+        guard form.shape == .edit else { throw .formMismatch(expected: .edit, actual: form.shape) }
+        guard form.postNumber == target.post else { throw .unsupportedForm(reason: "edit form of another message") }
+        return form
     }
 }
 

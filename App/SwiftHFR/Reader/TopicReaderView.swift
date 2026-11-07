@@ -30,6 +30,8 @@ struct TopicReaderView: View {
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
     @State private var swipeEnabled = true
+    /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
+    @State private var writes: MessageWriteModel?
     /// `reply_button_behavior` (LOT-086), read again with the other settings.
     @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
@@ -60,6 +62,7 @@ struct TopicReaderView: View {
             }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
+        .modifier(ReaderEditFlow(writes: writes))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .offlineSave(model: model, saver: saver)
@@ -210,8 +213,8 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
-    /// The handlers of the merged lots: "Link", the quotes and "Favoris". A later lot adds its handler here, the policy is
-    /// untouched.
+    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Editer" and "Supprimer". A later lot adds its handler
+    /// here, the policy is untouched.
     private func installMenuActions() {
         // Weak: the model stores this registry, a strong capture would keep every reader alive.
         let confirm: @MainActor (String) -> Void = { [weak model] text in
@@ -224,6 +227,11 @@ struct TopicReaderView: View {
         ]
         handlers += model.quoteHandlers(confirm: confirm)
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
+        if let composer {
+            let writes = writes ?? MessageWriteModel(reader: model, services: composer)
+            self.writes = writes
+            handlers += writes.handlers
+        }
         model.install(MessageActionRegistry(handlers))
         controller?.offersSelectionQuote = model.canQuote
     }
