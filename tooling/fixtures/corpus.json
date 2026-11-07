@@ -201,6 +201,8 @@
     {"raw": "T15", "id": "T15", "slug": "https-hn-org-dns-failure", "ext": "", "private": false},
     {"raw": "T40", "id": "T40", "slug": "giphy-search", "ext": "json", "private": false},
     {"raw": "T41", "id": "T41", "slug": "giphy-trending", "ext": "json", "private": false},
+    {"raw": "T50", "id": "T50", "slug": "aq-create-answer", "ext": "txt", "private": false},
+    {"raw": "T51", "id": "T51", "slug": "aq-alerts-after-create", "ext": "xml", "private": false},
     {"raw": "T20", "id": "T20", "slug": "rehost-home-no-referer-403", "ext": "", "private": false},
     {"raw": "T21", "id": "T21", "slug": "rehost-home-forum-referer", "ext": "", "private": false},
     {"raw": "T22", "id": "T22", "slug": "rehost-image-path-no-referer-403", "ext": "", "private": false},

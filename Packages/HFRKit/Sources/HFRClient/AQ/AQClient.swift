@@ -8,7 +8,7 @@ import HFRParsing
 /// Replaces legacy `AQBadgeCheckService` and `AQPlusViewModel` (`AQPlusView.swift:60-92, 248-322` @ 2440d79) and
 /// `isAQAlreadySignaled` (`MessagesView.swift:325-338` @ 2440d79). AQ is a third party (HFR-PROTOCOL §8, LOT-071 T1, T2):
 /// the default transport is `AnonymousTransport`, so no forum cookie is ever sent (R1), requests go only to the configured
-/// host and a redirect is never followed. Creating an AQ (`addAlerte.php`) is not here: its answer is not captured (LOT-055).
+/// host and a redirect is never followed. Creating an AQ (`addAlerte.php`) is not here: its answer is captured (`T50`: `1`) but the call is LOT-055's.
 public struct AQClient: Sendable {
     /// Time limit of each request, in seconds (legacy feed request, `AQPlusView.swift:73, 278` @ 2440d79).
     public static let timeout: Double = 20

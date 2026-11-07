@@ -611,6 +611,7 @@ Source: [LOT-097](lots/LOT-097-bbcode-preview-renderer.md), `BBCodeRenderer` (th
 - `T01` (`rss.php`): every item has `title`, `link` = `guid`, `pubDate` (`Sun, 11 Oct 2026 10:31:57 +0200`: the instant of the `[le dd-mm-yyyy à hh:mm:ss]` Paris time of the description) and a CDATA HTML `description`. 23 of 25 links are `forum2.php?…&cat=<n>&…`, 2 are canonical `/hfr/…-sujet_<post>_<page>.htm` with no `cat`.
 - `T02` (`getAlertesByTopic.php`): `postsIds` is a comma-separated list that can repeat a message number (`"47934539,47934539"`); `nom` may end with a space; XML entities (`&quot;`, `&amp;`) in `nom` are decoded by an XML reader.
 - Pending capture ([#438](https://github.com/ezzz/HFRnow/issues/438)): a reporter comment holding an entity.
+- AQ create (`T50`, `T51`, #531, **verified** once, on the operator's own topic): `POST /api/addAlerte.php` with the form body listed in `MANIFEST.md` answers **200 `text/plain;charset=UTF-8`, body `1`**, no cookie, no redirect; `getAlertesByTopic.php` then lists the alert (`pseudoInitiateur` = the `pseudo` sent, `postsIds` = the `post_id` sent). The request is unauthenticated. A refusal answer is **not captured** (writing one was not approved): any body other than `1` is unknown, not "failure".
 
 ### LOT-068 — offline pages
 
