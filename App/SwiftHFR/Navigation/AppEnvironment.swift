@@ -27,13 +27,24 @@ struct AppEnvironment {
     let flagActions: TopicFlagActions?
 
     /// The environment for `session`.
-    static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
+    static func make(session: HFRSession, accountName: String?, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
         let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
-        let pages = RefreshingTopicPageSource(
-            base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+        // Every page read hands its authors' avatars to the cache (GAP-227); the setting is read at each download.
+        let avatars = AvatarStore(
+            cache: AvatarCache(cache: .standard),
+            allowsDownload: {
+                ReaderSettings.autoLoad(store: UserDefaultsSettingsStore()).loadsThirdPartyImages(onWiFi: NetworkMonitor.shared.isOnWiFi)
+            },
+            onStored: { avatarRefresh?.didStore() }
+        )
+        let pages = AvatarFillingTopicPageSource(
+            base: RefreshingTopicPageSource(
+                base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+            ),
+            store: avatars
         )
         let flagActions = accountName == nil ? nil : TopicFlagActions(writer: LiveTopicFlagWriter(session: session))
         let reader = ReaderServices(
@@ -64,8 +75,8 @@ struct AppEnvironment {
 
     /// The environment of the current account, or of the logged-out session when there is none.
     @MainActor
-    static func current(of accounts: AccountsModel) -> AppEnvironment {
-        make(session: accounts.forumSession, accountName: accounts.current?.id)
+    static func current(of accounts: AccountsModel, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
+        make(session: accounts.forumSession, accountName: accounts.current?.id, avatarRefresh: avatarRefresh)
     }
 
     /// Pseudo of the current account for the Q-7 rule, nil when logged out. Read from the account list, not from the
