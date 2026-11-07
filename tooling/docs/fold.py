@@ -115,6 +115,8 @@ def fold_changelog(layout):
     """-> (new text, folded fragment paths)."""
     before, rows, after = parse_changelog(read(layout.changelog))
     seen = {n for n, _ in rows}
+    if len(seen) != len(rows):
+        raise FoldError('CHANGELOG-LEGACY.md: a row number appears more than once (fix it by hand first)')
     new = []
     for p in fragments(layout.changelog_dir):
         n, line = read_changelog_fragment(p)
@@ -267,7 +269,10 @@ def regenerate_tallies(lines):
 def fold_gap(layout):
     """-> (new text, folded fragment paths)."""
     lines = read(layout.gap).split('\n')
-    known = {r[3] for r in gap_rows(lines)}  # numbers, so GAP-89 clashes with GAP-089
+    nums = [r[3] for r in gap_rows(lines)]
+    if len(set(nums)) != len(nums):
+        raise FoldError('GAP-LEGACY-VS-SWIFT.md: a GAP number appears more than once (fix it by hand first)')
+    known = set(nums)  # numbers, so GAP-89 clashes with GAP-089
     sections = gap_sections(lines)
     new = []
     for p in fragments(layout.gap_dir):

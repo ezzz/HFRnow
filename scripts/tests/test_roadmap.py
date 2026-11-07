@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -451,16 +452,29 @@ class FoldFragmentsTest(unittest.TestCase):
 
     def test_stale_tallies_do_not_block_apply(self):
         lay = self.layout()
-        lay.gap.write_text(lay.gap.read_text(encoding="utf-8").replace("| **Total** | **165** |", "| **Total** | **1** |"), encoding="utf-8")
+        text = lay.gap.read_text(encoding="utf-8")
+        total = re.search(r"^\| \*\*Total\*\* \| \*\*\d+\*\* \|$", text, re.M).group(0)  # whatever the committed total is
+        stale = "| **Total** | **1** |"
+        self.assertNotEqual(total, stale)
+        lay.gap.write_text(text.replace(total, stale), encoding="utf-8")
         (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
         self.assertIn("folded 1", hygiene.fold_fragments(True, lay)[0])
-        self.assertIn("| **Total** | **165** |", lay.gap.read_text(encoding="utf-8"))
+        self.assertEqual(lay.gap.read_text(encoding="utf-8"), text)  # the fold restored the generated total
 
     def test_duplicate_fragment_numbers_are_reported_not_raised(self):
         lay = self.layout()
         for n in ("7.md", "007.md"):
             (lay.changelog_dir / n).write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
         self.assertIn("NOT foldable", hygiene.fold_fragments(True, lay)[0])
+
+    def test_duplicate_row_in_a_shared_file_blocks_apply(self):
+        lay = self.layout()
+        text = lay.changelog.read_text(encoding="utf-8")
+        lay.changelog.write_text(text.replace("| 2 | ", "| 1 | ", 1), encoding="utf-8")  # row 2 now reads 1
+        (lay.gap_dir / "GAP-9999.md").write_text(
+            "Section: Reader\n| GAP-9999 | F | L | ref | S | LOT-1 | same | port: x | a |\n", encoding="utf-8")
+        self.assertIn("NOT foldable", hygiene.fold_fragments(True, lay)[0])
+        self.assertTrue((lay.gap_dir / "GAP-9999.md").exists(), "no fragment removed while a duplicate remains")
 
     def test_malformed_fragment_is_reported_not_folded(self):
         lay = self.layout()
