@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 @testable import SwiftHFR
 import Testing
 import UIKit
@@ -45,12 +46,17 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
                                channels(separator), channels(quote.backgroundColor), [parseFloat(first.borderBottomWidth)]]);
         """
 
-    /// Channels may differ by 1: engines round a colour mix differently.
+    /// RGB channels may differ by 1 (engines round a colour mix differently); alpha and the border width must be exact, so a
+    /// 0 px rule cannot pass for a 1 px one.
     private func matches(_ seen: String?, _ expected: [[Double]]) -> Bool {
         guard let data = seen?.data(using: .utf8), let values = try? JSONDecoder().decode([[Double]].self, from: data),
               values.count == expected.count else { return false }
-        return zip(values, expected).allSatisfy { got, want in
-            got.count == want.count && zip(got, want).allSatisfy { abs($0 - $1) <= 1 }
+        return zip(values, expected).enumerated().allSatisfy { index, pair in
+            let (got, want) = pair
+            let isWidth = index == expected.count - 1
+            return got.count == want.count && zip(got, want).enumerated().allSatisfy { channel, values in
+                abs(values.0 - values.1) <= (isWidth || channel == 3 ? 0 : 1)
+            }
         }
     }
 
