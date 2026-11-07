@@ -47,8 +47,8 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 - Tapping a GIF opens a confirmation (legacy `showConfirmationScreen`): preview and "Insérer"; the snippet is `[img]<url>[/img]` and a line break, put
   through `ComposerFormattingModel.insert`, so the draft autosave and every composer rule apply.
 - **Which URL is posted:** `images.original.url` **as served**, query included (what `T40`/`T41` verify and what the SDK's `gifUrl` gave). The
-  query-less form (`originalURLWithoutTracking`) is not captured as serving the GIF, so it is not posted; its `cid` is derived from the key
-  (a fingerprint, not the key). **Pending capture**: one fetch of a media URL without its query; if it serves, a later change can post that form.
+  query-less form (`originalURLWithoutTracking`) is not captured as serving the GIF, so it is not posted. The served `cid` carries a prefix replaced in the
+  fixtures (MANIFEST `T40`, `T41`; LOT-071 "Giphy REST"). **Pending capture** (#560): one fetch of a media URL without its query; if it serves, a later change can post that form.
 - **Images** (grid and confirmation) go through `SmileyImageLoader.gif()` → `ReaderImageFetcher`: the cookie-less client, policy C, no `Referer`.
   Third parties are allowed only for these two views (the member opened the panel and accepted N1), and a host filter (`GifMediaPolicy`) is asked about
   the URL and **every redirect hop**: a redirect off `*.giphy.com` is refused, not followed. The loader is built once per cell. The thumbnail
