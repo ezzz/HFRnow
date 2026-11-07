@@ -99,6 +99,14 @@ extension SyncedListsStoreTests {
         #expect(fixture.cloud.value(forKey: Self.positionsKey) == remote)
     }
 
+    @Test func aFlushPushesAPositionWhoseSignalIsStillQueued() async throws {
+        let fixture = await Self.make()
+        try await fixture.positions.advance(Self.topic, to: Self.position(page: 2, at: 0), account: "Alice")
+        // Saved during the launch: its signal still sits in the store's stream when the app goes to the background.
+        await fixture.sync.handle(.flushPositions)
+        #expect(fixture.cloudPositions()?.map(\.topic) == [Self.topic])
+    }
+
     @Test func runPushesAPositionAfterTheDelayAndEndsWhenCancelled() async throws {
         let fixture = await Self.make()
         let sync = SyncedListsStore(
