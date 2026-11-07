@@ -29,12 +29,24 @@ struct AppIconSettingsModelTests {
         #expect(AppIconSettingsModel(store: store, switcher: FakeSwitcher()).selection == .redface3dbig)
     }
 
-    @Test func aLegacyValueWithoutArtShowsTheDefaultAndStaysInTheStore() async {
-        let store = InMemorySettingsStore(["icon": .string("classic-red")])
+    @Test func everyLegacyValueIsAnOptionWithItsLegacyIconName() {
+        let legacy: [String: String?] = [
+            "superblue": nil, "classic": "Icon-CLASSIC", "classic-red": "Icon-CLASSIC-RED", "redface": "Icon-REDFACE",
+            "redface-blue": "Icon-REDFACEBLUE", "beta": "Icon-BETA", "blue": "Icon-BLUE", "white": "Icon-WHITE"
+        ]
+        for (key, name) in legacy {
+            let model = AppIconSettingsModel(store: InMemorySettingsStore(["icon": .string(key)]), switcher: FakeSwitcher())
+            #expect(model.selection.rawValue == key)
+            #expect(model.selection.alternateIconName == name)
+        }
+    }
+
+    @Test func anUnknownStoredValueShowsTheDefaultAndStaysInTheStore() async {
+        let store = InMemorySettingsStore(["icon": .string("from-the-future")])
         let model = AppIconSettingsModel(store: store, switcher: FakeSwitcher())
         #expect(model.selection == .superblue)
         await model.select(.superblue)
-        #expect(store.rawValue(forKey: "icon") == .string("classic-red"))
+        #expect(store.rawValue(forKey: "icon") == .string("from-the-future"))
     }
 
     @Test func choosingAnIconAppliesItThenWritesTheLegacyKey() async {

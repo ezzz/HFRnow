@@ -20,22 +20,21 @@
 
 ## UX evolutions (app lots)
 - The picker is a screen behind the "Icône" row (LOT-119 shell), not an inline picker: same class as the other LOT-119 rows, no new GAP row.
-- Only `Défaut` and `REDFACE 3D Big` are offered for now (see below): a subset of legacy's eight, listed as a GAP row in the PR ledger (`b`, optional).
+- Legacy's eight options plus `REDFACE 3D Big` (new). The art is the layered `.icon` of each set from the Mac art PR (#623: five redone, `Icon-BLUE` and `Icon-WHITE` reused); icon art, its credits and `CREDITS.md` come from that work, not from this lot.
 
 ## Behaviour
 - **Haptics.** Key `haptics` (already `SettingKey.haptics`, bool, default on, tolerant of strings and numbers). `HapticFeedback` reads the store at every call, so a change applies at once; `GeneralSettingsModel.hapticsEnabled` writes the same key. Every haptic of the app must call `HapticFeedback.live.impact(_:)` / `.notification(_:)` and never a UIKit generator directly.
 - **Call sites.** `grep` of `App/` for `UIImpactFeedbackGenerator`, `UINotificationFeedbackGenerator`, `UISelectionFeedbackGenerator`, `sensoryFeedback`: none exist in the SwiftUI app today, so nothing is rewired. The ~35 legacy call sites (`refreshStarted`, `refreshCompleted`, `impact(.light)` on favourites, search, profile, composer result) are ported with their screens and must use `HapticFeedback` (reviewers check it).
-- **Icon.** Key `icon` (`SettingKey.appIconName`, default `superblue`), same key and values as legacy. `AppIconSettingsModel.select(_:)` calls `setAlternateIconName` first and writes the key only when the system accepted; a refusal keeps both and shows a French alert. `superblue` is the primary icon (`Icon-RedFace3D`, #581), `redface3dbig` is `Icon-RedFace3DBig`, wired by `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in both app configurations. Unsupported devices (`supportsAlternateIcons` false): the rows are disabled with a footer.
+- **Icon.** Key `icon` (`SettingKey.appIconName`, default `superblue`), same key and values as legacy. `AppIconSettingsModel.select(_:)` calls `setAlternateIconName` first and writes the key only when the system accepted; a refusal keeps both and shows a French alert. `superblue` is the primary icon (`Icon-RedFace3D`, #581), each other legacy value maps to its legacy name (`Icon-CLASSIC` …, `Icon-WHITE`), and `redface3dbig` to `Icon-RedFace3DBig`; all are in `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in both configurations. Names live in `AppIconOption.alternateIconName` only: a redrawn `.icon` swaps in under the same name. Unsupported devices (`supportsAlternateIcons` false): the rows are disabled with a footer.
 
 ## Edge cases
-- A stored legacy value whose art is not shipped (`classic`, `classic-red`, `redface`, `redface-blue`, `beta`, `blue`, `white`) shows "Défaut" and is **left in the store**: nothing is lost and a later release can honour it. The home-screen icon the system kept from the legacy app is not touched at launch.
+- Every legacy value is an option, so the update keeps the choice (same key). An unknown stored value shows "Défaut" and is **left in the store**. The home-screen icon the system kept from the legacy app is not touched at launch.
 - Choosing the option already shown does nothing (no system alert about the icon change).
 
 ## Fixtures
 None (no HFR page involved). Tests: `AppIconSettingsModelTests`, `HapticFeedbackTests` (App).
 
 ## Intentional differences from legacy
-- Alternates restricted to art that is a layered `.icon` in the target. **Pending asset / Mac work:** the seven loose-PNG legacy sets (iPhone `@2x/@3x`, iPad `@1x/@2x`) need the legacy `CFBundleAlternateIcons` plist route, whose merge with the actool-generated `CFBundleIcons` cannot be checked from the Linux cloud; follow-up issue to open for the Mac. No icon was drawn or converted here.
 - No preview thumbnails in the picker: a compiled `.icon` cannot be loaded as an image; text rows with a check mark. Previews are a pending asset.
 - No `applyIconSelection` on every `onChange` as in legacy: the store is written only after success.
 

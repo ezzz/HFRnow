@@ -21,29 +21,51 @@ struct SystemAlternateIconSwitcher: AlternateIconSwitching {
     }
 }
 
-// Port of HFRswift/Swift/AppSettingsView.swift (AppIconOption, lines 40-80) @ 2440d79. Differences: only the options whose art
-// is a `.icon` in the target are offered (the loose-PNG sets of legacy are pending, see LOT-123 spec); `redface3dbig` is new.
+// Port of HFRswift/Swift/AppSettingsView.swift (AppIconOption, lines 40-80) @ 2440d79. Differences: the art is the layered `.icon` of
+// each legacy set (redone or reused by the Mac art PR, same names); `redface3dbig` is new (`Icon-RedFace3DBig`, no legacy value).
+// The `.icon` names live here only: a redrawn icon swaps in under the same name with no code change.
 /// One choice of the icon picker.
 enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
     /// The primary icon (legacy "Défaut", key `superblue`).
     case superblue
-    /// `Icon-RedFace3DBig.icon`, copied from legacy `AlternativeIcons/` by #581 (no legacy picker value: new key).
+    case classic
+    case classicRed = "classic-red"
+    case redface
+    case redfaceBlue = "redface-blue"
+    case beta
+    case blue
+    case white
     case redface3dbig
 
     var id: String { rawValue }
 
-    /// Picker label.
+    /// Picker label (legacy titles).
     var title: String {
         switch self {
         case .superblue: "Défaut"
+        case .classic: "Classique Yellow"
+        case .classicRed: "Classique Red"
+        case .redface: "REDFACE"
+        case .redfaceBlue: "REDFACE Blue"
+        case .beta: "Beta"
+        case .blue: "Blue"
+        case .white: "White"
         case .redface3dbig: "REDFACE 3D Big"
         }
     }
 
-    /// The name given to `setAlternateIconName`; nil is the primary icon. Matches `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`.
+    /// The name given to `setAlternateIconName`; nil is the primary icon. Each matches an `.icon` in `App/SwiftHFR/` and
+    /// `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`; the legacy ones are the legacy names (`alternateIconName`, :61-83).
     var alternateIconName: String? {
         switch self {
         case .superblue: nil
+        case .classic: "Icon-CLASSIC"
+        case .classicRed: "Icon-CLASSIC-RED"
+        case .redface: "Icon-REDFACE"
+        case .redfaceBlue: "Icon-REDFACEBLUE"
+        case .beta: "Icon-BETA"
+        case .blue: "Icon-BLUE"
+        case .white: "Icon-WHITE"
         case .redface3dbig: "Icon-RedFace3DBig"
         }
     }
@@ -54,8 +76,8 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
 @MainActor
 @Observable
 final class AppIconSettingsModel {
-    /// The option the picker shows. A stored legacy value without art here (`classic`, `blue`, …) shows the default and is left
-    /// in the store untouched, so the update from legacy loses nothing and a later release can honour it.
+    /// The option the picker shows. A stored value that is no option (corrupt, or from a newer build) shows the default and is left
+    /// in the store untouched.
     private(set) var selection: AppIconOption
     /// The French message of the last failed switch, nil otherwise.
     var errorMessage: String?
