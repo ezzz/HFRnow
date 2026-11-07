@@ -15,7 +15,7 @@ All at `2440d79` of <https://github.com/ezzz/HFRnow>, `HFRswift/Swift/MessagesVi
 - bottom refresh only on the last page scrolled to its end: `4180-4182` (`shouldShowBottomRefreshButton`).
 
 ## Legacy counterpart (app lots)
-- `Reader/ReaderPageControls.swift` (`ReaderPageControls`, `ReaderPageMenu`): `HFRswift/Swift/MessagesView.swift (bottomPreviousPageButton, bottomNextPageButton, pageChoiceMenuItems, pageChoiceMenuFinalTargets)`.
+- `Reader/ReaderPageControls.swift` (`ReaderPageControls`, `ReaderPageMenuItems`, `ReaderPageMenu`): `HFRswift/Swift/MessagesView.swift (bottomPreviousPageButton, bottomNextPageButton, pageChoiceMenuItems, pageChoiceMenuFinalTargets)`.
 - `Reader/TopicReaderView.swift` (`TopicReaderView`): `HFRswift/Swift/MessagesView.swift (MessagesView)`, comment updated.
 - `Reader/ReaderScrollGeometry.swift`, `Reader/ReaderWebController+Scroll.swift`: none @ 2440d79 (legacy's web view did not run under the bars).
 - `Composer/ReaderReplyFlow.swift`: unchanged pointer; its button moved to `ReaderPageControls`.
@@ -42,7 +42,7 @@ Kept as shipped, not legacy (already recorded): "Page…" asks in an alert, not 
 ```
 
 - ‹ opens the previous page at its last message, › the next page at its top (legacy `4168-4178`; the swipe already did this). Both are disabled at the ends and while a page loads.
-- The page menu: "Page 1", "Page…", the last three pages after page 1 without repeats (`ReaderPageMenu.finalTargets`, legacy `pageChoiceMenuFinalTargets`), "Dernier post" (last page, at its last message). Disabled for a single page (legacy showed no page items then). Its label is a spinner while a page loads, as the shipped page bar was. The served page is still followed (LOT-167).
+- The page menu (bottom "N / M" and top "…", one list, `ReaderPageMenuItems`): "Première page", "Aller à la page…", the last pages after page 1 without repeats (`ReaderPageMenu.finalTargets`, legacy `pageChoiceMenuFinalTargets`) minus the last one, which "Dernière page" stands for, then "Dernier post" (last page, at its last message). Disabled for a single page (legacy showed no page items then). Its label is a spinner while a page loads, as the shipped page bar was. The served page is still followed (LOT-167).
 - "Répondre" (`plus`, or `square.and.pencil` for `reply_button_behavior = forum`, none when hidden, logged out or without an answer form), disabled while a quote loads; the sheet and the confirmation stay in `ReaderReplyFlow`.
 - APIs: `ToolbarItemGroup(placement: .bottomBar)`, `ToolbarSpacer(_:placement:)` (iOS 26.0+), `ToolbarContent.visibilityPriority(_:)` (iOS 27.0+), all read on the live developer docs on 2026-11-07. No iOS 27.1 API (those are LOT-147, M5).
 
@@ -79,7 +79,7 @@ Kept as shipped, not legacy (already recorded): "Page…" asks in an alert, not 
 None: no HFR fact. Tests use built pages (`ReaderInsetsWebTests.tallDocument`) and the existing fakes.
 
 ## Tests
-- `ReaderChromeTests` (model and math): reading top and clamping; insets changing both ways and at the top; the page menu's last pages (1, 2, 3, 4, 5, 1200 pages); ‹ and "Dernier post" land at the last message, › at the top, and "Réessayer" keeps it.
+- `ReaderChromeTests` (model and math): reading top and clamping; insets changing both ways and at the top; the page menu's last pages (1, 2, 3, 4, 5, 1200 pages), its item list (1, 2, 40 pages, against legacy's targets) and where each item goes ("Dernière page" at the top of the last page, "Dernier post" at its last message); ‹ and "Dernier post" land at the last message, › at the top, and "Réessayer" keeps it.
 - `ReaderInsetsWebTests` (real `WKWebView`): the insets reach WebKit and the scroll view and the page opens below the bar; a message lands below the bar; the message hidden under the bar is not reported; a refresh reopens at the same content when a banner went away meanwhile.
 
 ## Mac check needed
@@ -87,12 +87,12 @@ After #540 merges (tab bar hidden). iPhone 18 Pro, iPad, iPhone Duo (each pose);
 1. The first message sits right under the navigation bar, no gap and no double inset; the last one scrolls above the bottom bar.
 2. Messages scroll under both bars with the scroll edge effect; the tinted headers stay readable under the glass.
 3. ‹ › / "N / M" / "Répondre" in the bottom bar; on the Duo cover screen they move to the side bar; at Dynamic Type XL the page menu goes to the overflow first.
-4. The top bar: "Actualiser", "Sondage" when there is a poll, and the system overflow menu (filter, search, offline save).
+4. The top bar: "Actualiser", "Sondage" when there is a poll, and the system overflow menu (search, offline save, filter, then the page items after a separator, only past one page).
 5. Reopening a topic at its saved position (LOT-111), a refresh in the middle of a page, a refresh that fails (banner) then succeeds: same message at the bar's edge.
 6. The toast floats just above the bottom bar.
 
 ## Intentional differences from legacy
-D1–D4 above. No legacy bug fixed.
+D1–D5 above. No legacy bug fixed.
 
 ## Learnings
 - A web view under SwiftUI bars: read the covered area from SwiftUI (`GeometryReader` + `ignoresSafeArea`), not UIKit's safe area, which misses `safeAreaInset` banners; keep scroll positions as the content at the bars' edge.
