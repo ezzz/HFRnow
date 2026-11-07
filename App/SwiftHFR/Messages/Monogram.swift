@@ -43,6 +43,15 @@ struct Monogram: Equatable, Sendable {
         dark ? RGB(red: 1, green: 1, blue: 1) : RGB(red: 0, green: 0, blue: 0)
     }
 
+    /// `#rrggbb`, for the reader's markup.
+    static func hex(_ color: RGB) -> String {
+        func byte(_ value: Double) -> String {
+            let number = Int((min(max(value, 0), 1) * 255).rounded())
+            return (number < 16 ? "0" : "") + String(number, radix: 16)
+        }
+        return "#" + byte(color.red) + byte(color.green) + byte(color.blue)
+    }
+
     /// WCAG contrast ratio between two colours, 1...21.
     static func contrast(_ first: RGB, _ second: RGB) -> Double {
         let lighter = max(luminance(first), luminance(second))

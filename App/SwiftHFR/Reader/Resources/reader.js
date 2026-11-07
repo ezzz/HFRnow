@@ -11,9 +11,16 @@
     try { return new URL(src).host; } catch (error) { return ""; }
   };
 
+  // A refused or failed avatar leaves its monogram, drawn under it by the builder.
+  const dropAvatar = (img) => {
+    const wrap = img.closest(".avatar-wrap");
+    img.remove();
+    if (wrap) { wrap.classList.remove("has-image"); }
+  };
+
   // A refused or failed image becomes its URL as text, or a link when it is not already inside one (the app opens links).
   const replaceWithLink = (img, src) => {
-    if (img.classList.contains("avatar")) { img.remove(); return; }
+    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
     const insideLink = img.closest("a") !== null;
     const node = document.createElement(insideLink ? "span" : "a");
     node.className = "image-link";
@@ -30,7 +37,7 @@
   };
 
   const placeholder = (img, src) => {
-    if (img.classList.contains("avatar")) { img.remove(); return; }
+    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "image-tap";

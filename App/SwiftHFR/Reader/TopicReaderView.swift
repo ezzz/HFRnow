@@ -54,6 +54,8 @@ struct TopicReaderView: View {
     /// The open image viewer (LOT-109); a fresh model per tap.
     @State private var viewer: ImageViewerModel?
     @State private var profile: UserProfileModel?
+    /// "MP" of the author menu (issue #595): the new-MP composer for the member.
+    @State private var newMessage: ReplyComposerModel?
     @State private var askingPage = false
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
@@ -135,6 +137,7 @@ struct TopicReaderView: View {
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
+        .sheet(item: $newMessage) { message in ReplyComposerView(model: message) { _ in } }
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -265,6 +268,17 @@ struct TopicReaderView: View {
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
+        // The author menu (issue #595). Profil goes through the link router, which alone knows a profile link (LOT-116); MP needs
+        // a composer. Weak: the registry lives in the model.
+        handlers.append(ProfileActionHandler { [weak model] url in
+            guard case .profile(let id)? = model?.action(forLink: url, defaultBrowser: false) else { return }
+            profile = UserProfileModel(memberID: id, source: services.profiles)
+        })
+        if let composer {
+            handlers.append(PrivateMessageActionHandler { target in
+                newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
+            })
+        }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
