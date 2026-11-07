@@ -100,7 +100,7 @@ Both accounts then deleted the thread with `W64`'s and `W65`'s body (not publish
 Three messages, no edit POST, no retry.
 
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
-published AQ server (`toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
+published AQ server (`roger21/toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
 replaced by `192.0.2.1` like any IP. They document what that code answers. Each meta keeps the status and `response_headers` (those of PHP's built-in server, not the live host's), and `body_length` when no file holds the
 bytes. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
