@@ -30,7 +30,7 @@ struct AppIconSettingsView: View {
             } footer: {
                 if !model.isAvailable { Text("Les icônes alternatives ne sont pas disponibles sur cet appareil.") }
             }
-            .disabled(!model.isAvailable)
+            .disabled(!model.isAvailable || model.isSwitching)
         }
         .alert("Icône", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK", role: .cancel) {}

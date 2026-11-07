@@ -10,8 +10,11 @@ struct AppIconSettingsModelTests {
         var supportsAlternateIcons = true
         var fails = false
         var applied: [String?] = []
+        var gate: CheckedContinuation<Void, Never>?
+        var suspends = false
 
         func setAlternateIconName(_ name: String?) async throws {
+            if suspends { await withCheckedContinuation { gate = $0 } }
             if fails { throw Refusal() }
             applied.append(name)
         }
@@ -65,5 +68,20 @@ struct AppIconSettingsModelTests {
         await model.select(.redface3dbig)
         #expect(switcher.applied.isEmpty)
         #expect(model.selection == .superblue)
+    }
+
+    @Test func aSecondChoiceWhileOneIsApplyingIsIgnored() async {
+        let switcher = FakeSwitcher()
+        switcher.suspends = true
+        let model = AppIconSettingsModel(store: InMemorySettingsStore(), switcher: switcher)
+        let first = Task { await model.select(.redface3dbig) }
+        while switcher.gate == nil { await Task.yield() }
+        #expect(model.isSwitching)
+        await model.select(.redface3dbig)
+        switcher.gate?.resume()
+        await first.value
+        #expect(switcher.applied == ["Icon-RedFace3DBig"])
+        #expect(!model.isSwitching)
+        #expect(model.errorMessage == nil)
     }
 }

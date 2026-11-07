@@ -59,6 +59,8 @@ final class AppIconSettingsModel {
     private(set) var selection: AppIconOption
     /// The French message of the last failed switch, nil otherwise.
     var errorMessage: String?
+    /// True while the system applies an icon; further choices are ignored (a second call could be refused and show a false error).
+    private(set) var isSwitching = false
     /// False where the system has no alternate icons: the picker is disabled.
     var isAvailable: Bool { switcher.supportsAlternateIcons }
 
@@ -74,7 +76,9 @@ final class AppIconSettingsModel {
 
     /// Applies `option`; on a refusal the selection and the store keep their previous value and `errorMessage` is set.
     func select(_ option: AppIconOption) async {
-        guard option != selection, isAvailable else { return }
+        guard option != selection, isAvailable, !isSwitching else { return }
+        isSwitching = true
+        defer { isSwitching = false }
         errorMessage = nil
         do {
             try await switcher.setAlternateIconName(option.alternateIconName)
