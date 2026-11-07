@@ -83,7 +83,7 @@ public struct PostingForm: Sendable {
     }
 
     /// `numreponse` of the message an edit form belongs to.
-    var postNumber: Int? {
+    public var postNumber: Int? {
         form.field(named: "numreponse").flatMap { Int($0.value) }
     }
 

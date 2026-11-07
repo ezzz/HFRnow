@@ -78,7 +78,7 @@ Sources: `ReplyService.swift:145-183, 294-365, 579-719` · `AddMessageViewContro
 |---|---|---|---|
 | Reply | `href` of the first `<a>` in `#repondre_form` on the topic page | | `ObjCTopicPageWorker.m:156-157` · D §2.1 |
 | Edit | decoded `editURL` of an own message | same form, `content_form` replaced | D §2.3 |
-| Delete | decoded `editURL` | edit with `delete=1` and the unchanged text. Legacy UI never offers deleting the first post; **rf2: the topic owner can, and it deletes the whole topic** (§7) | `ReplyService.swift:954-1038` · D §2.4 |
+| Delete | decoded `editURL` | edit with `delete=1` and the unchanged text. Legacy UI never offers deleting the first post; **rf2: the topic owner can, and it deletes the whole topic** (§7); SwiftHFR refuses it from the menu until LOT-175 (§6c LOT-088) | `ReplyService.swift:954-1038` · D §2.4 |
 | New topic | `href` of `#md_btn_new_topic` on the topic list | `sujet` (text), `subcat` (select) | `ObjCTopicListParser.m:134-135` · D §2.5 |
 | New MP | author block link `/message.php?config=hfr.inc&cat=prive&…&dest=` | `dest`, `sujet` | `ParseMessagesOperation.m:389-390` · D §2.5 |
 | Moderator alert | first `href` containing `/user/modo.php` in the message | form `action~modo.php`, field `raison`; `.hop` with a link = **already alerted** (inverse of reply) | `ReplyService.swift:1400-1531` · D §2.6 |
@@ -423,6 +423,14 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 - **Answer link** (`R61d`, **verified**): a logged-in topic page's `#repondre_form` holds one `a` to `/message.php?config=hfr.inc&cat=<cat>&post=<post>&page=<page>&p=1&subcat=<sub>&sondage=0&owntopic=0&new=0` (the page shown, here 30), the reply composer `R61b` serves; none on anonymous pages (`R20`) nor on a locked topic seen anonymously (`R31`). A locked topic seen by a member is pending capture (#131).
 - **Where a reply lands vs HFR's refresh** (`R61b`, `W30`, `R61d`, **verified** for a form at `page=1`): the composer `W30` posted was fetched with `page=1` and its body carries `page=1` (`R61b`); the answer refreshes to page **1** with `#bas` (`…-sujet_6510_1.htm#bas`), while the reply is the last message of the topic's last page (`R61d`, page 30). Every captured reply posted `page=1` (`W11`, `W12`, `W13b`, `W13c` refresh to `page=1`). **Pending capture**: whether HFR echoes the form's `page` (an edit posted with `page=30` refreshes to `_30.htm`, `W31`; `R61d`'s answer link carries `page=30`). The app does not use the refresh either way: it opens `page = max + 1`, which HFR redirects to the last page (`R24`, 302 from the canonical path), at its last message.
+
+### LOT-088 — edit and delete own messages
+
+[LOT-088](lots/LOT-088-edit-delete.md), tests `PostingEditDeleteTests`, `EditComposerTests`, `MessageWriteModelTests`.
+
+- **Edit form by post** (`R43a`, `R43b`, `R62a`, `R63b`, **verified**): a later post carries `sujet` and `subcat` as hidden inputs (`R62a`; `R43b` private, `subcat=0`), a public first post a visible `sujet` (`maxlength` 70) and a `<select name="subcat">` with its option marked `selected` (`R63b`, 12 options, the first `value=""` "Aucune"), a private first post a visible `sujet` and no `subcat` at all (`R43a`).
+- **Refresh after an edit or a delete** (`W31`, `W32`, `W34`, **verified**): the canonical page the form named (`W31`, form `page=30`: `…sujet_6510_30.htm#t<numreponse>`; `W32`: same page, no fragment; `W34`: page 1 with the fragment). The app reloads the page on screen.
+- **Pending capture**: a first-post edit with a changed `sujet` or `subcat` (`W34`, `W35` sent them as served; whether HFR applies them and what it refreshes to); the form of a first post without sub-category; the page after deleting the only message of the last page of a private thread.
 
 ### LOT-090 — message numbers order a topic
 
