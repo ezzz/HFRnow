@@ -4,7 +4,8 @@ import SwiftUI
 import WebKit
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
-// the page controls are the legacy ‹ › with a "N / M" page menu instead of the "…" one (`ReaderPageControls`, LOT-186); the page
+// the page controls are the legacy ‹ › with a "N / M" page menu, the same page items also sit in the "…" overflow, with new labels
+// (`ReaderPageControls`, LOT-186, #582); the page
 // runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
 // (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
 // split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
@@ -109,6 +110,13 @@ struct TopicReaderView: View {
                         Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease")
                     }
                     .disabled(filterIsBusy)
+                }
+            }
+            // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
+            if let page = model.page, page.maxPage > 1 {
+                ToolbarItemGroup(placement: .secondaryAction) {
+                    // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
+                    Section { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
                 }
             }
         }

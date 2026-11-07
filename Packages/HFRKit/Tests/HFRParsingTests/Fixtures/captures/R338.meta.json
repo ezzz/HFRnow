@@ -1,0 +1,21 @@
+{
+  "id": "R338",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 12:48:09 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R338-mp-list-recipient-unread-after-second-reply.html",
+  "private": true
+}
