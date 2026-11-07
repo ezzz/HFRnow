@@ -1,10 +1,27 @@
 import SwiftUI
 
+/// Size of the bar's cells (#598): 48 pt in regular density, 40 pt in compact, times the app's text scale.
+struct ComposerBarMetrics: Equatable {
+    let density: ListDensity
+    let scale: TextScale
+
+    /// Height and minimum width of one cell.
+    var cellSize: CGFloat { (density == .compact ? 40 : 48) * scale.factor }
+    /// Diameter of a colour swatch: half the cell, as the legacy 24 pt in a 48 pt cell.
+    var swatchSize: CGFloat { cellSize / 2 }
+    /// Point size of a button's symbol.
+    var glyphSize: CGFloat { cellSize * 0.4 }
+}
+
 /// The BBCode buttons under the editor: tags, then the colour palette. Thin: every rule is in `ComposerFormattingModel`.
 struct FormattingToolbar: View {
     let model: ComposerFormattingModel
     /// Called after a tap so the editor keeps focus (the keyboard stays up).
     let refocus: () -> Void
+    @Environment(\.listDensity) private var density
+    @Environment(\.textScale) private var scale
+
+    private var metrics: ComposerBarMetrics { ComposerBarMetrics(density: density, scale: scale) }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -32,7 +49,7 @@ struct FormattingToolbar: View {
                 Circle()
                     .fill(Self.swiftUIColor(hex: color.hex))
                     .overlay { Circle().stroke(Color.primary.opacity(0.4), lineWidth: 1) }
-                    .frame(width: 24, height: 24)
+                    .frame(width: metrics.swatchSize, height: metrics.swatchSize)
             }
         }
     }
@@ -44,7 +61,9 @@ struct FormattingToolbar: View {
             action()
             refocus()
         } label: {
-            content().frame(minWidth: 44, minHeight: 44).contentShape(.rect)
+            content()
+                .font(.system(size: metrics.glyphSize))
+                .frame(minWidth: metrics.cellSize, minHeight: metrics.cellSize).contentShape(.rect)
         }
         .buttonStyle(.plain)
         .disabled(!model.isEnabled)

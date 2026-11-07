@@ -91,3 +91,4 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 83 | T | Composer : la couleur du texte s'écrit `[#rrggbb]`, la balise que HFR reconnaît ; le legacy écrivait `[rrggbb]`, sans le `#` (rendu de cette forme non capturé). | LOT-085, #499 | `HFRswift/Swift/AnswerView.swift:40` (origin/master), capture `R41a` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
+| 84 | UX | Composer : la barre de mise en forme suit la densité et la taille du texte (cellules de 48 pt, 40 pt en mode compact, multipliées par l'échelle de texte) ; `[url]` sans sélection propose les deux formes, `[url=…][/url]` (curseur entre les balises) et `[url]…[/url]` ; le bouton d'envoi d'image du haut a son icône (`photo.badge.plus`), distincte de la balise `[img]`. | #598 (LOT-174, #592) | `HFRTextView.m:205-262`, `:327-350` @ `2440d79` |

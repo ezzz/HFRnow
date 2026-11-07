@@ -150,7 +150,8 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
 | LOT-084 | Reply composer (send, drafts, errors) | App | medium | Opus → Fable | 048, 063, 081, 083 | legacy parity · MVP | high | [#176](https://github.com/ezzz/HFRnow/issues/176) |
-| LOT-085 | Composer insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (the visible toolbar is LOT-174, M5) | App | medium | Sonnet → Opus | 084 | legacy parity | medium | [#177](https://github.com/ezzz/HFRnow/issues/177) |
+| LOT-085 | Composer insertion engine and Edit-menu BBCode actions, plus the legacy clear / undo / redo and quote splitting (the visible toolbar is LOT-174, M4) | App | medium | Sonnet → Opus | 084 | legacy parity | medium | [#177](https://github.com/ezzz/HFRnow/issues/177) |
+| LOT-174 | Visible formatting toolbar in the composer: cells of 48 pt (40 pt in compact density) scaled with the text size, `[url]` in both forms, a distinct upload icon (beta-test finding #592; the Edit-menu actions stay in LOT-085) | App | medium | Sonnet → Opus | 085 | UXD-18 · GAP 084, 085, 086 | low | [#414](https://github.com/ezzz/HFRnow/issues/414) |
 | LOT-086 | Quote and multi-quote into the composer | App | medium | Opus → Fable | 049, 084, 087 | legacy parity | high | [#178](https://github.com/ezzz/HFRnow/issues/178) |
 | LOT-088 | Edit own messages (the first post too, with its title and subcategory) and delete them, except the first post (deleting the first post is LOT-175, M5) | App | medium | Opus → Fable | 048, 084, 087 | legacy parity | medium | [#180](https://github.com/ezzz/HFRnow/issues/180) |
 | LOT-089 | New topic composer | App | medium | Opus → Fable | 048, 084, 082 | legacy parity | medium | [#181](https://github.com/ezzz/HFRnow/issues/181) |
@@ -305,7 +306,6 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
-| LOT-174 | Visible formatting toolbar in the composer (the (b) half of LOT-085; the Edit-menu actions stay there) | App | medium | Sonnet → Opus | 085 | UXD-18 · GAP 084, 085, 086 | low | [#414](https://github.com/ezzz/HFRnow/issues/414) |
 | LOT-175 | Delete the first post of a public topic, which deletes the whole topic, with a confirmation (the (b) half of LOT-088; in a private message the recipient keeps the thread, [HFR-PROTOCOL](HFR-PROTOCOL.md) §7 X1) | App | medium | Opus → Fable | 088 | UXD-14 · GAP 097 | low | [#415](https://github.com/ezzz/HFRnow/issues/415) |
 | LOT-176 | Nothing left beyond parity: the HD gallery with swipe shipped in LOT-109 (#472, operator decision 2026-11-06); to be closed as not planned | App | medium | Sonnet → Opus | 109 | none · GAP 057 · FEAT-014 | low | [#416](https://github.com/ezzz/HFRnow/issues/416) |
 | LOT-177 | Uniform swipe set in every list: Lu with "Annuler", Super favori and Retirer swipes, FEAT-008 (the (b) half of LOT-125) | App | medium | Opus → Fable | 125 | UXD-08 · GAP 028, 029, 034 · FEAT-008 | low | [#417](https://github.com/ezzz/HFRnow/issues/417) |
