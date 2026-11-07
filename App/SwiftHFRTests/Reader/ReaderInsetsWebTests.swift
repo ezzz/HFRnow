@@ -47,6 +47,45 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await until { abs(scrollView.contentOffset.y + bars.top) <= 1 }, "offset: \(scrollView.contentOffset)")
     }
 
+    /// Issue #566: the screen goes away while a tall page is still loading, then comes back with the same document. The
+    /// stopped load never reports ready: the controller must load the document again rather than skip it as already shown.
+    @Test func aDocumentStoppedBeforeItWasReadyLoadsAgainWhenShownAgain() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.obscuredInsets = bars
+        let document = tallDocument(token: 1)
+        controller.show(document)
+        controller.stopLoading()
+        // The stop must really abort the navigation, or this test would pass without the fix too.
+        #expect(await until({ !recorder.ready.isEmpty }, timeout: .seconds(2)) == false, "ready: \(recorder.ready)")
+        // A hidden view's re-render shows nothing while stopped; the screen coming back does.
+        controller.show(document)
+        controller.resume()
+        controller.show(document)
+        #expect(await until({ recorder.ready == [1] }, timeout: .seconds(120)), "ready: \(recorder.ready)")
+    }
+
+    /// Fable finding 1: a page that kills the content process before it is ready is loaded once more, then reported.
+    @Test func aDocumentWhoseContentProcessDiesTwiceBeforeReadyIsReported() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(tallDocument(token: 1))
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        #expect(recorder.failed.isEmpty)
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        #expect(recorder.failed == [1])
+    }
+
+    /// CodeRabbit: after a crash of a page already shown, the reload is a new load: its failures are reported too.
+    @Test func theReloadOfAShownDocumentAfterACrashIsReportedWhenItFails() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(tallDocument(token: 1))
+        #expect(await until { recorder.ready == [1] })
+        controller.webViewWebContentProcessDidTerminate(controller.webView) // shown: reloaded
+        controller.webViewWebContentProcessDidTerminate(controller.webView) // not ready again: reloaded once
+        #expect(recorder.failed.isEmpty)
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        #expect(recorder.failed == [1])
+    }
+
     @Test func aMessageLandsBelowTheTopBar() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.obscuredInsets = bars
