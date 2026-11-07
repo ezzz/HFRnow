@@ -371,7 +371,7 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R603c | `R603c-list-cat13-owntopic3-page2.html` | `page=2` of `R603b`: 200 in place, 56 rows, `<title>` with "Page : 2", pager `1` as a cryptlink to page 1 and the current page not printed, "Page Suivante" disabled, "Page Précédente" a cryptlink to page 1. Run observation: the same topics in the same order as `R603b` (row aliases cannot show it) | R08 | 022, 167 |
 | R603d | `R603d-list-subcat-owntopic3.html` | `owntopic=3` with `subcat=<s>`: 200 in place, 14 rows (12 `favoris.gif`, 2 with an empty flag cell), `<title>` "<sub-forum> - <category> - FORUM HardWare.fr", pager `1` alone | R08 | 022, 024 |
 | R603e | `R603e-favourites-owntopic2.html` | `forum1f.php?…&owntopic=2&new=0&nojs=0` (user2): title "Vos sujets", 3 category headers linking `owntopic=2`, 5 topic rows, one sticky, all `flag0.gif`, and under the second header no topic, only the row "Aucun nouveau message" | R10 | 024 |
-| R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); a member without avatar has no `tns3` | E1 | 057 |
+| R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); `tns3` can be absent | E1 | 057 |
 
 ## Not captured
 
