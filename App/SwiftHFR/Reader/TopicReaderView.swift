@@ -138,6 +138,10 @@ struct TopicReaderView: View {
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
         .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
+        .navigationDestination(item: linkedReader) { linked in
+            // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
+            TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
+        }
         .onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
         .onAppear {
