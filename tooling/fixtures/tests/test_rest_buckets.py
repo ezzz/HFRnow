@@ -197,14 +197,31 @@ class RestBucketAliasTests(unittest.TestCase):
             self.assertEqual(anon(text), text)
 
     def test_meta_url_gets_the_alias_category(self):
-        a = A.Anonymizer(A.Config({"pseudos": ["Pseudoa Realone"]}))
+        a = A.Anonymizer(A.Config(pseudos=["Pseudoa Realone"]))
         a.anonymize(flat())
         meta = a.anonymize_meta({"url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/"
                                         "categories/33/topics/participated/"})
         self.assertIn("categories/101/topics/participated", meta["url"])
 
+    def test_percent_encoded_request_is_a_bucket_request(self):
+        for uri in ("forums/hardwarefr/topics/read/", "forums%2Fhardwarefr%2Ftopics%2Fread%2F",
+                    "forums%2fhardwarefr%2fcategories%2f16%2ftopics%2fparticipated%2f"):
+            self.assertTrue(A.is_rest_bucket_request("https://forum.hardware.fr/webservices/rest_api.php?uri=" + uri), uri)
+        self.assertFalse(A.is_rest_bucket_request(
+            "https://forum.hardware.fr/webservices/rest_api.php?uri=forums%2Fhardwarefr%2Fcategories%2F"))
+
+    def test_meta_url_with_encoded_slashes_gets_the_alias_category(self):
+        a = A.Anonymizer(A.Config())
+        a.anonymize(flat())
+        url = "https://forum.hardware.fr/webservices/rest_api.php?uri=forums%2Fhardwarefr%2Fcategories%2F33%2Ftopics%2Fparticipated%2F"
+        out = a.anonymize_meta({"url": url})["url"]
+        self.assertIn("categories%2F101%2Ftopics%2Fparticipated", out)
+        self.assertNotIn("33", out)
+        self.assertTrue(A.verify_rest_meta(json.dumps({"url": url})))
+        self.assertEqual(A.verify_rest_meta(json.dumps({"url": out})), [])
+
     def test_full_pipeline_output_is_clean(self):
-        a = A.Anonymizer(A.Config({"pseudos": ["Pseudoa Realone", "Pseudob Realtwo"]}))
+        a = A.Anonymizer(A.Config(pseudos=["Pseudoa Realone", "Pseudob Realtwo"]))
         for text in (bucket(), flat()):
             out = a.anonymize(text)
             self.assertEqual(a.findings(out, account="user1"), [])
@@ -217,7 +234,7 @@ class RestBucketVerifierTests(unittest.TestCase):
     """The verifier alone: only one value of an aliased answer is put back."""
 
     def setUp(self):
-        a = A.Anonymizer(A.Config({"pseudos": ["Pseudoa Realone", "Pseudob Realtwo"]}))
+        a = A.Anonymizer(A.Config(pseudos=["Pseudoa Realone", "Pseudob Realtwo"]))
         self.good = a.anonymize(bucket())
         self.good_flat = a.anonymize(flat())
 
@@ -335,12 +352,12 @@ class RestBucketVerifierTests(unittest.TestCase):
             self.assertNotIn(str(TOPIC), reason)
 
     def test_check_finds_a_raw_answer_without_config(self):
-        a = A.Anonymizer(A.Config({"pseudos": []}))
+        a = A.Anonymizer(A.Config())
         self.assertTrue(any("rest-bucket" in f[2] for f in a.findings(bucket())))
 
     def test_check_uses_the_meta_url_of_a_corpus_file(self):
         import tempfile
-        a = A.Anonymizer(A.Config({"pseudos": []}))
+        a = A.Anonymizer(A.Config())
         doc = json.loads(self.good)
         for g in doc["resource"]["resources"]:
             for it in g["resources"]:

@@ -529,8 +529,9 @@ REST_KEEP = 2
 REST_KEEP_ITEMS_PER_GROUP = 1
 REST_LAST_POSITION_BASE = 200
 REST_API_PREFIX = "https://forum.hardware.fr/api/forums/hardwarefr/"
-REST_BUCKET_URL_RE = re.compile(r"categories/(\d+)/topics/(participated|read|favorites)\b")
-REST_REQUEST_RE = re.compile(r"rest_api\.php\?uri=[^&#]*\btopics/(?:participated|read|favorites)\b")
+_SL = r"(?:/|%2[Ff])"  # the `uri` value may carry its slashes percent-encoded
+REST_BUCKET_URL_RE = re.compile(r"(categories%s)(\d+)(%stopics%s)(participated|read|favorites)\b" % (_SL, _SL, _SL))
+REST_REQUEST_RE = re.compile(r"rest_api\.php\?uri=[^&#]*?%stopics%s(?:participated|read|favorites)\b" % (_SL, _SL))
 
 
 def is_rest_bucket(doc):
@@ -1726,8 +1727,8 @@ class Anonymizer:
             if isinstance(v, list):
                 return [walk(x, key) for x in v]
             if isinstance(v, str):
-                v = REST_BUCKET_URL_RE.sub(lambda m: "categories/%s/topics/%s" % (
-                    self.rest_cats.setdefault(m.group(1), str(FOLLOWED_CAT_FIRST + len(self.rest_cats))), m.group(2)), v)
+                v = REST_BUCKET_URL_RE.sub(lambda m: m.group(1) + self.rest_cats.setdefault(
+                    m.group(2), str(FOLLOWED_CAT_FIRST + len(self.rest_cats))) + m.group(3) + m.group(4), v)
                 return self.redact_text(v, free_text=key == "note")
             return v
         return walk(meta)
@@ -2563,7 +2564,7 @@ _VB_H_CAT = re.compile(r"categories/(\d+)/(?:subcategories/(\d+)/)?")
 _VB_H_LIST = re.compile(r"(?:categories/(\d+)/)?topics/(?:participated|read|favorites)/\?page=(\d+)&results_per_page=(\d+)")
 _VB_AUTHOR = re.compile(r"user[0-9]+")
 _VB_TNS3 = re.compile(r"[a-z]+-9[01]00[0-9]{2}\.(?:jpe?g|png|gif)")
-_VB_META_URL = re.compile(r"categories/(\d+)/topics/(?:participated|read|favorites)\b")
+_VB_META_URL = re.compile(r"categories%s(\d+)%stopics%s(?:participated|read|favorites)\b" % (_SL, _SL, _SL))
 _VB_LIST_KEYS = {"page", "results_count", "results_per_page", "resources", "list_type", "type", "href"}
 _VB_ITEM_KEYS = {"id", "title", "last_post_date", "is_closed", "is_sticky", "links", "type", "href", "is_read",
                  "flag_owntopic", "last_position", "last_post_read_id"}

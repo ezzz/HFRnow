@@ -74,17 +74,17 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 | `R57b` + `R04` | 30 rows: id, replies, pages, sticky, closed, last post date equal to `TopicListParser`'s rows of the same topics when no post came between the captures |
 | `R57c` | one topic: the `R57b` row of the same topic (same count), pseudos aside, `isSticky` false |
 | `R57a`-`R57c` meta | the requests sent equal the captured URLs; no cookie; every href of the three answers rewritten on the forum origin, the 31 `posts` ones refused |
+| `R335a`-`R335e` | The flag buckets `topics/{participated,read,favorites}`, logged in (#335), aliased by position, 2 entries each: global grouped by category (`R335a`-`R335c`), the page-2 requests (`R335d`, `R335e`, paging is not served) and the flat per-category form (`R335e`). Shape and facts in HFR-PROTOCOL §6c, flag buckets. They hold `last_position`, `last_post_read_id` and `flag_owntopic`. **Not read by the shipped client**: the client that reads them is still to write and sends the session cookies; `RESTBrowsingClient` stays cookie-less |
 
 **Pending capture** (never hand-built, LESSONS 35-36):
-- ~~The flag buckets `topics/{participated,read,favorites}`, logged in~~ captured (#335): `R335a`-`R335e`, shape and facts in HFR-PROTOCOL §6c "LOT-057 — REST API (anonymous)", flag buckets. `last_position`, `last_post_read_id` and `flag_owntopic` are in them; the client that reads them is still to write, and sends the session cookies.
 - The sub-categories of a category ([#285](https://github.com/ezzz/HFRnow/issues/285)).
 - A list page 2, a `results_per_page` answer, an `/api/…` href requested as is (E1 says 404), and a REST error answer ([#355](https://github.com/ezzz/HFRnow/issues/355)). Until then the client asks for page 1 only, and every failure is handled the same way: fallback.
-- Any REST answer to a session: the client sends no cookie.
+- Any REST answer to a session other than the flag buckets (`R335a`-`R335e`): the shipped client sends no cookie.
 
 ## Intentional differences
 No legacy code: none from legacy. From the issue text:
 1. **Page size**: the issue's "per page, default 25" is the topic list's page size (`R57b`); a topic's page count uses 40 posts per page, the anonymous HTML size (`R04`, E19), which is also the `results_per_page` of every `links.posts.href`.
-2. **Anonymous only**: the issue reads with the account's cookies; with no capture of a logged-in REST answer, the shipped part sends none (the buckets need them and wait for #335).
+2. **Anonymous only**: the issue reads with the account's cookies; the shipped part sends none. The logged-in flag buckets are captured now (`R335a`-`R335e`, #335) but are read by a later client, which will send the session cookies; this cookie-less client is unchanged.
 3. **`last_position`** is not read: it is absent from every anonymous answer.
 
 ## Tests
