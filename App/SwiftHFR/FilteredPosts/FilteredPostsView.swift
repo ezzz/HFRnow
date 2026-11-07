@@ -6,6 +6,8 @@ import SwiftUI
 // Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
 // points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
 // open in the in-app browser (a forum link does not open a reader from here yet).
+// LOT-185: "Résultats suivants" is a `safeAreaBar` with `.glassProminent`, not legacy's `.bottomBar` toolbar item (it holds a
+// state line, a hint and Cancel); the banner is glass; GAP row pending #545.
 
 /// Shows the progress banner, the filtered posts sheet and the failure alert of `model` over its content.
 private struct FilteredPostsPresentation: ViewModifier {

@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 // Port of HFRswift/Swift/MessagesView.swift (`FullScreenPhotoViewer` `:5643`, `ZoomableRemoteAnimatedImageView` `:5790`) and
 // Classes/SimplePhotoViewController.m @ 2440d79. Differences: GAP-057 / FEAT-014: swipe between the page's images, a visible close
 // button (reachable on iPad), share, save and copy link in one menu; no drag-to-dismiss (a full-screen cover has none): Fermer closes.
+// LOT-185: no bar background, `ellipsis` menu symbol, glass toast; GAP row pending #545.
 /// The full-screen image viewer: a pager of zoomable images over black, with a toolbar for close, share, save and copy link.
 struct ImageViewerView: View {
     @Bindable var model: ImageViewerModel

@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The page controls of a list, as system bottom-bar items (Liquid Glass, and on iPhone Duo's cover screen the system
-/// moves them to the side) instead of a hand-built strip with an opaque fill. Port of the list pagers of
-/// HFRswift/Swift/MainWindow.swift:977-981 @ 2440d79. Differences: the legacy drew its own glass capsule; the bar is the
-/// system's (LOT-185).
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsPaginationBar, `:926-981`) and of the pager of HFRswift/Swift/ForumSearchView.swift
+// (`:395-432`) @ 2440d79. Differences: legacy drew its own glass capsule, this is the system bottom bar; GAP row pending #545 (LOT-185).
+/// The page controls of a list, as system bottom-bar items (Liquid Glass; on iPhone Duo's cover screen the system moves them
+/// to the side) instead of a hand-built strip with an opaque fill.
 struct PagerToolbar: ToolbarContent {
     /// The first / previous / next / last page actions; a nil action hides its button (the forum list has no "last").
     struct Step {

@@ -6,16 +6,16 @@
 
 ## Legacy sources
 - `HFRswift/Swift/LiquidGlass.swift` @ `2440d79` (the helpers `hfrGlassSurface`, `hfrGlassButton`, `hfrToastSurface`, `presentationGlassBackground`).
-- List pagers: `MainWindow.swift:977-981`. Filtered "Résultats suivants" bar: `MessagesView.swift:4728-4740`.
+- List pagers: `MainWindow.swift` `ForumTopicsPaginationBar` `:926-981` (its glass modifiers at `:977-981`); search pager `ForumSearchView.swift:395-432`. The MP list has no legacy pager (`MPListView.swift` shows page 1 only). Filtered "Résultats suivants" bar: `MessagesView.swift:4728-4740`.
 
 No `View` extension mirrors the helpers: every converted site is one modifier (`glassEffect`, `safeAreaBar`) and the minimum target is iOS 27, so the helpers' `#available` fallbacks are dead code.
 
 ## Legacy counterpart (app lots)
 | SwiftHFR | Legacy @ 2440d79 |
 |---|---|
-| `Navigation/PagerToolbar.swift` (new), `Navigation/TopicListView.swift` (`PageBar`) | `MainWindow.swift` (`ForumTopicsPaginationBar`, :977-981) |
-| `Messages/MessageListView.swift` (`MessagePageBar`) | `MainWindow.swift:977-981` |
-| `Search/ForumSearchView.swift` (`pagerToolbar`) | `ForumSearchView.swift` pager (own glass capsule) |
+| `Navigation/PagerToolbar.swift` (new), `Navigation/TopicListView.swift` (`PageBar`) | `MainWindow.swift` (`ForumTopicsPaginationBar`, :926-981) |
+| `Messages/MessageListView.swift` (`MessagePageBar`) | none @ 2440d79 (`MPListView.swift` shows page 1 only) |
+| `Search/ForumSearchView.swift` (`pagerToolbar`) | `ForumSearchView.swift:395-432` (own glass capsule) |
 | `FilteredPosts/FilteredPostsView.swift` (`NextBatchBar`, `FilteredPostsBanner`) | `MessagesView.swift:4728-4740`, `Favorites.swift` (`FavoritePostFilterProgressBanner`) |
 | `Smileys/SmileyPickerView.swift`, `Offline/ReaderOfflineSave.swift`, `Reader/Viewer/ImageViewerView.swift`, `Root/RootTabsView.swift` | none @ 2440d79 (new screens), or toolbar of `MessagesView.swift` |
 
@@ -32,7 +32,7 @@ GAP rows are written by the docs child of #545 (`ext/francoisgn-docs-545`); this
 ## Behaviour
 View-only. Model logic is unchanged (`TopicListModel`, `MessageListModel`, `ForumSearchModel`, `FilteredPostsModel` untouched). Enabled states and visibility conditions of each pager are the ones of the removed strips, now read in `.toolbar { … }`.
 
-APIs used (verified on the live docs 2026-11-07, see #545): `glassEffect(_:in:)`, `safeAreaBar(edge:…)`, `ToolbarSpacer` (iOS 26.0+). `.buttonStyle(.glassProminent)` was unverified: if CI does not compile it, replace by `.glass` + tint.
+APIs used (verified on the live docs 2026-11-07, see #545): `glassEffect(_:in:)`, `safeAreaBar(edge:…)`, `ToolbarSpacer` (iOS 26.0+). `.buttonStyle(.glassProminent)` compiles on `xcode-27` (CI, a3c1d7b).
 
 ## Sites (every one converted or kept)
 HIG: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials) ("Don't use Liquid Glass in the content layer"; glass for floating elements), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout) (scroll edge effect instead of an opaque fill under controls), [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) (one prominent action per view).
@@ -47,7 +47,7 @@ HIG: [Materials](https://developer.apple.com/design/human-interface-guidelines/m
 | `MessageListView` pager | converted, same | same |
 | `ForumSearchView` pager (first/prev/next/last) | converted, same | same |
 | `FilteredPostsView` `NextBatchBar` | converted to `safeAreaBar(edge: .bottom)`, fill dropped, button `.glassProminent` (the one primary action). **Not** a toolbar item (legacy used one) | the bar carries a state line, a hint and a Cancel while it runs; a toolbar item cannot hold them without losing information |
-| `TopicListView` top strip (store problem) | converted: `safeAreaBar(edge: .top)`, fill dropped | Layout |
+| `TopicListView` top strip (store problem) | converted: `safeAreaBar(edge: .top)`, fill dropped. The sent and failure banners moved to a separate `safeAreaInset(edge: .top)`, like `MessageListView` | Layout |
 | `ReaderOfflineSave` top strip | converted, same | Layout |
 | `FilteredPostsView` top banner (`bar` in rounded rect) | `safeAreaBar(edge: .top)` + `glassEffect(in: .rect(cornerRadius: 10))` | floats over the reader |
 | `MessageListView` segment switch | converted: `safeAreaBar(edge: .top)`, fill dropped | Layout |
@@ -70,7 +70,7 @@ Acceptance grep: `.background(.bar)` outside `Reader/` leaves only `Composer/For
 None (view-only). Existing app tests unchanged.
 
 ## Mac check needed
-Light, dark, Dynamic Type XL, Reduce Transparency, Increase Contrast; iPhone 18 Pro, iPad, iPhone Duo poses. Check in particular: pagers over the tab bar, the toolbar item "Page N" contrast, the search bar above the keyboard in the smiley picker, glass banner contrast over the reader.
+Light, dark, Dynamic Type XL, Reduce Transparency, Increase Contrast; iPhone 18 Pro, iPad, iPhone Duo poses. Check in particular: on iPhone, in Catégories and Favoris, open a topic from a paged list (and a search result in Plus → Recherche): the list's bottom pager must not stay on the reader (own bottom inset, `TopicReaderView.swift:54`) and must come back on return; pagers over the tab bar, the toolbar item "Page N" contrast, the search bar above the keyboard in the smiley picker, glass banner contrast over the reader.
 
 ## Intentional differences from legacy
 See "UX evolutions".

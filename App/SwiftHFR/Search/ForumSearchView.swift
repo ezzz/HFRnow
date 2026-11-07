@@ -5,6 +5,7 @@ import SwiftUI
 // Port of HFRswift/Swift/ForumSearchView.swift (ForumSearchView, ForumSearchViewModel) @ 2440d79.
 // Differences: GAP-130..134. A banned word is refused with a warning instead of a silent substitution (Q-7,
 // CHANGELOG-LEGACY 45); the result row is the app's `TopicRowView` with the excerpt; the pager follows LOT-046's paths.
+// LOT-185: the pager (legacy `:395-432`) is the system bottom bar (`PagerToolbar`) instead of a glass capsule; GAP row pending #545.
 
 /// "Rechercher sur le forum" (Plus tab): the form, the results of the page on screen and a pager.
 struct ForumSearchView: View {

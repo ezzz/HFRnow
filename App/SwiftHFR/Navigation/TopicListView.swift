@@ -4,7 +4,7 @@ import UIKit
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79. Differences: no Tous / Favoris / Suivis / Lus filter; "Page N" without a fake total (GAP-023, 024;
-// UXD).
+// UXD). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -41,15 +41,18 @@ struct TopicListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
+            if let problem = model.favorites?.storeProblem {
+                Label(problem, systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .safeAreaInset(edge: .top) {
+            // Content-layer cards: they push the list down, so they stay materials in an inset (LOT-185).
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
                     TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
-                }
-                if let problem = model.favorites?.storeProblem {
-                    Label(problem, systemImage: "exclamationmark.triangle")
-                        .font(.footnote)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)

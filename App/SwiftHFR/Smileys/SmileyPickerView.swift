@@ -2,6 +2,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView, FavoriteSmileyDetailView) @ 2440d79. Differences: see the
 // doc comment and the specs LOT-104 (GAP-087) and LOT-105 (GAP-088) in docs/lots/.
+// LOT-185: the search bar is a `safeAreaBar` without fill and the notice capsule is glass; GAP row pending #545.
 /// The smiley panel of the reply sheet (legacy `CombinedSmileyPickerView`, `HFRswift/Swift/AnswerView.swift:1051` @ 2440d79).
 ///
 /// Differences: no forum-smiley section (its own lot); the search bar, history and keywords are LOT-105;
