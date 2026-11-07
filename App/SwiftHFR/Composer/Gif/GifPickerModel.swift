@@ -65,7 +65,7 @@ final class GifPickerModel: Identifiable {
     /// The text of notice N1: who runs the host, what is sent, what becomes public (LOT-071 T5).
     var noticeMessage: String {
         let host = services.hostName.map { "le service Giphy (\($0))" } ?? "le service Giphy"
-        return "La recherche de GIF passe par \(host), un service tiers qui n'est ni HFR ni cette application. "
+        return "La recherche de GIF passe par \(host), exploité par la société Giphy, un tiers qui n'est ni HFR ni cette application. "
             + "Seuls vos mots de recherche sont envoyés, sans votre pseudo ni vos cookies. "
             + "Le GIF choisi est publié par son adresse : chaque lecteur du message le chargera depuis ce service. "
             + "Les conditions du service s'appliquent."
@@ -98,7 +98,8 @@ final class GifPickerModel: Identifiable {
 
     /// The grid reached `gif`: loads the next page when it is near the end.
     func loadMoreIfNeeded(after gif: GiphyGIF) async {
-        guard let index = items.firstIndex(of: gif), index >= items.count - 5 else { return }
+        // After a failed page the member retries by hand: scrolling must not loop on the failure.
+        guard !moreFailed, let index = items.firstIndex(of: gif), index >= items.count - 5 else { return }
         await loadMore()
     }
 

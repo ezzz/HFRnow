@@ -40,7 +40,7 @@ struct GifPickerModelTests {
 
     @Test func theNoticeNamesGiphyAndItsHost() {
         let (model, _) = GifTestSupport.model(nil, accepted: false)
-        #expect(model.noticeMessage.contains("le service Giphy (api.giphy.com)"))
+        #expect(model.noticeMessage.contains("le service Giphy (api.giphy.com), exploité par la société Giphy"))
         #expect(model.noticeMessage.contains("Seuls vos mots de recherche sont envoyés"))
     }
 

@@ -78,6 +78,19 @@ struct GifPickerPagingTests {
         #expect(!model.moreFailed)
     }
 
+    @Test func reachingTheEndOfAFailedListDoesNotRetryByItself() async throws {
+        let (transport, client) = try GifTestSupport.giphy(.init(failing: [1]))
+        let (model, _) = GifTestSupport.model(client, accepted: true)
+        await model.start()
+        await model.loadMore()
+        let last = try #require(model.items.last)
+
+        await model.loadMoreIfNeeded(after: last)
+
+        #expect(model.moreFailed)
+        #expect(await transport.requests.count == 2)
+    }
+
     @Test func aFirstPageArrivingAfterANewSearchIsDropped() async throws {
         let gate = ReaderGate()
         let (_, client) = try GifTestSupport.giphy(.init(gates: [0: gate]))
