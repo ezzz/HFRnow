@@ -1,0 +1,26 @@
+{
+  "groups": [
+    {
+      "layers": [
+        {
+          "fill": "none",
+          "glass": false,
+          "image-name": "Icon-BLUE_1024.png",
+          "name": "legacy"
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.5
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
