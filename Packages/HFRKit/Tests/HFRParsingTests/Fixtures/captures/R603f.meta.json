@@ -1,0 +1,16 @@
+{
+  "id": "R603f",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/101/topics/read/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/101/topics/read/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/101/topics/read/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Sat, 07 Nov 2026 15:57:02 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "REST read bucket of one category",
+  "file": "R603f-rest-bucket-read-category.json",
+  "private": false
+}
