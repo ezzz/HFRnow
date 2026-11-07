@@ -49,7 +49,7 @@ struct MessageReaderColumn: View {
             NavigationStack {
                 TopicReaderView(
                     model: readerModel, services: reader, composer: composer,
-                    onMarkUnread: { [model] outcome in await model.markUnreadEnded(thread, outcome) }
+                    onMarkUnread: { [model] outcome in await model.markUnreadEnded(thread, in: readerModel, outcome) }
                 )
             }
                 .id(thread.id)

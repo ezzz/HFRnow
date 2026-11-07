@@ -280,13 +280,14 @@ final class MessageListModel {
         markedUnread.contains(thread.id) || (thread.isUnread && openedThreads[thread.id] == nil)
     }
 
-    /// "Marquer comme non lu" ended in a reader of `thread` (LOT-127). HFR's confirmation closes the conversation and reloads
+    /// "Marquer comme non lu" ended in `reader`, a reader of `thread` (LOT-127). HFR's confirmation closes the conversation and reloads
     /// the list, as legacy pops and refetches (`OnlineMessagesTableViewController.m:900-903`): keeping the reader would show a
     /// thread HFR now holds unread, and its next load could read it again. A failure changes nothing on the row.
-    func markUnreadEnded(_ thread: PrivateMessageThread, _ outcome: TopicFlagOutcome) async {
+    func markUnreadEnded(_ thread: PrivateMessageThread, in reader: TopicReaderModel, _ outcome: TopicFlagOutcome) async {
         switch outcome {
         case .failed(let reason):
-            if selected?.id != thread.id { actionFailure = reason }
+            // Only the reader that sent it holds the failure: the same conversation opened again has a new one, which shows nothing.
+            if currentReader?.model !== reader { actionFailure = reason }
         case .done(let message):
             sentConfirmation = message
             markedUnread.insert(thread.id)

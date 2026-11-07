@@ -26,6 +26,12 @@ struct MarkUnreadTests {
         return reader
     }
 
+    /// A reader of no list: the one that sent a write whose conversation is not on screen any more.
+    private var goneReader: TopicReaderModel {
+        let topic = TopicID(category: .privateMessages, topic: 7)
+        return TopicReaderModel(target: ReaderTarget(source: .topic(topic)), title: "", source: FakeTopicPages())
+    }
+
     private func list(_ source: FakePrivateMessages) -> MessageListModel {
         MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages())
     }
@@ -141,7 +147,7 @@ struct MarkUnreadTests {
         model.selected = before
         #expect(model.reader(for: before) != nil)
         source.handler = { _ in after }
-        await model.markUnreadEnded(before, .done(Self.sentence))
+        await model.markUnreadEnded(before, in: goneReader, .done(Self.sentence))
         #expect(model.selected == nil)
         #expect(model.sentConfirmation == Self.sentence)
         #expect(source.requests == [1, 1])
@@ -155,7 +161,7 @@ struct MarkUnreadTests {
         await model.onAppear()
         model.markOpened(thread, page: 1, of: 1)
         #expect(!model.isUnread(thread))
-        await model.markUnreadEnded(thread, .done(Self.sentence))
+        await model.markUnreadEnded(thread, in: goneReader, .done(Self.sentence))
         #expect(model.isUnread(thread))
     }
 
@@ -166,7 +172,7 @@ struct MarkUnreadTests {
         let model = list(source)
         await model.onAppear()
         source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
-        await model.markUnreadEnded(read, .done(Self.sentence))
+        await model.markUnreadEnded(read, in: goneReader, .done(Self.sentence))
         #expect(model.isUnread(read))
         #expect(model.sentConfirmation == Self.sentence)
         #expect(model.loader.error == .offline)
@@ -189,7 +195,7 @@ struct MarkUnreadTests {
         let older = gate.run { await model.refresh() }
         guard await gate.entered() else { Issue.record("The refresh never asked for its page"); return }
         source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
-        await model.markUnreadEnded(read, .done(Self.sentence))
+        await model.markUnreadEnded(read, in: goneReader, .done(Self.sentence))
         await gate.open()
         await older.value
         #expect(model.isUnread(read))
@@ -201,7 +207,7 @@ struct MarkUnreadTests {
         let model = list(source)
         await model.onAppear()
         source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
-        await model.markUnreadEnded(read, .done(Self.sentence))
+        await model.markUnreadEnded(read, in: goneReader, .done(Self.sentence))
         model.markOpened(read, page: 1, of: 1)
         #expect(!model.isUnread(read))
     }
@@ -215,17 +221,18 @@ struct MarkUnreadTests {
         let model = list(source)
         await model.onAppear()
         model.selected = other
-        await model.markUnreadEnded(marked, .done(Self.sentence))
+        await model.markUnreadEnded(marked, in: goneReader, .done(Self.sentence))
         #expect(model.selected == other)
     }
 
-    @Test func aFailureChangesNothingAndTheOpenReaderSaysIt() async {
+    @Test func aFailureChangesNothingAndTheOpenReaderSaysIt() async throws {
         let read = messageThread(7)
         let source = source(with: read)
         let model = list(source)
         await model.onAppear()
         model.selected = read
-        await model.markUnreadEnded(read, .failed("non"))
+        let reader = try #require(model.reader(for: read))
+        await model.markUnreadEnded(read, in: reader, .failed("non"))
         #expect(model.selected == read)
         #expect(!model.isUnread(read))
         #expect(model.sentConfirmation == nil)
@@ -238,7 +245,22 @@ struct MarkUnreadTests {
         let read = messageThread(7)
         let model = list(source(with: read))
         await model.onAppear()
-        await model.markUnreadEnded(read, .failed("non"))
+        await model.markUnreadEnded(read, in: goneReader, .failed("non"))
+        #expect(model.actionFailure == "non")
+    }
+
+    /// Left and opened again before the answer: the row is selected, but the new reader never sent it and shows nothing.
+    @Test func aFailureForAReplacedReaderOfTheSameConversationIsShownByTheList() async throws {
+        let read = messageThread(7)
+        let model = list(source(with: read))
+        await model.onAppear()
+        model.selected = read
+        let sender = try #require(model.reader(for: read))
+        model.selected = nil
+        model.selected = read
+        let replacement = try #require(model.reader(for: read))
+        #expect(replacement !== sender)
+        await model.markUnreadEnded(read, in: sender, .failed("non"))
         #expect(model.actionFailure == "non")
     }
 }
