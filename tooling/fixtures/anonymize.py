@@ -14,6 +14,7 @@ Python 3 stdlib only. Output is English; colors are disabled without a TTY or wi
 """
 import argparse
 import datetime
+import email.utils
 import html
 import html.entities
 import html.parser
@@ -2851,6 +2852,155 @@ _V_AQ_BODY_FIELDS = frozenset((
     "alerte_qualitay_id", "nom", "topic_id", "topic_titre", "pseudo", "post_id", "post_url", "commentaire"))
 
 
+AQ_LOCAL_ORIGIN = "local-instance"
+AQ_LOCAL_NOTE = "local toyo/aq instance (php -S), not aq.super-h.fr"
+# A local capture holds the run's own fake values and no alias table goes over it: every position must take one of
+# these forms, so a real id, title or free text that reached a run fails. 13636 is the first id of the published
+# schema's AUTO_INCREMENT and 99999 the "no such AQ" probe (T57).
+_V_AQ_LOCAL_ALERT = "13636"
+_V_AQ_LOCAL_UNKNOWN_ALERT = "99999"
+_V_AQ_LOCAL_ID = re.compile(r"700\d{3}")
+_V_AQ_LOCAL_URL = re.compile(r"http://192\.0\.2\.1:\d+(/api/addAlerte\.php|/api/getAlertesByTopic\.php(?:\?topic_id=700\d{3})?)")
+_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other)|AQ flood \d+")
+_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic|AQ flood topic \d+")
+_V_AQ_LOCAL_POST_URL = re.compile(r"https?://forum\.hardware\.fr/hfr/Discussions/Societe/(?:aq-local-(?:topic|other)|aq-flood-\d+)"
+                                  r"-sujet_700\d{3}_1\.htm#t700\d{3}")
+_V_AQ_LOCAL_DATE = re.compile(r"[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT")
+_V_AQ_LOCAL_TYPES = ("text/plain;charset=UTF-8", "text/xml;charset=UTF-8", "text/html; charset=UTF-8")
+_V_AQ_LOCAL_KEYS = frozenset(("id", "account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
+                              "redirects", "set_cookie_names", "origin", "note", "private", "response_headers"))
+_V_AQ_LOCAL_HEADERS = frozenset(("Host", "Date", "Connection", "X-Powered-By", "Content-type"))
+_V_AQ_LOCAL_OPTIONAL_HEADERS = {"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"}
+
+
+def _v_aq_local_meta(doc):
+    """True for a capture meta that says, or looks like, a local AQ instance (dropping `origin` must not skip the check)."""
+    if "origin" in doc:
+        return True
+    split = urllib.parse.urlsplit(str(doc.get("url") or ""))
+    return split.hostname == IP_PLACEHOLDER and split.path.startswith("/api/")
+
+
+def _v_aq_local_body(body, bad):
+    """Report every field of a local create that is not a form of the run (see `_V_AQ_LOCAL_*`)."""
+    pairs = urllib.parse.parse_qsl(str(body), keep_blank_values=True)
+    f = dict(pairs)
+    keys = [k for k, _v in pairs]
+    if len(keys) != len(set(keys)) or set(keys) != _V_AQ_BODY_FIELDS:
+        bad("the body does not hold exactly the create fields")
+    if f.get("alerte_qualitay_id") not in ("-1", _V_AQ_LOCAL_ALERT, _V_AQ_LOCAL_UNKNOWN_ALERT):
+        bad("alerte_qualitay_id not a local value")
+    if f.get("nom") and not _V_AQ_LOCAL_NOM.fullmatch(f["nom"]):
+        bad("nom not a local value")
+    if not _V_AQ_LOCAL_TITLE.fullmatch(f.get("topic_titre", "")):
+        bad("topic_titre not a local value")
+    for k in ("topic_id", "post_id"):
+        if not _V_AQ_LOCAL_ID.fullmatch(f.get(k, "")):
+            bad("%s not a local id" % k)
+    if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+        bad("pseudo not an alias")
+    if not _V_AQ_LOCAL_POST_URL.fullmatch(f.get("post_url", "")):
+        bad("post_url not a local value")
+    if f.get("commentaire") != "post de %s" % f.get("pseudo"):
+        bad("commentaire not the legacy text")
+
+
+def verify_aq_local_meta(doc):
+    """[(line, column, reason)] for every position of an `origin: local-instance` meta that is not a form of the run.
+
+    Exact key set, fixed host and paths, closed values, `origin` itself; status, headers and body length are kept
+    because the meta is the only record of an empty answer (`T62`, `T67`, `T68`)."""
+    res = []
+
+    def bad(reason):
+        res.append((1, 0, "AQ local check: " + reason))
+    if doc.get("origin") != AQ_LOCAL_ORIGIN:
+        bad("origin is not local-instance")
+    post = doc.get("method") == "POST"
+    keys = _V_AQ_LOCAL_KEYS | ({"request_fields", "request_body"} if post else frozenset()) \
+        | ({"file"} if doc.get("file") else {"body_length"})
+    for k in sorted(set(doc) - keys):
+        bad("unknown key (%s)" % k[:20])
+    for k in sorted(keys - set(doc)):
+        bad("key missing (%s)" % k)
+    m = _V_AQ_LOCAL_URL.fullmatch(str(doc.get("url", "")))
+    if not m:
+        bad("url not on the local host, or another path")
+    elif doc.get("final_url") != doc["url"] or doc.get("url_template") != m.group(1):
+        bad("final_url or url_template does not follow url")
+    elif post != m.group(1).endswith("addAlerte.php") or doc.get("method") not in ("GET", "POST"):
+        bad("method does not fit the path")
+    fixed = (("id", bool(re.fullmatch(r"T\d+", str(doc.get("id", ""))))), ("account", doc.get("account") == "anon"),
+             ("note", doc.get("note") == AQ_LOCAL_NOTE), ("status", doc.get("status") in (200, 403)),
+             ("content_type", doc.get("content_type") in _V_AQ_LOCAL_TYPES), ("redirects", doc.get("redirects") == []),
+             ("set_cookie_names", doc.get("set_cookie_names") == []), ("private", doc.get("private") is False),
+             ("date", bool(_V_AQ_LOCAL_DATE.fullmatch(str(doc.get("date", ""))))))
+    for k, fine in fixed:
+        if not fine:
+            bad("%s not a local value" % k)
+    if post:
+        _v_aq_local_body(doc.get("request_body"), bad)
+        if sorted(doc.get("request_fields") or []) != sorted(_V_AQ_BODY_FIELDS):
+            bad("request_fields do not hold exactly the create fields")
+    length = doc.get("body_length", 0)
+    if "file" not in doc and (isinstance(length, bool) or not isinstance(length, int) or length < 0):
+        bad("body_length not a size")
+    headers = doc.get("response_headers")
+    if not isinstance(headers, dict):
+        bad("response_headers not a dict")
+        return res
+    for k in sorted(set(headers) - _V_AQ_LOCAL_HEADERS - set(_V_AQ_LOCAL_OPTIONAL_HEADERS) - {"Content-Length"}):
+        bad("unknown response header (%s)" % k[:20])
+    for k in sorted(_V_AQ_LOCAL_HEADERS - set(headers)):
+        bad("response header missing (%s)" % k)
+    if not re.fullmatch(r"192\.0\.2\.1:\d+", str(headers.get("Host", ""))):
+        bad("Host header not the local host")
+    if headers.get("Date") != doc.get("date") or headers.get("Content-type") != doc.get("content_type"):
+        bad("Date or Content-type header does not follow the meta")
+    if headers.get("Connection") != "close" or not re.fullmatch(r"PHP/\d+\.\d+\.\d+", str(headers.get("X-Powered-By", ""))):
+        bad("Connection or X-Powered-By header not a local value")
+    if any(k in headers and headers[k] != v for k, v in _V_AQ_LOCAL_OPTIONAL_HEADERS.items()):
+        bad("Cache-Control or Pragma header not a local value")
+    if "Content-Length" in headers and ("file" in doc or headers["Content-Length"] != str(length)):
+        bad("Content-Length header does not follow body_length")
+    return res
+
+
+def verify_aq_local_answer(text, meta):
+    """[(line, column, reason)] for an answer of a local instance that is neither a bare code nor a list of the run."""
+    def bad(reason):
+        return (1, 1, "AQ local check: " + reason)
+    if str(meta.get("content_type", "")).startswith("text/plain"):
+        return [] if re.fullmatch(r"-?\d{1,3}\s*", text) else [bad("answer is not a bare code")]
+    import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+    # ElementTree drops comments and instructions, which the published file would still hold.
+    if re.search(r"<[!?]", re.sub(r"\A\s*<\?xml\s[^>]*\?>", "", text.lstrip("\ufeff"))):
+        return [bad("answer holds a comment or an instruction")]
+    try:
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
+    except ET.ParseError:
+        return [bad("answer is not a list")]
+    if root.tag != "alertes" or (root.text or "").strip() or root.attrib:
+        return [bad("answer is not a list")]
+    try:
+        day = email.utils.parsedate_to_datetime(str(meta.get("date"))).strftime("%d-%m-%Y")
+    except (TypeError, ValueError):  # the message would print the value, and CI logs are public
+        return [bad("meta date is not a date")]
+    res = []
+    for alert in root:
+        if alert.tag != "alerte" or set(alert.attrib) != {"id", "nom", "pseudoInitiateur", "date", "postsIds"} \
+                or len(alert) or (alert.text or "").strip() or (alert.tail or "").strip():
+            res.append(bad("alert of an unknown shape"))
+            continue
+        if alert.get("id") != _V_AQ_LOCAL_ALERT:
+            res.append(bad("alert id not a local value"))
+        if not all(_V_AQ_LOCAL_ID.fullmatch(i) for i in alert.get("postsIds", "").split(",")):
+            res.append(bad("postsIds not local ids"))
+        if alert.get("date") != day:
+            res.append(bad("alert date is not the day of the run"))
+    return res
+
+
 def _v_aq_host(url):
     return (urllib.parse.urlsplit(str(url or "")).hostname or "").rstrip(".").casefold() == "aq.super-h.fr"
 
@@ -2870,6 +3020,8 @@ def verify_aq_own(text, own_list=False):
             doc = json.loads(text)
         except ValueError:
             return res
+        if isinstance(doc, dict) and _v_aq_local_meta(doc):
+            return verify_aq_local_meta(doc)
         if not isinstance(doc, dict) or not any(_v_aq_host(doc.get(k)) for k in ("url", "final_url")):
             return res
         line = next((i + 1 for i, l in enumerate(text.split("\n")) if '"request_body"' in l), 1)
@@ -3016,6 +3168,19 @@ def _own_aq_list_files(folder):
     return paths
 
 
+def _local_aq_files(folder):
+    """{path: meta} of the corpus files whose meta is an `origin: local-instance` capture: every answer in them is checked."""
+    paths = {}
+    for name in sorted(os.listdir(folder)):
+        if not name.endswith(".meta.json"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as fh:
+            meta = json.load(fh)
+        if meta.get("file") and "origin" in meta:
+            paths[os.path.join(folder, meta["file"])] = meta
+    return paths
+
+
 def meta_urls(folder, cache):
     """{capture file: final URL or URL} of the metas next to a file, for the checks that depend on the request."""
     if folder not in cache:
@@ -3043,6 +3208,7 @@ def cmd_check(args):
         return 1
     bad, url_cache = 0, {}
     own_aq_lists = _own_aq_list_files(args.corpus) if args.corpus else set()
+    local_aq = _local_aq_files(args.corpus) if args.corpus else {}
     for path, private, account in entries:
         try:
             text, _enc = read_text(path)
@@ -3054,6 +3220,8 @@ def cmd_check(args):
         leaks = anon.findings(text, private=private, account=account, url=url)
         if path in own_aq_lists:
             leaks += verify_aq_own(text, own_list=True)
+        if path in local_aq:
+            leaks += verify_aq_local_answer(text, local_aq[path])
         for line, col, reason in leaks:
             _ui.ko("%s:%d:%d: %s" % (path, line, col, reason))
         if leaks:

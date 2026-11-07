@@ -6,6 +6,7 @@ import os
 import sys
 import tempfile
 import unittest
+import urllib.parse
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import anonymize as A  # noqa: E402
@@ -18,6 +19,9 @@ LIST = '<td class="sujetCase6 cBackCouleurTab2 ">Bravo</td>'
 MP = ('<td class="messCase1"><div><b class="s2">Delta</b></div></td>'
       '<td class="messCase1"><div><b class="s2">Charlie</b></div></td>'
       '<div id="para9"><p>private words</p></div>')
+LOCAL_BODY = {"alerte_qualitay_id": "-1", "nom": "AQ local test", "topic_id": "700001", "topic_titre": "AQ local topic",
+              "pseudo": "user3", "post_id": "700101", "commentaire": "post de user3",
+              "post_url": "https://forum.hardware.fr/hfr/Discussions/Societe/aq-local-topic-sujet_700001_1.htm#t700101"}
 
 
 class PublishTests(unittest.TestCase):
@@ -80,6 +84,7 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(meta["file"], "T1-topic.html")
         self.assertFalse(meta["private"])
         self.assertNotIn("headers_only", meta)
+        self.assertNotIn("origin", meta)  # kept only when the raw meta says where the answer came from (#574)
         self.assertTrue(meta["final_url"].endswith("/hfr/Discussions/user2-sujet_1_1.htm"))  # same alias as page
         mp, mp_meta = self.read("M1-mp.html"), json.loads(self.read("M1.meta.json"))
         self.assertIn(A.PRIVATE_PLACEHOLDER, mp)
@@ -162,6 +167,76 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertIn("AQ capture not recognized", out)
         self.assertFalse(P.is_aq_host("https://example.org/?u=aq.super-h.fr"))
+
+    def local_capture(self, ext="txt", page="-2", body=None, status=200, headers=None):
+        """One `origin: local-instance` capture (#574), as `send.py` wrote it, in a manifest of its own."""
+        with open(self.manifest, "w") as fh:
+            json.dump({"captures": [{"raw": "Q2", "id": "T9", "slug": "aq", "ext": ext, "private": False}]}, fh)
+        url = "http://127.0.0.1:8574/api/addAlerte.php"
+        ctype = {"txt": "text/plain;charset=UTF-8", "xml": "text/xml;charset=UTF-8"}.get(ext, "text/html; charset=UTF-8")
+        date = "Sat, 07 Nov 2026 13:02:15 GMT"
+        self.capture("Q2", page, {
+            "account": "anon", "method": "POST", "url_template": "/api/addAlerte.php", "url": url, "final_url": url,
+            "status": status, "content_type": ctype, "date": date, "redirects": [], "set_cookie_names": [],
+            "request_fields": sorted(LOCAL_BODY), "origin": "local-instance", "note": A.AQ_LOCAL_NOTE})
+        with open(os.path.join(self.raw, "Q2.request.txt"), "w") as fh:
+            fh.write("POST /api/addAlerte.php\nContent-Type: x\n\n%s\n" % urllib.parse.urlencode(
+                body or LOCAL_BODY, quote_via=urllib.parse.quote))
+        lines = headers or ["Host: 127.0.0.1:8574", "Date: " + date, "Connection: close", "X-Powered-By: PHP/8.5.12",
+                            "Content-type: " + ctype]
+        with open(os.path.join(self.raw, "Q2.headers.txt"), "w") as fh:
+            fh.write("\n".join(["HTTP %d" % status] + lines) + "\n")
+
+    def test_publish_keeps_status_headers_and_size_of_a_local_answer(self):
+        self.local_capture(ext="", page="", status=403)
+        rc, out = self.run_publish("Q2")
+        self.assertEqual(rc, 0, out)
+        meta = json.loads(self.read("T9.meta.json"))
+        self.assertEqual((meta["status"], meta["body_length"], meta["origin"]), (403, 0, "local-instance"))
+        self.assertEqual(meta["response_headers"]["Host"], "192.0.2.1:8574")  # the loopback address is replaced, like any IP
+        self.local_capture()
+        rc, out = self.run_publish("Q2")
+        self.assertEqual(rc, 0, out)
+        meta = json.loads(self.read("T9.meta.json"))
+        self.assertEqual(meta["file"], "T9-aq.txt")
+        self.assertNotIn("body_length", meta)  # the file holds the bytes
+
+    def test_publish_refuses_a_local_capture_with_a_planted_value(self):
+        for label, kwargs, reason in (
+                ("page", {"page": "<html>Bravo</html>"}, "AQ capture not recognized"),
+                ("title", {"body": dict(LOCAL_BODY, topic_titre="A real topic title")}, "topic_titre not a local value"),
+                ("header", {"headers": ["Set-Cookie: a=b"]}, "unknown response header"),
+                ("list", {"ext": "xml", "page": '<?xml version="1.0"?>\n<alertes><alerte id="13642" nom="x" '
+                                                'pseudoInitiateur="user3" date="07-11-2026" postsIds="700101"/></alertes>'},
+                 "alert id not a local value")):
+            with self.subTest(label=label):
+                self.local_capture(**kwargs)
+                rc, out = self.run_publish("Q2")
+                self.assertEqual(rc, 1, out)
+                self.assertIn(reason, out)
+                self.assertFalse(os.path.exists(os.path.join(self.dest, "T9.meta.json")))
+
+    def test_publish_refuses_a_local_capture_whose_headers_do_not_fit(self):
+        self.local_capture()
+        os.remove(os.path.join(self.raw, "Q2.headers.txt"))
+        rc, out = self.run_publish("Q2")
+        self.assertEqual(rc, 1)
+        self.assertIn("without its headers file", out)
+        self.local_capture()
+        with open(os.path.join(self.raw, "Q2.headers.txt"), "w") as fh:
+            fh.write("HTTP 500\n")
+        rc, out = self.run_publish("Q2")
+        self.assertEqual(rc, 1)
+        self.assertIn("does not match the meta status", out)
+        self.local_capture()
+        path = os.path.join(self.raw, "Q2.headers.txt")
+        with open(path) as fh:
+            status = fh.readline()
+        with open(path, "w") as fh:
+            fh.write(status + "not a header\n")
+        rc, out = self.run_publish("Q2")
+        self.assertEqual(rc, 1)
+        self.assertIn("a line that is not a header", out)
 
     def test_publish_aliases_an_aq_create_on_an_own_topic(self):
         """The AQ create answer is a bare `1`; the request and the list after it name the own topic by `topic_id`."""
