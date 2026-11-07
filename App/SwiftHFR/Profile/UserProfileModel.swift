@@ -127,3 +127,10 @@ final class UserProfileModel: Identifiable {
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
     }
 }
+
+extension ReaderServices {
+    /// The profile screen's model of member `memberID`, with the list buttons (LOT-118); the one place the reader builds it.
+    func profileModel(memberID: Int) -> UserProfileModel {
+        UserProfileModel(memberID: memberID, source: profiles, lists: pseudoLists)
+    }
+}

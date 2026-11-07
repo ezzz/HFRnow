@@ -136,9 +136,7 @@ struct TopicReaderView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
-        .sheet(item: $profile, onDismiss: { model.applyDisplaySettings() }, content: { profile in
-            UserProfileView(model: profile, services: services)
-        })
+        .sheet(item: $profile, onDismiss: { model.applyDisplaySettings() }) { UserProfileView(model: $0, services: services) }
         .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
@@ -272,17 +270,15 @@ struct TopicReaderView: View {
         handlers += model.quoteHandlers(confirm: confirm)
         // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
         let showProfile = $profile
-        let profiles = services.profiles
+        let services = self.services
         handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = UserProfileModel(memberID: id, source: profiles)
+            showProfile.wrappedValue = services.profileModel(memberID: id)
         }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
-        if let lists = services.pseudoLists {
-            // Weak: the registry lives in the model, which would otherwise keep itself alive through the closure.
-            handlers += PseudoListActionHandler.pair(
-                manager: lists, confirm: confirm, rebuild: { [weak model] in model?.applyDisplaySettings() }
-            )
-        }
+        // Weak: the registry lives in the model, which would otherwise keep itself alive through the closure.
+        handlers += services.pseudoLists.map {
+            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: { [weak model] in model?.applyDisplaySettings() })
+        } ?? []
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
             self.writes = writes
@@ -303,8 +299,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID):
-                    profile = UserProfileModel(memberID: memberID, source: services.profiles, lists: services.pseudoLists)
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
