@@ -28,6 +28,9 @@ struct ReaderPage: Equatable, Sendable {
     /// not one it handles (a poll that cannot be read never fails the page). Holds the voting form's hidden fields, token
     /// included: only `PollVoteFlow` reads them.
     var poll: Poll?
+    /// The private conversation's `nonlu.php` link (LOT-058, `https` on the forum, the page's own header link, never a member's);
+    /// nil on a topic page. A state-changing GET: only `TopicFlagActions.markUnread` follows it.
+    var markUnreadURL: URL?
 }
 
 /// One message of a `ReaderPage`.

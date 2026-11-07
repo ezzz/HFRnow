@@ -12,15 +12,21 @@ final class FakeFlagWriter: TopicFlagWriting, @unchecked Sendable {
     private let lock = NSLock()
     private var removals: [TopicID] = []
     private var additions: [URL] = []
+    private var unreadLinks: [URL] = []
     var removeHandler: RemoveHandler = { topic in confirmed(.removeFavoriteFromList, topic, "Drapeaux effacés avec succès") }
     var addHandler: AddHandler = { _ in
         confirmed(.addFavorite, TopicID(category: .forum(13), topic: 1), "Favori positionné avec succès")
+    }
+    var unreadHandler: AddHandler = { _ in
+        confirmed(.markUnread, TopicID(category: .privateMessages, topic: 1), "Le message a été marqué comme non lu avec succès")
     }
 
     /// Topics whose removal was sent, in order.
     var removed: [TopicID] { lock.withLock { removals } }
     /// Links followed to add a favourite, in order.
     var added: [URL] { lock.withLock { additions } }
+    /// Links followed to mark a conversation unread, in order.
+    var markedUnread: [URL] { lock.withLock { unreadLinks } }
 
     func removeFavorite(_ topic: TopicID) async throws(TopicFlagError) -> TopicFlagResult {
         lock.withLock { removals.append(topic) }
@@ -30,6 +36,11 @@ final class FakeFlagWriter: TopicFlagWriting, @unchecked Sendable {
     func addFavorite(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
         lock.withLock { additions.append(link) }
         return try await addHandler(link)
+    }
+
+    func markUnread(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
+        lock.withLock { unreadLinks.append(link) }
+        return try await unreadHandler(link)
     }
 }
 

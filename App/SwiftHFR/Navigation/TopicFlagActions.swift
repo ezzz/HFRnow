@@ -3,13 +3,15 @@ import HFRClient
 import HFRModels
 import HFRNetwork
 
-/// The two flag writes the lists and the message menu send (LOT-125), in the current account's session. A seam over
-/// `TopicFlagFlow`, whose session-check seam is internal, so the models are tested without HFR.
+/// The flag writes the lists, the message menu (LOT-125) and a conversation's menu (LOT-127) send, in the current account's
+/// session. A seam over `TopicFlagFlow`, whose session-check seam is internal, so the models are tested without HFR.
 protocol TopicFlagWriting: Sendable {
     /// Removes `topic` from the favourites the way the list does (`TopicFlagFlow.removeFavoriteFromList`).
     func removeFavorite(_ topic: TopicID) async throws(TopicFlagError) -> TopicFlagResult
     /// Puts the topic in the favourites by following a message's `addflag.php` link (`TopicFlagFlow.addFavorite`).
     func addFavorite(link: URL) async throws(TopicFlagError) -> TopicFlagResult
+    /// Marks a private conversation unread by following its page's `nonlu.php` link (`TopicFlagFlow.markUnread`).
+    func markUnread(link: URL) async throws(TopicFlagError) -> TopicFlagResult
 }
 
 /// LOT-051's flow in one account session.
@@ -25,6 +27,10 @@ struct LiveTopicFlagWriter: TopicFlagWriting {
     func addFavorite(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
         try await flow.addFavorite(link: link, in: session)
     }
+
+    func markUnread(link: URL) async throws(TopicFlagError) -> TopicFlagResult {
+        try await flow.markUnread(link: link, in: session)
+    }
 }
 
 /// How a flag write ended, as the user is told.
@@ -39,7 +45,8 @@ enum TopicFlagOutcome: Equatable, Sendable {
 // of HFRswift/Swift/MessagesView.swift (performFavoriteAction, `:1945-1961`) @ 2440d79. Differences: GAP-035; the writes go
 // through LOT-051 (a session check first, success only on HFR's own sentence, a write that may have left is reported, never
 // resent), and every failure says why in French instead of legacy's English-tinted texts or "Favori mis à jour" on any answer.
-/// The flag actions of the current account (LOT-125): "Supprimer" on a list row and "Favoris" in the message menu (LOT-087).
+/// The flag actions of the current account (LOT-125): "Supprimer" on a list row, "Favoris" in the message menu (LOT-087) and
+/// "Marquer comme non lu" on a private conversation (LOT-127).
 struct TopicFlagActions: Sendable {
     let writer: any TopicFlagWriting
 
@@ -56,6 +63,15 @@ struct TopicFlagActions: Sendable {
     func addFavorite(link: URL) async -> TopicFlagOutcome {
         do throws(TopicFlagError) {
             return .done(try await writer.addFavorite(link: link).message)
+        } catch {
+            return .failed(Self.reason(for: error))
+        }
+    }
+
+    /// Marks unread the private conversation whose page gave `link` (legacy `markUnread`). A failure is never shown as done.
+    func markUnread(link: URL) async -> TopicFlagOutcome {
+        do throws(TopicFlagError) {
+            return .done(try await writer.markUnread(link: link).message)
         } catch {
             return .failed(Self.reason(for: error))
         }
