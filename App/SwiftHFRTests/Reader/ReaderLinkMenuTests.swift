@@ -104,8 +104,10 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         controller.linkMenuEnvironment = spy.environment
         let link = try #require(URL(string: "http://127.0.0.1:\(server.port)/member-link"))
         for entry in ReaderLinkMenu.entries(for: link) { controller.performLinkEntry(entry, url: link) }
-        #expect(await until { spy.opened.count == 2 })
+        // Safari, then the app attempt (universal links only) and, since no app takes the link, Safari again.
+        #expect(await until { spy.opened.count == 3 })
         try await Task.sleep(for: .milliseconds(300))
+        #expect(spy.opened.map(\.universalOnly).sorted { !$0 && $1 } == [false, false, true])
         #expect(server.connections == 0)
         #expect(await transport.requests.isEmpty)
         #expect(recorder.links == [link])
