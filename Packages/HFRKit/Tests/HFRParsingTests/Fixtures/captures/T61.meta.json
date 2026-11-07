@@ -1,0 +1,17 @@
+{
+  "id": "T61",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/api/getAlertesByTopic.php?topic_id=700002",
+  "url": "http://192.0.2.1:8574/api/getAlertesByTopic.php?topic_id=700002",
+  "final_url": "http://192.0.2.1:8574/api/getAlertesByTopic.php?topic_id=700002",
+  "status": 200,
+  "content_type": "text/xml;charset=UTF-8",
+  "date": "Sat, 07 Nov 2026 13:02:31 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "origin": "local-instance",
+  "note": "local toyo/aq instance (php -S), not aq.super-h.fr",
+  "file": "T61-aq-alerts-after-duplicate-local.xml",
+  "private": false
+}

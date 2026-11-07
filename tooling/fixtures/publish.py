@@ -25,7 +25,7 @@ import anonymize as A  # noqa: E402
 AQ_HOST = "aq.super-h.fr"
 DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.json")
 META_KEYS = ("account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
-             "redirects", "set_cookie_names", "request_fields", "note")
+             "redirects", "set_cookie_names", "request_fields", "origin", "note")
 
 
 def is_aq_host(url):

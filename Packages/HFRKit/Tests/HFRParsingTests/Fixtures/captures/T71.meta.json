@@ -1,0 +1,17 @@
+{
+  "id": "T71",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/api/getAlertesByTopic.php",
+  "url": "http://192.0.2.1:8574/api/getAlertesByTopic.php",
+  "final_url": "http://192.0.2.1:8574/api/getAlertesByTopic.php",
+  "status": 200,
+  "content_type": "text/xml;charset=UTF-8",
+  "date": "Sat, 07 Nov 2026 13:03:42 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "origin": "local-instance",
+  "note": "local toyo/aq instance (php -S), not aq.super-h.fr",
+  "file": "T71-aq-alerts-no-topic-local.xml",
+  "private": false
+}

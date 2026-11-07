@@ -1,0 +1,27 @@
+{
+  "id": "T62",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "/api/addAlerte.php",
+  "url": "http://192.0.2.1:8574/api/addAlerte.php",
+  "final_url": "http://192.0.2.1:8574/api/addAlerte.php",
+  "status": 403,
+  "content_type": "text/html; charset=UTF-8",
+  "date": "Sat, 07 Nov 2026 13:02:31 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "alerte_qualitay_id",
+    "nom",
+    "topic_id",
+    "topic_titre",
+    "pseudo",
+    "post_id",
+    "post_url",
+    "commentaire"
+  ],
+  "origin": "local-instance",
+  "note": "local toyo/aq instance (php -S), not aq.super-h.fr",
+  "request_body": "alerte_qualitay_id=-1&nom=AQ%20local%20other&topic_id=700002&topic_titre=AQ%20local%20other%20topic&pseudo=user6&post_id=700201&post_url=http%3A%2F%2Fforum.hardware.fr%2Fhfr%2FDiscussions%2FSociete%2Faq-local-other-sujet_700002_1.htm%23t700201&commentaire=post%20de%20user6",
+  "private": false
+}

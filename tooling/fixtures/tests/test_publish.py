@@ -39,7 +39,7 @@ class PublishTests(unittest.TestCase):
         self.capture("T1a", TOPIC, {"url": "https://forum.hardware.fr/forum2.php?post=1",
                                     "final_url": "https://forum.hardware.fr/hfr/Discussions/alpha-membre-sujet_1_1.htm",
                                     "status": 200, "set_cookie_names": ["md_user"], "headers_only": "dropped"})
-        self.capture("L1", LIST, {"url": "/forum1.php"})
+        self.capture("L1", LIST, {"url": "/forum1.php", "origin": "local-instance"})
         self.capture("M1", MP, {"url": "/forum2.php?cat=prive&dest=Charlie", "note": "MP with Charlie"})
         self.capture("W1", None, {"method": "POST", "url": "/bddpost.php", "status": 302})
         with open(os.path.join(self.raw, "W1.request.txt"), "w") as fh:
@@ -80,6 +80,8 @@ class PublishTests(unittest.TestCase):
         self.assertEqual(meta["file"], "T1-topic.html")
         self.assertFalse(meta["private"])
         self.assertNotIn("headers_only", meta)
+        self.assertNotIn("origin", meta)  # kept only when the raw meta says where the answer came from (#574)
+        self.assertEqual(json.loads(self.read("L1.meta.json"))["origin"], "local-instance")
         self.assertTrue(meta["final_url"].endswith("/hfr/Discussions/user2-sujet_1_1.htm"))  # same alias as page
         mp, mp_meta = self.read("M1-mp.html"), json.loads(self.read("M1.meta.json"))
         self.assertIn(A.PRIVATE_PLACEHOLDER, mp)
