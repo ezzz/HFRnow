@@ -4,7 +4,8 @@ import SwiftUI
 // @ 2440d79.
 // Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
-// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
+// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
+// pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
@@ -30,9 +31,7 @@ struct ReplyComposerView: View {
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
     @State private var rangeForSmiley: Range<String.Index>?
 
-    private enum Field: Hashable {
-        case recipient, subject, text
-    }
+    private typealias Field = ComposerField
 
     @State private var formatting: ComposerFormattingModel
     /// Lives as long as the composer, so an upload finishing after the panel closed still lands in the list.
@@ -70,8 +69,11 @@ struct ReplyComposerView: View {
                 }
                 if model.hasSubjectField { messageFields }
                 editor
-                FormattingToolbar(model: formatting) { focused = .text }
             }
+            // Pinned to the bottom of the keyboard safe area as one view kept across focus changes, not a stack child laid
+            // out with the fields (#599). Not `.keyboard` placement: that is an input accessory rebuilt for each focused
+            // field (recipient, subject, text), shown above all three, and gone without an on-screen keyboard.
+            .safeAreaInset(edge: .bottom, spacing: 0) { formattingBar }
             .gifPanel(services: model.gifServices, formatting: formatting, canEdit: model.canEdit) { focused = .text }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -305,6 +307,15 @@ struct ReplyComposerView: View {
 }
 
 extension ReplyComposerView {
+    /// Off while the recipient or subject has focus; a tap never takes focus from them (`ComposerBarFocus`, #599).
+    private var formattingBar: some View {
+        let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
+        // `.plain` buttons draw no disabled state: the bar dims itself, as `FormattingToolbar` does for `isEnabled`.
+        return FormattingToolbar(model: formatting) { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+            .disabled(!allowsBar)
+            .opacity(allowsBar ? 1 : 0.4)
+    }
+
     private var firstEmptyField: Field {
         guard model.hasSubjectField else { return .text }
         if model.isNewMessage, model.recipient.isEmpty { return .recipient }

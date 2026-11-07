@@ -42,7 +42,7 @@ None; no HFR page is read, `HFR-PROTOCOL.md` unchanged. **Pending capture:** non
 Tests: `SettingKeyTests`, `SettingScopeTests`, `SettingsEnumsTests` (key, scope, raw values), `ThemeSettingsModelTests` (default, persistence, appearance), `ThemeAppearanceTests` (palettes, contrast), `ReaderThemeTests` (computed background and quote colours in the real reader, live), `AppThemeTests` (a real window: the screen behind a list and behind a pushed screen is #0B0B0C in dark, untouched in Standard, OLED and light; every column of a three-column split view).
 
 ## Intentional differences from legacy
-- Legacy had one dark (#17181A, scaled by the brightness setting). SwiftHFR's Standard keeps the system's dark on native screens and #000 in the reader; the legacy grey is now the darker style's quote surface. CHANGELOG-LEGACY row added.
+- Legacy had one dark (#17181A, scaled by the brightness setting). SwiftHFR's Standard keeps the system's dark on native screens and #000 in the reader; the legacy grey is now the darker style's quote surface.
 - Rows and cards of native lists keep the system's raised colour (not scaled by the brightness setting, as LOT-121).
 
 ## Not in this lot
