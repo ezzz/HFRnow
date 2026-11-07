@@ -309,8 +309,11 @@ struct ReplyComposerView: View {
 extension ReplyComposerView {
     /// Off while the recipient or subject has focus; a tap never takes focus from them (`ComposerBarFocus`, #599).
     private var formattingBar: some View {
-        FormattingToolbar(model: formatting) { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
-            .disabled(!ComposerBarFocus.allowsBar(focused: focused))
+        let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
+        // `.plain` buttons draw no disabled state: the bar dims itself, as `FormattingToolbar` does for `isEnabled`.
+        return FormattingToolbar(model: formatting) { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+            .disabled(!allowsBar)
+            .opacity(allowsBar ? 1 : 0.4)
     }
 
     private var firstEmptyField: Field {
