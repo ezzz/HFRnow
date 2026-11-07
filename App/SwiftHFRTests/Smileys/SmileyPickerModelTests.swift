@@ -114,7 +114,8 @@ struct SmileyPickerModelTests {
     // MARK: Sections and favourites (#600)
 
     @Test func sectionsComeInTheOperatorsOrderWithoutMySmileys() async {
-        let model = picker(forumLoader: { [self.forumSmiley("[:forum]")] })
+        let listed = [forumSmiley("[:forum]")]
+        let model = picker(forumLoader: { listed })
         await model.loadForum()
         #expect(model.sections.map(\.kind) == [.basic, .forum, .appFavorites])
         #expect(model.sections.map(\.title) == ["Smileys de base", "Smileys du forum", "Favoris de l’app"])
@@ -122,7 +123,8 @@ struct SmileyPickerModelTests {
     }
 
     @Test func theForumSectionIsLoadingThenListsTheAccountFavourites() async {
-        let model = picker(forumLoader: { [self.forumSmiley("[:a]"), self.forumSmiley("[:b:2]")] })
+        let listed = [forumSmiley("[:a]"), forumSmiley("[:b:2]")]
+        let model = picker(forumLoader: { listed })
         #expect(model.sections[1].state == .loading)
         await model.loadForum()
         #expect(model.sections[1].state == .smileys)
@@ -170,7 +172,8 @@ struct SmileyPickerModelTests {
     }
 
     @Test func tappingAForumFavouriteOpensItsDetail() async {
-        let model = picker(forumLoader: { [self.forumSmiley("[:forum]")] })
+        let listed = [forumSmiley("[:forum]")]
+        let model = picker(forumLoader: { listed })
         await model.loadForum()
         let smiley = model.sections[1].smileys[0]
         model.tap(forum: smiley)

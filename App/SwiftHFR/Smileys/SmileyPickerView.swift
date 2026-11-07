@@ -16,7 +16,7 @@ struct SmileyPickerView: View {
     let onInsert: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @AppStorage("AnswerView.smileys.basic.expanded") private var basicExpanded = true
-    @AppStorage("AnswerView.smileys.forum.expanded") private var forumExpanded = true
+    @AppStorage("AnswerView.smileys.forumFavorites.expanded") private var forumExpanded = true
     @AppStorage("AnswerView.smileys.appFavorites.expanded") private var favoritesExpanded = true
     @AppStorage("AnswerView.smileys.search.allKeywords") private var requireAll = false
     @State private var searchPresented = false
