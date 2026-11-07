@@ -81,8 +81,8 @@ struct AppThemeTests {
         }
     }
 
-    /// The colour of a pixel near the bottom of the window, below the one list row.
-    private func bottomPixel(of window: UIWindow) -> (red: Int, green: Int, blue: Int) {
+    /// The RGB of a pixel near the bottom of the window, below the one list row.
+    private func bottomPixel(of window: UIWindow) -> [Int] {
         let size = window.bounds.size
         let image = UIGraphicsImageRenderer(size: size).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -100,7 +100,7 @@ struct AppThemeTests {
             )
             context?.draw(cgImage, in: canvas)
         }
-        return (Int(pixel[0]), Int(pixel[1]), Int(pixel[2]))
+        return pixel.prefix(3).map(Int.init)
     }
 
     @Test func theDarkerStylePaintsTheScreenBehindAListAndLightModeIsUntouched() async throws {
@@ -114,7 +114,7 @@ struct AppThemeTests {
         defer { window.isHidden = true }
 
         func darkIs(_ expected: Int) async -> Bool {
-            await until { window.traitCollection.userInterfaceStyle == .dark && bottomPixel(of: window).red == expected }
+            await until { window.traitCollection.userInterfaceStyle == .dark && bottomPixel(of: window)[0] == expected }
         }
         #expect(await darkIs(11), "darker: \(bottomPixel(of: window))")
         model.darkStyle = .standard
@@ -124,7 +124,7 @@ struct AppThemeTests {
         model.darkStyle = .darker
         model.mode = .light
         // Light: the system's grouped-list grey, not the dark style's.
-        #expect(await until { window.traitCollection.userInterfaceStyle == .light && bottomPixel(of: window).red > 200 })
+        #expect(await until { window.traitCollection.userInterfaceStyle == .light && bottomPixel(of: window)[0] > 200 })
     }
 
     /// A screen pushed on a container whose root carries `appScreenBackground()` shows the same background.
@@ -136,7 +136,7 @@ struct AppThemeTests {
         window.rootViewController = UIHostingController(rootView: ListRoot(model: model, pushed: true))
         window.isHidden = false
         defer { window.isHidden = true }
-        let shown = await until { bottomPixel(of: window).red == 11 }
+        let shown = await until { bottomPixel(of: window)[0] == 11 }
         #expect(shown, "pushed: \(bottomPixel(of: window))")
     }
 }
