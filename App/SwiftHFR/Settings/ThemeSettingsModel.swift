@@ -185,17 +185,18 @@ private struct AppScreenBackground: ViewModifier {
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.colorScheme) private var scheme
 
-    @ViewBuilder private func fill(_ color: ThemeColor?) -> some View {
-        if let color { Color(uiColor: color.uiColor) } else { Color(.systemBackground) }
-    }
-
-    func body(content: Content) -> some View {
-        let color = appearance.darkScreenBackground.flatMap { scheme == .dark ? $0 : nil }
-        content
-            .scrollContentBackground(color == nil ? .automatic : .hidden)
-            .containerBackground(for: .navigation) { fill(color) }
-            // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
-            .containerBackground(for: .navigationSplitView) { fill(color) }
+    @ViewBuilder func body(content: Content) -> some View {
+        if let color = appearance.darkScreenBackground.flatMap({ scheme == .dark ? $0 : nil }) {
+            let fill = Color(uiColor: color.uiColor)
+            content
+                .scrollContentBackground(.hidden)
+                .containerBackground(for: .navigation) { fill }
+                // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
+                .containerBackground(for: .navigationSplitView) { fill }
+        } else {
+            // Standard and light: nothing is set, so the system's fills (the iPad sidebar's material included) stay.
+            content
+        }
     }
 }
 

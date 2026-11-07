@@ -74,7 +74,10 @@ struct AppThemeTests {
         var body: some View {
             NavigationStack(path: $path) {
                 List { Text("") }.appScreenBackground()
-                    .navigationDestination(for: Int.self) { _ in List { Text("") }.appScreenBackground() }
+                    .navigationDestination(for: Int.self) { _ in
+                        // A red band at the top marks the pushed screen: the root has none.
+                        List { Text("") }.overlay(alignment: .top) { Color.red.frame(height: 400) }.appScreenBackground()
+                    }
             }
             .appTheme(model)
             .onAppear { if pushed { path = [1] } }
@@ -136,8 +139,10 @@ struct AppThemeTests {
         window.rootViewController = UIHostingController(rootView: ListRoot(model: model, pushed: true))
         window.isHidden = false
         defer { window.isHidden = true }
-        let shown = await until { bottomPixel(of: window)[0] == 11 }
-        #expect(shown, "pushed: \(bottomPixel(of: window))")
+        // Wait until the pushed screen is the one shown (its red band, 250 pt from the top), then read its background.
+        let pushed = await until { pixel(of: window, x: 150, y: 350) == 255 }
+        #expect(pushed, "pushed screen not shown: \(pixel(of: window, x: 150, y: 350))")
+        #expect(bottomPixel(of: window)[0] == 11, "pushed: \(bottomPixel(of: window))")
     }
 
     /// A three-column split view as the iPad layout builds it, with each column a list.
@@ -155,8 +160,8 @@ struct AppThemeTests {
         }
     }
 
-    /// The red channel at the given x, 20 pt above the bottom of the window.
-    private func pixel(of window: UIWindow, x: CGFloat) -> Int {
+    /// The red channel at `x`, `y` pt above the bottom of the window.
+    private func pixel(of window: UIWindow, x: CGFloat, y: CGFloat = 20) -> Int {
         let image = UIGraphicsImageRenderer(size: window.bounds.size).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -168,7 +173,7 @@ struct AppThemeTests {
         if let cgImage = image.cgImage {
             let scale = image.scale
             let canvas = CGRect(
-                x: -x * scale, y: -20 * scale, width: window.bounds.width * scale, height: window.bounds.height * scale
+                x: -x * scale, y: -y * scale, width: window.bounds.width * scale, height: window.bounds.height * scale
             )
             context?.draw(cgImage, in: canvas)
         }
