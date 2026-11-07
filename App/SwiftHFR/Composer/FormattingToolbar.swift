@@ -1,12 +1,15 @@
 import SwiftUI
 
-/// Size of the bar's cells (#598): 48 pt in regular density, 40 pt in compact, times the app's text scale.
+/// Size of the bar's cells (#598): 48 pt in regular density, 40 pt in compact, times Dynamic Type and the app's text scale
+/// (LOT-169: the percentage multiplies the system size, so accessibility sizes still grow the bar).
 struct ComposerBarMetrics: Equatable {
     let density: ListDensity
     let scale: TextScale
+    /// The Dynamic Type factor (`@ScaledMetric` of 1 relative to the body style).
+    var dynamicType: CGFloat = 1
 
     /// Height and minimum width of one cell.
-    var cellSize: CGFloat { (density == .compact ? 40 : 48) * scale.factor }
+    var cellSize: CGFloat { (density == .compact ? 40 : 48) * dynamicType * scale.factor }
     /// Diameter of a colour swatch: half the cell, as the legacy 24 pt in a 48 pt cell.
     var swatchSize: CGFloat { cellSize / 2 }
     /// Point size of a button's symbol.
@@ -20,8 +23,9 @@ struct FormattingToolbar: View {
     let refocus: () -> Void
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
+    @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
-    private var metrics: ComposerBarMetrics { ComposerBarMetrics(density: density, scale: scale) }
+    private var metrics: ComposerBarMetrics { ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType) }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
