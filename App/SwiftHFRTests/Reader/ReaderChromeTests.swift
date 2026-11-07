@@ -57,6 +57,17 @@ struct ReaderChromeTests {
             == ["Première page", "Aller à la page…", "Page 38", "Page 39", "Page 40", "Dernière page", "Dernier post"])
     }
 
+    @Test func theMenuActionsOpenTheRightPageAndAnchor() {
+        func go(_ item: ReaderPageMenu.Item) -> [Int]? {
+            ReaderPageMenu.destination(of: item, maxPage: 40).map { [$0.page, $0.atLastMessage ? 1 : 0] }
+        }
+        #expect(go(.first) == [1, 0])
+        #expect(go(.ask) == nil)
+        #expect(go(.page(39)) == [39, 0])
+        #expect(go(.last) == [40, 0])
+        #expect(go(.lastPost) == [40, 1])
+    }
+
     /// Legacy ‹ opens the previous page at its last message, › the next one at its top, "Dernier post" the last page at its
     /// last message (`MessagesView.swift:4168-4178, 4234-4236` @ 2440d79).
     @Test func previousPageAndLastPostOpenAtTheLastMessageNextPageAtTheTop() async {

@@ -65,12 +65,10 @@ struct ReaderPageMenuItems: View {
     var body: some View {
         ForEach(ReaderPageMenu.items(maxPage: maxPage), id: \.self) { item in
             Button(item.title) {
-                switch item {
-                case .first: Task { await model.goToPage(1) }
-                case .ask: askPage()
-                case .page(let number): Task { await model.goToPage(number) }
-                case .last: Task { await model.goToPage(maxPage) }
-                case .lastPost: Task { await model.goToPage(maxPage, atLastMessage: true) }
+                if let destination = ReaderPageMenu.destination(of: item, maxPage: maxPage) {
+                    Task { await model.goToPage(destination.page, atLastMessage: destination.atLastMessage) }
+                } else {
+                    askPage()
                 }
             }
             .disabled(model.isLoading)
@@ -94,6 +92,17 @@ enum ReaderPageMenu {
             case .last: "Dernière page"
             case .lastPost: "Dernier post"
             }
+        }
+    }
+
+    /// Where an item goes; nil for the prompt. "Dernière page" opens the top of the last page, "Dernier post" its last message.
+    static func destination(of item: Item, maxPage: Int) -> (page: Int, atLastMessage: Bool)? {
+        switch item {
+        case .first: (1, false)
+        case .ask: nil
+        case .page(let number): (number, false)
+        case .last: (maxPage, false)
+        case .lastPost: (maxPage, true)
         }
     }
 
