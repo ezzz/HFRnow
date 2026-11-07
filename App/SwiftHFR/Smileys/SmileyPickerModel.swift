@@ -153,6 +153,13 @@ final class SmileyPickerModel: Identifiable {
         }
     }
 
+    /// Reads the forum favourites again after a failure (the failed section's "Réessayer"); shows the loading state meanwhile.
+    func retryForum() async {
+        guard forumFailed else { return }
+        forumFailed = false
+        await loadForum()
+    }
+
     /// A tap on a forum favourite opens its detail, like an app favourite.
     func tap(forum smiley: PickerSmiley) {
         presented = smiley

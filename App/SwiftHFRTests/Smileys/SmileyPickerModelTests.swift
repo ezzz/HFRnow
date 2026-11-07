@@ -136,6 +136,16 @@ struct SmileyPickerModelTests {
         #expect(model.sections[1].state == .failed("Smileys du forum indisponibles pour le moment."))
     }
 
+    @Test func aFailedForumReadCanBeRetriedWithoutReopeningThePicker() async {
+        let answers = LockedAnswers([nil, [forumSmiley("[:a]")]])
+        let model = picker(forumLoader: { answers.next() })
+        await model.loadForum()
+        #expect(model.sections[1].state == .failed("Smileys du forum indisponibles pour le moment."))
+        await model.retryForum()
+        #expect(model.sections[1].state == .smileys)
+        #expect(model.sections[1].smileys.map(\.code) == ["[:a]"])
+    }
+
     @Test func anAccountWithoutForumFavouritesSaysSo() async {
         let model = picker(forumLoader: { [] })
         await model.loadForum()
@@ -174,4 +184,18 @@ private struct UnreadableFavoritesPersistence: SmallStorePersistence {
     func load() throws -> AppSmileyFavoritesDocument? { throw CocoaError(.fileReadNoPermission) }
     func save(_ document: AppSmileyFavoritesDocument) throws {}
     func quarantineUnreadableData() throws {}
+}
+
+/// Scripted answers of a forum read, in order (the loader is `@Sendable`).
+private final class LockedAnswers: @unchecked Sendable {
+    private let lock = NSLock()
+    private var answers: [[ForumSmiley]?]
+
+    init(_ answers: [[ForumSmiley]?]) { self.answers = answers }
+
+    func next() -> [ForumSmiley]? {
+        lock.lock()
+        defer { lock.unlock() }
+        return answers.isEmpty ? nil : answers.removeFirst()
+    }
 }

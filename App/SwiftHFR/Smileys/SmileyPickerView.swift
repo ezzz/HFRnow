@@ -176,8 +176,14 @@ struct SmileyPickerView: View {
             }
         case .loading:
             ProgressView().frame(maxWidth: .infinity).padding(.vertical, 12)
-        case .empty(let text), .failed(let text):
+        case .empty(let text):
             Text(text).font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 4)
+        case .failed(let text):
+            VStack(alignment: .leading, spacing: 8) {
+                Text(text).font(.subheadline).foregroundStyle(.secondary)
+                if section.kind == .forum { Button("Réessayer") { Task { await model.retryForum() } }.font(.subheadline) }
+            }
+            .padding(.horizontal, 4)
         }
     }
 

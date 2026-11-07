@@ -26,7 +26,7 @@ Legacy app `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional re
   caret after it and gives the editor focus back. The insertion goes through `ReplyComposerModel.update`, so the draft
   autosave and every composer rule apply; nothing is inserted before the draft was read.
 - Layout (#600, operator decisions of 2026-11-07), top to bottom: the system search field (`.searchable`, always shown in the
-  navigation bar; it was a bottom bar nobody saw), then the sections "Smileys de base", "Smileys du forum", "Favoris de l'app"
+  navigation bar; it was a bottom bar nobody saw), then the sections "Smileys de base", "Smileys du forum", "Favoris de l’app"
   (a section of the account's own created smileys comes after the forum one once #601 is captured).
 - "Smileys du forum" (GAP-087): the `<img src alt>` of `#dynamic_smilies` in the composer's own form (the page the composer
   fetches at send time), read by `HopFormParser` into `ForumForm.dynamicSmileys` (LOT-036, differential test on `R47u1`); the picker
@@ -35,9 +35,9 @@ Legacy app `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional re
   *Pending capture*: the public-topic reply, new-topic and edit forms of an account **with** favourites (only the MP reply form
   `R47u1` is captured with some); legacy read them on every form fetch (`ReplyService.swift:249-252` @ 2440d79).
 - Any smiley (basic, forum, favourite, search result) has a context menu "Ajouter aux favoris" / "Retirer des favoris"; the
-  empty "Favoris de l'app" explains it.
+  empty "Favoris de l’app" explains it.
 - "Smileys de base": catalogue entries with `isEditorSmiley`, catalogue order; a tap inserts and closes.
-- "Favoris de l'app": the account's LOT-064 favourites, oldest first; a tap opens the detail (preview, code, "Insérer",
+- "Favoris de l’app": the account's LOT-064 favourites, oldest first; a tap opens the detail (preview, code, "Insérer",
   "Retirer des favoris"). A removal closes the detail. Notices (2.5 s) use legacy's texts.
 - Images: `ReaderImageFetcher` (cookie-less client, policy C, forum hosts only), decoded with ImageIO, animated GIFs as
   `UIImage` animations, cached in an `NSCache` (400 entries). A cell whose URL did not change does no work (LESSONS 49).
