@@ -158,6 +158,19 @@ class FoldTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("GAP-001 appears more than once", out)
 
+    def test_zero_padded_numbers_clash(self):
+        self.put(self.layout.gap_dir, "GAP-2.md", gap_frag("2"))  # GAP-002 is a row
+        self.put(self.layout.gap_dir, "GAP-7.md", gap_frag("7"))
+        self.put(self.layout.gap_dir, "GAP-007.md", gap_frag("007"))
+        self.put(self.layout.changelog_dir, "7.md", cl_frag())
+        self.put(self.layout.changelog_dir, "007.md", cl_frag())
+        code, out = self.run_main("--check")
+        self.assertEqual(code, 1)
+        self.assertIn("GAP-2.md: GAP-2 is already a row", out)
+        self.assertIn("GAP-7.md: GAP-7 is also the number of another fragment", out)
+        self.assertIn("7.md: #7 is also the number of another fragment", out)
+        self.assertEqual(self.run_main()[0], 1, "fold refuses what check rejects")
+
     def test_row_id_must_match_file_name(self):
         self.put(self.layout.gap_dir, "GAP-700.md", gap_frag("701"))
         code, out = self.run_main("--check")

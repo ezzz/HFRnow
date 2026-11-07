@@ -449,6 +449,19 @@ class FoldFragmentsTest(unittest.TestCase):
         self.assertIn("| 9999 | T |", lay.changelog.read_text(encoding="utf-8"))
         self.assertFalse((lay.changelog_dir / "9999.md").exists())
 
+    def test_stale_tallies_do_not_block_apply(self):
+        lay = self.layout()
+        lay.gap.write_text(lay.gap.read_text(encoding="utf-8").replace("| **Total** | **165** |", "| **Total** | **1** |"), encoding="utf-8")
+        (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        self.assertIn("folded 1", hygiene.fold_fragments(True, lay)[0])
+        self.assertIn("| **Total** | **165** |", lay.gap.read_text(encoding="utf-8"))
+
+    def test_duplicate_fragment_numbers_are_reported_not_raised(self):
+        lay = self.layout()
+        for n in ("7.md", "007.md"):
+            (lay.changelog_dir / n).write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        self.assertIn("NOT foldable", hygiene.fold_fragments(True, lay)[0])
+
     def test_malformed_fragment_is_reported_not_folded(self):
         lay = self.layout()
         (lay.gap_dir / "GAP-9999.md").write_text("not a fragment\n", encoding="utf-8")

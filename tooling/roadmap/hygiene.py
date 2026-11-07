@@ -239,9 +239,10 @@ def fold_fragments(do_apply, layout=None):
     """Report (dry-run) or run (`--apply`) the fold of the pending docs fragments; returns the printed lines."""
     layout = layout or docs_fold.Layout()
     pending = [p.name for d in (layout.changelog_dir, layout.gap_dir) for p in docs_fold.fragments(d)]
-    errors = docs_fold.check(layout)
-    if errors:
-        return [f'docs fragments: {len(pending)} pending, NOT foldable: {e}' for e in errors]
+    try:
+        docs_fold.fold(layout, write=False)  # what --apply would do: stale tallies are regenerated, so they never block it
+    except docs_fold.FoldError as e:
+        return [f'docs fragments: {len(pending)} pending, NOT foldable: {e}']
     if not pending:
         return ['docs fragments: none pending']
     if do_apply:

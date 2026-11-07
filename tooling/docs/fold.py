@@ -146,6 +146,8 @@ def check_changelog(layout, errors):
             continue
         if n in nums:
             errors.append(f'{layout.rel(p)}: #{n} is already a row of CHANGELOG-LEGACY.md (direct edit and fragment for the same issue)')
+        if n in seen:
+            errors.append(f'{layout.rel(p)}: #{n} is also the number of another fragment (7.md and 007.md)')
         seen.add(n)
 
 
@@ -265,16 +267,16 @@ def regenerate_tallies(lines):
 def fold_gap(layout):
     """-> (new text, folded fragment paths)."""
     lines = read(layout.gap).split('\n')
-    known = {r[2] for r in gap_rows(lines)}
+    known = {r[3] for r in gap_rows(lines)}  # numbers, so GAP-89 clashes with GAP-089
     sections = gap_sections(lines)
     new = []
     for p in fragments(layout.gap_dir):
         gid, num, section, row, _, _ = read_gap_fragment(p)
-        if gid in known:
+        if num in known:
             raise FoldError(f'{layout.rel(p)}: {gid} is already a row of GAP-LEGACY-VS-SWIFT.md or another fragment')
         if section not in sections:
             raise FoldError(f'{layout.rel(p)}: no GAP section "{section}" (sections: {"; ".join(sections)})')
-        known.add(gid)
+        known.add(num)
         new.append((num, section, row))
     for num, section, row in sorted(new):
         lines.insert(section_end(lines, section), row)
@@ -286,23 +288,28 @@ def check_gap(layout, errors):
     try:
         lines = text.split('\n')
         rows = gap_rows(lines)
-        ids = [r[2] for r in rows]
+        ids = [r[3] for r in rows]
         for g in sorted({g for g in ids if ids.count(g) > 1}):
-            errors.append(f'GAP-LEGACY-VS-SWIFT.md: {g} appears more than once')
+            errors.append(f'GAP-LEGACY-VS-SWIFT.md: GAP-{g:03d} appears more than once')
         if '\n'.join(regenerate_tallies(lines)) != text:
             errors.append('GAP-LEGACY-VS-SWIFT.md: the H.1 list or the Counts table is not the generated one (run tooling/docs/fold.py)')
         sections = gap_sections(lines)
     except FoldError as e:
         errors.append(str(e))
         return
+    row_nums = {r[3] for r in rows}
+    frag_nums = set()
     for p in fragments(layout.gap_dir):
         try:
-            gid, _, section, _, _, _ = read_gap_fragment(p)
+            gid, num, section, _, _, _ = read_gap_fragment(p)
         except FoldError as e:
             errors.append(str(e))
             continue
-        if gid in ids:
+        if num in row_nums:
             errors.append(f'{layout.rel(p)}: {gid} is already a row of GAP-LEGACY-VS-SWIFT.md (direct edit and fragment for the same issue)')
+        if num in frag_nums:
+            errors.append(f'{layout.rel(p)}: {gid} is also the number of another fragment (GAP-7.md and GAP-007.md)')
+        frag_nums.add(num)
         if section not in sections:
             errors.append(f'{layout.rel(p)}: no GAP section "{section}"')
 
