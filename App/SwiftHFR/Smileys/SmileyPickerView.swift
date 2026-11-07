@@ -46,7 +46,7 @@ struct SmileyPickerView: View {
                     .padding(.vertical, 10)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaBar(edge: .bottom, spacing: 0) {
                 if let search = model.search { searchBar(search) }
             }
             .navigationTitle("Smileys")
@@ -89,7 +89,7 @@ struct SmileyPickerView: View {
             Text(notice)
                 .font(.callout)
                 .padding(10)
-                .background(.regularMaterial, in: Capsule())
+                .glassEffect(.regular, in: .capsule)
                 .padding(.top, 8)
         }
     }
@@ -164,7 +164,6 @@ struct SmileyPickerView: View {
             Toggle("Tous les mots clés", isOn: $requireAll).font(.footnote).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(.bar)
     }
 
     private func startSearch(_ search: SmileySearchModel) {

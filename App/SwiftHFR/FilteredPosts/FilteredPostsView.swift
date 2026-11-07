@@ -69,7 +69,7 @@ struct FilteredPostsBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.bar, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
         // Legacy hid an information after 3 seconds.
         .task(id: model.statusMessage) {
@@ -109,10 +109,10 @@ struct FilteredPostsView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Fermer") { model.closeResult() } }
         }
-        .safeAreaInset(edge: .top) {
+        .safeAreaBar(edge: .top) {
             if model.bannerText != nil { FilteredPostsBanner(model: model).padding(.horizontal).padding(.top, 4) }
         }
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             if let result = model.result { NextBatchBar(model: model, result: result) }
         }
         .filteredPostsAlert(model, shown: model.result != nil)
@@ -185,7 +185,7 @@ private struct NextBatchBar: View {
                 Button { model.showNextBatch() } label: {
                     Label("Résultats suivants", systemImage: "arrow.forward").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 if let hint = model.nextBatchHint {
                     Text(hint).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
@@ -193,6 +193,5 @@ private struct NextBatchBar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
     }
 }

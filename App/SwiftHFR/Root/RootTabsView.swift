@@ -75,7 +75,7 @@ struct FavoritesSourceMenu: View {
     @Bindable var navigation: NavigationModel
 
     var body: some View {
-        Menu("Options", systemImage: "ellipsis.circle") {
+        Menu("Options", systemImage: "ellipsis") {
             Picker("Liste", selection: $navigation.selectedSource) {
                 ForEach(RootModel.favoritesSources, id: \.self) { source in
                     Text(source.title).tag(Optional(source))

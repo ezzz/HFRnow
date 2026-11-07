@@ -21,7 +21,7 @@ struct ForumSearchView: View {
         }
         .navigationTitle("Recherche")
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) { bottomBar }
+        .toolbar { pagerToolbar }
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
                 TopicReaderView(model: readerModel, services: reader, composer: composer)
@@ -103,29 +103,20 @@ struct ForumSearchView: View {
         }
     }
 
-    @ViewBuilder
-    private var bottomBar: some View {
+    @ToolbarContentBuilder
+    private var pagerToolbar: some ToolbarContent {
         if let content = model.loader.value, content.previousPath != nil || content.nextPath != nil {
-            HStack {
-                Button { Task { await model.goToFirstPage() } } label: { Image(systemName: "backward.end") }
-                    .disabled(!model.canGoToPrevious || content.firstPath == nil)
-                    .accessibilityLabel("Première page")
-                Button { Task { await model.goToPreviousPage() } } label: { Image(systemName: "chevron.left") }
-                    .disabled(!model.canGoToPrevious)
-                    .accessibilityLabel("Page précédente")
-                Spacer()
-                Text("Page \(content.page)").monospacedDigit()
-                Spacer()
-                Button { Task { await model.goToNextPage() } } label: { Image(systemName: "chevron.right") }
-                    .disabled(!model.canGoToNext)
-                    .accessibilityLabel("Page suivante")
-                Button { Task { await model.goToLastPage() } } label: { Image(systemName: "forward.end") }
-                    .disabled(!model.canGoToNext || content.lastPath == nil)
-                    .accessibilityLabel("Dernière page")
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(.bar)
+            PagerToolbar(
+                first: .init(enabled: model.canGoToPrevious && content.firstPath != nil) {
+                    Task { await model.goToFirstPage() }
+                },
+                previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
+                next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
+                last: .init(enabled: model.canGoToNext && content.lastPath != nil) {
+                    Task { await model.goToLastPage() }
+                },
+                status: .page(content.page)
+            )
         }
     }
 

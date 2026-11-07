@@ -21,8 +21,6 @@ struct ImageViewerView: View {
             .background(Color.black.ignoresSafeArea())
             .navigationTitle(model.positionText)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
@@ -64,7 +62,7 @@ struct ImageViewerView: View {
             }
             Button { model.copyLink() } label: { Label("Copier le lien", systemImage: "doc.on.doc") }
         } label: {
-            Image(systemName: "ellipsis.circle").accessibilityLabel("Actions de l'image")
+            Image(systemName: "ellipsis").accessibilityLabel("Actions de l'image")
         }
     }
 
@@ -74,7 +72,7 @@ struct ImageViewerView: View {
             Text(text)
                 .font(.footnote)
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                .background(.thinMaterial, in: Capsule())
+                .glassEffect(.regular, in: .capsule)
                 .padding(.bottom, 24)
                 .task(id: model.feedbackID) {
                     AccessibilityNotification.Announcement(text).post()

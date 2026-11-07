@@ -23,7 +23,7 @@ struct MessageListView: View {
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
-        .safeAreaInset(edge: .top) {
+        .safeAreaBar(edge: .top) {
             if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
         }
         .safeAreaInset(edge: .top) {
@@ -44,6 +44,7 @@ struct MessageListView: View {
             model.clearSentConfirmation()
         }
         .toolbar {
+            if let content = loader.value, content.page > 1 || content.hasNext { MessagePageBar(model: model) }
             if let composer, let target = model.newMessageTarget {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -58,9 +59,6 @@ struct MessageListView: View {
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if let content = loader.value, content.page > 1 || content.hasNext { MessagePageBar(model: model) }
         }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
@@ -147,27 +145,17 @@ private struct EmptyMessagesView: View {
 }
 
 /// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct MessagePageBar: View {
+private struct MessagePageBar: ToolbarContent {
     let model: MessageListModel
 
-    var body: some View {
-        HStack {
-            Button { Task { await model.goToFirstPage() } } label: { Image(systemName: "backward.end") }
-                .disabled(!model.canGoToPrevious)
-                .accessibilityLabel("Première page")
-            Button { Task { await model.goToPreviousPage() } } label: { Image(systemName: "chevron.left") }
-                .disabled(!model.canGoToPrevious)
-                .accessibilityLabel("Page précédente")
-            Spacer()
-            if model.loader.isLoading { ProgressView() } else { Text("Page \(model.currentPage)").monospacedDigit() }
-            Spacer()
-            Button { Task { await model.goToNextPage() } } label: { Image(systemName: "chevron.right") }
-                .disabled(!model.canGoToNext)
-                .accessibilityLabel("Page suivante")
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+    var body: some ToolbarContent {
+        PagerToolbar(
+            first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
+            previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
+            next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
+            last: nil,
+            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+        )
     }
 }
 
@@ -188,6 +176,5 @@ private struct MessageSegmentSwitch: View {
         .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
     }
 }
