@@ -68,6 +68,8 @@ def response_fields(raw_dir, raw_id, raw_meta, meta_only):
         status, *lines = fh.read().splitlines()
     if status != "HTTP %s" % raw_meta.get("status"):
         raise A.AnonymizeError("headers file does not match the meta status")
+    if not all(": " in line for line in lines):
+        raise A.AnonymizeError("headers file holds a line that is not a header")
     fields = {"response_headers": dict(line.split(": ", 1) for line in lines)}
     if meta_only:
         fields["body_length"] = os.path.getsize(os.path.join(raw_dir, raw_id + ".html"))

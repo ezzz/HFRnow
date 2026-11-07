@@ -242,6 +242,19 @@ class AQLocalTests(unittest.TestCase):
                 self.assertEqual(reasons, ["AQ local check: " + reason])
         self.assertEqual(len(A.verify_aq_local_answer("free text", local_meta())), 1)
 
+    def test_a_comment_or_an_instruction_in_a_list_fails(self):
+        doc = local_meta(get=True)
+        for plant in ("<!-- free text -->", "<?note free text?>", "<!DOCTYPE alertes>"):
+            with self.subTest(plant=plant):
+                text = LOCAL_XML.replace("<alertes>", plant + "<alertes>")
+                reasons = [r for _l, _c, r in A.verify_aq_local_answer(text, doc)]
+                self.assertEqual(reasons, ["AQ local check: answer holds a comment or an instruction"])
+
+    def test_a_malformed_date_is_a_finding_that_prints_no_value(self):
+        doc = dict(local_meta(get=True), date="planted value")
+        reasons = [r for _l, _c, r in A.verify_aq_local_answer(LOCAL_XML, doc)]
+        self.assertEqual(reasons, ["AQ local check: meta date is not a date"])
+
     def test_corpus_check_applies_it_through_the_meta(self):
         """A real id or title in a local capture fails `check --corpus`, the step CI runs."""
         import tempfile

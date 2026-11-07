@@ -2954,13 +2954,19 @@ def verify_aq_local_answer(text, meta):
     if str(meta.get("content_type", "")).startswith("text/plain"):
         return [] if re.fullmatch(r"-?\d{1,3}\s*", text) else [bad("answer is not a bare code")]
     import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+    # ElementTree drops comments and instructions, which the published file would still hold.
+    if re.search(r"<[!?]", re.sub(r"\A\s*<\?xml\b[^>]*\?>", "", text.lstrip("\ufeff"))):
+        return [bad("answer holds a comment or an instruction")]
     try:
         root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
     except ET.ParseError:
         return [bad("answer is not a list")]
     if root.tag != "alertes" or (root.text or "").strip() or root.attrib:
         return [bad("answer is not a list")]
-    day = email.utils.parsedate_to_datetime(str(meta.get("date"))).strftime("%d-%m-%Y")
+    try:
+        day = email.utils.parsedate_to_datetime(str(meta.get("date"))).strftime("%d-%m-%Y")
+    except (TypeError, ValueError):  # the message would print the value, and CI logs are public
+        return [bad("meta date is not a date")]
     res = []
     for alert in root:
         if alert.tag != "alerte" or set(alert.attrib) != {"id", "nom", "pseudoInitiateur", "date", "postsIds"} \

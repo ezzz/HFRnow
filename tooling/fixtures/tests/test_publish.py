@@ -228,6 +228,15 @@ class PublishTests(unittest.TestCase):
         rc, out = self.run_publish("Q2")
         self.assertEqual(rc, 1)
         self.assertIn("does not match the meta status", out)
+        self.local_capture()
+        path = os.path.join(self.raw, "Q2.headers.txt")
+        with open(path) as fh:
+            status = fh.readline()
+        with open(path, "w") as fh:
+            fh.write(status + "not a header\n")
+        rc, out = self.run_publish("Q2")
+        self.assertEqual(rc, 1)
+        self.assertIn("a line that is not a header", out)
 
     def test_publish_aliases_an_aq_create_on_an_own_topic(self):
         """The AQ create answer is a bare `1`; the request and the list after it name the own topic by `topic_id`."""
