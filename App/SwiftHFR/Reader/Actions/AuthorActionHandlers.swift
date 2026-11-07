@@ -100,9 +100,9 @@ struct ReaderAuthorMenuSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.sheet(item: $flow.newMessage) { message in
-            ReplyComposerView(model: message) { [weak model] reason in
+            ReplyComposerView(model: message) { reason in
                 guard let text = PrivateMessageFeedback.text(for: reason) else { return }
-                model?.showMenuFeedback(text)
+                model.showMenuFeedback(text)
                 AccessibilityNotification.Announcement(text).post()
             }
         }
