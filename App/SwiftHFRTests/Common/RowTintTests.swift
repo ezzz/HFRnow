@@ -15,10 +15,10 @@ struct RowTintTests {
         #expect(abs(RowTint.strength(scheme: .dark, contrast: .increased) - 0.24) < 1e-9)
     }
 
-    @Test("A super-favourite row is tinted, except the selected one")
-    func superFavoriteTint() {
-        #expect(TopicListView.superFavoriteTint(isSuper: true, isSelected: false) != nil)
-        #expect(TopicListView.superFavoriteTint(isSuper: true, isSelected: true) == nil)
-        #expect(TopicListView.superFavoriteTint(isSuper: false, isSelected: false) == nil)
+    @Test("The weight scales the strength; the default is 1")
+    func weightScales() {
+        #expect(RowTint.strength(scheme: .light, contrast: .standard, weight: 0.5) == 0.05)
+        #expect(RowTint.strength(scheme: .dark, contrast: .standard, weight: 1) == RowTint.strength(scheme: .dark, contrast: .standard))
+        #expect(RowTint().weight == 1)
     }
 }

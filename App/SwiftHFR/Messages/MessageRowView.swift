@@ -28,8 +28,7 @@ struct MessageRowView: View {
                         // at half strength once the member has viewed the thread (legacy line 435).
                         Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
                             .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Color(.systemGray), in: Capsule())
-                            .opacity(isUnread ? 1 : 0.5)
+                            .background(Color(.systemGray).opacity(isUnread ? 1 : 0.5), in: Capsule())
                             .accessibilityLabel(label)
                     }
                     Text(thread.summary.title)
