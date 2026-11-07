@@ -12,6 +12,10 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     private let external = URL(string: "https://example.org/page")!
     private let youTube = URL(string: "https://www.youtube.com/watch?v=dQw4w9WgXcQ")!
 
+    private func quietTransport() -> MockTransport {
+        MockTransport { request in HTTPResponse(statusCode: 404, url: request.url) }
+    }
+
     @Test func aForumLinkHasNoAppEntry() {
         #expect(ReaderLinkMenu.entries(for: forum) == [.open, .copy, .safari])
         #expect(ReaderLinkMenu.entries(for: profile) == [.open, .copy, .safari])
@@ -36,7 +40,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     }
 
     @Test func aMenuExistsOnlyForALinkElement() {
-        let (controller, _) = makeController(transport: MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) })
+        let (controller, _) = makeController(transport: quietTransport())
         #expect(controller.linkMenuConfiguration(for: nil) == nil)
         #expect(controller.linkMenuConfiguration(for: external) != nil)
         // Not `http(s)`: an empty menu of ours, never WebKit's default one.
@@ -45,14 +49,14 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     }
 
     @Test func openTakesTheTapRouting() {
-        let (controller, recorder) = makeController(transport: MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) })
+        let (controller, recorder) = makeController(transport: quietTransport())
         controller.performLinkEntry(.open, url: forum)
         controller.performLinkEntry(.open, url: external)
         #expect(recorder.links == [forum, external])
     }
 
     @Test func copyPutsTheURLOnTheEnvironmentWithoutRouting() {
-        let (controller, recorder) = makeController(transport: MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) })
+        let (controller, recorder) = makeController(transport: quietTransport())
         let spy = EnvironmentSpy()
         controller.linkMenuEnvironment = spy.environment
         controller.performLinkEntry(.copy, url: external)
@@ -61,7 +65,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     }
 
     @Test func safariOpensOutsideTheAppOnce() async {
-        let (controller, recorder) = makeController(transport: MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) })
+        let (controller, recorder) = makeController(transport: quietTransport())
         let spy = EnvironmentSpy()
         controller.linkMenuEnvironment = spy.environment
         controller.performLinkEntry(.safari, url: external)
@@ -71,7 +75,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     }
 
     @Test func appTriesUniversalLinksThenFallsBackToSafari() async {
-        let (controller, _) = makeController(transport: MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) })
+        let (controller, _) = makeController(transport: quietTransport())
         let spy = EnvironmentSpy(appTakesLinks: false)
         controller.linkMenuEnvironment = spy.environment
         controller.performLinkEntry(.app(provider: .youtube), url: youTube)
@@ -80,7 +84,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     }
 
     @Test func appStopsWhenAnAppTookTheLink() async throws {
-        let (controller, _) = makeController(transport: MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) })
+        let (controller, _) = makeController(transport: quietTransport())
         let spy = EnvironmentSpy(appTakesLinks: true)
         controller.linkMenuEnvironment = spy.environment
         controller.performLinkEntry(.app(provider: nil), url: external)
@@ -94,7 +98,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
     @Test func noEntryRequestsTheLink() async throws {
         let server = try ConnectionCounter()
         try await server.ready()
-        let transport = MockTransport { _ in HTTPResponse(statusCode: 404, url: $0.url) }
+        let transport = quietTransport()
         let (controller, recorder) = makeController(transport: transport)
         let spy = EnvironmentSpy()
         controller.linkMenuEnvironment = spy.environment
