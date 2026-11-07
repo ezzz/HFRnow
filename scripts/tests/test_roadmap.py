@@ -452,6 +452,7 @@ class FoldFragmentsTest(unittest.TestCase):
 
     def test_stale_tallies_do_not_block_apply(self):
         lay = self.layout()
+        hygiene.docs_fold.fold(lay)  # baseline: the committed file may itself carry stale tallies (direct edits of other PRs)
         text = lay.gap.read_text(encoding="utf-8")
         total = re.search(r"^\| \*\*Total\*\* \| \*\*\d+\*\* \|$", text, re.M).group(0)  # whatever the committed total is
         stale = "| **Total** | **1** |"
