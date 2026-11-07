@@ -76,7 +76,7 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 | `R57a`-`R57c` meta | the requests sent equal the captured URLs; no cookie; every href of the three answers rewritten on the forum origin, the 31 `posts` ones refused |
 
 **Pending capture** (never hand-built, LESSONS 35-36):
-- The flag buckets `topics/{participated,read,favorites}`, logged in ([#335](https://github.com/ezzz/HFRnow/issues/335)); with them, `last_position`, `last_post_read_id` and `flag_owntopic`.
+- ~~The flag buckets `topics/{participated,read,favorites}`, logged in~~ captured (#335): `R335a`-`R335e`, shape and facts in HFR-PROTOCOL §6c "LOT-057 — REST API (anonymous)", flag buckets. `last_position`, `last_post_read_id` and `flag_owntopic` are in them; the client that reads them is still to write, and sends the session cookies.
 - The sub-categories of a category ([#285](https://github.com/ezzz/HFRnow/issues/285)).
 - A list page 2, a `results_per_page` answer, an `/api/…` href requested as is (E1 says 404), and a REST error answer ([#355](https://github.com/ezzz/HFRnow/issues/355)). Until then the client asks for page 1 only, and every failure is handled the same way: fallback.
 - Any REST answer to a session: the client sends no cookie.

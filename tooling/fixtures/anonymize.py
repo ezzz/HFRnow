@@ -518,6 +518,169 @@ def profile_field_value(label, value):
     return PROFILE_PLACEHOLDER
 
 
+# REST flag buckets (`rest_api.php?uri=forums/hardwarefr/[categories/<cat>/]topics/{participated,read,favorites}/`,
+# logged in): every item is a topic the account follows, the same tie as a followed list row, so the answer is
+# aliased by position like a list page and cut to a fixed size. Only structure and field names stay: every dict
+# has an exact key set and every string is rewritten or checked against a constant, never passed through.
+REST_BUCKET_MARKERS = ("flag_owntopic", "last_post_read_id", "last_position", "is_read")
+# Fixed sizes, so a published answer never shows the real one: 2 groups of 1 topic (global), 2 topics (flat).
+# An answer with fewer entries is refused, never padded.
+REST_KEEP = 2
+REST_KEEP_ITEMS_PER_GROUP = 1
+REST_LAST_POSITION_BASE = 200
+REST_API_PREFIX = "https://forum.hardware.fr/api/forums/hardwarefr/"
+REST_BUCKET_URL_RE = re.compile(r"categories/(\d+)/topics/(participated|read|favorites)\b")
+REST_REQUEST_RE = re.compile(r"rest_api\.php\?uri=[^&#]*\btopics/(?:participated|read|favorites)\b")
+
+
+def is_rest_bucket(doc):
+    """True when a JSON document carries a flag-bucket field anywhere (checked on the parsed tree)."""
+    if isinstance(doc, dict):
+        return any(k in REST_BUCKET_MARKERS or is_rest_bucket(v) for k, v in doc.items())
+    if isinstance(doc, list):
+        return any(is_rest_bucket(v) for v in doc)
+    return False
+
+
+def is_rest_bucket_request(url):
+    """True for the URL of a bucket request (a capture whose markers were stripped is still a bucket)."""
+    return isinstance(url, str) and bool(REST_REQUEST_RE.search(url))
+
+
+def alias_rest_buckets(text, cats=None, url=None):
+    """Alias a logged-in REST flag bucket by position and keep a fixed few entries; any other text is unchanged.
+
+    `cats` (optional dict) receives real category id -> alias, so the capture's own URL can follow. `url` is the
+    request: a bucket request is aliased (or refused) even when no bucket field is found in the body."""
+    if not looks_json(text):
+        return text
+    doc = json.loads(text)
+    if not is_rest_bucket(doc) and not is_rest_bucket_request(url):
+        return text
+    cats = {} if cats is None else cats
+    subs, state = {}, {"item": 0}
+
+    def need(cond, what):
+        if not cond:
+            raise AnonymizeError("REST bucket: %s; extend the anonymizer" % what)
+
+    def exact(d, keys, optional=(), what="field"):
+        need(isinstance(d, dict) and set(keys) <= set(d) <= set(keys) | set(optional), "unknown or missing " + what)
+
+    def kind(d, linked, typ="link"):
+        need(d.get("linked_type") == linked and d.get("type") == typ, "unexpected type word")
+
+    def cat_alias(real):
+        return cats.setdefault(real, str(FOLLOWED_CAT_FIRST + len(cats)))
+
+    def href(value, i, count, cat=None):
+        need(isinstance(value, str) and value.startswith(REST_API_PREFIX), "href outside the API prefix")
+        rest = value[len(REST_API_PREFIX):]
+        rest = re.sub(r"\bcategories/(\d+)", lambda m: "categories/" + cat_alias(m.group(1)), rest)
+        rest = re.sub(r"\bsubcategories/(\d+)",
+                      lambda m: "subcategories/%d" % (FOLLOWED_SUBCAT_FIRST + subs.setdefault(m.group(1), len(subs))), rest)
+        rest = re.sub(r"\btopics/(\d+)", "topics/%d" % (FOLLOWED_TOPIC_FIRST + i - 1), rest)
+        if count is not None:
+            rest = re.sub(r"\bpage=\d+&results_per_page=(\d+)",
+                          lambda m: "page=%d&results_per_page=%s" % (-(-count // max(int(m.group(1)), 1)), m.group(1)), rest)
+        return REST_API_PREFIX + rest
+
+    def category(link):
+        exact(link, ("linked_type", "type", "href"), ("title",), "category link field")
+        kind(link, "forum_category")
+        need(isinstance(link["href"], str) and "categories/" in link["href"], "category link shape")
+        number = int(cat_alias(re.search(r"categories/(\d+)", link["href"]).group(1))) - FOLLOWED_CAT_FIRST + 1
+        link["href"] = href(link["href"], 1, None)
+        if "title" in link:  # only a global bucket names its category
+            link["title"] = FOLLOWED_CATEGORY % number
+
+    def item(it):
+        exact(it, ("id", "title", "last_post_date", "is_closed", "is_sticky", "links", "type", "href", "is_read",
+                   "flag_owntopic", "last_position", "last_post_read_id"), what="item field")
+        need(it["type"] == "topic", "unexpected item type")
+        links = it["links"]
+        exact(links, ("forum", "category", "posts", "last_author", "author"), ("subcategory",), "link field")
+        state["item"] += 1
+        i = state["item"]
+        count = FOLLOWED_REPLIES_BASE + i
+        it["id"] = FOLLOWED_TOPIC_FIRST + i - 1
+        it["title"] = FOLLOWED_TITLE % i
+        day, hour = followed_date(i)
+        it["last_post_date"] = "%s-%s-%s %s" % (day[6:], day[3:5], day[:2], hour)
+        it["last_position"] = REST_LAST_POSITION_BASE + i
+        it["last_post_read_id"] = FOLLOWED_MESSAGE_FIRST + i - 1
+        exact(links["forum"], ("linked_type", "type", "href"), what="forum link field")
+        kind(links["forum"], "forum")
+        need(links["forum"]["href"] == REST_API_PREFIX, "forum href")
+        category(links["category"])
+        if "subcategory" in links:
+            exact(links["subcategory"], ("linked_type", "type", "href"), what="sub-category link field")
+            kind(links["subcategory"], "forum_subcategory")
+            links["subcategory"]["href"] = href(links["subcategory"]["href"], i, None)
+        exact(links["posts"], ("linked_type", "type", "href", "count"), what="posts link field")
+        kind(links["posts"], "list")
+        links["posts"]["count"] = count
+        links["posts"]["href"] = href(links["posts"]["href"], i, count)
+        for who in ("last_author", "author"):
+            exact(links[who], ("linked_type", "type", "href", "title", "tns3"), what="author link field")
+            kind(links[who], "user")
+            need(links[who]["href"] is None, "author href")
+            need(isinstance(links[who]["title"], str) and isinstance(links[who]["tns3"], str), "author value")
+        it["href"] = href(it["href"], i, None)
+        return it
+
+    def shape(it):
+        """What a parser must tell apart (flags, sub-category, closed, offset beyond the count); no identity."""
+        links = it.get("links") if isinstance(it.get("links"), dict) else {}
+        count = (links.get("posts") or {}).get("count", 0)
+        pos = it.get("last_position", 0)
+        return (it.get("is_read"), it.get("flag_owntopic"), "subcategory" in links, it.get("is_closed"),
+                it.get("is_sticky"), isinstance(count, int) and isinstance(pos, int) and pos > count)
+
+    def pick(entries, key):
+        """REST_KEEP entries: the first of each new shape in document order, then the first others."""
+        need(len(entries) >= REST_KEEP, "fewer than %d entries, nothing is published (it would show the real size)" % REST_KEEP)
+        chosen, seen = [], set()
+        for e in entries:
+            if len(chosen) < REST_KEEP and key(e) not in seen:
+                seen.add(key(e))
+                chosen.append(e)
+        for e in entries:
+            if len(chosen) < REST_KEEP and all(e is not c for c in chosen):
+                chosen.append(e)
+        return chosen
+
+    def listing(g, group):
+        base = ("page", "results_count", "results_per_page", "resources", "list_type", "type", "href")
+        exact(g, base, ("links",) if group else (), "list field")
+        need(g["type"] == "list" and g["list_type"] == "topic" and isinstance(g["resources"], list), "list type word")
+        g["resources"] = [item(x) for x in g["resources"]]
+        g["results_count"] = g["results_per_page"] = len(g["resources"])
+        if "links" in g:
+            exact(g["links"], ("category",), what="list link field")
+            category(g["links"]["category"])
+        g["href"] = href(g["href"], 1, None)
+        g["href"] = re.sub(r"\bresults_per_page=\d+", "results_per_page=%d" % g["results_per_page"], g["href"])
+        return g
+
+    need(isinstance(doc, dict) and set(doc) == {"resource"}, "document")
+    top = doc["resource"]
+    exact(top, ("page", "results_count", "results_per_page", "resources", "list_type", "type", "href"), what="list field")
+    need(top["type"] == "list" and isinstance(top["resources"], list), "list type word")
+    if top["list_type"] == "list":
+        need(all(isinstance(g, dict) and isinstance(g.get("resources"), list) and g["resources"]
+                 and all(isinstance(it, dict) for it in g["resources"]) for g in top["resources"]), "group shape")
+        top["resources"] = [listing(dict(g, resources=[g["resources"][0]]), True)
+                            for g in pick(top["resources"], lambda g: shape(g["resources"][0]))]
+        top["results_count"] = top["results_per_page"] = len(top["resources"])
+    else:
+        need(top["list_type"] == "topic" and all(isinstance(it, dict) for it in top["resources"]), "list type")
+        top["resources"] = pick(top["resources"], shape)
+        listing(top, False)
+    out = json.dumps(doc, separators=(",", ":"))
+    return out.replace("/", "\\/")
+
+
 # Alertes Qualitaÿ free text, written by members: the alert title (`nom`, RSS item `<title>`) and each
 # reporter's comment. Every word becomes `x`; entities and punctuation stay, so a parser still meets
 # the encodings HFR-PROTOCOL §7b B4 is about (#105). The topic title in the RSS description is the
@@ -1131,6 +1294,7 @@ class Anonymizer:
         self._free_rx = None
         self.own_ids = {}       # real id (topic or message) -> fake id, only on an own-topic page
         self.own_subjects = []  # subjects read from the page's `sujet` inputs
+        self.rest_cats = {}     # real category id -> alias, of a REST flag bucket (the capture's URL follows)
 
     def _rx(self, pseudo):
         if pseudo not in self._regex_cache:
@@ -1486,12 +1650,13 @@ class Anonymizer:
         s = self._free_text(s) if free_text else self._free_urls(s)
         return self._secrets(s)
 
-    def anonymize(self, text, private=False):
+    def anonymize(self, text, private=False, url=None):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
         text = self._own_start(text)
         private = private or page_is_private(text)
         text = alias_followed_lists(text)
+        text = alias_rest_buckets(text, self.rest_cats, url)
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
@@ -1561,12 +1726,14 @@ class Anonymizer:
             if isinstance(v, list):
                 return [walk(x, key) for x in v]
             if isinstance(v, str):
+                v = REST_BUCKET_URL_RE.sub(lambda m: "categories/%s/topics/%s" % (
+                    self.rest_cats.setdefault(m.group(1), str(FOLLOWED_CAT_FIRST + len(self.rest_cats))), m.group(2)), v)
                 return self.redact_text(v, free_text=key == "note")
             return v
         return walk(meta)
 
     # -- verification -----------------------------------------------------------
-    def findings(self, text, private=False, account=None):
+    def findings(self, text, private=False, account=None, url=None):
         """Return [(line, column, reason)] for every leak left in text (including decoded links).
 
         Never the offending value or its neighbourhood: CI logs are public and a neighbour may leak too."""
@@ -1634,6 +1801,8 @@ class Anonymizer:
         res += verify_structure(text, private=private)
         res += verify_own_topic(text)
         res += verify_followed_lists(text)
+        res += verify_rest_buckets(text, url)
+        res += verify_rest_meta(text)
         res += verify_operator_members(text, account)
         res += verify_aq(text)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
@@ -2386,6 +2555,213 @@ def verify_operator_members(text, account):
     return res
 
 
+# REST flag buckets, checked apart from alias_rest_buckets: a JSON walk with its own ranges and patterns.
+# Every value of a bucket must be an alias of its position or a known constant; unknown keys fail closed.
+_VB_API = "https://forum.hardware.fr/api/forums/hardwarefr/"
+_VB_H_ITEM = re.compile(r"categories/(\d+)/(?:subcategories/(\d+)/)?topics/(\d+)/(?:posts/\?page=(\d+)&results_per_page=(\d+))?")
+_VB_H_CAT = re.compile(r"categories/(\d+)/(?:subcategories/(\d+)/)?")
+_VB_H_LIST = re.compile(r"(?:categories/(\d+)/)?topics/(?:participated|read|favorites)/\?page=(\d+)&results_per_page=(\d+)")
+_VB_AUTHOR = re.compile(r"user[0-9]+")
+_VB_TNS3 = re.compile(r"[a-z]+-9[01]00[0-9]{2}\.(?:jpe?g|png|gif)")
+_VB_META_URL = re.compile(r"categories/(\d+)/topics/(?:participated|read|favorites)\b")
+_VB_LIST_KEYS = {"page", "results_count", "results_per_page", "resources", "list_type", "type", "href"}
+_VB_ITEM_KEYS = {"id", "title", "last_post_date", "is_closed", "is_sticky", "links", "type", "href", "is_read",
+                 "flag_owntopic", "last_position", "last_post_read_id"}
+_VB_LINK_KEYS = {"forum": ({"linked_type", "type", "href"}, set()),
+                 "category": ({"linked_type", "type", "href"}, {"title"}),
+                 "subcategory": ({"linked_type", "type", "href"}, set()),
+                 "posts": ({"linked_type", "type", "href", "count"}, set()),
+                 "last_author": ({"linked_type", "type", "href", "title", "tns3"}, set()),
+                 "author": ({"linked_type", "type", "href", "title", "tns3"}, set())}
+_VB_LINKED = {"forum": "forum", "category": "forum_category", "subcategory": "forum_subcategory", "posts": "list",
+              "last_author": "user", "author": "user"}
+
+
+def _vb_int(x):
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def verify_rest_buckets(text, url=None):
+    """[(line, column, reason)] for every value of a REST flag bucket that is not exactly the alias of its position.
+
+    Written apart from alias_rest_buckets: a JSON walk that numbers the topics, categories and sub-categories in
+    document order itself, with an exact key set for every kind of dict and every string value compared with its
+    alias or constant. A bucket is a JSON with a bucket field, or the answer to a bucket request (`url`).
+    [] for any other text."""
+    if not looks_json(text):
+        return []
+    doc = json.loads(text)
+    if not is_rest_bucket(doc) and not is_rest_bucket_request(url):
+        return []
+    res, st = [], {"i": 0, "cats": [], "subs": []}
+
+    def bad(what):
+        res.append((1, 1, "rest-bucket check: %s not aliased" % what))
+
+    def keys(d, required, optional=(), what="dict"):
+        if not isinstance(d, dict) or not set(required) <= set(d) <= set(required) | set(optional):
+            bad(what + " keys")
+            return False
+        return True
+
+    def alias(kind, n, first):
+        """True when n is the next alias of its kind in order of appearance, or one already seen."""
+        seen = st[kind]
+        if n in seen:
+            return True
+        if n == first + len(seen):
+            seen.append(n)
+            return True
+        return False
+
+    def api(h, what):
+        if not isinstance(h, str) or not h.startswith(_VB_API):
+            bad(what + " href")
+            return None
+        return h[len(_VB_API):]
+
+    def cat_link(link, want=None):
+        if not keys(link, {"linked_type", "type", "href"}, {"title"}, "category link"):
+            return None
+        if link["linked_type"] != "forum_category" or link["type"] != "link":
+            bad("category type word")
+        rest = api(link["href"], "category")
+        m = _VB_H_CAT.fullmatch(rest) if rest is not None else None
+        if m is None or m.group(2) or not alias("cats", int(m.group(1)), 101) or (want and int(m.group(1)) != want):
+            bad("category href")
+            return None
+        if "title" in link and link["title"] != "Category %d" % (int(m.group(1)) - 100):
+            bad("category title")
+        return int(m.group(1))
+
+    def item(it, cat):
+        if not keys(it, _VB_ITEM_KEYS, (), "item") or not keys(it["links"], {"forum", "category", "posts", "last_author", "author"},
+                                                              {"subcategory"}, "item links"):
+            return
+        st["i"] += 1
+        i = st["i"]
+        if it["type"] != "topic":
+            bad("item type word")
+        if it["id"] != 9800000 + i or not _vb_int(it["id"]):
+            bad("topic id")
+        if it["title"] != "Followed topic %d" % i:
+            bad("title")
+        day, hour = followed_date(i)
+        if it["last_post_date"] != "%s-%s-%s %s" % (day[6:], day[3:5], day[:2], hour):
+            bad("date")
+        if it["last_position"] != 200 + i or not _vb_int(it["last_position"]):
+            bad("last position")
+        if it["last_post_read_id"] != 9810000000 + i or not _vb_int(it["last_post_read_id"]):
+            bad("last read id")
+        for k in ("is_closed", "is_sticky", "is_read"):
+            if not isinstance(it[k], bool):
+                bad(k)
+        if not _vb_int(it["flag_owntopic"]) or it["flag_owntopic"] not in range(4):
+            bad("flag")
+        links = it["links"]
+        for name, (req, opt) in _VB_LINK_KEYS.items():
+            if name in links and name != "category" and keys(links[name], req, opt, name + " link"):
+                if links[name]["linked_type"] != _VB_LINKED[name] or links[name]["type"] != "link":
+                    bad(name + " type word")
+        if "forum" in links and isinstance(links["forum"], dict) and links["forum"].get("href") != _VB_API:
+            bad("forum href")
+        c = cat_link(links["category"], cat)
+        sub = None
+        if "subcategory" in links and isinstance(links["subcategory"], dict):
+            rest = api(links["subcategory"].get("href"), "subcategory")
+            m = _VB_H_CAT.fullmatch(rest) if rest is not None else None
+            if m is None or not m.group(2) or int(m.group(1)) != c or not alias("subs", int(m.group(2)), 960001):
+                bad("subcategory href")
+            else:
+                sub = int(m.group(2))
+        posts = links["posts"] if isinstance(links["posts"], dict) else {}
+        if posts.get("count") != 5000 + i or not _vb_int(posts.get("count")):
+            bad("reply count")
+        for h, with_posts in ((posts.get("href"), True), (it["href"], False)):
+            rest = api(h, "topic")
+            m = _VB_H_ITEM.fullmatch(rest) if rest is not None else None
+            ok = (m is not None and int(m.group(1)) == c and int(m.group(3)) == 9800000 + i
+                  and ((m.group(2) is None and sub is None) or (m.group(2) and int(m.group(2)) == sub)))
+            if ok and with_posts:
+                ok = m.group(4) is not None and int(m.group(5)) == 40 and int(m.group(4)) == -(-(5000 + i) // 40)
+            elif ok:
+                ok = m.group(4) is None
+            if not ok:
+                bad("posts href" if with_posts else "topic href")
+        for who in ("last_author", "author"):
+            a = links[who]
+            if isinstance(a, dict):
+                if a.get("href") is not None or not isinstance(a.get("tns3"), str) or not _VB_TNS3.fullmatch(a["tns3"]):
+                    bad("avatar")
+                if not isinstance(a.get("title"), str) or not _VB_AUTHOR.fullmatch(a["title"]):
+                    bad("author name")
+
+    def lst(L, top):
+        if not keys(L, _VB_LIST_KEYS, () if top else {"links"}, "list") or not isinstance(L["resources"], list) \
+                or not L["resources"]:
+            bad("list")
+            return
+        n = len(L["resources"])
+        if L["type"] != "list":
+            bad("list type word")
+        if L["page"] not in (1, 2) or not _vb_int(L["page"]) or L["results_count"] != n or L["results_per_page"] != n \
+                or not _vb_int(n):
+            bad("list counts")
+        rest = api(L["href"], "list")
+        m = _VB_H_LIST.fullmatch(rest) if rest is not None else None
+        cat = None
+        if m is None or m.group(2) not in ("1", "2"):  # the requested page is echoed in the href
+            bad("list href")
+        elif L["list_type"] == "list" and top:
+            if m.group(1) or m.group(3) not in ("5", "25"):  # the requested size is echoed too
+                bad("list href")
+        else:
+            if not m.group(1) or not alias("cats", int(m.group(1)), 101) or int(m.group(3)) != n:
+                bad("list href")
+            cat = int(m.group(1)) if m.group(1) else None
+        if L["list_type"] == "list" and top:
+            for g in L["resources"]:
+                if isinstance(g, dict) and g.get("list_type") == "topic" and "links" in g:
+                    lst(g, False)
+                else:
+                    bad("group")
+        elif L["list_type"] == "topic":
+            if "links" in L:
+                if keys(L["links"], {"category"}, (), "list links") and cat_link(L["links"]["category"], cat) != cat:
+                    bad("list category")
+            elif not top:
+                bad("group")
+            for it in L["resources"]:
+                item(it, cat)
+        else:
+            bad("list type word")
+
+    if keys(doc, {"resource"}, (), "document"):
+        lst(doc["resource"], True)
+    return res
+
+
+def verify_rest_meta(text):
+    """[(line, column, reason)] for a capture meta whose URL names a bucket of a category that is not an alias."""
+    if not looks_json(text):
+        return []
+    res = []
+
+    def walk(o):
+        if isinstance(o, dict):
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+        elif isinstance(o, str):
+            for m in _VB_META_URL.finditer(o):
+                if int(m.group(1)) not in range(101, 104):
+                    res.append((1, 1, "rest-bucket check: category of a URL not aliased"))
+    walk(json.loads(text))
+    return res
+
+
 # Alertes Qualitaÿ, checked apart from DISCOVER / AQ_TEXT_RES: an XML parse of the document, then the
 # HTML of each RSS description scanned with this verifier's own patterns.
 _V_AQ_MASKED = re.compile(r"(?:x|&#?[0-9A-Za-z]+;|[^\w&])*")
@@ -2501,6 +2877,23 @@ def corpus_entries(folder):
     return entries
 
 
+def meta_urls(folder, cache):
+    """{capture file: final URL or URL} of the metas next to a file, for the checks that depend on the request."""
+    if folder not in cache:
+        urls = {}
+        for name in os.listdir(folder):
+            if name.endswith(".meta.json"):
+                try:
+                    with open(os.path.join(folder, name), encoding="utf-8") as fh:
+                        meta = json.load(fh)
+                except (OSError, ValueError):
+                    continue
+                if isinstance(meta, dict) and meta.get("file"):
+                    urls[meta["file"]] = meta.get("final_url") or meta.get("url")
+        cache[folder] = urls
+    return cache[folder]
+
+
 def cmd_check(args):
     """CLI: verify files (or a whole corpus); exit non-zero when any file leaks."""
     anon = Anonymizer(Config.load(args.config) if args.config else Config())
@@ -2509,7 +2902,7 @@ def cmd_check(args):
     except (OSError, ValueError) as exc:
         _ui.ko(str(exc))
         return 1
-    bad = 0
+    bad, url_cache = 0, {}
     for path, private, account in entries:
         try:
             text, _enc = read_text(path)
@@ -2517,7 +2910,8 @@ def cmd_check(args):
             _ui.ko("%s: %s" % (path, exc.strerror))
             bad += 1
             continue
-        leaks = anon.findings(text, private=private, account=account)
+        url = meta_urls(os.path.dirname(os.path.abspath(path)), url_cache).get(os.path.basename(path))
+        leaks = anon.findings(text, private=private, account=account, url=url)
         for line, col, reason in leaks:
             _ui.ko("%s:%d:%d: %s" % (path, line, col, reason))
         if leaks:
