@@ -250,12 +250,26 @@ struct ComposerServices: Sendable {
     /// What the smiley panel opens with: a new search model over the lookups, none without an account.
     /// `formURL` is the composer's own form, whose `#dynamic_smilies` are the forum favourites.
     @MainActor func smileyPanel(formURL: URL? = nil) -> SmileyPanelServices {
-        let poster = poster
-        return SmileyPanelServices(
+        SmileyPanelServices(
             store: smileyFavorites, account: account,
             search: smileyLookups.map { SmileySearchModel(lookups: $0, history: smileySearchHistory) },
-            forumFavorites: formURL.map { url in { try? await poster.forumSmileys(formURL: url) } }
+            forumFavorites: forumFavoritesLoader(formURL: formURL)
         )
+    }
+
+    /// Reads the forum favourites through the poster; written out step by step, the compiler cannot type a nested closure that
+    /// mixes `Optional.map` with a typed-throws `try?`.
+    private func forumFavoritesLoader(formURL: URL?) -> (@Sendable () async -> [ForumSmiley]?)? {
+        guard let formURL else { return nil }
+        let poster = poster
+        let load: @Sendable () async -> [ForumSmiley]? = {
+            do throws(PostingError) {
+                return try await poster.forumSmileys(formURL: formURL)
+            } catch {
+                return nil
+            }
+        }
+        return load
     }
 
     /// The single store of the app's smiley favourites (one actor per file), `Application Support/SmileyFavorites/`.
