@@ -63,8 +63,10 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    deletes the whole topic (HFR-PROTOCOL §3.1 "First post" row: `W49`, `R92`; the private-thread variant differs, `R43a`); legacy
    never offered it. Only "Link" has a handler in this lot, so "Supprimer" shows nowhere yet. Own-message, favourite and delete flags derive from LOT-031's
    `MessageActions`, not from the legacy builder's flags.
-5. The author menu opens from the pseudo (a button); legacy opened it from the avatar image, which stays inert here (a blocked or
-   missing avatar would otherwise leave no way in).
+5. The author menu opens from the avatar and from the pseudo, as legacy's two tap targets (`templatev2.htm:4-5`); a member without a
+   picture, or whose picture was refused, shows the monogram of the MP list, so the avatar is always there to tap (issue #595).
+   Entries: Profil and MP; Blacklist and Whitelist wait for LOT-118 (#209), which registers their two handlers in
+   `TopicReaderView.installMenuActions`. Legacy jumped to the profile screen when a profile link existed (`MessagesView.swift:3610-3616`).
 6. The menu is a popover anchored at the tapped `⋯` (issue #594), titled "Post de <pseudo>"; legacy used a `UIEditMenuInteraction`
    at the tapped point (`MessagesView.swift:1521-1595`). It is no longer a `confirmationDialog` of the whole reader, which iOS 26
    and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the

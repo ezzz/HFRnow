@@ -133,12 +133,11 @@ enum TopicHTMLBuilder {
     private static func header(of message: ReaderMessage, author: String, date: String, options: ReaderRenderOptions) -> String {
         var html = ""
         html += "<header class=\"header\">"
-        if let avatar = message.avatarURL {
-            html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(avatar.absoluteString))\" alt=\"\">"
-        }
         let showsMessageMenu = options.showsMessageMenus && !message.isContinuation
-        if options.showsAuthorMenus, !message.isContinuation {
-            // The author opens the author's menu (legacy: the avatar tap); the numbers are ours, never page text.
+        let opensAuthorMenu = options.showsAuthorMenus && !message.isContinuation
+        html += avatar(of: message, opensMenu: opensAuthorMenu)
+        if opensAuthorMenu {
+            // The author opens the author's menu (legacy: the avatar and the pseudo both did); the numbers are ours, never page text.
             html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\">"
             html += "\(author)</button>"
         } else {
@@ -151,6 +150,26 @@ enum TopicHTMLBuilder {
         }
         html += "</header>\n"
         return html
+    }
+
+    /// The avatar: the member's picture over a monogram (initials on a disc coloured from the pseudo, as the MP list's, #578).
+    /// The monogram is local markup, no request and no script, so the CSP needs nothing; `reader.js` removes the picture
+    /// when it is refused or fails (`has-image` off) and the monogram shows. A button when it opens the author menu.
+    static func avatar(of message: ReaderMessage, opensMenu: Bool) -> String {
+        let mark = Monogram(pseudo: message.author)
+        let light = Monogram.hex(mark.background(dark: false)), dark = Monogram.hex(mark.background(dark: true))
+        let hasImage = message.avatarURL != nil
+        let classes = "avatar-wrap" + (hasImage ? " has-image" : "")
+        var html = opensMenu
+            ? "<button type=\"button\" class=\"\(classes) menu-avatar\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\""
+                + " aria-label=\"Menu de \(HTMLEscaping.text(message.author))\">"
+            : "<span class=\"\(classes)\">"
+        html += "<span class=\"avatar avatar-default\" style=\"--mono-light:\(light);--mono-dark:\(dark)\" aria-hidden=\"true\">"
+        html += "\(HTMLEscaping.text(mark.initials))</span>"
+        if let url = message.avatarURL {
+            html += "<img class=\"avatar\" src=\"\(HTMLEscaping.text(url.absoluteString))\" alt=\"\">"
+        }
+        return html + (opensMenu ? "</button>" : "</span>")
     }
 
     private static func cssClass(of visibility: VisibilityPolicy.Post) -> String? {

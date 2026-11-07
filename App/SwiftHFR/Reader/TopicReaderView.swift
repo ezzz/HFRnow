@@ -54,6 +54,8 @@ struct TopicReaderView: View {
     /// The open image viewer (LOT-109); a fresh model per tap.
     @State private var viewer: ImageViewerModel?
     @State private var profile: UserProfileModel?
+    /// The author menu's MP composer and handlers (issue #595).
+    @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
@@ -135,6 +137,7 @@ struct TopicReaderView: View {
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
+        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -265,6 +268,12 @@ struct TopicReaderView: View {
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
+        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
+        let showProfile = $profile
+        let profiles = services.profiles
+        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
+            showProfile.wrappedValue = UserProfileModel(memberID: id, source: profiles)
+        }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
