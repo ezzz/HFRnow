@@ -130,12 +130,12 @@ struct TopicHTMLBuilderTests {
         #expect(first == TopicHTMLBuilder.document(for: page([mute]), token: 1))
     }
 
-    @Test func theMonogramTextIsEscaped() {
+    @Test func thePseudoIsEscapedInTheAvatarLabelAndTheMonogram() {
         var odd = message()
-        odd.author = "<b>"
-        let html = TopicHTMLBuilder.avatar(of: odd, opensMenu: false)
-        #expect(!html.contains("<b>"))
-        #expect(html.contains("&lt;b&gt;") || html.contains(">B</span>"))
+        odd.author = "a\"><img src=x>"
+        let html = TopicHTMLBuilder.avatar(of: odd, opensMenu: true)
+        #expect(!html.contains("<img src=x>"))
+        #expect(html.contains("aria-label=\"Menu de a&quot;&gt;&lt;img src=x&gt;\""))
     }
 
     @Test func theAvatarIsTheAuthorMenuButtonWithOrWithoutPicture() {

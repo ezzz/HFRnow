@@ -1,4 +1,5 @@
 import Foundation
+import HFRClient
 import HFRModels
 @testable import SwiftHFR
 import Testing
@@ -82,5 +83,25 @@ struct AuthorActionHandlerTests {
         reader.requestMenu(post: 7, source: .avatar, anchor: anchor, token: token)
         #expect(reader.presentedMenu?.entries == [.profile, .privateMessage])
         #expect(reader.presentedMenu?.anchor == anchor)
+    }
+}
+
+/// What the reader says after the MP composer of the author menu closes.
+struct PrivateMessageFeedbackTests {
+    @Test func sentShowsHFRsSentenceOrTheLegacyOne() {
+        #expect(PrivateMessageFeedback.text(for: .sent(newMessageConfirmed)) == "Votre message a été posté avec succès !")
+        var blank = newMessageConfirmed
+        blank.message = "  "
+        #expect(PrivateMessageFeedback.text(for: .sent(blank)) == "Message privé envoyé")
+    }
+
+    @Test func anUnconfirmedSendAsksToCheckTheMPs() {
+        #expect(PrivateMessageFeedback.text(for: .checkTopic)?.contains("vérifiez vos MP") == true)
+    }
+
+    @Test func closingWithoutSendingSaysNothing() {
+        for reason in [ReplyComposerModel.CloseReason.keptDraft, .discardedDraft, .closedWithoutSaving] {
+            #expect(PrivateMessageFeedback.text(for: reason) == nil)
+        }
     }
 }
