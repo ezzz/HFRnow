@@ -42,12 +42,7 @@ struct ReaderImageFetcher: Sendable {
     ) async throws(Failure) -> (data: Data, mimeType: String) {
         var next = url
         for _ in 0...Self.maximumRedirects {
-            if let hostFilter, !hostFilter(next) { throw .refused }
-            switch ImagePolicy.classify(next) {
-            case .blocked: throw .refused
-            case .thirdParty where !allowsThirdParty: throw .refused
-            case .forum, .thirdParty: break
-            }
+            try Self.check(next, allowsThirdParty: allowsThirdParty, hostFilter: hostFilter)
             var request: HTTPRequest
             if let hostTable {
                 do throws(NetworkError) { request = try hostTable.request(for: Self.upgraded(next)) } catch { throw .unavailable }
@@ -72,6 +67,16 @@ struct ReaderImageFetcher: Sendable {
             return (response.body, mimeType)
         }
         throw .unavailable
+    }
+
+    /// Refuses `url` unless the host filter (when set) and policy C allow it.
+    private static func check(_ url: URL, allowsThirdParty: Bool, hostFilter: (@Sendable (URL) -> Bool)?) throws(Failure) {
+        if let hostFilter, !hostFilter(url) { throw .refused }
+        switch ImagePolicy.classify(url) {
+        case .blocked: throw .refused
+        case .thirdParty where !allowsThirdParty: throw .refused
+        case .forum, .thirdParty: break
+        }
     }
 
     /// `http` is requested over `https`: App Transport Security refuses clear-text loads and the app adds no exception
