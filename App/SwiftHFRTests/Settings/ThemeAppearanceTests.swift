@@ -147,4 +147,24 @@ struct ThemeAppearanceTests {
         let shownText = mix(channels, [161, 161, 166], 0.75)
         #expect(colour(shownText).contrast(with: colour(shownHeader)) >= 4.5, "\(style) at \(brightness): \(channels)")
     }
+
+    /// #577 draws even messages on `--surface-alt` (text over the background, 9 % in dark) and their quotes on `--placeholder`:
+    /// the secondary text keeps 4.5:1 on both, in the darker and OLED styles at every brightness.
+    @Test(arguments: [DarkStyle.darker, .oled], [0.0, 0.5, 1.0, 1.5])
+    func secondaryTextHoldsOnTheAlternateSurfaceAndOnQuotes(style: DarkStyle, brightness: Double) throws {
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = style
+        appearance.darkBrightness = brightness
+        func channels(_ name: String) throws -> [Double] {
+            let value = try #require(appearance.readerVariables.first { $0.name == name }?.value)
+            return value.dropFirst(4).dropLast().split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        }
+        func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
+        let secondary = ThemeColor(hex: 0xA1A1A6)
+        let background = try channels("--app-dark-background")
+        let alternate = zip(background, [242.0, 242, 247]).map { $0 * 0.91 + $1 * 0.09 }
+        #expect(secondary.contrast(with: colour(alternate)) >= 4.5, "\(style) at \(brightness): alternate surface")
+        let placeholder = try channels("--app-dark-placeholder")
+        #expect(secondary.contrast(with: colour(placeholder)) >= 4.5, "\(style) at \(brightness): quote surface")
+    }
 }
