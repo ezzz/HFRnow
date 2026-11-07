@@ -29,7 +29,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-005 | AQ badge on Plus tab | Plus badge shows the unread AQ count, checked 3 s after launch. | MainWindow.swift:1297, 1178-1196 | Plus badge once the AQ feed lands. | LOT-133 | same | port: ezzz Swift layer | a |
 | GAP-006 | Plus menu | Seven rows: Réglages, Rechercher, Bookmarks, Alertes Qualitay, Crédits, Charte, Supprimer mon compte. | PlusTab.swift:16-64 | Same seven rows in the same order, filled by their lots. | LOT-170 | same | port: ezzz Swift layer | a |
 | GAP-007 | Tab reselect refreshes | Reselecting a root tab reloads its list with a haptic. | MainWindow.swift:1399-1416 | Not specified by LOT-082 or LOT-170. | — | not planned | — | — |
-| GAP-008 | Tab bar in the reader | The reader hides the tab bar. | Favorites.swift:807 | Reader opens inside the tab; hiding the tab bar is not specified. | LOT-083, LOT-170 | UX change | new UX: spec | b |
+| GAP-008 | Tab bar in the reader | The reader hides the tab bar, in the favourites post-filter reader only. | Favorites.swift:807 | Hidden while a topic is open (UXD-02, #424, decided 2026-11-02). **Kept despite the HIG** (Tab bars: "Make sure the tab bar is visible…"), by the operator's decision of 2026-11-07. | LOT-083, LOT-170 | UX change | new UX: spec | b |
 | GAP-009 | Account menu | Leading avatar menu in list toolbars: switch, add pseudo, logout. | MainWindow.swift:235-262; MainToolbar.swift:57-64 | Account menu in the Plus and Catégories toolbars only. | LOT-170, LOT-081 | UX change | new UX: spec | b |
 | GAP-010 | Home-screen quick actions | Declared in the ObjC target's Info.plist; the handler body is commented out. | SuperHFRplus-Info.plist:235-275; HFRplusAppDelegate.m:311-345 | Follow-up named by LOT-170, no lot. | — | not planned | — | — |
 | GAP-011 | MP notification tap | Opens the Messages tab and force-refreshes it. | Common.swift:32-48; MainWindow.swift:1218-1221 | Notification flow kept; tap destination not specified. | LOT-140, LOT-091 | ported with changes | port: ezzz Swift layer | a |
@@ -156,7 +156,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 |---|---|---|---|---|---|---|---|---|
 | GAP-140 | Settings screen | One form: Général, Thème, Sujets, Filtrer, Notifications MP, Stockage MP, Maintenance, À propos. | AppSettingsView.swift:494-503 | Same Réglages shell, sections owned by their lots. | LOT-119, LOT-170 | same | port: ezzz Swift layer | a |
 | GAP-141 | Where settings live | `@AppStorage` keys, device only. | AppSettingsView.swift:86-109 | Same keys; synced ones mirrored to iCloud KVS. | LOT-060, LOT-172 | ported with changes | new UX: spec | b·operator |
-| GAP-142 | Light / dark / auto | "Automatique (iOS)" or manual Clair / Sombre. | AppSettingsView.swift:127-134 | Same options for native UI and reader. | LOT-121 | same | port: ezzz Swift layer | a |
+| GAP-142 | Light / dark / auto | "Automatique (iOS)" or manual Clair / Sombre. | AppSettingsView.swift:127-134 | Same options for native UI and reader. **Kept despite the HIG** (Dark Mode: "Avoid offering an app-specific appearance setting"), by the operator's decision of 2026-11-07. | LOT-121 | same | port: ezzz Swift layer | a |
 | GAP-143 | Time-based auto theme | Day / night time cells, hidden. | PlusSettingsViewController.m:84-85 | Not in any spec. | — | not planned | — | — |
 | GAP-144 | Dark brightness | `theme_night_brightness` scales dark colours. | ThemeColors.m:116-118 | Kept. | LOT-121 | same | port: legacy ObjC | a |
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Darker dark #0B0B0C, OLED black, 1 pt separators. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
@@ -235,7 +235,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 
 ## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
 
-Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is part of M4 parity, and **where the HIG and legacy differ, the HIG wins**. Each divergence is a row here, never a silent change. Two existing decisions conflict with the HIG and are kept (GAP-227, GAP-228).
+Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is part of M4 parity, and **where the HIG and legacy differ, the HIG wins**. Each divergence is a row here, never a silent change. Two existing rows keep a decision that conflicts with the HIG: GAP-008 (reader tab bar) and GAP-142 (appearance setting).
 
 - **Legacy reference**: `HFRswift/Swift/LiquidGlass.swift` at `2440d79` (`git show 2440d79:HFRswift/Swift/LiquidGlass.swift`). Used by 9 files, 39 lines (`git grep -c 'glassEffect\|hfrGlass' 2440d79 -- HFRswift`, the helper file excluded).
 - **HIG pages read on 2026-11-07**: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets), [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode), [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
@@ -250,22 +250,20 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | GAP-223 | Sheet backgrounds | `presentationGlassBackground()` forces `.thinMaterial` on five sheets. | AnswerView.swift:1162, 1951; MessagesView.swift:4356, 4849, 5061 | System sheet background, no forced material (HIG Sheets). SwiftHFR never ported the forced background, so no code changes. | — | dropped | new UX: operator | — |
 | GAP-224 | Circled ellipsis symbols | Plain `ellipsis` on the Plus tab. | MainWindow.swift:1295 | Plain symbols. The circled ones of SwiftHFR (image viewer, root tabs, reader) become plain: HIG Toolbars says borders such as outlined circles are not necessary. | LOT-185, LOT-186 | same | port: ezzz Swift layer | a |
 | GAP-225 | Reader "…" page menu | A page menu behind a plain `ellipsis` in the reader. | MessagesView.swift:4722, 4970 | The "…" becomes the system overflow menu or another symbol, because the Duo HIG reserves the ellipsis for overflow (Designing for iPhone Duo). The page controls follow the legacy layout (#428). | LOT-186 (absorbs #428) | UX change | new UX: operator | b·operator |
-| GAP-226 | Glass buttons on floating controls | Glass buttons (`.buttonStyle(.glass)`, `.glassProminent`) through `hfrGlassButton`, 17 call sites. | LiquidGlass.swift:54-68 | Glass buttons on floating controls only (HIG Buttons: one or two prominent buttons per view). This reverses LOT-115:49, which dropped them. | LOT-185, LOT-186 | ported with changes | port: ezzz Swift layer | a |
-| GAP-227 | Reader tab bar | Root tab bar shown in every screen, the reader included. | MainWindow.swift:1268-1298 | Hidden while a topic is open (UXD-02, #424). **Kept despite the HIG** (Tab bars: "Make sure the tab bar is visible…"), by the decision of 2026-11-02. | LOT-083, LOT-170; #424 | UX change | new UX: operator | b·operator |
-| GAP-228 | Light / dark / auto setting | The appearance choice of GAP-142, in the app. | AppSettingsView.swift:127-134 | Same options. **Kept despite the HIG** (Dark Mode: "Avoid offering an app-specific appearance setting"), by the operator's decision of 2026-11-07. | LOT-121 | same | port: ezzz Swift layer | a |
+| GAP-226 | Glass buttons on floating controls | Glass buttons (`.buttonStyle(.glass)`, `.glassProminent`) through `hfrGlassButton`, 17 call sites; the submit button inside the add-account card (AddAccountView.swift:67). | LiquidGlass.swift:54-68; AddAccountView.swift:67 | Glass buttons on floating controls only (HIG Buttons: one or two prominent buttons per view). The card button loses its glass: a UX change, kept because the HIG wins. This reverses LOT-115:49, which dropped the glass buttons. | LOT-185, LOT-186 (reverses LOT-115) | UX change | port: ezzz Swift layer | b·operator |
 
 ## Counts
 
 | Gap | Rows |
 |---|---|
-| same | 37 |
-| ported with changes | 45 |
+| same | 36 |
+| ported with changes | 44 |
 | ported with changes (engine only) | 1 |
 | UX change | 43 |
 | new | 28 |
 | dropped | 2 |
 | not planned | 8 |
-| **Total** | **164** |
+| **Total** | **162** |
 
 ## Convergence notes
 
@@ -296,14 +294,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (116)
+### GAP rows of type `ported with changes`, `UX change` or `new` (115)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 226 | 45 |
+| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221 | 44 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 227 | 15 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226 | 15 |
 | b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 020, 022, 026, 051, 060, 092, 163, 212, 214. The `same` rows are (a).

@@ -268,7 +268,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 
 ### Liquid Glass and the iOS 27 HIG
 
-Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is M4 parity, and where the HIG and legacy differ the HIG wins, each divergence recorded in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#liquid-glass-and-the-ios-27-hig-decided-2026-11-07-545) (GAP-220 to GAP-228). The M5 items of the same topic (LOT-174, LOT-147) stay in M5.
+Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is M4 parity, and where the HIG and legacy differ the HIG wins, each divergence recorded in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#liquid-glass-and-the-ios-27-hig-decided-2026-11-07-545) (GAP-220 to GAP-226, with GAP-008 and GAP-142). The M5 items of the same topic (LOT-174, LOT-147) stay in M5.
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
