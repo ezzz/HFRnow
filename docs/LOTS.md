@@ -273,7 +273,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|
 | LOT-185 | Liquid Glass outside the reader, from the legacy `LiquidGlass.swift` helpers: glass on the floating toasts, the list pagers and the buttons of floating controls; notice cards keep their materials; bars as system toolbars; plain symbols (the reader is LOT-186, the composer bar LOT-174) | App | easy | Sonnet → Opus | — | legacy parity (#545) | high | [#548](https://github.com/ezzz/HFRnow/issues/548) |
-| LOT-186 | Reader chrome for Liquid Glass and iOS 27: the legacy page controls as system glass bottom-bar items (absorbs #428, UXD-10), the web view under the bars, scroll restore, the reader toast, the reader's "…" menu moved to the overflow HIG; after #424 (hidden tab bar, PR #540) | App | medium | Opus → Fable | 083 | legacy parity (#428; #545) | high | [#549](https://github.com/ezzz/HFRnow/issues/549) |
+| LOT-186 | Reader chrome for Liquid Glass and iOS 27: the legacy page controls as system glass bottom-bar items (absorbs #428, UXD-10), the web view under the bars, scroll restore, the reader toast, the reader's "…" menu moved to the system overflow menu (Duo HIG); after #424 (hidden tab bar, PR #540) | App | medium | Opus → Fable | 083 | legacy parity (#428; #545) | high | [#549](https://github.com/ezzz/HFRnow/issues/549) |
 
 ## Phase 5 — app: iOS 27 experience
 

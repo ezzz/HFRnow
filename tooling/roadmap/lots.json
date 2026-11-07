@@ -2088,7 +2088,7 @@
 {
 "lot": "LOT-186",
 "star": false,
-"scope": "Reader chrome for Liquid Glass and iOS 27: the legacy page controls as system glass bottom-bar items (absorbs #428, UXD-10), the web view under the bars, scroll restore, the reader toast, the reader's \"…\" menu moved to the overflow HIG; after #424 (hidden tab bar, PR #540)",
+"scope": "Reader chrome for Liquid Glass and iOS 27: the legacy page controls as system glass bottom-bar items (absorbs #428, UXD-10), the web view under the bars, scroll restore, the reader toast, the reader's \"…\" menu moved to the system overflow menu (Duo HIG); after #424 (hidden tab bar, PR #540)",
 "module": "App",
 "diff": "medium",
 "model": "Opus → Fable",
