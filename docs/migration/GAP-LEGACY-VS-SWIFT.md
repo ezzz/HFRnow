@@ -93,6 +93,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-071 | Swipe between pages | Horizontal drag ≥ 120 pt changes page, hard-coded. | MessagesView.swift:4510-4534 | "Swipe pages" reader setting. | LOT-106 | ported with changes | port: ezzz Swift layer | a |
 | GAP-072 | Continuous scrolling | None. | — | Option, off by default, haptic per page. | LOT-148, FEAT-017 | new | new UX: Bybifok (FEAT-017) | b |
 | GAP-073 | Quick-reply bar and quote tray | None. | — | Bottom bar with the count of checked quotes and a quick reply. | LOT-153, FEAT-006 | new | new UX: Bybifok (FEAT-006) | b |
+| GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
 
 ## Composer
 
@@ -261,11 +262,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 36 |
 | ported with changes | 44 |
 | ported with changes (engine only) | 1 |
-| UX change | 43 |
+| UX change | 44 |
 | new | 28 |
 | dropped | 2 |
 | not planned | 8 |
-| **Total** | **162** |
+| **Total** | **163** |
 
 ## Convergence notes
 
@@ -296,7 +297,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (115)
+### GAP rows of type `ported with changes`, `UX change` or `new` (116)
 
 | H.1 | Rows | Count |
 |---|---|---|
@@ -304,7 +305,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
 | b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226, 227 | 16 |
-| b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
+| b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219, 229 | 49 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 026, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
 
