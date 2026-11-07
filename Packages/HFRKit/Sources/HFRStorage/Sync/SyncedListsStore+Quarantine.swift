@@ -1,0 +1,329 @@
+import Foundation
+
+extension SyncedListsStore {
+    // MARK: Setting aside and restoring
+
+    /// Moves every synced local list, whatever its account, into the quarantine of `owner` and empties the stores, with
+    /// the digests of the lists last synced for it, so a change made here before the switch is still pushed when it
+    /// comes back. A store that cannot be read or emptied, or whose lists the device file cannot hold yet, is marked
+    /// stale: never pushed, set aside as soon as it can be.
+    func setAside(owner previous: String) async {
+        for slot in Slot.allCases {
+            await setAside(slot, owner: previous, digests: true)
+        }
+        saveDeviceState()
+    }
+
+    func setAside(_ slot: Slot, owner previous: String, digests: Bool = false) async {
+        var values: [String: SyncedValue] = [:]
+        // Every digest of this store's lists, those emptied here since their last sync included (they hold no name).
+        // They live in memory: set aside even when the store cannot be read, its lists following once it can.
+        if digests {
+            for (key, digest) in synced where slot.owns(key) { values[Self.digestPrefix + key] = .string(digest) }
+        }
+        guard await isReadable(slot) else {
+            quarantine(values, for: previous)
+            markStale(slot, owner: previous)
+            return
+        }
+        let names = await listNames(slot)
+        for name in names {
+            if let value = await localValue(slot, name: name) { values[slotKey(slot, name: name)] = value }
+        }
+        // A store with lists is emptied only once the file holds them: a kill before the next save would lose them.
+        let holdsLists = values.keys.contains { !$0.hasPrefix(Self.digestPrefix) }
+        guard quarantine(values, for: previous) || !holdsLists else {
+            markStale(slot, owner: previous)
+            return
+        }
+        var emptied = true
+        for name in names where await !empty(slot, name: name) { emptied = false }
+        if emptied {
+            stale[slot.rawValue] = nil
+        } else {
+            markStale(slot, owner: previous)
+        }
+    }
+
+    /// A store already stale still holds its first owner's lists.
+    func markStale(_ slot: Slot, owner previous: String) {
+        stale[slot.rawValue] = stale[slot.rawValue] ?? previous
+    }
+
+    /// The account keys (lists), the accounts as stored (positions) or the single allowlist a store holds.
+    func listNames(_ slot: Slot) async -> [String] {
+        switch slot {
+        case .allowlist: [""]
+        case .superFavorites: await superFavorites.accountKeys()
+        case .smileyFavorites: await smileyFavorites.accountKeys()
+        case .positions: await positions.accounts()
+        }
+    }
+
+    /// The quarantine key of one list: the cloud key's form, with the stored account for positions.
+    func slotKey(_ slot: Slot, name: String) -> String {
+        slot == .allowlist ? Self.allowlistKey : "\(slot.rawValue).\(name)"
+    }
+
+    /// One local list as an envelope, nil when it is empty.
+    func localValue(_ slot: Slot, name: String) async -> SyncedValue? {
+        switch slot {
+        case .allowlist: Self.nonEmpty(await pseudoLists.allowlist())
+        case .superFavorites: Self.nonEmpty(await superFavorites.favorites(for: name))
+        case .smileyFavorites: Self.nonEmpty(await smileyFavorites.favorites(for: name))
+        case .positions: Self.nonEmpty(await positions.records(for: name))
+        }
+    }
+
+    static func nonEmpty<Item: Codable & Hashable>(_ items: [Item]) -> SyncedValue? {
+        items.isEmpty ? nil : SyncedListEnvelope(items: items).value
+    }
+
+    /// Empties one local list; false when the store refused.
+    func empty(_ slot: Slot, name: String) async -> Bool {
+        do {
+            switch slot {
+            case .allowlist: _ = try await pseudoLists.replaceAllowlist(with: [])
+            case .superFavorites: _ = try await superFavorites.replace([], account: name)
+            case .smileyFavorites: _ = try await smileyFavorites.replace([], account: name)
+            case .positions: _ = try await positions.removeAccount(name)
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    func isReadable(_ slot: Slot) async -> Bool {
+        switch slot {
+        case .allowlist: await pseudoLists.loadFailure() == nil
+        case .superFavorites: await superFavorites.loadFailure() == nil
+        case .smileyFavorites: await smileyFavorites.loadFailure() == nil
+        case .positions: await positions.loadFailure() == nil
+        }
+    }
+
+    /// A store that could not be set aside at an Apple ID change: once readable, its content goes to the quarantine of
+    /// the Apple ID it belongs to, unless that Apple ID owns the lists again. A store found empty (its unreadable data
+    /// discarded, which signals it) has nothing of that Apple ID left.
+    func settleStaleStores() async {
+        for (prefix, staleOwner) in stale.sorted(by: { $0.key < $1.key }) {
+            guard let slot = Slot(rawValue: prefix) else {
+                stale[prefix] = nil
+                continue
+            }
+            if let owner, owner == staleOwner || (cloud.isCurrentAccount(staleOwner) && cloud.isCurrentAccount(owner)) {
+                stale[prefix] = nil
+                reclaimDigests(slot, holders: [staleOwner, owner])
+            } else if await isReadable(slot) {
+                stale[prefix] = nil
+                if await hasContent(slot) { await setAside(slot, owner: staleOwner) }
+                if stale[prefix] == nil { restoreDeferredSlots.insert(slot) }
+            }
+        }
+        saveDeviceState()
+        // The owner's quarantined lists that could not come back at the switch (a switch paused by an unwritable
+        // device file: every store; a stale store: that store only) come back once they can, once: a list the user
+        // empties later is not refilled.
+        guard restoreDeferred || !restoreDeferredSlots.isEmpty, let owner, cloud.isCurrentAccount(owner), !stateUnsaved
+        else { return }
+        let slots = restoreDeferred ? Set(Slot.allCases) : restoreDeferredSlots
+        restoreDeferred = false
+        restoreDeferredSlots = []
+        await restore(for: owner, slots: slots)
+    }
+
+    /// A store stale since a switch whose owner is back holds that owner's lists: the digests set aside with them
+    /// describe those lists again, so a change made before the first switch is still pushed.
+    func reclaimDigests(_ slot: Slot, holders: Set<String>) {
+        func owned(_ key: String) -> String? {
+            guard key.hasPrefix(Self.digestPrefix) else { return nil }
+            let listKey = String(key.dropFirst(Self.digestPrefix.count))
+            return slot.owns(listKey) ? listKey : nil
+        }
+        for holder in holders {
+            for (key, value) in unsaved[holder]?.values ?? [:] {
+                guard let listKey = owned(key), case .string(let digest) = value else { continue }
+                synced[listKey] = digest
+                unsaved[holder]?.values[key] = nil
+            }
+        }
+        let saved = device.document()?.quarantine ?? [:]
+        var reclaimed: [String: Set<String>] = [:]
+        for holder in holders {
+            for (key, value) in saved[holder]?.values ?? [:] {
+                guard let listKey = owned(key), case .string(let digest) = value else { continue }
+                synced[listKey] = digest
+                reclaimed[holder, default: []].insert(key)
+            }
+        }
+        guard !reclaimed.isEmpty else { return }
+        _ = try? device.mutate { document throws(SmallStoreError) in
+            for (holder, keys) in reclaimed {
+                guard var entry = document.quarantine[holder] else { continue }
+                for key in keys { entry.values[key] = nil }
+                document.quarantine[holder] = entry.values.isEmpty ? nil : entry
+            }
+            return true
+        }
+    }
+
+    func hasContent(_ slot: Slot) async -> Bool {
+        for name in await listNames(slot) where await localValue(slot, name: name) != nil { return true }
+        return false
+    }
+
+    /// Brings back the quarantined lists of the Apple ID `identity` held by `slots` where the local list is empty. A
+    /// list that cannot be restored (its store stale, or a local list already there) stays in the quarantine.
+    func restore(for identity: String, slots: Set<Slot> = Set(Slot.allCases)) async {
+        func split(_ values: [String: SyncedValue]) -> (due: [String: SyncedValue], kept: [String: SyncedValue]) {
+            let due = values.filter { key, _ in
+                slots.contains(slot(of: key.hasPrefix(Self.digestPrefix) ? String(key.dropFirst(Self.digestPrefix.count)) : key))
+            }
+            return (due, values.filter { due[$0.key] == nil })
+        }
+        for (holder, entry) in unsaved where cloud.isCurrentAccount(holder) {
+            let (due, kept) = split(entry.values)
+            let left = (await restore(due)).merging(kept) { new, _ in new }
+            unsaved[holder] = left.isEmpty ? nil : SyncQuarantineEntry(savedAt: entry.savedAt, values: left)
+        }
+        let saved = (device.document()?.quarantine ?? [:]).filter { cloud.isCurrentAccount($0.key) }
+        for (holder, entry) in saved.sorted(by: { $0.key < $1.key }) {
+            let (due, kept) = split(entry.values)
+            let left = (await restore(due)).merging(kept) { new, _ in new }
+            _ = try? device.mutate { document throws(SmallStoreError) in
+                guard left != entry.values else { return false }
+                document.quarantine[holder] = left.isEmpty ? nil : SyncQuarantineEntry(savedAt: entry.savedAt, values: left)
+                return true
+            }
+        }
+    }
+
+    /// Restores each list it can, with its digest; returns what it could not restore.
+    private func restore(_ values: [String: SyncedValue]) async -> [String: SyncedValue] {
+        var left: [String: SyncedValue] = [:]
+        for (key, value) in values.sorted(by: { $0.key < $1.key }) {
+            if key.hasPrefix(Self.digestPrefix) {
+                let listKey = String(key.dropFirst(Self.digestPrefix.count))
+                // A digest goes with its list; alone (the list was empty), it comes back where the list is empty.
+                guard values[listKey] == nil else { continue }
+                if await isEmptyLocally(listKey), case .string(let digest) = value {
+                    synced[listKey] = digest
+                } else {
+                    left[key] = value
+                }
+            } else if await restore(value, key: key) {
+                if case .string(let digest)? = values[Self.digestPrefix + key] { synced[key] = digest }
+            } else {
+                left[key] = value
+                left[Self.digestPrefix + key] = values[Self.digestPrefix + key]
+            }
+        }
+        saveDeviceState()
+        return left
+    }
+
+    private func isEmptyLocally(_ key: String) async -> Bool {
+        let name = String(key.drop { $0 != "." }.dropFirst())
+        switch slot(of: key) {
+        case .allowlist: return await allowlistItems()?.isEmpty == true
+        case .superFavorites: return await superFavoriteItems(name)?.isEmpty == true
+        case .smileyFavorites: return await smileyFavoriteItems(name)?.isEmpty == true
+        case .positions: return false
+        }
+    }
+
+    private func restore(_ value: SyncedValue, key: String) async -> Bool {
+        let name = String(key.drop { $0 != "." }.dropFirst())
+        do {
+            switch slot(of: key) {
+            case .allowlist:
+                guard let items = SyncedListEnvelope<PseudoListEntry>(value)?.items, await allowlistItems()?.isEmpty == true
+                else { return false }
+                _ = try await pseudoLists.replaceAllowlist(with: items)
+            case .superFavorites:
+                guard let items = SyncedListEnvelope<SuperFavorite>(value)?.items,
+                      await superFavoriteItems(name)?.isEmpty == true else { return false }
+                _ = try await superFavorites.replace(items, account: name)
+            case .smileyFavorites:
+                guard let items = SyncedListEnvelope<AppSmileyFavorite>(value)?.items,
+                      await smileyFavoriteItems(name)?.isEmpty == true else { return false }
+                _ = try await smileyFavorites.replace(items, account: name)
+            case .positions:
+                guard let items = SyncedListEnvelope<ReadingPositionRecord>(value)?.items,
+                      await positionRecords(name)?.isEmpty == true else { return false }
+                _ = try await positions.merge(items, account: name)
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Sets `values` aside for `holder` in the device file; returns false when the file could not be saved (they are
+    /// then kept in memory and written with the next successful save).
+    @discardableResult
+    func quarantine(_ values: [String: SyncedValue], for holder: String) -> Bool {
+        guard !values.isEmpty else { return true }
+        let now = clock()
+        do throws(SmallStoreError) {
+            _ = try device.mutate { document throws(SmallStoreError) in
+                var entry = document.quarantine[holder] ?? SyncQuarantineEntry(savedAt: now, values: [:])
+                entry.values.merge(values) { _, new in new }
+                entry.savedAt = now
+                document.quarantine[holder] = entry
+                return true
+            }
+            return true
+        } catch {
+            var entry = unsaved[holder] ?? SyncQuarantineEntry(savedAt: now, values: [:])
+            entry.values.merge(values) { _, new in new }
+            entry.savedAt = now
+            unsaved[holder] = entry
+            deviceStateFailure = error
+            return false
+        }
+    }
+
+    /// Deletes quarantined lists older than the quarantine lifetime.
+    func purge() {
+        let limit = clock().addingTimeInterval(-SyncedSettingsStore.quarantineLifetime)
+        unsaved = unsaved.filter { $0.value.savedAt > limit }
+        guard let quarantine = device.document()?.quarantine, quarantine.values.contains(where: { $0.savedAt <= limit })
+        else { return }
+        _ = try? device.mutate { document throws(SmallStoreError) in
+            document.quarantine = document.quarantine.filter { $0.value.savedAt > limit }
+            return true
+        }
+    }
+
+    /// Saves the owner, the stale stores, the digests and any quarantine kept in memory; while the file lags behind,
+    /// the sync pauses (`isActive`).
+    func saveDeviceState() {
+        let owner = owner
+        let stale = stale
+        let synced = synced
+        let unsaved = unsaved
+        do throws(SmallStoreError) {
+            _ = try device.mutate { document throws(SmallStoreError) in
+                guard document.owner != owner || document.stale != stale || document.synced != synced || !unsaved.isEmpty
+                else { return false }
+                document.owner = owner
+                document.stale = stale
+                document.synced = synced
+                for (holder, entry) in unsaved {
+                    var merged = document.quarantine[holder] ?? entry
+                    merged.values.merge(entry.values) { _, new in new }
+                    merged.savedAt = max(merged.savedAt, entry.savedAt)
+                    document.quarantine[holder] = merged
+                }
+                return true
+            }
+            self.unsaved = [:]
+            stateUnsaved = false
+        } catch {
+            stateUnsaved = true
+            deviceStateFailure = error
+        }
+    }
+}
