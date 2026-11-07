@@ -34,6 +34,8 @@ extension ReplyComposerModel {
     var canSend: Bool {
         guard hasText, canEdit, !picker.isLoading else { return false }
         if isNewMessage { return !Self.isBlank(recipient) && !Self.isBlank(subject) }
+        // An edit changing nothing would mark the message edited and lose a leading line break HFR does not serve (`R130b`).
+        if let prefill, !differsFromPrefill, picker.selected == prefill.subcategories?.preselected { return false }
         return !hasSubjectField || !Self.isBlank(subject)
     }
 

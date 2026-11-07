@@ -129,17 +129,40 @@ struct EditComposerTests {
         await drafts.draft(for: try #require(Self.target).draftContext, account: ComposerFixture.account)
     }
 
-    /// Prefill round trip: opened and sent untouched, the text HFR served goes back byte for byte, once, through that message.
-    @Test func anEditSentUnchangedSendsTheTextHFRServed() async throws {
+    /// The message's own text is shown and goes out as typed, once, through that message.
+    @Test func anEditOpensOnTheServedTextAndSendsTheNewOne() async throws {
         let served = try EditCapture.prefill(EditCapture.laterPostForm).text
         let answer = try EditCapture.result(EditCapture.edited, .edit, post: 501)
         let poster = ScriptedPoster([.success(answer)])
         let model = try await composer(EditCapture.laterPostForm, poster: poster)
         #expect(model.text == served)
+        model.update(text: served + " corrigé")
         #expect(model.canSend)
         await model.send()
-        #expect(poster.calls == [.init(text: served, formURL: Self.link, post: 501)])
+        #expect(poster.calls == [.init(text: served + " corrigé", formURL: Self.link, post: 501)])
         #expect(model.closeReason == .sent(answer))
+    }
+
+    /// A no-op edit is not offered: it would mark the message edited and lose a leading line break HFR does not serve (`R130b`).
+    @Test func anUntouchedEditCannotBeSent() async throws {
+        let poster = ScriptedPoster([])
+        let model = try await composer("R130b-mp-edit-form-leading-newline.html", poster: poster)
+        #expect(!model.canSend)
+        await model.send()
+        #expect(poster.calls.isEmpty)
+    }
+
+    /// Prefill round trip: with only the sub-category changed, the text HFR served goes back byte for byte.
+    @Test func aSubcategoryChoiceAloneCanBeSentWithTheServedText() async throws {
+        let served = try EditCapture.prefill(EditCapture.firstPostForm).text
+        let poster = ScriptedPoster([.success(try EditCapture.result(EditCapture.firstPostEdited, .edit, post: 501))])
+        let model = try await composer(EditCapture.firstPostForm, poster: poster)
+        #expect(!model.canSend)
+        model.select(subcategory: "169")
+        #expect(model.canSend)
+        await model.send()
+        #expect(poster.calls.first?.text == served)
+        #expect(poster.calls.first?.subcategory == "169")
     }
 
     @Test func aFirstPostSendsItsTitleAndSubcategory() async throws {
@@ -164,8 +187,9 @@ struct EditComposerTests {
         let poster = ScriptedPoster([.success(answer)])
         let model = try await composer(EditCapture.privateFirstPostForm, poster: poster)
         #expect(!model.offersSubcategories)
+        model.update(subject: "Nouveau titre")
         await model.send()
-        #expect(poster.calls.first?.subject == "fixture-test-1")
+        #expect(poster.calls.first?.subject == "Nouveau titre")
         #expect(poster.calls.first?.subcategory == nil)
     }
 
@@ -193,6 +217,7 @@ struct EditComposerTests {
     @Test func aRefusalShowsHFRsSentenceAndKeepsTheText() async throws {
         let poster = ScriptedPoster([.failure(.rejected(message: "Réponse du forum"))])
         let model = try await composer(EditCapture.laterPostForm, poster: poster)
+        model.update(text: "corrigé")
         await model.send()
         #expect(model.errorMessage == "Réponse du forum")
         #expect(!model.mayHavePosted)
@@ -204,9 +229,25 @@ struct EditComposerTests {
         let poster = ScriptedPoster([.failure(.unknownSubcategory)])
         poster.scriptPrefill([.success(try EditCapture.prefill(EditCapture.firstPostForm))])
         let model = try await composer(EditCapture.firstPostForm, poster: poster)
+        model.select(subcategory: "169")
         await model.send()
         #expect(poster.prefillRequests.count == 1)
         #expect(model.errorMessage?.contains("sous-catégorie") == true)
+        #expect(model.picker.selected == "173")
+        #expect(poster.calls.count == 1)
+    }
+
+    /// That second read fails: the warning talks about the edit, never about a topic to send, and "Réessayer" reads the form again.
+    @Test func aFailedRereadOfTheEditFormWarnsAboutTheEdit() async throws {
+        let poster = ScriptedPoster([.failure(.unknownSubcategory)])
+        poster.scriptPrefill([.failure(.notLoggedIn), .success(try EditCapture.prefill(EditCapture.firstPostForm))])
+        let model = try await composer(EditCapture.firstPostForm, poster: poster)
+        model.select(subcategory: "169")
+        await model.send()
+        #expect(model.picker.warning == ComposerMessages.editUnavailable(.notLoggedIn))
+        #expect(model.picker.warning?.contains("sujet") == false)
+        await model.retrySubcategories()
+        #expect(model.picker.warning == nil)
         #expect(model.picker.selected == "173")
         #expect(poster.calls.count == 1)
     }

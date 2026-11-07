@@ -47,7 +47,7 @@ are registered in `TopicReaderView.installMenuActions` with a composer (an accou
 composer opens once the form is read); a failure opens nothing and offers "Réessayer" (a read). `EditPrefill` keeps the stored text
 (`textareaContent`, LOT-036), the title when `sujet` is visible (`R63b`, `R43a`; hidden on a later post, `R62a`) and the `subcat` select
 with its preselection (`R63b`: option marked selected; a private first post has none, `R43a`; a later post a hidden `subcat`, `R62a`, sent as served).
-The sheet is the composer of LOT-084, title "Edition". Send needs a text, and a title when the field shows. The form is fetched **again** at send
+The sheet is the composer of LOT-084, title "Edition". Send needs a text, a title when the field shows, and a change: an untouched edit would mark the message edited and lose a leading line break HFR does not serve (`R130b`). The form is fetched **again** at send
 (fresh `hash_check`, LOT-084 rule; legacy did too) and must be that message's (`numreponse`), else nothing is sent. `PostingFlow.edit` overrides
 `content_form`, `sujet` and the `subcat` select; every other control goes back as served (poll fields, boxes), `delete` unchecked.
 
@@ -75,8 +75,9 @@ sign (`deletesWholeTopic`: visible `sujet` or "intégralité", `R63b`, `R43a`), 
 - First post on page 1: no "Supprimer" (first non-continuation block, LOT-087). A page that hid that fact: refused by the form sign, HFR is not contacted for the POST.
 - Last message of a page deleted: the reader asks the same page; past the end HFR redirects to the last page on a public topic (`R24`). See pending capture for a private thread.
 - Non-BMP character in a stored message (`R43c`): shown, refused at send like any text (Q-3); delete sends the stored text unchanged.
-- Leading line break: HFR serves the edit text without it (`R130b`, §6c "Leading newline"), so the composer holds what HFR serves; an edit sent back unchanged loses it whatever the client.
+- Leading line break: HFR serves the edit text without it (`R130b`, §6c "Leading newline"), so the composer holds what HFR serves; any edit sent loses it, whatever the client, and an untouched one cannot be sent.
 - Two devices: a draft or an open sheet overwrites a newer version, as on the site; no conflict detection (HFR gives none).
+- A kept draft wins over the form at opening even when the message changed elsewhere since: accepted (review of #557), the user sees the draft and decides.
 - Session expired: `notLoggedIn` at the form read or at send.
 - Account switch while the sheet is open: same as LOT-084.
 
@@ -112,6 +113,7 @@ Not hand-built (LESSONS 36). None blocks the lot; each is handled conservatively
 4. Success needs HFR's sentence (legacy accepted "Message supprimé" as a fallback text; `isSuccessfulDelete` was looser, LOT-037).
 5. After a write the page on screen is reloaded; legacy loaded HFR's refresh, the same page (`W31`, `W32`: the form's `page`) at its top. An edit opens at the message, a delete keeps the scroll position.
 6. An unconfirmed delete has its own message and is never presented as refused.
+7. Send is disabled on an untouched edit (legacy sent it).
 
 ## Learnings
 

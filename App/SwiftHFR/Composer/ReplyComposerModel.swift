@@ -154,7 +154,7 @@ final class ReplyComposerModel: Identifiable {
             if let options = fresh.subcategories { picker.apply(options) } else { picker.reset() }
             picker.endLoading()
         } catch {
-            picker.fail(ComposerMessages.subcategoriesUnavailable(error))
+            picker.fail(ComposerMessages.editUnavailable(error))
         }
     }
 
