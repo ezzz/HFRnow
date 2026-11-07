@@ -138,6 +138,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-118 | Group members | Only the tooltip names in the HTML. | MPListView.swift:171-173 | Members action. | LOT-058, LOT-127 | new | new UX: spec | b |
 | GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` decoration, per-account sync. | LOT-062, LOT-130 | ported with changes | port: ezzz Swift layer | a |
 | GAP-120 | MP list logged out | "Connectez-vous pour accéder aux MP". | MPListView.swift:289-296 | "Connexion requise", no request sent. | LOT-126 | same | port: ezzz Swift layer | a |
+| GAP-230 | MP avatar | Cache filled while parsing topic pages (download when missing or older than 24 h); grey disc when absent. | ParseMessagesOperation.m:176, 430-446; MPListView.swift (MPAvatarView) @ 2440d79 | `AvatarStore` fills the cache from every page read (cookie-less, forum image host only, 256 KiB cap, 24 h; not gated by "Images externes": forum avatars are first-party (LOT-071 D-071-1 point 3), as in the reader and legacy); monogram (initials, stable hue, ≥ 4.5:1) replaces the grey disc; groups keep their icon. Profile prefetch for never-opened correspondents: pending capture. | LOT-126, LOT-066, #569 | ported with changes | port: ezzz Swift layer | a |
 
 ## Search
 
