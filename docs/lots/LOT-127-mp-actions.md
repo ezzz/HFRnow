@@ -53,7 +53,7 @@ iPhone and iPad, light, dark, Dynamic Type XL: on a test account, open an MP, se
 1. A failure is shown; legacy dropped it and stayed on the conversation without a word.
 2. HFR's sentence is shown over the list; legacy returned without a word. LOT-058's differences (answer read, header link only, session checked first) stay.
 3. The list's reload is the page on screen (paged list, LOT-126); legacy has page 1 only.
-4. CHANGELOG-LEGACY row 90.
+4. CHANGELOG-LEGACY row 91.
 
 ## Learnings
 - A list action whose link only exists on the detail page cannot be a row action when fetching that page has a side effect: read where the link lives before planning swipes.

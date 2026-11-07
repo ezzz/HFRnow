@@ -56,6 +56,8 @@ extension ReplyComposerModel {
 
     /// What the image panel needs (LOT-102).
     var imageUploadServices: ImageUploadServices { services.imageUpload }
+    /// The GIF panel's services (LOT-155); `isAvailable` is false in a build without a Giphy key.
+    var gifServices: GifServices { services.gif }
 
     /// One write through the poster, with the fields as they are now. Recipient and subject are trimmed, as legacy Swift did
     /// (`AnswerView.swift:1474`, `MessagesView.swift:4213` @ 21173e77); a line break inside one is refused by the engine.

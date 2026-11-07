@@ -12,13 +12,30 @@ struct SmileyThumbnailView: UIViewRepresentable {
     var contentMode: UIView.ContentMode = .center
     /// Set once an image is shown; stays false while loading or when it cannot be had.
     var hasImage: Binding<Bool> = .constant(true)
+    /// Where the image comes from: smileys (forum host, intrinsic size) or the GIF panel (Giphy's CDN after notice N1, fills its frame).
+    var source = Source.smiley
+
+    enum Source: Equatable {
+        case smiley, gif
+    }
 
     func makeUIView(context: Context) -> UIImageView {
         let view = UIImageView()
+        Self.configure(view, contentMode: contentMode, flexible: source == .gif)
+        return view
+    }
+
+    /// A GIF is hundreds of points wide: with the default priorities the image view keeps its intrinsic size and the sheet crops it
+    /// (the buttons below fall out of view). Flexible makes it take whatever the layout proposes. Smileys keep the defaults.
+    static func configure(_ view: UIImageView, contentMode: UIView.ContentMode, flexible: Bool) {
         view.contentMode = contentMode
         view.clipsToBounds = true
         view.isAccessibilityElement = false
-        return view
+        guard flexible else { return }
+        for axis in [NSLayoutConstraint.Axis.horizontal, .vertical] {
+            view.setContentCompressionResistancePriority(.defaultLow, for: axis)
+            view.setContentHuggingPriority(.defaultLow, for: axis)
+        }
     }
 
     func updateUIView(_ view: UIImageView, context: Context) {
@@ -29,14 +46,21 @@ struct SmileyThumbnailView: UIViewRepresentable {
         coordinator.cancel()
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(loader: source == .gif ? .gif() : SmileyImageLoader())
+    }
 
     /// Remembers which URL the view shows and the download in flight.
     @MainActor
     final class Coordinator {
         private var current: URL?
         private var task: Task<Void, Never>?
-        private let loader = SmileyImageLoader()
+        /// Built once per cell: a loader per update would leak an HTTP session each time.
+        private let loader: SmileyImageLoader
+
+        init(loader: SmileyImageLoader) {
+            self.loader = loader
+        }
 
         func update(_ view: UIImageView, url: URL, hasImage: Binding<Bool>) {
             guard current != url else { return }
