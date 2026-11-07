@@ -15,6 +15,16 @@ Code and knowledge from these projects are reused with gratitude.
 
 > Maintainers: complete this table with every fork in the chain and the names of their main contributors.
 
+### AlternativeIcons
+
+Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperHFRplus/Assets/AlternativeIcons/` (ezzz/HFRnow `master` @ `2440d79`).
+
+| Icon | Source | Credit |
+|---|---|---|
+| `Icon-RedFace3DBig` | Legacy art, unchanged | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
+| `Icon-BLUE`, `Icon-WHITE` | Legacy 1024 px image, unchanged, in a one-layer `.icon` | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
+| `Icon-CLASSIC`, `Icon-CLASSIC-RED`, `Icon-REDFACE`, `Icon-REDFACEBLUE`, `Icon-BETA` | Redrawn from scratch as SVG for this repository, because the legacy images stop at 180 px | None needed |
+
 ## Contributors
 
 Everyone who contributed to the projects above, and every contributor listed in this repository's history.
