@@ -41,15 +41,10 @@ struct ReaderPageControls: ToolbarContent {
         }
     }
 
-    /// Legacy `pageChoiceMenuItems`: page 1, "Page…", the last pages and the last post; nothing to choose on a single page.
+    /// Legacy `pageChoiceMenuItems`; nothing to choose on a single page.
     private func pageMenu(_ page: ReaderPage) -> some View {
         Menu {
-            Button("Page 1") { Task { await model.goToPage(1) } }
-            Button("Page…", action: askPage)
-            ForEach(ReaderPageMenu.finalTargets(maxPage: page.maxPage), id: \.self) { target in
-                Button("Page \(target)") { Task { await model.goToPage(target) } }
-            }
-            Button("Dernier post") { Task { await model.goToPage(page.maxPage, atLastMessage: true) } }
+            ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askPage)
         } label: {
             // A page loading shows here, as the shipped page bar did.
             if model.isLoading { ProgressView() } else { Text("\(page.currentPage) / \(page.maxPage)").monospacedDigit() }
@@ -60,8 +55,63 @@ struct ReaderPageControls: ToolbarContent {
     }
 }
 
-/// The page choices of the bottom bar's menu.
+/// The page items shared by the bottom "N / M" menu and the top "…" overflow (#582): one list, so the two cannot drift.
+struct ReaderPageMenuItems: View {
+    let model: TopicReaderModel
+    let maxPage: Int
+    /// Opens the "Aller à la page" prompt.
+    let askPage: () -> Void
+
+    var body: some View {
+        ForEach(ReaderPageMenu.items(maxPage: maxPage), id: \.self) { item in
+            Button(item.title) {
+                if let destination = ReaderPageMenu.destination(of: item, maxPage: maxPage) {
+                    Task { await model.goToPage(destination.page, atLastMessage: destination.atLastMessage) }
+                } else {
+                    askPage()
+                }
+            }
+            .disabled(model.isLoading)
+        }
+    }
+}
+
+/// The page choices of the page menus.
 enum ReaderPageMenu {
+    /// One entry of the menu.
+    enum Item: Hashable {
+        case first, ask, page(Int), last, lastPost
+
+        /// Wording: "Aller à la page…" / "Première page" / "Dernière page" as the issue asks (legacy: "Page ...", "Page 1");
+        /// "Page N" and "Dernier post" are legacy's.
+        var title: String {
+            switch self {
+            case .first: "Première page"
+            case .ask: "Aller à la page…"
+            case .page(let number): "Page \(number)"
+            case .last: "Dernière page"
+            case .lastPost: "Dernier post"
+            }
+        }
+    }
+
+    /// Where an item goes; nil for the prompt. "Dernière page" opens the top of the last page, "Dernier post" its last message.
+    static func destination(of item: Item, maxPage: Int) -> (page: Int, atLastMessage: Bool)? {
+        switch item {
+        case .first: (1, false)
+        case .ask: nil
+        case .page(let number): (number, false)
+        case .last: (maxPage, false)
+        case .lastPost: (maxPage, true)
+        }
+    }
+
+    /// Legacy `pageChoiceMenuItems` order: first page, prompt, last pages, last page, last post; none on a single page.
+    static func items(maxPage: Int) -> [Item] {
+        guard maxPage > 1 else { return [] }
+        return [.first, .ask] + finalTargets(maxPage: maxPage).map(Item.page) + [.last, .lastPost]
+    }
+
     /// The last three pages after page 1, without repeats (legacy `pageChoiceMenuFinalTargets`, `MessagesView.swift:4206-4213`
     /// @ 2440d79): `[3, 4, 5]` for 5 pages, `[2]` for 2, none for a single page.
     static func finalTargets(maxPage: Int) -> [Int] {
