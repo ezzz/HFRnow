@@ -19,7 +19,7 @@ None @ 2440d79 (new UX). The code says so in its `// Port of …` header: "none 
 ## Behaviour
 Delivered by #598 (the first slice; the rest of the lot is still to write), on top of the merged LOT-085:
 - **Size** (`ComposerBarMetrics`): a cell is 48 pt in regular density and 40 pt in compact, times the text scale; the colour swatch is half a cell, the symbol 0.4 of it.
-- **`[url]`**: with a selection, today's path (clipboard link → `[url=<clip>]sel[/url]`). With nothing selected and a clipboard text, the alert offers both legacy forms (`HFRTextView.m:205-262`, `:327-350` @ 2440d79): `[url=<clip>][/url]` with the caret between the tags, or `[url]<clip>[/url]`; "Sans le presse-papiers" writes the empty `[url][/url]`.
+- **`[url]`**: with a selection, today's path (clipboard link → `[url=<clip>]sel[/url]`). With nothing selected and a non-blank clipboard text not already used, the alert offers both legacy forms (`HFRTextView.m:205-262`, `:327-350` @ 2440d79): `[url=<clip>][/url]` with the caret between the tags, or `[url]<clip>[/url]`; "Sans le presse-papiers" writes the empty `[url][/url]` and, as in legacy, does not mark the clipboard used (the choice is offered again until a form is picked); without such a clipboard text, `[url][/url]` is inserted with no choice.
 - **Icons**: the top upload button is `photo.badge.plus`; the bottom `[img]` tag keeps `photo`.
 
 ## Edge cases
