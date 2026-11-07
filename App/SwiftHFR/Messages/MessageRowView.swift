@@ -22,17 +22,21 @@ struct MessageRowView: View {
             MessageAvatarView(pseudo: thread.interlocutors.first ?? thread.summary.starterOrInterlocutors, isGroup: thread.isGroup)
                 .frame(width: avatarSide, height: avatarSide)
             VStack(alignment: .leading, spacing: density.lineSpacing) {
-                if let label = MessageRowView.unreadByLabel(thread) {
-                    // The correspondent's state, not the member's: legacy's grey capsule (`MPListView.swift:425-436` @ 2440d79).
-                    Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Color(.systemGray), in: Capsule())
-                        .accessibilityLabel(label)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if let label = MessageRowView.unreadByLabel(thread) {
+                        // The correspondent's state, not the member's: legacy's leading badge (`MPListView.swift:430-436, 470` @ 2440d79),
+                        // at half strength once the member has viewed the thread (legacy line 435).
+                        Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color(.systemGray), in: Capsule())
+                            .opacity(isUnread ? 1 : 0.5)
+                            .accessibilityLabel(label)
+                    }
+                    Text(thread.summary.title)
+                        .scaledFont(density.titleStyle)
+                        .fontWeight(isUnread ? .semibold : .regular)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 }
-                Text(thread.summary.title)
-                    .scaledFont(density.titleStyle)
-                    .fontWeight(isUnread ? .semibold : .regular)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 if density.mergesMetaLines {
                     Text(MessageRowView.metaLine(who: who, lastPost: lastPost))
                         .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit)

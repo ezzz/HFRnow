@@ -6,11 +6,14 @@ struct RowTint: View {
     /// The list style the row sits in, which decides the colour underneath.
     enum Base {
         case grouped, plain
+        /// Nothing underneath: the tint alone, as a bare translucent row background (sidebar rows have no card colour).
+        case clear
 
         fileprivate var color: Color {
             switch self {
             case .grouped: Color(.secondarySystemGroupedBackground)
             case .plain: Color(.systemBackground)
+            case .clear: Color.clear
             }
         }
     }
