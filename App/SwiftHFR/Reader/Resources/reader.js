@@ -80,8 +80,13 @@
     const menu = target.closest("button[data-menu]");
     if (menu) {
       event.preventDefault();
-      // Only a number and one of two names leave the page: the app decodes them and ignores anything else.
-      channel.postMessage({ type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu });
+      // Only numbers and one of two names leave the page: the app decodes them and ignores anything else. The rectangle
+      // (viewport coordinates) is where the app anchors the menu, as legacy's edit menu at the tapped point (issue #594).
+      const box = menu.getBoundingClientRect();
+      channel.postMessage({
+        type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu,
+        x: box.x, y: box.y, width: box.width, height: box.height
+      });
       return;
     }
     const blocked = target.closest("table.quote-blocked");
