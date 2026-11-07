@@ -18,7 +18,7 @@ struct ReaderOfflineSave: ViewModifier {
                     ToolbarItem(placement: .secondaryAction) { menu(saver, page: page) }
                 }
             }
-            .safeAreaInset(edge: .top) {
+            .safeAreaBar(edge: .top) {
                 if let saver, saver.state != .idle { OfflineSaveBanner(saver: saver) }
             }
     }
@@ -59,7 +59,6 @@ private struct OfflineSaveBanner: View {
             if !saver.isSaving { Button("Fermer", systemImage: "xmark") { saver.dismiss() }.labelStyle(.iconOnly) }
         }
         .padding(.horizontal).padding(.vertical, 8)
-        .background(.bar)
         .accessibilityElement(children: .combine)
     }
 }

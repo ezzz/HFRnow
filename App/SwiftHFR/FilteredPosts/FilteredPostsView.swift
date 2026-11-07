@@ -6,6 +6,8 @@ import SwiftUI
 // Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
 // points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
 // open in the in-app browser (a forum link does not open a reader from here yet).
+// LOT-185: "Résultats suivants" is a `safeAreaBar` with `.glassProminent`, not legacy's `.bottomBar` toolbar item (it holds a
+// state line, a hint and Cancel); the banner is glass; GAP row pending #545.
 
 /// Shows the progress banner, the filtered posts sheet and the failure alert of `model` over its content.
 private struct FilteredPostsPresentation: ViewModifier {
@@ -69,7 +71,7 @@ struct FilteredPostsBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.bar, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
         // Legacy hid an information after 3 seconds.
         .task(id: model.statusMessage) {
@@ -109,10 +111,10 @@ struct FilteredPostsView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Fermer") { model.closeResult() } }
         }
-        .safeAreaInset(edge: .top) {
+        .safeAreaBar(edge: .top) {
             if model.bannerText != nil { FilteredPostsBanner(model: model).padding(.horizontal).padding(.top, 4) }
         }
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             if let result = model.result { NextBatchBar(model: model, result: result) }
         }
         .filteredPostsAlert(model, shown: model.result != nil)
@@ -185,7 +187,7 @@ private struct NextBatchBar: View {
                 Button { model.showNextBatch() } label: {
                     Label("Résultats suivants", systemImage: "arrow.forward").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 if let hint = model.nextBatchHint {
                     Text(hint).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
@@ -193,6 +195,5 @@ private struct NextBatchBar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
     }
 }
