@@ -1,0 +1,27 @@
+{
+  "id": "T67",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "/api/addAlerte.php",
+  "url": "http://192.0.2.1:8574/api/addAlerte.php",
+  "final_url": "http://192.0.2.1:8574/api/addAlerte.php",
+  "status": 200,
+  "content_type": "text/html; charset=UTF-8",
+  "date": "Sat, 07 Nov 2026 13:03:35 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "alerte_qualitay_id",
+    "nom",
+    "topic_id",
+    "topic_titre",
+    "pseudo",
+    "post_id",
+    "post_url",
+    "commentaire"
+  ],
+  "origin": "local-instance",
+  "note": "local toyo/aq instance (php -S), not aq.super-h.fr",
+  "request_body": "alerte_qualitay_id=-1&nom=AQ%20flood%204&topic_id=700304&topic_titre=AQ%20flood%20topic%204&pseudo=user7&post_id=700314&post_url=https%3A%2F%2Fforum.hardware.fr%2Fhfr%2FDiscussions%2FSociete%2Faq-flood-4-sujet_700304_1.htm%23t700314&commentaire=post%20de%20user7",
+  "private": false
+}
