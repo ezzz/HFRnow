@@ -232,6 +232,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-217 | Fold / unfold continuity | No handling; PR #4 (not merged) proposes one hierarchy. | — | Topic and position kept across fold and unfold. | LOT-145, LOT-147 | new | new UX: Bybifok (FEAT-015) | b |
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list. | MainWindow.swift:1337-1345 | Entries in a two-column split; Plus opens Réglages. | LOT-170 | UX change | new UX: spec | b |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false. | HFRswift/Info.plist:206-208 | iPad multi-window. | LOT-146 | new | new UX: spec | b |
+| GAP-220 | App icon | Layered `.icon` `Icon-RedFace3D` (`ASSETCATALOG_COMPILER_APPICON_NAME`). | SuperHFRplus.xcodeproj/project.pbxproj:1803, 6040, 6125 | Main icon ported unchanged (#580); alternates stay in LOT-123 (GAP-148). | #580, LOT-123 | same | port: ezzz Swift layer | a |
 
 ## Counts
 
@@ -278,7 +279,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216 | 42 |
+| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220 | 43 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
 | b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200 | 12 |
