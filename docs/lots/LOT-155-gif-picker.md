@@ -39,7 +39,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 - "GIF" in the sheet's top toolbar (`g.circle`, next to Smileys and Image), shown only when `GifServices.isAvailable` (key and base URL
   from `Info.plist` keys `GiphyBaseURL` and `GiphyAPIKey`, build settings `GIPHY_BASE_URL` and `GIPHY_API_KEY`, `App/Config/`). Disabled until the draft
   is read. The caret is saved when the button is tapped (the sheet takes focus) and used at insertion; focus returns to the editor.
-- **Nothing is contacted before the panel opens, nor before N1 is accepted.** Opening shows the notice; "Continuer" remembers it
+- **Nothing is contacted before the panel opens, nor before N1 is accepted.** Opening shows the notice (it names "le service Giphy (api.giphy.com)"); "Continuer" remembers it
   and loads trending, "Annuler" closes the panel. `start`, `submitSearch`, `loadMore` and `retry` stop at the same gate (tests).
 - Trending first; the search field (submit) searches; an empty field goes back to trending. Rating `r` (legacy). 25 per page, the next page loads
   when the grid reaches its last five items; repeated ids are dropped; an empty page ends the list. A failed first page shows its reason and "Réessayer";
@@ -49,9 +49,13 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 - **Which URL is posted:** `images.original.url` **as served**, query included (what `T40`/`T41` verify and what the SDK's `gifUrl` gave). The
   query-less form (`originalURLWithoutTracking`) is not captured as serving the GIF, so it is not posted; its `cid` is derived from the key
   (a fingerprint, not the key). **Pending capture**: one fetch of a media URL without its query; if it serves, a later change can post that form.
-- **Images** (grid and confirmation) go through `SmileyImageLoader` → `ReaderImageFetcher`: the cookie-less client, policy C, no `Referer`.
-  `allowsThirdParty` is true only for these two views (the member opened the panel and accepted N1) and only URLs that pass
-  `GifMediaPolicy` reach them.
+- **Images** (grid and confirmation) go through `SmileyImageLoader.gif()` → `ReaderImageFetcher`: the cookie-less client, policy C, no `Referer`.
+  Third parties are allowed only for these two views (the member opened the panel and accepted N1), and a host filter (`GifMediaPolicy`) is asked about
+  the URL and **every redirect hop**: a redirect off `*.giphy.com` is refused, not followed. The loader is built once per cell. The thumbnail
+  (`source: .gif`) takes the size the layout proposes (low compression resistance and hugging); a smiley keeps its intrinsic size.
+- The confirmation shows the small rendition at once, the original over it when decoded, and a spinner meanwhile. A GIF whose frames exceed
+  `SmileyImageLoader.maximumAnimationPixels` (4 M pixels all frames) stays a still first frame.
+- The list ends when the offset reaches `pagination.total_count`, on an empty page, or on a page with nothing new (`ended`).
 - LOT-185 rules: the search bar is a `safeAreaBar` at the bottom without fill, no hand-made glass, no `.background(.bar)`.
 - Request without `lang`: kept (Giphy documents it as optional); the captures used `lang=en` on search. **Mac check**: results with the real key.
 - UI strings in French.
@@ -60,7 +64,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 
 - No key (or an unexpanded `$(…)` setting, or a non-`https` base URL): no button, no request.
 - Notice declined: panel closes, nothing was sent; it asks again next time.
-- A response older than the last search is dropped (generation counter).
+- A response older than the last search or reload is dropped (generation counter), for the first page and for a next page (tests, gated `MockTransport`).
 - `429` says so in French; other statuses and an unreadable answer say the service answered unexpectedly.
 - A GIF with a preview off Giphy's CDN shows an empty tile (not loaded); one with an original off it is dropped.
 
@@ -71,8 +75,9 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 
 ## Tests
 
-`GifPickerModelTests` (gate before N1, accepting loads trending, search and empty field, snippet, off-CDN items dropped, paging, failures) and
-`GifServicesTests` (configuration from `Info.plist`, no key, `GifMediaPolicy`), in `App/SwiftHFRTests/Composer/`.
+`GifPickerModelTests` (gate before N1, notice text, search, snippet, off-CDN original and preview), `GifPickerPagingTests` (paging, end of list, failures, stale answers),
+`GifServicesTests` (configuration, `live(bundle:)` on a bundle with and without key, `GifMediaPolicy`), `ThumbnailLayoutTests` (a 480-point image does not impose its size),
+and `aHostFilterStopsARedirectOffItsHost` in `ReaderImageFetcherTests`, in `App/SwiftHFRTests/`. `GiphyClient` is used directly (no protocol: one implementation).
 
 ## Mac check needed
 

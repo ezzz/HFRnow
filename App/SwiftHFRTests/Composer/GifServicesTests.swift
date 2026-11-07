@@ -8,6 +8,15 @@ import Testing
 struct GifServicesTests {
     private static var info: [String: Any] { [GifServices.baseURLKey: "https://api.giphy.com", GifServices.apiKeyKey: "DUMMYKEY0123"] }
 
+    /// A bundle on disk whose `Info.plist` is `info`, to read through `GifServices.live(bundle:)`.
+    private static func bundle(_ info: [String: Any]) throws -> Bundle {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "gif-\(UUID().uuidString).bundle")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let plist = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+        try plist.write(to: directory.appending(path: "Info.plist"))
+        return try #require(Bundle(url: directory))
+    }
+
     @Test func aKeyAndABaseUrlMakeTheConfiguration() throws {
         let configuration = try #require(GifServices.configuration(from: Self.info))
         #expect(configuration.baseURL.host() == "api.giphy.com")
@@ -23,12 +32,16 @@ struct GifServicesTests {
         }
     }
 
-    @Test func theServicesAreAvailableOnlyWithAKey() throws {
-        let settings = InMemorySettingsStore()
-        #expect(!GifServices(searcher: nil, hostName: nil, settings: settings).isAvailable)
-        let live = GifServices.live(bundle: Bundle(for: BundleToken.self))
-        // The test bundle carries no Giphy key: a build without key hides the GIF button.
-        #expect(!live.isAvailable)
+    @Test func theLiveServicesReadTheBundleAndAreAvailableOnlyWithAKey() throws {
+        let withKey = GifServices.live(bundle: try Self.bundle(Self.info))
+        #expect(withKey.isAvailable)
+        #expect(withKey.hostName == "api.giphy.com")
+
+        let blank = [GifServices.baseURLKey: "https://api.giphy.com", GifServices.apiKeyKey: ""]
+        let blankKey = GifServices.live(bundle: try Self.bundle(blank))
+        #expect(!blankKey.isAvailable)
+        #expect(blankKey.hostName == nil)
+        #expect(!GifServices.live(bundle: try Self.bundle([:])).isAvailable)
     }
 
     @Test func onlyHttpsGiphyHostsAreAllowed() throws {
@@ -41,5 +54,3 @@ struct GifServicesTests {
         for text in refused { #expect(!GifMediaPolicy.isAllowed(try #require(URL(string: text))), "\(text)") }
     }
 }
-
-private final class BundleToken {}

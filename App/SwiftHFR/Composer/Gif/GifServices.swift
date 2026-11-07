@@ -2,28 +2,10 @@ import Foundation
 import HFRNetwork
 import HFRStorage
 
-/// Searches GIFs; `GiphyClient` in the app, a script in tests.
-protocol GifSearching: Sendable {
-    /// One page of the search for `query` (rating R, as legacy `AnswerView.swift:2305` @ 2440d79).
-    func searchGIFs(_ query: String, offset: Int) async throws(GiphyError) -> GiphyPage
-    /// One page of the trending GIFs.
-    func trendingGIFs(offset: Int) async throws(GiphyError) -> GiphyPage
-}
-
-extension GiphyClient: GifSearching {
-    func searchGIFs(_ query: String, offset: Int) async throws(GiphyError) -> GiphyPage {
-        try await search(query, limit: GiphyClient.defaultLimit, offset: offset, rating: .restricted)
-    }
-
-    func trendingGIFs(offset: Int) async throws(GiphyError) -> GiphyPage {
-        try await trending(limit: GiphyClient.defaultLimit, offset: offset, rating: .restricted)
-    }
-}
-
-/// What the GIF panel needs: the searcher (nil when this build has no key), its host name and the settings.
+/// What the GIF panel needs: the Giphy client (nil when this build has no key), its host name and the settings.
 struct GifServices: Sendable {
     /// The Giphy client; nil when the build carries no key (ADR 0007): the composer then shows no GIF button.
-    let searcher: (any GifSearching)?
+    let client: GiphyClient?
     /// The host's name for the first-use notice (N1), from the injected base URL.
     let hostName: String?
     /// Holds the notice flag.
@@ -34,13 +16,13 @@ struct GifServices: Sendable {
     static let apiKeyKey = "GiphyAPIKey"
 
     /// This build can search (a key was injected): the entry point is shown only then.
-    var isAvailable: Bool { searcher != nil }
+    var isAvailable: Bool { client != nil }
 
     /// The app's live services: the key comes from the bundle, never from the source. Nothing is contacted here.
     static func live(bundle: Bundle = .main) -> GifServices {
         let configuration = Self.configuration(from: bundle.infoDictionary ?? [:])
         return GifServices(
-            searcher: configuration.map { GiphyClient(configuration: $0) },
+            client: configuration.map { GiphyClient(configuration: $0) },
             hostName: configuration?.baseURL.host,
             settings: UserDefaultsSettingsStore()
         )

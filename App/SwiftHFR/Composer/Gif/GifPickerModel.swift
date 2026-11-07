@@ -44,6 +44,8 @@ final class GifPickerModel: Identifiable {
     private let services: GifServices
     private var nextOffset = 0
     private var total: Int?
+    /// The last page brought nothing new: no further request, whatever `total` says.
+    private var ended = false
     private var generation = 0
 
     /// A panel over `services`.
@@ -62,7 +64,7 @@ final class GifPickerModel: Identifiable {
 
     /// The text of notice N1: who runs the host, what is sent, what becomes public (LOT-071 T5).
     var noticeMessage: String {
-        let host = services.hostName ?? "le service de GIF"
+        let host = services.hostName.map { "le service Giphy (\($0))" } ?? "le service Giphy"
         return "La recherche de GIF passe par \(host), un service tiers qui n'est ni HFR ni cette application. "
             + "Seuls vos mots de recherche sont envoyés, sans votre pseudo ni vos cookies. "
             + "Le GIF choisi est publié par son adresse : chaque lecteur du message le chargera depuis ce service. "
@@ -102,13 +104,13 @@ final class GifPickerModel: Identifiable {
 
     /// Loads the next page; a failure keeps the list and sets `moreFailed`.
     func loadMore() async {
-        guard phase == .loaded, !isLoadingMore, isNoticeAccepted, hasMore, let searcher = services.searcher else { return }
+        guard phase == .loaded, !isLoadingMore, isNoticeAccepted, hasMore, let client = services.client else { return }
         let (stamp, text, offset) = (generation, activeQuery, nextOffset)
         isLoadingMore = true
         moreFailed = false
         defer { if stamp == generation { isLoadingMore = false } }
         do throws(GiphyError) {
-            let page = try await Self.fetch(searcher, query: text, offset: offset)
+            let page = try await Self.fetch(client, query: text, offset: offset)
             guard stamp == generation else { return }
             append(page)
         } catch {
@@ -120,7 +122,12 @@ final class GifPickerModel: Identifiable {
     /// The text to insert for `gif`, nil when its URL is not on Giphy's CDN. Legacy: `[img]<url>[/img]` and a line break
     /// (`AnswerView.swift:2333` @ 2440d79), the URL as served (`images.original`), which is the form the captures verify.
     func snippet(for gif: GiphyGIF) -> String? {
-        GifMediaPolicy.isAllowed(gif.originalURL) ? "[img]\(gif.originalURL.absoluteString)[/img]\n" : nil
+        Self.snippet(forOriginal: gif.originalURL)
+    }
+
+    /// The snippet for an original URL, nil off Giphy's CDN.
+    nonisolated static func snippet(forOriginal url: URL) -> String? {
+        GifMediaPolicy.isAllowed(url) ? "[img]\(url.absoluteString)[/img]\n" : nil
     }
 
     /// The grid's small rendition of `gif`, nil unless it is on Giphy's CDN.
@@ -129,22 +136,23 @@ final class GifPickerModel: Identifiable {
     }
 
     private var hasMore: Bool {
-        total.map { nextOffset < $0 } ?? !items.isEmpty
+        !ended && (total.map { nextOffset < $0 } ?? !items.isEmpty)
     }
 
     private func reload(query text: String?) async {
-        guard isNoticeAccepted, let searcher = services.searcher else { return }
+        guard isNoticeAccepted, let client = services.client else { return }
         generation += 1
         let stamp = generation
         activeQuery = text
         items = []
         nextOffset = 0
         total = nil
+        ended = false
         isLoadingMore = false
         moreFailed = false
         phase = .loading
         do throws(GiphyError) {
-            let page = try await Self.fetch(searcher, query: text, offset: 0)
+            let page = try await Self.fetch(client, query: text, offset: 0)
             guard stamp == generation else { return }
             append(page)
             phase = .loaded
@@ -161,13 +169,13 @@ final class GifPickerModel: Identifiable {
         nextOffset += GiphyClient.defaultLimit
         total = page.totalCount
         // A page with nothing new ends the list, whatever the total says (Giphy repeats items near its offset cap).
-        if page.items.isEmpty { total = nextOffset }
+        if fresh.isEmpty { ended = true }
     }
 
-    private nonisolated static func fetch(
-        _ searcher: any GifSearching, query: String?, offset: Int
-    ) async throws(GiphyError) -> GiphyPage {
-        if let query { try await searcher.searchGIFs(query, offset: offset) } else { try await searcher.trendingGIFs(offset: offset) }
+    /// Rating R as legacy (`AnswerView.swift:2305` @ 2440d79), the client's default page size.
+    nonisolated private static func fetch(_ client: GiphyClient, query: String?, offset: Int) async throws(GiphyError) -> GiphyPage {
+        if let query { return try await client.search(query, offset: offset, rating: .restricted) }
+        return try await client.trending(offset: offset, rating: .restricted)
     }
 
     /// The French reason a page failed.

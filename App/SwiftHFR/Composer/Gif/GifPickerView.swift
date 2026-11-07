@@ -83,7 +83,7 @@ struct GifPickerView: View {
             .aspectRatio(1, contentMode: .fit)
             .overlay {
                 if let url = model.previewURL(of: gif) {
-                    SmileyThumbnailView(url: url, contentMode: .scaleAspectFill, allowsThirdParty: true)
+                    SmileyThumbnailView(url: url, contentMode: .scaleAspectFill, source: .gif)
                 }
             }
             .clipShape(.rect(cornerRadius: 8))
@@ -137,11 +137,24 @@ private struct GifConfirmationView: View {
     let gif: GiphyGIF
     let onInsert: (String) -> Void
     @Environment(\.dismiss) private var dismiss
+    /// The full GIF is shown (it can take a moment, and a very large one stays a still frame: `SmileyImageLoader.maximumAnimationPixels`).
+    @State private var hasOriginal = false
+
+    /// The small rendition at once, the original over it as soon as it is decoded, a spinner meanwhile.
+    private var preview: some View {
+        ZStack {
+            if let small = model.previewURL(of: gif) {
+                SmileyThumbnailView(url: small, contentMode: .scaleAspectFit, source: .gif)
+            }
+            SmileyThumbnailView(url: gif.originalURL, contentMode: .scaleAspectFit, hasImage: $hasOriginal, source: .gif)
+            if !hasOriginal { ProgressView() }
+        }
+    }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                SmileyThumbnailView(url: gif.originalURL, contentMode: .scaleAspectFit, allowsThirdParty: true)
+                preview
                     .aspectRatio(aspect, contentMode: .fit)
                     .clipShape(.rect(cornerRadius: 10))
                     .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)

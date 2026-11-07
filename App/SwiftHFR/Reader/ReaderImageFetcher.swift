@@ -34,11 +34,15 @@ struct ReaderImageFetcher: Sendable {
     /// `hostTable` is set by the image viewer only (LOT-109): the request then carries the host's `Referer` rule (`reho.st`
     /// wants the forum's, legacy `PhotoViewerNetworkRequestFactory`), looked up again at every hop so it never travels to
     /// the next host. The page's own images (nil) carry none (LOT-071 R3).
+    ///
+    /// `hostFilter` (the GIF panel, LOT-155) is asked about the URL and about every redirect hop: a hop it refuses stops there, so a
+    /// CDN that redirects elsewhere is never followed off the host the member accepted in notice N1.
     func image(
-        at url: URL, allowsThirdParty: Bool, hostTable: ImageHostTable? = nil
+        at url: URL, allowsThirdParty: Bool, hostTable: ImageHostTable? = nil, hostFilter: (@Sendable (URL) -> Bool)? = nil
     ) async throws(Failure) -> (data: Data, mimeType: String) {
         var next = url
         for _ in 0...Self.maximumRedirects {
+            if let hostFilter, !hostFilter(next) { throw .refused }
             switch ImagePolicy.classify(next) {
             case .blocked: throw .refused
             case .thirdParty where !allowsThirdParty: throw .refused
