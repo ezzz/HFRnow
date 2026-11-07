@@ -8,6 +8,10 @@
 ## Legacy sources
 Read-only: the legacy forum, topic-list and favourites screens (`ObjCForumsLoaderWorker.m:20`, `ObjCForumTopicsLoaderWorker.m:36-89`, `ObjCFavoritesLoaderWorker.m:46-48`); App Review rule Q-7 ([audit](../audit/README.md)). No legacy view is copied: the layout is a new `NavigationSplitView`.
 
+## Legacy counterpart (app lots)
+- `App/SwiftHFR/Navigation/TopicRowView.swift` and `TopicRowCues.swift` port `HFRswift/Swift/Favorites.swift (TopicRowView)` @ 2440d79: the unread-pages capsule (`unreadCount`, lines 965-1090, shared row `Common.swift:2815-2839, 3122-3123`) and the "⚑ cur / max" footer (`pageLabel`) are back (GAP-026, #584).
+- `App/SwiftHFR/Navigation/TopicListView.swift` (`rowTint`) ports the row tint of `MainWindow.swift:408-424` and `Common.swift:702-722` (flag colours) and `rowBackgroundTint` (super favourite): GAP-027, #584.
+
 ## Behaviour
 Updated by LOT-170: the root is the legacy tab bar (iPhone) or sidebar (regular-width iPad), see [LOT-170](LOT-170-tab-bar.md). Each tab hosts a `NavigationSplitView` (forums, topics, reader) that collapses to a stack on compact widths by itself.
 
