@@ -47,6 +47,18 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await until { abs(scrollView.contentOffset.y + bars.top) <= 1 }, "offset: \(scrollView.contentOffset)")
     }
 
+    /// Issue #566: the screen goes away while a tall page is still loading, then comes back with the same document. The
+    /// stopped load never reports ready: the controller must load the document again rather than skip it as already shown.
+    @Test func aDocumentStoppedBeforeItWasReadyLoadsAgainWhenShownAgain() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.obscuredInsets = bars
+        let document = tallDocument(token: 1)
+        controller.show(document)
+        controller.stopLoading()
+        controller.show(document)
+        #expect(await until({ recorder.ready == [1] }, timeout: .seconds(120)), "ready: \(recorder.ready)")
+    }
+
     @Test func aMessageLandsBelowTheTopBar() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.obscuredInsets = bars
