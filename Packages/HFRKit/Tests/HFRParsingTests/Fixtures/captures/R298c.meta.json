@@ -1,0 +1,20 @@
+{
+  "id": "R298c",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=25&subcat=528&post=8811&page=1",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=25&subcat=528&post=8811&page=1",
+  "final_url": "https://forum.hardware.fr/hfr/apple/Applications/beta-build-nextgen-sujet_8811_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 07:15:52 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/apple/Applications/beta-build-nextgen-sujet_8811_1.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "file": "R298c-topic-id-form-subcat-8811-logged-out.html",
+  "private": false
+}

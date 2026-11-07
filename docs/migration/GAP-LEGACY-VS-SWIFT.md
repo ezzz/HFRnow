@@ -29,7 +29,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-005 | AQ badge on Plus tab | Plus badge shows the unread AQ count, checked 3 s after launch. | MainWindow.swift:1297, 1178-1196 | Plus badge once the AQ feed lands. | LOT-133 | same | port: ezzz Swift layer | a |
 | GAP-006 | Plus menu | Seven rows: Réglages, Rechercher, Bookmarks, Alertes Qualitay, Crédits, Charte, Supprimer mon compte. | PlusTab.swift:16-64 | Same seven rows in the same order, filled by their lots. | LOT-170 | same | port: ezzz Swift layer | a |
 | GAP-007 | Tab reselect refreshes | Reselecting a root tab reloads its list with a haptic. | MainWindow.swift:1399-1416 | Not specified by LOT-082 or LOT-170. | — | not planned | — | — |
-| GAP-008 | Tab bar in the reader | The reader hides the tab bar. | Favorites.swift:807 | Reader opens inside the tab; hiding the tab bar is not specified. | LOT-083, LOT-170 | UX change | new UX: spec | b |
+| GAP-008 | Tab bar in the reader | The reader hides the tab bar in three paths: the favourites post-filter reader, `openInternalTopic` and `handleSearchResult`. | Favorites.swift:807; MessagesView.swift:3256, 3909 | Hidden while a topic is open (UXD-02, #424, decided 2026-11-02). **Kept despite the HIG** (Tab bars: "Make sure the tab bar is visible…"), by the operator's decision of 2026-11-07. | LOT-083, LOT-170 | UX change | new UX: spec | b |
 | GAP-009 | Account menu | Leading avatar menu in list toolbars: switch, add pseudo, logout. | MainWindow.swift:235-262; MainToolbar.swift:57-64 | Account menu in the Plus and Catégories toolbars only. | LOT-170, LOT-081 | UX change | new UX: spec | b |
 | GAP-010 | Home-screen quick actions | Declared in the ObjC target's Info.plist; the handler body is commented out. | SuperHFRplus-Info.plist:235-275; HFRplusAppDelegate.m:311-345 | Follow-up named by LOT-170, no lot. | — | not planned | — | — |
 | GAP-011 | MP notification tap | Opens the Messages tab and force-refreshes it. | Common.swift:32-48; MainWindow.swift:1218-1221 | Notification flow kept; tap destination not specified. | LOT-140, LOT-091 | ported with changes | port: ezzz Swift layer | a |
@@ -156,7 +156,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 |---|---|---|---|---|---|---|---|---|
 | GAP-140 | Settings screen | One form: Général, Thème, Sujets, Filtrer, Notifications MP, Stockage MP, Maintenance, À propos. | AppSettingsView.swift:494-503 | Same Réglages shell, sections owned by their lots. | LOT-119, LOT-170 | same | port: ezzz Swift layer | a |
 | GAP-141 | Where settings live | `@AppStorage` keys, device only. | AppSettingsView.swift:86-109 | Same keys; synced ones mirrored to iCloud KVS. | LOT-060, LOT-172 | ported with changes | new UX: spec | b·operator |
-| GAP-142 | Light / dark / auto | "Automatique (iOS)" or manual Clair / Sombre. | AppSettingsView.swift:127-134 | Same options for native UI and reader. | LOT-121 | same | port: ezzz Swift layer | a |
+| GAP-142 | Light / dark / auto | "Automatique (iOS)" or manual Clair / Sombre. | AppSettingsView.swift:127-134 | Same options for native UI and reader. **Kept despite the HIG** (Dark Mode: "Avoid offering an app-specific appearance setting"), by the operator's decision of 2026-11-07. | LOT-121 | same | port: ezzz Swift layer | a |
 | GAP-143 | Time-based auto theme | Day / night time cells, hidden. | PlusSettingsViewController.m:84-85 | Not in any spec. | — | not planned | — | — |
 | GAP-144 | Dark brightness | `theme_night_brightness` scales dark colours. | ThemeColors.m:116-118 | Kept. | LOT-121 | same | port: legacy ObjC | a |
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Darker dark #0B0B0C, OLED black, 1 pt separators. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
@@ -233,17 +233,37 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list. | MainWindow.swift:1337-1345 | Entries in a two-column split; Plus opens Réglages. | LOT-170 | UX change | new UX: spec | b |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false. | HFRswift/Info.plist:206-208 | iPad multi-window. | LOT-146 | new | new UX: spec | b |
 
+## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
+
+Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is part of M4 parity, and **where the HIG and legacy differ, the HIG wins**. Each divergence is a row here, never a silent change. Two existing rows keep a decision that conflicts with the HIG: GAP-008 (reader tab bar) and GAP-142 (appearance setting).
+
+- **Legacy reference**: `HFRswift/Swift/LiquidGlass.swift` at `2440d79` (`git show 2440d79:HFRswift/Swift/LiquidGlass.swift`). Used by 8 files, 27 lines besides the helper file. Quoted from `git grep -c 'glassEffect\|hfrGlass' 2440d79 -- HFRswift` (one line per file): 9 files and 33 lines in total, `LiquidGlass.swift:6` included; without it, 8 files and 27 lines.
+- **HIG pages read on 2026-11-07**: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets), [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode), [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
+- **Ported by**: LOT-185 (#548) outside the reader, LOT-186 (#549) for the reader chrome, which absorbs #428.
+- **Not in these rows**: the M5 items (the composer bar, LOT-174; the Duo and iPad layouts with the iOS 27.1 APIs, LOT-147; `Tab(role: .search)`; `tabViewBottomAccessory`) and the layered app icon (LOT-123).
+
+| Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
+|---|---|---|---|---|---|---|---|---|
+| GAP-220 | Liquid Glass helpers | `liquidGlassIfAvailable`, `hfrGlassSurface`, `hfrGlassButton`, `hfrToastSurface`, `hfrLoadingPanel` and `presentationGlassBackground`, each with a fallback below iOS 26 (materials, strokes). | LiquidGlass.swift:12-77 | Native `glassEffect` and `.buttonStyle(.glass)` in iOS 27 code. The minimum target is iOS 27, so the fallbacks go. | LOT-185, LOT-186 | ported with changes | port: ezzz Swift layer | a |
+| GAP-221 | Glass on floating elements | Glass on the toasts, the list pager, the reader page bar, the favourites filter banner and the reader loading overlay. | AnswerView.swift:2360; MessagesView.swift:6393, 4476; MainWindow.swift:981; MessagesView.swift:4728-4800, 6222-6236; Favorites.swift:1137 | Glass on the floating toasts, the list pagers, the reader page bar, the favourites filter banner (LOT-185 `FilteredPostsBanner`) and the reader loading overlay (HIG Materials: glass for floating elements). | LOT-185, LOT-186 | ported with changes | port: ezzz Swift layer | a |
+| GAP-222 | Glass on content cards | Glass panels (`hfrGlassSurface`, `hfrLoadingPanel`) on cards in the content layer: the add-account card, a search card and the poll loading panel. | AddAccountView.swift:70; ForumSearchView.swift:379; PollView.swift:162 | Materials stay on cards in the content layer. HIG Materials: "Don't use Liquid Glass in the content layer". Glass only where a card floats over scrolling content, justified in the lot spec. | LOT-185 | UX change | new UX: operator | b·operator |
+| GAP-223 | Sheet backgrounds | `presentationGlassBackground()` forces `.thinMaterial` on five sheets. | AnswerView.swift:1162, 1951; MessagesView.swift:4356, 4849, 5061 | System sheet background, no forced material. Attributed to the operator decision of 2026-11-07 (#545), not to a HIG rule. SwiftHFR never ported the forced background, so no code changes. | — | dropped | new UX: operator | — |
+| GAP-224 | Circled ellipsis symbols | Plain `ellipsis` on the Plus tab. | MainWindow.swift:1295 | Plain symbols. The circled ones of SwiftHFR (image viewer, root tabs, reader) become plain: HIG Toolbars says borders such as outlined circles are not necessary. | LOT-185, LOT-186 | same | port: ezzz Swift layer | a |
+| GAP-225 | Reader "…" page menu | A page menu behind a plain `ellipsis` in the reader. | MessagesView.swift:4722, 4970 | The "…" becomes the system overflow menu or another symbol, because the Duo HIG reserves the ellipsis for overflow (Designing for iPhone Duo). The page controls follow the legacy layout (#428). | LOT-186 (absorbs #428) | UX change | new UX: operator | b·operator |
+| GAP-226 | Glass buttons on floating controls | Glass buttons (`.buttonStyle(.glass)`, `.glassProminent`) through `hfrGlassButton`, 17 call sites; the submit button inside the add-account card (AddAccountView.swift:67). | LiquidGlass.swift:54-68; AddAccountView.swift:67 | Glass buttons on floating controls only (HIG Buttons: one or two prominent buttons per view). The card button loses its glass: a UX change, kept because the HIG wins. This reverses LOT-115:49, which dropped the glass buttons. | LOT-185, LOT-186 (reverses LOT-115) | UX change | port: ezzz Swift layer | b·operator |
+
 ## Counts
 
 | Gap | Rows |
 |---|---|
 | same | 36 |
-| ported with changes | 42 |
-| UX change | 39 |
+| ported with changes | 44 |
+| ported with changes (engine only) | 1 |
+| UX change | 43 |
 | new | 28 |
-| dropped | 1 |
-| not planned | 9 |
-| **Total** | **155** |
+| dropped | 2 |
+| not planned | 8 |
+| **Total** | **162** |
 
 ## Convergence notes
 
@@ -253,7 +273,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 2. **Topic row.** LOT-169 makes the legacy Favoris row the density reference, but LOT-082's row drops the "⚑ cur / max" footer, the unread-pages capsule and the flag tints (GAP-026, 027).
 3. **Catégories.** A flat list with a sub-forum picker becomes collapsible sections; check it against the "preserve what works" principle (GAP-020, 022, 023).
 4. **Reader message header.** The grey band with a "+" button becomes a one-line header with a menu; decide whether the legacy band stays the default and the new one an option (GAP-051, 064).
-5. **Reader chrome.** Legacy hides the tab bar and has ‹ › Actualiser New; the final reader keeps the tab, adds a page bar, a scrubber and a quick-reply bar. Decide what is default and what is opt-in (GAP-008, 060, 062, 073).
+5. **Reader chrome.** Legacy hides the tab bar in three paths (GAP-008) and has ‹ › Actualiser New; the final reader hides the tab bar while a topic is open (UXD-02), adds a page bar, a scrubber and a quick-reply bar. Decide what is default and what is opt-in (GAP-008, 060, 062, 073).
 6. **Swipes and "Lu".** One uniform swipe set, a local "Lu" turned into one with "Annuler"; the legacy context-menu page jumps are not named (GAP-028, 029, 034).
 7. **Images and videos.** Image policy C (Wi-Fi auto, cellular on tap) and tap-to-play videos replace "always load" (GAP-056, 058).
 8. **Text size and Dynamic Type.** A 4-step picker becomes a slider on Dynamic Type; map the legacy values (GAP-053, 200).
@@ -274,17 +294,17 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (110)
+### GAP rows of type `ported with changes`, `UX change` or `new` (115)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216 | 42 |
+| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221 | 44 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200 | 12 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226 | 15 |
 | b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
 
-The (b) rows include the ones the merged code already ships: 008, 009, 020, 022, 026, 051, 060, 092, 163, 212, 214. The `same` rows are (a).
+The (b) rows include the ones the merged code already ships: 009, 020, 022, 026, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
 
 - The Source column says where a behaviour comes from; H.1 says whether the user sees a difference. So a row can be `b` with source `port: ezzz Swift layer`: GAP-060 and GAP-085 port the feature but change its controls.
 - Rows that are `a` although their source says "new UX" are invisible or robustness changes:
@@ -351,7 +371,7 @@ Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every
 | 07 | A: legacy topic row | LOT-169 (#295) and LOT-169 spec |
 | 08 | A in M2; the uniform swipe set (FEAT-008) goes to M5 | LOT-177 ([#417](https://github.com/ezzz/HFRnow/issues/417)); LOT-125 (#216) |
 | 09 | A by default; B as a value of "Style des messages" | LOT-106 (#197), LOT-087 (#179); LOT-083 spec |
-| 10 | A layout keeping "follow HFR's served page" (M2); the navigator goes to M5 | [#428](https://github.com/ezzz/HFRnow/issues/428); LOT-110 (#201) in M5 |
+| 10 | A layout keeping "follow HFR's served page" (M4, absorbed by LOT-186: operator decision of 2026-11-07 on #545); the navigator goes to M5 | [#428](https://github.com/ezzz/HFRnow/issues/428); LOT-186 (#549); LOT-110 (#201) in M5 |
 | 11 | A in M2; the "Nouveau" banner goes to M5 | LOT-178 ([#418](https://github.com/ezzz/HFRnow/issues/418)); LOT-111 (#202) |
 | 12 | B: policy C, decided 2026-10-27 (default Wi-Fi) | LOT-083 spec "Decisions taken here" |
 | 13 | B: slider; 100 / 110 / 120 / 130 % map to the same percentages | LOT-169 spec |

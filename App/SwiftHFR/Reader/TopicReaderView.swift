@@ -4,8 +4,8 @@ import SwiftUI
 import WebKit
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
-// page bar first / previous / page / next / last instead of ‹ › and the "…" menu; the tab bar stays visible; videos on tap (GAP-008,
-// 058, 060; UXD).
+// the page controls are the legacy ‹ › with a "N / M" page menu instead of the "…" one (`ReaderPageControls`, LOT-186); the page
+// runs under the glass bars; the tab bar stays visible; videos on tap (GAP-008, 058, 060; UXD-10).
 /// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
 /// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
 /// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
@@ -37,10 +37,18 @@ struct TopicReaderView: View {
     var body: some View {
         ZStack {
             if let controller {
-                ReaderWebView(controller: controller, document: model.document, scrollRequest: model.scrollRequest)
-                    .opacity(model.hasShownDocument ? 1 : 0)
-                    .accessibilityHidden(!model.hasShownDocument)
-                    .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
+                // The page runs under the bars and banners (HIG Layout: extend content under the bars, LOT-186); what they cover
+                // is the safe area this full-height reader ignores, handed to the web view.
+                GeometryReader { proxy in
+                    ReaderWebView(
+                        controller: controller, document: model.document, scrollRequest: model.scrollRequest,
+                        obscured: proxy.safeAreaInsets
+                    )
+                }
+                .ignoresSafeArea(edges: .vertical)
+                .opacity(model.hasShownDocument ? 1 : 0)
+                .accessibilityHidden(!model.hasShownDocument)
+                .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
             }
             overlay
         }
@@ -51,14 +59,12 @@ struct TopicReaderView: View {
                 LoadFailureBanner(error: error, retry: model.retry)
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            if model.page != nil { ReaderPageBar(model: model, askPage: askForPage) }
-        }
-        .modifier(ReaderReplyFlow(model: model, composer: composer, behavior: replyBehavior))
+        .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .offlineSave(model: model, saver: saver)
         .toolbar {
+            ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                     .disabled(model.isLoading)
@@ -66,7 +72,7 @@ struct TopicReaderView: View {
             if let onFilterPosts {
                 ToolbarItem(placement: .secondaryAction) {
                     Button(action: onFilterPosts) {
-                        Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
+                        Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease")
                     }
                     .disabled(filterIsBusy)
                 }
@@ -160,8 +166,8 @@ struct TopicReaderView: View {
                 .font(.callout)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(.thinMaterial, in: Capsule())
-                .padding(.bottom, 56)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 8)
                 .task(id: model.menuFeedbackSerial) { [serial = model.menuFeedbackSerial] in
                     // A cancelled sleep (a newer confirmation, the view going away) must not clear anything.
                     do {
@@ -183,6 +189,13 @@ struct TopicReaderView: View {
             else { return }
             Task { await model.swipe(swipe) }
         }
+    }
+
+    /// The reply button's symbol, nil when there is none: logged out, no answer form, or `reply_button_behavior` hidden;
+    /// `forum` draws the pencil, `quick` the plus (legacy `replyButtonSystemImage`).
+    private var replySymbol: String? {
+        guard composer != nil, model.replyTarget != nil, replyBehavior != .hidden else { return nil }
+        return replyBehavior == .forum ? "square.and.pencil" : "plus"
     }
 
     private var linkedReader: Binding<LinkedReader?> {
@@ -266,51 +279,20 @@ struct ReaderServices: Sendable {
     var flagActions: TopicFlagActions?
 }
 
-/// Previous / next page, first / last, and "page N / M" which asks for a page number.
-private struct ReaderPageBar: View {
-    let model: TopicReaderModel
-    let askPage: () -> Void
-
-    var body: some View {
-        HStack {
-            Button { Task { await model.goToPage(1) } } label: { Image(systemName: "backward.end") }
-                .disabled(!model.canGoToPrevious || model.isLoading)
-                .accessibilityLabel("Première page")
-            Button { Task { await model.goToPage((model.page?.currentPage ?? 1) - 1) } } label: { Image(systemName: "chevron.left") }
-                .disabled(!model.canGoToPrevious || model.isLoading)
-                .accessibilityLabel("Page précédente")
-            Spacer()
-            if model.isLoading {
-                ProgressView()
-            } else if let page = model.page {
-                Button(action: askPage) { Text("Page \(page.currentPage) / \(page.maxPage)").monospacedDigit() }
-                    .accessibilityHint("Choisir une page")
-            }
-            Spacer()
-            Button { Task { await model.goToPage((model.page?.currentPage ?? 1) + 1) } } label: { Image(systemName: "chevron.right") }
-                .disabled(!model.canGoToNext || model.isLoading)
-                .accessibilityLabel("Page suivante")
-            Button { Task { await model.goToPage(model.page?.maxPage ?? 1) } } label: { Image(systemName: "forward.end") }
-                .disabled(!model.canGoToNext || model.isLoading)
-                .accessibilityLabel("Dernière page")
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
-    }
-}
-
-/// Hosts the controller's web view and hands it the model's document and scroll requests.
+/// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.
 struct ReaderWebView: UIViewRepresentable {
     let controller: ReaderWebController
     let document: ReaderDocument?
     let scrollRequest: ScrollRequest?
+    /// The bars and banners over the page (top and bottom only: the page keeps the horizontal safe area).
+    var obscured = EdgeInsets()
 
     func makeUIView(context: Context) -> WKWebView { controller.webView }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         controller.textScale = context.environment.textScale
         controller.theme = context.environment.themeAppearance
+        controller.obscuredInsets = UIEdgeInsets(top: obscured.top, left: 0, bottom: obscured.bottom, right: 0)
         controller.show(document)
         controller.apply(scrollRequest)
     }
