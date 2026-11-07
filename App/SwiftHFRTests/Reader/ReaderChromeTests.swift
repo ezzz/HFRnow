@@ -47,14 +47,15 @@ struct ReaderChromeTests {
     @Test func thePageMenuItemsFollowLegacyOrderAndAppearOnlyPastOnePage() {
         #expect(ReaderPageMenu.items(maxPage: 1).isEmpty)
         for maxPage in [2, 40] {
+            // "Dernière page" replaces legacy's last "Page N", which is the only target dropped.
             let expected: [ReaderPageMenu.Item] =
-                [.first, .ask] + legacyFinalTargets(maxPage).map(ReaderPageMenu.Item.page) + [.last, .lastPost]
+                [.first, .ask] + legacyFinalTargets(maxPage).dropLast().map(ReaderPageMenu.Item.page) + [.last, .lastPost]
             #expect(ReaderPageMenu.items(maxPage: maxPage) == expected)
         }
         #expect(ReaderPageMenu.items(maxPage: 2).map(\.title)
-            == ["Première page", "Aller à la page…", "Page 2", "Dernière page", "Dernier post"])
+            == ["Première page", "Aller à la page…", "Dernière page", "Dernier post"])
         #expect(ReaderPageMenu.items(maxPage: 40).map(\.title)
-            == ["Première page", "Aller à la page…", "Page 38", "Page 39", "Page 40", "Dernière page", "Dernier post"])
+            == ["Première page", "Aller à la page…", "Page 38", "Page 39", "Dernière page", "Dernier post"])
     }
 
     @Test func theMenuActionsOpenTheRightPageAndAnchor() {

@@ -2,10 +2,11 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom toolbar, `bottomPreviousPageButton`,
 // `bottomNextPageButton`, `pageChoiceMenuItems`, `pageChoiceMenuFinalTargets`) @ 2440d79 (lines 4184-4236, 4756-4800).
-// Differences: the page choices are a "N / M" menu in the bottom bar instead of the top "…" menu, which the iPhone Duo HIG
-// reserves for overflow; "Page…" asks in an alert, not a sheet; the reply button stays in landscape (the system moves
-// it to the overflow menu when space runs out); no bottom refresh button, "Actualiser" stays in the top bar (GAP-060,
-// UXD-10, LOT-186).
+// Differences: the page choices are in a "N / M" menu in the bottom bar and in the top "…" overflow (#582), as one list
+// (`ReaderPageMenuItems`), with the labels "Première page", "Aller à la page…" and a new "Dernière page" that replaces
+// the last "Page N" (LOT-186 D1, operator 2026-11-07); "Aller à la page…" asks in an alert, not a sheet; the reply button
+// stays in landscape (the system moves it to the overflow menu when space runs out); no bottom refresh button, "Actualiser"
+// stays in the top bar (GAP-060, UXD-10, LOT-186).
 /// The reader's bottom bar (LOT-186, #428): ‹ › as one group, the page menu, and the reply button. System toolbar items, so
 /// they float as Liquid Glass over the page, and on the iPhone Duo cover screen they move to the side with the system bars.
 struct ReaderPageControls: ToolbarContent {
@@ -107,9 +108,10 @@ enum ReaderPageMenu {
     }
 
     /// Legacy `pageChoiceMenuItems` order: first page, prompt, last pages, last page, last post; none on a single page.
+    /// "Dernière page" stands for legacy's last "Page N", so that one is dropped from the targets (no repeat).
     static func items(maxPage: Int) -> [Item] {
         guard maxPage > 1 else { return [] }
-        return [.first, .ask] + finalTargets(maxPage: maxPage).map(Item.page) + [.last, .lastPost]
+        return [.first, .ask] + finalTargets(maxPage: maxPage).filter { $0 != maxPage }.map(Item.page) + [.last, .lastPost]
     }
 
     /// The last three pages after page 1, without repeats (legacy `pageChoiceMenuFinalTargets`, `MessagesView.swift:4206-4213`
