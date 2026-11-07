@@ -16,4 +16,4 @@ LOT-
 - [ ] No secrets; fixtures anonymized
 - [ ] Docs updated (lot spec, HFR-PROTOCOL.md §6c, ADR); if the PR says `Closes #N`, after the merge that issue is closed by hand with `Done in #PR (merged as <sha>)` and checked closed (ORCHESTRATION)
 - [ ] Author model: … / Reviewer model: … (must differ)
-- [ ] Fixes or changes a legacy-app behaviour? One line added to `docs/CHANGELOG-LEGACY.md` (FR summary, legacy file:line or capture).
+- [ ] Fixes or changes a legacy-app behaviour? One fragment `docs/changelog-legacy.d/<issue>.md` added (FR summary, legacy file:line or capture); the shared changelog and `docs/migration/GAP-LEGACY-VS-SWIFT.md` are never edited by a PR (a new GAP row is a fragment `docs/migration/gap.d/GAP-<issue>.md`).
