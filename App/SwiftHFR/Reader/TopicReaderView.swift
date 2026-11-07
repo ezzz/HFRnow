@@ -268,8 +268,11 @@ struct TopicReaderView: View {
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
+        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
+        let showProfile = $profile
+        let profiles = services.profiles
         handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            profile = UserProfileModel(memberID: id, source: services.profiles)
+            showProfile.wrappedValue = UserProfileModel(memberID: id, source: profiles)
         }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         if let composer {
