@@ -2,6 +2,8 @@
 // Empty defaults: a build without Secrets.xcconfig still builds and the features that need a key stay off.
 REHOST_BASE_URL =
 REHOST_API_KEY =
+GIPHY_BASE_URL = https:/$()/api.giphy.com
+GIPHY_API_KEY =
 
 // Untracked file with the real values (copy Secrets.xcconfig.example); `#include?` skips it when absent.
 #include? "Secrets.xcconfig"

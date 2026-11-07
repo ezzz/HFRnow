@@ -50,9 +50,9 @@ All in `Packages/HFRKit/Sources/HFRNetwork/Giphy/`. Nothing else is imported bes
 ## Edge cases
 
 - The `cid` of every captured media URL is derived from the API key (MANIFEST `T40`). `originalURL` keeps it as served; a link posted into a message should not publish it
-  if the CDN serves the URL without the query. **Pending capture**: one fetch of an `originalURLWithoutTracking`. Until then LOT-155 chooses and says which one it posts.
+  if the CDN serves the URL without the query. **Pending capture**: one fetch of an `originalURLWithoutTracking`. LOT-155 posts `originalURL` as served (decided there, see its spec).
 - The media URLs are checked for `https` only, not for host (the captures show `media*.giphy.com` only): a hijacked API host could point a GIF anywhere.
-  LOT-155 decides whether to restrict what it previews and posts to `*.giphy.com`.
+  LOT-155 restricts what it previews and posts to `https` on `*.giphy.com` (`GifMediaPolicy`).
 - The request sent (no `lang`) differs from the captured one (`lang=en` on search): the omission is not verified, Giphy documents `lang` as optional.
 - `rating` is a ceiling: `rating=r` returned `g` items.
 - `pagination` of another shape is ignored (not fatal); one bad item does not fail the page.

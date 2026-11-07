@@ -2,8 +2,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode, GAP-096)
 // @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090), no GIF panel yet (155), smiley picker as a sheet from
-// the toolbar (LOT-104, GAP-087);
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
+// GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
@@ -72,6 +72,7 @@ struct ReplyComposerView: View {
                 editor
                 FormattingToolbar(model: formatting) { focused = .text }
             }
+            .gifPanel(services: model.gifServices, formatting: formatting, canEdit: model.canEdit) { focused = .text }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }

@@ -113,6 +113,23 @@ struct ReaderImageFetcherTests {
         #expect(await transport.requests.count == 1)
     }
 
+    /// LOT-155: the GIF panel's host filter applies to every hop, so a Giphy URL cannot be redirected to another host.
+    @Test func aHostFilterStopsARedirectOffItsHost() async throws {
+        let transport = MockTransport { request in
+            request.url.path() == "/a.gif" ? self.redirect(from: request.url, to: "https://tracker.example/p.gif") : self.image(request.url)
+        }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        let giphyOnly: @Sendable (URL) -> Bool = GifMediaPolicy.isAllowed
+        await #expect(throws: ReaderImageFetcher.Failure.refused) {
+            try await fetcher.image(at: url("https://media3.giphy.com/a.gif"), allowsThirdParty: true, hostFilter: giphyOnly)
+        }
+        #expect(await transport.requests.map(\.url.absoluteString) == ["https://media3.giphy.com/a.gif"])
+        await #expect(throws: ReaderImageFetcher.Failure.refused) {
+            try await fetcher.image(at: url("https://tracker.example/p.gif"), allowsThirdParty: true, hostFilter: giphyOnly)
+        }
+        #expect(await transport.requests.count == 1)
+    }
+
     @Test func anAllowedRedirectIsFollowed() async throws {
         let transport = MockTransport { request in
             request.url.path() == "/thumb/a.png"
