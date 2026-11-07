@@ -103,4 +103,26 @@ struct TopicReaderModelLifecycleTests {
         reader.documentDidBecomeReady(token: 1)
         #expect(reader.error == .timedOut)
     }
+
+    /// A refresh that fails while the failed document is loading again keeps its error when that document becomes ready.
+    @Test func aLaterFetchFailureSurvivesTheOldDocumentBecomingReady() async {
+        let pages = FakeTopicPages()
+        let reader = model(pages)
+        await reader.onAppear()
+        reader.documentDidFail(token: 1)
+        pages.handler = { (_) async throws(ListLoadError) -> ReaderPage in throw .timedOut }
+        await reader.refresh()
+        reader.documentDidBecomeReady(token: 1)
+        #expect(reader.error == .timedOut)
+    }
+
+    /// A replacement view's web view fails on a document another web view showed: still an error, and not "shown".
+    @Test func aFailureOfADocumentReadyEarlierIsStillAnError() async {
+        let reader = model(FakeTopicPages())
+        await reader.onAppear()
+        reader.documentDidBecomeReady(token: 1)
+        reader.documentDidFail(token: 1)
+        #expect(reader.error == .other)
+        #expect(!reader.hasShownDocument)
+    }
 }

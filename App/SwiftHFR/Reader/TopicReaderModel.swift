@@ -344,11 +344,13 @@ final class TopicReaderModel {
     }
 
     /// The web view could not show the document `token` (its navigation failed twice): the screen offers a retry instead of
-    /// waiting (issue #566). An older document's report, or one already shown, is ignored.
+    /// waiting (issue #566). An older document's report is ignored. The controller reports only a navigation of its own that
+    /// never became ready, so an earlier ready of the same token (another view's web view) does not hide this failure.
     func documentDidFail(token: Int) {
-        guard token == document?.token, readyToken != token else { return }
+        guard token == document?.token else { return }
         ReaderLog.debug("document failed model=\(debugID) token=\(token)")
         failedToken = token
+        readyToken = nil
         error = .other
     }
 
@@ -376,6 +378,7 @@ final class TopicReaderModel {
         requestedAnchor = rule
         requestedFollowsPager = followsPager
         isLoading = true
+        failedToken = nil // this load owns `error` now: an old document's ready must not clear its failure
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
