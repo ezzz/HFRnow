@@ -4,7 +4,7 @@ import UIKit
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79. Differences: no Tous / Favoris / Suivis / Lus filter; "Page N" without a fake total (GAP-023, 024;
-// UXD).
+// UXD). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -40,27 +40,27 @@ struct TopicListView: View {
         .navigationTitle(model.source.title)
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
+        .safeAreaBar(edge: .top) {
+            if let problem = model.favorites?.storeProblem {
+                Label(problem, systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
         .safeAreaInset(edge: .top) {
+            // Content-layer cards: they push the list down, so they stay materials in an inset (LOT-185).
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
                     TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
-                }
-                if let problem = model.favorites?.storeProblem {
-                    Label(problem, systemImage: "exclamationmark.triangle")
-                        .font(.footnote)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.bar)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
                 }
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            if model.source.isPaged, loader.value != nil { PageBar(model: model) }
-        }
         .toolbar {
+            if model.source.isPaged, loader.value != nil { PageBar(model: model) }
             if let composer, let target = model.newTopicTarget {
                 ToolbarItem(placement: .primaryAction) {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
@@ -268,27 +268,17 @@ private struct EmptyListView: View {
 }
 
 /// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct PageBar: View {
+private struct PageBar: ToolbarContent {
     let model: TopicListModel
 
-    var body: some View {
-        HStack {
-            Button { Task { await model.goToFirstPage() } } label: { Image(systemName: "backward.end") }
-                .disabled(!model.canGoToPrevious)
-                .accessibilityLabel("Première page")
-            Button { Task { await model.goToPreviousPage() } } label: { Image(systemName: "chevron.left") }
-                .disabled(!model.canGoToPrevious)
-                .accessibilityLabel("Page précédente")
-            Spacer()
-            if model.loader.isLoading { ProgressView() } else { Text("Page \(model.currentPage)").monospacedDigit() }
-            Spacer()
-            Button { Task { await model.goToNextPage() } } label: { Image(systemName: "chevron.right") }
-                .disabled(!model.canGoToNext)
-                .accessibilityLabel("Page suivante")
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+    var body: some ToolbarContent {
+        PagerToolbar(
+            first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
+            previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
+            next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
+            last: nil,
+            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+        )
     }
 }
 
