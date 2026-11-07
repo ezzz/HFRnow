@@ -93,6 +93,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-071 | Swipe between pages | Horizontal drag ≥ 120 pt changes page, hard-coded. | MessagesView.swift:4510-4534 | "Swipe pages" reader setting. | LOT-106 | ported with changes | port: ezzz Swift layer | a |
 | GAP-072 | Continuous scrolling | None. | — | Option, off by default, haptic per page. | LOT-148, FEAT-017 | new | new UX: Bybifok (FEAT-017) | b |
 | GAP-073 | Quick-reply bar and quote tray | None. | — | Bottom bar with the count of checked quotes and a quick reply. | LOT-153, FEAT-006 | new | new UX: Bybifok (FEAT-006) | b |
+| GAP-220 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
 
 ## Composer
 
