@@ -56,7 +56,7 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 
 ## Historique des issues livrees
 
-### Livrees 4.0.4
+### Livrees 4.0.3
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
 | --- | --- | --- | --- | --- | --- | --- | --- |
