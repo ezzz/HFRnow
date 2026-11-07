@@ -2,7 +2,8 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
-// (GAP-111); accent tint on unread rows (GAP-227).
+// (GAP-111); accent tint on unread rows (GAP-227);
+// "non lu" capsule for the correspondent's state (GAP-111).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
     let thread: PrivateMessageThread
@@ -21,6 +22,13 @@ struct MessageRowView: View {
             MessageAvatarView(pseudo: thread.interlocutors.first ?? thread.summary.starterOrInterlocutors, isGroup: thread.isGroup)
                 .frame(width: avatarSide, height: avatarSide)
             VStack(alignment: .leading, spacing: density.lineSpacing) {
+                if let label = MessageRowView.unreadByLabel(thread) {
+                    // The correspondent's state, not the member's: legacy's grey capsule (`MPListView.swift:425-436` @ 2440d79).
+                    Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .background(Color(.systemGray), in: Capsule())
+                        .accessibilityLabel(label)
+                }
                 Text(thread.summary.title)
                     .scaledFont(density.titleStyle)
                     .fontWeight(isUnread ? .semibold : .regular)
@@ -42,6 +50,13 @@ struct MessageRowView: View {
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
         .listRowBackground(MessageRowView.rowTint(isUnread: isUnread, isSelected: isSelected))
+    }
+
+    /// The capsule's spoken label when the correspondent has not read the thread, else nil (#579).
+    static func unreadByLabel(_ thread: PrivateMessageThread) -> String? {
+        guard thread.isUnreadByOthers else { return nil }
+        let names = thread.unreadBy.joined(separator: ", ")
+        return names.isEmpty ? "Non lu par le destinataire" : "Non lu par \(names)"
     }
 
     /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
