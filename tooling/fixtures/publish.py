@@ -34,6 +34,11 @@ def is_aq_host(url):
     return host == AQ_HOST or host.endswith("." + AQ_HOST)
 
 
+def is_aq_capture(raw_meta):
+    """True for an answer of the AQ host or of a local AQ instance: both skip the page masking unless the gate sees them."""
+    return "origin" in raw_meta or any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url"))
+
+
 def load_manifest(path):
     """[{raw, id, slug, ext, private}] from a manifest file, validated."""
     with open(path, encoding="utf-8") as fh:
@@ -54,6 +59,21 @@ def request_body(raw_dir, raw_id):
         return fh.read().split("\n\n")[1].strip()
 
 
+def response_fields(raw_dir, raw_id, raw_meta, meta_only):
+    """`response_headers` of a local capture, from <id>.headers.txt, and `body_length` when no file keeps the bytes (#574)."""
+    path = os.path.join(raw_dir, raw_id + ".headers.txt")
+    if not os.path.exists(path):
+        raise A.AnonymizeError("local capture without its headers file")
+    with open(path, encoding="utf-8") as fh:
+        status, *lines = fh.read().splitlines()
+    if status != "HTTP %s" % raw_meta.get("status"):
+        raise A.AnonymizeError("headers file does not match the meta status")
+    fields = {"response_headers": dict(line.split(": ", 1) for line in lines)}
+    if meta_only:
+        fields["body_length"] = os.path.getsize(os.path.join(raw_dir, raw_id + ".html"))
+    return fields
+
+
 def _raw_meta(raw_dir, raw_id):
     with open(os.path.join(raw_dir, raw_id + ".meta.json"), encoding="utf-8") as fh:
         return json.load(fh)
@@ -69,9 +89,8 @@ def publish_one(anon, raw_dir, dest, entry):
     if entry["ext"]:
         text, enc = A.read_text(os.path.join(raw_dir, raw_id + ".html"))
         # An AQ answer the AQ gate does not recognise would skip the masking of member-written text: refuse it.
-        # A write answer of AQ is a bare number (`1`): nothing member-written to mask.
-        if any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url")) and not A.is_aq_document(text) \
-                and not re.fullmatch(r"\d{1,3}\s*", text):
+        # A write answer of AQ is a bare code (`1`, `-2`): nothing member-written to mask.
+        if is_aq_capture(raw_meta) and not A.is_aq_document(text) and not re.fullmatch(r"-?\d{1,3}\s*", text):
             return [(entry["id"], 1, 1, "AQ capture not recognized as an AQ feed or list: extend the anonymizer")]
         page = anon.anonymize(text, private=private, url=raw_meta.get("final_url") or raw_meta.get("url"),
                               context=json.dumps(raw_meta, ensure_ascii=False) + "\n" + (body or ""))
@@ -82,7 +101,10 @@ def publish_one(anon, raw_dir, dest, entry):
     if not anon.own_ids:
         anon._own_start(json.dumps(raw_meta, ensure_ascii=False) + "\n" + (body or ""))
     meta = {"id": entry["id"]}
-    meta.update(anon.anonymize_meta({k: raw_meta[k] for k in META_KEYS if k in raw_meta}))
+    kept = {k: raw_meta[k] for k in META_KEYS if k in raw_meta}
+    if "origin" in raw_meta:
+        kept.update(response_fields(raw_dir, raw_id, raw_meta, page is None))
+    meta.update(anon.anonymize_meta(kept))
     if body is not None:
         meta["request_body"] = A.private_request_body(anon.redact_text(body))
     name = None
@@ -95,6 +117,8 @@ def publish_one(anon, raw_dir, dest, entry):
     if page is not None:
         leaks += [(name,) + f for f in anon.findings(page, private=private, account=raw_meta.get("account"),
                                                                 url=raw_meta.get("final_url") or raw_meta.get("url"))]
+        if "origin" in raw_meta:
+            leaks += [(name,) + f for f in A.verify_aq_local_answer(page, meta)]
     if leaks:
         return leaks
     if page is not None:

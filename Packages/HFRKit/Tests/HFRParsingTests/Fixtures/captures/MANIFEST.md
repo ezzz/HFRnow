@@ -96,14 +96,14 @@ already gone for user2). Nothing of the thread is left on HFR. One message, no e
 
 Run 12 (2026-11-07, `mac/m2-lead` batch `m2-567`, ezzz/HFRnow#567, operator-ordered): one new MP user2 → user1 `fixture-test-4` (`W138`), which user1 never
 opened; user1's MP list read before any reply (`R336`), after one user2 reply (`W139`, `R337`) and after a second one (`W140`, `R338`).
-Both accounts then deleted the thread with `W64`'s body (not published) and the lists were read again: nothing of the thread is left on HFR.
+Both accounts then deleted the thread with `W64`'s and `W65`'s body (not published) and the lists were read again: nothing of the thread is left on HFR (run observation, as the answers and those lists are not published).
 Three messages, no edit POST, no retry.
 
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
 published AQ server (`toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
-replaced by `192.0.2.1` like any IP. They document what that code answers, with the response headers of PHP's built-in server (`Host`, `X-Powered-By`), not
-the live host's headers. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
+replaced by `192.0.2.1` like any IP. They document what that code answers. Each meta keeps the status and `response_headers` (those of PHP's built-in server, not the live host's), and `body_length` when no file holds the
+bytes. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
 other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`user7` and a forum URL that names no real topic.
 
 | Id | File | Covers | Row | Lots |
@@ -362,10 +362,10 @@ other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`us
 | T59 | `T59-aq-create-duplicate-pseudo-aq-local.txt` | The same pseudo reporting a second message on the same AQ: body `-4`. `origin: local-instance` | #574 | 055, 134 |
 | T60 | `T60-aq-create-duplicate-pseudo-url-local.txt` | A new AQ whose reporter pseudo and `post_url` already exist on another AQ: body `-4`. `origin: local-instance` | #574 | 055, 134 |
 | T61 | `T61-aq-alerts-after-duplicate-local.xml` | The new AQ's topic list after `T60`: `<alertes/>` (the refused AQ is not listed). `origin: local-instance` | #574 | 055, 134 |
-| T62 | (meta only) | `post_url` not under `https://forum.hardware.fr` (`http://`): status 403, `Content-Length: 0`, `text/html; charset=UTF-8`, empty body. `origin: local-instance` | #574 | 055, 134 |
-| T67 | (meta only) | The 4th creation of one client within the minute (after three `1`): status 200, **empty body**, `text/html; charset=UTF-8`, no `Content-Length`. `origin: local-instance` | #574 | 055, 134 |
-| T68 | (meta only) | The next creation after `T67`: status 403, `Content-Length: 0`, empty body (the client is blacklisted). `origin: local-instance` | #574 | 055, 134 |
-| T69 | `T69-aq-alerts-after-flood-local.xml` | The list of the first of the three topics of the flood: `<alertes/>` (the three AQs were deleted). `origin: local-instance` | #574 | 055, 134 |
+| T62 | (meta only) | `post_url` not under `https://forum.hardware.fr` (`http://`): status 403, `Content-Length: 0`, `text/html; charset=UTF-8`, `body_length` 0. `origin: local-instance` | #574 | 055, 134 |
+| T67 | (meta only) | The 4th creation of one client within the minute (after three creations, not published, answered `1`): status 200, `body_length` 0, `text/html; charset=UTF-8`, no `Content-Length` in `response_headers`. `origin: local-instance` | #574 | 055, 134 |
+| T68 | (meta only) | The next creation after `T67`: status 403, `Content-Length: 0`, `body_length` 0 (the client is blacklisted). `origin: local-instance` | #574 | 055, 134 |
+| T69 | `T69-aq-alerts-after-flood-local.xml` | The list of the first of the three topics of the flood, read after `T68`: `<alertes/>`. That this topic held an AQ before is a run observation (its create is not published). `origin: local-instance` | #574 | 055, 134 |
 | T71 | `T71-aq-alerts-no-topic-local.xml` | `GET /api/getAlertesByTopic.php` with no `topic_id`: `<alertes/>`. `origin: local-instance` | #574 | 055, 134 |
 | R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
 | R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
