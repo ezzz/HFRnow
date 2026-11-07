@@ -59,7 +59,9 @@ struct MarkUnreadTests {
     @Test("Another write's confirmation, a refusal or a logged-out answer is never a mark", arguments: [
         ("P03a", TopicFlagError.unconfirmed(.unexpectedConfirmation(message: "Favori positionné avec succès"))),
         ("P03d", .unconfirmed(.unexpectedConfirmation(message: "Drapeau effacé avec succès"))),
-        ("W15", .unconfirmed(.unexpectedConfirmation(message: "Votre message a été édité avec succès !")))
+        ("W15", .unconfirmed(.unexpectedConfirmation(message: "Votre message a été édité avec succès !"))),
+        // HFR's answer to this very link without a session (#137): the gate never lets it leave, an unknown refusal if it did.
+        ("W137a", .rejected(message: "Ce message ne vous est pas destiné, désolé"))
     ])
     func otherAnswers(answer: String, expected: TopicFlagError) async throws {
         let (result, requests) = await Self.run(link: try FlagCapture.requestURL("W18"), reply: try FlagCapture.page(answer))

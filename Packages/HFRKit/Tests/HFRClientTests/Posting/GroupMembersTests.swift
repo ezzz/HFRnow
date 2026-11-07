@@ -52,10 +52,31 @@ struct GroupMembersTests {
         #expect(form.groupMembers == ["user3", "user2"])
     }
 
-    @Test("A reply from the owner's composer sends newdest unchanged, in the form's order; a member's sends none")
+    @Test("A newdest served empty is no roster: nil, like a form that serves none (R123c edited, no capture shows it)")
+    func emptyRoster() async throws {
+        let page = try PostingHarness.editedForm("R123c") {
+            $0.replacing(#"name="newdest" value="user3, user2""#, with: #"name="newdest" value=" , ""#)
+        }
+        let form = try await PostingFlow().loadForm(
+            at: try PostingCapture.pageURL("R123c"), through: ScriptedPostingSession([page])
+        )
+        #expect(form.form.field(named: "newdest") != nil)
+        #expect(form.groupMembers == nil)
+    }
+
+    @Test("Every composer of the #507 run: the roster it serves, or none")
+    func rosterEditComposers() async throws {
+        for id in ["R127", "R128", "R132", "R136", "R137", "R139"] {
+            #expect(try await Self.form(id).groupMembers?.count == (id == "R128" ? 2 : 3), "\(id)")
+        }
+        for id in ["R124", "R138"] {
+            #expect(try await Self.form(id).groupMembers == nil, "\(id)")
+        }
+    }
+
+    @Test("A reply from the owner's composer sends newdest unchanged, in the form's order (W71); a member's sends none")
     func replyKeepsRoster() async throws {
-        // No answer is scripted: HFR's answer to a group reply is not captured, only the body that leaves is checked.
-        let owner = try await PostingHarness.run(form: "R123c") { flow, form async throws(PostingError) in
+        let owner = try await PostingHarness.run(form: "R123c", answer: "W71") { flow, form async throws(PostingError) in
             try await flow.reply("group reply", with: form)
         }
         let pairs = PostingHarness.pairs(of: try #require(owner.body))
@@ -65,7 +86,7 @@ struct GroupMembersTests {
         // Document order (R123c): the roster row sits between the pseudo and the (hidden) password rows.
         #expect(names[roster - 1] == "pseudo")
         #expect(names[roster + 1] == "password")
-        if case .unconfirmed = owner.error {} else { Issue.record("expected unconfirmed, got \(String(describing: owner.error))") }
+        #expect(try owner.result.get().message == "Votre réponse a été postée avec succès !")
         let member = try await PostingHarness.run(form: "R123e") { flow, form async throws(PostingError) in
             try await flow.reply("group reply", with: form)
         }

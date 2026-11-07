@@ -32,7 +32,8 @@ final class TopicReaderModel {
     /// The reader a followed link opened, shown above this one; going back clears it and finds this page as it was left
     /// (LOT-137, legacy pushes a reader per link: `MessagesView.swift:3896-3927` at `21173e77`).
     private(set) var linkedReader: TopicReaderModel?
-    /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
+    /// HFR's confirmation of the reply, edit or delete just sent, shown until dismissed; set only by a confirmed write (LOT-084,
+    /// LOT-088).
     private(set) var replyConfirmation: String?
     /// The message menu on screen; nil when none.
     var presentedMenu: MessageMenu?
@@ -40,6 +41,8 @@ final class TopicReaderModel {
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
     var menuFeedbackSerial = 0
+    /// Where "Marquer comme non lu" stands (LOT-127).
+    var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
     /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
@@ -130,11 +133,12 @@ final class TopicReaderModel {
         }
     }
 
-    /// Opens page `number` of the topic (clamped to the known pages).
-    func goToPage(_ number: Int) async {
+    /// Opens page `number` of the topic (clamped to the known pages), at its top or, `atLastMessage`, at its last message
+    /// (legacy ‹ and "Dernier post", `MessagesView.swift:4168-4178, 4234-4236` @ 2440d79).
+    func goToPage(_ number: Int, atLastMessage: Bool = false) async {
         guard let shown, let page else { return }
         let clamped = min(max(1, number), page.maxPage)
-        await load(shown.atPage(clamped), keepsScrollPosition: false)
+        await load(shown.atPage(clamped), keepsScrollPosition: false, anchor: atLastMessage ? .lastMessage : .target)
     }
 
     /// Rebuilds the page on screen when a display setting (layout, signatures) changed since it was built, without a
@@ -248,6 +252,19 @@ final class TopicReaderModel {
         replyConfirmation = nil
     }
 
+    /// Shows HFR's sentence for a confirmed write on a message of this page (LOT-088).
+    func showConfirmation(_ sentence: String) {
+        replyConfirmation = sentence
+    }
+
+    /// Reloads the page on screen after an edit or a delete: at message `post` (the first one after it when it went) without
+    /// the separator a followed anchor draws, or where the user was when `post` is nil. HFR's own refresh names the form's
+    /// `page`, this very page (`W31`, `W32`), and past the end it redirects to the last page (`R24`).
+    func reloadPage(at post: Int?) async {
+        guard let shown else { return }
+        await load(shown.atPage(shown.page), keepsScrollPosition: post == nil, anchor: post.map(AnchorRule.message) ?? .target)
+    }
+
     /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
     /// the last known one is asked for, since the reply may have opened it; past the end HFR redirects to the last page (`R24`,
     /// on `forum2.php` and on the canonical path alike).
@@ -292,33 +309,16 @@ final class TopicReaderModel {
         readyToken = token
     }
 
-    /// What tapping `url` does. Topic and private message links of the forum, as LOT-095's router reads them, open in the
-    /// app at their page and post (issue #106); other web links open in the browser `defaultBrowser` names (legacy
-    /// `MessagesView.swift:3963-3968` at `21173e77`). A forum page the router sends elsewhere (a list, a profile, a page
-    /// view it does not own) opens in the browser too, never in the reader with the session; a profile opens the profile
-    /// sheet (LOT-116), which fetches it without cookies.
-    func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
-        guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
-        if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
-        if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
-        return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
-    }
-
-    /// The video `index` of message `post` on the page shown, for the player opened on tap (D-071-2).
-    func video(post: Int, index: Int, token: Int) -> MessageEmbed? {
-        guard token == document?.token, let message = page?.messages.first(where: { $0.numreponse == post }),
-              message.content.embeds.indices.contains(index) else { return nil }
-        return message.content.embeds[index]
-    }
-
     // MARK: - Loading
 
     /// Where a loaded document opens.
-    private enum AnchorRule {
+    private enum AnchorRule: Equatable {
         /// At the target's own anchor, when the page holds it.
         case target
         /// At the page's last message (after a reply).
         case lastMessage
+        /// At this message, or the first one after it (after an edit).
+        case message(Int)
     }
 
     /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it).
@@ -374,6 +374,8 @@ final class TopicReaderModel {
                 }
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
+            case .message(let post):
+                loaded.messages.first { !$0.isContinuation && $0.numreponse >= post }?.numreponse
             }
             let options = currentRenderOptions()
             appliedOptions = options

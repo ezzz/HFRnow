@@ -29,10 +29,15 @@ final class ScriptedPoster: ReplyPosting {
         var subject: String?
         /// Sub-category of a new topic (nil for the other writes, and for a topic sent without a choice).
         var subcategory: String?
+        /// The message an edit or a delete names; nil for the other writes.
+        var post: Int?
+        /// The write was a delete.
+        var isDelete = false
     }
 
     private let state: Mutex<(outcomes: [Result<PostingResult, PostingError>], calls: [Call])>
     private let optionsState = Mutex<(answers: [Result<NewTopicOptions, PostingError>], requests: [URL])>(([], []))
+    private let prefillState = Mutex<(answers: [Result<EditPrefill, PostingError>], requests: [EditTarget])>(([], []))
     /// Suspends every reply until opened, when set.
     let gate: ReaderGate?
 
@@ -46,6 +51,31 @@ final class ScriptedPoster: ReplyPosting {
     /// Scripts the answers of `newTopicOptions` (the last one repeats); without any, the read fails like an unscripted request.
     func scriptOptions(_ answers: [Result<NewTopicOptions, PostingError>]) {
         optionsState.withLock { $0.answers = answers }
+    }
+
+    /// Scripts the answers of `editPrefill` (the last one repeats); without any, the read fails like an unscripted request.
+    func scriptPrefill(_ answers: [Result<EditPrefill, PostingError>]) {
+        prefillState.withLock { $0.answers = answers }
+    }
+
+    /// The messages `editPrefill` was asked for.
+    var prefillRequests: [EditTarget] { prefillState.withLock { $0.requests } }
+
+    func editPrefill(_ target: EditTarget) async throws(PostingError) -> EditPrefill {
+        let answer = prefillState.withLock { state -> Result<EditPrefill, PostingError> in
+            state.requests.append(target)
+            if state.answers.count > 1 { return state.answers.removeFirst() }
+            return state.answers.first ?? .failure(.network(.unscripted))
+        }
+        return try answer.get()
+    }
+
+    func edit(_ text: String, subject: String?, subcategory: String?, target: EditTarget) async throws(PostingError) -> PostingResult {
+        try await answer(Call(text: text, formURL: target.formURL, subject: subject, subcategory: subcategory, post: target.post))
+    }
+
+    func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult {
+        try await answer(Call(text: "", formURL: target.formURL, post: target.post, isDelete: true))
     }
 
     /// The form URLs `newTopicOptions` was asked for.

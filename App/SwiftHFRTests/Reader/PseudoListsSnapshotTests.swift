@@ -115,7 +115,7 @@ struct PseudoListsSnapshotTests {
         #expect(snapshot.current == PseudoLists())
         let model = FilteredPostsModel(services: services)
         model.start(topic: readerTopic, title: "Sujet", page: 1, after: nil)
-        while model.isRunning { await Task.yield() }
+        await model.settle()
         #expect(source.calls.first?.criteria.allowlist == ["Ami"])
         #expect(source.calls.first?.criteria.includesAllowlist == true)
     }

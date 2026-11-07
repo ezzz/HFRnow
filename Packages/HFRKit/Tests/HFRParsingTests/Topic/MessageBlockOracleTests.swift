@@ -13,17 +13,32 @@ struct MessageBlockOracleTests {
         "RA1", "RA2", "RA3", "RA4", "RA5", "RU1", "RU2", "R96c", "R96d"
     ]
 
+    /// `cases` and the M2 topic captures; the other oracle suites keep reading `cases` (the LOT-003 map alone).
+    static let allCases = cases + m2Folders.keys.sorted()
+
+    /// The M2 topic captures (#475) and the `Fixtures` folder of their oracle: R122a locked topic, logged in; R122c and R122d
+    /// topic pages reached from a search (filter checked, filter off); R130a MP thread whose first message starts with a newline.
+    static let m2Folders = ["R122a": "M2-readonly", "R122c": "M2-readonly", "R122d": "M2-readonly", "R130a": "M2-misc"]
+
+    /// Filtered search pages (`filter=1`): legacy's `dicoHTML` starts with the link back to the unfiltered topic (difference 8).
+    static let filteredSearchCases: Set = ["R122c"]
+
     @Test("The case list matches the oracle map")
     func coversEveryOracle() throws {
-        let map = try TopicOracle.loadMap()
-        #expect(Set(map.filter { $0.value.kind == "topic" }.keys) == Set(Self.cases))
+        var mapped = Set<String>()
+        for folder in [nil, "M2-readonly", "M2-misc"] {
+            let map = try TopicOracle.loadMap(folder: folder)
+            mapped.formUnion(map.filter { $0.value.kind == "topic" }.keys)
+        }
+        #expect(mapped == Set(Self.allCases))
     }
 
-    @Test("Message-level fields equal the legacy LinkItem", arguments: cases)
+    @Test("Message-level fields equal the legacy LinkItem", arguments: allCases)
     func matchesOracle(caseID: String) throws {
-        let map = try TopicOracle.loadMap()
+        let folder = Self.m2Folders[caseID]
+        let map = try TopicOracle.loadMap(folder: folder)
         let entry = try #require(map[caseID])
-        let oracle = try TopicOracle.load(caseID)
+        let oracle = try TopicOracle.load(caseID, folder: folder)
         #expect(oracle.exception == nil)
         let blocks = try MessageBlockParser.blocks(in: TopicOracle.capture(for: entry))
         try #require(blocks.count == oracle.result.messages.count, "\(caseID): block count")
@@ -53,7 +68,19 @@ struct MessageBlockOracleTests {
             let isFirstOfPreviousPage = expected.urlQuoteDecoded?.contains("&ref=0&") ?? false
             #expect(block.isContinuation == isFirstOfPreviousPage, "\(label): continuation")
 
-            let oracleHTML = try #require(expected.dicoHTML, "\(label): dicoHTML")
+            var oracleHTML = try #require(expected.dicoHTML, "\(label): dicoHTML")
+            if Self.filteredSearchCases.contains(caseID) {
+                // Difference 8 (LOT-030): on a filtered search page legacy prepends the "Voir ce message dans le sujet non
+                // filtré" link, the second child of `messCase2` (`ParseMessagesOperation.m:364-368` @ 2440d79). The port's
+                // content is the `para` element only: check the prefix is exactly that link, then compare the rest.
+                let link = "Voir ce message dans le sujet non filtré</b></a>"
+                let hasLink = oracleHTML.hasPrefix("<a href=\"/forum2.php?") && oracleHTML.contains(link + "<div id=\"para")
+                #expect(hasLink, "\(label): legacy search link")
+                let start = try #require(oracleHTML.firstRange(of: "<div id=\"para"))
+                oracleHTML = String(oracleHTML[start.lowerBound...])
+            } else {
+                #expect(!oracleHTML.hasPrefix("<a "), "\(label): no search link outside a filtered page")
+            }
             let expectedShape = try HTMLShape(insideOf: oracleHTML)
             let actualShape = try HTMLShape(fragment: block.contentHTML)
             #expect(actualShape == expectedShape, "\(label): content shape, \(actualShape.firstDifference(from: expectedShape))")

@@ -15,6 +15,7 @@ public actor PseudoListStore {
 
     private let persistence: any PseudoListPersistence
     private var state = State.unloaded
+    private var allowlistFeed = ChangeFeed()
 
     /// Creates a store over `persistence`; nothing is read until the first call.
     public init(persistence: any PseudoListPersistence) {
@@ -47,6 +48,12 @@ public actor PseudoListStore {
     public func loadFailure() -> PseudoListError? {
         if case .failed(let error) = loadedState() { return error }
         return nil
+    }
+
+    /// A signal after each saved change of the allowlist, for its iCloud copy (LOT-172). The blocklists, which
+    /// MPStorage carries, send none.
+    public func allowlistChanges() -> AsyncStream<Void> {
+        allowlistFeed.stream()
     }
 
     // MARK: Writing
@@ -88,13 +95,30 @@ public actor PseudoListStore {
     /// Adds a pseudo to the allowlist. Returns false when it was already there.
     @discardableResult
     public func allow(_ pseudo: String) throws -> Bool {
-        try mutate { document in try Self.insert(pseudo, into: &document.allowlist) }
+        try allowlistSaved(mutate { document in try Self.insert(pseudo, into: &document.allowlist) })
     }
 
     /// Removes a pseudo from the allowlist. Returns false when it was not there.
     @discardableResult
     public func disallow(_ pseudo: String) throws -> Bool {
-        try mutate { document in Self.remove(pseudo, from: &document.allowlist) }
+        try allowlistSaved(mutate { document in Self.remove(pseudo, from: &document.allowlist) })
+    }
+
+    /// Replaces the allowlist with `entries` (another device's list, through iCloud, LOT-172): pseudos cleaned, each
+    /// pseudo once (its first entry kept), empty ones dropped, aliases and modes kept. Returns false when the list
+    /// already was that.
+    @discardableResult
+    public func replaceAllowlist(with entries: [PseudoListEntry]) throws -> Bool {
+        var list: [PseudoListEntry] = []
+        for entry in entries where !PseudoNormalizer.comparisonForm(entry.pseudo).isEmpty {
+            guard Self.index(of: entry.pseudo, in: list) == nil else { continue }
+            list.append(PseudoListEntry(pseudo: PseudoNormalizer.cleaned(entry.pseudo), alias: entry.alias, mode: entry.mode))
+        }
+        return try allowlistSaved(mutate { document in
+            guard list != document.allowlist else { return false }
+            document.allowlist = list
+            return true
+        })
     }
 
     // MARK: Recovery
@@ -116,9 +140,15 @@ public actor PseudoListStore {
             throw PseudoListError.saveFailed(reason: String(describing: error))
         }
         state = .loaded(PseudoListDocument())
+        allowlistFeed.signal()
     }
 
     // MARK: Internals
+
+    private func allowlistSaved(_ changed: Bool) -> Bool {
+        if changed { allowlistFeed.signal() }
+        return changed
+    }
 
     private var document: PseudoListDocument? {
         if case .loaded(let document) = loadedState() { return document }

@@ -1,0 +1,27 @@
+{
+  "id": "T50",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "/api/addAlerte.php",
+  "url": "https://aq.super-h.fr/api/addAlerte.php",
+  "final_url": "https://aq.super-h.fr/api/addAlerte.php",
+  "status": 200,
+  "content_type": "text/plain;charset=UTF-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "alerte_qualitay_id",
+    "nom",
+    "topic_id",
+    "topic_titre",
+    "pseudo",
+    "post_id",
+    "post_url",
+    "commentaire"
+  ],
+  "note": "aq.super-h.fr alert creation (operator-approved write on the operator's own topic, first post), legacy MessagesView.swift:340-399; answer `1`, no cookie",
+  "request_body": "alerte_qualitay_id=-1&nom=Alert+title&topic_id=9900001&topic_titre=Own+topic+subject&pseudo=user1&post_id=9910000001&post_url=https%3A%2F%2Fforum.hardware.fr%2Fhfr%2Fown-category%2Fown-subcategory%2Fown-topic-subject-sujet_9900001_1.htm%23t9910000001&commentaire=post%20de%20user1",
+  "file": "T50-aq-create-answer.txt",
+  "private": false
+}

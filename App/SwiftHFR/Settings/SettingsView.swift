@@ -46,8 +46,12 @@ struct SettingsView: View {
     /// The favourites options (LOT-124); only the settings here, the folded sections and super-favourites belong to the Favoris tab.
     @State private var favorites: FavoritesOptionsModel
 
+    /// The reader services, for the offline list (LOT-139); nil hides its row (previews).
+    private let reader: ReaderServices?
+
     /// Reads the "Sujets" values from `store`.
-    init(store: any SettingsStore = UserDefaultsSettingsStore()) {
+    init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil) {
+        self.reader = reader
         _topics = State(initialValue: TopicsSettingsModel(store: store))
         _favorites = State(initialValue: FavoritesOptionsModel(settings: store))
     }
@@ -111,6 +115,13 @@ struct SettingsView: View {
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
+                }
+            }
+            if let reader, let offline = reader.offline {
+                Section("Hors ligne") {
+                    NavigationLink { OfflineTopicsView(offline: offline, services: reader) } label: {
+                        Label("Sujets enregistrés", systemImage: "arrow.down.circle")
+                    }
                 }
             }
             Section("Sujets") {

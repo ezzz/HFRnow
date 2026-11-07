@@ -4,10 +4,15 @@ import HFRNetwork
 /// User-facing texts of the composer (French). Each one says whether anything was posted and what to do next; HFR's own
 /// sentence is shown when it gave one (a refusal, a missing form). Never the user's text, a token or a cookie.
 enum ComposerMessages {
-    /// What to tell the user about a failed reply, or a failed new private message when `newMessage` is set. The text is
-    /// always kept in the composer and its draft.
-    static func message(for error: PostingError, newMessage: Bool = false, newTopic: Bool = false) -> String {
-        let what = newTopic ? "le sujet" : newMessage ? "le message" : "la réponse"
+    /// What to tell the user about a failed reply, or a failed new private message, new topic or edit when the flag is set.
+    /// The text is always kept in the composer and its draft.
+    static func message(for error: PostingError, newMessage: Bool = false, newTopic: Bool = false, edit: Bool = false) -> String {
+        if edit, let text = editMessage(for: error) { return text }
+        return sharedMessage(for: error, newMessage: newMessage, newTopic: newTopic, edit: edit)
+    }
+
+    private static func sharedMessage(for error: PostingError, newMessage: Bool, newTopic: Bool, edit: Bool) -> String {
+        let what = newTopic ? "le sujet" : newMessage ? "le message" : edit ? "la modification" : "la réponse"
         switch error {
         case .formUnavailable(let message):
             return message ?? unavailable(newMessage: newMessage, newTopic: newTopic)
@@ -25,11 +30,65 @@ enum ComposerMessages {
             return field(error)
         case .unsupportedCharacters(_, let characters):
             return unsupported(characters)
-        case .unknownSubcategory where newTopic:
+        case .unknownSubcategory where newTopic || edit:
             return "Le forum n’offre plus cette sous-catégorie : choisissez-la à nouveau. Rien n’a été envoyé."
         case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .unknownSubcategory, .subjectNotEditable,
              .optionNotOffered, .deleteNotOffered, .wholeTopicDeletionNotConfirmed:
             return unsupportedForm(newMessage: newMessage, newTopic: newTopic)
+        }
+    }
+
+    /// The texts of an edit that differ from a reply's; nil when the shared one fits.
+    private static func editMessage(for error: PostingError) -> String? {
+        switch error {
+        case .formUnavailable(nil):
+            "Le forum ne propose plus de modifier ce message. Rien n’a été envoyé."
+        case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .subjectNotEditable, .optionNotOffered, .deleteNotOffered,
+             .wholeTopicDeletionNotConfirmed:
+            "Le formulaire de modification du forum n’est pas pris en charge : rien n’a été envoyé. "
+                + "Actualisez le sujet puis réessayez."
+        case .unconfirmed(let uncertainty):
+            "Le forum n’a pas confirmé la modification : votre message a peut-être été modifié. "
+                + "Vérifiez le sujet avant de renvoyer ; le texte est gardé." + answer(of: uncertainty)
+        default:
+            nil
+        }
+    }
+
+    /// Why the edit form could not be opened: nothing was sent, the user can try again.
+    static func editUnavailable(_ error: PostingError) -> String {
+        switch error {
+        case .notLoggedIn, .sessionChanged:
+            "Votre session a expiré : reconnectez-vous depuis le menu Comptes, puis réessayez."
+        case .formUnavailable(let message?):
+            message
+        case .formUnavailable:
+            "Le forum ne propose plus de modifier ce message."
+        case .network(let failure):
+            network(failure)
+        default:
+            "Le formulaire de modification du forum n’est pas pris en charge. Actualisez le sujet puis réessayez."
+        }
+    }
+
+    /// Why a delete did not end with HFR's confirmation. Only `unconfirmed` says it may have gone; it is never sent again alone.
+    static func deletion(_ error: PostingError) -> String {
+        switch error {
+        case .unconfirmed(let uncertainty):
+            "Le forum n’a pas confirmé la suppression : le message a peut-être été supprimé. Vérifiez le sujet avant de réessayer."
+                + answer(of: uncertainty)
+        case .wholeTopicDeletionNotConfirmed:
+            "Ce message ouvre le sujet : le supprimer emporterait tout le sujet. Rien n’a été supprimé."
+        case .deleteNotOffered:
+            "Le forum ne propose pas de supprimer ce message. Rien n’a été supprimé."
+        case .notLoggedIn, .sessionChanged:
+            "Votre session a expiré : rien n’a été supprimé. Reconnectez-vous depuis le menu Comptes, puis réessayez."
+        case .rejected(let message?), .formUnavailable(let message?):
+            message
+        case .network(let failure):
+            network(failure)
+        default:
+            "Le forum n’a pas accepté la suppression : rien n’a été supprimé. Actualisez le sujet puis réessayez."
         }
     }
 
@@ -133,11 +192,16 @@ enum ComposerMessages {
                 + "Vérifiez vos messages privés avant de renvoyer ; le texte est gardé."
             : "Le forum n’a pas confirmé l’envoi : votre réponse a peut-être été postée. "
                 + "Vérifiez le sujet avant de renvoyer ; le texte est gardé."
+        return base + answer(of: uncertainty)
+    }
+
+    /// HFR's own sentence when it gave one.
+    private static func answer(of uncertainty: PostingUncertainty) -> String {
         switch uncertainty {
         case .unrecognizedAnswer(let message?), .unexpectedConfirmation(let message?):
-            return base + " Réponse du forum : « \(message) »"
+            " Réponse du forum : « \(message) »"
         case .transport, .unrecognizedAnswer(nil), .unexpectedConfirmation(nil):
-            return base
+            ""
         }
     }
 

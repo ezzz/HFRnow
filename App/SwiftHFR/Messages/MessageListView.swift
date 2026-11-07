@@ -3,6 +3,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
 // in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
+// LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); the switch is a
+// `safeAreaBar` without fill; GAP row pending #545.
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
 struct MessageListView: View {
@@ -23,7 +25,7 @@ struct MessageListView: View {
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
-        .safeAreaInset(edge: .top) {
+        .safeAreaBar(edge: .top) {
             if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
         }
         .safeAreaInset(edge: .top) {
@@ -44,6 +46,7 @@ struct MessageListView: View {
             model.clearSentConfirmation()
         }
         .toolbar {
+            if let content = loader.value, content.page > 1 || content.hasNext { MessagePageBar(model: model) }
             if let composer, let target = model.newMessageTarget {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -59,11 +62,15 @@ struct MessageListView: View {
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            if let content = loader.value, content.page > 1 || content.hasNext { MessagePageBar(model: model) }
-        }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
+        .alert(
+            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.actionFailure ?? "")
+        }
     }
 
     @ViewBuilder
@@ -85,7 +92,7 @@ struct MessageListView: View {
     }
 }
 
-/// HFR's confirmation of a new private message, above the list.
+/// HFR's confirmation of a new private message or of a conversation marked unread, above the list.
 private struct MessageSentBanner: View {
     let text: String
     let close: () -> Void
@@ -147,27 +154,17 @@ private struct EmptyMessagesView: View {
 }
 
 /// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct MessagePageBar: View {
+private struct MessagePageBar: ToolbarContent {
     let model: MessageListModel
 
-    var body: some View {
-        HStack {
-            Button { Task { await model.goToFirstPage() } } label: { Image(systemName: "backward.end") }
-                .disabled(!model.canGoToPrevious)
-                .accessibilityLabel("Première page")
-            Button { Task { await model.goToPreviousPage() } } label: { Image(systemName: "chevron.left") }
-                .disabled(!model.canGoToPrevious)
-                .accessibilityLabel("Page précédente")
-            Spacer()
-            if model.loader.isLoading { ProgressView() } else { Text("Page \(model.currentPage)").monospacedDigit() }
-            Spacer()
-            Button { Task { await model.goToNextPage() } } label: { Image(systemName: "chevron.right") }
-                .disabled(!model.canGoToNext)
-                .accessibilityLabel("Page suivante")
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+    var body: some ToolbarContent {
+        PagerToolbar(
+            first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
+            previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
+            next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
+            last: nil,
+            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+        )
     }
 }
 
@@ -188,6 +185,5 @@ private struct MessageSegmentSwitch: View {
         .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView, FavoriteSmileyDetailView) @ 2440d79. Differences: see the
 // doc comment and the specs LOT-104 (GAP-087) and LOT-105 (GAP-088) in docs/lots/.
+// LOT-185: the search bar is a `safeAreaBar` without fill and the notice capsule is glass; GAP row pending #545.
 /// The smiley panel of the reply sheet (legacy `CombinedSmileyPickerView`, `HFRswift/Swift/AnswerView.swift:1051` @ 2440d79).
 ///
 /// Differences: no forum-smiley section (its own lot); the search bar, history and keywords are LOT-105;
@@ -46,7 +47,7 @@ struct SmileyPickerView: View {
                     .padding(.vertical, 10)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaBar(edge: .bottom, spacing: 0) {
                 if let search = model.search { searchBar(search) }
             }
             .navigationTitle("Smileys")
@@ -89,7 +90,7 @@ struct SmileyPickerView: View {
             Text(notice)
                 .font(.callout)
                 .padding(10)
-                .background(.regularMaterial, in: Capsule())
+                .glassEffect(.regular, in: .capsule)
                 .padding(.top, 8)
         }
     }
@@ -164,7 +165,6 @@ struct SmileyPickerView: View {
             Toggle("Tous les mots clés", isOn: $requireAll).font(.footnote).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(.bar)
     }
 
     private func startSearch(_ search: SmileySearchModel) {
