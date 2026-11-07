@@ -2955,7 +2955,7 @@ def verify_aq_local_answer(text, meta):
         return [] if re.fullmatch(r"-?\d{1,3}\s*", text) else [bad("answer is not a bare code")]
     import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
     # ElementTree drops comments and instructions, which the published file would still hold.
-    if re.search(r"<[!?]", re.sub(r"\A\s*<\?xml\b[^>]*\?>", "", text.lstrip("\ufeff"))):
+    if re.search(r"<[!?]", re.sub(r"\A\s*<\?xml\s[^>]*\?>", "", text.lstrip("\ufeff"))):
         return [bad("answer holds a comment or an instruction")]
     try:
         root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
