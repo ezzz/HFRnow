@@ -29,10 +29,14 @@ struct SmileyImageLoader: Sendable {
     private static let shared = Cache()
 
     let fetcher: ReaderImageFetcher
+    /// Whether a third-party host may be contacted: only the GIF panel sets it (LOT-155), after the member accepted notice N1
+    /// and only for Giphy's CDN (`GifMediaPolicy`); smileys stay on the forum image host.
+    let allowsThirdParty: Bool
 
     /// A loader over `fetcher`, the cookie-less one by default.
-    init(fetcher: ReaderImageFetcher = ReaderImageFetcher()) {
+    init(fetcher: ReaderImageFetcher = ReaderImageFetcher(), allowsThirdParty: Bool = false) {
         self.fetcher = fetcher
+        self.allowsThirdParty = allowsThirdParty
     }
 
     /// The image already decoded for `url`, if any (no work, no request).
@@ -43,7 +47,7 @@ struct SmileyImageLoader: Sendable {
     /// The image at `url`: from the cache, else downloaded and decoded; nil when it cannot be had.
     func image(at url: URL) async -> UIImage? {
         if let cached = Self.cached(url) { return cached }
-        guard let (data, _) = try? await fetcher.image(at: url, allowsThirdParty: false),
+        guard let (data, _) = try? await fetcher.image(at: url, allowsThirdParty: allowsThirdParty),
               !Task.isCancelled, let image = Self.decode(data) else { return nil }
         Self.shared.storage.setObject(image, forKey: url as NSURL, cost: Self.cost(of: image))
         return image

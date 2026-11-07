@@ -180,6 +180,8 @@ struct ComposerServices: Sendable {
     var smileySearchHistory: SmileySearchHistoryStore = liveSmileySearchHistory
     /// The image panel's services (LOT-102): built with the struct, nothing is read or written until the panel is used.
     var imageUpload: ImageUploadServices = .live()
+    /// The GIF panel's services (LOT-155): built with the struct, nothing is contacted until the panel is opened and N1 accepted.
+    var gif: GifServices = .live()
 
     /// What the smiley panel opens with: a new search model over the lookups, none without an account.
     @MainActor var smileyPanel: SmileyPanelServices {

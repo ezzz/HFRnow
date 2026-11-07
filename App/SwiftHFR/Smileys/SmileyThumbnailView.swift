@@ -12,6 +12,8 @@ struct SmileyThumbnailView: UIViewRepresentable {
     var contentMode: UIView.ContentMode = .center
     /// Set once an image is shown; stays false while loading or when it cannot be had.
     var hasImage: Binding<Bool> = .constant(true)
+    /// A third-party host may be contacted (the GIF panel, after notice N1); smileys never.
+    var allowsThirdParty = false
 
     func makeUIView(context: Context) -> UIImageView {
         let view = UIImageView()
@@ -22,7 +24,8 @@ struct SmileyThumbnailView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: UIImageView, context: Context) {
-        context.coordinator.update(view, url: url, hasImage: hasImage)
+        let loader = SmileyImageLoader(allowsThirdParty: allowsThirdParty)
+        context.coordinator.update(view, url: url, hasImage: hasImage, loader: loader)
     }
 
     static func dismantleUIView(_ view: UIImageView, coordinator: Coordinator) {
@@ -36,9 +39,7 @@ struct SmileyThumbnailView: UIViewRepresentable {
     final class Coordinator {
         private var current: URL?
         private var task: Task<Void, Never>?
-        private let loader = SmileyImageLoader()
-
-        func update(_ view: UIImageView, url: URL, hasImage: Binding<Bool>) {
+        func update(_ view: UIImageView, url: URL, hasImage: Binding<Bool>, loader: SmileyImageLoader) {
             guard current != url else { return }
             current = url
             task?.cancel()

@@ -127,6 +127,8 @@ final class ReplyComposerModel: Identifiable {
 
     /// What the image panel needs (LOT-102).
     var imageUploadServices: ImageUploadServices { services.imageUpload }
+    /// The GIF panel's services (LOT-155); `isAvailable` is false in a build without a Giphy key.
+    var gifServices: GifServices { services.gif }
 
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
