@@ -62,6 +62,11 @@ struct HFRLinkRouteCorpusTests {
         let link = url.absoluteString
         // `forum1.php` with no `cat` at all: which list it names is not documented, so it is not guessed.
         if url.path == "/forum1.php", url.query == "config=hfr.inc" { return true }
+        // The rewritten quote form of a logged-in topic page (`R298b`): the page kind of `message.php`, which is not routed.
+        if url.path.wholeMatch(of: #/\/hfr\/[\w-]+\/citer-[0-9]+-[0-9]+-[0-9]+-[0-9]+\.htm/#) != nil { return true }
+        // The rewritten reply link of a logged-in topic page (`R298b`, `/hfr/<forum>/repondre-<n>-<n>.htm#formulaire`): the reply
+        // composer, a `message.php` page kind the router does not own.
+        if url.path.wholeMatch(of: #/\/hfr\/[\w-]+\/repondre-[0-9]+-[0-9]+\.htm/#) != nil { return true }
         if url.path == "/forum2.php" { return link.contains("print=1") || link.contains("quote_only=1") }
         // Real shapes of R121c whose target is not traced (LOT-095, pending capture): the `hardwarefr` rules link and the
         // filtered list `liste_sujet_filtre-<n>-<m>` (meaning of `n` and `m` not captured).
