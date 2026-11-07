@@ -2,6 +2,7 @@ import Foundation
 import HFRNetwork
 @testable import SwiftHFR
 import Testing
+import UIKit
 
 /// One menu event as the screen receives it.
 private struct MenuEvent: Equatable {
