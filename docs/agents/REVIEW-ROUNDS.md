@@ -19,6 +19,9 @@ CodeRabbit can skip a review ("Review skipped") or pause on a branch: after push
 **What keeps an adversarial APPROVE** (#612):
 - A commit that only moves or renames a GAP or changelog fragment.
 - A merge of `dev-swift` into the branch whose resolution adds nothing to the automatic merge: `git show --remerge-diff <merge-sha>` is empty, or touches only fragments and the two generated files. A hand-resolved conflict in code is a change nobody reviewed and needs a new round. The author states the `--remerge-diff` result on the PR.
+
+**The `### Ledger` section is reviewed like the code** (#620): the reviewer checks each block against the diff (the legacy file:line or capture exists, the GAP row says what the PR does, the French summary is true), and that the PR touches none of the four ledger paths.
+- A **ledger PR** (branch `docs/ledger-<date>`, the output of `python3 tooling/docs/ledger.py fold --apply` then `fold.py`: the `### Ledger` entries of the merged `ledger` PRs written into the two docs, tallies regenerated, nothing else) is a fold PR: same rule below.
 - A **fold PR** (the output of `python3 tooling/docs/fold.py`: fragments moved into `docs/CHANGELOG-LEGACY.md` and `docs/migration/GAP-LEGACY-VS-SWIFT.md`, tallies regenerated, nothing else) needs no adversarial review. It is valid only if the script reproduces it: on the PR's base, `python3 tooling/docs/fold.py && git diff --exit-code <fold-head>` shows no difference. Merge on green CI.
 
 CI noise vs real failure: a check failing in seconds with no log (missing token, unavailable service) is not "CI red" — say so and point to the real checks (build, tests, lint, CodeQL). "Flaky" is not a cause: one re-run at most, then investigate.

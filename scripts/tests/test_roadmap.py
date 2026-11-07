@@ -438,6 +438,15 @@ class FoldFragmentsTest(unittest.TestCase):
         lay.gap_dir.mkdir()
         return lay
 
+    def test_ledger_report_is_a_dry_run(self):
+        lay = self.layout()
+        self.assertEqual(hygiene.ledger_pending([], lay), ["ledger: none pending"])
+        ok = {"number": 5, "body": "Closes #9\n\n### Ledger\n\n```changelog\n| T | Résumé. | LOT-9 | preuve |\n```\n"}
+        before = lay.changelog.read_text(encoding="utf-8")
+        self.assertIn("1 pending (#5)", hygiene.ledger_pending([ok], lay)[0])
+        self.assertEqual(lay.changelog.read_text(encoding="utf-8"), before)
+        self.assertIn("NOT foldable", hygiene.ledger_pending([{"number": 6, "body": "### Ledger\n\nprose"}], lay)[0])
+
     def test_dry_run_reports_and_apply_folds(self):
         lay = self.layout()
         self.assertEqual(hygiene.fold_fragments(False, lay), ["docs fragments: none pending"])
