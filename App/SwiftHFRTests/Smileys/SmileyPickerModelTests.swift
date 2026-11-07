@@ -20,12 +20,17 @@ struct SmileyPickerModelTests {
 
     private func picker(
         store: AppSmileyFavoritesStore = AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence()),
-        account: String = "user1"
+        account: String = "user1",
+        forumLoader: (@Sendable () async -> [ForumSmiley]?)? = nil
     ) -> SmileyPickerModel {
         SmileyPickerModel(
             catalogue: [entry(":)", editor: true), entry(":hidden:", editor: false), entry(":o", editor: true)],
-            store: store, account: account
+            store: store, account: account, forumLoader: forumLoader
         )
+    }
+
+    private func forumSmiley(_ code: String) -> ForumSmiley {
+        ForumSmiley(code: code, url: url(Self.base + "forum.gif"))
     }
 
     @Test func theBasicPaletteHoldsTheEditorSmileysInCatalogueOrder() {
@@ -104,6 +109,63 @@ struct SmileyPickerModelTests {
         #expect(model.favorites.isEmpty)
         await model.setFavorite(favorite("[:fav]"), true)
         #expect(model.notice == "Erreur :/")
+    }
+
+    // MARK: Sections and favourites (#600)
+
+    @Test func sectionsComeInTheOperatorsOrderWithoutMySmileys() async {
+        let model = picker(forumLoader: { [self.forumSmiley("[:forum]")] })
+        await model.loadForum()
+        #expect(model.sections.map(\.kind) == [.basic, .forum, .appFavorites])
+        #expect(model.sections.map(\.title) == ["Smileys de base", "Smileys du forum", "Favoris de l’app"])
+        #expect(model.sections[1].smileys.map(\.code) == ["[:forum]"])
+    }
+
+    @Test func theForumSectionIsLoadingThenListsTheAccountFavourites() async {
+        let model = picker(forumLoader: { [self.forumSmiley("[:a]"), self.forumSmiley("[:b:2]")] })
+        #expect(model.sections[1].state == .loading)
+        await model.loadForum()
+        #expect(model.sections[1].state == .smileys)
+        #expect(model.sections[1].smileys.map(\.code) == ["[:a]", "[:b:2]"])
+    }
+
+    @Test func aFailedForumReadIsShownNotTurnedIntoAnEmptyList() async {
+        let model = picker(forumLoader: { nil })
+        await model.loadForum()
+        #expect(model.sections[1].smileys.isEmpty)
+        #expect(model.sections[1].state == .failed("Smileys du forum indisponibles pour le moment."))
+    }
+
+    @Test func anAccountWithoutForumFavouritesSaysSo() async {
+        let model = picker(forumLoader: { [] })
+        await model.loadForum()
+        #expect(model.sections[1].state == .empty("Aucun smiley favori sur votre compte HFR."))
+    }
+
+    @Test func theEmptyAppFavouritesExplainHowToAddOne() {
+        let section = picker().sections[2]
+        #expect(section.state == .empty(SmileyPickerModel.noFavoritesText))
+        #expect(SmileyPickerModel.noFavoritesText.contains("Ajouter aux favoris"))
+    }
+
+    @Test func theContextMenuActionAddsThenRemovesAnyKindOfSmiley() async {
+        let model = picker()
+        let basic = model.basic[0]
+        await model.toggleFavorite(basic)
+        #expect(model.isFavorite(basic))
+        #expect(model.sections[2].smileys == [basic])
+        await model.toggleFavorite(basic)
+        #expect(!model.isFavorite(basic))
+        #expect(model.sections[2].state == .empty(SmileyPickerModel.noFavoritesText))
+    }
+
+    @Test func tappingAForumFavouriteOpensItsDetail() async {
+        let model = picker(forumLoader: { [self.forumSmiley("[:forum]")] })
+        await model.loadForum()
+        let smiley = model.sections[1].smileys[0]
+        model.tap(forum: smiley)
+        #expect(model.presented == smiley)
+        #expect(model.chosen == nil)
     }
 }
 

@@ -86,6 +86,16 @@ enum ComposerTarget: Hashable, Sendable {
     /// An own message through its edit form.
     case edit(EditTarget)
 
+    /// The composer's form page, which also lists the account's favourite smileys.
+    var formURL: URL {
+        switch self {
+        case .reply(let target): target.formURL
+        case .newPrivateMessage(let target): target.formURL
+        case .newTopic(let target): target.formURL
+        case .edit(let target): target.formURL
+        }
+    }
+
     /// The draft this composer restores and saves.
     var draftContext: DraftContext {
         switch self {
@@ -114,6 +124,10 @@ protocol ReplyPosting: Sendable {
     /// options' values. Same contract as `reply`.
     func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult
 
+    /// Fetches the composer at `formURL` and reads the account's favourite smileys (`#dynamic_smilies`, legacy read them on every
+    /// form fetch, `ReplyService.swift:249-252` @ 2440d79). The default is none, for doubles that do not script it.
+    func forumSmileys(formURL: URL) async throws(PostingError) -> [ForumSmiley]
+
     /// Fetches the message's edit form and reads what the composer opens with.
     func editPrefill(_ target: EditTarget) async throws(PostingError) -> EditPrefill
 
@@ -123,6 +137,10 @@ protocol ReplyPosting: Sendable {
 
     /// Fetches the edit form, then deletes the message; a first post is refused (LOT-175). Same contract as `reply`.
     func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult
+}
+
+extension ReplyPosting {
+    func forumSmileys(formURL: URL) async throws(PostingError) -> [ForumSmiley] { [] }
 }
 
 /// LOT-048's flow in the current account's session: the form is fetched when the user sends, so its `hash_check` is
@@ -160,6 +178,10 @@ struct LiveReplyPoster: ReplyPosting {
         return try await flow.newTopic(subject: subject, subcategory: subcategory, text: text, with: form)
     }
 
+    func forumSmileys(formURL: URL) async throws(PostingError) -> [ForumSmiley] {
+        try await flow.loadForm(at: formURL, in: session).form.dynamicSmileys
+    }
+
     func editPrefill(_ target: EditTarget) async throws(PostingError) -> EditPrefill {
         EditPrefill(form: try await editForm(of: target).form)
     }
@@ -191,6 +213,13 @@ struct SmileyPanelServices {
     let account: String
     /// The forum search; nil when there is no account to search with.
     let search: SmileySearchModel?
+    /// Reads the account's forum favourites from the composer's form (nil result: could not be read); nil without a form.
+    var forumFavorites: (@Sendable () async -> [ForumSmiley]?)?
+
+    /// The picker over these services.
+    @MainActor func picker(catalogue: [CommonSmiley], search: SmileySearchModel?) -> SmileyPickerModel {
+        SmileyPickerModel(catalogue: catalogue, store: store, account: account, search: search, forumLoader: forumFavorites)
+    }
 }
 
 /// What the reply composer needs, for the current account only (nil when logged out: HFR shows no answer form then).
@@ -219,10 +248,13 @@ struct ComposerServices: Sendable {
     var gif: GifServices = .live()
 
     /// What the smiley panel opens with: a new search model over the lookups, none without an account.
-    @MainActor var smileyPanel: SmileyPanelServices {
-        SmileyPanelServices(
+    /// `formURL` is the composer's own form, whose `#dynamic_smilies` are the forum favourites.
+    @MainActor func smileyPanel(formURL: URL? = nil) -> SmileyPanelServices {
+        let poster = poster
+        return SmileyPanelServices(
             store: smileyFavorites, account: account,
-            search: smileyLookups.map { SmileySearchModel(lookups: $0, history: smileySearchHistory) }
+            search: smileyLookups.map { SmileySearchModel(lookups: $0, history: smileySearchHistory) },
+            forumFavorites: formURL.map { url in { try? await poster.forumSmileys(formURL: url) } }
         )
     }
 
