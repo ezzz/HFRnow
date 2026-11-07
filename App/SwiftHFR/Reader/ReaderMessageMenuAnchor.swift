@@ -61,3 +61,4 @@ struct ReaderMessageMenuAnchor: View {
         .allowsHitTesting(false)
         .ignoresSafeArea(edges: .vertical)
     }
+}
