@@ -18,6 +18,8 @@ struct TopicReaderView: View {
     var onFilterPosts: (() -> Void)?
     /// A filter run is reading pages: the menu entry is disabled meanwhile.
     var filterIsBusy = false
+    /// Told how "Marquer comme non lu" ended (LOT-127): the conversation's list; nil when no list hosts this reader.
+    var onMarkUnread: MarkUnreadHost?
     @State private var controller: ReaderWebController?
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
@@ -57,6 +59,7 @@ struct TopicReaderView: View {
         .modifier(ReaderReplyFlow(model: model, composer: composer, behavior: replyBehavior))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
+        .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
         .offlineSave(model: model, saver: saver)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -262,7 +265,7 @@ struct ReaderServices: Sendable {
     var positions: (any ReaderPositionRecording)?
     /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
     var offline: OfflineServices?
-    /// Flag writes of the current account, for the message menu's "Favoris" (LOT-125); nil when logged out.
+    /// Flag writes of the current account, for "Favoris" (LOT-125) and "Marquer comme non lu" (LOT-127); nil when logged out.
     var flagActions: TopicFlagActions?
 }
 

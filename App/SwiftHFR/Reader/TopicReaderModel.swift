@@ -40,6 +40,8 @@ final class TopicReaderModel {
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
     var menuFeedbackSerial = 0
+    /// Where "Marquer comme non lu" stands (LOT-127).
+    var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
     /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).

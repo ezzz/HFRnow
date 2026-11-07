@@ -64,6 +64,13 @@ struct MessageListView: View {
         }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
+        .alert(
+            "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.actionFailure ?? "")
+        }
     }
 
     @ViewBuilder
@@ -85,7 +92,7 @@ struct MessageListView: View {
     }
 }
 
-/// HFR's confirmation of a new private message, above the list.
+/// HFR's confirmation of a new private message or of a conversation marked unread, above the list.
 private struct MessageSentBanner: View {
     let text: String
     let close: () -> Void
