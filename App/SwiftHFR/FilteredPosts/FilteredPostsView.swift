@@ -23,7 +23,7 @@ private struct FilteredPostsPresentation: ViewModifier {
                 }
             }
             .sheet(isPresented: Binding(get: { model.result != nil }, set: { if !$0 { model.closeResult() } })) {
-                NavigationStack { FilteredPostsView(model: model, services: reader) }
+                ThemedNavigationStack { FilteredPostsView(model: model, services: reader) }
             }
             // With the sheet open the alert is presented by the sheet's content (a view cannot present both).
             .filteredPostsAlert(model, shown: model.result == nil)

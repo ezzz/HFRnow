@@ -31,7 +31,7 @@ struct MessagesListColumn: View {
     let composer: ComposerServices?
 
     var body: some View {
-        NavigationStack { MessageListView(model: model, composer: composer) }
+        ThemedNavigationStack { MessageListView(model: model, composer: composer) }
     }
 }
 
@@ -46,7 +46,7 @@ struct MessageReaderColumn: View {
     var body: some View {
         if let thread = model.selected, let readerModel = model.reader(for: thread) {
             // Its own stack, for the readers a followed link pushes (LOT-137); a new conversation starts a new stack.
-            NavigationStack {
+            ThemedNavigationStack {
                 TopicReaderView(
                     model: readerModel, services: reader, composer: composer,
                     onMarkUnread: { [model] outcome in await model.markUnreadEnded(thread, in: readerModel, outcome) }

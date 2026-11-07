@@ -26,7 +26,7 @@ struct RootSidebarView: View {
                 sidebar
             } detail: {
                 // A new identity per entry, so the stack drops what the previous entry had pushed.
-                NavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
+                ThemedNavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
                     .id(entry)
             }
         } else {
@@ -95,13 +95,14 @@ private struct CategoriesSidebarColumn: View {
     let composer: ComposerServices?
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             ForumListView(navigation: navigation)
                 .navigationDestination(item: $navigation.selectedSource) { source in
                     TopicListView(
                         model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
                         composer: composer, open: { navigation.open($0, at: $1) }
                     )
+                    .appScreenBackground()
                 }
         }
     }

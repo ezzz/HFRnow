@@ -139,6 +139,7 @@ struct TopicReaderView: View {
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
+        .appScreenBackground()
         .onAppear(perform: makeController)
         .onAppear {
             if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }

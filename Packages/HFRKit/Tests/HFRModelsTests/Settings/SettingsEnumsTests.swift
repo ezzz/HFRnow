@@ -13,6 +13,7 @@ import Testing
         #expect(AutoThemeMode.allCases.map(\.rawValue) == [0, 3])
         #expect(ThemeVariant.allCases.map(\.rawValue) == [0, 1])
         #expect(ThemeStyle.allCases.map(\.rawValue) == [0, 1])
+        #expect(DarkStyle.allCases.map(\.rawValue) == [0, 1, 2])
         #expect(TextSizeScale.allCases.map(\.rawValue) == [100, 110, 120, 130])
         #expect(RehostMaxDimension.allCases.map(\.rawValue) == [400, 600, 800, 1000, 1200])
     }

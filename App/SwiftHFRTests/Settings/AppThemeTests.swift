@@ -64,4 +64,79 @@ struct AppThemeTests {
         model.mode = .system
         #expect(await until { probe.traitCollection.userInterfaceStyle == system }, "automatic theme did not follow iOS again")
     }
+
+    /// A real window with a navigation stack and a list: the dark style paints the screen, light mode and "standard" do not.
+    private struct ListRoot: View {
+        let model: ThemeSettingsModel
+        /// Shows a pushed screen (which carries no modifier of its own) instead of the root.
+        var pushed = false
+        @State private var path: [Int] = []
+        var body: some View {
+            NavigationStack(path: $path) {
+                List { Text("") }.appScreenBackground()
+                    .navigationDestination(for: Int.self) { _ in List { Text("") }.appScreenBackground() }
+            }
+            .appTheme(model)
+            .onAppear { if pushed { path = [1] } }
+        }
+    }
+
+    /// The colour of a pixel near the bottom of the window, below the one list row.
+    private func bottomPixel(of window: UIWindow) -> (red: Int, green: Int, blue: Int) {
+        let size = window.bounds.size
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = CGContext(
+            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+        let scale = image.scale
+        if let cgImage = image.cgImage {
+            // Bottom-left origin: put the pixel 20 pt above the bottom edge, in the middle, on the 1 x 1 canvas.
+            let canvas = CGRect(
+                x: -size.width * scale / 2, y: -20 * scale, width: size.width * scale, height: size.height * scale
+            )
+            context?.draw(cgImage, in: canvas)
+        }
+        return (Int(pixel[0]), Int(pixel[1]), Int(pixel[2]))
+    }
+
+    @Test func theDarkerStylePaintsTheScreenBehindAListAndLightModeIsUntouched() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let store = InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1), "theme_dark_style": .int(1)])
+        let model = ThemeSettingsModel(store: store)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 300, height: 600)
+        window.rootViewController = UIHostingController(rootView: ListRoot(model: model))
+        window.isHidden = false
+        defer { window.isHidden = true }
+
+        func darkIs(_ expected: Int) async -> Bool {
+            await until { window.traitCollection.userInterfaceStyle == .dark && bottomPixel(of: window).red == expected }
+        }
+        #expect(await darkIs(11), "darker: \(bottomPixel(of: window))")
+        model.darkStyle = .standard
+        #expect(await darkIs(0), "standard: \(bottomPixel(of: window))")
+        model.darkStyle = .oled
+        #expect(await darkIs(0), "oled: \(bottomPixel(of: window))")
+        model.darkStyle = .darker
+        model.mode = .light
+        // Light: the system's grouped-list grey, not the dark style's.
+        #expect(await until { window.traitCollection.userInterfaceStyle == .light && bottomPixel(of: window).red > 200 })
+    }
+
+    /// A screen pushed on a container whose root carries `appScreenBackground()` shows the same background.
+    @Test func aPushedScreenKeepsTheDarkBackground() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1), "theme_dark_style": .int(1)]))
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 300, height: 600)
+        window.rootViewController = UIHostingController(rootView: ListRoot(model: model, pushed: true))
+        window.isHidden = false
+        defer { window.isHidden = true }
+        let shown = await until { bottomPixel(of: window).red == 11 }
+        #expect(shown, "pushed: \(bottomPixel(of: window))")
+    }
 }
