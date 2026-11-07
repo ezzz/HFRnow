@@ -30,7 +30,10 @@ struct MessageAvatarView: View {
         .overlay { Circle().stroke(.tertiary, lineWidth: 1) }
         .accessibilityHidden(true)
         .task(id: TaskKey(pseudo: pseudo, generation: refresh?.generation ?? 0)) {
-            image = isGroup ? nil : await Self.cachedImage(pseudo: pseudo)
+            let loaded = isGroup ? nil : await Self.cachedImage(pseudo: pseudo)
+            // The detached read is not cancelled with the task: a slow old read must not replace the current row's image.
+            guard !Task.isCancelled else { return }
+            image = loaded
         }
     }
 
@@ -50,12 +53,16 @@ struct MessageAvatarView: View {
         let dark = colorScheme == .dark
         let mark = Monogram(pseudo: pseudo ?? "")
         return Circle().fill(Self.color(mark.background(dark: dark))).overlay {
-            Text(mark.initials)
-                .font(.system(size: 100, weight: .semibold, design: .rounded))
-                .minimumScaleFactor(0.01)
-                .lineLimit(1)
-                .foregroundStyle(Self.color(Monogram.foreground(dark: dark)))
-                .padding(10)
+            // The inset follows the avatar's size: a fixed one leaves no room for the initials of a compact row at a small text scale.
+            GeometryReader { proxy in
+                Text(mark.initials)
+                    .font(.system(size: 100, weight: .semibold, design: .rounded))
+                    .minimumScaleFactor(0.01)
+                    .lineLimit(1)
+                    .foregroundStyle(Self.color(Monogram.foreground(dark: dark)))
+                    .padding(proxy.size.width * 0.18)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+            }
         }
     }
 
