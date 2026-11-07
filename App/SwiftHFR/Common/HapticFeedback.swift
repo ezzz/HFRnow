@@ -1,9 +1,9 @@
 import HFRStorage
 import UIKit
 
-/// Every haptic of the app goes through here, so the "Retours haptiques" setting (`haptics`, default on) governs all of them.
 // Port of HFRswift/Swift/Common.swift (AppHaptics, lines 50-85) and SuperHFRplus/Helpers/UIImpactFeedbackGenerator+UserDefaults.m
 // @ 2440d79. Differences: the store and the generator are injected; no call site exists yet (they come with their screens).
+/// Every haptic of the app goes through here, so the "Retours haptiques" setting (`haptics`, default on) governs all of them.
 @MainActor
 struct HapticFeedback {
     /// What to play.

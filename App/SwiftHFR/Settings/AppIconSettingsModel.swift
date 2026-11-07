@@ -21,9 +21,9 @@ struct SystemAlternateIconSwitcher: AlternateIconSwitching {
     }
 }
 
-/// One choice of the icon picker.
 // Port of HFRswift/Swift/AppSettingsView.swift (AppIconOption, lines 40-80) @ 2440d79. Differences: only the options whose art
 // is a `.icon` in the target are offered (the loose-PNG sets of legacy are pending, see LOT-123 spec); `redface3dbig` is new.
+/// One choice of the icon picker.
 enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
     /// The primary icon (legacy "Défaut", key `superblue`).
     case superblue
