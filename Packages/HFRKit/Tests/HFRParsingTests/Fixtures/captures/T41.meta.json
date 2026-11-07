@@ -1,0 +1,16 @@
+{
+  "id": "T41",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/v1/gifs/trending?limit=3&offset=0&rating=r&api_key=REDACTED",
+  "url": "https://api.giphy.com/v1/gifs/trending?limit=3&offset=0&rating=r&api_key=REDACTED",
+  "final_url": "https://api.giphy.com/v1/gifs/trending?limit=3&offset=0&rating=r&api_key=REDACTED",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Fri, 06 Nov 2026 15:28:31 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Giphy REST `GET /v1/gifs/trending`, limit=3 rating=r (public API reference), key stripped",
+  "file": "T41-giphy-trending.json",
+  "private": false
+}

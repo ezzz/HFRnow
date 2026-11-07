@@ -7,7 +7,7 @@ import Observation
 struct TopicGroup: Identifiable, Hashable, Sendable {
     let id: String
     let title: String?
-    let topics: [TopicSummary]
+    var topics: [TopicSummary]
     /// Favourites: the header offers to fold the rows (a section without a topic has nothing to fold).
     var isCollapsible = false
     /// Favourites: the header shows, the rows do not.
@@ -81,6 +81,23 @@ final class TopicListModel {
 
     /// Layout options, collapsed sections and super-favourites of the favourites lists (LOT-124); nil for forum lists.
     let favorites: FavoritesOptionsModel?
+    /// The flag writes of the current account (LOT-125); nil when logged out, which hides "Supprimer".
+    let flagActions: TopicFlagActions?
+
+    // The row-action state is internal rather than `private(set)` only so `TopicListModel+RowActions.swift` can hold the
+    // logic (this type is near its length limit): by convention that file and `load` are the only writers.
+    /// Rows marked "Lu" on this device (legacy `isLocallyViewedInApp`), with the `rowActionSerial` of the mark: nothing is
+    /// sent, and a load that starts after the mark forgets it.
+    var markedRead: [TopicSummary.ID: Int] = [:]
+    /// Rows whose flag HFR confirmed removed, with the `rowActionSerial` of the confirmation; a load that starts after it shows
+    /// HFR's own state.
+    var removedFlags: [TopicSummary.ID: Int] = [:]
+    /// Counts the row marks, so a load knows which ones its page already holds (one that left before a mark does not).
+    var rowActionSerial = 0
+    /// Rows whose flag removal is in flight: offered once, never twice.
+    var removingFlags: Set<TopicSummary.ID> = []
+    /// Why the last row action did not end as asked, in French; the row stays as it was.
+    var actionFailure: String?
 
     private let dataSource: any ForumDataSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -88,19 +105,28 @@ final class TopicListModel {
     /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only.
     init(
         source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false },
-        favorites: FavoritesOptionsModel? = nil
+        favorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil
     ) {
         self.source = source
         self.dataSource = dataSource
         self.isLoggedIn = isLoggedIn
         self.favorites = source.isFavoritesList ? favorites : nil
+        self.flagActions = flagActions
     }
 
-    /// The groups to show: the loaded ones, laid out by the favourites options when there are some.
+    /// The groups to show: the loaded ones, laid out by the favourites options when there are some. On flags and favourites
+    /// a row whose flag was removed leaves the list (legacy `removeTopic`); a forum row stays, without its flag.
     var displayedGroups: [TopicGroup] {
         guard let content = loader.value else { return [] }
-        guard let favorites, let page = content.favoritesPage else { return content.groups }
-        return favorites.groups(for: page)
+        let groups: [TopicGroup]
+        if let favorites, let page = content.favoritesPage { groups = favorites.groups(for: page) } else { groups = content.groups }
+        guard source.isFavoritesList, !removedFlags.isEmpty else { return groups }
+        return groups.map { group in
+            var group = group
+            group.topics.removeAll { removedFlags[$0.id] != nil }
+            if group.topics.isEmpty { group.isCollapsible = false }
+            return group
+        }
     }
 
     /// The page has topics but the options hide every section: the screen says so instead of looking empty.
@@ -181,10 +207,12 @@ final class TopicListModel {
 
     private func load(page: Int) async {
         requestedPage = page
+        // Marks made from here on are newer than the page this load brings: they outlive it.
+        let startedAfter = rowActionSerial
         let source = source
         let dataSource = dataSource
         let isLoggedIn = isLoggedIn
-        await loader.load { () async throws(ListLoadError) -> TopicListContent in
+        let applied = await loader.load { () async throws(ListLoadError) -> TopicListContent in
             let loggedIn = await isLoggedIn()
             switch source {
             case .subforum(let path, _):
@@ -199,6 +227,12 @@ final class TopicListModel {
                 return TopicListContent(favorites: try await dataSource.favorites(filter: .favorites), isLoggedIn: loggedIn)
             }
         }
-        if loader.error == nil, let page = loader.value?.favoritesPage { await favorites?.prune(to: page) }
+        // Only the page this call put on screen reconciles: a superseded load (its page dropped) or a failed one changes nothing.
+        guard applied else { return }
+        // HFR's page now says what is read and flagged: the marks made before this load started are forgotten (legacy kept
+        // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
+        markedRead = markedRead.filter { $0.value > startedAfter }
+        removedFlags = removedFlags.filter { $0.value > startedAfter }
+        if let page = loader.value?.favoritesPage { await favorites?.prune(to: page) }
     }
 }

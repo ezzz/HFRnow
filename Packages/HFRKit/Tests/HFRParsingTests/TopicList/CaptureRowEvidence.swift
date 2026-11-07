@@ -36,10 +36,18 @@ struct CaptureRowEvidence {
         rows[index].contains(Self.pollPattern)
     }
 
+    /// Whether row `index` shows the `defaut`-theme poll icon, the only one legacy matches
+    /// (`ObjCTopicListParser.m`, `themes_static/images/defaut/sondage.gif`; LOT-002 RC2.3, R121e).
+    func showsLegacyPollIcon(row index: Int) -> Bool {
+        rows[index].contains(Self.legacyPollPattern)
+    }
+
     // `Regex` is not `Sendable`; these literals capture only `Substring`s and are never mutated.
     nonisolated(unsafe) private static let rowPattern = /<tr class="sujet ligne_booleen.*?<\/tr>/.dotMatchesNewlines()
     nonisolated(unsafe) private static let starterPattern = /class="sujetCase6[^"]*">(.*?)<\/td>/.dotMatchesNewlines()
     nonisolated(unsafe) private static let tagPattern = /<[^>]*>/
     nonisolated(unsafe) private static let topicNumberPattern = /title="Sujet n°([0-9]+)"/
+    nonisolated(unsafe) private static let legacyPollPattern =
+        /src="https:\/\/forum-images\.hardware\.fr\/themes_static\/images\/defaut\/sondage\.gif"/
     nonisolated(unsafe) private static let pollPattern = /src="[^"]*\/sondage\.gif"/
 }

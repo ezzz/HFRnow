@@ -23,6 +23,8 @@ struct AppEnvironment {
     let filteredPosts: FilteredPostsServices
     /// Folded favourites sections and super-favourites of the current account (LOT-124).
     let favoriteStores: FavoritesStores
+    /// Flag writes of the current account (LOT-125): list rows and the message menu; nil when logged out.
+    let flagActions: TopicFlagActions?
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
@@ -33,6 +35,7 @@ struct AppEnvironment {
         let pages = RefreshingTopicPageSource(
             base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
         )
+        let flagActions = accountName == nil ? nil : TopicFlagActions(writer: LiveTopicFlagWriter(session: session))
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(
@@ -40,7 +43,9 @@ struct AppEnvironment {
                 pseudoLists: { lists.current }
             ),
             profiles: LiveUserProfileSource(fetcher: fetcher),
-            positions: LiveReaderPositionRecorder.live(account: accountName)
+            positions: LiveReaderPositionRecorder.live(account: accountName),
+            offline: .live(fetcher: fetcher),
+            flagActions: flagActions
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
@@ -52,7 +57,8 @@ struct AppEnvironment {
                 store: UserDefaultsSettingsStore(), pseudo: accountName, allowlist: { lists.current.allowlistWithoutBlocked },
                 prepare: { await lists.refresh() }
             ),
-            favoriteStores: .live(account: accountName)
+            favoriteStores: .live(account: accountName),
+            flagActions: flagActions
         )
     }
 

@@ -62,9 +62,10 @@ public struct PostingFlow: Sendable {
     }
 
     /// Replaces an own message's text with `text` through its edit form; `subject` renames the thread and is accepted
-    /// only on the first post, whose edit form shows the subject (`R43a`). The `delete` box is never sent.
+    /// only on the first post, whose edit form shows the subject (`R43a`). `subcategory` is one of the `subcat` select's values
+    /// (a public first post, `R63b`; `""` is "Aucune"); nil sends the form's own choice. The `delete` box is never sent.
     public func edit(
-        _ text: String, subject: String? = nil, options: [PostOption: Bool] = [:], with form: PostingForm
+        _ text: String, subject: String? = nil, subcategory: String? = nil, options: [PostOption: Bool] = [:], with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .edit)
         var overrides: [String: String] = [:]
@@ -72,6 +73,10 @@ public struct PostingFlow: Sendable {
             guard form.form.isSubjectEditable else { throw .subjectNotEditable }
             try checkLine(subject, as: .subject, in: form)
             overrides["sujet"] = subject
+        }
+        if let subcategory {
+            guard form.form.subcategories.contains(where: { $0.value == subcategory }) else { throw .unknownSubcategory }
+            overrides["subcat"] = subcategory
         }
         try checkText(text)
         return try await submit(
@@ -98,6 +103,17 @@ public struct PostingFlow: Sendable {
         return try await submit(
             .delete, form: form, text: stored, overrides: [:], options: [:], checkboxes: [PostingForm.deleteField: true]
         )
+    }
+
+    /// Deletes own message `post` when it is not the first post of its thread (LOT-088; a first post goes through `delete`,
+    /// LOT-175). The form must be that message's, and shows no first-post sign (`R62a`, `R43b`; `R63b`, `R43a` are refused,
+    /// `wholeTopicDeletionNotConfirmed`, nothing sent). This is what lets the single confirmation of a message delete stand in
+    /// for the whole-topic one `delete` asks of every public form.
+    public func deleteLaterPost(_ post: Int, with form: PostingForm) async throws(PostingError) -> PostingResult {
+        try require(form, is: .edit)
+        guard form.postNumber == post else { throw .unsupportedForm(reason: "edit form of another message") }
+        guard !form.deletesWholeTopic else { throw .wholeTopicDeletionNotConfirmed }
+        return try await delete(with: form, confirmingWholeTopic: true)
     }
 
     // MARK: - Steps
@@ -186,7 +202,7 @@ public struct PostingFlow: Sendable {
         guard form.shape == shape else { throw .formMismatch(expected: shape, actual: form.shape) }
     }
 
-    private func checkText(_ text: String) throws(PostingError) {
+    func checkText(_ text: String) throws(PostingError) {
         try checkInput(text, as: .text)
     }
 

@@ -1,0 +1,30 @@
+{
+  "id": "W45",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "/user/vote.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/vote.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/vote.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 01 Jan 2000 00:00:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "cat",
+    "p",
+    "page",
+    "sondage",
+    "owntopic",
+    "subcat",
+    "numeropost",
+    "hash_check",
+    "reponse",
+    "sondage_submit"
+  ],
+  "note": "vote body without cookies, answer 2 (own topic, form as R83)",
+  "request_body": "hash_check=&cat=10&p=1&page=1&sondage=2&owntopic=0&subcat=563&numeropost=9900002&hash_check=&reponse=2&sondage_submit=Voter",
+  "file": "W45-poll-vote-logged-out.html",
+  "private": false
+}

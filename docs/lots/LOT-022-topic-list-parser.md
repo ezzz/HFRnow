@@ -86,6 +86,7 @@ Captures in `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/`; oracles 
 | R08-1, R08-3 | empty `owntopic=1`/`3` lists: `.hop` page with refresh |
 | R08-2, P03f | logged-in `owntopic=2`: tabs, red flag with `#t` anchor, `forum2.php` links, MP badge 0 and 1 |
 | R13a, R13b, R13c, R13u1, R13u1b | MP lists: read/unread icons, `[non lu]`, group threads, 7-page pager, empty list |
+| R121a, R121b, R121c, R121e, R121f, R117a (M2, #475) | MP list logged out (`noAuth`, D1); cross-category search (R121b first category `cat=14`, R121c pivot `cat=5`); logged-in list with polls on the `defaut` theme (R121e, `cat=22`, D5); anonymous single-page list (R121f, `cat=32`); forum list whose header badge says 7 (R117a, `cat=11`, with `PrivateMessageBadgeParser.unreadCount`). Oracles in `Fixtures/M2-readonly` and `Fixtures/M2-misc`, same schema; legacy `currentCat` is `"22"` and `"11"` on R121e and R117a and empty on R121f (D2 reads `32` from the search form) |
 | R50b, R50c | search results with snippets and a two-page pager; no result (`.hop`) |
 | R53a | a non-list answer (smiley search fragment): `.malformed` |
 
@@ -94,9 +95,9 @@ Captures in `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/`; oracles 
 Display-only and session fields of the oracle are not compared: `aDateOfLastPost` (relative label), `isLocallyViewedInApp`, `isSuperFavorite`,
 `isViewedFromForumAtLoad` (equals `isViewed`), `catID`/`postID` (always 0 in lists; checked against `topicID` instead, D8).
 
-**Pending capture:** maintenance page (`<body>` starting with `<p>`); a list behind a login wall (the MP list logged out: the `.notAuthenticated` rule is inferred from R13c and tested on R08-1's page with the MP URL); a `sujetCase3` with a second link
+**Pending capture:** maintenance page (`<body>` starting with `<p>`); a list behind a login wall other than the MP list (the MP list logged out is captured: R121a, `noAuth`, thrown by the port, D1; `wallMatchesOracle`); a `sujetCase3` with a second link
 outside search results; replies counts with separators; a row without last-post link or without `<b>` author; a pager with a non-cryptlink
-"Page Suivante"; search results across categories (pivot shapes, E12). None is hand-built.
+"Page Suivante". None is hand-built.
 
 **Follow-ups for other lots:**
 - LOT-045 fetchers: single-slash paths are kept as served, so raw spaces or U+200B in them are not percent-encoded; encode them before building a request.
@@ -108,11 +109,11 @@ Each is asserted by the differential tests against independent evidence (regexes
 
 | # | Legacy | Port | Why |
 |---|---|---|---|
-| D1 | body without `id` → `statusInfo` `noAuth` (`.hop`) or `maintenance`; no rows → `noResults` "Aucun message" | `.hop` → empty page + `notice`, except on the MP list URL → thrown `.notAuthenticated`; maintenance → thrown `ListPageFailure.maintenance`; no rows → empty page, no notice | every captured `noAuth` is an empty result (RC2.4), and an empty MP list keeps its list body (R13c), so a `.hop` there is a wall; the "Aucun message" text is a legacy constant, not from the page; typed errors (audit B §5) |
+| D1 | body without `id` → `statusInfo` `noAuth` (`.hop`) or `maintenance`; no rows → `noResults` "Aucun message" | `.hop` → empty page + `notice`, except on the MP list URL → thrown `.notAuthenticated`; maintenance → thrown `ListPageFailure.maintenance`; no rows → empty page, no notice | every captured `noAuth` is an empty result (RC2.4), and an empty MP list keeps its list body (R13c), so a `.hop` there is a wall (R121a, logged out: legacy `noAuth` with the page's message, `topics` empty, `needToUpdateMP` false; the port throws that message, `TopicListDifferentialTests.wallMatchesOracle`); the "Aucun message" text is a legacy constant, not from the page; typed errors (audit B §5) |
 | D2 | `currentCat` only from the logged-in search tab (`""` on anonymous, MP and search pages) | falls back to the header search form's `cat` | the category is on every list page; needed for `topicID` |
 | D3 | `aAuthorOrInter` `""` when `sujetCase6` is plain text | the cell text | anonymous pages print the starter as text (R04: all 55 rows were empty in legacy) |
 | D4 | `filterTU` rewrites "topic unique" and 8 spellings to "TU" | raw title | presentation concern (LOT-010) |
-| D5 | poll icon `…/images/defaut/sondage.gif` only | any `sondage.gif` | the live icon is `…/images_forum/1/sondage.gif`; legacy found no poll in any list (RC2.3) |
+| D5 | poll icon `…/images/defaut/sondage.gif` only | any `sondage.gif` | the live icon is `…/images_forum/1/sondage.gif`; legacy found no poll in any list (RC2.3) **except for an account on the `defaut` theme**: R121e's rows carry `…/themes_static/images/defaut/sondage.gif`, which legacy matches exactly (`ObjCTopicListParser.m:331` @ 2440d79, `isPoll` true on 8 rows); the differential test checks legacy's `isPoll` against that icon on the raw row and ours against any `sondage.gif` |
 | D6 | `sNewMPNumber` = digits, or the whole cell text when it has none (`" Messages privés"`) | `Int`, 0 when no digit | typed count (RC2.9) |
 | D7 | search snippet kept HFR's trailing space | trimmed | display noise |
 | D8 | `catID`/`postID` 0 on list rows | `topicID` from row links or canonical path + catalogue | stable identity (LOT-010, audit B open question 9) |

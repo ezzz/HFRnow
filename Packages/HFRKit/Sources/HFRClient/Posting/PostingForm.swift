@@ -64,12 +64,14 @@ public struct PostingForm: Sendable {
     /// The other members of a group private thread, read from the form's `newdest` input, which HFR serves only on the
     /// group **owner**'s reply composer ("a, b", every member but the owner, `R123c`); nil when the form has none: a
     /// one-to-one thread (`R47b`, `R47u1`), a member who does not own the group (`R123e`), any public form. A member's
-    /// roster is the MP list row's (`PrivateMessageThread.interlocutors`, `R123f`). A reply sends `newdest` back as served,
-    /// as legacy did (oracle of `R123c`); changing it is not offered: HFR's answer is not captured (LOT-058).
+    /// roster is the MP list row's (`PrivateMessageThread.interlocutors`, `R123f`). Also nil on a `newdest` served empty,
+    /// which no capture shows: no list of members can be told from it, and `GroupRosterFlow` treats the form as serving none.
+    /// A reply sends `newdest` back as served, as legacy did (oracle of `R123c`); `GroupRosterFlow` changes it.
     public var groupMembers: [String]? {
         guard let roster = form.field(named: Self.groupMembersField) else { return nil }
         // The form joins the names with ", ", the list row of the same thread with "," (`R123a`): split on the comma alone.
-        return roster.value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let members = roster.value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return members.isEmpty ? nil : members
     }
 
     /// True when a delete through this form must be confirmed as a whole-thread delete: the caller knows the message is
@@ -81,7 +83,7 @@ public struct PostingForm: Sendable {
     }
 
     /// `numreponse` of the message an edit form belongs to.
-    var postNumber: Int? {
+    public var postNumber: Int? {
         form.field(named: "numreponse").flatMap { Int($0.value) }
     }
 

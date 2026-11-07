@@ -12,9 +12,9 @@ struct HopResponseOracle {
     /// `result.legacy`: the legacy classification, message and anchor.
     let legacy: [String: Any]
 
-    /// The oracle of a case id.
-    static func load(_ id: String) throws -> HopResponseOracle {
-        let text = try Fixture.text("\(id).oracle", extension: "json", subdirectory: "Fixtures/LOT-004")
+    /// The oracle of a case id, from `Fixtures/LOT-004`, or `Fixtures/M2-writes` for the group roster answers (#507).
+    static func load(_ id: String, subdirectory: String = "Fixtures/LOT-004") throws -> HopResponseOracle {
+        let text = try Fixture.text("\(id).oracle", extension: "json", subdirectory: subdirectory)
         let root = try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
         #expect(root["kind"] as? String == "response")
         let input = try #require(root["input"] as? [String: Any])

@@ -934,6 +934,20 @@ class PrivateFormCopyTests(unittest.TestCase):
         self.assertEqual(anon(page), page)
 
 
+class ApiKeyTests(unittest.TestCase):
+    def test_a_real_value_is_found_a_placeholder_is_not(self):
+        for text in ("https://api.example/v1?q=a&api_key=abc123", '{"u": "x?api_key%3Dabc123&b=1"}',
+                     '{"api_key": "abc123"}'):
+            self.assertEqual(len(A.api_key_matches(text)), 1, text)
+        for text in ("https://api.example/v1?api_key=REDACTED&q=a", "no key here", "x?api_key=",
+                     '{"api_key": "REDACTED"}', '{"api_key": ""}'):
+            self.assertEqual(A.api_key_matches(text), [], text)
+
+    def test_findings_refuse_it_on_any_file(self):
+        reasons = [f[2] for f in A.Anonymizer(CFG).findings('{"url": "https://h/v1?api_key=abc123"}')]
+        self.assertIn("api_key value not replaced", reasons)
+
+
 if __name__ == "__main__":
     unittest.main()
 

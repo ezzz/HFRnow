@@ -13,6 +13,7 @@ final class NavigationModel {
             // Another source starts from a fresh reader: a cached one could still hold a followed link's reader (CodeRabbit, #389).
             selectedTopic = nil
             currentReader = nil
+            requestedOpening = nil
             // Picking the flags or the favourites is the favourites mode (`vos_sujets`), so it is what the tab opens on next time.
             if let mode = selectedSource?.favoritesMode { favorites?.mode = mode }
         }
@@ -21,15 +22,22 @@ final class NavigationModel {
     let favorites: FavoritesOptionsModel?
     /// Topic chosen in the middle column, shown by the reader in the detail column.
     var selectedTopic: TopicSummary?
+    /// Changes each time a row's menu opens a page (LOT-125), so the detail column builds a new reader for it even when the
+    /// topic was already selected.
+    private(set) var readerGeneration = 0
     /// The post filter (LOT-114), started from a favourite or the reader menu; one per navigation, so a run survives a
     /// change of column.
     let filtering: FilteredPostsModel
 
     private let dataSource: any ForumDataSource
+    /// The flag writes the lists offer (LOT-125); nil when logged out.
+    let flagActions: TopicFlagActions?
     private let topicPages: any TopicPageSource
     private let renderOptions: @Sendable () -> ReaderRenderOptions
     /// The reader of the selected topic, created once per selection so a view update never refetches the page (E25).
     @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
+    /// The page a row's menu asked for, used by the next reader of that topic instead of the row's own link.
+    @ObservationIgnored private var requestedOpening: (id: String, opening: TopicOpening)?
     private let sessionIsLoggedIn: @Sendable () async -> Bool
     /// A cache, not display state: `topicList(for:)` is called from a view body and must not invalidate it.
     @ObservationIgnored private var topicLists: [TopicSource: TopicListModel] = [:]
@@ -43,9 +51,11 @@ final class NavigationModel {
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         filteredPosts: FilteredPostsServices = .unavailable,
         startupSource: TopicSource? = nil,
-        favorites: FavoritesOptionsModel? = nil
+        favorites: FavoritesOptionsModel? = nil,
+        flagActions: TopicFlagActions? = nil
     ) {
         self.favorites = favorites
+        self.flagActions = flagActions
         filtering = FilteredPostsModel(services: filteredPosts)
         self.dataSource = dataSource
         self.topicPages = topicPages
@@ -68,7 +78,7 @@ final class NavigationModel {
         if let existing = topicLists[source] { return existing }
         let model = TopicListModel(
             source: source, dataSource: dataSource, isLoggedIn: { [weak self] in await self?.isLoggedIn() ?? false },
-            favorites: favorites
+            favorites: favorites, flagActions: flagActions
         )
         topicLists[source] = model
         return model
@@ -78,10 +88,26 @@ final class NavigationModel {
     /// Nil when the row names no topic page.
     func reader(for topic: TopicSummary) -> TopicReaderModel? {
         if let currentReader, currentReader.id == topic.id { return currentReader.model }
-        guard let target = ReaderTarget(opening: topic) else { return nil }
-        let model = TopicReaderModel(target: target, title: topic.title, source: topicPages, renderOptions: renderOptions)
+        let opening = requestedOpening?.id == topic.id ? requestedOpening?.opening : ReaderTarget(opening: topic).map {
+            TopicOpening(target: $0)
+        }
+        requestedOpening = nil
+        guard let opening else { return nil }
+        let model = TopicReaderModel(
+            target: opening.target, title: topic.title, source: topicPages, opensAtLastMessage: opening.atLastMessage,
+            renderOptions: renderOptions
+        )
         currentReader = (topic.id, model)
         return model
+    }
+
+    /// Opens `topic` at `opening` (a row menu's "Première page", "Dernière page"…, LOT-125): a new reader, even for the topic
+    /// on screen.
+    func open(_ topic: TopicSummary, at opening: TopicOpening) {
+        requestedOpening = (topic.id, opening)
+        currentReader = nil
+        readerGeneration += 1
+        selectedTopic = topic
     }
 }
 

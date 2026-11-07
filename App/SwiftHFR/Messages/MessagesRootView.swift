@@ -15,9 +15,10 @@ struct MessagesRootView: View {
         } detail: {
             MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer)
         }
-        // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would.
+        // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would; one it
+        // closed (marked unread, LOT-127) goes back to the list, as legacy pops.
         .onChange(of: model.selected) { _, selected in
-            if selected != nil { column = .detail }
+            column = selected == nil ? .sidebar : .detail
         }
     }
 }
@@ -45,7 +46,12 @@ struct MessageReaderColumn: View {
     var body: some View {
         if let thread = model.selected, let readerModel = model.reader(for: thread) {
             // Its own stack, for the readers a followed link pushes (LOT-137); a new conversation starts a new stack.
-            NavigationStack { TopicReaderView(model: readerModel, services: reader, composer: composer) }
+            NavigationStack {
+                TopicReaderView(
+                    model: readerModel, services: reader, composer: composer,
+                    onMarkUnread: { [model] outcome in await model.markUnreadEnded(thread, in: readerModel, outcome) }
+                )
+            }
                 .id(thread.id)
                 // Shown read only once the conversation's last page was fetched: a failed or abandoned load, or an earlier page
                 // with newer messages unseen, leaves the row unread.
