@@ -2,7 +2,7 @@
 
 Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche `master`) que SwiftHFR corrige ou change volontairement. Il sert de base au changelog de la **v1** de SwiftHFR, partagé entre legacy et Swift, en deux sections : **T** = technique, **UX** = expérience utilisateur.
 
-**Règle** ([AGENTS.md §8](../AGENTS.md#8-git-and-pr-workflow)) : une PR qui corrige ou change un comportement legacy ajoute sa ligne ici, dans la même PR — résumé court en français, lot / PR, preuve legacy (fichier:ligne sur `master` ou capture). Les régressions propres au nouveau code n'y vont pas.
+**Règle** ([AGENTS.md §8](../AGENTS.md#8-git-and-pr-workflow)) : une PR qui corrige ou change un comportement legacy **ne modifie pas ce fichier** : elle ajoute un fragment `docs/changelog-legacy.d/<issue>.md` (une ligne par correctif : section, résumé court en français, lot / PR, preuve legacy — fichier:ligne sur `master` ou capture ; format dans le [README](changelog-legacy.d/README.md)). Le steward docs range les fragments ici avec `python3 tooling/docs/fold.py` (numéro d'issue en `#`, ordre croissant) ; les lignes existantes gardent leur numéro (#612). Les régressions propres au nouveau code n'y vont pas.
 
 | # | Section | Résumé (FR) | Lot / PR | Preuve legacy |
 |---|---|---|---|---|
