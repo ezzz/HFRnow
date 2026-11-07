@@ -2,7 +2,7 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (icon Picker, lines 360-365, `applyIconSelection` 213-224) @ 2440d79. Differences:
-// a screen behind the "Icône" row (LOT-119 shell) instead of an inline picker; no preview art (pending asset).
+// a screen behind the "Icône" row (LOT-119 shell) instead of an inline picker; the checked row follows the system's current icon.
 /// The "Icône" settings screen (LOT-123).
 struct AppIconSettingsView: View {
     @State private var model: AppIconSettingsModel

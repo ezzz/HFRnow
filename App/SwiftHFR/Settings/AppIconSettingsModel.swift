@@ -7,6 +7,8 @@ import UIKit
 protocol AlternateIconSwitching {
     /// False where the system refuses alternate icons (`UIApplication.supportsAlternateIcons`).
     var supportsAlternateIcons: Bool { get }
+    /// The icon the system shows now: an alternate's name, nil for the primary icon.
+    var alternateIconName: String? { get }
     /// Applies the alternate icon `name`, or the primary icon for nil.
     func setAlternateIconName(_ name: String?) async throws
 }
@@ -15,6 +17,8 @@ protocol AlternateIconSwitching {
 @MainActor
 struct SystemAlternateIconSwitcher: AlternateIconSwitching {
     var supportsAlternateIcons: Bool { UIApplication.shared.supportsAlternateIcons }
+
+    var alternateIconName: String? { UIApplication.shared.alternateIconName }
 
     func setAlternateIconName(_ name: String?) async throws {
         try await UIApplication.shared.setAlternateIconName(name)
@@ -55,7 +59,7 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// The name given to `setAlternateIconName`; nil is the primary icon. Each matches an `.icon` in `App/SwiftHFR/` and
-    /// `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`; the legacy ones are the legacy names (`alternateIconName`, :61-83).
+    /// `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`; the legacy ones are the legacy names (`alternateIconName`, :64-83).
     var alternateIconName: String? {
         switch self {
         case .superblue: nil
@@ -76,8 +80,8 @@ enum AppIconOption: String, CaseIterable, Identifiable, Sendable {
 @MainActor
 @Observable
 final class AppIconSettingsModel {
-    /// The option the picker shows. A stored value that is no option (corrupt, or from a newer build) shows the default and is left
-    /// in the store untouched.
+    /// The option the picker shows: the icon the system currently shows (legacy wrote the key before applying, so a refused switch
+    /// leaves the store wrong), else the stored value, else the default. The store is left untouched until a choice succeeds.
     private(set) var selection: AppIconOption
     /// The French message of the last failed switch, nil otherwise.
     var errorMessage: String?
@@ -89,11 +93,17 @@ final class AppIconSettingsModel {
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let switcher: any AlternateIconSwitching
 
-    /// Reads the stored choice from `store`.
+    /// Reads the system's current icon, falling back to the choice in `store`.
     init(store: any SettingsStore, switcher: any AlternateIconSwitching = SystemAlternateIconSwitcher()) {
         self.store = store
         self.switcher = switcher
-        selection = AppIconOption(rawValue: store.value(for: SettingKey.appIconName)) ?? .superblue
+        let stored = AppIconOption(rawValue: store.value(for: SettingKey.appIconName)) ?? .superblue
+        if switcher.supportsAlternateIcons {
+            let current = switcher.alternateIconName
+            selection = AppIconOption.allCases.first { $0.alternateIconName == current } ?? stored
+        } else {
+            selection = stored
+        }
     }
 
     /// Applies `option`; on a refusal the selection and the store keep their previous value and `errorMessage` is set.

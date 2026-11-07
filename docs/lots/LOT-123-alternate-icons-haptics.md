@@ -35,7 +35,7 @@
 None (no HFR page involved). Tests: `AppIconSettingsModelTests`, `HapticFeedbackTests` (App).
 
 ## Intentional differences from legacy
-- No preview thumbnails in the picker: a compiled `.icon` cannot be loaded as an image; text rows with a check mark. Previews are a pending asset.
+- The checked row follows the icon the system shows, not only the key: legacy wrote the key before applying, so a refused switch left them apart.
 - No `applyIconSelection` on every `onChange` as in legacy: the store is written only after success.
 
 ## Learnings
