@@ -71,10 +71,11 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    `menu` message; the decoder keeps it only as finite real numbers (never booleans), within 100 000 points and with no negative
    size, otherwise the menu opens unanchored (middle of the reader), never at a forged place. The controller adds the top bar
    inset (`obscuredContentInsets` makes `getBoundingClientRect` count from the bars' edge).
-7. The handlers are rebuilt when the composer or the flag actions arrive (`.onChange(of: MenuInstallKey)`), then the document is
-   rendered again, so "Citer", "Citer ☐", "Favoris", "Editer", "Supprimer" and the author menu appear as soon as they exist
-   (before, a reader opened before the session was restored kept the "Link" row only). "Alerter" (LOT-135 #225), AQ (LOT-134) and
-   Bookmark (LOT-132) have no handler yet and stay hidden.
+7. "Alerter" (LOT-135 #225), AQ (LOT-134) and Bookmark (LOT-132) have no handler yet and stay hidden: until they land, a topic
+   menu shows Link, the quotes and Favoris only when the reader has a composer and flag actions. The handlers are installed once
+   per reader: `RootView` rebuilds the whole navigation (`.id(generation)`) at every login, logout or account switch, so the
+   composer and the flag actions never change during a reader's life. Why issue #594 showed a lone "Link" on a device is still
+   open (logged in? topic or MP? how many rows?): the Mac check of that PR answers it.
 
 Known cost: `LiveTopicPageSource.parse` reads the page once more for `MessageActionsParser.actions(in:)` (the engine has no entry
 point returning blocks and actions from one document); an engine change is out of this lot. If the counts of blocks and action sets

@@ -157,12 +157,6 @@ struct TopicReaderView: View {
             installMenuActions()
             await model.onAppear(viewer: viewerID)
         }
-        // The composer, the answer form and the flag actions arrive after the first install (login restored, page loaded):
-        // the handlers are rebuilt, then the page again, so "Citer", "Favoris" and the author menu show up (issue #594).
-        .onChange(of: menuInstallKey) {
-            installMenuActions()
-            model.applyDisplaySettings()
-        }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
             // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
@@ -248,11 +242,6 @@ struct TopicReaderView: View {
     private func askForPage() {
         pageText = ""
         askingPage = true
-    }
-
-    /// What the installed handlers depend on; a change rebuilds them.
-    private var menuInstallKey: MenuInstallKey {
-        MenuInstallKey(hasComposer: composer != nil, hasFlagActions: services.flagActions != nil)
     }
 
     /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Editer" and "Supprimer". A later lot adds its handler

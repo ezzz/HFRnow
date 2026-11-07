@@ -69,13 +69,6 @@ struct TopicReaderMenuTests {
         #expect(reader.presentedMenu?.entries == [.link, .alert])
     }
 
-    @Test func theInstallKeyChangesWhenTheComposerOrTheFlagActionsArrive() {
-        let none = MenuInstallKey(hasComposer: false, hasFlagActions: false)
-        #expect(none == MenuInstallKey(hasComposer: false, hasFlagActions: false))
-        #expect(none != MenuInstallKey(hasComposer: true, hasFlagActions: false))
-        #expect(none != MenuInstallKey(hasComposer: false, hasFlagActions: true))
-    }
-
     @Test func theFirstPostOfTheTopicCannotBeDeletedButAnyOtherOwnPostCan() async throws {
         let reader = await loaded(messages: [message(100, own: true), message(101, own: true)])
         let token = try #require(reader.document?.token)

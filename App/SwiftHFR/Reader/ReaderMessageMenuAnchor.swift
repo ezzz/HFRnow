@@ -1,18 +1,22 @@
 import HFRModels
 import SwiftUI
 
-/// What `installMenuActions` reads from the screen, compared to know when to rebuild the handlers.
-struct MenuInstallKey: Equatable {
-    let hasComposer: Bool
-    let hasFlagActions: Bool
-}
-
 /// The entries of a message menu under its title, as a list in a popover.
 struct MessageMenuList: View {
     let menu: MessageMenu
     let pick: (MessageMenuAction) -> Void
 
     var body: some View {
+        // Scrolls when the popover is shorter than the list (landscape, a button near an edge).
+        ViewThatFits(in: .vertical) {
+            list
+            ScrollView { list }
+        }
+        .frame(minWidth: 220)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var list: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(menu.title)
                 .font(.footnote.weight(.semibold))
@@ -33,11 +37,12 @@ struct MessageMenuList: View {
                 .buttonStyle(.plain)
             }
         }
-        .frame(minWidth: 220)
-        .fixedSize(horizontal: true, vertical: true)
     }
 }
 
+// Port of HFRswift/Swift/MessagesView.swift (presentPopupMenu, popupAnchor, popupMenuTitle) @ 2440d79. Differences: a SwiftUI
+// popover instead of a UIEditMenuInteraction, its arrow edge chosen by the system (legacy computed up or down from the tap
+// position, `:1555`); entries are the registry's, so Alerter, AQ and Bookmark wait for their lots (GAP-064).
 /// The message menu of the reader, a popover anchored at the tapped "⋯" like legacy's edit menu at the tapped point
 /// (issue #594). A confirmation dialog hangs from the whole reader: since iOS 26 it opens at the top centre, far from the button.
 struct ReaderMessageMenuAnchor: View {
@@ -52,7 +57,7 @@ struct ReaderMessageMenuAnchor: View {
                 .position(x: rect.midX, y: rect.midY)
                 .popover(
                     item: Binding(get: { model.presentedMenu }, set: { if $0 == nil { model.dismissMenu() } }),
-                    attachmentAnchor: .rect(.bounds), arrowEdge: .top
+                    attachmentAnchor: .rect(.bounds)
                 ) { menu in
                     MessageMenuList(menu: menu) { action in Task { await model.perform(action, in: menu) } }
                         .presentationCompactAdaptation(.popover)
