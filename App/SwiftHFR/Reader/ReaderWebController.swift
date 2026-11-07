@@ -26,8 +26,9 @@ final class ReaderWebController: NSObject {
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
         /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
         var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
-        /// The user tapped the menu button or the author of message `post` in document `token`.
-        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped the menu button or the author of message `post` in document `token`; `anchor` is the button's
+        /// rectangle in the web view's own coordinates (nil when the page gave none).
+        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ anchor: CGRect?, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user chose "Citer extrait" or "Citer gras" over `text`, selected in message `post` of document `token` (LOT-086).
         var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
@@ -223,8 +224,10 @@ final class ReaderWebController: NSObject {
         case .video(let post, let index):
             events.video(post, index, document.token)
             return nil
-        case .menu(let post, let source):
-            events.menu(post, source, document.token)
+        case .menu(let post, let source, let anchor):
+            // `getBoundingClientRect` counts from the bars' edge (`obscuredContentInsets`): the view starts above it.
+            let anchor = anchor?.offsetBy(dx: 0, dy: obscuredInsets.top)
+            events.menu(post, source, anchor, document.token)
             return nil
         case .image(let urls, let index):
             return openViewer(urls: urls, index: index, token: document.token)

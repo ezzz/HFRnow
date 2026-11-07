@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import HFRModels
 
@@ -11,6 +12,14 @@ struct MessageMenu: Equatable, Identifiable, Sendable {
     let context: MessageMenuContext
     /// The entries to show, in menu order; never empty.
     let entries: [MessageMenuAction]
+    /// The tapped button in the reader's coordinates, where the menu is anchored; nil opens it at the middle of the reader.
+    var anchor: CGRect?
+
+    /// The menu's title (legacy `presentPopupMenu`: "Post de <pseudo>").
+    var title: String {
+        let author = context.author.trimmingCharacters(in: .whitespacesAndNewlines)
+        return author.isEmpty ? "Post \(post)" : "Post de \(author)"
+    }
 
     var id: String { "\(source.rawValue)-\(post)" }
 }
@@ -66,12 +75,12 @@ extension TopicReaderModel {
 
     /// The web view reports a tap on a message's menu button or author. A menu is shown only for a message of the document
     /// on screen and only when it has entries, so a late or forged request opens nothing.
-    func requestMenu(post: Int, source: MessageMenuSource, token: Int) {
+    func requestMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) {
         guard token == document?.token, let context = menuContext(post: post) else { return }
         let entries = registry.entries(for: context, source: source)
         // A request that offers nothing leaves an open menu alone, like a refused one (the popover keeps the page tappable).
         guard !entries.isEmpty else { return }
-        presentedMenu = MessageMenu(post: post, source: source, context: context, entries: entries)
+        presentedMenu = MessageMenu(post: post, source: source, context: context, entries: entries, anchor: anchor)
     }
 
     /// Closes the menu without choosing.
