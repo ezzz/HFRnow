@@ -84,7 +84,7 @@ enum FlagCapture {
         "W17c": "W17c-mp-reply-logged-out-rejected",
         "W64": "W64-mp-thread-delete-owner-success", "W64x": "W64x-mp-thread-delete-bad-token-rejected",
         "W65": "W65-mp-thread-delete-recipient-success", "R95j": "R95j-mp-list-owner-after-thread-delete",
-        "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure",
+        "W20a": "W20a-mp-reply-flood", "W01": "W01-login-failure", "W137a": "W137a-mp-mark-unread-logged-out",
         "R12": "R12-favourites-anon", "R20": "R20-topic-p1-anon", "R21": "R21-topic-p1-logged-in"
     ]
 

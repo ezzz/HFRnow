@@ -1,8 +1,10 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split
-// and the tab bar stays visible; a Favoris / Drapeaux source menu (GAP-008, 032; UXD).
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split;
+// a Favoris / Drapeaux source menu (GAP-032; UXD). The reader hides the tab bar only while the split is collapsed
+// (GAP-008, UXD-02, see `TopicReaderView`).
+// LOT-185: the options menu symbol is `ellipsis`, not `ellipsis.circle`; GAP row pending #545.
 /// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus. Each tab keeps its own navigation, and the reader
 /// opens inside the tab (a collapsed split view is a stack).
 struct RootTabsView: View {
@@ -13,12 +15,15 @@ struct RootTabsView: View {
         TabView(selection: $model.selectedTab) {
             Tab(RootTab.categories.title, systemImage: RootTab.categories.symbol, value: RootTab.categories) {
                 CategoriesTabView(navigation: model.categories, reader: environment.reader, composer: environment.composer)
+                    .environment(\.isSelectedRootTab, model.selectedTab == .categories)
             }
             Tab(RootTab.favorites.title, systemImage: RootTab.favorites.symbol, value: RootTab.favorites) {
                 FavoritesTabView(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
+                    .environment(\.isSelectedRootTab, model.selectedTab == .favorites)
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
                 MessagesRootView(model: model.messages, environment: environment)
+                    .environment(\.isSelectedRootTab, model.selectedTab == .messages)
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
@@ -26,6 +31,7 @@ struct RootTabsView: View {
                     PlusView(model: model)
                         .navigationDestination(item: $model.plusEntry) { PlusEntryView(entry: $0, model: model, environment: environment) }
                 }
+                .environment(\.isSelectedRootTab, model.selectedTab == .more)
             }
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
@@ -75,7 +81,7 @@ struct FavoritesSourceMenu: View {
     @Bindable var navigation: NavigationModel
 
     var body: some View {
-        Menu("Options", systemImage: "ellipsis.circle") {
+        Menu("Options", systemImage: "ellipsis") {
             Picker("Liste", selection: $navigation.selectedSource) {
                 ForEach(RootModel.favoritesSources, id: \.self) { source in
                     Text(source.title).tag(Optional(source))
@@ -121,7 +127,7 @@ struct TopicsColumn: View {
     var body: some View {
         if let source = navigation.selectedSource {
             TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                          composer: composer)
+                          composer: composer, open: { navigation.open($0, at: $1) })
                 .id(source)
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
@@ -146,7 +152,8 @@ struct ReaderColumn: View {
                     filterIsBusy: navigation.filtering.isBusy
                 )
             }
-            .id(topic.id)
+            // A row menu's page (LOT-125) is a new reader even for the topic on screen.
+            .id("\(topic.id)#\(navigation.readerGeneration)")
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)
         }

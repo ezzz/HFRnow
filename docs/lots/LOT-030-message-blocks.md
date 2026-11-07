@@ -123,6 +123,10 @@ Captures (`Fixtures/captures/`, LOT-001, anonymized) and the LOT-003 oracles (`F
 | `urlQuoteDecoded` (`ref=0`) | `isContinuation` | legacy has no flag; `ref=0` marks the block (HFR-PROTOCOL §4) |
 | `dicoHTML` | `contentHTML` | **shape** comparison (`HTMLShape`): text and the element sequence with `href`, `src`, `alt`, `title`, `id`, `style`, after parsing both. Left out: `class` (legacy serialized after rewriting `oldcitation`→`citation` and marking `embedvideo`, LOT-032/035), empty `<p></p>` and formatting elements other than `a` (tree-builder differences, see below), percent-encoding of `href` (libxml2 escapes spaces) |
 
+The M2 topic captures (#475) are in the same test through `MessageBlockOracleTests.m2Folders`: R122a (locked topic, logged in, 1 message), R122c (filter checked,
+31 messages, difference 8), R122d (search word, no filter, 40 messages), R130a (MP thread, 1 message; its body is redacted in the corpus, so the leading newline is not checked here). Their oracles are in `Fixtures/M2-readonly` and
+`Fixtures/M2-misc`; the case list guard reads the three maps. `TopicPageMetadataOracleTests` (answer form, search form with `word` and the checked filter) and `TopicPageFlagOracleTests` (R122a/c/d overlap, R130a MP: nonlu link only, LOT-033 difference 5) take the same four cases.
+
 Out of scope, not compared (other lots): `urlQuote`, `urlEdit`, `urlProfil`, `urlAlert`, `addFlagUrl`, `quoteJS`, `MPUrl`, `url`, `iPage`
 (LOT-031), `html` / `toHTML` (LOT-034 and the app-side builder), `result.actions[]` (LOT-031 + app policy), `result.page`, `result.parser`
 and `result.render` (LOT-033, app).
@@ -146,6 +150,11 @@ and `result.render` (LOT-033, app).
    before the legacy "any `id` containing `para`"; the deleted wrapper is matched as a class token, not as the whole attribute.
 7. **Errors are typed and specific** (`missingElement("class=s2")`, `"a[name=t<numreponse>]"`, `"id=para<numreponse>"`) where legacy
    produced a `LinkItem` with nil fields; a page without blocks is `[]` in both.
+8. **The "Voir ce message dans le sujet non filtré" link is not part of the content.** On a search page with the filter checked
+   (`filter=1`, R122c, 31 messages) HFR puts `<a class="cLink"><b>Voir ce message dans le sujet non filtré</b></a>` before each `div#para<n>`, as
+   the second child of `messCase2`; legacy prepends it to `dicoHTML` (`ParseMessagesOperation.m:364-368` @ 2440d79), the port reads the `para`
+   element only. `MessageBlockOracleTests` checks that the oracle's `dicoHTML` starts with exactly that link on R122c (and on no other case), strips it and compares the rest. The
+   link's target (`numreponse`, `quote_only=0`) is not modelled: nothing consumes it yet.
 
 ## Learnings
 

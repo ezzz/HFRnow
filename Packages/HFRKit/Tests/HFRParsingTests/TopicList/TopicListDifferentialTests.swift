@@ -31,27 +31,62 @@ struct TopicListDifferentialTests {
         DifferentialCase("R95k", category: "prive"),
         DifferentialCase("R96a", category: "prive"),
         DifferentialCase("R50b", category: "13"),
-        DifferentialCase("R50c", category: nil)
+        DifferentialCase("R50c", category: nil),
+        // M2 read-only captures (#475): logged-out MP list, cross-category searches, logged-in list, anonymous single page.
+        DifferentialCase("R121b", category: "14", folder: "M2-readonly"),
+        DifferentialCase("R121c", category: "5", folder: "M2-readonly"),
+        DifferentialCase("R121e", category: "22", folder: "M2-readonly"),
+        DifferentialCase("R121f", category: "32", folder: "M2-readonly"),
+        // M2 misc: forum list whose header badge says 7 (#117).
+        DifferentialCase("R117a", category: "11", folder: "M2-misc")
     ]
+
+    /// The M2 logged-out MP list (R121a): legacy returns an empty page with `noAuth`; the port throws on the MP list URL (D1).
+    static let wallCases: [DifferentialCase] = [DifferentialCase("R121a", category: "prive", folder: "M2-readonly")]
+
+    /// Every list case, parsed or thrown.
+    static var allCases: [DifferentialCase] { cases + wallCases }
+
+    /// The folders of `Fixtures` whose `oracle-map.json` lists list cases covered by `cases`.
+    static let folders = ["LOT-002", "M2-readonly", "M2-misc"]
 
     @Test("The case list covers every list oracle of the map")
     func coversEveryListOracle() throws {
-        let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/LOT-002")
-        let map = try JSONDecoder().decode([String: MapEntry].self, from: Data(json.utf8))
         var listCases = Set<String>()
-        for (file, entry) in map where ["topics", "mp", "search"].contains(entry.kind) {
-            let name = String(file.dropLast(".html".count))
-            // The search waiting page (R50a) is a redirect, parsed by LOT-025, not a list.
-            if try TopicListOracle.load(name).result?.page != "redirect" {
-                listCases.insert(name)
+        for folder in Self.folders {
+            let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)")
+            let map = try JSONDecoder().decode([String: MapEntry].self, from: Data(json.utf8))
+            for (file, entry) in map where ["topics", "mp", "search"].contains(entry.kind) {
+                let name = String(file.dropLast(".html".count))
+                // The search waiting page (R50a) is a redirect, parsed by LOT-025, not a list.
+                if try TopicListOracle.load(name, folder: folder).result?.page != "redirect" {
+                    listCases.insert(folder + "/" + name)
+                }
             }
         }
-        #expect(Set(Self.cases.map(\.name)) == listCases)
+        #expect(Set(Self.allCases.map { $0.folder + "/" + $0.name }) == listCases)
+    }
+
+    @Test("A logged-out MP list is legacy's noAuth page, thrown by the port (D1)", arguments: wallCases)
+    func wallMatchesOracle(_ testCase: DifferentialCase) throws {
+        let oracle = try TopicListOracle.load(testCase.name, folder: testCase.folder)
+        let legacy = try #require(oracle.result)
+        #expect(oracle.exception == nil)
+        #expect(legacy.statusInfo?.statusName == "noAuth")
+        #expect(legacy.topics?.isEmpty == true)
+        let url = try #require(oracle.input.currentURL)
+        let capture = try oracle.capture()
+        #expect(throws: ListPageFailure.notAuthenticated(try #require(legacy.statusInfo?.message))) {
+            try TopicListParser.parse(capture, pageURL: url)
+        }
+        // The badge reader is not the wall: a logged-out page announces nothing (legacy `needToUpdateMP` false).
+        #expect(legacy.needToUpdateMP == false)
+        #expect(try PrivateMessageBadgeParser.unreadCount(in: capture) == nil)
     }
 
     @Test("Page fields match the oracle", arguments: cases)
     func pageFieldsMatch(_ testCase: DifferentialCase) throws {
-        let oracle = try TopicListOracle.load(testCase.name)
+        let oracle = try TopicListOracle.load(testCase.name, folder: testCase.folder)
         #expect(oracle.schema == 1)
         #expect(oracle.exception == nil)
         let legacy = try #require(oracle.result)
@@ -98,7 +133,7 @@ struct TopicListDifferentialTests {
 
     @Test("Rows match the oracle field by field", arguments: cases)
     func rowsMatch(_ testCase: DifferentialCase) throws {
-        let oracle = try TopicListOracle.load(testCase.name)
+        let oracle = try TopicListOracle.load(testCase.name, folder: testCase.folder)
         let html = try oracle.capture()
         let page = try TopicListParser.parse(html, pageURL: try #require(oracle.input.currentURL))
         let legacyRows = try #require(oracle.result).topics ?? []
@@ -135,8 +170,9 @@ struct TopicListDifferentialTests {
             } else {
                 #expect(row.starterOrInterlocutors == legacy.aAuthorOrInter, context)
             }
-            // D5: polls are detected on the live icon; legacy never found one in a list (LOT-002 RC2.3).
-            #expect(!legacy.isPoll, context)
+            // D5: polls are detected on any `sondage.gif`; legacy matched only the `defaut` theme's icon, which the
+            // default theme's lists never show (LOT-002 RC2.3) but R121e's account does (checked on the raw row).
+            #expect(legacy.isPoll == evidence.showsLegacyPollIcon(row: index), context)
             #expect(row.isPoll == evidence.showsPollIcon(row: index), context)
             // Session state legacy does not parse: constant on list pages, so nothing is lost by not modelling it.
             #expect(legacy.isViewedFromForumAtLoad == legacy.isViewed, context)
@@ -153,10 +189,13 @@ struct TopicListDifferentialTests {
     struct DifferentialCase: Sendable, CustomTestStringConvertible {
         let name: String
         let category: String?
+        /// The `Fixtures` folder of the oracle: `LOT-002`, or the folder of an M2 capture set (#475).
+        let folder: String
 
-        init(_ name: String, category: String?) {
+        init(_ name: String, category: String?, folder: String = "LOT-002") {
             self.name = name
             self.category = category
+            self.folder = folder
         }
 
         var testDescription: String { name }

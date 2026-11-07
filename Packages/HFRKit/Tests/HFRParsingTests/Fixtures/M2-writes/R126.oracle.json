@@ -1,0 +1,49 @@
+{
+  "case" : "R126",
+  "exception" : null,
+  "input" : {
+    "bytes" : 25355,
+    "currentURL" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "file" : "../captures/R126-mp-list-removed-member-no-row.html",
+    "now" : "2026-11-06T13:45:00Z",
+    "sha256" : "2683f29935498cc684de84c0bf7434e3cb931a047ee62d61ca937cab20cec0cc"
+  },
+  "kind" : "mp",
+  "legacyCommit" : "2440d79",
+  "result" : {
+    "currentCat" : "",
+    "currentUrl" : "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "firstPageNumber" : 1,
+    "firstPageUrl" : null,
+    "forumBaseURL" : null,
+    "forumFavorisURL" : null,
+    "forumFlag0URL" : null,
+    "forumFlag1URL" : null,
+    "forumNewTopicUrl" : "/message.php?config=hfr.inc&cat=prive&sond=0&p=1&subcat=0&dest=&subcatgroup=0",
+    "lastPageNumber" : 1,
+    "lastPageUrl" : null,
+    "needToUpdateMP" : false,
+    "nextPageUrl" : null,
+    "pageNumber" : 1,
+    "previousPageUrl" : null,
+    "sNewMPNumber" : null,
+    "statusInfo" : {
+      "message" : "Aucun message",
+      "status" : 2,
+      "statusName" : "noResults"
+    },
+    "topics" : [
+
+    ]
+  },
+  "schema" : 1,
+  "sideEffects" : {
+    "arrayCategoriesHiddenOrder" : null,
+    "arrayCategoriesVisibleOrder" : null,
+    "hashCheck" : null,
+    "nbMP" : null,
+    "statusNotifications" : [
+
+    ]
+  }
+}

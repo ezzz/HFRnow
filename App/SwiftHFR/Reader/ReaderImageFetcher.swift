@@ -34,16 +34,15 @@ struct ReaderImageFetcher: Sendable {
     /// `hostTable` is set by the image viewer only (LOT-109): the request then carries the host's `Referer` rule (`reho.st`
     /// wants the forum's, legacy `PhotoViewerNetworkRequestFactory`), looked up again at every hop so it never travels to
     /// the next host. The page's own images (nil) carry none (LOT-071 R3).
+    ///
+    /// `hostFilter` (the GIF panel, LOT-155) is asked about the URL and about every redirect hop: a hop it refuses stops there, so a
+    /// CDN that redirects elsewhere is never followed off the host the member accepted in notice N1.
     func image(
-        at url: URL, allowsThirdParty: Bool, hostTable: ImageHostTable? = nil
+        at url: URL, allowsThirdParty: Bool, hostTable: ImageHostTable? = nil, hostFilter: (@Sendable (URL) -> Bool)? = nil
     ) async throws(Failure) -> (data: Data, mimeType: String) {
         var next = url
         for _ in 0...Self.maximumRedirects {
-            switch ImagePolicy.classify(next) {
-            case .blocked: throw .refused
-            case .thirdParty where !allowsThirdParty: throw .refused
-            case .forum, .thirdParty: break
-            }
+            try Self.check(next, allowsThirdParty: allowsThirdParty, hostFilter: hostFilter)
             var request: HTTPRequest
             if let hostTable {
                 do throws(NetworkError) { request = try hostTable.request(for: Self.upgraded(next)) } catch { throw .unavailable }
@@ -68,6 +67,16 @@ struct ReaderImageFetcher: Sendable {
             return (response.body, mimeType)
         }
         throw .unavailable
+    }
+
+    /// Refuses `url` unless the host filter (when set) and policy C allow it.
+    private static func check(_ url: URL, allowsThirdParty: Bool, hostFilter: (@Sendable (URL) -> Bool)?) throws(Failure) {
+        if let hostFilter, !hostFilter(url) { throw .refused }
+        switch ImagePolicy.classify(url) {
+        case .blocked: throw .refused
+        case .thirdParty where !allowsThirdParty: throw .refused
+        case .forum, .thirdParty: break
+        }
     }
 
     /// `http` is requested over `https`: App Transport Security refuses clear-text loads and the app adds no exception

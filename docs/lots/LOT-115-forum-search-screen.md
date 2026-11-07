@@ -46,7 +46,7 @@ Blank text; banned word inside another word (`penguin`, as legacy and LOT-046); 
 - Banned words refuse the search with a warning (Q-7, CHANGELOG-LEGACY row 45).
 - A new query clears the previous rows and pager at once (legacy cleared them only on failure, `ForumSearchView.swift:95-98`); "Annuler" and "Dernière page" are kept (row and bar, not toolbar/banner).
 - A failed page keeps its rows (`ContentLoader`); legacy cleared them on any failure.
-- No haptic and no glass buttons (not ported); the status banner is a "Recherche en cours" row.
+- No haptic. The glass buttons are not ported here: the operator reversed that on 2026-11-07 ([#545](https://github.com/ezzz/HFRnow/issues/545), GAP-226), and LOT-185 ([#548](https://github.com/ezzz/HFRnow/issues/548)) brings them to the floating controls. The status banner is a "Recherche en cours" row.
 - The reviewer-account rule hides the Apple *category* only; hiding the entry point itself (research note P450-510 #3) is not in the issue's scope and stays open.
 
 ## Tests

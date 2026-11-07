@@ -19,7 +19,7 @@ struct PrivateMessageBadgeParserTests {
 
     @Test("Every captured list page announces what the oracle's header reader found", arguments: TopicListDifferentialTests.cases)
     func listPages(_ testCase: TopicListDifferentialTests.DifferentialCase) throws {
-        let oracle = try TopicListOracle.load(testCase.name)
+        let oracle = try TopicListOracle.load(testCase.name, folder: testCase.folder)
         let legacy = try #require(oracle.result)
         // D6 (LOT-022): the oracle keeps the whole cell text when it holds no digit; the port types it as 0.
         let expected = try #require(legacy.needToUpdateMP) ? Int(legacy.sNewMPNumber ?? "") ?? 0 : nil

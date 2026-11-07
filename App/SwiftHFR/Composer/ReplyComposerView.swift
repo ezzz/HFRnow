@@ -1,8 +1,9 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090), no GIF panel yet (155), smiley picker as a sheet from
-// the toolbar (LOT-104, GAP-087);
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode, GAP-096)
+// @ 2440d79.
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
+// GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
@@ -71,6 +72,7 @@ struct ReplyComposerView: View {
                 editor
                 FormattingToolbar(model: formatting) { focused = .text }
             }
+            .gifPanel(services: model.gifServices, formatting: formatting, canEdit: model.canEdit) { focused = .text }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
@@ -130,6 +132,7 @@ struct ReplyComposerView: View {
 
     private var keepDraftNote: String {
         if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
+        if model.isEdit { return "Le brouillon est retrouvé à la prochaine modification de ce message." }
         return model.isNewMessage
             ? "Le brouillon est retrouvé au prochain message à ce destinataire."
             : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
@@ -176,7 +179,7 @@ struct ReplyComposerView: View {
             .overlay {
                 if model.isRestoring { ProgressView() }
             }
-            .accessibilityLabel(model.isNewMessage || model.isNewTopic ? "Texte du message" : "Texte de la réponse")
+            .accessibilityLabel(model.isNewMessage || model.isNewTopic || model.isEdit ? "Texte du message" : "Texte de la réponse")
             .onChange(of: selection) { _, newValue in
                 guard let newValue else { return }
                 formatting.selectedRange = Self.range(of: newValue, in: model.text)
@@ -217,7 +220,7 @@ struct ReplyComposerView: View {
                     .padding(.vertical, 10)
                 Divider()
             }
-            if model.isNewTopic, showsSubcategoryRow {
+            if model.offersSubcategories, showsSubcategoryRow {
                 subcategoryRow
                 Divider()
             }
@@ -262,7 +265,7 @@ struct ReplyComposerView: View {
         } else if let warning = model.picker.warning {
             VStack(alignment: .leading, spacing: 6) {
                 Text(warning).scaledFont(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button("Réessayer") { Task { await model.loadSubcategories() } }
+                Button("Réessayer") { Task { await model.retrySubcategories() } }
             }
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -302,7 +305,7 @@ extension ReplyComposerView {
     }
 
     private var title: String {
-        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
+        model.isEdit ? "Edition" : model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
     }
 }
 

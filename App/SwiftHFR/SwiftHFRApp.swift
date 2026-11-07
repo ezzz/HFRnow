@@ -33,6 +33,8 @@ struct SwiftHFRApp: App {
                 .appTheme(theme)
                 // Restores the stored accounts and their sessions once per launch (LOT-081).
                 .task { await accounts.restore() }
+                // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).
+                .task(priority: .utility) { await LiveOfflineStore().evict() }
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }

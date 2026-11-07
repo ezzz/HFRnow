@@ -264,8 +264,17 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-161 | Release pipeline: archive and TestFlight upload | App | medium | Opus → Fable | 080, 160 | legacy parity | high | [#251](https://github.com/ezzz/HFRnow/issues/251) |
 | LOT-162 | Accessibility pass: lists, navigation, accounts, settings | App | medium | Sonnet → Opus | 119, 125, 126 | legacy parity | medium | [#252](https://github.com/ezzz/HFRnow/issues/252) |
 | LOT-163 | Accessibility pass: reader and composer | App | medium | Sonnet → Opus | 083, 084, 106 | legacy parity | medium | [#253](https://github.com/ezzz/HFRnow/issues/253) |
-| LOT-164 | Legacy parity gate | App | medium | Opus → Fable | 070, 081, 083, 084, 085, 086, 087, 088, 089, 102, 103, 104, 105, 106, 107, 108, 109, 113, 114, 115, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 130, 131, 132, 133, 134, 135, 136, 137, 139, 140, 155, 156, 157, 158, 169, 170 | legacy parity | high | [#254](https://github.com/ezzz/HFRnow/issues/254) |
+| LOT-164 | Legacy parity gate | App | medium | Opus → Fable | 070, 081, 083, 084, 085, 086, 087, 088, 089, 102, 103, 104, 105, 106, 107, 108, 109, 113, 114, 115, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126, 127, 128, 130, 131, 132, 133, 134, 135, 136, 137, 139, 140, 155, 156, 157, 158, 169, 170, 185, 186 | legacy parity | high | [#254](https://github.com/ezzz/HFRnow/issues/254) |
 | LOT-165 | App Store submission | App | medium | Opus → Fable | 159, 161, 164 | legacy parity | high | [#255](https://github.com/ezzz/HFRnow/issues/255) |
+
+### Liquid Glass and the iOS 27 HIG
+
+Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/545): Liquid Glass is M4 parity, and where the HIG and legacy differ the HIG wins, each divergence recorded in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#liquid-glass-and-the-ios-27-hig-decided-2026-11-07-545) (GAP-220 to GAP-226, with GAP-008 and GAP-142). Two exceptions keep the HIG precedence off on purpose and must not be changed to match the HIG: the reader's tab bar, hidden while a topic is open (GAP-008, UXD-02), and the in-app light / dark / auto setting (GAP-142). The M5 items of the same topic (LOT-174, LOT-147) stay in M5.
+
+| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
+|---|---|---|---|---|---|---|---|---|
+| LOT-185 | Liquid Glass outside the reader, from the legacy `LiquidGlass.swift` helpers: glass on the floating toasts, the list pagers and the buttons of floating controls; notice cards keep their materials; bars as system toolbars; plain symbols (the reader is LOT-186, the composer bar LOT-174) | App | easy | Sonnet → Opus | — | legacy parity (#545) | high | [#548](https://github.com/ezzz/HFRnow/issues/548) |
+| LOT-186 | Reader chrome for Liquid Glass and iOS 27: the legacy page controls as system glass bottom-bar items (absorbs #428, UXD-10), the web view under the bars, scroll restore, the reader toast, the reader's "…" menu moved to the system overflow menu (Duo HIG); after #424 (hidden tab bar, PR #540) | App | medium | Opus → Fable | 083 | legacy parity (#428; #545) | high | [#549](https://github.com/ezzz/HFRnow/issues/549) |
 
 ## Phase 5 — app: iOS 27 experience
 
