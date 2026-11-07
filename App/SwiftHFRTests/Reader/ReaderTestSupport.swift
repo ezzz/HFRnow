@@ -28,6 +28,19 @@ final class FakeTopicPages: TopicPageSource, @unchecked Sendable {
     }
 }
 
+/// Counts calls from any task: `next()` returns 1 on the first call.
+final class ReaderCallCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func next() -> Int {
+        lock.withLock {
+            count += 1
+            return count
+        }
+    }
+}
+
 /// Lets a test hold a load open until it decides to finish it.
 actor ReaderGate {
     private var continuation: CheckedContinuation<Void, Never>?
