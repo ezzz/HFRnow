@@ -272,6 +272,9 @@ final class ReaderWebController: NSObject {
         guard let document else { return }
         guard readyToken != document.token else {
             ReaderLog.debug("content process terminated token=\(document.token) ready=true: reloading")
+            // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen.
+            readyToken = nil
+            reloadedAfterFailure = false
             loadPage(document)
             return
         }

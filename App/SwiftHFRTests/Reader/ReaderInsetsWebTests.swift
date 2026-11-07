@@ -74,6 +74,18 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(recorder.failed == [1])
     }
 
+    /// CodeRabbit: after a crash of a page already shown, the reload is a new load: its failures are reported too.
+    @Test func theReloadOfAShownDocumentAfterACrashIsReportedWhenItFails() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(tallDocument(token: 1))
+        #expect(await until { recorder.ready == [1] })
+        controller.webViewWebContentProcessDidTerminate(controller.webView) // shown: reloaded
+        controller.webViewWebContentProcessDidTerminate(controller.webView) // not ready again: reloaded once
+        #expect(recorder.failed.isEmpty)
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        #expect(recorder.failed == [1])
+    }
+
     @Test func aMessageLandsBelowTheTopBar() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.obscuredInsets = bars
