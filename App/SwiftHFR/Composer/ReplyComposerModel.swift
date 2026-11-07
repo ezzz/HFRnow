@@ -7,9 +7,9 @@ import Observation
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView.postMessage, ComposerDraftPersistence) and HFRswift/Swift/ReplyService.swift
 // (ForumReplyPostingService) @ 2440d79. Differences: draft per topic and account, autosaved, instead of one global draft (GAP-092, UXD);
 // never resent after an uncertain send (GAP-100).
-/// State of the composer sheet: a reply (LOT-084), a new private message (LOT-128, with a recipient and a subject) or a new topic
-/// (LOT-089, with a subject and a sub-category read from the form); the
-/// text, its draft, sending and the outcome.
+/// State of the composer sheet: a reply (LOT-084), a new private message (LOT-128, with a recipient and a subject), a new topic
+/// (LOT-089, with a subject and a sub-category read from the form) or the edit of an own message (LOT-088, opened on what its
+/// edit form serves); the text, its draft, sending and the outcome.
 ///
 /// The draft is the target's (`ComposerTarget.draftContext`) for the current account. It is restored when the sheet opens,
 /// saved while typing (debounced, through the same `persist` as every other save, LESSONS 48), kept or discarded on
@@ -33,7 +33,7 @@ final class ReplyComposerModel: Identifiable {
         case closedWithoutSaving
     }
 
-    /// What is written: a reply to a topic, a new private message or a new topic.
+    /// What is written: a reply to a topic, a new private message, a new topic or an edit.
     let target: ComposerTarget
     /// The text being written.
     private(set) var text = ""
@@ -63,6 +63,8 @@ final class ReplyComposerModel: Identifiable {
     private let autosaveDelay: Duration
     /// What the sheet opens with besides the draft (LOT-086): merged into the restored text. Only a reply takes one.
     private let initialQuote: ReplyQuote?
+    /// What the edit form serves (LOT-088): the sheet opens on it when no draft is stored, and a text equal to it is no draft.
+    let prefill: EditPrefill?
     private var hasRestored = false
     /// A close was asked and is writing the draft; typing would schedule a save that outlives the choice.
     private var isClosing = false
@@ -77,6 +79,7 @@ final class ReplyComposerModel: Identifiable {
         self.services = services
         self.autosaveDelay = autosaveDelay
         if case .reply = target { initialQuote = quote } else { initialQuote = nil }
+        prefill = nil
         if case .newPrivateMessage(let message) = target { recipient = message.recipient }
     }
 
@@ -87,46 +90,18 @@ final class ReplyComposerModel: Identifiable {
         self.init(composing: .reply(target), services: services, autosaveDelay: autosaveDelay, quote: quote)
     }
 
-    /// The new-topic form's sub-category select (LOT-089): options, choice, loading and warning.
+    /// The composer of an own message, opened on what its edit form served.
+    init(editing target: EditTarget, prefill: EditPrefill, services: ComposerServices, autosaveDelay: Duration = .seconds(1)) {
+        self.target = .edit(target)
+        self.services = services
+        self.autosaveDelay = autosaveDelay
+        self.prefill = prefill
+        initialQuote = nil
+        if let options = prefill.subcategories { picker.apply(options) }
+    }
+
+    /// The form's sub-category select (LOT-089, a first post's edit form, LOT-088): options, choice, loading and warning.
     private(set) var picker = NewTopicSubcategories()
-
-    /// A new private message: the sheet shows the recipient and subject fields.
-    var isNewMessage: Bool {
-        if case .newPrivateMessage = target { true } else { false }
-    }
-
-    /// A new topic: the sheet shows the subject field and the sub-category picker.
-    var isNewTopic: Bool {
-        if case .newTopic = target { true } else { false }
-    }
-
-    /// The sheet shows a subject (a new private message or a new topic) and keeps it in the draft.
-    var hasSubjectField: Bool { isNewMessage || isNewTopic }
-
-    /// The text holds something to send.
-    var hasText: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-
-    /// Send is offered (a new topic waits for its sub-category list, so HFR's default never overrides a choice):
-    /// some text (and a subject for a new topic, a recipient and a subject for a new private message), the
-    /// draft read, nothing running, not closed. HFR refuses an empty text (`W17a`); a blank recipient or subject is refused here
-    /// and by the engine
-    /// (HFR's answer to one is not captured).
-    var canSend: Bool {
-        guard hasText, canEdit, !(isNewTopic && picker.isLoading) else { return false }
-        if isNewMessage { return !Self.isBlank(recipient) && !Self.isBlank(subject) }
-        return !isNewTopic || !Self.isBlank(subject)
-    }
-
-    /// Closing asks whether to keep the draft (swiping the sheet down is blocked meanwhile, so it never loses the text).
-    var closeNeedsChoice: Bool { hasText || !Self.isBlank(subject) }
-
-    /// What the smiley picker needs: the favourites store, the account key and a fresh search (LOT-105).
-    var smileyServices: SmileyPanelServices {
-        services.smileyPanel
-    }
-
-    /// What the image panel needs (LOT-102).
-    var imageUploadServices: ImageUploadServices { services.imageUpload }
 
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
@@ -146,8 +121,9 @@ final class ReplyComposerModel: Identifiable {
         if let failure = await drafts.loadFailure() {
             draftWarning = Self.draftWarning(for: failure)
         }
-        text = draft?.text ?? ""
-        if hasSubjectField { subject = draft?.subject ?? "" }
+        // A draft of an edit holding only a subject has no text: the message's own one still stands.
+        text = draft.map(\.text).flatMap { $0.isEmpty ? nil : $0 } ?? prefill?.text ?? ""
+        if hasSubjectField { subject = draft?.subject ?? prefill?.subject ?? "" }
         isRestoring = false
         hasRestored = true
         // The quote the sheet was opened with goes after the restored draft, like typing: saved after a pause, so closing the
@@ -168,9 +144,23 @@ final class ReplyComposerModel: Identifiable {
         }
     }
 
+    /// Reads the sub-category list again: from the new-topic form, or from the edit form when an edit's list went stale.
+    func retrySubcategories() async {
+        guard case .edit(let edit) = target else { return await loadSubcategories() }
+        guard !picker.isLoading else { return }
+        picker.beginLoading()
+        do throws(PostingError) {
+            let fresh = try await services.poster.editPrefill(edit)
+            if let options = fresh.subcategories { picker.apply(options) } else { picker.reset() }
+            picker.endLoading()
+        } catch {
+            picker.fail(ComposerMessages.subcategoriesUnavailable(error))
+        }
+    }
+
     /// The user chose a sub-category of the form's list.
     func select(subcategory value: String) {
-        guard isNewTopic, canEdit, picker.select(value) else { return }
+        guard offersSubcategories, canEdit, picker.select(value) else { return }
         // Choosing does not answer an uncertain send: its warning stays until the text or subject changes.
         if !mayHavePosted { errorMessage = nil }
     }
@@ -238,12 +228,12 @@ final class ReplyComposerModel: Identifiable {
             closeReason = .sent(result)
         } catch {
             isSending = false
-            errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage, newTopic: isNewTopic)
+            errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage, newTopic: isNewTopic, edit: isEdit)
             if case .unconfirmed = error { mayHavePosted = true }
-            if case .unknownSubcategory = error, isNewTopic {
+            if case .unknownSubcategory = error, offersSubcategories {
                 // The list changed since it was read: every retry would fail the same way, so read it again.
                 picker.reset()
-                await loadSubcategories()
+                await retrySubcategories()
             }
         }
     }
@@ -376,8 +366,10 @@ final class ReplyComposerModel: Identifiable {
     /// would come back in an editor that looks empty. Returns whether the write succeeded.
     private func persist() async -> Bool {
         do {
-            let kept = hasSubjectField && !Self.isBlank(subject) ? subject : nil
-            try await services.drafts.save(hasText ? text : "", subject: kept, for: target.draftContext, account: services.account)
+            // An edit back to what the form served leaves no draft, so the next opening shows the message as HFR holds it.
+            let keeps = differsFromPrefill
+            let kept = keeps && hasSubjectField && !Self.isBlank(subject) ? subject : nil
+            try await services.drafts.save(hasText && keeps ? text : "", subject: kept, for: target.draftContext, account: services.account)
             draftWarning = nil
             return true
         } catch {

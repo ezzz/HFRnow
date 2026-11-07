@@ -32,7 +32,8 @@ final class TopicReaderModel {
     /// The reader a followed link opened, shown above this one; going back clears it and finds this page as it was left
     /// (LOT-137, legacy pushes a reader per link: `MessagesView.swift:3896-3927` at `21173e77`).
     private(set) var linkedReader: TopicReaderModel?
-    /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
+    /// HFR's confirmation of the reply, edit or delete just sent, shown until dismissed; set only by a confirmed write (LOT-084,
+    /// LOT-088).
     private(set) var replyConfirmation: String?
     /// The message menu on screen; nil when none.
     var presentedMenu: MessageMenu?
@@ -248,6 +249,19 @@ final class TopicReaderModel {
         replyConfirmation = nil
     }
 
+    /// Shows HFR's sentence for a confirmed write on a message of this page (LOT-088).
+    func showConfirmation(_ sentence: String) {
+        replyConfirmation = sentence
+    }
+
+    /// Reloads the page on screen after an edit or a delete: at message `post` (the first one after it when it went) without
+    /// the separator a followed anchor draws, or where the user was when `post` is nil. HFR's own refresh names the form's
+    /// `page`, this very page (`W31`, `W32`), and past the end it redirects to the last page (`R24`).
+    func reloadPage(at post: Int?) async {
+        guard let shown else { return }
+        await load(shown.atPage(shown.page), keepsScrollPosition: post == nil, anchor: post.map(AnchorRule.message) ?? .target)
+    }
+
     /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
     /// the last known one is asked for, since the reply may have opened it; past the end HFR redirects to the last page (`R24`,
     /// on `forum2.php` and on the canonical path alike).
@@ -314,11 +328,13 @@ final class TopicReaderModel {
     // MARK: - Loading
 
     /// Where a loaded document opens.
-    private enum AnchorRule {
+    private enum AnchorRule: Equatable {
         /// At the target's own anchor, when the page holds it.
         case target
         /// At the page's last message (after a reply).
         case lastMessage
+        /// At this message, or the first one after it (after an edit).
+        case message(Int)
     }
 
     /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it).
@@ -374,6 +390,8 @@ final class TopicReaderModel {
                 }
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
+            case .message(let post):
+                loaded.messages.first { !$0.isContinuation && $0.numreponse >= post }?.numreponse
             }
             let options = currentRenderOptions()
             appliedOptions = options
