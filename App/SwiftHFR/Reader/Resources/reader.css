@@ -16,6 +16,14 @@
   --love: #ffe6f5;
   --love-border: #ff0099;
   --modo: #ffeeee;
+  /* Message separation (#568): the even messages sit on a tint of the text colour over the background, so the surface follows
+     light, dark, the dark brightness slider and the classic style. The rule is a tint too, stronger than --separator: the app sets
+     --app-dark-separator on every reader, so the rule cannot reuse it (--separator stays for the quiet dashed lines inside a
+     message). Legacy drew a near-black 1 px rule above each message (style-liste-light.css:153-160). */
+  --alt-strength: 5%;
+  --rule-strength: 25%;
+  --separator-strong: color-mix(in srgb, var(--text) var(--rule-strength), var(--background));
+  --surface-alt: color-mix(in srgb, var(--text) var(--alt-strength), var(--background));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,7 +38,18 @@
     --placeholder: var(--app-dark-placeholder, #2c2c2e);
     --love: #4d0831;
     --modo: #4a2e3c;
+    --alt-strength: 9%;
+    --rule-strength: 35%;
   }
+}
+
+/* Increase Contrast: a stronger tint and rule (HIG, Accessibility: colours must hold in light, dark and increased contrast).
+   Light stops at 7 %, not 10 %: --secondary on a 10 % surface is 4.27:1, under 4.5:1 (7 %: 4.55:1). */
+@media (prefers-contrast: more) {
+  :root { --alt-strength: 7%; --rule-strength: 50%; }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root { --alt-strength: 16%; --rule-strength: 50%; }
 }
 
 /* --app-* are the "Thème" settings (LOT-121): both accents and the dark surfaces at the chosen brightness, set on <html> by the
@@ -46,7 +65,9 @@ body {
 a { color: var(--action); }
 
 .separator1 { border-top: 1px dashed var(--separator); }
-.message { padding: 0.75em 1em; border-bottom: 1px solid var(--separator); }
+.message { padding: 1em 1em 0.85em; border-bottom: 1px solid var(--separator-strong); }
+/* `nth-of-type` counts articles only, so the dashed `div.separator1` between pages does not shift the alternation. */
+article.message:nth-of-type(even) { background: var(--surface-alt); }
 .message .header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; flex: none; }
 /* `overflow-wrap: anywhere` on body makes an item's min-content one character, so at accessibility sizes the flex row shrank the
@@ -73,6 +94,13 @@ table.citation, table.oldcitation, table.quote, table.code, table.fixed {
   border-left: 3px solid var(--quote-border); background: var(--quote-background);
 }
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0.4em 0.6em; }
+/* Quotes and code on an even message step back to the page background by the amount the message stepped forward, so they stay
+   distinct from --surface-alt and the quote header (--secondary, 0.85em) keeps 4.5:1 (on --placeholder it measured 4.16:1 light,
+   about 3.89:1 dark at 150 %). :where() keeps the specificity at the base rule's, so the visibility tints (quote-me,
+   quote-allowed, quote-blocked) still win; it sits after the base quote rule, which it must follow at equal specificity. */
+:where(article.message:nth-of-type(even)) :is(table.citation, table.oldcitation, table.quote, table.code, table.fixed) {
+  background: var(--background);
+}
 b.s1 { font-size: 0.85em; color: var(--secondary); }
 b.s1 a { color: var(--text); font-weight: 700; }
 
