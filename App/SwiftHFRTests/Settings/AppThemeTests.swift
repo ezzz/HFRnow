@@ -185,8 +185,8 @@ struct AppThemeTests {
         window.isHidden = false
         defer { window.isHidden = true }
         // Left, middle and right thirds: the three columns.
-        let xs: [CGFloat] = [60, 500, 900]
-        let shown = await until { xs.allSatisfy { pixel(of: window, x: $0) == 11 } }
-        #expect(shown, "columns: \(xs.map { pixel(of: window, x: $0) })")
+        let columnXs: [CGFloat] = [60, 500, 900]
+        let shown = await until { columnXs.allSatisfy { pixel(of: window, x: $0) == 11 } }
+        #expect(shown, "columns: \(columnXs.map { pixel(of: window, x: $0) })")
     }
 }
