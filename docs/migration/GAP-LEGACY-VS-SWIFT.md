@@ -233,6 +233,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-217 | Fold / unfold continuity | No handling; PR #4 (not merged) proposes one hierarchy. | — | Topic and position kept across fold and unfold. | LOT-145, LOT-147 | new | new UX: Bybifok (FEAT-015) | b |
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list. | MainWindow.swift:1337-1345 | Entries in a two-column split; Plus opens Réglages. | LOT-170 | UX change | new UX: spec | b |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false. | HFRswift/Info.plist:206-208 | iPad multi-window. | LOT-146 | new | new UX: spec | b |
+| GAP-228 | App icon | Layered `.icon` `Icon-RedFace3D` (`ASSETCATALOG_COMPILER_APPICON_NAME`). | SuperHFRplus.xcodeproj/project.pbxproj:1803, 6040, 6125 | Main icon ported unchanged (#580); alternates stay in LOT-123 (GAP-148). | #580, LOT-123 | same | port: ezzz Swift layer | a |
 
 ## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
 
@@ -303,7 +304,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221 | 44 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 133, 181 | 5 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226 | 15 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226, 227 | 16 |
 | b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219 | 48 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 026, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
