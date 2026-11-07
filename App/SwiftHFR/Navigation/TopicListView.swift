@@ -104,12 +104,19 @@ struct TopicListView: View {
         }
     }
 
+    /// The orange tint of a super-favourite row, nil on the selected row so the iPad selection highlight shows (#570).
+    /// Over `.clear`: the row looked like this before (a translucent orange, whatever the list style), and a card colour
+    /// underneath would show as a grey block in a sidebar column.
+    static func superFavoriteTint(isSuper: Bool, isSelected: Bool) -> RowTint? {
+        isSuper && !isSelected ? RowTint(tint: .orange, base: .clear) : nil
+    }
+
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(isSuper ? Color.orange.opacity(0.12) : nil)
+                .listRowBackground(TopicListView.superFavoriteTint(isSuper: isSuper, isSelected: selection == topic))
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }

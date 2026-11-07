@@ -32,14 +32,8 @@ struct AppEnvironment {
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
         let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
-        // Every page read hands its authors' avatars to the cache (GAP-227); the setting is read at each download.
-        let avatars = AvatarStore(
-            cache: AvatarCache(cache: .standard),
-            allowsDownload: {
-                ReaderSettings.autoLoad(store: UserDefaultsSettingsStore()).loadsThirdPartyImages(onWiFi: NetworkMonitor.shared.isOnWiFi)
-            },
-            onStored: { avatarRefresh?.didStore() }
-        )
+        // Every page read hands its authors' avatars to the cache (GAP-228); each write refreshes the MP rows.
+        let avatars = AvatarStore.live(refresh: avatarRefresh)
         let pages = AvatarFillingTopicPageSource(
             base: RefreshingTopicPageSource(
                 base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists

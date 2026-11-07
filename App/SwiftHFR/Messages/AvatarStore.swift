@@ -8,28 +8,33 @@ import UIKit
 /// Fills the avatar cache (LOT-066) from the topic and MP pages the app reads, as legacy did while parsing
 /// (`ParseMessagesOperation.m:176, 430-446` @ 2440d79): download when the cache has no avatar of the author or it is older than 24 h.
 ///
-/// Downloads go through `AnonymousAvatarLoader` (cookie-less, `forum-images.hardware.fr` over HTTPS, no redirect, 256 KiB cap) and
-/// only when the image-loading setting allows it ("never" loads nothing; Wi-Fi only waits for Wi-Fi). A failed download keeps the
-/// previous file (`AvatarCache` writes atomically and never deletes on a miss).
+/// Downloads go through `AnonymousAvatarLoader` (cookie-less, `forum-images.hardware.fr` over HTTPS, no redirect, 256 KiB cap).
+/// The "Images externes" setting does not gate them: forum avatars are first-party under the image policy (LOT-071 D-071-1
+/// point 3), the reader shows them whatever the setting says, and legacy downloaded them unconditionally. A failed download keeps
+/// the previous file (`AvatarCache` writes atomically and never deletes on a miss).
 actor AvatarStore {
     private let cache: AvatarCache
     private let loader: any AvatarLoading
-    private let allowsDownload: @Sendable () -> Bool
     private let onStored: @Sendable @MainActor () -> Void
     private var inFlight: Set<String> = []
     /// Number of avatars written since the store was created.
     private(set) var generation = 0
 
-    /// A store over `cache`. `allowsDownload` is asked before each download (the setting can change at any time);
-    /// `onStored` runs on the main actor after each write.
+    /// A store over `cache`; `onStored` runs on the main actor after each write.
     init(
         cache: AvatarCache, loader: any AvatarLoading = AnonymousAvatarLoader(),
-        allowsDownload: @escaping @Sendable () -> Bool, onStored: @escaping @Sendable @MainActor () -> Void = {}
+        onStored: @escaping @Sendable @MainActor () -> Void = {}
     ) {
         self.cache = cache
         self.loader = loader
-        self.allowsDownload = allowsDownload
         self.onStored = onStored
+    }
+
+    /// The app's store: the standard avatar cache, and each write bumps `refresh` so the rows read the cache again.
+    static func live(
+        refresh: AvatarRefresh?, cache: AvatarCache = AvatarCache(cache: .standard), loader: any AvatarLoading = AnonymousAvatarLoader()
+    ) -> AvatarStore {
+        AvatarStore(cache: cache, loader: loader, onStored: { refresh?.didStore() })
     }
 
     /// Downloads and stores the avatar of each `(pseudo, url)` that the cache lacks or holds stale, one request per pseudo.
@@ -42,7 +47,7 @@ actor AvatarStore {
     /// Same for one avatar.
     func offer(pseudo: String, url: URL) async {
         let key = pseudo.lowercased()
-        guard !pseudo.isEmpty, !inFlight.contains(key), AnonymousAvatarLoader.isAllowed(url), allowsDownload() else { return }
+        guard !pseudo.isEmpty, !inFlight.contains(key), AnonymousAvatarLoader.isAllowed(url) else { return }
         // A cache that cannot be read (bad key, unsafe folder) cannot be written either.
         do {
             if try cache.entry(forPseudo: pseudo)?.isFresh == true { return }

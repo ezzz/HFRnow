@@ -92,9 +92,9 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
 | Milestone | Live board | Lots done (2026-11-07) |
 |---|---|---|
 | 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 40 of 40 |
-| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 25 of 28 |
-| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 37 of 43 |
-| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 1 of 23 |
+| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 28 of 28 |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 38 of 43 |
+| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 3 of 25 |
 | 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 30 |
 
 **🧪 M5 · UX evolutions** was agreed on 2026-11-02 ([#379](https://github.com/ezzz/HFRnow/issues/379)): M4 is the validated legacy parity, and any change from the initial plan or from the legacy app goes to M5 and is never dropped. M1–M4 therefore ship the legacy UX.

@@ -6,7 +6,7 @@ import HFRStorage
 import Testing
 
 /// `AvatarStore` (#569): the avatar cache is filled from the pages read, cookie-less, from the forum image host only, when the
-/// image-loading setting allows it and the cached file is missing or stale. Every transport here is a `MockTransport`: no test
+/// cached file is missing or stale. Every transport here is a `MockTransport`: no test
 /// reaches a network (LESSONS 56).
 struct AvatarStoreTests {
     /// A 1×1 PNG: `UIImage` decodes it.
@@ -30,15 +30,14 @@ struct AvatarStoreTests {
         func bump() { lock.withLock { value += 1 } }
     }
 
-    private func rig(allows: Bool = true, reply: HTTPResponse? = nil) -> Rig {
+    private func rig(reply: HTTPResponse? = nil) -> Rig {
         let directory = CacheDirectory(root: URL.temporaryDirectory.appending(path: "avatar-store-\(UUID().uuidString)"))
         let cache = AvatarCache(cache: directory)
         let response = reply ?? HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: Self.url, body: Self.png)
         let transport = MockTransport { _ async throws(NetworkError) -> HTTPResponse in response }
         let stored = Counter()
         let store = AvatarStore(
-            cache: cache, loader: AnonymousAvatarLoader(transport: transport), allowsDownload: { allows },
-            onStored: { stored.bump() }
+            cache: cache, loader: AnonymousAvatarLoader(transport: transport), onStored: { stored.bump() }
         )
         return Rig(store: store, transport: transport, cache: cache, stored: stored)
     }
@@ -95,27 +94,28 @@ struct AvatarStoreTests {
         #expect(try rig.cache.entry(forPseudo: "user1") == nil)
     }
 
-    @Test func neverSettingDownloadsNothing() async throws {
-        let rig = rig(allows: false)
+    @Test func settingDoesNotGateForumAvatars() async throws {
+        // First-party avatars load whatever "Images externes" says (LOT-071 D-071-1 point 3): the store has no such gate.
+        let rig = rig()
         await rig.store.offer(pseudo: "user1", url: Self.url)
-        #expect(await rig.transport.requests.isEmpty)
-        #expect(try rig.cache.entry(forPseudo: "user1") == nil)
+        #expect(await rig.transport.requests.count == 1)
+        #expect(try rig.cache.entry(forPseudo: "user1") != nil)
     }
 
-    @Test func settingMapsToDownloadPermission() {
-        struct Case {
-            let mode: ImageDisplayMode?
-            let onWiFi: Bool
-            let expected: Bool
-        }
-        let cases = [
-            Case(mode: .never, onWiFi: true, expected: false), Case(mode: .wifiOnly, onWiFi: true, expected: true),
-            Case(mode: .wifiOnly, onWiFi: false, expected: false), Case(mode: .always, onWiFi: false, expected: true),
-            Case(mode: nil, onWiFi: true, expected: true), Case(mode: nil, onWiFi: false, expected: false)
-        ]
-        for item in cases {
-            #expect(ImageAutoLoad(setting: item.mode).loadsThirdPartyImages(onWiFi: item.onWiFi) == item.expected)
-        }
+    @MainActor @Test func aStoreWriteBumpsTheRowsRefreshGeneration() async throws {
+        let directory = CacheDirectory(root: URL.temporaryDirectory.appending(path: "avatar-live-\(UUID().uuidString)"))
+        let response = HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: Self.url, body: Self.png)
+        let transport = MockTransport { _ async throws(NetworkError) -> HTTPResponse in response }
+        let refresh = AvatarRefresh()
+        let store = AvatarStore.live(
+            refresh: refresh, cache: AvatarCache(cache: directory), loader: AnonymousAvatarLoader(transport: transport)
+        )
+        #expect(refresh.generation == 0)
+        await store.offer(pseudo: "user1", url: Self.url)
+        #expect(refresh.generation == 1)
+        // A fresh entry writes nothing: the rows are not refreshed again.
+        await store.offer(pseudo: "user1", url: Self.url)
+        #expect(refresh.generation == 1)
     }
 
     @Test func nonImageBytesAreNeverStored() async throws {
