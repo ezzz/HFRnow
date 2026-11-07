@@ -100,7 +100,7 @@ private struct CategoriesSidebarColumn: View {
                 .navigationDestination(item: $navigation.selectedSource) { source in
                     TopicListView(
                         model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                        composer: composer, open: { navigation.open($0, at: $1) }
+                        composer: composer, open: { navigation.open($0, at: $1) }, tintBase: .clear
                     )
                 }
         }

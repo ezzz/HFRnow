@@ -10,7 +10,8 @@ import WebKit
 ///   Policy (header and `<meta>`) allows nothing else, and content JavaScript is off;
 /// - the only script is `reader.js`, a user script in the app's own content world, which the page cannot reach;
 /// - images go through policy C and the cookie-less client (`ReaderImageFetcher`), decided per URL here;
-/// - the web view never navigates away: link taps are handed to the app, new windows are refused, link previews are off;
+/// - the web view never navigates away: link taps are handed to the app, new windows are refused, and a link's long-press
+///   menu is the app's own, without preview;
 /// - the data store is non-persistent: no cookie, cache or storage outlives the reader.
 @MainActor
 final class ReaderWebController: NSObject {
@@ -26,8 +27,9 @@ final class ReaderWebController: NSObject {
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
         /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
         var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
-        /// The user tapped the menu button or the author of message `post` in document `token`.
-        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped the menu button or the author of message `post` in document `token`; `anchor` is the button's
+        /// rectangle in the web view's own coordinates (nil when the page gave none).
+        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ anchor: CGRect?, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user chose "Citer extrait" or "Citer gras" over `text`, selected in message `post` of document `token` (LOT-086).
         var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
@@ -45,6 +47,8 @@ final class ReaderWebController: NSObject {
 
     let webView: QuoteMenuWebView
     var events = Events()
+    /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
+    var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
     var textScale = TextScale.standard {
         didSet {
@@ -117,7 +121,8 @@ final class ReaderWebController: NSObject {
         messages.owner = self
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsLinkPreview = false
+        // True so WebKit consults `contextMenuConfigurationForElement` (our menu, no preview); with it off it shows its own sheet.
+        webView.allowsLinkPreview = true
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
@@ -223,8 +228,10 @@ final class ReaderWebController: NSObject {
         case .video(let post, let index):
             events.video(post, index, document.token)
             return nil
-        case .menu(let post, let source):
-            events.menu(post, source, document.token)
+        case .menu(let post, let source, let anchor):
+            // `getBoundingClientRect` counts from the bars' edge (`obscuredContentInsets`): the view starts above it.
+            let anchor = anchor?.offsetBy(dx: 0, dy: obscuredInsets.top)
+            events.menu(post, source, anchor, document.token)
             return nil
         case .image(let urls, let index):
             return openViewer(urls: urls, index: index, token: document.token)

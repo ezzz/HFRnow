@@ -1,0 +1,22 @@
+{
+  "id": "R603a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&sondage=0&owntopic=1&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 15:56:47 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "Category list, owntopic=1",
+  "file": "R603a-list-cat13-owntopic1.html",
+  "private": false
+}

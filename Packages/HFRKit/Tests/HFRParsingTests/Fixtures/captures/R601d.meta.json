@@ -1,0 +1,15 @@
+{
+  "id": "R601d",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/user/uploadsmil.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/uploadsmil.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/uploadsmil.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 15:56:01 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Same page, no cookies",
+  "private": false
+}

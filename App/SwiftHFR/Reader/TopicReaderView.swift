@@ -129,17 +129,7 @@ struct TopicReaderView: View {
         } message: {
             if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
-        .confirmationDialog(
-            "Actions du message", isPresented: Binding(get: { model.presentedMenu != nil }, set: { if !$0 { model.dismissMenu() } }),
-            titleVisibility: .hidden, presenting: model.presentedMenu
-        ) { menu in
-            ForEach(menu.entries, id: \.kind) { action in
-                Button(role: action.isDestructive ? .destructive : nil) {
-                    Task { await model.perform(action, in: menu) }
-                } label: { Label(action.title, systemImage: action.systemImageName) }
-            }
-            Button("Annuler", role: .cancel) {}
-        }
+        .overlay { ReaderMessageMenuAnchor(model: model) }
         .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
@@ -306,7 +296,9 @@ struct TopicReaderView: View {
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
             position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
-            menu: { [model] post, source, token in Task { await model.openMenu(post: post, source: source, token: token) } },
+            menu: { [model] post, source, anchor, token in
+                Task { await model.openMenu(post: post, source: source, anchor: anchor, token: token) }
+            },
             quote: { [model] post, text, bold, token in
                 Task { await model.quoteSelection(post: post, text: text, bold: bold, token: token) }
             },
