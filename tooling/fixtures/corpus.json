@@ -262,11 +262,6 @@
     {"raw": "R298d", "id": "R298d", "slug": "topic-id-form-subcat-8811-logged-in", "ext": "html", "private": false},
     {"raw": "R298e", "id": "R298e", "slug": "topic-stale-slug-1711-logged-out", "ext": "html", "private": false},
     {"raw": "R298f", "id": "R298f", "slug": "topic-stale-slug-1711-logged-in", "ext": "", "private": false},
-    {"raw": "R335-participated", "id": "R335a", "slug": "rest-bucket-participated", "ext": "json", "private": false},
-    {"raw": "R335-read", "id": "R335b", "slug": "rest-bucket-read", "ext": "json", "private": false},
-    {"raw": "R335-favorites", "id": "R335c", "slug": "rest-bucket-favorites", "ext": "json", "private": false},
-    {"raw": "R335-participated-p2pp5", "id": "R335d", "slug": "rest-bucket-participated-page2-per-page5", "ext": "json", "private": false},
-    {"raw": "R335-participated-flat-b-p2pp5", "id": "R335e", "slug": "rest-bucket-participated-category-page2-per-page5", "ext": "json", "private": false},
     {"raw": "R601a", "id": "R601a", "slug": "profile-edit-page5-personal-smileys", "ext": "html", "private": false},
     {"raw": "R601b", "id": "R601b", "slug": "smiley-upload-page-owner", "ext": "html", "private": false},
     {"raw": "R601c", "id": "R601c", "slug": "smiley-upload-page-no-smiley", "ext": "html", "private": false},
@@ -276,6 +271,11 @@
     {"raw": "R603c", "id": "R603c", "slug": "list-cat13-owntopic3-page2", "ext": "html", "private": false},
     {"raw": "R603d", "id": "R603d", "slug": "list-subcat-owntopic3", "ext": "html", "private": false},
     {"raw": "R603u2", "id": "R603e", "slug": "favourites-owntopic2", "ext": "html", "private": false},
-    {"raw": "R603g", "id": "R603f", "slug": "rest-bucket-read-category", "ext": "json", "private": false}
+    {"raw": "R603g", "id": "R603f", "slug": "rest-bucket-read-category", "ext": "json", "private": false},
+    {"raw": "R335-participated", "id": "R335a", "slug": "rest-bucket-participated", "ext": "json", "private": false},
+    {"raw": "R335-read", "id": "R335b", "slug": "rest-bucket-read", "ext": "json", "private": false},
+    {"raw": "R335-favorites", "id": "R335c", "slug": "rest-bucket-favorites", "ext": "json", "private": false},
+    {"raw": "R335-participated-p2pp5", "id": "R335d", "slug": "rest-bucket-participated-page2-per-page5", "ext": "json", "private": false},
+    {"raw": "R335-participated-flat-b-p2pp5", "id": "R335e", "slug": "rest-bucket-participated-category-page2-per-page5", "ext": "json", "private": false}
   ]
 }
