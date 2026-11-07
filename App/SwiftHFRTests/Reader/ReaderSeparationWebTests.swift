@@ -69,20 +69,22 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         return (matched, ((try? await evaluate(probe, in: controller)) as? String) ?? "")
     }
 
-    // 0x1C1C1E at 5 % over white: 244; rule at 25 %: 198,198,199 (the quiet separator is #d1d1d6: lighter); quote on --placeholder #e5e5ea.
+    // 0x1C1C1E at 5 % over white: 244; rule at 25 %: 198,198,199 (the quiet separator is #d1d1d6: lighter);
+    // quote on --background (white), which keeps its --secondary header at 5.23:1.
     @Test func inLightTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .light, token: 1,
-            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [229, 229, 234], [1]]
+            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [255, 255, 255], [1]]
         )
         #expect(matched, "seen: \(seen)")
     }
 
-    // 0xF2F2F7 at 9 % over black: 22; rule at 35 %: 85,85,86, against the app's quiet separator rgb(56, 56, 58); quote on #2c2c2e.
+    // 0xF2F2F7 at 9 % over black: 22; rule at 35 %: 85,85,86, against the app's quiet separator rgb(56, 56, 58);
+    // quote on --background (black), 8.16:1 for its --secondary header.
     @Test func inDarkTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .dark, token: 2,
-            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [44, 44, 46], [1]]
+            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0], [1]]
         )
         #expect(matched, "seen: \(seen)")
     }
