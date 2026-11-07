@@ -96,6 +96,59 @@ extension SyncedListsStoreTests {
         #expect(fixture.cloudSuperFavorites()?.map(\.topic) == [Self.other, Self.topic])
     }
 
+    @Test func aSignedOutChangeInAStoreUnreadableAcrossBothSwitchesKeepsItsDigest() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        await fixture.switchAppleID(to: nil)
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        fixture.superFavoritePersistence.failsToLoad = true
+        await fixture.superFavorites.reload()
+        await fixture.switchAppleID(to: "apple-2")
+        await fixture.switchAppleID(to: "apple-1", values: [Self.superKey: Self.envelope([Self.favorite()])])
+        await fixture.sync.handle(.listsChanged)
+        fixture.superFavoritePersistence.failsToLoad = false
+        await fixture.superFavorites.reload()
+        await fixture.sync.handle(.listsChanged)
+        #expect(fixture.cloudSuperFavorites()?.map(\.topic) == [Self.other, Self.topic])
+        #expect(await fixture.superFavorites.favorites(for: "Alice").count == 2)
+    }
+
+    @Test func aStaleStoreRecoveringRestoresOnlyItsOwnLists() async throws {
+        let aside = SyncQuarantineEntry(
+            savedAt: Self.start, values: [SyncedListsStore.allowlistKey: Self.envelope([PseudoListEntry(pseudo: "Kept")])]
+        )
+        let superPersistence = FailingSmallStorePersistence<SuperFavoritesDocument>()
+        let smileyPersistence = FailingSmallStorePersistence<AppSmileyFavoritesDocument>()
+        superPersistence.failsToLoad = true
+        smileyPersistence.failsToLoad = true
+        let pseudoLists = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        let superFavorites = SuperFavoritesStore(persistence: superPersistence)
+        let smileyFavorites = AppSmileyFavoritesStore(persistence: smileyPersistence)
+        await superFavorites.reload()
+        await smileyFavorites.reload()
+        _ = try await pseudoLists.allow("Mine")
+        let sync = SyncedListsStore(
+            cloud: InMemorySyncedKeyValueStore(identity: "apple-1"), pseudoLists: pseudoLists,
+            superFavorites: superFavorites, smileyFavorites: smileyFavorites,
+            positions: ReadingPositionStore(persistence: FlakyPositionPersistence()),
+            deviceState: FailingSmallStorePersistence(SyncedListsDeviceState(
+                owner: "apple-1", stale: ["superfavorites": "apple-0", "smileyfavorites": "apple-0"],
+                quarantine: ["apple-1": aside]
+            )),
+            accounts: { ["Alice"] }, clock: { Self.start }, sleep: { _ in }
+        )
+        await sync.start()
+        smileyPersistence.failsToLoad = false
+        await smileyFavorites.reload()
+        await sync.handle(.listsChanged)
+        _ = try await pseudoLists.replaceAllowlist(with: [])
+        await sync.handle(.listsChanged)
+        // Another store recovering later never refills the allowlist the user emptied.
+        superPersistence.failsToLoad = false
+        await superFavorites.reload()
+        await sync.handle(.listsChanged)
+        #expect(await pseudoLists.allowlist().isEmpty)
+    }
+
     @Test func aListEmptiedAfterADeferredRestoreIsNotRefilled() async throws {
         let second = SyncQuarantineEntry(savedAt: Self.start, values: [Self.superKey: Self.envelope([Self.favorite(Self.other)])])
         let fixture = await Self.make(deviceState: SyncedListsDeviceState(owner: "apple-1", quarantine: ["apple-2": second]))
@@ -225,7 +278,25 @@ extension SyncedListsStoreTests {
         fixture.deviceState.failsToSave = false
         await fixture.sync.handle(.listsChanged)
         #expect(fixture.deviceState.saved?.owner == "apple-2")
-        #expect(fixture.cloudSuperFavorites() == [Self.favorite(Self.other)])
+        // The store kept apple-1's list until the file could hold it: the add made meanwhile went aside with it.
+        #expect(fixture.cloud.value(forKey: Self.superKey) == nil)
+        #expect(await fixture.superFavorites.favorites(for: "Alice").isEmpty)
+        let aside = fixture.quarantine()["apple-1"]?.values[Self.superKey]
+        #expect(aside.flatMap { SyncedListEnvelope<SuperFavorite>($0)?.items }?.count == 2)
+    }
+
+    @Test func aSwitchWhoseQuarantineCannotBeSavedLosesNoListAtAKill() async throws {
+        let fixture = await Self.make()
+        try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        await fixture.sync.handle(.listsChanged)
+        fixture.deviceState.failsToSave = true
+        await fixture.switchAppleID(to: "apple-2")
+        // The process dies before any save succeeds; the next launch reads the file as it was.
+        fixture.deviceState.failsToSave = false
+        _ = await fixture.relaunched()
+        let local = await fixture.superFavorites.favorites(for: "Alice")
+        let aside = fixture.quarantine()["apple-1"]?.values[Self.superKey].flatMap { SyncedListEnvelope<SuperFavorite>($0)?.items }
+        #expect(local == [Self.favorite()] || aside == [Self.favorite()])
     }
 
     @Test func aSwitchPausedByTheDeviceFileRestoresOnceItCanSave() async throws {
@@ -249,11 +320,12 @@ extension SyncedListsStoreTests {
             Self.superKey: Self.envelope([Self.favorite(Self.other)]), Self.positionsKey: Self.envelope(positions)
         ]
         await fixture.switchAppleID(to: "apple-2", values: second)
-        // An add made while the sync is paused has no last-synced state: the Apple ID's cloud list wins, as at a
-        // first sync, and its own list is never overwritten by one built over an empty store.
+        // The store keeps apple-1's list until the file can hold it, so an add made while the sync is paused goes
+        // aside with it; the new Apple ID's cloud list is never overwritten by a list built over that store.
         try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
         fixture.deviceState.failsToSave = false
         await fixture.sync.handle(.listsChanged)
+        #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
         #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite(Self.other)])
         #expect(fixture.cloudSuperFavorites() == [Self.favorite(Self.other)])
         #expect(await fixture.positions.position(of: Self.other, account: "Alice")?.page == 7)
@@ -266,6 +338,8 @@ extension SyncedListsStoreTests {
         fixture.deviceState.failsToSave = true
         await fixture.switchAppleID(to: "apple-2")
         #expect(fixture.quarantine()["apple-1"] == nil)
+        // Not emptied while only the memory holds its list.
+        #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite()])
         fixture.deviceState.failsToSave = false
         await fixture.sync.handle(.listsChanged)
         #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
@@ -310,9 +384,11 @@ extension SyncedListsStoreTests {
         let sync = await fixture.relaunched()
         let running = Task { await sync.run() }
         defer { running.cancel() }
-        for _ in 0..<1000 where await !sync.isListening {
+        for _ in 0..<1000 where await !sync.isRunning {
             try await Task.sleep(for: .milliseconds(1))
         }
+        // Past the launch: the save below reaches the sync through the store's change feed, not the launch rule.
+        try #require(await sync.isRunning)
         try await fixture.superFavorites.add(Self.topic, account: "Alice", at: Self.start)
         for _ in 0..<1000 where fixture.cloudSuperFavorites() == nil {
             try await Task.sleep(for: .milliseconds(5))

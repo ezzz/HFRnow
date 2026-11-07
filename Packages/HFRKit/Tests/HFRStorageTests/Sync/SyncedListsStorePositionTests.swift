@@ -107,9 +107,11 @@ extension SyncedListsStoreTests {
             accounts: { ["Alice"] }, positionsDelay: .milliseconds(20)
         )
         let running = Task { await sync.run() }
-        for _ in 0..<1000 where await !sync.isListening {
+        for _ in 0..<1000 where await !sync.isRunning {
             try await Task.sleep(for: .milliseconds(1))
         }
+        // Past the launch: the save below reaches the sync through the store's change feed, not the launch rule.
+        try #require(await sync.isRunning)
         try await fixture.positions.advance(Self.topic, to: Self.position(page: 2, at: 0), account: "Alice")
         for _ in 0..<1000 where fixture.cloudPositions() == nil {
             try await Task.sleep(for: .milliseconds(5))

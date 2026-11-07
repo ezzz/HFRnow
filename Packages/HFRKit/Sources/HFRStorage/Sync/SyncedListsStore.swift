@@ -65,10 +65,12 @@ public actor SyncedListsStore {
     /// Whether the device file lags behind the owner, the stale stores or the digests: the sync then pauses, since
     /// the next launch would read an older owner.
     var stateUnsaved = false
-    /// Whether a restore could not run when it was due (an owner change not yet saved, a stale store).
+    /// Whether the restore of a switch could not run when it was due (an owner change not yet saved).
     var restoreDeferred = false
-    /// Whether `run()` listens to the stores (tests wait for it).
-    var isListening = false
+    /// Stores that stopped being stale while the owner's restore could not run: only their lists come back.
+    var restoreDeferredSlots: Set<Slot> = []
+    /// Whether `run()` finished the launch and forwards the stores' changes (tests wait for it).
+    var isRunning = false
     var positionsTimer: Task<Void, Never>?
     var positionsPending = false
     var positionsGeneration = 0
@@ -122,7 +124,6 @@ public actor SyncedListsStore {
         let superFavoriteChanges = await superFavorites.changes()
         let smileyFavoriteChanges = await smileyFavorites.changes()
         let positionChanges = await positions.changes()
-        isListening = true
         await start()
         await withTaskGroup(of: Void.self) { group in
             let sink = sink
@@ -131,6 +132,7 @@ public actor SyncedListsStore {
             group.addTask { for await _ in superFavoriteChanges { sink.yield(.listsChanged) } }
             group.addTask { for await _ in smileyFavoriteChanges { sink.yield(.listsChanged) } }
             group.addTask { for await _ in positionChanges { sink.yield(.positionsChanged) } }
+            isRunning = true
             for await event in events {
                 await handle(event)
             }
@@ -184,7 +186,7 @@ public actor SyncedListsStore {
         guard deviceStateLoaded else { return }
         // A refusal is marked before the recovery of a paused sync: its reconcile must not take the older cloud list
         // the store kept for the latest one and replace the local list with it.
-        if case .cloud(let change) = event, change.reason == .quotaViolation { markRefused(change.keys) }
+        if case .cloud(let change) = event, change.reason == .quotaViolation { refused(change.keys) }
         await catchUp()
         switch event {
         case .cloud(let change):
@@ -199,9 +201,11 @@ public actor SyncedListsStore {
         case .positionsDue(let generation):
             if generation == positionsGeneration { await pushPendingPositions() }
         case .flushPositions:
+            // Unconditional: a change saved during the launch can still sit in its store's stream. A push happens
+            // only when the places differ from the cloud's.
             positionsGeneration += 1
             positionsTimer?.cancel()
-            await pushPendingPositions()
+            await pushAllPositions()
         case .accountsChanged:
             await reconcile()
         case .graceEnded:
@@ -235,7 +239,6 @@ public actor SyncedListsStore {
         if change.reason != .accountChange, cloud.accountIdentity() != nil,
            owner.map({ !cloud.isCurrentAccount($0) }) ?? true {
             // An Apple ID change whose notification was missed.
-            if change.reason == .quotaViolation { refused(change.keys) }
             await accountChanged()
             return
         }
@@ -245,7 +248,7 @@ public actor SyncedListsStore {
         case .initialSync:
             await reconcile()
         case .quotaViolation:
-            refused(change.keys)
+            // Marked by `handle(_ event:)` before any recovery: marking again here would undo the recovery's push.
             if wasWaiting { await reconcile() }
         case .serverChange:
             if wasWaiting {
@@ -257,17 +260,13 @@ public actor SyncedListsStore {
     }
 
     /// Lists the cloud refused for quota: reported, and no longer taken as synced, so the cloud's older list never
-    /// replaces them and the next change or initial sync pushes them again.
+    /// replaces them and the next change or initial sync pushes them again. A paused sync saves the mark when it
+    /// resumes (`catchUp()`): saving it here would skip the recovery's initial-sync rule.
     private func refused(_ keys: [String]) {
-        markRefused(keys)
-        saveDeviceState()
-    }
-
-    /// `refused(_:)` in memory only: a paused sync saves it when it resumes.
-    private func markRefused(_ keys: [String]) {
         let lists = keys.filter(Self.isListKey)
         quotaViolations.formUnion(lists)
         for key in lists where !Self.isPositionsKey(key) { synced[key] = Self.refusedDigest }
+        if !stateUnsaved { saveDeviceState() }
     }
 
     // MARK: Apple ID

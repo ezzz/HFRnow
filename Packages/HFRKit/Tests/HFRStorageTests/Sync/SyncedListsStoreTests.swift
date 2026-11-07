@@ -196,6 +196,8 @@ import Testing
         await fixture.sync.handle(.cloud(SyncedStoreChange(reason: .quotaViolation, keys: [Self.superKey])))
         #expect(await fixture.superFavorites.favorites(for: "Alice").count == 2)
         #expect(fixture.cloudSuperFavorites()?.count == 2)
+        // The recovery's push is recorded as synced, not marked refused again (which would push it once more).
+        #expect(fixture.deviceState.saved?.synced[Self.superKey] == fixture.cloud.value(forKey: Self.superKey)?.digest)
     }
 
     @Test func anUnchangedListNeverOverwritesAnotherDevicesPendingChange() async throws {
