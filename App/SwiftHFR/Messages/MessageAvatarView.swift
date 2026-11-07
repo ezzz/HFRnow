@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 // Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79. Differences: the avatar cache is filled by
-// `AvatarStore` from the pages read (GAP-228); the placeholder is a monogram, not a grey disc.
+// `AvatarStore` from the pages read (GAP-229); the placeholder is a monogram, not a grey disc.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a monogram when the cache has none, a group icon for a group
 /// thread; the row sets its size (LOT-169 density). It only reads the cache; `AvatarStore` fills it, and the view reads it again
 /// when the store's generation changes.

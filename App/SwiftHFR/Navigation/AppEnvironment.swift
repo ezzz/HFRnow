@@ -32,7 +32,7 @@ struct AppEnvironment {
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
         let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
-        // Every page read hands its authors' avatars to the cache (GAP-228); each write refreshes the MP rows.
+        // Every page read hands its authors' avatars to the cache (GAP-229); each write refreshes the MP rows.
         let avatars = AvatarStore.live(refresh: avatarRefresh)
         let pages = AvatarFillingTopicPageSource(
             base: RefreshingTopicPageSource(

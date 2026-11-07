@@ -11,6 +11,8 @@ Code and knowledge from these projects are reused with gratitude.
 | HFRnow | <https://github.com/ezzz/HFRnow> | Continuation; introduced the SwiftUI layer reused here |
 | SwiftHFR | this repository | Full Swift rewrite |
 
+**App icon.** The icon art (`App/SwiftHFR/Icon-RedFace3D.icon`, and the unwired alternate `Icon-RedFace3DBig.icon`) comes unchanged from the legacy HFR+ app (ezzz/HFRnow `master` @ `2440d79`: `SuperHFRplus/Assets/` for the main icon, `SuperHFRplus/Assets/AlternativeIcons/` for the alternate): credit to FLKone and the HFR+ contributors, and to ezzz and the HFRnow contributors.
+
 > Maintainers: complete this table with every fork in the chain and the names of their main contributors.
 
 ## Contributors
