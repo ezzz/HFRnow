@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 import HFRStorage
 import SwiftUI
 
@@ -14,6 +15,8 @@ struct ThemeAppearance: Equatable, Sendable {
     var nightAccent: ThemeColor
     /// Multiplier of the dark surfaces' brightness, 0...`maximumDarkBrightness` (`theme_night_brightness`).
     var darkBrightness: Double
+    /// How dark the dark surfaces are (`theme_dark_style`, LOT-122); the brightness multiplier applies on top of it.
+    var darkStyle = DarkStyle.standard
 
     /// Legacy default accent hue, 190° (`AppSettingsView.swift:16`).
     static let defaultHue = 190.0 / 360.0
@@ -50,18 +53,42 @@ struct ThemeAppearance: Equatable, Sendable {
         return ThemeColor(hue: hsb.hue, saturation: hsb.saturation, brightness: adjusted, alpha: color.alpha)
     }
 
-    /// The reader's dark surfaces at brightness 100 %: the `reader.css` dark palette (LOT-083), so the default is unchanged.
-    static let readerDarkSurfaces: [(variable: String, color: ThemeColor)] = [
-        ("--app-dark-background", ThemeColor(hex: 0x000000)),
-        ("--app-dark-quote-background", ThemeColor(hex: 0x1C1C1E)),
-        ("--app-dark-placeholder", ThemeColor(hex: 0x2C2C2E)),
-        ("--app-dark-separator", ThemeColor(hex: 0x38383A))
-    ]
+    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is the `reader.css` dark palette (LOT-083), so the
+    /// default is unchanged. These feed `reader.css`'s tokens: its message rule and alternate surface (#568) derive from the
+    /// text colour and `--app-dark-background`, so there is no second separator spec here.
+    static func readerDarkSurfaces(_ style: DarkStyle) -> [(variable: String, color: ThemeColor)] {
+        let palette: [Int] = switch style {
+        case .standard: [0x000000, 0x1C1C1E, 0x2C2C2E, 0x38383A]
+        case .darker: [0x0B0B0C, 0x17181A, 0x232326, 0x2E2E31]
+        case .oled: [0x000000, 0x111113, 0x1C1C1E, 0x38383A]
+        }
+        let names = ["--app-dark-background", "--app-dark-quote-background", "--app-dark-placeholder", "--app-dark-separator"]
+        return zip(names, palette).map { ($0, ThemeColor(hex: $1)) }
+    }
+
+    /// The background of every screen in the dark theme, or nil for the system's (`standard`).
+    var darkScreenBackground: ThemeColor? {
+        switch darkStyle {
+        case .standard: nil
+        case .darker: ThemeColor(hex: 0x0B0B0C)
+        case .oled: ThemeColor(hex: 0x000000)
+        }
+    }
 
     /// The CSS variables `reader.css` reads: both accents and the dark surfaces at `darkBrightness`.
     var readerVariables: [(name: String, value: String)] {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
-            + Self.readerDarkSurfaces.map { ($0.variable, adjustedDark($0.color).cssRGB) }
+            + Self.readerDarkSurfaces(darkStyle).map { ($0.variable, readerSurface($0.variable, $0.color).cssRGB) }
+    }
+
+    /// A reader surface at `darkBrightness`. The darker and OLED styles never lift the page background above their own value:
+    /// at 150 % the darker background (#0B0B0C) would put a continuation date (secondary text at 75 % opacity on the tinted
+    /// header) under 4.5:1 (CodeRabbit on #589); the slider still darkens it, and still scales the other surfaces.
+    private func readerSurface(_ variable: String, _ color: ThemeColor) -> ThemeColor {
+        guard darkStyle != .standard, variable == "--app-dark-background", darkBrightness > 1 else { return adjustedDark(color) }
+        var capped = self
+        capped.darkBrightness = 1
+        return capped.adjustedDark(color)
     }
 
     /// The script that sets `readerVariables` on the document's root element; every value is an `rgb()` the app formats from
@@ -133,6 +160,16 @@ extension ThemeColor {
     var cssRGB: String {
         let channels = [red, green, blue].map { Int((min(max($0, 0), 1) * 255).rounded()) }
         return "rgb(\(channels[0]), \(channels[1]), \(channels[2]))"
+    }
+
+    /// WCAG 2 contrast ratio against `other`, 1...21.
+    func contrast(with other: ThemeColor) -> Double {
+        func luminance(_ color: ThemeColor) -> Double {
+            func linear(_ value: Double) -> Double { value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4) }
+            return 0.2126 * linear(color.red) + 0.7152 * linear(color.green) + 0.0722 * linear(color.blue)
+        }
+        let (lighter, darker) = (max(luminance(self), luminance(other)), min(luminance(self), luminance(other)))
+        return (lighter + 0.05) / (darker + 0.05)
     }
 
     /// The UIKit colour (sRGB).

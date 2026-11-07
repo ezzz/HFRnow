@@ -1,3 +1,4 @@
+import HFRModels
 import HFRStorage
 @testable import SwiftHFR
 import SwiftUI
@@ -79,5 +80,71 @@ struct ThemeAppearanceTests {
         #expect(red > 0.99 && blue < 0.01)
         color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         #expect(blue > 0.99 && red < 0.01)
+    }
+
+    @Test func theStandardStyleKeepsTheReaderDarkPalette() {
+        let variables = Dictionary(uniqueKeysWithValues: ThemeAppearance.standard.readerVariables.map { ($0.name, $0.value) })
+        #expect(variables["--app-dark-background"] == "rgb(0, 0, 0)")
+        #expect(variables["--app-dark-quote-background"] == "rgb(28, 28, 30)")
+        #expect(variables["--app-dark-placeholder"] == "rgb(44, 44, 46)")
+        #expect(variables["--app-dark-separator"] == "rgb(56, 56, 58)")
+        #expect(ThemeAppearance.standard.darkScreenBackground == nil)
+    }
+
+    @Test func theDarkerAndOLEDStylesSetTheScreenAndTheReaderSurfaces() {
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = .darker
+        #expect(appearance.darkScreenBackground?.cssRGB == "rgb(11, 11, 12)")
+        #expect(Dictionary(uniqueKeysWithValues: appearance.readerVariables.map { ($0.name, $0.value) })["--app-dark-background"]
+            == "rgb(11, 11, 12)")
+        appearance.darkStyle = .oled
+        #expect(appearance.darkScreenBackground?.cssRGB == "rgb(0, 0, 0)")
+        // The brightness slider still scales the chosen surfaces: 0 % is black in every style.
+        appearance.darkStyle = .darker
+        appearance.darkBrightness = 0
+        let variables = Dictionary(uniqueKeysWithValues: appearance.readerVariables.map { ($0.name, $0.value) })
+        #expect(variables["--app-dark-background"] == "rgb(0, 0, 0)")
+    }
+
+    /// Acceptance criterion of #213: text is at least 4.5:1 on every surface of every dark style, and the light theme's.
+    @Test(arguments: DarkStyle.allCases)
+    func textHasAtLeast4_5ToOneOnEveryDarkSurface(style: DarkStyle) {
+        let text = ThemeColor(hex: 0xF2F2F7), secondary = ThemeColor(hex: 0xA1A1A6)
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = style
+        for surface in ThemeAppearance.readerDarkSurfaces(style) where surface.variable != "--app-dark-separator" {
+            #expect(text.contrast(with: surface.color) >= 4.5, "\(style) text on \(surface.variable)")
+            #expect(secondary.contrast(with: surface.color) >= 4.5, "\(style) secondary on \(surface.variable)")
+            #expect(appearance.nightAccent.contrast(with: surface.color) >= 4.5, "\(style) accent on \(surface.variable)")
+        }
+        // Light: --text #1c1c1e and --secondary #6c6c70 on --background #ffffff and the quote #f2f2f7 of reader.css.
+        for light in [ThemeColor(hex: 0xFFFFFF), ThemeColor(hex: 0xF2F2F7)] {
+            #expect(ThemeColor(hex: 0x1C1C1E).contrast(with: light) >= 4.5)
+            #expect(ThemeColor(hex: 0x6C6C70).contrast(with: light) >= 4.5)
+        }
+    }
+
+    @Test func contrastMatchesWCAGReferenceValues() {
+        #expect(abs(ThemeColor(hex: 0x000000).contrast(with: ThemeColor(hex: 0xFFFFFF)) - 21) < 1e-9)
+        #expect(abs(ThemeColor(hex: 0x777777).contrast(with: ThemeColor(hex: 0xFFFFFF)) - 4.48) < 0.01)
+    }
+
+    /// A continuation message is drawn at 75 % opacity over the page (`.continuation`), its header tinted with 3 % of the accent:
+    /// its date, `--secondary` text, keeps 4.5:1 on that header at every brightness (CodeRabbit on #589 measured 4.46:1 at 150 %).
+    @Test(arguments: DarkStyle.allCases, [0.0, 0.5, 1.0, 1.25, 1.5])
+    func aContinuationDateKeepsItsContrastAtEveryBrightness(style: DarkStyle, brightness: Double) throws {
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = style
+        appearance.darkBrightness = brightness
+        let value = try #require(appearance.readerVariables.first { $0.name == "--app-dark-background" }?.value)
+        let channels = value.dropFirst(4).dropLast().split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        func mix(_ lhs: [Double], _ rhs: [Double], _ weight: Double) -> [Double] { zip(lhs, rhs).map { $0 * (1 - weight) + $1 * weight } }
+        func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
+        let accent = [appearance.nightAccent.red, appearance.nightAccent.green, appearance.nightAccent.blue].map { $0 * 255 }
+        let header = mix(channels, accent, 0.03)
+        // Opacity 0.75 blends the header and the text toward the page behind them.
+        let shownHeader = mix(channels, header, 0.75)
+        let shownText = mix(channels, [161, 161, 166], 0.75)
+        #expect(colour(shownText).contrast(with: colour(shownHeader)) >= 4.5, "\(style) at \(brightness): \(channels)")
     }
 }

@@ -32,7 +32,7 @@ struct PollSheet: View {
     let model: PollModel
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             List {
                 Section { Text(model.poll.question).font(.headline) }
                 switch model.poll.kind {

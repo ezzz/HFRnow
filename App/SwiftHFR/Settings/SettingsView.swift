@@ -150,6 +150,10 @@ struct SettingsDestinationView: View {
     let destination: SettingsDestination
 
     var body: some View {
+        destinationContent.appScreenBackground()
+    }
+
+    @ViewBuilder private var destinationContent: some View {
         switch destination {
         case .theme:
             ThemeSettingsView()
@@ -164,7 +168,7 @@ struct SettingsDestinationView: View {
 }
 
 #Preview("Réglages") {
-    NavigationStack { SettingsView() }
+    ThemedNavigationStack { SettingsView() }
         .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
         .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
 }

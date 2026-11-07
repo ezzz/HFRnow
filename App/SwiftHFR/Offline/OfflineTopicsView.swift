@@ -58,6 +58,7 @@ struct OfflineTopicsView: View {
         .navigationDestination(item: $opened) { target in
             OfflineReaderScreen(topic: target.topic, model: model, services: services)
         }
+        .appScreenBackground()
         .task { await model.load() }
         .refreshable { await model.load() }
     }
