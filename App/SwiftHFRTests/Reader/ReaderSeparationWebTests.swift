@@ -25,44 +25,58 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         )
     }
 
-    /// Background of articles 1 and 2, the colour and width of article 1's bottom rule, the quiet separator, the quote's background.
+    /// Rounded channels of: article 1 and 2 backgrounds, article 1's bottom rule, the quiet `--separator` (as a border colour, since the
+    /// app supplies it as rgb()), the quote's background; then the rule's width.
     private let probe = """
         // color-mix() computes to color(srgb 0.95 …) in some engines and rgb() in others: both become rounded 0-255 channels.
         const channels = (c) => {
             const m = c.match(/[\\d.]+/g).map(Number);
-            return (c.startsWith('color(') ? m.slice(0, 3).map((v) => Math.round(v * 255)) : m).join(',');
+            return c.startsWith('color(') ? m.slice(0, 3).map((v) => Math.round(v * 255)) : m;
         };
         const articles = document.querySelectorAll('article.message');
         const first = getComputedStyle(articles[0]), second = getComputedStyle(articles[1]);
         const quote = getComputedStyle(articles[1].querySelector('table.quote'));
-        return [channels(first.backgroundColor), channels(second.backgroundColor), channels(first.borderBottomColor),
-                first.borderBottomWidth, getComputedStyle(document.documentElement).getPropertyValue('--separator').trim(),
-                channels(quote.backgroundColor)].join('|');
+        const quiet = document.createElement('div');
+        quiet.style.cssText = 'border-top: 1px solid var(--separator)';
+        document.body.appendChild(quiet);
+        const separator = getComputedStyle(quiet).borderTopColor;
+        quiet.remove();
+        return JSON.stringify([channels(first.backgroundColor), channels(second.backgroundColor), channels(first.borderBottomColor),
+                               channels(separator), channels(quote.backgroundColor), [parseFloat(first.borderBottomWidth)]]);
         """
 
-    private func read(style: UIUserInterfaceStyle, token: Int, expected: String) async -> (Bool, String) {
+    /// Channels may differ by 1: engines round a colour mix differently.
+    private func matches(_ seen: String?, _ expected: [[Double]]) -> Bool {
+        guard let data = seen?.data(using: .utf8), let values = try? JSONDecoder().decode([[Double]].self, from: data),
+              values.count == expected.count else { return false }
+        return zip(values, expected).allSatisfy { got, want in
+            got.count == want.count && zip(got, want).allSatisfy { abs($0 - $1) <= 1 }
+        }
+    }
+
+    private func read(style: UIUserInterfaceStyle, token: Int, expected: [[Double]]) async -> (Bool, String) {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = style
         controller.show(twoMessages(token: token))
         guard await until({ recorder.ready == [token] }) else { return (false, "not ready: \(recorder.ready)") }
-        let matched = await until(async: { ((try? await self.evaluate(self.probe, in: controller)) as? String) == expected })
+        let matched = await until(async: { self.matches(try? await self.evaluate(self.probe, in: controller) as? String, expected) })
         return (matched, ((try? await evaluate(probe, in: controller)) as? String) ?? "")
     }
 
-    // 0x1C1C1E text at 5 % over white: 244,244,244; rule #c6c6c8; quote on --placeholder #e5e5ea.
+    // 0x1C1C1E at 5 % over white: 244; rule at 25 %: 198,198,199 (the quiet separator is #d1d1d6: lighter); quote on --placeholder #e5e5ea.
     @Test func inLightTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .light, token: 1,
-            expected: "0,0,0,0|244,244,244|198,198,200|1px|#d1d1d6|229,229,234"
+            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [229, 229, 234], [1]]
         )
         #expect(matched, "seen: \(seen)")
     }
 
-    // 0xF2F2F7 text at 9 % over black: 22,22,22; rule #545458; quote on --placeholder #2c2c2e.
+    // 0xF2F2F7 at 9 % over black: 22; rule at 35 %: 85,85,86, against the app's quiet separator rgb(56, 56, 58); quote on #2c2c2e.
     @Test func inDarkTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .dark, token: 2,
-            expected: "0,0,0,0|22,22,22|84,84,88|1px|#38383a|44,44,46"
+            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [44, 44, 46], [1]]
         )
         #expect(matched, "seen: \(seen)")
     }

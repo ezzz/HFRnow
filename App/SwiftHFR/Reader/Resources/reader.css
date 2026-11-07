@@ -17,10 +17,12 @@
   --love-border: #ff0099;
   --modo: #ffeeee;
   /* Message separation (#568): the even messages sit on a tint of the text colour over the background, so the surface follows
-     light, dark, the dark brightness slider and the classic style; the rule is stronger than --separator (that one stays for the
-     quiet dashed lines inside a message). Legacy drew a near-black 1 px rule above each message (style-liste-light.css:153-160). */
+     light, dark, the dark brightness slider and the classic style. The rule is a tint too, stronger than --separator: the app sets
+     --app-dark-separator on every reader, so the rule cannot reuse it (--separator stays for the quiet dashed lines inside a
+     message). Legacy drew a near-black 1 px rule above each message (style-liste-light.css:153-160). */
   --alt-strength: 5%;
-  --separator-strong: #c6c6c8;
+  --rule-strength: 25%;
+  --separator-strong: color-mix(in srgb, var(--text) var(--rule-strength), var(--background));
   --surface-alt: color-mix(in srgb, var(--text) var(--alt-strength), var(--background));
 }
 
@@ -37,17 +39,17 @@
     --love: #4d0831;
     --modo: #4a2e3c;
     --alt-strength: 9%;
-    --separator-strong: var(--app-dark-separator, #545458);
+    --rule-strength: 35%;
   }
 }
 
 /* Increase Contrast: a stronger tint and rule (HIG, Accessibility: colours must hold in light, dark and increased contrast).
    Light stops at 7 %, not 10 %: --secondary on a 10 % surface is 4.27:1, under 4.5:1 (7 %: 4.55:1). */
 @media (prefers-contrast: more) {
-  :root { --alt-strength: 7%; --separator-strong: #8e8e93; }
+  :root { --alt-strength: 7%; --rule-strength: 50%; }
 }
 @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  :root { --alt-strength: 16%; --separator-strong: #8e8e93; }
+  :root { --alt-strength: 16%; --rule-strength: 50%; }
 }
 
 /* --app-* are the "Thème" settings (LOT-121): both accents and the dark surfaces at the chosen brightness, set on <html> by the
