@@ -107,8 +107,9 @@ struct TopicListView: View {
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
     /// Over `.clear`: the super favourite looked like this before (a translucent orange, whatever the list style), and a card
     /// colour underneath would show as a grey block in a sidebar column (#570, #584).
-    static func rowTint(topic: TopicSummary, isSuperFavorite: Bool, isSelected: Bool) -> RowTint? {
-        guard let accent = TopicRowCues.accent(flag: topic.flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
+    static func rowTint(topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool) -> RowTint? {
+        let flag = showsFlag ? topic.flag : nil
+        guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
             return nil
         }
         return RowTint(tint: accent.color, weight: accent.weight, base: .clear)
@@ -119,7 +120,9 @@ struct TopicListView: View {
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(TopicListView.rowTint(topic: topic, isSuperFavorite: isSuper, isSelected: selection == topic))
+                .listRowBackground(TopicListView.rowTint(
+                    topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic
+                ))
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }

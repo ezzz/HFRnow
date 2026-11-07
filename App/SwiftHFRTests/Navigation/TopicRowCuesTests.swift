@@ -23,6 +23,8 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.unreadPages(topic(pages: 5)) == nil)
         #expect(TopicRowCues.unreadPages(topic(flag: .blue, current: 5, pages: 5)) == nil)
         #expect(TopicRowCues.unreadPages(topic(flag: .blue, current: 2, pages: 5)) == 3)
+        #expect(TopicRowCues.unreadPages(topic(current: 2, pages: 5)) == nil)
+        #expect(TopicRowCues.unreadPages(topic(flag: .blue, current: 0, pages: 5)) == nil)
         #expect(TopicRowCues.unreadPagesLabel(3) == "3 pages non lues")
         #expect(TopicRowCues.unreadPagesLabel(1) == "1 page non lue")
     }
@@ -32,6 +34,7 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 2, pages: 5)) == "⚑ 2 / 5")
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 2, pages: 5, poll: true)) == "⚑ \u{2263} 2 / 5")
         #expect(TopicRowCues.pageFooter(topic(pages: 5)) == nil)
+        #expect(TopicRowCues.pageFooter(topic(current: 2, pages: 5)) == nil)
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 0, pages: 5)) == nil)
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 9, pages: 5)) == nil)
     }
@@ -55,5 +58,7 @@ struct TopicRowCuesTests {
         #expect(sup.base == .clear)
         #expect(sup.weight == 1)
         #expect(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: true) == nil)
+        // A flag removal HFR confirmed hides the icon, the capsule and the footer: the tint goes too.
+        #expect(TopicListView.rowTint(topic: topic(flag: .blue), showsFlag: false, isSuperFavorite: false, isSelected: false) == nil)
     }
 }
