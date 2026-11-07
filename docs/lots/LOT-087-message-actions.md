@@ -69,7 +69,8 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    at the tapped point (`MessagesView.swift:1521-1595`). It is no longer a `confirmationDialog` of the whole reader, which iOS 26
    and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the
    `menu` message; the decoder keeps it only as finite real numbers (never booleans), within 100 000 points and with no negative
-   size, otherwise the menu opens unanchored (middle of the reader), never at a forged place. The controller adds the top bar
+   size, otherwise the menu opens unanchored (middle of the reader), never at a forged place. `reader.js` brings the rectangle to what the user sees
+   after a pinch zoom (`visualViewport` offset and scale); the controller adds the top bar
    inset (`obscuredContentInsets` makes `getBoundingClientRect` count from the bars' edge).
 7. "Alerter" (LOT-135 #225), AQ (LOT-134) and Bookmark (LOT-132) have no handler yet and stay hidden: until they land, a topic
    menu shows Link, the quotes and Favoris only when the reader has a composer and flag actions. The handlers are installed once
