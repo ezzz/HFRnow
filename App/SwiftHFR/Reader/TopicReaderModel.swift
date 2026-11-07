@@ -131,11 +131,12 @@ final class TopicReaderModel {
         }
     }
 
-    /// Opens page `number` of the topic (clamped to the known pages).
-    func goToPage(_ number: Int) async {
+    /// Opens page `number` of the topic (clamped to the known pages), at its top or, `atLastMessage`, at its last message
+    /// (legacy ‹ and "Dernier post", `MessagesView.swift:4168-4178, 4234-4236` @ 2440d79).
+    func goToPage(_ number: Int, atLastMessage: Bool = false) async {
         guard let shown, let page else { return }
         let clamped = min(max(1, number), page.maxPage)
-        await load(shown.atPage(clamped), keepsScrollPosition: false)
+        await load(shown.atPage(clamped), keepsScrollPosition: false, anchor: atLastMessage ? .lastMessage : .target)
     }
 
     /// Rebuilds the page on screen when a display setting (layout, signatures) changed since it was built, without a

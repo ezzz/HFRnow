@@ -148,6 +148,11 @@ already gone for user2). Nothing of the thread is left on HFR. One message, no e
 | R57a | `R57a-rest-categories.json` | REST categories (20) | R57 | 057 |
 | R57b | `R57b-rest-category-topics-last.json` | REST last topics of cat 13 (25 per page) | R57 | 057 |
 | R57c | `R57c-rest-topic.json` | REST one topic | R57 | 057 |
+| R335a | `R335a-rest-bucket-participated.json` | REST flag bucket `topics/participated/` (global, grouped by category), logged in (user1): 2 groups of 1 topic, aliased by position so fixtures stay stable and carry no live data (kit README, REST flag buckets) | R57 | 057 |
+| R335b | `R335b-rest-bucket-read.json` | The same for `topics/read/` | R57 | 057 |
+| R335c | `R335c-rest-bucket-favorites.json` | The same for `topics/favorites/` | R57 | 057 |
+| R335d | `R335d-rest-bucket-participated-page2-per-page5.json` | Global `participated` asked with `&page=2&results_per_page=5`: answered like page 1 (`page` 1, the hrefs echo the request); paging is not served | R57 | 057 |
+| R335e | `R335e-rest-bucket-participated-category-page2-per-page5.json` | Flat form `categories/<cat>/topics/participated/&page=2&results_per_page=5` (category aliased `101` in the file and its URL): a `topic` list with no `links`, `page` echoed as 2, every entry returned (2 kept) | R57 | 057 |
 | W00 | `W00-login-form-anon.html` | Login page `login.php`: form `form1` fields | W01 (diagnosis) | 043 |
 | W01 | `W01-login-failure.html` | Refused login (user1, stored credentials): `.hop` "Votre mot de passe ou nom d'utilisateur n'est pas valide", refresh to `/`, no cookie | W01 (stands in for W02) | 043 |
 | W03 | `W03-login-success.html` | Login success (user2): "Vérification de votre identification...", refresh to `login_redirection.php`, cookies `md_user`, `md_passs`, `md_id` | W03 | 043, 042, 025 |
@@ -315,6 +320,12 @@ already gone for user2). Nothing of the thread is left on HFR. One message, no e
 | R130c | `R130c-mp-quote-form-leading-newline.html` | Quote form of that message: `[quotemsg=<cited>,1,<id>]\r\nword[/quotemsg]\n`, the leading break kept | R47 | 036, 049 |
 | W137a | `W137a-mp-mark-unread-logged-out.html` | `nonlu.php` of the `W130` thread (link as the page serves it) sent **without any cookie**, no redirect followed: 200 `.hop` "Ce message ne vous est pas destiné, désolé" + back link, no refresh, no cookie set; byte for byte `R96c` (#137) | W18 | 058, 037, 044 |
 | W137b | `W137b-mp-mark-unread-logged-out-again.html` | The same request again: identical to `W137a` to the byte | W18 | 058 |
+| R298a | `R298a-topic-id-form-1711-logged-out.html` | Id form `forum2.php?config=hfr.inc&cat=25&post=1711&page=1` (an Apple topic), logged out: one 301 to the canonical `/hfr/apple/<slug>-sujet_1711_1.htm`, 200 | R5 | 095, 120 |
+| R298b | `R298b-topic-id-form-1711-logged-in.html` | The same, logged in (user2): same 301 and final URL, 200, cookies refreshed | R5 | 095, 120 |
+| R298c | `R298c-topic-id-form-subcat-8811-logged-out.html` | Id form with `subcat=528&post=8811`: one 301 to `/hfr/apple/<sub-category>/<slug>-sujet_8811_1.htm`, 200, logged out | R5 | 095, 120 |
+| R298d | `R298d-topic-id-form-subcat-8811-logged-in.html` | The same, logged in (user2) | R5 | 095, 120 |
+| R298e | `R298e-topic-stale-slug-1711-logged-out.html` | The stale slug of legacy `HFRDebugViewController.m:23` (`/hfr/apple/officiel-application-hfr-sujet_1711_1.htm`), logged out: 301 to the current slug, 200, same body id, final URL and message count as `R298a` | R5 | 095, 120 |
+| R298f | (meta only) | The stale slug, logged in (user2): the same 301 and final URL, same body id and message count as `R298b` (body not re-published) | R5 | 095, 120 |
 | W131 | `W131-mp-thread-delete-owner-unread-recipient-success.html` | user1 deletes `W130`'s thread with `W64`'s body (clean-up): link-less `.hop` "Action effectuée avec succès" | X1 | 094, 037 |
 | R130d | `R130d-mp-thread-recipient-after-sender-delete-unread.html` | The thread URL for user2 afterwards: the "pas destiné" `.hop` (user2 had not opened it) | X1 | 094, 030 |
 | R130e | `R130e-mp-list-recipient-after-sender-delete-unread.html` | user2's MP list afterwards: no row ("Aucun message posté"), so no second delete was sent | X1, R13 | 094, 023 |

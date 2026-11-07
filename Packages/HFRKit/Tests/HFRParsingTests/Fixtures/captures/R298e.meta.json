@@ -1,0 +1,20 @@
+{
+  "id": "R298e",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/apple/officiel-application-hfr-sujet_1711_1.htm",
+  "url": "https://forum.hardware.fr/hfr/apple/officiel-application-hfr-sujet_1711_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/apple/unique-forum-released-sujet_1711_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 07:15:58 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/apple/unique-forum-released-sujet_1711_1.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "file": "R298e-topic-stale-slug-1711-logged-out.html",
+  "private": false
+}
