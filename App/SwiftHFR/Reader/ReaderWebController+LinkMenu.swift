@@ -6,7 +6,7 @@ import WebKit
 
 // Port of HFRswift/Swift/MessagesView.swift (WebView.Coordinator `contextMenuConfigurationForElement`, :1241-1278) @ 2440d79. Differences:
 // legacy returned nil for a plain link (WebKit's own menu, with a preview) and built a menu for image links only; this one is the
-// app's own for every http(s) link, never a preview; "Ouvrir l'image" and "Save to Photos" are deferred to #615 (GAP-230, #596).
+// app's own for every http(s) link, never a preview; "Ouvrir l'image" and "Save to Photos" are deferred to #615 (GAP-596, #596).
 /// The long-press menu of a link in a message (#596). Nothing here requests a URL: the entries hand it to the app's tap routing
 /// (`events.link`) or to the system, and the member's link is never fetched with the session.
 enum ReaderLinkMenu {

@@ -118,5 +118,166 @@ class AQOwnTests(unittest.TestCase):
                 fh.write(XML)
             self.assertEqual(A.main(["check", "--quiet", "--corpus", tmp]), 0)
 
+
+LOCAL_URL = "http://192.0.2.1:8574/api/addAlerte.php"
+LOCAL_LIST_URL = "http://192.0.2.1:8574/api/getAlertesByTopic.php?topic_id=700001"
+LOCAL_POST_URL = "https://forum.hardware.fr/hfr/Discussions/Societe/aq-local-topic-sujet_700001_1.htm#t700101"
+LOCAL_BODY = {"alerte_qualitay_id": "-1", "nom": "AQ local test", "topic_id": "700001", "topic_titre": "AQ local topic",
+              "pseudo": "user3", "post_id": "700101", "post_url": LOCAL_POST_URL, "commentaire": "post de user3"}
+LOCAL_DATE = "Sat, 07 Nov 2026 13:02:15 GMT"
+LOCAL_XML = ('<?xml version="1.0" encoding="utf-8"?>\n<alertes><alerte id="13636" nom="x x x" pseudoInitiateur="user3" '
+             'date="07-11-2026" postsIds="700102,700101"/></alertes>\n')
+
+
+def local_meta(body=None, get=False, **extra):
+    url = LOCAL_LIST_URL if get else LOCAL_URL
+    ctype = "text/xml;charset=UTF-8" if get else "text/plain;charset=UTF-8"
+    doc = {"id": "T53", "account": "anon", "method": "GET" if get else "POST", "url_template": url[len("http://192.0.2.1:8574"):],
+           "url": url, "final_url": url, "status": 200, "content_type": ctype, "date": LOCAL_DATE, "redirects": [],
+           "set_cookie_names": [], "origin": "local-instance", "note": A.AQ_LOCAL_NOTE, "private": False, "file": "T53-a.txt",
+           "response_headers": {"Host": "192.0.2.1:8574", "Date": LOCAL_DATE, "Connection": "close",
+                                "X-Powered-By": "PHP/8.5.12", "Content-type": ctype, "Pragma": "no-cache"}}
+    if not get:
+        doc["request_fields"] = sorted(LOCAL_BODY)
+        doc["request_body"] = urllib.parse.urlencode(body or LOCAL_BODY, quote_via=urllib.parse.quote)
+    doc.update(extra)
+    return doc
+
+
+def meta_only(**extra):
+    doc = local_meta(status=403, content_type="text/html; charset=UTF-8", body_length=0, **extra)
+    del doc["file"]
+    doc["response_headers"].update({"Content-type": "text/html; charset=UTF-8", "Content-Length": "0"})
+    del doc["response_headers"]["Pragma"]
+    return doc
+
+
+class AQLocalTests(unittest.TestCase):
+    """`origin: local-instance` files: planted values on the local host, one per position (#586 review, finding 3)."""
+
+    def reasons(self, doc):
+        """The reasons `check` gives for this meta, through `Anonymizer.findings`."""
+        return [r for _l, _c, r in A.Anonymizer(A.Config()).findings(json.dumps(doc, indent=2)) if "AQ local" in r]
+
+    def test_clean_metas_pass(self):
+        self.assertEqual(self.reasons(local_meta()), [])
+        self.assertEqual(self.reasons(local_meta(get=True)), [])
+        self.assertEqual(self.reasons(meta_only()), [])
+
+    def test_a_real_value_in_the_request_body_fails(self):
+        real_url = "https://forum.hardware.fr/hfr/Hardware/hfr/real-topic-sujet_123456_1.htm#t7654321"
+        for field, value, reason in (("topic_id", "123456", "topic_id not a local id"),
+                                     ("post_id", "7654321", "post_id not a local id"),
+                                     ("topic_titre", "A real topic title", "topic_titre not a local value"),
+                                     ("nom", "A real alert title", "nom not a local value"),
+                                     ("post_url", real_url, "post_url not a local value"),
+                                     ("commentaire", "free text by a member", "commentaire not the legacy text"),
+                                     ("alerte_qualitay_id", "12345", "alerte_qualitay_id not a local value"),
+                                     ("pseudo", "Realname", "pseudo not an alias")):
+            with self.subTest(field=field):
+                reasons = self.reasons(local_meta(dict(LOCAL_BODY, **{field: value})))
+                self.assertIn("AQ local check: " + reason, reasons)
+
+    def test_the_body_holds_exactly_the_create_fields(self):
+        body = dict(LOCAL_BODY, extra="value")
+        self.assertIn("AQ local check: the body does not hold exactly the create fields", self.reasons(local_meta(body)))
+
+    def test_origin_cannot_be_another_value_or_dropped(self):
+        self.assertIn("AQ local check: origin is not local-instance", self.reasons(local_meta(origin="live")))
+        doc = local_meta()
+        del doc["origin"]
+        self.assertIn("AQ local check: key missing (origin)", self.reasons(doc))
+
+    def test_a_local_mark_on_another_host_fails(self):
+        for url in ("https://aq.super-h.fr/api/addAlerte.php", "https://forum.hardware.fr/bddpost.php",
+                    "http://192.0.2.1:8574/other.php"):
+            with self.subTest(url=url):
+                self.assertIn("AQ local check: url not on the local host, or another path", self.reasons(local_meta(url=url)))
+
+    def test_every_other_position_is_closed(self):
+        for doc, reason in ((local_meta(note="a real note"), "note not a local value"),
+                            (local_meta(status=500), "status not a local value"),
+                            (local_meta(set_cookie_names=["md_user"]), "set_cookie_names not a local value"),
+                            (local_meta(account="user1"), "account not a local value"),
+                            (local_meta(extra="value"), "unknown key (extra)"),
+                            (local_meta(body_length=3), "unknown key (body_length)"),
+                            (dict(meta_only(), file="x.txt"), "unknown key (body_length)")):
+            with self.subTest(reason=reason):
+                self.assertIn("AQ local check: " + reason, self.reasons(doc))
+
+    def test_response_headers_are_closed(self):
+        good = local_meta()["response_headers"]
+        for change, reason in (({"Set-Cookie": "a=b"}, "unknown response header (Set-Cookie)"),
+                               ({"Host": "aq.super-h.fr"}, "Host header not the local host"),
+                               ({"Date": "Sun, 08 Nov 2026 13:02:15 GMT"}, "Date or Content-type header does not follow the meta"),
+                               ({"X-Powered-By": "a real server"}, "Connection or X-Powered-By header not a local value"),
+                               ({"Pragma": "free text"}, "Cache-Control or Pragma header not a local value")):
+            with self.subTest(reason=reason):
+                self.assertIn("AQ local check: " + reason, self.reasons(local_meta(response_headers=dict(good, **change))))
+        without = {k: v for k, v in good.items() if k != "Host"}
+        self.assertIn("AQ local check: response header missing (Host)", self.reasons(local_meta(response_headers=without)))
+
+    def test_body_length_follows_content_length(self):
+        doc = meta_only()
+        doc["response_headers"]["Content-Length"] = "7"
+        self.assertIn("AQ local check: Content-Length header does not follow body_length", self.reasons(doc))
+        doc = meta_only()
+        doc["body_length"] = "0"
+        self.assertIn("AQ local check: body_length not a size", self.reasons(doc))
+
+    def test_a_list_or_code_of_the_run_passes(self):
+        self.assertEqual(A.verify_aq_local_answer(LOCAL_XML, local_meta(get=True)), [])
+        for code in ("1", "-2", "-4"):
+            self.assertEqual(A.verify_aq_local_answer(code, local_meta()), [])
+
+    def test_a_planted_answer_fails(self):
+        doc = local_meta(get=True)
+        for old, new, reason in (('id="13636"', 'id="13642"', "alert id not a local value"),
+                                 ('postsIds="700102,700101"', 'postsIds="7654321"', "postsIds not local ids"),
+                                 ('date="07-11-2026"', 'date="04-04-2024"', "alert date is not the day of the run"),
+                                 ('<alertes>', '<alertes>free text', "answer is not a list"),
+                                 (' postsIds=', ' comment="free text" postsIds=', "alert of an unknown shape")):
+            with self.subTest(reason=reason):
+                reasons = [r for _l, _c, r in A.verify_aq_local_answer(LOCAL_XML.replace(old, new), doc)]
+                self.assertEqual(reasons, ["AQ local check: " + reason])
+        self.assertEqual(len(A.verify_aq_local_answer("free text", local_meta())), 1)
+
+    def test_a_comment_or_an_instruction_in_a_list_fails(self):
+        doc = local_meta(get=True)
+        for plant in ("<!-- free text -->", "<?note free text?>", "<!DOCTYPE alertes>"):
+            with self.subTest(plant=plant):
+                text = LOCAL_XML.replace("<alertes>", plant + "<alertes>")
+                reasons = [r for _l, _c, r in A.verify_aq_local_answer(text, doc)]
+                self.assertEqual(reasons, ["AQ local check: answer holds a comment or an instruction"])
+
+    def test_an_instruction_named_like_the_prolog_fails(self):
+        text = LOCAL_XML.replace(LOCAL_XML[:LOCAL_XML.index("?>") + 2], "<?xml-note free text?>")
+        reasons = [r for _l, _c, r in A.verify_aq_local_answer(text, local_meta(get=True))]
+        self.assertEqual(reasons, ["AQ local check: answer holds a comment or an instruction"])
+
+    def test_a_malformed_date_is_a_finding_that_prints_no_value(self):
+        doc = dict(local_meta(get=True), date="planted value")
+        reasons = [r for _l, _c, r in A.verify_aq_local_answer(LOCAL_XML, doc)]
+        self.assertEqual(reasons, ["AQ local check: meta date is not a date"])
+
+    def test_corpus_check_applies_it_through_the_meta(self):
+        """A real id or title in a local capture fails `check --corpus`, the step CI runs."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            def write(name, text):
+                with open(os.path.join(tmp, name), "w") as fh:
+                    fh.write(text)
+            write("T53.meta.json", json.dumps(local_meta(), indent=2))
+            write("T53-a.txt", "1")
+            write("T54.meta.json", json.dumps(local_meta(get=True, id="T54", file="T54-l.xml"), indent=2))
+            write("T54-l.xml", LOCAL_XML)
+            self.assertEqual(A.main(["check", "--quiet", "--corpus", tmp]), 0)
+            write("T54-l.xml", LOCAL_XML.replace('id="13636"', 'id="13642"'))
+            self.assertEqual(A.main(["check", "--quiet", "--corpus", tmp]), 1)
+            write("T54-l.xml", LOCAL_XML)
+            write("T53.meta.json", json.dumps(local_meta(dict(LOCAL_BODY, topic_titre="A real topic title")), indent=2))
+            self.assertEqual(A.main(["check", "--quiet", "--corpus", tmp]), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

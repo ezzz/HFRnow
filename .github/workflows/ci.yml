@@ -35,6 +35,8 @@ jobs:
         with: { persist-credentials: false }
       - name: Lot dependencies respect module rules
         run: python3 scripts/check-lot-deps.py
+      - name: GAP and changelog fragments (format, unique IDs, generated tallies)
+        run: python3 tooling/docs/fold.py --check
       - name: Markdown tables and links
         run: npx --yes markdownlint-cli2@0.18.1
 
