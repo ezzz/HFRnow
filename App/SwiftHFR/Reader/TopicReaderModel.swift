@@ -121,6 +121,8 @@ final class TopicReaderModel {
     /// nothing is shown, loading or failed (a load stopped when a view went away): then it loads again. `viewer` names the
     /// view that appears, which becomes the one whose disappearance may stop a load (`viewDidDisappear`).
     func onAppear(viewer: Int? = nil) async {
+        // A `.task` whose view already went away (a quick tab flick) must not take the load over from the view still there.
+        guard !Task.isCancelled else { return }
         if let viewer { self.viewer = viewer }
         ReaderLog.debug(
             "appear model=\(debugID) viewer=\(viewer ?? -1) page=\(page != nil) loading=\(isLoading) error=\(error != nil)"

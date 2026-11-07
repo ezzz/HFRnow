@@ -25,10 +25,7 @@ extension ReaderWebController: WKNavigationDelegate, WKUIDelegate {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        // The content process died (memory pressure on a huge page): show the same document again.
-        guard let document else { return }
-        ReaderLog.debug("content process terminated token=\(document.token)")
-        loadPage(document)
+        contentProcessTerminated()
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation?, withError error: any Error) {

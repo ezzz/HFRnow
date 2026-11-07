@@ -25,6 +25,7 @@ let readerHostileContent = """
 /// What the controller reported to the screen, and the window hosting its web view.
 final class ReaderWebRecorder {
     var ready: [Int] = []
+    var failed: [Int] = []
     var links: [URL] = []
     /// Video taps as (post, index, token).
     var videos: [[Int]] = []
@@ -43,7 +44,8 @@ extension ReaderWebTesting {
         )
         let recorder = ReaderWebRecorder()
         controller.events = ReaderWebController.Events(
-            ready: { recorder.ready.append($0) }, link: { recorder.links.append($0) }, video: { recorder.videos.append([$0, $1, $2]) }
+            ready: { recorder.ready.append($0) }, failed: { recorder.failed.append($0) }, link: { recorder.links.append($0) },
+            video: { recorder.videos.append([$0, $1, $2]) }
         )
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
             let window = UIWindow(windowScene: scene)

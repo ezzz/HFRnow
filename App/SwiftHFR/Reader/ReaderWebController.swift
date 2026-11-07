@@ -78,6 +78,9 @@ final class ReaderWebController: NSObject {
     private var pageNavigation: WKNavigation?
     /// The shown document's navigation failed once and was started again; a second failure is reported (issue #566).
     private var reloadedAfterFailure = false
+    /// `stopLoading()` ran and the screen has not come back (`resume()`): `show` loads nothing, so a re-render of the hidden
+    /// view cannot restart the load just stopped (issue #566).
+    private var stopped = false
     /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
@@ -126,6 +129,10 @@ final class ReaderWebController: NSObject {
     /// whose load `stopLoading()` cut before it was ready is no longer the one shown, so showing it again loads it (issue #566).
     func show(_ document: ReaderDocument?) {
         guard let document else { return }
+        guard !stopped else {
+            ReaderLog.debug("show skipped token=\(document.token): stopped")
+            return
+        }
         guard document.token != self.document?.token else {
             ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
             return
@@ -158,6 +165,7 @@ final class ReaderWebController: NSObject {
         let wasReady = document != nil && readyToken == document?.token
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
         webView.stopLoading()
+        stopped = true
         pageNavigation = nil
         if !wasReady {
             document = nil
@@ -168,56 +176,19 @@ final class ReaderWebController: NSObject {
         waiting.removeAll()
     }
 
+    /// The screen is back: `show` loads again (call it before `show`).
+    func resume() {
+        stopped = false
+    }
+
     static func pageURL(token: Int) -> URL {
         URL(string: "\(TopicHTMLBuilder.scheme)://page/\(token)") ?? URL(fileURLWithPath: "/")
     }
-
-    private static let readerScript: String? = {
-        guard let url = Bundle.main.url(forResource: "reader", withExtension: "js") else { return nil }
-        return try? String(contentsOf: url, encoding: .utf8)
-    }()
 
     private static let stylesheet: Data? = {
         guard let url = Bundle.main.url(forResource: "reader", withExtension: "css") else { return nil }
         return try? Data(contentsOf: url)
     }()
-
-    /// The scripts that set the text size and the theme colours of a document before it renders, then `reader.js`; all in
-    /// the reader's world.
-    private func installUserScripts() {
-        let controller = webView.configuration.userContentController
-        controller.removeAllUserScripts()
-        for source in [Self.textScaleScript(textScale), theme.readerScript] {
-            controller.addUserScript(
-                WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world)
-            )
-        }
-        if let script = Self.readerScript {
-            controller.addUserScript(
-                WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
-            )
-        }
-    }
-
-    /// Sets `--text-scale` (read by `reader.css`) on the shown document's root element.
-    private func applyTextScale() {
-        guard document != nil else { return }
-        let script = Self.textScaleScript(textScale)
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
-    }
-
-    /// Sets the theme's CSS variables (read by `reader.css`) on the shown document's root element.
-    private func applyTheme() {
-        guard document != nil else { return }
-        let script = theme.readerScript
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
-    }
-
-    /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
-    static func textScaleScript(_ scale: TextScale) -> String {
-        let factor = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), Double(scale.factor))
-        return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
-    }
 
     // MARK: - Messages from reader.js
 
@@ -292,14 +263,31 @@ final class ReaderWebController: NSObject {
             ReaderLog.debug("navigation failure ignored code=\(code)")
             return
         }
+        retryOrReport(document, reason: "navigation failed code=\(code)")
+    }
+
+    /// The content process died (memory pressure on a huge page). A document already shown is loaded again; one not ready
+    /// yet follows the reload-once rule, so a page that kills the process every time ends on the retry, not a spinner.
+    func contentProcessTerminated() {
+        guard let document else { return }
+        guard readyToken != document.token else {
+            ReaderLog.debug("content process terminated token=\(document.token) ready=true: reloading")
+            loadPage(document)
+            return
+        }
+        retryOrReport(document, reason: "content process terminated")
+    }
+
+    /// Loads the not-ready `document` once more, or reports it after a second failure (issue #566).
+    private func retryOrReport(_ document: ReaderDocument, reason: String) {
         pageNavigation = nil
         guard reloadedAfterFailure else {
-            ReaderLog.debug("navigation failed token=\(document.token) code=\(code): reloading")
+            ReaderLog.debug("\(reason) token=\(document.token): reloading")
             reloadedAfterFailure = true
             loadPage(document)
             return
         }
-        ReaderLog.debug("navigation failed again token=\(document.token) code=\(code): reported")
+        ReaderLog.debug("\(reason) again token=\(document.token): reported")
         events.failed(document.token)
     }
 }

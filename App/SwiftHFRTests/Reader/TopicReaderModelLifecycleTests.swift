@@ -29,6 +29,25 @@ struct TopicReaderModelLifecycleTests {
         #expect(pages.requests.count == 1)
     }
 
+    /// Fable finding 3: the `.task` of a view already gone (cancelled before its body ran) does not take the load over, so
+    /// the view still there can stop it.
+    @Test func aCancelledAppearanceDoesNotTakeTheLoadOver() async {
+        let pages = FakeTopicPages()
+        let reader = model(pages)
+        let gate = ReaderGate()
+        pages.handler = { target in await gate.wait(); return readerPage(page: target.page) }
+        let first = Task { await reader.onAppear(viewer: 1) }
+        await gate.untilArrived()
+        let late = Task { await reader.onAppear(viewer: 2) }
+        late.cancel()
+        await late.value
+        reader.viewDidDisappear(viewer: 1)
+        #expect(!reader.isLoading)
+        await gate.open()
+        await first.value
+        #expect(reader.page == nil)
+    }
+
     /// The view that appeared last going away stops the load (#108), and the next appearance loads again (issue #566).
     @Test func theCurrentViewGoingAwayStopsTheLoadAndItsReturnLoadsAgain() async {
         let pages = FakeTopicPages()

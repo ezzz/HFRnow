@@ -143,7 +143,10 @@ struct TopicReaderView: View {
         }
         .onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
-        .onAppear { controller?.show(model.document) }
+        .onAppear {
+            controller?.resume()
+            controller?.show(model.document)
+        }
         .onAppear {
             if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
         }

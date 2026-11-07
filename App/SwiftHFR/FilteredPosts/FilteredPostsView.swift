@@ -135,7 +135,10 @@ struct FilteredPostsView: View {
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .onAppear(perform: makeController)
         // A screen that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
-        .onAppear { controller?.show(document) }
+        .onAppear {
+            controller?.resume()
+            controller?.show(document)
+        }
         // Only a new page of posts reloads the document: marking the topic finished keeps the scroll position.
         .onChange(of: model.result?.page, initial: true) { _, _ in show(model.result) }
         .onDisappear {
