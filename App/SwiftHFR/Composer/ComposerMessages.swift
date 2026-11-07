@@ -8,6 +8,10 @@ enum ComposerMessages {
     /// The text is always kept in the composer and its draft.
     static func message(for error: PostingError, newMessage: Bool = false, newTopic: Bool = false, edit: Bool = false) -> String {
         if edit, let text = editMessage(for: error) { return text }
+        return sharedMessage(for: error, newMessage: newMessage, newTopic: newTopic, edit: edit)
+    }
+
+    private static func sharedMessage(for error: PostingError, newMessage: Bool, newTopic: Bool, edit: Bool) -> String {
         let what = newTopic ? "le sujet" : newMessage ? "le message" : edit ? "la modification" : "la réponse"
         switch error {
         case .formUnavailable(let message):
