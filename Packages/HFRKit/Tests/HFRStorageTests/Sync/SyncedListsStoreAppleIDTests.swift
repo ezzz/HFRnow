@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import Synchronization
 import Testing
 @testable import HFRStorage
 
@@ -178,6 +179,38 @@ extension SyncedListsStoreTests {
         #expect(await fixture.superFavorites.favorites(for: "Alice") == [Self.favorite(Self.other)])
         #expect(fixture.quarantine()["apple-1"]?.values[Self.superKey] != nil)
         #expect(fixture.quarantine()["apple-2"] == nil)
+    }
+
+    /// A switch the test arms.
+    final class Trigger: Sendable {
+        private let armed = Mutex(false)
+        var isArmed: Bool { armed.withLock { $0 } }
+        func arm() { armed.withLock { $0 = true } }
+    }
+
+    @Test func aPushStartedBeforeAnAppleIDSwitchNeverWritesIntoTheNewAppleIDsStore() async throws {
+        let cloud = InMemorySyncedKeyValueStore(identity: "apple-1")
+        let superFavorites = SuperFavoritesStore(persistence: InMemorySmallStorePersistence<SuperFavoritesDocument>())
+        let trigger = Trigger()
+        let sync = SyncedListsStore(
+            cloud: cloud, pseudoLists: PseudoListStore(persistence: InMemoryPseudoListPersistence()),
+            superFavorites: superFavorites,
+            smileyFavorites: AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence<AppSmileyFavoritesDocument>()),
+            positions: ReadingPositionStore(persistence: FlakyPositionPersistence()),
+            deviceState: FailingSmallStorePersistence(SyncedListsDeviceState(owner: "apple-1")),
+            accounts: {
+                // The system switches the Apple ID while the push waits; its notification is handled later.
+                if trigger.isArmed { cloud.receive(SyncedStoreChange(reason: .accountChange), identity: .some("apple-2")) }
+                return ["Alice"]
+            },
+            sleep: { _ in }
+        )
+        await sync.start()
+        try await superFavorites.add(Self.topic, account: "Alice", at: Self.start)
+        trigger.arm()
+        await sync.handle(.listsChanged)
+        #expect(cloud.accountIdentity() == "apple-2")
+        #expect(cloud.values.isEmpty)
     }
 
     @Test func anUnwritableDeviceFileAtASwitchPausesTheSync() async throws {

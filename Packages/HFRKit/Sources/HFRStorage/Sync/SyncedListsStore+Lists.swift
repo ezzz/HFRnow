@@ -32,7 +32,7 @@ extension SyncedListsStore {
     func reconcile<Item: Codable & Hashable & Sendable>(
         key: String, read: () async -> [Item]?, replace: ([Item]) async throws -> Void
     ) async {
-        guard let local = await read() else { return }
+        guard let local = await read(), ownerIsSignedIn else { return }
         let cloudValue = cloud.value(forKey: key)
         if let cloudValue, SyncedListEnvelope<Item>(cloudValue) == nil { return }
         if let last = synced[key], SyncedListEnvelope(items: local).value.digest != last {
@@ -90,7 +90,7 @@ extension SyncedListsStore {
     func applyCloudList<Item: Codable & Hashable & Sendable>(
         key: String, read: () async -> [Item]?, replace: ([Item]) async throws -> Void
     ) async {
-        guard let local = await read(), let value = cloud.value(forKey: key),
+        guard let local = await read(), ownerIsSignedIn, let value = cloud.value(forKey: key),
               let envelope = SyncedListEnvelope<Item>(value) else { return }
         if let last = synced[key], SyncedListEnvelope(items: local).value.digest != last {
             push(local, forKey: key)
@@ -158,7 +158,7 @@ extension SyncedListsStore {
     /// saved, so nothing is pushed over the cloud's records.
     @discardableResult
     func mergeCloudPositions(key: String, account: String) async -> Bool {
-        guard stale[Slot.positions.rawValue] == nil else { return false }
+        guard stale[Slot.positions.rawValue] == nil, ownerIsSignedIn else { return false }
         guard let value = cloud.value(forKey: key) else { return true }
         guard let envelope = SyncedListEnvelope<ReadingPositionRecord>(value) else { return false }
         do {
@@ -170,7 +170,8 @@ extension SyncedListsStore {
     }
 
     func push<Item: Codable & Hashable & Sendable>(_ items: [Item], forKey key: String) {
-        guard cloudSchemaIsReadable else { return }
+        // The Apple ID may have switched since the caller checked `isActive`: never write a list into another one's store.
+        guard ownerIsSignedIn, cloudSchemaIsReadable else { return }
         let value = SyncedListEnvelope(items: items).value
         cloud.set(value, forKey: key)
         record(value, forKey: key)

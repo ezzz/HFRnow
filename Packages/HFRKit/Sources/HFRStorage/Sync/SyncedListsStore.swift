@@ -182,6 +182,9 @@ public actor SyncedListsStore {
     /// Handles one event (see the type's rules).
     func handle(_ event: Event) async {
         guard deviceStateLoaded else { return }
+        // A refusal is marked before the recovery of a paused sync: its reconcile must not take the older cloud list
+        // the store kept for the latest one and replace the local list with it.
+        if case .cloud(let change) = event, change.reason == .quotaViolation { markRefused(change.keys) }
         await catchUp()
         switch event {
         case .cloud(let change):
@@ -256,10 +259,15 @@ public actor SyncedListsStore {
     /// Lists the cloud refused for quota: reported, and no longer taken as synced, so the cloud's older list never
     /// replaces them and the next change or initial sync pushes them again.
     private func refused(_ keys: [String]) {
+        markRefused(keys)
+        saveDeviceState()
+    }
+
+    /// `refused(_:)` in memory only: a paused sync saves it when it resumes.
+    private func markRefused(_ keys: [String]) {
         let lists = keys.filter(Self.isListKey)
         quotaViolations.formUnion(lists)
         for key in lists where !Self.isPositionsKey(key) { synced[key] = Self.refusedDigest }
-        saveDeviceState()
     }
 
     // MARK: Apple ID
@@ -267,9 +275,15 @@ public actor SyncedListsStore {
     /// Whether lists may be applied and pushed: an Apple ID signed in that owns the local lists, its store content
     /// trusted, a format this build reads.
     var isActive: Bool {
-        guard deviceStateLoaded, !stateUnsaved, !waitingForStore, let owner, cloud.accountIdentity() != nil,
-              cloud.isCurrentAccount(owner) else { return false }
+        guard deviceStateLoaded, !stateUnsaved, !waitingForStore, ownerIsSignedIn else { return false }
         return cloudSchemaIsReadable
+    }
+
+    /// Whether the store holds the owner's Apple ID now. Checked again after each suspension of an apply or a push:
+    /// the system can switch the Apple ID before its notification is handled.
+    var ownerIsSignedIn: Bool {
+        guard let owner, cloud.accountIdentity() != nil else { return false }
+        return cloud.isCurrentAccount(owner)
     }
 
     func accountChanged() async {

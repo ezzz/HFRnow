@@ -184,6 +184,20 @@ import Testing
         #expect(fixture.cloudSuperFavorites()?.count == 2)
     }
 
+    @Test func aRefusalReachingAPausedSyncIsMarkedBeforeItsRecovery() async throws {
+        let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
+        try await fixture.superFavorites.add(Self.other, account: "Alice", at: Self.start)
+        // The push leaves, but its digest cannot be saved: the sync pauses.
+        fixture.deviceState.failsToSave = true
+        await fixture.sync.handle(.listsChanged)
+        // The store refused the push and kept its older value; the device file can be saved again.
+        fixture.cloud.set(Self.envelope([Self.favorite()]), forKey: Self.superKey)
+        fixture.deviceState.failsToSave = false
+        await fixture.sync.handle(.cloud(SyncedStoreChange(reason: .quotaViolation, keys: [Self.superKey])))
+        #expect(await fixture.superFavorites.favorites(for: "Alice").count == 2)
+        #expect(fixture.cloudSuperFavorites()?.count == 2)
+    }
+
     @Test func anUnchangedListNeverOverwritesAnotherDevicesPendingChange() async throws {
         let fixture = await Self.make(cloud: [Self.superKey: Self.envelope([Self.favorite()])])
         // Another device's list landed in the store; its notification has not been handled yet.
