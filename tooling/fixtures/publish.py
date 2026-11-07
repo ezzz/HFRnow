@@ -73,7 +73,8 @@ def publish_one(anon, raw_dir, dest, entry):
         if any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url")) and not A.is_aq_document(text) \
                 and not re.fullmatch(r"\d{1,3}\s*", text):
             return [(entry["id"], 1, 1, "AQ capture not recognized as an AQ feed or list: extend the anonymizer")]
-        page = anon.anonymize(text, private=private, context=json.dumps(raw_meta, ensure_ascii=False) + "\n" + (body or ""))
+        page = anon.anonymize(text, private=private, url=raw_meta.get("final_url") or raw_meta.get("url"),
+                              context=json.dumps(raw_meta, ensure_ascii=False) + "\n" + (body or ""))
     else:
         anon._reset()
     # A write answer (`.hop` page) or a meta-only capture rarely names its topic, while its URL or request body does:
@@ -92,7 +93,8 @@ def publish_one(anon, raw_dir, dest, entry):
     mtext = json.dumps(meta, indent=2, ensure_ascii=False) + "\n"
     leaks = [(entry["id"] + ".meta.json",) + f for f in anon.findings(mtext)]
     if page is not None:
-        leaks += [(name,) + f for f in anon.findings(page, private=private, account=raw_meta.get("account"))]
+        leaks += [(name,) + f for f in anon.findings(page, private=private, account=raw_meta.get("account"),
+                                                                url=raw_meta.get("final_url") or raw_meta.get("url"))]
     if leaks:
         return leaks
     if page is not None:

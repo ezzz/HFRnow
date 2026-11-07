@@ -61,10 +61,16 @@ final class ReaderWebController: NSObject {
         }
     }
 
+    /// What the bars and banners cover of the web view, which runs under them (LOT-186; `ReaderWebController+Scroll`).
+    var obscuredInsets = UIEdgeInsets.zero {
+        didSet { if obscuredInsets != oldValue { applyObscuredInsets(from: oldValue) } }
+    }
+
     private let imageFetcher: ReaderImageFetcher
     let autoLoadsThirdPartyImages: @Sendable () -> Bool
     private var document: ReaderDocument?
-    private var savedOffset: CGPoint?
+    /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
+    private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var waiting: [(key: ObjectIdentifier, start: () -> Void)] = []
@@ -103,12 +109,14 @@ final class ReaderWebController: NSObject {
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
+        // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state).
     func show(_ document: ReaderDocument?) {
         guard let document, document.token != self.document?.token else { return }
-        savedOffset = document.keepsScrollPosition ? webView.scrollView.contentOffset : nil
+        savedReadingTop = document.keepsScrollPosition ? readingTop : nil
         self.document = document
         imageRequests.removeAll()
         consented.removeAll()
@@ -181,13 +189,6 @@ final class ReaderWebController: NSObject {
         return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
     }
 
-    /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
-    /// document scrolls once.
-    private func scroll(to anchor: Int, landing: Bool = false) {
-        let script = "return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);"
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["n": anchor], in: nil, contentWorld: Self.world) }
-    }
-
     // MARK: - Messages from reader.js
 
     fileprivate func receive(_ message: WKScriptMessage) -> Any? {
@@ -238,10 +239,10 @@ final class ReaderWebController: NSObject {
         applyTheme()
         if let anchor = document.anchor {
             scroll(to: anchor, landing: true)
-        } else if let offset = savedOffset {
-            webView.scrollView.setContentOffset(offset, animated: false)
+        } else if let readingTop = savedReadingTop {
+            scroll(toReadingTop: readingTop)
         }
-        savedOffset = nil
+        savedReadingTop = nil
         events.ready(token)
     }
 

@@ -1,0 +1,15 @@
+{
+  "id": "R335e",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/101/topics/participated/&page=2&results_per_page=5",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/101/topics/participated/&page=2&results_per_page=5",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/101/topics/participated/&page=2&results_per_page=5",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Sat, 07 Nov 2026 07:17:05 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R335e-rest-bucket-participated-category-page2-per-page5.json",
+  "private": false
+}
