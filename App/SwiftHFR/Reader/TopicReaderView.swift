@@ -269,7 +269,7 @@ struct TopicReaderView: View {
         ]
         handlers += model.quoteHandlers(confirm: confirm)
         // The author menu (issue #595). Profil goes through the link router, which alone knows a profile link (LOT-116); MP needs
-        // a composer. Weak: the registry lives in the model.
+        // a composer. LOT-118 (#209) adds Blacklist and Whitelist here as two more handlers. Weak: the registry lives in the model.
         handlers.append(ProfileActionHandler { [weak model] url in
             guard case .profile(let id)? = model?.action(forLink: url, defaultBrowser: false) else { return }
             profile = UserProfileModel(memberID: id, source: services.profiles)
