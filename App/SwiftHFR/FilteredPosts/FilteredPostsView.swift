@@ -167,7 +167,12 @@ struct FilteredPostsView: View {
         )
         controller.events = ReaderWebController.Events(
             ready: { token in if token == document?.token { readyToken = token } },
-            failed: { token in if token == document?.token { failed = true } },
+            // A shown page whose reload after a crash failed twice is blank again: the retry replaces it (#566).
+            failed: { token in
+                guard token == document?.token else { return }
+                readyToken = nil
+                failed = true
+            },
             link: { url in
                 guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return }
                 if services.settings.opensLinksInDefaultBrowser() { openURL(url) } else { external = ExternalLink(url: url) }
