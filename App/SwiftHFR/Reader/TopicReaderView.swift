@@ -44,6 +44,8 @@ struct TopicReaderView: View {
     /// Told how "Marquer comme non lu" ended (LOT-127): the conversation's list; nil when no list hosts this reader.
     var onMarkUnread: MarkUnreadHost?
     @State private var controller: ReaderWebController?
+    /// This view instance, for the model: another view on the same model must not stop this one's load (issue #566).
+    @State private var viewerID = ReaderViewerID.next()
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
     @State private var external: ExternalLink?
@@ -85,7 +87,7 @@ struct TopicReaderView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
-            if let error = model.error, model.page != nil {
+            if let error = model.error, model.page != nil, model.hasShownDocument {
                 LoadFailureBanner(error: error, retry: model.retry)
             }
         }
@@ -141,6 +143,11 @@ struct TopicReaderView: View {
         }
         .appScreenBackground()
         .onAppear(perform: makeController)
+        // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
+        .onAppear {
+            controller?.resume()
+            controller?.show(model.document)
+        }
         .onAppear {
             if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
         }
@@ -159,13 +166,13 @@ struct TopicReaderView: View {
         }
         .task {
             installMenuActions()
-            await model.onAppear()
+            await model.onAppear(viewer: viewerID)
         }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
             // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
             guard model.linkedReader == nil, viewer == nil else { return }
-            model.cancel()
+            model.viewDidDisappear(viewer: viewerID)
             saver?.leave()
             controller?.stopLoading()
         }
@@ -188,7 +195,12 @@ struct TopicReaderView: View {
                 Button("Actualiser") { Task { await model.refresh() } }
             }
         } else if !model.hasShownDocument {
-            ProgressView("Chargement des messages")
+            // The web view could not show the page (issue #566): a retry, never an endless spinner.
+            if let error = model.error {
+                LoadFailureView(error: error, retry: model.retry)
+            } else {
+                ProgressView("Chargement des messages")
+            }
         }
     }
 
@@ -273,6 +285,7 @@ struct TopicReaderView: View {
         )
         controller.events = ReaderWebController.Events(
             ready: { [model] token in model.documentDidBecomeReady(token: token) },
+            failed: { [model] token in model.documentDidFail(token: token) },
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)

@@ -31,4 +31,5 @@
 - { name: "host: mac",            color: "6e7781", description: "Needs the maintainer's Mac (Xcode, legacy app, live captures)" }
 - { name: "direct-pr",            color: "d93f0b", description: "Break-glass: PR merged without issue/claim (Direct-PR line); counted for stats" }
 - { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }
+- { name: "beta-test finding",    color: "f9a825", description: "Reported during pre-beta or beta testing on a device; counted for stats" }
 - { name: "moust4ki aka bybifok finding", color: "fbca04", description: "Found by Bybifok (GitHub moust4ki): credit them in the fix" }
