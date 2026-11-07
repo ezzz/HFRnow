@@ -469,12 +469,12 @@ class FoldFragmentsTest(unittest.TestCase):
 
     def test_duplicate_row_in_a_shared_file_blocks_apply(self):
         lay = self.layout()
-        text = lay.changelog.read_text(encoding="utf-8")
-        lay.changelog.write_text(text.replace("| 2 | ", "| 1 | ", 1), encoding="utf-8")  # row 2 now reads 1
-        (lay.gap_dir / "GAP-9999.md").write_text(
-            "Section: Reader\n| GAP-9999 | F | L | ref | S | LOT-1 | same | port: x | a |\n", encoding="utf-8")
+        text = lay.gap.read_text(encoding="utf-8")
+        first = next(l for l in text.split("\n") if l.startswith("| GAP-001 |"))
+        lay.gap.write_text(text.replace(first, first + "\n" + first), encoding="utf-8")  # GAP-001 twice
+        (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
         self.assertIn("NOT foldable", hygiene.fold_fragments(True, lay)[0])
-        self.assertTrue((lay.gap_dir / "GAP-9999.md").exists(), "no fragment removed while a duplicate remains")
+        self.assertTrue((lay.changelog_dir / "9999.md").exists(), "no fragment removed while a duplicate remains")
 
     def test_malformed_fragment_is_reported_not_folded(self):
         lay = self.layout()

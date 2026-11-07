@@ -187,7 +187,7 @@ class FoldTest(unittest.TestCase):
             "notes.md": ("gap_dir", gap_frag("6"), "is named GAP-<issue>.md"),
             "10.md": ("changelog_dir", "| T | only | three |\n", "4 non-empty cells"),
             "11.md": ("changelog_dir", cl_frag("XX"), "4 non-empty cells"),
-            "12.md": ("changelog_dir", cl_frag() + cl_frag(), "one table row"),
+            "12.md": ("changelog_dir", cl_frag() + "free text\n", "one or more table rows"),
             "x.md": ("changelog_dir", cl_frag(), "is named <issue>.md"),
         }
         for name, (where, text, _) in bad.items():
@@ -198,17 +198,37 @@ class FoldTest(unittest.TestCase):
             self.assertIn(msg, out, name)
         self.assertEqual(self.run_main()[0], 1, "fold refuses a malformed fragment")
 
-    def test_stale_tallies_fail_check(self):
-        self.layout.gap.write_text(self.base_gap.replace("| **Total** | **4** |", "| **Total** | **3** |"), encoding="utf-8")
+    def test_stale_tallies_only_warn(self):
+        """An in-place edit of a row (here GAP-050: H.1 a -> b) must not turn Docs consistency red."""
+        text = self.base_gap.replace(gap_row("050", "new", "a"), gap_row("050", "new", "b"))
+        self.assertNotEqual(text, self.base_gap)
+        self.layout.gap.write_text(text, encoding="utf-8")
         code, out = self.run_main("--check")
-        self.assertEqual(code, 1)
-        self.assertIn("not the generated one", out)
+        self.assertEqual(code, 0)
+        self.assertIn("WARNING GAP-LEGACY-VS-SWIFT.md: the H.1 list or the Counts table is not the generated one", out)
+        fold.fold(self.layout)
+        self.assertIn("| b | 002, 050 | 2 |", self.layout.gap.read_text(encoding="utf-8"))
+        self.assertNotIn("WARNING", self.run_main("--check")[1])
 
-    def test_unsorted_changelog_fails_check(self):
+    def test_unsorted_changelog_only_warns(self):
         self.layout.changelog.write_text(self.base_cl.replace("| 1 | T |", "| 3 | T |"), encoding="utf-8")
         code, out = self.run_main("--check")
-        self.assertEqual(code, 1)
+        self.assertEqual(code, 0)
         self.assertIn("not in number order", out)
+        fold.fold(self.layout)
+        self.assertNotIn("WARNING", self.run_main("--check")[1])
+
+    def test_one_fragment_can_hold_several_changelog_rows(self):
+        self.put(self.layout.changelog_dir, "700.md", cl_frag("T", "Un.") + cl_frag("UX", "Deux."))
+        self.put(self.layout.changelog_dir, "699.md", cl_frag("T", "Zéro."))
+        self.assertEqual(self.run_main("--check")[0], 0)
+        fold.fold(self.layout)
+        rows = [l for l in self.layout.changelog.read_text(encoding="utf-8").split("\n") if l.startswith("| 69") or l.startswith("| 70")]
+        self.assertEqual([r.split(" | ")[0:2] for r in rows], [["| 699", "T"], ["| 700", "T"], ["| 700", "UX"]])
+        self.assertEqual(self.run_main("--check")[0], 0)
+        self.assertIn("folded 0 fragment(s)", self.run_main()[1])
+        self.put(self.layout.changelog_dir, "700.md", cl_frag())  # a second fragment for 700 clashes
+        self.assertEqual(self.run_main("--check")[0], 1)
 
     def test_pipe_in_a_code_span_must_be_escaped(self):
         self.put(self.layout.changelog_dir, "9.md", "| T | a `x\\|y` b | LOT-9 | p |\n")

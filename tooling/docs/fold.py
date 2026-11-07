@@ -6,9 +6,10 @@ the row order, the H.1 lists and the Counts table.
 
   python3 tooling/docs/fold.py             # fold the fragments into the two files, regenerate the tallies, delete the fragments
   python3 tooling/docs/fold.py --dry-run   # print what folding would do, change nothing
-  python3 tooling/docs/fold.py --check     # CI: fragments well formed, IDs unique, tallies of the files are the generated ones
+  python3 tooling/docs/fold.py --check     # CI: fragments well formed, IDs unique, no clash with a row; stale tallies are only a warning
 
-Fragment formats are in the README of each fragment folder. Rows already in the files are never rewritten,
+Fragment formats are in the README of each fragment folder. The clash check compares numbers only: a direct row of an
+open PR uses a sequential number, so a PR that carries both a direct row and a fragment for one issue is caught by review. Rows already in the files are never rewritten,
 fragments are appended after them in ID order, so folding twice is a no-op.
 """
 import argparse
@@ -93,18 +94,23 @@ def parse_changelog(text):
 
 
 def read_changelog_fragment(path):
-    """-> (number, row line). The file is `<issue>.md` with one line `| T | résumé | lot / PR | preuve |`."""
+    """-> (number, [row lines]). The file is `<issue>.md`: one or more lines `| T | résumé | lot / PR | preuve |`.
+
+    Every row of a fragment gets the issue number as its `#`, so a PR with several legacy fixes writes several lines."""
     m = re.fullmatch(r'(\d+)\.md', path.name)
     if not m:
         raise FoldError(f'{path.name}: a changelog fragment is named <issue>.md')
     body = [l for l in read(path).split('\n') if l.strip()]
-    if len(body) != 1 or not is_row(body[0]):
-        raise FoldError(f'{path.name}: one table row `| T | résumé | lot / PR | preuve |` and nothing else')
-    c = cells(body[0])
-    if len(c) != 4 or c[0] not in SECTIONS or not all(c[1:]):
-        raise FoldError(f'{path.name}: 4 non-empty cells (section T or UX, résumé, lot / PR, preuve)')
+    if not body or not all(is_row(l) for l in body):
+        raise FoldError(f'{path.name}: one or more table rows `| T | résumé | lot / PR | preuve |` and nothing else')
     n = int(m.group(1))
-    return n, '| ' + ' | '.join([str(n)] + c) + ' |'
+    out = []
+    for l in body:
+        c = cells(l)
+        if len(c) != 4 or c[0] not in SECTIONS or not all(c[1:]):
+            raise FoldError(f'{path.name}: 4 non-empty cells per row (section T or UX, résumé, lot / PR, preuve)')
+        out.append('| ' + ' | '.join([str(n)] + c) + ' |')
+    return n, out
 
 
 def render_changelog(before, rows, after):
@@ -114,31 +120,27 @@ def render_changelog(before, rows, after):
 def fold_changelog(layout):
     """-> (new text, folded fragment paths)."""
     before, rows, after = parse_changelog(read(layout.changelog))
-    seen = {n for n, _ in rows}
-    if len(seen) != len(rows):
-        raise FoldError('CHANGELOG-LEGACY.md: a row number appears more than once (fix it by hand first)')
+    seen = {n for n, _ in rows}  # a number may repeat in the file: one fragment can hold several rows
     new = []
     for p in fragments(layout.changelog_dir):
-        n, line = read_changelog_fragment(p)
+        n, lines = read_changelog_fragment(p)
         if n in seen:
             raise FoldError(f'{layout.rel(p)}: #{n} is already a row of CHANGELOG-LEGACY.md or another fragment')
         seen.add(n)
-        new.append((n, line))
+        new.extend((n, line) for line in lines)
     rows = sorted(rows + new, key=lambda r: r[0])
     return render_changelog(before, rows, after), fragments(layout.changelog_dir)
 
 
-def check_changelog(layout, errors):
+def check_changelog(layout, errors, warnings):
     try:
         _, rows, _ = parse_changelog(read(layout.changelog))
     except FoldError as e:
         errors.append(str(e))
         return
     nums = [n for n, _ in rows]
-    for n in sorted({n for n in nums if nums.count(n) > 1}):
-        errors.append(f'CHANGELOG-LEGACY.md: row #{n} appears more than once')
-    if nums != sorted(nums):
-        errors.append('CHANGELOG-LEGACY.md: rows are not in number order (run tooling/docs/fold.py)')
+    if nums != sorted(nums):  # a direct edit of an open PR can break the order: the next fold sorts it
+        warnings.append('CHANGELOG-LEGACY.md: rows are not in number order (the next fold sorts them)')
     seen = set()
     for p in fragments(layout.changelog_dir):
         try:
@@ -288,7 +290,7 @@ def fold_gap(layout):
     return '\n'.join(regenerate_tallies(lines)), fragments(layout.gap_dir)
 
 
-def check_gap(layout, errors):
+def check_gap(layout, errors, warnings):
     text = read(layout.gap)
     try:
         lines = text.split('\n')
@@ -297,7 +299,8 @@ def check_gap(layout, errors):
         for g in sorted({g for g in ids if ids.count(g) > 1}):
             errors.append(f'GAP-LEGACY-VS-SWIFT.md: GAP-{g:03d} appears more than once')
         if '\n'.join(regenerate_tallies(lines)) != text:
-            errors.append('GAP-LEGACY-VS-SWIFT.md: the H.1 list or the Counts table is not the generated one (run tooling/docs/fold.py)')
+            # An in-place edit of a row or a direct row of an open PR changes the tallies: never a reason to be red.
+            warnings.append('GAP-LEGACY-VS-SWIFT.md: the H.1 list or the Counts table is not the generated one (the next fold regenerates them)')
         sections = gap_sections(lines)
     except FoldError as e:
         errors.append(str(e))
@@ -322,10 +325,11 @@ def check_gap(layout, errors):
 # ---------------------------------------------------------------------- CLI
 
 def check(layout):
-    errors = []
-    check_changelog(layout, errors)
-    check_gap(layout, errors)
-    return errors
+    """-> (errors, warnings). Errors block CI; a warning (stale tallies, row order) is what the next fold regenerates."""
+    errors, warnings = [], []
+    check_changelog(layout, errors, warnings)
+    check_gap(layout, errors, warnings)
+    return errors, warnings
 
 
 def fold(layout, write=True):
@@ -348,9 +352,12 @@ def main(argv=None, layout=None):
     args = ap.parse_args(argv)
     layout = layout or Layout()
     if args.check:
-        errors = check(layout)
+        errors, warnings = check(layout)
+        ci = 'GITHUB_ACTIONS' in os.environ
+        for w in warnings:
+            print(f'::warning::{w}' if ci else f'WARNING {w}')
         for e in errors:
-            print(f'::error::{e}' if 'GITHUB_ACTIONS' in os.environ else f'ERROR {e}')
+            print(f'::error::{e}' if ci else f'ERROR {e}')
         print('docs fold check: ' + ('FAILED' if errors else 'ok'))
         return 1 if errors else 0
     try:
