@@ -420,5 +420,42 @@ class ProgressSlide(unittest.TestCase):
             self.assertEqual(progress.bucket(m2_app, {"status: blocked", "host: mac"}), "done")  # done outranks everything
 
 
+class FoldFragmentsTest(unittest.TestCase):
+    """hygiene.py reports pending docs fragments (dry-run) and folds them only with --apply (#612)."""
+
+    def layout(self):
+        import shutil
+        import tempfile
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp)
+        repo = Path(__file__).resolve().parents[2]
+        for rel in ("docs/CHANGELOG-LEGACY.md", "docs/migration/GAP-LEGACY-VS-SWIFT.md"):
+            (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(repo / rel, tmp / rel)
+        lay = hygiene.docs_fold.Layout(tmp)
+        lay.changelog_dir.mkdir()
+        lay.gap_dir.mkdir()
+        return lay
+
+    def test_dry_run_reports_and_apply_folds(self):
+        lay = self.layout()
+        self.assertEqual(hygiene.fold_fragments(False, lay), ["docs fragments: none pending"])
+        (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        before = lay.changelog.read_text(encoding="utf-8")
+        out = hygiene.fold_fragments(False, lay)
+        self.assertIn("1 pending (9999.md)", out[0])
+        self.assertEqual(lay.changelog.read_text(encoding="utf-8"), before)
+        self.assertIn("folded 1", hygiene.fold_fragments(True, lay)[0])
+        self.assertIn("| 9999 | T |", lay.changelog.read_text(encoding="utf-8"))
+        self.assertFalse((lay.changelog_dir / "9999.md").exists())
+
+    def test_malformed_fragment_is_reported_not_folded(self):
+        lay = self.layout()
+        (lay.gap_dir / "GAP-9999.md").write_text("not a fragment\n", encoding="utf-8")
+        out = hygiene.fold_fragments(True, lay)
+        self.assertIn("NOT foldable", out[0])
+        self.assertTrue((lay.gap_dir / "GAP-9999.md").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

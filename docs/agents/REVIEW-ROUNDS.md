@@ -16,4 +16,6 @@ Each round costs a CI run, a re-review and tokens. Do it once, completely.
 
 CodeRabbit can skip a review ("Review skipped") or pause on a branch: after pushing, check that it reviewed the new head, and if not, ask for `@coderabbitai review`. From cloud sessions `@mentions` are altered, so the operator posts it. Check again afterwards: the round is complete only when CodeRabbit has reviewed the pushed head.
 
+**What keeps an adversarial APPROVE** (#612): a commit that only merges `dev-swift` into the branch, or only moves or renames a GAP or changelog fragment, does not need a new review round. A **fold PR** (the output of `python3 tooling/docs/fold.py`: fragments moved into `docs/CHANGELOG-LEGACY.md` and `docs/migration/GAP-LEGACY-VS-SWIFT.md`, tallies regenerated, nothing else) merges on green CI with no adversarial review; reviewers check that the diff is only that.
+
 CI noise vs real failure: a check failing in seconds with no log (missing token, unavailable service) is not "CI red" — say so and point to the real checks (build, tests, lint, CodeQL). "Flaky" is not a cause: one re-run at most, then investigate.
