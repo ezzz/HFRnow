@@ -141,7 +141,7 @@ def check_changelog(layout, errors, warnings):
     nums = [n for n, _ in rows]
     if nums != sorted(nums):  # a direct edit of an open PR can break the order: the next fold sorts it
         warnings.append('CHANGELOG-LEGACY.md: rows are not in number order (the next fold sorts them)')
-    seen = set()
+    seen = {}  # number -> first fragment that used it
     for p in fragments(layout.changelog_dir):
         try:
             n, _ = read_changelog_fragment(p)
@@ -151,8 +151,8 @@ def check_changelog(layout, errors, warnings):
         if n in nums:
             errors.append(f'{layout.rel(p)}: #{n} is already a row of CHANGELOG-LEGACY.md (direct edit and fragment for the same issue)')
         if n in seen:
-            errors.append(f'{layout.rel(p)}: #{n} is also the number of another fragment (7.md and 007.md)')
-        seen.add(n)
+            errors.append(f'{layout.rel(p)}: #{n} is also the number of {layout.rel(seen[n])}')
+        seen.setdefault(n, p)
 
 
 # ---------------------------------------------------------------------- GAP
@@ -306,7 +306,7 @@ def check_gap(layout, errors, warnings):
         errors.append(str(e))
         return
     row_nums = {r[3] for r in rows}
-    frag_nums = set()
+    frag_nums = {}  # number -> first fragment that used it
     for p in fragments(layout.gap_dir):
         try:
             gid, num, section, _, _, _ = read_gap_fragment(p)
@@ -316,8 +316,8 @@ def check_gap(layout, errors, warnings):
         if num in row_nums:
             errors.append(f'{layout.rel(p)}: {gid} is already a row of GAP-LEGACY-VS-SWIFT.md (direct edit and fragment for the same issue)')
         if num in frag_nums:
-            errors.append(f'{layout.rel(p)}: {gid} is also the number of another fragment (GAP-7.md and GAP-007.md)')
-        frag_nums.add(num)
+            errors.append(f'{layout.rel(p)}: {gid} is also the number of {layout.rel(frag_nums[num])}')
+        frag_nums.setdefault(num, p)
         if section not in sections:
             errors.append(f'{layout.rel(p)}: no GAP section "{section}"')
 

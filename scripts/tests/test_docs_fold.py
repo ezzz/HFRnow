@@ -1,11 +1,13 @@
 """Tests for tooling/docs/fold.py: GAP and CHANGELOG-LEGACY fragments (#612). Synthetic files in a temporary directory."""
 import contextlib
 import io
+import os
 import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tooling" / "docs"))
@@ -71,6 +73,10 @@ def gap_frag(n, section="Reader", gap="UX change", h1="b"):
 
 class FoldTest(unittest.TestCase):
     def setUp(self):
+        env = mock.patch.dict(os.environ)  # CI sets GITHUB_ACTIONS, which switches the output to ::warning:: annotations
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("GITHUB_ACTIONS", None)
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp)
         self.layout = fold.Layout(self.tmp)
@@ -167,8 +173,8 @@ class FoldTest(unittest.TestCase):
         code, out = self.run_main("--check")
         self.assertEqual(code, 1)
         self.assertIn("GAP-2.md: GAP-2 is already a row", out)
-        self.assertIn("GAP-7.md: GAP-7 is also the number of another fragment", out)
-        self.assertIn("7.md: #7 is also the number of another fragment", out)
+        self.assertIn("GAP-7.md: GAP-7 is also the number of docs/migration/gap.d/GAP-007.md", out)
+        self.assertIn("7.md: #7 is also the number of docs/changelog-legacy.d/007.md", out)
         self.assertEqual(self.run_main()[0], 1, "fold refuses what check rejects")
 
     def test_row_id_must_match_file_name(self):
@@ -209,6 +215,13 @@ class FoldTest(unittest.TestCase):
         fold.fold(self.layout)
         self.assertIn("| b | 002, 050 | 2 |", self.layout.gap.read_text(encoding="utf-8"))
         self.assertNotIn("WARNING", self.run_main("--check")[1])
+
+    def test_ci_prints_annotations(self):
+        os.environ["GITHUB_ACTIONS"] = "true"
+        self.put(self.layout.gap_dir, "GAP-2.md", gap_frag("2"))
+        code, out = self.run_main("--check")
+        self.assertEqual(code, 1)
+        self.assertIn("::error::docs/migration/gap.d/GAP-2.md", out)
 
     def test_unsorted_changelog_only_warns(self):
         self.layout.changelog.write_text(self.base_cl.replace("| 1 | T |", "| 3 | T |"), encoding="utf-8")
