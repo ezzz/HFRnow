@@ -7,6 +7,8 @@ import SwiftUI
 struct SwiftHFRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var accounts = AccountsModel.live()
+    /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
+    @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
     @State private var general: GeneralSettingsModel
     /// The "Thème" settings: appearance and colours of every screen and of the reader (LOT-121).
@@ -28,6 +30,7 @@ struct SwiftHFRApp: App {
             RootView()
                 .environment(accounts)
                 .environment(general)
+                .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme)
