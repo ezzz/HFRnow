@@ -12,8 +12,8 @@ struct MessageMenuList: View {
             list
             ScrollView { list }
         }
-        .frame(minWidth: 220)
-        .fixedSize(horizontal: true, vertical: false)
+        // Labels wrap at large Dynamic Type sizes instead of overflowing a narrow screen.
+        .frame(minWidth: 220, maxWidth: 360)
     }
 
     private var list: some View {
