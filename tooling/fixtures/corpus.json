@@ -253,6 +253,17 @@
     {"raw": "R131t", "id": "R130d", "slug": "mp-thread-recipient-after-sender-delete-unread", "ext": "html", "private": false},
     {"raw": "R131l", "id": "R130e", "slug": "mp-list-recipient-after-sender-delete-unread", "ext": "html", "private": true},
     {"raw": "W137a", "id": "W137a", "slug": "mp-mark-unread-logged-out", "ext": "html", "private": false},
-    {"raw": "W137b", "id": "W137b", "slug": "mp-mark-unread-logged-out-again", "ext": "html", "private": false}
+    {"raw": "W137b", "id": "W137b", "slug": "mp-mark-unread-logged-out-again", "ext": "html", "private": false},
+    {"raw": "R298a", "id": "R298a", "slug": "topic-id-form-1711-logged-out", "ext": "html", "private": false},
+    {"raw": "R298b", "id": "R298b", "slug": "topic-id-form-1711-logged-in", "ext": "html", "private": false},
+    {"raw": "R298c", "id": "R298c", "slug": "topic-id-form-subcat-8811-logged-out", "ext": "html", "private": false},
+    {"raw": "R298d", "id": "R298d", "slug": "topic-id-form-subcat-8811-logged-in", "ext": "html", "private": false},
+    {"raw": "R298e", "id": "R298e", "slug": "topic-stale-slug-1711-logged-out", "ext": "html", "private": false},
+    {"raw": "R298f", "id": "R298f", "slug": "topic-stale-slug-1711-logged-in", "ext": "", "private": false},
+    {"raw": "R335-participated", "id": "R335a", "slug": "rest-bucket-participated", "ext": "json", "private": false},
+    {"raw": "R335-read", "id": "R335b", "slug": "rest-bucket-read", "ext": "json", "private": false},
+    {"raw": "R335-favorites", "id": "R335c", "slug": "rest-bucket-favorites", "ext": "json", "private": false},
+    {"raw": "R335-participated-p2pp5", "id": "R335d", "slug": "rest-bucket-participated-page2-per-page5", "ext": "json", "private": false},
+    {"raw": "R335-participated-flat-b-p2pp5", "id": "R335e", "slug": "rest-bucket-participated-category-page2-per-page5", "ext": "json", "private": false}
   ]
 }

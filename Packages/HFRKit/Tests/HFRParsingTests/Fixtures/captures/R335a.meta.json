@@ -1,0 +1,15 @@
+{
+  "id": "R335a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/topics/participated/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/participated/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/participated/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Sat, 07 Nov 2026 07:16:18 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R335a-rest-bucket-participated.json",
+  "private": false
+}

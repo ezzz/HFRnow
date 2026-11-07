@@ -1,0 +1,15 @@
+{
+  "id": "R335c",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/topics/favorites/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/favorites/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/favorites/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Sat, 07 Nov 2026 07:16:24 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R335c-rest-bucket-favorites.json",
+  "private": false
+}

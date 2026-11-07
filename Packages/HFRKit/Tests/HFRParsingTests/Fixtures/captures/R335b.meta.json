@@ -1,0 +1,15 @@
+{
+  "id": "R335b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/topics/read/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/read/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/read/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Sat, 07 Nov 2026 07:16:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R335b-rest-bucket-read.json",
+  "private": false
+}
