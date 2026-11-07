@@ -150,14 +150,14 @@ real page (`R28`) requests only forum images before a tap.
 Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-056 policy C, GAP-058 videos on tap: `b·needed` (operator 2026-10-27, LOT-071), **UXD-12** only confirms the image-setting default.
 - GAP-051 one-line message header instead of the grey band with "+": `b`, shipped, decided 2026-11-02, **UXD-09** (recommendation: legacy band by default, the new one as a "Style des messages" value).
-- GAP-008 tab bar in the reader: `b`, decided 2026-11-02, **UXD-02**: hidden as legacy (#424; it shipped visible).
+- GAP-008 tab bar in the reader: `b`, decided 2026-11-02, **UXD-02**: hidden as legacy in compact width, while the reader's tab is selected; side by side (Pro Max landscape, iPad) keeps it (#424, #559; it shipped visible).
 - GAP-060 page bar instead of ‹ › and the "…" menu: `b`, shipped, decided 2026-11-02, **UXD-10**.
 - GAP-053 body on `-apple-system-body`: `b·operator` (LOT-169, **UXD-13**). GAP-050, 055, 064: `a`.
 
 ### Decisions of 2026-11-02 (UXD)
 
 Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
-- **UXD-02: A.** The tab bar is hidden while a topic is open ([#424](https://github.com/ezzz/HFRnow/issues/424), M1).
+- **UXD-02: A.** The tab bar is hidden while a topic is open, in compact width (the split collapsed) and in the reader's selected tab; side by side keeps it ([#424](https://github.com/ezzz/HFRnow/issues/424), M1).
 - **UXD-09: A** by default (grey band, 30 px avatar, "+" actions button); the one-line header becomes a value of "Style des messages". The HTML builder restyle is part of LOT-106 (M2); LOT-087 follows.
 - **UXD-10: A layout** (‹ › and the "…" menu: page 1, last pages, "Page…"), keeping "follow the page HFR serves" ([#428](https://github.com/ezzz/HFRnow/issues/428), M2). The page navigator (LOT-110) is in M5.
 - **UXD-12: B** confirmed: policy C, default Wi-Fi (operator 2026-10-27).

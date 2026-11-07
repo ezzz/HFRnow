@@ -6,8 +6,29 @@ import WebKit
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
 // the page controls are the legacy ‹ › with a "N / M" page menu instead of the "…" one (`ReaderPageControls`, LOT-186); the page
 // runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
-// (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only while the split is
-// collapsed (compact width): list and reader side by side (Pro Max landscape, iPad) keep the bar, the only way to switch tabs there.
+// (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
+// split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
+// bar, the only way to switch tabs there. The full-screen Plus search and offline readers keep it in regular width too (see GAP-008).
+/// Whether the reader's root tab is the selected one; `RootTabsView` sets it per tab (default true outside the tab bar).
+private struct IsSelectedRootTabKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var isSelectedRootTab: Bool {
+        get { self[IsSelectedRootTabKey.self] }
+        set { self[IsSelectedRootTabKey.self] = newValue }
+    }
+}
+
+/// The tab bar rule of the reader (GAP-008, UXD-02): hidden in compact width while its own tab is selected, so a reader left
+/// open in another tab (rotation, tab switch) never hides the shared bar.
+enum ReaderTabBar {
+    nonisolated static func visibility(sizeClass: UserInterfaceSizeClass?, isSelectedTab: Bool) -> Visibility {
+        sizeClass == .compact && isSelectedTab ? .hidden : .automatic
+    }
+}
+
 /// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
 /// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
 /// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
@@ -36,6 +57,7 @@ struct TopicReaderView: View {
     @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.isSelectedRootTab) private var isSelectedTab
 
     var body: some View {
         ZStack {
@@ -57,7 +79,7 @@ struct TopicReaderView: View {
         }
         .navigationTitle(model.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
+        .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
             if let error = model.error, model.page != nil {
                 LoadFailureBanner(error: error, retry: model.retry)
