@@ -10,15 +10,21 @@ struct TopicRowView: View {
     let topic: TopicSummary
     /// A super-favourite of the account (LOT-124): the row carries an orange mark.
     var isSuperFavorite = false
+    /// The user marked the row "Lu" since the last load (LOT-125): it shows as read.
+    var markedRead = false
+    /// The row shows its flag (LOT-125: false once HFR confirmed the flag removed).
+    var showsFlag = true
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// 1 at the default Dynamic Type size; multiplies the marker size and its offset.
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
+    private var isUnread: Bool { topic.readState == .unread && !markedRead }
+
     var body: some View {
         HStack(alignment: .top, spacing: scale.scaled(dynamicType * 8)) {
-            if topic.readState == .unread {
+            if isUnread {
                 let marker = scale.scaled(dynamicType * density.markerSize)
                 Circle().fill(.tint).frame(width: marker, height: marker)
                     .padding(.top, scale.scaled(dynamicType * 6)).accessibilityLabel("Non lu")
@@ -27,11 +33,11 @@ struct TopicRowView: View {
                 Image(systemName: "star.circle.fill").foregroundStyle(.orange)
                     .scaledFont(density.titleStyle).accessibilityLabel("Super favori")
             }
-            flagIcon.scaledFont(density.titleStyle)
+            if showsFlag { flagIcon.scaledFont(density.titleStyle) }
             VStack(alignment: .leading, spacing: density.lineSpacing) {
                 Text(topic.title)
                     .scaledFont(density.titleStyle)
-                    .fontWeight(topic.readState == .unread ? .semibold : .regular)
+                    .fontWeight(isUnread ? .semibold : .regular)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 HStack(spacing: 6) {
                     if topic.isSticky { Image(systemName: "pin.fill").accessibilityLabel("Post-it") }
