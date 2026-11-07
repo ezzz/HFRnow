@@ -94,6 +94,18 @@ thread, edit form and quote form read only (`R130a`-`R130c`); the mark-unread li
 (`W137a`, `W137b`); user1 then deleted the thread (`W131`) and user2's list and thread were read (`R130d`, `R130e`; the thread was
 already gone for user2). Nothing of the thread is left on HFR. One message, no edit POST, no retry.
 
+Run 12 (2026-11-07, `mac/m2-lead` batch `m2-567`, ezzz/HFRnow#567, operator-ordered): one new MP user2 → user1 `fixture-test-4` (`W138`), which user1 never
+opened; user1's MP list read before any reply (`R336`), after one user2 reply (`W139`, `R337`) and after a second one (`W140`, `R338`).
+Both accounts then deleted the thread with `W64`'s and `W65`'s body (not published) and the lists were read again: nothing of the thread is left on HFR (run observation, as the answers and those lists are not published).
+Three messages, no edit POST, no retry.
+
+Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
+published AQ server (`toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
+data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
+replaced by `192.0.2.1` like any IP. They document what that code answers. Each meta keeps the status and `response_headers` (those of PHP's built-in server, not the live host's), and `body_length` when no file holds the
+bytes. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
+other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`user7` and a forum URL that names no real topic.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -330,10 +342,31 @@ already gone for user2). Nothing of the thread is left on HFR. One message, no e
 | R130d | `R130d-mp-thread-recipient-after-sender-delete-unread.html` | The thread URL for user2 afterwards: the "pas destiné" `.hop` (user2 had not opened it) | X1 | 094, 030 |
 | R130e | `R130e-mp-list-recipient-after-sender-delete-unread.html` | user2's MP list afterwards: no row ("Aucun message posté"), so no second delete was sent | X1, R13 | 094, 023 |
 | (oracles) | `../M2-misc/` | Legacy oracles (`run-oracle.sh`, legacy `2440d79`): `topics` for `R117a` (`needToUpdateMP` true, `sNewMPNumber` 7), `topic` for `R130a`, `form` (`edit`, `quote`) for `R130b`/`R130c`, `response` (`reply`) for `W130`; own folder and map. `W131`, `W137a`, `W137b`, `R130d`, `R130e` have no legacy parser to run | R117a, R130a-R130e, W130 | 023, 036 |
+| W138 | `W138-mp-create-unread-conversation-success.html` | New MP user2 → user1 `fixture-test-4`: "Votre message a été posté avec succès !", refresh to the MP list (the `W10` shape) | #567 | 140, 048 |
+| R336 | `R336-mp-list-recipient-unread-before-reply.html` | user1's MP list right after `W138`, thread never opened: row 1 is the new thread, icon `closedbp.gif` ("Nouveau message. Message privé pour user2"), no `[non lu]` span, `sujetCase7` 0, last post `07-11-2026 à 13:46` by user2; 50 rows, other conversations' subjects replaced, correspondents aliased | #567, R13 | 140, 023 |
+| W139 | `W139-mp-reply-unread-conversation-success.html` | user2 replies once on that thread (a minute later): "Votre réponse a été postée avec succès !" | #567 | 140, 048 |
+| R337 | `R337-mp-list-recipient-unread-after-reply.html` | user1's list after `W139`, thread still unopened: same row, same position and same icon; now a `[non lu]` span ("Ce message n'a pas été lu par : user2"), `sujetCase7` 1, last post `13:47` by user2 | #567, R13 | 140, 023 |
+| W140 | `W140-mp-reply-unread-conversation-second-success.html` | user2's second reply (third message of the thread): same success answer | #567 | 140, 048 |
+| R338 | `R338-mp-list-recipient-unread-after-second-reply.html` | user1's list after `W140`: same row, icon and `[non lu]` span as `R337`, `sujetCase7` 2, last post `13:48` by user2 | #567, R13 | 140, 023 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |
 | T51 | `T51-aq-alerts-after-create.xml` | `getAlertesByTopic.php?topic_id=<own topic>` read right after `T50`: 200 `text/xml;charset=UTF-8`, one `<alerte id nom pseudoInitiateur date postsIds/>`, the new alert (`postsIds` = the reported message, `pseudoInitiateur` = the `pseudo` sent, `date` the day); alert id, topic and message aliased, title masked as in `T02` | E §6 | 055, 071, 134 |
+| T52 | `T52-aq-alerts-empty-local.xml` | `GET /api/getAlertesByTopic.php?topic_id=<n>` on an empty database: 200 `text/xml;charset=UTF-8`, `<alertes/>` (50 bytes). `origin: local-instance` | #574 | 055, 134 |
+| T53 | `T53-aq-create-ok-local.txt` | Create on a new AQ (`alerte_qualitay_id=-1`): 200 `text/plain;charset=UTF-8`, body `1`, no cookie. `origin: local-instance` | #574 | 055, 134 |
+| T54 | `T54-aq-alerts-after-create-local.xml` | The topic's list right after `T53`: one `<alerte id nom pseudoInitiateur date postsIds/>` (the `T51` shape). `origin: local-instance` | #574 | 055, 134 |
+| T55 | `T55-aq-add-existing-ok-local.txt` | Add a message to the existing AQ (`alerte_qualitay_id=<id of T54>`, another pseudo and post): body `1` (same answer as a new AQ). `origin: local-instance` | #574 | 055, 134 |
+| T56 | `T56-aq-alerts-after-add-local.xml` | The list after `T55`: the same AQ, `pseudoInitiateur` still the first reporter, `postsIds` `"<added>,<first>"` (newest first). `origin: local-instance` | #574 | 055, 134 |
+| T57 | `T57-aq-create-unknown-aq-local.txt` | `alerte_qualitay_id` of no AQ: 200 `text/plain;charset=UTF-8`, body `-2`. `origin: local-instance` | #574 | 055, 134 |
+| T58 | `T58-aq-create-missing-field-local.txt` | New AQ with an empty `nom`: body `-3`. `origin: local-instance` | #574 | 055, 134 |
+| T59 | `T59-aq-create-duplicate-pseudo-aq-local.txt` | The same pseudo reporting a second message on the same AQ: body `-4`. `origin: local-instance` | #574 | 055, 134 |
+| T60 | `T60-aq-create-duplicate-pseudo-url-local.txt` | A new AQ whose reporter pseudo and `post_url` already exist on another AQ: body `-4`. `origin: local-instance` | #574 | 055, 134 |
+| T61 | `T61-aq-alerts-after-duplicate-local.xml` | The new AQ's topic list after `T60`: `<alertes/>` (the refused AQ is not listed). `origin: local-instance` | #574 | 055, 134 |
+| T62 | (meta only) | `post_url` not under `https://forum.hardware.fr` (`http://`): status 403, `Content-Length: 0`, `text/html; charset=UTF-8`, `body_length` 0. `origin: local-instance` | #574 | 055, 134 |
+| T67 | (meta only) | The 4th creation of one client within the minute (after three creations, not published, answered `1`): status 200, `body_length` 0, `text/html; charset=UTF-8`, no `Content-Length` in `response_headers`. `origin: local-instance` | #574 | 055, 134 |
+| T68 | (meta only) | The next creation after `T67`: status 403, `Content-Length: 0`, `body_length` 0 (the client is blacklisted). `origin: local-instance` | #574 | 055, 134 |
+| T69 | `T69-aq-alerts-after-flood-local.xml` | The list of the first of the three topics of the flood, read after `T68`: `<alertes/>`. That this topic held an AQ before is a run observation (its create is not published). `origin: local-instance` | #574 | 055, 134 |
+| T71 | `T71-aq-alerts-no-topic-local.xml` | `GET /api/getAlertesByTopic.php` with no `topic_id`: `<alertes/>`. `origin: local-instance` | #574 | 055, 134 |
 | R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
 | R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
 | T10 | meta only | `https://nsa34.casimages.com/…jpg`: no DNS answer (status 0) | — | 056, 083 |
