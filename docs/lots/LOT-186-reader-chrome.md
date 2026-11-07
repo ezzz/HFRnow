@@ -21,7 +21,7 @@ All at `2440d79` of <https://github.com/ezzz/HFRnow>, `HFRswift/Swift/MessagesVi
 - `Composer/ReaderReplyFlow.swift`: unchanged pointer; its button moved to `ReaderPageControls`.
 
 ## UX evolutions (app lots)
-Each is a divergence from legacy taken because the HIG wins (operator, #545, 2026-11-07). GAP rows are added by the docs child of #545 (`ext/francoisgn-docs-545`), which references this section.
+Each is a divergence from legacy taken because the HIG wins (operator, #545, 2026-11-07). Class is the H.1 column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1): `b·operator` is a user-visible difference the operator decided, `a (parity)` restores the legacy behaviour. GAP rows are added by the docs child of #545 (`ext/francoisgn-docs-545`), which references this section.
 
 | # | Change | Legacy (file:line @ 2440d79) | HIG rule (live page, read 2026-11-07) | Class |
 |---|---|---|---|---|
@@ -63,7 +63,7 @@ Kept as shipped, not legacy (already recorded): "Page…" asks in an alert, not 
 - The controller sets `WKWebView.obscuredContentInsets` (iOS 26.0+), the scroll view's `contentInset` and indicator insets, and `contentInsetAdjustmentBehavior = .never`: UIKit's safe area does not see the reader's own banners (`LoadFailureBanner`, `ReplySentBanner`, the offline banner), the SwiftUI layout does.
 - **A position is the content at the bars' edge** ("reading top", `ReaderScrollGeometry`), never the raw `contentOffset`:
   - a change of insets (a banner shown or hidden, the bar's height changing) keeps the reading top: `offset' = max(offset + old.top − new.top, −new.top)`;
-  - a refresh (`keepsScrollPosition`) saves the reading top at `show` and restores it at ready with the insets of that moment (the banner of a failed refresh can come or go meanwhile); before, `contentOffset` was saved and restored raw (`ReaderWebController.swift:111, 242` before this lot);
+  - a refresh (`keepsScrollPosition`) saves the reading top at `show` and restores it at ready with `window.scrollTo(0, readingTop)`: the page counts `scrollY` from the bars' edge, so the insets of that moment apply (the banner of a failed refresh can come or go meanwhile). Before, `contentOffset` was saved and set back raw at DOMContentLoaded (`ReaderWebController.swift:111, 242` before this lot), which the new document's first layout can undo (the first CI run of `aRefreshReopensAtTheSameMessageWhenTheBarsChanged` timed out on it);
   - the offset never goes above `−top`: the first message never detaches from the bar.
 - LOT-111 positions are message numbers, not offsets: `reader.js` lands with `scrollIntoView` and reports the topmost message from `getBoundingClientRect`. With `obscuredContentInsets` set, WebKit counts both from the bars' edge; `ReaderInsetsWebTests` checks it in the real web view (landing below the bar; a message hidden under the bar is not the reading position). `reader.js` is unchanged.
 - The toast (`menuFeedback`) is `glassEffect(.regular, in: .capsule)`, `padding(.bottom, 8)` above the bottom bar's safe area; the magic 56 is gone.

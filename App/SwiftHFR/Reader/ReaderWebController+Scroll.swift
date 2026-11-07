@@ -28,10 +28,13 @@ extension ReaderWebController {
         ReaderScrollGeometry.readingTop(offsetY: webView.scrollView.contentOffset.y, obscuredTop: obscuredInsets.top)
     }
 
-    /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore).
+    /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore). The
+    /// page scrolls itself: WebKit counts `scrollY` from the bars' edge once `obscuredContentInsets` is set (`scrollY` is the
+    /// reading top, `ReaderInsetsWebTests`), and a native `setContentOffset` at DOMContentLoaded is undone by the new
+    /// document's first layout.
     func scroll(toReadingTop readingTop: CGFloat) {
-        let scrollView = webView.scrollView
-        let offsetY = ReaderScrollGeometry.offsetY(readingTop: readingTop, obscuredTop: obscuredInsets.top)
-        scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: offsetY), animated: false)
+        let script = "window.scrollTo(0, y); return true;"
+        let top = Double(max(0, readingTop))
+        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["y": top], in: nil, contentWorld: Self.world) }
     }
 }
