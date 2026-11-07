@@ -6,9 +6,9 @@ import HFRParsing
 @testable import SwiftHFR
 import Testing
 
+// The suite limit is a backstop for a hang only (#366).
 /// "Marquer comme non lu" (LOT-127): the link of the page, the single write, what the reader and the list show after it. The
 /// writes are scripted (`FakeFlagWriter`) or stop at the session check: nothing reaches HFR.
-// The suite limit is a backstop for a hang only (#366).
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct MarkUnreadTests {
     private let link = url("https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&post=3207033&page=1")
