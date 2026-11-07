@@ -18,10 +18,11 @@ struct MessageListView: View {
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
             if loader.value != nil {
                 ForEach(model.visibleThreads) { thread in
-                    MessageRowView(thread: thread, isUnread: model.isUnread(thread)).tag(thread)
+                    MessageRowView(thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread).tag(thread)
                 }
             }
         }
+        .listStyle(.insetGrouped) // explicit: the row tint's base colour is the grouped one (#570)
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
