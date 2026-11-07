@@ -102,6 +102,37 @@ struct ComposerFormattingModelTests {
         #expect(composer.text == "[url]ici[/url]")
     }
 
+    @Test func emptySelectionLinkOffersBothFormsWithTheCaretWhereTypingContinues() async {
+        let clipboard = FakeClipboard()
+        clipboard.string = "https://example.org/"
+        let (composer, _) = await make("ab")
+        let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
+        model.selectedRange = NSRange(location: 1, length: 0)
+        model.tap(.bbCode(.url))
+        guard let first = model.pending else { Issue.record("no choice offered"); return }
+        model.acceptLinkChoice(first, attribute: true)
+        #expect(composer.text == "a[url=https://example.org/][/url]b")
+        #expect(model.selectedRange.location == "a[url=https://example.org/]".utf16.count)
+        composer.update(text: "ab")
+        clipboard.changeCount = 2
+        model.selectedRange = NSRange(location: 1, length: 0)
+        model.tap(.bbCode(.url))
+        guard let second = model.pending else { Issue.record("no choice offered"); return }
+        model.acceptLinkChoice(second, attribute: false)
+        #expect(composer.text == "a[url]https://example.org/[/url]b")
+    }
+
+    @Test func decliningTheEmptySelectionLinkWritesPlainTags() async {
+        let clipboard = FakeClipboard()
+        clipboard.string = "https://example.org/"
+        let (composer, _) = await make("ab")
+        let model = ComposerFormattingModel(composer: composer, clipboard: clipboard)
+        model.selectedRange = NSRange(location: 1, length: 0)
+        model.tap(.bbCode(.url))
+        decline(model)
+        #expect(composer.text == "a[url][/url]b")
+    }
+
     @Test func clipboardTextIsOfferedForAnEmptySelectionAndWrapped() async {
         let clipboard = FakeClipboard()
         clipboard.string = "extrait\nsur deux lignes"

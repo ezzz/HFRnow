@@ -79,14 +79,7 @@ struct ReplyComposerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
-                switch pending {
-                case .link:
-                    Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
-                    Button("Oui") { formatting.acceptPending(pending); focused = .text }
-                case .formatting:
-                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
-                    Button("Insérer") { formatting.acceptPending(pending); focused = .text }
-                }
+                clipboardButtons(pending)
             } message: { pending in
                 Text(pending.message)
             }
@@ -288,7 +281,7 @@ struct ReplyComposerView: View {
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button("Image", systemImage: "photo") { imageInserted = false; rangeImage = formatting.selectedRange; isShowingImages = true }
+            Button("Image", systemImage: "photo.badge.plus", action: openImages)
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .cancellationAction) {
@@ -347,5 +340,30 @@ private struct ComposerBanner<Actions: View>: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
         .padding(.top, 8)
+    }
+}
+
+extension ReplyComposerView {
+    /// The buttons of the clipboard alert, by what the tap could use.
+    @ViewBuilder
+    fileprivate func clipboardButtons(_ pending: ComposerFormattingModel.Pending) -> some View {
+        switch pending {
+        case .link:
+            Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
+            Button("Oui") { formatting.acceptPending(pending); focused = .text }
+        case .linkChoice:
+            Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+            Button("Oui [url=XXX]") { formatting.acceptLinkChoice(pending, attribute: true); focused = .text }
+            Button("Oui [url]XXX[/url]") { formatting.acceptLinkChoice(pending, attribute: false); focused = .text }
+        case .formatting:
+            Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+            Button("Insérer") { formatting.acceptPending(pending); focused = .text }
+        }
+    }
+
+    fileprivate func openImages() {
+        imageInserted = false
+        rangeImage = formatting.selectedRange
+        isShowingImages = true
     }
 }
