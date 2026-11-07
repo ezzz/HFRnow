@@ -445,7 +445,11 @@ class FoldFragmentsTest(unittest.TestCase):
         before = lay.changelog.read_text(encoding="utf-8")
         self.assertIn("1 pending (#5)", hygiene.ledger_pending([ok], lay)[0])
         self.assertEqual(lay.changelog.read_text(encoding="utf-8"), before)
-        self.assertIn("NOT foldable", hygiene.ledger_pending([{"number": 6, "body": "### Ledger\n\nprose"}], lay)[0])
+        out = hygiene.ledger_pending([{"number": 6, "body": "### Ledger\n\nprose"}], lay)
+        self.assertIn("0 foldable, 1 refused", out[0])
+        self.assertIn("PR #6 refused", out[1])
+        with mock.patch.object(hygiene.docs_ledger, "fetch_pending", side_effect=hygiene.docs_ledger.LedgerError("gh down")):
+            self.assertEqual(hygiene.ledger_pending(None, lay), ["ledger: cannot report: gh down"])
 
     def test_dry_run_reports_and_apply_folds(self):
         lay = self.layout()

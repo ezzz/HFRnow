@@ -256,15 +256,18 @@ def fold_fragments(do_apply, layout=None):
 
 def ledger_pending(prs=None, layout=None):
     """Report the merged `ledger` PRs waiting for the steward (never writes: `ledger.py fold --apply` does); returns printed lines."""
-    prs = docs_ledger.fetch_pending() if prs is None else prs
-    if not prs:
-        return ['ledger: none pending']
-    nums = ', '.join(f'#{p["number"]}' for p in prs)
     try:
-        docs_ledger.plan(prs, layout)  # dry run in a copy
-    except docs_ledger.LedgerError as e:
-        return [f'ledger: {len(prs)} pending ({nums}), NOT foldable: {e}']
-    return [f'ledger: {len(prs)} pending ({nums}); python3 tooling/docs/ledger.py fold --apply --commit, then open one docs-only PR']
+        prs = docs_ledger.fetch_pending() if prs is None else prs
+        if not prs:
+            return ['ledger: none pending']
+        res = docs_ledger.plan(prs, layout)  # dry run in a copy
+    except docs_ledger.LedgerError as e:  # a `gh` failure or a broken file never stops the lot hygiene
+        return [f'ledger: cannot report: {e}']
+    out = [f'ledger: {len(prs)} pending ({", ".join(f"#{p["number"]}" for p in prs)}): {len(res.folded)} foldable, {len(res.skipped)} refused;'
+           ' python3 tooling/docs/ledger.py fold --apply --commit, then open one docs-only PR']
+    out += [f'ledger: PR #{n} refused: {why}' for n, why in res.skipped]
+    out += [f'ledger: PR #{n} has a note to apply by hand: {t[:120]}' for n, t in res.notes]
+    return out
 
 
 if __name__ == '__main__':
