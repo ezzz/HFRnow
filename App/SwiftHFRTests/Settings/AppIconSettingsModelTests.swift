@@ -2,7 +2,7 @@ import HFRStorage
 @testable import SwiftHFR
 import Testing
 
-@MainActor
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct AppIconSettingsModelTests {
     private struct Refusal: Error {}
 
