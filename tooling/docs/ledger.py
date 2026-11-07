@@ -54,12 +54,14 @@ class LedgerError(Exception):
 
 
 def norm(name):
+    """Column and block names compared without case, spaces or punctuation."""
     return re.sub(r'[^a-z0-9]', '', name.lower())
 
 
 def section(body):
     """Text of the `### Ledger` section (up to the next heading of level 1-3), or None."""
-    m = HEADING.search(body or '')
+    body = (body or '').replace('\r\n', '\n').replace('\r', '\n')  # the web editor stores CRLF
+    m = HEADING.search(body)
     if not m:
         return None
     rest = body[m.end():]
@@ -194,9 +196,11 @@ def apply_prs(prs, layout):
     gap_lines = fold.read(layout.gap).split('\n')
     rows = {r[3]: gap_lines[r[0]] for r in fold.gap_rows(gap_lines)}
     _, have, _ = fold.parse_changelog(fold.read(layout.changelog))
+    sections = fold.gap_sections(gap_lines)
     staged, edited = {}, {}  # edited: row number -> its new text, applied after the fold
 
     def taken(path):
+        """A path already used on disk or staged by an earlier PR of the batch."""
         return path in staged or path.exists()
 
     for pr in sorted(prs, key=lambda p: p['number']):
@@ -215,6 +219,8 @@ def apply_prs(prs, layout):
                     mine[layout.changelog_dir / f'{n}.md'] = '\n'.join(cl) + '\n'
                     lines.append(f'changelog #{n} ({len(cl)} row(s))')
             for gid, num, sec, row in new:
+                if sec not in sections:
+                    raise LedgerError(f'{gid}: no GAP section "{sec}" (sections: {"; ".join(sections)})')
                 frag = layout.gap_dir / f'GAP-{num}.md'
                 if num in rows or num in mine_rows:
                     if fold.cells(row) != fold.cells(rows.get(num) or mine_rows[num]):
@@ -268,11 +274,20 @@ def apply_prs(prs, layout):
     return res
 
 
+def _apply(prs, layout):
+    """`apply_prs` with the errors of fold.py's shared-file reads and checks reported as LedgerError."""
+    try:
+        return apply_prs(prs, layout)
+    except fold.FoldError as e:
+        raise LedgerError(str(e)) from None
+
+
 def plan(prs, layout=None, write=False):
     """Dry run in a temporary copy unless `write`. -> Result."""
     layout = layout or fold.Layout()
     if write:
-        return apply_prs(prs, layout)
+        plan(prs, layout)  # dry run in a copy first: a failure leaves the tree untouched
+        return _apply(prs, layout)
     tmp = Path(tempfile.mkdtemp())
     try:
         for p in (layout.changelog, layout.gap):
@@ -282,12 +297,13 @@ def plan(prs, layout=None, write=False):
             (tmp / layout.rel(d)).mkdir(parents=True, exist_ok=True)
             for f in fold.fragments(d):
                 shutil.copy(f, tmp / layout.rel(d) / f.name)
-        return apply_prs(prs, fold.Layout(tmp))
+        return _apply(prs, fold.Layout(tmp))
     finally:
         shutil.rmtree(tmp)
 
 
 def gh(*args):
+    """Run `gh api` (REST) and return its output; a failure is a LedgerError."""
     r = subprocess.run(['gh', 'api', *args], capture_output=True, text=True)
     if r.returncode:
         raise LedgerError(f'gh api {" ".join(args)[:80]}: {r.stderr.strip()[:200]}')
@@ -295,10 +311,12 @@ def gh(*args):
 
 
 def merged(issue):
+    """True when a REST issue object is a merged PR."""
     return bool((issue.get('pull_request') or {}).get('merged_at'))
 
 
 def labels_of(issue):
+    """Label names of a REST issue object."""
     return {l['name'] for l in issue.get('labels', [])}
 
 
@@ -331,6 +349,7 @@ def fetch_pending(numbers=None):
 
 
 def git(*args, **kw):
+    """Run git and return its output; a failure raises CalledProcessError."""
     return subprocess.run(['git', *args], check=True, capture_output=True, text=True, **kw).stdout
 
 
@@ -353,6 +372,7 @@ def run_commit(nums, today):
 
 
 def report(res):
+    """Print what a run did: lines, notes for the steward, skipped PRs."""
     for l in res.lines:
         print(' ', l)
     for n, t in res.notes:
@@ -383,6 +403,7 @@ def relabel(n, apply):
 
 
 def main(argv=None, layout=None):
+    """CLI entry; returns the exit code."""
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     sub = ap.add_subparsers(dest='cmd', required=True)
     c = sub.add_parser('check-body')

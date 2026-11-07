@@ -81,6 +81,11 @@ class ParseTest(unittest.TestCase):
         with self.assertRaisesRegex(ledger.LedgerError, "no `### Ledger` section"):
             ledger.check_pr("Closes #1\n", ["ledger"])
 
+    def test_crlf_bodies_parse(self):
+        crlf = BODIES[0]["body"].replace("\n", "\r\n")
+        self.assertEqual(ledger.check_body(crlf, 701), 1)
+        self.assertEqual(ledger.check_pr(crlf, ["ledger"], 701), "ledger body: 1 block(s) ok")
+
     def test_issue_number_falls_back_to_the_pr(self):
         self.assertEqual(ledger.issue_number("Refs #12\n", 5), 12)
         self.assertEqual(ledger.issue_number("Direct-PR: typo", 5), 5)
@@ -201,6 +206,19 @@ class StewardTest(unittest.TestCase):
         self.assertIn("GAP-999 is not a row", res.skipped[0][1])
         self.assertNotIn("#700: #700", res.skipped[0][1])
         self.assertEqual(fold.check(self.layout)[0], [])
+
+    def test_an_unknown_section_skips_only_its_pr(self):
+        typo = {"number": 740, "body": body(("gap-new", f"Section: Readr\n{base.gap_row('740', 'new', 'a')}"), issue="Closes #740")}
+        res = ledger.plan([typo] + BODIES[:1], self.layout, write=True)
+        self.assertEqual((res.folded, [n for n, _ in res.skipped]), ([701], [740]))
+        self.assertIn('no GAP section "Readr"', res.skipped[0][1])
+
+    def test_a_failing_write_leaves_the_tree_untouched(self):
+        before = self.files()
+        with mock.patch.object(fold, "check", return_value=(["boom"], [])), self.assertRaises(ledger.LedgerError):
+            ledger.plan(BODIES, self.layout, write=True)
+        self.assertEqual(self.files(), before)
+        self.assertEqual(fold.fragments(self.layout.changelog_dir) + fold.fragments(self.layout.gap_dir), [])
 
     def test_a_skipped_pr_writes_nothing_of_itself(self):
         half = {"number": 720, "body": body(("changelog", CL), ("gap-edit", "GAP-999\nGap: new"), issue="Closes #720")}

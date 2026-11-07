@@ -263,7 +263,8 @@ def ledger_pending(prs=None, layout=None):
         res = docs_ledger.plan(prs, layout)  # dry run in a copy
     except docs_ledger.LedgerError as e:  # a `gh` failure or a broken file never stops the lot hygiene
         return [f'ledger: cannot report: {e}']
-    out = [f'ledger: {len(prs)} pending ({", ".join(f"#{p["number"]}" for p in prs)}): {len(res.folded)} foldable, {len(res.skipped)} refused;'
+    nums = ', '.join('#%d' % p['number'] for p in prs)
+    out = [f'ledger: {len(prs)} pending ({nums}): {len(res.folded)} foldable, {len(res.skipped)} refused;'
            ' python3 tooling/docs/ledger.py fold --apply --commit, then open one docs-only PR']
     out += [f'ledger: PR #{n} refused: {why}' for n, why in res.skipped]
     out += [f'ledger: PR #{n} has a note to apply by hand: {t[:120]}' for n, t in res.notes]
