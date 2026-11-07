@@ -5,7 +5,7 @@ import Testing
 
 struct TopicRowCuesTests {
     private func topic(
-        flag: TopicFlag? = nil, current: Int? = nil, pages: Int = 1, poll: Bool = false
+        flag: TopicFlag? = nil, flagPath: String? = nil, current: Int? = nil, pages: Int = 1, poll: Bool = false
     ) -> TopicSummary {
         TopicSummary(
             topicID: TopicID(category: .privateMessages, topic: 3_207_033),
@@ -13,6 +13,7 @@ struct TopicRowCuesTests {
             path: "/forum2.php?config=hfr.inc&cat=1&post=1",
             pageCount: pages,
             flag: flag,
+            flagPath: flagPath ?? (flag == nil ? nil : "/user/delflag.php?topic=1"),
             currentPage: current,
             isPoll: poll
         )
@@ -25,6 +26,8 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.unreadPages(topic(flag: .blue, current: 2, pages: 5)) == 3)
         #expect(TopicRowCues.unreadPages(topic(current: 2, pages: 5)) == nil)
         #expect(TopicRowCues.unreadPages(topic(flag: .blue, current: 0, pages: 5)) == nil)
+        // A flag of unknown colour still has its link: the capsule shows, as `hasFlag` says the row is flagged.
+        #expect(TopicRowCues.unreadPages(topic(flagPath: "/user/delflag.php?topic=1", current: 2, pages: 5)) == 3)
         #expect(TopicRowCues.unreadPagesLabel(3) == "3 pages non lues")
         #expect(TopicRowCues.unreadPagesLabel(1) == "1 page non lue")
     }
@@ -35,6 +38,7 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 2, pages: 5, poll: true)) == "⚑ \u{2263} 2 / 5")
         #expect(TopicRowCues.pageFooter(topic(pages: 5)) == nil)
         #expect(TopicRowCues.pageFooter(topic(current: 2, pages: 5)) == nil)
+        #expect(TopicRowCues.pageFooter(topic(flagPath: "/user/delflag.php?topic=1", current: 2, pages: 5)) == "⚑ 2 / 5")
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 0, pages: 5)) == nil)
         #expect(TopicRowCues.pageFooter(topic(flag: .blue, current: 9, pages: 5)) == nil)
     }
@@ -49,13 +53,21 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true, isSelected: true) == nil)
     }
 
-    @Test("The row tint layers over a transparent base, tinted by the accent, quieter for a flag")
-    func rowTintBase() throws {
+    @Test("The row tint takes the base of its list: the grouped card by default, clear in the sidebar column")
+    func rowTintBases() throws {
+        let grouped = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: false))
+        #expect(grouped.base == .grouped)
+        let sidebar = try #require(
+            TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: true, isSelected: false, base: .clear)
+        )
+        #expect(sidebar.base == .clear)
+    }
+
+    @Test("The accent weight: quieter for a flag, full for the super favourite")
+    func rowTintWeight() throws {
         let flagged = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: false))
-        #expect(flagged.base == .clear)
         #expect(flagged.weight < 1)
         let sup = try #require(TopicListView.rowTint(topic: topic(), isSuperFavorite: true, isSelected: false))
-        #expect(sup.base == .clear)
         #expect(sup.weight == 1)
         #expect(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: true) == nil)
         // A flag removal HFR confirmed hides the icon, the capsule and the footer: the tint goes too.

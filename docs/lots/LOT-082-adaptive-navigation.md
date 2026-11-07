@@ -42,7 +42,7 @@ None: the models are tested with a scripted `ForumDataSource`; parsers are cover
 Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-020, 021, 022 Catégories as collapsible sections with sub-forum rows, no icons, no sub-forum picker: `b`, shipped, decided 2026-11-02, **UXD-05** (recommendation: A, restore the legacy list).
 - GAP-023 no Tous / Favoris / Suivis / Lus filter: not planned, decided 2026-11-02, **UXD-06**.
-- GAP-026, 027 topic row "author · replies · date", no "⚑ cur / max", capsule or tint: `b`, shipped, decided 2026-11-02, **UXD-07** (inside LOT-169).
+- GAP-026, 027 topic row "author · replies · date", no "⚑ cur / max", capsule or tint: `b`, shipped, decided 2026-11-02, **UXD-07** (inside LOT-169); reversed by the operator on 2026-11-07: the capsule, the footer and the flag tint are back (#584).
 - GAP-212, 214 detail column on every regular width: `b`, decided 2026-11-02, **UXD-24**.
 - GAP-024 "Page N" without a fake total: `b·needed` (HFR gives no reliable total, LOT-167). GAP-025, 038: `a`.
 

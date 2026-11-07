@@ -20,16 +20,17 @@ enum TopicRowCues {
         var weight: Double { self == .superFavorite ? 1 : 0.6 }
     }
 
-    /// Pages between the member's flag and the end of the topic (legacy `unreadCount`); nil without a flag, a positive flag page or at 0.
+    /// Pages between the member's flag and the end of the topic (legacy `unreadCount`); nil without a flag link (as `hasFlag`),
+    /// a positive flag page or at 0.
     static func unreadPages(_ topic: TopicSummary) -> Int? {
-        guard topic.flag != nil, let current = topic.currentPage, current > 0 else { return nil }
+        guard topic.flagPath != nil, let current = topic.currentPage, current > 0 else { return nil }
         let behind = topic.pageCount - current
         return behind > 0 ? behind : nil
     }
 
     /// "⚑ cur / max", with legacy's "≣" for a poll, when the flagged row's page is known and within the topic (legacy `pageLabel`).
     static func pageFooter(_ topic: TopicSummary) -> String? {
-        guard topic.flag != nil, let current = topic.currentPage, current > 0, current <= topic.pageCount else { return nil }
+        guard topic.flagPath != nil, let current = topic.currentPage, current > 0, current <= topic.pageCount else { return nil }
         return "⚑\(topic.isPoll ? " \u{2263}" : "") \(current) / \(topic.pageCount)"
     }
 

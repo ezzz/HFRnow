@@ -26,11 +26,11 @@ struct RowTint: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        base.color.overlay(tint.opacity(Self.strength(scheme: scheme, contrast: contrast) * weight))
+        base.color.overlay(tint.opacity(Self.strength(scheme: scheme, contrast: contrast, weight: weight)))
     }
 
     /// Opacity of the tint: stronger in dark, where the same alpha reads weaker, and again with Increase Contrast.
-    static func strength(scheme: ColorScheme, contrast: ColorSchemeContrast) -> Double {
-        (scheme == .dark ? 0.16 : 0.10) + (contrast == .increased ? 0.08 : 0)
+    static func strength(scheme: ColorScheme, contrast: ColorSchemeContrast, weight: Double = 1) -> Double {
+        ((scheme == .dark ? 0.16 : 0.10) + (contrast == .increased ? 0.08 : 0)) * weight
     }
 }
