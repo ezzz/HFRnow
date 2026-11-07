@@ -109,7 +109,7 @@ struct TopicListView: View {
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(isSuper ? Color.orange.opacity(0.12) : nil)
+                .listRowBackground(isSuper ? RowTint(tint: .orange) : nil)
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }

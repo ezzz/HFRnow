@@ -1,12 +1,15 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state (GAP-111).
+// Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
+// (GAP-111); accent tint on unread rows (GAP-227).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
     let thread: PrivateMessageThread
     /// The member's unread state as the list shows it (HFR's, until the thread is opened).
     let isUnread: Bool
+    /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
+    var isSelected = false
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -38,6 +41,12 @@ struct MessageRowView: View {
         }
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
+        .listRowBackground(MessageRowView.rowTint(isUnread: isUnread, isSelected: isSelected))
+    }
+
+    /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
+    static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
+        isUnread && !isSelected ? RowTint() : nil
     }
 
     /// Capped, so an accessibility size leaves the text its room.
