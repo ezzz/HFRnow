@@ -166,4 +166,21 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         )
         #expect(abs(controller.readingTop - 1000) <= 1)
     }
+
+    /// Fable on #662: the restore waits for animation frames, which a hidden page does not draw. No native
+    /// call may wait for them, or a reader refreshed while covered and then dropped would never be freed.
+    @Test func aRestoreWhileHiddenDoesNotKeepTheControllerAlive() async throws {
+        weak var weakController: ReaderWebController?
+        do {
+            let (controller, recorder) = makeController(transport: imageTransport())
+            weakController = controller
+            controller.obscuredInsets = bars
+            controller.show(tallDocument(token: 1))
+            #expect(await until { recorder.ready == [1] })
+            controller.webView.removeFromSuperview()
+            controller.show(tallDocument(token: 2, keepsScrollPosition: true))
+            #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+        }
+        #expect(await until({ weakController == nil }, timeout: .seconds(30)))
+    }
 }
