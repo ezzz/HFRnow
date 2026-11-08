@@ -11,7 +11,7 @@
 > [!NOTE]
 > **SwiftHFR is free, noncommercial and built by volunteers. It has real costs, and your support helps cover them.**
 > - **Apple Developer account:** $99 per year, needed for TestFlight and the App Store.
-> - **Image-hosting API:** $170.
+> - **Image-hosting API:** $170 per year.
 > - **Everything else is shared effort:** AI subscriptions, software tools, hardware and time.
 >
 > Contribute to the [Leetchi pot](https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155), or buy a coffee:
