@@ -26,7 +26,7 @@ Les documents sont en français, comme le questionnaire.
 
 ## Où vont les livrables du questionnaire
 
-- Contenu, mention sur les données, spécification du formulaire, visuels : `docs/ux/questionnaire/`.
+- Contenu, mention sur les données, spécification du formulaire, visuels : `docs/ux/questionnaire/`. Le parcours, les identifiants des questions et les contrats entre lots sont dans `docs/ux/questionnaire/cadrage-construction.md`.
 - Code du formulaire : `tooling/ux-survey/`.
 
 ## Arbitrages de cadrage à retenir
