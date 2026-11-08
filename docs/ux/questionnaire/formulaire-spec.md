@@ -11,6 +11,7 @@ Décisions du PO reprises ici :
 - carte `C08` retirée le 8 novembre 2026 : **neuf cartes**, `C01` à `C07`, `C09`, `C10` ; `C08` n'est jamais réutilisé ;
 - `L1` : chaque réponse a un titre court et au plus trois points de détail ;
 - conservation : réponses, pseudos, table de correspondance, exports et sauvegardes effacés **deux mois après la fermeture** ; seuls les résultats d'ensemble restent ;
+- question `G1` ajoutée le 8 novembre 2026 : irritants du quotidien, texte libre de 280 caractères, facultatif, sans condition, sur son propre écran juste après `O1` et avant `L1` (cadrage §2, #670) ;
 - hébergement en France (UE).
 
 D4 (description du VPS) reste en partie ouverte : la spécification est portable, et la [section 13](#13-ce-que-le-po-doit-fournir-d4) liste ce que le PO doit fournir. Les exigences R1 à R12 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
@@ -66,6 +67,7 @@ Forme (extrait illustratif) :
 {
   "version": "2026-11-v1",
   "ecrans": [
+    { "id": "irritants", "questions": ["G1"] },
     { "id": "theme1", "questions": ["L1", "L2"] },
     { "id": "theme2-a", "questions": ["D1"], "condition": { "P1": ["ipad", "duo", "plusieurs"] } }
   ],
@@ -116,7 +118,8 @@ Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop 
   - les sections gardées ou dépliables ont deux boutons « Monter » et « Descendre » dont le nom accessible contient la section (« Monter Favoris ») ; une section écartée descend sous les sections gardées et perd ses boutons ;
   - après un déplacement, une zone `aria-live="polite"` annonce « Favoris, position 2 sur 5 », et le focus reste sur le bouton utilisé ;
   - le glisser-déposer (Pointer Events) est facultatif et ne remplace jamais les boutons.
-- **Textes** : `L2`, `C11`, `F1` limités à 280 caractères, `I1` à 40, avec compteur restant annoncé discrètement.
+- **`G1`** : un écran à lui seul, après `O1` et avant le thème 1, sans condition, toujours affiché. Il vient avant toute proposition, pour que les pistes du questionnaire n'orientent pas la réponse.
+- **Textes** : `G1`, `L2`, `C11`, `F1` limités à 280 caractères, `I1` à 40, avec compteur restant annoncé discrètement.
 - **Visuels** : images avec `loading="lazy"` et texte alternatif ; vidéos `preload="none"`, `muted`, `playsinline`, image d'attente, jamais en lecture automatique.
 - **Mention sur les données** : liens vers `/donnees` dans `E0` et au-dessus de `I1`, ouverts dans un nouvel onglet (`target="_blank" rel="noopener"`) ; le brouillon n'est pas touché (R8).
 - **Brouillon** : `localStorage`, clé `ux-survey:<version>:brouillon` (réponses, écran courant, ordre des cartes, heure de début). Écrit à chaque changement, relu au chargement. Effacé après un envoi accepté (201) **et** après un `deja_recu` (409), une fois l'écran de fin rendu (R3). Si `localStorage` est indisponible (navigation privée), le formulaire marche sans brouillon.
@@ -145,6 +148,7 @@ La logique sans DOM (conditions, mélange, construction de la réponse, calcul �
   "reponses": {
     "P1": "ipad", "P2": "lit_surtout", "P3": "avant_4_0",
     "O1": "petites_touches",
+    "G1": "texte libre",
     "L1": "pages_ameliorees", "L2": "texte libre",
     "D1": { "comme_aujourdhui": false,
             "sections": [ { "code": "favoris", "etat": "deplier", "rang": 1 },
@@ -166,7 +170,7 @@ Le serveur ne fait pas confiance au front :
 - corps JSON de 16 Ko au plus, `Content-Type: application/json` exigé ;
 - `version` égale à celle du contenu chargé, sinon 409 avec un message « rechargez la page » ;
 - clé inconnue (dont `C08`), code inconnu ou type inattendu : 400, rien n'est stocké ;
-- textes : normalisés NFC, caractères de contrôle retirés sauf retour à la ligne, espaces de bord retirés, longueur comptée en caractères (280, ou 40 pour `I1`) ; un texte vide devient absent ;
+- textes (`G1`, `L2`, `C11`, `F1`, `I1`) : normalisés NFC, caractères de contrôle retirés sauf retour à la ligne, espaces de bord retirés, longueur comptée en caractères (280, ou 40 pour `I1`) ; un texte vide devient absent ;
 - `D1` :
   - `comme_aujourdhui` vrai avec une liste `sections` non vide : 400 ;
   - chaque code de section au plus une fois, état parmi `garder`, `deplier`, `ecarter` ;
@@ -221,7 +225,7 @@ Toute autre route : 404. Pas de route d'export ni d'administration : ces actions
 
 ## 8. Écran de fin et statistiques
 
-- Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les neuf cartes, `M1`. Jamais `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
+- Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les neuf cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
 - Pour chaque question : pourcentage de chaque code parmi ceux qui y ont répondu, entier arrondi au plus proche (la somme peut différer de 100), et effectif.
 - Pour `D1` : part de `comme_aujourdhui` parmi les répondants de `D1` ; puis, parmi ceux qui ont trié, pour chaque section, part de chaque état et rang médian des sections gardées ou dépliables.
 - **Seuil (D3)** : rien n'est publié tant que le total est sous `UX_SEUIL_STATS` (10). Ensuite, une question n'est publiée que si son propre effectif atteint aussi le seuil (utile pour le thème 2, vu par moins de monde).
@@ -315,9 +319,9 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 | `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour toutes les questions fermées, sans seuil par question, effectifs et pourcentages ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
 | `pseudos` | `identifiant` et pseudo, pour traiter une demande de droits (R7) seulement | Bruno seul, jamais partagé | Supprimé dès la demande traitée |
 
-Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` … `M1`, `F1`, sans `C08`), `D1` aplati en `D1_comme_aujourdhui`, `D1_<code>_etat` et `D1_<code>_rang` pour chacune des neuf sections, `ordre_cartes`, et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
+Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les neuf cartes, `C11`, `M1`, `F1` ; sans `C08`), `D1` aplati en `D1_comme_aujourdhui`, `D1_<code>_etat` et `D1_<code>_rang` pour chacune des neuf sections, `ordre_cartes`, et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
 
-**Relecture des textes libres (R10)** : le PO relit `L2`, `C11` et `F1` dans une copie de l'export d'analyse, retire les détails identifiants, et inscrit `oui` dans `textes_relus` pour chaque ligne relue. Seule cette copie relue est partagée. Les réponses sur le serveur ne sont pas modifiées.
+**Relecture des textes libres (R10)** : le PO relit `G1`, `L2`, `C11` et `F1` dans une copie de l'export d'analyse, retire les détails identifiants, et inscrit `oui` dans `textes_relus` pour chaque ligne relue. Seule cette copie relue est partagée. Les réponses sur le serveur ne sont pas modifiées.
 
 **Droits d'un répondant (R7)**, par `ux-survey pseudo` (comparaison sur `lower(trim(pseudo))`) :
 - `--chercher <pseudo>` affiche les identifiants et `recue_le` des réponses de ce pseudo ;
@@ -363,10 +367,10 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 |---|---|---|
 | 1 | Concordance | `questionnaire.json` et `questions.md` : identifiants, codes, libellés, détails, aides, conditions, ordre ; bloc `D1` lu par ses quatre lignes ; `C08` absent du JSON ; identifiants du §2 présents hors `C08` |
 | 2 | Contenu | Codes en ASCII minuscules, uniques par question ; neuf cartes ; chaque visuel référencé existe et `web/visuels/` est identique à `docs/ux/questionnaire/visuels/` |
-| 3 | Conditions serveur | `P1` vaut `ipad`, `duo`, `plusieurs` : `D1` et `D2` gardés ; `iphone` ou absent : retirés ; `L1` absent : `L2` retiré |
-| 4 | Conditions front (node) | Liste des écrans selon `P1` ; changement de `P1` qui efface `D1` et `D2` ; `L2` inactif sans `L1`, effacé avec lui |
+| 3 | Conditions serveur | `P1` vaut `ipad`, `duo`, `plusieurs` : `D1` et `D2` gardés ; `iphone` ou absent : retirés ; `L1` absent : `L2` retiré ; `G1` gardé quel que soit le profil |
+| 4 | Conditions front (node) | Liste des écrans selon `P1`, avec l'écran `G1` toujours entre `O1` et `L1` ; changement de `P1` qui efface `D1` et `D2` ; `L2` inactif sans `L1`, effacé avec lui |
 | 5 | Mélange (node) | L'ordre des cartes est une permutation des neuf cartes et reste stable après rechargement du brouillon |
-| 6 | Validation | Clé inconnue (dont `C08`), code ou type inconnu, texte trop long, corps trop gros ; `D1` avec `comme_aujourdhui` et des sections, rangs en double ou non contigus, rang sur une section écartée : refus, aucune ligne |
+| 6 | Validation | Clé inconnue (dont `C08`), code ou type inconnu, texte trop long (`G1` à 281 caractères compris), corps trop gros ; `D1` avec `comme_aujourdhui` et des sections, rangs en double ou non contigus, rang sur une section écartée : refus, aucune ligne |
 | 7 | Enregistrement | Un envoi valide : une ligne dans `reponses` avec un identifiant aléatoire, le pseudo seulement dans `pseudos`, `recue_le` sans heure |
 | 8 | Doublon par jeton | Deuxième envoi du même jeton : 409 `deja_recu`, toujours une seule ligne |
 | 9 | Doublon par adresse | Quatrième envoi d'une même IP : 429 ; la base ne contient pas l'IP en clair ; deux clés donnent deux empreintes ; la clé n'est pas dans le fichier SQLite |
@@ -374,14 +378,14 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 11 | Champ piège | `site_web` rempli : 201, aucune ligne |
 | 12 | Débit | Au-delà de la limite : 429 avec `Retry-After` ; le limiteur marche encore après la fermeture |
 | 13 | Origine | `POST` d'une autre origine : 403 |
-| 14 | Statistiques | 9 réponses : `{"disponible": false, "seuil": 10}` sans compte ; 10 : publiées, à la forme du §8 ; question sous le seuil absente ; arrondis ; aucune clé de texte libre, de pseudo, de durée ni d'ordre |
+| 14 | Statistiques | 9 réponses : `{"disponible": false, "seuil": 10}` sans compte ; 10 : publiées, à la forme du §8 ; question sous le seuil absente ; arrondis ; aucune clé de texte libre (`G1`, `L2`, `C11`, `F1`), de pseudo, de durée ni d'ordre |
 | 15 | Fermeture | Une seconde après `UX_FERMETURE` : 410 au `POST`, `ouvert` faux ; après la tâche : `cle-ip` absent, `empreintes_ip` et `jetons` vides |
-| 16 | Exports | Format `analyse` : colonnes et ordre, `D1` aplati, `textes_relus` présente, injection de formule neutralisée, aucun pseudo ni empreinte ; format `agregats` : aucun texte libre, pseudo ni identifiant |
+| 16 | Exports | Format `analyse` : colonnes et ordre, colonne `G1` entre `O1` et `L1`, `D1` aplati, `textes_relus` présente, injection de formule neutralisée, aucun pseudo ni empreinte ; format `agregats` : aucun texte libre, pseudo ni identifiant |
 | 17 | Effacement | Après `effacer` : `reponses` et `pseudos` vides, `-wal` vide, `agregats.json` écrit et servi par `/api/stats` |
 | 18 | Droits | `pseudo --chercher` trouve les réponses d'un pseudo sans la casse ni les espaces ; `--corriger` valide la valeur ; `--effacer-pseudo` et `--effacer` touchent la seule réponse visée et laissent les autres |
 | 19 | Configuration | `UX_SEUIL_STATS` sous 10 et `UX_EFFACEMENT` après fermeture + 2 mois refusés ; `/donnees` affiche les dates configurées et ne contient plus d'accolade de valeur |
 | 20 | En-têtes | Les en-têtes du §9 sur une page, une route API, une 404 et une 429 |
-| 21 | Journaux | Un envoi avec un pseudo et l'IP `203.0.113.7` : le journal capturé ne contient ni l'un ni l'autre, ni le texte libre, ni l'agent utilisateur |
+| 21 | Journaux | Un envoi avec un pseudo et l'IP `203.0.113.7` : le journal capturé ne contient ni l'un ni l'autre, ni le texte de `G1` ou des autres textes libres, ni l'agent utilisateur |
 | 22 | Poids, domaines, CSP | `web/` hors `visuels/` pèse 200 Ko au plus ; aucune URL absolue vers un autre domaine ; aucun `innerHTML`, `insertAdjacentHTML`, attribut `style` ni `on…=` dans `web/` |
 | 23 | Accès restreint | Avec `UX_CODE_ACCES` : 401 sans authentification, 200 avec ; `/healthz` toujours ouvert |
 
