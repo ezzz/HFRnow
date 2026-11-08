@@ -1,0 +1,16 @@
+{
+  "id": "R601c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/user/uploadsmil.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/uploadsmil.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/uploadsmil.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 15:55:58 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Same page, account without personal smileys",
+  "file": "R601c-smiley-upload-page-no-smiley.html",
+  "private": false
+}

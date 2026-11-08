@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 // Port of HFRswift/Swift/MessagesView.swift (`Coordinator.userContentController(_:didReceive:)`, `:1169-1235`) @ 2440d79.
@@ -17,7 +18,8 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     /// The user tapped the placeholder of video `index` of message `post`.
     case video(post: Int, index: Int)
     /// The user tapped the menu button (`message`) or the author (`avatar`) of message `post`.
-    case menu(post: Int, source: MessageMenuSource)
+    /// `anchor` is the button's rectangle in the page's viewport (CSS points); nil when the page sent none or a bad one.
+    case menu(post: Int, source: MessageMenuSource, anchor: CGRect?)
     /// Scrolling paused with message `post` topmost (LOT-111: recorded as the reading position).
     case position(post: Int)
 
@@ -83,7 +85,7 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         case "menu":
             guard let post = positivePost(in: object), let name = object["source"] as? String,
                   let source = MessageMenuSource(rawValue: name) else { throw .invalidPayload }
-            return .menu(post: post, source: source)
+            return .menu(post: post, source: source, anchor: anchor(in: object))
         case "image":
             return try image(in: object)
         case "quote":
@@ -94,6 +96,18 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         default:
             throw .unknownType
         }
+    }
+
+    /// Largest coordinate or size taken from the page, in points: a viewport is far smaller, so more is not a button's rectangle.
+    static let maximumAnchorExtent = 100_000.0
+
+    /// The rectangle `x`, `y`, `width`, `height` of a body: real numbers (never booleans), finite, within
+    /// `maximumAnchorExtent` and with no negative size. Anything else gives nil: the menu then opens unanchored.
+    static func anchor(in object: [String: Any]) -> CGRect? {
+        guard let x = number(object["x"]), let y = number(object["y"]), let width = number(object["width"]),
+              let height = number(object["height"]), width >= 0, height >= 0,
+              [x, y, width, height].allSatisfy({ abs($0) <= maximumAnchorExtent }) else { return nil }
+        return CGRect(x: x, y: y, width: width, height: height)
     }
 
     private static func video(in object: [String: Any]) throws(Failure) -> ReaderBridgeMessage {
@@ -128,6 +142,13 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     private static func boolean(_ value: Any?) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
         guard let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() else { return nil }
         return number.boolValue
+    }
+
+    /// A finite real number from WebKit's bridge: an `NSNumber` that is not a boolean.
+    private static func number(_ value: Any?) -> Double? {
+        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite
+        else { return nil }
+        return number.doubleValue
     }
 
     /// A whole number from WebKit's bridge: an `NSNumber` that is not a boolean and has no fraction; nothing else.

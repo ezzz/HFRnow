@@ -15,6 +15,8 @@ struct TopicListView: View {
     var composer: ComposerServices?
     /// Opens a row's topic at a page its menu names (LOT-125); nil hides those entries.
     var open: ((TopicSummary, TopicOpening) -> Void)?
+    /// What a tinted row layers over: the grouped card by default, nothing in the iPad sidebar column, which has no card (#584).
+    var tintBase: RowTint.Base = .grouped
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
     @State private var pagePrompt: TopicSummary?
@@ -104,11 +106,16 @@ struct TopicListView: View {
         }
     }
 
-    /// The orange tint of a super-favourite row, nil on the selected row so the iPad selection highlight shows (#570).
-    /// Over `.clear`: the row looked like this before (a translucent orange, whatever the list style), and a card colour
-    /// underneath would show as a grey block in a sidebar column.
-    static func superFavoriteTint(isSuper: Bool, isSelected: Bool) -> RowTint? {
-        isSuper && !isSelected ? RowTint(tint: .orange, base: .clear) : nil
+    /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
+    /// `base` is what the list's rows are drawn on: the card of a grouped list, or `.clear` in a sidebar column (#570, #584).
+    static func rowTint(
+        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, base: RowTint.Base = .grouped
+    ) -> RowTint? {
+        let flag = showsFlag ? topic.flag : nil
+        guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
+            return nil
+        }
+        return RowTint(tint: accent.color, weight: accent.weight, base: base)
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
@@ -116,7 +123,10 @@ struct TopicListView: View {
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(TopicListView.superFavoriteTint(isSuper: isSuper, isSelected: selection == topic))
+                .listRowBackground(TopicListView.rowTint(
+                    topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
+                    base: tintBase
+                ))
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }

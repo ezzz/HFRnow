@@ -11,9 +11,16 @@
     try { return new URL(src).host; } catch (error) { return ""; }
   };
 
+  // A refused or failed avatar leaves its monogram, drawn under it by the builder.
+  const dropAvatar = (img) => {
+    const wrap = img.closest(".avatar-wrap");
+    img.remove();
+    if (wrap) { wrap.classList.remove("has-image"); }
+  };
+
   // A refused or failed image becomes its URL as text, or a link when it is not already inside one (the app opens links).
   const replaceWithLink = (img, src) => {
-    if (img.classList.contains("avatar")) { img.remove(); return; }
+    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
     const insideLink = img.closest("a") !== null;
     const node = document.createElement(insideLink ? "span" : "a");
     node.className = "image-link";
@@ -30,7 +37,7 @@
   };
 
   const placeholder = (img, src) => {
-    if (img.classList.contains("avatar")) { img.remove(); return; }
+    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "image-tap";
@@ -80,8 +87,19 @@
     const menu = target.closest("button[data-menu]");
     if (menu) {
       event.preventDefault();
-      // Only a number and one of two names leave the page: the app decodes them and ignores anything else.
-      channel.postMessage({ type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu });
+      // Only numbers and one of two names leave the page: the app decodes them and ignores anything else. The rectangle
+      // (viewport coordinates) is where the app anchors the menu, as legacy's edit menu at the tapped point (issue #594).
+      // After a pinch zoom `getBoundingClientRect` is in layout (CSS) coordinates: the visual viewport's offset and scale
+      // bring it to what the user sees (both are 0 and 1 without zoom).
+      const box = menu.getBoundingClientRect();
+      const vv = window.visualViewport;
+      const scale = vv && vv.scale > 0 ? vv.scale : 1;
+      const offsetX = vv ? vv.offsetLeft : 0;
+      const offsetY = vv ? vv.offsetTop : 0;
+      channel.postMessage({
+        type: "menu", token, post: Number(menu.dataset.post), source: menu.dataset.menu,
+        x: (box.x - offsetX) * scale, y: (box.y - offsetY) * scale, width: box.width * scale, height: box.height * scale
+      });
       return;
     }
     const blocked = target.closest("table.quote-blocked");

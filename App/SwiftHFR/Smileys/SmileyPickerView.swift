@@ -2,21 +2,24 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView, FavoriteSmileyDetailView) @ 2440d79. Differences: see the
 // doc comment and the specs LOT-104 (GAP-087) and LOT-105 (GAP-088) in docs/lots/.
-// LOT-185: the search bar is a `safeAreaBar` without fill and the notice capsule is glass; GAP row pending #545.
+// LOT-185: the notice capsule is glass; GAP row pending #545.
+// #600: the search is the system search field of the navigation bar (it was a bottom bar nobody saw), the forum favourites are a
+// section, and any smiley has a favourite action in its context menu.
 /// The smiley panel of the reply sheet (legacy `CombinedSmileyPickerView`, `HFRswift/Swift/AnswerView.swift:1051` @ 2440d79).
 ///
-/// Differences: no forum-smiley section (its own lot); the search bar, history and keywords are LOT-105;
+/// Differences: the search field, history and keywords are LOT-105 (the field is `.searchable` since #600);
 /// section collapse states keep legacy's `@AppStorage` keys; detail is a sheet instead of an overlay card (decision of the
-/// lot, same actions).
+/// lot, same actions). "Mes smileys" (the member's own created smileys) waits for the capture #601.
 struct SmileyPickerView: View {
     @Bindable var model: SmileyPickerModel
     /// Called with the code to insert, right before the panel closes.
     let onInsert: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @AppStorage("AnswerView.smileys.basic.expanded") private var basicExpanded = true
+    @AppStorage("AnswerView.smileys.forumFavorites.expanded") private var forumExpanded = true
     @AppStorage("AnswerView.smileys.appFavorites.expanded") private var favoritesExpanded = true
     @AppStorage("AnswerView.smileys.search.allKeywords") private var requireAll = false
-    @FocusState private var searchFocused: Bool
+    @State private var searchPresented = false
 
     private let basicColumns = [GridItem(.adaptive(minimum: 44, maximum: 60), spacing: 4)]
     private let favoriteColumns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
@@ -28,18 +31,10 @@ struct SmileyPickerView: View {
                     searchResults(search)
                 } else {
                     LazyVStack(alignment: .leading, spacing: 18) {
-                        section("Smileys basiques", count: model.basic.count, expanded: $basicExpanded) {
-                            if model.basic.isEmpty {
-                                Text("Catalogue de smileys indisponible.").font(.subheadline).foregroundStyle(.secondary)
-                            } else {
-                                grid(model.basic, columns: basicColumns, compact: true) { model.tap(basic: $0) }
-                            }
-                        }
-                        section("Favoris de l’app", count: model.favorites.count, expanded: $favoritesExpanded) {
-                            if model.favorites.isEmpty {
-                                Text("Aucun favori dans l’app pour le moment.").font(.subheadline).foregroundStyle(.secondary)
-                            } else {
-                                grid(model.favorites, columns: favoriteColumns, compact: false) { model.tap(favorite: $0) }
+                        if let search = model.search, !search.suggestions.isEmpty { suggestionChips(search) }
+                        ForEach(model.sections) { section in
+                            self.section(section.title, count: section.smileys.count, expanded: expanded(section.kind)) {
+                                sectionBody(section)
                             }
                         }
                     }
@@ -47,8 +42,17 @@ struct SmileyPickerView: View {
                     .padding(.vertical, 10)
                 }
             }
-            .safeAreaBar(edge: .bottom, spacing: 0) {
-                if let search = model.search { searchBar(search) }
+            .searchable(
+                text: searchText, isPresented: $searchPresented, placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Rechercher un smiley…"
+            )
+            .onSubmit(of: .search) { if let search = model.search { startSearch(search) } }
+            .onChange(of: searchPresented) { _, presented in
+                // Cancelling the field (its "Annuler") goes back to the sections.
+                if !presented { model.search?.clear() }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if model.search != nil, searchPresented || model.search?.isSearching == true { searchOptions }
             }
             .navigationTitle("Smileys")
             .navigationBarTitleDisplayMode(.inline)
@@ -63,8 +67,13 @@ struct SmileyPickerView: View {
                 .presentationDetents([.medium, .large])
         }
         .task { await model.loadFavorites() }
+        .task { await model.loadForum() }
         .task { await model.search?.refreshSuggestions() }
-        .onChange(of: model.search?.text) { Task { await model.search?.refreshSuggestions() } }
+        .onChange(of: model.search?.text) { _, text in
+            // An emptied field is no search any more.
+            if text?.isEmpty == true { model.search?.clear() }
+            Task { await model.search?.refreshSuggestions() }
+        }
         .onDisappear { model.search?.stop() }
         .task(id: model.notice) {
             guard let notice = model.notice else { return }
@@ -131,44 +140,54 @@ struct SmileyPickerView: View {
         .padding(.top, 70)
     }
 
-    private func searchBar(_ search: SmileySearchModel) -> some View {
-        @Bindable var search = search
-        return VStack(spacing: 8) {
-            if !search.suggestions.isEmpty, !search.isSearching { suggestionChips(search) }
-            HStack(spacing: 8) {
-                if search.isSearching {
-                    Button { searchFocused = false; search.clear() } label: { Image(systemName: "chevron.left").padding(8) }
-                        .accessibilityLabel("Retour aux smileys")
-                }
-                HStack {
-                    TextField("Rechercher un smiley…", text: $search.text)
-                        .focused($searchFocused)
-                        .submitLabel(.search)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .onSubmit { startSearch(search) }
-                    if !search.text.isEmpty {
-                        Button { search.text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Effacer")
-                    }
-                }
-                .padding(.horizontal, 10).padding(.vertical, 9)
-                .background(.quaternary, in: .rect(cornerRadius: 10))
-                Button { startSearch(search) } label: { Image(systemName: "magnifyingglass").padding(8) }
-                    .disabled(!search.canSearch)
-                    .accessibilityLabel("Rechercher")
-            }
-            if let hint = search.tooShortHint {
-                Text(hint).font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+    /// The field is the system one; this holds what goes with it: the "all keywords" switch and the too-short hint.
+    private var searchOptions: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let hint = model.search?.tooShortHint {
+                Text(hint).font(.footnote).foregroundStyle(.secondary)
             }
             Toggle("Tous les mots clés", isOn: $requireAll).font(.footnote).foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    /// The system field writes into the search model; without one (no account) it is inert.
+    private var searchText: Binding<String> {
+        Binding(get: { model.search?.text ?? "" }, set: { model.search?.text = $0 })
+    }
+
+    private func expanded(_ kind: PickerSectionKind) -> Binding<Bool> {
+        switch kind {
+        case .basic: $basicExpanded
+        case .forum: $forumExpanded
+        case .appFavorites: $favoritesExpanded
+        }
+    }
+
+    @ViewBuilder
+    private func sectionBody(_ section: PickerSection) -> some View {
+        switch section.state {
+        case .smileys:
+            switch section.kind {
+            case .basic: grid(section.smileys, columns: basicColumns, compact: true) { model.tap(basic: $0) }
+            case .forum: grid(section.smileys, columns: favoriteColumns, compact: false) { model.tap(forum: $0) }
+            case .appFavorites: grid(section.smileys, columns: favoriteColumns, compact: false) { model.tap(favorite: $0) }
+            }
+        case .loading:
+            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 12)
+        case .empty(let text):
+            Text(text).font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 4)
+        case .failed(let text):
+            VStack(alignment: .leading, spacing: 8) {
+                Text(text).font(.subheadline).foregroundStyle(.secondary)
+                if section.kind == .forum { Button("Réessayer") { Task { await model.retryForum() } }.font(.subheadline) }
+            }
+            .padding(.horizontal, 4)
+        }
     }
 
     private func startSearch(_ search: SmileySearchModel) {
-        searchFocused = false
         search.submit(requireAll: requireAll)
     }
 
@@ -177,7 +196,6 @@ struct SmileyPickerView: View {
             HStack(spacing: 8) {
                 ForEach(search.suggestions, id: \.text) { entry in
                     Button {
-                        searchFocused = false
                         search.submit(entry.text, requireAll: requireAll)
                     } label: {
                         Label(entry.text, systemImage: search.text.isEmpty ? "clock" : "magnifyingglass")
@@ -221,6 +239,12 @@ struct SmileyPickerView: View {
                 Button { action(smiley) } label: { SmileyCell(smiley: smiley, compact: compact) }
                     .buttonStyle(.plain)
                     .accessibilityLabel(smiley.code)
+                    .contextMenu {
+                        Button(
+                            model.isFavorite(smiley) ? "Retirer des favoris" : "Ajouter aux favoris",
+                            systemImage: model.isFavorite(smiley) ? "star.slash" : "star"
+                        ) { Task { await model.toggleFavorite(smiley) } }
+                    }
             }
         }
     }

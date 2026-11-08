@@ -69,9 +69,9 @@ extension TopicReaderModel {
 
     /// The message menu a tap asks for: the selection is read from the session first, so the "Citer ☐/☑" entry shows the
     /// state as it is now (a reply sent since has released its messages).
-    func openMenu(post: Int, source: MessageMenuSource, token: Int) async {
+    func openMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) async {
         if let quoting, let selection = selectionToken(on: page) { quoteSelected = Set(await quoting.selectedNumbers(for: selection)) }
-        requestMenu(post: post, source: source, token: token)
+        requestMenu(post: post, source: source, anchor: anchor, token: token)
     }
 
     /// "Citer ☐/☑": adds the message to the topic's selection or removes it, and returns what to tell the user (nil when

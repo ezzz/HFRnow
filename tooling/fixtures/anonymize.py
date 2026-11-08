@@ -63,6 +63,9 @@ TOKEN_VALUE_RE = re.compile(r"[A-Za-z0-9+/=_-]{20,}")
 FIXED_INPUT_NAMES = {"hash_check", "md_user", "md_pass"}
 # Personal fields of the profile edit form (editprofil.php page 1, fixture R55-p1).
 PERSONAL_INPUT_NAMES = {"email", "emailconfirm", "homepage", "custom_ville", "custom_occupation", "custom_hobby"}
+# Keyword inputs of the personal smiley page (`keyword<slot>` of uploadsmil.php, R601b): member-written text.
+SMILEY_KEYWORD_INPUT_RE = re.compile(r"keyword\d+$", re.I)
+SMILEY_KEYWORD_PLACEHOLDER = "Keywords removed."
 PERSONAL_SELECT_RE = re.compile(
     r"(<select\b[^>]*\bname=[\"'](?:bday|bmonth|byear|custom_sexe)[\"'][^>]*>)(.*?)(</select>)", re.I | re.S)
 SELECTED_RE = re.compile(r"\s+selected(?:\s*=\s*(?:[\"'][^\"']*[\"']|[^\s>]+))?", re.I)
@@ -630,10 +633,10 @@ def alias_rest_buckets(text, cats=None, url=None):
         links["posts"]["count"] = count
         links["posts"]["href"] = href(links["posts"]["href"], i, count)
         for who in ("last_author", "author"):
-            exact(links[who], ("linked_type", "type", "href", "title", "tns3"), what="author link field")
+            exact(links[who], ("linked_type", "type", "href", "title"), ("tns3",), "author link field")  # no avatar: no tns3
             kind(links[who], "user")
             need(links[who]["href"] is None, "author href")
-            need(isinstance(links[who]["title"], str) and isinstance(links[who]["tns3"], str), "author value")
+            need(isinstance(links[who]["title"], str) and isinstance(links[who].get("tns3", ""), str), "author value")
         it["href"] = href(it["href"], i, None)
         return it
 
@@ -937,6 +940,13 @@ def _sensitive_input(tag):
             return False
         return bool(TOKEN_NAME_RE.search(name) or TOKEN_VALUE_RE.fullmatch(value))
     return False
+
+
+def _smiley_keyword_input(tag):
+    """True for a `keyword<slot>` input that still holds a value other than the placeholder."""
+    value = _attr(tag, "value")
+    return bool(SMILEY_KEYWORD_INPUT_RE.match(_attr(tag, "name") or "")) and value not in (
+        None, "", SMILEY_KEYWORD_PLACEHOLDER)
 
 
 def _find_para_blocks(text, open_re=None):
@@ -1629,6 +1639,9 @@ class Anonymizer:
         s = self._own(s)
         def inp(m):
             tag = m.group(0)
+            if _smiley_keyword_input(tag):
+                return VALUE_RE.sub(lambda v: v.group(1) + (v.group(2) or '"') + SMILEY_KEYWORD_PLACEHOLDER
+                                    + (v.group(2) or '"'), tag, count=1)
             if not _sensitive_input(tag):
                 return tag
             return VALUE_RE.sub(lambda v: v.group(1) + (v.group(2) or "") + REDACTED + (v.group(2) or ""), tag, count=1)
@@ -1786,6 +1799,8 @@ class Anonymizer:
             for m in INPUT_RE.finditer(chunk):
                 if _sensitive_input(m.group(0)):
                     add(m.start(), "hidden token input not REDACTED")
+                if _smiley_keyword_input(m.group(0)):
+                    add(m.start(), "smiley keywords not replaced")
             for m in PROFIL_RE.finditer(chunk):
                 if m.group(2) in self.config.profile_ids:
                     add(m.start(), "operator profile id")
@@ -2046,6 +2061,9 @@ class StructuralVerifier(html.parser.HTMLParser):
             for item in (a["value"].split(",") if a.get("name", "").lower() in ("dest", "newdest") else [a["value"]]):
                 if item.strip():
                     self._name("pseudo input", item)
+        if tag == "input" and re.fullmatch(r"keyword[0-9]+", a.get("name", ""), re.I) \
+                and a.get("value") not in (None, "", "Keywords removed."):
+            self._bad("smiley keywords", a["value"])
         if tag == "img" and "/images/perso/" in a.get("src", ""):
             for k in ("alt", "title"):
                 v = a.get(k, "")
@@ -2590,8 +2608,8 @@ _VB_LINK_KEYS = {"forum": ({"linked_type", "type", "href"}, set()),
                  "category": ({"linked_type", "type", "href"}, {"title"}),
                  "subcategory": ({"linked_type", "type", "href"}, set()),
                  "posts": ({"linked_type", "type", "href", "count"}, set()),
-                 "last_author": ({"linked_type", "type", "href", "title", "tns3"}, set()),
-                 "author": ({"linked_type", "type", "href", "title", "tns3"}, set())}
+                 "last_author": ({"linked_type", "type", "href", "title"}, {"tns3"}),
+                 "author": ({"linked_type", "type", "href", "title"}, {"tns3"})}
 _VB_LINKED = {"forum": "forum", "category": "forum_category", "subcategory": "forum_subcategory", "posts": "list",
               "last_author": "user", "author": "user"}
 
@@ -2710,7 +2728,8 @@ def verify_rest_buckets(text, url=None):
         for who in ("last_author", "author"):
             a = links[who]
             if isinstance(a, dict):
-                if a.get("href") is not None or not isinstance(a.get("tns3"), str) or not _VB_TNS3.fullmatch(a["tns3"]):
+                if a.get("href") is not None or ("tns3" in a and (
+                        not isinstance(a["tns3"], str) or not _VB_TNS3.fullmatch(a["tns3"]))):
                     bad("avatar")
                 if not isinstance(a.get("title"), str) or not _VB_AUTHOR.fullmatch(a["title"]):
                     bad("author name")

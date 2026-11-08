@@ -70,6 +70,19 @@ a { color: var(--action); }
 article.message:nth-of-type(even) { background: var(--surface-alt); }
 .message .header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.5em; }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; flex: none; }
+/* The avatar and its monogram share one box (issue #595): the picture covers the monogram, which shows alone when the member
+   has none or the picture was refused (`has-image` off, set by reader.js). Same colours as the MP list's (Monogram.swift). */
+.message .avatar-wrap { position: relative; display: inline-block; width: 2.2em; height: 2.2em; flex: none; padding: 0; border: 0; background: none; font: inherit; }
+.message .avatar-wrap .avatar { position: absolute; inset: 0; }
+.message .avatar-default {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; overflow: hidden;
+  background: var(--mono-light); color: #000; font-size: 0.95em; font-weight: 600; font-family: ui-rounded, -apple-system, sans-serif; line-height: 1;
+}
+.message .avatar-wrap.has-image .avatar-default { visibility: hidden; }
+@media (prefers-color-scheme: dark) { .message .avatar-default { background: var(--mono-dark); color: #fff; } }
+/* The tappable avatar: a 44 pt target around the 2.2em disc, the header keeps its height (as the pseudo button below). */
+.message button.avatar-wrap { padding: 0; margin: 0; cursor: pointer; }
+.message button.avatar-wrap::after { content: ""; position: absolute; inset: -0.4em; }
 /* `overflow-wrap: anywhere` on body makes an item's min-content one character, so at accessibility sizes the flex row shrank the
    pseudo to a column; break-word does not, the row wraps (date, then button) and a very long pseudo still breaks (min-width 0). */
 .message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }

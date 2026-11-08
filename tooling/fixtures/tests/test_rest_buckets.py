@@ -162,6 +162,19 @@ class RestBucketAliasTests(unittest.TestCase):
                 with self.assertRaises(A.AnonymizeError, msg=name + " " + extra):
                     anon(json.dumps(doc))
 
+    def test_an_author_without_avatar_has_no_tns3(self):
+        doc = json.loads(bucket())
+        for grp in doc["resource"]["resources"]:
+            for it in grp["resources"]:
+                for who in ("author", "last_author"):
+                    del it["links"][who]["tns3"]
+        out = anon(json.dumps(doc))
+        self.assertNotIn("avatar", " ".join(r for _l, _c, r in A.verify_rest_buckets(out)))
+        self.assertNotIn("tns3", json.loads(out)["resource"]["resources"][0]["resources"][0]["links"]["author"])
+        doc["resource"]["resources"][0]["resources"][0]["links"]["author"]["tns3"] = None
+        with self.assertRaises(A.AnonymizeError):
+            anon(json.dumps(doc))
+
     def test_constants_are_checked_not_passed_through(self):
         top = ["resource", "resources", 0, "resources", 0]
         for path, real in ((top + ["links", "forum", "href"], API + "categories/33/"), (top + ["type"], "secret"),
