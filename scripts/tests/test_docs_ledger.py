@@ -245,6 +245,7 @@ class StewardTest(unittest.TestCase):
         issues = [issue_obj(BODIES[0]), issue_obj(BODIES[1], labels=("ledger", "ledger: done")),
                   issue_obj(BODIES[2], merged=False), {"number": 9, "body": "x", "labels": [{"name": "ledger"}]}]
         self.assertEqual([p["number"] for p in ledger.pending(issues)], [701])
+        self.assertEqual(ledger.pending(issues)[0]["merged_at"], "2026-11-07T00:00:00Z")
         self.assertEqual([p["number"] for p in ledger.pending(issues, [702, 701])], [701, 702])  # --prs: whatever the label
         with self.assertRaises(ledger.LedgerError):
             ledger.pending(issues, [703])  # not merged
@@ -270,10 +271,39 @@ class StewardTest(unittest.TestCase):
         self.assertEqual(self.run_main("fold", "--commit")[0], 1)
         with mock.patch.object(ledger, "git", side_effect=lambda *a, **k: " M x" if a[0] == "status" else "abc"):
             with self.assertRaisesRegex(ledger.LedgerError, "not clean"):
-                ledger.precheck_commit()
+                ledger.precheck_commit("2026-11-08")
         with mock.patch.object(ledger, "git", side_effect=lambda *a, **k: "" if a[0] == "status" else str(a)):
             with self.assertRaisesRegex(ledger.LedgerError, "not origin/dev-swift"):
-                ledger.precheck_commit()
+                ledger.precheck_commit("2026-11-08")
+
+    def test_the_branch_gets_a_suffix_when_its_name_is_taken(self):
+        taken = {"docs/ledger-2026-11-08", "docs/ledger-2026-11-08-2"}
+        with mock.patch.object(ledger, "git", side_effect=lambda *a, **k: "" if a[0] == "status" else "same"), \
+                mock.patch.object(ledger, "branch_exists", side_effect=lambda n: n in taken):
+            self.assertEqual(ledger.precheck_commit("2026-11-08"), "docs/ledger-2026-11-08-3")
+
+    def test_a_git_failure_carries_gits_message(self):
+        with self.assertRaisesRegex(ledger.LedgerError, "not a git repository|fatal"):
+            ledger.git("-C", str(self.tmp), "status")
+
+    def test_two_prs_setting_one_cell_keep_the_earlier_merge_and_report_the_clash(self):
+        a = {"number": 622, "body": body(("gap-edit", "GAP-002\nSwiftHFR final: Texte A\nSource: src A"), issue="Closes #622"), "merged_at": "2026-11-07T10:00:00Z"}
+        b = {"number": 623, "body": body(("gap-edit", "GAP-002\nSwiftHFR final: Texte B\nLot/Feat: LOT-7"), issue="Closes #623"), "merged_at": "2026-11-07T09:00:00Z"}
+        res = ledger.plan([a, b], self.layout, write=True)  # 623 merged first, although its number is higher
+        self.assertEqual(res.folded, [623, 622])
+        row = fold.cells(next(l for l in self.files()[1].split("\n") if l.startswith("| GAP-002 |")))
+        self.assertEqual((row[4], row[5], row[7]), ("Texte B", "LOT-7", "src A"))  # the earlier merge keeps its text, the rest of 622 folds
+        self.assertEqual(res.conflicts, [(622, "GAP-002", "SwiftHFR final", 623, "Texte B", "Texte A")])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            ledger.report(res)
+        self.assertIn("BY HAND CONFLICT #622 GAP-002 SwiftHFR final", out.getvalue())
+
+    def test_an_edit_that_changes_nothing_is_reported_as_already_applied(self):
+        pr = {"number": 750, "body": body(("gap-edit", "GAP-002\nGap: UX change\nH.1: b"), issue="Closes #750")}
+        res = ledger.plan([pr], self.layout, write=True)
+        self.assertEqual((res.folded, res.lines), ([750], ["#750: GAP-002 edit already applied"]))
+        self.assertEqual(res.conflicts, [])
 
     def test_done_is_idempotent_and_continues_after_an_error(self):
         def issue(n, labels, merged=True):

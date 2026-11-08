@@ -43,7 +43,7 @@ GAP-LEGACY-VS-SWIFT.md, H.1 decision 2 (line ~277): replace "drops" by "dropped"
 - A `|` inside a cell is `\|`. The section ends at the next `#`–`###` heading. The reviewer reviews it like the code.
 - **No entry: no section, no label.** CI fails a `ledger` PR without a section, and a section without the label.
 
-The label is added by a member of the repository (a contributor without label access asks for it); CI then needs a new run, so push a commit (or have a member re-run the check) after the label is added. CI checks on each push (not on a body edit): after editing the body, run `python3 tooling/docs/ledger.py check-body --pr N --file body.md` or push. The steward's parser is the final arbiter.
+The label is added by a member of the repository (a contributor without label access asks for it); CI then needs a new run, so push a commit after the label is added (re-running the check reuses the old event and its old labels). CI checks on each push (not on a body edit): after editing the body, run `python3 tooling/docs/ledger.py check-body --pr N --file body.md` or push. The steward's parser is the final arbiter.
 
 ## The steward
 
@@ -58,6 +58,8 @@ python3 tooling/docs/ledger.py done 590 604 --apply     # swap `ledger` for `led
 ```
 
 - A bad PR is **reported and skipped** (PR, block, reason); the others fold. `fold` exits non-zero when nothing was folded although PRs were pending, or with `--strict` when any was skipped. The author fixes the body; the next run folds it.
+- Two PRs of one batch that set the same cell differently: the **earlier merge** (`merged_at`) keeps its text, the later edit of that cell is not applied and is listed as `BY HAND CONFLICT` (PR, row, column, both texts); the rest of that PR still folds. An edit that changes nothing (cell already holds that text, a second run) is reported as `edit already applied`.
+- `--commit` takes the branch `docs/ledger-<date>`, or `-2`, `-3`… when that name exists, before writing any file; a git failure prints git's own message.
 - `ledger-note` entries are listed as `BY HAND`: apply them in a follow-up PR on a branch `docs/ledger-notes-<date>` (the script cannot reproduce it, so it gets an adversarial review), then run `done`.
 - `--prs 590 604` (or `590,604`) folds exactly those merged PRs, whatever their label: that is how the ledger PR is checked. The commit message says it: on the base, `ledger.py fold --apply --prs <listed> && git diff --exit-code <head>` shows no difference ([AGENTS.md §8](../../AGENTS.md#8-git-and-pr-workflow)). No adversarial review is needed.
 - The CI guard keeps the rule honest: a feature PR touching a ledger path fails, a `docs/ledger-*` PR touching anything else fails.

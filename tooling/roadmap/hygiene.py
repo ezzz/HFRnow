@@ -267,6 +267,7 @@ def ledger_pending(prs=None, layout=None):
     out = [f'ledger: {len(prs)} pending ({nums}): {len(res.folded)} foldable, {len(res.skipped)} refused;'
            ' python3 tooling/docs/ledger.py fold --apply --commit, then open one docs-only PR']
     out += [f'ledger: PR #{n} refused: {why}' for n, why in res.skipped]
+    out += [f'ledger: conflict #{c[0]} {c[1]} {c[2]} with #{c[3]}: decide by hand' for c in res.conflicts]
     out += [f'ledger: PR #{n} has a note to apply by hand: {t[:120]}' for n, t in res.notes]
     return out
 

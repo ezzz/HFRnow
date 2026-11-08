@@ -181,10 +181,16 @@ def guard(changed, head_ref):
 # ------------------------------------------------------------------ steward
 
 class Result:
-    """What one run did: report lines, PRs folded, PRs skipped [(number, reason)], notes [(number, text)]."""
+    """What one run did: report lines, PRs folded, PRs skipped [(number, reason)], notes [(number, text)],
+    conflicts [(PR, row id, column, earlier PR, its text, this PR's text)]: two PRs of one batch set one cell differently."""
 
     def __init__(self):
-        self.lines, self.folded, self.skipped, self.notes = [], [], [], []
+        self.lines, self.folded, self.skipped, self.notes, self.conflicts = [], [], [], [], []
+
+
+def order(pr):
+    """Merge order of a PR dict (then number): the earliest merge wins a cell two PRs of a batch both set."""
+    return (pr.get('merged_at') or '', pr['number'])
 
 
 def apply_prs(prs, layout):
@@ -203,9 +209,10 @@ def apply_prs(prs, layout):
         """A path already used on disk or staged by an earlier PR of the batch."""
         return path in staged or path.exists()
 
-    for pr in sorted(prs, key=lambda p: p['number']):
+    set_by = {}  # (row number, column) -> (PR, text) of the earliest merged PR of the batch that set it
+    for pr in sorted(prs, key=order):
         n, body = pr['number'], pr.get('body') or ''
-        mine, mine_rows, mine_edits, lines = {}, {}, {}, []
+        mine, mine_rows, mine_edits, mine_set, clash, lines = {}, {}, {}, {}, [], []
         try:
             cl, new, edit, notes = build(parse_body(body), n, issue_number(body, n))
             if cl:
@@ -237,15 +244,26 @@ def apply_prs(prs, layout):
                 if current is None:
                     raise LedgerError(f'{gid} is not a row of the gap report')
                 cells = fold.cells(current)
+                applied = []
                 for col, text in cols.items():
-                    cells[GAP_COLUMNS.index(col)] = text
+                    prev = set_by.get((num, col))
+                    if prev and prev[1] != text:  # the earlier merge wins: never overwrite silently, the steward decides
+                        clash.append((n, gid, col) + prev + (text,))
+                        continue
+                    if cells[GAP_COLUMNS.index(col)] != text:
+                        cells[GAP_COLUMNS.index(col)] = text
+                        applied.append(col)
+                    mine_set.setdefault((num, col), (n, text))
                 row = '| ' + ' | '.join(cells) + ' |'
                 try:
                     fold.parse_gap_row(row, gid)
                 except fold.FoldError as e:
                     raise LedgerError(f'{gid}: the edited row is not valid: {e}') from None
-                mine_edits[num] = row
-                lines.append(f'{gid} edited in place ({", ".join(cols)})')
+                if applied:
+                    mine_edits[num] = row
+                    lines.append(f'{gid} edited in place ({", ".join(applied)})')
+                elif not any(c[1] == gid for c in clash):
+                    lines.append(f'{gid} edit already applied')
         except LedgerError as e:
             res.skipped.append((n, str(e)))
             continue
@@ -253,6 +271,8 @@ def apply_prs(prs, layout):
         rows.update(mine_rows)
         rows.update(mine_edits)
         edited.update(mine_edits)
+        set_by.update(mine_set)
+        res.conflicts.extend(clash)
         res.folded.append(n)
         res.lines.extend(f'#{n}: {l}' for l in lines)
         res.notes.extend((n, t) for t in notes)
@@ -331,7 +351,8 @@ def pending(issues, numbers=None):
         chosen = [by[n] for n in numbers]
     else:
         chosen = [i for i in issues if merged(i) and LABEL in labels_of(i) and DONE not in labels_of(i)]
-    return sorted(({'number': i['number'], 'body': i.get('body') or ''} for i in chosen), key=lambda p: p['number'])
+    return sorted(({'number': i['number'], 'body': i.get('body') or '', 'merged_at': (i.get('pull_request') or {}).get('merged_at')}
+                   for i in chosen), key=order)
 
 
 def fetch_pending(numbers=None):
@@ -349,20 +370,36 @@ def fetch_pending(numbers=None):
 
 
 def git(*args, **kw):
-    """Run git and return its output; a failure raises CalledProcessError."""
-    return subprocess.run(['git', *args], check=True, capture_output=True, text=True, **kw).stdout
+    """Run git and return its output; a failure is a LedgerError carrying git's own message."""
+    r = subprocess.run(['git', *args], capture_output=True, text=True, **kw)
+    if r.returncode:
+        raise LedgerError(f'git {" ".join(args)[:60]}: {(r.stderr or r.stdout).strip()[:300]}')
+    return r.stdout
 
 
-def precheck_commit():
-    """`--commit` starts from a clean tree at origin/dev-swift, so the commit holds the ledger paths and nothing else."""
+def branch_exists(name):
+    """True when `name` exists locally or on origin."""
+    return any(subprocess.run(['git', 'rev-parse', '--verify', '--quiet', ref], capture_output=True).returncode == 0
+               for ref in (f'refs/heads/{name}', f'refs/remotes/origin/{name}'))
+
+
+def precheck_commit(today):
+    """`--commit` starts from a clean tree at origin/dev-swift, so the commit holds the ledger paths and nothing else.
+
+    -> the branch to create: `docs/ledger-<date>`, or with a `-2`, `-3`... suffix when that name is taken (checked before any file is written)."""
     if git('status', '--porcelain').strip():
         raise LedgerError('--commit: the working tree is not clean')
     if git('rev-parse', 'HEAD').strip() != git('rev-parse', 'origin/dev-swift').strip():
         raise LedgerError('--commit: HEAD is not origin/dev-swift (git fetch origin dev-swift && git switch --detach origin/dev-swift)')
+    branch, k = BRANCH_PREFIX + today, 1
+    while branch_exists(branch):
+        k += 1
+        branch = f'{BRANCH_PREFIX}{today}-{k}'
+    return branch
 
 
-def run_commit(nums, today):
-    branch = BRANCH_PREFIX + today
+def run_commit(nums, branch, today):
+    """Create `branch`, stage the ledger paths only, commit with the reproduction command. -> the branch."""
     git('switch', '-c', branch)
     git('add', '-A', '--', *LEDGER_FILES, *LEDGER_DIRS)
     cmd = f'python3 tooling/docs/ledger.py fold --apply --prs {" ".join(map(str, nums))}'
@@ -377,6 +414,8 @@ def report(res):
         print(' ', l)
     for n, t in res.notes:
         print(f'  BY HAND #{n} (ledger-note): {t[:300]}')
+    for n, row, col, earlier, was, now in res.conflicts:
+        print(f'  BY HAND CONFLICT #{n} {row} {col}: #{earlier} set "{was[:200]}", #{n} wants "{now[:200]}"; the earlier one is kept')
     for n, why in res.skipped:
         print(f'::error::PR #{n} skipped: {why}' if 'GITHUB_ACTIONS' in os.environ else f'  SKIPPED PR #{n}: {why}')
 
@@ -439,7 +478,8 @@ def main(argv=None, layout=None):
             if a.commit and not a.apply:
                 raise LedgerError('--commit needs --apply')
             if a.commit:
-                precheck_commit()
+                today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+                branch = precheck_commit(today)
             numbers = [int(x) for t in a.prs or [] for x in t.split(',') if x]
             if a.from_json:
                 prs = pending(json.loads(Path(a.from_json).read_text(encoding='utf-8')), numbers)
@@ -452,7 +492,7 @@ def main(argv=None, layout=None):
             report(res)
             nums = ' '.join(map(str, res.folded))
             if a.apply and a.commit and res.folded:
-                print('branch', run_commit(res.folded, datetime.now(timezone.utc).strftime('%Y-%m-%d')))
+                print('branch', run_commit(res.folded, branch, today))
             print(f'ledger: {"applied" if a.apply else "dry run"}: folded {len(res.folded)}, skipped {len(res.skipped)}'
                   + (f'; after the docs PR merged: ledger.py done {nums} --apply' if res.folded else ''))
             return 1 if (not res.folded or (a.strict and res.skipped)) else 0
@@ -465,7 +505,7 @@ def main(argv=None, layout=None):
                     failed += 1
                     print(f'ERROR {e}')
             return 1 if failed else 0
-    except (LedgerError, subprocess.CalledProcessError) as e:
+    except LedgerError as e:
         print(f'::error::{e}' if 'GITHUB_ACTIONS' in os.environ else f'ERROR {e}')
         return 1
     return 0
