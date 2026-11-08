@@ -261,13 +261,13 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | Gap | Rows |
 |---|---|
 | same | 36 |
-| ported with changes | 45 |
+| ported with changes | 46 |
 | ported with changes (engine only) | 1 |
 | UX change | 45 |
 | new | 28 |
 | dropped | 2 |
 | not planned | 8 |
-| **Total** | **165** |
+| **Total** | **166** |
 
 ## Convergence notes
 
@@ -298,11 +298,11 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (118)
+### GAP rows of type `ported with changes`, `UX change` or `new` (119)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221 | 44 |
+| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 45 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 089, 133, 181 | 6 |
 | b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226, 227 | 16 |
