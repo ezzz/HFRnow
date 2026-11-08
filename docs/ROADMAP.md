@@ -20,7 +20,7 @@ M3 runs in parallel with M2: engine lots run in cloud sessions, while app lots n
 
 **Port first, evolutions apart** (directive H, 2026-11-01; operator decisions 2026-11-02): M1–M4 port ezzz's Swift layer with the legacy UX, and M4 is the validated legacy parity. Every UX change is classified in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1): it stays in M1–M4 only when parity needs it or the operator decided it, and the rest is in M5. The decision of each UXD row is in [the decisions table](migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02).
 
-![SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)](assets/roadmap-milestones.svg)
+![SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version, then M5 UX evolutions after the M4 parity; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)](assets/roadmap-milestones.svg)
 
 ## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
