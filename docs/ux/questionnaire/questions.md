@@ -84,7 +84,7 @@ Statut : texte rédigé par Sonnet, relecture Opus, validation du PO à venir. L
 - Réponses :
   - Sections : `favoris` Favoris · `categories` Catégories · `mp` Messages privés · `drapeaux` Drapeaux · `a_suivre` À suivre (les nouveautés de tous vos sujets suivis) · `alertes_qualitay` Alertes Qualitay · `bookmarks` Bookmarks · `recherche` Recherche · `reglages` Réglages
   - États : `garder` Dans la barre · `deplier` Dans la barre, dépliable · `ecarter` Pas dans la barre
-  - Ordre : rang choisi par le répondant, de 1 à 9
+  - Ordre : rang choisi par le répondant, de 1 au nombre de sections gardées ou dépliables
   - Réponse seule : `comme_aujourdhui` Laisser la barre comme aujourd'hui
 - Aide : « Choisissez les sections à garder dans la barre, mettez-les dans l'ordre qui vous convient et indiquez celles que vous aimeriez pouvoir déplier, par exemple pour voir vos favoris sans quitter la barre. Aujourd'hui : Favoris, Catégories et Messages privés dans le groupe Forum ; Drapeaux dans Favoris ; Alertes Qualitay et Bookmarks dans le groupe Outils ; Recherche et Réglages dans le groupe Plus ; À suivre n'existe pas. »
 - Condition : `P1` vaut `ipad`, `duo` ou `plusieurs`
