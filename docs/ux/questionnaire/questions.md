@@ -54,6 +54,13 @@ Statut : texte rédigé par Sonnet, relecture Opus, validation du PO à venir. L
 - Aide : (facultative)
 - Condition : (aucune)
 
+### G1
+- Section du tri : §4 (ajout du PO du 8 novembre 2026, irritants du quotidien)
+- Question : Au quotidien, qu'est-ce qui vous agace ou vous fait perdre du temps dans l'app ?
+- Réponses : (texte libre, 280 caractères au plus)
+- Aide : « Un geste trop long, un écran mal fichu, une info introuvable : tout compte. Une ou deux phrases suffisent. »
+- Condition : (aucune)
+
 ### L1
 - Section du tri : §4.3 (décision D1 du 8 novembre 2026)
 - Question : Pour lire un long sujet, que préférez-vous ?
@@ -217,7 +224,7 @@ Ces textes ne sont pas des questions : le formulaire ne les transcrit pas. Ils s
 
 ## Contrôle
 
-- Toutes les questions de la sélection du tri §4 figurent : profil §4.1 (`P1` à `P3`), ouverture §4.2 (`O1`), thème 1 §4.3 (`L1`, `L2`), thème 2 §4.4 (`D1`, `D2`), neuf cartes §4.5 (`C01` à `C07`, `C09`, `C10` ; `C08` retirée), question ouverte (`C11`), messages privés (`M1`), champ libre §4.6 (`F1`), plus `E0`, `I1` et `E1`.
+- Toutes les questions de la sélection du tri §4 figurent : profil §4.1 (`P1` à `P3`), ouverture §4.2 (`O1`), irritants du quotidien (`G1`, ajout du PO), thème 1 §4.3 (`L1`, `L2`), thème 2 §4.4 (`D1`, `D2`), neuf cartes §4.5 (`C01` à `C07`, `C09`, `C10` ; `C08` retirée), question ouverte (`C11`), messages privés (`M1`), champ libre §4.6 (`F1`), plus `E0`, `I1` et `E1`.
 - Aucune des dix propositions classées Non (tri §3.5) n'est présente : ni plateau de citations, ni scrubber, ni aperçu serveur (l'aperçu de `D2` est l'aperçu local de LOT-152), ni refus des emoji, suppression du premier post, avis AQ, accent unique, Spotlight, thème selon l'heure, actions rapides d'icône.
 - Aucune carte ne promet une alerte quand on est cité (tri §4.5), et aucune ne nomme un hébergeur ou une technique.
 - `L1` ne présente que des améliorations possibles avec la WebView : ni swipe qui suit le doigt, ni position à la ligne près.
