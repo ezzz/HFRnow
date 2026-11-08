@@ -1,6 +1,6 @@
 # Mention sur les données personnelles du questionnaire
 
-Date : 8 novembre 2026. Livrable de l'issue #630 (UX-06). Statut : **proposition** ; points V1, V2, V4 et V6 tranchés par le PO le 8 novembre 2026, V3, V5 et V7 encore ouverts.
+Date : 8 novembre 2026. Livrable de l'issue #630 (UX-06). Statut : **proposition** ; tous les points V1 à V7 ont été tranchés par le PO le 8 novembre 2026. Reste la relecture et la validation finale du texte.
 
 Ce document contient les deux textes affichés aux répondants :
 - le **texte court** placé au-dessus du champ pseudo facultatif (`I1`, à la fin du questionnaire, décision D2) ;
@@ -12,7 +12,7 @@ Il suit les contraintes de `cadrage-construction.md` §4. Les éléments entre a
 
 > **Votre pseudo HFR (facultatif)**
 >
-> Si vous le laissez, seul Bruno, qui mène ce questionnaire, le verra, pour pouvoir vous écrire en MP sur HFR s'il souhaite approfondir une de vos réponses. Il n'est jamais affiché ni publié, et il sera effacé le {date_suppression_pseudos}, deux mois après la fermeture. Sans pseudo, vos réponses restent anonymes.
+> Si vous le laissez, seul Bruno, qui mène ce questionnaire, le verra, pour pouvoir vous écrire en MP sur HFR s'il souhaite approfondir une de vos réponses. Il n'est jamais affiché ni publié, et il sera effacé le {date_effacement}, deux mois après la fermeture. Sans pseudo, vos réponses restent anonymes.
 >
 > Vos données et vos droits (lien vers la page détaillée)
 
@@ -80,7 +80,7 @@ Ce ne sont pas des cookies et rien n'est partagé avec un autre site. Vous pouve
 
 - **Bruno** est le seul à accéder aux réponses complètes, pseudos compris.
 - **L'écran de fin** montre, après {seuil_statistiques} réponses, la répartition des réponses aux questions à choix, en pourcentages arrondis. Il ne montre jamais un texte libre ni un pseudo.
-- **Les résultats publiés** dans le dépôt public du projet ne contiennent que des chiffres d'ensemble et, éventuellement, de courts extraits de textes libres, relus pour qu'ils ne contiennent ni pseudo ni détail qui permette de reconnaître quelqu'un.
+- **Les résultats publiés** dans le dépôt public du projet ne contiennent que des chiffres d'ensemble. Aucun texte libre n'est publié, même en extrait : vos textes restent internes à l'équipe qui développe l'app, sous forme anonymisée.
 - **Pour l'analyse**, Bruno peut se faire aider d'un assistant d'intelligence artificielle. Avant toute analyse, les réponses sont anonymisées :
   - le pseudo est remplacé par un identifiant tiré au hasard ;
   - la table qui relie chaque pseudo à son identifiant reste sur le serveur du questionnaire et n'est jamais transmise à l'assistant ;
@@ -91,7 +91,7 @@ Ce ne sont pas des cookies et rien n'est partagé avec un autre site. Vous pouve
 
 #### Où sont les données
 
-Sur un serveur loué par Bruno, situé en France, donc dans l'Union européenne. Aucune donnée du questionnaire n'est hébergée hors de l'Union européenne. Les exports utilisés pour l'analyse sont anonymisés comme décrit plus haut et restent sur l'ordinateur de Bruno ; ils ne sont jamais déposés dans le dépôt public du projet.
+Sur un serveur loué par Bruno, situé en France, donc dans l'Union européenne. Aucune donnée du questionnaire n'est hébergée hors de l'Union européenne. Les exports utilisés pour l'analyse sont anonymisés comme décrit plus haut. Ils restent sur l'ordinateur de Bruno et au sein de l'équipe qui développe l'app ; ils ne sont jamais déposés dans le dépôt public du projet, et ils sont effacés à la même date que les données du serveur.
 
 Seules les réponses anonymisées peuvent être confiées à l'assistant d'intelligence artificielle, dont le service peut se trouver hors de l'Union européenne.
 
@@ -100,12 +100,12 @@ Seules les réponses anonymisées peuvent être confiées à l'assistant d'intel
 | Donnée | Effacée le |
 |---|---|
 | Empreinte d'adresse IP | {date_fermeture}, à la fermeture du questionnaire |
-| Pseudos, et la table qui les relie aux identifiants d'analyse | {date_suppression_pseudos}, deux mois après la fermeture |
-| Réponses sans pseudo, textes libres compris | {date_suppression_reponses}, un an après la fermeture. Seuls les résultats d'ensemble publiés restent après cette date |
+| Pseudos, et la table qui les relie aux identifiants d'analyse | {date_effacement}, deux mois après la fermeture |
+| Toutes les réponses, textes libres compris, et les exports d'analyse | {date_effacement}, deux mois après la fermeture, en même temps que les pseudos |
 | Brouillon dans votre navigateur | Après l'envoi, ou quand vous effacez les données du site |
 | Jeton dans votre navigateur | Quand vous effacez les données du site |
 
-Une fois le pseudo et cette table effacés, plus rien ne relie vos réponses à vous.
+Après le {date_effacement}, il ne reste que les résultats d'ensemble publiés : des chiffres, sans aucun texte libre ni pseudo.
 
 #### Vos droits
 
@@ -151,28 +151,29 @@ Les engagements suivants ne sont pas garantis par §4. Ils deviennent des **exig
 | R2 | Le formulaire ne pose aucun cookie : jeton et brouillon sont dans le stockage local | « Pas de cookie », et pas de bandeau de consentement à prévoir |
 | R3 | Le brouillon est effacé du navigateur après un envoi réussi | « Il est effacé après l'envoi » |
 | R4 | L'empreinte IP n'est jamais exportée et la clé de salage est détruite à la fermeture, avec les empreintes | « Effacée à la fermeture ». Sans la clé, les empreintes restantes dans une sauvegarde ne permettent plus de retrouver une adresse |
-| R5 | Trois dates configurables à côté de la date de fermeture : suppression des pseudos, suppression des réponses, mise à jour de la mention ; la page détaillée les affiche depuis cette configuration | Les dates annoncées et les dates appliquées restent les mêmes |
-| R6 | La suppression des pseudos, de la table de correspondance (R9) et des réponses à leur date est une commande ou une tâche documentée, qui couvre aussi les sauvegardes du serveur et les exports | « Effacé le » doit être vrai partout, sauvegardes comprises |
+| R5 | Deux dates configurables à côté de la date de fermeture : effacement des données (pseudos, table de correspondance et réponses, deux mois après la fermeture), mise à jour de la mention ; la page détaillée les affiche depuis cette configuration | Les dates annoncées et les dates appliquées restent les mêmes |
+| R6 | L'effacement à la date prévue de toutes les réponses, des pseudos et de la table de correspondance (R9) est une commande ou une tâche documentée, qui couvre aussi les sauvegardes du serveur et les exports d'analyse ; seuls les résultats d'ensemble, sans texte libre, sont gardés | « Effacé le » doit être vrai partout, sauvegardes comprises |
 | R7 | Une commande permet de retrouver, corriger ou effacer les réponses d'un pseudo donné | Exercer les droits de la section « Vos droits » |
 | R8 | La page détaillée est servie par le formulaire lui-même et s'ouvre sans perdre le brouillon | Le répondant la lit au moment où il décide de donner son pseudo |
-| R9 | Un export d'analyse anonymisé : chaque pseudo est remplacé par un identifiant aléatoire, sans lien calculable avec le pseudo ; la table de correspondance reste sur le serveur, n'est dans aucun export d'analyse, et elle est effacée avec les pseudos (R6) | « La table qui relie chaque pseudo à son identifiant reste sur le serveur » et « L'assistant ne reçoit que des réponses anonymisées » |
+| R9 | Un export d'analyse anonymisé : chaque pseudo est remplacé par un identifiant aléatoire, sans lien calculable avec le pseudo ; la table de correspondance reste sur le serveur, n'est dans aucun export d'analyse, et elle est effacée avec les pseudos (R6) | « La table qui relie chaque pseudo à son identifiant reste sur le serveur », « L'assistant ne reçoit que des réponses anonymisées », et les textes libres ne quittent le serveur que sous cette forme, pour l'équipe |
 | R10 | Les textes libres de l'export d'analyse peuvent être corrigés avant analyse (relecture et retrait des détails identifiants), sans toucher aux réponses d'origine sur le serveur ; l'export garde la trace des textes relus | « Les textes libres sont relus » avant toute analyse |
+| R11 | Un export des résultats d'ensemble, seul destiné à la publication : questions fermées seulement, en chiffres agrégés, sans aucun texte libre, pseudo ni identifiant ; il est le seul jeu de données gardé après la date d'effacement | « Aucun texte libre n'est publié, même en extrait » et « il ne reste que les résultats d'ensemble publiés » |
 
 Pour la revue de sécurité et de vie privée (#635) : vérifier chacun de ces points sur le service en ligne, et que les exports restent hors du dépôt public.
 
 ## 4. Points à valider par le PO
 
-Réponses du PO le 8 novembre 2026 : V1, V2, V4 et V6 sont tranchés ; V3, V5 et V7 restent des propositions.
+Réponses du PO le 8 novembre 2026 : tous les points sont tranchés.
 
 | # | Point | État |
 |---|---|---|
 | V1 | À quoi sert le pseudo | **Tranché** : seulement contacter un participant pour approfondir un sujet si besoin |
 | V2 | Durée de conservation des pseudos | **Tranché** : durée courte et fixe, deux mois au plus après la fermeture. La mention annonce deux mois |
-| V3 | Durée de conservation des réponses sans pseudo | Proposition : un an après la fermeture, puis effacement ; seuls les résultats publiés restent |
+| V3 | Durée de conservation des réponses sans pseudo | **Tranché** : effacées deux mois après la fermeture, comme les pseudos ; seuls les résultats d'ensemble publiés restent |
 | V4 | Assistant d'intelligence artificielle pour l'analyse (UX-14 est prévu avec Opus) | **Tranché** : réponses anonymisées avant toute analyse, pseudo remplacé par un identifiant aléatoire, table de correspondance gardée sur le serveur et jamais transmise, textes libres relus. Exigences R9 et R10 |
-| V5 | Extraits de textes libres dans `resultats.md`, dépôt public | Proposition : autorisés, courts et relus. Sinon, ne publier que des chiffres et des thèmes |
+| V5 | Extraits de textes libres dans `resultats.md`, dépôt public | **Tranché** : refusé. Aucun extrait publié ; les textes libres restent internes à l'équipe |
 | V6 | Pays du serveur (lié à D4) | **Tranché** : en France, dans l'Union européenne, aucun hébergement hors UE. La mention précise que le service de l'assistant d'IA, qui ne reçoit que des réponses anonymisées, peut se trouver hors UE |
-| V7 | Délai de réponse aux demandes | Proposition : un mois au plus, le délai légal |
+| V7 | Délai de réponse aux demandes | **Tranché** : un mois au plus |
 
 ---
 
