@@ -26,11 +26,11 @@ enum MessageTitleTone: Equatable {
 
 /// The secondary colour of a read title, held at 4.5:1 or more on the list's card in every theme (#651).
 ///
-/// On a prominent background (the iPad's accent selection) it is the system's hierarchical `.secondary`, which the system
-/// lightens for that background; elsewhere it is `color(for:)`.
+/// On a prominent background (the iPad's accent selection) it is the primary style, which the system turns white there like
+/// an unread title: the hierarchical `.secondary` measured 1.7 to 2.3:1 on that fill (iPad, iOS 27), white 2.7 to 3.9:1.
 struct ReadTitleStyle: ShapeStyle {
     func resolve(in environment: EnvironmentValues) -> AnyShapeStyle {
-        environment.backgroundProminence == .increased ? AnyShapeStyle(.secondary) : AnyShapeStyle(Self.color)
+        environment.backgroundProminence == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(Self.color)
     }
 
     /// `color(for:)` as a dynamic colour, resolved per scheme and contrast.
