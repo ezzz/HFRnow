@@ -217,8 +217,8 @@ Humans and agents follow the same path. Each step links to the one document that
 4. **Branch from `dev-swift`** (never `master`, the legacy app) and work from the issue's one spec ([CONTRIBUTING §1](CONTRIBUTING.md#1-from-a-task-to-a-pr)).
 5. **Open the PR** against `dev-swift` as a draft, with `Closes #N` (or `Refs #N` for partial work), `Claim: <session-id>` and, for a lot, `LOT-XXX`; a small fix without an issue says `Direct-PR: <reason>` ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)). Entries for the GAP report or the legacy changelog go in the PR body, not in those files ([#620](https://github.com/ezzz/HFRnow/issues/620)).
 6. **Get it reviewed**: an adversarial review by a different model ([routing](AGENTS.md#6-model-routing-which-agent-does-what)); reviews open to outside agents are flagged `REVIEW WANTED: <model>` ([EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). Handle CodeRabbit once per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
-7. **Merge**: when the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold the author merges (squash), except risky flows and authors without write access, which the core orchestrator or the maintainer merges ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)); whoever merges closes the issue.
-8. **Stuck or stopping?** Say what is done and left on the PR and the issue, then comment `/release`.
+7. **Merge**: when the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold the author merges (squash), except risky flows and authors without write access, which the core orchestrator or the maintainer merges ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)); whoever merges closes each `Closes #N` issue and leaves `Refs #N` issues open.
+8. **Stuck or stopping?** Say what is done and left on the PR and the issue, then comment `/release` (without write access: `RELEASE REQUEST <session-id>`, a member releases it, [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
 
 **Limits**: at most 5 open PRs per contributor id (10 for Bybifok), see [EXTERNAL-AGENTS §10](docs/agents/EXTERNAL-AGENTS.md#the-open-pr-limit).
 
