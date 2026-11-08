@@ -59,7 +59,7 @@ Une tâche CI dédiée lance `go vet`, `go test` et `node --test`. Elle est filt
 
 ## 3. Contenu : `questionnaire.json`
 
-Le fichier transcrit `docs/ux/questionnaire/questions.md` (#629) sans rien inventer : identifiants, codes, libellés, aides, détails et conditions identiques, même ordre. Les codes cités ici viennent de `questions.md` à la date de ce document ; en cas d'écart, **`questions.md` fait foi**.
+Le fichier transcrit `docs/ux/questionnaire/questions.md` (#629) sans rien inventer : identifiants, codes, libellés, aides, détails et conditions identiques, même ordre. Les codes cités ici viennent de `questions.md` à la date de ce document, mais les libellés des exemples sont fictifs ; en cas d'écart, **`questions.md` fait foi**.
 
 Forme (extrait illustratif) :
 
@@ -75,7 +75,7 @@ Forme (extrait illustratif) :
     "L1": { "type": "choix", "libelle": "Pour lire un long sujet, quelle version de l'app préférez-vous ?",
             "reponses": [ { "code": "pages_ameliorees", "libelle": "Des pages améliorées",
                             "details": ["Pas d'écran blanc entre les pages", "…"] } ] },
-    "L2": { "type": "texte", "libelle": "…", "max": 280, "condition": { "repondue": "L1" } },
+    "L2": { "type": "texte", "libelle": "…", "max": 280 },
     "D1": { "type": "tri", "libelle": "…",
             "sections": [ { "code": "favoris", "libelle": "Favoris" } ],
             "etats": [ { "code": "garder", "libelle": "Je la veux dans la barre" } ],
@@ -88,15 +88,17 @@ Forme (extrait illustratif) :
 
 Types : `texte-seul` (`E0`, `E1`), `choix` (choix simple), `texte` (texte court), `tri` (`D1`), `reaction` (cartes), `pseudo` (`I1`). Les visuels sont référencés par leur nom de fichier, avec le texte alternatif de `visuels/inventaire.md`.
 
-**Test de concordance** (contrat §3.2). Un test Go trouve la racine du dépôt en remontant jusqu'au dossier qui contient `.git` (le `go test` s'exécute dans le dossier du paquet), lit `docs/ux/questionnaire/questions.md`, découpe les blocs `### <ID>` et compare avec `questionnaire.json` :
+**Test de concordance** (contrat §3.2). Un test Go trouve la racine du dépôt en remontant jusqu'au dossier qui contient `.git` (le `go test` s'exécute dans le dossier du paquet), lit `docs/ux/questionnaire/questions.md` et compare avec `questionnaire.json`. Règles de lecture :
+- un bloc commence à un titre `###` dont le texte correspond à `^[A-Z]\d{1,2}$` et va jusqu'au titre suivant ; les autres titres `###` (par exemple « Écran Cartes (note, pas un bloc de question) ») sont ignorés, avec leur contenu ;
 - ligne `- Réponses :` d'une question à choix : liste `` `code` Libellé `` séparée par `·` ;
-- sous-liste `- Détails :` (`L1`, et `D2` si `questions.md` en donne) : une ligne par code, `` `code` `` puis au plus trois points séparés par `·` ;
+- sous-liste `- Détails :` (`L1`, et `D2` si `questions.md` en donne) : une ligne par code, `` `code` : point · point · point ``, au plus trois points, séparateur « ` : ` » après le code ;
 - bloc `D1`, sous-liste de `- Réponses :` à quatre lignes, chacune comparée avec sa règle :
   - `Sections :` neuf `` `code` Libellé `` séparés par `·` ;
   - `États :` `` `garder` `` · `` `deplier` `` · `` `ecarter` `` avec leurs libellés ;
   - `Ordre :` texte seul, rien à comparer ;
   - `Réponse seule :` `` `comme_aujourdhui` Laisser la barre comme aujourd'hui `` ;
-- lignes `- Aide :` et `- Condition :` comparées au texte et à la condition du JSON.
+- ligne `- Aide :` : « (aucune) » ou « (facultative) » veut dire pas d'aide dans le JSON ; sinon, le texte entre les premiers « » est comparé à l'aide du JSON, et la prose hors guillemets est ignorée ; pour `E0` et `E1` (`texte-seul`), chaque texte entre « » doit figurer dans le JSON ;
+- ligne `- Condition :` : « (aucune) », ou `` `P1` vaut `ipad`, `duo` ou `plusieurs` `` : l'identifiant est dans les premiers accents graves, les codes dans les suivants, comparés à la condition de l'écran dans le JSON.
 
 Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop ou différent, sur un ordre différent, sur un bloc `C08` présent dans le JSON (si `questions.md` garde un bloc `C08` marqué retiré, le test l'ignore), et sur un identifiant de `cadrage-construction.md` §2 absent (hors `C08`).
 
@@ -108,12 +110,11 @@ Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop 
 - **Tout est facultatif** : « Suivant » est toujours actif. Chaque question répondue a un bouton « Effacer ma réponse », puisqu'un bouton radio ne se décoche pas.
 - **Conditions** :
   - les écrans `D1` et `D2` s'affichent seulement si `P1` vaut `ipad`, `duo` ou `plusieurs` ; `P1` sans réponse les masque ; si `P1` change vers une autre valeur, `D1` et `D2` sont effacés du brouillon ;
-  - `L2` est actif seulement si `L1` a une réponse, et effacé si `L1` est effacé ;
   - la barre de progression recalcule le nombre d'étapes.
 - **`L1` avec détails** : chaque réponse est un bouton radio dont le libellé est le titre court, suivi d'une liste `<ul>` d'au plus trois points, reliée au bouton par `aria-describedby`. Même rendu pour toute question dont les réponses ont des détails.
 - **Cartes** : les neuf cartes de `cartes` sont mélangées une fois par répondant (Fisher-Yates sur `crypto.getRandomValues`), l'ordre est gardé dans le brouillon et envoyé avec la réponse. La mention « pistes à l'étude, pas des engagements » est en tête de l'écran. Chaque carte est un `<fieldset>` avec sa phrase en `<legend>` et trois boutons radio natifs habillés en boutons.
 - **Tri `D1`** :
-  - en tête, un bouton radio « Laisser la barre comme aujourd'hui » ; coché, il désactive les cartes (sans effacer ce qui y est saisi, rendu au décochage) ;
+  - en tête, un bouton radio « Laisser la barre comme aujourd'hui » ; coché, il désactive les cartes. Le tri reste dans le brouillon, rendu au décochage, mais la réponse envoyée est alors `{"comme_aujourdhui": true}` seule, sans `sections` ;
   - sinon, une liste ordonnée des neuf sections, dans l'ordre de `questions.md` ; pour chacune, un groupe de trois boutons radio (`garder`, `deplier`, `ecarter`, libellés de `questions.md`) ;
   - les sections gardées ou dépliables ont deux boutons « Monter » et « Descendre » dont le nom accessible contient la section (« Monter Favoris ») ; une section écartée descend sous les sections gardées et perd ses boutons ;
   - après un déplacement, une zone `aria-live="polite"` annonce « Favoris, position 2 sur 5 », et le focus reste sur le bouton utilisé ;
@@ -162,7 +163,7 @@ La logique sans DOM (conditions, mélange, construction de la réponse, calcul �
 }
 ```
 
-Une question sans réponse est absente. Une section de `D1` sans état choisi est absente de `sections`. `"D1": {"comme_aujourdhui": true}` est la réponse seule. `duree_s` est l'écart entre l'ouverture de `E0` et l'envoi, borné à 0–7200, pour vérifier le budget de 7 minutes au test à cinq.
+Une question sans réponse est absente. Une section de `D1` sans état choisi est absente de `sections`. `"D1": {"comme_aujourdhui": true}` est la réponse seule. `duree_s` est l'écart entre l'ouverture de `E0` et l'envoi, ramené dans 0–7200 s'il en sort (jamais de refus pour ce champ), pour vérifier le budget de 7 minutes au test à cinq.
 
 ### 5.2 Validation et normalisation côté serveur
 
@@ -174,12 +175,11 @@ Le serveur ne fait pas confiance au front :
 - `D1` :
   - `comme_aujourdhui` vrai avec une liste `sections` non vide : 400 ;
   - chaque code de section au plus une fois, état parmi `garder`, `deplier`, `ecarter` ;
-  - les sections `garder` et `deplier` ont un `rang`, uniques et contigus de 1 à leur nombre ; une section `ecarter` n'en a pas ;
+  - les rangs ne couvrent que les sections `garder` et `deplier` : uniques et contigus de 1 à leur nombre (pas de 1 à 9) ; une section `ecarter` n'en a pas ;
   - `comme_aujourdhui` faux sans aucune section : `D1` devient absent ;
 - `ordre_cartes` : permutation exacte des neuf cartes, sinon ignoré ;
 - **conditions**, appliquées avant stockage même si le front a envoyé les valeurs :
-  - `P1` absent ou différent de `ipad`, `duo`, `plusieurs` : `D1` et `D2` retirés ;
-  - `L1` absent : `L2` retiré.
+  - `P1` absent ou différent de `ipad`, `duo`, `plusieurs` : `D1` et `D2` retirés. C'est la seule condition ; `L2` et `G1` n'en ont pas.
 
 ### 5.3 Schéma SQLite
 
@@ -187,7 +187,7 @@ Les réponses ne contiennent ni IP, ni jeton, ni heure : aucune table ne relie u
 
 | Table | Colonnes | Rôle | Vidée |
 |---|---|---|---|
-| `reponses` | `identifiant` TEXT PK (16 caractères hexadécimaux tirés de `crypto/rand`, sans lien avec le pseudo ni l'ordre d'arrivée), `recue_le` TEXT (date `AAAA-MM-JJ` seulement), `version` TEXT, `duree_s` INTEGER, `ordre_cartes` TEXT, `donnees` TEXT (JSON normalisé, sans `I1`) | Les réponses | Par `effacer` (§12) |
+| `reponses` | `identifiant` TEXT PK (16 caractères hexadécimaux tirés de `crypto/rand`, sans lien avec le pseudo ni l'ordre d'arrivée), `recue_le` TEXT (date `AAAA-MM-JJ` seulement, dans le décalage horaire de `UX_FERMETURE`), `version` TEXT, `duree_s` INTEGER, `ordre_cartes` TEXT, `donnees` TEXT (JSON normalisé, sans `I1`) | Les réponses | Par `effacer` (§12) |
 | `pseudos` | `identifiant` TEXT PK référence `reponses`, `pseudo` TEXT | Table de correspondance pseudo ↔ identifiant (R9) : elle ne quitte jamais le serveur | Par `effacer`, ou ligne par ligne par `pseudo` (§12) |
 | `jetons` | `empreinte` TEXT PK (SHA-256 du jeton) | Anti-doublon par navigateur | À la fermeture |
 | `empreintes_ip` | `empreinte` TEXT PK (HMAC-SHA-256 de l'IP), `envois` INTEGER | Anti-doublon par adresse | À la fermeture |
@@ -200,7 +200,7 @@ Mode WAL, `busy_timeout` de 5 s, une seule connexion d'écriture. L'écriture d'
 
 - **Jeton** : un jeton déjà présent dans `jetons` donne 409 `{"deja_recu": true, "stats": …}` ; le front affiche alors l'écran de fin normalement. Cela couvre aussi la double soumission et le nouvel essai après coupure réseau.
 - **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
-- **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, autres routes 120 par minute ; au-delà, 429 avec `Retry-After`. Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
+- **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, autres routes hors `/static/` 120 par minute, `/static/` non limité (fichiers embarqués, servis depuis la mémoire) ; au-delà, 429 avec `Retry-After`. Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
 - **IP du client** : `UX_PROXY_DE_CONFIANCE` est **obligatoire**. Si la connexion vient de cette adresse ou de ce CIDR, l'IP du client est la **dernière** adresse de `X-Forwarded-For` (celle que le proxy a ajoutée) ; sinon, l'adresse de la connexion. La valeur `aucun` (service exposé sans proxy, ou développement local) fait ignorer l'en-tête. Sans cette variable, le service refuse de démarrer : derrière un proxy, tous les répondants auraient l'adresse du proxy, et le quatrième recevrait 429.
 - **Champ piège** : `site_web` non vide donne la même réponse 201 qu'un envoi accepté, sans rien stocker, pour ne pas renseigner le robot.
 - **Origine** : un `POST` dont l'en-tête `Origin` diffère de `UX_ORIGINE` est refusé (403). Avec l'absence de cookie et le `Content-Type` JSON exigé, cela suffit contre les envois intersites.
@@ -212,7 +212,7 @@ Mode WAL, `busy_timeout` de 5 s, une seule connexion d'écriture. L'écriture d'
 | `GET /` | `index.html` (pendant le questionnaire comme après la fermeture) |
 | `GET /donnees` | `donnees.html`, valeurs de configuration remplacées (R5, R8) |
 | `GET /static/…` | CSS, JS, `questionnaire.json`, visuels ; types MIME explicites |
-| `GET /api/etat` | `{"ouvert": true, "fermeture": "…", "effacement": "…", "mention_maj": "…", "seuil": 10, "version": "…"}` |
+| `GET /api/etat` | `{"ouvert": true, "fermeture": "…", "effacement": "… (calculée)", "mention_maj": "…", "seuil": 10, "version": "…"}` |
 | `POST /api/reponses` | 201 `{"stats": …}` ; 400 invalide ; 403 origine ; 409 version, ou `{"deja_recu": true, "stats": …}` ; 410 fermé ; 413 trop gros ; 429 trop d'envois |
 | `GET /api/stats` | Agrégats (§8) |
 | `GET /healthz` | 200 `ok`, sans accès à la base ni journal |
@@ -267,7 +267,7 @@ HSTS est posé par le proxy inverse qui termine TLS, pas par le service. Aucun s
 
 **Aucune mesure d'audience** (R12) : pas d'outil d'analyse, pas de pixel, pas de bouton de réseau social, ni côté client ni à partir des journaux.
 
-**Journaux** (`log/slog`, JSON sur la sortie standard) : méthode, chemin sans paramètres, statut, durée, taille, et pour un refus sa raison (`honeypot`, `doublon-jeton`, `limite-ip`, `debit`, `origine`). Jamais : IP, empreinte d'IP, jeton, `User-Agent`, `Referer`, corps de requête, pseudo, texte libre. Le proxy inverse suit la même règle pour ce sous-domaine : journal d'accès coupé, ou sans IP ni agent utilisateur ni référent ; à défaut, IP effacée au bout de 7 jours au plus (R1), et la mention le dit.
+**Journaux** (`log/slog`, JSON sur la sortie standard) : méthode, chemin sans paramètres, statut, durée, taille, et pour un refus sa raison (`honeypot`, `doublon-jeton`, `limite-ip`, `debit`, `origine`). Jamais : IP, empreinte d'IP, jeton, `User-Agent`, `Referer`, corps de requête, pseudo, texte libre. Le proxy inverse suit la même règle pour ce sous-domaine (R1) : journal d'accès coupé, ou sans IP, agent utilisateur ni référent. C'est une condition du déploiement (§13), vérifiée par #635 ; il n'y a pas de repli qui garde l'IP.
 
 ## 10. Configuration
 
@@ -280,15 +280,16 @@ Variables d'environnement, aucun secret dans le dépôt :
 | `UX_ORIGINE` | — (obligatoire) | Origine publique, par exemple `https://sondage.exemple.fr` |
 | `UX_PROXY_DE_CONFIANCE` | — (obligatoire) | IP ou CIDR du proxy inverse, ou `aucun` (§6) |
 | `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire |
-| `UX_EFFACEMENT` | fermeture + 2 mois | Date de l'effacement (§12) ; refusée si postérieure à fermeture + 2 mois |
 | `UX_MENTION_MAJ` | — (obligatoire) | Date de dernière mise à jour de la mention |
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; une valeur sous 10 est refusée |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par empreinte d'IP |
 | `UX_CODE_ACCES` | vide | Mot de passe de l'accès restreint, vide en public |
 
+La **date d'effacement** n'est pas une variable : elle vaut toujours `UX_FERMETURE` + 2 mois (même jour du mois, ou dernier jour du mois s'il n'existe pas), comme le dit la mention. `ux-survey effacer` permet d'effacer plus tôt à la main (§12).
+
 Le service refuse de démarrer si une variable obligatoire manque ou est invalide, ou si `questionnaire.json` est invalide.
 
-**Valeurs dans les textes (R5)** : au démarrage, le serveur remplace `{date_fermeture}`, `{date_effacement}`, `{date_mise_a_jour}` et `{seuil_statistiques}` dans `donnees.html`, `index.html` et `questionnaire.json`, puis les sert depuis la mémoire. Les dates sont écrites en français (« 15 décembre 2026 », table des mois dans le code). Les pages marchent donc sans JavaScript, et la mention affiche toujours les dates appliquées. Une accolade de valeur qui reste après remplacement empêche le démarrage.
+**Valeurs dans les textes (R5)** : une valeur est un motif `\{[a-z_]+\}` ; les seules connues sont `{date_fermeture}`, `{date_effacement}`, `{date_mise_a_jour}` et `{seuil_statistiques}`, toutes issues de `donnees.md`. Au démarrage, le serveur les remplace dans `donnees.html` et dans `index.html`, qui porte le paragraphe au-dessus de `I1` repris de `donnees.md` §1, puis sert ces deux pages depuis la mémoire. `questionnaire.json` n'est pas traité : `questions.md` ne contient aucune valeur. Les dates sont écrites en français (« 15 décembre 2026 », table des mois dans le code). Les pages marchent donc sans JavaScript, et la mention affiche toujours les dates appliquées. Un motif inconnu, ou qui reste après remplacement, empêche le démarrage.
 
 ## 11. Déploiement
 
@@ -305,7 +306,7 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 2. Construire l'image ou le binaire, renseigner les variables, démarrer.
 3. Vérifier `/healthz` et les en-têtes (`curl -I`). Envoyer **deux réponses depuis deux adresses publiques différentes** (un ordinateur, puis un téléphone en réseau mobile) : les deux sont acceptées, puis un troisième envoi du même téléphone avec un autre navigateur est accepté aussi (même empreinte, sous la limite). Cela prouve que le proxy de confiance est bien réglé. Puis remettre la base à zéro.
 4. Test à cinq avec `UX_CODE_ACCES`, puis base remise à zéro (supprimer la base et `cle-ip`).
-5. Ouverture : retirer `UX_CODE_ACCES`, fixer `UX_FERMETURE` à deux semaines, `UX_EFFACEMENT` à deux mois après, redémarrer.
+5. Ouverture : retirer `UX_CODE_ACCES`, fixer `UX_FERMETURE` à deux semaines (la date d'effacement suit, deux mois après), redémarrer.
 
 ## 12. Exports, fermeture et effacement
 
@@ -316,17 +317,18 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 | Format | Contenu | Destinataires | Durée de vie |
 |---|---|---|---|
 | `analyse` (CSV et JSON) | Export d'analyse anonymisé (R9) : une ligne par réponse, colonnes ci-dessous, textes libres compris, **sans pseudo**, sans empreinte ni jeton. L'`identifiant` est aléatoire, sans lien calculable avec le pseudo ; la table `pseudos` est la correspondance et ne sort jamais du serveur | L'équipe et l'assistant d'analyse, après relecture des textes libres (R10) | Supprimé à la date d'effacement |
-| `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour toutes les questions fermées, sans seuil par question, effectifs et pourcentages ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
+| `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour les questions fermées, effectifs et pourcentages ; une question dont l'effectif est sous **5** est omise, et pour `D1`, une section dont le nombre de répondants qui ont trié est sous 5 est omise ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
 | `pseudos` | `identifiant` et pseudo, pour traiter une demande de droits (R7) seulement | Bruno seul, jamais partagé | Supprimé dès la demande traitée |
 
-Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les neuf cartes, `C11`, `M1`, `F1` ; sans `C08`), `D1` aplati en `D1_comme_aujourdhui`, `D1_<code>_etat` et `D1_<code>_rang` pour chacune des neuf sections, `ordre_cartes`, et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
+Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les neuf cartes, `C11`, `M1`, `F1` ; sans `C08`). Il n'y a pas de colonne `D1` : à sa place viennent `D1_comme_aujourdhui` puis, pour chacune des neuf sections dans l'ordre de `questions.md`, `D1_<code>_etat` et `D1_<code>_rang` (19 colonnes). Viennent ensuite `ordre_cartes` et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
 
 **Relecture des textes libres (R10)** : le PO relit `G1`, `L2`, `C11` et `F1` dans une copie de l'export d'analyse, retire les détails identifiants, et inscrit `oui` dans `textes_relus` pour chaque ligne relue. Seule cette copie relue est partagée. Les réponses sur le serveur ne sont pas modifiées.
 
 **Droits d'un répondant (R7)**, par `ux-survey pseudo` (comparaison sur `lower(trim(pseudo))`) :
 - `--chercher <pseudo>` affiche les identifiants et `recue_le` des réponses de ce pseudo ;
 - `--afficher <identifiant>` affiche la réponse ;
-- `--corriger <identifiant> --question <ID> --valeur <code ou texte>` corrige une réponse, avec la validation du §5.2 ;
+- `--corriger <identifiant> --question <ID> --valeur-json <valeur>` remplace une réponse par une valeur JSON (code, texte, ou objet `D1`), avec la validation du §5.2 ;
+- `--effacer-question <identifiant> --question <ID>` retire une réponse ;
 - `--effacer-pseudo <identifiant>` supprime la ligne de `pseudos` seulement ;
 - `--effacer <identifiant>` supprime la réponse et sa ligne de `pseudos`.
 
@@ -334,10 +336,10 @@ L'identité du demandeur est vérifiée par MP sur son compte HFR (`donnees.md`)
 
 **À la fermeture**, automatiquement, au premier passage de la tâche horaire après `UX_FERMETURE` (le refus 410 est, lui, immédiat, §7) : le service supprime `cle-ip`, vide `empreintes_ip` et `jetons`, puis lance `VACUUM` et `PRAGMA wal_checkpoint(TRUNCATE)`. `ux-survey fermer` fait la même chose à la main. La page affiche « Questionnaire fermé » et les statistiques finales.
 
-**À la date d'effacement** (R6), automatiquement par la tâche horaire, ou plus tôt par `ux-survey effacer` :
-1. écrire l'instantané `agregats.json` (même contenu que l'export `agregats`), que la page sert ensuite ;
-2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus ;
-3. `VACUUM`, puis `PRAGMA wal_checkpoint(TRUNCATE)` ; si le point de contrôle répond « occupé », la commande sort en erreur sans annoncer l'effacement, et la tâche horaire recommence ;
+**À la date d'effacement** (R6), fermeture + 2 mois, automatiquement par la tâche horaire, ou plus tôt par `ux-survey effacer`. La procédure est **idempotente** : on peut la relancer après n'importe quelle interruption.
+1. si `agregats.json` n'existe pas : écrire l'instantané (même contenu que l'export `agregats`) dans `agregats.json.tmp`, `fsync`, puis renommer en `agregats.json` ; s'il existe déjà, ne pas le réécrire (une reprise ne doit jamais le remplacer par des agrégats vides) ;
+2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus (sans effet si elles sont déjà vides) ;
+3. `VACUUM`, puis `PRAGMA wal_checkpoint(TRUNCATE)` ; si le point de contrôle répond « occupé », la commande sort en erreur sans annoncer l'effacement, et la tâche horaire reprend à cette étape (les étapes 1 et 2 sont déjà acquises ou sans effet) ;
 4. afficher « effacement terminé » seulement quand le point de contrôle a réussi et que le fichier `-wal` est vide.
 
 Liste à cocher du PO le même jour, notée sur #628 avec la date :
@@ -356,7 +358,7 @@ Déjà tranché : le VPS est en France (UE). Reste à fournir avant le déploiem
 - proxy inverse déjà en place (nginx, Caddy, Traefik, Apache ou aucun) et qui gère TLS (Let's Encrypt par le proxy, ou autre) ;
 - Docker et Compose disponibles, ou systemd seulement ;
 - sous-domaine choisi et accès DNS ;
-- politique de journalisation du proxy : peut-on couper le journal d'accès ou en retirer l'IP pour ce sous-domaine (R1) ;
+- confirmation que le journal d'accès du proxy pour ce sous-domaine sera coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;
 - sauvegardes du VPS : le dossier de données peut-il en être exclu, sinon comment les purger à la date d'effacement.
 
 ## 14. Tests que UX-10 doit écrire
@@ -367,9 +369,9 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 |---|---|---|
 | 1 | Concordance | `questionnaire.json` et `questions.md` : identifiants, codes, libellés, détails, aides, conditions, ordre ; bloc `D1` lu par ses quatre lignes ; `C08` absent du JSON ; identifiants du §2 présents hors `C08` |
 | 2 | Contenu | Codes en ASCII minuscules, uniques par question ; neuf cartes ; chaque visuel référencé existe et `web/visuels/` est identique à `docs/ux/questionnaire/visuels/` |
-| 3 | Conditions serveur | `P1` vaut `ipad`, `duo`, `plusieurs` : `D1` et `D2` gardés ; `iphone` ou absent : retirés ; `L1` absent : `L2` retiré ; `G1` gardé quel que soit le profil |
-| 4 | Conditions front (node) | Liste des écrans selon `P1`, avec l'écran `G1` toujours entre `O1` et `L1` ; changement de `P1` qui efface `D1` et `D2` ; `L2` inactif sans `L1`, effacé avec lui |
-| 5 | Mélange (node) | L'ordre des cartes est une permutation des neuf cartes et reste stable après rechargement du brouillon |
+| 3 | Conditions serveur | `P1` vaut `ipad`, `duo`, `plusieurs` : `D1` et `D2` gardés ; `iphone` ou absent : retirés ; `G1` et `L2` gardés quels que soient le profil et la réponse à `L1` |
+| 4 | Conditions front (node) | Liste des écrans selon `P1`, avec l'écran `G1` toujours entre `O1` et `L1` ; changement de `P1` qui efface `D1` et `D2` ; `L2` actif sans `L1` |
+| 5 | Mélange et `D1` (node) | L'ordre des cartes est une permutation des neuf cartes et reste stable après rechargement du brouillon ; trier `D1` puis cocher « comme aujourd'hui » produit `{"comme_aujourdhui": true}` seul, et le décocher rend le tri |
 | 6 | Validation | Clé inconnue (dont `C08`), code ou type inconnu, texte trop long (`G1` à 281 caractères compris), corps trop gros ; `D1` avec `comme_aujourdhui` et des sections, rangs en double ou non contigus, rang sur une section écartée : refus, aucune ligne |
 | 7 | Enregistrement | Un envoi valide : une ligne dans `reponses` avec un identifiant aléatoire, le pseudo seulement dans `pseudos`, `recue_le` sans heure |
 | 8 | Doublon par jeton | Deuxième envoi du même jeton : 409 `deja_recu`, toujours une seule ligne |
@@ -380,10 +382,10 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 13 | Origine | `POST` d'une autre origine : 403 |
 | 14 | Statistiques | 9 réponses : `{"disponible": false, "seuil": 10}` sans compte ; 10 : publiées, à la forme du §8 ; question sous le seuil absente ; arrondis ; aucune clé de texte libre (`G1`, `L2`, `C11`, `F1`), de pseudo, de durée ni d'ordre |
 | 15 | Fermeture | Une seconde après `UX_FERMETURE` : 410 au `POST`, `ouvert` faux ; après la tâche : `cle-ip` absent, `empreintes_ip` et `jetons` vides |
-| 16 | Exports | Format `analyse` : colonnes et ordre, colonne `G1` entre `O1` et `L1`, `D1` aplati, `textes_relus` présente, injection de formule neutralisée, aucun pseudo ni empreinte ; format `agregats` : aucun texte libre, pseudo ni identifiant |
-| 17 | Effacement | Après `effacer` : `reponses` et `pseudos` vides, `-wal` vide, `agregats.json` écrit et servi par `/api/stats` |
-| 18 | Droits | `pseudo --chercher` trouve les réponses d'un pseudo sans la casse ni les espaces ; `--corriger` valide la valeur ; `--effacer-pseudo` et `--effacer` touchent la seule réponse visée et laissent les autres |
-| 19 | Configuration | `UX_SEUIL_STATS` sous 10 et `UX_EFFACEMENT` après fermeture + 2 mois refusés ; `/donnees` affiche les dates configurées et ne contient plus d'accolade de valeur |
+| 16 | Exports | Format `analyse` : colonnes et ordre, colonne `G1` entre `O1` et `L1`, `D1` aplati, `textes_relus` présente, injection de formule neutralisée, aucun pseudo ni empreinte ; format `agregats` : aucun texte libre, pseudo ni identifiant, une question à 4 répondants absente |
+| 17 | Effacement | Après `effacer` : `reponses` et `pseudos` vides, `-wal` vide, `agregats.json` écrit et servi par `/api/stats` ; `effacer` lancé deux fois (et une reprise après un point de contrôle occupé simulé) : `agregats.json` garde les totaux d'avant l'effacement |
+| 18 | Droits | `pseudo --chercher` trouve les réponses d'un pseudo sans la casse ni les espaces ; `--corriger` valide la valeur, objet `D1` compris ; `--effacer-question` retire une seule réponse ; `--effacer-pseudo` et `--effacer` touchent la seule réponse visée et laissent les autres |
+| 19 | Configuration | `UX_SEUIL_STATS` sous 10 refusé ; date d'effacement = fermeture + 2 mois (dont un 31 décembre qui donne le 28 ou 29 février) ; `/donnees` et `/` affichent les dates et ne contiennent plus rien qui corresponde à `\{[a-z_]+\}` |
 | 20 | En-têtes | Les en-têtes du §9 sur une page, une route API, une 404 et une 429 |
 | 21 | Journaux | Un envoi avec un pseudo et l'IP `203.0.113.7` : le journal capturé ne contient ni l'un ni l'autre, ni le texte de `G1` ou des autres textes libres, ni l'agent utilisateur |
 | 22 | Poids, domaines, CSP | `web/` hors `visuels/` pèse 200 Ko au plus ; aucune URL absolue vers un autre domaine ; aucun `innerHTML`, `insertAdjacentHTML`, attribut `style` ni `on…=` dans `web/` |
@@ -395,17 +397,16 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 
 | Exigence | Où |
 |---|---|
-| R1 journaux sans IP, ou effacée sous 7 jours | §9, §13 |
+| R1 journaux du service et du proxy sans IP | §9, §13 |
 | R2 aucun cookie | §4, §9 |
 | R3 brouillon effacé après l'envoi | §4 |
 | R4 empreinte jamais exportée, clé détruite à la fermeture | §5.3, §6, §12 |
-| R5 dates d'effacement et de mise à jour configurables et affichées | §10 |
+| R5 date d'effacement calculée (fermeture + 2 mois), date de mise à jour configurée, toutes deux affichées | §10 |
 | R6 effacement de tout, sauvegardes et exports compris | §12 |
 | R7 retrouver, corriger, effacer les réponses d'un pseudo | §12 |
 | R8 mention servie par le formulaire, brouillon gardé | §4, §7 |
 | R9 export d'analyse anonymisé, correspondance sur le serveur | §5.3, §12 |
 | R10 textes libres relus, trace dans l'export | §12 |
-| R11 export d'ensemble, seul gardé | §12 |
+| R11 export d'ensemble, seul gardé, groupes de moins de 5 omis | §12 |
 | R12 aucune mesure d'audience | §9 |
 
-Écart signalé à #669 : la mention dit que « la date et l'heure d'envoi » sont enregistrées ; ce document ne garde que la date (`recue_le`), et les envois en rafale sont repérés par la limitation de débit, sans rien stocker. La mention doit dire « la date d'envoi ».
