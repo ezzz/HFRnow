@@ -152,12 +152,18 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 2, keepsScrollPosition: true))
         controller.obscuredInsets.top = 100
         #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+        // Issue #642: the scroll view still shows the old document's offset, already 900 under the 100-point bar, when the
+        // new one is ready; its reset to the top and the restore come after. Only the new document's own `scrollY`, which
+        // starts at 0, tells that the restore happened.
+        #expect(await until(async: { abs((await scrollY() ?? -1) - 1000) <= 1 }, timeout: .seconds(30)), "restored scrollY")
+        // Still there once the document has finished loading (a late layout must not undo the restore).
+        #expect(await settled(controller))
+        let loadedScrollY = await scrollY() ?? -1
+        #expect(abs(loadedScrollY - 1000) <= 1, "scrollY after load: \(loadedScrollY)")
+        // The scroll view follows the page's scroll asynchronously.
         #expect(
             await until({ abs(scrollView.contentOffset.y - 900) <= 1 }, timeout: .seconds(30)), "offset: \(scrollView.contentOffset.y)"
         )
-        // Still there once the document has finished loading (a late layout must not undo the restore).
-        #expect(await settled(controller))
-        #expect(abs(scrollView.contentOffset.y - 900) <= 1, "offset after load: \(scrollView.contentOffset.y)")
         #expect(abs(controller.readingTop - 1000) <= 1)
     }
 }

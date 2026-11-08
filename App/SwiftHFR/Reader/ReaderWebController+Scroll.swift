@@ -5,10 +5,17 @@ import UIKit
 /// bar, a landing and the topmost message (LOT-111) count from the bar's edge, and the bars' scroll edge effect replaces the
 /// opaque fills.
 extension ReaderWebController {
-    /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
-    /// document scrolls once.
+    /// WebKit resets the scroll view of a new document to its top when it applies the document's first layer-tree commit, so
+    /// a scroll the page made in the same commit is lost: the landing or the restore of a document just ready opened at the
+    /// top now and then (issue #642). Two animation frames put the scroll in a later commit.
+    private static let afterFirstFrames = "await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));"
+
+    /// `landing` keeps the message at the top while late images load (a document's own anchor, scrolled once the document's
+    /// first frames are drawn); a request inside the shown document scrolls once, at once.
     func scroll(to anchor: Int, landing: Bool = false) {
-        let script = "return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);"
+        let script = landing
+            ? "\(Self.afterFirstFrames) return window.hfrReader.landOnPost(n);"
+            : "return window.hfrReader.scrollToPost(n);"
         Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["n": anchor], in: nil, contentWorld: Self.world) }
     }
 
@@ -31,9 +38,9 @@ extension ReaderWebController {
     /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore). The
     /// page scrolls itself: WebKit counts `scrollY` from the bars' edge once `obscuredContentInsets` is set (`scrollY` is the
     /// reading top, `ReaderInsetsWebTests`), and a native `setContentOffset` at DOMContentLoaded is undone by the new
-    /// document's first layout.
+    /// document's first layout. The page waits for its first frames too (`afterFirstFrames`).
     func scroll(toReadingTop readingTop: CGFloat) {
-        let script = "window.scrollTo(0, y); return true;"
+        let script = "\(Self.afterFirstFrames) window.scrollTo(0, y); return true;"
         let top = Double(max(0, readingTop))
         Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["y": top], in: nil, contentWorld: Self.world) }
     }
