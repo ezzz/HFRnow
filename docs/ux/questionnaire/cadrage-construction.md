@@ -21,22 +21,22 @@ Rien ne bloque la vague 1. Le sous-domaine ne bloque que la mise en ligne restre
 
 ## 2. Le parcours, écran par écran
 
-Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2.
+Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 6 min 20 s pour un profil iPad et 4 min 20 s pour un profil iPhone, ce qui laisse une marge pour les visuels et les vidéos.
 
 | Écran | Identifiants | Contenu | Format | Condition | Visuel | Budget |
 |---|---|---|---|---|---|---|
 | Accueil | `E0` | Introduction de trois lignes, lien vers la mention sur les données | Texte | — | — | 15 s |
 | Profil | `P1` `P2` `P3` | Appareil, usage du forum, ancienneté | Choix simple ×3 | — | — | 30 s |
 | Ouverture | `O1` | Rester · petites touches · oser | Choix simple | — | — | 10 s |
-| Thème 1 | `L1` `L2` | Choix du scénario de lecture, puis « Qu'est-ce qui vous manquerait ? » | Choix simple, texte court | — | Capture actuelle, deux scénarios | 90 s |
-| Thème 2, partie A | `D1` | Sections de la barre latérale : garder, ordonner, dépliable | Tri de cartes | `P1` vaut iPad, Duo ou plusieurs | Cartes des neuf sections | 90 s |
-| Thème 2, partie B | `D2` | Trois dispositions | Choix simple | Même condition | Capture actuelle, deux maquettes, vidéos Duo | 60 s |
-| Cartes | `C01` à `C10` | Dix idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 100 s |
-| Idée | `C11` | « Ces idées vous en inspirent une autre ? » | Texte court | — | — | 20 s |
+| Thème 1 | `L1` `L2` | Choix du scénario de lecture, puis « Qu'est-ce qui vous manquerait ? » | Choix simple, texte court | — | Capture actuelle, deux scénarios | 60 s |
+| Thème 2, partie A | `D1` | Sections de la barre latérale : garder, ordonner, dépliable | Tri de cartes | `P1` vaut iPad, Duo ou plusieurs | Cartes des neuf sections | 75 s |
+| Thème 2, partie B | `D2` | Trois dispositions | Choix simple | Même condition | Capture actuelle, deux maquettes, vidéos Duo | 45 s |
+| Cartes | `C01` à `C10` | Dix idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 80 s |
+| Idée | `C11` | « Ces idées vous en inspirent une autre ? » | Texte court | — | — | 15 s |
 | Messages privés | `M1` | Quatre réponses de la question MP | Choix simple | — | — | 15 s |
-| Champ libre | `F1` | 280 caractères | Texte | — | — | 30 s |
+| Champ libre | `F1` | 280 caractères | Texte | — | — | 20 s |
 | Pseudo | `I1` | Pseudo HFR facultatif, mention courte au-dessus | Texte | — | — | 15 s |
-| Fin | `E1` | Remerciement, statistiques de la communauté | Lecture seule | — | Graphiques simples | — |
+| Fin | `E1` | Remerciement, réponses du répondant comparées à celles de la communauté | Lecture seule | — | Graphiques simples | — |
 
 Le pseudo est demandé à la fin plutôt qu'au début : le répondant décide après avoir vu ce qu'il a écrit, et l'anonymat par défaut n'influence pas les réponses. C'est la décision D2 de la section 6.
 
@@ -67,7 +67,7 @@ Un bloc par identifiant, toujours dans le même ordre :
 - Condition : (aucune)
 ```
 
-La réalisation (#634) transcrit ces blocs dans un fichier de contenu sous `tooling/ux-survey/`. Un test automatisé vérifie que les identifiants et les codes des deux fichiers sont identiques. Ainsi, une correction de libellé validée par le PO ne se perd pas entre le document et le code.
+La réalisation (#634) transcrit ces blocs dans un fichier de contenu sous `tooling/ux-survey/`. Un test automatisé vérifie que les identifiants, les codes et les libellés des deux fichiers sont identiques. Ainsi, une correction de libellé validée par le PO ne se perd pas entre le document et le code.
 
 ### 3.3 Visuels
 
@@ -97,6 +97,7 @@ La spécification (#633) choisit la technique. Elle doit respecter ces contraint
 - Export CSV et JSON avec les identifiants de la section 2 comme colonnes.
 
 **Écran de fin**
+- Chaque réponse du répondant est mise en regard de la répartition de la communauté (décision 2 du plan de préparation).
 - Statistiques affichées seulement après un seuil de réponses (décision D3).
 - Questions fermées seulement, en pourcentages arrondis.
 - Jamais de texte libre ni de pseudo.
