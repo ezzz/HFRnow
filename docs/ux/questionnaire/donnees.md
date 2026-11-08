@@ -12,7 +12,7 @@ Il suit les contraintes de `cadrage-construction.md` §4. Les éléments entre a
 
 ## 1. Paragraphe au-dessus du champ pseudo
 
-> Votre pseudo sert à une seule chose : permettre à Bruno Arene, qui mène ce questionnaire, de vous écrire en MP sur HFR s'il souhaite approfondir un sujet avec vous. Il n'est jamais affiché ni publié. Il est effacé le {date_effacement}, deux mois après la fermeture, ou plus tôt si vous le demandez à Bruno Arene, [ezzz75@gmail.com](mailto:ezzz75@gmail.com), qui vous répond dans un délai d'un mois au plus. Sans pseudo, rien dans vos réponses ne permet de vous identifier, sauf ce que vous écririez vous-même dans un texte libre.
+> Votre pseudo sert à une seule chose : permettre à Bruno Arene, qui mène ce questionnaire, de vous écrire en MP sur HFR s'il souhaite approfondir un sujet avec vous. Il n'est jamais affiché ni publié. Il est effacé au plus tard le {date_effacement}, deux mois après la fermeture, ou plus tôt si vous le demandez à Bruno Arene, [ezzz75@gmail.com](mailto:ezzz75@gmail.com), qui vous répond dans un délai d'un mois au plus. Sans pseudo, rien dans vos réponses ne permet de vous identifier, sauf ce que vous écririez vous-même dans un texte libre.
 
 Sous le paragraphe, le lien vers la page détaillée, avec le libellé fixé par `questions.md`. Le lien ouvre la page sans quitter le questionnaire ni perdre les réponses (brouillon conservé, §4 du cadrage).
 
@@ -20,7 +20,7 @@ Sous le paragraphe, le lien vers la page détaillée, avec le libellé fixé par
 - le pseudo est facultatif ;
 - il sert seulement à vous contacter en MP pour approfondir un sujet ;
 - il n'est jamais affiché ni publié ;
-- il est effacé deux mois après la fermeture au plus tard ;
+- il est effacé au plus tard deux mois après la fermeture ;
 - on peut en demander la suppression à Bruno Arene, ezzz75@gmail.com, réponse sous un mois au plus ;
 - sans pseudo, rien n'identifie le répondant, sauf ce qu'il écrit lui-même dans un texte libre (formulation à préférer à « vos réponses restent anonymes ») ;
 - n'indiquer que son propre pseudo (proposition d'aide pour `questions.md`).
@@ -56,7 +56,7 @@ Rien n'est enregistré sur le serveur avant que vous cliquiez sur « Envoyer ».
 | Donnée | Pourquoi |
 |---|---|
 | Vos réponses aux questions, et l'ordre dans lequel les cartes d'idées vous ont été montrées | Le but du questionnaire. L'ordre des cartes est tiré au hasard ; il sert à vérifier qu'il n'influence pas les réponses |
-| Vos textes libres (idée, champ libre, « ce qui vous manquerait ») | Lire vos idées avec vos propres mots |
+| Vos textes libres : ce qui vous agace au quotidien dans l'app, ce qui compte le plus pour vous dans la lecture d'un sujet, une autre idée, le champ libre de la fin | Lire vos idées avec vos propres mots |
 | Votre pseudo HFR, si vous le donnez | Pouvoir vous écrire en MP sur HFR pour approfondir un sujet avec vous, et rien d'autre. Il est rangé à part de vos réponses. C'est la seule donnée qui vous identifie directement, et elle est facultative |
 | La date d'envoi, sans l'heure | Suivre la participation jour par jour |
 | Le temps passé à répondre | Vérifier que le questionnaire tient dans le temps annoncé |
@@ -109,8 +109,8 @@ Seuls des extraits de cette copie, sans pseudo ni détail permettant de vous rec
 | Donnée | Effacée le |
 |---|---|
 | Empreintes d'adresse IP et de jeton, et la clé secrète qui sert à les calculer | {date_fermeture}, à la fermeture du questionnaire |
-| Pseudos, et la table qui les relie aux identifiants d'analyse | {date_effacement}, deux mois après la fermeture |
-| Toutes les réponses, textes libres compris, et toutes les copies d'analyse | {date_effacement}, en même temps que les pseudos |
+| Pseudos, et la table qui les relie aux identifiants d'analyse | Au plus tard le {date_effacement}, deux mois après la fermeture |
+| Toutes les réponses, textes libres compris, et toutes les copies d'analyse | Au plus tard le {date_effacement}, en même temps que les pseudos |
 | Brouillon dans votre navigateur | Après l'envoi, ou quand vous effacez les données du site |
 | Jeton dans votre navigateur | Quand vous effacez les données du site |
 
@@ -126,7 +126,7 @@ Si vous avez laissé votre pseudo, vous pouvez à tout moment demander :
 
 Écrivez à [ezzz75@gmail.com](mailto:ezzz75@gmail.com) en indiquant votre pseudo. Comme le questionnaire ne vérifie pas les pseudos, Bruno peut vous demander de confirmer la demande par MP sur HFR depuis ce compte : c'est la seule façon de s'assurer qu'elle vient bien de vous. Il répond dans un délai d'un mois au plus.
 
-Si vous avez répondu **sans pseudo**, vos réponses ne sont reliées à rien qui permette de les retrouver : il est donc impossible de les montrer, de les corriger ou de les effacer à la demande. Elles sont effacées comme les autres le {date_effacement}.
+Si vous avez répondu **sans pseudo**, vos réponses ne sont reliées à rien qui permette de les retrouver : il est donc impossible de les montrer, de les corriger ou de les effacer à la demande. Elles sont effacées comme les autres, au plus tard le {date_effacement}.
 
 Si vous estimez que vos données ne sont pas traitées correctement, écrivez d'abord à Bruno. Vous pouvez aussi vous adresser à la CNIL, l'autorité française de protection des données ([cnil.fr](https://www.cnil.fr)).
 
@@ -158,17 +158,17 @@ Les engagements suivants ne sont pas garantis par §4. Ils deviennent des **exig
 
 | # | Exigence | Pourquoi la mention en a besoin |
 |---|---|---|
-| R1 | Les journaux du serveur et du proxy n'enregistrent jamais l'adresse IP en clair, sous aucune forme | « Les journaux techniques du serveur ne contiennent pas votre adresse IP » |
+| R1 | Les journaux du serveur et du proxy n'enregistrent jamais l'adresse IP, sous aucune forme, ni en clair ni en empreinte | « Les journaux techniques du serveur ne contiennent pas votre adresse IP » |
 | R2 | Le formulaire ne pose aucun cookie : jeton et brouillon sont dans le stockage local | « Pas de cookie », et pas de bandeau de consentement à prévoir |
 | R3 | Le brouillon est effacé du navigateur après un envoi réussi | « Il est effacé après l'envoi » |
 | R4 | Les empreintes d'IP et de jeton ne sont jamais exportées ; la clé de salage est détruite à la fermeture, avec les empreintes ; l'empreinte calculée pour la limitation de débit reste en mémoire | « Effacées à la fermeture ». Une sauvegarde prise après la fermeture ne contient ni clé ni empreinte ; une sauvegarde prise avant relève de R6 |
-| R5 | `{date_effacement}` est calculée à partir de la date de fermeture (deux mois après), pas saisie à part ; `{date_mise_a_jour}` et `{seuil_statistiques}` viennent de la même configuration ; la page détaillée affiche ces valeurs depuis cette configuration | Les dates et le seuil annoncés sont ceux qui s'appliquent |
-| R6 | Le service efface automatiquement, à `{date_effacement}`, toutes les réponses, les pseudos et la table de correspondance (R9) ; une procédure documentée couvre les sauvegardes du serveur et les copies d'analyse, y compris celle de l'autre développeur ; seuls les résultats d'ensemble de R11 sont gardés | « Effacées le {date_effacement} » doit être vrai partout, sauvegardes comprises |
+| R5 | `{date_effacement}` est calculée à partir de la date de fermeture (deux mois après), sans réglage séparé ; un effacement manuel plus tôt reste possible, d'où « au plus tard » dans la mention ; `{date_mise_a_jour}` et `{seuil_statistiques}` viennent de la même configuration ; la page détaillée affiche ces valeurs depuis cette configuration | Les dates et le seuil annoncés sont ceux qui s'appliquent |
+| R6 | Le service efface automatiquement, au plus tard à `{date_effacement}`, toutes les réponses, les pseudos et la table de correspondance (R9) ; une procédure documentée couvre les sauvegardes du serveur et les copies d'analyse, y compris celle de l'autre développeur ; seuls les résultats d'ensemble de R11 sont gardés | « Effacées le {date_effacement} » doit être vrai partout, sauvegardes comprises |
 | R7 | Une commande retrouve, montre, corrige ou efface les réponses d'un pseudo donné, et donne son identifiant d'analyse pour corriger ou effacer les copies d'analyse déjà faites | Exercer les droits, « y compris dans les copies d'analyse » |
 | R8 | La page détaillée est servie par le formulaire lui-même et s'ouvre sans perdre le brouillon | Le répondant la lit au moment où il décide de donner son pseudo |
 | R9 | La copie d'analyse est pseudonymisée côté serveur, sans identifiant direct côté lecteurs : chaque réponse porte un identifiant tiré au hasard, pas la clé interne de la base ; la table de correspondance pseudo ↔ identifiant reste sur le serveur, n'est dans aucune copie, et elle est effacée avec les pseudos (R6) | « Chaque pseudo est remplacé par un identifiant tiré au hasard » et « la table reste sur le serveur » |
 | R10 | Les textes libres de la copie d'analyse peuvent être corrigés avant analyse (retrait des détails identifiants), sans toucher aux réponses enregistrées ; la copie garde la trace des textes relus | « Les textes libres sont relus » avant toute analyse |
-| R11 | Un export des résultats d'ensemble, seul destiné à la publication : questions fermées seulement, en chiffres agrégés, sans texte libre, pseudo, identifiant, temps passé ni ordre des cartes ; aucun chiffre publié pour un groupe de moins de 5 répondants, ni de complément qui permettrait de le retrouver ; il est le seul jeu de données gardé après `{date_effacement}` | « Aucun texte libre n'est publié » et « seuls subsistent les résultats d'ensemble publiés » |
+| R11 | Un export des résultats d'ensemble, seul destiné à la publication : questions fermées seulement, en chiffres agrégés, sans texte libre, pseudo, identifiant, temps passé ni ordre des cartes ; aucun chiffre publié pour une question ou un groupe de moins de 5 répondants, ni de complément qui permettrait de le retrouver ; il est le seul jeu de données gardé après `{date_effacement}` | « Aucun texte libre n'est publié » et « seuls subsistent les résultats d'ensemble publiés » |
 | R12 | Aucune mesure d'audience, ni dans la page ni sur le serveur : pas d'outil de statistiques de visite, et des journaux sans adresse IP, agent utilisateur ni référent | « Pas de mesure d'audience, ni dans la page ni sur le serveur » |
 
 Pour la revue de sécurité et de vie privée (#635) : vérifier chacun de ces points sur le service en ligne, et que les copies d'analyse restent hors du dépôt public.
