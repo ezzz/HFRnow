@@ -21,17 +21,18 @@ Rien ne bloque la vague 1. Le sous-domaine ne bloque que la mise en ligne restre
 
 ## 2. Le parcours, écran par écran
 
-Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 6 min 20 s pour un profil iPad et 4 min 20 s pour un profil iPhone, ce qui laisse une marge pour les visuels et les vidéos.
+Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 6 min 40 s pour un profil iPad et 4 min 40 s pour un profil iPhone, ce qui laisse une marge pour les visuels et les vidéos.
 
 | Écran | Identifiants | Contenu | Format | Condition | Visuel | Budget |
 |---|---|---|---|---|---|---|
 | Accueil | `E0` | Introduction de trois lignes, lien vers la mention sur les données | Texte | — | — | 15 s |
 | Profil | `P1` `P2` `P3` | Appareil, usage du forum, ancienneté | Choix simple ×3 | — | — | 30 s |
 | Ouverture | `O1` | Rester · petites touches · oser | Choix simple | — | — | 10 s |
-| Thème 1 | `L1` `L2` | Choix du scénario de lecture, puis « Qu'est-ce qui vous manquerait ? » | Choix simple, texte court | — | Capture actuelle, deux scénarios | 60 s |
+| Irritants | `G1` | « Au quotidien, qu'est-ce qui vous agace ou vous fait perdre du temps dans l'app ? » | Texte court | — | — | 20 s |
+| Thème 1 | `L1` `L2` | Choix du scénario de lecture, puis « Qu'est-ce qui compte le plus pour vous dans la lecture d'un sujet ? » | Choix simple, texte court | — | Capture actuelle, deux scénarios | 60 s |
 | Thème 2, partie A | `D1` | Sections de la barre latérale : garder, ordonner, dépliable | Tri de cartes | `P1` vaut iPad, Duo ou plusieurs | Cartes des neuf sections | 75 s |
 | Thème 2, partie B | `D2` | Trois dispositions | Choix simple | Même condition | Capture actuelle, deux maquettes, vidéos Duo | 45 s |
-| Cartes | `C01` à `C10` | Dix idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 80 s |
+| Cartes | `C01` à `C10` sauf `C08` | Neuf idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 80 s |
 | Idée | `C11` | « Ces idées vous en inspirent une autre ? » | Texte court | — | — | 15 s |
 | Messages privés | `M1` | Quatre réponses de la question MP | Choix simple | — | — | 15 s |
 | Champ libre | `F1` | 280 caractères | Texte | — | — | 20 s |
@@ -40,7 +41,11 @@ Un écran par bloc, une barre de progression, toutes les questions facultatives.
 
 Le pseudo est demandé à la fin plutôt qu'au début : le répondant décide après avoir vu ce qu'il a écrit, et l'anonymat par défaut n'influence pas les réponses. C'est la décision D2 de la section 6.
 
-L'ordre des cartes `C01` à `C10` est tiré au hasard pour chaque répondant, afin que la fatigue ne pénalise pas toujours les mêmes idées.
+L'ordre des cartes est tiré au hasard pour chaque répondant, afin que la fatigue ne pénalise pas toujours les mêmes idées.
+
+La question `G1` vient avant toute proposition, pour recueillir les irritants du quotidien sans que les pistes du questionnaire orientent les réponses.
+
+**Mises à jour du 8 novembre 2026, après la revue de l'aperçu par le PO** (consignées sur #628) : la carte `C08` « Images nettes » est retirée, car la fonction existe déjà ; son identifiant n'est jamais réutilisé. La question `G1` est ajoutée après `O1`. Le seuil des statistiques passe à 10 réponses (D3).
 
 ## 3. Contrats entre les lots
 
@@ -118,7 +123,7 @@ Recommandation pour #632 : capturer SwiftHFR dans le simulateur pour chaque amé
 |---|---|---|---|
 | D1 | Ajouter une réponse « Garder les pages comme aujourd'hui » au thème 1 (`L1`) | Oui : la règle « comme aujourd'hui » s'applique partout, et la réponse se lit avec `O1` | Fin de #629 |
 | D2 | Place du pseudo | À la fin, juste avant l'envoi | Fin de #629 |
-| D3 | Seuil d'affichage des statistiques | 20 réponses | Fin de #633 |
+| D3 | Seuil d'affichage des statistiques | 10 réponses (révisé le 8 novembre 2026, d'abord 20) | Fin de #633 |
 | D4 | Description du VPS : système, proxy existant, Docker ou non | À fournir ; la spécification reste portable en attendant | Fin de #633 |
 | D5 | Duo : appareil réel ou simulateur disponible pour les vidéos | À confirmer | Début de #631 pour la partie Duo |
 | D6 | Cinq testeurs, dont au moins un sur iPad | Noms à réunir | Test, après #635 |
