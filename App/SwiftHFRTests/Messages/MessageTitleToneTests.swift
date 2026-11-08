@@ -39,7 +39,7 @@ struct MessageTitleToneTests {
         #expect(MessageTitleTone.secondary.weight == .regular)
     }
 
-    @Test("A read title is never drawn in the primary colour", arguments: Theme.all)
+    @Test("Off the iPad selection, a read title is never drawn in the primary colour", arguments: Theme.all)
     func readTitleIsNotPrimary(_ theme: Theme) {
         let card = Self.rgba(.secondarySystemGroupedBackground, theme).rgb
         let read = Self.contrast(ReadTitleStyle.color(for: theme.traits), on: card, theme)
