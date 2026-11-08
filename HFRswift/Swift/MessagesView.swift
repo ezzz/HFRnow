@@ -3059,6 +3059,7 @@ struct MessagesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.foldHandoffScope) private var foldHandoffScope
+    @Environment(\.detailStackResetRequest) private var detailStackResetRequest
     @State private var foldHandoffToken: UUID?
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
@@ -5925,6 +5926,15 @@ struct MessagesView: View {
             }
             .onChange(of: availableMaxPage) {
                 updateFoldHandoffReading()
+            }
+            .onChange(of: detailStackResetRequest) {
+                // The split view is about to replace the detail root: pop without animation so
+                // no pushed reader outlives it (#663).
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    resetMessagesStackToRoot()
+                }
             }
             .navigationDestination(isPresented: linkedTopicNavigationBinding) {
                 if let linkedTopicDestination {
