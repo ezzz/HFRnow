@@ -248,10 +248,13 @@ struct UserProfileListsTests {
             memberID: 1, source: FakeUserProfiles([.success(profile)]),
             lists: PseudoListManager(store: store, account: "moi")
         )
+        var rebuilds = 0
+        model.onListsChanged = { rebuilds += 1 }
         #expect(!model.offers(.blocklist) && !model.offers(.allowlist))
         await model.onAppear()
-        #expect(model.offers(.blocklist) && model.offers(.allowlist) && !model.isBlocked)
+        #expect(model.offers(.blocklist) && model.offers(.allowlist) && !model.isBlocked && rebuilds == 0)
         await model.toggle(.blocklist)
+        #expect(rebuilds == 1)
         #expect(model.isBlocked && model.listFeedback == "BIM! \(profile.pseudo) ajouté à la liste noire")
         #expect(await store.isBlocked(profile.pseudo, account: "moi"))
         await model.toggle(.blocklist)

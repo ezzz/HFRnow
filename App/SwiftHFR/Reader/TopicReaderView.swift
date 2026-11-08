@@ -272,7 +272,7 @@ struct TopicReaderView: View {
         let showProfile = $profile
         let services = self.services
         handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = services.profileModel(memberID: id)
+            showProfile.wrappedValue = services.profileModel(memberID: id) { [weak model] in model?.applyDisplaySettings() }
         }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         // Weak: the registry lives in the model, which would otherwise keep itself alive through the closure.
@@ -299,7 +299,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID)
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { [model] in model.applyDisplaySettings() }
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break

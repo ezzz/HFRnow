@@ -68,6 +68,8 @@ final class UserProfileModel: Identifiable {
         return pseudo
     }
 
+    /// Runs after a toggle that changed a list, once the snapshot is refreshed (set by the reader; weak captures only).
+    var onListsChanged: (@MainActor () -> Void)?
     /// The sentence of the last list toggle, shown under the buttons.
     private(set) var listFeedback: String?
     /// Whether each list holds the member now, for the buttons' labels; false until read.
@@ -96,6 +98,7 @@ final class UserProfileModel: Identifiable {
         guard let lists, let pseudo = listPseudo, let result = await lists.toggle(pseudo, in: kind) else { return }
         listFeedback = result.message
         await refreshListState()
+        if result.changed { onListsChanged?() }
     }
 
     /// First load, when nothing is on screen and nothing is loading.
@@ -130,7 +133,11 @@ final class UserProfileModel: Identifiable {
 
 extension ReaderServices {
     /// The profile screen's model of member `memberID`, with the list buttons (LOT-118); the one place the reader builds it.
-    func profileModel(memberID: Int) -> UserProfileModel {
-        UserProfileModel(memberID: memberID, source: profiles, lists: pseudoLists)
+    /// `listsChanged` runs after each toggle that changed a list, once the snapshot is refreshed (the reader rebuilds its page).
+    @MainActor
+    func profileModel(memberID: Int, listsChanged: (@MainActor () -> Void)? = nil) -> UserProfileModel {
+        let model = UserProfileModel(memberID: memberID, source: profiles, lists: pseudoLists)
+        model.onListsChanged = listsChanged
+        return model
     }
 }
