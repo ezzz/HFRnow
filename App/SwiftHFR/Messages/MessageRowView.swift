@@ -2,7 +2,7 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
-// (GAP-111); accent tint on unread rows (GAP-227);
+// (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
 // "non lu" capsule for the correspondent's state (GAP-111).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
@@ -33,7 +33,8 @@ struct MessageRowView: View {
                     }
                     Text(thread.summary.title)
                         .scaledFont(density.titleStyle)
-                        .fontWeight(isUnread ? .semibold : .regular)
+                        .fontWeight(titleTone.weight)
+                        .foregroundStyle(titleTone.style)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 }
                 if density.mergesMetaLines {
@@ -66,6 +67,9 @@ struct MessageRowView: View {
     static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
         isUnread && !isSelected ? RowTint() : nil
     }
+
+    /// Primary and semibold when unread, secondary and regular when read (#651).
+    private var titleTone: MessageTitleTone { .of(isUnread: isUnread) }
 
     /// Capped, so an accessibility size leaves the text its room.
     private var avatarSide: CGFloat { min(scale.scaled(dynamicType * density.avatarSize), 64) }
