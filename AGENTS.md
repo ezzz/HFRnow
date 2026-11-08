@@ -129,6 +129,7 @@ Every issue carries one label per axis:
 
 Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
 `beta-test finding` marks an issue reported during pre-beta or beta testing on a device (operator, 2026-11-07), kept on the issue for statistics.
+`legacy finding` marks a legacy behaviour the operator wants kept, reported from the legacy app (operator, 2026-11-08); cite legacy `master` when the behaviour is newer than `2440d79` (#655).
 
 **Writing an issue:** it starts with `### Summary` (user story or two-line executive summary, §8), then scope, sources and acceptance criteria.
 
