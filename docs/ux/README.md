@@ -1,28 +1,35 @@
-# Démarche UX et questionnaire utilisateurs
+# Démarche UX et questionnaire utilisateurs : archive du cadrage
 
-Documents de cadrage du PO pour les évolutions UX de l'app et le questionnaire utilisateurs. Ils sont en français, comme le questionnaire.
+## Statut : archive
 
-## À lire, dans l'ordre
+Ce dossier archive le travail de cadrage UX du PO, arrêté au 7 novembre 2026. Il trace la démarche, l'analyse et les arbitrages de cadrage. **Ce ne sont pas des spécifications à implémenter**, et rien ici ne modifie le plan du portage (`docs/LOTS.md`, `docs/FEATURES.md`).
 
-| Document | Rôle | État |
-|---|---|---|
-| [tri-m5-decisions.md](tri-m5-decisions.md) | Tri Oui / Peut-être / Non des 39 propositions par le PO, et contenu du questionnaire (§4) | **Fait foi** |
-| [plan-preparation-questionnaire.md](plan-preparation-questionnaire.md) | Décisions pratiques du PO, lots de préparation, calendrier | **Fait foi** |
-| [cadrage-agents-questionnaire.md](cadrage-agents-questionnaire.md) | Briefs par lot, routage des modèles, suivi par issues | **Fait foi** |
-| [retours-equipe-github.md](retours-equipe-github.md) | Retours de l'équipe et issues #624 à #627 | Référence |
-| [audit-m5-ux-ui.md](audit-m5-ux-ui.md) | Audit du jalon M5 côté UX/UI | Référence |
-| [cadrage-questionnaire-ux.md](cadrage-questionnaire-ux.md), [cadrage-points-ux.md](cadrage-points-ux.md) | Premiers cadrages | Remplacés, historique |
+La suite se pilote dans les issues, dont le périmètre fait foi en cas d'écart avec ces documents :
 
-## Où vont les livrables
+| Sujet | Où |
+|---|---|
+| Questionnaire utilisateurs | Issue parapluie #628, un lot par issue de #629 à #635 |
+| Évolutions produit issues de la revue d'équipe | #624 à #627, et les commentaires sur les issues M5 concernées |
 
-- Contenu du questionnaire, mention sur les données, spécification du formulaire, visuels : `docs/ux/questionnaire/`.
+Les documents sont en français, comme le questionnaire.
+
+## Contenu
+
+| Document | Rôle |
+|---|---|
+| [tri-m5-decisions.md](tri-m5-decisions.md) | Tri Oui / Peut-être / Non des 39 propositions par le PO, et première version du contenu du questionnaire (§4), entrée de #629 |
+| [plan-preparation-questionnaire.md](plan-preparation-questionnaire.md) | Décisions pratiques du PO, lots de préparation, calendrier |
+| [cadrage-agents-questionnaire.md](cadrage-agents-questionnaire.md) | Briefs par lot et routage des modèles, repris dans #629 à #635 |
+| [retours-equipe-github.md](retours-equipe-github.md) | Retours de l'équipe et issues #624 à #627 |
+| [audit-m5-ux-ui.md](audit-m5-ux-ui.md) | Audit du jalon M5 côté UX/UI |
+| [cadrage-questionnaire-ux.md](cadrage-questionnaire-ux.md), [cadrage-points-ux.md](cadrage-points-ux.md) | Premiers cadrages, remplacés |
+
+## Où vont les livrables du questionnaire
+
+- Contenu, mention sur les données, spécification du formulaire, visuels : `docs/ux/questionnaire/`.
 - Code du formulaire : `tooling/ux-survey/`.
 
-## Suivi
-
-Tableau de suivi dans l'issue #628 ; un lot par issue, de #629 à #635.
-
-## Décisions structurantes
+## Arbitrages de cadrage à retenir
 
 - Le lecteur garde la WebView pour le moment ; le rendu natif sera une décision technique ultérieure.
 - Aucune proposition classée Non par le PO n'apparaît dans le questionnaire.
