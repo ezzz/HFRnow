@@ -113,10 +113,16 @@ class Milestones(unittest.TestCase):
         m = {"M1": generate.M1, "M2": generate.M2, "M3": generate.M3, "M4": generate.M4}
         for name, ids in m.items():
             self.assertFalse(ids & generate.M5, name)
-        self.assertIn("LOT-100", generate.M5)  # a whole lot moved out of M2
-        self.assertIn("LOT-147", generate.M5)  # a whole lot moved out of M4
+        self.assertIn("LOT-110", generate.M5)  # a whole lot moved out of M2
+        self.assertIn("LOT-145", generate.M5)  # a whole lot moved out of M4
         self.assertTrue(any(l in generate.M5 for l in ("LOT-174", "LOT-182")))  # the (b) halves of the splits
+        self.assertIn("LOT-187", generate.M5)  # cache clearing, the M5 half left when LOT-179 went to M4
         self.assertEqual(len(generate.M1 | generate.M2 | generate.M3 | generate.M4 | generate.M5), len(generate.rows))
+
+    def test_legacy_evolution_backports_are_in_m4(self):
+        # Operator, 2026-11-09 on #655: in the legacy reference 2fe43da3, so parity (M4), not evolutions (M5).
+        for lot in ("LOT-100", "LOT-101", "LOT-146", "LOT-147", "LOT-179"):
+            self.assertIn(lot, generate.M4, lot)
 
     def test_no_lot_of_m1_to_m4_depends_on_an_m5_lot(self):
         outside = generate.M1 | generate.M2 | generate.M3 | generate.M4
@@ -318,8 +324,8 @@ class Hygiene(unittest.TestCase):
 
     @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_without_a_credited_pr_is_not_offered_for_a_hand_unblock(self):
-        lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("100", 2, deps="001", module="App"))
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-100 is a moved M5 lot; no merged PR credited
+        lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("110", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-110 is a moved M5 lot; no merged PR credited
         _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
         self.assertFalse(any("unblock by hand" in r for r in reports))
         self.assertTrue(any("M5 lots with every dependency done" in r for r in reports))

@@ -34,7 +34,7 @@ Every feature and lot follows these; a proposal that breaks one needs the operat
 - FEAT-013: LOT-097 (M3), LOT-152 (M5), LOT-184 (M5)
 - FEAT-014: LOT-109 (M2), shipped with the HD gallery (#472); LOT-176 (M5) has nothing left
 - FEAT-015: LOT-090 (M3), LOT-145 (M5), LOT-172 (M3)
-- FEAT-016: LOT-147 (M5)
+- FEAT-016: LOT-147 (M4, the iPhone Duo layout legacy has at `2fe43da3`, #655); the tab rail and the pinned or on-demand sidebar have no lot (M5)
 - FEAT-017: LOT-148 (M5)
 - FEAT-018: LOT-154 (M5)
 - FEAT-019: LOT-103 (M2)

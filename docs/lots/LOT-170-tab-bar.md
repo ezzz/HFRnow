@@ -11,7 +11,7 @@ Read-only, `origin/master`: `HFRswift/Swift/Common.swift:25-45` (`RootTabIdentif
 **Legacy at `2fe43da3`** (catch-up of #655; the `origin/master` lines above are `21173e77`, an ancestor of the reference):
 - `138fb986` start-screen setting and iPad sidebar state kept: parity (GAP-002, LOT-119).
 - `03e5e225` completes the iPad split: Catégories, Favoris, Messages, Bookmarks and Alertes Qualitay open their topic in the detail column (`IPadSidebarDestination.usesTopicList`, `HFRswift/Swift/MainWindow.swift:1307-1313`, `iPadSidebarRoot` `:1796-1821` @ `2fe43da3`); sections "Forum", "Outils", "Plus", title "Hardware.fr" (`:1824-1851`). This lot keeps Bookmarks and Alertes Qualitay in a two-column split: [#685](https://github.com/ezzz/HFRnow/issues/685) (M4). The Favoris selection bug of #512 is tracked there.
-- The split condition is wider: regular in both dimensions, or an iPad in regular width, so the unfolded iPhone Duo gets the split (`usesSidebarRoot`, `:1357-1365`); this lot's iPad-only condition is the `2440d79` one. The Duo part, with the fold / unfold handoff, is LOT-147 (M4 for the handoff, operator 2026-11-09 on #659).
+- The split condition is wider: regular in both dimensions, or an iPad in regular width, so the unfolded iPhone Duo gets the split (`usesSidebarRoot`, `:1357-1365`); this lot's iPad-only condition is the `2440d79` one. The Duo part, with the fold / unfold handoff, is LOT-147 (M4, the whole lot, operator 2026-11-09 on #659 and #655).
 - `c1e14244` (iOS 27 tab selection drift) is a legacy-only fix (N/A in the #655 sweep).
 
 ## Behaviour
