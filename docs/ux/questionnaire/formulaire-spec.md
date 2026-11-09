@@ -114,7 +114,7 @@ Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop 
 - **`L1` avec détails** : chaque réponse est un bouton radio dont le libellé est le titre court, suivi d'une liste `<ul>` d'au plus trois points, reliée au bouton par `aria-describedby`. Même rendu pour toute question dont les réponses ont des détails.
 - **Cartes** : les neuf cartes de `cartes` sont mélangées une fois par répondant (Fisher-Yates sur `crypto.getRandomValues`), l'ordre est gardé dans le brouillon et envoyé avec la réponse. La mention « pistes à l'étude, pas des engagements » est en tête de l'écran. Chaque carte est un `<fieldset>` avec sa phrase en `<legend>` et trois boutons radio natifs habillés en boutons.
 - **Tri `D1`** :
-  - en tête, un bouton radio « Laisser la barre comme aujourd'hui » ; coché, il désactive les cartes. Le tri reste dans le brouillon, rendu au décochage, mais la réponse envoyée est alors `{"comme_aujourdhui": true}` seule, sans `sections` ;
+  - en tête, une **case à cocher** « Laisser la barre comme aujourd'hui » (et non un bouton radio, qui ne se décoche pas) ; cochée, elle désactive les cartes. Le bouton « Effacer ma réponse » de `D1` décoche la case et efface le tri ; décocher la case seule ne l'efface pas. Le tri reste dans le brouillon, rendu au décochage, mais la réponse envoyée est alors `{"comme_aujourdhui": true}` seule, sans `sections` ;
   - sinon, une liste ordonnée des neuf sections, dans l'ordre de `questions.md` ; pour chacune, un groupe de trois boutons radio (`garder`, `deplier`, `ecarter`, libellés de `questions.md`) ;
   - les sections gardées ou dépliables ont deux boutons « Monter » et « Descendre » dont le nom accessible contient la section (« Monter Favoris ») ; une section écartée descend sous les sections gardées et perd ses boutons ;
   - après un déplacement, une zone `aria-live="polite"` annonce « Favoris, position 2 sur 5 », et le focus reste sur le bouton utilisé ;
@@ -227,12 +227,12 @@ Toute autre route : 404. Pas de route d'export ni d'administration : ces actions
 
 - Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les neuf cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
 - Pour chaque question : pourcentage de chaque code parmi ceux qui y ont répondu, entier arrondi au plus proche (la somme peut différer de 100), et effectif.
-- Pour `D1` : part de `comme_aujourdhui` parmi les répondants de `D1` ; puis, parmi ceux qui ont trié, pour chaque section, part de chaque état et rang médian des sections gardées ou dépliables.
+- Pour `D1` : part de `comme_aujourdhui` parmi les répondants de `D1` ; puis, pour chaque section, part de chaque état et rang médian des sections gardées ou dépliables, calculés sur les répondants qui ont donné un état **à cette section** (son effectif propre, qui suit la règle de seuil par question ci-dessous).
 - **Seuil (D3)** : rien n'est publié tant que le total est sous `UX_SEUIL_STATS` (10). Ensuite, une question n'est publiée que si son propre effectif atteint aussi le seuil (utile pour le thème 2, vu par moins de monde).
 - Le texte sous le seuil est celui de `E1` dans `questions.md`.
 - La comparaison se fait dans le navigateur : le front met ses propres réponses (en mémoire ou dans le brouillon, avant son effacement) en regard des pourcentages. Le serveur ne renvoie jamais une réponse individuelle.
 - Affichage : barres horizontales en HTML et CSS (pas de bibliothèque de graphiques), la réponse du répondant signalée par le texte « Votre réponse » et pas seulement par la couleur.
-- Agrégats recalculés au plus une fois par minute, mis en cache en mémoire. Après l'effacement (§12), ils viennent de l'instantané `agregats.json`.
+- Agrégats recalculés au plus une fois par minute, mis en cache en mémoire. Après l'effacement (§12), ils viennent de l'instantané `agregats.json`, auquel `/api/stats` applique les mêmes seuils (global et par question ou section, `UX_SEUIL_STATS`) avant de le servir.
 
 Forme de la charge, la même pour `GET /api/stats`, le 201 et le 409 :
 
@@ -304,20 +304,20 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 **Étapes** :
 1. Vérifier que `web/visuels/` correspond aux visuels finaux de #632 et que les tests passent.
 2. Construire l'image ou le binaire, renseigner les variables, démarrer.
-3. Vérifier `/healthz` et les en-têtes (`curl -I`). Envoyer **deux réponses depuis deux adresses publiques différentes** (un ordinateur, puis un téléphone en réseau mobile) : les deux sont acceptées, puis un troisième envoi du même téléphone avec un autre navigateur est accepté aussi (même empreinte, sous la limite). Cela prouve que le proxy de confiance est bien réglé. Puis remettre la base à zéro.
+3. Vérifier `/healthz` et les en-têtes (`curl -I`). Envoyer **deux réponses depuis deux adresses publiques différentes** (un ordinateur, puis un téléphone en réseau mobile) : les deux sont acceptées, puis un troisième envoi du même téléphone avec un autre navigateur est accepté aussi (même empreinte, sous la limite), puis un quatrième depuis l'ordinateur, accepté lui aussi : chaque adresse reste sous sa limite de 3, alors qu'un compteur unique pour le proxy aurait refusé ce quatrième envoi (429). Cela prouve que le proxy de confiance est bien réglé. Puis remettre la base à zéro.
 4. Test à cinq avec `UX_CODE_ACCES`, puis base remise à zéro (supprimer la base et `cle-ip`).
 5. Ouverture : retirer `UX_CODE_ACCES`, fixer `UX_FERMETURE` à deux semaines (la date d'effacement suit, deux mois après), redémarrer.
 
 ## 12. Exports, fermeture et effacement
 
-**Sauvegarde** : `ux-survey sauvegarder <fichier>` écrit une copie cohérente de la base par `VACUUM INTO`, en 0600. C'est la seule sauvegarde prise en charge ; `cle-ip` n'y entre jamais. Si le VPS a ses propres sauvegardes, elles excluent le dossier de données, ou sont purgées à la date d'effacement (§13).
+**Sauvegarde** : `ux-survey sauvegarder <fichier>` écrit une copie cohérente de la base par `VACUUM INTO`, en 0600. C'est la seule sauvegarde prise en charge ; `cle-ip` n'y entre jamais. Si le VPS a ses propres sauvegardes, elles excluent **toujours** `cle-ip` ; si cette exclusion d'un seul fichier n'est pas possible, elles excluent tout le dossier de données. Les sauvegardes du VPS qui contiennent la base sont purgées à la date d'effacement (§13).
 
 **Exports**, lancés sur le serveur par `ux-survey export --format <format> --sortie <fichier>` :
 
 | Format | Contenu | Destinataires | Durée de vie |
 |---|---|---|---|
 | `analyse` (CSV et JSON) | Export d'analyse anonymisé (R9) : une ligne par réponse, colonnes ci-dessous, textes libres compris, **sans pseudo**, sans empreinte ni jeton. L'`identifiant` est aléatoire, sans lien calculable avec le pseudo ; la table `pseudos` est la correspondance et ne sort jamais du serveur | L'équipe et l'assistant d'analyse, après relecture des textes libres (R10) | Supprimé à la date d'effacement |
-| `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour les questions fermées, effectifs et pourcentages ; une question dont l'effectif est sous **5** est omise, et pour `D1`, une section dont le nombre de répondants qui ont trié est sous 5 est omise ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
+| `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour les questions fermées, effectifs et pourcentages ; une question dont l'effectif est sous **5** est omise, et pour `D1`, une section à laquelle moins de 5 répondants ont donné un état est omise (effectif propre à la section, pas le nombre de répondants qui ont trié) ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
 | `pseudos` | `identifiant` et pseudo, pour traiter une demande de droits (R7) seulement | Bruno seul, jamais partagé | Supprimé dès la demande traitée |
 
 Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les neuf cartes, `C11`, `M1`, `F1` ; sans `C08`). Il n'y a pas de colonne `D1` : à sa place viennent `D1_comme_aujourdhui` puis, pour chacune des neuf sections dans l'ordre de `questions.md`, `D1_<code>_etat` et `D1_<code>_rang` (19 colonnes). Viennent ensuite `ordre_cartes` et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
@@ -334,10 +334,10 @@ Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`
 
 L'identité du demandeur est vérifiée par MP sur son compte HFR (`donnees.md`). Une correction ou un effacement avant la date d'effacement est suivi d'un nouvel export d'analyse, et le PO demande aux destinataires de remplacer leur copie ; la demande est notée (date, identifiant, sans pseudo) sur la page de suivi privée du PO.
 
-**À la fermeture**, automatiquement, au premier passage de la tâche horaire après `UX_FERMETURE` (le refus 410 est, lui, immédiat, §7) : le service supprime `cle-ip`, vide `empreintes_ip` et `jetons`, puis lance `VACUUM` et `PRAGMA wal_checkpoint(TRUNCATE)`. `ux-survey fermer` fait la même chose à la main. La page affiche « Questionnaire fermé » et les statistiques finales.
+**À la fermeture**, automatiquement, au premier passage de la tâche horaire après `UX_FERMETURE` (le refus 410 est, lui, immédiat, §7) : le service supprime `cle-ip`, vide `empreintes_ip` et `jetons`, puis lance `VACUUM` et `PRAGMA wal_checkpoint(TRUNCATE)`. Si le point de contrôle répond « occupé », la fermeture n'est pas annoncée comme faite et la tâche horaire la reprend (étapes sans effet si déjà faites) jusqu'à un point de contrôle réussi avec un `-wal` vide. `ux-survey fermer` fait la même chose à la main et sort en erreur dans ce cas. La page affiche « Questionnaire fermé » et les statistiques finales.
 
-**À la date d'effacement** (R6), fermeture + 2 mois, automatiquement par la tâche horaire, ou plus tôt par `ux-survey effacer`. La procédure est **idempotente** : on peut la relancer après n'importe quelle interruption.
-1. si `agregats.json` n'existe pas : écrire l'instantané (même contenu que l'export `agregats`) dans `agregats.json.tmp`, `fsync`, puis renommer en `agregats.json` ; s'il existe déjà, ne pas le réécrire (une reprise ne doit jamais le remplacer par des agrégats vides) ;
+**À la date d'effacement** (R6), fermeture + 2 mois, automatiquement par la tâche horaire, ou plus tôt par `ux-survey effacer`, qui **refuse** de s'exécuter avant `UX_FERMETURE` : après cette date, le 410 garantit qu'aucune réponse n'arrive après l'instantané. La procédure est **idempotente** : on peut la relancer après n'importe quelle interruption.
+1. si `agregats.json` n'existe pas : écrire l'instantané (même contenu que l'export `agregats`) dans `agregats.json.tmp`, `fsync` du fichier, renommer en `agregats.json`, puis `fsync` du dossier de données, avant l'étape 2 ; s'il existe déjà, ne pas le réécrire (une reprise ne doit jamais le remplacer par des agrégats vides) ;
 2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus (sans effet si elles sont déjà vides) ;
 3. `VACUUM`, puis `PRAGMA wal_checkpoint(TRUNCATE)` ; si le point de contrôle répond « occupé », la commande sort en erreur sans annoncer l'effacement, et la tâche horaire reprend à cette étape (les étapes 1 et 2 sont déjà acquises ou sans effet) ;
 4. afficher « effacement terminé » seulement quand le point de contrôle a réussi et que le fichier `-wal` est vide.
@@ -359,7 +359,7 @@ Déjà tranché : le VPS est en France (UE). Reste à fournir avant le déploiem
 - Docker et Compose disponibles, ou systemd seulement ;
 - sous-domaine choisi et accès DNS ;
 - confirmation que le journal d'accès du proxy pour ce sous-domaine sera coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;
-- sauvegardes du VPS : le dossier de données peut-il en être exclu, sinon comment les purger à la date d'effacement.
+- sauvegardes du VPS : `cle-ip` en est exclu (exigence), sinon tout le dossier de données ; et comment purger celles qui contiennent la base à la date d'effacement.
 
 ## 14. Tests que UX-10 doit écrire
 
@@ -382,8 +382,8 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 13 | Origine | `POST` d'une autre origine : 403 |
 | 14 | Statistiques | 9 réponses : `{"disponible": false, "seuil": 10}` sans compte ; 10 : publiées, à la forme du §8 ; question sous le seuil absente ; arrondis ; aucune clé de texte libre (`G1`, `L2`, `C11`, `F1`), de pseudo, de durée ni d'ordre |
 | 15 | Fermeture | Une seconde après `UX_FERMETURE` : 410 au `POST`, `ouvert` faux ; après la tâche : `cle-ip` absent, `empreintes_ip` et `jetons` vides |
-| 16 | Exports | Format `analyse` : colonnes et ordre, colonne `G1` entre `O1` et `L1`, `D1` aplati, `textes_relus` présente, injection de formule neutralisée, aucun pseudo ni empreinte ; format `agregats` : aucun texte libre, pseudo ni identifiant, une question à 4 répondants absente |
-| 17 | Effacement | Après `effacer` : `reponses` et `pseudos` vides, `-wal` vide, `agregats.json` écrit et servi par `/api/stats` ; `effacer` lancé deux fois (et une reprise après un point de contrôle occupé simulé) : `agregats.json` garde les totaux d'avant l'effacement |
+| 16 | Exports | Format `analyse` : colonnes et ordre, colonne `G1` entre `O1` et `L1`, `D1` aplati, `textes_relus` présente, injection de formule neutralisée, aucun pseudo ni empreinte ; format `agregats` : aucun texte libre, pseudo ni identifiant, une question à 4 répondants absente, et une section de `D1` à laquelle 4 répondants seulement ont donné un état absente même si 10 ont trié |
+| 17 | Effacement | Après `effacer` : `reponses` et `pseudos` vides, `-wal` vide, `agregats.json` écrit et servi par `/api/stats` ; `effacer` refusé avant `UX_FERMETURE` ; `effacer` lancé deux fois (et une reprise après un point de contrôle occupé simulé) : `agregats.json` garde les totaux d'avant l'effacement |
 | 18 | Droits | `pseudo --chercher` trouve les réponses d'un pseudo sans la casse ni les espaces ; `--corriger` valide la valeur, objet `D1` compris ; `--effacer-question` retire une seule réponse ; `--effacer-pseudo` et `--effacer` touchent la seule réponse visée et laissent les autres |
 | 19 | Configuration | `UX_SEUIL_STATS` sous 10 refusé ; date d'effacement = fermeture + 2 mois (dont un 31 décembre qui donne le 28 ou 29 février) ; `/donnees` et `/` affichent les dates et ne contiennent plus rien qui corresponde à `\{[a-z_]+\}` |
 | 20 | En-têtes | Les en-têtes du §9 sur une page, une route API, une 404 et une 429 |
