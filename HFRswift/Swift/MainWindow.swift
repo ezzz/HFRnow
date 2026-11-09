@@ -1408,7 +1408,6 @@ struct RootTabView: View {
     }
 
     private static let isFoldableModel = PhoneDisplayPolicy.isFoldableModel(PhoneDisplayPolicy.currentModelIdentifier)
-    }
 
     init() {
         let startupRawValue = UserDefaults.standard.string(forKey: AppStartupScreen.storageKey)

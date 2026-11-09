@@ -4772,6 +4772,7 @@ struct MessagesView: View {
             fileURL = rendered.fileURL
             cacheURL = rendered.readAccessURL
             messageActionsByIndex = result.messageActionsByIndex
+            isTouchInHorizontalScroller = false
             page = max(result.endPage, 1)
             availableMaxPage = max(result.maxPage, page)
             topicAnswerURL = nil
