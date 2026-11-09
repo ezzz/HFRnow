@@ -52,7 +52,7 @@ The iOS app target `App/SwiftHFR.xcodeproj` links `HFRKit` and is built and test
 Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything unused.
 
 ## Phase 5 — iOS 27 experience
-Column-based navigation and large/foldable layouts. Design documentation provided by the maintainer.
+Column-based navigation and large/foldable layouts beyond what legacy has (the legacy iPhone Duo layout at `2fe43da3` is LOT-147, M4, #655). Design documentation provided by the maintainer.
 
 ## App features (Phases 4–5)
 New app features (Home, page navigator, Shortcuts check, themes…) come from the [feature backlog](FEATURES.md); each goes through a feature issue, a spec and, when `HFRKit` lacks a capability, engine lots ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2).

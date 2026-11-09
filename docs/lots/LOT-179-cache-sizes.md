@@ -35,7 +35,7 @@ To write.
 None: no HFR request.
 
 ## Intentional differences from legacy
-- The footer states SwiftHFR's own rule for topic pages: LOT-066's topic-page preset is one day and 20 MB (`topicPages`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:23-24`), tighter than legacy's 7 days and 50 MB (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`; LOT-066 spec, "Legacy at `2fe43da3`"). Its changelog row is in the `### Ledger` section of the PR that moved this lot to M4.
+- The footer states SwiftHFR's own rule for topic pages: LOT-066's topic-page preset is one day and 20 MB (`topicPages`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:23-24`), tighter than legacy's 7 days and 50 MB (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`; LOT-066 spec, "Legacy at `2fe43da3`"). Its changelog row is in the `### Ledger` section of #690, the PR that moved this lot to M4.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
