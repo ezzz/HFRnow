@@ -8,10 +8,11 @@ on:
 permissions:
   contents: read
 
-# One run at a time per issue, so two quick edits cannot both add an origin: label.
+# One run at a time per issue, every pending run kept, so quick edits can neither both add an origin: label nor drop one.
 concurrency:
   group: issue-triage-${{ github.event.issue.number }}
   cancel-in-progress: false
+  queue: max  # keep every pending edit; the default cancels a pending run when a newer one arrives
 
 jobs:
   label:
