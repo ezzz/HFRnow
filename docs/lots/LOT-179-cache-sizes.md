@@ -26,7 +26,7 @@ To write by the author (`// Port of HFRswift/Swift/AppSettingsView.swift (mainte
 None planned: same UX as legacy at `2fe43da3`.
 
 ## Behaviour
-To write, on top of the merged LOT-120. The figures come from LOT-066's caches (`HFRStorage/Caches`), not from legacy's folders.
+To write, on top of the merged LOT-120. The figures come from LOT-066's caches (`HFRStorage/Caches`), not from legacy's folders. Legacy's total is the whole `Caches` folder (`HTMLPageCacheManager.swift:40-46` @ `2fe43da3`); LOT-066's areas live under `Caches/cache`, so the author either measures the whole folder or records the narrower total as an intentional difference.
 
 ## Edge cases
 To write.
