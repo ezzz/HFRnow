@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# One run at a time per issue, so two quick edits cannot both add an origin: label.
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   label:
     runs-on: ubuntu-latest
@@ -31,7 +36,10 @@ jobs:
             // On an edit, Origin follows the form only when its answer changed or the issue has no origin yet
             // (e.g. a title that stopped being [Legacy …]), so a maintainer's correction stays.
             const oldBody = context.payload.changes?.body?.from;
-            const hasOrigin = context.payload.issue.labels.some((l) => l.name.startsWith("origin: "));
+            // Labels as they are now, not as the (possibly stale) event payload saw them.
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            const current = (await github.rest.issues.listLabelsOnIssue({ ...issue, per_page: 100 })).data.map((l) => l.name);
+            const hasOrigin = current.some((name) => name.startsWith("origin: "));
             const originChanged = context.payload.action !== "edited" || !hasOrigin ||
               (oldBody !== undefined && fieldIn(oldBody, "Origin") !== field("Origin"));
             const allowed = {
@@ -42,7 +50,6 @@ jobs:
               Origin: ["audit", "initial-port", "parity", "deliberate-gap", "swift-feedback", "legacy-evolution", "infra"],
             };
             const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area", Origin: "origin" };
-            const current = context.payload.issue.labels.map((l) => l.name);
             const add = [];
             const remove = [];
             for (const [heading, values] of Object.entries(allowed)) {
@@ -56,7 +63,6 @@ jobs:
                 if (name.startsWith(prefix) && name !== wanted && heading !== "Type") remove.push(name);
               }
             }
-            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
             if (legacy) remove.push(...current.filter((name) => name.startsWith("origin: ")));
             for (const name of remove) {
               await github.rest.issues.removeLabel({ ...issue, name }).catch(() => {});
