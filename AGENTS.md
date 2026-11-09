@@ -64,7 +64,7 @@ When a behaviour is unclear, **read the legacy code** instead of guessing, and c
 
 ## 3. Ground rules
 
-1. **No guessing about HFR.** Every URL, form field, cookie or HTML selector must be traced to the legacy code or a captured fixture, and recorded in `docs/HFR-PROTOCOL.md`.
+1. **No guessing about HFR.** Every URL, form field, cookie or HTML selector must be traced to the legacy code or a captured fixture, and recorded in `docs/HFR-PROTOCOL.md`; a third-party service's published source is a secondary source only ([ADR 0015](docs/adr/0015-third-party-source-as-protocol-source.md)).
 2. **Respect module boundaries** ([ARCHITECTURE](docs/ARCHITECTURE.md)). `HFRParsing`, `HFRNetwork` and `HFRStorage` never import each other; multi-step flows live in `HFRClient`, which never imports `HFRStorage` ([ADR 0008](docs/adr/0008-hfrclient-orchestration-module.md)). Nothing in `HFRKit` imports SwiftUI or UIKit.
 3. **No new dependency** without an ADR and the maintainer's approval. Today the only third-party dependency is SwiftSoup ([ADR 0002](docs/adr/0002-swiftsoup-html-parser.md)).
 4. **Secrets never enter the repository**: no tokens, passwords, cookies, session IDs or signing material — not in code, fixtures, logs, tests or commit messages. Secrets live in GitHub Actions secrets; for local builds only in git-ignored configuration files as defined by [ADR 0007](docs/adr/0007-third-party-api-keys.md). Push protection and gitleaks will block you; never bypass them.
