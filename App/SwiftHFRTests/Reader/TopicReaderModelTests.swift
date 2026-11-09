@@ -60,6 +60,17 @@ struct TopicReaderModelTests {
         #expect(pages.requests.map(\.page) == [2, 2, 2])
     }
 
+    /// #107: the page a member paged to is the one a refresh reloads, not the page the reader was first opened on.
+    @Test func refreshAfterPagingReloadsThePagedToPageNotTheFirstOne() async {
+        let pages = FakeTopicPages()
+        let reader = model(pages)
+        await reader.onAppear()
+        await reader.goToPage(4)
+        await reader.refresh()
+        #expect(reader.page?.currentPage == 4)
+        #expect(pages.requests.map(\.page) == [1, 4, 4])
+    }
+
     @Test func aFailedPageChangeKeepsThePageAndRetryAsksForTheTarget() async {
         let pages = FakeTopicPages()
         let reader = model(pages)
