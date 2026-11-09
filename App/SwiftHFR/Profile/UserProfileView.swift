@@ -124,6 +124,8 @@ private struct ProfileHeaderSection: View {
             }
             if let feedback = model.listFeedback {
                 Text(feedback).scaledFont(.footnote).foregroundStyle(.secondary)
+                    // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast.
+                    .onChange(of: feedback) { _, text in AccessibilityNotification.Announcement(text).post() }
             }
         }
     }

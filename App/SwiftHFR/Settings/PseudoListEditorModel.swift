@@ -23,6 +23,9 @@ final class PseudoListEditorModel {
     private(set) var hasLoaded = false
 
     @ObservationIgnored private let manager: PseudoListManager
+    /// Swipes whose writes have not finished, and the last of their tasks (the next one waits for it).
+    @ObservationIgnored private var pendingRemovals = 0
+    @ObservationIgnored private var removalTail: Task<Void, Never>?
 
     /// An editor of `kind` over `manager`.
     init(kind: PseudoListKind, manager: PseudoListManager) {
@@ -73,20 +76,30 @@ final class PseudoListEditorModel {
         await load()
     }
 
-    /// Removes `pseudo` (a swipe on its row). Removing the last entry leaves an empty list, saved like any other change.
-    func remove(_ pseudo: String) async {
-        do {
-            try await manager.remove(pseudo, from: kind)
-        } catch {
-            errorMessage = kind.removeFailure(pseudo)
-        }
-        await load()
-    }
-
-    /// Removes the pseudos at `offsets` of the shown list.
-    func remove(at offsets: IndexSet) async {
+    /// Removes the pseudos at `offsets` of the shown list. The offsets are turned into pseudos and dropped from the shown list
+    /// right now, on the caller's turn, so a second swipe meets the list as the user sees it; only the writes run in the
+    /// returned task. Writes run one after the other, and the stored list is read again once the last one is done, so a
+    /// deleted row never flashes back between two quick swipes. Removing the last entry leaves an empty list, saved like any other.
+    @discardableResult
+    func remove(at offsets: IndexSet) -> Task<Void, Never> {
         let targets = offsets.compactMap { pseudos.indices.contains($0) ? pseudos[$0] : nil }
-        for pseudo in targets { await remove(pseudo) }
+        pseudos.remove(atOffsets: IndexSet(offsets.filter { pseudos.indices.contains($0) }))
+        pendingRemovals += 1
+        let previous = removalTail
+        let task = Task {
+            await previous?.value
+            for pseudo in targets {
+                do {
+                    try await manager.remove(pseudo, from: kind)
+                } catch {
+                    errorMessage = kind.removeFailure(pseudo)
+                }
+            }
+            pendingRemovals -= 1
+            if pendingRemovals == 0 { await load() }
+        }
+        removalTail = task
+        return task
     }
 
     private static func describe(_ error: PseudoListError) -> String {

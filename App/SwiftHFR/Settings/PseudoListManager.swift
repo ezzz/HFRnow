@@ -12,11 +12,11 @@ enum PseudoListKind: Equatable, Sendable {
     var title: String { self == .blocklist ? "Liste noire" : "Liste blanche" }
     /// Shown when the list is empty (`emptyMessage`, `:562-569`).
     var emptyMessage: String { self == .blocklist ? "Aucun pseudo blacklisté." : "Aucun pseudo whitelisté." }
-    /// Footer of the list (`footer`, `:571-578`).
+    /// Footer of the list (`ProfileFilterListKind.footer`, `:671-678` @ 2fe43da3, legacy's words).
     var footer: String {
         switch self {
-        case .blocklist: "La liste noire est liée au compte actif."
-        case .allowlist: "La liste blanche est globale : elle sert aux citations, aux messages et au filtre des posts."
+        case .blocklist: "La liste noire est liée au compte actif et reste synchronisée avec le comportement legacy."
+        case .allowlist: "La liste blanche est globale et utilisée pour les citations, les messages et le filtre des posts."
         }
     }
     /// Legacy's error text for an add that failed (`addProfile`, `:668-678`).

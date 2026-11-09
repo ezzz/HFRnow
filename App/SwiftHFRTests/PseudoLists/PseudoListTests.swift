@@ -157,12 +157,30 @@ struct PseudoListEditorModelTests {
         let model = PseudoListEditorModel(kind: .blocklist, manager: lists)
         await model.load()
         #expect(model.pseudos == ["Deux", "Un"])
-        await model.remove(at: IndexSet(integer: 0))
+        await model.remove(at: IndexSet(integer: 0)).value
         #expect(model.pseudos == ["Un"])
-        await model.remove(at: IndexSet(integer: 0))
+        await model.remove(at: IndexSet(integer: 0)).value
         #expect(model.pseudos.isEmpty && model.errorMessage == nil)
         #expect(await store.blocklist(for: "moi").isEmpty)
         #expect(await store.loadFailure() == nil)
+    }
+
+    /// Two swipes in a row, before the first write ran: each one removes the row the user swiped, and no deleted row comes back.
+    @Test func twoQuickSwipesRemoveTheTwoSwipedMembers() async throws {
+        let setup = try await fixture(blocklist: ["Un", "Deux", "Trois", "Quatre"])
+        let lists = setup.manager
+        let store = setup.store
+        let model = PseudoListEditorModel(kind: .blocklist, manager: lists)
+        await model.load()
+        #expect(model.pseudos == ["Deux", "Quatre", "Trois", "Un"])
+        let first = model.remove(at: IndexSet(integer: 0)) // Deux
+        #expect(model.pseudos == ["Quatre", "Trois", "Un"])
+        let second = model.remove(at: IndexSet(integer: 1)) // Trois, as the list now shows it
+        #expect(model.pseudos == ["Quatre", "Un"])
+        await first.value
+        await second.value
+        #expect(model.pseudos == ["Quatre", "Un"] && model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
     }
 
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.

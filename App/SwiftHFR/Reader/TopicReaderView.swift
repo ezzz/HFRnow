@@ -291,6 +291,8 @@ struct TopicReaderView: View {
 
     private func makeController() {
         guard controller == nil else { return }
+        // The profile sheet outlives a link tap: it holds the reader model weakly (UserProfileModel.onListsChanged).
+        let listsChanged: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
         let controller = ReaderWebController(
             imageFetcher: services.imageFetcher, autoLoadsThirdPartyImages: services.settings.autoLoadsThirdPartyImages
         )
@@ -300,7 +302,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { model.applyDisplaySettings() }
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID, listsChanged: listsChanged)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
