@@ -4,7 +4,7 @@
 - **Difficulty / model:** easy (Opus → Fable)
 - **Issue:** [#421](https://github.com/ezzz/HFRnow/issues/421) · **Milestone:** M5 (UX evolutions)
 - **Split from:** LOT-127 (#218), the (b) half; the (a) half keeps the legacy behaviour.
-- **Scope change (operator, 2026-11-09, [#676](https://github.com/ezzz/HFRnow/issues/676)):** thread deletion left this lot. Legacy has it at `2fe43da3` (`4a4f493f`: "Supprimer" in the MP list row menu, confirmation, POST `modo/manageaction.php` with `action_reaction=valid_eff_prive`, `HFRswift/Swift/MPListView.swift:114-158, 711-722, 815-822` @ `2fe43da3`), so it is parity (a), done in M4 under #676 with LOT-094's flow. This lot keeps the group members only (GAP-118). The issue title and the file name still say "deletion" until the orchestrator renames them.
+- **Scope change (operator, 2026-11-09, [#676](https://github.com/ezzz/HFRnow/issues/676)):** thread deletion left this lot. Legacy has it at `2fe43da3` (`4a4f493f`: "Supprimer" in the MP list row menu, confirmation, POST `modo/manageaction.php` with `action_reaction=valid_eff_prive`, `HFRswift/Swift/MPListView.swift:114-158, 711-722, 815-822` @ `2fe43da3`), so it is parity (a), to be implemented in M4 under #676 with LOT-094's flow. This lot keeps the group members only (GAP-118). The issue title and the file name still say "deletion" until the orchestrator renames them.
 
 Stub created on 2026-11-02 with the operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): the evolutions of M1–M4 go to M5, never dropped. The author of the lot completes it before coding (AGENTS.md §5).
 
