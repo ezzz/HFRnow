@@ -105,7 +105,7 @@ enum ReaderLinkMenu {
             sources: [url.absoluteString], selected: 0, consented: [url.absoluteString], autoLoadsThirdParty: false
         )?.images.first else { return "Impossible d'enregistrer cette image." }
         var bytes = try? await fetcher.image(at: image.full, allowsThirdParty: image.allowsThirdParty, hostTable: .standard).data
-        if bytes == nil, image.full != image.shown, !Task.isCancelled {
+        if bytes == nil, image.full != image.shown {
             bytes = try? await fetcher.image(at: image.shown, allowsThirdParty: image.allowsThirdParty, hostTable: .standard).data
         }
         guard let bytes else { return "Erreur réseau" }

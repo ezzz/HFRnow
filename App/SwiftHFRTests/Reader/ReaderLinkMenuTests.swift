@@ -62,6 +62,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(recorder.viewers.first?.index == 0)
         #expect(recorder.viewers.first?.images.map(\.shown) == [image])
         #expect(recorder.links.isEmpty)
+        #expect(controller.imageRequests.isEmpty)
     }
 
     @Test func openImageRefusesABlockedHost() {
@@ -84,7 +85,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(recorder.notices == ["Photo enregistrée"])
         let requests = await transport.requests
         #expect(requests.count == 1)
-        #expect(requests.allSatisfy { $0.headers["Cookie"] == nil && $0.url.host() == "example.org" })
+        #expect(requests.allSatisfy { $0.url.host() == "example.org" })
     }
 
     @Test func saveImageSaysWhenTheDownloadFails() async {

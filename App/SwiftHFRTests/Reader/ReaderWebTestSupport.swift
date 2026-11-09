@@ -50,7 +50,7 @@ extension ReaderWebTesting {
         controller.events = ReaderWebController.Events(
             ready: { recorder.ready.append($0) }, failed: { recorder.failed.append($0) }, link: { recorder.links.append($0) },
             video: { recorder.videos.append([$0, $1, $2]) },
-            image: { recorder.viewers.append(($0, $1)) },
+            image: { images, index, _ in recorder.viewers.append((images, index)) },
             notice: { recorder.notices.append($0) }
         )
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
