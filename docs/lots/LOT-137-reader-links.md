@@ -23,6 +23,12 @@ Read-only, ezzz/HFRnow `origin/master` at `21173e77` (the default-browser settin
 | `HFRswift/Swift/UserProfileView.swift:614-620` | same choice for profile links |
 | `Classes/HFRplusAppDelegate.m:764-777`, `Classes/BrowserViewController.m` | Objective-C paths: `openURL:` honours the same key; `BrowserViewController` is the old in-app `WKWebView` browser (not ported: Safari's view replaces it, LOT-071 T8) |
 
+**Legacy at `2fe43da3`** (catch-up of #655; rows of the #655 sweep that touch this lot):
+- Back after a reply or a refresh lands on the message anchor, and the left-edge back swipe works in pushed readers (`68f7cf0d`, `a9a449e9`, `3f9a6835`): parity, the covered reader keeps its page and position (Behaviour above, LOT-084, LOT-145).
+- AQ links open the right topic (`abaada6e`): parity through `HFRLinkRoute` (LOT-134, LOT-144).
+- "Navigateur par défaut" (`9f15513d`, `HFRswift/Swift/Common.swift:257-259`, toggle `AppSettingsView.swift:402-406` @ `2fe43da3`): the setting this lot already reads from `21173e77`: parity.
+- **Stacked-reader count** (`602b900e`): a pushed reader shows its depth in a capsule before the title (`MessagesView.swift:3410-3440` @ `2fe43da3`; at `2440d79` the count was in a custom back button, `:4238-4265`). Not in this lot: a difference until [#682](https://github.com/ezzz/HFRnow/issues/682) (M4) ports it.
+
 ## Behaviour
 
 `TopicReaderModel.action(forLink:defaultBrowser:)` decides, `TopicReaderView` acts:

@@ -15,6 +15,8 @@ Repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 | `:3298-3312`, `:2202-2215` (`normalizeImageViewerURL`) | `ImageHostTable.fullSizeURL` (LOT-056) via `ImageGallery` |
 | `:5748-5762` (`PhotoViewerNetworkRequestFactory`, `Referer` for `reho.st`) | `ReaderImageFetcher.image(at:allowsThirdParty:hostTable:)` |
 
+**Legacy at `2fe43da3`** (catch-up of #655): the viewer opens the linked full image of a small `img3.super-h.fr` thumbnail (`c4172b4e`, see LOT-056: parity on the captured shapes through `ImageHostTable.fullSizeURL`), and renders SVG images (`9f15513d`, `isSVG`, `HFRswift/Swift/MessagesView.swift:6600, 6677` @ `2fe43da3`): SVG is not in this lot, [#678](https://github.com/ezzz/HFRnow/issues/678) (M4).
+
 ## Behaviour
 - `reader.js` posts `image` (`urls`: the original `src` of the loaded `img.hfrplusimg`, `index`) on a tap; `ReaderBridgeMessage.image` decodes it whole or not at all (entry that is not a string, index outside the list, more than 5 000 entries: rejected).
 - `ReaderWebController.openViewer` builds the gallery with `ImageGallery.build`: policy C and the consent set decide, not the page. `TopicReaderView` presents `ImageViewerView` full screen.

@@ -18,6 +18,8 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 | `Classes/ObjCMessageActionsBuilder.m:91-104` (`permalinkURLForPostID`: page URL without fragment + `#` + the post id, which is the anchor name `t<n>`) | `TopicReaderModel.permalink(of:on:)` |
 | `HFRswiftTests/MessagePopupMenuPolicyTests.swift` | `MessageMenuPolicyTests` (same cases) |
 
+**Legacy at `2fe43da3`** (catch-up of #655): `f3b00e66` moves "Editer" first (`priority(for:)`: edit 0, quote 1, quote selection 2, the rest unchanged, `HFRswift/Swift/MessagesView.swift:277-305` @ `2fe43da3`; at `2440d79` quote 0, quote selection 1, edit 2). Edit is offered on one's own messages only, so only their order changes. The policy above keeps the `2440d79` order until [#677](https://github.com/ezzz/HFRnow/issues/677) (M4) ports the new one.
+
 ## Behaviour
 
 - **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes six names (`images`, `tap`, `ready`, `video`, `menu`, and `position` since LOT-111) into

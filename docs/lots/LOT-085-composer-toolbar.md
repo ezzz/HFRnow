@@ -19,6 +19,8 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 | `AnswerView.swift:1205-1320` @ 21173e7 `performFormatting`, clipboard candidates; `:530-565` alert | `ComposerFormattingModel` + alert in `ReplyComposerView` |
 | `AnswerView.swift:1060-1135` @ 21173e7 toolbar and palette | `FormattingToolbar` |
 
+**Legacy at `2fe43da3`** (catch-up of #655): the `21173e7` sources above are ancestors of the reference and still hold for the tags, colours and clipboard helpers. The later bar toggle, the "Lien" clipboard path and the caret fixes of legacy's `UITextView` bridge (`143ea5f0`, `6c0c23f3`, `7844a011`, `12f6c91b`, `c6e59bec`) are mapped in [LOT-174](LOT-174-formatting-toolbar.md) (M4).
+
 ## Behaviour (legacy parity)
 
 - Selection: `[tag]sel[/tag]`, caret after. No selection: empty tags, caret between. Colours write `[<hex>]…[/<hex>]`.

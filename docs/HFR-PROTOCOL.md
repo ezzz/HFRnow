@@ -131,7 +131,7 @@ Source: `Classes/MPStorage.m:21-22, 152-156, 249-355, 536-666, 737-885` · D §2
 - **HTTP status**: legacy ignores it; application errors are detected from content (`.hop`, `login_redirection.php`, missing `id`, `Location`). A §3.4 The new transport throws on 4xx/5xx ([LOT-040](lots/LOT-040-transport.md)).
 - **URL building** ([LOT-041](lots/LOT-041-endpoints.md)): `HFREndpoint` builds every §1–2 request with the query order shown in the tables. Topic pages are always requested through `forum2.php` (the canonical path is never rebuilt, its sub-category segment is not derivable); query values use strict percent-encoding (`%20` for space, `%2B` for `+`). Exception: the REST `uri` value keeps `/` literal (`uri=forums/hardwarefr/categories/`), never `%2F`.
 - **Headers**: no custom User-Agent, Referer or Origin; gzip accepted. Whether HFR checks any is unverified. A §3.3
-- **Timeouts** (legacy): lists 30 s, topic search 60 s, global search 15 s, background MP check 5 s. No retry, no backoff, no rate limiting. A §3.5
+- **Timeouts** (legacy): lists 30 s, topic search 60 s, global search 15 s, background MP check 5 s. No retry, no backoff, no rate limiting. A §3.5 At `2fe43da3` (`ae196aa0`): lists, topic pages and topic search 10 s (`Classes/Constants.h:70-72`, `HFRswift/Swift/Common.swift:1891-1893`), global search 10 s (`Classes/ObjCForumSearchWorker.m:8`), background MP check 5 s; all are idle limits (`timeoutInterval`). SwiftHFR's presets: [#683](https://github.com/ezzz/HFRnow/issues/683).
 
 ## 6b. Live observations from the capture corpus (LOT-001, 2026-10-26)
 

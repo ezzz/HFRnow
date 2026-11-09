@@ -10,6 +10,8 @@ Stub created on 2026-11-02 with the operator decisions on [#379](https://github.
 ## Legacy sources
 None: this is an evolution, not a port. The legacy behaviour is cited in LOT-120 (maintenance and about).
 
+**Legacy at `2fe43da3`** (catch-up of #655): the sizes are legacy now. Réglages > Maintenance shows "Caches de l'app" (total) and "Pages HTML" (size and file count) with a footer on the 7-day / 50 MB rule (`HFRswift/Swift/AppSettingsView.swift:547-575` @ `2fe43da3`, `c7693a88`); clearing is still not reachable (the "Vider le cache ?" alert at `:637` is never presented: `showClearCacheConfirmation` is never set). So the sizes half of this lot is parity at the reference; whether it moves to M4 is the operator's call (#655), clearing stays an evolution.
+
 ## Legacy counterpart (app lots)
 None @ 2440d79 (new UX). The code says so in its `// Port of …` header: "none @ 2440d79" (AGENTS.md §4).
 

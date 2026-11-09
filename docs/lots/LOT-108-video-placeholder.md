@@ -10,6 +10,11 @@ Port of `Wrapped/LinkItem.m:148-158` (the `<iframe src=…>` builder) and `Wrapp
 (`embedded_videos`) @ 2440d79 (GAP-058). Legacy auto-loaded one player iframe per link; the live app dropped embeds in `d645f52`
 (see LOT-071). Intentional difference: placeholder, player on tap (LOT-071 D-071-2, decided 2026-10-27).
 
+**Legacy at `2fe43da3`** (the parity reference since #655): no embeds at all. `d645f525` removed the `embedded_videos` block of
+`ParseMessagesOperation.m` and the iframe builder of `LinkItem.m`, and the "Afficher les vidéos" setting (`Root.inApp.plist`,
+`AppSettingsView.swift`): a video link is a plain link. Against that reference the placeholder and its player are a SwiftHFR
+addition, not a privacy fix of a legacy behaviour (GAP-058).
+
 ## What LOT-083 already shipped (not redone here)
 Placeholder `button.video` per `MessageContent.embeds` entry (`TopicHTMLBuilder.videos`, no provider URL in the page),
 `ReaderWebController` `video` event, `TopicReaderModel.video(post:index:token:)`, `VideoPlayerSheet` (own web view, JavaScript on,

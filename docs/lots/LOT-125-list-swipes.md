@@ -27,6 +27,8 @@ The behaviour, states and edge cases are in [FEAT-008](../features/FEAT-008.md);
 - `FavoriteActionHandler.swift`: `MessagesView.swift (the .favorite entry)`.
 - `TopicListView.swift` (swipes, menu, alerts) and `TopicRowView.swift` (read mark, flag icon): already ported by LOT-082 / LOT-124.
 
+**Legacy at `2fe43da3`** (catch-up of #655): "Lu" is no longer local only. `96336bc9` removes the row at once and sends one GET of the topic's last-page link in the session, its answer ignored (`markTopicAsRead`, `HFRswift/Swift/Favorites.swift:922-940`; `ForumFavoritesTopicActionService.markTopicRead`, `:44-47`, URL `:102-115` @ `2fe43da3`). That a last-page GET moves the forum's read state is legacy's assumption, not captured. SwiftHFR's "Lu" stays local in this lot; the forum part is [#675](https://github.com/ezzz/HFRnow/issues/675) (M4), which owns the capture.
+
 ## UX evolutions (app lots)
 None: same UX as legacy (GAP-028, 029, 034 and 035 keep their legacy half here; their (b) half is LOT-177). Messages are in French and failures say why (GAP-035 "confirmed flag writes").
 

@@ -23,6 +23,8 @@ drifted: its `ReplyService.swift` is about 40 lines longer). Only the `Referer` 
 | Hosts without file extension | `MessagesView.swift:2170-2176` (`reho.st`, `img3.super-h.fr`, `rehost.diberie.com` count as images whatever the path) |
 | `hfr-rehost.net` to `reho.st` | `HFRswift/Wrapped/LinkItem.m:163`: text rewrite of the page, out of scope here (reader, LOT-083) |
 
+**Legacy at `2fe43da3`** (catch-up of #655): `c4172b4e` adds a linked-thumbnail rule to the viewer. A tap on a reader image no larger than 200 × 200 px whose link (`longdesc`) is an image of an allowlisted host with the same identity (host and path, lower-cased, `.th` removed before the extension) opens the **linked** image instead of the thumbnail; the only allowlisted host is `img3.super-h.fr` (`MessageImageViewerURLResolver`, `HFRswift/Swift/Common.swift:2214-2297` @ `2fe43da3`, `linkedFullSizeURL` `:2259-2270`). The `.th.` rewrite of the table above stays (`normalizedViewerURL`, `:2244-2257`). Every `img3.super-h.fr` thumbnail of the corpus is under `/images/`, where `fullSizeURL(for:)` already gives the same full image whatever its size or link: parity on the captured shapes. A linked thumbnail outside `/images/` is not captured.
+
 ## Behaviour
 
 All in `Packages/HFRKit/Sources/HFRNetwork/`. Nothing imports another HFRKit module besides `HFRModels` (`RehostedImage`).

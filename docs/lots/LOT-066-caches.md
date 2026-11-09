@@ -15,6 +15,8 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`. Audit: [E §2.4
 | `HFRswift/Swift/Common.swift:1962-1976` | `Caches/cache/topic-<UUID>.htm` written for every page view and never removed |
 | `HFRswift/Swift/AppSettingsView.swift:264-278` | "Clear caches" deletes `ImageCache` / `SmileCache` folders nobody writes any more |
 
+**Legacy at `2fe43da3`** (catch-up of #655): the HTML pages are no longer kept forever. `c7693a88` adds `HFRHTMLPageCacheManager` (`HFRswift/Swift/HTMLPageCacheManager.swift:21-22`: older than 7 days removed, then the oldest until the folder fits 50 MB, `1_000_000`-byte MB), run at launch and by the background maintenance (`Classes/HFRplusAppDelegate.m:86, 523` @ `2fe43da3`), on `Caches/cache` (`:103-106`). Réglages > Maintenance shows "Caches de l'app" and "Pages HTML" with their file count, and says "Les pages HTML de plus de 7 jours sont supprimées automatiquement. Leur cache est limité à 50 Mo." (`AppSettingsView.swift:547-575`). This lot's `pages` preset (1 day, 20 MB) is tighter and stays an intentional difference (the files are written per page view, `Common.swift:1962-1976` @ `2440d79`); the sizes shown in Réglages are LOT-179's (GAP-152, GAP-186).
+
 ## Behaviour
 Code in `Sources/HFRStorage/Caches/`, tests in `Tests/HFRStorageTests/Caches/`. No image decoding (ImageIO stays in the app).
 
