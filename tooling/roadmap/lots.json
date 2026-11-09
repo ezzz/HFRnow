@@ -1682,7 +1682,7 @@
 {
 "lot": "LOT-120",
 "star": false,
-"scope": "System-settings shortcut, version, static pages; About links to the app's HFR topics, opened in the app (the cache sizes legacy shows at 2fe43da3, `AppSettingsView.swift:547-575`, are LOT-179, M4; cache clearing is LOT-187, M5; operator 2026-11-09, #655)",
+"scope": "System-settings shortcut, version, static pages; About links to the app's HFR topics, opened in the app (the cache sizes legacy shows at 2fe43da3, `AppSettingsView.swift:547-577`, are LOT-179, M4; cache clearing is LOT-187, M5; operator 2026-11-09, #655)",
 "module": "App",
 "diff": "easy",
 "model": "Sonnet → Opus",
@@ -1701,7 +1701,7 @@
 "diff": "easy",
 "model": "Sonnet → Opus",
 "deps": "120, 066",
-"audit": "backport of legacy evolution: absent at 2440d79, added at 2fe43da3 (`c7693a88`, `AppSettingsView.swift:547-575`); M4 (operator 2026-11-09, #655) · GAP 152",
+"audit": "backport of legacy evolution: absent at 2440d79, added at 2fe43da3 (`c7693a88`, `AppSettingsView.swift:547-577`); M4 (operator 2026-11-09, #655) · GAP 152",
 "prio": "low",
 "issue": 419,
 "sec": "Phase 4 — app: legacy parity and features",
