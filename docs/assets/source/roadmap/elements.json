@@ -20,7 +20,7 @@
 "id": "st",
 "x": 300,
 "y": 42,
-"text": "Snapshot 2026-11-08 · live state on the boards #166 and #324",
+"text": "Snapshot 2026-11-09 · live state on the boards #166 and #324",
 "fontSize": 18,
 "strokeColor": "#555555"
 },
@@ -227,7 +227,7 @@
 "fillStyle": "solid",
 "strokeColor": "#c2410c",
 "label": {
-"text": "M4  Final version\nvalidated legacy parity,\nMPStorage sync, notifications,\naccessibility, compliance,\nApp Store\n15 % · 26 lots",
+"text": "M4  Final version\nvalidated legacy parity,\nMPStorage sync, notifications,\naccessibility, compliance,\nApp Store\n16 % · 31 lots",
 "fontSize": 18
 }
 },
@@ -315,7 +315,7 @@
 "fillStyle": "solid",
 "strokeColor": "#be185d",
 "label": {
-"text": "M5  UX evolutions\nafter the M4 parity is validated\n0 % · 29 lots",
+"text": "M5  UX evolutions\nafter the M4 parity is validated\n0 % · 25 lots",
 "fontSize": 18
 }
 },

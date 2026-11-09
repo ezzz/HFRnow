@@ -174,6 +174,14 @@ class Hygiene(unittest.TestCase):
     def run_sweep(self, issues, pulls, comments=None):
         return hygiene.analyze(issues, pulls, self.lots, comments or {}, NOW)
 
+    def test_reports_two_origin_labels_on_one_issue(self):
+        issues = [issue(6, labels=["type: bug", "status: ready", "origin: parity", "origin: swift-feedback"]),
+                  issue(7, labels=["type: bug", "status: ready", "origin: parity"])]
+        _, reports = self.run_sweep(issues, [])
+        text = "\n".join(reports)
+        self.assertIn("#6: 2 labels on axis `origin` (origin: parity, origin: swift-feedback)", text)
+        self.assertNotIn("#7:", text)
+
     def test_unblock_credits_the_merged_pr_and_flags_engine_lots_external(self):
         issues = [issue(1, "open"), issue(2, labels=["status: blocked"]), issue(4, labels=["status: blocked", "host: mac"])]
         issues[0]["state"] = "closed"

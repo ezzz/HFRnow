@@ -300,7 +300,8 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { model.applyDisplaySettings() }
+                // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
