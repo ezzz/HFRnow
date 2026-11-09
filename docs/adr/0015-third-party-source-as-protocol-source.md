@@ -1,6 +1,6 @@
 # 0015 — Third-party open-source code as a protocol source
 
-**Status:** Proposed — 2026-11-09 (session `cloud/i573-opus`, requested by the operator on [#573](https://github.com/ezzz/HFRnow/issues/573), 2026-11-07; merged by the core orchestrator or the maintainer, AGENTS.md §8)
+**Status:** Proposed — 2026-11-09 (session `cloud/i573-opus`, requested by the operator on [#573](https://github.com/ezzz/HFRnow/issues/573), 2026-11-07; merged by the core orchestrator or the maintainer, AGENTS.md §8). It becomes **Accepted** when the operator approves it on its PR; AGENTS.md §3 rule 1 then gets a pointer to it
 
 ## Context
 
