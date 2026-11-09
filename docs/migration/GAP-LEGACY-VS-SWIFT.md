@@ -275,7 +275,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 Decisions the UX review (H.1) has to make; each names its rows.
 
 1. **Oracle revision.** Specs LOT-119 and LOT-170 cite `origin/master`, which has features `2440d79` lacks (start screen, default browser, sectioned iPad sidebar). Pick one revision as the legacy oracle (GAP-002, 150, 211).
-2. **Topic row.** LOT-169 makes the legacy Favoris row the density reference, but LOT-082's row drops the "⚑ cur / max" footer, the unread-pages capsule and the flag tints (GAP-026, 027).
+2. **Topic row.** LOT-169 makes the legacy Favoris row the density reference, but LOT-082's row dropped the "⚑ cur / max" footer, the unread-pages capsule and the flag tints (GAP-026, 027); #584 brings them back (operator decision, 2026-11-07).
 3. **Catégories.** A flat list with a sub-forum picker becomes collapsible sections; check it against the "preserve what works" principle (GAP-020, 022, 023).
 4. **Reader message header.** The grey band with a "+" button becomes a one-line header with a menu; decide whether the legacy band stays the default and the new one an option (GAP-051, 064).
 5. **Reader chrome.** Legacy hides the tab bar in three paths (GAP-008) and has ‹ › Actualiser New; the final reader hides the tab bar while a topic is open (UXD-02), adds a page bar, a scrubber and a quick-reply bar. Decide what is default and what is opt-in (GAP-008, 060, 062, 073).
@@ -309,7 +309,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596 | 18 |
 | b | 008, 009, 012, 014, 015, 020, 022, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219, 229 | 48 |
 
-The (b) rows include the ones the merged code already ships: 009, 020, 022, 026, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
+The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
 
 - The Source column says where a behaviour comes from; H.1 says whether the user sees a difference. So a row can be `b` with source `port: ezzz Swift layer`: GAP-060 and GAP-085 port the feature but change its controls.
 - Rows that are `a` although their source says "new UX" are invisible or robustness changes:
@@ -351,7 +351,7 @@ The (b) rows include the ones the merged code already ships: 009, 020, 022, 026,
   - LOT-108 (legacy loads iframes at once; the placeholder is new);
   - the delete and members parts of LOT-127 (mark unread has an ObjC source: `OnlineMessagesTableViewController.m` `markUnread`).
   - `LOTS.md` now says so in their Audit cell.
-- **Legacy features in no lot**, a parity loss unless decided: tab reselect (GAP-007, UXD-04), quote splitting and clear / undo / redo (GAP-084, 086, UXD-18), category icons, filter and flag tints (GAP-021, 023, 027, UXD-05 to 07), quick actions and time-based theme (GAP-010, 143, UXD-23).
+- **Legacy features in no lot**, a parity loss unless decided: tab reselect (GAP-007, UXD-04), quote splitting and clear / undo / redo (GAP-084, 086, UXD-18), category icons and the topic filter (GAP-021, 023, UXD-05, 06; the flag tints of GAP-027, UXD-07, are back since #584), quick actions and time-based theme (GAP-010, 143, UXD-23).
 
 ## Assumptions of the image
 
