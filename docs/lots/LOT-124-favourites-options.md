@@ -26,6 +26,8 @@ Legacy app `ezzz/HFRnow` at `2440d79`, `HFRswift/Swift/` (the issue's `AppSettin
 
 GAP rows: GAP-030, GAP-031, GAP-032, GAP-033 (`docs/migration/GAP-LEGACY-VS-SWIFT.md`). No UX decision (`UXD`) applies.
 
+**Legacy at `2fe43da3`** (catch-up of #655): `e10bdc89` drops the custom category order (`arrayCategoriesVisibleOrder` / `arrayCategoriesHiddenOrder` at `2440d79`): categories follow the page's order (`Classes/ObjCFavoritesLoaderWorker.m:107-132` @ `2fe43da3`). This lot's grouped sort already uses page order: parity, nothing to change (GAP-030).
+
 ## Behaviour
 
 Code: `FavoritesPresentation` (pure layout rules), `FavoritesOptionsModel` (`@Observable @MainActor`: settings, folded sections, super-favourites), `FavoritesStores` (process-wide file stores under `Application Support/Favorites/`), views in `TopicListView`, `FavoritesSourceMenu` and `SettingsView`. Tests in `App/SwiftHFRTests/Favorites/`.

@@ -15,6 +15,8 @@
 | `Polls/PollSheet.swift` (`ReaderPollFlow`, `PollSheet`) | `PollView.swift` (`PollToolbarButton`, `PollSheet`, `PollContentView`, `PollResultRow`); `MessagesView.swift:4675-4680` |
 | `Polls/PollVoting.swift` | none (legacy called `PollVoteSubmitter` directly) |
 
+**Legacy at `2fe43da3`** (catch-up of #655): the poll button shows only for a usable poll and the sheet switches to the results after a vote (`9ec06a2b`, `HFRswift/Swift/MessagesView.swift:3232-3240`, `PollView.swift:43`): parity with this lot. `c7693a88` adds "Voir les résultats" on a votable poll, confirmed first because it forfeits the vote (`PollView.swift:167-174, 258`; POST `sondage_submit=Voir les résultats`, `PollData.swift:45-80`): not in this lot, [#684](https://github.com/ezzz/HFRnow/issues/684) (M4, pending capture). Poll creation is LOT-100.
+
 ## UX evolutions
 GAP-059 (port, ezzz Swift layer).
 - The "Sondage" button shows for a results poll too; legacy showed it only for a poll not yet voted (`MessagesView.swift:4675`). `b` (optional, small).

@@ -2,7 +2,7 @@
 
 - **Module:** App
 - **Difficulty / model:** easy (Opus → Fable)
-- **Issue:** [#218](https://github.com/ezzz/HFRnow/issues/218). Its title still lists delete and group members: both moved to [LOT-181](LOT-181-mp-delete-members.md) (#421, M5, split 127b of `docs/LOTS.md`), so the issue's delete criterion and CAP-N1 are that lot's.
+- **Issue:** [#218](https://github.com/ezzz/HFRnow/issues/218). Its title still lists delete and group members. Group members are [LOT-181](LOT-181-mp-delete-members.md)'s (#421, M5, split 127b of `docs/LOTS.md`). CAP-N1 (#169, closed: the delete answers of `modo/manageaction.php`, already used by LOT-094) is delete evidence and goes with the delete, now #676. The issue's delete criterion is [#676](https://github.com/ezzz/HFRnow/issues/676)'s: by the operator decision of 2026-11-09 the MP list row menu ("Marquer non lu" on read rows, "Supprimer" with a confirmation) is legacy parity at `2fe43da3`, to be implemented under #676 (M4).
 - **Depends on:** LOT-058 (#84, `TopicFlagFlow.markUnread`, `TopicPageMetadata.markUnreadURL`), LOT-094, LOT-126 (#217, the list and the reader column), LOT-125 (`TopicFlagActions`), LOT-185 (surfaces, kept as they are).
 
 ## Legacy sources
@@ -14,7 +14,7 @@
 | `Classes/OnlineMessagesTableViewController.m:888-913` (`markUnread`), same in `HFRswift/Wrapped/MessagesTableViewController.m:1250-1272` | one GET of the link; on an answer, back to the list and a refetch; on an error, nothing is shown and the conversation stays |
 | `HFRswift/Swift/MessagesView.swift:4694-4722, 4942-4970` | the Swift layer's reader menu has no such entry (a difference of that layer, not ported) |
 
-The MP list has no such action in legacy (GAP-116), and cannot: its rows carry no `nonlu.php` link (`R13u1`; the link is on the thread page, `RA1`-`RA4`) and fetching a thread page to get it could mark the thread read (not captured for MP threads, LOT-126). The issue's "swipes on MP rows" therefore stays out; this lot adds no list action.
+At `2440d79` the MP list has no such action (GAP-116). The reason given here, that the list cannot have it because its rows carry no `nonlu.php` link (`R13u1`; the link is on the thread page, `RA1`-`RA4`) and fetching a thread page to get it could mark the thread read, **is no longer true at `2fe43da3`**: legacy builds the URL itself from the row's topic id (`HFRswift/Swift/MPListView.swift:85-111` @ `2fe43da3`, `user/nonlu.php` with `config=hfr.inc&cat=prive&subcat=0&post=<id>&page=<page>&p=1&sondage=0&owntopic=0&new=0`, `page` from the row's links, `:211-217`), the same parameters as the captured header link with `page=1` (`RA1`-`RA4`, HFR-PROTOCOL §6c). Its row context menu (`4a4f493f`) offers "Marquer non lu" on read rows only and "Supprimer" with a confirmation (`:800-826`, alert `:711-722`). That list part is [#676](https://github.com/ezzz/HFRnow/issues/676) (M4, operator decision 2026-11-09), not this lot: this lot shipped the reader entry and adds no list action.
 
 ## Legacy counterpart (app lots)
 | SwiftHFR | Legacy @ 2440d79 |
@@ -56,4 +56,4 @@ iPhone and iPad, light, dark, Dynamic Type XL: on a test account, open an MP, se
 4. CHANGELOG-LEGACY row 91.
 
 ## Learnings
-- A list action whose link only exists on the detail page cannot be a row action when fetching that page has a side effect: read where the link lives before planning swipes.
+- A list action whose link only exists on the detail page cannot be a row action when fetching that page has a side effect: read where the link lives before planning swipes. (Superseded at `2fe43da3`: legacy builds that link from the row's topic id, #676. Check whether the client can build a link before ruling a row action out.)
