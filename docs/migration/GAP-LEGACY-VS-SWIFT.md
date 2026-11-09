@@ -351,7 +351,7 @@ The (b) rows include the ones the merged code already ships: 009, 020, 022, 051,
   - LOT-108 (legacy loads iframes at once; the placeholder is new);
   - the delete and members parts of LOT-127 (mark unread has an ObjC source: `OnlineMessagesTableViewController.m` `markUnread`).
   - `LOTS.md` now says so in their Audit cell.
-- **Legacy features in no lot**, a parity loss unless decided: tab reselect (GAP-007, UXD-04), quote splitting and clear / undo / redo (GAP-084, 086, UXD-18), category icons and filter tints (GAP-021, 023, UXD-05 to 07; the flag tints of GAP-027 are back since #584), quick actions and time-based theme (GAP-010, 143, UXD-23).
+- **Legacy features in no lot**, a parity loss unless decided: tab reselect (GAP-007, UXD-04), quote splitting and clear / undo / redo (GAP-084, 086, UXD-18), category icons and the topic filter (GAP-021, 023, UXD-05, 06; the flag tints of GAP-027, UXD-07, are back since #584), quick actions and time-based theme (GAP-010, 143, UXD-23).
 
 ## Assumptions of the image
 
