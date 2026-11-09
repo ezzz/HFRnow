@@ -1,0 +1,12 @@
+# Seulement pour l'exposition (b) du §11 de la spécification (secours). Adapter le sous-domaine et le port.
+sondage.exemple.fr {
+	# TLS automatique (Let's Encrypt)
+	request_body {
+		max_size 32KB
+	}
+	# Journal d'accès coupé : ni IP, ni agent utilisateur, ni référent (R1). Pas de bloc « log ».
+	reverse_proxy 127.0.0.1:18080 {
+		# X-Forwarded-For est ajouté par Caddy ; le service lit la dernière adresse.
+		header_up X-Forwarded-For {remote_host}
+	}
+}
