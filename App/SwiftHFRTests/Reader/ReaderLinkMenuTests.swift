@@ -53,7 +53,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(!ReaderLinkMenu.entries(for: url).contains(.saveImage))
     }
 
-    @Test func openImageOpensTheViewerOnThatImageWithoutRequestingIt() {
+    @Test func openImageOpensTheViewerOnThatImageWithoutRequestingIt() async {
         let transport = quietTransport()
         let (controller, recorder) = makeController(transport: transport)
         let image = URL(string: "https://example.org/a/photo.jpg")!
@@ -62,7 +62,7 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(recorder.viewers.first?.index == 0)
         #expect(recorder.viewers.first?.images.map(\.shown) == [image])
         #expect(recorder.links.isEmpty)
-        #expect(controller.imageRequests.isEmpty)
+        #expect(await transport.requests.isEmpty)
     }
 
     @Test func openImageRefusesABlockedHost() {
