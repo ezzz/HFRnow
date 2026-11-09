@@ -1,6 +1,6 @@
 # Changelog fragments
 
-A PR that fixes or changes a legacy behaviour adds **one file here** and never edits [`docs/CHANGELOG-LEGACY.md`](../CHANGELOG-LEGACY.md) ([AGENTS.md §8](../../AGENTS.md#8-git-and-pr-workflow), #612). A fragment has a unique name, so two PRs cannot conflict. `python3 tooling/docs/fold.py` (the docs steward, daily) appends the fragments to the table in number order and deletes them.
+**Steward only (#620).** A feature PR writes its entries in a `### Ledger` section of its body and touches neither this folder nor [`docs/CHANGELOG-LEGACY.md`](../CHANGELOG-LEGACY.md) (CI fails it); `python3 tooling/docs/ledger.py fold` writes the fragments below and folds them ([AGENTS.md §8](../../AGENTS.md#8-git-and-pr-workflow), #612, #620). The format below is what the steward writes and what `fold.py --check` validates. A fragment has a unique name, so two PRs cannot conflict. `python3 tooling/docs/fold.py` (the docs steward, daily) appends the fragments to the table in number order and deletes them.
 
 - **Name**: `<issue>.md`, the number of the issue the PR closes or refs (`612.md`). It becomes the `#` column. Existing rows keep their numbers.
 - **Content**: one table row per legacy fix (a PR with several writes several lines; each gets the issue number as `#`), without the `#` cell, four non-empty cells, nothing else:
