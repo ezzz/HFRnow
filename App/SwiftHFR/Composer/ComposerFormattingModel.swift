@@ -25,11 +25,14 @@ final class ComposerFormattingModel {
     enum Pending: Equatable {
         case link(url: String, range: NSRange, changeCount: Int)
         case formatting(text: String, target: ReplyFormattingTarget, range: NSRange, changeCount: Int)
+        /// `[url]` with nothing selected and a clipboard text: the two forms are offered (legacy tag 667).
+        case linkChoice(text: String, range: NSRange, changeCount: Int)
 
         /// The alert's message (French).
         var message: String {
             switch self {
             case .link(let url, _, _): url
+            case .linkChoice(let text, _, _): ComposerFormattingModel.preview(text)
             case .formatting(let text, let target, _, _):
                 "Insérer « \(ComposerFormattingModel.preview(text)) » avec \(target.label) ?"
             }
@@ -66,6 +69,10 @@ final class ComposerFormattingModel {
             pending = .link(url: candidate.text, range: range, changeCount: candidate.changeCount)
             return
         }
+        if case .bbCode(.url) = target, range.length == 0, let candidate = textCandidate() {
+            pending = .linkChoice(text: candidate.text, range: range, changeCount: candidate.changeCount)
+            return
+        }
         if range.length == 0, let candidate = textCandidate() {
             pending = .formatting(text: candidate.text, target: target, range: range, changeCount: candidate.changeCount)
             return
@@ -75,6 +82,10 @@ final class ComposerFormattingModel {
 
     /// The user accepted the clipboard (Oui / Insérer).
     func acceptPending(_ current: Pending) {
+        if case .linkChoice = current {
+            acceptLinkChoice(current, attribute: false)
+            return
+        }
         pending = nil
         switch current {
         case .link(let url, let range, let changeCount):
@@ -83,6 +94,19 @@ final class ComposerFormattingModel {
         case .formatting(let text, let target, let range, let changeCount):
             usedChangeCount = changeCount
             apply(target, range: range, clipboardText: text)
+        case .linkChoice: break
+        }
+    }
+
+    /// The user picked a form of the empty-selection link: `[url=<clipboard>][/url]` or `[url]<clipboard>[/url]`.
+    func acceptLinkChoice(_ current: Pending, attribute: Bool) {
+        guard case .linkChoice(let text, let range, let changeCount) = current else { return }
+        pending = nil
+        usedChangeCount = changeCount
+        if attribute {
+            commit(ReplyTextInsertionEngine.insertURLAttributeTags(text, in: composer.text, selectedUTF16Range: range))
+        } else {
+            apply(.bbCode(.url), range: range, clipboardText: text)
         }
     }
 
@@ -92,6 +116,7 @@ final class ComposerFormattingModel {
         switch current {
         case .link(_, let range, _): apply(.bbCode(.url), range: range)
         case .formatting(_, let target, let range, _): apply(target, range: range)
+        case .linkChoice(_, let range, _): apply(.bbCode(.url), range: range)
         }
     }
 

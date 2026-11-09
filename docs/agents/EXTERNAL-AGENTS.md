@@ -155,7 +155,7 @@ give the exact question or the list of page states to capture. Then `/release ex
 
 - Title `LOT-XXX: <short>` (lot) or `#N: <short>`. Body per AGENTS.md §8: problem, cause, change, tests. On their own lines:
   `Closes #N`, `Claim: ext/<id>`, `Author model: <model>`. Add a `LEGACY FIXES` section if you change a legacy behaviour (and a
-  CHANGELOG-LEGACY row at the end of the table, renumbered on merge of `dev-swift`), and a `PENDING CAPTURE` section.
+  `changelog` block of the `### Ledger` section of its PR body, never an edit of `docs/CHANGELOG-LEGACY.md`: [tooling/docs/README](../../tooling/docs/README.md)), and a `PENDING CAPTURE` section.
 - Commits end with `Co-Authored-By: <model> <noreply@…>` (or your tool's equivalent). Draft until CI is green.
 - Handle every CodeRabbit thread per REVIEW-ROUNDS: one commit and one push per round, then reply to and resolve each thread
   (security threads stay open for the maintainer).

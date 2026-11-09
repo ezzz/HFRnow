@@ -7,6 +7,8 @@ import SwiftUI
 struct SwiftHFRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var accounts = AccountsModel.live()
+    /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
+    @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
     @State private var general: GeneralSettingsModel
     /// The "Thème" settings: appearance and colours of every screen and of the reader (LOT-121).
@@ -28,11 +30,14 @@ struct SwiftHFRApp: App {
             RootView()
                 .environment(accounts)
                 .environment(general)
+                .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme)
                 // Restores the stored accounts and their sessions once per launch (LOT-081).
                 .task { await accounts.restore() }
+                // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).
+                .task(priority: .utility) { await LiveOfflineStore().evict() }
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }

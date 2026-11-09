@@ -28,7 +28,10 @@
 - { name: "status: blocked",      color: "000000", description: "Waiting on something else" }
 - { name: "status: claimed",      color: "1d76db", description: "A session has claimed it (/claim comment); see the claim rules in AGENTS.md" }
 - { name: "external: ready",      color: "c2e0c6", description: "Standalone work open to external contributors' agents (docs/agents/EXTERNAL-AGENTS.md)" }
+- { name: "ledger",              color: "5319e7", description: "PR body has a ### Ledger section: the steward folds it into the changelog and GAP docs after the merge (#620)" }
+- { name: "ledger: done",         color: "c2e0c6", description: "The ledger entries of this merged PR are in the docs (#620)" }
 - { name: "host: mac",            color: "6e7781", description: "Needs the maintainer's Mac (Xcode, legacy app, live captures)" }
 - { name: "direct-pr",            color: "d93f0b", description: "Break-glass: PR merged without issue/claim (Direct-PR line); counted for stats" }
 - { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }
+- { name: "beta-test finding",    color: "f9a825", description: "Reported during pre-beta or beta testing on a device; counted for stats" }
 - { name: "moust4ki aka bybifok finding", color: "fbca04", description: "Found by Bybifok (GitHub moust4ki): credit them in the fix" }

@@ -15,12 +15,18 @@ struct Lot004FormOracle {
     static let subdirectory = "Fixtures/LOT-004"
     /// Folder of the M2 write captures' oracles (#336).
     static let m2Subdirectory = "Fixtures/M2-writes"
-    /// The `form` cases of `Fixtures/M2-writes/`: the group owner's and a member's reply composers, the new-MP form.
-    static let m2FormCases: Set = ["R123c", "R123e", "R123k"]
+    /// The `form` cases of `Fixtures/M2-writes/`: the group owner's and a member's reply composers (with and without `newdest`,
+    /// #336, #507), the new-MP form.
+    static let m2FormCases: Set = ["R123c", "R123e", "R123k", "R124", "R127", "R128", "R132", "R136", "R137", "R138", "R139"]
 
-    /// The oracle of a case id, from `Fixtures/LOT-004`, or from `Fixtures/M2-writes` for an M2 case.
+    /// Folder of the M2 misc captures' oracles (#527, wired by #475).
+    static let miscSubdirectory = "Fixtures/M2-misc"
+    /// The `form` cases of `Fixtures/M2-misc/`: the edit and quote forms of an MP whose body starts with a line break.
+    static let miscFormCases: Set = ["R130b", "R130c"]
+
+    /// The oracle of a case id, from `Fixtures/LOT-004`, or from `Fixtures/M2-writes` or `Fixtures/M2-misc` for an M2 case.
     static func load(_ id: String) throws -> Lot004FormOracle {
-        let folder = m2FormCases.contains(id) ? m2Subdirectory : subdirectory
+        let folder = m2FormCases.contains(id) ? m2Subdirectory : miscFormCases.contains(id) ? miscSubdirectory : subdirectory
         let root = try object(Fixture.text("\(id).oracle", extension: "json", subdirectory: folder))
         #expect(root["kind"] as? String == "form")
         let input = try #require(root["input"] as? [String: Any])

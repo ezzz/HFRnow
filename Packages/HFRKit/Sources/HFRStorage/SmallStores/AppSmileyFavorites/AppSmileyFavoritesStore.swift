@@ -8,6 +8,7 @@ import Foundation
 /// the legacy archive is LOT-067's importer.
 public actor AppSmileyFavoritesStore {
     private var state: SmallStoreState<AppSmileyFavoritesDocument>
+    private var feed = ChangeFeed()
 
     /// Creates a store over `persistence`; nothing is read until the first call.
     public init(persistence: any SmallStorePersistence<AppSmileyFavoritesDocument>) {
@@ -26,9 +27,19 @@ public actor AppSmileyFavoritesStore {
         favorites(for: account).contains { $0.code == code }
     }
 
+    /// The account keys that hold favourites (ADR 0013 §7); empty while the stored data is unreadable.
+    public func accountKeys() -> [String] {
+        (state.document()?.accounts.keys).map { $0.sorted() } ?? []
+    }
+
     /// The reason writes are refused, or nil when the store is usable (loading it if needed).
     public func loadFailure() -> SmallStoreError? {
         state.failure()
+    }
+
+    /// A signal after each saved change, for the iCloud copy (LOT-172) and the screens showing the lists.
+    public func changes() -> AsyncStream<Void> {
+        feed.stream()
     }
 
     // MARK: Writing
@@ -41,7 +52,7 @@ public actor AppSmileyFavoritesStore {
             throw .invalidValue(reason: "empty smiley code")
         }
         let key = try AccountKey.forWriting(account)
-        return try state.mutate { document in
+        return try saved(state.mutate { document in
             var list = Self.normalized(document.accounts[key] ?? [])
             guard !list.contains(where: { $0.code == code }) else { return false }
             // After every favourite of the same date or older: oldest first even if the clock moved back.
@@ -49,20 +60,33 @@ public actor AppSmileyFavoritesStore {
             list.insert(AppSmileyFavorite(code: code, url: url, addedAt: date), at: position)
             document.accounts[key] = list
             return true
-        }
+        })
     }
 
     /// Removes the smiley `code` from the account's favourites. Returns false when it was not there.
     @discardableResult
     public func remove(code: String, account: String) throws(SmallStoreError) -> Bool {
         let key = try AccountKey.forWriting(account)
-        return try state.mutate { document in
+        return try saved(state.mutate { document in
             let list = Self.normalized(document.accounts[key] ?? [])
             guard list.contains(where: { $0.code == code }) else { return false }
             let kept = list.filter { $0.code != code }
             document.accounts[key] = kept.isEmpty ? nil : kept
             return true
-        }
+        })
+    }
+
+    /// Replaces the account's favourites with `favorites` (another device's list, through iCloud, LOT-172), normalised
+    /// as a loaded list is; a blank code is dropped. Returns false when the list already was that.
+    @discardableResult
+    public func replace(_ favorites: [AppSmileyFavorite], account: String) throws(SmallStoreError) -> Bool {
+        let key = try AccountKey.forWriting(account)
+        let list = Self.normalized(favorites.filter { !$0.code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+        return try saved(state.mutate { document in
+            guard list != Self.normalized(document.accounts[key] ?? []) else { return false }
+            document.accounts[key] = list.isEmpty ? nil : list
+            return true
+        })
     }
 
     // MARK: Recovery
@@ -77,9 +101,15 @@ public actor AppSmileyFavoritesStore {
     /// Only call it after the user agreed: this is the single way out of a failed load.
     public func discardUnreadableData() throws(SmallStoreError) {
         try state.discardUnreadableData()
+        feed.signal()
     }
 
     // MARK: Internals
+
+    private func saved(_ changed: Bool) -> Bool {
+        if changed { feed.signal() }
+        return changed
+    }
 
     /// A list as legacy loaded one: each code once (legacy keyed its dictionary by code; the first entry is kept), oldest
     /// first (`SmileyCache.m:371-379`), equal dates in stored order. Lists this store writes are in that form already;

@@ -14,6 +14,7 @@ Python 3 stdlib only. Output is English; colors are disabled without a TTY or wi
 """
 import argparse
 import datetime
+import email.utils
 import html
 import html.entities
 import html.parser
@@ -62,6 +63,9 @@ TOKEN_VALUE_RE = re.compile(r"[A-Za-z0-9+/=_-]{20,}")
 FIXED_INPUT_NAMES = {"hash_check", "md_user", "md_pass"}
 # Personal fields of the profile edit form (editprofil.php page 1, fixture R55-p1).
 PERSONAL_INPUT_NAMES = {"email", "emailconfirm", "homepage", "custom_ville", "custom_occupation", "custom_hobby"}
+# Keyword inputs of the personal smiley page (`keyword<slot>` of uploadsmil.php, R601b): member-written text.
+SMILEY_KEYWORD_INPUT_RE = re.compile(r"keyword\d+$", re.I)
+SMILEY_KEYWORD_PLACEHOLDER = "Keywords removed."
 PERSONAL_SELECT_RE = re.compile(
     r"(<select\b[^>]*\bname=[\"'](?:bday|bmonth|byear|custom_sexe)[\"'][^>]*>)(.*?)(</select>)", re.I | re.S)
 SELECTED_RE = re.compile(r"\s+selected(?:\s*=\s*(?:[\"'][^\"']*[\"']|[^\s>]+))?", re.I)
@@ -136,6 +140,14 @@ _PAGE_MP_RE = re.compile(
 def page_is_private(text):
     """True when the page itself says it belongs to the MP category (hidden `cat` input = prive)."""
     return bool(_PAGE_MP_RE.search(text))
+
+
+API_KEY_RE = re.compile(r"api_key(?:=|%3D|[\"']\s*:\s*[\"'])([^&\"'\s<]*)", re.I)
+
+
+def api_key_matches(text):
+    """A third-party `api_key` value outside the placeholder, in a query string or JSON (ADR 0007)."""
+    return [m for m in API_KEY_RE.finditer(text) if m.group(1) not in ("", REDACTED)]
 
 
 def meta_subject_findings(text):
@@ -279,6 +291,10 @@ PROFILE_TRANSACTIONS_RE = re.compile(r"(>\s*Transactions\s*\()(\d+)(\)\s*<)", re
 # field names and line breaks stay. Ids keep a fixed range, so the verifier knows an own-topic page.
 OWN_TOPIC_FIRST = 9900001
 OWN_MESSAGE_FIRST = 9910000001
+OWN_ALERT_FIRST = 9920001
+OWN_ALERT_TITLE = "Alert title"
+OWN_CATEGORY = "own-category"
+OWN_SUBCATEGORY = "own-subcategory"
 OWN_SUBJECT = "Own topic subject"
 OWN_SLUG = "own-topic-subject"
 OWN_TEXT = "Own topic text removed."
@@ -287,7 +303,7 @@ OWN_DATE = "01-01-2000"
 OWN_HTTP_DATE = "Sat, 01 Jan 2000 00:00:00 GMT"
 OWN_MESSAGE_ID_RES = tuple(re.compile(rx, re.I) for rx in (
     r"numreponse=(\d{5,})", r"\bid=[\"']para(\d{5,})", r"<a\s+name=[\"']t(\d{5,})", r"#t(\d{5,})", r"n°(\d{5,})",
-    r"\bnumrep=(\d{5,})", r"\[quotemsg=(\d{5,}),",
+    r"\bnumrep=(\d{5,})", r"\[quotemsg=(\d{5,}),", r"\bpost_id=(\d{5,})", r"%23t(\d{5,})",
     r"\bname=[\"'](?:numreponse|numrep|firstnum)[\"']\s*value=[\"'](\d{5,})",
     r"\bvalue=[\"'](\d{5,})[\"']\s*name=[\"'](?:numreponse|numrep|firstnum)[\"']",
     r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'?\d+'?\s*,\s*'?(\d{5,})'?"))
@@ -307,14 +323,16 @@ OWN_TITLE_CELL_RE = re.compile(
 OWN_DATE_RE = re.compile(r"\b\d{2}-\d{2}-\d{4}\b")
 OWN_TIME_RE = re.compile(r"(à(?:&nbsp;|\s|\u00a0)*)\d{2}:\d{2}(:\d{2})?")
 OWN_BODY_TEXT_RE = re.compile(r"((?:^|&)content_form=)([^&\"<>\s]*)")
-OWN_BODY_SUBJECT_RE = re.compile(r"((?:^|&)sujet=)([^&\"<>\s]*)")
+OWN_BODY_SUBJECT_RE = re.compile(r"((?:^|&)(?:sujet|topic_titre)=)([^&\"<>\s]*)")
+# An AQ create body names the alert by its free-text title (public in AQ's feed, linked to the post): placeholder.
+OWN_BODY_ALERT_TITLE_RE = re.compile(r"((?:^|&)nom=)([^&\"<>\s]*)")
 OWN_HTTP_DATE_RE = re.compile(r"\b[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT\b")
 
 
 def own_topics_in(text, topics):
     """The operator-owned topic ids (strings) this page or URL belongs to."""
     # `numeropost=` is the poll vote body's topic field (R32a).
-    return [t for t in topics if re.search(r"(?:\b(?:numero)?post=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
+    return [t for t in topics if re.search(r"(?:\b(?:numero)?post=|\btopic_id=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
 
 
 def own_message_ids(texts, topics):
@@ -508,6 +526,170 @@ def profile_field_value(label, value):
     if (not text or text in (PROFILE_PLACEHOLDER, PROFILE_NO_ACCESS)) and layout_only(value):
         return value
     return PROFILE_PLACEHOLDER
+
+
+# REST flag buckets (`rest_api.php?uri=forums/hardwarefr/[categories/<cat>/]topics/{participated,read,favorites}/`,
+# logged in): every item is a topic the account follows, the same tie as a followed list row, so the answer is
+# aliased by position like a list page and cut to a fixed size. Only structure and field names stay: every dict
+# has an exact key set and every string is rewritten or checked against a constant, never passed through.
+REST_BUCKET_MARKERS = ("flag_owntopic", "last_post_read_id", "last_position", "is_read")
+# Fixed sizes, so a published answer never shows the real one: 2 groups of 1 topic (global), 2 topics (flat).
+# An answer with fewer entries is refused, never padded.
+REST_KEEP = 2
+REST_KEEP_ITEMS_PER_GROUP = 1
+REST_LAST_POSITION_BASE = 200
+REST_API_PREFIX = "https://forum.hardware.fr/api/forums/hardwarefr/"
+_SL = r"(?:/|%2[Ff])"  # the `uri` value may carry its slashes percent-encoded
+REST_BUCKET_URL_RE = re.compile(r"(categories%s)(\d+)(%stopics%s)(participated|read|favorites)\b" % (_SL, _SL, _SL))
+REST_REQUEST_RE = re.compile(r"rest_api\.php\?uri=[^&#]*?%stopics%s(?:participated|read|favorites)\b" % (_SL, _SL))
+
+
+def is_rest_bucket(doc):
+    """True when a JSON document carries a flag-bucket field anywhere (checked on the parsed tree)."""
+    if isinstance(doc, dict):
+        return any(k in REST_BUCKET_MARKERS or is_rest_bucket(v) for k, v in doc.items())
+    if isinstance(doc, list):
+        return any(is_rest_bucket(v) for v in doc)
+    return False
+
+
+def is_rest_bucket_request(url):
+    """True for the URL of a bucket request (a capture whose markers were stripped is still a bucket)."""
+    return isinstance(url, str) and bool(REST_REQUEST_RE.search(url))
+
+
+def alias_rest_buckets(text, cats=None, url=None):
+    """Alias a logged-in REST flag bucket by position and keep a fixed few entries; any other text is unchanged.
+
+    `cats` (optional dict) receives real category id -> alias, so the capture's own URL can follow. `url` is the
+    request: a bucket request is aliased (or refused) even when no bucket field is found in the body."""
+    if not looks_json(text):
+        return text
+    doc = json.loads(text)
+    if not is_rest_bucket(doc) and not is_rest_bucket_request(url):
+        return text
+    cats = {} if cats is None else cats
+    subs, state = {}, {"item": 0}
+
+    def need(cond, what):
+        if not cond:
+            raise AnonymizeError("REST bucket: %s; extend the anonymizer" % what)
+
+    def exact(d, keys, optional=(), what="field"):
+        need(isinstance(d, dict) and set(keys) <= set(d) <= set(keys) | set(optional), "unknown or missing " + what)
+
+    def kind(d, linked, typ="link"):
+        need(d.get("linked_type") == linked and d.get("type") == typ, "unexpected type word")
+
+    def cat_alias(real):
+        return cats.setdefault(real, str(FOLLOWED_CAT_FIRST + len(cats)))
+
+    def href(value, i, count, cat=None):
+        need(isinstance(value, str) and value.startswith(REST_API_PREFIX), "href outside the API prefix")
+        rest = value[len(REST_API_PREFIX):]
+        rest = re.sub(r"\bcategories/(\d+)", lambda m: "categories/" + cat_alias(m.group(1)), rest)
+        rest = re.sub(r"\bsubcategories/(\d+)",
+                      lambda m: "subcategories/%d" % (FOLLOWED_SUBCAT_FIRST + subs.setdefault(m.group(1), len(subs))), rest)
+        rest = re.sub(r"\btopics/(\d+)", "topics/%d" % (FOLLOWED_TOPIC_FIRST + i - 1), rest)
+        if count is not None:
+            rest = re.sub(r"\bpage=\d+&results_per_page=(\d+)",
+                          lambda m: "page=%d&results_per_page=%s" % (-(-count // max(int(m.group(1)), 1)), m.group(1)), rest)
+        return REST_API_PREFIX + rest
+
+    def category(link):
+        exact(link, ("linked_type", "type", "href"), ("title",), "category link field")
+        kind(link, "forum_category")
+        need(isinstance(link["href"], str) and "categories/" in link["href"], "category link shape")
+        number = int(cat_alias(re.search(r"categories/(\d+)", link["href"]).group(1))) - FOLLOWED_CAT_FIRST + 1
+        link["href"] = href(link["href"], 1, None)
+        if "title" in link:  # only a global bucket names its category
+            link["title"] = FOLLOWED_CATEGORY % number
+
+    def item(it):
+        exact(it, ("id", "title", "last_post_date", "is_closed", "is_sticky", "links", "type", "href", "is_read",
+                   "flag_owntopic", "last_position", "last_post_read_id"), what="item field")
+        need(it["type"] == "topic", "unexpected item type")
+        links = it["links"]
+        exact(links, ("forum", "category", "posts", "last_author", "author"), ("subcategory",), "link field")
+        state["item"] += 1
+        i = state["item"]
+        count = FOLLOWED_REPLIES_BASE + i
+        it["id"] = FOLLOWED_TOPIC_FIRST + i - 1
+        it["title"] = FOLLOWED_TITLE % i
+        day, hour = followed_date(i)
+        it["last_post_date"] = "%s-%s-%s %s" % (day[6:], day[3:5], day[:2], hour)
+        it["last_position"] = REST_LAST_POSITION_BASE + i
+        it["last_post_read_id"] = FOLLOWED_MESSAGE_FIRST + i - 1
+        exact(links["forum"], ("linked_type", "type", "href"), what="forum link field")
+        kind(links["forum"], "forum")
+        need(links["forum"]["href"] == REST_API_PREFIX, "forum href")
+        category(links["category"])
+        if "subcategory" in links:
+            exact(links["subcategory"], ("linked_type", "type", "href"), what="sub-category link field")
+            kind(links["subcategory"], "forum_subcategory")
+            links["subcategory"]["href"] = href(links["subcategory"]["href"], i, None)
+        exact(links["posts"], ("linked_type", "type", "href", "count"), what="posts link field")
+        kind(links["posts"], "list")
+        links["posts"]["count"] = count
+        links["posts"]["href"] = href(links["posts"]["href"], i, count)
+        for who in ("last_author", "author"):
+            exact(links[who], ("linked_type", "type", "href", "title"), ("tns3",), "author link field")  # no avatar: no tns3
+            kind(links[who], "user")
+            need(links[who]["href"] is None, "author href")
+            need(isinstance(links[who]["title"], str) and isinstance(links[who].get("tns3", ""), str), "author value")
+        it["href"] = href(it["href"], i, None)
+        return it
+
+    def shape(it):
+        """What a parser must tell apart (flags, sub-category, closed, offset beyond the count); no identity."""
+        links = it.get("links") if isinstance(it.get("links"), dict) else {}
+        count = (links.get("posts") or {}).get("count", 0)
+        pos = it.get("last_position", 0)
+        return (it.get("is_read"), it.get("flag_owntopic"), "subcategory" in links, it.get("is_closed"),
+                it.get("is_sticky"), isinstance(count, int) and isinstance(pos, int) and pos > count)
+
+    def pick(entries, key):
+        """REST_KEEP entries: the first of each new shape in document order, then the first others."""
+        need(len(entries) >= REST_KEEP, "fewer than %d entries, nothing is published (it would show the real size)" % REST_KEEP)
+        chosen, seen = [], set()
+        for e in entries:
+            if len(chosen) < REST_KEEP and key(e) not in seen:
+                seen.add(key(e))
+                chosen.append(e)
+        for e in entries:
+            if len(chosen) < REST_KEEP and all(e is not c for c in chosen):
+                chosen.append(e)
+        return chosen
+
+    def listing(g, group):
+        base = ("page", "results_count", "results_per_page", "resources", "list_type", "type", "href")
+        exact(g, base, ("links",) if group else (), "list field")
+        need(g["type"] == "list" and g["list_type"] == "topic" and isinstance(g["resources"], list), "list type word")
+        g["resources"] = [item(x) for x in g["resources"]]
+        g["results_count"] = g["results_per_page"] = len(g["resources"])
+        if "links" in g:
+            exact(g["links"], ("category",), what="list link field")
+            category(g["links"]["category"])
+        g["href"] = href(g["href"], 1, None)
+        g["href"] = re.sub(r"\bresults_per_page=\d+", "results_per_page=%d" % g["results_per_page"], g["href"])
+        return g
+
+    need(isinstance(doc, dict) and set(doc) == {"resource"}, "document")
+    top = doc["resource"]
+    exact(top, ("page", "results_count", "results_per_page", "resources", "list_type", "type", "href"), what="list field")
+    need(top["type"] == "list" and isinstance(top["resources"], list), "list type word")
+    if top["list_type"] == "list":
+        need(all(isinstance(g, dict) and isinstance(g.get("resources"), list) and g["resources"]
+                 and all(isinstance(it, dict) for it in g["resources"]) for g in top["resources"]), "group shape")
+        top["resources"] = [listing(dict(g, resources=[g["resources"][0]]), True)
+                            for g in pick(top["resources"], lambda g: shape(g["resources"][0]))]
+        top["results_count"] = top["results_per_page"] = len(top["resources"])
+    else:
+        need(top["list_type"] == "topic" and all(isinstance(it, dict) for it in top["resources"]), "list type")
+        top["resources"] = pick(top["resources"], shape)
+        listing(top, False)
+    out = json.dumps(doc, separators=(",", ":"))
+    return out.replace("/", "\\/")
 
 
 # Alertes Qualitaÿ free text, written by members: the alert title (`nom`, RSS item `<title>`) and each
@@ -758,6 +940,13 @@ def _sensitive_input(tag):
             return False
         return bool(TOKEN_NAME_RE.search(name) or TOKEN_VALUE_RE.fullmatch(value))
     return False
+
+
+def _smiley_keyword_input(tag):
+    """True for a `keyword<slot>` input that still holds a value other than the placeholder."""
+    value = _attr(tag, "value")
+    return bool(SMILEY_KEYWORD_INPUT_RE.match(_attr(tag, "name") or "")) and value not in (
+        None, "", SMILEY_KEYWORD_PLACEHOLDER)
 
 
 def _find_para_blocks(text, open_re=None):
@@ -1123,6 +1312,7 @@ class Anonymizer:
         self._free_rx = None
         self.own_ids = {}       # real id (topic or message) -> fake id, only on an own-topic page
         self.own_subjects = []  # subjects read from the page's `sujet` inputs
+        self.rest_cats = {}     # real category id -> alias, of a REST flag bucket (the capture's URL follows)
 
     def _rx(self, pseudo):
         if pseudo not in self._regex_cache:
@@ -1376,9 +1566,10 @@ class Anonymizer:
             out.append(seg)
         return "".join(out)
 
-    def _own_start(self, text):
+    def _own_start(self, text, context=""):
         """On a page of an operator-owned topic: build its id table and replace subject, texts and title."""
-        topics = own_topics_in(text, self.config.own_topics)
+        # `context` (a capture's URL and request body) can name the topic when the page does not (an AQ list).
+        topics = own_topics_in(text + "\n" + context, self.config.own_topics)
         if not topics:
             return text
         for t in topics:
@@ -1422,10 +1613,15 @@ class Anonymizer:
         for t in self.config.own_topics:
             if t in self.own_ids:
                 s = re.sub(r"(/)[^/\"'<>\s?#]*?-sujet_%s(?=_)" % t, r"\g<1>%s-sujet_%s" % (OWN_SLUG, t), s)
+                # A permalink inside a form-encoded body (AQ `post_url`): category and sub-category go with the slug.
+                s = re.sub(r"(%%2Fhfr%%2F)(?:[^%%&\"'<>\s]+?%%2F){1,2}[^%%&\"'<>\s]*?-sujet_%s(?=_)" % t,
+                           r"\g<1>%s%%2F%s%%2F%s-sujet_%s" % (OWN_CATEGORY, OWN_SUBCATEGORY, OWN_SLUG, t), s, flags=re.I)
+                s = re.sub(r"(%%2F)[^%%&\"'<>\s]*?-sujet_%s(?=_)" % t, r"\g<1>%s-sujet_%s" % (OWN_SLUG, t), s, flags=re.I)
         # A saved request body (form-encoded): the posted text keeps its line structure only.
         s = OWN_BODY_TEXT_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(
             _own_lines(urllib.parse.unquote_plus(m.group(2)))), s)
         s = OWN_BODY_SUBJECT_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(OWN_SUBJECT), s)
+        s = OWN_BODY_ALERT_TITLE_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(OWN_ALERT_TITLE), s)
         for subject in self.own_subjects:
             for form, fake in ((subject, OWN_SUBJECT), (html.escape(subject), OWN_SUBJECT),
                                (html.escape(subject, quote=False), OWN_SUBJECT),
@@ -1443,6 +1639,9 @@ class Anonymizer:
         s = self._own(s)
         def inp(m):
             tag = m.group(0)
+            if _smiley_keyword_input(tag):
+                return VALUE_RE.sub(lambda v: v.group(1) + (v.group(2) or '"') + SMILEY_KEYWORD_PLACEHOLDER
+                                    + (v.group(2) or '"'), tag, count=1)
             if not _sensitive_input(tag):
                 return tag
             return VALUE_RE.sub(lambda v: v.group(1) + (v.group(2) or "") + REDACTED + (v.group(2) or ""), tag, count=1)
@@ -1478,12 +1677,13 @@ class Anonymizer:
         s = self._free_text(s) if free_text else self._free_urls(s)
         return self._secrets(s)
 
-    def anonymize(self, text, private=False):
+    def anonymize(self, text, private=False, url=None, context=""):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
-        text = self._own_start(text)
+        text = self._own_start(text, context)
         private = private or page_is_private(text)
         text = alias_followed_lists(text)
+        text = alias_rest_buckets(text, self.rest_cats, url)
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
@@ -1519,6 +1719,10 @@ class Anonymizer:
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
         text = anonymize_aq_text(text)
+        if self.own_ids and is_aq_document(text):
+            # The alert the operator just created is tied to the own topic: its AQ id goes too.
+            text = re.sub(r"(<alerte\b[^>]*?\bid=\")(\d+)(\")", lambda m: m.group(1) + str(OWN_ALERT_FIRST) + m.group(3), text, count=1) \
+                if text.count("<alerte ") == 1 else text
         # Dropping `selected` from personal fields is an intended markup change too: do it first.
         text = PERSONAL_SELECT_RE.sub(lambda m: m.group(1) + SELECTED_RE.sub("", m.group(2)) + m.group(3), text)
         before = markup_signature(text)
@@ -1553,12 +1757,14 @@ class Anonymizer:
             if isinstance(v, list):
                 return [walk(x, key) for x in v]
             if isinstance(v, str):
+                v = REST_BUCKET_URL_RE.sub(lambda m: m.group(1) + self.rest_cats.setdefault(
+                    m.group(2), str(FOLLOWED_CAT_FIRST + len(self.rest_cats))) + m.group(3) + m.group(4), v)
                 return self.redact_text(v, free_text=key == "note")
             return v
         return walk(meta)
 
     # -- verification -----------------------------------------------------------
-    def findings(self, text, private=False, account=None):
+    def findings(self, text, private=False, account=None, url=None):
         """Return [(line, column, reason)] for every leak left in text (including decoded links).
 
         Never the offending value or its neighbourhood: CI logs are public and a neighbour may leak too."""
@@ -1585,12 +1791,16 @@ class Anonymizer:
             for m in HASH_RE.finditer(chunk):
                 if m.group(2) != REDACTED:
                     add(m.start(), "hash_check value not REDACTED")
+            for m in api_key_matches(chunk):
+                add(m.start(), "api_key value not replaced")
             for m in COOKIE_RE.finditer(chunk):
                 if m.group(2).lower() not in COOKIE_OK:
                     add(m.start(), "cookie/session value (%s)" % m.group(1))
             for m in INPUT_RE.finditer(chunk):
                 if _sensitive_input(m.group(0)):
                     add(m.start(), "hidden token input not REDACTED")
+                if _smiley_keyword_input(m.group(0)):
+                    add(m.start(), "smiley keywords not replaced")
             for m in PROFIL_RE.finditer(chunk):
                 if m.group(2) in self.config.profile_ids:
                     add(m.start(), "operator profile id")
@@ -1624,8 +1834,11 @@ class Anonymizer:
         res += verify_structure(text, private=private)
         res += verify_own_topic(text)
         res += verify_followed_lists(text)
+        res += verify_rest_buckets(text, url)
+        res += verify_rest_meta(text)
         res += verify_operator_members(text, account)
         res += verify_aq(text)
+        res += verify_aq_own(text)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
                 scan(decoded, pos, " (in obfuscated link)")
@@ -1848,6 +2061,9 @@ class StructuralVerifier(html.parser.HTMLParser):
             for item in (a["value"].split(",") if a.get("name", "").lower() in ("dest", "newdest") else [a["value"]]):
                 if item.strip():
                     self._name("pseudo input", item)
+        if tag == "input" and re.fullmatch(r"keyword[0-9]+", a.get("name", ""), re.I) \
+                and a.get("value") not in (None, "", "Keywords removed."):
+            self._bad("smiley keywords", a["value"])
         if tag == "img" and "/images/perso/" in a.get("src", ""):
             for k in ("alt", "title"):
                 v = a.get(k, "")
@@ -2376,6 +2592,214 @@ def verify_operator_members(text, account):
     return res
 
 
+# REST flag buckets, checked apart from alias_rest_buckets: a JSON walk with its own ranges and patterns.
+# Every value of a bucket must be an alias of its position or a known constant; unknown keys fail closed.
+_VB_API = "https://forum.hardware.fr/api/forums/hardwarefr/"
+_VB_H_ITEM = re.compile(r"categories/(\d+)/(?:subcategories/(\d+)/)?topics/(\d+)/(?:posts/\?page=(\d+)&results_per_page=(\d+))?")
+_VB_H_CAT = re.compile(r"categories/(\d+)/(?:subcategories/(\d+)/)?")
+_VB_H_LIST = re.compile(r"(?:categories/(\d+)/)?topics/(?:participated|read|favorites)/\?page=(\d+)&results_per_page=(\d+)")
+_VB_AUTHOR = re.compile(r"user[0-9]+")
+_VB_TNS3 = re.compile(r"[a-z]+-9[01]00[0-9]{2}\.(?:jpe?g|png|gif)")
+_VB_META_URL = re.compile(r"categories%s(\d+)%stopics%s(?:participated|read|favorites)\b" % (_SL, _SL, _SL))
+_VB_LIST_KEYS = {"page", "results_count", "results_per_page", "resources", "list_type", "type", "href"}
+_VB_ITEM_KEYS = {"id", "title", "last_post_date", "is_closed", "is_sticky", "links", "type", "href", "is_read",
+                 "flag_owntopic", "last_position", "last_post_read_id"}
+_VB_LINK_KEYS = {"forum": ({"linked_type", "type", "href"}, set()),
+                 "category": ({"linked_type", "type", "href"}, {"title"}),
+                 "subcategory": ({"linked_type", "type", "href"}, set()),
+                 "posts": ({"linked_type", "type", "href", "count"}, set()),
+                 "last_author": ({"linked_type", "type", "href", "title"}, {"tns3"}),
+                 "author": ({"linked_type", "type", "href", "title"}, {"tns3"})}
+_VB_LINKED = {"forum": "forum", "category": "forum_category", "subcategory": "forum_subcategory", "posts": "list",
+              "last_author": "user", "author": "user"}
+
+
+def _vb_int(x):
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def verify_rest_buckets(text, url=None):
+    """[(line, column, reason)] for every value of a REST flag bucket that is not exactly the alias of its position.
+
+    Written apart from alias_rest_buckets: a JSON walk that numbers the topics, categories and sub-categories in
+    document order itself, with an exact key set for every kind of dict and every string value compared with its
+    alias or constant. A bucket is a JSON with a bucket field, or the answer to a bucket request (`url`).
+    [] for any other text."""
+    if not looks_json(text):
+        return []
+    doc = json.loads(text)
+    if not is_rest_bucket(doc) and not is_rest_bucket_request(url):
+        return []
+    res, st = [], {"i": 0, "cats": [], "subs": []}
+
+    def bad(what):
+        res.append((1, 1, "rest-bucket check: %s not aliased" % what))
+
+    def keys(d, required, optional=(), what="dict"):
+        if not isinstance(d, dict) or not set(required) <= set(d) <= set(required) | set(optional):
+            bad(what + " keys")
+            return False
+        return True
+
+    def alias(kind, n, first):
+        """True when n is the next alias of its kind in order of appearance, or one already seen."""
+        seen = st[kind]
+        if n in seen:
+            return True
+        if n == first + len(seen):
+            seen.append(n)
+            return True
+        return False
+
+    def api(h, what):
+        if not isinstance(h, str) or not h.startswith(_VB_API):
+            bad(what + " href")
+            return None
+        return h[len(_VB_API):]
+
+    def cat_link(link, want=None):
+        if not keys(link, {"linked_type", "type", "href"}, {"title"}, "category link"):
+            return None
+        if link["linked_type"] != "forum_category" or link["type"] != "link":
+            bad("category type word")
+        rest = api(link["href"], "category")
+        m = _VB_H_CAT.fullmatch(rest) if rest is not None else None
+        if m is None or m.group(2) or not alias("cats", int(m.group(1)), 101) or (want and int(m.group(1)) != want):
+            bad("category href")
+            return None
+        if "title" in link and link["title"] != "Category %d" % (int(m.group(1)) - 100):
+            bad("category title")
+        return int(m.group(1))
+
+    def item(it, cat):
+        if not keys(it, _VB_ITEM_KEYS, (), "item") or not keys(it["links"], {"forum", "category", "posts", "last_author", "author"},
+                                                              {"subcategory"}, "item links"):
+            return
+        st["i"] += 1
+        i = st["i"]
+        if it["type"] != "topic":
+            bad("item type word")
+        if it["id"] != 9800000 + i or not _vb_int(it["id"]):
+            bad("topic id")
+        if it["title"] != "Followed topic %d" % i:
+            bad("title")
+        day, hour = followed_date(i)
+        if it["last_post_date"] != "%s-%s-%s %s" % (day[6:], day[3:5], day[:2], hour):
+            bad("date")
+        if it["last_position"] != 200 + i or not _vb_int(it["last_position"]):
+            bad("last position")
+        if it["last_post_read_id"] != 9810000000 + i or not _vb_int(it["last_post_read_id"]):
+            bad("last read id")
+        for k in ("is_closed", "is_sticky", "is_read"):
+            if not isinstance(it[k], bool):
+                bad(k)
+        if not _vb_int(it["flag_owntopic"]) or it["flag_owntopic"] not in range(4):
+            bad("flag")
+        links = it["links"]
+        for name, (req, opt) in _VB_LINK_KEYS.items():
+            if name in links and name != "category" and keys(links[name], req, opt, name + " link"):
+                if links[name]["linked_type"] != _VB_LINKED[name] or links[name]["type"] != "link":
+                    bad(name + " type word")
+        if "forum" in links and isinstance(links["forum"], dict) and links["forum"].get("href") != _VB_API:
+            bad("forum href")
+        c = cat_link(links["category"], cat)
+        sub = None
+        if "subcategory" in links and isinstance(links["subcategory"], dict):
+            rest = api(links["subcategory"].get("href"), "subcategory")
+            m = _VB_H_CAT.fullmatch(rest) if rest is not None else None
+            if m is None or not m.group(2) or int(m.group(1)) != c or not alias("subs", int(m.group(2)), 960001):
+                bad("subcategory href")
+            else:
+                sub = int(m.group(2))
+        posts = links["posts"] if isinstance(links["posts"], dict) else {}
+        if posts.get("count") != 5000 + i or not _vb_int(posts.get("count")):
+            bad("reply count")
+        for h, with_posts in ((posts.get("href"), True), (it["href"], False)):
+            rest = api(h, "topic")
+            m = _VB_H_ITEM.fullmatch(rest) if rest is not None else None
+            ok = (m is not None and int(m.group(1)) == c and int(m.group(3)) == 9800000 + i
+                  and ((m.group(2) is None and sub is None) or (m.group(2) and int(m.group(2)) == sub)))
+            if ok and with_posts:
+                ok = m.group(4) is not None and int(m.group(5)) == 40 and int(m.group(4)) == -(-(5000 + i) // 40)
+            elif ok:
+                ok = m.group(4) is None
+            if not ok:
+                bad("posts href" if with_posts else "topic href")
+        for who in ("last_author", "author"):
+            a = links[who]
+            if isinstance(a, dict):
+                if a.get("href") is not None or ("tns3" in a and (
+                        not isinstance(a["tns3"], str) or not _VB_TNS3.fullmatch(a["tns3"]))):
+                    bad("avatar")
+                if not isinstance(a.get("title"), str) or not _VB_AUTHOR.fullmatch(a["title"]):
+                    bad("author name")
+
+    def lst(L, top):
+        if not keys(L, _VB_LIST_KEYS, () if top else {"links"}, "list") or not isinstance(L["resources"], list) \
+                or not L["resources"]:
+            bad("list")
+            return
+        n = len(L["resources"])
+        if L["type"] != "list":
+            bad("list type word")
+        if L["page"] not in (1, 2) or not _vb_int(L["page"]) or L["results_count"] != n or L["results_per_page"] != n \
+                or not _vb_int(n):
+            bad("list counts")
+        rest = api(L["href"], "list")
+        m = _VB_H_LIST.fullmatch(rest) if rest is not None else None
+        cat = None
+        if m is None or m.group(2) not in ("1", "2"):  # the requested page is echoed in the href
+            bad("list href")
+        elif L["list_type"] == "list" and top:
+            if m.group(1) or m.group(3) not in ("5", "25"):  # the requested size is echoed too
+                bad("list href")
+        else:
+            if not m.group(1) or not alias("cats", int(m.group(1)), 101) or int(m.group(3)) != n:
+                bad("list href")
+            cat = int(m.group(1)) if m.group(1) else None
+        if L["list_type"] == "list" and top:
+            for g in L["resources"]:
+                if isinstance(g, dict) and g.get("list_type") == "topic" and "links" in g:
+                    lst(g, False)
+                else:
+                    bad("group")
+        elif L["list_type"] == "topic":
+            if "links" in L:
+                if keys(L["links"], {"category"}, (), "list links") and cat_link(L["links"]["category"], cat) != cat:
+                    bad("list category")
+            elif not top:
+                bad("group")
+            for it in L["resources"]:
+                item(it, cat)
+        else:
+            bad("list type word")
+
+    if keys(doc, {"resource"}, (), "document"):
+        lst(doc["resource"], True)
+    return res
+
+
+def verify_rest_meta(text):
+    """[(line, column, reason)] for a capture meta whose URL names a bucket of a category that is not an alias."""
+    if not looks_json(text):
+        return []
+    res = []
+
+    def walk(o):
+        if isinstance(o, dict):
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+        elif isinstance(o, str):
+            for m in _VB_META_URL.finditer(o):
+                if int(m.group(1)) not in range(101, 104):
+                    res.append((1, 1, "rest-bucket check: category of a URL not aliased"))
+    walk(json.loads(text))
+    return res
+
+
 # Alertes Qualitaÿ, checked apart from DISCOVER / AQ_TEXT_RES: an XML parse of the document, then the
 # HTML of each RSS description scanned with this verifier's own patterns.
 _V_AQ_MASKED = re.compile(r"(?:x|&#?[0-9A-Za-z]+;|[^\w&])*")
@@ -2418,6 +2842,245 @@ def verify_aq(text):
                 bad("RSS item %d reporter not aliased" % n)
             if not _V_AQ_MASKED.fullmatch(comment.strip()):
                 bad("RSS item %d comment not masked" % n)
+    return res
+
+
+_V_AQ_FAKE_TOPIC = re.compile(r"99\d{5}")
+_V_AQ_FAKE_MESSAGE = re.compile(r"991\d{7}")
+_V_AQ_FAKE_ALERT = re.compile(r"992\d{4}")
+_V_AQ_BODY_FIELDS = frozenset((
+    "alerte_qualitay_id", "nom", "topic_id", "topic_titre", "pseudo", "post_id", "post_url", "commentaire"))
+
+
+AQ_LOCAL_ORIGIN = "local-instance"
+AQ_LOCAL_NOTE = "local toyo/aq instance (php -S), not aq.super-h.fr"
+# A local capture holds the run's own fake values and no alias table goes over it: every position must take one of
+# these forms, so a real id, title or free text that reached a run fails. 13636 is the first id of the published
+# schema's AUTO_INCREMENT and 99999 the "no such AQ" probe (T57).
+_V_AQ_LOCAL_ALERT = "13636"
+_V_AQ_LOCAL_UNKNOWN_ALERT = "99999"
+_V_AQ_LOCAL_ID = re.compile(r"700\d{3}")
+_V_AQ_LOCAL_URL = re.compile(r"http://192\.0\.2\.1:\d+(/api/addAlerte\.php|/api/getAlertesByTopic\.php(?:\?topic_id=700\d{3})?)")
+_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other)|AQ flood \d+")
+_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic|AQ flood topic \d+")
+_V_AQ_LOCAL_POST_URL = re.compile(r"https?://forum\.hardware\.fr/hfr/Discussions/Societe/(?:aq-local-(?:topic|other)|aq-flood-\d+)"
+                                  r"-sujet_700\d{3}_1\.htm#t700\d{3}")
+_V_AQ_LOCAL_DATE = re.compile(r"[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT")
+_V_AQ_LOCAL_TYPES = ("text/plain;charset=UTF-8", "text/xml;charset=UTF-8", "text/html; charset=UTF-8")
+_V_AQ_LOCAL_KEYS = frozenset(("id", "account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
+                              "redirects", "set_cookie_names", "origin", "note", "private", "response_headers"))
+_V_AQ_LOCAL_HEADERS = frozenset(("Host", "Date", "Connection", "X-Powered-By", "Content-type"))
+_V_AQ_LOCAL_OPTIONAL_HEADERS = {"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"}
+
+
+def _v_aq_local_meta(doc):
+    """True for a capture meta that says, or looks like, a local AQ instance (dropping `origin` must not skip the check)."""
+    if "origin" in doc:
+        return True
+    split = urllib.parse.urlsplit(str(doc.get("url") or ""))
+    return split.hostname == IP_PLACEHOLDER and split.path.startswith("/api/")
+
+
+def _v_aq_local_body(body, bad):
+    """Report every field of a local create that is not a form of the run (see `_V_AQ_LOCAL_*`)."""
+    pairs = urllib.parse.parse_qsl(str(body), keep_blank_values=True)
+    f = dict(pairs)
+    keys = [k for k, _v in pairs]
+    if len(keys) != len(set(keys)) or set(keys) != _V_AQ_BODY_FIELDS:
+        bad("the body does not hold exactly the create fields")
+    if f.get("alerte_qualitay_id") not in ("-1", _V_AQ_LOCAL_ALERT, _V_AQ_LOCAL_UNKNOWN_ALERT):
+        bad("alerte_qualitay_id not a local value")
+    if f.get("nom") and not _V_AQ_LOCAL_NOM.fullmatch(f["nom"]):
+        bad("nom not a local value")
+    if not _V_AQ_LOCAL_TITLE.fullmatch(f.get("topic_titre", "")):
+        bad("topic_titre not a local value")
+    for k in ("topic_id", "post_id"):
+        if not _V_AQ_LOCAL_ID.fullmatch(f.get(k, "")):
+            bad("%s not a local id" % k)
+    if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+        bad("pseudo not an alias")
+    if not _V_AQ_LOCAL_POST_URL.fullmatch(f.get("post_url", "")):
+        bad("post_url not a local value")
+    if f.get("commentaire") != "post de %s" % f.get("pseudo"):
+        bad("commentaire not the legacy text")
+
+
+def verify_aq_local_meta(doc):
+    """[(line, column, reason)] for every position of an `origin: local-instance` meta that is not a form of the run.
+
+    Exact key set, fixed host and paths, closed values, `origin` itself; status, headers and body length are kept
+    because the meta is the only record of an empty answer (`T62`, `T67`, `T68`)."""
+    res = []
+
+    def bad(reason):
+        res.append((1, 0, "AQ local check: " + reason))
+    if doc.get("origin") != AQ_LOCAL_ORIGIN:
+        bad("origin is not local-instance")
+    post = doc.get("method") == "POST"
+    keys = _V_AQ_LOCAL_KEYS | ({"request_fields", "request_body"} if post else frozenset()) \
+        | ({"file"} if doc.get("file") else {"body_length"})
+    for k in sorted(set(doc) - keys):
+        bad("unknown key (%s)" % k[:20])
+    for k in sorted(keys - set(doc)):
+        bad("key missing (%s)" % k)
+    m = _V_AQ_LOCAL_URL.fullmatch(str(doc.get("url", "")))
+    if not m:
+        bad("url not on the local host, or another path")
+    elif doc.get("final_url") != doc["url"] or doc.get("url_template") != m.group(1):
+        bad("final_url or url_template does not follow url")
+    elif post != m.group(1).endswith("addAlerte.php") or doc.get("method") not in ("GET", "POST"):
+        bad("method does not fit the path")
+    fixed = (("id", bool(re.fullmatch(r"T\d+", str(doc.get("id", ""))))), ("account", doc.get("account") == "anon"),
+             ("note", doc.get("note") == AQ_LOCAL_NOTE), ("status", doc.get("status") in (200, 403)),
+             ("content_type", doc.get("content_type") in _V_AQ_LOCAL_TYPES), ("redirects", doc.get("redirects") == []),
+             ("set_cookie_names", doc.get("set_cookie_names") == []), ("private", doc.get("private") is False),
+             ("date", bool(_V_AQ_LOCAL_DATE.fullmatch(str(doc.get("date", ""))))))
+    for k, fine in fixed:
+        if not fine:
+            bad("%s not a local value" % k)
+    if post:
+        _v_aq_local_body(doc.get("request_body"), bad)
+        if sorted(doc.get("request_fields") or []) != sorted(_V_AQ_BODY_FIELDS):
+            bad("request_fields do not hold exactly the create fields")
+    length = doc.get("body_length", 0)
+    if "file" not in doc and (isinstance(length, bool) or not isinstance(length, int) or length < 0):
+        bad("body_length not a size")
+    headers = doc.get("response_headers")
+    if not isinstance(headers, dict):
+        bad("response_headers not a dict")
+        return res
+    for k in sorted(set(headers) - _V_AQ_LOCAL_HEADERS - set(_V_AQ_LOCAL_OPTIONAL_HEADERS) - {"Content-Length"}):
+        bad("unknown response header (%s)" % k[:20])
+    for k in sorted(_V_AQ_LOCAL_HEADERS - set(headers)):
+        bad("response header missing (%s)" % k)
+    if not re.fullmatch(r"192\.0\.2\.1:\d+", str(headers.get("Host", ""))):
+        bad("Host header not the local host")
+    if headers.get("Date") != doc.get("date") or headers.get("Content-type") != doc.get("content_type"):
+        bad("Date or Content-type header does not follow the meta")
+    if headers.get("Connection") != "close" or not re.fullmatch(r"PHP/\d+\.\d+\.\d+", str(headers.get("X-Powered-By", ""))):
+        bad("Connection or X-Powered-By header not a local value")
+    if any(k in headers and headers[k] != v for k, v in _V_AQ_LOCAL_OPTIONAL_HEADERS.items()):
+        bad("Cache-Control or Pragma header not a local value")
+    if "Content-Length" in headers and ("file" in doc or headers["Content-Length"] != str(length)):
+        bad("Content-Length header does not follow body_length")
+    return res
+
+
+def verify_aq_local_answer(text, meta):
+    """[(line, column, reason)] for an answer of a local instance that is neither a bare code nor a list of the run."""
+    def bad(reason):
+        return (1, 1, "AQ local check: " + reason)
+    if str(meta.get("content_type", "")).startswith("text/plain"):
+        return [] if re.fullmatch(r"-?\d{1,3}\s*", text) else [bad("answer is not a bare code")]
+    import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+    # ElementTree drops comments and instructions, which the published file would still hold.
+    if re.search(r"<[!?]", re.sub(r"\A\s*<\?xml\s[^>]*\?>", "", text.lstrip("\ufeff"))):
+        return [bad("answer holds a comment or an instruction")]
+    try:
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
+    except ET.ParseError:
+        return [bad("answer is not a list")]
+    if root.tag != "alertes" or (root.text or "").strip() or root.attrib:
+        return [bad("answer is not a list")]
+    try:
+        day = email.utils.parsedate_to_datetime(str(meta.get("date"))).strftime("%d-%m-%Y")
+    except (TypeError, ValueError):  # the message would print the value, and CI logs are public
+        return [bad("meta date is not a date")]
+    res = []
+    for alert in root:
+        if alert.tag != "alerte" or set(alert.attrib) != {"id", "nom", "pseudoInitiateur", "date", "postsIds"} \
+                or len(alert) or (alert.text or "").strip() or (alert.tail or "").strip():
+            res.append(bad("alert of an unknown shape"))
+            continue
+        if alert.get("id") != _V_AQ_LOCAL_ALERT:
+            res.append(bad("alert id not a local value"))
+        if not all(_V_AQ_LOCAL_ID.fullmatch(i) for i in alert.get("postsIds", "").split(",")):
+            res.append(bad("postsIds not local ids"))
+        if alert.get("date") != day:
+            res.append(bad("alert date is not the day of the run"))
+    return res
+
+
+def _v_aq_host(url):
+    return (urllib.parse.urlsplit(str(url or "")).hostname or "").rstrip(".").casefold() == "aq.super-h.fr"
+
+
+def verify_aq_own(text, own_list=False):
+    """[(line, column, reason)] for the AQ shapes of an operator-owned topic that are not aliases.
+
+    Position-based and config-free, independent of the redactor: (1) the `request_body` of an AQ create (every
+    field, the permalink included); (2) every alert of a list whose messages are fake ids, or of any list when
+    `own_list` (its meta names a fake topic id, `check --corpus`): alert id, message ids, date; (3) the HTTP date of an AQ meta naming a fake topic."""
+    res = []
+    if own_list and (looks_json(text) or not re.search(r"<alertes\b", text.lstrip("\ufeff \t\r\n")[:400])):
+        # The meta names a fake own topic: the file must be an AQ list, anything else is not verifiable.
+        return [(1, 1, "AQ own-topic check: file of an own-topic AQ read is not an AQ list")]
+    if looks_json(text):
+        try:
+            doc = json.loads(text)
+        except ValueError:
+            return res
+        if isinstance(doc, dict) and _v_aq_local_meta(doc):
+            return verify_aq_local_meta(doc)
+        if not isinstance(doc, dict) or not any(_v_aq_host(doc.get(k)) for k in ("url", "final_url")):
+            return res
+        line = next((i + 1 for i, l in enumerate(text.split("\n")) if '"request_body"' in l), 1)
+
+        def bad(reason):
+            res.append((line, 0, "AQ own-topic check: " + reason))
+        body = doc.get("request_body")
+        if isinstance(body, str):
+            pairs = urllib.parse.parse_qsl(body, keep_blank_values=True)
+            f = dict(pairs)
+            keys = [k for k, _v in pairs]
+            if len(keys) != len(set(keys)):
+                bad("duplicate field in the body")
+            for k in sorted(set(keys) - _V_AQ_BODY_FIELDS):
+                bad("unknown field in the body (%s)" % k[:20])
+            for k in sorted(_V_AQ_BODY_FIELDS - set(keys)):
+                bad("field missing from the body (%s)" % k)
+            if f.get("alerte_qualitay_id") != "-1":
+                bad("alerte_qualitay_id is not the create marker -1")
+            if not _V_AQ_FAKE_TOPIC.fullmatch(f.get("topic_id", "")):
+                bad("topic_id not an alias")
+            if not _V_AQ_FAKE_MESSAGE.fullmatch(f.get("post_id", "")):
+                bad("post_id not an alias")
+            if f.get("topic_titre") != OWN_SUBJECT:
+                bad("topic_titre not an alias")
+            if f.get("nom") != OWN_ALERT_TITLE:
+                bad("nom (alert title) not a placeholder")
+            if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+                bad("pseudo not an alias")
+            if not re.fullmatch(r"post de user\d+", f.get("commentaire", "")):
+                bad("commentaire not an alias")
+            if not re.fullmatch(r"https://forum\.hardware\.fr/hfr/%s/%s/%s-sujet_99\d{5}_\d+\.htm#t991\d{7}"
+                                % (OWN_CATEGORY, OWN_SUBCATEGORY, OWN_SLUG), f.get("post_url", "")):
+                bad("post_url (category, slug, topic or message id) not an alias")
+        topic = re.search(r"topic_id=(\d+)", str(doc.get("url", "")) + " " + str(doc.get("final_url", "")))
+        if (topic and _V_AQ_FAKE_TOPIC.fullmatch(topic.group(1))) or isinstance(body, str):
+            if doc.get("date") not in (None, OWN_HTTP_DATE):
+                bad("HTTP date not an alias")
+            if topic and not _V_AQ_FAKE_TOPIC.fullmatch(topic.group(1)):
+                bad("topic_id of the URL not an alias")
+        return res
+    head = text.lstrip("\ufeff \t\r\n")[:400]
+    if not head.startswith("<?xml") or not re.search(r"<alertes\b", head):
+        return res
+    try:
+        import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
+    except ET.ParseError:
+        return [(1, 1, "AQ own-topic check: not well-formed XML")] if own_list else res
+    for alert in root.iter("alerte"):
+        posts = [p for p in alert.get("postsIds", "").split(",") if p]
+        if not own_list and not any(_V_AQ_FAKE_MESSAGE.fullmatch(p) for p in posts):
+            continue
+        if not _V_AQ_FAKE_ALERT.fullmatch(alert.get("id", "")):
+            res.append((1, 1, "AQ own-topic check: alert id not an alias"))
+        if not posts or any(not _V_AQ_FAKE_MESSAGE.fullmatch(p) for p in posts):
+            res.append((1, 1, "AQ own-topic check: postsIds not aliases"))
+        if alert.get("date") != OWN_DATE:
+            res.append((1, 1, "AQ own-topic check: alert date not an alias"))
     return res
 
 
@@ -2491,6 +3154,50 @@ def corpus_entries(folder):
     return entries
 
 
+def _own_aq_list_files(folder):
+    """Paths of the corpus files whose meta is an AQ read naming a fake own-topic id: every alert in them must be an alias."""
+    paths = set()
+    for name in sorted(os.listdir(folder)):
+        if not name.endswith(".meta.json"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as fh:
+            meta = json.load(fh)
+        topic = re.search(r"topic_id=(\d+)", str(meta.get("url", "")) + " " + str(meta.get("final_url", "")))
+        if meta.get("file") and _v_aq_host(meta.get("url")) and topic and _V_AQ_FAKE_TOPIC.fullmatch(topic.group(1)):
+            paths.add(os.path.join(folder, meta["file"]))
+    return paths
+
+
+def _local_aq_files(folder):
+    """{path: meta} of the corpus files whose meta is an `origin: local-instance` capture: every answer in them is checked."""
+    paths = {}
+    for name in sorted(os.listdir(folder)):
+        if not name.endswith(".meta.json"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as fh:
+            meta = json.load(fh)
+        if meta.get("file") and "origin" in meta:
+            paths[os.path.join(folder, meta["file"])] = meta
+    return paths
+
+
+def meta_urls(folder, cache):
+    """{capture file: final URL or URL} of the metas next to a file, for the checks that depend on the request."""
+    if folder not in cache:
+        urls = {}
+        for name in os.listdir(folder):
+            if name.endswith(".meta.json"):
+                try:
+                    with open(os.path.join(folder, name), encoding="utf-8") as fh:
+                        meta = json.load(fh)
+                except (OSError, ValueError):
+                    continue
+                if isinstance(meta, dict) and meta.get("file"):
+                    urls[meta["file"]] = meta.get("final_url") or meta.get("url")
+        cache[folder] = urls
+    return cache[folder]
+
+
 def cmd_check(args):
     """CLI: verify files (or a whole corpus); exit non-zero when any file leaks."""
     anon = Anonymizer(Config.load(args.config) if args.config else Config())
@@ -2499,7 +3206,9 @@ def cmd_check(args):
     except (OSError, ValueError) as exc:
         _ui.ko(str(exc))
         return 1
-    bad = 0
+    bad, url_cache = 0, {}
+    own_aq_lists = _own_aq_list_files(args.corpus) if args.corpus else set()
+    local_aq = _local_aq_files(args.corpus) if args.corpus else {}
     for path, private, account in entries:
         try:
             text, _enc = read_text(path)
@@ -2507,7 +3216,12 @@ def cmd_check(args):
             _ui.ko("%s: %s" % (path, exc.strerror))
             bad += 1
             continue
-        leaks = anon.findings(text, private=private, account=account)
+        url = meta_urls(os.path.dirname(os.path.abspath(path)), url_cache).get(os.path.basename(path))
+        leaks = anon.findings(text, private=private, account=account, url=url)
+        if path in own_aq_lists:
+            leaks += verify_aq_own(text, own_list=True)
+        if path in local_aq:
+            leaks += verify_aq_local_answer(text, local_aq[path])
         for line, col, reason in leaks:
             _ui.ko("%s:%d:%d: %s" % (path, line, col, reason))
         if leaks:

@@ -1,0 +1,79 @@
+import SwiftUI
+
+/// The reader's "Enregistrer hors ligne" menu and the progress banner (LOT-139). Hidden for a private conversation (it cannot
+/// be read without the session) and in the offline reader itself.
+struct ReaderOfflineSave: ViewModifier {
+    /// How many pages "this page and the next ones" saves, this one included. Legacy read an `offline_max_pages` setting nothing
+    /// ever wrote (`OfflineStorage.m:145-294`, commented out): the number is LOT-139's choice, listed in the PR.
+    static let pagesInBatch = 5
+
+    let model: TopicReaderModel
+    /// Owned by the reader view, which stops its run when the member really leaves (`TopicReaderView.onDisappear`).
+    let saver: OfflineSaveModel?
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                if let saver, !model.isPrivateConversation, let page = model.page {
+                    ToolbarItem(placement: .secondaryAction) { menu(saver, page: page) }
+                }
+            }
+            .safeAreaBar(edge: .top) {
+                if let saver, saver.state != .idle { OfflineSaveBanner(saver: saver) }
+            }
+    }
+
+    @ViewBuilder
+    private func menu(_ saver: OfflineSaveModel, page: ReaderPage) -> some View {
+        if saver.isSaving {
+            Button("Arrêter l’enregistrement", systemImage: "stop.circle") { saver.cancel() }
+        } else {
+            Button("Enregistrer cette page hors ligne", systemImage: "arrow.down.circle") {
+                saver.start(page: page, count: 1, fallbackTitle: model.initialTitle)
+            }
+            // Disabled on the last page: there are no following pages to save.
+            Button("Enregistrer cette page et les \(Self.pagesInBatch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
+                saver.start(page: page, count: Self.pagesInBatch, fallbackTitle: model.initialTitle)
+            }
+            .disabled(page.currentPage >= page.maxPage)
+        }
+    }
+}
+
+extension View {
+    /// Adds the offline save menu of `model`'s topic.
+    func offlineSave(model: TopicReaderModel, saver: OfflineSaveModel?) -> some View {
+        modifier(ReaderOfflineSave(model: model, saver: saver))
+    }
+}
+
+/// One line on the state of a save.
+private struct OfflineSaveBanner: View {
+    let saver: OfflineSaveModel
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if saver.isSaving { ProgressView() }
+            Text(OfflineSaveText.text(for: saver.state)).scaledFont(.footnote)
+            Spacer()
+            if !saver.isSaving { Button("Fermer", systemImage: "xmark") { saver.dismiss() }.labelStyle(.iconOnly) }
+        }
+        .padding(.horizontal).padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The French line of each state.
+enum OfflineSaveText {
+    static func text(for state: OfflineSaveModel.State) -> String {
+        switch state {
+        case .idle: ""
+        case .saving(let done, let total): "Enregistrement hors ligne : \(done) sur \(total)"
+        case .finished(let saved): saved == 1 ? "1 page enregistrée hors ligne" : "\(saved) pages enregistrées hors ligne"
+        case .stopped(let saved): "Enregistrement arrêté : \(savedPages(saved))"
+        case .failed(let message, let saved): saved == 0 ? message : "\(message) (\(savedPages(saved)))"
+        }
+    }
+
+    private static func savedPages(_ count: Int) -> String { count > 1 ? "\(count) pages enregistrées" : "\(count) page enregistrée" }
+}

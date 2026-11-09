@@ -41,6 +41,9 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   when the page is the storage thread and the document holds known keys and the strings `0.1` and `iOS` (R60a); any other
   key or string (a blacklisted pseudo, another client's data) stops the anonymizer until that position gets aliasing.
 - List rows (rows linking with `owntopic=1|2|3`, or showing a flag, in the `forum2.php` or the rewritten link form) are aliased **row by row** by position (topic and message ids, title and slug, categories, page numbers, counts, dates), so fixtures stay stable and carry no live data. `check` fails on any number of such a row that is not an alias ([kit README](../tooling/fixtures/README.md#list-rows)).
+- The personal smiley page (`uploadsmil.php`) goes through the same member aliasing, and each filled `keyword<N>` input becomes `Keywords removed.`; `check` fails otherwise, on any page ([kit README](../tooling/fixtures/README.md#what-is-replaced)).
+- REST flag buckets (logged-in `topics/{participated,read,favorites}` answers) are aliased by position and cut to a fixed size, like list rows; `check` fails on any key outside the exact set of its dict kind, and on any id, title, date, count, offset, size, type word, avatar or href of a bucket that is not exactly the alias of its position (also when the capture's request, not the body, says it is a bucket), and on a category of a bucket URL in a meta that is not an alias ([kit README](../tooling/fixtures/README.md#rest-flag-buckets)).
+- Answers of a local AQ instance (`origin: local-instance`, #574) hold fake values only: `check` fails on any position that is not one of the run's own forms, and their metas keep status, response headers and, with no file, the body length ([kit README](../tooling/fixtures/README.md)).
 A reviewer must check anonymization; `check --corpus` and gitleaks run on every push as safety nets.
 
 ## Capture

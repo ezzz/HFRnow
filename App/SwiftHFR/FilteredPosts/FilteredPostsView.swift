@@ -6,6 +6,8 @@ import SwiftUI
 // Differences: the filtered posts open in a sheet over the list or the reader, not pushed on the list's stack (the entry
 // points are two, and a sheet works in every layout); "Résultats suivants" can be cancelled and says what it reads; links
 // open in the in-app browser (a forum link does not open a reader from here yet).
+// LOT-185: "Résultats suivants" is a `safeAreaBar` with `.glassProminent`, not legacy's `.bottomBar` toolbar item (it holds a
+// state line, a hint and Cancel); the banner is glass; GAP row pending #545.
 
 /// Shows the progress banner, the filtered posts sheet and the failure alert of `model` over its content.
 private struct FilteredPostsPresentation: ViewModifier {
@@ -69,7 +71,7 @@ struct FilteredPostsBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.bar, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
         .accessibilityElement(children: .combine)
         // Legacy hid an information after 3 seconds.
         .task(id: model.statusMessage) {
@@ -87,6 +89,8 @@ struct FilteredPostsView: View {
     @State private var controller: ReaderWebController?
     @State private var document: ReaderDocument?
     @State private var readyToken: Int?
+    /// The web view could not show the document (issue #566): a retry replaces the spinner.
+    @State private var failed = false
     @State private var nextToken = 0
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
@@ -101,7 +105,17 @@ struct FilteredPostsView: View {
                     .opacity(readyToken == nil ? 0 : 1)
                     .accessibilityHidden(readyToken == nil)
             }
-            if readyToken == nil { ProgressView("Chargement des messages") }
+            if readyToken == nil {
+                if failed {
+                    ContentUnavailableView {
+                        Label("Affichage impossible", systemImage: "exclamationmark.triangle")
+                    } actions: {
+                        Button("Réessayer") { show(model.result) }
+                    }
+                } else {
+                    ProgressView("Chargement des messages")
+                }
+            }
         }
         .navigationTitle(model.title)
         .navigationSubtitle(model.result?.subtitle ?? "")
@@ -109,10 +123,10 @@ struct FilteredPostsView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Fermer") { model.closeResult() } }
         }
-        .safeAreaInset(edge: .top) {
+        .safeAreaBar(edge: .top) {
             if model.bannerText != nil { FilteredPostsBanner(model: model).padding(.horizontal).padding(.top, 4) }
         }
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             if let result = model.result { NextBatchBar(model: model, result: result) }
         }
         .filteredPostsAlert(model, shown: model.result != nil)
@@ -120,6 +134,11 @@ struct FilteredPostsView: View {
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .onAppear(perform: makeController)
+        // A screen that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
+        .onAppear {
+            controller?.resume()
+            controller?.show(document)
+        }
         // Only a new page of posts reloads the document: marking the topic finished keeps the scroll position.
         .onChange(of: model.result?.page, initial: true) { _, _ in show(model.result) }
         .onDisappear {
@@ -133,6 +152,7 @@ struct FilteredPostsView: View {
         guard let result else { return }
         nextToken += 1
         readyToken = nil
+        failed = false
         document = ReaderDocument(
             token: nextToken,
             html: TopicHTMLBuilder.document(for: result.page, token: nextToken, options: services.settings.renderOptions()),
@@ -147,6 +167,12 @@ struct FilteredPostsView: View {
         )
         controller.events = ReaderWebController.Events(
             ready: { token in if token == document?.token { readyToken = token } },
+            // A shown page whose reload after a crash failed twice is blank again: the retry replaces it (#566).
+            failed: { token in
+                guard token == document?.token else { return }
+                readyToken = nil
+                failed = true
+            },
             link: { url in
                 guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return }
                 if services.settings.opensLinksInDefaultBrowser() { openURL(url) } else { external = ExternalLink(url: url) }
@@ -185,7 +211,7 @@ private struct NextBatchBar: View {
                 Button { model.showNextBatch() } label: {
                     Label("Résultats suivants", systemImage: "arrow.forward").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 if let hint = model.nextBatchHint {
                     Text(hint).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
@@ -193,6 +219,5 @@ private struct NextBatchBar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
     }
 }

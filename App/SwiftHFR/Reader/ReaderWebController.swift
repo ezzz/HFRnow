@@ -10,7 +10,8 @@ import WebKit
 ///   Policy (header and `<meta>`) allows nothing else, and content JavaScript is off;
 /// - the only script is `reader.js`, a user script in the app's own content world, which the page cannot reach;
 /// - images go through policy C and the cookie-less client (`ReaderImageFetcher`), decided per URL here;
-/// - the web view never navigates away: link taps are handed to the app, new windows are refused, link previews are off;
+/// - the web view never navigates away: link taps are handed to the app, new windows are refused, and a link's long-press
+///   menu is the app's own, without preview;
 /// - the data store is non-persistent: no cookie, cache or storage outlives the reader.
 @MainActor
 final class ReaderWebController: NSObject {
@@ -18,14 +19,17 @@ final class ReaderWebController: NSObject {
     struct Events {
         /// The document `token` reached DOMContentLoaded and its images were routed.
         var ready: @MainActor (Int) -> Void = { _ in }
+        /// The document `token` could not be shown: its navigation failed twice (issue #566).
+        var failed: @MainActor (Int) -> Void = { _ in }
         /// The user tapped a link.
         var link: @MainActor (URL) -> Void = { _ in }
         /// The user tapped the placeholder of video `index` of message `post` in document `token`.
         var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
         /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
         var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
-        /// The user tapped the menu button or the author of message `post` in document `token`.
-        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped the menu button or the author of message `post` in document `token`; `anchor` is the button's
+        /// rectangle in the web view's own coordinates (nil when the page gave none).
+        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ anchor: CGRect?, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user chose "Citer extrait" or "Citer gras" over `text`, selected in message `post` of document `token` (LOT-086).
         var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
@@ -43,6 +47,8 @@ final class ReaderWebController: NSObject {
 
     let webView: QuoteMenuWebView
     var events = Events()
+    /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
+    var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
     var textScale = TextScale.standard {
         didSet {
@@ -61,10 +67,26 @@ final class ReaderWebController: NSObject {
         }
     }
 
+    /// What the bars and banners cover of the web view, which runs under them (LOT-186; `ReaderWebController+Scroll`).
+    var obscuredInsets = UIEdgeInsets.zero {
+        didSet { if obscuredInsets != oldValue { applyObscuredInsets(from: oldValue) } }
+    }
+
     private let imageFetcher: ReaderImageFetcher
     let autoLoadsThirdPartyImages: @Sendable () -> Bool
-    private var document: ReaderDocument?
-    private var savedOffset: CGPoint?
+    /// The document shown, or loading; nil before the first and after a load stopped before it was ready.
+    private(set) var document: ReaderDocument?
+    /// The token of the shown document once it reported ready; until then `stopLoading()` forgets the document (issue #566).
+    private var readyToken: Int?
+    /// The main-frame navigation of the shown document while it may still report ready; nil once stopped or failed.
+    private var pageNavigation: WKNavigation?
+    /// The shown document's navigation failed once and was started again; a second failure is reported (issue #566).
+    private var reloadedAfterFailure = false
+    /// `stopLoading()` ran and the screen has not come back (`resume()`): `show` loads nothing, so a re-render of the hidden
+    /// view cannot restart the load just stopped (issue #566).
+    private var stopped = false
+    /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
+    private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var waiting: [(key: ObjectIdentifier, start: () -> Void)] = []
@@ -87,9 +109,9 @@ final class ReaderWebController: NSObject {
         configuration.allowsInlineMediaPlayback = false
         configuration.mediaTypesRequiringUserActionForPlayback = .all
         configuration.upgradeKnownHostsToHTTPS = true
-        let proxy = SchemeProxy()
+        let proxy = ReaderSchemeProxy()
         configuration.setURLSchemeHandler(proxy, forURLScheme: TopicHTMLBuilder.scheme)
-        let messages = MessageProxy()
+        let messages = ReaderMessageProxy()
         configuration.userContentController.addScriptMessageHandler(messages, contentWorld: Self.world, name: Self.channel)
         webView = QuoteMenuWebView(frame: .zero, configuration: configuration)
         super.init()
@@ -99,20 +121,40 @@ final class ReaderWebController: NSObject {
         messages.owner = self
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.allowsLinkPreview = false
+        // True so WebKit consults `contextMenuConfigurationForElement` (our menu, no preview); with it off it shows its own sheet.
+        webView.allowsLinkPreview = true
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
+        // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
     }
 
-    /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state).
+    /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document
+    /// whose load `stopLoading()` cut before it was ready is no longer the one shown, so showing it again loads it (issue #566).
     func show(_ document: ReaderDocument?) {
-        guard let document, document.token != self.document?.token else { return }
-        savedOffset = document.keepsScrollPosition ? webView.scrollView.contentOffset : nil
+        guard let document else { return }
+        guard !stopped else {
+            ReaderLog.debug("show skipped token=\(document.token): stopped")
+            return
+        }
+        guard document.token != self.document?.token else {
+            ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
+            return
+        }
+        ReaderLog.debug("show loads token=\(document.token)")
+        savedReadingTop = document.keepsScrollPosition ? readingTop : nil
         self.document = document
+        readyToken = nil
+        reloadedAfterFailure = false
         imageRequests.removeAll()
         consented.removeAll()
-        webView.load(URLRequest(url: Self.pageURL(token: document.token)))
+        loadPage(document)
+    }
+
+    /// Starts the main-frame navigation of `document`, remembered to tell its failures from those of another navigation.
+    func loadPage(_ document: ReaderDocument) {
+        pageNavigation = webView.load(URLRequest(url: Self.pageURL(token: document.token)))
     }
 
     /// Scrolls to a message of the shown document, once per request.
@@ -122,77 +164,47 @@ final class ReaderWebController: NSObject {
         scroll(to: request.anchor)
     }
 
-    /// Stops every image download in flight (the screen goes away).
+    /// Stops the page and every image download in flight (the screen goes away). A document that was not ready yet is
+    /// forgotten, so the next `show` of it loads it again (issue #566).
     func stopLoading() {
+        let wasReady = document != nil && readyToken == document?.token
+        ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
         webView.stopLoading()
+        stopped = true
+        pageNavigation = nil
+        if !wasReady {
+            document = nil
+            readyToken = nil
+        }
         for task in running.values { task.cancel() }
         running.removeAll()
         waiting.removeAll()
+    }
+
+    /// The screen is back: `show` loads again (call it before `show`).
+    func resume() {
+        stopped = false
     }
 
     static func pageURL(token: Int) -> URL {
         URL(string: "\(TopicHTMLBuilder.scheme)://page/\(token)") ?? URL(fileURLWithPath: "/")
     }
 
-    private static let readerScript: String? = {
-        guard let url = Bundle.main.url(forResource: "reader", withExtension: "js") else { return nil }
-        return try? String(contentsOf: url, encoding: .utf8)
-    }()
-
     private static let stylesheet: Data? = {
         guard let url = Bundle.main.url(forResource: "reader", withExtension: "css") else { return nil }
         return try? Data(contentsOf: url)
     }()
 
-    /// The scripts that set the text size and the theme colours of a document before it renders, then `reader.js`; all in
-    /// the reader's world.
-    private func installUserScripts() {
-        let controller = webView.configuration.userContentController
-        controller.removeAllUserScripts()
-        for source in [Self.textScaleScript(textScale), theme.readerScript] {
-            controller.addUserScript(
-                WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world)
-            )
-        }
-        if let script = Self.readerScript {
-            controller.addUserScript(
-                WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world)
-            )
-        }
-    }
-
-    /// Sets `--text-scale` (read by `reader.css`) on the shown document's root element.
-    private func applyTextScale() {
-        guard document != nil else { return }
-        let script = Self.textScaleScript(textScale)
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
-    }
-
-    /// Sets the theme's CSS variables (read by `reader.css`) on the shown document's root element.
-    private func applyTheme() {
-        guard document != nil else { return }
-        let script = theme.readerScript
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
-    }
-
-    /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
-    static func textScaleScript(_ scale: TextScale) -> String {
-        let factor = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), Double(scale.factor))
-        return "document.documentElement.style.setProperty('--text-scale', '\(factor)');"
-    }
-
-    /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
-    /// document scrolls once.
-    private func scroll(to anchor: Int, landing: Bool = false) {
-        let script = "return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);"
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["n": anchor], in: nil, contentWorld: Self.world) }
-    }
-
     // MARK: - Messages from reader.js
 
-    fileprivate func receive(_ message: WKScriptMessage) -> Any? {
-        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body),
-              let document, decoded.token == document.token else { return nil }
+    func receive(_ message: WKScriptMessage) -> Any? {
+        guard message.frameInfo.isMainFrame, let decoded = try? ReaderBridgeMessage.decode(message.body) else { return nil }
+        guard let document, decoded.token == document.token else {
+            if case .ready = decoded.message {
+                ReaderLog.debug("ready dropped token=\(decoded.token) shown=\(self.document?.token ?? -1)")
+            }
+            return nil
+        }
         return handle(decoded.message, in: document)
     }
 
@@ -216,8 +228,10 @@ final class ReaderWebController: NSObject {
         case .video(let post, let index):
             events.video(post, index, document.token)
             return nil
-        case .menu(let post, let source):
-            events.menu(post, source, document.token)
+        case .menu(let post, let source, let anchor):
+            // `getBoundingClientRect` counts from the bars' edge (`obscuredContentInsets`): the view starts above it.
+            let anchor = anchor?.offsetBy(dx: 0, dy: obscuredInsets.top)
+            events.menu(post, source, anchor, document.token)
             return nil
         case .image(let urls, let index):
             return openViewer(urls: urls, index: index, token: document.token)
@@ -238,16 +252,60 @@ final class ReaderWebController: NSObject {
         applyTheme()
         if let anchor = document.anchor {
             scroll(to: anchor, landing: true)
-        } else if let offset = savedOffset {
-            webView.scrollView.setContentOffset(offset, animated: false)
+        } else if let readingTop = savedReadingTop {
+            scroll(toReadingTop: readingTop)
         }
-        savedOffset = nil
+        savedReadingTop = nil
+        readyToken = token
+        ReaderLog.debug("ready accepted token=\(token)")
         events.ready(token)
     }
 
-    // MARK: - hfrreader: scheme
+    /// The shown document's navigation failed before it was ready: it is loaded once more, then the failure is reported, so
+    /// the screen never waits for a page that will not come (issue #566). Another navigation's failure (a link the policy
+    /// refused, a document replaced or stopped since) changes nothing.
+    func pageNavigationFailed(_ navigation: WKNavigation?, error: any Error) {
+        let code = (error as NSError).code
+        guard let document, let navigation, navigation === pageNavigation, readyToken != document.token else {
+            ReaderLog.debug("navigation failure ignored code=\(code)")
+            return
+        }
+        retryOrReport(document, reason: "navigation failed code=\(code)")
+    }
 
-    fileprivate func start(_ task: any WKURLSchemeTask) {
+    /// The content process died (memory pressure on a huge page). A document already shown is loaded again; one not ready
+    /// yet follows the reload-once rule, so a page that kills the process every time ends on the retry, not a spinner.
+    func contentProcessTerminated() {
+        guard let document else { return }
+        guard readyToken != document.token else {
+            ReaderLog.debug("content process terminated token=\(document.token) ready=true: reloading")
+            // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen.
+            readyToken = nil
+            reloadedAfterFailure = false
+            loadPage(document)
+            return
+        }
+        retryOrReport(document, reason: "content process terminated")
+    }
+
+    /// Loads the not-ready `document` once more, or reports it after a second failure (issue #566).
+    private func retryOrReport(_ document: ReaderDocument, reason: String) {
+        pageNavigation = nil
+        guard reloadedAfterFailure else {
+            ReaderLog.debug("\(reason) token=\(document.token): reloading")
+            reloadedAfterFailure = true
+            loadPage(document)
+            return
+        }
+        ReaderLog.debug("\(reason) again token=\(document.token): reported")
+        events.failed(document.token)
+    }
+}
+
+// MARK: - hfrreader: scheme
+
+extension ReaderWebController {
+    func start(_ task: any WKURLSchemeTask) {
         guard let url = task.request.url else { return fail(task) }
         switch url.host() {
         case "page":
@@ -266,7 +324,7 @@ final class ReaderWebController: NSObject {
         }
     }
 
-    fileprivate func stop(_ task: any WKURLSchemeTask) {
+    func stop(_ task: any WKURLSchemeTask) {
         let key = ObjectIdentifier(task)
         running[key]?.cancel()
         running[key] = nil
@@ -332,63 +390,5 @@ final class ReaderWebController: NSObject {
 
     private func fail(_ task: any WKURLSchemeTask) {
         task.didFailWithError(URLError(.resourceUnavailable))
-    }
-}
-
-// MARK: - Navigation: the web view never leaves the document
-
-extension ReaderWebController: WKNavigationDelegate, WKUIDelegate {
-    func webView(
-        _ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
-    ) {
-        let url = navigationAction.request.url
-        if let url, let document, navigationAction.targetFrame?.isMainFrame == true,
-           url == Self.pageURL(token: document.token), navigationAction.navigationType == .other {
-            return decisionHandler(.allow)
-        }
-        decisionHandler(.cancel)
-        if let url, navigationAction.navigationType == .linkActivated { events.link(url) }
-    }
-
-    func webView(
-        _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
-        for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures
-    ) -> WKWebView? {
-        if let url = navigationAction.request.url { events.link(url) }
-        return nil
-    }
-
-    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        // The content process died (memory pressure on a huge page): show the same document again.
-        guard let document else { return }
-        webView.load(URLRequest(url: Self.pageURL(token: document.token)))
-    }
-}
-
-/// Breaks the retain cycle configuration → handler → controller → web view → configuration.
-@MainActor
-private final class SchemeProxy: NSObject, WKURLSchemeHandler {
-    weak var owner: ReaderWebController?
-
-    func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
-        guard let owner else { return urlSchemeTask.didFailWithError(URLError(.cancelled)) }
-        owner.start(urlSchemeTask)
-    }
-
-    func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
-        owner?.stop(urlSchemeTask)
-    }
-}
-
-/// Same for the message channel, which `WKUserContentController` retains strongly.
-@MainActor
-private final class MessageProxy: NSObject, WKScriptMessageHandlerWithReply {
-    weak var owner: ReaderWebController?
-
-    func userContentController(
-        _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
-    ) async -> (Any?, String?) {
-        (owner?.receive(message), nil)
     }
 }

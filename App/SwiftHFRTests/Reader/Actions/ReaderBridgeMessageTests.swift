@@ -15,9 +15,9 @@ struct ReaderBridgeMessageTests {
         #expect(decode(["type": "video", "token": 3, "post": 42, "index": 0])
             == .success(.init(token: 3, message: .video(post: 42, index: 0))))
         #expect(decode(["type": "menu", "token": 3, "post": 42, "source": "message"])
-            == .success(.init(token: 3, message: .menu(post: 42, source: .message))))
+            == .success(.init(token: 3, message: .menu(post: 42, source: .message, anchor: nil))))
         #expect(decode(["type": "menu", "token": 3, "post": 42, "source": "avatar"])
-            == .success(.init(token: 3, message: .menu(post: 42, source: .avatar))))
+            == .success(.init(token: 3, message: .menu(post: 42, source: .avatar, anchor: nil))))
         #expect(decode(["type": "position", "token": 3, "post": 42])
             == .success(.init(token: 3, message: .position(post: 42))))
         #expect(decode(["type": "images", "token": 3, "urls": ["a", 7, "b"] as [Any]])
@@ -67,6 +67,31 @@ struct ReaderBridgeMessageTests {
         #expect(decode(["type": "ready", "token": "1"]) == .failure(.malformed))
         #expect(decode(["type": "ready", "token": true]) == .failure(.malformed))
         #expect(decode(["type": "ready", "token": 1.5]) == .failure(.malformed))
+    }
+
+    @Test func aMenuMessageCarriesTheRectangleOfItsButton() {
+        let body: [String: Any] = [
+            "type": "menu", "token": 3, "post": 42, "source": "message", "x": 300.5, "y": -4, "width": 32, "height": 30
+        ]
+        #expect(decode(body) == .success(.init(
+            token: 3, message: .menu(post: 42, source: .message, anchor: CGRect(x: 300.5, y: -4, width: 32, height: 30))
+        )))
+    }
+
+    @Test func aBadRectangleOpensTheMenuUnanchoredInsteadOfAtAForgedPlace() {
+        let good: [String: Any] = ["type": "menu", "token": 3, "post": 42, "source": "message", "x": 1, "y": 2, "width": 3, "height": 4]
+        let bad: [[String: Any]] = [
+            ["x": true], ["x": "1"], ["x": Double.nan], ["x": Double.infinity], ["width": -1], ["height": -0.5],
+            ["y": 1e9], ["width": NSNull()], ["x": kCFBooleanTrue as Any]
+        ]
+        for patch in bad {
+            #expect(decode(good.merging(patch) { $1 }) == .success(.init(
+                token: 3, message: .menu(post: 42, source: .message, anchor: nil)
+            )), "\(patch)")
+        }
+        var partial = good
+        partial["height"] = nil
+        #expect(decode(partial) == .success(.init(token: 3, message: .menu(post: 42, source: .message, anchor: nil))))
     }
 
     @Test func aKnownNameWithAWrongPayloadIsRejectedWhole() {

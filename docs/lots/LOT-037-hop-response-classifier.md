@@ -73,7 +73,7 @@ captured state.
 
 ## Pending capture
 Capture issues: [#135](https://github.com/ezzz/HFRnow/issues/135), [#136](https://github.com/ezzz/HFRnow/issues/136), [#137](https://github.com/ezzz/HFRnow/issues/137), [#138](https://github.com/ezzz/HFRnow/issues/138), [#131](https://github.com/ezzz/HFRnow/issues/131). None blocks the lot; until captured, each state is classified conservatively.
-- Captured since (PR #394, read by #395): alert already sent (`R88`, `.hop` + back link, the legacy shape), alert submitted (`W46`), alert page and submit without a session (`R89`, `W47`), poll vote answers (`W42`-`W44`, LOT-054).
+- Captured since (PR #394, read by #395): alert already sent (`R88`, `.hop` + back link, the legacy shape), alert submitted (`W46`), alert page and submit without a session (`R89`, `W47`), poll vote answers (`W42`-`W44`, LOT-054), the vote answer without cookies (`W45`: the confirmation page of `W42`, so `success` under `.pollVote` whatever the session; LOT-054's session check is what keeps a guest vote out).
 - **Logged-out variants of other writes** (flag GET, vote): `loggedOut` is detected only by the `W17c` sentence (and the alert's own sentence in the alert contexts); a login-form page (legacy `isLoggedOutForm`) is not interpreted.
 - **Topic/MP create, edit with a ban or locked topic**: any other refusal sentence is `rejected` by shape, but unverified.
 

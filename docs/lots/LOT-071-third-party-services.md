@@ -8,7 +8,7 @@
   [E](../audit/E-storage-vendors.md) §5–6 · LOT-034 image hand-off ([PR #23](https://github.com/ezzz/HFRnow/pull/23))
 
 Every host outside `*.hardware.fr` that the legacy app contacts or that SwiftHFR will contact, what each one receives, who runs it,
-how it is configured and what the user is told. The lots that implement each service (LOT-028, 055, 056, 083, Phase 4 GIFs) apply
+how it is configured and what the user is told. The lots that implement each service (LOT-028, 055, 056, 083, 098, 155) apply
 the rules below; a PR that makes the app contact a new third-party host adds its row to the inventory first.
 
 ## Legacy sources
@@ -52,7 +52,7 @@ Owner = who runs the host; none of them is this project or HFR.
 | T2 | AQ per-topic check | `aq.super-h.fr` | user opens the AQ action | topic id (says which topic the user reads) | same | LOT-055 | kept (Q-4, D-071-3) |
 | T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`; unauthenticated, so anyone can post as anyone | same | LOT-055 | kept, notice before the first creation (Q-4, D-071-3) |
 | T4 | Image rehost (Chevereto) | `img3.super-h.fr` | user uploads an image in the composer | the image (re-encoded JPEG, downscaled to the user setting), the API key in the query; no cookie. The uploaded image becomes public; no delete API is evidenced (HFR-PROTOCOL §7b B12). Whether the re-encode strips EXIF/GPS is unverified (audit D §10 Q9) | community operator of `super-h.fr` (also owns the key, ADR 0007) | LOT-056 | kept, notice N1 |
-| T5 | GIF search (Giphy) | Giphy API and CDN | user opens the GIF picker | search terms; the closed SDK may send more (not audited). The chosen GIF URL is posted, so every reader then loads it from Giphy's CDN (T6) | Giphy | Phase 4 (E-10) | undecided (ADR 0007): no SDK without an ADR (AGENTS.md §3.3) |
+| T5 | GIF search (Giphy) | Giphy API and CDN | user opens the GIF picker | search terms only (REST API, no SDK: the closed SDK of legacy may have sent more, not audited). The chosen GIF URL is posted, so every reader then loads it from Giphy's CDN (T6) | Giphy | LOT-098 (client), LOT-155 (picker) | kept: REST API, no SDK, notice N1, search terms only |
 | T6 | Images in messages and signatures | any host a poster chose | displaying a page | an image request per URL; `Referer` and cookies depend on who fetches (see rules R3, R4) | the host's operator, unknown | LOT-034 (lists `MessageImage`), LOT-045 (cookie-less client), LOT-056 (host table), LOT-083 (loading), FEAT-011 (setting) | **decided**: D-071-1 |
 | T7 | Video players | `www.youtube.com`, `player.vimeo.com`, `streamable.com` (legacy active list) | displaying a page with a matching link (`embedded_videos`) | a player iframe: the provider's page, scripts and cookies, loaded without a tap | the provider | LOT-035 (detection), LOT-083 (display) | **decided**: D-071-2 (player on tap) |
 | T8 | External links | any | user taps a link | normal browsing in `SFSafariViewController` (Safari's own data, not the app's) | the site | LOT-083 | unchanged, no notice (user-initiated navigation) |
@@ -94,7 +94,7 @@ implementing a row of the inventory applies them and tests them.
 ### First-use notices
 
 Q-4 and D-071-3 decided the AQ case: a notice before the first AQ creation. N1 to N3 extend it and are **proposed**, applied by
-LOT-055, LOT-056 and the Phase 4 GIF lot unless the operator objects.
+LOT-055, LOT-056 and the GIF lots (LOT-098, LOT-155) unless the operator objects.
 
 - **N1 — Before the first request** that sends user data (T3, T4, T5), a notice says: the host and who runs it (not HFR, not this app),
   what is sent (the "Data sent" cell above, in plain words), that the result is public when it is (AQ, uploaded images), and that the
@@ -158,7 +158,7 @@ does, and the per-topic check runs on the AQ action; the first-use notice of Q-4
 Options considered: (a) legacy behaviour with the notice before the first creation: **chosen**; (b) no contact with `aq.super-h.fr`,
 badge included, before the notice is accepted (proposed by this lot as N3 in the first draft): not adopted.
 
-Already open elsewhere, not reopened here: whether to keep GIF search and how (ADR 0007, audit E-10, Phase 4).
+GIF search: kept by the operator on 2026-10-27 (REST API, no SDK), implemented by LOT-098 (client) and LOT-155 (picker).
 
 ## Edge cases
 
@@ -179,13 +179,15 @@ No new fixture. Facts come from the legacy code above and from the topic capture
 `Referer: https://forum.hardware.fr/` (settles HFR-PROTOCOL §7 E26 for the LOT-056 host table), and one `http://`-only image host of
 `R20`/`R21`/`R22a` requested over `https` (does it upgrade?). Plain GETs, no account, no upload. The AQ captures are [#133](https://github.com/ezzz/HFRnow/issues/133) (LOT-028).
 
+**Giphy REST (captured, [#175](https://github.com/ezzz/HFRnow/issues/175), 2026-11-06).** Legacy only uses the closed SDK, so the source of these facts is Giphy's public API reference (developers.giphy.com/docs/api/endpoint, `search` and `trending`) plus the captures `T40` (`search`, `q=hello`) and `T41` (`trending`), both `limit=3&rating=r`, GET only, the key sent as the `api_key` query item and stripped from every stored URL and body. Settled: the Giphy key the operator supplied (an SDK-style key, ADR 0007) is accepted by the REST endpoints (200, no refusal); the envelope is `{data, meta, pagination}`; a GIF's insertable URL is `data[].images.original.url` (also `fixed_height`, `fixed_width`, `*_mp4`, `*_webp`; dimensions and sizes are strings); `rating` is a maximum (every item came back `g` with `rating=r`); media URLs carry tracking query items (`cid`, `ep`, `rid`, `ct`; the first 8 hex characters of `cid` derive from the API key, so the fixtures replace them with `00000000`, and the analytics payload is `REDACTED`) that a client may keep or drop (not tested: do not assume either). The key sits in the request URL, so T5 (search terms to Giphy) also puts the key in any proxy log; ADR 0007 applies. Not captured: error answers (bad key, rate limit), `lang` effect, stickers, rate-limit headers.
+
 ## Intentional differences from legacy
 
 - AQ: a notice before the first creation (legacy: none); badge and check unchanged (D-071-3).
 - No forum cookie on any image or third-party request (legacy viewer used the shared jar).
 - Images: D-071-1 replaces automatic loading of every host; video players load on tap (D-071-2).
 - Third-party keys and base URLs out of source (ADR 0007).
-- Giphy SDK not carried over (AGENTS.md §3.3); GIF search is a Phase 4 decision.
+- Giphy SDK not carried over (AGENTS.md §3.3); GIF search is kept through Giphy's REST API (LOT-098), search terms only.
 
 ## Learnings
 

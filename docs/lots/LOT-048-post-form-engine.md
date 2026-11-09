@@ -64,8 +64,9 @@ All in `Packages/HFRKit/Sources/HFRClient/Posting/`, plus `HFRParsing/Forms/HopF
    or a layout that does not list the parsed fields and selects in order. Encoding: `FormBody` with CRLF line breaks.
    `pseudo` and `hash_check` are the form's (the selected account's); nothing from the fetch URL is merged.
 6. **Writes** — `reply`, `newTopic(subject:subcategory:text:)` (nil sub-category: the form's selected option, else the
-   first, "Aucune" on `R45a`), `newPrivateMessage(to:subject:text:)`, `edit(_:subject:)` (sends `delete` unchecked even if
-   the page served it checked), `delete(with:isFirstPost:confirmingWholeTopic:)` (stored text sent back, `delete=1`).
+   first, "Aucune" on `R45a`), `newPrivateMessage(to:subject:text:)`, `edit(_:subject:subcategory:)` (sends `delete` unchecked even if
+   the page served it checked; `subcategory` since LOT-088), `delete(with:isFirstPost:confirmingWholeTopic:)` (stored text sent back, `delete=1`),
+   `deleteLaterPost(_:with:)` (LOT-088: the message menu's delete, which refuses a form of another message or with a first-post sign).
 7. **POST** — to the form's `action` (forum-origin path from LOT-036; nil or off-origin → `missingAction`, no default),
    `application/x-www-form-urlencoded; charset=utf-8`, 60 s (legacy writes had URLSession's default), redirects **not
    followed** (a 3xx is classified, never re-sent elsewhere). Sent once; cancellation is checked right before. A session

@@ -104,6 +104,54 @@ struct TopicHTMLBuilderTests {
         #expect(!html.contains("youtube.com/embed"))
         #expect(!html.contains("<iframe"))
     }
+
+    // MARK: Avatar and monogram (issue #595)
+
+    @Test func aMemberWithoutAvatarGetsAMonogramNotAnImage() {
+        var mute = message()
+        mute.author = "Jean-Claude"
+        let html = TopicHTMLBuilder.document(for: page([mute]), token: 1)
+        #expect(html.contains("class=\"avatar avatar-default\""))
+        #expect(html.contains(">JC</span>"))
+        #expect(!html.contains("<img class=\"avatar\""))
+        #expect(!html.contains("has-image"))
+        // Local markup only: no URL, no script, so the CSP has nothing to allow.
+        #expect(!html.contains("<script"))
+    }
+
+    @Test func theMonogramColoursAreTheMPListsAndStable() {
+        var mute = message()
+        mute.author = "auteur"
+        let mark = Monogram(pseudo: "auteur")
+        let expected = "--mono-light:\(Monogram.hex(mark.background(dark: false)));--mono-dark:\(Monogram.hex(mark.background(dark: true)))"
+        let first = TopicHTMLBuilder.document(for: page([mute]), token: 1)
+        #expect(first.contains(expected))
+        #expect(first.contains("style=\"--mono-light:#"))
+        #expect(first == TopicHTMLBuilder.document(for: page([mute]), token: 1))
+    }
+
+    @Test func thePseudoIsEscapedInTheAvatarLabelAndTheMonogram() {
+        var odd = message()
+        odd.author = "a\"><img src=x>"
+        let html = TopicHTMLBuilder.avatar(of: odd, opensMenu: true)
+        #expect(!html.contains("<img src=x>"))
+        #expect(html.contains("aria-label=\"Menu de a&quot;&gt;&lt;img src=x&gt;\""))
+    }
+
+    @Test func theAvatarIsTheAuthorMenuButtonWithOrWithoutPicture() {
+        let options = ReaderRenderOptions(showsAuthorMenus: true)
+        var withImage = message()
+        withImage.avatarURL = url("https://forum-images.hardware.fr/a.png")
+        let withHTML = TopicHTMLBuilder.document(for: page([withImage]), token: 1, options: options)
+        #expect(withHTML.contains("class=\"avatar-wrap has-image menu-avatar\" data-menu=\"avatar\" data-post=\"42\""))
+        #expect(withHTML.contains("<button type=\"button\" class=\"avatar-wrap"))
+        #expect(withHTML.contains("<img class=\"avatar\" src=\"https://forum-images.hardware.fr/a.png\" alt=\"\"></button>"))
+        let without = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: options)
+        #expect(without.contains("class=\"avatar-wrap menu-avatar\" data-menu=\"avatar\" data-post=\"42\""))
+        // Menus off: the avatar is plain markup.
+        let off = TopicHTMLBuilder.document(for: page([withImage]), token: 1)
+        #expect(!off.contains("data-menu") && off.contains("<span class=\"avatar-wrap has-image\">"))
+    }
 }
 
 /// The message menu buttons of LOT-087.

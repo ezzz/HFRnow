@@ -11,7 +11,19 @@ Code and knowledge from these projects are reused with gratitude.
 | HFRnow | <https://github.com/ezzz/HFRnow> | Continuation; introduced the SwiftUI layer reused here |
 | SwiftHFR | this repository | Full Swift rewrite |
 
+**App icon.** The main icon art (`App/SwiftHFR/Icon-RedFace3D.icon`) comes unchanged from the legacy HFR+ app (ezzz/HFRnow `master` @ `2440d79`, `SuperHFRplus/Assets/`): credit to FLKone and the HFR+ contributors, and to ezzz and the HFRnow contributors. The alternate icons are credited under [AlternativeIcons](#alternativeicons).
+
 > Maintainers: complete this table with every fork in the chain and the names of their main contributors.
+
+### AlternativeIcons
+
+Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperHFRplus/Assets/AlternativeIcons/` (ezzz/HFRnow `master` @ `2440d79`).
+
+| Icon | Source | Credit |
+|---|---|---|
+| `Icon-RedFace3DBig` | Legacy art, unchanged | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
+| `Icon-BLUE`, `Icon-WHITE` | Legacy 1024 px image, unchanged, in a one-layer `.icon` | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
+| `Icon-CLASSIC`, `Icon-CLASSIC-RED`, `Icon-REDFACE`, `Icon-REDFACEBLUE`, `Icon-BETA` | Legacy designs redrawn as SVG for SwiftHFR (the legacy images stop at 180 px), under this repository's licence | Designs by FLKone (`Icon-CLASSIC`, `Icon-REDFACE`, `Icon-BETA`, 2017) and by Bruno / ezzz (`Icon-CLASSIC-RED`, `Icon-REDFACEBLUE`, 2025), in the legacy history |
 
 ## Contributors
 

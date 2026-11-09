@@ -1,0 +1,38 @@
+[
+ {
+  "number": 590,
+  "body": "Closes #584\nRefs #572\n\n### Ledger\n\n```changelog\n| UX | Listes de sujets : la capsule des pages non lues (pages entre le drapeau et la fin), le pied « ⚑ cur / max » et la teinte de ligne par drapeau (favori jaune, bleu, rouge) sont rétablis comme dans le legacy, la teinte étant posée par-dessus le fond réel et masquée sur la ligne sélectionnée (iPad). | #584 | `Favorites.swift:965-1090`, `Common.swift:2815-2839, 702-722` @ 2440d79 |\n```\n\n```gap-edit\nGAP-026 status `ported with changes`; \"Swift\" cell: Legacy Favoris density is the reference. The unread-pages capsule (`pageCount - currentPage`, hidden at 0) and the \"⚑ cur / max\" footer (poll mark \"≣\") are back (#584, operator decision); the footer is followed by \"starter · replies · relative date\". The dot stays for unread rows. Lots cell: LOT-082, LOT-169, #584. H.1 class `a`, owner \"new UX: spec\".\n```\n\n```gap-edit\nGAP-027 status `ported with changes`; \"Swift\" cell: Row tinted by the flag colour at 0.6 of `RowTint`'s strength (super favourite: orange at full strength; legacy used bare 0.12 / 0.18 alphas), layered over the list's own row colour (clear in the iPad sidebar column); none on the selected row (#584). Lots cell: #584. H.1 class `a`, owner \"port: ezzz Swift layer\".\n```\n\n```gap-edit\nGAP-LEGACY-VS-SWIFT.md line ~277 (H.1 decision 2, \"Topic row.\"): replace \"LOT-082's row drops the \"⚑ cur / max\" footer, the unread-pages capsule and the flag tints (GAP-026, 027).\" with \"LOT-082's row dropped the \"⚑ cur / max\" footer, the unread-pages capsule and the flag tints (GAP-026, 027); #584 brings them back (operator decision, 2026-11-07).\"\n```\n",
+  "labels": [
+   {
+    "name": "ledger"
+   }
+  ],
+  "pull_request": {
+   "merged_at": "2026-11-07T00:00:00Z"
+  }
+ },
+ {
+  "number": 604,
+  "body": "Refs #600\nRefs #592\nRefs #414\n\n### Ledger\nWritten by the steward after the merge (#620); this PR edits neither `docs/CHANGELOG-LEGACY.md` nor `docs/migration/GAP-LEGACY-VS-SWIFT.md`.\n\n```changelog\n| UX | Réponse : le sélecteur de smileys montre les sections « Smileys de base », « Smileys du forum » (favoris du compte HFR, lus dans le formulaire), « Favoris de l’app » ; la recherche est le champ de recherche du système en haut ; un appui long sur n’importe quel smiley propose « Ajouter aux favoris » / « Retirer des favoris » (le legacy ne l’offrait que depuis la fiche d’un smiley). | LOT-104 #600 (PR #604) | `AnswerView.swift:1051-1470` @ `2440d79` |\n```\n\n```gap-edit\nGAP-087\nWhat the Swift app does: Catalogue, favourites (synced) and insert; \"Smileys du forum\" read from the composer form (#600); favourite from the context menu; search in the navigation bar. \"Mes smileys\" pending capture #601.\nLot / PR: LOT-104, LOT-064, #600\n```\n",
+  "labels": [
+   {
+    "name": "ledger"
+   }
+  ],
+  "pull_request": {
+   "merged_at": "2026-11-07T00:00:00Z"
+  }
+ },
+ {
+  "number": 607,
+  "body": "Closes #596\n\n### Ledger\n\n```changelog\n| UX | Lecteur : un appui long sur un lien propose Ouvrir, Copier le lien, Ouvrir dans Safari et, pour un lien extérieur au forum, Ouvrir dans l'app (ou dans YouTube, Vimeo, Streamable), sans aperçu : rien n'est chargé ; le legacy affichait le menu de WebKit avec aperçu de la destination (menu propre aux seuls liens d'image, repris dans #615). | #596 | `MessagesView.swift:1241-1278, 2147-2154` @ 2440d79 |\n```\n\n```gap-new\nSection: Reader\n| GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got \"Ouvrir l'image\", \"Save to Photos\", \"Copier le lien\". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for links the forum does not own, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). \"Ouvrir l'image\" and \"Save to Photos\" are not ported here: deferred to #615. | #596, #615, LOT-137 | new | new UX: operator (2026-11-07) | b·operator |\n```\n",
+  "labels": [
+   {
+    "name": "ledger"
+   }
+  ],
+  "pull_request": {
+   "merged_at": "2026-11-07T00:00:00Z"
+  }
+ }
+]

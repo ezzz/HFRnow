@@ -38,3 +38,6 @@ tooling/roadmap/out/
 
 # Release pipeline output (scripts/release-testflight.sh, LOT-161): archives, IPAs, logs
 /build/
+
+# Third-party API keys (ADR 0007): the real values never enter the repository
+App/Config/Secrets.xcconfig

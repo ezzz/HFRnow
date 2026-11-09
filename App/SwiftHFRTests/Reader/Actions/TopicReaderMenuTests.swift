@@ -47,6 +47,28 @@ struct TopicReaderMenuTests {
             == "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t101")
     }
 
+    @Test func theMenuKeepsItsAnchorAndIsTitledWithTheAuthor() async throws {
+        let reader = await loaded()
+        let token = try #require(reader.document?.token)
+        let anchor = CGRect(x: 300, y: 120, width: 30, height: 30)
+        reader.requestMenu(post: 101, source: .message, anchor: anchor, token: token)
+        #expect(reader.presentedMenu?.anchor == anchor)
+        #expect(reader.presentedMenu?.title == "Post de auteur")
+    }
+
+    @Test func aLaterInstallOffersTheEntriesItsHandlersServe() async throws {
+        // The screen reinstalls the handlers when the composer or the flag actions arrive: the menu then shows them.
+        let reader = await loaded(registry: MessageActionRegistry([LinkActionHandler(copy: { _ in }, confirm: { _ in })]))
+        let token = try #require(reader.document?.token)
+        reader.requestMenu(post: 101, source: .message, token: token)
+        #expect(reader.presentedMenu?.entries == [.link])
+        reader.install(MessageActionRegistry([
+            LinkActionHandler(copy: { _ in }, confirm: { _ in }), RecordingHandler(.alert)
+        ]))
+        reader.requestMenu(post: 101, source: .message, token: token)
+        #expect(reader.presentedMenu?.entries == [.link, .alert])
+    }
+
     @Test func theFirstPostOfTheTopicCannotBeDeletedButAnyOtherOwnPostCan() async throws {
         let reader = await loaded(messages: [message(100, own: true), message(101, own: true)])
         let token = try #require(reader.document?.token)

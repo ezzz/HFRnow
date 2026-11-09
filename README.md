@@ -14,8 +14,10 @@
 > - **Image-hosting API:** $170 per year.
 > - **Everything else is shared effort:** AI subscriptions, software tools, hardware and time.
 >
-> Contribute to the [Leetchi pot](https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155), or buy a coffee:
-> [<img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-%E2%98%95-FFDD00?style=flat&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee">](https://buymeacoffee.com/francoisgn)
+> Contribute to the [Leetchi pot](https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155):
+>
+> <a href="https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155"><img src="https://img.shields.io/badge/Leetchi-Cagnotte%20HFR%20App%20iOS-1A9EDB?style=for-the-badge" alt="Cagnotte Leetchi HFR App iOS"></a>
+>
 > Code, reviews and captures are just as welcome: see [Contributing](#contributing).
 
 <table align="center">
@@ -80,7 +82,7 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 ## Where we are
 
 > [!NOTE]
-> **No public build yet.** All 40 lots of M1 (MVP: log in, browse, read, reply) are merged. What is left before the first TestFlight build: the build itself (LOT-161, [#251](https://github.com/ezzz/HFRnow/issues/251)) and two hand checks on the maintainer's Mac ([#344](https://github.com/ezzz/HFRnow/issues/344), [#322](https://github.com/ezzz/HFRnow/issues/322)), see the [M1 board](https://github.com/ezzz/HFRnow/issues/166).
+> **No public build yet.** All 40 lots of M1 (MVP: log in, browse, read, reply) are merged. The one step left before the first TestFlight build is the build itself: LOT-161, [#251](https://github.com/ezzz/HFRnow/issues/251), see the [M1 board](https://github.com/ezzz/HFRnow/issues/166).
 
 | Phase | Scope | Status |
 |---|---|---|
@@ -160,13 +162,13 @@ flowchart LR
 ```
 
 - **The legacy app is the oracle**: new parsers must reproduce its output on real, anonymized pages ([ADR 0004](docs/adr/0004-legacy-app-as-oracle.md)).
-- **Orchestrator, sub-orchestrators, child sessions**: an orchestrator session hands out issues; sub-orchestrators and child sessions each take one issue, with one claim per session ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#child-sessions-cloud)).
+- **Orchestrator, sub-orchestrators, child sessions**: an orchestrator session claims each issue it hands out and passes that id to the child session working it ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [child sessions](docs/agents/ORCHESTRATION.md#child-sessions-cloud)).
 - **One issue, one claim, one PR**: work starts with a `/claim <session-id>` comment on the issue, and the PR names the issue and the claim ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Different models for different jobs, and an adversarial review**: well-specified ports go to fast models, design and risky flows to stronger ones, and the reviewer is never the author ([routing](AGENTS.md#6-model-routing-which-agent-does-what)).
 - **CodeRabbit** reviews every PR; its threads are handled in one commit per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
-- **macOS runners are the bottleneck**: a PR iterates as a draft and is marked ready for the final run; docs-only and engine-only PRs skip the macOS jobs they do not need ([#477](https://github.com/ezzz/HFRnow/issues/477), [CONTRIBUTING §2](CONTRIBUTING.md#2-merge-criteria)).
+- **macOS runners are the bottleneck**: a PR iterates as a draft and is marked ready for the final run; docs-only PRs skip the macOS jobs, and CodeQL Swift runs only on PRs labelled `codeql` ([#477](https://github.com/ezzz/HFRnow/issues/477), [CONTRIBUTING §2](CONTRIBUTING.md#2-merge-criteria)).
 - **Mac sessions** run what the cloud cannot: live HFR captures, Xcode builds and checks on a device ([MAC-SESSIONS](docs/agents/MAC-SESSIONS.md)).
-- **Ledger rule**: a feature PR does not edit the GAP report or the legacy changelog; its entries go in the PR body and a steward folds them into the docs after the merge ([#620](https://github.com/ezzz/HFRnow/issues/620)).
+- **Ledger rule**: a feature PR does not edit the GAP report or the legacy changelog; its entries go in a `### Ledger` section of the PR body, with the `ledger` label, and a steward folds them into the docs after the merge ([rule](tooling/docs/README.md#the-ledger-rule), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Merge policy**: the author merges (squash) once the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold and a different model approved the head; risky flows and PRs from authors without write access are merged by the core orchestrator or the maintainer ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Mistakes become rules**: every review round feeds a [lessons table](docs/agents/LESSONS.md), and recurring classes of errors get automated checks.
 
@@ -213,9 +215,9 @@ Humans and agents follow the same path. Each step links to the one document that
 
 1. **Read** [AGENTS.md](AGENTS.md), then [CONTRIBUTING](CONTRIBUTING.md).
 2. **Pick an issue**: [`status: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) and not `status: claimed`; if you are an outside contributor's agent, [`external: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22external%3A+ready%22) ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization), [EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). The plan of the lots is [LOTS.md](docs/LOTS.md); issues needing the maintainer's Mac carry `host: mac`.
-3. **Claim it** with a comment `/claim <session-id>`, `<host>/<name>` (for example `human/<your-login>` or `cloud/<session>`); the first claim wins, and the `status: claimed` label follows. Without write access, ask a member to claim for you ([claims](docs/agents/ORCHESTRATION.md#claims), [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
+3. **Claim it** with a comment `/claim <session-id>`, `<host>/<name>` (for example `human/<your-login>` or `cloud/<session>`); the first claim wins, and the orchestrator or the maintainer then sets `status: claimed` by hand (no workflow syncs it yet). Without write access, ask a member to claim for you ([claims](docs/agents/ORCHESTRATION.md#claims), [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
 4. **Branch from `dev-swift`** (never `master`, the legacy app) and work from the issue's one spec ([CONTRIBUTING §1](CONTRIBUTING.md#1-from-a-task-to-a-pr)).
-5. **Open the PR** against `dev-swift` as a draft, with `Closes #N` (or `Refs #N` for partial work), `Claim: <session-id>` and, for a lot, `LOT-XXX`; a small fix without an issue says `Direct-PR: <reason>` ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)). Entries for the GAP report or the legacy changelog go in the PR body, not in those files ([#620](https://github.com/ezzz/HFRnow/issues/620)).
+5. **Open the PR** against `dev-swift` as a draft, with `Closes #N` (or `Refs #N` for partial work), `Claim: <session-id>` and, for a lot, `LOT-XXX`; a small fix without an issue says `Direct-PR: <reason>` ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)). If the PR fixes a legacy behaviour or adds a gap row, add a `### Ledger` section to the body and the `ledger` label (no entry, no section, no label); never edit the GAP report or the legacy changelog yourself ([the ledger rule](tooling/docs/README.md#the-ledger-rule)).
 6. **Get it reviewed**: an adversarial review by a different model ([routing](AGENTS.md#6-model-routing-which-agent-does-what)); reviews open to outside agents are flagged `REVIEW WANTED: <model>` ([EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). Handle CodeRabbit once per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
 7. **Merge**: when the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold the author merges (squash) unless AGENTS.md §8 reserves the merge for the core orchestrator or the maintainer (risky flows, ADRs, `HFRModels` public types, authors without write access) ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)); whoever merges closes each `Closes #N` issue and leaves `Refs #N` issues open.
 8. **Stuck or stopping?** Say what is done and left on the PR and the issue, then comment `/release` on the issue, not the PR (without write access: `RELEASE REQUEST <session-id>`, a member releases it, [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).

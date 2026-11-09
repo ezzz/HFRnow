@@ -3,6 +3,9 @@ import HFRModels
 import HFRParsing
 import Observation
 
+// One class holds the reader's state (below); its loading rules (#108, #566) stay next to the state they guard.
+// swiftlint:disable file_length
+
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView.loadPage, WebView.ScrollRequest) @ 2440d79. Differences: when HFR serves
 // another page than the one asked (past the end, R24), the shown target takes the served page number (LOT-167);
 // the reading position is recorded per account and the flag message is followed by the legacy separator (LOT-111, GAP-063, UXD-11).
@@ -32,7 +35,8 @@ final class TopicReaderModel {
     /// The reader a followed link opened, shown above this one; going back clears it and finds this page as it was left
     /// (LOT-137, legacy pushes a reader per link: `MessagesView.swift:3896-3927` at `21173e77`).
     private(set) var linkedReader: TopicReaderModel?
-    /// HFR's confirmation of the reply just sent, shown until dismissed; set only by a confirmed reply (LOT-084).
+    /// HFR's confirmation of the reply, edit or delete just sent, shown until dismissed; set only by a confirmed write (LOT-084,
+    /// LOT-088).
     private(set) var replyConfirmation: String?
     /// The message menu on screen; nil when none.
     var presentedMenu: MessageMenu?
@@ -40,6 +44,8 @@ final class TopicReaderModel {
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.
     var menuFeedbackSerial = 0
+    /// Where "Marquer comme non lu" stands (LOT-127).
+    var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
     /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
@@ -75,6 +81,12 @@ final class TopicReaderModel {
     /// The flag message the document draws a line after (legacy separator, LOT-111).
     private var separatorAfter: Int?
     private var generation = 0
+    /// The reader view instance that appeared last (`ReaderViewerID`): only its disappearance stops a load. Two views can
+    /// share this model (a replacement view appears before the old one disappears), and the old one must not stop the load
+    /// the new one waits for (issue #566).
+    private var viewer: Int?
+    /// The document `documentDidFail` reported: its error ends when that same document reports ready, never another one's.
+    private var failedToken: Int?
     private var nextToken = 0
     private var nextScrollID = 0
     private var task: Task<Void, Never>?
@@ -105,11 +117,32 @@ final class TopicReaderModel {
     /// The web view has shown a document at least once (the first page appears at DOMContentLoaded, not blank before).
     var hasShownDocument: Bool { readyToken != nil }
 
-    /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing.
-    func onAppear() async {
+    /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing, unless
+    /// nothing is shown, loading or failed (a load stopped when a view went away): then it loads again. `viewer` names the
+    /// view that appears, which becomes the one whose disappearance may stop a load (`viewDidDisappear`).
+    func onAppear(viewer: Int? = nil) async {
+        // A `.task` whose view already went away (a quick tab flick) must not take the load over from the view still there.
+        guard !Task.isCancelled else { return }
+        if let viewer { self.viewer = viewer }
+        ReaderLog.debug(
+            "appear model=\(debugID) viewer=\(viewer ?? -1) page=\(page != nil) loading=\(isLoading) error=\(error != nil)"
+        )
         guard page == nil, !isLoading, error == nil else { return }
         await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
+
+    /// A reader view went away: stops the load in flight only when that view is the last one that appeared, so a view
+    /// replaced by another one on the same model never stops the new view's load (issue #566).
+    func viewDidDisappear(viewer: Int) {
+        let current = self.viewer == viewer
+        ReaderLog.debug("disappear model=\(debugID) viewer=\(viewer) current=\(current) loading=\(isLoading)")
+        guard current else { return }
+        self.viewer = nil
+        cancel()
+    }
+
+    /// A number for the debug trace that tells models apart; never shown.
+    private var debugID: Int { ObjectIdentifier(self).hashValue & 0xFFFF }
 
     /// Reloads the page on screen (not page 1, not the page first opened); the content stays while it runs and after a
     /// failure. Before anything is shown, retries the first load.
@@ -130,11 +163,12 @@ final class TopicReaderModel {
         }
     }
 
-    /// Opens page `number` of the topic (clamped to the known pages).
-    func goToPage(_ number: Int) async {
+    /// Opens page `number` of the topic (clamped to the known pages), at its top or, `atLastMessage`, at its last message
+    /// (legacy ‹ and "Dernier post", `MessagesView.swift:4168-4178, 4234-4236` @ 2440d79).
+    func goToPage(_ number: Int, atLastMessage: Bool = false) async {
         guard let shown, let page else { return }
         let clamped = min(max(1, number), page.maxPage)
-        await load(shown.atPage(clamped), keepsScrollPosition: false)
+        await load(shown.atPage(clamped), keepsScrollPosition: false, anchor: atLastMessage ? .lastMessage : .target)
     }
 
     /// Rebuilds the page on screen when a display setting (layout, signatures) changed since it was built, without a
@@ -248,6 +282,19 @@ final class TopicReaderModel {
         replyConfirmation = nil
     }
 
+    /// Shows HFR's sentence for a confirmed write on a message of this page (LOT-088).
+    func showConfirmation(_ sentence: String) {
+        replyConfirmation = sentence
+    }
+
+    /// Reloads the page on screen after an edit or a delete: at message `post` (the first one after it when it went) without
+    /// the separator a followed anchor draws, or where the user was when `post` is nil. HFR's own refresh names the form's
+    /// `page`, this very page (`W31`, `W32`), and past the end it redirects to the last page (`R24`).
+    func reloadPage(at post: Int?) async {
+        guard let shown else { return }
+        await load(shown.atPage(shown.page), keepsScrollPosition: post == nil, anchor: post.map(AnchorRule.message) ?? .target)
+    }
+
     /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
     /// the last known one is asked for, since the reply may have opened it; past the end HFR redirects to the last page (`R24`,
     /// on `forum2.php` and on the canonical path alike).
@@ -279,6 +326,7 @@ final class TopicReaderModel {
     /// Stops the load in flight; the content stays.
     func cancel() {
         let interrupted = task != nil
+        if interrupted { ReaderLog.debug("load cancelled model=\(debugID) generation=\(generation)") }
         task?.cancel()
         task = nil
         generation += 1
@@ -290,35 +338,34 @@ final class TopicReaderModel {
     func documentDidBecomeReady(token: Int) {
         guard token == document?.token else { return }
         readyToken = token
+        // The same document shown after all (loaded again when its screen came back): its own failure is over.
+        if failedToken == token {
+            failedToken = nil
+            error = nil
+        }
     }
 
-    /// What tapping `url` does. Topic and private message links of the forum, as LOT-095's router reads them, open in the
-    /// app at their page and post (issue #106); other web links open in the browser `defaultBrowser` names (legacy
-    /// `MessagesView.swift:3963-3968` at `21173e77`). A forum page the router sends elsewhere (a list, a profile, a page
-    /// view it does not own) opens in the browser too, never in the reader with the session; a profile opens the profile
-    /// sheet (LOT-116), which fetches it without cookies.
-    func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
-        guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
-        if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
-        if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
-        return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
-    }
-
-    /// The video `index` of message `post` on the page shown, for the player opened on tap (D-071-2).
-    func video(post: Int, index: Int, token: Int) -> MessageEmbed? {
-        guard token == document?.token, let message = page?.messages.first(where: { $0.numreponse == post }),
-              message.content.embeds.indices.contains(index) else { return nil }
-        return message.content.embeds[index]
+    /// The web view could not show the document `token` (its navigation failed twice): the screen offers a retry instead of
+    /// waiting (issue #566). An older document's report is ignored. The controller reports only a navigation of its own that
+    /// never became ready, so an earlier ready of the same token (another view's web view) does not hide this failure.
+    func documentDidFail(token: Int) {
+        guard token == document?.token else { return }
+        ReaderLog.debug("document failed model=\(debugID) token=\(token)")
+        failedToken = token
+        readyToken = nil
+        error = .other
     }
 
     // MARK: - Loading
 
     /// Where a loaded document opens.
-    private enum AnchorRule {
+    private enum AnchorRule: Equatable {
         /// At the target's own anchor, when the page holds it.
         case target
         /// At the page's last message (after a reply).
         case lastMessage
+        /// At this message, or the first one after it (after an edit).
+        case message(Int)
     }
 
     /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it).
@@ -333,13 +380,14 @@ final class TopicReaderModel {
         requestedAnchor = rule
         requestedFollowsPager = followsPager
         isLoading = true
+        failedToken = nil // this load owns `error` now: an old document's ready must not clear its failure
+        ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
-            let result: Result<ReaderPage, ListLoadError>
-            do throws(ListLoadError) {
-                result = .success(try await source.page(for: target))
-            } catch {
-                result = .failure(error)
+            var result = await TopicReaderModel.fetch(target, from: source)
+            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (issue #566).
+            if case .failure(.cancelled) = result, !Task.isCancelled {
+                result = await TopicReaderModel.fetch(target, from: source)
             }
             self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
         }
@@ -348,10 +396,23 @@ final class TopicReaderModel {
         return generation == mine
     }
 
+    nonisolated private static func fetch(
+        _ target: ReaderTarget, from source: any TopicPageSource
+    ) async -> Result<ReaderPage, ListLoadError> {
+        do throws(ListLoadError) {
+            return .success(try await source.page(for: target))
+        } catch {
+            return .failure(error)
+        }
+    }
+
     private func finish(
         _ result: Result<ReaderPage, ListLoadError>, target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule,
         generation mine: Int
     ) {
+        ReaderLog.debug(
+            "load finish model=\(debugID) generation=\(mine) current=\(mine == generation) success=\(result.isSuccess)"
+        )
         // A superseded or cancelled load never delivers (issue #108).
         guard mine == generation else { return }
         isLoading = false
@@ -374,6 +435,8 @@ final class TopicReaderModel {
                 }
             case .lastMessage:
                 loaded.messages.last { !$0.isContinuation }?.numreponse
+            case .message(let post):
+                loaded.messages.first { !$0.isContinuation && $0.numreponse >= post }?.numreponse
             }
             let options = currentRenderOptions()
             appliedOptions = options
@@ -384,11 +447,18 @@ final class TopicReaderModel {
                 anchor: anchor,
                 keepsScrollPosition: keepsScrollPosition && anchor == nil
             )
-        case .failure(.cancelled):
-            break
         case .failure(let failure):
-            error = failure
+            // A cancellation that reaches here was not asked for and came twice: an error, never a screen left waiting with
+            // no page, no load and no error (issue #566).
+            error = failure == .cancelled ? .other : failure
         }
         applyDisplaySettings() // a setting changed while this load ran and did not deliver a page
+    }
+}
+
+private extension Result {
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
     }
 }

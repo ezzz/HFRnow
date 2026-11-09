@@ -23,16 +23,24 @@ struct AppEnvironment {
     let filteredPosts: FilteredPostsServices
     /// Folded favourites sections and super-favourites of the current account (LOT-124).
     let favoriteStores: FavoritesStores
+    /// Flag writes of the current account (LOT-125): list rows and the message menu; nil when logged out.
+    let flagActions: TopicFlagActions?
 
     /// The environment for `session`.
-    static func make(session: HFRSession, accountName: String?) -> AppEnvironment {
+    static func make(session: HFRSession, accountName: String?, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
         let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
-        let pages = RefreshingTopicPageSource(
-            base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+        // Every page read hands its authors' avatars to the cache (GAP-230); each write refreshes the MP rows.
+        let avatars = AvatarStore.live(refresh: avatarRefresh)
+        let pages = AvatarFillingTopicPageSource(
+            base: RefreshingTopicPageSource(
+                base: LiveTopicPageSource(fetcher: fetcher, session: session, normalizer: LiveContentNormalizer()), lists: lists
+            ),
+            store: avatars
         )
+        let flagActions = accountName == nil ? nil : TopicFlagActions(writer: LiveTopicFlagWriter(session: session))
         let reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(
@@ -40,7 +48,9 @@ struct AppEnvironment {
                 pseudoLists: { lists.current }
             ),
             profiles: LiveUserProfileSource(fetcher: fetcher),
-            positions: LiveReaderPositionRecorder.live(account: accountName)
+            positions: LiveReaderPositionRecorder.live(account: accountName),
+            offline: .live(fetcher: fetcher),
+            flagActions: flagActions
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
@@ -52,14 +62,15 @@ struct AppEnvironment {
                 store: UserDefaultsSettingsStore(), pseudo: accountName, allowlist: { lists.current.allowlistWithoutBlocked },
                 prepare: { await lists.refresh() }
             ),
-            favoriteStores: .live(account: accountName)
+            favoriteStores: .live(account: accountName),
+            flagActions: flagActions
         )
     }
 
     /// The environment of the current account, or of the logged-out session when there is none.
     @MainActor
-    static func current(of accounts: AccountsModel) -> AppEnvironment {
-        make(session: accounts.forumSession, accountName: accounts.current?.id)
+    static func current(of accounts: AccountsModel, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
+        make(session: accounts.forumSession, accountName: accounts.current?.id, avatarRefresh: avatarRefresh)
     }
 
     /// Pseudo of the current account for the Q-7 rule, nil when logged out. Read from the account list, not from the
