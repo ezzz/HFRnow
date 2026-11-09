@@ -78,7 +78,7 @@ A lot is ✅ only when all of these hold:
    - the code is in the right module;
    - tests exist (differential tests for ported logic);
    - CI is green;
-   - the spec, `HFR-PROTOCOL.md`, ADR and `CHANGELOG-LEGACY.md` are updated;
+   - the spec, `HFR-PROTOCOL.md`, ADR are updated, and the PR body's `### Ledger` section holds the changelog and GAP entries (never an edit of the ledger files);
    - the adversarial review was done by another model;
    - the self-review against LESSONS was done.
 3. The PR is merged, and the issue is closed with `Done in #PR (merged as <sha>)`.
