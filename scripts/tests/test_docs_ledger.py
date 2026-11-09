@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -338,6 +339,14 @@ class RealBodiesTest(unittest.TestCase):
         for rel in ("docs/CHANGELOG-LEGACY.md", "docs/migration/GAP-LEGACY-VS-SWIFT.md"):
             (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(REPO / rel, tmp / rel)
+        # The repository files move on once a steward folds these PRs: drop their new rows again, so the copy is
+        # the pre-batch state whatever the checkout (in-place edits of #604 re-apply as "already applied").
+        log = tmp / "docs/CHANGELOG-LEGACY.md"
+        log.write_text("".join(line for line in log.read_text(encoding="utf-8").splitlines(keepends=True)
+                               if not re.match(r"\| (604|607) \|", line)), encoding="utf-8")
+        gap = tmp / "docs/migration/GAP-LEGACY-VS-SWIFT.md"
+        gap.write_text("".join(line for line in gap.read_text(encoding="utf-8").splitlines(keepends=True)
+                               if not line.startswith("| GAP-596 |")), encoding="utf-8")
         layout = fold.Layout(tmp)
         prs = ledger.pending(REAL, [590, 604, 607])
         res = ledger.plan(prs, layout, write=True)
