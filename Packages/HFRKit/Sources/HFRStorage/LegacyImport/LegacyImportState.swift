@@ -17,17 +17,21 @@ public struct LegacyImportStateDocument: SmallStoreDocument {
     public var done: [LegacyImportStep]
     /// The pseudo of the account that receives the legacy app's global items, once known (decision D3).
     public var globalAccount: String?
+    /// The legacy `mpstorage_active` switch as the import read it, kept until LOT-130 retires the import (#708).
+    public var mpStorageSwitch: LegacyMPStorageSwitch
 
     /// Creates a document.
     public init(
         version: Int = Self.currentVersion,
         importVersion: Int = Self.importVersion,
         done: [LegacyImportStep] = [],
-        globalAccount: String? = nil
+        globalAccount: String? = nil,
+        mpStorageSwitch: LegacyMPStorageSwitch = .notRead
     ) {
         self.version = version
         self.importVersion = importVersion
         self.done = done
         self.globalAccount = globalAccount
+        self.mpStorageSwitch = mpStorageSwitch
     }
 }

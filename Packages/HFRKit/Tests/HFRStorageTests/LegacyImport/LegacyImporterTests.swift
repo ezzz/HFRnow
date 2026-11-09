@@ -4,7 +4,7 @@ import HFRModels
 import Testing
 
 /// A legacy container in a temporary folder and in-memory SwiftHFR stores.
-private struct Harness {
+struct Harness {
     let folder: URL
     let documents: URL
     let caches: URL
@@ -75,7 +75,7 @@ private struct Harness {
     ]
 }
 
-private let blocklistPlist = """
+let blocklistPlist = """
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>FakeUser2</key><array>
@@ -88,18 +88,15 @@ private let blocklistPlist = """
 </dict></plist>
 """
 
-private let allowlistPlist = """
+let allowlistPlist = """
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><array>
 <dict><key>alias</key><string></string><key>mode</key><integer>0</integer><key>word</key><string>fakeloved1</string></dict>
 </array></plist>
 """
 
-@Suite("Legacy importer (LOT-067)")
-struct LegacyImporterTests {
-    private let now = Date(timeIntervalSinceReferenceDate: 725_800_000)
-
-    private func fullHarness() throws -> Harness {
+extension Harness {
+    static func full() throws -> Harness {
         var harness = try Harness(settings: ["mpstorage_active": .bool(true)])
         harness.accounts = Harness.legacyAccounts
         let typical = InMemoryLegacyDefaults(plist: try LegacySamples.data("defaults-typical.plist"))
@@ -122,10 +119,15 @@ struct LegacyImporterTests {
         try Data("<html>".utf8).write(to: cache.appending(path: "topic-1.htm"))
         return harness
     }
+}
+
+@Suite("Legacy importer (LOT-067)")
+struct LegacyImporterTests {
+    private let now = Date(timeIntervalSinceReferenceDate: 725_800_000)
 
     @Test("a first run imports every item into its store, the global items into the legacy main account")
     func fullImport() async throws {
-        let harness = try fullHarness()
+        let harness = try Harness.full()
         defer { harness.remove() }
         let report = await harness.importer().run(now: now)
 
@@ -160,7 +162,7 @@ struct LegacyImporterTests {
 
     @Test("the legacy container is left as it was")
     func neverTouchesTheSource() async throws {
-        let harness = try fullHarness()
+        let harness = try Harness.full()
         defer { harness.remove() }
         let names = [LegacyKeys.blocklistFile, LegacyKeys.allowlistFile, LegacyKeys.smileyFavoritesFile, LegacyKeys.uploadHistoryFile]
         let before = try names.map { try Data(contentsOf: harness.documents.appending(path: $0)) }
@@ -171,7 +173,7 @@ struct LegacyImporterTests {
 
     @Test("a second run redoes nothing: an item removed after the import does not come back")
     func idempotent() async throws {
-        let harness = try fullHarness()
+        let harness = try Harness.full()
         defer { harness.remove() }
         _ = await harness.importer().run(now: now)
         _ = try await harness.destinations.pseudoLists.unblock("fakeblocked1", account: "fakeuser2")
@@ -187,12 +189,13 @@ struct LegacyImporterTests {
 
     @Test("a failed step runs again at the next run; the others are not redone")
     func failedStepRetried() async throws {
-        var harness = try fullHarness()
+        var harness = try Harness.full()
         defer { harness.remove() }
         harness.accountsFailure = .sourceUnavailable
         let first = await harness.importer().run(now: now)
         #expect(first.outcomes[.accounts] == .failed(.sourceUnavailable))
         #expect(first.outcomes[.superFavorites] == .waitingForAccount)
+        #expect(first.outcomes[.pseudoLists] == .waitingForAccount)
         #expect(first.outcomes[.collapsedSections] == .imported(3))
         #expect(!first.isComplete)
 
@@ -201,12 +204,13 @@ struct LegacyImporterTests {
         #expect(second.outcomes[.accounts] == .imported(2))
         #expect(second.outcomes[.collapsedSections] == .alreadyDone)
         #expect(second.outcomes[.superFavorites] == .imported(4))
+        #expect(second.outcomes[.pseudoLists] == .imported(3))
         #expect(second.isComplete)
     }
 
     @Test("with no legacy account, the global items wait, then go to the first account logged in, once")
     func waitsForAccount() async throws {
-        var harness = try fullHarness()
+        var harness = try Harness.full()
         defer { harness.remove() }
         harness.accounts = []
         let first = await harness.importer().run(now: now)
@@ -314,7 +318,7 @@ struct LegacyImporterTests {
 
     @Test("a SwiftHFR store that cannot be written makes the step fail and stay pending")
     func destinationFailureRetried() async throws {
-        var harness = try fullHarness()
+        var harness = try Harness.full()
         defer { harness.remove() }
         harness.accounts = Harness.legacyAccounts
         let broken = LegacyImportDestinations(
@@ -341,7 +345,7 @@ struct LegacyImporterTests {
 
     @Test("nothing in the report or its description carries a secret")
     func reportWithoutSecrets() async throws {
-        let harness = try fullHarness()
+        let harness = try Harness.full()
         defer { harness.remove() }
         let report = await harness.importer().run(now: now)
         let text = String(describing: report) + String(reflecting: report) + String(describing: Harness.legacyAccounts)

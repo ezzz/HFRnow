@@ -65,7 +65,12 @@ extension LegacyImporter {
 
     private func writePseudoLists(_ lists: [String: [String]], allowlist: [String], report: inout LegacyImportReport) async
         -> LegacyImportOutcome {
-        let book = (try? destinations.credentials.load()) ?? AccountBook()
+        let book: AccountBook
+        do {
+            book = try destinations.credentials.load()
+        } catch {
+            return .failed(.destinationFailed)
+        }
         var imported = 0
         do {
             for (name, pseudos) in lists.sorted(by: { $0.key < $1.key }) {
@@ -127,7 +132,7 @@ extension LegacyImporter {
     }
 
     /// Step 5: app smiley favourites, oldest first, with their legacy dates.
-    func importSmileyFavorites(account: String) async -> LegacyImportOutcome {
+    func importSmileyFavorites(account: String, report: inout LegacyImportReport) async -> LegacyImportOutcome {
         let data: Data
         switch readFile(container.documentsDirectory.appending(path: LegacyKeys.smileyFavoritesFile)) {
         case .failure(let error): return .failed(error)
@@ -136,17 +141,18 @@ extension LegacyImporter {
         }
         guard let favorites = LegacyFormats.smileyFavorites(data) else { return .failed(.sourceUnreadable) }
         var imported = 0
-        do {
-            for favorite in favorites {
-                guard let url = URL(string: favorite.url) else { continue }
+        for favorite in favorites {
+            guard let url = URL(string: favorite.url) else { continue }
+            do {
                 if try await destinations.smileyFavorites.add(code: favorite.code, url: url, account: account, at: favorite.addedAt) {
                     imported += 1
                 }
+            } catch SmallStoreError.invalidValue {
+                // A blank code: legacy could not have used it either; the next favourites still go in.
+                report.rejectedItems += 1
+            } catch {
+                return .failed(.destinationFailed)
             }
-        } catch SmallStoreError.invalidValue {
-            // A blank code: legacy could not have shown it either; the others were added.
-        } catch {
-            return .failed(.destinationFailed)
         }
         return imported > 0 ? .imported(imported) : .nothingToImport
     }

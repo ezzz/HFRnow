@@ -57,8 +57,8 @@ public enum LegacyImportOutcome: Sendable, Equatable {
 }
 
 /// The legacy MPStorage switch as one run read it.
-public enum LegacyMPStorageSwitch: Sendable, Equatable {
-    /// Not read by this run (absent from the legacy settings, or read by an earlier run).
+public enum LegacyMPStorageSwitch: String, Sendable, Hashable, Codable {
+    /// Absent from the legacy settings, or not read yet.
     case notRead
     /// `mpstorage_active` was on.
     case active
@@ -73,8 +73,8 @@ public struct LegacyImportReport: Sendable, Equatable {
     /// Legacy accounts or list entries left out because LOT-061/065 refuse them (empty or logged-out pseudo,
     /// `md_user` naming another pseudo).
     public var rejectedItems: Int
-    /// The legacy `mpstorage_active` switch, read by the run that did that step: LOT-130 turns it into each account's
-    /// sync record (ADR 0013 §7: active → `on`, inactive → `unasked`).
+    /// The legacy `mpstorage_active` switch, read once and kept in the import state, so every report gives it: LOT-130
+    /// turns it into each account's sync record (ADR 0013 §7: active → `on`, inactive → `unasked`).
     public var mpStorageSwitch: LegacyMPStorageSwitch
 
     /// Creates a report.

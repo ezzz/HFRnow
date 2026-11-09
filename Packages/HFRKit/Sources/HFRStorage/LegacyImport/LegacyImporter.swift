@@ -82,6 +82,8 @@ public actor LegacyImporter {
     private var state: SmallStoreState<LegacyImportStateDocument>
     /// The SwiftHFR pseudo of the legacy main account, set by the accounts step of this run.
     var legacyMainAccount: String?
+    /// The run in progress: runs are serialized, so two overlapping calls (launch, login) never save over each other.
+    private var currentRun: Task<LegacyImportReport, Never>?
 
     /// Creates an importer; `state` holds what was done on this device (`migration.legacyImport.version`).
     public init(
@@ -97,36 +99,38 @@ public actor LegacyImporter {
     /// Runs every step not done yet. `currentAccount` is the pseudo of the account logged in now: it receives the
     /// legacy app's global items when legacy had no main account (decision D3).
     public func run(currentAccount: String? = nil, now: Date = .now) async -> LegacyImportReport {
+        let previous = currentRun
+        let task = Task {
+            _ = await previous?.value
+            return await self.runSteps(currentAccount: currentAccount, now: now)
+        }
+        currentRun = task
+        return await task.value
+    }
+
+    private func runSteps(currentAccount: String?, now: Date) async -> LegacyImportReport {
         var report = LegacyImportReport()
-        guard let document = state.document() else {
+        guard let stored = state.document() else {
             for step in LegacyImportStep.allCases { report.outcomes[step] = .failed(.destinationFailed) }
             return report
         }
-        var done = Set(document.done)
-        var globalAccount = document.globalAccount
-        if globalAccount == nil, done.contains(.accounts) { globalAccount = Self.cleanedAccount(currentAccount) }
+        var current = stored
+        if current.globalAccount == nil, current.done.contains(.accounts) {
+            current.globalAccount = Self.cleanedAccount(currentAccount)
+        }
         for step in LegacyImportStep.allCases {
-            if done.contains(step) {
+            if current.done.contains(step) {
                 report.outcomes[step] = .alreadyDone
                 continue
             }
-            if step.needsGlobalAccount, globalAccount == nil {
-                report.outcomes[step] = .waitingForAccount
+            if let waiting = Self.prerequisite(of: step, in: current) {
+                report.outcomes[step] = waiting
                 continue
             }
-            let outcome = await perform(step, globalAccount: globalAccount, now: now, report: &report)
-            report.outcomes[step] = outcome
-            if step == .accounts, outcome.isDone, globalAccount == nil {
-                globalAccount = legacyMainAccount ?? Self.cleanedAccount(currentAccount)
-            }
-            guard outcome.isDone else { continue }
-            done.insert(step)
-            if !save(done: done, globalAccount: globalAccount) {
-                report.outcomes[step] = .failed(.destinationFailed)
-                done.remove(step)
-            }
+            report.outcomes[step] = await runStep(step, state: &current, currentAccount: currentAccount, now: now, report: &report)
         }
-        if globalAccount != document.globalAccount { _ = save(done: done, globalAccount: globalAccount) }
+        if current != stored { _ = save(current) }
+        report.mpStorageSwitch = current.mpStorageSwitch
         return report
     }
 
@@ -144,7 +148,7 @@ public actor LegacyImporter {
         case .pseudoLists: return await importPseudoLists(globalAccount: globalAccount, report: &report)
         case .superFavorites: return await importSuperFavorites(account: account, now: now)
         case .collapsedSections: return await importCollapsedSections()
-        case .smileyFavorites: return await importSmileyFavorites(account: account)
+        case .smileyFavorites: return await importSmileyFavorites(account: account, report: &report)
         case .smileySearchHistory: return await importSearchHistory()
         case .uploadHistory: return await importUploadHistory()
         case .drafts: return await importDrafts(account: account, now: now)
@@ -159,10 +163,38 @@ public actor LegacyImporter {
         return cleaned.isEmpty ? nil : cleaned
     }
 
-    private func save(done: Set<LegacyImportStep>, globalAccount: String?) -> Bool {
+    /// Runs one step and, when it is done, records it in `state` once the state is saved.
+    private func runStep(
+        _ step: LegacyImportStep,
+        state current: inout LegacyImportStateDocument,
+        currentAccount: String?,
+        now: Date,
+        report: inout LegacyImportReport
+    ) async -> LegacyImportOutcome {
+        let outcome = await perform(step, globalAccount: current.globalAccount, now: now, report: &report)
+        if step == .accounts, outcome.isDone, current.globalAccount == nil {
+            current.globalAccount = legacyMainAccount ?? Self.cleanedAccount(currentAccount)
+        }
+        guard outcome.isDone else { return outcome }
+        var updated = current
+        updated.done = Set(current.done).union([step]).sorted()
+        if step == .mpStorageSwitch { updated.mpStorageSwitch = report.mpStorageSwitch }
+        guard save(updated) else { return .failed(.destinationFailed) }
+        current = updated
+        return outcome
+    }
+
+    /// Why a step cannot run yet: the global items wait for an account (D3); the pseudo lists wait for the accounts
+    /// step, whose stored accounts tell under which pseudo a list keyed by a display name goes.
+    private static func prerequisite(of step: LegacyImportStep, in document: LegacyImportStateDocument) -> LegacyImportOutcome? {
+        if step == .pseudoLists, !document.done.contains(.accounts) { return .waitingForAccount }
+        if step.needsGlobalAccount, document.globalAccount == nil { return .waitingForAccount }
+        return nil
+    }
+
+    private func save(_ updated: LegacyImportStateDocument) -> Bool {
         do {
             _ = try state.mutate { document in
-                let updated = LegacyImportStateDocument(done: done.sorted(), globalAccount: globalAccount)
                 guard updated != document else { return false }
                 document = updated
                 return true
