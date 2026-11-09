@@ -34,6 +34,8 @@ final class ReaderWebController: NSObject {
         var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
         var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// A short sentence for the reader's feedback line (the result of "Enregistrer dans Photos", #615).
+        var notice: @MainActor (_ text: String) -> Void = { _ in }
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -72,7 +74,7 @@ final class ReaderWebController: NSObject {
         didSet { if obscuredInsets != oldValue { applyObscuredInsets(from: oldValue) } }
     }
 
-    private let imageFetcher: ReaderImageFetcher
+    let imageFetcher: ReaderImageFetcher
     let autoLoadsThirdPartyImages: @Sendable () -> Bool
     /// The document shown, or loading; nil before the first and after a load stopped before it was ready.
     private(set) var document: ReaderDocument?

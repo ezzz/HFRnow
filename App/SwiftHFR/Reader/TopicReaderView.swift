@@ -319,6 +319,10 @@ struct TopicReaderView: View {
             image: { images, index, _ in
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
+            },
+            notice: { [model] text in
+                model.showMenuFeedback(text)
+                AccessibilityNotification.Announcement(text).post()
             }
         )
         model.positions = services.positions

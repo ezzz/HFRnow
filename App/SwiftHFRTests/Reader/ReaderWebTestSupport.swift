@@ -29,6 +29,10 @@ final class ReaderWebRecorder {
     var links: [URL] = []
     /// Video taps as (post, index, token).
     var videos: [[Int]] = []
+    /// Image viewer openings as (images, selected index).
+    var viewers: [(images: [GalleryImage], index: Int)] = []
+    /// The feedback sentences the controller sent.
+    var notices: [String] = []
     /// Hosts the web view in a window, as on screen (keeps WebKit from treating it as hidden and throttling it).
     var window: UIWindow?
 }
@@ -45,7 +49,9 @@ extension ReaderWebTesting {
         let recorder = ReaderWebRecorder()
         controller.events = ReaderWebController.Events(
             ready: { recorder.ready.append($0) }, failed: { recorder.failed.append($0) }, link: { recorder.links.append($0) },
-            video: { recorder.videos.append([$0, $1, $2]) }
+            video: { recorder.videos.append([$0, $1, $2]) },
+            image: { recorder.viewers.append(($0, $1)) },
+            notice: { recorder.notices.append($0) }
         )
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
             let window = UIWindow(windowScene: scene)
