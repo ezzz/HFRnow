@@ -76,7 +76,7 @@ Ce ne sont pas des cookies et rien n'est partagé avec un autre site. Vous pouve
 
 #### Ce qui n'est pas collecté
 
-- **Pas d'adresse IP conservée au-delà de l'anti-abus** : seule l'empreinte décrite plus haut est gardée, et elle est effacée à la fermeture du questionnaire, le {date_fermeture}. Les journaux techniques du serveur ne contiennent pas votre adresse IP.
+- **Pas d'adresse IP conservée au-delà de l'anti-abus** : seule l'empreinte décrite plus haut est gardée, et elle est effacée à la fermeture du questionnaire, le {date_fermeture}. Les journaux techniques du serveur ne contiennent pas votre adresse IP. Le relais Tailscale, lui, la voit passer (voir « Qui voit quoi »).
 - **Pas de cookie**, ni du questionnaire ni d'un tiers.
 - **Pas de mesure d'audience** : aucun outil de statistiques de visite, ni dans la page ni sur le serveur, aucun pixel, aucun bouton de réseau social.
 - **Aucune requête vers un autre site** : la page et ses images viennent toutes du même serveur, et aucune police n'est téléchargée.
@@ -96,11 +96,12 @@ Ce ne sont pas des cookies et rien n'est partagé avec un autre site. Vous pouve
 - **L'écran de fin** montre, après {seuil_statistiques} réponses, la répartition des réponses aux questions à choix, en pourcentages arrondis. Il ne montre jamais un texte libre, un pseudo, ni le temps passé.
 - **Les résultats publiés** dans le dépôt public du projet ne contiennent que des chiffres d'ensemble sur les questions à choix. Aucun texte libre n'est publié, même en extrait.
 - **L'hébergeur du serveur** a un accès technique à la machine, mais n'accède pas aux données dans le cadre normal de son service.
+- **Tailscale** (Tailscale Inc.), le service qui relaie les connexions jusqu'au serveur, voit passer votre adresse IP et les informations de connexion (heure, volume échangé), mais pas vos réponses : la connexion est chiffrée de bout en bout jusqu'au serveur, et Tailscale ne peut pas la déchiffrer. Ce qu'il garde de ces informations de connexion relève de ses propres règles, pas de ce questionnaire.
 - Personne d'autre : rien n'est vendu, prêté, ni transmis à quelqu'un d'autre que ceux cités ici.
 
 #### Où sont les données
 
-Vos réponses sont stockées en France, dans l'Union européenne, sur un serveur loué par Bruno. La copie d'analyse sans pseudo reste sur l'ordinateur de Bruno et auprès de l'autre développeur ; elle n'est jamais déposée dans le dépôt public du projet.
+Vos réponses sont stockées en France, dans l'Union européenne, sur un serveur loué par Bruno. Pour y arriver, votre connexion passe par les serveurs relais de Tailscale, qui peuvent se trouver hors de l'Union européenne ; elle y reste chiffrée. La copie d'analyse sans pseudo reste sur l'ordinateur de Bruno et auprès de l'autre développeur ; elle n'est jamais déposée dans le dépôt public du projet.
 
 Seuls des extraits de cette copie, sans pseudo ni détail permettant de vous reconnaître, peuvent être envoyés à l'assistant d'intelligence artificielle, dont le service peut se trouver hors de l'Union européenne.
 
@@ -188,6 +189,7 @@ Toutes prises le 8 novembre 2026.
 | V6 | Pays du serveur | France, dans l'Union européenne, aucun hébergement hors UE. Seuls des extraits pseudonymisés peuvent aller au service de l'assistant d'IA, qui peut les traiter hors UE |
 | V7 | Délai de réponse aux demandes | Un mois au plus |
 | D3 | Seuil d'affichage des statistiques de l'écran de fin | 10 réponses (révisé, d'abord 20) ; la mention l'affiche par `{seuil_statistiques}` |
+| — | Exposition publique (9 novembre 2026) | Par Tailscale Funnel : relais Tailscale Inc., TLS terminé sur le serveur ; Tailscale voit l'adresse IP et les informations de connexion, pas les réponses, et peut être hors UE. **Formulation à confirmer par le PO** |
 | — | Partage des textes du pseudo | `questions.md` possède les textes courts (libellé, aide, lien), `donnees.md` les faits, le paragraphe au-dessus du champ et la page détaillée |
 
 ---
