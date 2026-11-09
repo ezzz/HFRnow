@@ -1340,6 +1340,9 @@ struct RootTabView: View {
     @State private var detailNavigationResetToken = UUID()
     @State private var preferredCompactColumn = NavigationSplitViewColumn.content
     @State private var isPortraitLayout = false
+    /// Larger of the window's leading and trailing safe area insets (iPhone Duo cover screen detection).
+    @State private var horizontalSafeAreaInset: CGFloat = 0
+    @AppStorage(PhoneDisplayPolicy.hasShownExpandedLayoutKey) private var hasShownExpandedPhoneLayout = false
     @State private var iPadDirectSidebarVisibility = NavigationSplitViewVisibility.all
     @State private var categoriesSelectedForum: Forum?
     @State private var categoriesInitialFlagOverride: TopicListFlag?
@@ -1370,6 +1373,18 @@ struct RootTabView: View {
     /// style types would rebuild the whole split view (and the topic being read) on rotation.
     private var prefersDetailOnlyTopic: Bool {
         usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && isPortraitLayout
+    }
+
+    /// iPhone Duo display the scene is on; drives the inline tab titles (freeze workaround)
+    /// and the thumb-reach toolbar of the cover screen.
+    private var phoneDisplayKind: PhoneDisplayKind {
+        PhoneDisplayPolicy.displayKind(
+            isPhone: UIDevice.current.userInterfaceIdiom == .phone,
+            usesSidebarRoot: usesSidebarRoot,
+            isPortrait: isPortraitLayout,
+            horizontalSafeAreaInset: horizontalSafeAreaInset,
+            hasShownExpandedLayout: hasShownExpandedPhoneLayout
+        )
     }
 
     init() {
@@ -1637,7 +1652,20 @@ struct RootTabView: View {
             } action: { isPortrait in
                 isPortraitLayout = isPortrait
             }
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                max(proxy.safeAreaInsets.leading, proxy.safeAreaInsets.trailing)
+            } action: { inset in
+                horizontalSafeAreaInset = inset
+            }
+            .onChange(of: usesSidebarRoot, initial: true) { _, isSidebarRoot in
+                // Only a foldable iPhone shows the split view root on a `.phone`: remember it, so
+                // the cover screen is recognised even when its side strip is not measured.
+                if isSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && !hasShownExpandedPhoneLayout {
+                    hasShownExpandedPhoneLayout = true
+                }
+            }
             .environment(\.hfrIsExpandedPhoneRoot, usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone)
+            .environment(\.hfrPhoneDisplayKind, phoneDisplayKind)
             .preferredColorScheme(appTheme.preferredColorScheme)
             .tint(appTheme.actionTintColor)
             .environment(\.appThemePalette, appTheme.palette)
