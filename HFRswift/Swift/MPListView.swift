@@ -434,6 +434,7 @@ final class MPListViewModel: ObservableObject {
 struct MPListView: View {
     @StateObject private var viewModel: MPListViewModel
     @StateObject private var accountsStore: AccountsStore
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     @State private var showAddAccountSheet = false
     @State private var showLogoutConfirm = false
     @State private var topicActionErrorMessage: String?
@@ -633,6 +634,8 @@ struct MPListView: View {
                 }
             }
             .navigationTitle("Messages")
+            .expandedPhoneInlineNavigationTitle()
+            .foldHandoffDestination()
             .onAppear {
                 if isActive {
                     refreshContentOnVisibility()
@@ -669,7 +672,8 @@ struct MPListView: View {
                     },
                     isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,
-                    profileImageURL: nil
+                    profileImageURL: nil,
+                    refreshPlacement: phoneDisplayKind.refreshToolbarPlacement
                 ) {
                     if !accountsStore.accounts.isEmpty {
                         ForEach(accountsStore.accounts) { account in

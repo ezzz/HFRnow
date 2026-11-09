@@ -56,6 +56,16 @@ Ces points regroupent les feedbacks de confort et de finition. Ils ne sont pas t
 
 ## Historique des issues livrees
 
+### Livrees 4.0.4
+
+| ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| HFR-093 | Hors analyse initiale | iPhone Duo: interface iPad sur l'ecran interieur, ecran exterieur plein ecran | Fonction / UI | Fort | Moyenne | Ecran interieur (regular/regular, portrait et paysage): racine split view iPad (barre laterale + liste + sujet), sujet en pleine largeur en portrait. Ecran exterieur: barre d'onglets iPhone, pleine largeur. Plier/deplier rouvre le sujet en cours sur la meme page (aussi lors d'un redimensionnement Split View iPad). Reprend la PR #4 de moust4ki (orientation, GIF, boutons Actualiser, titres compacts). | Corrige, a tester sur Duo |
+| HFR-094 | Hors analyse initiale | confirmation que TWO est un clown | Note | Faible | Faible | Ligne de changelog demandee par l'operateur. | Livre |
+| HFR-097 | Retour beta Duo | iPhone Duo: gel apres defilement de la liste des categories puis choix d'une categorie sur l'ecran exterieur | Bug / gel | Fort | Faible | Meme blocage iOS 27 que sur l'ecran interieur (grand titre replie au defilement, puis navigation qui boucle dans UINavigationController). Le contournement (titres compacts) ne couvrait que l'ecran interieur; il couvre maintenant l'ecran exterieur (`PhoneDisplayPolicy`). | Corrige, a tester sur Duo |
+| HFR-098 | Retour beta Duo | Sujet: le swipe de changement de page se declenche en faisant defiler une balise [fixed] | Bug UX | Moyen | Faible | Un toucher qui commence dans un bloc qui defile horizontalement ([fixed], [code], tableau large) ne change plus de page; le swipe reste actif partout ailleurs. | Corrige, a tester |
+| HFR-099 | Retour beta Duo | iPhone Duo plie: Actualiser et Retour en bas de la colonne d'icones de droite, a portee de pouce | UX | Moyen | Faible | Sur l'ecran exterieur seulement: Actualiser (Categories, forum, Favoris, Messages) passe en bas de la barre d'outils, et un bouton Retour s'ajoute en bas des vues poussees (forum, sujet). Le bouton Retour systeme et le swipe retour restent. | Corrige, a tester sur Duo |
+
 ### Livrees 4.0.2
 
 | ID | Pages | Sujet | Type | Impact | Complexite | Avis | Statut |

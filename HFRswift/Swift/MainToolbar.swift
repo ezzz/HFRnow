@@ -14,6 +14,8 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
     let profileImage: UIImage?
     let profileImageURL: URL?
     let leadingRefreshItem: AnyView?
+    /// `.bottomBar` on the iPhone Duo cover screen (`PhoneDisplayKind.refreshToolbarPlacement`).
+    let refreshPlacement: ToolbarItemPlacement
     let menuItems: () -> MenuItems
 
     init(
@@ -21,6 +23,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
         isLoading: Bool = false,
         profileImage: UIImage? = nil,
         profileImageURL: URL? = nil,
+        refreshPlacement: ToolbarItemPlacement = .topBarTrailing,
         leadingRefreshItem: AnyView? = nil,
         @ViewBuilder menuItems: @escaping () -> MenuItems
     ) {
@@ -29,6 +32,7 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
         self.profileImage = profileImage
         self.profileImageURL = profileImageURL
         self.leadingRefreshItem = leadingRefreshItem
+        self.refreshPlacement = refreshPlacement
         self.menuItems = menuItems
     }
 
@@ -39,18 +43,17 @@ struct MainToolbarContent<MenuItems: View>: ToolbarContent {
             }
         }
 
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: refreshPlacement) {
             Button {
                 AppHaptics.refreshStarted()
                 onRefresh()
             } label: {
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(.primary)
+                Label {
+                    Text("Actualiser")
+                } icon: {
+                    ToolbarRefreshIcon(isLoading: isLoading)
                 }
+                .foregroundStyle(.primary)
             }
             .disabled(isLoading)
         }

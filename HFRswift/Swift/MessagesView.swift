@@ -855,6 +855,9 @@ struct WebView: UIViewRepresentable {
     var onScrollPositionChange: ((Bool) -> Void)?
     var onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)?
     var onTextInteractionStateChange: ((Bool) -> Void)?
+    /// Whether the current touch started inside a horizontally scrollable block (`[fixed]`, `[code]`,
+    /// wide table): the page-change swipe must leave that horizontal pan to the block.
+    var onHorizontalScrollTouchChange: ((Bool) -> Void)?
 
     init(
         fileURL: URL? = nil,
@@ -896,7 +899,8 @@ struct WebView: UIViewRepresentable {
         onContentLoadFailure: ((String) -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil,
         onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)? = nil,
-        onTextInteractionStateChange: ((Bool) -> Void)? = nil
+        onTextInteractionStateChange: ((Bool) -> Void)? = nil,
+        onHorizontalScrollTouchChange: ((Bool) -> Void)? = nil
     ) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
@@ -938,6 +942,7 @@ struct WebView: UIViewRepresentable {
         self.onScrollPositionChange = onScrollPositionChange
         self.onScrollPositionSnapshotChange = onScrollPositionSnapshotChange
         self.onTextInteractionStateChange = onTextInteractionStateChange
+        self.onHorizontalScrollTouchChange = onHorizontalScrollTouchChange
     }
 
     func makeCoordinator() -> Coordinator {
@@ -972,6 +977,7 @@ struct WebView: UIViewRepresentable {
         contentController.addUserScript(bootstrapThemeScript)
         contentController.add(context.coordinator, name: "scrollState")
         contentController.add(context.coordinator, name: "textInteractionState")
+        contentController.add(context.coordinator, name: "horizontalScrollTouch")
 
         let scrollTrackingScript = WKUserScript(
             source: """
@@ -1092,6 +1098,48 @@ struct WebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(textInteractionTrackingScript)
+
+        // A touch that starts inside a block the user can scroll sideways ([fixed], [code] or a wide
+        // table: `overflow: scroll` in style-liste-*.css) belongs to that block, not to the
+        // page-change swipe. Reported once per touch start, before any drag can reach its threshold.
+        let horizontalScrollTouchTrackingScript = WKUserScript(
+            source: """
+            (function() {
+              if (window.__hfrHorizontalScrollTouchInstalled) { return; }
+              window.__hfrHorizontalScrollTouchInstalled = true;
+
+              var lastInside = null;
+
+              function scrollsHorizontally(element) {
+                if (!element || element === document.body || element === document.documentElement) {
+                  return false;
+                }
+                if (element.scrollWidth <= element.clientWidth + 1) { return false; }
+                var overflowX = window.getComputedStyle(element).overflowX;
+                return overflowX === 'auto' || overflowX === 'scroll';
+              }
+
+              function isInsideHorizontalScroller(node) {
+                var element = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
+                while (element && element !== document.body) {
+                  if (scrollsHorizontally(element)) { return true; }
+                  element = element.parentElement;
+                }
+                return false;
+              }
+
+              document.addEventListener('touchstart', function(event) {
+                var inside = isInsideHorizontalScroller(event.target);
+                if (inside === lastInside) { return; }
+                lastInside = inside;
+                try { window.webkit.messageHandlers.horizontalScrollTouch.postMessage(inside); } catch (e) {}
+              }, { passive: true, capture: true });
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(horizontalScrollTouchTrackingScript)
 
         let linkedThumbnailImageTapScript = WKUserScript(
             source: """
@@ -1214,6 +1262,7 @@ struct WebView: UIViewRepresentable {
         webView.stopLoading()
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "scrollState")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "textInteractionState")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "horizontalScrollTouch")
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
@@ -1605,6 +1654,19 @@ struct WebView: UIViewRepresentable {
 
                 DispatchQueue.main.async {
                     self.parent.onTextInteractionStateChange?(isActive)
+                }
+            case "horizontalScrollTouch":
+                let isInside: Bool
+                if let boolValue = message.body as? Bool {
+                    isInside = boolValue
+                } else if let numberValue = message.body as? NSNumber {
+                    isInside = numberValue.boolValue
+                } else {
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    self.parent.onHorizontalScrollTouchChange?(isInside)
                 }
             default:
                 return
@@ -3058,6 +3120,8 @@ struct MessagesView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.foldHandoffScope) private var foldHandoffScope
+    @State private var foldHandoffToken: UUID?
     @ObservedObject private var appTheme = AppThemeStore.shared
     @AppStorage(AppTextSizeScale.key) private var textSizeScaleRawValue = AppTextSizeScale.standard.rawValue
     @AppStorage(AppTopicPageSwipeNavigation.key) private var topicPageSwipeNavigation = true
@@ -3128,6 +3192,8 @@ struct MessagesView: View {
     @State private var isWebContentLoading = false
     @State private var isWebContentAtBottom = false
     @State private var isMessageTextInteractionActive = false
+    /// The current touch started in a horizontally scrollable block: no page-change swipe (beta feedback).
+    @State private var isTouchInHorizontalScroller = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
@@ -3176,8 +3242,40 @@ struct MessagesView: View {
         )
     }
 
+    /// Fold continuity: the root topic view of a tab (not the topics pushed from its links)
+    /// tells `FoldHandoffStore` what it shows, so `RootTabView` can reopen it on the same page
+    /// after the root switches between the tab bar and the split view.
+    private func registerFoldHandoffReading() {
+        guard navigationDepth == 0, let foldHandoffScope else { return }
+        foldHandoffToken = FoldHandoffStore.shared.register(
+            tab: foldHandoffScope.tab,
+            topic: topic,
+            page: page,
+            maxPage: availableMaxPage
+        )
+    }
+
+    private func updateFoldHandoffReading() {
+        guard let foldHandoffToken else { return }
+        FoldHandoffStore.shared.update(token: foldHandoffToken, page: page, maxPage: availableMaxPage)
+    }
+
+    private func scheduleFoldHandoffClear() {
+        guard let foldHandoffToken else { return }
+        // Covered by its own push or full-screen viewer: the topic is still on the stack.
+        guard linkedTopicDestination == nil,
+              searchResultDestination == nil,
+              photoViewerDestination == nil else {
+            return
+        }
+        FoldHandoffStore.shared.scheduleClear(token: foldHandoffToken)
+    }
+
+    /// Phones in compact height (landscape) only: the iPhone Duo is a `.phone` whose inner display
+    /// is regular/regular, so it keeps the button; iPad windows keep it whatever their height.
     private var shouldHideReplyComposerButton: Bool {
-        replyButtonMode == .hidden || (UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact)
+        replyButtonMode == .hidden
+            || (UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact)
     }
 
     private var replyButtonMode: AppReplyButtonBehavior {
@@ -3677,6 +3775,8 @@ struct MessagesView: View {
     }
 
     private func loadPage(_ page: Int, restoration: TopicPageLoadRestoration? = nil) {
+        // The new page's web view reports its own touches; a block of the old page must not block the swipe.
+        isTouchInHorizontalScroller = false
         let url = urlForPage(page)
         let fetchAnchor = restoration?.fetchAnchor ?? self.anchor
         print("[TopicPageTrace][MessagesView.loadPage.start] requestedPage=\(page) url=\(url) anchor=\(String(describing: fetchAnchor)) statePage=\(self.page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
@@ -4672,6 +4772,7 @@ struct MessagesView: View {
             fileURL = rendered.fileURL
             cacheURL = rendered.readAccessURL
             messageActionsByIndex = result.messageActionsByIndex
+            isTouchInHorizontalScroller = false
             page = max(result.endPage, 1)
             availableMaxPage = max(result.maxPage, page)
             topicAnswerURL = nil
@@ -5242,6 +5343,9 @@ struct MessagesView: View {
                     },
                     onTextInteractionStateChange: { isActive in
                         isMessageTextInteractionActive = isActive
+                    },
+                    onHorizontalScrollTouchChange: { isInside in
+                        isTouchInHorizontalScroller = isInside
                     }
                 )
                     .id(page) // force a new WKWebView per page
@@ -5296,6 +5400,7 @@ struct MessagesView: View {
                         guard topicPageSwipeNavigation else { return }
                         guard !isFavoritePostFilterMode else { return }
                         guard !isMessageTextInteractionActive else { return }
+                        guard !isTouchInHorizontalScroller else { return }
                         let horizontal = value.translation.width
                         let vertical = value.translation.height
                         let minDistance: CGFloat = 120
@@ -5588,6 +5693,7 @@ struct MessagesView: View {
                         }
                     }
                 }
+                .coverScreenBottomBackButton()
                 .sheet(isPresented: $isPagePickerPresented) {
                     TopicPagePickerSheet(
                         maxPage: currentMaxPage,
@@ -5884,6 +5990,14 @@ struct MessagesView: View {
         }
 
         return content
+            .onAppear(perform: registerFoldHandoffReading)
+            .onDisappear(perform: scheduleFoldHandoffClear)
+            .onChange(of: page) {
+                updateFoldHandoffReading()
+            }
+            .onChange(of: availableMaxPage) {
+                updateFoldHandoffReading()
+            }
             .navigationDestination(isPresented: linkedTopicNavigationBinding) {
                 if let linkedTopicDestination {
                     linkedTopicDestination
@@ -6444,6 +6558,10 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             loadState.wrappedValue = .loading
 
+            // Read on the main thread: the decode runs in the URLSession callback, and the
+            // window's screen can change (iPhone Duo inner/outer display).
+            let displayScale = imageView.traitCollection.displayScale
+
             let task = URLSession.shared.dataTask(with: url) { [weak self, weak imageView] data, response, _ in
                 guard let self else { return }
 
@@ -6451,7 +6569,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
                 guard
                     let data,
                     isValidResponse,
-                    let decodedImage = Self.decodeAnimatedImage(from: data)
+                    let decodedImage = Self.decodeAnimatedImage(from: data, displayScale: displayScale)
                 else {
                     DispatchQueue.main.async {
                         guard self.currentURL == url else { return }
@@ -6484,7 +6602,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             currentURL = nil
         }
 
-        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+        private nonisolated static func decodeAnimatedImage(from data: Data, displayScale: CGFloat) -> UIImage? {
             let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: animatedGIFSelector),
@@ -6504,7 +6622,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = UIScreen.main.scale
+            let scale = displayScale > 0 ? displayScale : UITraitCollection.current.displayScale
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -6524,7 +6642,7 @@ private struct MessageAnimatedGIFImageView: UIViewRepresentable {
             return UIImage.animatedImage(with: frames, duration: totalDuration)
         }
 
-        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+        private nonisolated static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
             guard
                 let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
                 let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
@@ -6796,6 +6914,9 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             scheduleState(.loading, visible: false)
 
+            // Read on the main thread: the decode runs in the URLSession callback.
+            let displayScale = view.traitCollection.displayScale
+
             let request = PhotoViewerNetworkRequestFactory.makeRequest(for: url)
             let task = URLSession.shared.dataTask(with: request) { [weak self, weak view] data, response, _ in
                 guard let self else { return }
@@ -6825,7 +6946,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
                 guard
                     let data,
                     isValidResponse,
-                    let image = Self.decodeAnimatedImage(from: data)
+                    let image = Self.decodeAnimatedImage(from: data, displayScale: displayScale)
                 else {
                     DispatchQueue.main.async {
                         guard self.currentPresentationID == presentationID, self.currentURL == url else { return }
@@ -6869,7 +6990,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             (scrollView as? ZoomingImageScrollView)?.centerImage()
         }
 
-        private static func decodeAnimatedImage(from data: Data) -> UIImage? {
+        private nonisolated static func decodeAnimatedImage(from data: Data, displayScale: CGFloat) -> UIImage? {
             let animatedGIFSelector = NSSelectorFromString("sd_animatedGIFWithData:")
             let imageClass: AnyObject = UIImage.self
             if imageClass.responds(to: animatedGIFSelector),
@@ -6889,7 +7010,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
 
             var frames: [UIImage] = []
             var totalDuration: Double = 0
-            let scale = UIScreen.main.scale
+            let scale = displayScale > 0 ? displayScale : UITraitCollection.current.displayScale
 
             for index in 0..<frameCount {
                 guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else {
@@ -6909,7 +7030,7 @@ private struct ZoomableRemoteAnimatedImageView: UIViewRepresentable {
             return UIImage.animatedImage(with: frames, duration: totalDuration)
         }
 
-        private static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
+        private nonisolated static func frameDuration(at index: Int, in source: CGImageSource) -> Double {
             guard
                 let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
                 let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]

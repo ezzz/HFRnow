@@ -440,6 +440,7 @@ struct FavoritesListView: View {
     @StateObject private var viewModel: FavoritesViewModel
     @StateObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
@@ -755,6 +756,8 @@ struct FavoritesListView: View {
                 }
             }
             .navigationTitle("Favoris")
+            .expandedPhoneInlineNavigationTitle()
+            .foldHandoffDestination()
             .safeAreaInset(edge: .bottom) {
                 if favoritePostFilterProgress != nil || favoritePostFilterStatusMessage != nil {
                     FavoritePostFilterProgressBanner(
@@ -800,6 +803,7 @@ struct FavoritesListView: View {
                     isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,
                     profileImageURL: nil,
+                    refreshPlacement: phoneDisplayKind.refreshToolbarPlacement,
                     leadingRefreshItem: AnyView(
                         Button {
                             AppHaptics.impact(.light)
@@ -809,8 +813,11 @@ struct FavoritesListView: View {
                                 showsCategoriesOnDemand.toggle()
                             }
                         } label: {
-                            Image(systemName: showsAllFavoriteSections ? "list.bullet.circle.fill" : "list.bullet.circle")
-                                .foregroundStyle(.primary)
+                            Label(
+                                showsAllFavoriteSections ? "Masquer les catégories" : "Afficher les catégories",
+                                systemImage: showsAllFavoriteSections ? "list.bullet.circle.fill" : "list.bullet.circle"
+                            )
+                            .foregroundStyle(.primary)
                         }
                         .contextMenu {
                             Button {

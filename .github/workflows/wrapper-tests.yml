@@ -8,6 +8,7 @@ on:
       - "Classes/**"
       - "SuperHFRplus.xcodeproj/**"
       - ".github/workflows/wrapper-tests.yml"
+      - "Cartfile.resolved"
   push:
     paths:
       - "HFRswift/**"
@@ -15,19 +16,44 @@ on:
       - "Classes/**"
       - "SuperHFRplus.xcodeproj/**"
       - ".github/workflows/wrapper-tests.yml"
+      - "Cartfile.resolved"
   workflow_dispatch:
 
 jobs:
   wrapper-build-for-testing:
     name: Wrapper Build-For-Testing
-    runs-on: macos-15
-    timeout-minutes: 30
+    # The app uses iOS 26 APIs (Liquid Glass, tabBarMinimizeBehavior): it needs an
+    # Xcode 26+ SDK, which the macos-15 image's default Xcode 16.4 does not provide.
+    runs-on: macos-26
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show Xcode Version
-        run: xcodebuild -version
+      - name: Select the newest stable Xcode
+        run: |
+          XCODE_APP="$(ls -d /Applications/Xcode_*.app | grep -vi -e beta -e rc | sort -V | tail -n 1)"
+          echo "Selecting $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+          echo "XCODE_VERSION=$(xcodebuild -version | head -n 1 | tr ' ' '-')" >> "$GITHUB_ENV"
+
+      # Carthage/Build is not versioned (see update_carthage.sh). The HFRswift target links
+      # SimpleKeychain.xcframework and InAppSettingsKit.xcframework from it, so the build
+      # failed before compiling anything. Sources are already in Carthage/Checkouts.
+      - name: Cache Carthage frameworks
+        id: carthage-cache
+        uses: actions/cache@v4
+        with:
+          path: Carthage/Build
+          key: carthage-${{ runner.os }}-${{ env.XCODE_VERSION }}-${{ hashFiles('Cartfile.resolved') }}
+
+      - name: Build Carthage frameworks
+        if: steps.carthage-cache.outputs.cache-hit != 'true'
+        run: |
+          command -v carthage >/dev/null || brew install carthage
+          carthage build --platform iOS --use-xcframeworks
+          ls Carthage/Build
 
       - name: Build HFRswiftTests (device SDK)
         run: |

@@ -188,6 +188,11 @@ final class HFRSwiftOrientationPolicy: NSObject {
         guard UIDevice.current.userInterfaceIdiom == .phone else {
             return .all
         }
+        // Unfolded iPhone Duo: every orientation except upside down (not in the iPhone
+        // Info.plist list), whatever the rotation setting, like the iPad.
+        guard !isShowingExpandedPhoneLayout else {
+            return .allButUpsideDown
+        }
         guard AppScreenRotation.isEnabled else {
             return .portrait
         }
@@ -206,6 +211,14 @@ final class HFRSwiftOrientationPolicy: NSObject {
         refreshSupportedOrientations()
     }
 
+    /// iPhone Duo inner display: regular width and height on a `.phone` idiom. The system ignores
+    /// supported orientations there, so the portrait locks only apply once the device is folded.
+    private static var isShowingExpandedPhoneLayout: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .contains { $0.traitCollection.horizontalSizeClass == .regular && $0.traitCollection.verticalSizeClass == .regular }
+    }
+
     static func refreshSupportedOrientations() {
         guard UIDevice.current.userInterfaceIdiom == .phone else { return }
 
@@ -213,6 +226,11 @@ final class HFRSwiftOrientationPolicy: NSObject {
             guard let windowScene = scene as? UIWindowScene else { continue }
             windowScene.windows.forEach {
                 $0.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+
+            let traits = windowScene.traitCollection
+            if traits.horizontalSizeClass == .regular && traits.verticalSizeClass == .regular {
+                continue
             }
 
             if #available(iOS 16.0, *) {
@@ -313,6 +331,75 @@ extension View {
             self.listSectionSpacing(.custom(regularSpacing))
         } else {
             self
+        }
+    }
+
+    /// Workaround for an iOS 27.1/27.2 hang on both iPhone Duo displays: once a large title has
+    /// collapsed on scroll, the next push loops forever in `UINavigationController` layout.
+    /// Applied to each tab's root view (inside its own `NavigationStack`) and to the split view
+    /// columns that have no stack of their own; pushed views inherit the inline mode.
+    /// Rules in `PhoneDisplayPolicy.usesInlineRootTitle`.
+    func expandedPhoneInlineNavigationTitle() -> some View {
+        modifier(ExpandedPhoneInlineNavigationTitle())
+    }
+}
+
+private struct ExpandedPhoneRootKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct PhoneDisplayKindKey: EnvironmentKey {
+    static let defaultValue = PhoneDisplayKind.other
+}
+
+extension EnvironmentValues {
+    /// Set by `RootTabView`: which iPhone Duo display the scene is on (`.other` elsewhere).
+    var hfrPhoneDisplayKind: PhoneDisplayKind {
+        get { self[PhoneDisplayKindKey.self] }
+        set { self[PhoneDisplayKindKey.self] = newValue }
+    }
+
+    /// Set by `RootTabView` when a `.phone` scene shows the split view root (iPhone Duo inner
+    /// display). Needed because split view columns report a compact width of their own, so the
+    /// size classes read inside a column no longer describe the whole screen.
+    var hfrIsExpandedPhoneRoot: Bool {
+        get { self[ExpandedPhoneRootKey.self] }
+        set { self[ExpandedPhoneRootKey.self] = newValue }
+    }
+}
+
+private struct ExpandedPhoneInlineNavigationTitle: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.hfrIsExpandedPhoneRoot) private var isExpandedPhoneRoot
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
+
+    private var usesInlineTitle: Bool {
+        PhoneDisplayPolicy.usesInlineRootTitle(
+            kind: isExpandedPhoneRoot ? .duoInner : phoneDisplayKind,
+            isPhone: UIDevice.current.userInterfaceIdiom == .phone,
+            isRegularInBothDimensions: horizontalSizeClass == .regular && verticalSizeClass == .regular
+        )
+    }
+
+    func body(content: Content) -> some View {
+        content.navigationBarTitleDisplayMode(usesInlineTitle ? .inline : .automatic)
+    }
+}
+
+/// Refresh icon for toolbar buttons that spins while loading. Keep the button content stable:
+/// swapping the label for a `ProgressView` during a push makes the Liquid Glass toolbar morph
+/// balloon into a huge white circle on the iPhone Duo inner display.
+struct ToolbarRefreshIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            Image(systemName: "arrow.clockwise")
+                .symbolEffect(.rotate, options: .repeating, isActive: isLoading)
+        } else {
+            Image(systemName: "arrow.clockwise")
+                .opacity(isLoading ? 0.4 : 1)
         }
     }
 }
