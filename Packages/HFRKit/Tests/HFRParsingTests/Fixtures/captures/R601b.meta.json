@@ -1,0 +1,16 @@
+{
+  "id": "R601b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/user/uploadsmil.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/uploadsmil.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/uploadsmil.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 15:55:24 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Link \"Gérer ses smilies personnalisés\" of R601a, read-only",
+  "file": "R601b-smiley-upload-page-owner.html",
+  "private": false
+}

@@ -10,7 +10,8 @@ rows={r['lot']:r for r in json.loads((_H/'lots.json').read_text(encoding='utf-8'
 def n(l): return int(l.split('-')[1])
 def L(*nums): return ['LOT-%03d'%x for x in nums]
 M1=set(L(0,1,2,3,4,5,10,11,12,13,14,20,21,22,24,25,30,33,34,36,37,40,41,42,43,44,45,48,65,71,80,81,82,83,84,119,160,169,170,137))
-M2=set(L(87,106,107,108,109,110,111,112,113,114,117,136,  85,86,88,89,100,101,102,103,104,105,151,152,153,155,  124,125,143,  126,127,128,171,  116,142,115,138,139))
+M2=set(L(87,106,107,108,109,110,111,112,113,114,117,136,  85,86,88,89,102,103,104,105,151,152,153,155,  124,125,143,  126,127,128,171,  116,142,115,138,139))
+# LOT-100 and LOT-101 left M2 for M5 on 2026-11-02 (#379), then went to M4 on 2026-11-09 (#655): legacy evolution at 2fe43da3.
 APP=lambda r:r['module']=='App'
 # M5 = UX evolutions (operator decisions 2026-11-02, #379): whole lots moved out of M2 and M4, plus the lots of the
 # `## M5 · UX evolutions` section of LOTS.md (the (b) halves of the splits). M4 = validated legacy parity.

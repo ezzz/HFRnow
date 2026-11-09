@@ -14,6 +14,7 @@ Python 3 stdlib only. Output is English; colors are disabled without a TTY or wi
 """
 import argparse
 import datetime
+import email.utils
 import html
 import html.entities
 import html.parser
@@ -62,6 +63,9 @@ TOKEN_VALUE_RE = re.compile(r"[A-Za-z0-9+/=_-]{20,}")
 FIXED_INPUT_NAMES = {"hash_check", "md_user", "md_pass"}
 # Personal fields of the profile edit form (editprofil.php page 1, fixture R55-p1).
 PERSONAL_INPUT_NAMES = {"email", "emailconfirm", "homepage", "custom_ville", "custom_occupation", "custom_hobby"}
+# Keyword inputs of the personal smiley page (`keyword<slot>` of uploadsmil.php, R601b): member-written text.
+SMILEY_KEYWORD_INPUT_RE = re.compile(r"keyword\d+$", re.I)
+SMILEY_KEYWORD_PLACEHOLDER = "Keywords removed."
 PERSONAL_SELECT_RE = re.compile(
     r"(<select\b[^>]*\bname=[\"'](?:bday|bmonth|byear|custom_sexe)[\"'][^>]*>)(.*?)(</select>)", re.I | re.S)
 SELECTED_RE = re.compile(r"\s+selected(?:\s*=\s*(?:[\"'][^\"']*[\"']|[^\s>]+))?", re.I)
@@ -287,6 +291,10 @@ PROFILE_TRANSACTIONS_RE = re.compile(r"(>\s*Transactions\s*\()(\d+)(\)\s*<)", re
 # field names and line breaks stay. Ids keep a fixed range, so the verifier knows an own-topic page.
 OWN_TOPIC_FIRST = 9900001
 OWN_MESSAGE_FIRST = 9910000001
+OWN_ALERT_FIRST = 9920001
+OWN_ALERT_TITLE = "Alert title"
+OWN_CATEGORY = "own-category"
+OWN_SUBCATEGORY = "own-subcategory"
 OWN_SUBJECT = "Own topic subject"
 OWN_SLUG = "own-topic-subject"
 OWN_TEXT = "Own topic text removed."
@@ -295,7 +303,7 @@ OWN_DATE = "01-01-2000"
 OWN_HTTP_DATE = "Sat, 01 Jan 2000 00:00:00 GMT"
 OWN_MESSAGE_ID_RES = tuple(re.compile(rx, re.I) for rx in (
     r"numreponse=(\d{5,})", r"\bid=[\"']para(\d{5,})", r"<a\s+name=[\"']t(\d{5,})", r"#t(\d{5,})", r"n°(\d{5,})",
-    r"\bnumrep=(\d{5,})", r"\[quotemsg=(\d{5,}),",
+    r"\bnumrep=(\d{5,})", r"\[quotemsg=(\d{5,}),", r"\bpost_id=(\d{5,})", r"%23t(\d{5,})",
     r"\bname=[\"'](?:numreponse|numrep|firstnum)[\"']\s*value=[\"'](\d{5,})",
     r"\bvalue=[\"'](\d{5,})[\"']\s*name=[\"'](?:numreponse|numrep|firstnum)[\"']",
     r"(?:quoter|edit_in)\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'?\d+'?\s*,\s*'?(\d{5,})'?"))
@@ -315,14 +323,16 @@ OWN_TITLE_CELL_RE = re.compile(
 OWN_DATE_RE = re.compile(r"\b\d{2}-\d{2}-\d{4}\b")
 OWN_TIME_RE = re.compile(r"(à(?:&nbsp;|\s|\u00a0)*)\d{2}:\d{2}(:\d{2})?")
 OWN_BODY_TEXT_RE = re.compile(r"((?:^|&)content_form=)([^&\"<>\s]*)")
-OWN_BODY_SUBJECT_RE = re.compile(r"((?:^|&)sujet=)([^&\"<>\s]*)")
+OWN_BODY_SUBJECT_RE = re.compile(r"((?:^|&)(?:sujet|topic_titre)=)([^&\"<>\s]*)")
+# An AQ create body names the alert by its free-text title (public in AQ's feed, linked to the post): placeholder.
+OWN_BODY_ALERT_TITLE_RE = re.compile(r"((?:^|&)nom=)([^&\"<>\s]*)")
 OWN_HTTP_DATE_RE = re.compile(r"\b[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT\b")
 
 
 def own_topics_in(text, topics):
     """The operator-owned topic ids (strings) this page or URL belongs to."""
     # `numeropost=` is the poll vote body's topic field (R32a).
-    return [t for t in topics if re.search(r"(?:\b(?:numero)?post=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
+    return [t for t in topics if re.search(r"(?:\b(?:numero)?post=|\btopic_id=|sujet_|\bname=[\"']post[\"']\s*value=[\"'])%s(?!\d)" % t, text)]
 
 
 def own_message_ids(texts, topics):
@@ -623,10 +633,10 @@ def alias_rest_buckets(text, cats=None, url=None):
         links["posts"]["count"] = count
         links["posts"]["href"] = href(links["posts"]["href"], i, count)
         for who in ("last_author", "author"):
-            exact(links[who], ("linked_type", "type", "href", "title", "tns3"), what="author link field")
+            exact(links[who], ("linked_type", "type", "href", "title"), ("tns3",), "author link field")  # no avatar: no tns3
             kind(links[who], "user")
             need(links[who]["href"] is None, "author href")
-            need(isinstance(links[who]["title"], str) and isinstance(links[who]["tns3"], str), "author value")
+            need(isinstance(links[who]["title"], str) and isinstance(links[who].get("tns3", ""), str), "author value")
         it["href"] = href(it["href"], i, None)
         return it
 
@@ -930,6 +940,13 @@ def _sensitive_input(tag):
             return False
         return bool(TOKEN_NAME_RE.search(name) or TOKEN_VALUE_RE.fullmatch(value))
     return False
+
+
+def _smiley_keyword_input(tag):
+    """True for a `keyword<slot>` input that still holds a value other than the placeholder."""
+    value = _attr(tag, "value")
+    return bool(SMILEY_KEYWORD_INPUT_RE.match(_attr(tag, "name") or "")) and value not in (
+        None, "", SMILEY_KEYWORD_PLACEHOLDER)
 
 
 def _find_para_blocks(text, open_re=None):
@@ -1549,9 +1566,10 @@ class Anonymizer:
             out.append(seg)
         return "".join(out)
 
-    def _own_start(self, text):
+    def _own_start(self, text, context=""):
         """On a page of an operator-owned topic: build its id table and replace subject, texts and title."""
-        topics = own_topics_in(text, self.config.own_topics)
+        # `context` (a capture's URL and request body) can name the topic when the page does not (an AQ list).
+        topics = own_topics_in(text + "\n" + context, self.config.own_topics)
         if not topics:
             return text
         for t in topics:
@@ -1595,10 +1613,15 @@ class Anonymizer:
         for t in self.config.own_topics:
             if t in self.own_ids:
                 s = re.sub(r"(/)[^/\"'<>\s?#]*?-sujet_%s(?=_)" % t, r"\g<1>%s-sujet_%s" % (OWN_SLUG, t), s)
+                # A permalink inside a form-encoded body (AQ `post_url`): category and sub-category go with the slug.
+                s = re.sub(r"(%%2Fhfr%%2F)(?:[^%%&\"'<>\s]+?%%2F){1,2}[^%%&\"'<>\s]*?-sujet_%s(?=_)" % t,
+                           r"\g<1>%s%%2F%s%%2F%s-sujet_%s" % (OWN_CATEGORY, OWN_SUBCATEGORY, OWN_SLUG, t), s, flags=re.I)
+                s = re.sub(r"(%%2F)[^%%&\"'<>\s]*?-sujet_%s(?=_)" % t, r"\g<1>%s-sujet_%s" % (OWN_SLUG, t), s, flags=re.I)
         # A saved request body (form-encoded): the posted text keeps its line structure only.
         s = OWN_BODY_TEXT_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(
             _own_lines(urllib.parse.unquote_plus(m.group(2)))), s)
         s = OWN_BODY_SUBJECT_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(OWN_SUBJECT), s)
+        s = OWN_BODY_ALERT_TITLE_RE.sub(lambda m: m.group(1) + urllib.parse.quote_plus(OWN_ALERT_TITLE), s)
         for subject in self.own_subjects:
             for form, fake in ((subject, OWN_SUBJECT), (html.escape(subject), OWN_SUBJECT),
                                (html.escape(subject, quote=False), OWN_SUBJECT),
@@ -1616,6 +1639,9 @@ class Anonymizer:
         s = self._own(s)
         def inp(m):
             tag = m.group(0)
+            if _smiley_keyword_input(tag):
+                return VALUE_RE.sub(lambda v: v.group(1) + (v.group(2) or '"') + SMILEY_KEYWORD_PLACEHOLDER
+                                    + (v.group(2) or '"'), tag, count=1)
             if not _sensitive_input(tag):
                 return tag
             return VALUE_RE.sub(lambda v: v.group(1) + (v.group(2) or "") + REDACTED + (v.group(2) or ""), tag, count=1)
@@ -1651,10 +1677,10 @@ class Anonymizer:
         s = self._free_text(s) if free_text else self._free_urls(s)
         return self._secrets(s)
 
-    def anonymize(self, text, private=False, url=None):
+    def anonymize(self, text, private=False, url=None, context=""):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
-        text = self._own_start(text)
+        text = self._own_start(text, context)
         private = private or page_is_private(text)
         text = alias_followed_lists(text)
         text = alias_rest_buckets(text, self.rest_cats, url)
@@ -1693,6 +1719,10 @@ class Anonymizer:
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
         text = anonymize_aq_text(text)
+        if self.own_ids and is_aq_document(text):
+            # The alert the operator just created is tied to the own topic: its AQ id goes too.
+            text = re.sub(r"(<alerte\b[^>]*?\bid=\")(\d+)(\")", lambda m: m.group(1) + str(OWN_ALERT_FIRST) + m.group(3), text, count=1) \
+                if text.count("<alerte ") == 1 else text
         # Dropping `selected` from personal fields is an intended markup change too: do it first.
         text = PERSONAL_SELECT_RE.sub(lambda m: m.group(1) + SELECTED_RE.sub("", m.group(2)) + m.group(3), text)
         before = markup_signature(text)
@@ -1769,6 +1799,8 @@ class Anonymizer:
             for m in INPUT_RE.finditer(chunk):
                 if _sensitive_input(m.group(0)):
                     add(m.start(), "hidden token input not REDACTED")
+                if _smiley_keyword_input(m.group(0)):
+                    add(m.start(), "smiley keywords not replaced")
             for m in PROFIL_RE.finditer(chunk):
                 if m.group(2) in self.config.profile_ids:
                     add(m.start(), "operator profile id")
@@ -1806,6 +1838,7 @@ class Anonymizer:
         res += verify_rest_meta(text)
         res += verify_operator_members(text, account)
         res += verify_aq(text)
+        res += verify_aq_own(text)
         for pos, _prefix, _payload, decoded, _m in iter_tokens(text):
             if decoded is not None:
                 scan(decoded, pos, " (in obfuscated link)")
@@ -2028,6 +2061,9 @@ class StructuralVerifier(html.parser.HTMLParser):
             for item in (a["value"].split(",") if a.get("name", "").lower() in ("dest", "newdest") else [a["value"]]):
                 if item.strip():
                     self._name("pseudo input", item)
+        if tag == "input" and re.fullmatch(r"keyword[0-9]+", a.get("name", ""), re.I) \
+                and a.get("value") not in (None, "", "Keywords removed."):
+            self._bad("smiley keywords", a["value"])
         if tag == "img" and "/images/perso/" in a.get("src", ""):
             for k in ("alt", "title"):
                 v = a.get(k, "")
@@ -2572,8 +2608,8 @@ _VB_LINK_KEYS = {"forum": ({"linked_type", "type", "href"}, set()),
                  "category": ({"linked_type", "type", "href"}, {"title"}),
                  "subcategory": ({"linked_type", "type", "href"}, set()),
                  "posts": ({"linked_type", "type", "href", "count"}, set()),
-                 "last_author": ({"linked_type", "type", "href", "title", "tns3"}, set()),
-                 "author": ({"linked_type", "type", "href", "title", "tns3"}, set())}
+                 "last_author": ({"linked_type", "type", "href", "title"}, {"tns3"}),
+                 "author": ({"linked_type", "type", "href", "title"}, {"tns3"})}
 _VB_LINKED = {"forum": "forum", "category": "forum_category", "subcategory": "forum_subcategory", "posts": "list",
               "last_author": "user", "author": "user"}
 
@@ -2692,7 +2728,8 @@ def verify_rest_buckets(text, url=None):
         for who in ("last_author", "author"):
             a = links[who]
             if isinstance(a, dict):
-                if a.get("href") is not None or not isinstance(a.get("tns3"), str) or not _VB_TNS3.fullmatch(a["tns3"]):
+                if a.get("href") is not None or ("tns3" in a and (
+                        not isinstance(a["tns3"], str) or not _VB_TNS3.fullmatch(a["tns3"]))):
                     bad("avatar")
                 if not isinstance(a.get("title"), str) or not _VB_AUTHOR.fullmatch(a["title"]):
                     bad("author name")
@@ -2808,6 +2845,245 @@ def verify_aq(text):
     return res
 
 
+_V_AQ_FAKE_TOPIC = re.compile(r"99\d{5}")
+_V_AQ_FAKE_MESSAGE = re.compile(r"991\d{7}")
+_V_AQ_FAKE_ALERT = re.compile(r"992\d{4}")
+_V_AQ_BODY_FIELDS = frozenset((
+    "alerte_qualitay_id", "nom", "topic_id", "topic_titre", "pseudo", "post_id", "post_url", "commentaire"))
+
+
+AQ_LOCAL_ORIGIN = "local-instance"
+AQ_LOCAL_NOTE = "local toyo/aq instance (php -S), not aq.super-h.fr"
+# A local capture holds the run's own fake values and no alias table goes over it: every position must take one of
+# these forms, so a real id, title or free text that reached a run fails. 13636 is the first id of the published
+# schema's AUTO_INCREMENT and 99999 the "no such AQ" probe (T57).
+_V_AQ_LOCAL_ALERT = "13636"
+_V_AQ_LOCAL_UNKNOWN_ALERT = "99999"
+_V_AQ_LOCAL_ID = re.compile(r"700\d{3}")
+_V_AQ_LOCAL_URL = re.compile(r"http://192\.0\.2\.1:\d+(/api/addAlerte\.php|/api/getAlertesByTopic\.php(?:\?topic_id=700\d{3})?)")
+_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other)|AQ flood \d+")
+_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic|AQ flood topic \d+")
+_V_AQ_LOCAL_POST_URL = re.compile(r"https?://forum\.hardware\.fr/hfr/Discussions/Societe/(?:aq-local-(?:topic|other)|aq-flood-\d+)"
+                                  r"-sujet_700\d{3}_1\.htm#t700\d{3}")
+_V_AQ_LOCAL_DATE = re.compile(r"[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT")
+_V_AQ_LOCAL_TYPES = ("text/plain;charset=UTF-8", "text/xml;charset=UTF-8", "text/html; charset=UTF-8")
+_V_AQ_LOCAL_KEYS = frozenset(("id", "account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
+                              "redirects", "set_cookie_names", "origin", "note", "private", "response_headers"))
+_V_AQ_LOCAL_HEADERS = frozenset(("Host", "Date", "Connection", "X-Powered-By", "Content-type"))
+_V_AQ_LOCAL_OPTIONAL_HEADERS = {"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"}
+
+
+def _v_aq_local_meta(doc):
+    """True for a capture meta that says, or looks like, a local AQ instance (dropping `origin` must not skip the check)."""
+    if "origin" in doc:
+        return True
+    split = urllib.parse.urlsplit(str(doc.get("url") or ""))
+    return split.hostname == IP_PLACEHOLDER and split.path.startswith("/api/")
+
+
+def _v_aq_local_body(body, bad):
+    """Report every field of a local create that is not a form of the run (see `_V_AQ_LOCAL_*`)."""
+    pairs = urllib.parse.parse_qsl(str(body), keep_blank_values=True)
+    f = dict(pairs)
+    keys = [k for k, _v in pairs]
+    if len(keys) != len(set(keys)) or set(keys) != _V_AQ_BODY_FIELDS:
+        bad("the body does not hold exactly the create fields")
+    if f.get("alerte_qualitay_id") not in ("-1", _V_AQ_LOCAL_ALERT, _V_AQ_LOCAL_UNKNOWN_ALERT):
+        bad("alerte_qualitay_id not a local value")
+    if f.get("nom") and not _V_AQ_LOCAL_NOM.fullmatch(f["nom"]):
+        bad("nom not a local value")
+    if not _V_AQ_LOCAL_TITLE.fullmatch(f.get("topic_titre", "")):
+        bad("topic_titre not a local value")
+    for k in ("topic_id", "post_id"):
+        if not _V_AQ_LOCAL_ID.fullmatch(f.get(k, "")):
+            bad("%s not a local id" % k)
+    if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+        bad("pseudo not an alias")
+    if not _V_AQ_LOCAL_POST_URL.fullmatch(f.get("post_url", "")):
+        bad("post_url not a local value")
+    if f.get("commentaire") != "post de %s" % f.get("pseudo"):
+        bad("commentaire not the legacy text")
+
+
+def verify_aq_local_meta(doc):
+    """[(line, column, reason)] for every position of an `origin: local-instance` meta that is not a form of the run.
+
+    Exact key set, fixed host and paths, closed values, `origin` itself; status, headers and body length are kept
+    because the meta is the only record of an empty answer (`T62`, `T67`, `T68`)."""
+    res = []
+
+    def bad(reason):
+        res.append((1, 0, "AQ local check: " + reason))
+    if doc.get("origin") != AQ_LOCAL_ORIGIN:
+        bad("origin is not local-instance")
+    post = doc.get("method") == "POST"
+    keys = _V_AQ_LOCAL_KEYS | ({"request_fields", "request_body"} if post else frozenset()) \
+        | ({"file"} if doc.get("file") else {"body_length"})
+    for k in sorted(set(doc) - keys):
+        bad("unknown key (%s)" % k[:20])
+    for k in sorted(keys - set(doc)):
+        bad("key missing (%s)" % k)
+    m = _V_AQ_LOCAL_URL.fullmatch(str(doc.get("url", "")))
+    if not m:
+        bad("url not on the local host, or another path")
+    elif doc.get("final_url") != doc["url"] or doc.get("url_template") != m.group(1):
+        bad("final_url or url_template does not follow url")
+    elif post != m.group(1).endswith("addAlerte.php") or doc.get("method") not in ("GET", "POST"):
+        bad("method does not fit the path")
+    fixed = (("id", bool(re.fullmatch(r"T\d+", str(doc.get("id", ""))))), ("account", doc.get("account") == "anon"),
+             ("note", doc.get("note") == AQ_LOCAL_NOTE), ("status", doc.get("status") in (200, 403)),
+             ("content_type", doc.get("content_type") in _V_AQ_LOCAL_TYPES), ("redirects", doc.get("redirects") == []),
+             ("set_cookie_names", doc.get("set_cookie_names") == []), ("private", doc.get("private") is False),
+             ("date", bool(_V_AQ_LOCAL_DATE.fullmatch(str(doc.get("date", ""))))))
+    for k, fine in fixed:
+        if not fine:
+            bad("%s not a local value" % k)
+    if post:
+        _v_aq_local_body(doc.get("request_body"), bad)
+        if sorted(doc.get("request_fields") or []) != sorted(_V_AQ_BODY_FIELDS):
+            bad("request_fields do not hold exactly the create fields")
+    length = doc.get("body_length", 0)
+    if "file" not in doc and (isinstance(length, bool) or not isinstance(length, int) or length < 0):
+        bad("body_length not a size")
+    headers = doc.get("response_headers")
+    if not isinstance(headers, dict):
+        bad("response_headers not a dict")
+        return res
+    for k in sorted(set(headers) - _V_AQ_LOCAL_HEADERS - set(_V_AQ_LOCAL_OPTIONAL_HEADERS) - {"Content-Length"}):
+        bad("unknown response header (%s)" % k[:20])
+    for k in sorted(_V_AQ_LOCAL_HEADERS - set(headers)):
+        bad("response header missing (%s)" % k)
+    if not re.fullmatch(r"192\.0\.2\.1:\d+", str(headers.get("Host", ""))):
+        bad("Host header not the local host")
+    if headers.get("Date") != doc.get("date") or headers.get("Content-type") != doc.get("content_type"):
+        bad("Date or Content-type header does not follow the meta")
+    if headers.get("Connection") != "close" or not re.fullmatch(r"PHP/\d+\.\d+\.\d+", str(headers.get("X-Powered-By", ""))):
+        bad("Connection or X-Powered-By header not a local value")
+    if any(k in headers and headers[k] != v for k, v in _V_AQ_LOCAL_OPTIONAL_HEADERS.items()):
+        bad("Cache-Control or Pragma header not a local value")
+    if "Content-Length" in headers and ("file" in doc or headers["Content-Length"] != str(length)):
+        bad("Content-Length header does not follow body_length")
+    return res
+
+
+def verify_aq_local_answer(text, meta):
+    """[(line, column, reason)] for an answer of a local instance that is neither a bare code nor a list of the run."""
+    def bad(reason):
+        return (1, 1, "AQ local check: " + reason)
+    if str(meta.get("content_type", "")).startswith("text/plain"):
+        return [] if re.fullmatch(r"-?\d{1,3}\s*", text) else [bad("answer is not a bare code")]
+    import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+    # ElementTree drops comments and instructions, which the published file would still hold.
+    if re.search(r"<[!?]", re.sub(r"\A\s*<\?xml\s[^>]*\?>", "", text.lstrip("\ufeff"))):
+        return [bad("answer holds a comment or an instruction")]
+    try:
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
+    except ET.ParseError:
+        return [bad("answer is not a list")]
+    if root.tag != "alertes" or (root.text or "").strip() or root.attrib:
+        return [bad("answer is not a list")]
+    try:
+        day = email.utils.parsedate_to_datetime(str(meta.get("date"))).strftime("%d-%m-%Y")
+    except (TypeError, ValueError):  # the message would print the value, and CI logs are public
+        return [bad("meta date is not a date")]
+    res = []
+    for alert in root:
+        if alert.tag != "alerte" or set(alert.attrib) != {"id", "nom", "pseudoInitiateur", "date", "postsIds"} \
+                or len(alert) or (alert.text or "").strip() or (alert.tail or "").strip():
+            res.append(bad("alert of an unknown shape"))
+            continue
+        if alert.get("id") != _V_AQ_LOCAL_ALERT:
+            res.append(bad("alert id not a local value"))
+        if not all(_V_AQ_LOCAL_ID.fullmatch(i) for i in alert.get("postsIds", "").split(",")):
+            res.append(bad("postsIds not local ids"))
+        if alert.get("date") != day:
+            res.append(bad("alert date is not the day of the run"))
+    return res
+
+
+def _v_aq_host(url):
+    return (urllib.parse.urlsplit(str(url or "")).hostname or "").rstrip(".").casefold() == "aq.super-h.fr"
+
+
+def verify_aq_own(text, own_list=False):
+    """[(line, column, reason)] for the AQ shapes of an operator-owned topic that are not aliases.
+
+    Position-based and config-free, independent of the redactor: (1) the `request_body` of an AQ create (every
+    field, the permalink included); (2) every alert of a list whose messages are fake ids, or of any list when
+    `own_list` (its meta names a fake topic id, `check --corpus`): alert id, message ids, date; (3) the HTTP date of an AQ meta naming a fake topic."""
+    res = []
+    if own_list and (looks_json(text) or not re.search(r"<alertes\b", text.lstrip("\ufeff \t\r\n")[:400])):
+        # The meta names a fake own topic: the file must be an AQ list, anything else is not verifiable.
+        return [(1, 1, "AQ own-topic check: file of an own-topic AQ read is not an AQ list")]
+    if looks_json(text):
+        try:
+            doc = json.loads(text)
+        except ValueError:
+            return res
+        if isinstance(doc, dict) and _v_aq_local_meta(doc):
+            return verify_aq_local_meta(doc)
+        if not isinstance(doc, dict) or not any(_v_aq_host(doc.get(k)) for k in ("url", "final_url")):
+            return res
+        line = next((i + 1 for i, l in enumerate(text.split("\n")) if '"request_body"' in l), 1)
+
+        def bad(reason):
+            res.append((line, 0, "AQ own-topic check: " + reason))
+        body = doc.get("request_body")
+        if isinstance(body, str):
+            pairs = urllib.parse.parse_qsl(body, keep_blank_values=True)
+            f = dict(pairs)
+            keys = [k for k, _v in pairs]
+            if len(keys) != len(set(keys)):
+                bad("duplicate field in the body")
+            for k in sorted(set(keys) - _V_AQ_BODY_FIELDS):
+                bad("unknown field in the body (%s)" % k[:20])
+            for k in sorted(_V_AQ_BODY_FIELDS - set(keys)):
+                bad("field missing from the body (%s)" % k)
+            if f.get("alerte_qualitay_id") != "-1":
+                bad("alerte_qualitay_id is not the create marker -1")
+            if not _V_AQ_FAKE_TOPIC.fullmatch(f.get("topic_id", "")):
+                bad("topic_id not an alias")
+            if not _V_AQ_FAKE_MESSAGE.fullmatch(f.get("post_id", "")):
+                bad("post_id not an alias")
+            if f.get("topic_titre") != OWN_SUBJECT:
+                bad("topic_titre not an alias")
+            if f.get("nom") != OWN_ALERT_TITLE:
+                bad("nom (alert title) not a placeholder")
+            if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+                bad("pseudo not an alias")
+            if not re.fullmatch(r"post de user\d+", f.get("commentaire", "")):
+                bad("commentaire not an alias")
+            if not re.fullmatch(r"https://forum\.hardware\.fr/hfr/%s/%s/%s-sujet_99\d{5}_\d+\.htm#t991\d{7}"
+                                % (OWN_CATEGORY, OWN_SUBCATEGORY, OWN_SLUG), f.get("post_url", "")):
+                bad("post_url (category, slug, topic or message id) not an alias")
+        topic = re.search(r"topic_id=(\d+)", str(doc.get("url", "")) + " " + str(doc.get("final_url", "")))
+        if (topic and _V_AQ_FAKE_TOPIC.fullmatch(topic.group(1))) or isinstance(body, str):
+            if doc.get("date") not in (None, OWN_HTTP_DATE):
+                bad("HTTP date not an alias")
+            if topic and not _V_AQ_FAKE_TOPIC.fullmatch(topic.group(1)):
+                bad("topic_id of the URL not an alias")
+        return res
+    head = text.lstrip("\ufeff \t\r\n")[:400]
+    if not head.startswith("<?xml") or not re.search(r"<alertes\b", head):
+        return res
+    try:
+        import xml.etree.ElementTree as ET  # noqa: PLC0415 (only AQ files need it)
+        root = ET.fromstring(text.lstrip("\ufeff").encode("utf-8"))
+    except ET.ParseError:
+        return [(1, 1, "AQ own-topic check: not well-formed XML")] if own_list else res
+    for alert in root.iter("alerte"):
+        posts = [p for p in alert.get("postsIds", "").split(",") if p]
+        if not own_list and not any(_V_AQ_FAKE_MESSAGE.fullmatch(p) for p in posts):
+            continue
+        if not _V_AQ_FAKE_ALERT.fullmatch(alert.get("id", "")):
+            res.append((1, 1, "AQ own-topic check: alert id not an alias"))
+        if not posts or any(not _V_AQ_FAKE_MESSAGE.fullmatch(p) for p in posts):
+            res.append((1, 1, "AQ own-topic check: postsIds not aliases"))
+        if alert.get("date") != OWN_DATE:
+            res.append((1, 1, "AQ own-topic check: alert date not an alias"))
+    return res
+
+
 def verify_structure(text, private=False):
     """Independent check of every member position (HTML or JSON), and of MP subjects when private; [] when clean."""
     if looks_json(text):
@@ -2878,6 +3154,33 @@ def corpus_entries(folder):
     return entries
 
 
+def _own_aq_list_files(folder):
+    """Paths of the corpus files whose meta is an AQ read naming a fake own-topic id: every alert in them must be an alias."""
+    paths = set()
+    for name in sorted(os.listdir(folder)):
+        if not name.endswith(".meta.json"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as fh:
+            meta = json.load(fh)
+        topic = re.search(r"topic_id=(\d+)", str(meta.get("url", "")) + " " + str(meta.get("final_url", "")))
+        if meta.get("file") and _v_aq_host(meta.get("url")) and topic and _V_AQ_FAKE_TOPIC.fullmatch(topic.group(1)):
+            paths.add(os.path.join(folder, meta["file"]))
+    return paths
+
+
+def _local_aq_files(folder):
+    """{path: meta} of the corpus files whose meta is an `origin: local-instance` capture: every answer in them is checked."""
+    paths = {}
+    for name in sorted(os.listdir(folder)):
+        if not name.endswith(".meta.json"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as fh:
+            meta = json.load(fh)
+        if meta.get("file") and "origin" in meta:
+            paths[os.path.join(folder, meta["file"])] = meta
+    return paths
+
+
 def meta_urls(folder, cache):
     """{capture file: final URL or URL} of the metas next to a file, for the checks that depend on the request."""
     if folder not in cache:
@@ -2904,6 +3207,8 @@ def cmd_check(args):
         _ui.ko(str(exc))
         return 1
     bad, url_cache = 0, {}
+    own_aq_lists = _own_aq_list_files(args.corpus) if args.corpus else set()
+    local_aq = _local_aq_files(args.corpus) if args.corpus else {}
     for path, private, account in entries:
         try:
             text, _enc = read_text(path)
@@ -2913,6 +3218,10 @@ def cmd_check(args):
             continue
         url = meta_urls(os.path.dirname(os.path.abspath(path)), url_cache).get(os.path.basename(path))
         leaks = anon.findings(text, private=private, account=account, url=url)
+        if path in own_aq_lists:
+            leaks += verify_aq_own(text, own_list=True)
+        if path in local_aq:
+            leaks += verify_aq_local_answer(text, local_aq[path])
         for line, col, reason in leaks:
             _ui.ko("%s:%d:%d: %s" % (path, line, col, reason))
         if leaks:

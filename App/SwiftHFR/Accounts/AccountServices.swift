@@ -114,7 +114,10 @@ struct AnonymousAvatarLoader: AvatarLoading {
     func avatarData(at url: URL) async -> Data? {
         guard Self.isAllowed(url) else { return nil }
         // Follow no redirect: a redirect could leave the allowed host.
-        guard let response = try? await transport.send(.get(url, redirectPolicy: .doNotFollow)),
+        // The transport stops reading at the cap (or on a larger Content-Length), so a hostile response is not buffered whole.
+        var request = HTTPRequest.get(url, redirectPolicy: .doNotFollow)
+        request.maximumBodyBytes = Self.maximumBytes + 1
+        guard let response = try? await transport.send(request),
               response.statusCode == 200, !response.body.isEmpty, response.body.count <= Self.maximumBytes,
               Self.isImage(response.headers["Content-Type"])
         else { return nil }

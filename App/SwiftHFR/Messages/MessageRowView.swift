@@ -1,12 +1,16 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state (GAP-111).
+// Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
+// (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
+// "non lu" capsule for the correspondent's state (GAP-111).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
     let thread: PrivateMessageThread
     /// The member's unread state as the list shows it (HFR's, until the thread is opened).
     let isUnread: Bool
+    /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
+    var isSelected = false
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -18,10 +22,21 @@ struct MessageRowView: View {
             MessageAvatarView(pseudo: thread.interlocutors.first ?? thread.summary.starterOrInterlocutors, isGroup: thread.isGroup)
                 .frame(width: avatarSide, height: avatarSide)
             VStack(alignment: .leading, spacing: density.lineSpacing) {
-                Text(thread.summary.title)
-                    .scaledFont(density.titleStyle)
-                    .fontWeight(isUnread ? .semibold : .regular)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if let label = MessageRowView.unreadByLabel(thread) {
+                        // The correspondent's state, not the member's: legacy's leading badge (`MPListView.swift:430-436, 470` @ 2440d79),
+                        // at half strength once the member has viewed the thread (legacy line 435).
+                        Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color(.systemGray).opacity(isUnread ? 1 : 0.5), in: Capsule())
+                            .accessibilityLabel(label)
+                    }
+                    Text(thread.summary.title)
+                        .scaledFont(density.titleStyle)
+                        .fontWeight(titleTone.weight)
+                        .foregroundStyle(titleTone.style)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
+                }
                 if density.mergesMetaLines {
                     Text(MessageRowView.metaLine(who: who, lastPost: lastPost))
                         .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit)
@@ -38,7 +53,23 @@ struct MessageRowView: View {
         }
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
+        .listRowBackground(MessageRowView.rowTint(isUnread: isUnread, isSelected: isSelected))
     }
+
+    /// The capsule's spoken label when the correspondent has not read the thread, else nil (#579).
+    static func unreadByLabel(_ thread: PrivateMessageThread) -> String? {
+        guard thread.isUnreadByOthers else { return nil }
+        let names = thread.unreadBy.joined(separator: ", ")
+        return names.isEmpty ? "Non lu par le destinataire" : "Non lu par \(names)"
+    }
+
+    /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
+    static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
+        isUnread && !isSelected ? RowTint() : nil
+    }
+
+    /// Primary and semibold when unread, secondary and regular when read (#651).
+    private var titleTone: MessageTitleTone { .of(isUnread: isUnread) }
 
     /// Capped, so an accessibility size leaves the text its room.
     private var avatarSide: CGFloat { min(scale.scaled(dynamicType * density.avatarSize), 64) }

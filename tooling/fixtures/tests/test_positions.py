@@ -162,6 +162,53 @@ for _id, _label, _page, _gone, _kept in CASES:
     setattr(PositionOnlyTests, "test_" + _id, _make(_label, _page, _gone, _kept))
 
 
+class SmileyPageTests(unittest.TestCase):
+    """The personal smiley page (uploadsmil.php): code of a slot, image of a filled slot, keywords."""
+
+    SLOT = '<td class="cBackTab2">[:%s:%d]</td>'
+    IMAGE = '<img src="https://forum-images.hardware.fr/images/perso/%s.gif" alt="%s:0" title="%s:0" />'
+    KEYWORD = '<input type="text" size="30"  name="keyword1" value="%s" />'
+
+    def _reasons(self, page):
+        return [r for _l, _c, r in A.verify_structure(page)]
+
+    def test_slot_code_of_a_real_name_fails_then_is_aliased(self):
+        page = self.SLOT % (N, 6)
+        self.assertIn("structural check: personal smiley code not aliased", self._reasons(page))
+        out = A.Anonymizer(A.Config()).anonymize(page)
+        self.assertNotIn("Qrst", out)
+        self.assertIn("[:user1:6]", out)
+        self.assertEqual(A.Anonymizer(A.Config()).findings(out), [])
+
+    def test_slot_zero_alt_of_a_real_name_fails_then_is_aliased(self):
+        page = self.IMAGE % ("Wxyz", N, N)
+        reasons = self._reasons(page)
+        self.assertIn("structural check: personal smiley alt not aliased", reasons)
+        self.assertIn("structural check: personal smiley image not aliased", reasons)
+        out = A.Anonymizer(A.Config()).anonymize(page)
+        self.assertNotIn("Wxyz", out)
+        self.assertEqual(A.Anonymizer(A.Config()).findings(out), [])
+
+    def test_keywords_fail_both_verifiers_then_are_replaced(self):
+        page = self.KEYWORD % "wxyz qrst"
+        self.assertIn("structural check: smiley keywords not aliased", self._reasons(page))
+        self.assertIn("smiley keywords not replaced", [r for _l, _c, r in A.Anonymizer(A.Config()).findings(page)])
+        out = A.Anonymizer(A.Config()).anonymize(page)
+        self.assertNotIn("wxyz", out)
+        self.assertIn('value="%s"' % A.SMILEY_KEYWORD_PLACEHOLDER, out)
+        self.assertEqual(A.Anonymizer(A.Config()).findings(out), [])
+
+    def test_an_empty_slot_keeps_its_empty_value(self):
+        page = self.KEYWORD % ""
+        self.assertEqual(self._reasons(page), [])
+        self.assertEqual(A.Anonymizer(A.Config()).anonymize(page), page)
+
+    def test_the_wiki_keyword_field_is_not_this_position(self):
+        page = '<input type="text" name="keywords0" value="word word" />'
+        self.assertEqual(self._reasons(page), [])
+        self.assertEqual(A.Anonymizer(A.Config()).anonymize(page), page)
+
+
 class PartialAliasTests(unittest.TestCase):
     """Review round 2: the first word aliased and the tail left in clear must still fail the verifier."""
 

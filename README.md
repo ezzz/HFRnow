@@ -8,6 +8,18 @@
   <strong>The <a href="https://forum.hardware.fr">forum.hardware.fr</a> community, rebuilt as a native iOS app in Swift &amp; SwiftUI.</strong>
 </p>
 
+> [!NOTE]
+> **SwiftHFR is free, noncommercial and built by volunteers. It has real costs, and your support helps cover them.**
+> - **Apple Developer account:** $99 per year, needed for TestFlight and the App Store.
+> - **Image-hosting API:** $170 per year.
+> - **Everything else is shared effort:** AI subscriptions, software tools, hardware and time.
+>
+> Contribute to the [Leetchi pot](https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155):
+>
+> <a href="https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155"><img src="https://img.shields.io/badge/Leetchi-Cagnotte%20HFR%20App%20iOS-1A9EDB?style=for-the-badge" alt="Cagnotte Leetchi HFR App iOS"></a>
+>
+> Code, reviews and captures are just as welcome: see [Contributing](#contributing).
+
 <table align="center">
   <tr>
     <td align="right"><sub><b>BUILD &amp; SECURITY</b></sub></td>
@@ -70,36 +82,50 @@ SwiftHFR keeps the spirit and restarts on a clean foundation: **100 % Swift, mod
 ## Where we are
 
 > [!NOTE]
-> **Nothing to install on a phone yet.** Real HFR pages and the legacy app's output are captured; the engine is being ported lot by lot. The first usable build (log in, browse, read) is defined in [LOTS.md](docs/LOTS.md#phase-4--app-first-usable-build).
+> **No public build yet.** All 40 lots of M1 (MVP: log in, browse, read, reply) are merged. The one step left before the first TestFlight build is the build itself: LOT-161, [#251](https://github.com/ezzz/HFRnow/issues/251), see the [M1 board](https://github.com/ezzz/HFRnow/issues/166).
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 · Foundations | Repository, CI, security tooling, agent rules | **done** |
-| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) (153 as of 2026-11-01) | **done** — [audit](docs/audit/README.md) |
+| 1 · Audit | Legacy engine mapped into [migration lots](docs/LOTS.md) | **done** — [audit](docs/audit/README.md) |
 | 2 · Fixtures | Real HFR pages + legacy parser output as test oracle | **done** — capture corpus and oracles LOT-001 to 005 |
-| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — 49 of 67 engine lots done as of 2026-11-01 (models, network base, storage, parsing of lists and topic pages, login, `hop` forms, post-form engine); the rest is in review or queued |
-| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — app target, accounts and login, and navigation merged (LOT-080 to 082); topic reader merged (LOT-083); reply composer (LOT-084), root tab bar (LOT-170) and the session check at launch (#300) merged; 9 of 80 app lots done as of 2026-11-01; MVP lots still open: link handling LOT-137 (#227), text size slider LOT-169 (#295), TestFlight pipeline LOT-161 (#251), plus the Mac checks #344 and #322 |
-| 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned |
+| 3 · Engine | Models, parsing, network, storage, flows | **in progress** — see M3 below |
+| 4 · App | SwiftUI app on top of `HFRKit` | **in progress** — see M1, M2 and M4 below |
+| 5 · iOS 27 experience | Column navigation, large and foldable layouts | planned — part of M5 below |
 
 Details and exit criteria: [roadmap](docs/ROADMAP.md).
 
 ### Milestones
 
 <p align="center">
-  <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
+  <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version, then M5 UX evolutions after the M4 parity; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
 </p>
 
-| Milestone | Live board | Lots done (2026-11-07) |
-|---|---|---|
-| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 40 of 40 |
-| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 25 of 28 |
-| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 37 of 43 |
-| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 1 of 23 |
-| 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 30 |
+Figures from the live boards, snapshot 2026-11-08 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
 
-**🧪 M5 · UX evolutions** was agreed on 2026-11-02 ([#379](https://github.com/ezzz/HFRnow/issues/379)): M4 is the validated legacy parity, and any change from the initial plan or from the legacy app goes to M5 and is never dropped. M1–M4 therefore ship the legacy UX.
+| Milestone | Live board | Lots done | Progress |
+|---|---|---|---|
+| 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 40 of 40 | 100 % |
+| 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 28 of 28 | 100 % |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 38 of 43 | 88 % |
+| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 4 of 26 | 15 % |
+| 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 29 | 0 % |
 
-The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done.
+The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done. The M1 and M2 lot counts are complete, but both milestones also have exit checks (TestFlight builds, hand checks) that are not lots.
+
+**🧪 M5 · UX evolutions** was agreed on 2026-11-02 ([#379](https://github.com/ezzz/HFRnow/issues/379)): M4 is the validated legacy parity, and any change from the initial plan or from the legacy app goes to M5 and is never dropped. M1–M4 therefore ship the legacy UX. M5 opens after the M4 parity is validated, by the orchestrator's decision; no M5 lot is claimable before.
+
+### Big topics planned in M5
+
+Each scope below is still being refined by the product owner on the issues; the issue, not this list, is the source.
+
+- **Home for iPad** — "À suivre" home (MPs, favourites, flags) and its start-screen setting, scoped on 2026-11-07 to iPad and unfolded iPhone behind a setting: [#233](https://github.com/ezzz/HFRnow/issues/233), [#234](https://github.com/ezzz/HFRnow/issues/234).
+- **Reader navigation** — page navigator and scrubber, continuous scrolling option, a clearer first-unread marker: [#201](https://github.com/ezzz/HFRnow/issues/201), [#203](https://github.com/ezzz/HFRnow/issues/203), [#238](https://github.com/ezzz/HFRnow/issues/238), [#418](https://github.com/ezzz/HFRnow/issues/418).
+- **Posting** — poll creation, archived drafts, preview before send (`/apercu.php`), quick-reply bar, emoji refusal with smiley suggestion, deleting a topic's first post: [#191](https://github.com/ezzz/HFRnow/issues/191), [#192](https://github.com/ezzz/HFRnow/issues/192), [#242](https://github.com/ezzz/HFRnow/issues/242), [#449](https://github.com/ezzz/HFRnow/issues/449), [#625](https://github.com/ezzz/HFRnow/issues/625), [#241](https://github.com/ezzz/HFRnow/issues/241), [#415](https://github.com/ezzz/HFRnow/issues/415).
+- **Lists and MPs** — one swipe set in every list, MP thread deletion and member list, MPs to several recipients, an "on t'a cité" replacement: [#417](https://github.com/ezzz/HFRnow/issues/417), [#421](https://github.com/ezzz/HFRnow/issues/421), [#422](https://github.com/ezzz/HFRnow/issues/422), [#244](https://github.com/ezzz/HFRnow/issues/244), [#627](https://github.com/ezzz/HFRnow/issues/627).
+- **Accounts and background** — session expiry sheet, "Vérifier HFR" App Intent: [#232](https://github.com/ezzz/HFRnow/issues/232), [#231](https://github.com/ezzz/HFRnow/issues/231).
+- **iOS 27 platform** — universal links and sharing, state restoration, iPad multi-window, Duo and iPad column layouts, keyboard shortcuts, Spotlight: [#228](https://github.com/ezzz/HFRnow/issues/228), [#235](https://github.com/ezzz/HFRnow/issues/235), [#236](https://github.com/ezzz/HFRnow/issues/236), [#237](https://github.com/ezzz/HFRnow/issues/237), [#239](https://github.com/ezzz/HFRnow/issues/239), [#240](https://github.com/ezzz/HFRnow/issues/240).
+- **Settings** — cache sizes and clearing, single accent colour with live preview: [#419](https://github.com/ezzz/HFRnow/issues/419), [#420](https://github.com/ezzz/HFRnow/issues/420).
 
 ## Architecture
 
@@ -126,7 +152,7 @@ Every piece of the migration follows the same loop:
 
 ```mermaid
 flowchart LR
-  A[Claim a lot] --> B[Spec from legacy code]
+  A[Claim an issue] --> B[Spec from legacy code]
   B --> C[Real pages as fixtures]
   C --> D[Port in Swift]
   D --> E[Differential tests vs legacy]
@@ -136,7 +162,14 @@ flowchart LR
 ```
 
 - **The legacy app is the oracle**: new parsers must reproduce its output on real, anonymized pages ([ADR 0004](docs/adr/0004-legacy-app-as-oracle.md)).
-- **Different models for different jobs**: well-specified ports go to fast models, design and risky flows to stronger ones, and the reviewer is never the author ([routing](AGENTS.md#6-model-routing-which-agent-does-what)).
+- **Orchestrator and child sessions**: an orchestrator session claims each issue it hands out and passes that id to the child session working it ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [child sessions](docs/agents/ORCHESTRATION.md#child-sessions-cloud)).
+- **One issue, one claim, one PR**: work starts with a `/claim <session-id>` comment on the issue, and the PR names the issue and the claim ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
+- **Different models for different jobs, and an adversarial review**: well-specified ports go to fast models, design and risky flows to stronger ones, and the reviewer is never the author ([routing](AGENTS.md#6-model-routing-which-agent-does-what)).
+- **CodeRabbit** reviews every PR; its threads are handled in one commit per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
+- **macOS runners are the bottleneck**: a PR iterates as a draft and is marked ready for the final run; docs-only PRs skip the macOS jobs, and CodeQL Swift runs only on PRs labelled `codeql` ([#477](https://github.com/ezzz/HFRnow/issues/477), [CONTRIBUTING §2](CONTRIBUTING.md#2-merge-criteria)).
+- **Mac sessions** run what the cloud cannot: live HFR captures, Xcode builds and checks on a device ([MAC-SESSIONS](docs/agents/MAC-SESSIONS.md)).
+- **Ledger rule**: a feature PR does not edit the GAP report or the legacy changelog; its entries go in a `### Ledger` section of the PR body, with the `ledger` label, and a steward folds them into the docs after the merge ([rule](tooling/docs/README.md#the-ledger-rule), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
+- **Merge policy**: the author merges (squash) once the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold and a different model approved the head; risky flows and PRs from authors without write access are merged by the core orchestrator or the maintainer ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Mistakes become rules**: every review round feeds a [lessons table](docs/agents/LESSONS.md), and recurring classes of errors get automated checks.
 
 ## Documentation
@@ -178,13 +211,22 @@ The iOS app (Xcode 27) is in `App/`: see [App/README](App/README.md). Work to pi
 
 ## Contributing
 
-1. Read **[AGENTS.md](AGENTS.md)**, then [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Claim a [`status: ready` issue](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) nobody claimed, with a `/claim <your-id>` comment (without write access, a member claims it for you: [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)); [LOTS.md](docs/LOTS.md) is the plan of the migration lots, each linked to its issue.
-3. Open a PR against `dev-swift` with `Closes #N` (or `Refs #N` for partial work) and `Claim: <your-id>`, naming its lot (`LOT-XXX`) if it is one; a small fix without an issue says `Direct-PR: <reason>`. It is merged only when it meets the **[merge criteria](CONTRIBUTING.md#2-merge-criteria)** — 9 required checks green, no conflict, every conversation resolved, the definition of done met, and an adversarial `APPROVE` by a different model on its head; no human approval is required, the author merges once all of these hold (the core orchestrator or the maintainer merges for an author without write access; risky flows are merged by the core orchestrator or the maintainer, [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)) ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md)).
+Humans and agents follow the same path. Each step links to the one document that owns the rule.
+
+1. **Read** [AGENTS.md](AGENTS.md), then [CONTRIBUTING](CONTRIBUTING.md).
+2. **Pick an issue**: [`status: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) and not `status: claimed`; if you are an outside contributor's agent, [`external: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22external%3A+ready%22) ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization), [EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). The plan of the lots is [LOTS.md](docs/LOTS.md); issues needing the maintainer's Mac carry `host: mac`.
+3. **Claim it** with a comment `/claim <session-id>`, `<host>/<name>` (for example `human/<your-login>` or `cloud/<session>`); the first claim wins, and the orchestrator or the maintainer then sets `status: claimed` by hand (no workflow syncs it yet). Without write access, ask a member to claim for you ([claims](docs/agents/ORCHESTRATION.md#claims), [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
+4. **Branch from `dev-swift`** (never `master`, the legacy app) and work from the issue's one spec ([CONTRIBUTING §1](CONTRIBUTING.md#1-from-a-task-to-a-pr)).
+5. **Open the PR** against `dev-swift` as a draft, with `Closes #N` (or `Refs #N` for partial work), `Claim: <session-id>` and, for a lot, `LOT-XXX`; a small fix without an issue says `Direct-PR: <reason>` ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)). If the PR fixes or deliberately changes a legacy behaviour, adds a gap row or edits an existing one, add a `### Ledger` section to the body and the `ledger` label (no entry, no section, no label); never edit the GAP report or the legacy changelog yourself ([the ledger rule](tooling/docs/README.md#the-ledger-rule)).
+6. **Get it reviewed**: an adversarial review by a different model ([routing](AGENTS.md#6-model-routing-which-agent-does-what)); reviews open to outside agents are flagged `REVIEW WANTED: <model>` ([EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). Handle CodeRabbit once per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
+7. **Merge**: when the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold the author merges (squash) unless AGENTS.md §8 reserves the merge for the core orchestrator or the maintainer (risky flows, ADRs, `HFRModels` public types, authors without write access) ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)); whoever merges closes each `Closes #N` issue and leaves `Refs #N` issues open.
+8. **Stuck or stopping?** Say what is done and left on the PR and the issue, then comment `/release` on the issue, not the PR (without write access: `RELEASE REQUEST <session-id>`, a member releases it, [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
+
+**Limits**: at most 5 open PRs per contributor id (10 for Bybifok), see [EXTERNAL-AGENTS §10](docs/agents/EXTERNAL-AGENTS.md#the-open-pr-limit).
 
 ### Lend your agent
 
-You have spare AI quota? Give your agent (Claude, GPT, Gemini, Mistral, DeepSeek, Kimi…) this one line. It picks up the reviews flagged `REVIEW WANTED` and the issues labelled [`external: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22external%3A+ready%22) by itself:
+You have spare AI quota? Give your agent (Claude, GPT, Gemini, Mistral, DeepSeek, Kimi…) this one line. It follows the [EXTERNAL-AGENTS](docs/agents/EXTERNAL-AGENTS.md) brief and picks up the reviews flagged `REVIEW WANTED` and the issues labelled `external: ready` by itself:
 
 ```text
 Read and follow https://github.com/ezzz/HFRnow/blob/dev-swift/docs/agents/EXTERNAL-AGENTS.md. My contributor id is ext/<yourname>-<model>-<n>.
@@ -218,8 +260,4 @@ It is an independent community project, not affiliated with Hardware.fr.
 
 ## Support
 
-If SwiftHFR is useful to you, star the repository to follow it, and support its development:
-
-<p align="center">
-  <a href="https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155"><img src="https://img.shields.io/badge/Leetchi-Cagnotte%20HFR%20App%20iOS-1A9EDB?style=for-the-badge" alt="Cagnotte Leetchi HFR App iOS"></a>
-</p>
+SwiftHFR runs on volunteer time and a few fixed costs (Apple Developer account, image-hosting API): see the note at the top of this page and the [Leetchi pot](https://www.leetchi.com/fr/c/hfr-app-ios-o-9067155). Starring the repository helps people find it.

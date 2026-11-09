@@ -98,7 +98,8 @@ struct LiveTopicPageSource: TopicPageSource {
                 messages: messages,
                 answerURL: metadata.answerFormURL,
                 pageURL: ReaderTarget.forumURL(pageURL.absoluteString),
-                poll: metadata.hasPoll ? try? PollParser.poll(in: html) : nil
+                poll: metadata.hasPoll ? try? PollParser.poll(in: html) : nil,
+                markUnreadURL: metadata.markUnreadURL
             )
         } catch {
             throw .unreadable

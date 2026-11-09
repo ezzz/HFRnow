@@ -1,9 +1,11 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098) @ 2440d79.
-// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090), no GIF panel yet (155), smiley picker as a sheet from
-// the toolbar (LOT-104, GAP-087);
-// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD).
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode, GAP-096)
+// @ 2440d79.
+// Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
+// GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
+// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
+// pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 /// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
@@ -29,9 +31,7 @@ struct ReplyComposerView: View {
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
     @State private var rangeForSmiley: Range<String.Index>?
 
-    private enum Field: Hashable {
-        case recipient, subject, text
-    }
+    private typealias Field = ComposerField
 
     @State private var formatting: ComposerFormattingModel
     /// Lives as long as the composer, so an upload finishing after the panel closed still lands in the list.
@@ -69,20 +69,17 @@ struct ReplyComposerView: View {
                 }
                 if model.hasSubjectField { messageFields }
                 editor
-                FormattingToolbar(model: formatting) { focused = .text }
             }
+            // Pinned to the bottom of the keyboard safe area as one view kept across focus changes, not a stack child laid
+            // out with the fields (#599). Not `.keyboard` placement: that is an input accessory rebuilt for each focused
+            // field (recipient, subject, text), shown above all three, and gone without an on-screen keyboard.
+            .safeAreaInset(edge: .bottom, spacing: 0) { formattingBar }
+            .gifPanel(services: model.gifServices, formatting: formatting, canEdit: model.canEdit) { focused = .text }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
-                switch pending {
-                case .link:
-                    Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
-                    Button("Oui") { formatting.acceptPending(pending); focused = .text }
-                case .formatting:
-                    Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
-                    Button("Insérer") { formatting.acceptPending(pending); focused = .text }
-                }
+                clipboardButtons(pending)
             } message: { pending in
                 Text(pending.message)
             }
@@ -137,6 +134,7 @@ struct ReplyComposerView: View {
 
     private var keepDraftNote: String {
         if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
+        if model.isEdit { return "Le brouillon est retrouvé à la prochaine modification de ce message." }
         return model.isNewMessage
             ? "Le brouillon est retrouvé au prochain message à ce destinataire."
             : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
@@ -165,7 +163,7 @@ struct ReplyComposerView: View {
         rangeForSmiley = selectedRange
         smileyInserted = false
         let catalogue = SmileyPickerModel.bundledCatalogue()
-        picker = SmileyPickerModel(catalogue: catalogue, store: services.store, account: services.account, search: smileySearch)
+        picker = services.picker(catalogue: catalogue, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
@@ -183,7 +181,7 @@ struct ReplyComposerView: View {
             .overlay {
                 if model.isRestoring { ProgressView() }
             }
-            .accessibilityLabel(model.isNewMessage || model.isNewTopic ? "Texte du message" : "Texte de la réponse")
+            .accessibilityLabel(model.isNewMessage || model.isNewTopic || model.isEdit ? "Texte du message" : "Texte de la réponse")
             .onChange(of: selection) { _, newValue in
                 guard let newValue else { return }
                 formatting.selectedRange = Self.range(of: newValue, in: model.text)
@@ -224,7 +222,7 @@ struct ReplyComposerView: View {
                     .padding(.vertical, 10)
                 Divider()
             }
-            if model.isNewTopic, showsSubcategoryRow {
+            if model.offersSubcategories, showsSubcategoryRow {
                 subcategoryRow
                 Divider()
             }
@@ -269,7 +267,7 @@ struct ReplyComposerView: View {
         } else if let warning = model.picker.warning {
             VStack(alignment: .leading, spacing: 6) {
                 Text(warning).scaledFont(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button("Réessayer") { Task { await model.loadSubcategories() } }
+                Button("Réessayer") { Task { await model.retrySubcategories() } }
             }
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -283,7 +281,7 @@ struct ReplyComposerView: View {
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button("Image", systemImage: "photo") { imageInserted = false; rangeImage = formatting.selectedRange; isShowingImages = true }
+            Button("Image", systemImage: "photo.badge.plus", action: openImages)
                 .disabled(!model.canEdit)
         }
         ToolbarItem(placement: .cancellationAction) {
@@ -302,6 +300,15 @@ struct ReplyComposerView: View {
 }
 
 extension ReplyComposerView {
+    /// Off while the recipient or subject has focus; a tap never takes focus from them (`ComposerBarFocus`, #599).
+    private var formattingBar: some View {
+        let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
+        // `.plain` buttons draw no disabled state: the bar dims itself, as `FormattingToolbar` does for `isEnabled`.
+        return FormattingToolbar(model: formatting) { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+            .disabled(!allowsBar)
+            .opacity(allowsBar ? 1 : 0.4)
+    }
+
     private var firstEmptyField: Field {
         guard model.hasSubjectField else { return .text }
         if model.isNewMessage, model.recipient.isEmpty { return .recipient }
@@ -309,7 +316,7 @@ extension ReplyComposerView {
     }
 
     private var title: String {
-        model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
+        model.isEdit ? "Edition" : model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
     }
 }
 
@@ -333,5 +340,30 @@ private struct ComposerBanner<Actions: View>: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
         .padding(.top, 8)
+    }
+}
+
+extension ReplyComposerView {
+    /// The buttons of the clipboard alert, by what the tap could use.
+    @ViewBuilder
+    fileprivate func clipboardButtons(_ pending: ComposerFormattingModel.Pending) -> some View {
+        switch pending {
+        case .link:
+            Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
+            Button("Oui") { formatting.acceptPending(pending); focused = .text }
+        case .linkChoice:
+            Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+            Button("Oui [url=XXX]") { formatting.acceptLinkChoice(pending, attribute: true); focused = .text }
+            Button("Oui [url]XXX[/url]") { formatting.acceptLinkChoice(pending, attribute: false); focused = .text }
+        case .formatting:
+            Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
+            Button("Insérer") { formatting.acceptPending(pending); focused = .text }
+        }
+    }
+
+    fileprivate func openImages() {
+        imageInserted = false
+        rangeImage = formatting.selectedRange
+        isShowingImages = true
     }
 }

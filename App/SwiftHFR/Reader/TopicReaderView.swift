@@ -4,8 +4,32 @@ import SwiftUI
 import WebKit
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
-// the page controls are the legacy ‹ › with a "N / M" page menu instead of the "…" one (`ReaderPageControls`, LOT-186); the page
-// runs under the glass bars; the tab bar stays visible; videos on tap (GAP-008, 058, 060; UXD-10).
+// the page controls are the legacy ‹ › with a "N / M" page menu, the same page items also sit in the "…" overflow, with new labels
+// (`ReaderPageControls`, LOT-186, #582); the page
+// runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
+// (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
+// split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
+// bar, the only way to switch tabs there. The full-screen Plus search and offline readers keep it in regular width too (see GAP-008).
+/// Whether the reader's root tab is the selected one; `RootTabsView` sets it per tab (default true outside the tab bar).
+private struct IsSelectedRootTabKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var isSelectedRootTab: Bool {
+        get { self[IsSelectedRootTabKey.self] }
+        set { self[IsSelectedRootTabKey.self] = newValue }
+    }
+}
+
+/// The tab bar rule of the reader (GAP-008, UXD-02): hidden in compact width while its own tab is selected, so a reader left
+/// open in another tab (rotation, tab switch) never hides the shared bar.
+enum ReaderTabBar {
+    nonisolated static func visibility(sizeClass: UserInterfaceSizeClass?, isSelectedTab: Bool) -> Visibility {
+        sizeClass == .compact && isSelectedTab ? .hidden : .automatic
+    }
+}
+
 /// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
 /// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
 /// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
@@ -18,7 +42,11 @@ struct TopicReaderView: View {
     var onFilterPosts: (() -> Void)?
     /// A filter run is reading pages: the menu entry is disabled meanwhile.
     var filterIsBusy = false
+    /// Told how "Marquer comme non lu" ended (LOT-127): the conversation's list; nil when no list hosts this reader.
+    var onMarkUnread: MarkUnreadHost?
     @State private var controller: ReaderWebController?
+    /// This view instance, for the model: another view on the same model must not stop this one's load (issue #566).
+    @State private var viewerID = ReaderViewerID.next()
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
     @State private var external: ExternalLink?
@@ -26,13 +54,19 @@ struct TopicReaderView: View {
     /// The open image viewer (LOT-109); a fresh model per tap.
     @State private var viewer: ImageViewerModel?
     @State private var profile: UserProfileModel?
+    /// The author menu's MP composer and handlers (issue #595).
+    @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
     @State private var pageText = ""
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
     @State private var swipeEnabled = true
+    /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
+    @State private var writes: MessageWriteModel?
     /// `reply_button_behavior` (LOT-086), read again with the other settings.
     @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.isSelectedRootTab) private var isSelectedTab
 
     var body: some View {
         ZStack {
@@ -54,14 +88,17 @@ struct TopicReaderView: View {
         }
         .navigationTitle(model.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
-            if let error = model.error, model.page != nil {
+            if let error = model.error, model.page != nil, model.hasShownDocument {
                 LoadFailureBanner(error: error, retry: model.retry)
             }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
+        .modifier(ReaderEditFlow(writes: writes))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
+        .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
         .offlineSave(model: model, saver: saver)
         .toolbar {
             ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
@@ -77,6 +114,13 @@ struct TopicReaderView: View {
                     .disabled(filterIsBusy)
                 }
             }
+            // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
+            if let page = model.page, page.maxPage > 1 {
+                ToolbarItemGroup(placement: .secondaryAction) {
+                    // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
+                    Section { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
+                }
+            }
         }
         .alert("Aller à la page", isPresented: $askingPage) {
             TextField("Page", text: $pageText).keyboardType(.numberPad)
@@ -87,27 +131,23 @@ struct TopicReaderView: View {
         } message: {
             if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
-        .confirmationDialog(
-            "Actions du message", isPresented: Binding(get: { model.presentedMenu != nil }, set: { if !$0 { model.dismissMenu() } }),
-            titleVisibility: .hidden, presenting: model.presentedMenu
-        ) { menu in
-            ForEach(menu.entries, id: \.kind) { action in
-                Button(role: action.isDestructive ? .destructive : nil) {
-                    Task { await model.perform(action, in: menu) }
-                } label: { Label(action.title, systemImage: action.systemImageName) }
-            }
-            Button("Annuler", role: .cancel) {}
-        }
+        .overlay { ReaderMessageMenuAnchor(model: model) }
         .overlay(alignment: .bottom) { menuFeedbackBanner }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
-        .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
+        .sheet(item: $profile, onDismiss: model.applyDisplaySettings, content: { UserProfileView(model: $0, services: services) })
+        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
         .onAppear(perform: makeController)
+        // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
+        .onAppear {
+            controller?.resume()
+            controller?.show(model.document)
+        }
         .onAppear {
             if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
         }
@@ -126,13 +166,13 @@ struct TopicReaderView: View {
         }
         .task {
             installMenuActions()
-            await model.onAppear()
+            await model.onAppear(viewer: viewerID)
         }
         .onDisappear {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
             // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
             guard model.linkedReader == nil, viewer == nil else { return }
-            model.cancel()
+            model.viewDidDisappear(viewer: viewerID)
             saver?.leave()
             controller?.stopLoading()
         }
@@ -155,7 +195,12 @@ struct TopicReaderView: View {
                 Button("Actualiser") { Task { await model.refresh() } }
             }
         } else if !model.hasShownDocument {
-            ProgressView("Chargement des messages")
+            // The web view could not show the page (issue #566): a retry, never an endless spinner.
+            if let error = model.error {
+                LoadFailureView(error: error, retry: model.retry)
+            } else {
+                ProgressView("Chargement des messages")
+            }
         }
     }
 
@@ -210,20 +255,36 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
-    /// The handlers of the merged lots: "Link", the quotes and "Favoris". A later lot adds its handler here, the policy is
-    /// untouched.
+    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Editer" and "Supprimer". A later lot adds its handler
+    /// here, the policy is untouched.
     private func installMenuActions() {
         // Weak: the model stores this registry, a strong capture would keep every reader alive.
         let confirm: @MainActor (String) -> Void = { [weak model] text in
             model?.showMenuFeedback(text)
             AccessibilityNotification.Announcement(text).post()
         }
+        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
+        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
         model.quoting = composer?.quoting
         var handlers: [any MessageActionHandler] = [
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
+        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
+        let showProfile = $profile
+        let services = self.services
+        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
+            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
+        }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
+        handlers += services.pseudoLists.map {
+            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
+        } ?? []
+        if let composer {
+            let writes = writes ?? MessageWriteModel(reader: model, services: composer)
+            self.writes = writes
+            handlers += writes.handlers
+        }
         model.install(MessageActionRegistry(handlers))
         controller?.offersSelectionQuote = model.canQuote
     }
@@ -235,10 +296,11 @@ struct TopicReaderView: View {
         )
         controller.events = ReaderWebController.Events(
             ready: { [model] token in model.documentDidBecomeReady(token: token) },
+            failed: { [model] token in model.documentDidFail(token: token) },
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = UserProfileModel(memberID: memberID, source: services.profiles)
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { model.applyDisplaySettings() }
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -248,7 +310,9 @@ struct TopicReaderView: View {
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
             position: { [model] post, token in Task { await model.recordPosition(post: post, token: token) } },
-            menu: { [model] post, source, token in Task { await model.openMenu(post: post, source: source, token: token) } },
+            menu: { [model] post, source, anchor, token in
+                Task { await model.openMenu(post: post, source: source, anchor: anchor, token: token) }
+            },
             quote: { [model] post, text, bold, token in
                 Task { await model.quoteSelection(post: post, text: text, bold: bold, token: token) }
             },
@@ -275,8 +339,11 @@ struct ReaderServices: Sendable {
     var positions: (any ReaderPositionRecording)?
     /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
     var offline: OfflineServices?
-    /// Flag writes of the current account, for the message menu's "Favoris" (LOT-125); nil when logged out.
+    /// Flag writes of the current account, for "Favoris" (LOT-125) and "Marquer comme non lu" (LOT-127); nil when logged out.
     var flagActions: TopicFlagActions?
+    /// The blocklist of the current account and the allowlist (LOT-118): the BL / WL menu entries, the profile buttons and the
+    /// editors of Réglages edit them through it; nil in previews.
+    var pseudoLists: PseudoListManager?
 }
 
 /// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.

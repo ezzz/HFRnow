@@ -159,6 +159,24 @@ enum ReplyTextInsertionEngine {
         )
     }
 
+    /// Inserts `[url=<url>][/url]` at the caret (legacy's "Oui [url=XXX]", `HFRTextView.m:327-350` @ 2440d79), the caret between
+    /// the tags so the link text is typed next.
+    static func insertURLAttributeTags(
+        _ urlString: String,
+        in text: String,
+        selectedUTF16Range: NSRange
+    ) -> ReplyTextInsertionResult {
+        let selection = clamped(selectedUTF16Range, in: text)
+        guard let range = Range(selection, in: text) else {
+            return ReplyTextInsertionResult(text: text, cursorLocationUTF16: text.utf16.count)
+        }
+        let open = "[url=\(urlString)]"
+        return ReplyTextInsertionResult(
+            text: text.replacingCharacters(in: range, with: open + "[/url]"),
+            cursorLocationUTF16: selection.location + open.utf16.count
+        )
+    }
+
     /// Splits a `[quotemsg=…]…[/quotemsg]` block at the caret into two quotes with a blank line between, so the reply
     /// can be written in the middle. nil when the caret is not strictly inside a quote's content.
     static func splitQuote(in text: String, atUTF16Offset cursor: Int) -> ReplyTextInsertionResult? {

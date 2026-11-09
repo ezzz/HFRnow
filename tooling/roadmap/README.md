@@ -13,6 +13,7 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 | `render.py` | Renders the board comments for #166 and #324 |
 | `unblocked.py` | After a merge: the lots whose dependencies are now all done |
 | `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (`status: blocked` only), missing "Done in" closures, `status:*` labels left on closed issues (removed, counted), reports (including the blocked lots gated only by an open capture, every lot dependency done) |
+| `../docs/fold.py` | Folds the fragments of `docs/changelog-legacy.d/` and `docs/migration/gap.d/` into `docs/CHANGELOG-LEGACY.md` and the GAP report, regenerates the H.1 lists and the Counts table (`--check` is the Docs consistency step, `--dry-run` writes nothing). Tests: `scripts/tests/test_docs_fold.py` ([#612](https://github.com/ezzz/HFRnow/issues/612)) |
 | `weekly/build.py`, `weekly/shot.js` | The weekly 6-slide deck: `build.py OUTDIR` writes HTML from git and the tracker, `shot.js OUTDIR` renders 2880×1620 JPEGs with Playwright. Delivered to the maintainer, never posted |
 
 Tests: `scripts/tests/test_roadmap.py` (run by CI with the other `scripts/tests`).
@@ -31,6 +32,7 @@ python3 tooling/roadmap/lots_from_md.py        # only when LOTS.md changed
 python3 tooling/roadmap/sync_state.py --fetch  # refresh state.json from the tracker
 python3 tooling/roadmap/generate.py && python3 tooling/roadmap/render.py 324 OUTDIR   # boards for #166 and #324 (OUTDIR defaults to tooling/roadmap/out, git-ignored)
 python3 tooling/roadmap/hygiene.py             # daily sweep (add --apply for the routine part)
+python3 tooling/docs/fold.py                   # daily: fold the GAP and changelog fragments, then open one docs-only PR (merged on green CI, no adversarial review; hygiene.py reports and, with --apply, runs it)
 ```
 
 M1/M2 membership is hand-kept in `generate.py`, and the whole lots moved to M5 in `m5.py`; the (b) halves of the splits are the lots of the `## M5 · UX evolutions` section of `docs/LOTS.md`. M3 is Phase 3 minus M1, M4 the rest (M4 = validated legacy parity, M5 = evolutions, operator 2026-11-02). The sweep never unblocks an M5 lot: M5 opens by the orchestrator's decision.

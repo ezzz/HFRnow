@@ -82,8 +82,11 @@ final class MessageListModel {
 
     /// Page of the last load that was asked for; a retry after a failure goes back to it.
     private(set) var requestedPage = 1
-    /// HFR's confirmation of the private message just sent (LOT-128), shown until dismissed.
+    /// HFR's confirmation of the private message just sent (LOT-128) or of a conversation marked unread (LOT-127), shown
+    /// until dismissed.
     private(set) var sentConfirmation: String?
+    /// Why a "Marquer comme non lu" failed once its reader was gone; a reader on screen says it itself.
+    var actionFailure: String?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -94,6 +97,9 @@ final class MessageListModel {
     /// Threads whose last page was shown, each with the number of the load that was the newest when it was opened. A load
     /// brings HFR's own state back only for the threads opened before it started.
     private var openedThreads: [String: Int] = [:]
+    /// Threads HFR confirmed unread: the page on screen predates the write, so the row shows unread until a load answers. The
+    /// reload that follows the confirmation supersedes any older load, so the next load applied started after it (LESSONS 57).
+    private var markedUnread: Set<String> = []
     /// Loads started so far; tells a load that is still the newest from one that was superseded.
     private var loadCount = 0
     /// The reader of the selected conversation, created once per selection so a view update never refetches the page (E25).
@@ -268,9 +274,26 @@ final class MessageListModel {
         sentConfirmation = nil
     }
 
-    /// Whether the row shows as unread: HFR's state, until the member has seen the conversation's last page.
+    /// Whether the row shows as unread: HFR's state, until the member has seen the conversation's last page; or marked
+    /// unread here, until a later load says what HFR holds.
     func isUnread(_ thread: PrivateMessageThread) -> Bool {
-        thread.isUnread && openedThreads[thread.id] == nil
+        markedUnread.contains(thread.id) || (thread.isUnread && openedThreads[thread.id] == nil)
+    }
+
+    /// "Marquer comme non lu" ended in `reader`, a reader of `thread` (LOT-127). HFR's confirmation closes the conversation and reloads
+    /// the list, as legacy pops and refetches (`OnlineMessagesTableViewController.m:900-903`): keeping the reader would show a
+    /// thread HFR now holds unread, and its next load could read it again. A failure changes nothing on the row.
+    func markUnreadEnded(_ thread: PrivateMessageThread, in reader: TopicReaderModel, _ outcome: TopicFlagOutcome) async {
+        switch outcome {
+        case .failed(let reason):
+            // Only the reader that sent it holds the failure: the same conversation opened again has a new one, which shows nothing.
+            if currentReader?.model !== reader { actionFailure = reason }
+        case .done(let message):
+            sentConfirmation = message
+            markedUnread.insert(thread.id)
+            if selected?.id == thread.id { selected = nil }
+            await refresh()
+        }
     }
 
     /// Remembers that the reader shows page `page` of `pageCount` of `thread`, so its row is shown read without a request.
@@ -280,6 +303,7 @@ final class MessageListModel {
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
         openedThreads[thread.id] = loadCount
+        markedUnread.remove(thread.id)
     }
 
     private func load(page: Int, advancing: Bool = true) async {
@@ -301,6 +325,7 @@ final class MessageListModel {
         }
         // Threads opened while this load was running were not in its answer: they stay read until the next load.
         openedThreads = openedThreads.filter { $0.value >= mine }
+        markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
         if loader.value == .signedOut { selected = nil }
         if advancing { await advanceWhileSegmentEmpty() }

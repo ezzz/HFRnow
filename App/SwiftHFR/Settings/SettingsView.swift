@@ -48,10 +48,13 @@ struct SettingsView: View {
 
     /// The reader services, for the offline list (LOT-139); nil hides its row (previews).
     private let reader: ReaderServices?
+    /// Where the icon screen reads and writes the choice (`icon`).
+    private let store: any SettingsStore
 
     /// Reads the "Sujets" values from `store`.
     init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil) {
         self.reader = reader
+        self.store = store
         _topics = State(initialValue: TopicsSettingsModel(store: store))
         _favorites = State(initialValue: FavoritesOptionsModel(settings: store))
     }
@@ -89,6 +92,7 @@ struct SettingsView: View {
                     ForEach(ImageDisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
+                Toggle("Retours haptiques", isOn: $general.hapticsEnabled)
                 Toggle(isOn: $general.opensLinksInDefaultBrowser) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Navigateur par défaut")
@@ -97,7 +101,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                NavigationLink { SettingsDestinationView(destination: .icon) } label: {
+                NavigationLink { SettingsDestinationView(destination: .icon, store: store) } label: {
                     Text(SettingsDestination.icon.title)
                 }
             }
@@ -129,6 +133,15 @@ struct SettingsView: View {
                     ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
+                Toggle("Masquer les pseudos blacklistés", isOn: $topics.hidesBlocklisted)
+                if let lists = reader?.pseudoLists {
+                    NavigationLink { PseudoListEditorView(kind: .blocklist, manager: lists) } label: {
+                        Label("Liste noire", systemImage: "hand.raised")
+                    }
+                    NavigationLink { PseudoListEditorView(kind: .allowlist, manager: lists) } label: {
+                        Label("Liste blanche", systemImage: "heart")
+                    }
+                }
                 Toggle("Swipe changement de page", isOn: $topics.swipesPages)
                 Picker("Bouton +", selection: $topics.replyButton) {
                     ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -148,17 +161,15 @@ struct SettingsView: View {
 /// the Plus stack's `navigationDestination(item:)`, and a value pushed from such a screen never resolves.
 struct SettingsDestinationView: View {
     let destination: SettingsDestination
+    /// The store of the settings the destination edits.
+    var store: any SettingsStore = UserDefaultsSettingsStore()
 
     var body: some View {
         switch destination {
         case .theme:
             ThemeSettingsView()
         case .icon:
-            ContentUnavailableView(
-                destination.title, systemImage: destination.symbol,
-                description: Text("Ce réglage arrive dans une prochaine version.")
-            )
-            .navigationTitle(destination.title)
+            AppIconSettingsView(store: store)
         }
     }
 }

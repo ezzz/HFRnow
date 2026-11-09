@@ -18,9 +18,9 @@
 {
 "type": "text",
 "id": "st",
-"x": 370,
+"x": 300,
 "y": 42,
-"text": "Snapshot 2026-10-29 · 153 lots · 51 done",
+"text": "Snapshot 2026-11-08 · live state on the boards #166 and #324",
 "fontSize": 18,
 "strokeColor": "#555555"
 },
@@ -54,7 +54,7 @@
 "fillStyle": "solid",
 "strokeColor": "#15803d",
 "label": {
-"text": "M1  MVP\nlog in, browse, read, reply\nTestFlight beta 1\n88 % done",
+"text": "M1  MVP\nlog in, browse, read, reply\nTestFlight beta 1\n100 % · 40 lots",
 "fontSize": 18
 }
 },
@@ -72,7 +72,7 @@
 "fillStyle": "solid",
 "strokeColor": "#2563eb",
 "label": {
-"text": "M2  Read & reply complete\nquotes, smileys, images,\nedit, new topic, MPs, search\n0 % · 38 lots",
+"text": "M2  Read & reply complete\nquotes, smileys, images,\nedit, new topic, MPs, search\n100 % · 28 lots",
 "fontSize": 18
 }
 },
@@ -134,7 +134,7 @@
 "fillStyle": "solid",
 "strokeColor": "#7c3aed",
 "label": {
-"text": "M3  Engine complete\nevery HFRKit lot,\nparity gates green\n35 % · 43 lots",
+"text": "M3  Engine complete\nevery HFRKit lot,\nparity gates green\n88 % · 43 lots",
 "fontSize": 18
 }
 },
@@ -227,7 +227,7 @@
 "fillStyle": "solid",
 "strokeColor": "#c2410c",
 "label": {
-"text": "M4  Final version\nfull legacy parity, MPStorage sync,\nnotifications, accessibility,\niOS 27 experience, App Store\n0 % · 31 lots",
+"text": "M4  Final version\nvalidated legacy parity,\nMPStorage sync, notifications,\naccessibility, compliance,\nApp Store\n15 % · 26 lots",
 "fontSize": 18
 }
 },
@@ -298,6 +298,59 @@
 "fixedPoint": [
 0,
 0.8
+]
+}
+},
+{
+"type": "rectangle",
+"id": "m5",
+"x": 760,
+"y": 400,
+"width": 330,
+"height": 90,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#fcc2d7",
+"fillStyle": "solid",
+"strokeColor": "#be185d",
+"label": {
+"text": "M5  UX evolutions\nafter the M4 parity is validated\n0 % · 29 lots",
+"fontSize": 18
+}
+},
+{
+"type": "arrow",
+"id": "a45",
+"x": 925,
+"y": 370,
+"width": 0,
+"height": 30,
+"points": [
+[
+0,
+0
+],
+[
+0,
+30
+]
+],
+"strokeColor": "#1e1e1e",
+"strokeWidth": 2,
+"endArrowhead": "arrow",
+"startBinding": {
+"elementId": "m4",
+"fixedPoint": [
+0.5,
+1
+]
+},
+"endBinding": {
+"elementId": "m5",
+"fixedPoint": [
+0.5,
+0
 ]
 }
 },

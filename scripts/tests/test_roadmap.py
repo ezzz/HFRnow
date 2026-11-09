@@ -2,6 +2,7 @@
 import contextlib
 import io
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -112,10 +113,16 @@ class Milestones(unittest.TestCase):
         m = {"M1": generate.M1, "M2": generate.M2, "M3": generate.M3, "M4": generate.M4}
         for name, ids in m.items():
             self.assertFalse(ids & generate.M5, name)
-        self.assertIn("LOT-100", generate.M5)  # a whole lot moved out of M2
-        self.assertIn("LOT-147", generate.M5)  # a whole lot moved out of M4
+        self.assertIn("LOT-110", generate.M5)  # a whole lot moved out of M2
+        self.assertIn("LOT-145", generate.M5)  # a whole lot moved out of M4
         self.assertTrue(any(l in generate.M5 for l in ("LOT-174", "LOT-182")))  # the (b) halves of the splits
+        self.assertIn("LOT-187", generate.M5)  # cache clearing, the M5 half left when LOT-179 went to M4
         self.assertEqual(len(generate.M1 | generate.M2 | generate.M3 | generate.M4 | generate.M5), len(generate.rows))
+
+    def test_legacy_evolution_backports_are_in_m4(self):
+        # Operator, 2026-11-09 on #655: in the legacy reference 2fe43da3, so parity (M4), not evolutions (M5).
+        for lot in ("LOT-100", "LOT-101", "LOT-146", "LOT-147", "LOT-179"):
+            self.assertIn(lot, generate.M4, lot)
 
     def test_no_lot_of_m1_to_m4_depends_on_an_m5_lot(self):
         outside = generate.M1 | generate.M2 | generate.M3 | generate.M4
@@ -317,8 +324,8 @@ class Hygiene(unittest.TestCase):
 
     @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_without_a_credited_pr_is_not_offered_for_a_hand_unblock(self):
-        lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("100", 2, deps="001", module="App"))
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-100 is a moved M5 lot; no merged PR credited
+        lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("110", 2, deps="001", module="App"))
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-110 is a moved M5 lot; no merged PR credited
         _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
         self.assertFalse(any("unblock by hand" in r for r in reports))
         self.assertTrue(any("M5 lots with every dependency done" in r for r in reports))
@@ -418,6 +425,83 @@ class ProgressSlide(unittest.TestCase):
                 self.assertEqual(progress.bucket(m2_app, {"host: mac"}), "progress")  # an open PR names the lot
         with mock.patch.object(generate, "CLOSED", {n2}), mock.patch.object(generate, "CLAIMED", {n2}):
             self.assertEqual(progress.bucket(m2_app, {"status: blocked", "host: mac"}), "done")  # done outranks everything
+
+
+class FoldFragmentsTest(unittest.TestCase):
+    """hygiene.py reports pending docs fragments (dry-run) and folds them only with --apply (#612)."""
+
+    def layout(self):
+        import shutil
+        import tempfile
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp)
+        repo = Path(__file__).resolve().parents[2]
+        for rel in ("docs/CHANGELOG-LEGACY.md", "docs/migration/GAP-LEGACY-VS-SWIFT.md"):
+            (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(repo / rel, tmp / rel)
+        lay = hygiene.docs_fold.Layout(tmp)
+        lay.changelog_dir.mkdir()
+        lay.gap_dir.mkdir()
+        return lay
+
+    def test_ledger_report_is_a_dry_run(self):
+        lay = self.layout()
+        self.assertEqual(hygiene.ledger_pending([], lay), ["ledger: none pending"])
+        ok = {"number": 5, "body": "Closes #9\n\n### Ledger\n\n```changelog\n| T | Résumé. | LOT-9 | preuve |\n```\n"}
+        before = lay.changelog.read_text(encoding="utf-8")
+        self.assertIn("1 pending (#5)", hygiene.ledger_pending([ok], lay)[0])
+        self.assertEqual(lay.changelog.read_text(encoding="utf-8"), before)
+        out = hygiene.ledger_pending([{"number": 6, "body": "### Ledger\n\nprose"}], lay)
+        self.assertIn("0 foldable, 1 refused", out[0])
+        self.assertIn("PR #6 refused", out[1])
+        with mock.patch.object(hygiene.docs_ledger, "fetch_pending", side_effect=hygiene.docs_ledger.LedgerError("gh down")):
+            self.assertEqual(hygiene.ledger_pending(None, lay), ["ledger: cannot report: gh down"])
+
+    def test_dry_run_reports_and_apply_folds(self):
+        lay = self.layout()
+        self.assertEqual(hygiene.fold_fragments(False, lay), ["docs fragments: none pending"])
+        (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        before = lay.changelog.read_text(encoding="utf-8")
+        out = hygiene.fold_fragments(False, lay)
+        self.assertIn("1 pending (9999.md)", out[0])
+        self.assertEqual(lay.changelog.read_text(encoding="utf-8"), before)
+        self.assertIn("folded 1", hygiene.fold_fragments(True, lay)[0])
+        self.assertIn("| 9999 | T |", lay.changelog.read_text(encoding="utf-8"))
+        self.assertFalse((lay.changelog_dir / "9999.md").exists())
+
+    def test_stale_tallies_do_not_block_apply(self):
+        lay = self.layout()
+        hygiene.docs_fold.fold(lay)  # baseline: the committed file may itself carry stale tallies (direct edits of other PRs)
+        text = lay.gap.read_text(encoding="utf-8")
+        total = re.search(r"^\| \*\*Total\*\* \| \*\*\d+\*\* \|$", text, re.M).group(0)  # whatever the committed total is
+        stale = "| **Total** | **1** |"
+        self.assertNotEqual(total, stale)
+        lay.gap.write_text(text.replace(total, stale), encoding="utf-8")
+        (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        self.assertIn("folded 1", hygiene.fold_fragments(True, lay)[0])
+        self.assertEqual(lay.gap.read_text(encoding="utf-8"), text)  # the fold restored the generated total
+
+    def test_duplicate_fragment_numbers_are_reported_not_raised(self):
+        lay = self.layout()
+        for n in ("7.md", "007.md"):
+            (lay.changelog_dir / n).write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        self.assertIn("NOT foldable", hygiene.fold_fragments(True, lay)[0])
+
+    def test_duplicate_row_in_a_shared_file_blocks_apply(self):
+        lay = self.layout()
+        text = lay.gap.read_text(encoding="utf-8")
+        first = next(l for l in text.split("\n") if l.startswith("| GAP-001 |"))
+        lay.gap.write_text(text.replace(first, first + "\n" + first), encoding="utf-8")  # GAP-001 twice
+        (lay.changelog_dir / "9999.md").write_text("| T | Résumé. | LOT-9 | preuve |\n", encoding="utf-8")
+        self.assertIn("NOT foldable", hygiene.fold_fragments(True, lay)[0])
+        self.assertTrue((lay.changelog_dir / "9999.md").exists(), "no fragment removed while a duplicate remains")
+
+    def test_malformed_fragment_is_reported_not_folded(self):
+        lay = self.layout()
+        (lay.gap_dir / "GAP-9999.md").write_text("not a fragment\n", encoding="utf-8")
+        out = hygiene.fold_fragments(True, lay)
+        self.assertIn("NOT foldable", out[0])
+        self.assertTrue((lay.gap_dir / "GAP-9999.md").exists())
 
 
 if __name__ == "__main__":

@@ -11,16 +11,16 @@ Every lot of [LOTS.md](LOTS.md) belongs to one milestone. Each milestone has a l
 | Milestone | Scope | Exit criteria |
 |---|---|---|
 | 🚀 M1 · MVP | First usable build: log in, browse forums, topics and flags, read, reply (the audit and tooling lots 000–005 and 071, the engine lots the MVP needs, and the app lots 080–084, 119, 137, 160, 169, 170; the release pipeline LOT-161 moved to M4, operator 2026-11-05) | Every M1 lot done; the fixes that touch the MVP merged; the #322 light, dark and Dynamic Type XL checks done; a TestFlight build installed by the maintainer |
-| 📖 M2 · Read & reply complete | Every reading and answering feature of the legacy app: quotes, formatting, smileys, images, edit and delete, new topic, polls, search, filters, page tools, offline reading, MPs | Every M2 lot done; TestFlight beta 2 |
+| 📖 M2 · Read & reply complete | Every reading and answering feature of the legacy app: quotes, formatting, smileys, images, edit and delete, new topic, poll display and vote (poll creation and archived drafts are M4 backports of legacy evolution, #655), search, filters, page tools, offline reading, MPs | Every M2 lot done; TestFlight beta 2 |
 | ⚙️ M3 · Engine complete | Every `HFRKit` lot not already in M1 | Every M3 lot done; LOT-070 parity gates green |
 | 🏁 M4 · Final version | The validated legacy parity: everything else that parity needs (MPStorage sync, notifications, appearance, compliance, accessibility, App Store); the evolutions are in M5 | LOT-164 parity gate passed; the LOT-165 App Store submission accepted by App Review; every lot done |
-| 🧪 M5 · UX evolutions | Every change from the initial plan or from the legacy that parity does not need, never dropped: the deferred option B of the UXD decisions, the FEAT items, the (b) halves of split lots (new lots 174 to 183), Home, scrubber, navigator, quote tray, preview, Duo and iPad column layouts, state restoration… ([#379](https://github.com/ezzz/HFRnow/issues/379), list in [LOTS.md](LOTS.md#m5--ux-evolutions)) | Scheduled after the M4 parity; the orchestrator decides when it opens; every M5 lot done |
+| 🧪 M5 · UX evolutions | Every change from the initial plan or from the legacy that parity does not need, never dropped: the deferred option B of the UXD decisions, the FEAT items, the (b) halves of split lots (new lots 174 to 183), Home, scrubber, navigator, quote tray, preview, the FEAT-016 layouts legacy does not have, state restoration… ([#379](https://github.com/ezzz/HFRnow/issues/379), list in [LOTS.md](LOTS.md#m5--ux-evolutions)) | Scheduled after the M4 parity; the orchestrator decides when it opens; every M5 lot done |
 
 M3 runs in parallel with M2: engine lots run in cloud sessions, while app lots need the maintainer's Mac. Moving a lot to another milestone is an operator decision, recorded on the board.
 
-**Port first, evolutions apart** (directive H, 2026-11-01; operator decisions 2026-11-02): M1–M4 port ezzz's Swift layer with the legacy UX, and M4 is the validated legacy parity. Every UX change is classified in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1): it stays in M1–M4 only when parity needs it or the operator decided it, and the rest is in M5. The decision of each UXD row is in [the decisions table](migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02).
+**Port first, evolutions apart** (directive H, 2026-11-01; operator decisions 2026-11-02): M1–M4 port ezzz's Swift layer with the legacy UX, and M4 is the validated legacy parity. Every UX change is classified in [GAP-LEGACY-VS-SWIFT.md](migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1): it stays in M1–M4 only when parity needs it or the operator decided it, and the rest is in M5. Behaviour legacy added during SwiftHFR's development (in the reference `2fe43da3`, not at `2440d79`) is parity: a backport of legacy evolution, in M4 (operator 2026-11-09, [#655](https://github.com/ezzz/HFRnow/issues/655): LOT-100, 101, 146, 147, 179). The decision of each UXD row is in [the decisions table](migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02).
 
-![SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)](assets/roadmap-milestones.svg)
+![SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version, then M5 UX evolutions after the M4 parity; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)](assets/roadmap-milestones.svg)
 
 ## Phase 0 — Foundations *(done — 2026-10-24)*
 - [x] License (PolyForm Noncommercial), credits, README, AGENTS.md
@@ -52,7 +52,7 @@ The iOS app target `App/SwiftHFR.xcodeproj` links `HFRKit` and is built and test
 Reuse and adapt the legacy SwiftUI views on top of `HFRKit`; remove everything unused.
 
 ## Phase 5 — iOS 27 experience
-Column-based navigation and large/foldable layouts. Design documentation provided by the maintainer.
+Column-based navigation and large/foldable layouts beyond what legacy has (the legacy iPhone Duo layout at `2fe43da3` is LOT-147, M4, #655). Design documentation provided by the maintainer.
 
 ## App features (Phases 4–5)
 New app features (Home, page navigator, Shortcuts check, themes…) come from the [feature backlog](FEATURES.md); each goes through a feature issue, a spec and, when `HFRKit` lacks a capability, engine lots ([ADR 0011](adr/0011-contribution-model-and-feature-intake.md) §2).

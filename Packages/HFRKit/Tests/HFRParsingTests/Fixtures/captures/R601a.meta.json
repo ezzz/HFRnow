@@ -1,0 +1,21 @@
+{
+  "id": "R601a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/user/editprofil.php?config=hfr.inc&page=5",
+  "url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "final_url": "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Sat, 07 Nov 2026 15:55:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "Profile page 5, account with personal smileys",
+  "file": "R601a-profile-edit-page5-personal-smileys.html",
+  "private": false
+}

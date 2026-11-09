@@ -23,6 +23,12 @@ Read-only, ezzz/HFRnow `origin/master` at `21173e77` (the default-browser settin
 | `HFRswift/Swift/UserProfileView.swift:614-620` | same choice for profile links |
 | `Classes/HFRplusAppDelegate.m:764-777`, `Classes/BrowserViewController.m` | Objective-C paths: `openURL:` honours the same key; `BrowserViewController` is the old in-app `WKWebView` browser (not ported: Safari's view replaces it, LOT-071 T8) |
 
+**Legacy at `2fe43da3`** (catch-up of #655; rows of the #655 sweep that touch this lot):
+- Back after a reply lands on the message anchor, and the left-edge back swipe works in pushed readers (`68f7cf0d`, `a9a449e9`, `3f9a6835`). A refresh keeps the place by branch (`refreshCurrentPageRestoration`, `HFRswift/Swift/MessagesView.swift:5000-5033`; `resolvedRestoration`, `:3649-3670` @ `2fe43da3`): at the bottom of the last page it reloads at the previous last message and, when no newer post came, goes back to the bottom without an anchor; elsewhere it restores the visible message's anchor, else the scroll position; in search and favourite-post filter modes only the scroll position (or the bottom) is restored. In SwiftHFR, a covered reader keeps its page and position here (Behaviour above, LOT-145), but after a reply SwiftHFR opens the latest post (LOT-084 "Latest post", its own recorded difference), so the post-reply landing is not claimed as parity by this lot.
+- AQ links open the right topic (`abaada6e`): parity through `HFRLinkRoute` (LOT-134, LOT-144).
+- "Navigateur par défaut" (`9f15513d`, `HFRswift/Swift/Common.swift:257-259`, toggle `AppSettingsView.swift:402-406` @ `2fe43da3`): the setting this lot already reads from `21173e77`: parity.
+- **Stacked-reader count** (`602b900e`): a pushed reader shows its depth in a capsule before the title (`MessagesView.swift:3410-3440` @ `2fe43da3`; at `2440d79` the count was in a custom back button, `:4238-4265`). Not in this lot: a difference until [#682](https://github.com/ezzz/HFRnow/issues/682) (M4) ports it.
+
 ## Behaviour
 
 `TopicReaderModel.action(forLink:defaultBrowser:)` decides, `TopicReaderView` acts:
@@ -80,6 +86,7 @@ Read-only, ezzz/HFRnow `origin/master` at `21173e77` (the default-browser settin
   ([#388](https://github.com/ezzz/HFRnow/issues/388)). A failure shows the reader's error, nothing is written.
 
 ## Intentional differences from legacy
+- **Link long-press menu (#596, ledger gap-new, operator 2026-11-07; legacy returned nil for a plain link, i.e. WebKit's own menu with a preview, and built a menu for image links only, `MessagesView.swift:1241-1278` @ 2440d79; "Ouvrir l'image" and "Save to Photos" deferred to #615).** For an `http(s)` link: Ouvrir (the tap routing above), Copier le lien, Ouvrir dans Safari (`UIApplication.open`; iOS may give a universal link to its app) and, for non-forum links, Ouvrir dans l'app (`.universalLinksOnly`, Safari when no app answers; named for YouTube, Vimeo, Streamable only). No preview provider, `allowsLinkPreview = true`, assumed necessary for WebKit to consult `contextMenuConfigurationForElement` (pending device verification, #596 Mac check; revert that line if the delegate is called without it); nothing is fetched, with or without the session. Code: `ReaderWebController+LinkMenu.swift`; tests `ReaderLinkMenuTests`.
 - Lists, profiles, searches and other forum pages that are not topic pages open in the browser, not as a broken topic
   (`Common.swift:2473-2479` treated every `/hfr/…` and `forum2.php` link as a topic).
 - Answer links, single-message and print views, an unusable `page=`, and forums the catalogue lacks open in the browser (LOT-095).
