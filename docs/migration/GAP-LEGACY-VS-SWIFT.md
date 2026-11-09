@@ -49,8 +49,8 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-023 | Topic filter Tous / Favoris / Suivis / Lus | Segmented control on forum lists, persisted. | MainWindow.swift:613-640 | No per-forum filter; a Favoris / Drapeaux picker in the Favoris tab. | LOT-082, LOT-170 | not planned | — | — |
 | GAP-024 | Forum list paging | Pager first / previous / "N / last" / next / last plus a page sheet. | MainWindow.swift:926-1000 | "Page N" without a fake total; last page only when the count is exact. | LOT-082, LOT-167, FEAT-003 | UX change | new UX: Bybifok (FEAT-003) | b·needed |
 | GAP-025 | Refresh | Pull and toolbar refresh reload the list. | MainWindow.swift:712-723 | Reloads the page on screen, rows kept, retry banner on failure. | LOT-082 | ported with changes | new UX: spec | a |
-| GAP-026 | Topic row layout | Title 14.3 pt, unread capsule, footer "⚑ cur / max" and "author - date". | Favorites.swift:988-1006, 1014; Common.swift:3095-3160 | Legacy Favoris density is the reference, but the LOT-082 row shows "author · replies · relative date". | LOT-082, LOT-169 | UX change | new UX: spec | b |
-| GAP-027 | Flag row tint | Row tinted by flag colour (yellow, blue, red). | MainWindow.swift:408-424; Common.swift:702-722 | Not specified. | — | not planned | — | — |
+| GAP-026 | Topic row layout | Title 14.3 pt, unread capsule, footer "⚑ cur / max" and "author - date". | Favorites.swift:988-1006, 1014; Common.swift:3095-3160 | Legacy Favoris density is the reference. The unread-pages capsule (`pageCount - currentPage`, hidden at 0) and the "⚑ cur / max" footer (poll mark "≣") are back (#584, operator decision); the footer is followed by "starter · replies · relative date". The dot stays for unread rows. | LOT-082, LOT-169, #584 | ported with changes | new UX: spec | a |
+| GAP-027 | Flag row tint | Row tinted by flag colour (yellow, blue, red). | MainWindow.swift:408-424; Common.swift:702-722 | Row tinted by the flag colour at 0.6 of `RowTint`'s strength (super favourite: orange at full strength; legacy used bare 0.12 / 0.18 alphas), layered over the list's own row colour (clear in the iPad sidebar column); none on the selected row (#584). | #584 | ported with changes | port: ezzz Swift layer | a |
 | GAP-028 | Topic context menu | Première page, Dernière page, Dernière réponse, Page numéro…, Copier le lien. | Common.swift:3050-3093 | Uniform swipes and menus; only Lu, Dernière page, Super favori, Retirer are named. | LOT-125, FEAT-008 | ported with changes | port: ezzz Swift layer | b |
 | GAP-029 | Swipes | Leading "Lu", trailing "Supprimer"; super favourite in the menu only. | Favorites.swift:1073-1097 | One set in every list: Lu with "Annuler", Dernière page, Super favori, Retirer. | LOT-125, FEAT-008 | UX change | new UX: Bybifok (FEAT-008) | b |
 | GAP-030 | Favourites grouping | Grouped by forum with a count, or flat by last post. | Favorites.swift:293-396 | Grouped by category, sort by last post kept as an option. | LOT-124, LOT-082 | same | port: ezzz Swift layer | a |
@@ -94,6 +94,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-072 | Continuous scrolling | None. | — | Option, off by default, haptic per page. | LOT-148, FEAT-017 | new | new UX: Bybifok (FEAT-017) | b |
 | GAP-073 | Quick-reply bar and quote tray | None. | — | Bottom bar with the count of checked quotes and a quick reply. | LOT-153, FEAT-006 | new | new UX: Bybifok (FEAT-006) | b |
 | GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
+| GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for links the forum does not own, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). "Ouvrir l'image" and "Save to Photos" are not ported here: deferred to #615. | #596, #615, LOT-137 | new | new UX: operator (2026-11-07) | b·operator |
 
 ## Composer
 
@@ -106,7 +107,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-084 | Quote splitting | "Fractionner la citation" cuts at the cursor. | ReplyComposer.swift:141-175 | LOT-085: engine ported and tested, no button yet. | LOT-085 | ported with changes (engine only) | port: ezzz Swift layer | a |
 | GAP-085 | Formatting | Edit-menu BBCode actions (b, i, u, s, spoiler, quote, url, img, fixed). | ReplyComposer.swift:59-70, 99-139 | Formatting toolbar and insertion engine. | LOT-085, LOT-174 | UX change | port: ezzz Swift layer | b |
 | GAP-086 | Clear / undo / redo | Three toolbar buttons. | AnswerView.swift:500-511 | Not in any lot scope. | — | not planned | — | — |
-| GAP-087 | Smileys | Panel: default, forum favourites, app favourites. | AnswerView.swift:1061-1064; ReplySmileyCatalog.swift:110-153 | Catalogue, favourites (synced) and insert. | LOT-104, LOT-064 | ported with changes | port: ezzz Swift layer | a |
+| GAP-087 | Smileys | Panel: default, forum favourites, app favourites. | AnswerView.swift:1061-1064; ReplySmileyCatalog.swift:110-153 | Catalogue, favourites (synced) and insert; "Smileys du forum" read from the composer form (#600); favourite from the context menu; search in the navigation bar. "Mes smileys" pending capture #601. | LOT-104, LOT-064, #600 | ported with changes | port: ezzz Swift layer | a |
 | GAP-088 | Smiley search | HFR search, "all keywords" toggle, recent and top chips. | AnswerView.swift:1280-1317; SmileySearchService.swift:88-135 | Search, history and wiki keywords. | LOT-105, LOT-053 | same | port: ezzz Swift layer | a |
 | GAP-089 | GIFs | Giphy panel, rating R, recents. | AnswerView.swift:2294-2340 | Giphy client (injected key) and our own GIF grid (trending, search, confirmation); notice N1 before the first request; no recents; GIFs off Giphy's CDN are never shown or posted. | LOT-098, LOT-155 | ported with changes | port: ezzz Swift layer | b·needed |
 | GAP-090 | Image upload | Rehost with resize cap and three BBCode modes. | ReplyService.swift:1735-1810 | Rehost client with a host table, upload and insertion panel. | LOT-056, LOT-102 | ported with changes | port: ezzz Swift layer | a |
@@ -164,7 +165,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Darker dark #0B0B0C, OLED black, 1 pt separators. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
 | GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-122 | UX change | new UX: Bybifok (FEAT-010) | b |
 | GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 | Seasonal themes and assets. | LOT-166, FEAT-010 | ported with changes | new UX: Bybifok (FEAT-010) | a |
-| GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Same picker. | LOT-123 | same | port: ezzz Swift layer | a |
+| GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker of 9 options (the 8 legacy values on their legacy keys and names, plus REDFACE 3D Big) on a screen behind the "Icône" row; the key is written only after the system accepted the switch (#622). Five of the legacy icons are redrawn as SVG at full resolution (#623). | LOT-123 | ported with changes | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-150 | Open links in default browser | Absent at `2440d79` (exists on `master`). | — | "Navigateur par défaut" toggle; HFR links stay in the app. | LOT-119, LOT-137 | new | port: ezzz Swift layer | a·master |
 | GAP-151 | Crédits, Charte | Bundled HTML pages from Plus. | StaticInfoPageView.swift:10-47 | Static pages; About links to the app's topics, opened in the app. | LOT-120 | ported with changes | port: ezzz Swift layer | a |
@@ -234,7 +235,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-217 | Fold / unfold continuity | No handling; PR #4 (not merged) proposes one hierarchy. | — | Topic and position kept across fold and unfold. | LOT-145, LOT-147 | new | new UX: Bybifok (FEAT-015) | b |
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list. | MainWindow.swift:1337-1345 | Entries in a two-column split; Plus opens Réglages. | LOT-170 | UX change | new UX: spec | b |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false. | HFRswift/Info.plist:206-208 | iPad multi-window. | LOT-146 | new | new UX: spec | b |
-| GAP-228 | App icon | Layered `.icon` `Icon-RedFace3D` (`ASSETCATALOG_COMPILER_APPICON_NAME`). | SuperHFRplus.xcodeproj/project.pbxproj:1803, 6040, 6125 | Main icon ported unchanged (#580); alternates stay in LOT-123 (GAP-148). | #580, LOT-123 | same | port: ezzz Swift layer | a |
+| GAP-228 | App icon | Layered `.icon` `Icon-RedFace3D` (`ASSETCATALOG_COMPILER_APPICON_NAME`). | SuperHFRplus.xcodeproj/project.pbxproj:1803, 6040, 6125 | Main icon ported unchanged (#580); alternates done in LOT-123 (GAP-148). | #580, LOT-123 | same | port: ezzz Swift layer | a |
 
 ## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
 
@@ -260,14 +261,14 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 36 |
-| ported with changes | 46 |
+| same | 35 |
+| ported with changes | 49 |
 | ported with changes (engine only) | 1 |
-| UX change | 45 |
-| new | 28 |
+| UX change | 44 |
+| new | 29 |
 | dropped | 2 |
-| not planned | 8 |
-| **Total** | **166** |
+| not planned | 7 |
+| **Total** | **167** |
 
 ## Convergence notes
 
@@ -298,15 +299,15 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (119)
+### GAP rows of type `ported with changes`, `UX change` or `new` (122)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 025, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 45 |
+| a | 004, 011, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 47 |
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 089, 133, 181 | 6 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 168, 169, 184, 185, 200, 222, 225, 226, 227 | 16 |
-| b | 008, 009, 012, 014, 015, 020, 022, 026, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219, 229 | 49 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596 | 18 |
+| b | 008, 009, 012, 014, 015, 020, 022, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219, 229 | 48 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 026, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
 
