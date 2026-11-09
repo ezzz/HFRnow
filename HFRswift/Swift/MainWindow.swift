@@ -1342,6 +1342,8 @@ struct RootTabView: View {
     @State private var aqBadgeCheckTask: Task<Void, Never>?
     @State private var messagesNavigationResetToken = UUID()
     @State private var detailNavigationResetToken = UUID()
+    @State private var detailStackResetRequest: UUID?
+    @State private var pendingTopicSelectionTask: Task<Void, Never>?
     @State private var preferredCompactColumn = NavigationSplitViewColumn.content
     @State private var isPortraitLayout = false
     /// Larger of the window's leading and trailing safe area insets (iPhone Duo cover screen detection).
@@ -2007,6 +2009,7 @@ struct RootTabView: View {
                 }
             }
         }
+        .environment(\.detailStackResetRequest, detailStackResetRequest)
         .id(detailNavigationResetToken)
         .toolbar {
             if iPadSidebarDestination.usesTopicList,
@@ -2171,7 +2174,29 @@ struct RootTabView: View {
         detailNavigationResetToken = UUID()
     }
 
+    /// A reader pushed in the detail column (internal link, in-topic search result) belongs to
+    /// the root `MessagesView`, and replacing the detail root does not pop it (#663). When a
+    /// topic is already shown, ask the detail to pop first, then replace the root on the next
+    /// turn of the main actor, while the view that owns the push still exists.
     private func selectTopic(
+        _ target: TopicNavigationTarget,
+        for destination: IPadSidebarDestination
+    ) {
+        pendingTopicSelectionTask?.cancel()
+        pendingTopicSelectionTask = nil
+        guard activeTopicTarget != nil else {
+            applyTopicSelection(target, for: destination)
+            return
+        }
+        detailStackResetRequest = UUID()
+        pendingTopicSelectionTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            applyTopicSelection(target, for: destination)
+        }
+    }
+
+    private func applyTopicSelection(
         _ target: TopicNavigationTarget,
         for destination: IPadSidebarDestination
     ) {
