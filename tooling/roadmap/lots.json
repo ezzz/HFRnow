@@ -1183,7 +1183,7 @@
 "diff": "easy",
 "model": "Sonnet → Opus",
 "deps": "063, 084",
-"audit": "new at 2440d79 (H.1: not there); legacy at 2fe43da3 (`08a63c8e`: 3 archived drafts per topic and a picker, `AnswerView.swift:137-141, 1855-2007`), milestone pending (#655)",
+"audit": "new at 2440d79 (H.1: not there); legacy at 2fe43da3 (`196620d2`: 3 archived drafts per topic and a picker, `AnswerView.swift:137-141, 1855-2001`), milestone pending (#655)",
 "prio": "low",
 "issue": 192,
 "sec": "Phase 4 — app: legacy parity and features",
