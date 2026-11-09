@@ -14,7 +14,7 @@ Décisions du PO reprises ici :
 - question `G1` ajoutée le 8 novembre 2026 : irritants du quotidien, texte libre de 280 caractères, facultatif, sans condition, sur son propre écran juste après `O1` et avant `L1` (cadrage §2, #670) ;
 - hébergement en France (UE).
 
-D4 (description du VPS) reste en partie ouverte : la spécification est portable, et la [section 13](#13-ce-que-le-po-doit-fournir-d4) liste ce que le PO doit fournir. Les exigences R1 à R12 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
+D4 (description du VPS) est tranchée : Ubuntu 24.04 LTS avec Docker Engine et Docker Compose, en France, partagé avec une autre application. Seul reste ouvert le choix de l'exposition publique (Tailscale Funnel ou proxy inverse avec sous-domaine) ; le déploiement marche dans les deux cas, et la [section 13](#13-points-ouverts-avant-le-déploiement) liste ce qui reste à décider ou à vérifier. Les exigences R1 à R12 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
 
 ## 1. Choix techniques
 
@@ -23,7 +23,7 @@ D4 (description du VPS) reste en partie ouverte : la spécification est portable
 | Service | Un binaire **Go**, bibliothèque standard (`net/http`, `embed`, `log/slog`, `crypto/hmac`, `crypto/rand`) | Un seul exécutable, front compris ; aucun interpréteur sur le VPS ; serveur HTTP prévu pour la production ; compile vers Linux x86-64 et arm64 depuis n'importe quel poste |
 | Base | **SQLite**, pilote `modernc.org/sqlite` (Go pur, sans cgo) | Un fichier ; c'est la **seule dépendance tierce**, épinglée dans `go.sum`, soumise à la revue de dépendances. Sauvegarde par `ux-survey sauvegarder` seulement (§12), jamais par copie du fichier pendant que le service tourne |
 | Front | HTML, CSS et JavaScript sans framework ni étape de build, servis par le binaire | Tient sous 200 Ko ; rien à charger d'un autre domaine ; relisible en revue de sécurité |
-| Livraison | Image conteneur **ou** binaire avec unité systemd, au choix du PO (D4) | Les deux sont décrits en [section 11](#11-déploiement) |
+| Livraison | Image conteneur, lancée par Docker Compose (D4) | Décrite en [section 11](#11-déploiement) |
 | Tests | `go test` pour le service ; `node --test` (exécuteur intégré à Node, sans paquet) pour la logique pure du front | Aucune dépendance de test supplémentaire |
 
 Écartés : Python (le serveur `http.server` n'est pas prévu pour la production, un framework ajoute des dépendances), Node côté serveur (dépendances npm et un runtime à maintenir sur le VPS), un outil de sondage tiers (décision 1 du plan : formulaire maison).
@@ -34,7 +34,7 @@ La version de Go est la dernière stable au moment de #634, épinglée dans `go.
 
 ```text
 tooling/ux-survey/
-  README.md                  lancer, configurer, déployer, retirer (reprend §10 à §12), variante nginx
+  README.md                  lancer, configurer, déployer, retirer (reprend §10 à §12)
   go.mod, go.sum
   cmd/ux-survey/main.go      sous-commandes : serve, export, sauvegarder, fermer, effacer, pseudo
   internal/contenu/          chargement, validation et rendu des valeurs de configuration
@@ -49,8 +49,8 @@ tooling/ux-survey/
   web/logique.test.mjs       tests node du front
   deploy/Dockerfile
   deploy/compose.yaml
-  deploy/ux-survey.service   unité systemd, avec ux-survey.env.exemple
-  deploy/Caddyfile.exemple   la variante nginx est un paragraphe du README
+  deploy/ux-survey.env.exemple  variables, sans secret
+  deploy/Caddyfile.exemple   seulement pour l'exposition (b) du §11
 ```
 
 Un fichier par type ou par responsabilité. `web/` est embarqué par `embed`, qui ne lit pas hors du module : les visuels sont donc **copiés et versionnés** dans `web/visuels/`, et le test 2 vérifie qu'ils sont identiques octet pour octet à ceux de `docs/ux/questionnaire/visuels/`.
@@ -263,7 +263,7 @@ Cross-Origin-Resource-Policy: same-origin
 Cache-Control: no-store            (routes /api/ et /donnees)
 ```
 
-HSTS est posé par le proxy inverse qui termine TLS, pas par le service. Aucun script ni style en ligne, aucun cookie, aucune ressource d'un autre domaine (polices système seulement). Le §4 dit comment le front reste compatible avec cette CSP.
+`Strict-Transport-Security: max-age=31536000` est posé par le service quand `UX_ORIGINE` commence par `https://`, car Tailscale Funnel (§11) ne l'ajoute pas ; derrière Caddy, l'en-tête en double est sans effet. Aucun script ni style en ligne, aucun cookie, aucune ressource d'un autre domaine (polices système seulement). Le §4 dit comment le front reste compatible avec cette CSP.
 
 **Aucune mesure d'audience** (R12) : pas d'outil d'analyse, pas de pixel, pas de bouton de réseau social, ni côté client ni à partir des journaux.
 
@@ -275,8 +275,8 @@ Variables d'environnement, aucun secret dans le dépôt :
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `UX_ADRESSE` | `127.0.0.1:8080` | Adresse d'écoute ; `0.0.0.0:8080` dans le conteneur (§11) |
-| `UX_DONNEES` | `./donnees` | Dossier de la base, de `cle-ip` et de `agregats.json` ; `/var/lib/ux-survey` avec systemd, `/donnees` dans le conteneur |
+| `UX_ADRESSE` | `127.0.0.1:8080` | Adresse d'écoute ; `0.0.0.0:8080` dans le conteneur, qui n'est publié que sur la boucle locale de l'hôte (§11) |
+| `UX_DONNEES` | `./donnees` | Dossier de la base, de `cle-ip` et de `agregats.json` ; `/donnees` dans le conteneur, monté depuis le dossier de données propre au projet Compose |
 | `UX_ORIGINE` | — (obligatoire) | Origine publique, par exemple `https://sondage.exemple.fr` |
 | `UX_PROXY_DE_CONFIANCE` | — (obligatoire) | IP ou CIDR du proxy inverse, ou `aucun` (§6) |
 | `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire |
@@ -295,16 +295,26 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 
 **Contrainte** : le VPS est en France (UE) ; le service, la base, les sauvegardes et les exports n'en sortent pas, hors l'export d'analyse anonymisé décrit en §12.
 
-**Conteneur** : `deploy/Dockerfile` en deux étapes, compilation `CGO_ENABLED=0`, image finale `gcr.io/distroless/static` en utilisateur non root, volume `/donnees`, système de fichiers en lecture seule. `deploy/compose.yaml` fixe `UX_ADRESSE=0.0.0.0:8080` dans le conteneur et publie le port sur `127.0.0.1:8080` seulement ; il déclare un réseau à sous-réseau fixe (par exemple `172.31.250.0/24`) et `UX_PROXY_DE_CONFIANCE` à l'adresse de sa passerelle, par laquelle arrive le proxy de l'hôte.
+**Hôte** : Ubuntu 24.04 LTS, Docker Engine et Docker Compose. Une autre application tourne déjà sur le même hôte : le questionnaire est un **projet Compose à part** (son propre nom de projet, son propre réseau, son propre dossier de données), sans rien partager avec elle. Aucune variante sans conteneur n'est prévue.
 
-**Binaire** : `GOOS=linux GOARCH=<amd64|arm64> go build`, copie dans `/opt/ux-survey/`, unité `deploy/ux-survey.service` avec `DynamicUser=yes`, `StateDirectory=ux-survey`, `StateDirectoryMode=0700`, `UMask=0077`, `ProtectSystem=strict`, `ProtectHome=yes`, `NoNewPrivileges=yes`, `PrivateTmp=yes`, et un fichier d'environnement lisible par root seulement, dont l'exemple fixe `UX_DONNEES=/var/lib/ux-survey` et `UX_PROXY_DE_CONFIANCE=127.0.0.1`.
+**Conteneur** : `deploy/Dockerfile` en deux étapes, compilation `CGO_ENABLED=0` pour l'architecture de l'hôte, image finale `gcr.io/distroless/static` en utilisateur non root, volume `/donnees` (dossier de l'hôte en 0700, propriété de l'utilisateur du conteneur), système de fichiers en lecture seule, `cap_drop: [ALL]`, `no-new-privileges`. `deploy/compose.yaml` :
+- fixe `UX_ADRESSE=0.0.0.0:8080` dans le conteneur et publie le port **seulement sur `127.0.0.1`**, sur un port libre de l'hôte choisi au déploiement (`127.0.0.1:<port>:8080`), jamais sur une interface publique ;
+- déclare un réseau à sous-réseau fixe (par exemple `172.31.250.0/24`, à choisir pour ne pas chevaucher celui de l'autre application) ;
+- fixe `UX_PROXY_DE_CONFIANCE` à l'adresse de la passerelle de ce réseau : un client de l'hôte qui se connecte à `127.0.0.1:<port>` arrive dans le conteneur depuis cette passerelle, quel que soit ce client (Tailscale Funnel ou Caddy, ci-dessous).
 
-**Proxy inverse** : `deploy/Caddyfile.exemple` (TLS automatique, HSTS, `X-Forwarded-For` ajouté, corps limité à 32 Ko, journal d'accès coupé) ; la variante nginx est un paragraphe du README (`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`). Le README ne garde que la variante retenue par D4 si le PO le souhaite.
+**Exposition publique**, décision du PO en attente ; aucun port public n'est ouvert aujourd'hui. Les deux options passent par le port de boucle locale, donc la même configuration du service :
+
+| Option | Ce qui est exposé | TLS | URL | `UX_ORIGINE` | Adresse du client |
+|---|---|---|---|---|---|
+| (a) **Tailscale Funnel**, recommandée | Funnel devant `127.0.0.1:<port>`, aucun port à ouvrir | Terminé sur le VPS par `tailscaled` | Publique en `*.ts.net`, pas de sous-domaine | L'URL Funnel | Transmise par Funnel dans un en-tête, **à vérifier** (§13) |
+| (b) Proxy inverse, par exemple Caddy | Ports 80 et 443 ouverts | Caddy (Let's Encrypt) | Sous-domaine | `https://<sous-domaine>` | `X-Forwarded-For` ajouté par Caddy |
+
+Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajouté, corps limité à 32 Ko et journal d'accès coupé. Pour (a), le README donne la commande Funnel vers `127.0.0.1:<port>` et rappelle la vérification du §13. Dans les deux cas, le service ne lit que la dernière adresse de `X-Forwarded-For` (§6) ; si la vérification montre que Funnel transmet l'adresse du client dans un autre en-tête, #634 ajoute une variable `UX_EN_TETE_CLIENT` (nom de l'en-tête, lu seulement depuis le proxy de confiance) plutôt que de deviner.
 
 **Étapes** :
 1. Vérifier que `web/visuels/` correspond aux visuels finaux de #632 et que les tests passent.
-2. Construire l'image ou le binaire, renseigner les variables, démarrer.
-3. Vérifier `/healthz` et les en-têtes (`curl -I`). Envoyer **deux réponses depuis deux adresses publiques différentes** (un ordinateur, puis un téléphone en réseau mobile) : les deux sont acceptées, puis un troisième envoi du même téléphone avec un autre navigateur est accepté aussi (même empreinte, sous la limite), puis un quatrième depuis l'ordinateur, accepté lui aussi : chaque adresse reste sous sa limite de 3, alors qu'un compteur unique pour le proxy aurait refusé ce quatrième envoi (429). Cela prouve que le proxy de confiance est bien réglé. Puis remettre la base à zéro.
+2. Construire l'image sur l'hôte (`docker compose build`), renseigner les variables, démarrer (`docker compose up -d`), et vérifier que le port n'écoute que sur `127.0.0.1` (`ss -ltn`).
+3. Vérifier `/healthz` et les en-têtes (`curl -I`). Envoyer **deux réponses depuis deux adresses publiques différentes** (un ordinateur, puis un téléphone en réseau mobile) : les deux sont acceptées, puis un troisième envoi du même téléphone avec un autre navigateur est accepté aussi (même empreinte, sous la limite), puis un quatrième depuis l'ordinateur, accepté lui aussi : chaque adresse reste sous sa limite de 3, alors qu'un compteur unique pour le proxy aurait refusé ce quatrième envoi (429). Cela prouve que le service voit des adresses de client distinctes, avec l'option d'exposition retenue. Si les quatre envois partagent un compteur, ne pas ouvrir : voir le §13. Puis remettre la base à zéro.
 4. Test à cinq avec `UX_CODE_ACCES`, puis base remise à zéro (supprimer la base et `cle-ip`).
 5. Ouverture : retirer `UX_CODE_ACCES`, fixer `UX_FERMETURE` à deux semaines (la date d'effacement suit, deux mois après), redémarrer.
 
@@ -351,15 +361,14 @@ Liste à cocher du PO le même jour, notée sur #628 avec la date :
 
 **Retrait final**, à la date fixée par le PO : arrêter le service, retirer l'hôte du proxy et l'enregistrement DNS, supprimer le dossier de données, et noter la date sur #628.
 
-## 13. Ce que le PO doit fournir (D4)
+## 13. Points ouverts avant le déploiement
 
-Déjà tranché : le VPS est en France (UE). Reste à fournir avant le déploiement (#635), pas avant la réalisation :
-- système et architecture du VPS (distribution, version, x86-64 ou arm64) ;
-- proxy inverse déjà en place (nginx, Caddy, Traefik, Apache ou aucun) et qui gère TLS (Let's Encrypt par le proxy, ou autre) ;
-- Docker et Compose disponibles, ou systemd seulement ;
-- sous-domaine choisi et accès DNS ;
-- confirmation que le journal d'accès du proxy pour ce sous-domaine sera coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;
-- sauvegardes du VPS : `cle-ip` en est exclu (exigence), sinon tout le dossier de données ; et comment purger celles qui contiennent la base à la date d'effacement.
+D4 est tranchée (§11). Reste, avant le déploiement (#635), pas avant la réalisation :
+- **choix de l'exposition** : (a) Tailscale Funnel, recommandée, ou (b) proxy inverse avec sous-domaine et ports ouverts ;
+- si (a) : **vérifier sur l'hôte**, avant l'ouverture, quel en-tête Funnel transmet avec l'adresse publique du client, et que l'étape 3 du §11 voit des adresses distinctes. Si Funnel ne transmet pas l'adresse du client, le PO choisit entre (b) et un anti-doublon sans limite par adresse (jeton et limitation de débit seulement), à noter sur #628. Vérifier aussi ce que `tailscaled` journalise des connexions Funnel (R1), et signaler à #669 que les adresses des répondants transitent par les relais de Tailscale ;
+- si (b) : sous-domaine et accès DNS ;
+- journal d'accès de l'option retenue pour ce questionnaire coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;
+- sauvegardes du VPS : `cle-ip` en est exclu (exigence), sinon tout le dossier de données du questionnaire ; et comment purger celles qui contiennent la base à la date d'effacement.
 
 ## 14. Tests que UX-10 doit écrire
 
@@ -386,7 +395,7 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 17 | Effacement | Après `effacer` : `reponses` et `pseudos` vides, `-wal` vide, `agregats.json` écrit et servi par `/api/stats` ; `effacer` refusé avant `UX_FERMETURE` ; `effacer` lancé deux fois (et une reprise après un point de contrôle occupé simulé) : `agregats.json` garde les totaux d'avant l'effacement |
 | 18 | Droits | `pseudo --chercher` trouve les réponses d'un pseudo sans la casse ni les espaces ; `--corriger` valide la valeur, objet `D1` compris ; `--effacer-question` retire une seule réponse ; `--effacer-pseudo` et `--effacer` touchent la seule réponse visée et laissent les autres |
 | 19 | Configuration | `UX_SEUIL_STATS` sous 10 refusé ; date d'effacement = fermeture + 2 mois (dont un 31 décembre qui donne le 28 ou 29 février) ; `/donnees` et `/` affichent les dates et ne contiennent plus rien qui corresponde à `\{[a-z_]+\}` |
-| 20 | En-têtes | Les en-têtes du §9 sur une page, une route API, une 404 et une 429 |
+| 20 | En-têtes | Les en-têtes du §9 sur une page, une route API, une 404 et une 429 ; HSTS présent avec une `UX_ORIGINE` en `https://`, absent sinon |
 | 21 | Journaux | Un envoi avec un pseudo et l'IP `203.0.113.7` : le journal capturé ne contient ni l'un ni l'autre, ni le texte de `G1` ou des autres textes libres, ni l'agent utilisateur |
 | 22 | Poids, domaines, CSP | `web/` hors `visuels/` pèse 200 Ko au plus ; aucune URL absolue vers un autre domaine ; aucun `innerHTML`, `insertAdjacentHTML`, attribut `style` ni `on…=` dans `web/` |
 | 23 | Accès restreint | Avec `UX_CODE_ACCES` : 401 sans authentification, 200 avec ; `/healthz` toujours ouvert |
