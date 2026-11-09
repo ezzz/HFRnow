@@ -263,6 +263,8 @@ struct TopicReaderView: View {
             model?.showMenuFeedback(text)
             AccessibilityNotification.Announcement(text).post()
         }
+        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
+        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
         model.quoting = composer?.quoting
         var handlers: [any MessageActionHandler] = [
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
@@ -272,12 +274,11 @@ struct TopicReaderView: View {
         let showProfile = $profile
         let services = self.services
         handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = services.profileModel(memberID: id) { [weak model] in model?.applyDisplaySettings() }
+            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
         }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
-        // Weak: the registry lives in the model, which would otherwise keep itself alive through the closure.
         handlers += services.pseudoLists.map {
-            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: { [weak model] in model?.applyDisplaySettings() })
+            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
         } ?? []
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
@@ -299,7 +300,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { [model] in model.applyDisplaySettings() }
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { model.applyDisplaySettings() }
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
