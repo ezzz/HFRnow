@@ -5,7 +5,7 @@
 - `elements.json` uses the compact element format of the Excalidraw MCP that drew the diagram.
 - `export.html` and `export.js` are the architecture diagram's exporter (`docs/architecture/source`), with the output renamed. They regenerate `roadmap-milestones.svg` and `roadmap-milestones.excalidraw` with the Virgil font embedded, so GitHub renders the SVG without fetching fonts.
 
-The figures in the boxes (percentages, lot counts) are a snapshot. Live state is on the milestone boards: [#166](https://github.com/ezzz/HFRnow/issues/166) (M1) and [#324](https://github.com/ezzz/HFRnow/issues/324) (M2–M4).
+The figures in the boxes (percentages, lot counts) are a snapshot. Live state is on the milestone boards: [#166](https://github.com/ezzz/HFRnow/issues/166) (M1) and [#324](https://github.com/ezzz/HFRnow/issues/324) (M2–M5).
 
 Regenerate (Node + Playwright with Chromium):
 
