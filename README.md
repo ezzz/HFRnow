@@ -162,7 +162,7 @@ flowchart LR
 ```
 
 - **The legacy app is the oracle**: new parsers must reproduce its output on real, anonymized pages ([ADR 0004](docs/adr/0004-legacy-app-as-oracle.md)).
-- **Orchestrator, sub-orchestrators, child sessions**: an orchestrator session claims each issue it hands out and passes that id to the child session working it ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [child sessions](docs/agents/ORCHESTRATION.md#child-sessions-cloud)).
+- **Orchestrator and child sessions**: an orchestrator session claims each issue it hands out and passes that id to the child session working it ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [child sessions](docs/agents/ORCHESTRATION.md#child-sessions-cloud)).
 - **One issue, one claim, one PR**: work starts with a `/claim <session-id>` comment on the issue, and the PR names the issue and the claim ([ORCHESTRATION](docs/agents/ORCHESTRATION.md#claims), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Different models for different jobs, and an adversarial review**: well-specified ports go to fast models, design and risky flows to stronger ones, and the reviewer is never the author ([routing](AGENTS.md#6-model-routing-which-agent-does-what)).
 - **CodeRabbit** reviews every PR; its threads are handled in one commit per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
