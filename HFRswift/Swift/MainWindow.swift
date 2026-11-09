@@ -373,6 +373,25 @@ struct ForumTopicsListView: View {
         TopicListFlag(rawValue: globalTopicListFlagRawValue) ?? .all
     }
 
+    /// iPhone Duo cover screen: « Actualiser » goes to the bottom of the toolbar column (thumb reach).
+    private var placesRefreshAtBottom: Bool {
+        PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: phoneDisplayKind)
+    }
+
+    private func refreshToolbarButton() -> some View {
+        Button {
+            AppHaptics.refreshStarted()
+            viewModel.load(shouldTriggerHaptic: true)
+        } label: {
+            Label {
+                Text("Actualiser")
+            } icon: {
+                ToolbarRefreshIcon(isLoading: viewModel.isLoading)
+            }
+        }
+        .disabled(viewModel.isLoading)
+    }
+
     private var initialFlagForCurrentPresentation: TopicListFlag {
         let preferredFlag = initialFlagOverride ?? persistedGlobalFlag
         if !isLoggedIn && preferredFlag != .all {
@@ -821,19 +840,15 @@ struct ForumTopicsListView: View {
                     Label("Nouveau sujet", systemImage: "plus")
                 }
                 .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
-            }
-            ToolbarItem(placement: phoneDisplayKind.refreshToolbarPlacement) {
-                Button {
-                    AppHaptics.refreshStarted()
-                    viewModel.load(shouldTriggerHaptic: true)
-                } label: {
-                    Label {
-                        Text("Actualiser")
-                    } icon: {
-                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
-                    }
+
+                if !placesRefreshAtBottom {
+                    refreshToolbarButton()
                 }
-                .disabled(viewModel.isLoading)
+            }
+            if placesRefreshAtBottom {
+                ToolbarItem(placement: .bottomBar) {
+                    refreshToolbarButton()
+                }
             }
         }
         .coverScreenBottomBackButton()
@@ -1344,9 +1359,10 @@ struct RootTabView: View {
     @State private var detailNavigationResetToken = UUID()
     @State private var preferredCompactColumn = NavigationSplitViewColumn.content
     @State private var isPortraitLayout = false
-    /// Larger of the window's leading and trailing safe area insets (iPhone Duo cover screen detection).
-    @State private var horizontalSafeAreaInset: CGFloat = 0
-    @AppStorage(PhoneDisplayPolicy.hasShownExpandedLayoutKey) private var hasShownExpandedPhoneLayout = false
+    /// Window orientation and side inset (iPhone Duo cover screen detection).
+    @State private var windowShape = WindowShape()
+    /// The split view root was shown on a `.phone` since launch (memory only, see `PhoneDisplayPolicy`).
+    @State private var hasShownExpandedPhoneLayout = false
     @State private var iPadDirectSidebarVisibility = NavigationSplitViewVisibility.all
     @State private var categoriesSelectedForum: Forum?
     @State private var categoriesInitialFlagOverride: TopicListFlag?
@@ -1385,10 +1401,13 @@ struct RootTabView: View {
         PhoneDisplayPolicy.displayKind(
             isPhone: UIDevice.current.userInterfaceIdiom == .phone,
             usesSidebarRoot: usesSidebarRoot,
-            isPortrait: isPortraitLayout,
-            horizontalSafeAreaInset: horizontalSafeAreaInset,
-            hasShownExpandedLayout: hasShownExpandedPhoneLayout
+            isFoldableModel: Self.isFoldableModel,
+            window: windowShape,
+            hasShownExpandedLayoutThisLaunch: hasShownExpandedPhoneLayout
         )
+    }
+
+    private static let isFoldableModel = PhoneDisplayPolicy.isFoldableModel(PhoneDisplayPolicy.currentModelIdentifier)
     }
 
     init() {
@@ -1656,14 +1675,17 @@ struct RootTabView: View {
             } action: { isPortrait in
                 isPortraitLayout = isPortrait
             }
-            .onGeometryChange(for: CGFloat.self) { proxy in
-                max(proxy.safeAreaInsets.leading, proxy.safeAreaInsets.trailing)
-            } action: { inset in
-                horizontalSafeAreaInset = inset
+            .onGeometryChange(for: WindowShape.self) { proxy in
+                WindowShape(
+                    isPortrait: proxy.size.height > proxy.size.width,
+                    horizontalSafeAreaInset: max(proxy.safeAreaInsets.leading, proxy.safeAreaInsets.trailing)
+                )
+            } action: { shape in
+                windowShape = shape
             }
             .onChange(of: usesSidebarRoot, initial: true) { _, isSidebarRoot in
-                // Only a foldable iPhone shows the split view root on a `.phone`: remember it, so
-                // the cover screen is recognised even when its side strip is not measured.
+                // Only a foldable iPhone shows the split view root on a `.phone`: remember it until
+                // the app quits, so the cover screen is recognised even if the other signals miss.
                 if isSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && !hasShownExpandedPhoneLayout {
                     hasShownExpandedPhoneLayout = true
                 }

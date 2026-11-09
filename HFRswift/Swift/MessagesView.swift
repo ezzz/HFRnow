@@ -3775,6 +3775,8 @@ struct MessagesView: View {
     }
 
     private func loadPage(_ page: Int, restoration: TopicPageLoadRestoration? = nil) {
+        // The new page's web view reports its own touches; a block of the old page must not block the swipe.
+        isTouchInHorizontalScroller = false
         let url = urlForPage(page)
         let fetchAnchor = restoration?.fetchAnchor ?? self.anchor
         print("[TopicPageTrace][MessagesView.loadPage.start] requestedPage=\(page) url=\(url) anchor=\(String(describing: fetchAnchor)) statePage=\(self.page) stateMax=\(currentMaxPage) topicCur=\(topic.curTopicPage) topicMax=\(topic.maxTopicPage)")
