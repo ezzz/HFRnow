@@ -234,20 +234,8 @@ private final class EnvironmentSpy {
             copy: { [self] url in copied.append(url) },
             savePhoto: { [saveError, savedBytes] data async throws(ImageSaveError) in
                 if let saveError { throw saveError }
-                savedBytes.withValue { $0.append(data) }
+                savedBytes.set(savedBytes.value + [data])
             }
         )
     }
-}
-
-/// A value shared with `@Sendable` closures.
-private final class Locked<Value>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var stored: Value
-
-    init(_ value: Value) { stored = value }
-
-    var value: Value { lock.withLock { stored } }
-
-    func withValue(_ change: (inout Value) -> Void) { lock.withLock { change(&stored) } }
 }
