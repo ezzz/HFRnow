@@ -53,13 +53,14 @@ Rules:
 `MockTransport` with their captured content types; the newness oracle is `Fixtures/LOT-028/T01.oracle.json` (legacy `isNew`,
 last check 2026-10-01, `newCount` 2).
 
-*Pending capture*: the `addAlerte.php` answer (success, refusal) — [#531](https://github.com/ezzz/HFRnow/issues/531). It is a public write
-to a third-party server, so it needs the operator's decision first.
+Captured since: the create's success on the live host (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)) and its refusals on a
+local instance (`T52`-`T71`, #574); the server's own contract (secondary source, ADR 0015) is in HFR-PROTOCOL §8.
 
 ## Create (left out)
 Legacy wire facts, for the follow-up once #531 is captured: POST `<base>/api/addAlerte.php`, `Content-Type:
 application/x-www-form-urlencoded`, body `alerte_qualitay_id=-1&nom=…&topic_id=…&topic_titre=…&pseudo=…&post_id=…&post_url=…&commentaire=post de <author>`
-in that order, values encoded with `A-Za-z0-9._-` kept, body converted to ASCII lossily (accents lost), 5 s, answer `"1"` (trimmed) =
+in that order, values percent-encoded from UTF-8 with `A-Za-z0-9._-` kept, then the body converted to ASCII, which loses nothing since
+every byte is ASCII by then (accents arrive percent-encoded; `MessagesView.swift:389-396`, `:434-437` @ `2440d79`), 5 s, answer `"1"` (trimmed) =
 success, any other text = refusal code shown to the user. Model (`AQNewReport`, LOT-012) exists. Per our write rules (LOT-037,
 LOT-048, LESSONS 11, 30): never retried, redirect not followed, success only on the captured confirmation, a POST that may have left
 is `unconfirmed`, and the N1 notice precedes the first one.

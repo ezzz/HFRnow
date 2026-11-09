@@ -26,7 +26,7 @@ Drift: `origin/master` has moved past `2440d79`; its commit `d645f52` (2026-09-0
 |---|---|
 | AQ RSS badge, at launch | `Swift/MainWindow.swift:1178-1192` (3 s after the main window appears, once per process, logged out too; called from `:1422`, `:1448`), `Swift/AQPlusView.swift:39, 52-57, 69-90` |
 | AQ "already reported" check | `Swift/MessagesView.swift:325-338` (`URLSession.shared`, body searched for the post id), called on the AQ action (`:2001`, `:3716`) |
-| AQ create | `Swift/MessagesView.swift:340-399` (POST, 5 s, ASCII body with lossy conversion, response `"1"` = success) |
+| AQ create | `Swift/MessagesView.swift:340-399` (POST, 5 s, response `"1"` = success; the body is percent-encoded from UTF-8 before its ASCII conversion, `:389-396`, `:434-437`, so no accent is lost) |
 | AQ, older host | `Classes/OnlineMessagesTableViewController.m:2307, 2443` (`http://alerte-qualitay.toyonos.info/…php5`): not in the HFRswift target, not carried over |
 | Image rehost upload (Chevereto) | `Swift/ReplyService.swift:1970` (`img3.super-h.fr/api/1/upload/?key=…`), `:1984-1997` (JPEG quality 1.0, cookies off, file name `snapshot_<random>.jpg`), `:2045-2055` (multipart, constant `imageCaption`) |
 | Rehost hosts in the viewer | `Swift/MessagesView.swift:2175, 2205-2210, 3301-3306` (`reho.st/thumb/` → full, `rehost.diberie.com/Picture/Get/t/` → `/f/`, `img3` thumbnails), `Wrapped/LinkItem.m:163` (`hfr-rehost.net` → `reho.st`); dead `reho.st/upload` code in `Classes/RehostImage.m:140-168` |
@@ -50,7 +50,7 @@ Owner = who runs the host; none of them is this project or HFR.
 |---|---|---|---|---|---|---|---|
 | T1 | AQ RSS feed (badge "new since") | `aq.super-h.fr` | automatic, at launch | nothing else | community operator of `super-h.fr` | LOT-028 (parser), LOT-055 (client), FEAT-001 | kept as legacy: fetched at launch (D-071-3) |
 | T2 | AQ per-topic check | `aq.super-h.fr` | user opens the AQ action | topic id (says which topic the user reads) | same | LOT-055 | kept (Q-4, D-071-3) |
-| T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`; unauthenticated, so anyone can post as anyone | same | LOT-055 | kept, notice before the first creation (Q-4, D-071-3) |
+| T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`, and a client name (`from=SwiftHFR`, decided on #573); unauthenticated, so anyone can post as anyone. The server stores a keyed hash of the IP address whose key is published, so an IPv4 address can be recovered, and e-mails its operator on each create (HFR-PROTOCOL §8, server source) | same | LOT-055 | kept, notice before the first creation (Q-4, D-071-3) |
 | T4 | Image rehost (Chevereto) | `img3.super-h.fr` | user uploads an image in the composer | the image (re-encoded JPEG, downscaled to the user setting), the API key in the query; no cookie. The uploaded image becomes public; no delete API is evidenced (HFR-PROTOCOL §7b B12). Whether the re-encode strips EXIF/GPS is unverified (audit D §10 Q9) | community operator of `super-h.fr` (also owns the key, ADR 0007) | LOT-056 | kept, notice N1 |
 | T5 | GIF search (Giphy) | Giphy API and CDN | user opens the GIF picker | search terms only (REST API, no SDK: the closed SDK of legacy may have sent more, not audited). The chosen GIF URL is posted, so every reader then loads it from Giphy's CDN (T6) | Giphy | LOT-098 (client), LOT-155 (picker) | kept: REST API, no SDK, notice N1, search terms only |
 | T6 | Images in messages and signatures | any host a poster chose | displaying a page | an image request per URL; `Referer` and cookies depend on who fetches (see rules R3, R4) | the host's operator, unknown | LOT-034 (lists `MessageImage`), LOT-045 (cookie-less client), LOT-056 (host table), LOT-083 (loading), FEAT-011 (setting) | **decided**: D-071-1 |
@@ -99,7 +99,7 @@ LOT-055, LOT-056 and the GIF lots (LOT-098, LOT-155) unless the operator objects
 - **N1 — Before the first request** that sends user data (T3, T4, T5), a notice says: the host and who runs it (not HFR, not this app),
   what is sent (the "Data sent" cell above, in plain words), that the result is public when it is (AQ, uploaded images), and that the
   operator's terms apply. Two choices: continue, or cancel (nothing is sent). Accepted once per service and per device; the choice is
-  stored in the settings store (LOT-060) and can be reset in Settings. For AQ this is the decided notice of Q-4 / D-071-3.
+  stored in the settings store (LOT-060) and can be reset in Settings. For AQ this is the decided notice of Q-4 / D-071-3; it also says that the AQ server keeps a recoverable hash of the IP address and e-mails its operator on each creation (T3).
 - **N2 — Read-only AQ requests** (T1 badge and feed, T2 check) need no notice and run as in legacy (D-071-3): they send no user data
   beyond the topic id.
 - **N3 — Wording** stays factual and short; it is written in the app lot that shows it, and reviewed against this table.
