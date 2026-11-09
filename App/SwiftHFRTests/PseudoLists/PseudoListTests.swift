@@ -1,3 +1,4 @@
+import Dispatch
 import Foundation
 import HFRModels
 import HFRStorage
@@ -12,6 +13,21 @@ private final class UnreadablePersistence: PseudoListPersistence {
     func load() throws -> PseudoListDocument? { throw CocoaError(.fileReadCorruptFile) }
     func save(_ document: PseudoListDocument) throws { saves.withLock { $0 += 1 } }
     func quarantineUnreadableData() throws {}
+}
+
+/// A persistence whose saves wait while the gate is closed, so a test can hold a write and look at the editor meanwhile.
+private final class GatedPersistence: PseudoListPersistence {
+    private let inner = InMemoryPseudoListPersistence()
+    private let closed = Mutex(false)
+    private let gate = DispatchSemaphore(value: 0)
+    func close() { closed.withLock { $0 = true } }
+    func open() { if closed.withLock({ let was = $0; $0 = false; return was }) { gate.signal() } }
+    func load() throws -> PseudoListDocument? { try inner.load() }
+    func save(_ document: PseudoListDocument) throws {
+        if closed.withLock({ $0 }) { gate.wait() }
+        try inner.save(document)
+    }
+    func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
 }
 
 private struct Fixture {
@@ -177,14 +193,31 @@ struct PseudoListEditorModelTests {
         #expect(model.pseudos == ["Quatre", "Trois", "Un"])
         let second = model.remove(at: IndexSet(integer: 1)) // Trois, as the list now shows it
         #expect(model.pseudos == ["Quatre", "Un"])
-        // An add (which reads the list again) while both removals are still queued must not bring the swiped rows back.
-        model.draft = "Cinq"
-        await model.add()
-        #expect(model.pseudos == ["Cinq", "Quatre", "Un"])
         await first.value
         await second.value
-        #expect(model.pseudos == ["Cinq", "Quatre", "Un"] && model.errorMessage == nil)
-        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Cinq", "Quatre", "Un"])
+        #expect(model.pseudos == ["Quatre", "Un"] && model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
+    }
+
+    /// A read asked for while a swipe's write is held (an add, a retry) waits for every queued write: no swiped row comes back.
+    @Test func aReloadDuringQueuedRemovalsWaitsForThemAndKeepsTheRowsGone() async throws {
+        let persistence = GatedPersistence()
+        let store = PseudoListStore(persistence: persistence)
+        for pseudo in ["Un", "Deux", "Trois", "Quatre"] { try await store.block(pseudo, account: "moi") }
+        let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
+        await model.load()
+        persistence.close()
+        let first = model.remove(at: IndexSet(integer: 0)) // Deux, its write is held
+        let second = model.remove(at: IndexSet(integer: 1)) // Trois
+        let reload = Task { await model.load() }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(model.pseudos == ["Quatre", "Un"]) // held writes: the list shows the swipes, not the stored file
+        persistence.open()
+        await reload.value // the reload ran after both writes, not between them
+        #expect(model.pseudos == ["Quatre", "Un"])
+        await first.value
+        await second.value
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
     }
 
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.
