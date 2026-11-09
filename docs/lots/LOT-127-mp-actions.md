@@ -2,7 +2,7 @@
 
 - **Module:** App
 - **Difficulty / model:** easy (Opus → Fable)
-- **Issue:** [#218](https://github.com/ezzz/HFRnow/issues/218). Its title still lists delete and group members. Group members (and CAP-N1) are [LOT-181](LOT-181-mp-delete-members.md)'s (#421, M5, split 127b of `docs/LOTS.md`). The issue's delete criterion is [#676](https://github.com/ezzz/HFRnow/issues/676)'s: by the operator decision of 2026-11-09 the MP list row menu ("Marquer non lu" on read rows, "Supprimer" with a confirmation) is legacy parity at `2fe43da3`, to be implemented under #676 (M4).
+- **Issue:** [#218](https://github.com/ezzz/HFRnow/issues/218). Its title still lists delete and group members. Group members are [LOT-181](LOT-181-mp-delete-members.md)'s (#421, M5, split 127b of `docs/LOTS.md`). CAP-N1 (#169, closed: the delete answers of `modo/manageaction.php`, already used by LOT-094) is delete evidence and goes with the delete, now #676. The issue's delete criterion is [#676](https://github.com/ezzz/HFRnow/issues/676)'s: by the operator decision of 2026-11-09 the MP list row menu ("Marquer non lu" on read rows, "Supprimer" with a confirmation) is legacy parity at `2fe43da3`, to be implemented under #676 (M4).
 - **Depends on:** LOT-058 (#84, `TopicFlagFlow.markUnread`, `TopicPageMetadata.markUnreadURL`), LOT-094, LOT-126 (#217, the list and the reader column), LOT-125 (`TopicFlagActions`), LOT-185 (surfaces, kept as they are).
 
 ## Legacy sources
