@@ -39,7 +39,7 @@ struct PseudoListEditorView: View {
                             if model.hasLoaded { Text(model.kind.emptyMessage).foregroundStyle(.secondary) }
                         } else {
                             ForEach(model.pseudos, id: \.self) { Text(verbatim: $0) }
-                                .onDelete { offsets in Task { await model.remove(at: offsets) } }
+                                .onDelete { model.remove(at: $0) }
                         }
                     } header: {
                         Text(model.kind.title)

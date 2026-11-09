@@ -34,7 +34,7 @@ All @ `2440d79`:
 - **Menu entries** "Blacklist" / "Whitelist" (author menu; LOT-087 policy unchanged) toggle the author: in the list → removed, else added, with legacy's sentences ("BIM! … ajouté à la liste noire", "OH NOES ! … supprimé de la love list", …). A failed write says so ("Whitelist impossible" for the allowlist, as legacy's caller). The blocklist entry is hidden logged out.
 - **Profile** (LOT-116): two buttons "Ajouter à / Retirer de la liste noire" and "… la love list", with the current state.
 - **The reader** shows a change at once: `PseudoListsSnapshot` is refreshed by the write, then `applyDisplaySettings()` rebuilds the shown page (LOT-117 note).
-- **Avatar menu (#595).** Its PR registers Profil and MP only. The two entries need no change there: `PseudoListActionHandler.pair` registers the `.blocklist` / `.allowlist` handlers in `installMenuActions`, and the policy already lists them for `source: .avatar`. Whichever PR merges second has a trivial textual conflict in `installMenuActions` only.
+- **Avatar menu (#595, merged in #638).** It registers Profil, MP and the two list entries: `PseudoListActionHandler.pair` registers the `.blocklist` / `.allowlist` handlers in `installMenuActions`, and the policy lists them for `source: .avatar`.
 - **iCloud (LOT-172).** The allowlist is written with `allow` / `disallow`, which signal `allowlistChanges()`: the iCloud copy follows. The blocklist stays out of iCloud (MPStorage carries it, LOT-067).
 
 ## Edge cases
