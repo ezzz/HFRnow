@@ -855,6 +855,9 @@ struct WebView: UIViewRepresentable {
     var onScrollPositionChange: ((Bool) -> Void)?
     var onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)?
     var onTextInteractionStateChange: ((Bool) -> Void)?
+    /// Whether the current touch started inside a horizontally scrollable block (`[fixed]`, `[code]`,
+    /// wide table): the page-change swipe must leave that horizontal pan to the block.
+    var onHorizontalScrollTouchChange: ((Bool) -> Void)?
 
     init(
         fileURL: URL? = nil,
@@ -896,7 +899,8 @@ struct WebView: UIViewRepresentable {
         onContentLoadFailure: ((String) -> Void)? = nil,
         onScrollPositionChange: ((Bool) -> Void)? = nil,
         onScrollPositionSnapshotChange: ((ScrollPosition) -> Void)? = nil,
-        onTextInteractionStateChange: ((Bool) -> Void)? = nil
+        onTextInteractionStateChange: ((Bool) -> Void)? = nil,
+        onHorizontalScrollTouchChange: ((Bool) -> Void)? = nil
     ) {
         self.fileURL = fileURL
         self.readAccessURL = readAccessURL
@@ -938,6 +942,7 @@ struct WebView: UIViewRepresentable {
         self.onScrollPositionChange = onScrollPositionChange
         self.onScrollPositionSnapshotChange = onScrollPositionSnapshotChange
         self.onTextInteractionStateChange = onTextInteractionStateChange
+        self.onHorizontalScrollTouchChange = onHorizontalScrollTouchChange
     }
 
     func makeCoordinator() -> Coordinator {
@@ -972,6 +977,7 @@ struct WebView: UIViewRepresentable {
         contentController.addUserScript(bootstrapThemeScript)
         contentController.add(context.coordinator, name: "scrollState")
         contentController.add(context.coordinator, name: "textInteractionState")
+        contentController.add(context.coordinator, name: "horizontalScrollTouch")
 
         let scrollTrackingScript = WKUserScript(
             source: """
@@ -1092,6 +1098,48 @@ struct WebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         contentController.addUserScript(textInteractionTrackingScript)
+
+        // A touch that starts inside a block the user can scroll sideways ([fixed], [code] or a wide
+        // table: `overflow: scroll` in style-liste-*.css) belongs to that block, not to the
+        // page-change swipe. Reported once per touch start, before any drag can reach its threshold.
+        let horizontalScrollTouchTrackingScript = WKUserScript(
+            source: """
+            (function() {
+              if (window.__hfrHorizontalScrollTouchInstalled) { return; }
+              window.__hfrHorizontalScrollTouchInstalled = true;
+
+              var lastInside = null;
+
+              function scrollsHorizontally(element) {
+                if (!element || element === document.body || element === document.documentElement) {
+                  return false;
+                }
+                if (element.scrollWidth <= element.clientWidth + 1) { return false; }
+                var overflowX = window.getComputedStyle(element).overflowX;
+                return overflowX === 'auto' || overflowX === 'scroll';
+              }
+
+              function isInsideHorizontalScroller(node) {
+                var element = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
+                while (element && element !== document.body) {
+                  if (scrollsHorizontally(element)) { return true; }
+                  element = element.parentElement;
+                }
+                return false;
+              }
+
+              document.addEventListener('touchstart', function(event) {
+                var inside = isInsideHorizontalScroller(event.target);
+                if (inside === lastInside) { return; }
+                lastInside = inside;
+                try { window.webkit.messageHandlers.horizontalScrollTouch.postMessage(inside); } catch (e) {}
+              }, { passive: true, capture: true });
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        contentController.addUserScript(horizontalScrollTouchTrackingScript)
 
         let linkedThumbnailImageTapScript = WKUserScript(
             source: """
@@ -1214,6 +1262,7 @@ struct WebView: UIViewRepresentable {
         webView.stopLoading()
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "scrollState")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "textInteractionState")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "horizontalScrollTouch")
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
@@ -1605,6 +1654,19 @@ struct WebView: UIViewRepresentable {
 
                 DispatchQueue.main.async {
                     self.parent.onTextInteractionStateChange?(isActive)
+                }
+            case "horizontalScrollTouch":
+                let isInside: Bool
+                if let boolValue = message.body as? Bool {
+                    isInside = boolValue
+                } else if let numberValue = message.body as? NSNumber {
+                    isInside = numberValue.boolValue
+                } else {
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    self.parent.onHorizontalScrollTouchChange?(isInside)
                 }
             default:
                 return
@@ -3130,6 +3192,8 @@ struct MessagesView: View {
     @State private var isWebContentLoading = false
     @State private var isWebContentAtBottom = false
     @State private var isMessageTextInteractionActive = false
+    /// The current touch started in a horizontally scrollable block: no page-change swipe (beta feedback).
+    @State private var isTouchInHorizontalScroller = false
     @State private var pendingPostedReply: ReplyPostingResult?
     @State private var showPostSuccessToast = false
     @State private var postSuccessToastText = "Hooray"
@@ -5276,6 +5340,9 @@ struct MessagesView: View {
                     },
                     onTextInteractionStateChange: { isActive in
                         isMessageTextInteractionActive = isActive
+                    },
+                    onHorizontalScrollTouchChange: { isInside in
+                        isTouchInHorizontalScroller = isInside
                     }
                 )
                     .id(page) // force a new WKWebView per page
@@ -5330,6 +5397,7 @@ struct MessagesView: View {
                         guard topicPageSwipeNavigation else { return }
                         guard !isFavoritePostFilterMode else { return }
                         guard !isMessageTextInteractionActive else { return }
+                        guard !isTouchInHorizontalScroller else { return }
                         let horizontal = value.translation.width
                         let vertical = value.translation.height
                         let minDistance: CGFloat = 120
