@@ -78,8 +78,25 @@ struct ThemeAppearance: Equatable, Sendable {
     /// The CSS variables `reader.css` reads: both accents and the dark surfaces at `darkBrightness`.
     var readerVariables: [(name: String, value: String)] {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
-            + Self.readerDarkSurfaces(darkStyle).map { ($0.variable, readerSurface($0.variable, $0.color).cssRGB) }
+            + readerSurfaces.map { ($0.variable, $0.color.cssRGB) }
     }
+
+    /// The reader's dark surfaces as the page shows them: the style's palette at `darkBrightness`, capped as `readerSurface` says.
+    /// The settings preview draws from these, so it shows what the reader shows.
+    var readerSurfaces: [(variable: String, color: ThemeColor)] {
+        Self.readerDarkSurfaces(darkStyle).map { ($0.variable, readerSurface($0.variable, $0.color)) }
+    }
+
+    /// The reader page's background, for the web view's own layer (what shows while the page bounces past its ends): the system's
+    /// in light, the page's `--app-dark-background` in dark.
+    var readerBackground: UIColor {
+        let dark = readerSurfaces.first { $0.variable == "--app-dark-background" }?.color.uiColor ?? .black
+        return UIColor { $0.userInterfaceStyle == .dark ? dark : UIColor.systemBackground.resolvedColor(with: $0) }
+    }
+
+    /// The dark theme's text and secondary text (`reader.css` dark palette), which the contrast checks and the settings preview use.
+    static let darkText = ThemeColor(hex: 0xF2F2F7)
+    static let darkSecondaryText = ThemeColor(hex: 0xA1A1A6)
 
     /// A reader surface at `darkBrightness`. The darker and OLED styles never lift the page background above their own value:
     /// at 150 % the darker background (#0B0B0C) would put a continuation date (secondary text at 75 % opacity on the tinted

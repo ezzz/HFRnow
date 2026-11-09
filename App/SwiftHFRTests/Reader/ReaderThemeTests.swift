@@ -82,6 +82,16 @@ struct ReaderThemeTests: ReaderWebTesting {
         #expect(darker, "darker: \(seenDarker)")
         let quote = await colours(in: controller)
         #expect(quote.hasSuffix("|rgb(23, 24, 26)"), "quote: \(quote)")
+        // The layer behind the page (what shows while it bounces) follows: dark is the page's background, light the system's.
+        func underPage() -> [Int] {
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+            controller.webView.underPageBackgroundColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            return [red, green, blue].map { Int(($0 * 255).rounded()) }
+        }
+        #expect(await until { underPage() == [11, 11, 12] }, "under page, dark: \(underPage())")
+        recorder.window?.overrideUserInterfaceStyle = .light
+        #expect(await until { underPage() == [255, 255, 255] }, "under page, light: \(underPage())")
+        recorder.window?.overrideUserInterfaceStyle = .dark
 
         appearance.darkStyle = .oled
         controller.theme = appearance

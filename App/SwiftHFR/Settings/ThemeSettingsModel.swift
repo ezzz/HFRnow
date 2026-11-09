@@ -185,18 +185,16 @@ private struct AppScreenBackground: ViewModifier {
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.colorScheme) private var scheme
 
-    @ViewBuilder func body(content: Content) -> some View {
-        if let color = appearance.darkScreenBackground.flatMap({ scheme == .dark ? $0 : nil }) {
-            let fill = Color(uiColor: color.uiColor)
-            content
-                .scrollContentBackground(.hidden)
-                .containerBackground(for: .navigation) { fill }
-                // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
-                .containerBackground(for: .navigationSplitView) { fill }
-        } else {
-            // Standard and light: nothing is set, so the system's fills (the iPad sidebar's material included) stay.
-            content
-        }
+    /// One view structure whatever the style and the appearance: a conditional here would give the wrapped screen (a reader's web
+    /// view, a composer, a list) a new identity at every switch between light and dark, and reset its state. With no colour the
+    /// two container backgrounds are empty and the list background is the system's.
+    func body(content: Content) -> some View {
+        let fill = appearance.darkScreenBackground.flatMap { scheme == .dark ? Color(uiColor: $0.uiColor) : nil }
+        content
+            .scrollContentBackground(fill == nil ? .automatic : .hidden)
+            .containerBackground(for: .navigation) { if let fill { fill } }
+            // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
+            .containerBackground(for: .navigationSplitView) { if let fill { fill } }
     }
 }
 

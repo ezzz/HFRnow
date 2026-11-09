@@ -61,29 +61,32 @@ extension DarkStyle {
 }
 
 /// A sample of the chosen dark surfaces whatever the current theme: a message on the screen background with its separator, a
-/// quote and the accent, drawn from the same values the reader receives (`ThemeAppearance.readerVariables`).
+/// quote and the accent, drawn from the surfaces the reader receives (`ThemeAppearance.readerSurfaces`: same brightness, same cap).
 private struct DarkStylePreview: View {
     let appearance: ThemeAppearance
+    // Dynamic Type scales the sample's insets with its text.
+    @ScaledMetric private var spacing = 6.0
+    @ScaledMetric private var padding = 10.0
+    @ScaledMetric private var radius = 8.0
 
     var body: some View {
-        let surfaces = Dictionary(
-            uniqueKeysWithValues: ThemeAppearance.readerDarkSurfaces(appearance.darkStyle).map { ($0.variable, $0.color) }
-        )
-        let background = appearance.adjustedDark(surfaces["--app-dark-background"] ?? ThemeColor(hex: 0))
-        let quote = appearance.adjustedDark(surfaces["--app-dark-quote-background"] ?? ThemeColor(hex: 0))
-        let separator = appearance.adjustedDark(surfaces["--app-dark-separator"] ?? ThemeColor(hex: 0))
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Aperçu du thème sombre").font(.caption).foregroundStyle(Color(uiColor: ThemeColor(hex: 0xA1A1A6).uiColor))
-            Text("Un message du sujet").foregroundStyle(Color(uiColor: ThemeColor(hex: 0xF2F2F7).uiColor))
+        let surfaces = Dictionary(uniqueKeysWithValues: appearance.readerSurfaces.map { ($0.variable, $0.color) })
+        let black = ThemeColor(hex: 0)
+        let background = surfaces["--app-dark-background"] ?? black
+        let quote = surfaces["--app-dark-quote-background"] ?? black
+        let separator = surfaces["--app-dark-separator"] ?? black
+        VStack(alignment: .leading, spacing: spacing) {
+            Text("Aperçu du thème sombre").font(.caption).foregroundStyle(Color(uiColor: ThemeAppearance.darkSecondaryText.uiColor))
+            Text("Un message du sujet").foregroundStyle(Color(uiColor: ThemeAppearance.darkText.uiColor))
             Text("Une citation").font(.callout)
                 .foregroundStyle(Color(uiColor: appearance.nightAccent.uiColor))
-                .padding(6).frame(maxWidth: .infinity, alignment: .leading)
+                .padding(spacing).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(uiColor: quote.uiColor))
             Rectangle().fill(Color(uiColor: separator.uiColor)).frame(height: 1)
         }
-        .padding(10)
-        .background(Color(uiColor: background.uiColor), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(uiColor: separator.uiColor), lineWidth: 1))
+        .padding(padding)
+        .background(Color(uiColor: background.uiColor), in: RoundedRectangle(cornerRadius: radius))
+        .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(Color(uiColor: separator.uiColor), lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Aperçu du thème sombre")
     }

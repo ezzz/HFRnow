@@ -10,9 +10,9 @@ import UIKit
 @Suite(.serialized)
 struct AppThemeTests {
     /// A UIKit view inside the SwiftUI tree, as the reader's `WKWebView` is.
-    private final class Probe: UIView {}
+    final class Probe: UIView {}
 
-    private struct ProbeView: UIViewRepresentable {
+    struct ProbeView: UIViewRepresentable {
         let probe: Probe
         func makeUIView(context: Context) -> Probe { probe }
         func updateUIView(_ uiView: Probe, context: Context) {}
@@ -25,7 +25,7 @@ struct AppThemeTests {
         var body: some View { ProbeView(probe: probe).appTheme(model) }
     }
 
-    private func until(_ condition: () -> Bool) async -> Bool {
+    func until(_ condition: () -> Bool) async -> Bool {
         for _ in 0..<500 {
             if condition() { return true }
             try? await Task.sleep(for: .milliseconds(20))
@@ -66,17 +66,22 @@ struct AppThemeTests {
     }
 
     /// A real window with a navigation stack and a list: the dark style paints the screen, light mode and "standard" do not.
-    private struct ListRoot: View {
+    struct ListRoot: View {
         let model: ThemeSettingsModel
-        /// Shows a pushed screen (which carries no modifier of its own) instead of the root.
+        /// Shows a pushed screen (which carries `appScreenBackground()` like the root, plus a red marker) instead of the root.
         var pushed = false
+        /// False for the control: the same screens without the modifier.
+        var themed = true
+        /// False for a pushed screen that does not carry the modifier although its root does.
+        var pushedThemed = true
         @State private var path: [Int] = []
         var body: some View {
             NavigationStack(path: $path) {
-                List { Text("") }.appScreenBackground()
+                List { Text("") }.screenBackground(themed)
                     .navigationDestination(for: Int.self) { _ in
                         // A red band at the top marks the pushed screen: the root has none.
-                        List { Text("") }.overlay(alignment: .top) { Color.red.frame(height: 400) }.appScreenBackground()
+                        List { Text("") }.overlay(alignment: .top) { Color.red.frame(height: 400) }
+                            .screenBackground(themed && pushedThemed)
                     }
             }
             .appTheme(model)
@@ -85,7 +90,7 @@ struct AppThemeTests {
     }
 
     /// The RGB of a pixel near the bottom of the window, below the one list row.
-    private func bottomPixel(of window: UIWindow) -> [Int] {
+    func bottomPixel(of window: UIWindow) -> [Int] {
         let size = window.bounds.size
         let image = UIGraphicsImageRenderer(size: size).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -146,7 +151,7 @@ struct AppThemeTests {
     }
 
     /// A three-column split view as the iPad layout builds it, with each column a list.
-    private struct SplitRoot: View {
+    struct SplitRoot: View {
         let model: ThemeSettingsModel
         var body: some View {
             NavigationSplitView(columnVisibility: .constant(.all)) {
@@ -161,7 +166,7 @@ struct AppThemeTests {
     }
 
     /// The red channel at `x`, `y` pt above the bottom of the window.
-    private func pixel(of window: UIWindow, x: CGFloat, y: CGFloat = 20) -> Int {
+    func pixel(of window: UIWindow, x: CGFloat, y: CGFloat = 20) -> Int {
         let image = UIGraphicsImageRenderer(size: window.bounds.size).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -193,5 +198,12 @@ struct AppThemeTests {
         let columnXs: [CGFloat] = [60, 500, 900]
         let shown = await until { columnXs.allSatisfy { pixel(of: window, x: $0) == 11 } }
         #expect(shown, "columns: \(columnXs.map { pixel(of: window, x: $0) })")
+    }
+}
+
+extension View {
+    /// `appScreenBackground()`, or nothing: the control of the pixel comparisons.
+    @ViewBuilder func screenBackground(_ themed: Bool) -> some View {
+        if themed { appScreenBackground() } else { self }
     }
 }

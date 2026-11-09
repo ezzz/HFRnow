@@ -106,22 +106,50 @@ struct ThemeAppearanceTests {
         #expect(variables["--app-dark-background"] == "rgb(0, 0, 0)")
     }
 
-    /// Acceptance criterion of #213: text is at least 4.5:1 on every surface of every dark style, and the light theme's.
-    @Test(arguments: DarkStyle.allCases)
-    func textHasAtLeast4_5ToOneOnEveryDarkSurface(style: DarkStyle) {
-        let text = ThemeColor(hex: 0xF2F2F7), secondary = ThemeColor(hex: 0xA1A1A6)
+    /// Acceptance criterion of #213: text, secondary text and the default night accent are at least 4.5:1 on every surface of the
+    /// dark styles as the reader shows them (`readerSurfaces`), at 100 % and, for darker and OLED, at every brightness up to 150 %.
+    /// Standard above 100 % is LOT-121's slider (the legacy surfaces scaled up), not claimed here.
+    @Test(arguments: [
+        (DarkStyle.standard, 1.0), (.darker, 1.0), (.darker, 1.25), (.darker, 1.5), (.oled, 1.0), (.oled, 1.25), (.oled, 1.5)
+    ])
+    func textHasAtLeast4_5ToOneOnEveryDarkSurface(style: DarkStyle, brightness: Double) {
         var appearance = ThemeAppearance.standard
         appearance.darkStyle = style
-        for surface in ThemeAppearance.readerDarkSurfaces(style) where surface.variable != "--app-dark-separator" {
-            #expect(text.contrast(with: surface.color) >= 4.5, "\(style) text on \(surface.variable)")
-            #expect(secondary.contrast(with: surface.color) >= 4.5, "\(style) secondary on \(surface.variable)")
-            #expect(appearance.nightAccent.contrast(with: surface.color) >= 4.5, "\(style) accent on \(surface.variable)")
+        appearance.darkBrightness = brightness
+        for surface in appearance.readerSurfaces where surface.variable != "--app-dark-separator" {
+            let name = "\(style) at \(brightness) on \(surface.variable)"
+            #expect(ThemeAppearance.darkText.contrast(with: surface.color) >= 4.5, "text, \(name)")
+            #expect(ThemeAppearance.darkSecondaryText.contrast(with: surface.color) >= 4.5, "secondary, \(name)")
+            #expect(appearance.nightAccent.contrast(with: surface.color) >= 4.5, "accent, \(name)")
         }
-        // Light: --text #1c1c1e and --secondary #6c6c70 on --background #ffffff and the quote #f2f2f7 of reader.css.
+    }
+
+    /// Light: --text #1c1c1e and --secondary #6c6c70 on --background #ffffff and the quote #f2f2f7 of reader.css.
+    @Test func lightTextHasAtLeast4_5ToOne() {
         for light in [ThemeColor(hex: 0xFFFFFF), ThemeColor(hex: 0xF2F2F7)] {
             #expect(ThemeColor(hex: 0x1C1C1E).contrast(with: light) >= 4.5)
             #expect(ThemeColor(hex: 0x6C6C70).contrast(with: light) >= 4.5)
         }
+    }
+
+    /// The reader's text colours are the ones `reader.css` sets, which the contrast checks and the preview use.
+    @Test func theTextConstantsAreReaderCSSs() throws {
+        let url = try #require(Bundle.main.url(forResource: "reader", withExtension: "css"))
+        let css = try String(contentsOf: url, encoding: .utf8)
+        #expect(css.contains("--text: #f2f2f7;") && css.contains("--secondary: #a1a1a6;"))
+        #expect(ThemeAppearance.darkText.cssRGB == "rgb(242, 242, 247)" && ThemeAppearance.darkSecondaryText.cssRGB == "rgb(161, 161, 166)")
+    }
+
+    /// The preview and the reader draw the same surfaces: at 150 % the darker background is capped at its own value.
+    @Test func theReaderSurfacesAreWhatTheReaderReceives() {
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = .darker
+        appearance.darkBrightness = 1.5
+        let surfaces = appearance.readerSurfaces
+        let background = surfaces.first { $0.variable == "--app-dark-background" }?.color.cssRGB
+        #expect(background == "rgb(11, 11, 12)", "capped: \(String(describing: background))")
+        let variables = Dictionary(uniqueKeysWithValues: appearance.readerVariables.map { ($0.name, $0.value) })
+        #expect(surfaces.allSatisfy { variables[$0.variable] == $0.color.cssRGB })
     }
 
     @Test func contrastMatchesWCAGReferenceValues() {
@@ -160,7 +188,7 @@ struct ThemeAppearanceTests {
             return value.dropFirst(4).dropLast().split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
         }
         func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
-        let secondary = ThemeColor(hex: 0xA1A1A6)
+        let secondary = ThemeAppearance.darkSecondaryText
         let background = try channels("--app-dark-background")
         let alternate = zip(background, [242.0, 242, 247]).map { $0 * 0.91 + $1 * 0.09 }
         #expect(secondary.contrast(with: colour(alternate)) >= 4.5, "\(style) at \(brightness): alternate surface")

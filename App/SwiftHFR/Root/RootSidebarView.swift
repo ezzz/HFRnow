@@ -29,7 +29,7 @@ struct RootSidebarView: View {
                 ThemedNavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
                     .id(entry)
             }
-            } else {
+        } else {
             NavigationSplitView(columnVisibility: $visibility) {
                 sidebar.appScreenBackground()
             } content: {
@@ -37,7 +37,7 @@ struct RootSidebarView: View {
             } detail: {
                 detail.appScreenBackground()
             }
-            }
+        }
     }
 
     private var sidebar: some View {
