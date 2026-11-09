@@ -136,7 +136,7 @@ struct TopicReaderView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
-        .sheet(item: $profile) { profile in UserProfileView(model: profile, services: services) }
+        .sheet(item: $profile, onDismiss: model.applyDisplaySettings, content: { UserProfileView(model: $0, services: services) })
         .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
@@ -263,6 +263,8 @@ struct TopicReaderView: View {
             model?.showMenuFeedback(text)
             AccessibilityNotification.Announcement(text).post()
         }
+        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
+        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
         model.quoting = composer?.quoting
         var handlers: [any MessageActionHandler] = [
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
@@ -270,11 +272,14 @@ struct TopicReaderView: View {
         handlers += model.quoteHandlers(confirm: confirm)
         // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
         let showProfile = $profile
-        let profiles = services.profiles
+        let services = self.services
         handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = UserProfileModel(memberID: id, source: profiles)
+            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
         }
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
+        handlers += services.pseudoLists.map {
+            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
+        } ?? []
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
             self.writes = writes
@@ -295,7 +300,7 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = UserProfileModel(memberID: memberID, source: services.profiles)
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { model.applyDisplaySettings() }
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -336,6 +341,9 @@ struct ReaderServices: Sendable {
     var offline: OfflineServices?
     /// Flag writes of the current account, for "Favoris" (LOT-125) and "Marquer comme non lu" (LOT-127); nil when logged out.
     var flagActions: TopicFlagActions?
+    /// The blocklist of the current account and the allowlist (LOT-118): the BL / WL menu entries, the profile buttons and the
+    /// editors of Réglages edit them through it; nil in previews.
+    var pseudoLists: PseudoListManager?
 }
 
 /// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.

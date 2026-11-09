@@ -112,6 +112,19 @@ private struct ProfileHeaderSection: View {
                 Button { model.writePrivateMessage() } label: { Label("Écrire un MP", systemImage: "message") }
                     .accessibilityHint("Message privé à \(recipient)")
             }
+            if model.offers(.blocklist) {
+                Button { Task { await model.toggle(.blocklist) } } label: {
+                    Label(model.isBlocked ? "Retirer de la liste noire" : "Ajouter à la liste noire", systemImage: "hand.raised")
+                }
+            }
+            if model.offers(.allowlist) {
+                Button { Task { await model.toggle(.allowlist) } } label: {
+                    Label(model.isAllowed ? "Retirer de la love list" : "Ajouter à la love list", systemImage: "heart")
+                }
+            }
+            if let feedback = model.listFeedback {
+                Text(feedback).scaledFont(.footnote).foregroundStyle(.secondary)
+            }
         }
     }
 }

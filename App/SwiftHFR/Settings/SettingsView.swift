@@ -133,6 +133,15 @@ struct SettingsView: View {
                     ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
+                Toggle("Masquer les pseudos blacklistés", isOn: $topics.hidesBlocklisted)
+                if let lists = reader?.pseudoLists {
+                    NavigationLink { PseudoListEditorView(kind: .blocklist, manager: lists) } label: {
+                        Label("Liste noire", systemImage: "hand.raised")
+                    }
+                    NavigationLink { PseudoListEditorView(kind: .allowlist, manager: lists) } label: {
+                        Label("Liste blanche", systemImage: "heart")
+                    }
+                }
                 Toggle("Swipe changement de page", isOn: $topics.swipesPages)
                 Picker("Bouton +", selection: $topics.replyButton) {
                     ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }

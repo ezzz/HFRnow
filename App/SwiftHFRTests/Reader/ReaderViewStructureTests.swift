@@ -11,7 +11,7 @@ struct ReaderViewStructureTests {
             .appending(path: "SwiftHFR/Reader/TopicReaderView.swift")
         let text = try String(contentsOf: source, encoding: .utf8)
         #expect(text.contains(".navigationDestination(item: linkedReader)"))
-        #expect(text.contains(".sheet(item: $profile)"))
+        #expect(text.contains(".sheet(item: $profile"))
         #expect(text.contains("ReaderAuthorMenuSheet(flow: authorMenu"))
     }
 }

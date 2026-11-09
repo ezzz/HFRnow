@@ -53,4 +53,14 @@ struct TopicsSettingsModelTests {
     @Test func theTitlesAreLegacys() {
         #expect(ReplyButtonBehavior.allCases.map(\.title) == ["Réponse rapide", "Répondre comme le forum", "Pas d'icône"])
     }
+
+    /// LOT-118: "Masquer les pseudos blacklistés" reads and writes the legacy key.
+    @Test func theHideBlocklistedRowUsesItsLegacyKey() {
+        let store = InMemorySettingsStore()
+        let model = TopicsSettingsModel(store: store)
+        #expect(!model.hidesBlocklisted)
+        model.hidesBlocklisted = true
+        #expect(store.rawValue(forKey: "blacklist_hide_pseudo") == .bool(true))
+        #expect(TopicsSettingsModel(store: store).hidesBlocklisted)
+    }
 }
