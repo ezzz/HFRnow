@@ -35,6 +35,25 @@ pas une cause : une relance au plus, puis enquête.
 **Prête à merger** = contrôles requis verts **et** zéro fil ouvert **et** le bot a relu la tête **et** une revue
 adversariale APPROUVÉ sur cette tête (et la politique de merge du projet).
 
+## Traçabilité : chaque verdict sur la PR
+
+Le harnais mesure le **ratio de PR à problème** (au moins un constat en revue adversariale, revue IA, conformité,
+CodeRabbit ou humaine) et l'**effort de correction** (commits après le premier constat, délai jusqu'au merge) :
+c'est la jauge de la qualité initiale et du coût de la seconde passe ([FINOPS](FINOPS.md) §4). La mesure n'est juste
+que si **tous** les verdicts sont visibles sur la PR, surtout le premier négatif :
+- l'auteur poste **chaque** verdict de revue adversariale et de conformité en commentaire de la PR, mot pour mot, y
+  compris `CHANGEMENTS DEMANDÉS` / `ÉCARTS` (jamais seulement le dernier `APPROUVÉ`) ; la première ligne suit le
+  format de sa source : `**Revue adversariale (<modèle>) : APPROUVÉ | CHANGEMENTS DEMANDÉS** — tête <sha>`,
+  `**Revue conformité <référentiel> (<modèle>) : CONFORME | ÉCARTS | HORS PÉRIMÈTRE** — tête <sha>`, ou
+  `**Revue IA (<modèle>) : …**` pour le service de revue. Le tableau de bord la lit en début de ligne (éventuellement
+  en puce `- ` ou numérotée `1. `) ; une citation `>` ou une ligne de tableau ne compte pas ;
+- une revue faite avant l'ouverture de la PR se poste dès l'ouverture, dans l'ordre ;
+- un constat de sécurité se trace sans détail (« CHANGEMENTS DEMANDÉS — constat de sécurité, détail transmis en
+  privé ») : il compte, il ne fuit pas ;
+- ne jamais réécrire ni supprimer un verdict passé pour « nettoyer » la PR.
+
+Une PR mergée sans aucun verdict tracé est signalée à part (🟠) et sort du ratio.
+
 ## Configuration CodeRabbit recommandée
 Sur le modèle des deux projets (`.coderabbit.yaml`) : `language: fr-FR`, `auto_review.drafts: false` (pas de revue des
 brouillons, comme la CI), `base_branches` = branches d'intégration et de promotion, `path_filters` qui excluent les

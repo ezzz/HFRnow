@@ -32,9 +32,9 @@ if [ -n "$VENDORED" ]; then
 else
   echo "- Plugin ${PLUGIN:-?} ; ce dépôt n'a pas adopté le cadre (.harness/ absent) : voir docs/ADOPTION.md du cadre."
 fi
-echo "- Branche courante : ${BRANCH}. Travail = une issue prise en charge, branche claude/<lot> depuis la branche d'intégration à jour, PR en brouillon."
+echo "- Branche courante : ${BRANCH}. Travail = une issue prise par \`/claim <id>\`, branche <type>/<nom-court> (lot, fix, feat, chore, docs) depuis la branche d'intégration à jour."
 if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
   echo "- Session cloud (Linux) : pas de build Xcode ici ; relire le code app avec une rigueur de compilateur, reprise sur Mac (MAC-HANDOFF.md)."
 fi
-echo "- Avant la PR : auto-relecture contre LESSONS.md, revue par un autre modèle, un seul push par lot."
+echo "- Pousser tôt et souvent sur une PR en brouillon (pas de CI coûteuse) ; « Ready » après auto-relecture (LESSONS.md) et revue par un autre modèle ; ensuite un commit par cycle de revue."
 exit 0

@@ -1,7 +1,7 @@
 # Branches, versions et livraisons
 
-Sources : `docs/BRANCHING.md` et workflow `branch-flow.yml` de ios-app_credit-immo (modèle A) ; `AGENTS.md` §8,
-`CONTRIBUTING.md` §2 et rulesets de HFRnow (modèle B).
+Sources : pratique éprouvée sur une app publiée (modèle A : document de branches et workflow de contrôle du flux) ;
+`AGENTS.md` §8, `CONTRIBUTING.md` §2 et rulesets de HFRnow (modèle B).
 
 ## Deux modèles, un choix par projet
 Le projet écrit son modèle dans `CLAUDE.md` et dans `.harness/config.json` (`branch_model`, `integration_branch`,
@@ -9,7 +9,7 @@ Le projet écrit son modèle dans `CLAUDE.md` et dans `.harness/config.json` (`b
 
 ### Modèle A : intégration → candidate → production (app publiée)
 ```
-claude/*, feature/*, dependabot/*  ──PR──▶  develop  ──PR──▶  beta  ──PR──▶  master
+lot/*, fix/*, feat/*, chore/*, docs/*, dependabot/*  ──PR──▶  develop  ──PR──▶  beta  ──PR──▶  master
                                          intégration     TestFlight      App Store
 hotfix/* (depuis master) ──PR──▶ master, puis report master → beta → develop
 ```
@@ -31,9 +31,15 @@ hotfix/* (depuis master) ──PR──▶ master, puis report master → beta �
 
 ## Règles communes
 - **Aucun push direct** sur une branche protégée ; **jamais de force-push** sur une branche partagée ; jamais
-  contourner un ruleset, la protection au push ou gitleaks (hook `guard-git` côté agent, rulesets côté GitHub).
-- Branches de travail : `claude/<lot>` (sessions Claude), `feature/<sujet>`, `fix/`, `docs/`, `hotfix/`. Une PR par lot,
-  `Closes #n` pour chaque issue.
+  contourner un ruleset, la protection au push ou gitleaks.
+- Deux lignes de défense : le hook `guard-git` côté agent refuse avant exécution les push forcés, les push vers une
+  branche protégée (aussi `HEAD` ou un `git push` nu depuis elle), leur suppression et `--no-verify`, à travers les
+  options groupées, `git -C`/`-c` et les enveloppes shell courantes ; il laisse passer `--dry-run`. Il échoue
+  **ouvert** (entrée illisible, python3 absent) et se contourne (alias git, script intermédiaire ou passé sur l'entrée
+  standard d'un shell, API) : **la vraie
+  protection reste le ruleset côté serveur** (PR obligatoire, pas de force-push, pas de suppression), toujours activé.
+- Branches de travail : `<type>/<nom-court>` avec les types `lot`, `fix`, `feat`, `chore`, `docs` (réglables :
+  `.harness/config.json` → `branch_types`), plus `hotfix/` en modèle A. Une PR par lot, `Closes #n` pour chaque issue.
 - Réglages GitHub (rulesets, merge commits permis, alertes Dependabot, auto-merge) : versionnés comme du code
   (`.github/rulesets/*.json` + `scripts/configure-repo.sh`, idempotent, lancé par le mainteneur ; une session cloud ne
   peut pas les changer). Suivi dans une issue `ci` tant que ce n'est pas fait.
@@ -48,8 +54,8 @@ hotfix/* (depuis master) ──PR──▶ master, puis report master → beta �
 - La version (`MARKETING_VERSION` des configurations du projet, ou `VERSION`) et l'entrée « Nouveautés » ne sont **pas**
   modifiées par les PR de lot. À l'intégration :
   1. une PR « Version : <branche> passe en X.Y.Z » pose la version sur la branche d'intégration ;
-  2. l'entrée Nouveautés (ou `CHANGELOG.md`) est rédigée depuis les sections « Changelog » des PR mergées depuis la
-     dernière version ;
+  2. l'entrée Nouveautés (ou `CHANGELOG.md`) est repliée depuis les sections `### Ledger` des PR mergées par le steward
+     ([CONVENTIONS](CONVENTIONS.md) §Registre), ou, sans registre, rédigée depuis leurs descriptions ;
   3. promotion (modèle A) ou merge (modèle B) ;
   4. tag annoté `vX.Y.Z` sur la branche de production **après** le merge, par l'opérateur (action conséquente) ;
   5. issue de suivi de la release (`release`) fermée, avec le lien du tag et du build publié.

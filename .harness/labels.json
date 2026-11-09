@@ -24,8 +24,13 @@
 
   { "name": "à clarifier", "color": "f9d0c4", "axis": "statut", "description": "Décision produit attendue avant de coder" },
   { "name": "bloqué", "color": "000000", "axis": "statut", "aliases": ["status: blocked"], "description": "Dépend d'un prérequis (lot, capture, décision, accès)" },
-  { "name": "pris en charge", "color": "1d76db", "axis": "statut", "aliases": ["status: claimed"], "description": "Une session a pris l'issue (commentaire « Pris en charge — branche … »)" },
+  { "name": "pris en charge", "color": "1d76db", "axis": "statut", "aliases": ["status: claimed"], "description": "Une session a pris l'issue (commentaire `/claim <id>`, rendue par `/release`)" },
   { "name": "hôte: mac", "color": "6e7781", "axis": "hôte", "aliases": ["host: mac"], "description": "Demande le Mac (Xcode, simulateur, appareil, captures) : les sessions cloud n'y touchent pas" },
   { "name": "direct-pr", "color": "d93f0b", "axis": "suivi", "description": "PR sans issue (petit correctif, ligne Direct-PR:) : comptée pour le suivi" },
-  { "name": "dependencies", "color": "0366d6", "axis": "suivi", "description": "Mise à jour de dépendance (Dependabot)" }
+  { "name": "dependencies", "color": "0366d6", "axis": "suivi", "description": "Mise à jour de dépendance (Dependabot)" },
+
+  { "name": "leçon", "color": "fbca04", "axis": "suivi", "description": "Proposition de leçon pour le tableau LESSONS.md (skill /lesson-propose)" },
+  { "name": "tableau de bord", "color": "0e8a16", "axis": "suivi", "description": "Issue tenue à jour par le workflow flow-report.yml" },
+  { "name": "revue: aucune", "color": "cfd3d7", "axis": "suivi", "description": "Le service de revue IA saute cette PR (triviale)" },
+  { "name": "conformité", "color": "5319e7", "axis": "suivi", "description": "Touche un référentiel de conformité (COMPLIANCE.md) ; préciser avec conformité: <id>" }
 ]

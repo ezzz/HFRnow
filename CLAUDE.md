@@ -2,7 +2,7 @@
 
 # Guardrails for Claude sessions
 
-AGENTS.md (imported above) holds every rule. These are the ones a Claude session must never break; when in doubt, stop and ask the operator.
+AGENTS.md (imported above) holds every project rule, and wins over the framework block at the end of this file (AGENTS.md §12). These are the ones a Claude session must never break; when in doubt, stop and ask the operator.
 
 - Work on **`dev-swift`** only: `git fetch origin dev-swift && git switch dev-swift` first, then branch from it. Never branch from, push to or target `master` (legacy app), and ignore the `CLAUDE.md` found on `master`.
 - Never push to `dev-swift` directly, never force-push a shared branch, never bypass the ruleset, push protection or gitleaks.
@@ -14,9 +14,11 @@ AGENTS.md (imported above) holds every rule. These are the ones a Claude session
 - A PR is ready only when it meets the [merge criteria](CONTRIBUTING.md#2-merge-criteria); resolve every CodeRabbit conversation after fixing or answering it.
 
 <!-- harness:begin cadre -->
-## Shared framework: agentic-harness 0.1.0
+## Shared framework: agentic-harness 0.3.0
 
-This block is managed by `scripts/harness-sync.sh` of the [agentic-harness](https://github.com/francoisgn/agentic-harness) framework: do not edit it here (propose changes in the framework). The rest of this file belongs to the project and wins over the framework on any conflict, to be reported in an issue.
+This block is managed by `scripts/harness-sync.sh`, which lives in the [agentic-harness](https://github.com/francoisgn/agentic-harness) framework repository, not in this one: do not edit it here (propose changes in the framework). To update it: the `/harness-update` skill, or, from this repository's root, clone the framework at the wanted tag next to it (`git clone --depth 1 --branch vX.Y.Z https://github.com/francoisgn/agentic-harness.git ../agentic-harness`) and run `../agentic-harness/scripts/harness-sync.sh --target .` (`.harness/docs/ADOPTION.md` §Mises à jour).
+
+**Precedence**: project rules win over the framework. The project records each departure from the framework, with its reason, in the "Harness overrides" section of its `AGENTS.md`; its settings go in `.harness/config.json`; everything outside this block belongs to it. Order on a conflict: the "Harness overrides" section, then the rest of the project's rules (`AGENTS.md`, `CLAUDE.md`), then `.harness/config.json`, then `.harness/docs/`. Report an unresolved conflict in an issue of the project.
 
 @.harness/docs/ESSENTIEL.md
 

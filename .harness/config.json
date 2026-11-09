@@ -7,12 +7,33 @@
     ".github/workflows/harness*",
     ".markdownlint-cli2.jsonc",
     "docs/lots/TEMPLATE.md",
-    ".github/labels.local.json"
+    ".github/labels.local.json",
+    ".harness/scripts/repo-settings.py",
+    ".github/repo-settings.json"
   ],
   "protected_branches": [
     "master",
     "dev-swift"
   ],
   "integration_branch": "dev-swift",
-  "branch_model": "B"
+  "branch_model": "B",
+  "branch_types": [
+    "lot",
+    "fix",
+    "feat",
+    "chore",
+    "docs"
+  ],
+  "labels": {
+    "model_prefixes": [],
+    "size_prefixes": [
+      "difficulty:"
+    ]
+  },
+  "ledger": {
+    "enabled": true,
+    "label": "ledger",
+    "fold_command": "python3 tooling/docs/ledger.py fold --apply --commit"
+  },
+  "compliance": []
 }

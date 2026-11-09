@@ -1,9 +1,9 @@
 # 0001 — Distribuer le cadre : vendorisation versionnée + plugin + workflows réutilisables
 
-**Statut :** Accepté — 2026-11-07 (François)
+**Statut :** Accepté — 2026-11-07 (le mainteneur)
 
 ## Contexte
-- Les règles de travail agentique sont nées dans deux dépôts (HFRnow, ios-app_credit-immo) et y divergent. On veut une
+- Les règles de travail agentique sont nées dans plusieurs dépôts (dont HFRnow) et y divergent. On veut une
   source unique, versionnée, que chaque projet récupère et met à jour, sans perdre ce qui lui est propre.
 - La plupart des sessions sont des **sessions cloud** (claude.ai/code). D'après la documentation Claude Code
   (« Install plugins », onglet *Cloud session*, consultée le 07/11/2026), une session cloud **ne charge pas** les plugins
@@ -15,7 +15,7 @@
 - Une session cloud n'a accès GitHub qu'aux dépôts qui lui sont attachés ; un workflow Actions n'accède à un autre dépôt
   privé qu'avec un jeton dédié.
 - Les fichiers sous `.github/workflows/` ne peuvent pas être poussés avec le `GITHUB_TOKEN` d'Actions.
-- HFRnow vit sur `ezzz/HFRnow` (pas un dépôt de François) et ses docs sont en anglais.
+- HFRnow vit sur `ezzz/HFRnow` (pas un dépôt du mainteneur) et ses docs sont en anglais.
 
 ## Options
 1. **Sous-module git** : versionné, mais lourd pour les agents (init, détaché), invisible en cloud si non initialisé,

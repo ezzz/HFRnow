@@ -1,15 +1,14 @@
 # Cloud Linux et Mac : qui fait quoi, comment passer la main
 
-Sources : `CLAUDE.md` (« Conteneur Linux : moteur oui, app non », #256), `scripts/mac-handoff.sh`,
-`scripts/install-swift-linux.sh` de ios-app_credit-immo ; `docs/agents/MAC-SESSIONS.md`, `scripts/cloud-setup.sh`,
-`AGENTS.md` §10 de HFRnow.
+Sources : `docs/agents/MAC-SESSIONS.md`, `scripts/cloud-setup.sh`, `AGENTS.md` §10 de HFRnow ; pratique éprouvée sur
+d'autres projets (règle « conteneur Linux : moteur oui, app non », script d'installation, script de reprise sur Mac).
 
 ## 1. Partage des rôles
 
 | Environnement | Peut | Ne peut pas |
 |---|---|---|
 | **Session cloud** (conteneur Linux) | Code et docs ; tests du moteur (`swift test` sur le paquet sans UI) ; lint ; scripts ; issues et PR | Compiler l'app (SwiftUI, Charts, StoreKit, UIKit), simulateur, appareil, signature, réglages du dépôt |
-| **Mac** (Claude Code CLI ou humain) | Xcode, simulateur, appareil, captures réelles, smoke tests, build signé | — (mais c'est le goulot : il ne fait que ce qui exige un Mac) |
+| **Mac** (agent de code en CLI ou humain) | Xcode, simulateur, appareil, captures réelles, smoke tests, build signé | — (mais c'est le goulot : il ne fait que ce qui exige un Mac) |
 | **CI** | Arbitre : ce qui n'est pas vert en CI n'est pas fini | — |
 
 Conséquences :
@@ -27,11 +26,11 @@ Un script d'installation (collé dans le « setup script » de l'environnement c
 version** de la chaîne d'outils que la CI Linux : archive officielle, **signature vérifiée** (clés publiées du projet,
 import bloc par bloc si gpg refuse le fichier entier), puis le linter à la version de la CI avec empreinte vérifiée.
 Les hôtes nécessaires (ex. `download.swift.org`, `github.com`, `release-assets.githubusercontent.com`) vont dans les
-domaines autorisés de l'environnement. Exemples : `scripts/install-swift-linux.sh` (credit-immo, Swift 6.1.2 dans
-`/opt/swift`), `scripts/cloud-setup.sh` (HFRnow, Swift 6.2.x + SwiftLint).
+domaines autorisés de l'environnement. Exemple public : `scripts/cloud-setup.sh` de HFRnow (Swift 6.2.x + SwiftLint) ;
+installer dans un dossier fixe (ex. `/opt/swift`) à la version épinglée par la CI.
 
 ## 3. Passer la main au Mac : le script de reprise
-Modèle : `scripts/mac-handoff.sh` de credit-immo. Lancé sur le Mac, sans interaction, il :
+Modèle à écrire dans le projet (ex. `scripts/mac-handoff.sh`). Lancé sur le Mac, sans interaction, il :
 1. synchronise la branche à tester (refuse un arbre sale ou une branche locale divergente : la tête locale doit égaler
    `origin/<branche>`) ;
 2. rejoue la CI locale sans le build app (`local-check.sh --no-app`) ;

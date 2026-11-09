@@ -5,12 +5,18 @@ chaque cycle de revue, comparer les constats au tableau ([REVIEW-ROUNDS](REVIEW-
 l'auto-relecture l'a manqué, resserrer cette étape ; nouveau genre = nouvelle ligne, proposée au cadre par PR si elle
 vaut ailleurs, sinon gardée dans les leçons du projet.
 
+**Incrémenter** (skill `/lesson-propose`) : une leçon valable au-delà d'un projet remonte au cadre par une **issue
+« Leçon »** sur `francoisgn/agentic-harness` (formulaire dédié, label `leçon`) : portée, leçon en une phrase
+vérifiable, source à un SHA, contre-exemple. Le steward du cadre la fusionne dans ce tableau par PR (numéro suivant,
+MINEUR au CHANGELOG) ; les projets la reçoivent à la synchro suivante.
+
 **Portée** : `général` (tout projet) · `swift` · `ios` · `linux-cloud` (sessions dans un conteneur Linux) · `ci` · `docs`.
 Un projet sans Swift ignore `swift` et `ios`. Les leçons de domaine (protocole d'un site, règle financière) restent dans
 le projet.
 
 **Sources** : `HFR n` = ligne n de `docs/agents/LESSONS.md` de HFRnow (branche `dev-swift`) ; `HFR §11 <date>` =
-journal d'`AGENTS.md` §11 de HFRnow ; `CI` = ios-app_credit-immo (`CLAUDE.md`, `docs/CI.md`, workflows).
+journal d'`AGENTS.md` §11 de HFRnow ; `terrain` = pratique éprouvée sur un autre projet, non publié (la leçon est
+reformulée pour valoir partout, sans détail de ce projet).
 Les numéros `L..` sont stables : une leçon devenue fausse est barrée, jamais renumérotée.
 
 | # | Portée | Leçon | Source |
@@ -23,7 +29,7 @@ Les numéros `L..` sont stables : une leçon devenue fausse est barrée, jamais 
 | L06 | général | Chaque chemin d'échec remonte quelque chose d'**actionnable** ; un résultat asynchrone rafraîchit l'interface | HFR 5 |
 | L07 | docs | Un `\|` dans un code span d'un tableau Markdown s'échappe, sinon la ligne casse. markdownlint ne garde que les règles qui attrapent une vraie casse (MD051 ancres, MD056 colonnes) | HFR 20 ; HFR `.markdownlint-cli2.jsonc` |
 | L08 | docs | Docs, description de PR et specs disent **exactement** ce que fait le code ; pas de doc pour un comportement non livré | HFR 3 |
-| L09 | docs | Les docs de suivi (plan, spec, ADR, réglementation sourcée) se mettent à jour **dans le même commit** que le changement | HFR 12 ; CI `CLAUDE.md` |
+| L09 | docs | Les docs de suivi (plan, spec, ADR, réglementation sourcée) se mettent à jour **dans le même commit** que le changement | HFR 12 ; terrain |
 | L10 | docs | Un fichier, un rôle : pas de nouveau document quand un existant a ce rôle ; un fichier ponctuel (runbook, rapport) est supprimé une fois son résultat consigné dans l'ADR ou le fichier qui porte le sujet | HFR AGENTS §2 |
 | L11 | général | Toute API publique ajoutée ou touchée a un commentaire de doc d'une ligne ; un commentaire dit **pourquoi**, pas quoi | HFR 1 ; HFR AGENTS §4 |
 | L12 | général | Pas de copie inutile de grosses données ; dire le comportement aux limites (mémoire, disque, très gros volumes) | HFR 4 |
@@ -35,7 +41,7 @@ Les numéros `L..` sont stables : une leçon devenue fausse est barrée, jamais 
 | L18 | général | Relire la tête de branche (SHA) et l'état des contrôles **juste avant** de publier un statut | HFR 16 ; HFR ORCHESTRATION |
 | L19 | général | Avant de dire « déjà corrigé », « fait » ou « doublon » : vérifier la branche d'intégration actuelle et les derniers commentaires ; un signalement peut être plus vieux que le dernier merge | HFR 46 |
 | L20 | général | À chaque point d'étape, relire revues, CI et **tous** les fils ouverts de ses PR : les bots postent tard | HFR 47 |
-| L21 | général | Un fait sur un système externe (URL, champ, règle, API, protocole) cite sa source (lien officiel, `fichier:ligne` à un commit nommé, capture). Rien de deviné : s'arrêter et dire quoi aller chercher | HFR 17 ; HFR AGENTS §3.1 ; CI `REGLEMENTATION.md` |
+| L21 | général | Un fait sur un système externe (URL, champ, règle, API, protocole) cite sa source (lien officiel, `fichier:ligne` à un commit nommé, capture). Rien de deviné : s'arrêter et dire quoi aller chercher | HFR 17 ; HFR AGENTS §3.1 ; terrain |
 | L22 | général | Données de test et journaux sans donnée réelle (nom, cookie, jeton, contenu privé) ; une donnée réelle commitée est un incident de sécurité | HFR 18 ; HFR AGENTS §3.5 |
 | L23 | général | Une anonymisation se vérifie par un contrôle **indépendant** (autres motifs, autre analyseur, recherche des noms relevés dans les données brutes), avant de pousser ; la liste qui a produit la sortie ne s'en porte jamais garante. Un test isole une position à la fois | HFR 33 ; HFR §11 2026-10-26 |
 | L24 | général | Une règle de caviardage décide par **position** (champ, cellule), jamais par l'allure du contenu ; une forme dérivée (slug) suit la transformation réelle de la source, mesurée sur de vraies paires | HFR 39 |
@@ -62,18 +68,18 @@ Les numéros `L..` sont stables : une leçon devenue fausse est barrée, jamais 
 | L45 | général | Cycle de revue de bots sur une PR riche en docs : grouper les correctifs, répondre à **chaque** fil et le résoudre, merger quand les contrôles requis sont verts et que la politique de merge le permet | HFR 41 |
 | L46 | général | Un bot de revue peut sauter une revue ou s'arrêter sur une branche : vérifier qu'il a relu la nouvelle tête. Depuis une session cloud, les `@mentions` postées sont altérées : l'opérateur poste `@coderabbitai review`, `@dependabot rebase` | HFR REVIEW-ROUNDS ; HFR §11 2026-10-24 |
 | L47 | ci | Un contrôle qui échoue en quelques secondes sans journal (jeton absent, service indisponible, runner jamais acquis) est de l'infrastructure, pas « CI rouge ». « Instable » n'est pas une cause : une relance au plus, puis enquête | HFR REVIEW-ROUNDS ; HFR EXTERNAL-AGENTS §10 |
-| L48 | ci | Une minute macOS compte pour 10, chaque job est arrondi à la minute : brouillon tant que ce n'est pas fini (rien ne tourne), un push par lot, jobs Linux regroupés, build macOS seulement si l'app change et après le job Linux vert | CI `docs/CI.md` ; HFR §11 2026-11-05 (#477) |
-| L49 | ci | Une détection de changements en échec lance quand même les jobs qu'elle conditionne : un détecteur cassé ne doit jamais laisser passer une PR | CI `ci.yml` ; HFR `ci.yml` |
+| L48 | ci | Une minute macOS compte pour 10, chaque job est arrondi à la minute : pushes fréquents sur un brouillon où rien de coûteux ne tourne, CI complète au passage « Ready » ou sur label, un commit par cycle de revue, jobs Linux regroupés, build macOS seulement si l'app change et après le job Linux vert | terrain ; HFR §11 2026-11-05 (#477) |
+| L49 | ci | Une détection de changements en échec lance quand même les jobs qu'elle conditionne : un détecteur cassé ne doit jamais laisser passer une PR | terrain ; HFR `ci.yml` |
 | L50 | ci | `issues`, `schedule`, `workflow_dispatch`, `pull_request_target`, formulaires d'issue et config Dependabot ne fonctionnent que depuis la **branche par défaut** : un workflow posé sur une autre branche est inerte | HFR §11 2026-10-26 ; HFR ADR 0010 |
-| L51 | ci | Une image de runner en préversion (ex. `xcode-27`) n'existe que par son label : la déclarer à actionlint (`.github/actionlint.yaml`) et choisir le simulateur dynamiquement (un runtime peut refuser un modèle d'appareil) | HFR §11 2026-10-24, 2026-10-26 ; CI `ci.yml` |
-| L52 | ci | Sur un dépôt privé, CodeQL, le secret scanning et la Dependency Review exigent GitHub Advanced Security : les remplacer par Semgrep, Trivy, gitleaks, zizmor, actionlint. Un dépôt public ne consomme aucune minute | CI `docs/CI.md` |
+| L51 | ci | Une image de runner en préversion (ex. `xcode-27`) n'existe que par son label : la déclarer à actionlint (`.github/actionlint.yaml`) et choisir le simulateur dynamiquement (un runtime peut refuser un modèle d'appareil) | HFR §11 2026-10-24, 2026-10-26 ; terrain |
+| L52 | ci | Sur un dépôt privé, CodeQL, le secret scanning et la Dependency Review exigent GitHub Advanced Security : les remplacer par Semgrep, Trivy, gitleaks, zizmor, actionlint. Un dépôt public ne consomme aucune minute | terrain |
 | L53 | ci | Actions épinglées par SHA complet (tag en commentaire), `permissions` minimales, `persist-credentials: false`, jamais de `pull_request_target` qui extrait le code de la PR, aucun secret exposé aux forks | HFR ADR 0005 ; HFR `.coderabbit.yaml` |
 | L54 | ci | Les hooks pre-commit ne reformatent jamais les données de test (octet près) ; ShellCheck couvre tous les scripts, un constat se corrige ou se tait en ligne avec sa raison | HFR CONTRIBUTING §4 |
 | L55 | linux-cloud | Les journaux de jobs CI se lisent depuis une session cloud par l'outil MCP GitHub `get_job_logs` (`gh api …/logs` est bloqué : autre hôte) ; les annotations restent le signal le plus rapide | HFR §11 2026-10-25 |
-| L56 | linux-cloud | Une session cloud ne change pas les réglages du dépôt (403) : les réglages vivent dans un script (`configure-repo.sh`) ou un fichier de ruleset, lancé par le mainteneur | HFR §11 2026-10-24 |
+| L56 | linux-cloud | Une session cloud ne change pas les réglages du dépôt (403) : les réglages vivent dans un fichier versionné (`.github/repo-settings.json`), modifié par PR et appliqué au merge par la CI avec un jeton d'administration (ADOPTION §Réglages du dépôt) | HFR §11 2026-10-24 |
 | L57 | linux-cloud | Les apps GitHub (Claude, CodeRabbit) d'un dépôt personnel ne s'installent que par son propriétaire, quels que soient les droits du collaborateur | HFR §11 2026-10-26 |
-| L58 | linux-cloud | L'app (SwiftUI, Charts, StoreKit…) ne compile pas sous Linux : relire son code avec une rigueur de compilateur (types, `@MainActor`, `Sendable` en mode complet, exhaustivité des `switch`, API réelles de la version d'OS) ; seul le Mac ou la CI macOS tranche | CI `CLAUDE.md` (#256) |
-| L59 | linux-cloud | Installer **la même version** de la chaîne d'outils que la CI Linux (script, signature vérifiée) et lancer les tests du moteur avant tout push qui le touche | CI `install-swift-linux.sh` ; HFR `cloud-setup.sh` |
+| L58 | linux-cloud | L'app (SwiftUI, Charts, StoreKit…) ne compile pas sous Linux : relire son code avec une rigueur de compilateur (types, `@MainActor`, `Sendable` en mode complet, exhaustivité des `switch`, API réelles de la version d'OS) ; seul le Mac ou la CI macOS tranche | terrain |
+| L59 | linux-cloud | Installer **la même version** de la chaîne d'outils que la CI Linux (script, signature vérifiée) et lancer les tests du moteur avant tout push qui le touche | terrain ; HFR `cloud-setup.sh` |
 | L60 | linux-cloud | Le linter de la CI n'est pas forcément dans le conteneur : l'installer (binaire Linux à la version de la CI, empreinte vérifiée) plutôt que dépenser un tour de CI ; sinon vérifier à la main ses règles bloquantes (longueur de ligne, complexité, longueur de type, identifiants) | HFR 21, 27 |
 | L61 | linux-cloud | Après des modifications tardives, vérifier `git status` sur les fichiers **suivis**, pas seulement les non suivis, avant de pousser | HFR 23 |
 | L62 | swift | Sous Linux, `Date.description` plante sur une date non finie : aucun test ne doit en imprimer | HFR 22 |
@@ -88,12 +94,12 @@ Les numéros `L..` sont stables : une leçon devenue fausse est barrée, jamais 
 | L71 | swift | Les API récursives sur arbre plantent sur une imbrication profonde (pile de 512 Ko) : parcourir avec une pile explicite, construire les arbres profonds de bas en haut | HFR §11 2026-10-27, 2026-10-28 (LOT-032, LOT-034) |
 | L72 | ios | Un test d'app qui échoue fait lancer `simctl diagnose` par `xcodebuild test` pendant jusqu'à 10 min ; filtrer avec le nom complet Swift Testing (`Suite/test()`, sans `()` rien ne tourne) et vérifier que des tests ont tourné | HFR 54 |
 | L73 | ios | `confirmationDialog` efface son état de présentation avant l'action : passer à l'action l'élément montré. Un gestionnaire qui capture fortement son modèle le fait fuir : capture faible | HFR §11 2026-11-05 (LOT-087) |
-| L74 | ios | Connaître la stratégie du fichier de projet : groupes synchronisés (ajouter un fichier sans toucher au pbxproj) ou XcodeGen **et** pbxproj versionnés (tout ajout, renommage, suppression, réglage se reporte dans les deux) | HFR ADR 0012 ; CI `CLAUDE.md` |
+| L74 | ios | Connaître la stratégie du fichier de projet : groupes synchronisés (ajouter un fichier sans toucher au pbxproj) ou XcodeGen **et** pbxproj versionnés (tout ajout, renommage, suppression, réglage se reporte dans les deux) | HFR ADR 0012 ; terrain |
 | L75 | ios | Agents et CI compilent sans signature (`CODE_SIGNING_ALLOWED=NO`), jamais `-allowProvisioningUpdates` ; un build signé sur appareil demande le compte d'équipe dans l'Xcode du mainteneur | HFR §11 2026-10-27 (LOT-080) |
-| L76 | ios | Mise en page par size classes, jamais par idiom ni `UIScreen` ; cibles de 44 pt, labels VoiceOver, texte dynamique | CI `CLAUDE.md` |
+| L76 | ios | Mise en page par size classes, jamais par idiom ni `UIScreen` ; cibles de 44 pt, labels VoiceOver, texte dynamique | terrain |
 | L77 | général | Une affirmation de sécurité se teste sur le composant réel (vue web hébergée, client réseau), pas seulement sur la chaîne produite | HFR §11 2026-10-27 (LOT-083) |
 | L78 | général | Lire les données capturées en **octets** : une lecture en mode texte change les CRLF en LF | HFR §11 2026-10-27 (LOT-036) |
 | L79 | général | Une écriture n'est un succès qu'avec la confirmation propre du serveur ; une écriture dont la requête a pu partir est « non confirmée », jamais rejouée | HFR §11 2026-10-27, 2026-10-28 (LOT-037, LOT-048, #314) |
-| L80 | général | Persistance : une sauvegarde écrite par une version publiée reste lisible par toutes les suivantes (champ nouveau optionnel ou par défaut, décodage tolérant, migration à la lecture) | CI `CLAUDE.md` (décision #244) |
+| L80 | général | Persistance : une sauvegarde écrite par une version publiée reste lisible par toutes les suivantes (champ nouveau optionnel ou par défaut, décodage tolérant, migration à la lecture) | terrain |
 | L81 | général | Juste avant d'ouvrir une PR, chercher les PR ouvertes qui touchent les mêmes fichiers ou le même sujet : se coordonner plutôt que découvrir le conflit au merge | HFR AGENTS §8 |
 | L82 | général | Une affirmation « X est appelé au lancement » se vérifie en cherchant l'appelant (`grep`) : la fonction n'avait aucun appelant | HFR §11 2026-10-28 (LOT-119) |
