@@ -231,16 +231,19 @@ struct PseudoListEditorModelTests {
         let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
         await model.load()
         persistence.close()
-        let removal = model.remove(at: IndexSet(integer: 0)) // Deux, its write is held
+        // Un first, its write held; the removal of Deux then waits behind it, so it has not reached the store when the add does.
+        let first = model.remove(at: IndexSet(integer: 1)) // Un
+        let second = model.remove(at: IndexSet(integer: 0)) // Deux
         model.draft = "Deux"
         let adding = Task { await model.add() }
         for _ in 0..<20 { await Task.yield() }
         persistence.open()
-        await removal.value
+        await first.value
+        await second.value
         await adding.value
         #expect(model.errorMessage == nil)
-        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Deux", "Un"])
-        #expect(model.pseudos == ["Deux", "Un"])
+        #expect(await store.blocklist(for: "moi").map(\.pseudo) == ["Deux"])
+        #expect(model.pseudos == ["Deux"])
     }
 
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.
