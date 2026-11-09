@@ -46,6 +46,12 @@ final class PseudoListEditorModel {
 
     /// Reads the list (on appear, after a retry). A store that cannot be read keeps the editor read-only.
     func load() async {
+        // Writes of a swipe still queued: wait for them, or the list read now would bring the swiped rows back.
+        await removalTail?.value
+        await readList()
+    }
+
+    private func readList() async {
         if let failure = await manager.loadFailure() {
             unreadableMessage = Self.describe(failure)
             pseudos = []
@@ -96,7 +102,7 @@ final class PseudoListEditorModel {
                 }
             }
             pendingRemovals -= 1
-            if pendingRemovals == 0 { await load() }
+            if pendingRemovals == 0 { await readList() }
         }
         removalTail = task
         return task

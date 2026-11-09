@@ -108,6 +108,11 @@ private struct ProfileHeaderSection: View {
                 }
                 .scaledFont(.body)
             }
+            // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast. Attached to a
+            // row that is always there: the feedback `Text` appears already holding the first sentence, which no change reports.
+            .onChange(of: model.listFeedback) { _, text in
+                if let text { AccessibilityNotification.Announcement(text).post() }
+            }
             if let recipient = model.privateMessageRecipient {
                 Button { model.writePrivateMessage() } label: { Label("Écrire un MP", systemImage: "message") }
                     .accessibilityHint("Message privé à \(recipient)")
@@ -124,8 +129,6 @@ private struct ProfileHeaderSection: View {
             }
             if let feedback = model.listFeedback {
                 Text(feedback).scaledFont(.footnote).foregroundStyle(.secondary)
-                    // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast.
-                    .onChange(of: feedback) { _, text in AccessibilityNotification.Announcement(text).post() }
             }
         }
     }

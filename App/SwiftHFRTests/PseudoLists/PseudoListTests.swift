@@ -177,10 +177,14 @@ struct PseudoListEditorModelTests {
         #expect(model.pseudos == ["Quatre", "Trois", "Un"])
         let second = model.remove(at: IndexSet(integer: 1)) // Trois, as the list now shows it
         #expect(model.pseudos == ["Quatre", "Un"])
+        // An add (which reads the list again) while both removals are still queued must not bring the swiped rows back.
+        model.draft = "Cinq"
+        await model.add()
+        #expect(model.pseudos == ["Cinq", "Quatre", "Un"])
         await first.value
         await second.value
-        #expect(model.pseudos == ["Quatre", "Un"] && model.errorMessage == nil)
-        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
+        #expect(model.pseudos == ["Cinq", "Quatre", "Un"] && model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Cinq", "Quatre", "Un"])
     }
 
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.
