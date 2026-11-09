@@ -94,7 +94,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-072 | Continuous scrolling | None. | — | Option, off by default, haptic per page. | LOT-148, FEAT-017 | new | new UX: Bybifok (FEAT-017) | b |
 | GAP-073 | Quick-reply bar and quote tray | None. | — | Bottom bar with the count of checked quotes and a quick reply. | LOT-153, FEAT-006 | new | new UX: Bybifok (FEAT-006) | b |
 | GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
-| GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for links the forum does not own, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). "Ouvrir l'image" and "Save to Photos" are not ported here: deferred to #615. | #596, #615, LOT-137 | new | new UX: operator (2026-11-07) | b·operator |
+| GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for every link that is not a forum topic, MP or profile, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). "Ouvrir l'image" and "Save to Photos" are not ported here: deferred to #615. | #596, #615, LOT-137 | UX change | new UX: operator (2026-11-07) | b·operator |
 
 ## Composer
 
@@ -165,7 +165,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Darker dark #0B0B0C, OLED black, 1 pt separators. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
 | GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-122 | UX change | new UX: Bybifok (FEAT-010) | b |
 | GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 | Seasonal themes and assets. | LOT-166, FEAT-010 | ported with changes | new UX: Bybifok (FEAT-010) | a |
-| GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker of 9 options (the 8 legacy values on their legacy keys and names, plus REDFACE 3D Big) on a screen behind the "Icône" row; the key is written only after the system accepted the switch (#622). Five of the legacy icons are redrawn as SVG at full resolution (#623). | LOT-123 | ported with changes | port: ezzz Swift layer | b·operator |
+| GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker of 9 options (the 8 legacy values on their legacy keys and names, plus REDFACE 3D Big) on a screen behind the "Icône" row; the key is written only after the system accepted the switch (#622). Five of the legacy icons are redrawn as SVG at full resolution (#623). | LOT-123 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-150 | Open links in default browser | Absent at `2440d79` (exists on `master`). | — | "Navigateur par défaut" toggle; HFR links stay in the app. | LOT-119, LOT-137 | new | port: ezzz Swift layer | a·master |
 | GAP-151 | Crédits, Charte | Bundled HTML pages from Plus. | StaticInfoPageView.swift:10-47 | Static pages; About links to the app's topics, opened in the app. | LOT-120 | ported with changes | port: ezzz Swift layer | a |
@@ -262,10 +262,10 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | Gap | Rows |
 |---|---|
 | same | 35 |
-| ported with changes | 49 |
+| ported with changes | 48 |
 | ported with changes (engine only) | 1 |
-| UX change | 44 |
-| new | 29 |
+| UX change | 46 |
+| new | 28 |
 | dropped | 2 |
 | not planned | 7 |
 | **Total** | **167** |
