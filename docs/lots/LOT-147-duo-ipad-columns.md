@@ -2,8 +2,8 @@
 
 - **Module:** App
 - **Difficulty / model:** difficult (Fable → Opus)
-- **Issue:** [#237](https://github.com/ezzz/HFRnow/issues/237) · implements FEAT-016 (#160, proposed by Bybifok) as far as legacy has it
-- **Milestone:** M4, the whole lot, backport of legacy evolution (operator, 2026-11-09, [#655](https://github.com/ezzz/HFRnow/issues/655))
+- **Issue:** [#237](https://github.com/ezzz/HFRnow/issues/237) · implements FEAT-016 (#160, proposed by Bybifok), all of it
+- **Milestone:** M4, the whole lot: the legacy Duo layout as a backport of legacy evolution (operator, 2026-11-09, [#655](https://github.com/ezzz/HFRnow/issues/655)), and the FEAT-016 additions legacy lacks (operator, 2026-11-09, on [#237](https://github.com/ezzz/HFRnow/issues/237))
 - **Depends on:** LOT-082 (#100, done), LOT-170 (#296, done: the iPad split root this lot widens). No longer LOT-145 (#235, M5): the handoff is an in-memory store, not per-scene state restoration (`FoldHandoffStore.swift:11-88` @ `2fe43da3`)
 
 Short spec written by the catch-up pass of [#655](https://github.com/ezzz/HFRnow/issues/655) (legacy reference `legacy/duo-inner-cover` @ `2fe43da3`, PR #372). It records what the reference does and the operator decision on the fold handoff; the author of the lot completes it before coding (AGENTS.md §5).
@@ -33,9 +33,21 @@ The handoff carries the topic and its **page** (`Reading.navigationTarget`: `ini
 
 SwiftHFR today: the split root is iPad-only (`App/SwiftHFR/Root/RootNavigationView.swift:47-48`, ported from `2440d79`), so the unfolded Duo shows the tab bar and there is no handoff (GAP-210, GAP-215, GAP-217).
 
+## Scope (M4): the FEAT-016 additions legacy lacks
+
+**Operator decision, 2026-11-09** (m2-lead, recorded on [#237](https://github.com/ezzz/HFRnow/issues/237)): the FEAT-016 items legacy does not have at `2fe43da3` are in M4 too, in this lot. They are evolutions, not parity: an explicit operator exception to the M5 rule of `docs/LOTS.md`. They stay under the UX principles of `docs/FEATURES.md` (*Preserve what works*, *Defaults keep the legacy UX; changes are opt-in settings*, operator 2026-10-28): **both are opt-in settings, off by default**, so the legacy bottom bar and the legacy sidebar behaviour stay the default. Making one the default would change navigation and needs the community's support recorded on #160 (`docs/FEATURES.md:12`). GAP-655 (`b·operator`) records them.
+
+| FEAT-016 item ([#160](https://github.com/ezzz/HFRnow/issues/160), Bybifok) | Legacy @ `2fe43da3` | To specify before coding |
+|---|---|---|
+| Tabs in a rail when folded | the cover screen keeps the tab bar (`MainWindow.swift:1357-1365`, `usesSidebarRoot` false) | which screens and size classes get the rail; how it coexists with the reader's hidden tab bar (GAP-008, UXD-02) and the Liquid Glass bars (GAP-220 to GAP-226) |
+| Sidebar pinned or on demand | two split roots (`MainWindow.swift:1796-1820`). Destinations with a topic list: the sidebar starts hidden (`doubleColumn`, list + topic), the user shows or hides it with the system control, and that choice is persisted across launches, but picking a destination sets it back to `doubleColumn` (`detailOnly` for a Duo portrait topic, `:2075-2079`) (`:1317-1322` `SidebarVisibilityStorage`, key `HFRswiftIPadSplitColumnVisibilityV3`; `:1355` default; `:1452-1469` binding). The other destinations (Réglages, Rechercher, Crédits, Charte, Supprimer mon compte): a two-column split whose sidebar starts visible (`:1343` `.all`, `:1813`), not persisted, and set back to `.all` (`:2082`). No pin setting | what "pinned" adds to the persisted visibility (a sidebar that stays shown when a topic opens, say), the setting, its scope (device, ADR 0013) and whether it also applies to the iPad split; off by default |
+
+Bybifok's own notes are ideas only (`docs/research/bybifok-proposals.md:33, 77`: PR #4, ultra-hfr `RootLayout`). There is no design document: **the author writes this section's design (layouts, defaults, the setting if any) in this spec first, and the operator approves it on #237 before any code.** Off by default, as above. The PR that ships them says `Closes #160` (this lot is FEAT-016's last one).
+
 ## Not in this lot
-- FEAT-016 items legacy does not have at `2fe43da3`: a tab rail when folded, a sidebar pinned or on demand, iOS 27.1 layout APIs. They are evolutions (M5 rule of `docs/LOTS.md`) and have no lot: they stay on FEAT-016 (#160), so this lot's PR says `Refs #160`, not `Closes #160`. Legacy's own iPad layout (sidebar sections, Bookmarks and Alertes Qualitay in the split) is LOT-170 and #685.
-- The cover screen: it keeps the compact tab-bar layout (`usesSidebarRoot` false); filling it was #432 (M4, done, GAP-216).
+- iOS 27.1 layout APIs as a goal of their own: use them only where the design above needs them.
+- Legacy's own iPad layout (sidebar sections, Bookmarks and Alertes Qualitay in the split) is LOT-170 and #685.
+- The cover screen's fill: done by #432 (M4, GAP-216).
 - Scroll position across a fold: legacy carries the page only (above).
 
 ## Legacy counterpart (app lots)
