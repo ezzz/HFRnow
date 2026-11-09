@@ -194,8 +194,8 @@ extension AppThemeTests {
 
     /// A theme setting that leaves the system's screens alone (Standard): `mode` 0 light, 1 dark; `style` 0 standard, 1 darker, 2 OLED.
     struct StyleOff: Sendable {
-        let mode: Int, style: Int, ui: UIUserInterfaceStyle
-        static let all = [StyleOff(mode: 1, style: 0, ui: .dark), StyleOff(mode: 0, style: 0, ui: .light)]
+        let mode: Int, style: Int, scheme: UIUserInterfaceStyle
+        static let all = [StyleOff(mode: 1, style: 0, scheme: .dark), StyleOff(mode: 0, style: 0, scheme: .light)]
     }
 
     private func screen(_ kind: String, _ model: ThemeSettingsModel, themed: Bool) -> AnyView {
@@ -228,10 +228,10 @@ extension AppThemeTests {
         kind: String, setting: StyleOff
     ) async throws {
         let themed = try await shot(
-            screen(kind, themeModel(mode: setting.mode, style: setting.style), themed: true), style: setting.ui
+            screen(kind, themeModel(mode: setting.mode, style: setting.style), themed: true), style: setting.scheme
         )
         let control = try await shot(
-            screen(kind, themeModel(mode: setting.mode, style: setting.style), themed: false), style: setting.ui
+            screen(kind, themeModel(mode: setting.mode, style: setting.style), themed: false), style: setting.scheme
         )
         #expect(themed == control, "\(kind), mode \(setting.mode) style \(setting.style)")
     }

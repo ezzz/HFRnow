@@ -68,10 +68,6 @@ final class ReaderWebController: NSObject {
         }
     }
 
-    private func applyUnderPageBackground() {
-        webView.underPageBackgroundColor = theme.readerBackground.resolvedColor(with: webView.traitCollection)
-    }
-
     /// What the bars and banners cover of the web view, which runs under them (LOT-186; `ReaderWebController+Scroll`).
     var obscuredInsets = UIEdgeInsets.zero {
         didSet { if obscuredInsets != oldValue { applyObscuredInsets(from: oldValue) } }
@@ -131,12 +127,7 @@ final class ReaderWebController: NSObject {
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
-        // The page's own background (the dark style's, LOT-122) shows past the page's ends while it bounces. WebKit resolves the
-        // colour when it is set, so it is set again when iOS or the theme setting flips light and dark.
-        applyUnderPageBackground()
-        webView.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { [weak self] (_: UIView, _) in
-            self?.applyUnderPageBackground()
-        }
+        trackUnderPageBackground()
         // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
         webView.scrollView.contentInsetAdjustmentBehavior = .never
     }

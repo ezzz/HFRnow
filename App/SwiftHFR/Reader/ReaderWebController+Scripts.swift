@@ -40,6 +40,19 @@ extension ReaderWebController {
         Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
     }
 
+    /// The page's own background (the dark style's, LOT-122) shows past the page's ends while it bounces. WebKit resolves the colour
+    /// when it is set, so it is set again when iOS or the theme setting flips light and dark.
+    func applyUnderPageBackground() {
+        webView.underPageBackgroundColor = theme.readerBackground.resolvedColor(with: webView.traitCollection)
+    }
+
+    func trackUnderPageBackground() {
+        applyUnderPageBackground()
+        webView.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { [weak self] (_: UIView, _) in
+            self?.applyUnderPageBackground()
+        }
+    }
+
     /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
     static func textScaleScript(_ scale: TextScale) -> String {
         let factor = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), Double(scale.factor))
