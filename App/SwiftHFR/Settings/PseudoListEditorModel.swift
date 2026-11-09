@@ -25,6 +25,8 @@ final class PseudoListEditorModel {
     @ObservationIgnored private let manager: PseudoListManager
     /// Swipes whose writes have not finished, and the last of their tasks (the next one waits for it).
     @ObservationIgnored private var pendingRemovals = 0
+    /// Counts the swipes: a read that began before one is stale and is dropped (the swipe's own tail reads again).
+    @ObservationIgnored private var swipeCount = 0
     @ObservationIgnored private var removalTail: Task<Void, Never>?
 
     /// An editor of `kind` over `manager`.
@@ -52,12 +54,16 @@ final class PseudoListEditorModel {
     }
 
     private func readList() async {
-        if let failure = await manager.loadFailure() {
+        let swipes = swipeCount
+        let failure = await manager.loadFailure()
+        let stored = failure == nil ? await manager.pseudos(of: kind) : []
+        guard swipes == swipeCount else { return }
+        if let failure {
             unreadableMessage = Self.describe(failure)
             pseudos = []
         } else {
             unreadableMessage = nil
-            pseudos = await manager.pseudos(of: kind)
+            pseudos = stored
         }
         hasLoaded = true
     }
@@ -91,6 +97,7 @@ final class PseudoListEditorModel {
         let targets = offsets.compactMap { pseudos.indices.contains($0) ? pseudos[$0] : nil }
         pseudos.remove(atOffsets: IndexSet(offsets.filter { pseudos.indices.contains($0) }))
         pendingRemovals += 1
+        swipeCount += 1
         let previous = removalTail
         let task = Task {
             await previous?.value

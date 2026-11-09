@@ -188,6 +188,9 @@ final class TopicReaderModel {
         )
     }
 
+    /// `applyDisplaySettings()` as a hook that holds this model weakly, for a sheet that outlives the tap that opened it.
+    var displaySettingsHook: @MainActor () -> Void { { [weak self] in self?.applyDisplaySettings() } }
+
     /// Follows a page swipe (legacy `DragGesture`): the next page opens at its top, the previous one at its last message.
     func swipe(_ swipe: PageSwipe) async {
         // Not while the web view still shows the previous document: the page on screen would be the wrong starting point.

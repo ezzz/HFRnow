@@ -209,8 +209,10 @@ struct PseudoListEditorModelTests {
         persistence.close()
         let first = model.remove(at: IndexSet(integer: 0)) // Deux, its write is held
         let second = model.remove(at: IndexSet(integer: 1)) // Trois
-        let reload = Task { await model.load() }
+        let reloaded = Mutex(false)
+        let reload = Task { await model.load(); reloaded.withLock { $0 = true } }
         for _ in 0..<20 { await Task.yield() }
+        #expect(!reloaded.withLock { $0 }) // the reload does not complete while a removal is held
         #expect(model.pseudos == ["Quatre", "Un"]) // held writes: the list shows the swipes, not the stored file
         persistence.open()
         await reload.value // the reload ran after both writes, not between them
