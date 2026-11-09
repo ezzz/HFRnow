@@ -15,7 +15,7 @@ Absent at `2440d79` (GAP-152: the "Vider le cache" row of `AppSettingsView.swift
 |---|---|
 | `HFRswift/Swift/AppSettingsView.swift:547-577` (`maintenanceSection`) | section "Maintenance": "Caches de l'app" (total), "Pages HTML" (size, "N fichiers" below), a spinner until measured, "Ouvrir les réglages système"; footer "Les pages HTML de plus de 7 jours sont supprimées automatiquement. Leur cache est limité à 50 Mo." |
 | `AppSettingsView.swift:288-297` (`refreshCacheStorage`, `formattedStorageSize`) | measured off the main thread; sizes as `.byteCount(style: .file)` |
-| `HFRswift/Swift/HTMLPageCacheManager.swift:39-55` (`storageSnapshot`), `:108-146` (`cachedHTMLFiles`) | total = allocated size of the whole `Caches` folder; "Pages HTML" = only the non-hidden regular files directly under `Caches/cache` named `topic-*` with an `htm` extension (case-insensitive) |
+| `HFRswift/Swift/HTMLPageCacheManager.swift:39-55` (`storageSnapshot`), `:108-146` (`cachedHTMLFiles`), `:148-177` (`directoryAllocatedSize`) | total = allocated size of every non-hidden regular file under `Caches`, recursively (hidden files and folders skipped); "Pages HTML" = only the non-hidden regular files directly under `Caches/cache` named `topic-*` with an `htm` extension (case-insensitive) |
 
 Clearing is not in this lot: the "Vider le cache ?" alert (`AppSettingsView.swift:637-644`) is never presented at `2fe43da3` (`showClearCacheConfirmation`, `:118`, is never set), and the ObjC settings screen that had "EmptyCacheButton" (`Classes/PlusSettingsViewController.m:308-313`) is not routed in the SwiftUI app. That is LOT-187.
 
