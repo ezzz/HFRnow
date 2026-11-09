@@ -5690,6 +5690,7 @@ struct MessagesView: View {
                         }
                     }
                 }
+                .coverScreenBottomBackButton()
                 .sheet(isPresented: $isPagePickerPresented) {
                     TopicPagePickerSheet(
                         maxPage: currentMaxPage,

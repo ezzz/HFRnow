@@ -66,6 +66,12 @@ final class PhoneDisplayPolicyTests: XCTestCase {
         XCTAssertTrue(inline(.other, isPhone: true, regularBoth: true))
     }
 
+    func testThumbActionsAtBottomOnCoverScreenOnly() {
+        XCTAssertTrue(PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: .duoCover))
+        XCTAssertFalse(PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: .duoInner))
+        XCTAssertFalse(PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: .other))
+    }
+
     private func inline(_ kind: PhoneDisplayKind, isPhone: Bool, regularBoth: Bool) -> Bool {
         PhoneDisplayPolicy.usesInlineRootTitle(kind: kind, isPhone: isPhone, isRegularInBothDimensions: regularBoth)
     }

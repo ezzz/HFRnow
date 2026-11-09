@@ -131,6 +131,7 @@ struct CategoriesListView: View {
     @StateObject private var viewModel: CategoriesListViewModel
     @StateObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     private let selectedTopicID: TopicNavigationID?
     private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
     private let onSelectForum: ((Forum) -> Void)?
@@ -202,7 +203,7 @@ struct CategoriesListView: View {
                         ToolbarProfileImage(image: accountsStore.currentAvatarImage, url: nil)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: phoneDisplayKind.refreshToolbarPlacement) {
                     Button {
                         AppHaptics.refreshStarted()
                         viewModel.load(shouldTriggerHaptic: true)
@@ -300,6 +301,7 @@ struct ForumTopicsListView: View {
     @StateObject private var viewModel: ForumTopicsListViewModel
     @ObservedObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     @AppStorage("HFRswiftGlobalTopicListFlag") private var globalTopicListFlagRawValue = TopicListFlag.all.rawValue
     @State private var hasLoaded = false
     @State private var visitedURLs: Set<String> = []
@@ -819,7 +821,8 @@ struct ForumTopicsListView: View {
                     Label("Nouveau sujet", systemImage: "plus")
                 }
                 .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
-
+            }
+            ToolbarItem(placement: phoneDisplayKind.refreshToolbarPlacement) {
                 Button {
                     AppHaptics.refreshStarted()
                     viewModel.load(shouldTriggerHaptic: true)
@@ -833,6 +836,7 @@ struct ForumTopicsListView: View {
                 .disabled(viewModel.isLoading)
             }
         }
+        .coverScreenBottomBackButton()
         .onAppear {
             if !hasLoaded {
                 let initialFlag = initialFlagForCurrentPresentation

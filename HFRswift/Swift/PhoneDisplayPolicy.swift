@@ -54,4 +54,10 @@ enum PhoneDisplayPolicy {
         guard isPhone else { return false }
         return kind != .other || isRegularInBothDimensions
     }
+
+    /// Whether « Actualiser » and « Retour » go to the bottom of the toolbar. On the cover screen
+    /// the toolbar is a column on the right edge, and only its bottom is within thumb reach.
+    static func placesThumbActionsAtBottom(kind: PhoneDisplayKind) -> Bool {
+        kind == .duoCover
+    }
 }
