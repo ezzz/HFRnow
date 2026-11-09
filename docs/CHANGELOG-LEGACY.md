@@ -110,6 +110,7 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 622 | T | Le choix d'icône n'est enregistré qu'après acceptation par le système : un changement refusé ne laisse plus la clé `icon` en désaccord avec l'icône affichée, et la case cochée suit l'icône réellement affichée. | LOT-123 #214 | `AppSettingsView.swift:213-224, 524` @ `2440d79` (la clé est écrite avant `applyIconSelection`) |
 | 622 | UX | Nouvelle icône alternative « REDFACE 3D Big » (`Icon-RedFace3DBig`). | LOT-123 #214 | `SuperHFRplus/Assets/AlternativeIcons/Icon-RedFace3DBig.icon` @ `2440d79` (absente du sélecteur legacy) |
 | 623 | UX | Sept icônes alternatives en .icon, cinq redessinées en vectoriel pour rester nettes (LOT-123) | #623 | `SuperHFRplus/Assets/AlternativeIcons/` @ 2440d79 |
+| 640 | UX | Réglages › Sujets : listes noire et blanche modifiables (ajout manuel, suppression), « Masquer les pseudos blacklistés » ; Blacklist / Whitelist dans le menu du membre et boutons sur le profil. | LOT-118 #209 | `AppSettingsView.swift:581-700`, `MessagesView.swift:1683-1717` @ `2440d79` |
 | 651 | UX | Liste des MP : le titre d'une conversation lue garde la couleur secondaire, plus foncée en thème clair pour rester lisible (contraste 6:1 au lieu de 3,4:1). | #651 | `Common.swift:3119-3120`, `MPListView.swift:469` @ `2440d79` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

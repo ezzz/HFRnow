@@ -171,6 +171,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-151 | Crédits, Charte | Bundled HTML pages from Plus. | StaticInfoPageView.swift:10-47 | Static pages; About links to the app's topics, opened in the app. | LOT-120 | ported with changes | port: ezzz Swift layer | a |
 | GAP-152 | Maintenance | System-settings shortcut; "Vider le cache" commented out. | AppSettingsView.swift:264-280, 476-486 | Cache sizes and the system-settings shortcut. | LOT-120, LOT-066 | UX change | new UX: spec | b |
 | GAP-153 | Smiley size, video rows | Rows commented out, no effect. | AppSettingsView.swift:422-432 | Not ported. | LOT-119 | dropped | new UX: spec | — |
+| GAP-209 | Pseudo lists after a toggle from the profile | profile sheet dismissed, `loadPage(page)` (`MessagesView.swift:3663-3694`) | `MessagesView.swift:3663` | Sheet stays open with the sentence under the buttons; reader rebuilds on close, no request | #209 | UX change | none | b |
 
 ## Accounts
 
@@ -264,11 +265,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 35 |
 | ported with changes | 48 |
 | ported with changes (engine only) | 1 |
-| UX change | 46 |
+| UX change | 47 |
 | new | 28 |
 | dropped | 2 |
 | not planned | 7 |
-| **Total** | **167** |
+| **Total** | **168** |
 
 ## Convergence notes
 
@@ -299,7 +300,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (122)
+### GAP rows of type `ported with changes`, `UX change` or `new` (123)
 
 | H.1 | Rows | Count |
 |---|---|---|
@@ -307,7 +308,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | a·master | 002, 150, 211 | 3 |
 | b·needed | 024, 056, 058, 089, 133, 181 | 6 |
 | b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596 | 18 |
-| b | 008, 009, 012, 014, 015, 020, 022, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 212, 214, 215, 217, 218, 219, 229 | 48 |
+| b | 008, 009, 012, 014, 015, 020, 022, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 093, 094, 095, 097, 099, 101, 113, 114, 117, 118, 146, 152, 163, 166, 193, 194, 195, 202, 203, 204, 209, 212, 214, 215, 217, 218, 219, 229 | 49 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
 
