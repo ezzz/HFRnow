@@ -28,9 +28,11 @@ jobs:
             // Legacy-app issues carry no origin (AGENTS.md §7).
             const title = context.payload.issue.title || "";
             const legacy = /^\[Legacy/.test(title) && !/SwiftHFR/.test(title);
-            // On an edit, Origin follows the form only when its answer changed, so a maintainer's correction stays.
+            // On an edit, Origin follows the form only when its answer changed or the issue has no origin yet
+            // (e.g. a title that stopped being [Legacy …]), so a maintainer's correction stays.
             const oldBody = context.payload.changes?.body?.from;
-            const originChanged = context.payload.action !== "edited" ||
+            const hasOrigin = context.payload.issue.labels.some((l) => l.name.startsWith("origin: "));
+            const originChanged = context.payload.action !== "edited" || !hasOrigin ||
               (oldBody !== undefined && fieldIn(oldBody, "Origin") !== field("Origin"));
             const allowed = {
               Type: ["lot", "roadmap", "chore", "docs", "security"],
