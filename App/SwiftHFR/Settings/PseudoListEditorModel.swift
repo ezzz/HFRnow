@@ -48,9 +48,14 @@ final class PseudoListEditorModel {
 
     /// Reads the list (on appear, after a retry). A store that cannot be read keeps the editor read-only.
     func load() async {
-        // Writes of a swipe still queued: wait for them, or the list read now would bring the swiped rows back.
-        while pendingRemovals > 0, let tail = removalTail { await tail.value }
+        await settleRemovals()
         await readList()
+    }
+
+    /// Waits for the writes of the swipes still queued: a read made now would bring the swiped rows back, and an add of a
+    /// swiped pseudo would meet it still listed, then lose it to the queued removal.
+    private func settleRemovals() async {
+        while pendingRemovals > 0, let tail = removalTail { await tail.value }
     }
 
     private func readList() async {
@@ -78,6 +83,7 @@ final class PseudoListEditorModel {
     func add() async {
         let pseudo = trimmedDraft
         guard canAdd else { return }
+        await settleRemovals()
         do {
             let added = try await manager.add(pseudo, to: kind)
             draft = ""

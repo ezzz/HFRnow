@@ -222,6 +222,27 @@ struct PseudoListEditorModelTests {
         #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
     }
 
+    /// A swiped pseudo added back before its queued removal ran is added after the removal: it ends in the list, with no
+    /// "already listed" message.
+    @Test func addingBackASwipedPseudoWaitsForItsQueuedRemoval() async throws {
+        let persistence = GatedPersistence()
+        let store = PseudoListStore(persistence: persistence)
+        for pseudo in ["Un", "Deux"] { try await store.block(pseudo, account: "moi") }
+        let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
+        await model.load()
+        persistence.close()
+        let removal = model.remove(at: IndexSet(integer: 0)) // Deux, its write is held
+        model.draft = "Deux"
+        let adding = Task { await model.add() }
+        for _ in 0..<20 { await Task.yield() }
+        persistence.open()
+        await removal.value
+        await adding.value
+        #expect(model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Deux", "Un"])
+        #expect(model.pseudos == ["Deux", "Un"])
+    }
+
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.
     @Test func anUnreadableFileKeepsTheEditorReadOnly() async throws {
         let persistence = UnreadablePersistence()
