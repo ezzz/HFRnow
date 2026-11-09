@@ -34,7 +34,7 @@ Every feature and lot follows these; a proposal that breaks one needs the operat
 - FEAT-013: LOT-097 (M3), LOT-152 (M5), LOT-184 (M5)
 - FEAT-014: LOT-109 (M2), shipped with the HD gallery (#472); LOT-176 (M5) has nothing left
 - FEAT-015: LOT-090 (M3), LOT-145 (M5), LOT-172 (M3)
-- FEAT-016: LOT-147 (M4, the iPhone Duo layout legacy has at `2fe43da3`, #655); the tab rail and the pinned or on-demand sidebar have no lot (M5)
+- FEAT-016: LOT-147 (M4: the iPhone Duo layout legacy has at `2fe43da3`, #655, and the tab rail and the pinned or on-demand sidebar, operator 2026-11-09, #237)
 - FEAT-017: LOT-148 (M5)
 - FEAT-018: LOT-154 (M5)
 - FEAT-019: LOT-103 (M2)
@@ -62,7 +62,7 @@ Source: Bybifok's proposal message, PRs [ezzz/HFRnow#3–#6](https://github.com/
 | FEAT-013 | **Preview before send** (BBCode rendering as HFR's; "exact" per the operator's choice O-1) | LOT-097 (BBCode renderer), LOT-152, LOT-184 | [ADR 0014](adr/0014-bbcode-preview-renderer.md) (accepted): local renderer in HFRParsing through the LOT-034 normalizer, measured against HFR's own rendering; O-1 = (b) decided 2026-11-02 on #189: local preview (LOT-097, LOT-152) plus on-demand `/apercu.php` (LOT-184, M5) | 4 | medium | proposed | [#157](https://github.com/ezzz/HFRnow/issues/157) |
 | FEAT-014 | **HD gallery** with swipe between images | 034, 056 | — | 4 | medium | done | [#158](https://github.com/ezzz/HFRnow/issues/158) |
 | FEAT-015 | **State restoration**: forum, topic, page, position on return, fold, multi-window | **new** reading-position store | — | 4–5 | medium | proposed | [#159](https://github.com/ezzz/HFRnow/issues/159) |
-| FEAT-016 | **iPhone Duo / iPad columns**: two columns unfolded, tabs in a rail folded, sidebar pinned or on demand | — | Phase 5 design documentation | 5 | high | proposed | [#160](https://github.com/ezzz/HFRnow/issues/160) |
+| FEAT-016 | **iPhone Duo / iPad columns**: two columns unfolded, tabs in a rail folded, sidebar pinned or on demand | LOT-147 | design in the LOT-147 spec, approved by the operator on #237 | 4 | high | spec | [#160](https://github.com/ezzz/HFRnow/issues/160) |
 | FEAT-017 | **Continuous scrolling** (option, off by default, haptic per page) | 045, 030–034 | 🔴 Flag semantics: an authenticated GET moves the flag; prefetch without session then reload — two requests per page | 5 | low | proposed | [#161](https://github.com/ezzz/HFRnow/issues/161) |
 | FEAT-018 | **"On t'a cité"** in Home and in the FEAT-005 notification | capture of `quote_only=1` first ([#126](https://github.com/ezzz/HFRnow/issues/126)) | Unverified: no server signal known (HFR-PROTOCOL §7b B11); stays `proposed` until the capture settles feasibility | 5+ | low | proposed | [#162](https://github.com/ezzz/HFRnow/issues/162) |
 | FEAT-019 | **Upload history** on reho.st (local removal; server-side delete not evidenced) | 056, 071 | No delete API evidenced for guest uploads: local removal only, [spec](features/FEAT-019.md) | 4+ | low | done | [#163](https://github.com/ezzz/HFRnow/issues/163) |
