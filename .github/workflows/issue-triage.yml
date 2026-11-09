@@ -25,24 +25,26 @@ jobs:
         with:
           script: |
             // Deterministic triage: reads the issue-form dropdowns and applies one label per axis (AGENTS.md §7).
-            const body = context.payload.issue.body || "";
+            // The issue as it is now, not as the (possibly stale or out-of-order) event payload saw it.
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            const now = (await github.rest.issues.get(issue)).data;
+            const body = now.body || "";
             const fieldIn = (text, heading) => {
               const match = text.match(new RegExp("### " + heading + "\\s*\\n+([^\\n]+)"));
               return match ? match[1].trim().toLowerCase() : null;
             };
             const field = (heading) => fieldIn(body, heading);
-            // Legacy-app issues carry no origin (AGENTS.md §7).
-            const title = context.payload.issue.title || "";
-            const legacy = /^\[Legacy/.test(title) && !/SwiftHFR/.test(title);
-            // On an edit, Origin follows the form only when its answer changed or the issue has no origin yet
-            // (e.g. a title that stopped being [Legacy …]), so a maintainer's correction stays.
-            const oldBody = context.payload.changes?.body?.from;
-            // Labels as they are now, not as the (possibly stale) event payload saw them.
-            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
-            const current = (await github.rest.issues.listLabelsOnIssue({ ...issue, per_page: 100 })).data.map((l) => l.name);
+            // Legacy-app issues carry no origin (AGENTS.md §7): a [Legacy …] title without SwiftHFR, or the form's "none" answer.
+            const title = now.title || "";
+            const legacyTitle = /^\[Legacy/.test(title) && !/SwiftHFR/.test(title);
+            const current = now.labels.map((l) => (typeof l === "string" ? l : l.name));
             const hasOrigin = current.some((name) => name.startsWith("origin: "));
+            // On an edit, Origin follows the form only when the answer differs from the one this edit replaced, or the
+            // issue has no origin yet (e.g. a title that stopped being [Legacy …]), so a maintainer's correction stays.
+            const oldBody = context.payload.changes?.body?.from;
             const originChanged = context.payload.action !== "edited" || !hasOrigin ||
               (oldBody !== undefined && fieldIn(oldBody, "Origin") !== field("Origin"));
+            const legacy = legacyTitle || (originChanged && (field("Origin") || "").startsWith("none"));
             const allowed = {
               Type: ["lot", "roadmap", "chore", "docs", "security"],
               Priority: ["high", "medium", "low"],
