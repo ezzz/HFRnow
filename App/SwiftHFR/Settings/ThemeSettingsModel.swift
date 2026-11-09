@@ -176,8 +176,9 @@ private struct WindowStyle: UIViewRepresentable {
 
 extension View {
     /// The dark theme's screen background for the "darker" and "OLED" styles (LOT-122), for the root view of a navigation
-    /// container: lists and forms let it show through and the container paints it. Light mode and the standard style are the
-    /// system's, untouched. A container the modifier is not applied to keeps the system's fill (see LOT-122 spec).
+    /// container: lists and forms let it show through and the container paints it. The standard style is the system's,
+    /// untouched; in light the other styles keep the system's background on stacks (see `AppScreenBackground`).
+    /// A container the modifier is not applied to keeps the system's fill (see LOT-122 spec).
     func appScreenBackground() -> some View { modifier(AppScreenBackground()) }
 }
 
@@ -185,16 +186,25 @@ private struct AppScreenBackground: ViewModifier {
     @Environment(\.themeAppearance) private var appearance
     @Environment(\.colorScheme) private var scheme
 
-    /// One view structure whatever the style and the appearance: a conditional here would give the wrapped screen (a reader's web
-    /// view, a composer, a list) a new identity at every switch between light and dark, and reset its state. With no colour the
-    /// two container backgrounds are empty and the list background is the system's.
-    func body(content: Content) -> some View {
-        let fill = appearance.darkScreenBackground.flatMap { scheme == .dark ? Color(uiColor: $0.uiColor) : nil }
-        content
-            .scrollContentBackground(fill == nil ? .automatic : .hidden)
-            .containerBackground(for: .navigation) { if let fill { fill } }
-            // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
-            .containerBackground(for: .navigationSplitView) { if let fill { fill } }
+    /// Only the style chooses the structure; the appearance only changes values. A flip between light and dark (iOS's sunset
+    /// schedule, Control Center) must not give the wrapped screen (a reader's web view, a composer, a list) a new identity, or
+    /// its state resets. A change of the style in Settings rebuilds, which the user asked for.
+    ///
+    /// Standard applies nothing at all: an empty `containerBackground` is not "no modifier", it clears the stack's own opaque
+    /// fill (measured). In light a darker or OLED user gets the system's background on stacks; a split column and a sheet lose
+    /// their own fill (the iPad sidebar's material, the sheet's shade) there, which no empty or fallback form avoids.
+    @ViewBuilder func body(content: Content) -> some View {
+        if let color = appearance.darkScreenBackground {
+            let fill = Color(uiColor: color.uiColor)
+            let dark = scheme == .dark
+            content
+                .scrollContentBackground(dark ? .hidden : .automatic)
+                .containerBackground(for: .navigation) { if dark { fill } else { Rectangle().fill(.background) } }
+                // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
+                .containerBackground(for: .navigationSplitView) { if dark { fill } }
+        } else {
+            content
+        }
     }
 }
 

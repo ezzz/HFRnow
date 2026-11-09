@@ -65,9 +65,10 @@ extension DarkStyle {
 private struct DarkStylePreview: View {
     let appearance: ThemeAppearance
     // Dynamic Type scales the sample's insets with its text.
-    @ScaledMetric private var spacing = 6.0
-    @ScaledMetric private var padding = 10.0
-    @ScaledMetric private var radius = 8.0
+    @ScaledMetric(relativeTo: .callout) private var spacing = 6.0
+    @ScaledMetric(relativeTo: .callout) private var quotePadding = 6.0
+    @ScaledMetric(relativeTo: .callout) private var padding = 10.0
+    @ScaledMetric(relativeTo: .callout) private var radius = 8.0
 
     var body: some View {
         let surfaces = Dictionary(uniqueKeysWithValues: appearance.readerSurfaces.map { ($0.variable, $0.color) })
@@ -80,7 +81,7 @@ private struct DarkStylePreview: View {
             Text("Un message du sujet").foregroundStyle(Color(uiColor: ThemeAppearance.darkText.uiColor))
             Text("Une citation").font(.callout)
                 .foregroundStyle(Color(uiColor: appearance.nightAccent.uiColor))
-                .padding(spacing).frame(maxWidth: .infinity, alignment: .leading)
+                .padding(quotePadding).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(uiColor: quote.uiColor))
             Rectangle().fill(Color(uiColor: separator.uiColor)).frame(height: 1)
         }
