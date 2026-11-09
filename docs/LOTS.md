@@ -280,7 +280,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 ## Phase 5 — app: iOS 27 experience
 
-Continuous reading, keyboard and system integration, and the features that wait on a design document or a feasibility capture. The iPhone Duo layout (LOT-147) moved to "Navigation and platform" on 2026-11-09 (#655): legacy has it at `2fe43da3`.
+Continuous reading, keyboard and system integration, and the features that wait on a design document or a feasibility capture. The iPhone Duo layout (LOT-147) moved to "Navigation and platform" on 2026-11-09 (#655): legacy has it at `2fe43da3`. Its FEAT-016 additions (tab rail, pinned or on-demand sidebar) moved with it the same day (operator, #237).
 
 | Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |
 |---|---|---|---|---|---|---|---|---|

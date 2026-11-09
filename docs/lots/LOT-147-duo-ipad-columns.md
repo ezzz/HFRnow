@@ -35,14 +35,14 @@ SwiftHFR today: the split root is iPad-only (`App/SwiftHFR/Root/RootNavigationVi
 
 ## Scope (M4): the FEAT-016 additions legacy lacks
 
-**Operator decision, 2026-11-09** (m2-lead, recorded on [#237](https://github.com/ezzz/HFRnow/issues/237)): the FEAT-016 items legacy does not have at `2fe43da3` are in M4 too, in this lot. They are evolutions, not parity: an explicit operator exception to the M5 rule of `docs/LOTS.md` and to the 2026-10-28 rule of not taking Bybifok's UX proposals by default. GAP-655 (`b·operator`) records them.
+**Operator decision, 2026-11-09** (m2-lead, recorded on [#237](https://github.com/ezzz/HFRnow/issues/237)): the FEAT-016 items legacy does not have at `2fe43da3` are in M4 too, in this lot. They are evolutions, not parity: an explicit operator exception to the M5 rule of `docs/LOTS.md`. They stay under the UX principles of `docs/FEATURES.md` (*Preserve what works*, *Defaults keep the legacy UX; changes are opt-in settings*, operator 2026-10-28): **both are opt-in settings, off by default**, so the legacy bottom bar and the legacy sidebar behaviour stay the default. Making one the default would change navigation and needs the community's support recorded on #160 (`docs/FEATURES.md:12`). GAP-655 (`b·operator`) records them.
 
 | FEAT-016 item ([#160](https://github.com/ezzz/HFRnow/issues/160), Bybifok) | Legacy @ `2fe43da3` | To specify before coding |
 |---|---|---|
 | Tabs in a rail when folded | the cover screen keeps the tab bar (`MainWindow.swift:1357-1365`, `usesSidebarRoot` false) | which screens and size classes get the rail; how it coexists with the reader's hidden tab bar (GAP-008, UXD-02) and the Liquid Glass bars (GAP-220 to GAP-226) |
-| Sidebar pinned or on demand | the split root shows the system sidebar, no pin setting | the control (setting or gesture), its default (the legacy behaviour), its scope (device, ADR 0013) and whether it also applies to the iPad split |
+| Sidebar pinned or on demand | the split root opens with the sidebar hidden (`doubleColumn`, list + topic) and the user shows or hides it with the system control; that choice is persisted across launches (`MainWindow.swift:1317-1322` `SidebarVisibilityStorage`, key `HFRswiftIPadSplitColumnVisibilityV3`; `:1355` default `doubleColumn`; `:1452-1469` binding). No pin setting | what "pinned" adds to the persisted visibility (a sidebar that stays shown when a topic opens, say), the setting, its scope (device, ADR 0013) and whether it also applies to the iPad split; off by default |
 
-Bybifok's own notes are ideas only (`docs/research/bybifok-proposals.md:33, 77`: PR #4, ultra-hfr `RootLayout`). There is no design document: **the author writes this section's design (layouts, defaults, the setting if any) in this spec first, and the operator approves it on #237 before any code.** Defaults keep the legacy layout unless the operator decides otherwise. The PR that ships them says `Closes #160` (this lot is FEAT-016's last one).
+Bybifok's own notes are ideas only (`docs/research/bybifok-proposals.md:33, 77`: PR #4, ultra-hfr `RootLayout`). There is no design document: **the author writes this section's design (layouts, defaults, the setting if any) in this spec first, and the operator approves it on #237 before any code.** Off by default, as above. The PR that ships them says `Closes #160` (this lot is FEAT-016's last one).
 
 ## Not in this lot
 - iOS 27.1 layout APIs as a goal of their own: use them only where the design above needs them.
