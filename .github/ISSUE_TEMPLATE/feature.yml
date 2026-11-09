@@ -41,3 +41,10 @@ body:
       label: Area
       options: [models, parsing, network, storage, app, ci, docs]
     validations: { required: true }
+  - type: dropdown
+    id: origin
+    attributes:
+      label: Origin
+      description: Where the work comes from (AGENTS.md §7). Leave empty if unsure; maintainers set it. A legacy-app issue has none.
+      options: [audit, initial-port, parity, deliberate-gap, swift-feedback, legacy-evolution, infra, none (legacy app)]
+    validations: { required: false }

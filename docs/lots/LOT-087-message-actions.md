@@ -18,6 +18,8 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 | `Classes/ObjCMessageActionsBuilder.m:91-104` (`permalinkURLForPostID`: page URL without fragment + `#` + the post id, which is the anchor name `t<n>`) | `TopicReaderModel.permalink(of:on:)` |
 | `HFRswiftTests/MessagePopupMenuPolicyTests.swift` | `MessageMenuPolicyTests` (same cases) |
 
+**Legacy at `2fe43da3`** (catch-up of #655): `f3b00e66` moves "Editer" first (`priority(for:)`: edit 0, quote 1, quote selection 2, the rest unchanged, `HFRswift/Swift/MessagesView.swift:277-305` @ `2fe43da3`; at `2440d79` quote 0, quote selection 1, edit 2). Edit is offered on one's own messages only, so only their order changes. The policy above keeps the `2440d79` order until [#677](https://github.com/ezzz/HFRnow/issues/677) (M4) ports the new one.
+
 ## Behaviour
 
 - **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes six names (`images`, `tap`, `ready`, `video`, `menu`, and `position` since LOT-111) into
@@ -63,8 +65,10 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    deletes the whole topic (HFR-PROTOCOL §3.1 "First post" row: `W49`, `R92`; the private-thread variant differs, `R43a`); legacy
    never offered it. Only "Link" has a handler in this lot, so "Supprimer" shows nowhere yet. Own-message, favourite and delete flags derive from LOT-031's
    `MessageActions`, not from the legacy builder's flags.
-5. The author menu opens from the pseudo (a button); legacy opened it from the avatar image, which stays inert here (a blocked or
-   missing avatar would otherwise leave no way in).
+5. The author menu opens from the avatar and from the pseudo, as legacy's two tap targets (`templatev2.htm:4-5`); a member without a
+   picture, or whose picture was refused, shows the monogram of the MP list, so the avatar is always there to tap (issue #595).
+   Entries: Profil and MP; Blacklist and Whitelist wait for LOT-118 (#209), which registers their two handlers in
+   `TopicReaderView.installMenuActions`. Legacy jumped to the profile screen when a profile link existed (`MessagesView.swift:3610-3616`).
 6. The menu is a popover anchored at the tapped `⋯` (issue #594), titled "Post de <pseudo>"; legacy used a `UIEditMenuInteraction`
    at the tapped point (`MessagesView.swift:1521-1595`). It is no longer a `confirmationDialog` of the whole reader, which iOS 26
    and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the

@@ -32,11 +32,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
+        with: { persist-credentials: false, fetch-depth: 0 }
       - name: Lot dependencies respect module rules
         run: python3 scripts/check-lot-deps.py
       - name: GAP and changelog fragments (format, unique IDs, generated tallies)
         run: python3 tooling/docs/fold.py --check
+      # Inputs go through env, never inline in the script (the body and the branch name are author-controlled).
+      - name: The ledger paths belong to the steward's docs/ledger-* PR, entries go in the PR body (#620)
+        if: github.event_name == 'pull_request'
+        env: { BASE_REF: "${{ github.base_ref }}", HEAD_REF: "${{ github.head_ref }}" }
+        run: |
+          git fetch --no-tags origin "$BASE_REF"
+          python3 tooling/docs/ledger.py guard --base "origin/$BASE_REF" --head-ref "$HEAD_REF"
+      - name: The label ledger and the Ledger section of the PR body agree and parse
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, '|') }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: printf '%s' "$PR_BODY" | python3 tooling/docs/ledger.py check-body --pr "$PR_NUMBER" --labels "$PR_LABELS"
       - name: Markdown tables and links
         run: npx --yes markdownlint-cli2@0.18.1
 

@@ -78,7 +78,7 @@ A lot is ✅ only when all of these hold:
    - the code is in the right module;
    - tests exist (differential tests for ported logic);
    - CI is green;
-   - the spec, `HFR-PROTOCOL.md`, ADR and `CHANGELOG-LEGACY.md` are updated;
+   - the spec, `HFR-PROTOCOL.md`, ADR are updated, and the PR body's `### Ledger` section holds the changelog and GAP entries (never an edit of the ledger files);
    - the adversarial review was done by another model;
    - the self-review against LESSONS was done.
 3. The PR is merged, and the issue is closed with `Done in #PR (merged as <sha>)`.
@@ -86,7 +86,7 @@ A lot is ✅ only when all of these hold:
 M_TABLE=f'''| Milestone | Goal | Exit criteria | Progress |
 |---|---|---|---|
 | 🚀 **M1 · MVP** ([#166](https://github.com/ezzz/HFRnow/issues/166)) | Log in, browse, read, reply; first TestFlight build | M1 lots ✅, LOT-161 TestFlight build installed, #322 and #344 checks done | {bar(*[pct(M1)[0],pct(M1)[3]],10)} {pct(M1)[4]} % |
-| 📖 **M2 · Read & reply complete** | Every reading and answering feature of the legacy app (topics and MPs): quotes, formatting, smileys, images, edit/delete, new topic, polls, search, filters, page tools, offline reading, MPs | M2 lots ✅, TestFlight beta 2 | {bar(pct(M2)[0],pct(M2)[3],10)} {pct(M2)[4]} % |
+| 📖 **M2 · Read & reply complete** | Every reading and answering feature of the legacy app (topics and MPs): quotes, formatting, smileys, images, edit/delete, new topic, poll display and vote (poll creation and archived drafts: M4, #655), search, filters, page tools, offline reading, MPs | M2 lots ✅, TestFlight beta 2 | {bar(pct(M2)[0],pct(M2)[3],10)} {pct(M2)[4]} % |
 | ⚙️ **M3 · Engine complete** | Every `HFRKit` lot (models, parsing, network, flows, storage) | M3 lots ✅, LOT-070 parity gates green | {bar(pct(M3)[0],pct(M3)[3],10)} {pct(M3)[4]} % |
 | 🏁 **M4 · Final version** | The validated legacy parity: MPStorage sync, notifications, compliance, accessibility, App Store | LOT-164 parity gate ✅, LOT-165 App Store submission accepted, every M4 lot ✅ | {bar(pct(M4)[0],pct(M4)[3],10)} {pct(M4)[4]} % |
 | 🧪 **M5 · UX evolutions** | The evolutions: every change from the plan or from the legacy that parity does not need (deferred option B of the UXD decisions, FEAT items, the (b) halves of split lots), never dropped (operator, 2026-11-02, [#379](https://github.com/ezzz/HFRnow/issues/379)) | after the M4 parity is validated; each lot ✅ | {bar(pct(M5)[0],pct(M5)[3],10)} {pct(M5)[4]} % |

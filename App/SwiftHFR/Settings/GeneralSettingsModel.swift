@@ -7,7 +7,7 @@ import Observation
 /// The "Général" settings, one instance for the whole app (`SwiftHFRApp` owns it): each property reads its legacy key at
 /// creation and writes it back on every change, so what the screen shows is what the store holds (LOT-119).
 ///
-/// Settings of other lots are not here: favourites options (LOT-124), haptics and icon (LOT-123), theme (LOT-121),
+/// Settings of other lots are not here: favourites options (LOT-124), the app icon (LOT-123, `AppIconSettingsModel`), theme (LOT-121),
 /// blocklists (LOT-118), maintenance and about (LOT-120).
 @MainActor
 @Observable
@@ -61,6 +61,12 @@ final class GeneralSettingsModel {
         didSet { if compactMode != oldValue { store.set(compactMode, for: SettingKey.compactMode) } }
     }
 
+    /// "Retours haptiques" (`haptics`, default on). Every haptic goes through `HapticFeedback`, which reads the store at each
+    /// call, so a change applies at once (LOT-123).
+    var hapticsEnabled: Bool {
+        didSet { if hapticsEnabled != oldValue { store.set(hapticsEnabled, for: SettingKey.haptics) } }
+    }
+
     /// The app-wide type scale of `textSizePercent`.
     var textScale: TextScale { TextScale(percent: textSizePercent) }
     /// The list density of `compactMode`.
@@ -105,6 +111,7 @@ final class GeneralSettingsModel {
         opensLinksInDefaultBrowser = store.value(for: SettingKey.opensLinksInDefaultBrowser)
         textSizePercent = SettingKey.textSizePercent(from: store)
         compactMode = store.value(for: SettingKey.compactMode)
+        hapticsEnabled = store.value(for: SettingKey.haptics)
         imageLoading = store.value(for: SettingKey.displayImages)
         mpListDisplay = store.value(for: SettingKey.mpListDisplay)
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)

@@ -1,7 +1,7 @@
 # HFR protocol reference
 
 Everything we know about how forum.hardware.fr works: URLs, parameters, forms, cookies, tokens, HTML signals.
-**Every entry cites its source**: a legacy `file:line` (repo <https://github.com/ezzz/HFRnow> @ `2440d79`) and/or an audit section.
+**Every entry cites its source**: a legacy `file:line` (repo <https://github.com/ezzz/HFRnow> @ `2fe43da3` for new entries, the reference of AGENTS.md §2; entries @ `2440d79` stay valid) and/or an audit section.
 Status per fact: **code** = read from legacy code only · **live** = observed by us on the live forum (a fixture id such as `R21` points to the LOT-001 capture corpus, [`captures/MANIFEST.md`](../Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/MANIFEST.md)) · **rf2** = reported by the redface2 Android client's documentation (rewritten in our words, not copied; GPL project) · **verified** = confirmed by a committed fixture. Until Phase 2 delivers fixtures, nothing is *verified*; §7 lists the open points to settle with fixtures.
 
 This document and the test fixtures are licensed under [CC BY 4.0](../LICENSE-docs.md) ([ADR 0009](adr/0009-open-protocol-docs-license.md)), unlike the code.
@@ -131,7 +131,7 @@ Source: `Classes/MPStorage.m:21-22, 152-156, 249-355, 536-666, 737-885` · D §2
 - **HTTP status**: legacy ignores it; application errors are detected from content (`.hop`, `login_redirection.php`, missing `id`, `Location`). A §3.4 The new transport throws on 4xx/5xx ([LOT-040](lots/LOT-040-transport.md)).
 - **URL building** ([LOT-041](lots/LOT-041-endpoints.md)): `HFREndpoint` builds every §1–2 request with the query order shown in the tables. Topic pages are always requested through `forum2.php` (the canonical path is never rebuilt, its sub-category segment is not derivable); query values use strict percent-encoding (`%20` for space, `%2B` for `+`). Exception: the REST `uri` value keeps `/` literal (`uri=forums/hardwarefr/categories/`), never `%2F`.
 - **Headers**: no custom User-Agent, Referer or Origin; gzip accepted. Whether HFR checks any is unverified. A §3.3
-- **Timeouts** (legacy): lists 30 s, topic search 60 s, global search 15 s, background MP check 5 s. No retry, no backoff, no rate limiting. A §3.5
+- **Timeouts** (legacy): lists 30 s, topic search 60 s, global search 15 s, background MP check 5 s. No retry, no backoff, no rate limiting. A §3.5 At `2fe43da3` (`ae196aa0`): lists, topic pages and topic search 10 s (`Classes/Constants.h:70-72`, `HFRswift/Swift/Common.swift:1891-1893`), global search 10 s (`Classes/ObjCForumSearchWorker.m:8`), background MP check 5 s. Lists, topic pages, topic search and the MP check are idle limits (`timeoutInterval`, ASIHTTPRequest's timeout); global search sets both `timeoutIntervalForRequest` (idle) and `timeoutIntervalForResource` (whole transfer) to 10 s (`ObjCForumSearchWorker.m:131-132`). SwiftHFR's presets: [#683](https://github.com/ezzz/HFRnow/issues/683).
 
 ## 6b. Live observations from the capture corpus (LOT-001, 2026-10-26)
 

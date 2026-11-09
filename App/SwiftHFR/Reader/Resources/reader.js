@@ -11,9 +11,16 @@
     try { return new URL(src).host; } catch (error) { return ""; }
   };
 
+  // A refused or failed avatar leaves its monogram, drawn under it by the builder.
+  const dropAvatar = (img) => {
+    const wrap = img.closest(".avatar-wrap");
+    img.remove();
+    if (wrap) { wrap.classList.remove("has-image"); }
+  };
+
   // A refused or failed image becomes its URL as text, or a link when it is not already inside one (the app opens links).
   const replaceWithLink = (img, src) => {
-    if (img.classList.contains("avatar")) { img.remove(); return; }
+    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
     const insideLink = img.closest("a") !== null;
     const node = document.createElement(insideLink ? "span" : "a");
     node.className = "image-link";
@@ -30,7 +37,7 @@
   };
 
   const placeholder = (img, src) => {
-    if (img.classList.contains("avatar")) { img.remove(); return; }
+    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "image-tap";
@@ -138,6 +145,13 @@
   };
   ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
     window.addEventListener(name, releasePin, { passive: true, capture: true }));
+
+  // WebKit resets a new document's scroll view to its top when it applies the document's first layer-tree commit, which
+  // drops a scroll made in that same commit: a landing or a refresh's restore opened at the top now and then (issue #642).
+  // A scroll the app asks for waits two animation frames, which puts it in a later commit. It runs once: a second scroll
+  // would undo a user's scroll that sends no event (VoiceOver, status-bar tap). Nothing native waits on the frames, which do
+  // not come while the page is hidden.
+  const afterFirstFrames = (scroll) => requestAnimationFrame(() => requestAnimationFrame(scroll));
   document.addEventListener("load", repin, true);
   document.addEventListener("error", repin, true);
   new ResizeObserver(repin).observe(document.documentElement);
@@ -146,8 +160,13 @@
     scrollToPost: (number) => {
       releasePin();
       const element = document.getElementById("t" + number);
-      if (element) { element.scrollIntoView({ block: "start" }); }
+      if (element) { afterFirstFrames(() => element.scrollIntoView({ block: "start" })); }
       return element !== null;
+    },
+    // A refresh's restore (LOT-186): `scrollY` counts from the bars' edge, so `y` is the reading top.
+    restoreScroll: (y) => {
+      afterFirstFrames(() => window.scrollTo(0, y));
+      return true;
     },
     // "Citer extrait" / "Citer gras" (LOT-086): reports the selection and the message it sits in. Only a selection that starts
     // and ends inside the same message is reported: quoting message A with the words of message B would misattribute them.
@@ -169,8 +188,10 @@
     landOnPost: (number) => {
       const element = document.getElementById("t" + number);
       if (element) {
-        element.scrollIntoView({ block: "start" });
-        if (settled()) { pinned = null; scheduleReport(); } else { pinned = element; pinY = window.scrollY; }
+        afterFirstFrames(() => {
+          element.scrollIntoView({ block: "start" });
+          if (settled()) { pinned = null; scheduleReport(); } else { pinned = element; pinY = window.scrollY; }
+        });
       }
       return element !== null;
     }

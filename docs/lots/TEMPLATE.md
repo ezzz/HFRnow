@@ -5,13 +5,13 @@
 - **Issue:** #…
 
 ## Legacy sources
-Files and line ranges in <https://github.com/ezzz/HFRnow> this lot replaces.
+Files and line ranges in <https://github.com/ezzz/HFRnow> @ `2fe43da3` (the legacy reference, AGENTS.md §2: `git show 2fe43da3:<path>`) this lot replaces.
 
 ## Legacy counterpart (app lots)
-One line per view or view model: the SwiftHFR file, the legacy file and symbol at `2440d79` it ports (`HFRswift/Swift/MainWindow.swift (ForumTopicsListView)`), or "none @ 2440d79". Above the main type in the code, write `// Port of HFRswift/Swift/<File>.swift (<Symbol>) @ 2440d79. Differences: …`, naming the GAP row, and `UXD-NN` when a difference waits on a decision (AGENTS.md §4).
+One line per view or view model: the SwiftHFR file, the legacy file and symbol at `2fe43da3` it ports (`HFRswift/Swift/MainWindow.swift (ForumTopicsListView)`), or "none @ 2fe43da3". Above the main type in the code, write `// Port of HFRswift/Swift/<File>.swift (<Symbol>) @ 2fe43da3. Differences: …`, naming the GAP row, and `UXD-NN` when a difference waits on a decision (AGENTS.md §4).
 
 ## UX evolutions (app lots)
-Every user-visible difference from legacy, each with its GAP id (a new row is a fragment `docs/migration/gap.d/GAP-<issue>.md`, its id the issue number: `GAP-568`) and its class from the H.1 column of `docs/migration/GAP-LEGACY-VS-SWIFT.md`: `b·needed` (why), `b·operator` (decision and date) or `b` (optional: a setting or M5, never the default). Write "None: same UX as legacy" when there is none.
+Every user-visible difference from legacy, each with its GAP id (a new row is a `gap-new` block of the `### Ledger` section of the PR body, its id the issue number: `GAP-568`; [tooling/docs/README](../../tooling/docs/README.md)) and its class from the H.1 column of `docs/migration/GAP-LEGACY-VS-SWIFT.md`: `b·needed` (why), `b·operator` (decision and date) or `b` (optional: a setting or M5, never the default). Write "None: same UX as legacy" when there is none.
 
 ## Behaviour
 Inputs, outputs, rules. Every HFR fact also goes to `docs/HFR-PROTOCOL.md`.
