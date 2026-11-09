@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# One run at a time per issue, every pending run kept, so quick edits can neither both add an origin: label nor drop one.
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: false
+  queue: max  # keep every pending edit; the default cancels a pending run when a newer one arrives
+
 jobs:
   label:
     runs-on: ubuntu-latest
@@ -19,22 +25,38 @@ jobs:
         with:
           script: |
             // Deterministic triage: reads the issue-form dropdowns and applies one label per axis (AGENTS.md §7).
-            const body = context.payload.issue.body || "";
-            const field = (heading) => {
-              const match = body.match(new RegExp("### " + heading + "\\s*\\n+([^\\n]+)"));
+            // The issue as it is now, not as the (possibly stale or out-of-order) event payload saw it.
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            const now = (await github.rest.issues.get(issue)).data;
+            const body = now.body || "";
+            const fieldIn = (text, heading) => {
+              const match = text.match(new RegExp("### " + heading + "\\s*\\n+([^\\n]+)"));
               return match ? match[1].trim().toLowerCase() : null;
             };
+            const field = (heading) => fieldIn(body, heading);
+            // Legacy-app issues carry no origin (AGENTS.md §7): a [Legacy …] title without SwiftHFR, or the form's "none" answer.
+            const title = now.title || "";
+            const legacyTitle = /^\[Legacy/.test(title) && !/SwiftHFR/.test(title);
+            const current = now.labels.map((l) => (typeof l === "string" ? l : l.name));
+            const hasOrigin = current.some((name) => name.startsWith("origin: "));
+            // On an edit, Origin follows the form only when the answer differs from the one this edit replaced, or the
+            // issue has no origin yet (e.g. a title that stopped being [Legacy …]), so a maintainer's correction stays.
+            const oldBody = context.payload.changes?.body?.from;
+            const originChanged = context.payload.action !== "edited" || !hasOrigin ||
+              (oldBody !== undefined && fieldIn(oldBody, "Origin") !== field("Origin"));
+            const legacy = legacyTitle || (originChanged && (field("Origin") || "").startsWith("none"));
             const allowed = {
               Type: ["lot", "roadmap", "chore", "docs", "security"],
               Priority: ["high", "medium", "low"],
               Difficulty: ["trivial", "easy", "medium", "difficult"],
               Area: ["models", "parsing", "network", "storage", "client", "app", "tooling", "ci", "docs"],
+              Origin: ["audit", "initial-port", "parity", "deliberate-gap", "swift-feedback", "legacy-evolution", "infra"],
             };
-            const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area" };
-            const current = context.payload.issue.labels.map((l) => l.name);
+            const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area", Origin: "origin" };
             const add = [];
             const remove = [];
             for (const [heading, values] of Object.entries(allowed)) {
+              if (heading === "Origin" && (legacy || !originChanged)) continue;
               const value = field(heading);
               if (!value || !values.includes(value)) continue;
               const prefix = prefixes[heading] + ": ";
@@ -44,7 +66,7 @@ jobs:
                 if (name.startsWith(prefix) && name !== wanted && heading !== "Type") remove.push(name);
               }
             }
-            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            if (legacy) remove.push(...current.filter((name) => name.startsWith("origin: ")));
             for (const name of remove) {
               await github.rest.issues.removeLabel({ ...issue, name }).catch(() => {});
             }
