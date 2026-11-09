@@ -59,7 +59,7 @@ The default branch `master` of that repository **is the legacy app**: never bran
 `francoisgn/ios-app_SwiftHFR` is a read-only mirror of `dev-swift`, synced hourly: never open issues or PRs there. Its issues are frozen history: read them for context (each lot issue links its old one), never claim, comment on or close them.
 
 Legacy codebase (read-only reference): ezzz/HFRnow. **The parity reference is `legacy/duo-inner-cover` @ `2fe43da3`** (operator, 2026-11-08, [#655](https://github.com/ezzz/HFRnow/issues/655)): the version of the published iPhone Duo beta, PR #372, based on `master` `21173e77`. New specs, checks and legacy pointers cite `2fe43da3` (or #372's merge commit once it lands). Citations at `2440d79` (the reference until then, an ancestor of both) stay valid for what they cite: do not rewrite them.
-Read the reference without checking it out: `git fetch origin legacy/duo-inner-cover`, then `git show 2fe43da3:<path>` (`git grep -n <pattern> 2fe43da3` to search it). Behaviour added after `2440d79` exists only there.
+Read the reference without checking it out: `git fetch origin legacy/duo-inner-cover` (from a fork, fetch it from the `upstream` remote that points to ezzz/HFRnow), then `git show 2fe43da3:<path>` (`git grep -n <pattern> 2fe43da3` to search it). Behaviour added after `2440d79` exists only there. The legacy oracle (`tooling/legacy-oracle`) still runs at `2440d79` until [#673](https://github.com/ezzz/HFRnow/issues/673) moves it.
 When a behaviour is unclear, **read the legacy code** instead of guessing, and cite the file and line in the lot spec.
 
 ## 3. Ground rules
