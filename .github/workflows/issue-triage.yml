@@ -29,8 +29,9 @@ jobs:
               Priority: ["high", "medium", "low"],
               Difficulty: ["trivial", "easy", "medium", "difficult"],
               Area: ["models", "parsing", "network", "storage", "client", "app", "tooling", "ci", "docs"],
+              Origin: ["audit", "initial-port", "parity", "deliberate-gap", "swift-feedback", "legacy-evolution", "infra"],
             };
-            const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area" };
+            const prefixes = { Type: "type", Priority: "priority", Difficulty: "difficulty", Area: "area", Origin: "origin" };
             const current = context.payload.issue.labels.map((l) => l.name);
             const add = [];
             const remove = [];

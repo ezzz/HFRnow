@@ -44,3 +44,10 @@ body:
       label: Area
       options: [models, parsing, network, storage, client, app, tooling, ci, docs]
     validations: { required: true }
+  - type: dropdown
+    id: origin
+    attributes:
+      label: Origin
+      description: Where the work comes from (AGENTS.md §7). Maintainers may adjust it.
+      options: [audit, initial-port, parity, deliberate-gap, swift-feedback, legacy-evolution, infra]
+    validations: { required: true }

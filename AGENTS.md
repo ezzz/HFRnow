@@ -126,10 +126,12 @@ Every issue carries one label per axis:
 | Difficulty | `difficulty: trivial`, `difficulty: easy`, `difficulty: medium`, `difficulty: difficult` | Effort/risk — drives model routing (§6) |
 | Area | `area: models`, `area: parsing`, `area: network`, `area: storage`, `area: client`, `area: app`, `area: tooling`, `area: ci`, `area: docs` | Where |
 | Status | `status: needs-triage`, `status: blocked`, `status: ready`, `status: claimed` | Workflow state; `status: claimed` follows the active `/claim` (by hand until the claim workflow runs from `master`) |
+| Origin | `origin: audit`, `origin: initial-port`, `origin: parity`, `origin: deliberate-gap`, `origin: swift-feedback`, `origin: legacy-evolution`, `origin: infra` | Where the work comes from (operator, 2026-11-09, #692): the LOT-000 audit; the initial port plan (planned lots, their fixtures, captures and follow-ups); a parity gap with legacy found later; a deliberate difference (UXD evolutions, FEAT, M5, operator design choices); a finding from testing SwiftHFR; a backport of a legacy change after `2440d79`; repo, CI, tooling and process work tied to none of these |
 | Host | `host: mac` | Needs the maintainer's Mac (Xcode, legacy app, live captures); cloud sessions leave it alone |
 
 Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
 `beta-test finding` marks an issue reported during pre-beta or beta testing on a device (operator, 2026-11-07), kept on the issue for statistics.
+A new issue takes the origin of what it comes from: a follow-up of a lot takes the lot's origin, a capture that of the lot that wants it. `beta-test finding` and `moust4ki aka bybifok finding` usually go with `origin: swift-feedback`, unless the issue restores a legacy behaviour (`origin: parity`) or ports a later legacy change (`origin: legacy-evolution`). Legacy-app issues (`[Legacy …]` titles) carry no origin.
 
 **Writing an issue:** it starts with `### Summary` (user story or two-line executive summary, §8), then scope, sources and acceptance criteria.
 
