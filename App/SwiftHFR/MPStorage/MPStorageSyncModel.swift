@@ -96,6 +96,8 @@ final class MPStorageSyncModel {
     func start() async {
         guard !started else { return }
         started = true
+        // Only this start's own failure counts: a network failure left by an earlier call (Réglages) must not re-arm it.
+        lastFailureWasNetwork = false
         defer { if case .failed = status, lastFailureWasNetwork { started = false } }
         guard let copy = await loadCopy() else { return }
         guard await isLoggedIn() else { return }
