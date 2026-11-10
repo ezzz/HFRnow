@@ -26,7 +26,16 @@ extension LoginFlow: AccountLoggingIn {
 enum LiveCredentials {
     /// The store keyed by the bundle identifier; the fallback is the project's own (LOT-080), so the item's service never
     /// depends on it being missing.
-    static let store = KeychainCredentialStore(service: Bundle.main.bundleIdentifier ?? "hfrplus.red.super")
+    static let store = KeychainCredentialStore(service: service)
+
+    /// The opt-in iCloud Keychain copy of the accounts (LOT-173), over the same store instance so its writes share the lock.
+    static let sync = AccountSync(
+        accounts: store,
+        item: KeychainDataItem(service: service, descriptor: .syncedAccounts),
+        state: KeychainDataItem(service: service, descriptor: .syncState)
+    )
+
+    private static let service = Bundle.main.bundleIdentifier ?? "hfrplus.red.super"
 }
 
 /// What a session check learned about a restored account session.

@@ -22,7 +22,9 @@ import Testing
         // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `embedded_videos` was removed from
         // legacy by `d645f52`, `mpstorage_active` becomes the per-account record of §7, `mpstorage_last_rw` is this
         // device's last sync.
-        "size_smileys": .device, "embedded_videos": .device, "mpstorage_active": .device, "mpstorage_last_rw": .device
+        "size_smileys": .device, "embedded_videos": .device, "mpstorage_active": .device, "mpstorage_last_rw": .device,
+        // LOT-173: the app lock is a property of the device (ADR 0013 §6, appendix E's device-capability rule).
+        "app_lock_enabled": .device, "app_lock_grace_seconds": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {
