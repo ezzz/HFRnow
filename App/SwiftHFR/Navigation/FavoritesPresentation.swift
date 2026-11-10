@@ -1,5 +1,4 @@
 import HFRModels
-import HFRStorage
 
 /// How the favourites list is laid out, from the legacy settings (`sujets_avec_cat`, `FavoritesShowCollapsedSections`).
 struct FavoritesLayoutOptions: Equatable, Sendable {
@@ -60,19 +59,9 @@ enum FavoritesPresentation {
 }
 
 extension FavoriteSection {
-    /// The list the section's title opens: the category by its id, else by the link the page gave.
-    var source: TopicSource {
-        categoryID.map { TopicSource.forum($0, title: forum.title) } ?? .subforum(path: forum.path, title: forum.title)
-    }
-}
-
-extension FavoritesSource {
-    /// The filter a category opened from this list starts on: the list's own `owntopic`, as HFR's header link does (`owntopic=3`
-    /// for "Favoris uniquement", `1` for "Drapeaux & Favoris", R10, P03c).
-    var categoryFlag: TopicListFlag {
-        switch self {
-        case .favoritesOnly: .favorites
-        case .flagsAndFavorites: .tracked
-        }
+    /// The category the section's title opens; nil without a category id (the page's own header link is already filtered, so
+    /// opening it would not match the filter control).
+    var source: TopicSource? {
+        categoryID.map { TopicSource.forum($0, title: forum.title) }
     }
 }

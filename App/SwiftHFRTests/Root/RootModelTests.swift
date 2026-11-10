@@ -23,6 +23,26 @@ struct RootModelTests {
         return root
     }
 
+    // Regular-width iPad: a Favoris section title switches to Catégories, as legacy (`MainWindow.swift:2221-2232` @ 87fe0d1c), instead
+    // of pushing into the detail column.
+    @Test func aFavorisSectionTitleSwitchesTheContentColumnToCategoriesOnFavoris() {
+        let source = FakeDataSource()
+        let filter = TopicFilterModel(settings: InMemorySettingsStore())
+        let forums = ForumListModel(dataSource: source)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource, topicFilter: filter),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            messages: MessageListModel(source: FakePrivateMessages()),
+            store: InMemorySettingsStore(), initial: .tab(.favorites)
+        )
+        let category = TopicSource.forum(.forum(13), title: "Discussions")
+        root.showCategoryFromFavorites(category)
+        #expect(root.selectedDestination == .tab(.categories))
+        #expect(root.categories.selectedSource == category)
+        #expect(filter.flag == .favorites)
+    }
+
     // Both layouts read `RootModel.messages`: the open conversation survives a switch of tab or of layout.
     @Test func messagesModelIsSharedAcrossDestinations() async {
         let root = await model()

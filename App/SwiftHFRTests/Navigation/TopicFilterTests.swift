@@ -58,7 +58,7 @@ struct TopicFilterTests {
         await list.loadIfNeeded()
         #expect(fake.requests == ["topics:13:1"])
         #expect(!list.offersFilter)
-        // The stored choice is kept for the next login.
+        // Only Favoris, Suivis and Lus are disabled; the stored choice is kept for the next login.
         #expect(filter.flag == .read)
     }
 
@@ -100,7 +100,7 @@ struct TopicFilterTests {
         )
     }
 
-    @Test func aSectionTitleOpensItsCategoryAndAGroupWithoutOneOpensNothing() {
+    @Test func aSectionTitleOpensItsCategoryAndAGroupWithoutAnIdOpensNothing() {
         let page = FavoritesPage(sections: [
             FavoriteSection(
                 forum: ForumLink(title: "Discussions", path: "/hfr/Discussions/liste_sujet-1.htm"), categoryID: .forum(13),
@@ -109,25 +109,61 @@ struct TopicFilterTests {
             FavoriteSection(forum: ForumLink(title: "Sans id", path: "/hfr/X/liste_sujet-1.htm"), topics: [topicSummary(2)])
         ])
         let content = TopicListContent(favorites: page, isLoggedIn: true)
-        #expect(content.groups.map(\.opens) == [
-            .forum(.forum(13), title: "Discussions"), .subforum(path: "/hfr/X/liste_sujet-1.htm", title: "Sans id")
-        ])
+        #expect(content.groups.map(\.opens) == [.forum(.forum(13), title: "Discussions"), nil])
         #expect(TopicListContent(page: topicPage(page: 1), isLoggedIn: true).groups.first?.opens == nil)
     }
 
-    @Test(arguments: [(FavoritesSource.favoritesOnly, TopicListFlag.favorites, 3), (.flagsAndFavorites, .tracked, 1)])
-    func openingACategoryFromFavorisCarriesTheModesFilter(mode: FavoritesSource, flag: TopicListFlag, owntopic: Int) async {
+    // Legacy opens the category on Favoris whatever the Favoris tab's mode (`Favorites.swift:357` @ 87fe0d1c; operator decision).
+    @Test func openingACategoryFromFavorisAsksForItsFavourites() async {
         let fake = FakeDataSource()
-        let filter = TopicFilterModel(settings: InMemorySettingsStore())
+        let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(2)]))
         let navigation = favoritesNavigation(fake, filter: filter)
         let category = TopicSource.forum(.forum(13), title: "Discussions")
-        navigation.openCategory(category, mode: mode)
+        navigation.openCategory(category)
         #expect(navigation.openedCategory == category)
-        #expect(filter.flag == flag)
+        #expect(filter.flag == .favorites)
         let list = navigation.topicList(for: category)
         await list.loadIfNeeded()
-        #expect(fake.requests == ["topics:13:1:owntopic=\(owntopic)"])
+        #expect(fake.requests == ["topics:13:1:owntopic=3"])
         // Back in Favoris the selection is untouched: the category was pushed, not selected.
         #expect(navigation.selectedSource == .favorites)
+    }
+
+    @Test func aFilterChosenWhilePageOneLoadsIsNotLost() async {
+        let gate = AsyncGate()
+        let fake = FakeDataSource()
+        fake.topicHandler = { _, page in
+            if page == 1 { await gate.wait() }
+            return topicPage(page: page)
+        }
+        let filter = TopicFilterModel(settings: InMemorySettingsStore())
+        let list = model(fake: fake, filter: filter)
+        let first = Task { await list.loadIfNeeded() }
+        while fake.requests.isEmpty { await Task.yield() }
+        filter.flag = .favorites
+        await gate.open()
+        await first.value
+        // No onAppear: the load itself notices the choice made while it ran.
+        #expect(fake.requests.last == "topics:13:1:owntopic=3")
+        #expect(list.loadedFilter == .favorites)
+    }
+
+    @Test func aDoubleNextPageRequestsOnePage() async {
+        let gate = AsyncGate()
+        let fake = FakeDataSource()
+        let list = model(fake: fake, filter: nil)
+        await list.loadIfNeeded()
+        fake.topicHandler = { _, page in
+            await gate.wait()
+            return topicPage(page: page)
+        }
+        let one = Task { await list.goToNextPage() }
+        while fake.requests.count < 2 { await Task.yield() }
+        let two = Task { await list.goToNextPage() }
+        await Task.yield()
+        await gate.open()
+        await one.value
+        await two.value
+        #expect(fake.requests.filter { $0 == "topics:13:2" }.count == 1)
     }
 }

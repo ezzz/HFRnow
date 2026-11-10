@@ -152,6 +152,14 @@ final class RootModel {
         return max(forums.loader.value?.unreadPrivateMessages ?? 0, 0)
     }
 
+    /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
+    /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).
+    func showCategoryFromFavorites(_ category: TopicSource) {
+        categories.topicFilter?.flag = .favorites
+        categories.selectedSource = category
+        selectedDestination = .tab(.categories)
+    }
+
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The legacy app-icon
     /// badge (`MainWindow.swift:1509-1512`) is out of scope.
     func reloadSettings() {

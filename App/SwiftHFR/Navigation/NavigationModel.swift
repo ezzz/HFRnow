@@ -1,5 +1,4 @@
 import HFRModels
-import HFRStorage
 import Observation
 
 /// Selection and per-screen models of the three-column navigation: forums, topics, messages.
@@ -92,10 +91,11 @@ final class NavigationModel {
         return model
     }
 
-    /// Opens `category` from a Favoris heading with the filter of the favourites `mode` (legacy `initialFlagOverride`, which also
-    /// wrote the global choice: so does this).
-    func openCategory(_ category: TopicSource, mode: FavoritesSource) {
-        topicFilter?.flag = mode.categoryFlag
+    /// Opens `category` from a Favoris heading on the Favoris filter, whatever the favourites mode (legacy `initialFlagOverride:
+    /// .favorites`, `Favorites.swift:357` @ 87fe0d1c, which also wrote the global choice: so does this). Pushed on the Favoris
+    /// stack; regular-width iPad switches to Catégories instead (`RootModel.showCategoryFromFavorites`).
+    func openCategory(_ category: TopicSource) {
+        topicFilter?.flag = .favorites
         openedCategory = category
     }
 

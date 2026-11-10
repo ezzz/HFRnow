@@ -68,7 +68,7 @@ struct RootSidebarView: View {
         case .tab(.categories):
             CategoriesSidebarColumn(navigation: model.categories, composer: environment.composer)
         case .tab(.favorites):
-            TopicsColumn(navigation: model.favorites, composer: environment.composer)
+            TopicsColumn(navigation: model.favorites, composer: environment.composer, openCategory: { model.showCategoryFromFavorites($0) })
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
             MessagesListColumn(model: model.messages, composer: environment.composer)
