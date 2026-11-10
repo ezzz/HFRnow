@@ -325,6 +325,13 @@
     {"raw": "m443-p11", "id": "R443k", "slug": "apercu-quote-never-closed", "ext": "html", "private": false},
     {"raw": "m443-p12", "id": "R443l", "slug": "apercu-quote-30-nested", "ext": "html", "private": false},
     {"raw": "m443-p13", "id": "R443m", "slug": "apercu-over-65535-chars", "ext": "html", "private": false},
-    {"raw": "m443-p14", "id": "R443n", "slug": "apercu-pending-defaults", "ext": "html", "private": false}
+    {"raw": "m443-p14", "id": "R443n", "slug": "apercu-pending-defaults", "ext": "html", "private": false},
+    {"raw": "m610g-create-group", "id": "W610e", "slug": "mp-create-group-four-members-success", "ext": "html", "private": false},
+    {"raw": "m610g-create-8", "id": "W610f", "slug": "mp-create-thread-c-success", "ext": "html", "private": false},
+    {"raw": "m610g-list-u1-before", "id": "R610e", "slug": "mp-list-group-creator-before-member-reply", "ext": "html", "private": true},
+    {"raw": "m610g-list-u2-before", "id": "R610f", "slug": "mp-list-group-member-before-own-reply", "ext": "html", "private": true},
+    {"raw": "m610g-reply-group", "id": "W610g", "slug": "mp-group-reply-by-member-success", "ext": "html", "private": false},
+    {"raw": "m610g-list-u1-after", "id": "R610g", "slug": "mp-list-group-creator-after-member-reply", "ext": "html", "private": true},
+    {"raw": "m610g-list-u2-after", "id": "R610h", "slug": "mp-list-group-member-after-own-reply", "ext": "html", "private": true}
   ]
 }

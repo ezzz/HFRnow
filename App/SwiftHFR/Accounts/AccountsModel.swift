@@ -6,6 +6,9 @@ import HFRStorage
 import Observation
 import UIKit
 
+// The model owns the sessions, so the sync's take-over of the store (LOT-173, `adoptSyncReport`) lives next to them.
+// swiftlint:disable file_length
+
 // Port of HFRswift/Swift/AccountsStore.swift (AccountsStore) and HFRswift/Swift/AccountSessionService.swift (ObjCAccountSessionService)
 // @ 2440d79. Differences: one HFRSession per account over the versioned credential store (LOT-065), typed errors, session check at
 // launch and on foreground (GAP-160, GAP-165).
@@ -36,6 +39,14 @@ final class AccountsModel {
     @ObservationIgnored private let loginService: any AccountLoggingIn
     @ObservationIgnored private let checker: any SessionChecking
     @ObservationIgnored private let avatars: any AvatarLoading
+    /// The opt-in iCloud Keychain sync of the accounts (LOT-173); nil where it is not wanted (tests, previews).
+    @ObservationIgnored let sync: AccountSync?
+    /// Whether this device shares its accounts through iCloud Keychain (the settings switch).
+    var isAccountSyncOn = false
+    /// A one-time note about the sync (switched off from another device, an unreadable copy); nil when none.
+    var accountSyncNotice: String?
+    /// The session checks started for accounts another device replaced (tests await it).
+    @ObservationIgnored private(set) var syncCheckTask: Task<Void, Never>?
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
     @ObservationIgnored private var statuses: [String: AccountSessionStatus] = [:]
     /// Advanced by every login saved for an account: a session write-back whose jar was read before it is stale,
@@ -55,11 +66,15 @@ final class AccountsModel {
     @ObservationIgnored var beforePersistWrite: (@MainActor () async -> Void)?
 
     /// Creates the model; nothing is read before `restore()`.
-    init(store: any CredentialStore, loginService: any AccountLoggingIn, checker: any SessionChecking, avatars: any AvatarLoading) {
+    init(
+        store: any CredentialStore, loginService: any AccountLoggingIn, checker: any SessionChecking, avatars: any AvatarLoading,
+        sync: AccountSync? = nil
+    ) {
         self.store = store
         self.loginService = loginService
         self.checker = checker
         self.avatars = avatars
+        self.sync = sync
     }
 
     /// The model the app runs with: Keychain store keyed by the bundle identifier, `LoginFlow`, the forum session check
@@ -70,7 +85,8 @@ final class AccountsModel {
             store: LiveCredentials.store,
             loginService: LoginFlow(),
             checker: ForumSessionCheck(),
-            avatars: AnonymousAvatarLoader()
+            avatars: AnonymousAvatarLoader(),
+            sync: LiveCredentials.sync
         )
     }
 
@@ -188,8 +204,10 @@ final class AccountsModel {
         for id in ids {
             guard let session = sessions[id], eligible(statuses[id]) else { continue }
             let before = statuses[id]
+            let saves = loginSaves[id, default: 0]
             let result = await checker.check(session)
-            guard sessions[id] === session, statuses[id] == before else { continue }
+            // Same session and status, and no login or adopted sync credentials meanwhile (the object stays the same then).
+            guard sessions[id] === session, statuses[id] == before, loginSaves[id, default: 0] == saves else { continue }
             switch result {
             case .valid:
                 statuses[id] = .valid
@@ -257,6 +275,7 @@ final class AccountsModel {
         statuses[stored.pseudo] = .valid
         storeProblem = nil
         reloadRows()
+        noteSyncChange(.login(pseudo: stored.pseudo))
         if let avatarURL = result.avatarURL {
             avatarTask = Task { await self.fetchAvatar(at: avatarURL, for: stored.pseudo) }
         }
@@ -277,8 +296,10 @@ final class AccountsModel {
     /// Removes an account from the app: its stored cookies and its session (no server logout, as legacy
     /// `MultisManager.m:125-153`). When it was the current one, the first remaining account becomes current.
     func remove(_ id: String) throws(AccountActionError) {
+        let removed: Account
         do {
-            guard try store.deleteAccount(pseudo: id) != nil else { throw AccountActionError.unknownAccount }
+            guard let account = try store.deleteAccount(pseudo: id) else { throw AccountActionError.unknownAccount }
+            removed = account
         } catch let error as AccountActionError {
             throw error
         } catch {
@@ -287,6 +308,7 @@ final class AccountsModel {
         sessions[id] = nil
         statuses[id] = nil
         reloadRows()
+        noteSyncChange(.removal(pseudo: removed.pseudo))
     }
 
     /// Writes an account's current cookies and token back to the store, after the forum refreshed them. Skipped
@@ -304,13 +326,18 @@ final class AccountsModel {
         // jar may have been read before it, and the store already holds the login. No suspension point follows.
         guard sessions[id] === session, loginSaves[id, default: 0] == saves else { return }
         do {
-            try store.update { book in
-                guard var account = book.account(matching: id) else { return }
+            let refreshed = try store.update { book -> String? in
+                guard var account = book.account(matching: id) else { return nil }
+                let before = account
                 account.cookies = cookies
                 account.hashCheck = hashCheck
                 // `add` refreshes in place and refuses cookies whose `md_user` names another pseudo.
-                try book.add(account, makeMain: false)
+                let stored = try book.add(account, makeMain: false)
+                return stored == before ? nil : stored.pseudo
             }
+            // Only a real change is shared (LOT-173): a check that confirms the same cookies must not make this device's
+            // copy look newer than a re-login on another device.
+            if let refreshed { noteSyncChange(.refresh(pseudo: refreshed)) }
         } catch CredentialStoreError.pseudoMismatch, CredentialStoreError.invalidPseudo {
             // The jar names another pseudo than the account: nothing is written and the store is intact, so this is
             // not a store problem. The screens must not keep using a jar of another identity: the session is rebuilt
@@ -342,16 +369,59 @@ extension AccountsModel {
         guard let data = await avatars.avatarData(at: url), let image = UIImage(data: data) else { return }
         avatarImages[id] = (data, image)
         do {
-            try store.update { book in
-                guard var account = book.account(matching: id) else { return }
+            let changed = try store.update { book -> String? in
+                guard var account = book.account(matching: id), account.avatarData != data else { return nil }
                 account.avatarData = data
                 book.replace(account)
+                return account.pseudo
             }
+            if let changed { noteSyncChange(.refresh(pseudo: changed)) }
         } catch {
             // Avatar is decoration: the list keeps the placeholder.
             return
         }
         reloadRows()
+    }
+
+    /// Takes over what the account sync changed in the store (LOT-173): accounts another device removed lose their
+    /// session; an added account gets a new session; an account whose cookies another device replaced keeps its session
+    /// object, which adopts them like a re-login (so the screens built on it are not rebuilt); each is then checked like
+    /// at launch. Before the first restore nothing is needed: the restore reads the store.
+    func adoptSyncReport(_ report: AccountSyncReport) {
+        guard hasRestored, !report.replaced.isEmpty || !report.dropped.isEmpty else { return }
+        for id in report.dropped {
+            sessions[id] = nil
+            statuses[id] = nil
+        }
+        let book: AccountBook
+        do {
+            book = try store.load()
+        } catch {
+            storeProblem = StoreProblem(error)
+            return
+        }
+        var adopted: [(session: HFRSession, account: Account)] = []
+        for id in report.replaced {
+            guard let account = book.account(matching: id) else { continue }
+            if let session = sessions[account.pseudo] {
+                adopted.append((session, account))
+                // A write-back of the jar read before the adoption must not overwrite these cookies (as after a re-login).
+                loginSaves[account.pseudo, default: 0] += 1
+            } else {
+                sessions[account.pseudo] = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
+            }
+            statuses[account.pseudo] = .checking
+        }
+        publish(book)
+        let ids = report.replaced.compactMap { book.account(matching: $0)?.pseudo }
+        guard !ids.isEmpty else { return }
+        let installs = adopted
+        syncCheckTask = Task {
+            for install in installs {
+                await install.session.adoptSyncedCredentials(cookies: install.account.cookies, hashCheck: install.account.hashCheck)
+            }
+            await self.checkSessions(ids) { $0 == .checking }
+        }
     }
 
     private func reloadRows() {
@@ -394,5 +464,15 @@ extension AccountsModel {
 
     private static func actionError(_ error: any Error) -> AccountActionError {
         (error as? CredentialStoreError).map(AccountActionError.store) ?? .storeFailed
+    }
+}
+
+extension HFRSession {
+    /// Installs the credentials another device stored for this account (LOT-173) in one actor turn, fenced like a login:
+    /// a token read by a request that left before cannot overwrite them (#340).
+    func adoptSyncedCredentials(cookies: [StoredCookie], hashCheck: String?) {
+        replaceCookies(with: cookies)
+        updateHashCheck(hashCheck)
+        advanceLoginGeneration()
     }
 }

@@ -105,6 +105,12 @@ user1's list (`R610a`). user2 then replies on `fixture-test-5` (`W610c`, list `R
 user1's list `R610c`, user2's list `R610d`). Both accounts then deleted both threads with `W64`'s body (answers not published). Two new
 messages and two replies, no retry. The composer pages read before each POST are not published (the `R47b` and `W138` shapes).
 
+Run 18 (2026-11-10, `mac/m4-captures` batch `b610g`, ezzz/HFRnow#610 scope 2, operator go that day): a four-member group MP `fixture-test-7` from
+user1 to user2 and two other members, as `W73` (`W610e`). Then a private MP user2 → user1 `fixture-test-8` (`W610f`), lists before (`R610e` user1,
+`R610f` user2), one user2 reply in the group (`W610g`), and lists after (`R610g`, `R610h`). The two writes that reach the other members (`W610e`,
+`W610g`) were sent by the main session; the rest by `mac/m4-captures`, one request per minute. Both kit accounts then deleted `fixture-test-8`
+(answers not published); the group thread is kept.
+
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
 published AQ server (`roger21/toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
@@ -385,6 +391,13 @@ not followed, logged in and without cookies, and the same link with a pseudo tha
 | W610d | `W610d-mp-reply-by-non-creator-success.html` | user2 replies on `fixture-test-6`, which user1 created: the same success answer | #610 | 140, 048 |
 | R610c | `R610c-mp-list-creator-after-non-creator-reply.html` | The creator's (user1's) list after `W610d`: `fixture-test-6` now above `fixture-test-5` (row 2, under a conversation posted the same minute), `closedbp.gif`, `sujetCase7` 1 | #610, R13 | 140, 023 |
 | R610d | `R610d-mp-list-replier-after-own-replies.html` | user2's list after both replies (3 rows): both threads in last-post order, both `closedbp.gif` "Nouveau message" and `[non lu]` for user1, although user2 posted their last messages | #610, R13 | 140, 023 |
+| W610e | `W610e-mp-create-group-four-members-success.html` | New group MP user1 → user2 + two members `fixture-test-7` (`dest` comma-separated, the `W73` body): "Votre message a été posté avec succès !" | #610 | 140, 058 |
+| W610f | `W610f-mp-create-thread-c-success.html` | New MP user2 → user1 `fixture-test-8`, two minutes later: the same answer | #610 | 140 |
+| R610e | `R610e-mp-list-group-creator-before-member-reply.html` | The creator's list before the reply: `fixture-test-8` row 1; the group row 2, `closedp.gif`, `[non lu]` naming the three others, roster in the `sujetCase6` span | #610, R13 | 140, 023 |
+| R610f | `R610f-mp-list-group-member-before-own-reply.html` | user2's list before its reply (3 rows): the group row 2, `closedbp.gif` "Nouveau message", `[non lu]` naming the two other recipients | #610, R13 | 140, 023 |
+| W610g | `W610g-mp-group-reply-by-member-success.html` | user2 (not the owner) replies once in the group: "Votre réponse a été postée avec succès !" | #610 | 140, 058 |
+| R610g | `R610g-mp-list-group-creator-after-member-reply.html` | The creator's list after `W610g`: the group above `fixture-test-8` (row 2, under a conversation posted after it), `closedbp.gif`, `sujetCase7` 1, last poster user2 | #610, R13 | 140, 023 |
+| R610h | `R610h-mp-list-group-member-after-own-reply.html` | user2's list after its reply: the group row 1, `closedbp.gif`, 1 reply | #610, R13 | 140, 023 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |

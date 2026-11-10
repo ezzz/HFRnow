@@ -53,6 +53,7 @@ struct RootView: View {
     RootView()
         .environment(accounts)
         .environment(LegacyImportModel.preview())
+        .environment(AppLockModel.preview())
         // As `SwiftHFRApp`: the navigation appears once the (empty) preview store is read.
         .task { await accounts.restore() }
 }
