@@ -2,8 +2,8 @@
 import Testing
 
 struct AccessibleColorsTests {
-    private typealias Colors = AccessibleColors
-    private typealias RGB = AccessibleColors.RGB
+    typealias Colors = AccessibleColors
+    typealias RGB = AccessibleColors.RGB
 
     @Test func contrastMatchesWCAGReferenceValues() {
         #expect(Colors.contrast(.white, .black) == 21)
