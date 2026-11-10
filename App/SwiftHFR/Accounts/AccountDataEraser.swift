@@ -12,6 +12,10 @@ enum AccountDataKind: CaseIterable, Hashable, Sendable {
     case superFavorites
     /// The app's own favourite smileys (LOT-064).
     case smileyFavorites
+    /// Super-favourites and reply drafts the legacy import set aside for the account (LOT-158, `pending.json`).
+    case legacyPending
+    /// The legacy import told never to bring the account back (LOT-158): legacy's own Keychain item still lists it.
+    case legacyImport
 
     /// Name in a French sentence ("… n’ont pas pu être effacés : les brouillons").
     var title: String {
@@ -21,6 +25,8 @@ enum AccountDataKind: CaseIterable, Hashable, Sendable {
         case .readingPositions: "les positions de lecture"
         case .superFavorites: "les super-favoris"
         case .smileyFavorites: "les smileys favoris"
+        case .legacyPending: "les éléments en attente de l’ancienne app"
+        case .legacyImport: "l’exclusion du compte de l’import de l’ancienne app"
         }
     }
 }
@@ -30,13 +36,17 @@ enum AccountDataKind: CaseIterable, Hashable, Sendable {
 /// Holds the stores themselves, so the live eraser is checked to write the same actors as the screens (one actor per file:
 /// a second store over the same file would race them). The account itself (Keychain, session) is removed by
 /// `AccountsModel.remove(_:)` and `removeStoreItemIfEmpty()`; stores that belong to no account (allowlist, histories,
-/// offline topics, caches, settings) are not touched.
+/// offline topics, caches, settings) are not touched. The legacy import is told to skip the account from then on, since
+/// legacy's Keychain item, which it only reads, still lists it.
 struct AccountDataEraser: Sendable {
     let drafts: DraftStore
     let pseudoLists: PseudoListStore
     let positions: ReadingPositionStore
     let superFavorites: SuperFavoritesStore
     let smileyFavorites: AppSmileyFavoritesStore
+    let legacyPending: LegacyPendingStore
+    /// The app's one importer (its runs and `forget` are serialized); nil where there is no legacy import.
+    let legacyImport: LegacyImporter?
 
     /// The stores the app writes (`Application Support/`).
     static let live = AccountDataEraser(
@@ -44,7 +54,9 @@ struct AccountDataEraser: Sendable {
         pseudoLists: PseudoListsSnapshot.liveStore,
         positions: LiveReaderPositionRecorder.store,
         superFavorites: FavoritesStores.shared.superFavorites,
-        smileyFavorites: ComposerServices.liveSmileyFavorites
+        smileyFavorites: ComposerServices.liveSmileyFavorites,
+        legacyPending: LegacyImportServices.livePending,
+        legacyImport: LegacyImportServices.liveImporter
     )
 
     /// The account keys (`AccountKey`) that still have data in one of the stores; a store that cannot be read adds none.
@@ -55,6 +67,7 @@ struct AccountDataEraser: Sendable {
         keys.formUnion(await positions.accounts().map(AccountKey.make))
         keys.formUnion(await superFavorites.accountKeys())
         keys.formUnion(await smileyFavorites.accountKeys())
+        keys.formUnion(await legacyPending.accountKeys())
         return keys
     }
 
@@ -91,6 +104,10 @@ struct AccountDataEraser: Sendable {
             _ = try await superFavorites.replace([], account: account)
         case .smileyFavorites:
             _ = try await smileyFavorites.replace([], account: account)
+        case .legacyPending:
+            try await legacyPending.discardAll(account: account)
+        case .legacyImport:
+            try await legacyImport?.forget(account: account)
         }
     }
 }

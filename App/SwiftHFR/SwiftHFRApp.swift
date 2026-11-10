@@ -10,7 +10,7 @@ struct SwiftHFRApp: App {
     /// The deletion screen's wipe (LOT-157), app-wide: erasing the current account rebuilds the root navigation.
     @State private var deletion: AccountDeletionModel
     /// The legacy import (LOT-158): at launch before the accounts are read, then at each change of the current account.
-    @State private var legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter())
+    @State private var legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter)
     /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
     @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.

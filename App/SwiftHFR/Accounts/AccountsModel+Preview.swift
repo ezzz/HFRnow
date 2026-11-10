@@ -42,7 +42,9 @@ extension AccountDataEraser {
             pseudoLists: PseudoListStore(persistence: InMemoryPseudoListPersistence()),
             positions: ReadingPositionStore(persistence: InMemoryReadingPositionPersistence()),
             superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()),
-            smileyFavorites: AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence())
+            smileyFavorites: AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence()),
+            legacyPending: LegacyPendingStore(persistence: InMemorySmallStorePersistence()),
+            legacyImport: nil
         )
     }
 }

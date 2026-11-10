@@ -45,12 +45,21 @@ Order: the account first, then its data, so no screen keeps writing as that acco
 | Reading positions (D, LOT-090) | `Application Support/Positions/positions.json` | `ReadingPositionStore.removeAccount(_:)` for every stored spelling whose `AccountKey` is the account's (positions are keyed by the reader's spelling, not by the key); an unreadable file is reported, not skipped |
 | Super-favourites (C, LOT-064) | `Application Support/Favorites/super-favorites.json` | `SuperFavoritesStore.replace([], account:)` (removes the account's key) |
 | App smiley favourites (C, LOT-064) | `Application Support/SmileyFavorites/favorites.json` | `AppSmileyFavoritesStore.replace([], account:)` (removes the account's key) |
+| Legacy items set aside (LOT-158, D1/D2) | `Application Support/LegacyImport/pending.json` | `LegacyPendingStore.discardAll(account:)`: the account's pending super-favourites and reply-draft texts |
+| Legacy import of the account (LOT-158) | Keychain item `hfr.legacyImport.erased.v1` | `LegacyImporter.forget(account:)` records the account's key, so no later import brings it, its blocklist or the global items it would receive back (see "Legacy import" below) |
 
-Every data store is erased even when an earlier one failed; the failures are returned by name. Each store keeps the other accounts' entries untouched (tests).
+Every step is run even when an earlier one failed; the failures are returned by name. Each store keeps the other accounts' entries untouched (tests).
 
-**Not erased, because they belong to no account** (shared by every account and the logged-out visitor, ADR 0013): the allowlist (C, global), the folded favourites sections (device UI state), the smiley search history, the rehost upload history, the offline topics (LOT-068), the avatar and page caches (public forum images and pages, rebuilt on demand), and the settings. The screen's footer says so.
+**Not erased, because they belong to no account** (shared by every account and the logged-out visitor, ADR 0013): the allowlist (C, global), the folded favourites sections (device UI state), the smiley search history, the rehost upload history, the offline topics (LOT-068), the avatar and page caches (public forum images and pages, rebuilt on demand), the settings, and the legacy import's own state (`LegacyImport/state.json`: steps done, the pseudo that receives legacy's global items). The screen's footer says so.
 
-**Not wired in the app yet** (nothing to erase today): the iCloud KVS lists and positions (LOT-172's `SyncedListsStore` has no app caller), the MPStorage local copy and its sync state (LOT-130), the notification ledger (LOT-091). Each lot that wires a per-account store adds it to `AccountDataEraser` (a test lists the stores it erases, so the change is visible).
+**Legacy import (LOT-158, operator decision (b), 2026-11-10).** The legacy app's own data stays where legacy left it: the import only reads it (LOT-067): the `HFR_COMPTES_KEY` Keychain item (cookies, `hash_check`, avatar of every legacy account), legacy's `UserDefaults` keys and its `Documents` files (blocklists keyed by display name, smiley favourites, drafts). So that it cannot bring an erased account back, the wipe records the account in a device-only Keychain item, `hfr.legacyImport.erased.v1` (`KeychainErasedAccountStore`, after first unlock, never synchronizable), which the import reads before every run:
+- the accounts step skips an erased account; when it was legacy's main account, the global items stay its own and are skipped, not given to the account logged in now;
+- the blocklist step skips a list filed under an erased account's pseudo or legacy display name;
+- the super-favourites, smiley favourites and drafts steps write nothing when the account that receives them (`globalAccount`) is erased, and are done for good;
+- a list that cannot be read (device locked, newer format) holds those steps back to the next run; the other steps run.
+It is a Keychain item, like `HFR_COMPTES_KEY`, so deleting and reinstalling the app (which keeps both) does not forget it. It holds only the erased accounts' keys, and only while they can come back: once the import is complete, an account legacy's item does not list is not recorded.
+
+**Not wired in the app yet** (nothing to erase today): the iCloud KVS lists and positions (LOT-172's `SyncedListsStore` has no app caller), the MPStorage local copy and its sync state (LOT-130), the notification ledger (LOT-091). LOT-158's `pending.json` was wired first and is erased above. Each lot that wires a per-account store adds it to `AccountDataEraser` (a test lists the stores it erases, so the change is visible).
 
 ## Edge cases
 - **Corrupted or locked Keychain item**: the removal throws; the screen shows the store message (LOT-081 `AccountMessages`) and erases nothing else.
@@ -60,6 +69,8 @@ Every data store is erased even when an earlier one failed; the failures are ret
 - **Two taps**: one erase runs at a time; the buttons are disabled while it runs.
 - **Erasing the current account** changes the current session, so the root navigation is rebuilt (`RootView`, LOT-081) and the Plus entry reopens: the model is app-wide (`SwiftHFRApp`), not view state, so the result is still on screen after the rebuild.
 - **Traps for the lots that wire synced stores** (nothing is wired today): an empty list written by `replace([])` is a value that iCloud KVS syncs (ADR 0013 Amendment 2), so once LOT-172 mirrors these lists a wipe would empty them on every device of the Apple ID: that lot decides whether the wipe writes through or only clears the local copy. With LOT-173's opt-in Keychain sync, a device whose device-only item is gone bootstraps from a full synchronizable envelope (ADR 0013 §6): that lot makes the wipe write the account out of the synchronizable item too, or the accounts come back.
+- **An import still running when the account is erased**: the importer serializes its runs and `forget` (one importer for the app, `LegacyImportServices.liveImporter`), so a run either finished before the account was recorded (its writes are then erased by the wipe, or show as leftovers) or starts after and skips it. Erasing the current account changes the current account, which runs an incomplete import again (LOT-158); its summary sheet can then open over this screen's result.
+- **Opt-in account sync (LOT-173, #760)**: once it lands, every removed account must be reported to the sync, or the iCloud copy brings it back (its spec, Edge cases). `AccountsModel.remove(_:)` reports its own; the wipe adds nothing else to the account store.
 - "Retirer" on the accounts screen (LOT-081) still removes only the account (legacy `MultisManager.m:125-153`): the data stays for a re-login. The wipe is the explicit action of this screen.
 
 ## Fixtures
@@ -69,13 +80,16 @@ None new. `R98a` (CAP-N6, #174) and `R01` are the sources of the URL.
 - No mail composer and no hard-coded recipient (Q-10); the screen links HFR's own published procedure.
 - The local wipe is new (App Store 5.1.1(v): the app's own copy of the account's data can be removed).
 
+## Decisions taken
+- **Legacy Keychain item** (core, 2026-11-10, on #745): option (b), a device-only list of erased accounts that the legacy import skips (above), rather than writing legacy's item or leaving it to a follow-up.
+
 ## Decisions needed
 1. **UXD-21 vs. issue scope**: keep this screen (default: link to HFR's "Données personnelles" page, no address in source), or restore the legacy mail composer (needs the recipient address in source or in configuration, Q-10).
 2. **Wording** of the French strings (defaults in `AccountDeletionView.swift`).
 3. **Device-wide stores**: a second action "Effacer toutes les données de l’app" (allowlist, histories, offline topics, caches, settings) is not offered; default: not offered (the per-account wipe covers what identifies the account; the rest is shared).
 
 ## Mac checks
-`xcodebuild build test` on iPhone 18 Pro and an iPad simulator (iOS 27.0); light, dark and Dynamic Type XL on the screen; the link opens Safari on the "Données personnelles" page; after a wipe of the only account, Keychain Access shows no `hfr.accounts.v1` item for the app.
+`xcodebuild build test` on iPhone 18 Pro and an iPad simulator (iOS 27.0); light, dark and Dynamic Type XL on the screen; the link opens Safari on the "Données personnelles" page; after a wipe of the only account, Keychain Access shows no `hfr.accounts.v1` item for the app; on a device upgraded from legacy, after a wipe of a legacy account, deleting and reinstalling the app does not bring it back (the `hfr.legacyImport.erased.v1` item holds its key).
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

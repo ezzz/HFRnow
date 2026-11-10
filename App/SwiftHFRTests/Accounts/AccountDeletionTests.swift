@@ -8,19 +8,22 @@ struct AccountDataEraserTests {
     @Test func erasesEveryStoreOfTheAccountAndNothingOfTheOthers() async throws {
         let stores = SeededStores()
         try await stores.seed(["user1", "user2"])
-        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1, 1])
 
         let failed = await stores.eraser.erase(account: "user1")
 
         #expect(failed.isEmpty)
-        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
-        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
+        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1, 1])
         // The allowlist belongs to no account: it stays.
         #expect(await stores.pseudoLists.allowlist().map(\.pseudo) == ["member2"])
         // The account's keys leave the documents, not only their items.
         #expect(await stores.superFavorites.accountKeys() == ["user2"])
         #expect(await stores.smileyFavorites.accountKeys() == ["user2"])
         #expect(await stores.positions.accounts() == ["user2"])
+        #expect(await stores.legacyPending.accountKeys() == ["user2"])
+        // The legacy import will not bring the account back: legacy's own Keychain item still lists it.
+        #expect(try stores.erasedAccounts.keys() == ["user1"])
     }
 
     @Test func triesEveryStoreAndReportsTheOnesThatFailed() async throws {
@@ -29,10 +32,7 @@ struct AccountDataEraserTests {
         let persistence = FailingDraftPersistence()
         let drafts = DraftStore(persistence: persistence)
         try await drafts.save("brouillon", for: .reply(topic: SeededStores.topic, page: 1), account: "user1")
-        let eraser = AccountDataEraser(
-            drafts: drafts, pseudoLists: stores.pseudoLists, positions: stores.positions,
-            superFavorites: stores.superFavorites, smileyFavorites: stores.smileyFavorites
-        )
+        let eraser = stores.eraser(drafts: drafts)
         persistence.failNext(1)
 
         let failed = await eraser.erase(account: "user1")
@@ -60,11 +60,7 @@ struct AccountDataEraserTests {
 
     @Test func anUnreadablePositionStoreIsReportedNotErasedInSilence() async {
         let stores = SeededStores()
-        let eraser = AccountDataEraser(
-            drafts: stores.drafts, pseudoLists: stores.pseudoLists,
-            positions: ReadingPositionStore(persistence: UnreadablePositionPersistence()),
-            superFavorites: stores.superFavorites, smileyFavorites: stores.smileyFavorites
-        )
+        let eraser = stores.eraser(positions: ReadingPositionStore(persistence: UnreadablePositionPersistence()))
 
         #expect(await eraser.erase(account: "user1") == [.readingPositions])
     }
@@ -76,11 +72,14 @@ struct AccountDataEraserTests {
         #expect(live.positions === LiveReaderPositionRecorder.store)
         #expect(live.superFavorites === FavoritesStores.shared.superFavorites)
         #expect(live.smileyFavorites === ComposerServices.liveSmileyFavorites)
+        #expect(live.legacyPending === LegacyImportServices.livePending)
+        #expect(live.legacyImport === LegacyImportServices.liveImporter)
     }
 
     @Test func everyKindHasAFrenchName() {
         #expect(AccountDataKind.allCases.map(\.title) == [
-            "les brouillons", "la liste noire", "les positions de lecture", "les super-favoris", "les smileys favoris"
+            "les brouillons", "la liste noire", "les positions de lecture", "les super-favoris", "les smileys favoris",
+            "les éléments en attente de l’ancienne app", "l’exclusion du compte de l’import de l’ancienne app"
         ])
     }
 }
@@ -109,7 +108,7 @@ struct AccountDeletionModelTests {
         #expect(accounts.rows.isEmpty)
         #expect(accounts.currentSession == nil)
         #expect(accounts.session(for: "user1") == nil)
-        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
+        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
         #expect(deletion.leftovers.isEmpty)
         #expect(!deletion.keychainItemPending)
     }
@@ -129,8 +128,8 @@ struct AccountDeletionModelTests {
         #expect(try store.accounts().map(\.pseudo) == ["user2"])
         #expect(accounts.current?.id == "user2")
         #expect(accounts.currentSession === other)
-        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
-        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
+        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1, 1])
     }
 
     @Test func aRefusedRemovalErasesNothing() async throws {
@@ -149,7 +148,7 @@ struct AccountDeletionModelTests {
         await deletion.erase(row)
 
         #expect(deletion.phase == .refused(message: message))
-        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1, 1])
     }
 
     @Test func anAccountRemovedMeanwhileIsReportedAndNothingIsErased() async throws {
@@ -166,7 +165,7 @@ struct AccountDeletionModelTests {
         await deletion.erase(row)
 
         #expect(deletion.phase == .refused(message: message))
-        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1, 1])
     }
 
     @Test func aStoreThatFailedIsNamedAndOfferedAgainAsALeftover() async throws {
@@ -178,10 +177,7 @@ struct AccountDeletionModelTests {
         let persistence = FailingDraftPersistence()
         let drafts = DraftStore(persistence: persistence)
         try await drafts.save("brouillon", for: .reply(topic: SeededStores.topic, page: 1), account: "user1")
-        let eraser = AccountDataEraser(
-            drafts: drafts, pseudoLists: stores.pseudoLists, positions: stores.positions,
-            superFavorites: stores.superFavorites, smileyFavorites: stores.smileyFavorites
-        )
+        let eraser = stores.eraser(drafts: drafts)
         let deletion = AccountDeletionModel(accounts: accounts, eraser: eraser)
         let row = try #require(accounts.rows.first)
         persistence.failNext(1)
@@ -220,8 +216,8 @@ struct AccountDeletionModelTests {
         #expect(deletion.leftovers == ["user1"])
         await deletion.eraseLeftover("user1")
 
-        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
-        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
+        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1, 1])
         #expect(deletion.leftovers.isEmpty)
         #expect(try store.accounts().map(\.pseudo) == ["user2"])
     }
@@ -238,7 +234,7 @@ struct AccountDeletionModelTests {
         await deletion.eraseLeftover("user1")
 
         #expect(deletion.phase == .idle)
-        #expect(await stores.counts("User1") == [1, 1, 1, 1, 1])
+        #expect(await stores.counts("User1") == [1, 1, 1, 1, 1, 1])
     }
 
     @Test func noLeftoverIsOfferedWhileTheAccountStoreCannotBeRead() async throws {
@@ -271,7 +267,7 @@ struct AccountDeletionModelTests {
         // The account itself is gone and its data erased; only the empty item is left.
         #expect(accounts.rows.isEmpty)
         #expect(store.inner.envelope != nil)
-        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
+        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
 
         await deletion.retry()
 
