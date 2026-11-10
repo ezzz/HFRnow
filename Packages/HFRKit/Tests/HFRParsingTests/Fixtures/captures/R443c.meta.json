@@ -1,0 +1,23 @@
+{
+  "id": "R443c",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of a composer, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:18:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview only, no write (#443)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=toolbar%3A+%5B%23FF0000%5Drouge%5B%2F%23FF0000%5D%0D%0Apalette%3A+%5B%230055aa%5Dbleu%5B%2F%230055aa%5D%0D%0Athree+digits%3A+%5B%23f00%5Dcourt%5B%2F%23f00%5D%0D%0Acolor+red%3A+%5Bcolor%3Dred%5Drouge%5B%2Fcolor%5D%0D%0Aemail+tag%3A+%5Bemail%redacted@example.invalid%5B%2Femail%5D%0D%0Aemail+text%redacted@example.invalid&apercu_smiley=0&config=hfr.inc",
+  "file": "R443c-apercu-colour-email.html",
+  "private": false
+}
