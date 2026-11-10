@@ -31,6 +31,8 @@
 
   const load = (img, src) => {
     img.addEventListener("error", () => replaceWithLink(img, src), { once: true });
+    // A posted picture without a description is read as "Image", not as its file name (LOT-163).
+    if (img.classList.contains("hfrplusimg") && !img.getAttribute("alt")) { img.setAttribute("alt", "Image"); }
     // The viewer's list is the original `src` of the pictures this script loaded (the attribute itself is the proxied URL).
     img.dataset.viewerSrc = src;
     img.setAttribute("src", proxied(src));
@@ -109,11 +111,55 @@
       if (!blocked.classList.contains("open") || (onHeader && !target.closest("a"))) {
         event.preventDefault();
         blocked.classList.toggle("open");
+        syncDisclosure(blocked);
         return;
       }
     }
     const spoiler = target.closest("table.spoiler");
-    if (spoiler && !target.closest("a")) { spoiler.classList.toggle("open"); }
+    if (spoiler && !target.closest("a")) { spoiler.classList.toggle("open"); syncDisclosure(spoiler); }
+  });
+
+  // Accessibility (LOT-163). HFR draws quotes, code and spoilers as tables: VoiceOver would read "tableau, 1 ligne, 1 colonne".
+  // Only attributes are set here, from what the page already holds; nothing is read back by the app.
+  const headerOf = (table) => Array.from(table.querySelectorAll("b.s1, b.s1Topic")).find((b) => b.closest("table") === table) || null;
+  // A spoiler's header, and a collapsed blocklisted quote's, is the button that opens it (its tap is a click, which VoiceOver's
+  // double tap sends too). An opened blocklisted quote's header holds a link again, so it is no button (a button's children are
+  // presentational). The pseudo a blocklisted quote hides on screen is never named here.
+  function syncDisclosure(table) {
+    const head = headerOf(table);
+    if (!head) { return; }
+    const open = table.classList.contains("open");
+    if (table.classList.contains("spoiler") || !open) {
+      head.setAttribute("role", "button");
+      head.setAttribute("tabindex", "0");
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+    } else {
+      ["role", "tabindex", "aria-expanded"].forEach((name) => head.removeAttribute(name));
+    }
+    if (table.classList.contains("quote-hide-author") && !open) { head.setAttribute("aria-label", "Citation masquée"); }
+    else { head.removeAttribute("aria-label"); }
+    table.setAttribute("aria-label", groupName(table));
+  }
+  function groupName(table) {
+    if (table.classList.contains("spoiler")) { return "Spoiler"; }
+    if (table.classList.contains("code")) { return "Code"; }
+    if (table.classList.contains("fixed")) { return "Texte préformaté"; }
+    if (table.classList.contains("quote-hide-author") && !table.classList.contains("open")) { return "Citation masquée"; }
+    const head = headerOf(table);
+    const text = head ? head.textContent.replace(/\s+/g, " ").trim() : "";
+    return text !== "" ? text : "Citation";
+  }
+  document.querySelectorAll("table.citation, table.oldcitation, table.quote, table.code, table.fixed, table.spoiler").forEach((table) => {
+    table.setAttribute("role", "group");
+    table.setAttribute("aria-label", groupName(table));
+    if (table.matches(".spoiler, .quote-blocked")) { syncDisclosure(table); }
+  });
+  document.addEventListener("keydown", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if ((event.key === "Enter" || event.key === " ") && target && target.matches("[role=button][tabindex]") && target.closest("table")) {
+      event.preventDefault();
+      target.click();
+    }
   });
 
   // Landing on a message (LOT-111): images that load after the first scroll push the message down, so the document keeps

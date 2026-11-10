@@ -102,8 +102,7 @@ struct ReaderAuthorMenuSheet: ViewModifier {
         content.sheet(item: $flow.newMessage) { message in
             ReplyComposerView(model: message) { reason in
                 guard let text = PrivateMessageFeedback.text(for: reason) else { return }
-                model.showMenuFeedback(text)
-                AccessibilityNotification.Announcement(text).post()
+                model.showMenuFeedback(text) // the toast announces itself
             }
         }
     }
