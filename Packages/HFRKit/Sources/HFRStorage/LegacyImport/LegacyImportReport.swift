@@ -41,7 +41,8 @@ public enum LegacyImportOutcome: Sendable, Equatable {
     case nothingToImport
     /// Done in an earlier run: never redone, so an item removed since does not come back.
     case alreadyDone
-    /// Waits for an account to receive the global items (no legacy account, nobody logged in yet).
+    /// Waits for an account to receive the global items (no legacy account, nobody logged in yet), or, for the pseudo
+    /// lists, for the accounts step: the `accounts` outcome of the same report gives the reason.
     case waitingForAccount
     /// The step did not complete and runs again at the next run (`sourceUnavailable`, `destinationFailed`), or the
     /// legacy data was unreadable and is not retried (`sourceUnreadable`).

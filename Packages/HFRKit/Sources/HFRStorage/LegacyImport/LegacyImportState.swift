@@ -34,4 +34,18 @@ public struct LegacyImportStateDocument: SmallStoreDocument {
         self.globalAccount = globalAccount
         self.mpStorageSwitch = mpStorageSwitch
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, importVersion, done, globalAccount, mpStorageSwitch
+    }
+
+    /// Reads a document; one written before `mpStorageSwitch` existed reads it as `notRead`.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(Int.self, forKey: .version)
+        importVersion = try container.decode(Int.self, forKey: .importVersion)
+        done = try container.decode([LegacyImportStep].self, forKey: .done)
+        globalAccount = try container.decodeIfPresent(String.self, forKey: .globalAccount)
+        mpStorageSwitch = try container.decodeIfPresent(LegacyMPStorageSwitch.self, forKey: .mpStorageSwitch) ?? .notRead
+    }
 }

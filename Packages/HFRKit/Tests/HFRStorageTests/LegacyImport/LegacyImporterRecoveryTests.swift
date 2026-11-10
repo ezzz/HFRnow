@@ -65,4 +65,61 @@ struct LegacyImporterRecoveryTests {
         #expect(harness.statePersistence.document?.done == LegacyImportStep.allCases)
         #expect(harness.statePersistence.document?.globalAccount == "fakeuser2")
     }
+
+    @Test("pseudo lists fail, and stay pending, when the stored accounts cannot be read")
+    func pseudoListsWhenAccountsUnreadable() async throws {
+        let credentials = LoadFailingCredentialStore()
+        var harness = try Harness(credentials: InMemoryCredentialStore())
+        defer { harness.remove() }
+        harness.accounts = Harness.legacyAccounts
+        try harness.write(blocklistPlist, to: LegacyKeys.blocklistFile)
+        let destinations = LegacyImportDestinations(
+            credentials: credentials,
+            pseudoLists: harness.destinations.pseudoLists,
+            superFavorites: harness.destinations.superFavorites,
+            layout: harness.destinations.layout,
+            smileyFavorites: harness.destinations.smileyFavorites,
+            searchHistory: harness.destinations.searchHistory,
+            uploads: harness.destinations.uploads,
+            drafts: harness.destinations.drafts,
+            pending: harness.destinations.pending,
+            settings: harness.destinations.settings
+        )
+        let container = LegacyContainer(
+            documentsDirectory: harness.documents, cachesDirectory: harness.caches,
+            defaults: InMemoryLegacyDefaults(), accounts: InMemoryLegacyAccountSource(harness.accounts)
+        )
+        let report = await LegacyImporter(container: container, destinations: destinations, state: harness.statePersistence).run(now: now)
+        #expect(report.outcomes[.accounts] == .imported(2))
+        #expect(report.outcomes[.pseudoLists] == .failed(.destinationFailed))
+        #expect(await harness.destinations.pseudoLists.blocklist(for: "fakeuser2").isEmpty)
+        #expect(harness.statePersistence.document?.done.contains(.pseudoLists) == false)
+    }
+
+    @Test("an import state written before the MPStorage switch existed still loads")
+    func stateWithoutSwitch() throws {
+        let json = Data(#"{"version":1,"importVersion":1,"done":["accounts"],"globalAccount":"fakeuser2"}"#.utf8)
+        let state = try JSONDecoder().decode(LegacyImportStateDocument.self, from: json)
+        #expect(state.mpStorageSwitch == .notRead)
+        #expect(state.done == [.accounts] && state.globalAccount == "fakeuser2")
+    }
+}
+
+/// A credential store whose writes work but whose plain `load()` fails, as a Keychain read refused between two calls.
+private final class LoadFailingCredentialStore: CredentialStore, @unchecked Sendable {
+    private struct Refused: Error {}
+    private let lock = NSLock()
+    private var book = AccountBook()
+
+    func load() throws -> AccountBook {
+        throw Refused()
+    }
+
+    func update<Value>(_ body: (inout AccountBook) throws -> Value) throws -> Value {
+        try lock.withLock { try body(&book) }
+    }
+
+    func removeAll() throws {
+        lock.withLock { book = AccountBook() }
+    }
 }
