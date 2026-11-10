@@ -1990,7 +1990,7 @@
 {
 "lot": "LOT-147",
 "star": false,
-"scope": "iPhone Duo inner screen as legacy at 2fe43da3: split root when the scene is regular in both dimensions, full-width topic in portrait, fold / unfold handoff (`FoldHandoffStore`), orientation locks lifted when unfolded, and on the cover screen Actualiser and Retour at the bottom of the toolbar column (legacy at 87fe0d1c); plus the FEAT-016 additions legacy lacks: tab rail when folded, sidebar pinned or on demand (design in the spec, approved by the operator before code), [spec](lots/LOT-147-duo-ipad-columns.md)",
+"scope": "iPhone Duo inner screen as legacy at 2fe43da3: split root when the scene is regular in both dimensions, full-width topic in portrait, fold / unfold handoff (`FoldHandoffStore`), orientation locks lifted when unfolded, and on the cover screen Actualiser and Retour at the bottom of the toolbar column (legacy code at 87fe0d1c intends it on Catégories, the topic lists, Favoris and Messages; the Mac check on #372 measured Actualiser still at the top on Catégories and Messages, a legacy defect not ported; SwiftHFR target: the bottom on all four); plus the FEAT-016 additions legacy lacks: tab rail when folded, sidebar pinned or on demand (design in the spec, approved by the operator before code), [spec](lots/LOT-147-duo-ipad-columns.md)",
 "module": "App",
 "diff": "difficult",
 "model": "Fable → Opus",
