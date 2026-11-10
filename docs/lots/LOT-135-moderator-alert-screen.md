@@ -38,10 +38,11 @@ Legacy reference `legacy/duo-inner-cover` @ `87fe0d1c` (AGENTS.md §2), `HFRswif
   confirmation, or the exchange failed after the POST left) closes the sheet and says the alert may have reached the
   moderators; it is never offered again from that sheet (AGENTS.md learnings LOT-037/048: an `unconfirmed` write is never
   retried). Legacy kept the sheet open with the reason and "Envoyer" ready.
-- **GAP-070** (`b·needed`): the mail fallback is offered only when the build carries the address (`MODERATOR_ALERT_MAIL_ADDRESS`,
-  Q-10: a third party's address stays out of source, ADR 0007); without it, a message without an alert link offers no
-  "Alerter". The mail's subject and body are legacy's, the query encoded strictly (legacy's `.urlQueryAllowed` left a `&` of
-  the permalink unencoded, which cut the body).
+- **Q-10 answered** (operator, 2026-11-10, #751): release builds keep legacy's mail fallback. `MODERATOR_ALERT_MAIL_ADDRESS` is
+  committed in `App/Config/Shared.xcconfig` with the address legacy hard-codes (`MessagesView.swift:4580` @ `87fe0d1c`): a public
+  HFR contact address, not a key (ADR 0007). The build still carries it as a setting, so a build without it (empty override)
+  offers no "Alerter" on a message without an alert link. The mail's subject and body are legacy's, the query encoded strictly
+  (legacy's `.urlQueryAllowed` left a `&` of the permalink unencoded, which cut the body).
 - Everything else is legacy's: the menu entry, the progress text, the sheet's title, warning, placeholder and buttons, the
   toasts, the mail confirmation.
 
