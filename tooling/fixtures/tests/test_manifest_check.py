@@ -139,7 +139,7 @@ class MainTests(unittest.TestCase):
         self.assertEqual(M.DEFAULT_CORPUS, publish.DEFAULT_MANIFEST)
 
     def test_committed_corpus_and_manifest_agree(self):
-        """The real files: this is the check CI runs, kept here so a local unittest run catches a gap too."""
+        """The real files. This is how CI runs the check: the `fixture-tooling` job's unittest step (a separate workflow step would edit ci.yml and start the macOS jobs)."""
         self.assertEqual(M.main([]), 0)
 
 
