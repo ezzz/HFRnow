@@ -352,6 +352,12 @@
     {"raw": "l611-T88", "id": "T88", "slug": "aq-create-topic-id-not-numeric-lax-local", "ext": "txt", "private": false},
     {"raw": "l611-T89", "id": "T89", "slug": "aq-create-nom-non-bmp-lax-local", "ext": "txt", "private": false},
     {"raw": "l611-T90", "id": "T90", "slug": "aq-alerts-nom-non-bmp-lax-local", "ext": "xml", "private": false},
+    {"raw": "m440-storage-create", "id": "W440a", "slug": "mpstorage-create-success", "ext": "html", "private": false},
+    {"raw": "m440-storage-write", "id": "W440b", "slug": "mpstorage-write-unchanged-success", "ext": "html", "private": false},
+    {"raw": "m440-editform-other-before", "id": "R440a", "slug": "mpstorage-edit-form-other-account", "ext": "html", "private": false},
+    {"raw": "m440-editform-deleted-owner", "id": "R440b", "slug": "mpstorage-edit-form-deleted-owner", "ext": "html", "private": false},
+    {"raw": "m440-editform-deleted-other", "id": "R440c", "slug": "mpstorage-edit-form-deleted-other-account", "ext": "html", "private": false},
+    {"raw": "m440-edit-other-post", "id": "W440c", "slug": "mp-edit-post-other-account-message-refused", "ext": "html", "private": false},
     {"raw": "m267-topic-anon-d", "id": "R267a", "slug": "topic-signature-separator-anon", "ext": "html", "private": false}
   ]
 }

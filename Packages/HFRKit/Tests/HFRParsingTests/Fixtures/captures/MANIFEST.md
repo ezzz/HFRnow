@@ -133,6 +133,14 @@ Run 15 (2026-11-10, `mac/m4-captures` batch `b716`, ezzz/HFRnow#716, read-only, 
 (read only to take a one-to-one row's `profilebdd.php` link as the page writes it; not published), then that link hop by hop with redirects
 not followed, logged in and without cookies, and the same link with a pseudo that does not exist (`R716a`-`R716e`). Nothing was sent to the forum.
 
+Run 19 (2026-11-10, `mac/m4-captures` batch `b440`, ezzz/HFRnow#440, operator decisions of that day): the MPStorage answers LOT-052 assumed.
+The storage creation from user2 to `MultiMP` (`W440a`, legacy's body, `MPStorage.m:738-746` @ `87fe0d1c`) was sent by the main session, the one
+exception to N01 for this run. Then, on that new storage thread, user2's edit POST with the document unchanged (`W440b`); user1's GET of user2's
+storage edit form (`R440a`); user2's delete of its storage thread (`W64`'s body, answer "Action effectuée avec succès", not published) and the
+same edit-form URL afterwards, by user2 (`R440b`) and by user1 (`R440c`); last, user2's edit POST of user1's first message in `fixture-test-9`
+(`W440c`, user1's thread, both kit accounts). Kit accounts only, one request per minute. The list, thread and form pages read along the way are
+not published (the `R13u1`, `R60a`, `R60b` shapes).
+
 Run 20 (2026-11-10, `mac/m4-captures` batch `b267`, ezzz/HFRnow#267, wanted by #755, read-only): one public topic page, `R20`'s topic, read
 anonymously at its canonical URL after HFR's two 301 hops (the hops are not published), for HFR's signature separator (`R267a`). The
 anonymizer now keeps that separator and HFR's closing clear div inside `span.signature` (`tooling/fixtures/README.md`).
@@ -409,6 +417,12 @@ anonymizer now keeps that separator and HFR's closing clear div inside `span.sig
 | W610g | `W610g-mp-group-reply-by-member-success.html` | user2 (not the owner) replies once in the group: "Votre réponse a été postée avec succès !" | #610 | 140, 058 |
 | R610g | `R610g-mp-list-group-creator-after-member-reply.html` | The creator's list after `W610g`: the group above `fixture-test-8` (row 2, under a conversation posted after it), `closedbp.gif`, `sujetCase7` 1, last poster user2 | #610, R13 | 140, 023 |
 | R610h | `R610h-mp-list-group-member-after-own-reply.html` | user2's list after its reply: the group row 1, `closedbp.gif`, 1 reply | #610, R13 | 140, 023 |
+| W440a | `W440a-mpstorage-create-success.html` | Storage creation: `bddpost.php` of the new-MP form with `dest=MultiMP` (aliased in the meta, as every pseudo), `sujet` = the storage subject and legacy's empty document, from user2 (no storage thread): "Votre message a été posté avec succès !", the `W10` answer | #440 | 052 |
+| W440b | `W440b-mpstorage-write-unchanged-success.html` | Storage write: `bdd.php` of the storage first-post edit form (`R60b` shape), document unchanged: "Votre message a été édité avec succès !", the `W15` answer | #440 | 052 |
+| R440a | `R440a-mpstorage-edit-form-other-account.html` | user1 GETs the edit-form URL of user2's storage first post (`R60b` URL), thread live: 200, no form, `.hop` "Ce message ne vous est pas destiné, désolé" (`RA5`) | #440 | 052 |
+| R440b | `R440b-mpstorage-edit-form-deleted-owner.html` | The same URL by user2 after deleting its storage thread: 200, no form, the same "Ce message ne vous est pas destiné, désolé" | #440 | 052 |
+| R440c | `R440c-mpstorage-edit-form-deleted-other-account.html` | The same URL by user1 after that delete: the same answer as `R440a` | #440 | 052 |
+| W440c | `W440c-mp-edit-post-other-account-message-refused.html` | user2 POSTs `bdd.php` (its own `R60b`-shaped edit form with `post`/`numreponse` of user1's first message in `fixture-test-9`, `sujet` `fixture-test-9`): refused, "Vous n'avez pas les droits pour éditer ce message !", no success sentence | #440 | 037, 048, 052 |
 | R267a | `R267a-topic-signature-separator-anon.html` | A public topic page, anonymous: 9 signatures, each `<span class="signature"> ---------------` + line break + `<br />` … `<div style="clear: both;"> </div></span>` (HFR's separator and clear div kept, the member's text replaced); no other fifteen-dash run on the page | #267, #755 | 034 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |

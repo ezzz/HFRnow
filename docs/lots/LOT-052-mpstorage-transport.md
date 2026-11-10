@@ -77,13 +77,18 @@ edit form), `R45b` (new-MP form) → `W10` (create answer), `W15` (edit answer),
 stored copy after a write serve `R60b` with its `content_form` replaced by the text sent: HFR stores an edit's text as
 sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check alone.
 
-**Pending capture** (never hand-built, LESSONS 36; the last two items are tracked in [#440](https://github.com/ezzz/HFRnow/issues/440)):
+**Pending capture** (never hand-built, LESSONS 36):
 - An MP list with the storage thread on page 2 or later (#333, not reachable with the kit's accounts): the walk is
   tested with pager values (`MPStorageListWalkTests`), not with pages.
 - A non-empty document from other clients, near the 64 KiB cap, with U+00A0 or smiley codes (#272).
-- A storage write (`bdd.php` on the storage message) and a storage creation answer: the transport relies on the MP edit
-  (`W15`) and MP creation (`W10`) answers of ordinary threads.
-- The answer to the edit POST of another account's message (`R44`), and the edit-form GET of a deleted storage message.
+
+**Captured since** ([#440](https://github.com/ezzz/HFRnow/issues/440), 2026-11-10; HFR-PROTOCOL §6c LOT-052): the storage creation
+answer `W440a` (the `W10` answer) and the storage write answer `W440b` (the `W15` answer); the edit-form GET of the storage message
+by another account (`R440a`) and after the thread was deleted, by its owner (`R440b`) and by another account (`R440c`): all three are
+`RA5`'s "Ce message ne vous est pas destiné, désolé" page, no form; the edit POST of another account's message (`W440c`): refused,
+"Vous n'avez pas les droits pour éditer ce message !" (a link-less `.hop` with no "avec succès", refreshing to the thread after 3 s, so `save` reports it
+`posting(.unconfirmed(.unrecognizedAnswer))`, never a success; `rejected` is [#756](https://github.com/ezzz/HFRnow/issues/756)).
+Tests in `MPStorageTransportWriteTests`, one per state.
 
 ## Tests
 `MPStorageTransportReadTests`, `MPStorageTransportWriteTests`, `MPStorageListWalkTests` (HFRClientTests),
