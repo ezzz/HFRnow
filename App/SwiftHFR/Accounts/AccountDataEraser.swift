@@ -14,8 +14,6 @@ enum AccountDataKind: CaseIterable, Hashable, Sendable {
     case smileyFavorites
     /// Super-favourites and reply drafts the legacy import set aside for the account (LOT-158, `pending.json`).
     case legacyPending
-    /// The legacy import told never to bring the account back (LOT-158): legacy's own Keychain item still lists it.
-    case legacyImport
 
     /// Name in a French sentence ("… n’ont pas pu être effacés : les brouillons").
     var title: String {
@@ -26,7 +24,6 @@ enum AccountDataKind: CaseIterable, Hashable, Sendable {
         case .superFavorites: "les super-favoris"
         case .smileyFavorites: "les smileys favoris"
         case .legacyPending: "les éléments en attente de l’ancienne app"
-        case .legacyImport: "l’exclusion du compte de l’import de l’ancienne app"
         }
     }
 }
@@ -36,8 +33,8 @@ enum AccountDataKind: CaseIterable, Hashable, Sendable {
 /// Holds the stores themselves, so the live eraser is checked to write the same actors as the screens (one actor per file:
 /// a second store over the same file would race them). The account itself (Keychain, session) is removed by
 /// `AccountsModel.remove(_:)` and `removeStoreItemIfEmpty()`; stores that belong to no account (allowlist, histories,
-/// offline topics, caches, settings) are not touched. The legacy import is told to skip the account from then on, since
-/// legacy's Keychain item, which it only reads, still lists it.
+/// offline topics, caches, settings) are not touched. `forget(account:)` tells the legacy import to skip the account from
+/// then on, since legacy's Keychain item, which it only reads, still lists it; the model calls it first.
 struct AccountDataEraser: Sendable {
     let drafts: DraftStore
     let pseudoLists: PseudoListStore
@@ -69,6 +66,12 @@ struct AccountDataEraser: Sendable {
         keys.formUnion(await smileyFavorites.accountKeys())
         keys.formUnion(await legacyPending.accountKeys())
         return keys
+    }
+
+    /// Records `account` in the legacy import's list of erased accounts (LOT-158 never brings it back), after any import run
+    /// in progress. Called before the account is removed: removing the current account runs an incomplete import again.
+    func forget(account: String) async throws {
+        try await legacyImport?.forget(account: account)
     }
 
     /// Erases `kinds` of `account` (the account's pseudo or key). Every kind is tried even when an earlier one
@@ -106,8 +109,6 @@ struct AccountDataEraser: Sendable {
             _ = try await smileyFavorites.replace([], account: account)
         case .legacyPending:
             try await legacyPending.discardAll(account: account)
-        case .legacyImport:
-            try await legacyImport?.forget(account: account)
         }
     }
 }

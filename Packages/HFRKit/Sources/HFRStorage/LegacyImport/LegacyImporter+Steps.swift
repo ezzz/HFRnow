@@ -86,7 +86,9 @@ extension LegacyImporter {
         } catch {
             return .failed(.destinationFailed)
         }
-        let erased = erasedListNames()
+        // An erased account's list may be keyed by its legacy display name, read from legacy's Keychain: unreadable, the
+        // list could come back, so the step waits for the next run.
+        guard let erased = erasedListNames() else { return .failed(.sourceUnavailable) }
         var imported = 0
         do {
             for (name, pseudos) in lists.sorted(by: { $0.key < $1.key }) {
@@ -108,10 +110,13 @@ extension LegacyImporter {
     }
 
     /// The keys an erased account's legacy list can be filed under: its pseudo, and its legacy display name (legacy keyed
-    /// lists by display name, and an erased account is no longer in the book to translate it).
-    private func erasedListNames() -> Set<String> {
+    /// lists by display name, and an erased account is no longer in the book to translate it). Nil when there are erased
+    /// accounts and legacy's accounts cannot be read.
+    private func erasedListNames() -> Set<String>? {
         var names = erasedKeys ?? []
-        for record in (try? container.accounts.accounts()) ?? [] {
+        guard !names.isEmpty else { return names }
+        guard let records = try? container.accounts.accounts() else { return nil }
+        for record in records {
             guard let pseudo = record.pseudo, names.contains(ErasedAccountsEnvelope.key(pseudo)) else { continue }
             if let name = record.displayName { names.insert(ErasedAccountsEnvelope.key(name)) }
         }

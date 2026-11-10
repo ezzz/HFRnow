@@ -30,6 +30,7 @@ enum ErasedAccountsEnvelope {
         } catch {
             throw CredentialStoreError.corrupted
         }
+        guard document.version >= 1 else { throw CredentialStoreError.corrupted }
         guard document.version <= currentVersion else { throw CredentialStoreError.unsupportedVersion(document.version) }
         return Set(document.keys)
     }

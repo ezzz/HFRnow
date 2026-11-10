@@ -1,17 +1,20 @@
+import Dispatch
 import Foundation
 import HFRModels
 @testable import HFRStorage
+import Synchronization
 import Testing
 
 extension Harness {
     /// The importer over this harness, with the erased-accounts list `erased` (LOT-157).
-    func importer(erased: any ErasedAccountStore) -> LegacyImporter {
+    func importer(erased: any ErasedAccountStore, pending: LegacyPendingStore? = nil) -> LegacyImporter {
         let source = accountsFailure.map { InMemoryLegacyAccountSource(failing: $0) } ?? InMemoryLegacyAccountSource(accounts)
         let container = LegacyContainer(
             documentsDirectory: documents, cachesDirectory: caches, defaults: InMemoryLegacyDefaults(defaults), accounts: source
         )
         var destinations = destinations
         destinations.erasedAccounts = erased
+        if let pending { destinations.pending = pending }
         return LegacyImporter(container: container, destinations: destinations, state: statePersistence)
     }
 }
@@ -102,4 +105,115 @@ struct LegacyImporterErasedTests {
         let keys = try InMemoryErasedAccountStore(envelope: try ErasedAccountsEnvelope.encode(["a"])).keys()
         #expect(keys == ["a"])
     }
+
+    @Test("a blocklist keyed by an erased account's legacy display name, unlike its pseudo, is not brought back")
+    func erasedDisplayNameList() async throws {
+        var harness = try Harness()
+        defer { harness.remove() }
+        harness.accounts = [LegacyAccountRecord(
+            pseudo: "fake%20user3", displayName: "fake user3", cookies: [Harness.cookie("md_user", "fake%20user3")], isMain: true
+        )]
+        let renamed = blocklistPlist.replacingOccurrences(of: "<key>FakeUser2</key>", with: "<key>fake user3</key>")
+        try harness.write(renamed, to: LegacyKeys.blocklistFile)
+        let erased = InMemoryErasedAccountStore()
+        try erased.insert("fake%20user3")
+
+        let report = await harness.importer(erased: erased).run(now: now)
+
+        #expect(report.outcomes[.pseudoLists] == .imported(1))
+        let lists = harness.destinations.pseudoLists
+        #expect(await lists.blocklist(for: "fake user3").isEmpty)
+        #expect(await lists.blocklist(for: "fake%20user3").isEmpty)
+        #expect(await lists.blocklist(for: "ghost").map(\.pseudo) == ["fakeblocked2"])
+    }
+
+    @Test("with an erased account, unreadable legacy accounts hold the blocklist step back")
+    func unreadableLegacyAccountsHoldListsBack() async throws {
+        var harness = try Harness()
+        defer { harness.remove() }
+        try harness.write(blocklistPlist, to: LegacyKeys.blocklistFile)
+        try harness.statePersistence.save(LegacyImportStateDocument(done: [.accounts]))
+        harness.accountsFailure = .sourceUnavailable
+        let erased = InMemoryErasedAccountStore()
+        try erased.insert("fakeuser2")
+
+        let report = await harness.importer(erased: erased).run(now: now)
+
+        #expect(report.outcomes[.pseudoLists] == .failed(.sourceUnavailable))
+        #expect(await harness.destinations.pseudoLists.blocklist(for: "FakeUser2").isEmpty)
+        #expect(harness.statePersistence.document?.done.contains(.pseudoLists) == false)
+    }
+
+    @Test("forget waits for the run in progress: that run keeps the list it read, the next one skips the account")
+    func forgetIsSerializedWithARun() async throws {
+        let harness = try Harness.full()
+        defer { harness.remove() }
+        let gate = SaveGate()
+        let pending = LegacyPendingStore(persistence: GatedPersistence<LegacyPendingDocument>(gate: gate))
+        let erased = InMemoryErasedAccountStore()
+        let importer = harness.importer(erased: erased, pending: pending)
+
+        // The run stops inside the super-favourites step, after the accounts step read the (empty) list.
+        let run = Task { await importer.run(now: now) }
+        try await gate.waitUntilEntered()
+        let forget = Task { try await importer.forget(account: "fakeuser1") }
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(try erased.keys().isEmpty)
+
+        gate.open()
+        #expect(await run.value.outcomes[.accounts] == .imported(2))
+        try await forget.value
+        #expect(try erased.keys() == ["fakeuser1"])
+    }
+
+    @Test("a list with a version below 1 is not a list")
+    func versionZeroIsCorrupted() {
+        let store = InMemoryErasedAccountStore(envelope: Data(#"{"keys":["a"],"version":0}"#.utf8))
+        #expect(throws: CredentialStoreError.corrupted) { try store.keys() }
+    }
+}
+
+/// Holds the first save of a persistence until `open()`, so a test can act while an import run is suspended in it.
+final class SaveGate: Sendable {
+    private let entered = Mutex(false)
+    private let semaphore = DispatchSemaphore(value: 0)
+
+    /// Called by the persistence: marks the save as reached, then waits (at most 5 s, so a test never hangs).
+    func pass() {
+        let first = entered.withLock { reached in
+            defer { reached = true }
+            return !reached
+        }
+        if first { _ = semaphore.wait(timeout: .now() + 5) }
+    }
+
+    func open() {
+        semaphore.signal()
+    }
+
+    func waitUntilEntered() async throws {
+        for _ in 0..<500 where !entered.withLock({ $0 }) {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(entered.withLock { $0 })
+    }
+}
+
+/// An in-memory persistence whose first save waits on `gate`.
+final class GatedPersistence<Document: SmallStoreDocument>: SmallStorePersistence {
+    private let inner = InMemorySmallStorePersistence<Document>()
+    private let gate: SaveGate
+
+    init(gate: SaveGate) {
+        self.gate = gate
+    }
+
+    func load() throws -> Document? { try inner.load() }
+
+    func save(_ document: Document) throws {
+        gate.pass()
+        try inner.save(document)
+    }
+
+    func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
 }

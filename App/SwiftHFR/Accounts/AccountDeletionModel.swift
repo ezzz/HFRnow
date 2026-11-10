@@ -50,11 +50,14 @@ final class AccountDeletionModel {
         return false
     }
 
-    /// Removes the account (Keychain entry, session), then erases its data from every per-account store. A refused
-    /// removal erases nothing; a store that fails is reported and its account stays in `leftovers`.
+    /// Records the account as erased for the legacy import, removes it (Keychain entry, session), then erases its data from
+    /// every per-account store. A refused record or removal erases nothing; a store that fails is reported and its account
+    /// stays in `leftovers`.
     func erase(_ row: AccountRow) async {
         guard !isErasing else { return }
         phase = .erasing(name: row.displayName)
+        // First: removing the current account runs an incomplete legacy import again, which must already skip it.
+        guard await forgetInLegacyImport(row.id) else { return }
         do throws(AccountActionError) {
             try accounts.remove(row.id)
         } catch {
@@ -69,6 +72,7 @@ final class AccountDeletionModel {
     func eraseLeftover(_ key: String) async {
         guard !isErasing, !isStored(key) else { return }
         phase = .erasing(name: key)
+        guard await forgetInLegacyImport(key) else { return }
         await run(account: key, name: key)
     }
 
@@ -107,6 +111,17 @@ final class AccountDeletionModel {
         phase = .partial(name: name, failures: (keychainFailed ? [Self.keychainTitle] : []) + failed.map(\.title))
     }
 
+    /// False, with the refusal on screen, when the legacy import's list of erased accounts could not be written.
+    private func forgetInLegacyImport(_ account: String) async -> Bool {
+        do {
+            try await eraser.forget(account: account)
+            return true
+        } catch {
+            phase = .refused(message: Self.legacyImportFailure)
+            return false
+        }
+    }
+
     /// Deletes the Keychain item when it holds no account; false (and `keychainItemPending`) when the Keychain refused.
     private func removeKeychainItemIfEmpty() -> Bool {
         do {
@@ -126,4 +141,6 @@ final class AccountDeletionModel {
     private static let keychainTitle = "l’élément du trousseau"
     private static let keychainFailure = "L’élément vide du trousseau n’a pas pu être supprimé. Réessayez."
     private static let genericFailure = "Le compte n’a pas pu être retiré. Réessayez."
+    static let legacyImportFailure =
+        "Le compte n’a pas pu être exclu de l’import de l’ancienne app : rien n’a été effacé. Réessayez."
 }

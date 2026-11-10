@@ -23,29 +23,35 @@ struct SeededStores {
         eraser()
     }
 
-    /// The eraser over these stores, with `drafts` or `positions` replaced (a failing file).
-    func eraser(drafts: DraftStore? = nil, positions: ReadingPositionStore? = nil) -> AccountDataEraser {
+    /// The eraser over these stores, with `drafts`, `positions` or the importer replaced.
+    func eraser(
+        drafts: DraftStore? = nil, positions: ReadingPositionStore? = nil, importer: LegacyImporter? = nil
+    ) -> AccountDataEraser {
         AccountDataEraser(
             drafts: drafts ?? self.drafts, pseudoLists: pseudoLists, positions: positions ?? self.positions,
             superFavorites: superFavorites, smileyFavorites: smileyFavorites, legacyPending: legacyPending,
-            legacyImport: legacyImporter
+            legacyImport: importer ?? legacyImporter()
         )
     }
 
-    /// An importer over an empty legacy container that writes into these stores.
-    var legacyImporter: LegacyImporter {
+    /// An importer that writes into these stores, over a legacy container holding only `legacyAccounts`, with the
+    /// erased-accounts list `erased` (by default `erasedAccounts`).
+    func legacyImporter(
+        credentials: any CredentialStore = InMemoryCredentialStore(), legacyAccounts: [LegacyAccountRecord] = [],
+        erased: (any ErasedAccountStore)? = nil
+    ) -> LegacyImporter {
         let nowhere = URL(filePath: "/nonexistent", directoryHint: .isDirectory)
         return LegacyImporter(
             container: LegacyContainer(
                 documentsDirectory: nowhere, cachesDirectory: nowhere, defaults: InMemoryLegacyDefaults(),
-                accounts: InMemoryLegacyAccountSource()
+                accounts: InMemoryLegacyAccountSource(legacyAccounts)
             ),
             destinations: LegacyImportDestinations(
-                credentials: InMemoryCredentialStore(), pseudoLists: pseudoLists, superFavorites: superFavorites,
+                credentials: credentials, pseudoLists: pseudoLists, superFavorites: superFavorites,
                 layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()), smileyFavorites: smileyFavorites,
                 searchHistory: SmileySearchHistoryStore(persistence: InMemorySmallStorePersistence()),
                 uploads: RehostUploadHistoryStore(persistence: InMemorySmallStorePersistence()), drafts: drafts,
-                pending: legacyPending, settings: InMemorySettingsStore(), erasedAccounts: erasedAccounts
+                pending: legacyPending, settings: InMemorySettingsStore(), erasedAccounts: erased ?? erasedAccounts
             ),
             state: InMemorySmallStorePersistence()
         )
@@ -65,7 +71,7 @@ struct SeededStores {
         _ = try await pseudoLists.allow("member2")
     }
 
-    /// How many items of each data kind `account` has, in `AccountDataKind.allCases` order (`legacyImport` holds none).
+    /// How many items of each kind `account` has, in `AccountDataKind.allCases` order.
     func counts(_ account: String) async -> [Int] {
         [
             await drafts.drafts(account: account).count,
@@ -131,4 +137,35 @@ final class UndeletableCredentialStore: CredentialStore {
         if fails { throw CredentialStoreError.keychain(status: -25_308) }
         try inner.removeAll()
     }
+}
+
+/// An erased-accounts list that cannot be written (a Keychain refusal).
+struct UnwritableErasedAccountStore: ErasedAccountStore {
+    func keys() throws -> Set<String> { [] }
+    func insert(_ pseudo: String) throws { throw CredentialStoreError.keychain(status: -25_308) }
+}
+
+/// A credential store that notes, at each write, which accounts the legacy import already holds as erased.
+final class ErasedAtWriteCredentialStore: CredentialStore {
+    let inner: InMemoryCredentialStore
+    private let erased: any ErasedAccountStore
+    private let seen = Mutex<[Set<String>]>([])
+
+    init(_ inner: InMemoryCredentialStore, erased: any ErasedAccountStore) {
+        self.inner = inner
+        self.erased = erased
+    }
+
+    /// The erased keys read at each write, in order.
+    var erasedAtWrites: [Set<String>] { seen.withLock { $0 } }
+
+    func load() throws -> AccountBook { try inner.load() }
+
+    func update<Value>(_ body: (inout AccountBook) throws -> Value) throws -> Value {
+        let keys = (try? erased.keys()) ?? []
+        seen.withLock { $0.append(keys) }
+        return try inner.update(body)
+    }
+
+    func removeAll() throws { try inner.removeAll() }
 }

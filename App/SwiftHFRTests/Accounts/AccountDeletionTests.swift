@@ -22,8 +22,6 @@ struct AccountDataEraserTests {
         #expect(await stores.smileyFavorites.accountKeys() == ["user2"])
         #expect(await stores.positions.accounts() == ["user2"])
         #expect(await stores.legacyPending.accountKeys() == ["user2"])
-        // The legacy import will not bring the account back: legacy's own Keychain item still lists it.
-        #expect(try stores.erasedAccounts.keys() == ["user1"])
     }
 
     @Test func triesEveryStoreAndReportsTheOnesThatFailed() async throws {
@@ -79,7 +77,7 @@ struct AccountDataEraserTests {
     @Test func everyKindHasAFrenchName() {
         #expect(AccountDataKind.allCases.map(\.title) == [
             "les brouillons", "la liste noire", "les positions de lecture", "les super-favoris", "les smileys favoris",
-            "les éléments en attente de l’ancienne app", "l’exclusion du compte de l’import de l’ancienne app"
+            "les éléments en attente de l’ancienne app"
         ])
     }
 }
@@ -109,6 +107,8 @@ struct AccountDeletionModelTests {
         #expect(accounts.currentSession == nil)
         #expect(accounts.session(for: "user1") == nil)
         #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
+        // The legacy import will not bring the account back: legacy's own Keychain item still lists it.
+        #expect(try stores.erasedAccounts.keys() == ["user1"])
         #expect(deletion.leftovers.isEmpty)
         #expect(!deletion.keychainItemPending)
     }
@@ -130,6 +130,49 @@ struct AccountDeletionModelTests {
         #expect(accounts.currentSession === other)
         #expect(await stores.counts("user1") == [0, 0, 0, 0, 0, 0])
         #expect(await stores.counts("user2") == [1, 1, 1, 1, 1, 1])
+    }
+
+    @Test func theAccountIsExcludedFromTheLegacyImportBeforeItIsRemoved() async throws {
+        let inner = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])
+        let stores = SeededStores()
+        let store = ErasedAtWriteCredentialStore(inner, erased: stores.erasedAccounts)
+        let accounts = makeModel(store: store)
+        await accounts.restore()
+        try await stores.seed(["user1", "user2"])
+        // Legacy's Keychain item still lists user1, and the import has not completed.
+        let importer = stores.legacyImporter(credentials: store, legacyAccounts: [LegacyAccountRecord(
+            pseudo: "user1", displayName: "user1", isMain: true
+        )])
+        let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser(importer: importer))
+        let row = try #require(accounts.rows.first { $0.id == "user1" })
+        let writesBefore = store.erasedAtWrites.count
+
+        await deletion.erase(row)
+        // The run the app starts when the current account changes (LOT-158), queued after the removal.
+        _ = await importer.run(currentAccount: accounts.current?.id)
+
+        #expect(deletion.phase == .erased(name: row.displayName))
+        // The removal, the wipe's first write to the account store, already saw user1 recorded.
+        #expect(store.erasedAtWrites.dropFirst(writesBefore).first == ["user1"])
+        #expect(try inner.accounts().map(\.pseudo) == ["user2"])
+    }
+
+    @Test func anUnwritableLegacyImportListErasesNothing() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let accounts = makeModel(store: store)
+        await accounts.restore()
+        let stores = SeededStores()
+        try await stores.seed(["user1"])
+        let importer = stores.legacyImporter(erased: UnwritableErasedAccountStore())
+        let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser(importer: importer))
+        let row = try #require(accounts.rows.first)
+
+        await deletion.erase(row)
+
+        #expect(deletion.phase == .refused(message: AccountDeletionModel.legacyImportFailure))
+        #expect(try store.accounts().map(\.pseudo) == ["user1"])
+        #expect(await stores.counts("user1") == [1, 1, 1, 1, 1, 1])
+        #expect(!deletion.isErasing)
     }
 
     @Test func aRefusedRemovalErasesNothing() async throws {
