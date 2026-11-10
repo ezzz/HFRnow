@@ -120,4 +120,66 @@ struct ThrowingOnceItem: SecureDataItem {
         #expect(item.sharedPseudos == ["user-d", "user-y"])
         #expect(deviceD.pseudos == ["user-d", "user-y"])
     }
+
+    // MARK: - Round 2
+
+    /// A switch-on whose local half fails after the item write puts back what the item held: nothing is shared while the
+    /// switch reads off.
+    @Test func aSwitchOnThatCannotSaveItsStateUnsharesTheAccounts() throws {
+        struct ReadOnlyState: SecureDataItem {
+            // Holds accounts already, so only the switch-on's own save reaches `write`.
+            func read() throws -> Data? { Data(#"{"version":1,"isOn":false,"hadLocalAccounts":true}"#.utf8) }
+            func write(_ data: Data) throws { throw CredentialStoreError.keychain(status: -25_308) }
+        }
+        let item = InMemorySecureDataItem()
+        let sync = AccountSync(
+            accounts: try InMemoryCredentialStore(accounts: [fakeAccount("user-a")]), item: item, state: ReadOnlyState(),
+            clock: { moment(100) }
+        )
+        #expect(throws: CredentialStoreError.keychain(status: -25_308)) { try sync.switchOn() }
+        #expect(try item.envelope == .tombstone(deletedAt: moment(100)))
+
+        let deviceB = try SyncDevice(item: item, accounts: [fakeAccount("user-b")])
+        try deviceB.switchOn(at: 200)
+        let shared = item.data
+        let merging = AccountSync(
+            accounts: try InMemoryCredentialStore(accounts: [fakeAccount("user-a")]), item: item, state: ReadOnlyState(),
+            clock: { moment(210) }
+        )
+        #expect(throws: CredentialStoreError.keychain(status: -25_308)) { try merging.switchOn() }
+        #expect(item.data == shared)
+    }
+
+    /// A device switched off (here: a provisional one that dropped what it imported) is never bootstrapped again.
+    @Test func aDeviceSwitchedOffIsNeverBootstrappedAgain() throws {
+        let item = InMemorySecureDataItem()
+        let deviceA = try SyncDevice(item: item, accounts: [fakeAccount("user-a")])
+        try deviceA.switchOn(at: 100)
+        let fresh = try SyncDevice(item: item)
+        try fresh.reconcile(at: 110)
+        try fresh.switchOff(at: 120)
+        #expect(fresh.pseudos.isEmpty)
+        try deviceA.reconcile(at: 130)
+        try deviceA.switchOn(at: 200)
+        try fresh.reconcile(at: 210)
+        try fresh.reconcile(at: 220)
+        #expect(fresh.pseudos.isEmpty)
+        #expect(!fresh.isOn)
+    }
+
+    /// A device without accounts that was switched on, then off by another device, is not opted in again by itself.
+    @Test func anEmptyDeviceSwitchedOffByAnotherIsNeverBootstrapped() throws {
+        let item = InMemorySecureDataItem()
+        let empty = try SyncDevice(item: item)
+        try empty.switchOn(at: 100)
+        let deviceA = try SyncDevice(item: item, accounts: [fakeAccount("user-a")])
+        try deviceA.switchOn(at: 110)
+        try deviceA.switchOff(at: 120)
+        try empty.reconcile(at: 130)
+        #expect(!empty.isOn)
+        try deviceA.switchOn(at: 200)
+        try empty.reconcile(at: 210)
+        #expect(empty.pseudos.isEmpty)
+        #expect(!empty.isOn)
+    }
 }

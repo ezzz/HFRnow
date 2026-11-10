@@ -77,7 +77,9 @@ final class AppLockModel {
 
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let authenticator: any DeviceOwnerAuthenticating
-    @ObservationIgnored private var backgroundedAt: Date?
+    /// On the monotonic clock that counts sleep: setting the device clock cannot shorten the time away (a reboot relaunches
+    /// the app, locked).
+    @ObservationIgnored private var backgroundedAt: ContinuousClock.Instant?
     /// One automatic authentication per lock: never again after a failure or a cancel, or the sheet would loop with the
     /// scene phase it changes.
     @ObservationIgnored private var promptsByItself = false
@@ -122,7 +124,7 @@ final class AppLockModel {
     /// Follows the app's scene phase. Returns true when the caller should start the authentication now (the app became
     /// active, locked, and has not asked by itself yet for this lock).
     @discardableResult
-    func scenePhaseChanged(to phase: ScenePhase, now: Date = Date()) -> Bool {
+    func scenePhaseChanged(to phase: ScenePhase, now: ContinuousClock.Instant = ContinuousClock.now) -> Bool {
         switch phase {
         case .background:
             isActive = false
@@ -130,10 +132,10 @@ final class AppLockModel {
             return false
         case .active:
             isActive = true
-            // A clock set back while away gives a negative time: it locks (fail closed), never waits for the grace.
             if isEnabled, let backgroundedAt {
-                let away = now.timeIntervalSince(backgroundedAt)
-                if away < 0 || away >= TimeInterval(grace.rawValue) { lock() }
+                let away = backgroundedAt.duration(to: now)
+                // A negative time cannot happen on this clock; if it ever did, it locks (fail closed).
+                if away < .zero || away >= .seconds(grace.rawValue) { lock() }
             }
             backgroundedAt = nil
             guard isLocked, promptsByItself, !isAuthenticating else { return false }

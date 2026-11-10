@@ -29,7 +29,7 @@ private final class ScriptedAuthenticator: DeviceOwnerAuthenticating {
 
 @MainActor
 struct AppLockModelTests {
-    private let start = Date(timeIntervalSinceReferenceDate: 1_000)
+    private let start = ContinuousClock.now
 
     private func model(
         enabled: Bool = true, grace: Int = 0, _ authenticator: ScriptedAuthenticator = ScriptedAuthenticator()
@@ -47,7 +47,7 @@ struct AppLockModelTests {
         #expect(!lock.scenePhaseChanged(to: .active, now: start))
         lock.scenePhaseChanged(to: .background, now: start)
         #expect(!lock.isCovered)
-        #expect(!lock.scenePhaseChanged(to: .active, now: start.addingTimeInterval(3_600)))
+        #expect(!lock.scenePhaseChanged(to: .active, now: start.advanced(by: .seconds(3_600))))
         #expect(!lock.isLocked)
     }
 
@@ -92,18 +92,18 @@ struct AppLockModelTests {
         lock.scenePhaseChanged(to: .inactive, now: start)
         lock.scenePhaseChanged(to: .background, now: start)
         #expect(lock.isCovered)
-        let asks = lock.scenePhaseChanged(to: .active, now: start.addingTimeInterval(away))
+        let asks = lock.scenePhaseChanged(to: .active, now: start.advanced(by: .seconds(away)))
         #expect(lock.isLocked == locks)
         #expect(asks == locks)
         #expect(lock.isCovered == locks)
     }
 
-    /// The device clock set back while the app was away: elapsed time is negative, the app locks anyway.
-    @Test func aClockSetBackWhileAwayLocks() async {
+    /// Time away is measured on the monotonic clock: a wall clock set back cannot shorten it, and a negative reading locks.
+    @Test func aNegativeTimeAwayLocks() async {
         let (lock, _) = model(grace: 300, ScriptedAuthenticator([.success]))
         await lock.unlock()
         lock.scenePhaseChanged(to: .background, now: start)
-        #expect(lock.scenePhaseChanged(to: .active, now: start.addingTimeInterval(-3_600)))
+        #expect(lock.scenePhaseChanged(to: .active, now: start.advanced(by: .seconds(-3_600))))
         #expect(lock.isLocked)
     }
 
@@ -113,7 +113,7 @@ struct AppLockModelTests {
         lock.scenePhaseChanged(to: .inactive, now: start)
         #expect(lock.isCovered)
         #expect(!lock.isLocked)
-        #expect(!lock.scenePhaseChanged(to: .active, now: start.addingTimeInterval(3_600)))
+        #expect(!lock.scenePhaseChanged(to: .active, now: start.advanced(by: .seconds(3_600))))
         #expect(!lock.isCovered)
     }
 

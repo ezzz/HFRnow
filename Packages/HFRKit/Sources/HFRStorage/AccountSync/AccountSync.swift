@@ -260,7 +260,7 @@ extension AccountSync {
         state.removed = [:]
         state.provisionalEnabledAt = nil
         state.imported = []
-        try saveState(state)
+        try rollingBack(to: raw, enabledAt: enabledAt) { try saveState(state) }
         var report = AccountSyncReport()
         report.itemWritten = true
         return report
@@ -290,18 +290,35 @@ extension AccountSync {
             report.itemWritten = try write(merged, ifStill: raw)
             guard report.itemWritten else { return report }
         }
-        let result = try accounts.update { book -> AccountSyncMerge in
-            let result = mergeLocal(book)
-            book = result.book
-            return result
+        let rollback = required && report.itemWritten
+        return try rollingBack(to: rollback ? raw : nil, enabledAt: rollback ? enabledAt : nil) {
+            let result = try accounts.update { book -> AccountSyncMerge in
+                let result = mergeLocal(book)
+                book = result.book
+                return result
+            }
+            state.stamps = result.stamps
+            state.removed = result.removed
+            state.imported.formIntersection(result.stamps.keys)
+            report.replaced = result.replaced
+            report.dropped = result.dropped
+            try saveState(state)
+            return report
         }
-        state.stamps = result.stamps
-        state.removed = result.removed
-        state.imported.formIntersection(result.stamps.keys)
-        report.replaced = result.replaced
-        report.dropped = result.dropped
-        try saveState(state)
-        return report
+    }
+
+    /// Runs the local half of a switch-on whose item write already happened. If it throws, the switch stays off, so the
+    /// item gets back what it held (a tombstone when it was absent): this device's accounts are never shared while its
+    /// switch reads off. Without `enabledAt`, nothing is rolled back.
+    private func rollingBack<Value>(to raw: Data?, enabledAt: Date?, _ body: () throws -> Value) throws -> Value {
+        do {
+            return try body()
+        } catch {
+            if let enabledAt {
+                try? item.write(raw ?? AccountSyncEnvelope.tombstone(deletedAt: enabledAt).encoded())
+            }
+            throw error
+        }
     }
 
     /// Switches this device off without writing the item; a provisional bootstrap drops the accounts it imported.
@@ -320,7 +337,8 @@ extension AccountSync {
         }
         let honoured = [state.honouredDeletedAt, deletedAt].compactMap { $0 }.max()
         var off = AccountSyncState(honouredDeletedAt: honoured)
-        off.hadLocalAccounts = state.hadLocalAccounts
+        // Switched off, by itself or by another device: it consented once, it is never opted in by itself again.
+        off.hadLocalAccounts = true
         off.stamps = state.stamps.filter { !report.dropped.map(AccountKey.make).contains($0.key) }
         state = off
         try saveState(state)

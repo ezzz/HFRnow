@@ -204,8 +204,10 @@ final class AccountsModel {
         for id in ids {
             guard let session = sessions[id], eligible(statuses[id]) else { continue }
             let before = statuses[id]
+            let saves = loginSaves[id, default: 0]
             let result = await checker.check(session)
-            guard sessions[id] === session, statuses[id] == before else { continue }
+            // Same session and status, and no login or adopted sync credentials meanwhile (the object stays the same then).
+            guard sessions[id] === session, statuses[id] == before, loginSaves[id, default: 0] == saves else { continue }
             switch result {
             case .valid:
                 statuses[id] = .valid
