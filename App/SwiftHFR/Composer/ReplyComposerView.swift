@@ -248,42 +248,6 @@ struct ReplyComposerView: View {
         .padding(.horizontal, 16)
     }
 
-    /// The row has something to show: loading, the options or a failed read (a form without the select shows nothing).
-    private var showsSubcategoryRow: Bool {
-        model.picker.isLoading || !model.picker.options.isEmpty || model.picker.warning != nil
-    }
-
-    /// The form's sub-categories as a menu (legacy `Picker`, `AnswerView.swift:411`); a failed read says so and offers a retry.
-    @ViewBuilder
-    private var subcategoryRow: some View {
-        if model.picker.isLoading {
-            HStack {
-                Text("Sous-catégorie")
-                Spacer()
-                ProgressView().accessibilityLabel("Chargement des sous-catégories")
-            }
-            .padding(.vertical, 10)
-        } else if !model.picker.options.isEmpty {
-            Picker("Sous-catégorie", selection: Binding(
-                get: { model.picker.selected ?? "" }, set: { model.select(subcategory: $0) }
-            )) {
-                ForEach(model.picker.options, id: \.value) { option in
-                    Text(option.label).tag(option.value)
-                }
-            }
-            .pickerStyle(.menu)
-            .disabled(!model.canEdit)
-            .padding(.vertical, 2)
-        } else if let warning = model.picker.warning {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(warning).scaledFont(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button("Réessayer") { Task { await model.retrySubcategories() } }
-            }
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -322,6 +286,42 @@ struct ReplyComposerView: View {
 }
 
 extension ReplyComposerView {
+    /// The row has something to show: loading, the options or a failed read (a form without the select shows nothing).
+    private var showsSubcategoryRow: Bool {
+        model.picker.isLoading || !model.picker.options.isEmpty || model.picker.warning != nil
+    }
+
+    /// The form's sub-categories as a menu (legacy `Picker`, `AnswerView.swift:411`); a failed read says so and offers a retry.
+    @ViewBuilder
+    private var subcategoryRow: some View {
+        if model.picker.isLoading {
+            HStack {
+                Text("Sous-catégorie")
+                Spacer()
+                ProgressView().accessibilityLabel("Chargement des sous-catégories")
+            }
+            .padding(.vertical, 10)
+        } else if !model.picker.options.isEmpty {
+            Picker("Sous-catégorie", selection: Binding(
+                get: { model.picker.selected ?? "" }, set: { model.select(subcategory: $0) }
+            )) {
+                ForEach(model.picker.options, id: \.value) { option in
+                    Text(option.label).tag(option.value)
+                }
+            }
+            .pickerStyle(.menu)
+            .disabled(!model.canEdit)
+            .padding(.vertical, 2)
+        } else if let warning = model.picker.warning {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(warning).scaledFont(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Button("Réessayer") { Task { await model.retrySubcategories() } }
+            }
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     /// Off while the recipient or subject has focus; a tap never takes focus from them (`ComposerBarFocus`, #599).
     private var formattingBar: some View {
         let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
