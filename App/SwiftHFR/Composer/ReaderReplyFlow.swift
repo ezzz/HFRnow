@@ -36,10 +36,12 @@ struct ReaderReplyFlow: ViewModifier {
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
             }
             .sheet(item: $reply) { composer in
-                ReplyComposerView(model: composer) { reason in
+                ReplyComposerView(model: composer, pageScrolls: true) { reason in
                     Task { await model.composerDidClose(reason) }
                 }
             }
+            // The page under the sheet scrolls but ignores its taps while the sheet is up (#653).
+            .onChange(of: reply != nil) { _, isOpen in model.composer(.reply, isOpen: isOpen) }
     }
 }
 

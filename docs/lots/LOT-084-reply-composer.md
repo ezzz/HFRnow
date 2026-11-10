@@ -86,8 +86,8 @@ focused on open. The sheet's keyboard safe area keeps the caret above the keyboa
 (legacy cursor jumps came from re-applying state to a `UITextView`).
 
 **Layout** (#653). Top bar "Fermer" (`xmark`, the close choice below) and "Envoyer" (`arrow.up`); legacy's control row (clear,
-undo, redo, Smileys, GIF, image, **Aa**) above the keyboard; on iPhone a reply or an edit opens at partial height with the page
-visible above. Spec: [LOT-174 § Composer layout and control row](LOT-174-formatting-toolbar.md#composer-layout-and-control-row-653-m4).
+undo, redo, Smileys, GIF, image, **Aa**) above the keyboard; on iPhone every composer opens at partial height with the page
+visible and scrollable above, its taps ignored meanwhile. Spec: [LOT-174 § Composer layout and control row](LOT-174-formatting-toolbar.md#composer-layout-and-control-row-653-m4).
 
 ## Edge cases
 

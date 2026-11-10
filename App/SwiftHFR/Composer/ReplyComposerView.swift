@@ -8,8 +8,8 @@ import SwiftUI
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 // Layout of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c: close `xmark` on the
 // left, send `arrow.up` on the right, the control row and the "Aa" bar above the keyboard (#653, `ComposerControlRow`). Differences:
-// a reply or an edit opens at partial height on an iPhone, the page visible above (`ComposerHeight`, GAP-653, b·operator);
-// no drafts button (one draft per target, GAP-092).
+// every composer opens at partial height on an iPhone, the page visible above and scrollable, its taps ignored (`ComposerHeight`,
+// GAP-653, b·operator); no drafts button here (LOT-101, #192, plans one for the new-topic composer).
 /// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
@@ -19,9 +19,13 @@ import SwiftUI
 /// HFR-001) and the text is never rewritten under the cursor; the sheet's keyboard safe area keeps the caret visible.
 struct ReplyComposerView: View {
     let model: ReplyComposerModel
+    /// The presenter ignores its page's taps while this sheet is open: at partial height the page above stays scrollable (#653).
+    let pageScrolls: Bool
     /// Called once with the reason, right before the sheet goes away.
     let onClose: (ReplyComposerModel.CloseReason) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
@@ -47,11 +51,12 @@ struct ReplyComposerView: View {
     @State private var rangeImage = NSRange(location: 0, length: 0)
     /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
     @State private var gifRequested = false
-    /// The height chosen with the toggle; nil until then (the target's initial height).
+    /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
     @State private var chosenHeight: ComposerHeight?
 
-    init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+    init(model: ReplyComposerModel, pageScrolls: Bool = false, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
+        self.pageScrolls = pageScrolls
         self.onClose = onClose
         _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
         _imageUpload = State(initialValue: ImageUploadModel(services: model.imageUploadServices))
@@ -107,9 +112,8 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { formatting.selectedRange = rangeImage; formatting.insert($0); imageInserted = true }
         )
-        .presentationDetents([offersHeightToggle ? height.detent : .large])
-        // A sheet below the full height is glass: the dimmed page showed through the editor in dark mode (iOS 27.1 simulator).
-        .modifier(OpaqueComposerSheet(isEnabled: offersHeightToggle))
+        .presentationDetents([height.detent(fieldRows: fieldRows)])
+        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, fieldRows: fieldRows, pageScrolls: pageScrolls))
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
@@ -136,19 +140,6 @@ struct ReplyComposerView: View {
             // Closed without a choice (account switch rebuilt the screens): keep what was typed.
             Task { await model.flushDraft() }
         }
-    }
-
-    /// Where typing starts: the first field of a new private message still empty, else the text.
-    private var checkTitle: String {
-        model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
-    }
-
-    private var keepDraftNote: String {
-        if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
-        if model.isEdit { return "Le brouillon est retrouvé à la prochaine modification de ce message." }
-        return model.isNewMessage
-            ? "Le brouillon est retrouvé au prochain message à ce destinataire."
-            : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
     }
 
     private var askingClose: Binding<Bool> {
@@ -314,13 +305,34 @@ struct ReplyComposerView: View {
 }
 
 extension ReplyComposerView {
-    /// A reply or an edit on an iPhone: partial height first, and the toggle (#653).
+    /// The error banner's button after a send that may have posted: where to look.
+    private var checkTitle: String {
+        model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
+    }
+
+    private var keepDraftNote: String {
+        if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
+        if model.isEdit { return "Le brouillon est retrouvé à la prochaine modification de ce message." }
+        return model.isNewMessage
+            ? "Le brouillon est retrouvé au prochain message à ce destinataire."
+            : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
+    }
+
+    private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
+
+    /// An iPhone in regular height: partial height first, and the toggle (#653).
     private var offersHeightToggle: Bool {
-        ComposerHeight.offersToggle(for: model.target, isPhone: UIDevice.current.userInterfaceIdiom == .phone)
+        ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass)
     }
 
     private var height: ComposerHeight {
-        chosenHeight ?? (offersHeightToggle ? .partial : .full)
+        ComposerHeight.shown(
+            chosen: chosenHeight, isPhone: isPhone, verticalSizeClass: verticalSizeClass, largeText: dynamicTypeSize.isAccessibilitySize
+        )
+    }
+
+    private var fieldRows: Int {
+        ComposerHeight.fieldRows(hasSubject: model.hasSubjectField, hasSecondField: model.isNewMessage || model.isNewTopic)
     }
 
     /// The "Aa" bar when shown, above the control row: one view kept across focus changes (#599).
@@ -346,6 +358,7 @@ extension ReplyComposerView {
             .opacity(allowsBar ? 1 : 0.4)
     }
 
+    /// Where typing starts: the first field of a new private message still empty, else the text.
     private var firstEmptyField: Field {
         guard model.hasSubjectField else { return .text }
         if model.isNewMessage, model.recipient.isEmpty { return .recipient }

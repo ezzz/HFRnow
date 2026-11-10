@@ -57,24 +57,44 @@ layout. One spec keeps both (AGENTS.md §2: no new document when one has the rol
   (draft, quote, edit prefill) is no step, and each step is saved like typing (LESSONS 48). Off while sending or closing (`canEdit`).
 - **Aa** shows the bar above the row (hidden on each opening, as legacy); the bar keeps #599 (off while the recipient or subject
   has focus, one view across focus changes) and the #602/#605 behaviour.
-- **Height (b·operator, GAP-653).** On an iPhone, a reply (topic or MP) and an edit open at partial height: a custom detent of
-  a third of the sheet's room (`ComposerHeight.partialHeight`, at least 220 pt). The system lifts a sheet above the keyboard, so
+- **Height (b·operator, GAP-653).** On an iPhone every composer opens at partial height: a reply (topic or MP) and an edit
+  (operator, 2026-11-08), a new topic and a new MP too (operator, 2026-11-10). A custom detent of a third of the sheet's room
+  (`ComposerHeight.partialHeight`, at least 220 pt, plus one field line per recipient / sub-category / subject field, scaled by
+  Dynamic Type, so those fields and two lines of text stay usable). The system lifts a sheet above the keyboard, so
   with the keyboard up the keyboard takes the bottom third, the editor and the row the middle one, and the page being answered
   stays visible in the top third (measured on the iPhone 18 Pro Max simulator, iOS 27.1). Each height is the sheet's only detent:
   a sheet that also offers `.large` is expanded to it as soon as the keyboard comes up (measured there too), which hides the page.
-  So the toggle ("Plein écran" / "Réduire") swaps the detent; dragging the sheet does not change its height. A new topic and a
-  new MP keep the full height and show no toggle (nothing is answered; their fields need the room); the iPad is unchanged. The
-  device decides, not the size class: inside an iPad's form sheet the width is compact too (measured, iPad Pro 13" simulator). The operator asked this layout as the new iPhone default (#653, 2026-11-08), an explicit exception to "defaults keep
+  So the toggle ("Plein écran" / "Réduire") swaps the detent; dragging the sheet does not change its height. The height is not
+  remembered: every opening starts at partial height (operator, 2026-11-10), except at an accessibility text size (AX), where it
+  starts full with the toggle still offered: there the control row takes two tall rows and a third of the screen leaves no line
+  for the text (measured at AX XL with a new MP on the iPhone 18 Pro Max simulator, iOS 27.2). In compact height (an iPhone in landscape) the system
+  shows a sheet at full height whatever its detents (measured, see #749), so there is no toggle there and the sheet is the full one;
+  back in portrait the choice made before the rotation holds. The iPad is unchanged. The device decides, not the size class: inside
+  an iPad's form sheet the width is compact too (measured, iPad Pro 13" simulator). The operator asked this layout as the new iPhone default (#653, 2026-11-08), an explicit exception to "defaults keep
   the legacy UX" ([UX principles](../FEATURES.md#ux-principles-operator)).
+- **The page behind the partial sheet (operator, 2026-11-10).** It is not dimmed and it scrolls
+  (`presentationBackgroundInteraction(.enabled(upThrough:))`, partial height only), so the message being answered can be read
+  again; its taps and actions are ignored while the composer is open. The reader keeps a set of open composers (reply, edit, the
+  author menu's MP: `TopicReaderModel.composer(_:isOpen:)`, reported by each presenter from its sheet's state); while one is open
+  (`suspendsPageInteractions`) a link, a message menu, a video, a picture, a third-party image placeholder, a selection quote, the
+  reply button, a page change, a swipe, "Actualiser" and "Réessayer" do nothing, the "…" overflow has no entry, the back button is
+  hidden (going back would drop the sheet), and the web view drops those taps itself (`ReaderWebController.ignoresPageTaps`: a
+  long-pressed link gets an empty menu of ours, never WebKit's previewing one). Scrolling and the reading position go on; the web
+  view is neither reloaded nor stopped. A new topic (from a forum's list) and a new MP (from the Messages list) are partial too,
+  but their list stays dimmed and inert (the system default): nothing is answered there, and a list has no such suspension yet
+  (`.disabled` on a `List` also stops its scrolling, measured on the iPhone 18 Pro Max simulator, iOS 27.2; a tap on a row would
+  open a topic under the sheet). The author menu's MP is opened over the reader, so its page scrolls. "Fermer" (×) stays at the
+  top left, as legacy's header.
 - Swipe-down keeps LOT-084's rule (blocked while there is text or a send runs); dismissal saving the draft is #429 (UXD-15), not
   changed here.
 
-**Open decisions** (the defaults above are the recommendation, marked as such on #653):
-1. Legacy's drafts button (`tray`, archived drafts per topic): not ported; SwiftHFR keeps one draft per target (GAP-092). A
-   separate issue if wanted.
-2. The page behind the partial sheet is dimmed and not interactive (the system default). Scrolling it while writing would need the
-   reader to ignore taps meanwhile (links, quotes, menus).
-3. The chosen height is not remembered between openings.
+**Decisions** (operator, 2026-11-10, on #653):
+1. Legacy's drafts button (`tray`, archived drafts per topic): not in this layout; it belongs to LOT-101
+   ([#192](https://github.com/ezzz/HFRnow/issues/192), archived drafts, M4). Until then SwiftHFR keeps one draft per target (GAP-092).
+2. The page behind the partial sheet scrolls; its taps are ignored while the composer is open (above).
+3. The chosen height is not remembered: every opening starts at a third of the screen.
+4. "Fermer" (×) stays at the top left, as in legacy.
+5. A new topic and a new MP open at partial height too, with the toggle.
 
 ## Edge cases
 - The `[url=…]` form is typed, not validated: the clipboard text goes in as is (as legacy). The clipboard is offered once per change count.

@@ -22,11 +22,11 @@ struct ReaderPageControls: ToolbarContent {
                 Button("Page précédente", systemImage: "chevron.backward") {
                     Task { await model.goToPage(page.currentPage - 1, atLastMessage: true) }
                 }
-                .disabled(!model.canGoToPrevious || model.isLoading)
+                .disabled(!model.canGoToPrevious || model.isLoading || model.suspendsPageInteractions)
                 Button("Page suivante", systemImage: "chevron.forward") {
                     Task { await model.goToPage(page.currentPage + 1) }
                 }
-                .disabled(!model.canGoToNext || model.isLoading)
+                .disabled(!model.canGoToNext || model.isLoading || model.suspendsPageInteractions)
             }
             .visibilityPriority(.high)
             ToolbarSpacer(.flexible, placement: .bottomBar)
@@ -35,7 +35,7 @@ struct ReaderPageControls: ToolbarContent {
             if let replySymbol {
                 ToolbarItem(placement: .bottomBar) {
                     Button("Répondre", systemImage: replySymbol) { Task { await model.requestReply() } }
-                        .disabled(model.isLoadingQuote)
+                        .disabled(model.isLoadingQuote || model.suspendsPageInteractions)
                 }
                 .visibilityPriority(.high)
             }
@@ -50,7 +50,8 @@ struct ReaderPageControls: ToolbarContent {
             // A page loading shows here, as the shipped page bar did.
             if model.isLoading { ProgressView() } else { Text("\(page.currentPage) / \(page.maxPage)").monospacedDigit() }
         }
-        .disabled(page.maxPage <= 1)
+        // Under an open composer the page ignores its taps (#653): the menu stays shut.
+        .disabled(page.maxPage <= 1 || model.suspendsPageInteractions)
         .accessibilityLabel("Page \(page.currentPage) sur \(page.maxPage)")
         .accessibilityHint("Choisir une page")
     }

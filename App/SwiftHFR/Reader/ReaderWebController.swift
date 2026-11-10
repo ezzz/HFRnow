@@ -49,6 +49,7 @@ final class ReaderWebController: NSObject {
 
     let webView: QuoteMenuWebView
     var events = Events()
+    var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
     /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
     var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
@@ -215,11 +216,12 @@ final class ReaderWebController: NSObject {
     /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
     /// first); this one is internal only so tests can drive the actions without a web view round trip.
     func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
+        if ignoresPageTaps, message.isTapAction { return nil }
         switch message {
         case .images(let urls):
             return decisions(for: urls)
         case .tap(let url):
-            return recordTap(url)
+            return ignoresPageTaps ? false : recordTap(url)
         case .ready:
             documentIsReady(document, token: document.token)
             return nil
