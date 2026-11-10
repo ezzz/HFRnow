@@ -213,6 +213,11 @@ struct ModeratorAlertModelTests {
         #expect(!model(nil, mail: ModeratorAlertMail.address(from: [:])).canAlert(context), "key absent: no fallback")
     }
 
+    @Test func theCommittedBuildSettingReachesTheApp() {
+        // Fails when `MODERATOR_ALERT_MAIL_ADDRESS` is emptied in `Shared.xcconfig` (app-hosted tests: `Bundle.main` is the app).
+        #expect(ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:]) != nil)
+    }
+
     @Test func onlyOneWellFormedAddressIsAccepted() {
         for bad in ["", "  ", "$(MODERATOR_ALERT_MAIL_ADDRESS)", "a b@example.org", "moderation@example", "a@@example.org",
                     "@example.org", "moderation@", "moderation@example.org?cc=x@example.org", "a@example.org&bcc=b@example.org",
