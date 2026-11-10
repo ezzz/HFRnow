@@ -78,8 +78,7 @@ stored copy after a write serve `R60b` with its `content_form` replaced by the t
 sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check alone.
 
 **Pending capture** (never hand-built, LESSONS 36; the last two items are tracked in [#440](https://github.com/ezzz/HFRnow/issues/440)):
-- An MP list with the storage thread on page 2 or later (#333, not reachable with the kit's accounts): the walk is
-  tested with pager values (`MPStorageListWalkTests`), not with pages.
+- (Captured since, #333: the storage row on page 2, `R333a` → `R333b`, walked by `MPStorageTransportReadTests.findsTheThreadOnPageTwo`.)
 - A non-empty document from other clients, near the 64 KiB cap, with U+00A0 or smiley codes (#272).
 - A storage write (`bdd.php` on the storage message) and a storage creation answer: the transport relies on the MP edit
   (`W15`) and MP creation (`W10`) answers of ordinary threads.

@@ -482,7 +482,8 @@ Read-only GETs of `mac/m2-lead` (`R121a`-`R121f`, `R122a`, `R122c`, `R122d`, `T3
 - **Storage thread page** (`R60a`, **verified**): the title row's `h3` is the subject; the first message's `div#para<numreponse>` holds one `<p>` with the stored JSON, its `"` served as `&#034;`, followed by `<div style="clear: both;">`; `numreponse` equals the oracle's `sNumRep`. No U+00A0 in the page text of this (empty) document.
 - **Not addressed** (`RA5`, **verified**): an MP thread the account cannot see answers 200 with no message and the `.hop` "Ce message ne vous est pas destiné, désolé", the page legacy's `destiné` check targets (`MPStorage.m:837`).
 - **Storage thread of another account** (`R96b`, 2026-11-02): legacy's read URL with a storage `post` the account cannot see (user2 opening user1's) answers 200 with the same "Ce message ne vous est pas destiné, désolé" `.hop` as `RA5`, which `parseMPStorage` treats as "not found". A list page past the last page is an empty list page (`R96a`, §6b).
-- **Pending capture**: a non-empty document (#272); the storage row on page 2 or later (#333: user1's row is row 42 of 50 on page 1 in `R95k`, not reachable with the kit's accounts).
+- **Storage row on page 2** (`R333a`, `R333b`, **verified** 2026-11-10, #333): five new MPs between the two kit accounts pushed user1's storage row from row 47 of page 1 to row 1 of page 2. Page 1 (`R333a`, 50 rows) has no storage row and links page 2 as `/forum1.php?config=hfr.inc&cat=prive&page=2&subcat=0&sondage=0&owntopic=0&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0`. Page 2 (`R333b`) holds the storage row at row 1 (`post` = the `R60a` thread) and an older storage-subject thread of the same account at row 16. Legacy's search stops at the first match (`MPStorage.m:692-736` @ `2440d79`), and so does the parser.
+- **Pending capture**: a non-empty document (#272).
 
 ### LOT-052 — MPStorage transport
 

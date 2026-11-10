@@ -66,9 +66,10 @@ LOT-052 reads the document from the edit form, so a page HFR renders unlike the 
 
 **Pending capture** (never hand-built, LESSONS 36):
 - A document with other clients' namespaces, member pseudos, near the 64 KiB cap, with a non-BMP character, or with U+00A0 / smiley codes inside strings ([#272](https://github.com/ezzz/HFRnow/issues/272), waits for an operator decision). Until it lands, the U+00A0 removal is **untested** (R60a holds none, and the codec leaves it to this reader) and `.invalidDocument` is only the codec's own invalid-JSON behaviour, never reached from a page.
-- A storage thread found on page 2 or later of the MP list, and the "destiné" page answered for the storage thread itself ([#333](https://github.com/ezzz/HFRnow/issues/333)); `RA5` is the same notice on another MP thread.
 - An MP list page past the last page ([#114](https://github.com/ezzz/HFRnow/issues/114)).
 - A storage message without a paragraph (`.missingParagraph`), and a storage thread's page 2 (`.notFirstPage` on the storage thread itself).
+
+Captured since ([#333](https://github.com/ezzz/HFRnow/issues/333)): the "destiné" page answered for the storage thread itself (`R96b`, as `RA5`), and an MP list whose storage row is on page 2 (`R333a` page 1 without it, `R333b` page 2 with it at row 1, plus an older storage-subject thread at row 16).
 
 ## Intentional differences from legacy
 1. **Pager**: the next page comes from the LOT-022 pager (`navigation.nextPath`), not from the last child of `div.left`, which is a window on long lists (LOT-004 RC4.6).

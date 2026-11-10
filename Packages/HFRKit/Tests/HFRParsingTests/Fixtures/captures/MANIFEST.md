@@ -116,6 +116,12 @@ Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 r
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
 
+Run 21 (2026-11-10, `mac/m4-captures` batch `b333`, ezzz/HFRnow#333, operator go for kit-only writes): five new MPs between the two kit
+accounts (`fixture-test-9` to `-13`, one per account per 60 minutes, as `W11x` allows) pushed user1's MPStorage row from row 47 of page 1 to
+row 1 of page 2; then page 1 (`R333a`) and page 2 (`R333b`) of user1's list, read-only. The new-MP answers and lists read in between are not
+published (`W10`, `R13` shapes). Clean-up with `W64`'s body (answers not published): user1 deleted the five threads; the two user1
+had sent and user2 had never opened left user2's list with it (as `W131`); user2 deleted the other three.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -366,6 +372,8 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | W610d | `W610d-mp-reply-by-non-creator-success.html` | user2 replies on `fixture-test-6`, which user1 created: the same success answer | #610 | 140, 048 |
 | R610c | `R610c-mp-list-creator-after-non-creator-reply.html` | The creator's (user1's) list after `W610d`: `fixture-test-6` now above `fixture-test-5` (row 2, under a conversation posted the same minute), `closedbp.gif`, `sujetCase7` 1 | #610, R13 | 140, 023 |
 | R610d | `R610d-mp-list-replier-after-own-replies.html` | user2's list after both replies (3 rows): both threads in last-post order, both `closedbp.gif` "Nouveau message" and `[non lu]` for user1, although user2 posted their last messages | #610, R13 | 140, 023 |
+| R333a | `R333a-mp-list-p1-storage-pushed-to-p2.html` | user1's MP list page 1 (50 rows) with no storage row: it was pushed to page 2; the pager links page 2 | #333 | 038, 052 |
+| R333b | `R333b-mp-list-p2-storage-row-first.html` | user1's MP list page 2: the storage row at row 1 (the `R60a` thread), an older storage-subject thread at row 16 | #333 | 038, 052 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |
@@ -424,7 +432,6 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 
 | Rows | Why |
 |---|---|
-| MPStorage row on page 2 or later (#333) | Not reachable on the kit's accounts: user1's storage row is row 42 of 50 on page 1 (`R95k`); pushing it down takes about 9 newer conversations, and HFR allows one new MP per account per 60 minutes (`W11x`). user2 has no storage thread. |
 | Thread pages of `fixture-test-2` (run 9) | Captured, not published: `--private` replaces their bodies; the render is published as the `/apercu.php` previews `R95d`, `R95h`. The site scripts read for the cookie and preview code (`forum2.js`, `editPost.js`, `message.js`) are not committed. |
 | `forum1f.php?owntopic=0` (`new=0` and `new=1`, run 14) | Captured, not published: rows with live public titles, no filter of the account. What they show is in HFR-PROTOCOL `### Smiley page and filtered lists` as a run observation. |
 | `owntopic=2` of cat 13, pages 1-3, `owntopic=1` of the `R603d` sub-forum, the `forum1f.php` `owntopic=1\|3` of user1, `owntopic=2` of user1 (run 14) | Captured, not published: 0.5 to 1.8 MB for `owntopic=2`, the others repeat a published shape; compared on the raw files only (HFR-PROTOCOL, labelled run observations). |
