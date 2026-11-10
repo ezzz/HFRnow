@@ -206,13 +206,14 @@ struct TopicListView: View {
             Text(title)
             Spacer()
             Text("\(group.topics.count)").font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
+                .accessibilityLabel(TopicRowCues.topicCountLabel(group.topics.count))
             if group.isCollapsible, let favorites = model.favorites {
                 Button {
                     Task { await favorites.toggleCollapsed(group.id) }
                 } label: {
                     Image(systemName: group.isCollapsed ? "chevron.right" : "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .frame(width: 32, height: 28)
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -309,11 +310,13 @@ private struct TopicSentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
+            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                 .accessibilityLabel("Masquer")
         }
-        .padding(12)
+        .padding(.leading, 12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
+        // The banner is not on the focused element: say what HFR confirmed.
+        .onAppear { AccessibilityNotification.Announcement(text).post() }
     }
 }

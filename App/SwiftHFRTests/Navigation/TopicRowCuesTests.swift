@@ -19,6 +19,13 @@ struct TopicRowCuesTests {
         )
     }
 
+    @Test("The section header's bare count is spoken as topics")
+    func topicCountLabel() {
+        #expect(TopicRowCues.topicCountLabel(0) == "0 sujet")
+        #expect(TopicRowCues.topicCountLabel(1) == "1 sujet")
+        #expect(TopicRowCues.topicCountLabel(12) == "12 sujets")
+    }
+
     @Test("Unread pages: hidden without a flag page or on the last page, else pageCount - currentPage")
     func unreadPages() {
         #expect(TopicRowCues.unreadPages(topic(pages: 5)) == nil)

@@ -35,5 +35,6 @@ struct LoadFailureBanner: View {
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
+        .onAppear { AccessibilityNotification.Announcement("\(error.title). \(error.detail)").post() }
     }
 }

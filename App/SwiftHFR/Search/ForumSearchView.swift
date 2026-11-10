@@ -30,6 +30,15 @@ struct ForumSearchView: View {
                 ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder").appScreenBackground()
             }
         }
+        .onChange(of: model.loader.isLoading) { wasLoading, isLoading in
+            // The results land below the focused field: announce them (a search is a wait with no other cue).
+            guard wasLoading, !isLoading else { return }
+            if let error = model.loader.error {
+                AccessibilityNotification.Announcement(error.title).post()
+            } else if let content = model.loader.value {
+                AccessibilityNotification.Announcement(summary(content)).post()
+            }
+        }
         .onChange(of: forums.loader.value, initial: true) { _, content in model.setCategories(from: content) }
     }
 
@@ -42,8 +51,9 @@ struct ForumSearchView: View {
                 .focused($fieldFocused)
                 .onSubmit(submit)
             if let word = model.bannedWord {
-                Label("Le mot « \(word) » ne peut pas être recherché.", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                StatusLabel(
+                    text: "Le mot « \(word) » ne peut pas être recherché.", symbol: "exclamationmark.triangle.fill", tint: .orange
+                )
                     .font(.footnote)
             }
             if model.hasShortWord {
@@ -93,6 +103,7 @@ struct ForumSearchView: View {
         if loader.isLoading {
             Section {
                 HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
+                    .accessibilityElement(children: .combine)
                 Button("Annuler") { model.cancel() }
             }
         } else if let error = loader.error {
@@ -144,5 +155,7 @@ private struct SearchResultRow: View {
                 Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
             }
         }
+        // One element per result: the title and its excerpt read together.
+        .accessibilityElement(children: .combine)
     }
 }

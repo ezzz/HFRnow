@@ -14,7 +14,7 @@ struct PlusView: View {
             } label: {
                 HStack {
                     Label(entry.title, systemImage: entry.symbol)
-                        .foregroundStyle(entry.isDestructive ? Color.red : Color.primary)
+                        .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : Color.primary)
                     Spacer()
                     Image(systemName: "chevron.forward")
                         .scaledFont(.footnote).fontWeight(.semibold)

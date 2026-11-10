@@ -103,12 +103,13 @@ private struct MessageSentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
+            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                 .accessibilityLabel("Masquer")
         }
-        .padding(12)
+        .padding(.leading, 12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
+        .onAppear { AccessibilityNotification.Announcement(text).post() }
     }
 }
 

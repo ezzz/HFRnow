@@ -3,7 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
 // (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
-// "non lu" capsule for the correspondent's state (GAP-111).
+// "non lu" capsule for the correspondent's state (GAP-111); capsule at 4.5:1, outlined at half strength (LOT-162, #646).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
     let thread: PrivateMessageThread
@@ -26,9 +26,8 @@ struct MessageRowView: View {
                     if let label = MessageRowView.unreadByLabel(thread) {
                         // The correspondent's state, not the member's: legacy's leading badge (`MPListView.swift:430-436, 470` @ 2440d79),
                         // at half strength once the member has viewed the thread (legacy line 435).
-                        Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
-                            .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Color(.systemGray).opacity(isUnread ? 1 : 0.5), in: Capsule())
+                        // Outlined instead of half-strength once the member has viewed it: the half-strength fill measured 1.7:1 (#646).
+                        BadgeCapsule(text: "non lu", isOutlined: !isUnread)
                             .accessibilityLabel(label)
                     }
                     Text(thread.summary.title)
