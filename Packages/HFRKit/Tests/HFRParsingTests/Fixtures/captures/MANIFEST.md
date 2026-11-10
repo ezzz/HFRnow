@@ -105,6 +105,12 @@ user1's list (`R610a`). user2 then replies on `fixture-test-5` (`W610c`, list `R
 user1's list `R610c`, user2's list `R610d`). Both accounts then deleted both threads with `W64`'s body (answers not published). Two new
 messages and two replies, no retry. The composer pages read before each POST are not published (the `R47b` and `W138` shapes).
 
+Run 18 (2026-11-10, `mac/m4-captures` batch `b610g`, ezzz/HFRnow#610 scope 2, operator go that day): a four-member group MP `fixture-test-7` from
+user1 to user2 and two other members, as `W73` (`W610e`). Then a private MP user2 → user1 `fixture-test-8` (`W610f`), lists before (`R610e` user1,
+`R610f` user2), one user2 reply in the group (`W610g`), and lists after (`R610g`, `R610h`). The two writes that reach the other members (`W610e`,
+`W610g`) were sent by the main session; the rest by `mac/m4-captures`, one request per minute. Both kit accounts then deleted `fixture-test-8`
+(answers not published); the group thread is kept.
+
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
 published AQ server (`roger21/toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
@@ -112,9 +118,32 @@ replaced by `192.0.2.1` like any IP. They document what that code answers. Each 
 bytes. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
 other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`user7` and a forum URL that names no real topic.
 
+Run 16 (2026-11-10, `mac/m4-captures` batch `b611`, ezzz/HFRnow#611): the refusals run 13 left out, on a **new local instance** set up the same
+way (`roger21/toyo@96c0aea`, `aq/` unmodified, PHP 8.5.12, MariaDB 13.0.2, loopback address, the two tables of the published schema only, both
+clocks in UTC), never on the live service. Same legacy body (UTF-8 bytes percent-encoded), same base values as run 13, one field changed per
+state; the tables are emptied before each create, so every first AQ is `13636` and no flood is ever reached. `T72`-`T85` run under the
+database's default `sql_mode` (`STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION`), `T86`-`T90` with
+an empty `sql_mode` (no strict mode): the live database's mode is not known, so both are recorded.
+
 Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 requests): the two logins, then GETs only. The
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
+
+Run 15 (2026-11-10, `mac/m4-captures` batch `b716`, ezzz/HFRnow#716, read-only, 7 requests at one per minute): user1's login, its MP list
+(read only to take a one-to-one row's `profilebdd.php` link as the page writes it; not published), then that link hop by hop with redirects
+not followed, logged in and without cookies, and the same link with a pseudo that does not exist (`R716a`-`R716e`). Nothing was sent to the forum.
+
+Run 19 (2026-11-10, `mac/m4-captures` batch `b440`, ezzz/HFRnow#440, operator decisions of that day): the MPStorage answers LOT-052 assumed.
+The storage creation from user2 to `MultiMP` (`W440a`, legacy's body, `MPStorage.m:738-746` @ `87fe0d1c`) was sent by the main session, the one
+exception to N01 for this run. Then, on that new storage thread, user2's edit POST with the document unchanged (`W440b`); user1's GET of user2's
+storage edit form (`R440a`); user2's delete of its storage thread (`W64`'s body, answer "Action effectuée avec succès", not published) and the
+same edit-form URL afterwards, by user2 (`R440b`) and by user1 (`R440c`); last, user2's edit POST of user1's first message in `fixture-test-9`
+(`W440c`, user1's thread, both kit accounts). Kit accounts only, one request per minute. The list, thread and form pages read along the way are
+not published (the `R13u1`, `R60a`, `R60b` shapes).
+
+Run 20 (2026-11-10, `mac/m4-captures` batch `b267`, ezzz/HFRnow#267, wanted by #755, read-only): one public topic page, `R20`'s topic, read
+anonymously at its canonical URL after HFR's two 301 hops (the hops are not published), for HFR's signature separator (`R267a`). The
+anonymizer now keeps that separator and HFR's closing clear div inside `span.signature` (`tooling/fixtures/README.md`).
 
 Run 21 (2026-11-10, `mac/m4-captures` batch `b333`, ezzz/HFRnow#333, operator go for kit-only writes): five new MPs between the two kit
 accounts (`fixture-test-9` to `-13`, one per account per 60 minutes, as `W11x` allows) pushed user1's MPStorage row from row 47 of page 1 to
@@ -162,6 +191,7 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R42 | `R42-multiquote-form-cookie.html` | Composer with cookie `quoteshardwarefr-13-<post>=\|a\|b`: two `[quotemsg]` blocks prefilled | R42 | 049 |
 | R45a | `R45a-new-topic-form.html` | New-topic form `/hfr/Discussions/nouveau_sujet.htm`: `sujet`, `toread1..5`, `subcat` select | R45 | 036, 048 |
 | R45b | `R45b-new-mp-form.html` | New-MP form (`dest` prefilled), never submitted | R45 | 036, 048 |
+| R170a | `R170a-new-poll-form.html` | New-poll form `/hfr/Discussions/nouveau_sondage.htm` (user1, never submitted, #170): the `R45a` form with hidden `sond=1` and the shown `div#sondagediv`: `textreponse0` (question), `textreponse1`-`10` (answers, 255 each), `allowvisitor`, `max_votes` 1-10, closing date `jour`/`mois`/`annee`/`heure`/`minute`; no `have_sondage` input | R45 | 100, 036 |
 | R46 | `R46-modo-alert-form.html` | Moderator alert form, GET only, never submitted | R46 | 036, 050 |
 | R53a | `R53a-smiley-search-no-result.html` | Smiley search, no result: 40-byte text "Désolé, aucune réponse n'a été trouvée !" | R53 | 005, 025, 053 |
 | R53b | `R53b-smiley-search-one-word.html` | One word: 657 smileys | R53 | 005, 025, 053 |
@@ -292,6 +322,20 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | W61 | `W61-mp-create-bbcode-success.html` | New MP `fixture-test-2` (user2 → user1) whose first post holds b, i, u, strike, spoiler, quote, url (both forms), img, fixed, code, cpp, color, list, nested and unclosed tags, and raw `<b>`/`&`/`"`: "Votre message a été posté avec succès !", refresh to the MP list | W10 | 048, 097 |
 | R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post, `[img]` written as a link there | R43 | 097, 036 |
 | R95d | `R95d-apercu-bbcode-preview.html` | `POST /apercu.php` (`hash_check`, `apercu_contenu` = the `W61` source, `apercu_smiley=0`, `config`): 200, the rendered BBCode in `body.reponse`, line breaks written `\r<br />` (the CR kept) | — | 097, 152 |
+| R443a | `R443a-apercu-smileys-on.html` | `POST /apercu.php` (user1, preview only, #443): Standard and personal smileys, glued codes, codes next to `"` / `&`, in `[code]`, `[fixed]`, `[url]`, `[img]` and a bare URL; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443b | `R443b-apercu-smileys-off.html` | `POST /apercu.php` (user1, preview only, #443): The `R443a` source with `apercu_smiley=1`: no smiley substituted; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443c | `R443c-apercu-colour-email.html` | `POST /apercu.php` (user1, preview only, #443): Colour syntaxes (`[#RRGGBB]`, palette, 3-digit, `[color=red]`), `[email]` and a plain address; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443d | `R443d-apercu-bullets.html` | `POST /apercu.php` (user1, preview only, #443): `[*]` with and without `[list]`, mid-line, empty; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443e | `R443e-apercu-syntax-colours.html` | `POST /apercu.php` (user1, preview only, #443): `[cpp]` and `[code]` with keywords, a string and a comment; `[c]`, `[java]`, `[php]`, `[html]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443f | `R443f-apercu-url-schemes.html` | `POST /apercu.php` (user1, preview only, #443): `[url]` / `[img]` with `http`, `ftp`, `javascript:`, `tel:`, `mailto:`, `//host`, `www.`, a page, `&` and `"`; a bare forum URL; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443g | `R443g-apercu-whitespace.html` | `POST /apercu.php` (user1, preview only, #443): Space runs 1-6, a leading space, a tab, `[fixed]` and `[code]` spacing and breaks, empty lines, trailing breaks, a message starting with spaces; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443h | `R443h-apercu-nesting.html` | `POST /apercu.php` (user1, preview only, #443): Quote in quote, spoiler and code in quote, `[b]` in `[url=]`, `[url]` in `[b]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443i | `R443i-apercu-malformed-crossing.html` | `POST /apercu.php` (user1, preview only, #443): `[b]` across a line break, `[b][quote]x[/quote][/b]`, `[quote][b]x[/quote][/b]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443j | `R443j-apercu-malformed-misc.html` | `POST /apercu.php` (user1, preview only, #443): `[/quote]` alone, `[b][/b]`, `[b][b]x[/b][/b]`, `[b]` in `[code]`, `[quotemsg=1,1,1]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443k | `R443k-apercu-quote-never-closed.html` | `POST /apercu.php` (user1, preview only, #443): An unclosed `[quote]` between two lines; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443l | `R443l-apercu-quote-30-nested.html` | `POST /apercu.php` (user1, preview only, #443): 30 nested `[quote]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443m | `R443m-apercu-over-65535-chars.html` | `POST /apercu.php` (user1, preview only, #443): 70,000 `x`: rendered whole; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443n | `R443n-apercu-pending-defaults.html` | `POST /apercu.php` (user1, preview only, #443): Overlapping smiley codes, colour case and nesting, `www.host:8080`, `[/b]` alone, `[B]`, raw blocks inside raw blocks, spaces before a tag; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
 | W62 | `W62-mp-reply-bmp-emoji-success.html` | Reply (user1) with U+2764, U+2764 U+FE0F, U+2714, U+2605 and a lone U+FE0F: success | W12 | 048, 096, 151 |
 | R95f | `R95f-mp-edit-form-bmp-emoji-source.html` | Edit form of `W62` (user1): `content_form` keeps every BMP emoji and both U+FE0F unchanged | R43, X9 | 096, 151, 036 |
 | R95h | `R95h-apercu-bmp-emoji-preview.html` | Preview of the `W62` source: the emoji and U+FE0F written as UTF-8 characters, no `<img>` | — | 096, 151, 097 |
@@ -372,6 +416,20 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | W610d | `W610d-mp-reply-by-non-creator-success.html` | user2 replies on `fixture-test-6`, which user1 created: the same success answer | #610 | 140, 048 |
 | R610c | `R610c-mp-list-creator-after-non-creator-reply.html` | The creator's (user1's) list after `W610d`: `fixture-test-6` now above `fixture-test-5` (row 2, under a conversation posted the same minute), `closedbp.gif`, `sujetCase7` 1 | #610, R13 | 140, 023 |
 | R610d | `R610d-mp-list-replier-after-own-replies.html` | user2's list after both replies (3 rows): both threads in last-post order, both `closedbp.gif` "Nouveau message" and `[non lu]` for user1, although user2 posted their last messages | #610, R13 | 140, 023 |
+| W610e | `W610e-mp-create-group-four-members-success.html` | New group MP user1 → user2 + two members `fixture-test-7` (`dest` comma-separated, the `W73` body): "Votre message a été posté avec succès !" | #610 | 140, 058 |
+| W610f | `W610f-mp-create-thread-c-success.html` | New MP user2 → user1 `fixture-test-8`, two minutes later: the same answer | #610 | 140 |
+| R610e | `R610e-mp-list-group-creator-before-member-reply.html` | The creator's list before the reply: `fixture-test-8` row 1; the group row 2, `closedp.gif`, `[non lu]` naming the three others, roster in the `sujetCase6` span | #610, R13 | 140, 023 |
+| R610f | `R610f-mp-list-group-member-before-own-reply.html` | user2's list before its reply (3 rows): the group row 2, `closedbp.gif` "Nouveau message", `[non lu]` naming the two other recipients | #610, R13 | 140, 023 |
+| W610g | `W610g-mp-group-reply-by-member-success.html` | user2 (not the owner) replies once in the group: "Votre réponse a été postée avec succès !" | #610 | 140, 058 |
+| R610g | `R610g-mp-list-group-creator-after-member-reply.html` | The creator's list after `W610g`: the group above `fixture-test-8` (row 2, under a conversation posted after it), `closedbp.gif`, `sujetCase7` 1, last poster user2 | #610, R13 | 140, 023 |
+| R610h | `R610h-mp-list-group-member-after-own-reply.html` | user2's list after its reply: the group row 1, `closedbp.gif`, 1 reply | #610, R13 | 140, 023 |
+| W440a | `W440a-mpstorage-create-success.html` | Storage creation: `bddpost.php` of the new-MP form with `dest=MultiMP` (aliased in the meta, as every pseudo), `sujet` = the storage subject and legacy's empty document, from user2 (no storage thread): "Votre message a été posté avec succès !", the `W10` answer | #440 | 052 |
+| W440b | `W440b-mpstorage-write-unchanged-success.html` | Storage write: `bdd.php` of the storage first-post edit form (`R60b` shape), document unchanged: "Votre message a été édité avec succès !", the `W15` answer | #440 | 052 |
+| R440a | `R440a-mpstorage-edit-form-other-account.html` | user1 GETs the edit-form URL of user2's storage first post (`R60b` URL), thread live: 200, no form, `.hop` "Ce message ne vous est pas destiné, désolé" (`RA5`) | #440 | 052 |
+| R440b | `R440b-mpstorage-edit-form-deleted-owner.html` | The same URL by user2 after deleting its storage thread: 200, no form, the same "Ce message ne vous est pas destiné, désolé" | #440 | 052 |
+| R440c | `R440c-mpstorage-edit-form-deleted-other-account.html` | The same URL by user1 after that delete: the same answer as `R440a` | #440 | 052 |
+| W440c | `W440c-mp-edit-post-other-account-message-refused.html` | user2 POSTs `bdd.php` (its own `R60b`-shaped edit form with `post`/`numreponse` of user1's first message in `fixture-test-9`, `sujet` `fixture-test-9`): refused, "Vous n'avez pas les droits pour éditer ce message !", no success sentence | #440 | 037, 048, 052 |
+| R267a | `R267a-topic-signature-separator-anon.html` | A public topic page, anonymous: 9 signatures, each `<span class="signature"> ---------------` + line break + `<br />` … `<div style="clear: both;"> </div></span>` (HFR's separator and clear div kept, the member's text replaced); no other fifteen-dash run on the page | #267, #755 | 034 |
 | R333a | `R333a-mp-list-p1-storage-pushed-to-p2.html` | user1's MP list page 1 (50 rows) with no storage row: it was pushed to page 2; the pager links page 2 | #333 | 038, 052 |
 | R333b | `R333b-mp-list-p2-storage-row-first.html` | user1's MP list page 2: the storage row at row 1 (the `R60a` thread), an older storage-subject thread at row 16 | #333 | 038, 052 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
@@ -393,6 +451,25 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | T68 | (meta only) | The next creation after `T67`: status 403, `Content-Length: 0`, `body_length` 0 (the client is blacklisted). `origin: local-instance` | #574 | 055, 134 |
 | T69 | `T69-aq-alerts-after-flood-local.xml` | The list of the first of the three topics of the flood, read after `T68`: `<alertes/>`. That this topic held an AQ before is a run observation (its create is not published). `origin: local-instance` | #574 | 055, 134 |
 | T71 | `T71-aq-alerts-no-topic-local.xml` | `GET /api/getAlertesByTopic.php` with no `topic_id`: `<alertes/>`. `origin: local-instance` | #574 | 055, 134 |
+| T72 | `T72-aq-create-comment-over-length-local.txt` | `commentaire` of 1025 characters (column: 1024), strict mode: body `-1` (the reporter insert fails; the AQ row stays behind, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T73 | `T73-aq-alerts-after-comment-over-length-local.xml` | The topic's list after `T72`: `<alertes/>`. `origin: local-instance` | #611 | 055, 134 |
+| T74 | `T74-aq-create-comment-at-length-local.txt` | `commentaire` of exactly 1024 characters: body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T75 | `T75-aq-create-accents-local.txt` | `nom`, `topic_titre` and `commentaire` with an accent (`é`, sent `%C3%A9`): body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T76 | `T76-aq-alerts-accents-local.xml` | The list after `T75`: `nom` in UTF-8, as sent (run observation; the committed file holds the redacted `nom` `x x x`). `origin: local-instance` | #611 | 055, 134 |
+| T77 | `T77-aq-create-nom-non-bmp-local.txt` | `nom` with U+1F600 (outside the BMP), strict mode: body `-1`, nothing stored (run observation). `origin: local-instance` | #611 | 055, 134 |
+| T78 | `T78-aq-create-comment-non-bmp-local.txt` | `commentaire` with U+1F600, strict mode: body `-1` (the AQ row stays behind, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T79 | `T79-aq-create-topic-id-not-numeric-local.txt` | `topic_id=abc`, strict mode: body `-1`. `origin: local-instance` | #611 | 055, 134 |
+| T80 | `T80-aq-create-post-id-not-numeric-local.txt` | `post_id=abc`, strict mode: body `-1`. `origin: local-instance` | #611 | 055, 134 |
+| T81 | `T81-aq-create-topic-id-out-of-range-local.txt` | `topic_id=99999999999` (over `int(11)`), strict mode: body `-1`. `origin: local-instance` | #611 | 055, 134 |
+| T82 | `T82-aq-create-before-additions-local.txt` | The create `T83` and `T84` add to: body `1` (AQ `13636`). `origin: local-instance` | #611 | 055, 134 |
+| T83 | `T83-aq-add-empty-pseudo-local.txt` | Addition to `13636` with an empty `pseudo`: body `-3`. `origin: local-instance` | #611 | 055, 134 |
+| T84 | `T84-aq-add-empty-alert-fields-local.txt` | Addition to `13636` with empty `nom`, `topic_id` and `topic_titre` (another pseudo and post): body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T85 | `T85-aq-alerts-after-additions-local.xml` | The list after `T84`: one AQ, `nom` (redacted) and `pseudoInitiateur` of `T82`, `postsIds` `700101,700102`. `origin: local-instance` | #611 | 055, 134 |
+| T86 | `T86-aq-create-comment-over-length-lax-local.txt` | `T72` with an empty `sql_mode`: body `1` (stored cut to 1024 characters, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T87 | `T87-aq-create-post-id-not-numeric-lax-local.txt` | `T80` with an empty `sql_mode`: body `1` (`post_id` stored `0`, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T88 | `T88-aq-create-topic-id-not-numeric-lax-local.txt` | `T79` with an empty `sql_mode`: body `1` (`topic_id` stored `0`, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T89 | `T89-aq-create-nom-non-bmp-lax-local.txt` | `T77` with an empty `sql_mode`: body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T90 | `T90-aq-alerts-nom-non-bmp-lax-local.xml` | The list after `T89`: `nom` `AQ local ????` in the run (committed redacted as `x x ????`), the character outside the BMP stored as four `?`. `origin: local-instance` | #611 | 055, 134 |
 | R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
 | R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
 | T10 | meta only | `https://nsa34.casimages.com/…jpg`: no DNS answer (status 0) | — | 056, 083 |
@@ -427,6 +504,11 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R603d | `R603d-list-subcat-owntopic3.html` | `owntopic=3` with `subcat=<s>`: 200 in place, 14 rows (12 `favoris.gif`, 2 with an empty flag cell), `<title>` "<sub-forum> - <category> - FORUM HardWare.fr", pager `1` alone | R08 | 022, 024 |
 | R603e | `R603e-favourites-owntopic2.html` | `forum1f.php?…&owntopic=2&new=0&nojs=0` (user2): title "Vos sujets", 3 category headers linking `owntopic=2`, 5 topic rows, one sticky, all `flag0.gif`, and under the second header no topic, only the row "Aucun nouveau message" | R10 | 024 |
 | R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); `tns3` can be absent | E1 | 057 |
+| R716a | meta only | `/profilebdd.php?config=hfr.inc&pseudo=<pseudo>`, the `sujetCase6` link of a one-to-one MP row (user1, pseudo of user2): `301` with `Location: /hfr/profil-<id>.htm` (relative, the member's id), empty body, no cookie set | — | #714, 027, 126 |
+| R716b | `R716b-profile-operator-user1.html` | The redirect target `/hfr/profil-<id>.htm`, logged in (user1 viewing user2): `200`, the public profile of `R56a` plus a row "Ajouter <pseudo> à votre liste de contacts" (`/user/contactlist.php?adduser=<id>`) and the account's own style sheets | R56 | #714, 027 |
+| R716c | meta only | `R716a`'s link without cookies: the same `301` to the same `/hfr/profil-<id>.htm` (its target, logged out, is `R56a`) | — | #714, 027 |
+| R716d | meta only | `profilebdd.php` with a pseudo that does not exist, logged in: `301` with `Location: /hfr/profil-.htm` (empty id) | — | #714 |
+| R716e | `R716e-profile-empty-id-404.html` | `R716d`'s target `/hfr/profil-.htm`: the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`, 213 bytes), not a forum page | — | #714 |
 
 ## Not captured
 

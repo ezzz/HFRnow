@@ -59,14 +59,29 @@ struct ForumListModelTests {
         #expect(model.loader.error == .maintenance("Maintenance en cours"))
     }
 
-    @Test func revealOpensTheSectionOfTheSelection() async {
+    @Test func eachCategoryIsOneFlatRowWithItsSubforumCountAndIcon() async {
         let source = FakeDataSource()
         let page = page
         source.forumHandler = { page }
         let model = ForumListModel(dataSource: source, accountName: { "someone" })
         await model.loadIfNeeded()
-        model.reveal(.subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC"))
-        #expect(model.expandedSections == ["/hfr/Hardware/liste_sujet-1.htm"])
+        let sections = model.loader.value?.sections
+        #expect(sections?.map(\.subforumCount) == [2, 0])
+        #expect(sections?.map(\.iconName) == ["ProcessorFilled-40", "cat-apple"])
+        // The row opens the category itself; sub-forums are reached from the topic list's picker.
+        #expect(sections?.first?.source == .forum(.forum(1), title: "Hardware"))
+    }
+
+    @Test func aSelectionIsFoundInItsSectionWhateverTheRow() async {
+        let source = FakeDataSource()
+        let page = page
+        source.forumHandler = { page }
+        let model = ForumListModel(dataSource: source, accountName: { "someone" })
+        await model.loadIfNeeded()
+        let sub = TopicSource.subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC")
+        #expect(model.loader.value?.section(containing: sub)?.title == "Hardware")
+        #expect(model.loader.value?.section(containing: .forum(.forum(1), title: "Hardware"))?.title == "Hardware")
+        #expect(model.loader.value?.section(containing: .flagged) == nil)
     }
 }
 

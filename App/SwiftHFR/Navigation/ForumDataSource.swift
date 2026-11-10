@@ -6,8 +6,8 @@ import HFRParsing
 protocol ForumDataSource: Sendable {
     /// The home page: categories, login state, unread private messages.
     func forumList() async throws(ListLoadError) -> ForumListPage
-    /// One page of a forum's topic list.
-    func topicList(category: CategoryID, page: Int) async throws(ListLoadError) -> TopicListPage
+    /// One page of a forum's topic list, filtered by `filter` (`owntopic`).
+    func topicList(category: CategoryID, filter: TopicListFilter, page: Int) async throws(ListLoadError) -> TopicListPage
     /// One page of a forum opened from its forum-relative path (`/hfr/<cat>/<sub>/liste_sujet-1.htm`).
     func topicList(path: String, page: Int) async throws(ListLoadError) -> TopicListPage
     /// The favourites page for `filter` (`.favorites` or `.flagged`).
@@ -31,9 +31,9 @@ struct LiveForumDataSource: ForumDataSource {
         }
     }
 
-    func topicList(category: CategoryID, page: Int) async throws(ListLoadError) -> TopicListPage {
+    func topicList(category: CategoryID, filter: TopicListFilter, page: Int) async throws(ListLoadError) -> TopicListPage {
         let raw = try await fetch { () async throws(NetworkError) -> RawPage in
-            try await fetcher.topicList(category: category, filter: .all, page: page)
+            try await fetcher.topicList(category: category, filter: filter, page: page)
         }
         do throws(ListPageFailure) {
             return try TopicListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString)
