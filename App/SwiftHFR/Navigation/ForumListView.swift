@@ -1,8 +1,9 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/MainWindow.swift (CategoriesListView) @ 2440d79. Differences: collapsible sections with the sub-forums as rows
-// instead of a flat list and a sub-forum picker; no category icons (GAP-020, 021, 022; UXD).
-/// The Catégories list: every forum with its sub-forums (flags and favourites have their own tab, LOT-170).
+// Port of HFRswift/Swift/MainWindow.swift (CategoriesListView, forumRowLabel, `:129-262`) @ 87fe0d1c. Differences: explicit inset-grouped
+// style like the MP list (#427, #572) instead of the default list; the sub-forums are chosen from the topic list's menu, as in
+// legacy (GAP-020, 021, 022); "1 sous-forum" in the singular.
+/// The Catégories list: one flat row per forum with its icon and sub-forum count (flags and favourites have their own tab, LOT-170).
 struct ForumListView: View {
     @Bindable var navigation: NavigationModel
 
@@ -11,15 +12,11 @@ struct ForumListView: View {
         List(selection: $navigation.selectedSource) {
             if let content = loader.value {
                 ForEach(content.sections) { section in
-                    Section(section.title, isExpanded: expansion(of: section.id)) {
-                        ForEach(section.rows) { row in
-                            Text(row.title).tag(row.source)
-                        }
-                    }
+                    row(section).tag(section.source)
                 }
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.insetGrouped)
         .navigationTitle("Catégories")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -34,7 +31,6 @@ struct ForumListView: View {
         }
         .refreshable { await navigation.forums.reload() }
         .task { await navigation.forums.loadIfNeeded() }
-        .onChange(of: navigation.selectedSource) { _, source in navigation.forums.reveal(source) }
     }
 
     @ViewBuilder
@@ -48,12 +44,18 @@ struct ForumListView: View {
         }
     }
 
-    private func expansion(of id: String) -> Binding<Bool> {
-        Binding(
-            get: { navigation.forums.expandedSections.contains(id) },
-            set: { open in
-                if open { navigation.forums.expandedSections.insert(id) } else { navigation.forums.expandedSections.remove(id) }
+    private func row(_ section: ForumSection) -> some View {
+        HStack(spacing: 12) {
+            ForumCategoryIconView(assetName: section.iconName)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(section.title)
+                if section.subforumCount > 0 {
+                    Text(FrenchPlural.count(section.subforumCount, "sous-forum", "sous-forums"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
-        )
+        }
+        .contentShape(Rectangle())
     }
 }

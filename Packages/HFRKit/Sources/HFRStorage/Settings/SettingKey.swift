@@ -24,6 +24,10 @@ public enum SettingKey {
     /// in the "flags and favorites" mode. Legacy never registered a default: absent reads false.
     public static let favoritesShowsCollapsedSections = Setting.bool("FavoritesShowCollapsedSections", default: false)
 
+    /// `HFRswiftGlobalTopicListFlag` (`MainWindow.swift:305` @ 87fe0d1c, `ForumTopicsListView`): the last Tous / Favoris / Suivis / Lus
+    /// choice, one for every forum. An unknown value reads as "Tous", like legacy's `?? .all`. Device-only UI state.
+    public static let topicListFlag = Setting.integerEnum("HFRswiftGlobalTopicListFlag", default: TopicListFlag.all)
+
     // MARK: Interface
 
     /// `compact_mode`.
@@ -175,7 +179,7 @@ public enum SettingKey {
 
     /// Every setting of the catalogue with its scope, in catalogue order.
     public static let all: [any CatalogueSetting] = [
-        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, compactMode,
+        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,

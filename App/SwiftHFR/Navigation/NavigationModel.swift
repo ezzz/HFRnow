@@ -1,4 +1,5 @@
 import HFRModels
+import HFRStorage
 import Observation
 
 /// Selection and per-screen models of the three-column navigation: forums, topics, messages.
@@ -20,6 +21,11 @@ final class NavigationModel {
     }
     /// Options of the favourites lists (LOT-124); nil on the Catégories tab.
     let favorites: FavoritesOptionsModel?
+    /// The Tous / Favoris / Suivis / Lus choice of the category lists; nil where the tab has none (Favoris).
+    let topicFilter: TopicFilterModel?
+    /// Favoris: the category a section title pushed on the favourites list (legacy pushed `ForumTopicsListView` in the Favoris
+    /// stack); the selection stays on the favourites.
+    var openedCategory: TopicSource?
     /// Topic chosen in the middle column, shown by the reader in the detail column.
     var selectedTopic: TopicSummary?
     /// Changes each time a row's menu opens a page (LOT-125), so the detail column builds a new reader for it even when the
@@ -52,9 +58,11 @@ final class NavigationModel {
         filteredPosts: FilteredPostsServices = .unavailable,
         startupSource: TopicSource? = nil,
         favorites: FavoritesOptionsModel? = nil,
-        flagActions: TopicFlagActions? = nil
+        flagActions: TopicFlagActions? = nil,
+        topicFilter: TopicFilterModel? = nil
     ) {
         self.favorites = favorites
+        self.topicFilter = topicFilter
         self.flagActions = flagActions
         filtering = FilteredPostsModel(services: filteredPosts)
         self.dataSource = dataSource
@@ -78,10 +86,26 @@ final class NavigationModel {
         if let existing = topicLists[source] { return existing }
         let model = TopicListModel(
             source: source, dataSource: dataSource, isLoggedIn: { [weak self] in await self?.isLoggedIn() ?? false },
-            favorites: favorites, flagActions: flagActions
+            favorites: favorites, flagActions: flagActions, topicFilter: topicFilter
         )
         topicLists[source] = model
         return model
+    }
+
+    /// Opens `category` from a Favoris heading with the filter of the favourites `mode` (legacy `initialFlagOverride`, which also
+    /// wrote the global choice: so does this).
+    func openCategory(_ category: TopicSource, mode: FavoritesSource) {
+        topicFilter?.flag = mode.categoryFlag
+        openedCategory = category
+    }
+
+    /// The sub-forum menu and filter of the forum list `source`; nil for flags and favourites, or where the tab has no filter.
+    func scope(for source: TopicSource) -> ForumScope? {
+        guard let topicFilter, source.isForumList else { return nil }
+        return ForumScope(section: { [forums] in forums.loader.value?.section(containing: source) }, filter: topicFilter) { [weak self] in
+            // In Favoris the category was pushed, so a sub-forum replaces it there; in Catégories it is the selection.
+            if self?.favorites != nil { self?.openedCategory = $0 } else { self?.selectedSource = $0 }
+        }
     }
 
     /// The reader of `topic`: the same model while the topic stays selected, a new one (a new load) for another topic.

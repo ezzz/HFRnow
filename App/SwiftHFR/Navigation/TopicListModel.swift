@@ -1,8 +1,9 @@
 import HFRModels
 import Observation
 
-// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) and HFRswift/Swift/Favorites.swift (FavoritesViewModel) @ 2440d79.
-// Differences: the page on screen is kept on refresh, with a retry banner (GAP-025).
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) @ 87fe0d1c and HFRswift/Swift/Favorites.swift (FavoritesViewModel)
+// @ 2440d79. Differences: the page on screen is kept on refresh, with a retry banner (GAP-025); the Tous / Favoris / Suivis / Lus
+// choice applies to a category, not to a sub-forum, whose `subcat` the home links do not give (GAP-023).
 /// A group of rows under an optional heading (a favourites category); a forum list has one headless group.
 struct TopicGroup: Identifiable, Hashable, Sendable {
     let id: String
@@ -12,6 +13,8 @@ struct TopicGroup: Identifiable, Hashable, Sendable {
     var isCollapsible = false
     /// Favourites: the header shows, the rows do not.
     var isCollapsed = false
+    /// Favourites: the category the heading opens (legacy `headerTitleView`); nil on a forum list and on "Super favoris".
+    var opens: TopicSource?
 }
 
 /// Why a list has no row, so the screen says what to do instead of showing a blank page.
@@ -50,7 +53,7 @@ struct TopicListContent: Sendable, Equatable {
     }
 
     init(favorites: FavoritesPage, isLoggedIn: Bool) {
-        groups = favorites.sections.map { TopicGroup(id: $0.id, title: $0.forum.title, topics: $0.topics) }
+        groups = favorites.sections.map { TopicGroup(id: $0.id, title: $0.forum.title, topics: $0.topics, opens: $0.source) }
         page = 1
         hasNext = false
         favoritesPage = favorites
@@ -99,17 +102,26 @@ final class TopicListModel {
     /// Why the last row action did not end as asked, in French; the row stays as it was.
     var actionFailure: String?
 
+    /// The Tous / Favoris / Suivis / Lus choice shared by the lists that offer it; nil where there is none.
+    let topicFilter: TopicFilterModel?
+    /// The filter the page on screen was asked with.
+    private(set) var loadedFilter: TopicListFilter = .all
+    /// Whether the last load saw a signed-in account: the filters are the account's lists.
+    private(set) var knowsLoggedIn = false
+
     private let dataSource: any ForumDataSource
     private let isLoggedIn: @Sendable () async -> Bool
 
-    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only.
+    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only,
+    /// `topicFilter` to a category's list.
     init(
         source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false },
-        favorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil
+        favorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil, topicFilter: TopicFilterModel? = nil
     ) {
         self.source = source
         self.dataSource = dataSource
         self.isLoggedIn = isLoggedIn
+        self.topicFilter = source.supportsFlagFilter ? topicFilter : nil
         self.favorites = source.isFavoritesList ? favorites : nil
         self.flagActions = flagActions
     }
@@ -140,6 +152,12 @@ final class TopicListModel {
         guard let favorites else { return false }
         return FavoritesPresentation.isSuper(topic, in: favorites.superFavorites)
     }
+
+    /// The filter bar is usable: a category list and a signed-in account (legacy disables Favoris, Suivis and Lus logged out).
+    var offersFilter: Bool { topicFilter != nil && knowsLoggedIn }
+
+    /// The filter the list should show now: the stored choice for a signed-in account, "Tous" otherwise.
+    var wantedFilter: TopicListFilter { offersFilter ? (topicFilter?.flag.filter ?? .all) : .all }
 
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
@@ -190,6 +208,9 @@ final class TopicListModel {
         await favorites?.reload()
         if loader.value == nil {
             await loadIfNeeded()
+        } else if wantedFilter != loadedFilter, !loader.isLoading {
+            // The choice changed here or in another list: HFR's page for it starts at 1 (legacy reloads on every change).
+            await load(page: 1)
         } else if !source.isPaged, !loader.isLoading, favorites?.autoRefresh ?? true {
             await refresh()
         }
@@ -211,15 +232,16 @@ final class TopicListModel {
         let startedAfter = rowActionSerial
         let source = source
         let dataSource = dataSource
-        let isLoggedIn = isLoggedIn
+        let loggedIn = await isLoggedIn()
+        knowsLoggedIn = loggedIn
+        let filter = wantedFilter
         let applied = await loader.load { () async throws(ListLoadError) -> TopicListContent in
-            let loggedIn = await isLoggedIn()
             switch source {
             case .subforum(let path, _):
                 let list = try await dataSource.topicList(path: path, page: page)
                 return TopicListContent(page: list, isLoggedIn: loggedIn)
             case .forum(let category, _):
-                let list = try await dataSource.topicList(category: category, page: page)
+                let list = try await dataSource.topicList(category: category, filter: filter, page: page)
                 return TopicListContent(page: list, isLoggedIn: loggedIn)
             case .flagged:
                 return TopicListContent(favorites: try await dataSource.favorites(filter: .flagged), isLoggedIn: loggedIn)
@@ -229,6 +251,7 @@ final class TopicListModel {
         }
         // Only the page this call put on screen reconciles: a superseded load (its page dropped) or a failed one changes nothing.
         guard applied else { return }
+        loadedFilter = filter
         // HFR's page now says what is read and flagged: the marks made before this load started are forgotten (legacy kept
         // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
         markedRead = markedRead.filter { $0.value > startedAfter }

@@ -1,4 +1,5 @@
 import HFRModels
+import HFRStorage
 
 /// How the favourites list is laid out, from the legacy settings (`sujets_avec_cat`, `FavoritesShowCollapsedSections`).
 struct FavoritesLayoutOptions: Equatable, Sendable {
@@ -40,7 +41,8 @@ enum FavoritesPresentation {
             if collapsed.contains(section.id), !options.showsCollapsedSections { continue }
             guard !topics.isEmpty || options.showsEmptySections else { continue }
             result.append(TopicGroup(
-                id: section.id, title: section.forum.title, topics: topics, isCollapsible: !topics.isEmpty, isCollapsed: isCollapsed
+                id: section.id, title: section.forum.title, topics: topics, isCollapsible: !topics.isEmpty, isCollapsed: isCollapsed,
+                opens: section.source
             ))
         }
         return result
@@ -54,5 +56,23 @@ enum FavoritesPresentation {
     /// Whether `topic` is a super-favourite; a row without a topic identity never is.
     static func isSuper(_ topic: TopicSummary, in superFavorites: Set<TopicID>) -> Bool {
         topic.topicID.map(superFavorites.contains) ?? false
+    }
+}
+
+extension FavoriteSection {
+    /// The list the section's title opens: the category by its id, else by the link the page gave.
+    var source: TopicSource {
+        categoryID.map { TopicSource.forum($0, title: forum.title) } ?? .subforum(path: forum.path, title: forum.title)
+    }
+}
+
+extension FavoritesSource {
+    /// The filter a category opened from this list starts on: the list's own `owntopic`, as HFR's header link does (`owntopic=3`
+    /// for "Favoris uniquement", `1` for "Drapeaux & Favoris", R10, P03c).
+    var categoryFlag: TopicListFlag {
+        switch self {
+        case .favoritesOnly: .favorites
+        case .flagsAndFavorites: .tracked
+        }
     }
 }

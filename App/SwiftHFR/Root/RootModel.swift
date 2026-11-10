@@ -120,18 +120,22 @@ final class RootModel {
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
         let options = FavoritesOptionsModel(settings: store, stores: environment.favoriteStores)
-        func navigation(startup: TopicSource?, favorites: FavoritesOptionsModel? = nil) -> NavigationModel {
+        // One choice for both tabs: a category opened from a Favoris heading sets it, the Catégories lists read it.
+        let topicFilter = TopicFilterModel(settings: store)
+        func navigation(
+            startup: TopicSource?, favorites: FavoritesOptionsModel? = nil, topicFilter: TopicFilterModel? = nil
+        ) -> NavigationModel {
             NavigationModel(
                 dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
                 filteredPosts: environment.filteredPosts, startupSource: startup, favorites: favorites,
-                flagActions: environment.flagActions
+                flagActions: environment.flagActions, topicFilter: topicFilter
             )
         }
         // The Favoris tab opens on the list the favourites mode names (legacy default: "Drapeaux & Favoris").
         self.init(
-            forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
-            favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options),
+            forums: forums, categories: navigation(startup: Self.categoriesStartupSource, topicFilter: topicFilter),
+            favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options, topicFilter: topicFilter),
             messages: Self.messageList(environment, store: store),
             search: ForumSearchModel(
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
