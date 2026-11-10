@@ -25,7 +25,7 @@ final class RequestRecordingServer: @unchecked Sendable {
             guard let self else { return }
             connection.start(queue: self.queue)
             connection.receive(minimumIncompleteLength: 1, maximumLength: 16_384) { data, _, _, _ in
-                let head = String(decoding: data ?? Data(), as: UTF8.self)
+                let head = String(bytes: data ?? Data(), encoding: .utf8) ?? ""
                 self.lock.withLock { self.heads.append(head) }
                 connection.send(content: reply, completion: .contentProcessed { _ in connection.cancel() })
             }

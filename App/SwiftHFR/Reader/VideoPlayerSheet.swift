@@ -146,11 +146,11 @@ struct PlayerWebView: UIViewRepresentable {
             }
         }
 
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation?, withError error: any Error) {
             report(error)
         }
 
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: any Error) {
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation?, withError error: any Error) {
             report(error)
         }
 
