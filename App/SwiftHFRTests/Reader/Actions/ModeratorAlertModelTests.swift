@@ -203,6 +203,21 @@ struct ModeratorAlertModelTests {
         #expect(alerts.pendingMail?.scheme == "mailto")
     }
 
+    @Test func theBuildSettingDecidesWhetherAMessageWithoutAnAlertLinkOffersTheMail() {
+        let context = alertContext(alert: nil, permalink: Self.permalink)
+        let withSetting = ModeratorAlertMail.address(from: [ModeratorAlertMail.addressKey: moderationAddress])
+        #expect(model(nil, mail: withSetting).canAlert(context), "setting present: the mail fallback is offered")
+        #expect(model(ScriptedAlerter(.success(.alreadyAlerted(message: nil))), mail: withSetting).canAlert(context))
+        let without = ModeratorAlertMail.address(from: [ModeratorAlertMail.addressKey: ""])
+        #expect(!model(nil, mail: without).canAlert(context), "setting empty: no fallback")
+        #expect(!model(nil, mail: ModeratorAlertMail.address(from: [:])).canAlert(context), "key absent: no fallback")
+    }
+
+    @Test func theCommittedBuildSettingReachesTheApp() {
+        // Fails when `MODERATOR_ALERT_MAIL_ADDRESS` is emptied in `Shared.xcconfig` (app-hosted tests: `Bundle.main` is the app).
+        #expect(ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:]) != nil)
+    }
+
     @Test func onlyOneWellFormedAddressIsAccepted() {
         for bad in ["", "  ", "$(MODERATOR_ALERT_MAIL_ADDRESS)", "a b@example.org", "moderation@example", "a@@example.org",
                     "@example.org", "moderation@", "moderation@example.org?cc=x@example.org", "a@example.org&bcc=b@example.org",

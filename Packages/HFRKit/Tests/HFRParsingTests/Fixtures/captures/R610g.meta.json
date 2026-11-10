@@ -1,0 +1,22 @@
+{
+  "id": "R610g",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 15:08:44 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "user1's MP list after user2's group reply",
+  "file": "R610g-mp-list-group-creator-after-member-reply.html",
+  "private": true
+}

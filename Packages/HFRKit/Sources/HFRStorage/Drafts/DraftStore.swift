@@ -21,7 +21,7 @@ public actor DraftStore {
     private let persistence: any DraftPersistence
     private let timeToLive: TimeInterval
     private let maximumCount: Int
-    private let clock: @Sendable () -> Date
+    let clock: @Sendable () -> Date
     private var state = State.unloaded
     private var recoveredCorruptData = false
 
@@ -77,11 +77,7 @@ public actor DraftStore {
             if hasContent {
                 drafts.append(Draft(context: context, account: key, text: text, subject: subject, updatedAt: now))
             }
-            drafts.removeAll { self.isExpired($0, now: now) }
-            if drafts.count > self.maximumCount {
-                drafts.sort { $0.updatedAt > $1.updatedAt }
-                drafts.removeLast(drafts.count - self.maximumCount)
-            }
+            self.applyBounds(&drafts, now: now)
             return drafts != original
         }
     }
@@ -133,12 +129,21 @@ public actor DraftStore {
 
     // MARK: Internals
 
-    private func liveDrafts(now: Date) -> [Draft] {
+    /// Drops the expired drafts, then the least recently saved ones past the size bound.
+    func applyBounds(_ drafts: inout [Draft], now: Date) {
+        drafts.removeAll { isExpired($0, now: now) }
+        if drafts.count > maximumCount {
+            drafts.sort { $0.updatedAt > $1.updatedAt }
+            drafts.removeLast(drafts.count - maximumCount)
+        }
+    }
+
+    func liveDrafts(now: Date) -> [Draft] {
         guard case .loaded(let document) = loadedState() else { return [] }
         return document.drafts.filter { !isExpired($0, now: now) }
     }
 
-    private func isExpired(_ draft: Draft, now: Date) -> Bool {
+    func isExpired(_ draft: Draft, now: Date) -> Bool {
         now.timeIntervalSince(draft.updatedAt) > timeToLive
     }
 
@@ -175,7 +180,7 @@ public actor DraftStore {
 
     /// Applies `change` to a copy of the drafts, persists it, then publishes it: memory never gets ahead of the disk.
     @discardableResult
-    private func mutate(_ change: (inout [Draft]) -> Bool) throws -> Bool {
+    func mutate(_ change: (inout [Draft]) -> Bool) throws -> Bool {
         guard case .loaded(let current) = loadedState() else {
             throw loadFailure() ?? DraftError.loadFailed(reason: "not loaded")
         }

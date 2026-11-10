@@ -1,0 +1,23 @@
+{
+  "id": "R443e",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of a composer, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:20:22 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview only, no write (#443)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=%5Bcpp%5D%23include+%3Cstdio.h%3E%0D%0Aint+main%28%29+%7B+for+%28int+i+%3D+0%3B+i+%3C+3%3B+i%2B%2B%29+%7B%7D+%2F%2F+comment%0D%0Areturn+printf%28%22text%22%29%3B%5B%2Fcpp%5D%0D%0A%5Bcode%5D%23include+%3Cstdio.h%3E%0D%0Aint+main%28%29+%7B+for+%28int+i+%3D+0%3B+i+%3C+3%3B+i%2B%2B%29+%7B%7D+%2F%2F+comment%0D%0Areturn+printf%28%22text%22%29%3B%5B%2Fcode%5D%0D%0A%5Bc%5Dint+x%3B%5B%2Fc%5D%0D%0A%5Bjava%5Dint+x%3B%5B%2Fjava%5D%0D%0A%5Bphp%5D%24x+%3D+1%3B%5B%2Fphp%5D%0D%0A%5Bhtml%5D%3Cb%3Ex%3C%2Fb%3E%5B%2Fhtml%5D&apercu_smiley=0&config=hfr.inc",
+  "file": "R443e-apercu-syntax-colours.html",
+  "private": false
+}

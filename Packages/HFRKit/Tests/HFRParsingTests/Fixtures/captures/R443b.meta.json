@@ -1,0 +1,23 @@
+{
+  "id": "R443b",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of a composer, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:17:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview only, no write (#443)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=standard%3A+%3A%29+%3AD+%3Ao+%3Ajap%3A+%3A%3F%3F%3A%0D%0Aperso%3A+%5B%3Auser1%5D+%5B%3Auser1%3A1%5D%0D%0Aglued%3A+bonjour%3A%29+oui%3Ap%0D%0Anext+to+quote+and+ampersand%3A+%22oui%22%29+%26%29%0D%0Ain+code%3A+%5Bcode%5D%3A%29+%3AD%5B%2Fcode%5D%0D%0Ain+fixed%3A+%5Bfixed%5D%3A%29+%3AD%5B%2Ffixed%5D%0D%0Ain+url%3A+%5Burl%5Dhttps%3A%2F%2Fexample.invalid%2F%3A%29%5B%2Furl%5D%0D%0Ain+img%3A+%5Bimg%5Dhttps%3A%2F%2Fexample.invalid%2F%3Ao.png%5B%2Fimg%5D%0D%0Ain+bare+url%3A+https%3A%2F%2Fexample.invalid%2F%3A%2Fx+%3A%29&apercu_smiley=1&config=hfr.inc",
+  "file": "R443b-apercu-smileys-off.html",
+  "private": false
+}
