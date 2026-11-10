@@ -68,8 +68,8 @@ Not third-party services of the app:
 - **HFR's own page chrome**: captured topic and list pages carry Google ad scripts (`securepubads.g.doubleclick.net`, 31 captured HTML
   pages) and a tracking pixel (`tracking.groupe-ldlc.com`, 65 pages). SwiftHFR never renders the chrome: parsers read the page and fetch nothing, the reader renders only the
   normalized `MessageContent` without remote scripts (LOT-034, LOT-083). Legacy did the same.
-- **`marc@hardware.fr`** (Q-10): an HFR address used through the system mail composer, so the user sends the mail. It stays out of source,
-  as configuration, decided per feature (Phase 4).
+- **`marc@hardware.fr`** (Q-10): an HFR address used through the system mail composer, so the user sends the mail. It is a public contact address, not a key:
+  committed as configuration in `Shared.xcconfig` (Q-10, operator, 2026-11-10, #751).
 - **Apple**: App Store crash reports and analytics are the device owner's choice in iOS settings; the app links no SDK for them.
 
 ## Rules for SwiftHFR

@@ -1,0 +1,22 @@
+{
+  "id": "R610a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 13:52:04 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "user1's MP list before user2's reply on fixture-test-5",
+  "file": "R610a-mp-list-recipient-before-reply-older-row.html",
+  "private": true
+}

@@ -12,7 +12,8 @@ import Testing
 
     @Test func keysAreUniqueAndKeepTheirLegacyNames() {
         #expect(Set(SettingKey.allKeys).count == SettingKey.allKeys.count)
-        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, has no legacy counterpart).
+        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, and the two app-lock keys, LOT-173,
+        // have no legacy counterpart).
         let legacy: Set = [
             "vos_sujets", "sujets_avec_cat", "favorites_auto_refresh", "compact_mode", "tabbar_minimize_on_scroll",
             "text_size_scale", "haptics", "landscape_mode", "icon", "auto_theme", "theme", "theme_style",
@@ -23,7 +24,7 @@ import Testing
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
-            "theme_dark_style"
+            "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
