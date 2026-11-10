@@ -126,12 +126,25 @@ struct TopicsColumn: View {
     @Bindable var navigation: NavigationModel
     /// The current account's composer (LOT-089); nil when logged out.
     let composer: ComposerServices?
+    /// Favoris: what a section title does. Nil pushes the category on this column's stack (compact width, as legacy's
+    /// `NavigationLink`); the regular-width iPad sidebar passes the switch to Catégories (`onOpenForum`, `MainWindow.swift:2221-2232`).
+    var openCategory: ((TopicSource) -> Void)?
 
     var body: some View {
         if let source = navigation.selectedSource {
-            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                          composer: composer, open: { navigation.open($0, at: $1) })
-                .id(source)
+            TopicListView(
+                model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source),
+                openCategory: navigation.favorites == nil ? nil : (openCategory ?? { navigation.openCategory($0) })
+            )
+            .id(source)
+            .navigationDestination(item: $navigation.openedCategory) { category in
+                TopicListView(
+                    model: navigation.topicList(for: category), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                    composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category)
+                )
+                .appScreenBackground()
+            }
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
         }

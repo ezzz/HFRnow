@@ -126,22 +126,26 @@ final class RootModel {
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
         let options = FavoritesOptionsModel(settings: store, stores: environment.favoriteStores)
+        // One choice for both tabs: a category opened from a Favoris heading sets it, the Catégories lists read it.
+        let topicFilter = TopicFilterModel(settings: store)
         // One per account session: a new account rebuilds the root, so no account's MPStorage state shows under another.
         let mpStorage = environment.currentAccountName.map {
             MPStorageSyncModel.live(account: $0, session: environment.session, settings: store)
         }
-        func navigation(startup: TopicSource?, favorites: FavoritesOptionsModel? = nil) -> NavigationModel {
+        func navigation(
+            startup: TopicSource?, favorites: FavoritesOptionsModel? = nil, topicFilter: TopicFilterModel? = nil
+        ) -> NavigationModel {
             NavigationModel(
                 dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
                 filteredPosts: environment.filteredPosts, startupSource: startup, favorites: favorites,
-                flagActions: environment.flagActions
+                flagActions: environment.flagActions, topicFilter: topicFilter
             )
         }
         // The Favoris tab opens on the list the favourites mode names (legacy default: "Drapeaux & Favoris").
         self.init(
-            forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
-            favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options),
+            forums: forums, categories: navigation(startup: Self.categoriesStartupSource, topicFilter: topicFilter),
+            favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options, topicFilter: topicFilter),
             messages: Self.messageList(environment, store: store, mpStorage: mpStorage),
             search: ForumSearchModel(
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
@@ -156,6 +160,16 @@ final class RootModel {
     var unreadPrivateMessages: Int {
         guard privateMessageBadgeEnabled else { return 0 }
         return max(forums.loader.value?.unreadPrivateMessages ?? 0, 0)
+    }
+
+    /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
+    /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).
+    func showCategoryFromFavorites(_ category: TopicSource) {
+        categories.topicFilter?.flag = .favorites
+        categories.selectedSource = category
+        // Legacy clears the selected topic too: the detail column must not keep the previous reader.
+        categories.selectedTopic = nil
+        selectedDestination = .tab(.categories)
     }
 
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The legacy app-icon
