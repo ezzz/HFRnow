@@ -141,6 +141,10 @@ same edit-form URL afterwards, by user2 (`R440b`) and by user1 (`R440c`); last, 
 (`W440c`, user1's thread, both kit accounts). Kit accounts only, one request per minute. The list, thread and form pages read along the way are
 not published (the `R13u1`, `R60a`, `R60b` shapes).
 
+Run 20 (2026-11-10, `mac/m4-captures` batch `b267`, ezzz/HFRnow#267, wanted by #755, read-only): one public topic page, `R20`'s topic, read
+anonymously at its canonical URL after HFR's two 301 hops (the hops are not published), for HFR's signature separator (`R267a`). The
+anonymizer now keeps that separator and HFR's closing clear div inside `span.signature` (`tooling/fixtures/README.md`).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -419,6 +423,7 @@ not published (the `R13u1`, `R60a`, `R60b` shapes).
 | R440b | `R440b-mpstorage-edit-form-deleted-owner.html` | The same URL by user2 after deleting its storage thread: 200, no form, the same "Ce message ne vous est pas destiné, désolé" | #440 | 052 |
 | R440c | `R440c-mpstorage-edit-form-deleted-other-account.html` | The same URL by user1 after that delete: the same answer as `R440a` | #440 | 052 |
 | W440c | `W440c-mp-edit-post-other-account-message-refused.html` | user2 POSTs `bdd.php` (its own `R60b`-shaped edit form with `post`/`numreponse` of user1's first message in `fixture-test-9`, `sujet` `fixture-test-9`): refused, "Vous n'avez pas les droits pour éditer ce message !", no success sentence | #440 | 037, 048, 052 |
+| R267a | `R267a-topic-signature-separator-anon.html` | A public topic page, anonymous: 9 signatures, each `<span class="signature"> ---------------` + line break + `<br />` … `<div style="clear: both;"> </div></span>` (HFR's separator and clear div kept, the member's text replaced); no other fifteen-dash run on the page | #267, #755 | 034 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |

@@ -265,6 +265,21 @@ PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']MoodStatus[\"'][^>]*>", re.I), "Mood removed."),
 )
+SIGNATURE_PLACEHOLDER = "Signature removed."
+# HFR opens every signature span with its own separator (#267, `R267a`): fifteen dashes, a line break, `<br />`; and
+# closes it with its clear div. Both are HFR's markup, not the member's words, so they are kept around the placeholder.
+SIGNATURE_HEAD_RE = re.compile(r"\A\s*-{15}(?!-)\s*<br\s*/?>", re.I)
+SIGNATURE_TAIL_RE = re.compile(r"<div style=\"clear: both;\">\s*</div>\s*\Z", re.I)
+SIGNATURE_TEXT_RE = re.compile(r"(?:-{15}\s*)?Signature removed\.")
+
+
+def signature_placeholder(inner):
+    """The placeholder for a signature span's content, with HFR's separator head and clear-div tail kept."""
+    head = SIGNATURE_HEAD_RE.match(inner)
+    tail = SIGNATURE_TAIL_RE.search(inner)
+    if not head:
+        return SIGNATURE_PLACEHOLDER
+    return head.group(0) + SIGNATURE_PLACEHOLDER + (tail.group(0) if tail and tail.start() >= head.end() else "")
 # Public profile page (R56): the value cell of these rows is the member's own data. Personal rows get a
 # placeholder; dates and counters keep their format with fixed values (with the pseudo and id aliased, a
 # real arrival date or post count would still single the member out).
@@ -1714,7 +1729,8 @@ class Anonymizer:
             for start, end in _find_para_blocks(text, open_re):
                 if start < last:
                     continue
-                parts += [text[last:start], placeholder]
+                kept = signature_placeholder(text[start:end]) if placeholder == SIGNATURE_PLACEHOLDER else placeholder
+                parts += [text[last:start], kept]
                 last = end
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
@@ -2184,7 +2200,7 @@ class StructuralVerifier(html.parser.HTMLParser):
                 if text not in ("", PROFILE_PLACEHOLDER, PROFILE_NO_ACCESS) and not re.fullmatch(r"01([/-])01\1(?:2000)", text):
                     self._bad("public profile field", text, e["line"])
             elif e["where"] == "signature or mood":
-                if text not in ("", "Signature removed.", "Mood removed."):
+                if text not in ("", "Mood removed.") and not SIGNATURE_TEXT_RE.fullmatch(text):
                     self._bad("signature or mood text", text, e["line"])
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):

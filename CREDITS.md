@@ -25,6 +25,8 @@ Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperH
 | `Icon-BLUE`, `Icon-WHITE` | Legacy 1024 px image, unchanged, in a one-layer `.icon` | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
 | `Icon-CLASSIC`, `Icon-CLASSIC-RED`, `Icon-REDFACE`, `Icon-REDFACEBLUE`, `Icon-BETA` | Legacy designs redrawn as SVG for SwiftHFR (the legacy images stop at 180 px), under this repository's licence | Designs by FLKone (`Icon-CLASSIC`, `Icon-REDFACE`, `Icon-BETA`, 2017) and by Bruno / ezzz (`Icon-CLASSIC-RED`, `Icon-REDFACEBLUE`, 2025), in the legacy history |
 
+**Category icons.** The icons of the Catégories list (`App/SwiftHFR/Assets.xcassets/CategoryIcons/`) are the legacy HFR+ images, unchanged (ezzz/HFRnow `legacy/duo-inner-cover` @ `87fe0d1c`, `SuperHFRplus/Assets/UI/`, `*Filled-40`, `Debian-40`, `cat-apple`): credit to FLKone and the HFR+ contributors, ezzz and the HFRnow contributors; the legacy README and credits page thank [icons8](https://icons8.com/) for its icons.
+
 ## Contributors
 
 Everyone who contributed to the projects above, and every contributor listed in this repository's history.

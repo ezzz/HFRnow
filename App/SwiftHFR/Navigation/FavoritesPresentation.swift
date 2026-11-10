@@ -40,7 +40,8 @@ enum FavoritesPresentation {
             if collapsed.contains(section.id), !options.showsCollapsedSections { continue }
             guard !topics.isEmpty || options.showsEmptySections else { continue }
             result.append(TopicGroup(
-                id: section.id, title: section.forum.title, topics: topics, isCollapsible: !topics.isEmpty, isCollapsed: isCollapsed
+                id: section.id, title: section.forum.title, topics: topics, isCollapsible: !topics.isEmpty, isCollapsed: isCollapsed,
+                opens: section.source
             ))
         }
         return result
@@ -54,5 +55,13 @@ enum FavoritesPresentation {
     /// Whether `topic` is a super-favourite; a row without a topic identity never is.
     static func isSuper(_ topic: TopicSummary, in superFavorites: Set<TopicID>) -> Bool {
         topic.topicID.map(superFavorites.contains) ?? false
+    }
+}
+
+extension FavoriteSection {
+    /// The category the section's title opens; nil without a category id (the page's own header link is already filtered, so
+    /// opening it would not match the filter control).
+    var source: TopicSource? {
+        categoryID.map { TopicSource.forum($0, title: forum.title) }
     }
 }
