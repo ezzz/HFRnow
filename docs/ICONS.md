@@ -29,7 +29,7 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 | X-face | X-face, Fierté, Fierté contour, Dégradé clair, Dégradé sombre, Or, Or sur noir, Or contour, Terminal 5250, Négatif, Négatif inversé, Coucher de soleil | `xface-…` | the redface `:o` with variations: Pride flag with **diagonal** stripes (solid face, or strokes only), light and dark gradients after the Swift theme, gold (gold background, gold drawing on black, black outline on gold), green face (Rétro 5250), white on black and black on white, red-to-yellow gradient; the plain « X-face » and the « Coucher de soleil » names are proposals *(names to confirm)*; drawings: `icons-xface.jpg` | all year | LOT-190 |
 | Saisons | Noël REDFACE | `noel-redface` | redface on white with a Santa hat, a fir tree with gifts in a bottom corner | 01/12–26/12 | LOT-189 |
 | | Noël HFR | `noel-hfr` | the simple HFR icon (white on `orange-hfr`) on fir green, snow on the letters, a garland at the top, a snowman and a gift at the bottom | 01/12–26/12 | LOT-189 |
-| | Halloween citrouille | `halloween-pumpkin` | the redface turned orange, mouth changed but centred, pumpkin sides and orange gradient | 01/10–31/10 | LOT-190 |
+| | Halloween citrouille | `halloween-jack` | the redface turned orange, mouth changed but centred, pumpkin sides and orange gradient | 01/10–31/10 | LOT-190 |
 | | Halloween HFR | `halloween-hfr` | the simple HFR icon with a spider web, a bat and a tiny witch on a broom | 01/10–31/10 | LOT-190 |
 | | Printemps | `spring` | a cherry tree in bloom partly hidden by the redface, dense background | all year | LOT-190 |
 | | Été | `summer` | blue background, a big sun, a small coconut palm in the opposite corner, the redface with sunglasses | all year | LOT-190 |
@@ -39,7 +39,7 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 
 ## 3. `orange-hfr`
 
-The orange of the forum logo, used as a fill (Orange, Noël HFR, Halloween HFR, the OG themes, the « Orange HFR » accent preset), never as text (about 2.4:1 on white). Value: the colour of the logo square and « .FR » of `/img/forum_logo.gif`, **pending capture** ([#728](https://github.com/ezzz/HFRnow/issues/728)); no value is decided before it.
+The orange of the forum logo, used as a fill (Orange, Noël HFR, Halloween HFR, the OG themes, the « Orange HFR » accent preset), never as text (about 2.4:1 on white). Value: the colour of the logo square and « .FR » of `/img/forum_logo.gif`, **provisional `#F18F18`**: measured on 2026-10-28 by an exact pixel count of that GIF (fetched logged out, not committed), the value the boards and `tokens/themes.json` use; it becomes final once the capture of [#728](https://github.com/ezzz/HFRnow/issues/728) commits the file and confirms it.
 
 ## 4. Style rules
 

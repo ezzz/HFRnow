@@ -473,7 +473,7 @@ def b_icons(pack_id):
     homes = ('<div style="display:flex;gap:26px;margin-top:30px">'
              + strip("linear-gradient(160deg,#F4EEE6,#D9E4F2)", "#1d1d1f").replace("background:linear", "background:linear")
              + strip("linear-gradient(160deg,#1B1F2E,#0B0C10)", "#ffffff") + '</div>'
-             '<p style="font-size:13px;color:#555;margin-top:10px">Écran d\'accueil clair et sombre, icônes à 62 px (≈ taille réelle iPhone). Les variantes dark / clear / tinted iOS 27 sont produites dans Icon Composer par le lot de génération (ICONS.md §3).</p>')
+             '<p style="font-size:13px;color:#555;margin-top:10px">Écran d\'accueil clair et sombre, icônes à 62 px (≈ taille réelle iPhone). Les variantes dark / clear / tinted iOS 27 sont produites dans Icon Composer par le lot de génération (ICONS.md §1).</p>')
     body = f'<div class="grid" style="gap:22px">{large}</div>{homes}'
     sub = {"legacy": "Icônes de l'app legacy (PNG d'<code>origin/master</code>) + la nouvelle « Orange » (HFR blanc sur <code>orange-hfr</code> #F18F18, forum_logo.gif).",
            "beta": "Icône bêta legacy et sa version redessinée : traits noirs sur rouge, traits légèrement plus épais.",
@@ -608,7 +608,7 @@ def b_og():
             + phone("og-gris", "any", label="OG gris — accueil", note="lignes #AAAAAA, colonnes #BBBBBB, fond #666666")
             + phone("og-gris", "any", screen=og_topics, label="OG gris — liste de sujets", note="compteurs bleus assombris #0000B0")
             + panel + '</div>')
-    return page("Famille OG Web — d'après le forum HFR (thème web)", "Le look HTML du forum transposé sur la mise en page SwiftUI de SwiftHFR : bandeau d'en-tête, lignes denses, séparateurs de colonnes, méta en petit gras.", body, 1780)
+    return page("Famille OG Web", "Le look HTML du forum transposé sur la mise en page SwiftUI de SwiftHFR : bandeau d'en-tête, lignes denses, séparateurs de colonnes, méta en petit gras.", body, 1780)
 
 
 def b_legacy():
@@ -621,7 +621,7 @@ def b_legacy():
             + phone("legacy", "dark", 0.50, screen=legacy_settings(0.50), label="Réglages › Thème (legacy, parité)", note="curseur continu conservé + 10 pastilles prédéfinies")
             + phone("legacy", "light", 0.74, screen=legacy_settings(0.74), label="Réglages › Thème — clair, 0,74")
             + '</div>')
-    return page("Thème Legacy — par ezzz", "L'app legacy actuelle (couche SwiftUI, origin/master 21173e7), vérifiée sur 11 captures d'écran de l'opérateur : fond groupé système (#F2F2F7 / noir), cartes #FFFFFF / #1C1C1E, "
+    return page("Thème Legacy — par Ezzz", "L'app legacy actuelle (couche SwiftUI, origin/master 21173e7), vérifiée sur 11 captures d'écran de l'opérateur : fond groupé système (#F2F2F7 / noir), cartes #FFFFFF / #1C1C1E, "
                 "séparateurs système, icônes de catégorie + « N sous-forums » (comptes legacy : liens R01 + « Tous les sujets » + ajouts codés en dur), teinte d'accent continue (0–1). Mise en page SwiftHFR (pas de barre d'onglets, LOT-082).", body, 1780)
 
 

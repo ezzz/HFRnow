@@ -1752,7 +1752,7 @@
 {
 "lot": "LOT-166",
 "star": false,
-"scope": "Seasonal engine (windows, automatic switch, opt-out, restore, decorations, crossing objects, overlays) and the Noël themes (Noël soft, Noël abusé, sleigh, popup, elves), [THEMES.md](THEMES.md) §4–§5; Noël soft before 2026-12-01 (operator 2026-10-28)",
+"scope": "Seasonal engine (windows, automatic switch, opt-out, restore, decorations, crossing objects, overlays) and the Noël themes (Noël soft, Noël abusé, sleigh, popup, elves), [THEMES.md](THEMES.md) §4–§5; Noël soft before 2026-12-01 (operator 2026-10-28); Noël abusé needs LOT-188 (its last PR, 2026 only if 188 lands in time)",
 "module": "App",
 "diff": "difficult",
 "model": "Opus → Fable",

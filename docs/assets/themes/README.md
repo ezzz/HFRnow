@@ -1,6 +1,6 @@
 # Theme and icon reference visuals
 
-Validated by the operator as the latest version (2026-11-10), made on 2026-10-28 from his requests ([THEMES.md](../../THEMES.md), [ICONS.md](../../ICONS.md)). Original work for SwiftHFR: the drawings are rendered by the Blender scripts in [`tooling/illustrations/`](../../../tooling/illustrations/README.md), no downloaded mesh, texture or image.
+Validated by the operator as the latest version (2026-11-10), made on 2026-10-28 from his requests ([THEMES.md](../../THEMES.md), [ICONS.md](../../ICONS.md)). Original work for SwiftHFR: the drawings are procedural Blender renders (scripts kept out of this repository for licence reasons, see [`tooling/illustrations/`](../../../tooling/illustrations/README.md)), no downloaded mesh, texture or image.
 
 | Folder | Content |
 |---|---|

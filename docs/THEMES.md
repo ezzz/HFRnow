@@ -22,7 +22,7 @@ Source: the operator's requests of 2026-10-28 and the decisions taken that day. 
 | Legacy | Classiques | par Ezzz | light, dark | 188 | Today's app, unchanged: LOT-121/122 colours, hue slider, dark styles. Default. Accent presets: [LOT-180](LOTS.md) |
 | Swift | Classiques | — | light, dark | 192 | Night-blue background, soft cards, halos, violet accent (board `theme-swift.jpg`) |
 | Rétro 5250 | Rétro | — | single | 192 | Green on black, monospace, inspired by IBM 5250 terminals (no trademark in the name) |
-| OG clair, OG gris | OG Web | d'après le forum HFR (thème web) | single each | 193 | The web forum's two skins; colours only from the captured stylesheets |
+| OG clair, OG gris | OG Web | — | single each | 193 | The web forum's two skins; colours only from the captured stylesheets |
 | Noël soft | Noël | — | light, dark | 166 | Light snow, snow piled here and there, a Christmas item crossing now and then |
 | Noël abusé | Noël | — | single | 166 | Lots of colour and Christmas drawings |
 | Spooktober soft | Samain | — | light, dark | 191 | A bit of spider web, a candelabra, a small bat; crossing ghost, witch, lightning |
@@ -64,7 +64,7 @@ Optional, drawn in two layers: behind the content and in front of it. Rules, enf
 1. **Reduce Motion** on: no animation and no haptic; static decorations may stay; arrival = the alert alone; packing and 14 July skipped.
 2. **« Animations de saison »** off: same as Reduce Motion.
 3. **Overlays** (arrival, packing, 14 July) last at most 5 s (14 July: 3–5 s), close on a tap, play once.
-4. **Crossing objects** (operator, 2026-10-28): at most one every 20–90 min of foreground time, never sooner than 20 min; enter by one edge and leave by the opposite one along a straight line at a random angle and direction; face the direction of travel; cross in ≤ 3 s, slightly bigger than a fifth of the screen for arrivals *(size to confirm)*; a light haptic while crossing through `HapticFeedback.live` (the haptics setting applies, LOT-123). **Lightning** is the exception: 5 flashes of about 0.3 s at random places within 3 s.
+4. **Crossing objects** (operator, 2026-10-28): at most one every 20–90 min of foreground time, never sooner than 20 min; enter by one edge and leave by the opposite one along a straight line at a random angle and direction; face the direction of travel; cross in ≤ 3 s, about a quarter of the screen for arrivals (operator 2026-10-28: 1/5, then « légèrement plus gros »; board `events.jpg`); a light haptic while crossing through `HapticFeedback.live` (the haptics setting applies, LOT-123). **Lightning** is the exception: 5 flashes of about 0.3 s at random places within 3 s.
 5. **Never over input**: nothing appears while the keyboard is up, the composer, a sheet or an alert is shown.
 6. **VoiceOver-silent**: decorations are hidden from accessibility; the arrival popup is a normal, spoken alert.
 7. **Text keeps its contrast**: art behind text is faded or kept out of text columns; any decoration on a dark background is ≥ 3:1 (WCAG 1.4.11; the Spooktober soft bat in grey or violet, operator 2026-10-28).
