@@ -23,6 +23,11 @@ final class PseudoListEditorModel {
     private(set) var hasLoaded = false
 
     @ObservationIgnored private let manager: PseudoListManager
+    /// Swipes whose writes have not finished, and the last of their tasks (the next one waits for it).
+    @ObservationIgnored private var pendingRemovals = 0
+    /// Counts the swipes: a read that began before one is stale and is dropped (the swipe's own tail reads again).
+    @ObservationIgnored private var swipeCount = 0
+    @ObservationIgnored private var removalTail: Task<Void, Never>?
 
     /// An editor of `kind` over `manager`.
     init(kind: PseudoListKind, manager: PseudoListManager) {
@@ -43,12 +48,27 @@ final class PseudoListEditorModel {
 
     /// Reads the list (on appear, after a retry). A store that cannot be read keeps the editor read-only.
     func load() async {
-        if let failure = await manager.loadFailure() {
+        await settleRemovals()
+        await readList()
+    }
+
+    /// Waits for the writes of the swipes still queued: a read made now would bring the swiped rows back, and an add of a
+    /// swiped pseudo would meet it still listed, then lose it to the queued removal.
+    private func settleRemovals() async {
+        while pendingRemovals > 0, let tail = removalTail { await tail.value }
+    }
+
+    private func readList() async {
+        let swipes = swipeCount
+        let failure = await manager.loadFailure()
+        let stored = failure == nil ? await manager.pseudos(of: kind) : []
+        guard swipes == swipeCount else { return }
+        if let failure {
             unreadableMessage = Self.describe(failure)
             pseudos = []
         } else {
             unreadableMessage = nil
-            pseudos = await manager.pseudos(of: kind)
+            pseudos = stored
         }
         hasLoaded = true
     }
@@ -63,6 +83,7 @@ final class PseudoListEditorModel {
     func add() async {
         let pseudo = trimmedDraft
         guard canAdd else { return }
+        await settleRemovals()
         do {
             let added = try await manager.add(pseudo, to: kind)
             draft = ""
@@ -73,20 +94,31 @@ final class PseudoListEditorModel {
         await load()
     }
 
-    /// Removes `pseudo` (a swipe on its row). Removing the last entry leaves an empty list, saved like any other change.
-    func remove(_ pseudo: String) async {
-        do {
-            try await manager.remove(pseudo, from: kind)
-        } catch {
-            errorMessage = kind.removeFailure(pseudo)
-        }
-        await load()
-    }
-
-    /// Removes the pseudos at `offsets` of the shown list.
-    func remove(at offsets: IndexSet) async {
+    /// Removes the pseudos at `offsets` of the shown list. The offsets are turned into pseudos and dropped from the shown list
+    /// right now, on the caller's turn, so a second swipe meets the list as the user sees it; only the writes run in the
+    /// returned task. Writes run one after the other, and the stored list is read again once the last one is done, so a
+    /// deleted row never flashes back between two quick swipes. Removing the last entry leaves an empty list, saved like any other.
+    @discardableResult
+    func remove(at offsets: IndexSet) -> Task<Void, Never> {
         let targets = offsets.compactMap { pseudos.indices.contains($0) ? pseudos[$0] : nil }
-        for pseudo in targets { await remove(pseudo) }
+        pseudos.remove(atOffsets: IndexSet(offsets.filter { pseudos.indices.contains($0) }))
+        pendingRemovals += 1
+        swipeCount += 1
+        let previous = removalTail
+        let task = Task {
+            await previous?.value
+            for pseudo in targets {
+                do {
+                    try await manager.remove(pseudo, from: kind)
+                } catch {
+                    errorMessage = kind.removeFailure(pseudo)
+                }
+            }
+            pendingRemovals -= 1
+            if pendingRemovals == 0 { await readList() }
+        }
+        removalTail = task
+        return task
     }
 
     private static func describe(_ error: PseudoListError) -> String {

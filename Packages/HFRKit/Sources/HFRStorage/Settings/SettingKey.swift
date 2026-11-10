@@ -102,6 +102,9 @@ public enum SettingKey {
     public static let nightSuperFavoriteColor = colorSetting("theme_night_color_superfavori")
     /// `theme_night_brightness`: nil means the computed default.
     public static let nightBrightness = Setting.optionalDouble("theme_night_brightness").synced
+    /// `theme_dark_style` (LOT-122, new): standard, darker or OLED black dark surfaces. Device-only: whether black saves power
+    /// or smears is a property of the screen (ADR 0013 matrix E).
+    public static let darkStyle = Setting.integerEnum("theme_dark_style", default: DarkStyle.standard)
 
     // MARK: Messages
 
@@ -176,7 +179,7 @@ public enum SettingKey {
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
-        nightSuperFavoriteColor, nightBrightness, hideBlocklistedPosts, quoteFilterExceptions,
+        nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension
     ]

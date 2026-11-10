@@ -40,6 +40,10 @@ struct MessageListView: View {
                 }
             }
         }
+        .onChange(of: model.sentConfirmation) { _, text in
+            // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
+            if let text { AccessibilityNotification.Announcement(text).post() }
+        }
         .task(id: model.sentConfirmation) {
             guard model.sentConfirmation != nil else { return }
             // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
@@ -103,7 +107,7 @@ private struct MessageSentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
+            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                 .accessibilityLabel("Masquer")
         }
         .padding(12)

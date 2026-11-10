@@ -66,9 +66,8 @@ final class AccountsModel {
     /// (LOT-044).
     static func live() -> AccountsModel {
         AccountsModel(
-            // An app bundle always has an identifier; the fallback is the project's own (LOT-080), so the item's
-            // service never depends on it being missing.
-            store: KeychainCredentialStore(service: Bundle.main.bundleIdentifier ?? "hfrplus.red.super"),
+            // Shared with the legacy import (LOT-158): one instance, one lock.
+            store: LiveCredentials.store,
             loginService: LoginFlow(),
             checker: ForumSessionCheck(),
             avatars: AnonymousAvatarLoader()

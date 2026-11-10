@@ -2,8 +2,10 @@ import HFRStorage
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79. Differences: the avatar cache is filled by
-// `AvatarStore` from the pages read (GAP-230); the placeholder is a monogram, not a grey disc.
+// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79 and @ 87fe0d1c (`:911-917`).
+// Differences: the avatar cache is filled by
+// `AvatarStore` from the pages read, and the legacy app's files are adopted when the cache has none (GAP-230, #714); the placeholder is
+// a monogram, not a grey disc.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a monogram when the cache has none, a group icon for a group
 /// thread; the row sets its size (LOT-169 density). It only reads the cache; `AvatarStore` fills it, and the view reads it again
 /// when the store's generation changes.
@@ -74,7 +76,8 @@ struct MessageAvatarView: View {
     private static func cachedImage(pseudo: String?) async -> UIImage? {
         guard let pseudo, !pseudo.isEmpty else { return nil }
         return await Task.detached {
-            guard let entry = try? AvatarCache(cache: .standard).entry(forPseudo: pseudo),
+            // The cache first, then the file the legacy app cached under another name (#714): adopted once, then read as ours.
+            guard let entry = try? AvatarCache(cache: .standard).entryAdoptingLegacy(forPseudo: pseudo, accepting: AvatarImage.isDecodable),
                   let data = try? Data(contentsOf: entry.fileURL) else { return nil }
             return UIImage(data: data)
         }.value

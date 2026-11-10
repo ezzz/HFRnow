@@ -62,6 +62,31 @@ public actor SmileySearchHistoryStore {
         }
     }
 
+    /// Adds entries written by another writer (the legacy import, LOT-067) with their counts and dates. An entry whose
+    /// text is already stored (ignoring case) or blank is skipped: the stored one wins. The 50 most recent are kept.
+    /// Returns how many entries were added; nothing is saved when none was.
+    @discardableResult
+    public func merge(_ entries: [SmileySearchHistoryEntry]) throws(SmallStoreError) -> Int {
+        var added = 0
+        _ = try state.mutate { document in
+            let before = document.entries
+            added = 0
+            for entry in entries {
+                let text = entry.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !text.isEmpty,
+                      !document.entries.contains(where: { $0.text.caseInsensitiveCompare(text) == .orderedSame }) else { continue }
+                let count = max(entry.count, 1)
+                document.entries.append(SmileySearchHistoryEntry(text: text, count: count, lastSearchedAt: entry.lastSearchedAt))
+                added += 1
+            }
+            guard added > 0 else { return false }
+            document.entries = Array(document.entries.sorted { $0.lastSearchedAt > $1.lastSearchedAt }.prefix(Self.maximumEntries))
+            added = document.entries.count { entry in !before.contains(entry) }
+            return document.entries != before
+        }
+        return added
+    }
+
     // MARK: Recovery
 
     /// Reads the stored data again, for example after the user restored a file. Returns the failure if any.

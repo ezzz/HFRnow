@@ -56,4 +56,48 @@ struct ReaderThemeTests: ReaderWebTesting {
         let seen = await colours(in: controller)
         #expect(light, "colours: \(seen)")
     }
+
+    /// LOT-122: the dark style reaches the page's background and quote surfaces, live, and the standard style is the old colours.
+    @Test func theDarkStyleSetsTheReaderBackgroundAndQuotesLive() async {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .dark
+        controller.show(document(token: 3))
+        #expect(await until { recorder.ready == [3] }, "ready: \(recorder.ready)")
+        func surfaces() async -> String {
+            let script = """
+                const root = getComputedStyle(document.documentElement);
+                return getComputedStyle(document.body).backgroundColor + '|' + root.getPropertyValue('--app-dark-quote-background');
+                """
+            return ((try? await evaluate(script, in: controller)) as? String) ?? ""
+        }
+        let standard = await until(async: { await surfaces().hasPrefix("rgb(0, 0, 0)") })
+        let seenStandard = await surfaces()
+        #expect(standard, "standard: \(seenStandard)")
+
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = .darker
+        controller.theme = appearance
+        let darker = await until(async: { await surfaces() == "rgb(11, 11, 12)|rgb(23, 24, 26)" })
+        let seenDarker = await surfaces()
+        #expect(darker, "darker: \(seenDarker)")
+        let quote = await colours(in: controller)
+        #expect(quote.hasSuffix("|rgb(23, 24, 26)"), "quote: \(quote)")
+        // The layer behind the page (what shows while it bounces) follows: dark is the page's background, light the system's.
+        func underPage() -> [Int] {
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+            controller.webView.underPageBackgroundColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            return [red, green, blue].map { Int(($0 * 255).rounded()) }
+        }
+        #expect(await until { underPage() == [11, 11, 12] }, "under page, dark: \(underPage())")
+        recorder.window?.overrideUserInterfaceStyle = .light
+        #expect(await until { underPage() == [255, 255, 255] }, "under page, light: \(underPage())")
+        recorder.window?.overrideUserInterfaceStyle = .dark
+
+        appearance.darkStyle = .oled
+        controller.theme = appearance
+        let oled = await until(async: { await surfaces() == "rgb(0, 0, 0)|rgb(17, 17, 19)" })
+        let seenOLED = await surfaces()
+        #expect(oled, "oled: \(seenOLED)")
+        #expect(recorder.ready == [3])
+    }
 }

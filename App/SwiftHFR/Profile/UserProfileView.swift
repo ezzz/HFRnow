@@ -15,7 +15,7 @@ struct UserProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             content
                 .navigationTitle(model.title)
                 .navigationBarTitleDisplayMode(.inline)
@@ -99,6 +99,11 @@ private struct ProfileHeaderSection: View {
                             .scaledFont(.subheadline).foregroundStyle(.secondary)
                     }
                 }
+            }
+            // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast. On the header row
+            // (always there, once): the feedback `Text` appears already holding the first sentence, which no change reports.
+            .onChange(of: model.listFeedbackCount) {
+                if let text = model.listFeedback { AccessibilityNotification.Announcement(text).post() }
             }
             ForEach(profile.summary) { item in
                 LabeledContent {

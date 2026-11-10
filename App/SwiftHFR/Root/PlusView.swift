@@ -14,7 +14,7 @@ struct PlusView: View {
             } label: {
                 HStack {
                     Label(entry.title, systemImage: entry.symbol)
-                        .foregroundStyle(entry.isDestructive ? Color.red : Color.primary)
+                        .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : Color.primary)
                     Spacer()
                     Image(systemName: "chevron.forward")
                         .scaledFont(.footnote).fontWeight(.semibold)
@@ -37,19 +37,29 @@ struct PlusEntryView: View {
     let environment: AppEnvironment
 
     var body: some View {
-        if entry == .search {
+        switch entry {
+        case .search:
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
-        } else if entry == .deleteAccount {
-            AccountDeletionView()
-        } else if entry.isBuilt {
+        case .settings:
             SettingsView(reader: environment.reader)
-        } else {
-            ContentUnavailableView(
-                entry.title, systemImage: entry.symbol,
-                description: Text("Cet écran arrive dans une prochaine version.")
-            )
-            .navigationTitle(entry.title)
-            .navigationBarTitleDisplayMode(.inline)
+        // "Crédits" is the About screen (LOT-120, operator decision 2026-10-28).
+        case .credits:
+            AboutView(environment: environment)
+        case .charter:
+            StaticPageView(page: .charter)
+        case .deleteAccount:
+            AccountDeletionView()
+        case .bookmarks, .qualityAlerts:
+            placeholder
         }
+    }
+
+    private var placeholder: some View {
+        ContentUnavailableView(
+            entry.title, systemImage: entry.symbol,
+            description: Text("Cet écran arrive dans une prochaine version.")
+        )
+        .navigationTitle(entry.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

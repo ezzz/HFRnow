@@ -62,6 +62,8 @@ struct TopicReaderView: View {
     @State private var swipeEnabled = true
     /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
     @State private var writes: MessageWriteModel?
+    /// "Alerter" of the message menu (LOT-135); nil until the menu is installed.
+    @State private var alerts: ModeratorAlertModel?
     /// `reply_button_behavior` (LOT-086), read again with the other settings.
     @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
@@ -96,6 +98,7 @@ struct TopicReaderView: View {
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
@@ -142,7 +145,7 @@ struct TopicReaderView: View {
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
-        .onAppear(perform: makeController)
+        .appScreenBackground().onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
         .onAppear {
             controller?.resume()
@@ -153,6 +156,7 @@ struct TopicReaderView: View {
         }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
         .onChange(of: model.canQuote) { _, canQuote in controller?.offersSelectionQuote = canQuote }
+        .modifier(ReaderAnnouncements(model: model))
         .task {
             // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
             swipeEnabled = services.settings.swipesPages()
@@ -255,40 +259,6 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
-    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Editer" and "Supprimer". A later lot adds its handler
-    /// here, the policy is untouched.
-    private func installMenuActions() {
-        // Weak: the model stores this registry, a strong capture would keep every reader alive.
-        let confirm: @MainActor (String) -> Void = { [weak model] text in
-            model?.showMenuFeedback(text)
-            AccessibilityNotification.Announcement(text).post()
-        }
-        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
-        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
-        model.quoting = composer?.quoting
-        var handlers: [any MessageActionHandler] = [
-            LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
-        ]
-        handlers += model.quoteHandlers(confirm: confirm)
-        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
-        let showProfile = $profile
-        let services = self.services
-        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
-        }
-        if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
-        handlers += services.pseudoLists.map {
-            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
-        } ?? []
-        if let composer {
-            let writes = writes ?? MessageWriteModel(reader: model, services: composer)
-            self.writes = writes
-            handlers += writes.handlers
-        }
-        model.install(MessageActionRegistry(handlers))
-        controller?.offersSelectionQuote = model.canQuote
-    }
-
     private func makeController() {
         guard controller == nil else { return }
         let controller = ReaderWebController(
@@ -300,7 +270,8 @@ struct TopicReaderView: View {
             link: { [model] url in
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID) { model.applyDisplaySettings() }
+                // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
+                case .profile(let memberID): profile = services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook)
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -319,31 +290,56 @@ struct TopicReaderView: View {
             image: { images, index, _ in
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
-            }
+            }, notice: { [model] in model.showMenuFeedback($0) }
         )
-        model.positions = services.positions
+        model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.canQuote
         self.controller = controller
     }
 }
 
-/// What the reader shares across pages: the image client, the settings it reads and the position recorder.
-struct ReaderServices: Sendable {
-    /// Images through the cookie-less client.
-    let imageFetcher: ReaderImageFetcher
-    /// Image mode and display choices.
-    let settings: ReaderSettings
-    /// Public profiles opened from a link (LOT-116), fetched without cookies.
-    let profiles: any UserProfileSource
-    /// Records the reading position of the current account (LOT-111); nil when logged out.
-    var positions: (any ReaderPositionRecording)?
-    /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
-    var offline: OfflineServices?
-    /// Flag writes of the current account, for "Favoris" (LOT-125) and "Marquer comme non lu" (LOT-127); nil when logged out.
-    var flagActions: TopicFlagActions?
-    /// The blocklist of the current account and the allowlist (LOT-118): the BL / WL menu entries, the profile buttons and the
-    /// editors of Réglages edit them through it; nil in previews.
-    var pseudoLists: PseudoListManager?
+// Out of the struct body, which reached SwiftLint's `type_body_length` with LOT-135's handler.
+extension TopicReaderView {
+    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
+    /// its handler here, the policy is untouched.
+    private func installMenuActions() {
+        // Weak: the model stores this registry, a strong capture would keep every reader alive.
+        let confirm: @MainActor (String) -> Void = { [weak model] text in
+            model?.showMenuFeedback(text) // announced by `ReaderAnnouncements`
+        }
+        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
+        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
+        model.quoting = composer?.quoting
+        var handlers: [any MessageActionHandler] = [
+            LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
+        ]
+        handlers += model.quoteHandlers(confirm: confirm)
+        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
+        let showProfile = $profile
+        let services = self.services
+        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
+            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
+        }
+        if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
+        handlers += services.pseudoLists.map {
+            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
+        } ?? []
+        let openURL = self.openURL
+        // Each appearance installs again: a fresh model with the current services, unless an alert is in progress.
+        let alerts = self.alerts.flatMap { $0.isIdle ? nil : $0 } ?? ModeratorAlertModel(
+            alerter: services.moderatorAlerts, mailAddress: services.moderatorAlertMail, confirm: confirm,
+            openMail: { openURL($0) }
+        )
+        self.alerts = alerts
+        handlers.append(alerts.handler)
+        if let composer {
+            let writes = writes ?? MessageWriteModel(reader: model, services: composer)
+            self.writes = writes
+            handlers += writes.handlers
+        }
+        model.install(MessageActionRegistry(handlers))
+        controller?.offersSelectionQuote = model.canQuote
+    }
 }
 
 /// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.

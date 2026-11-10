@@ -99,10 +99,10 @@ struct RootModelTests {
         #expect(PlusEntry.allCases.filter(\.isDestructive) == [.deleteAccount])
     }
 
-    @Test func settingsSearchAndDeletionAreBuiltAndTheOthersNameTheirLot() {
+    @Test func settingsSearchCreditsCharterAndDeletionAreBuiltAndTheOthersNameTheirLot() {
         let expected: [(PlusEntry, String?)] = [
             (.settings, nil), (.search, nil), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
-            (.credits, "LOT-120"), (.charter, "LOT-120"), (.deleteAccount, nil)
+            (.credits, nil), (.charter, nil), (.deleteAccount, nil)
         ]
         #expect(expected.map(\.0) == PlusEntry.allCases)
         for (entry, lot) in expected {

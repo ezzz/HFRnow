@@ -1,3 +1,4 @@
+import Dispatch
 import Foundation
 import HFRModels
 import HFRStorage
@@ -12,6 +13,21 @@ private final class UnreadablePersistence: PseudoListPersistence {
     func load() throws -> PseudoListDocument? { throw CocoaError(.fileReadCorruptFile) }
     func save(_ document: PseudoListDocument) throws { saves.withLock { $0 += 1 } }
     func quarantineUnreadableData() throws {}
+}
+
+/// A persistence whose saves wait while the gate is closed, so a test can hold a write and look at the editor meanwhile.
+private final class GatedPersistence: PseudoListPersistence {
+    private let inner = InMemoryPseudoListPersistence()
+    private let closed = Mutex(false)
+    private let gate = DispatchSemaphore(value: 0)
+    func close() { closed.withLock { $0 = true } }
+    func open() { if closed.withLock({ let was = $0; $0 = false; return was }) { gate.signal() } }
+    func load() throws -> PseudoListDocument? { try inner.load() }
+    func save(_ document: PseudoListDocument) throws {
+        if closed.withLock({ $0 }) { gate.wait() }
+        try inner.save(document)
+    }
+    func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
 }
 
 private struct Fixture {
@@ -157,12 +173,77 @@ struct PseudoListEditorModelTests {
         let model = PseudoListEditorModel(kind: .blocklist, manager: lists)
         await model.load()
         #expect(model.pseudos == ["Deux", "Un"])
-        await model.remove(at: IndexSet(integer: 0))
+        await model.remove(at: IndexSet(integer: 0)).value
         #expect(model.pseudos == ["Un"])
-        await model.remove(at: IndexSet(integer: 0))
+        await model.remove(at: IndexSet(integer: 0)).value
         #expect(model.pseudos.isEmpty && model.errorMessage == nil)
         #expect(await store.blocklist(for: "moi").isEmpty)
         #expect(await store.loadFailure() == nil)
+    }
+
+    /// Two swipes in a row, before the first write ran: each one removes the row the user swiped, and no deleted row comes back.
+    @Test func twoQuickSwipesRemoveTheTwoSwipedMembers() async throws {
+        let setup = try await fixture(blocklist: ["Un", "Deux", "Trois", "Quatre"])
+        let lists = setup.manager
+        let store = setup.store
+        let model = PseudoListEditorModel(kind: .blocklist, manager: lists)
+        await model.load()
+        #expect(model.pseudos == ["Deux", "Quatre", "Trois", "Un"])
+        let first = model.remove(at: IndexSet(integer: 0)) // Deux
+        #expect(model.pseudos == ["Quatre", "Trois", "Un"])
+        let second = model.remove(at: IndexSet(integer: 1)) // Trois, as the list now shows it
+        #expect(model.pseudos == ["Quatre", "Un"])
+        await first.value
+        await second.value
+        #expect(model.pseudos == ["Quatre", "Un"] && model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
+    }
+
+    /// A read asked for while a swipe's write is held (an add, a retry) waits for every queued write: no swiped row comes back.
+    @Test func aReloadDuringQueuedRemovalsWaitsForThemAndKeepsTheRowsGone() async throws {
+        let persistence = GatedPersistence()
+        let store = PseudoListStore(persistence: persistence)
+        for pseudo in ["Un", "Deux", "Trois", "Quatre"] { try await store.block(pseudo, account: "moi") }
+        let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
+        await model.load()
+        persistence.close()
+        let first = model.remove(at: IndexSet(integer: 0)) // Deux, its write is held
+        let second = model.remove(at: IndexSet(integer: 1)) // Trois
+        let reloaded = Mutex(false)
+        let reload = Task { await model.load(); reloaded.withLock { $0 = true } }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(!reloaded.withLock { $0 }) // the reload does not complete while a removal is held
+        #expect(model.pseudos == ["Quatre", "Un"]) // held writes: the list shows the swipes, not the stored file
+        persistence.open()
+        await reload.value // the reload ran after both writes, not between them
+        #expect(model.pseudos == ["Quatre", "Un"])
+        await first.value
+        await second.value
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Quatre", "Un"])
+    }
+
+    /// A swiped pseudo added back before its queued removal ran is added after the removal: it ends in the list, with no
+    /// "already listed" message.
+    @Test func addingBackASwipedPseudoWaitsForItsQueuedRemoval() async throws {
+        let persistence = GatedPersistence()
+        let store = PseudoListStore(persistence: persistence)
+        for pseudo in ["Un", "Deux"] { try await store.block(pseudo, account: "moi") }
+        let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
+        await model.load()
+        persistence.close()
+        // Un first, its write held; the removal of Deux then waits behind it, so it has not reached the store when the add does.
+        let first = model.remove(at: IndexSet(integer: 1)) // Un
+        let second = model.remove(at: IndexSet(integer: 0)) // Deux
+        model.draft = "Deux"
+        let adding = Task { await model.add() }
+        for _ in 0..<20 { await Task.yield() }
+        persistence.open()
+        await first.value
+        await second.value
+        await adding.value
+        #expect(model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo) == ["Deux"])
+        #expect(model.pseudos == ["Deux"])
     }
 
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.

@@ -34,6 +34,7 @@ struct AccountMenuButton: View {
                             }
                         }
                         .accessibilityValue(row.status == .expired ? "Session expirée" : "")
+                        .accessibilityAddTraits(row.isMain ? .isSelected : [])
                     }
                     Divider()
                     if let current = accounts.current, current.status == .expired {

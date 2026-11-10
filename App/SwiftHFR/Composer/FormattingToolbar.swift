@@ -35,6 +35,9 @@ struct FormattingToolbar: View {
             .padding(.horizontal, 8)
         }
         .background(.bar)
+        // One container for VoiceOver ("Mise en forme"), its buttons inside (LOT-163).
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Mise en forme")
     }
 
     @ViewBuilder

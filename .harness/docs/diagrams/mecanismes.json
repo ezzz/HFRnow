@@ -1,0 +1,449 @@
+[
+{
+"type": "cameraUpdate",
+"width": 1200,
+"height": 900,
+"x": 0,
+"y": -10
+},
+{
+"type": "text",
+"id": "t",
+"x": 330,
+"y": 20,
+"text": "agentic-harness : les mécanismes",
+"fontSize": 32
+},
+{
+"type": "text",
+"id": "st",
+"x": 300,
+"y": 64,
+"text": "un cadre versionné, pour tout agent de code et toute équipe",
+"fontSize": 20,
+"strokeColor": "#757575"
+},
+{
+"type": "ellipse",
+"id": "op",
+"x": 40,
+"y": 130,
+"width": 200,
+"height": 90,
+"backgroundColor": "#fff3bf",
+"fillStyle": "solid",
+"strokeColor": "#f59e0b",
+"label": {
+"text": "Opérateur\n(humain)",
+"fontSize": 20
+}
+},
+{
+"type": "rectangle",
+"id": "orc",
+"x": 330,
+"y": 120,
+"width": 430,
+"height": 110,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#d0bfff",
+"fillStyle": "solid",
+"strokeColor": "#8b5cf6",
+"label": {
+"text": "Orchestrateur (SPOC)\nseul agent long : route, suit, relance",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "a1",
+"x": 240,
+"y": 175,
+"width": 90,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+90,
+0
+]
+],
+"startArrowhead": "arrow",
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "fw",
+"x": 860,
+"y": 120,
+"width": 300,
+"height": 110,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#fff3bf",
+"fillStyle": "solid",
+"strokeColor": "#f59e0b",
+"label": {
+"text": "Cadre versionné (vX.Y.Z)\nrègles, skills, agents, CI",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "a2",
+"x": 860,
+"y": 175,
+"width": -100,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+-100,
+0
+]
+],
+"endArrowhead": "arrow",
+"label": {
+"text": "synchro par PR",
+"fontSize": 18
+}
+},
+{
+"type": "rectangle",
+"id": "lot",
+"x": 40,
+"y": 310,
+"width": 250,
+"height": 100,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#a5d8ff",
+"fillStyle": "solid",
+"strokeColor": "#4a9eed",
+"label": {
+"text": "Agents de lot\nTDD, modèle adapté",
+"fontSize": 20
+}
+},
+{
+"type": "rectangle",
+"id": "stw",
+"x": 330,
+"y": 310,
+"width": 250,
+"height": 100,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#c3fae8",
+"fillStyle": "solid",
+"strokeColor": "#06b6d4",
+"label": {
+"text": "Stewards jetables\nissues, docs, flux",
+"fontSize": 20
+}
+},
+{
+"type": "rectangle",
+"id": "rev",
+"x": 620,
+"y": 310,
+"width": 270,
+"height": 100,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#ffd8a8",
+"fillStyle": "solid",
+"strokeColor": "#f59e0b",
+"label": {
+"text": "Relecteurs\nadversarial, conformité",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "a3",
+"x": 420,
+"y": 230,
+"width": -255,
+"height": 80,
+"points": [
+[
+0,
+0
+],
+[
+-255,
+80
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "a4",
+"x": 480,
+"y": 230,
+"width": 0,
+"height": 80,
+"points": [
+[
+0,
+0
+],
+[
+0,
+80
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "a5",
+"x": 600,
+"y": 230,
+"width": 155,
+"height": 80,
+"points": [
+[
+0,
+0
+],
+[
+155,
+80
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "repo",
+"x": 40,
+"y": 500,
+"width": 850,
+"height": 100,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#b2f2bb",
+"fillStyle": "solid",
+"strokeColor": "#22c55e",
+"label": {
+"text": "Dépôt = état partagé : issues, PR, docs, ADR, leçons\nle contexte vit ici, pas dans l'agent",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "a7",
+"x": 165,
+"y": 410,
+"width": 0,
+"height": 90,
+"points": [
+[
+0,
+0
+],
+[
+0,
+90
+]
+],
+"startArrowhead": "arrow",
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "a8",
+"x": 455,
+"y": 410,
+"width": 0,
+"height": 90,
+"points": [
+[
+0,
+0
+],
+[
+0,
+90
+]
+],
+"startArrowhead": "arrow",
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "a9",
+"x": 755,
+"y": 410,
+"width": 0,
+"height": 90,
+"points": [
+[
+0,
+0
+],
+[
+0,
+90
+]
+],
+"endArrowhead": "arrow",
+"label": {
+"text": "verdicts",
+"fontSize": 16
+}
+},
+{
+"type": "rectangle",
+"id": "ci",
+"x": 960,
+"y": 310,
+"width": 200,
+"height": 100,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#ffc9c9",
+"fillStyle": "solid",
+"strokeColor": "#ef4444",
+"label": {
+"text": "CI\ntests, SAST, SCA,\nsecrets, revue IA",
+"fontSize": 18
+}
+},
+{
+"type": "arrow",
+"id": "a10",
+"x": 890,
+"y": 540,
+"width": 160,
+"height": -130,
+"points": [
+[
+0,
+0
+],
+[
+160,
+0
+],
+[
+160,
+-130
+]
+],
+"endArrowhead": "arrow",
+"label": {
+"text": "PR prête",
+"fontSize": 16
+}
+},
+{
+"type": "rectangle",
+"id": "tb",
+"x": 960,
+"y": 640,
+"width": 200,
+"height": 110,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#eebefa",
+"fillStyle": "solid",
+"strokeColor": "#ec4899",
+"label": {
+"text": "Tableau de bord\npannes, boucles,\nPR à problème, coût",
+"fontSize": 18
+}
+},
+{
+"type": "arrow",
+"id": "a11",
+"x": 1120,
+"y": 410,
+"width": 0,
+"height": 230,
+"points": [
+[
+0,
+0
+],
+[
+0,
+230
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "a12",
+"x": 960,
+"y": 695,
+"width": -945,
+"height": -465,
+"points": [
+[
+0,
+0
+],
+[
+-945,
+0
+],
+[
+-945,
+-440
+],
+[
+-610,
+-440
+],
+[
+-610,
+-465
+]
+],
+"endArrowhead": "arrow",
+"strokeColor": "#ec4899",
+"label": {
+"text": "dérives : arrêter, relancer, réaffecter",
+"fontSize": 16
+}
+},
+{
+"type": "rectangle",
+"id": "gf",
+"x": 40,
+"y": 790,
+"width": 1120,
+"height": 60,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#fff3bf",
+"fillStyle": "solid",
+"strokeColor": "#f59e0b",
+"strokeWidth": 1,
+"label": {
+"text": "Garde-fous : rien de deviné, aucun secret, boucles bornées (3 revues, 6 pushes), chaque verdict tracé",
+"fontSize": 18
+}
+}
+]
