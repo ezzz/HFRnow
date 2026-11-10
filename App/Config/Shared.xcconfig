@@ -4,6 +4,9 @@ REHOST_BASE_URL =
 REHOST_API_KEY =
 GIPHY_BASE_URL = https:/$()/api.giphy.com
 GIPHY_API_KEY =
+// The moderators' address of the alert mail fallback (LOT-135, Q-10): public HFR contact address, not a key (ADR 0007);
+// legacy hard-codes it at HFRswift/Swift/MessagesView.swift:4580 @ 87fe0d1c. Left empty, the fallback is off.
+MODERATOR_ALERT_MAIL_ADDRESS = marc@hardware.fr
 
 // Untracked file with the real values (copy Secrets.xcconfig.example); `#include?` skips it when absent.
 #include? "Secrets.xcconfig"

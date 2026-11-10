@@ -18,7 +18,11 @@ struct MessageListView: View {
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
             if loader.value != nil {
                 ForEach(model.visibleThreads) { thread in
-                    MessageRowView(thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread).tag(thread)
+                    MessageRowView(
+                        thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
+                        flagLabel: model.flagLabel(for: thread)
+                    )
+                    .tag(thread)
                 }
             }
         }
@@ -39,6 +43,10 @@ struct MessageListView: View {
                     LoadFailureBanner(error: error, retry: model.retry)
                 }
             }
+        }
+        .onChange(of: model.sentConfirmation) { _, text in
+            // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
+            if let text { AccessibilityNotification.Announcement(text).post() }
         }
         .task(id: model.sentConfirmation) {
             guard model.sentConfirmation != nil else { return }
@@ -65,6 +73,8 @@ struct MessageListView: View {
         }
         .refreshable { await model.refresh() }
         .task { await model.onAppear() }
+        // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
+        .task { await model.mpStorage?.start() }
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.actionFailure = nil } })
         ) {
@@ -103,7 +113,7 @@ private struct MessageSentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
+            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                 .accessibilityLabel("Masquer")
         }
         .padding(12)

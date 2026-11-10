@@ -7,12 +7,16 @@ import SwiftUI
 struct SwiftHFRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var accounts = AccountsModel.live()
+    /// The legacy import (LOT-158): at launch before the accounts are read, then at each change of the current account.
+    @State private var legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter())
     /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
     @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
     @State private var general: GeneralSettingsModel
     /// The "Thème" settings: appearance and colours of every screen and of the reader (LOT-121).
     @State private var theme: ThemeSettingsModel
+    /// The optional Face ID / code lock, one for every scene (LOT-173).
+    @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -29,19 +33,44 @@ struct SwiftHFRApp: App {
         WindowGroup {
             RootView()
                 .environment(accounts)
+                .environment(legacyImport)
                 .environment(general)
+                .environment(appLock)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme)
-                // Restores the stored accounts and their sessions once per launch (LOT-081).
-                .task { await accounts.restore() }
+                // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
+                .appLockCover(appLock)
+                // The legacy import first (LOT-158), so the accounts it takes over are in the store; then what iCloud Keychain
+                // brought (LOT-173: a new device imports its accounts there); then the stored accounts and their sessions, once
+                // per launch (LOT-081).
+                .task {
+                    await legacyImport.runAtLaunch()
+                    accounts.reconcileAccountSync()
+                    await accounts.restore()
+                }
+                // An account became current (restore, login, switch): the import goes on with it until complete (LOT-067 D3),
+                // and the account list is read again when it took accounts over.
+                .onChange(of: accounts.current?.id) { _, account in
+                    Task {
+                        if await legacyImport.accountDidChange(to: account) { await accounts.readStoreAgain() }
+                    }
+                }
                 // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).
                 .task(priority: .utility) { await LiveOfflineStore().evict() }
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }
-                    Task { await accounts.recheckUnconfirmedSessions() }
+                    Task {
+                        // What another device changed first, so the re-check sees the current accounts (LOT-173).
+                        accounts.reconcileAccountSync()
+                        await accounts.recheckUnconfirmedSessions()
+                    }
+                }
+                // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                 }
         }
     }

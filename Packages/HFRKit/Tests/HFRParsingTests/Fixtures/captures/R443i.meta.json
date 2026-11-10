@@ -1,0 +1,23 @@
+{
+  "id": "R443i",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of a composer, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:24:22 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview only, no write (#443)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=%5Bb%5Dbold+across%0D%0Aa+line+break%5B%2Fb%5D%0D%0A%5Bb%5D%5Bquote%5Dx%5B%2Fquote%5D%5B%2Fb%5D%0D%0A%5Bquote%5D%5Bb%5Dx%5B%2Fquote%5D%5B%2Fb%5D&apercu_smiley=0&config=hfr.inc",
+  "file": "R443i-apercu-malformed-crossing.html",
+  "private": false
+}

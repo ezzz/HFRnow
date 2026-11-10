@@ -2,6 +2,7 @@ import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork
+import HFRStorage
 
 /// Logs an account in through `HFRClient` (LOT-043); `LoginFlow` in the app, a scripted double in tests.
 protocol AccountLoggingIn: Sendable {
@@ -18,6 +19,23 @@ extension LoginFlow: AccountLoggingIn {
     ) async throws(LoginError) -> LoginResult {
         try await login(pseudo: pseudo, password: password, into: session, expectedUserKey: expectedUserKey)
     }
+}
+
+/// The single store over the accounts' Keychain item: its read-modify-write lock is per instance, so the accounts model and
+/// the legacy import (LOT-158) must share it, or a write of one can replace the other's.
+enum LiveCredentials {
+    /// The store keyed by the bundle identifier; the fallback is the project's own (LOT-080), so the item's service never
+    /// depends on it being missing.
+    static let store = KeychainCredentialStore(service: service)
+
+    /// The opt-in iCloud Keychain copy of the accounts (LOT-173), over the same store instance so its writes share the lock.
+    static let sync = AccountSync(
+        accounts: store,
+        item: KeychainDataItem(service: service, descriptor: .syncedAccounts),
+        state: KeychainDataItem(service: service, descriptor: .syncState)
+    )
+
+    private static let service = Bundle.main.bundleIdentifier ?? "hfrplus.red.super"
 }
 
 /// What a session check learned about a restored account session.
