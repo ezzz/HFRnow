@@ -55,6 +55,8 @@ final class ReplyComposerModel: Identifiable {
     private(set) var closeReason: CloseReason?
     /// Cancel was tapped with text: the sheet asks whether to keep the draft.
     var isAskingClose = false
+    /// What "Annuler" and "Rétablir" go back to (#653); the text the sheet opened with is no step.
+    private(set) var history = ComposerHistory()
 
     /// Unique per sheet.
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
@@ -129,6 +131,7 @@ final class ReplyComposerModel: Identifiable {
         // The quote the sheet was opened with goes after the restored draft, like typing: saved after a pause, so closing the
         // sheet on it keeps it in the draft.
         if let quote = initialQuote { update(text: QuoteDraftMerger.merge(quote.text, into: text)) }
+        history.reset()
     }
 
     /// Reads the new-topic form's sub-category select; the sheet runs it beside `start()` so the editor never waits for the
@@ -168,6 +171,15 @@ final class ReplyComposerModel: Identifiable {
     /// The user typed: the draft is saved after a pause.
     func update(text newText: String) {
         guard canEdit, newText != text else { return }
+        history.record(text)
+        text = newText
+        didEdit()
+    }
+
+    /// Undo or redo moved in the history (`ComposerHistory`): the text it gives back, saved like typing.
+    func apply(history steps: ComposerHistory, text newText: String) {
+        guard canEdit else { return }
+        history = steps
         text = newText
         didEdit()
     }

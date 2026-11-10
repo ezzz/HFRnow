@@ -6,7 +6,11 @@ import SwiftUI
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
-/// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
+// Layout of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c: close `xmark` on the
+// left, send `arrow.up` on the right, the control row and the "Aa" bar above the keyboard (#653, `ComposerControlRow`). Differences:
+// a reply or an edit opens at partial height on an iPhone, the page visible above (`ComposerHeight`, GAP-653, b·operator);
+// no drafts button (one draft per target, GAP-092).
+/// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
 /// `ReplyComposerModel`.
@@ -41,6 +45,10 @@ struct ReplyComposerView: View {
     @State private var imageInserted = false
     /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
     @State private var rangeImage = NSRange(location: 0, length: 0)
+    /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
+    @State private var gifRequested = false
+    /// The height chosen with the toggle; nil until then (the target's initial height).
+    @State private var chosenHeight: ComposerHeight?
 
     init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
@@ -73,8 +81,8 @@ struct ReplyComposerView: View {
             // Pinned to the bottom of the keyboard safe area as one view kept across focus changes, not a stack child laid
             // out with the fields (#599). Not `.keyboard` placement: that is an input accessory rebuilt for each focused
             // field (recipient, subject, text), shown above all three, and gone without an on-screen keyboard.
-            .safeAreaInset(edge: .bottom, spacing: 0) { formattingBar }
-            .gifPanel(services: model.gifServices, formatting: formatting, canEdit: model.canEdit) { focused = .text }
+            .safeAreaInset(edge: .bottom, spacing: 0) { controls }
+            .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
@@ -99,6 +107,9 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { formatting.selectedRange = rangeImage; formatting.insert($0); imageInserted = true }
         )
+        .presentationDetents([offersHeightToggle ? height.detent : .large])
+        // A sheet below the full height is glass: the dimmed page showed through the editor in dark mode (iOS 27.1 simulator).
+        .modifier(OpaqueComposerSheet(isEnabled: offersHeightToggle))
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
@@ -276,23 +287,26 @@ struct ReplyComposerView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button("Smileys", systemImage: "face.smiling", action: openSmileys)
-                .disabled(!model.canEdit)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button("Image", systemImage: "photo.badge.plus", action: openImages)
-                .disabled(!model.canEdit)
-        }
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Annuler") { Task { await model.requestClose() } }
-            .disabled(model.isSending)
+        // Close first, then the height toggle, as legacy's header (`xmark` leftmost); one group so the order holds.
+        ToolbarItemGroup(placement: .topBarLeading) {
+            Button("Fermer", systemImage: "xmark") { Task { await model.requestClose() } }
+                .keyboardShortcut(.cancelAction)
+                .disabled(model.isSending)
+            if offersHeightToggle {
+                let isPartial = height == .partial
+                Button(
+                    isPartial ? "Plein écran" : "Réduire",
+                    systemImage: isPartial ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left"
+                ) {
+                    chosenHeight = height.toggled
+                }
+            }
         }
         ToolbarItem(placement: .confirmationAction) {
             if model.isSending {
                 ProgressView().accessibilityLabel("Envoi en cours")
             } else {
-                Button("Envoyer") { Task { await model.send() } }
+                Button("Envoyer", systemImage: "arrow.up") { Task { await model.send() } }
                     .disabled(!model.canSend)
             }
         }
@@ -300,6 +314,29 @@ struct ReplyComposerView: View {
 }
 
 extension ReplyComposerView {
+    /// A reply or an edit on an iPhone: partial height first, and the toggle (#653).
+    private var offersHeightToggle: Bool {
+        ComposerHeight.offersToggle(for: model.target, isPhone: UIDevice.current.userInterfaceIdiom == .phone)
+    }
+
+    private var height: ComposerHeight {
+        chosenHeight ?? (offersHeightToggle ? .partial : .full)
+    }
+
+    /// The "Aa" bar when shown, above the control row: one view kept across focus changes (#599).
+    private var controls: some View {
+        VStack(spacing: 0) {
+            if formatting.isBarShown { formattingBar.transition(.move(edge: .bottom).combined(with: .opacity)) }
+            ComposerControlRow(
+                model: model, formatting: formatting, offersGif: model.gifServices.isAvailable,
+                openSmileys: openSmileys, openGif: { gifRequested = true }, openImages: openImages,
+                refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+            )
+        }
+        .background(.bar)
+        .animation(.easeInOut(duration: 0.2), value: formatting.isBarShown)
+    }
+
     /// Off while the recipient or subject has focus; a tap never takes focus from them (`ComposerBarFocus`, #599).
     private var formattingBar: some View {
         let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
@@ -317,29 +354,6 @@ extension ReplyComposerView {
 
     private var title: String {
         model.isEdit ? "Edition" : model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
-    }
-}
-
-/// A message above the editor, with an optional action.
-private struct ComposerBanner<Actions: View>: View {
-    let text: String
-    let symbol: String
-    let tint: Color
-    @ViewBuilder let actions: () -> Actions
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbol).foregroundStyle(tint).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(text).scaledFont(.callout).fixedSize(horizontal: false, vertical: true)
-                actions()
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-        .padding(.top, 8)
     }
 }
 

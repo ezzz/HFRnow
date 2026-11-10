@@ -148,6 +148,44 @@ final class ComposerFormattingModel {
         return true
     }
 
+    // MARK: - Control row (#653)
+
+    /// "Aa" toggles the bar (legacy `isFormattingBarPresented`, hidden when the composer opens, `AnswerView.swift:367`, `:1040-1053`
+    /// @ 87fe0d1c).
+    private(set) var isBarShown = false
+
+    /// "Aa": shows or hides the bar; hiding it closes the palette, as legacy.
+    func toggleBar() {
+        isBarShown.toggle()
+        if !isBarShown { isPaletteShown = false }
+    }
+
+    /// "Annuler": the text before the last change, the caret at its end (legacy `performUndo`, `AnswerView.swift:1352-1362`).
+    func undo() {
+        guard composer.canUndo else { return }
+        composer.undo()
+        moveCaret(to: composer.text.utf16.count)
+    }
+
+    /// "Rétablir": the last undone change, the caret at its end (legacy `performRedo`, `AnswerView.swift:1364-1374`).
+    func redo() {
+        guard composer.canRedo else { return }
+        composer.redo()
+        moveCaret(to: composer.text.utf16.count)
+    }
+
+    /// "Vider le texte": the caret at the start (legacy `clearComposer`, `AnswerView.swift:1345-1350`).
+    func clear() {
+        guard composer.canClear else { return }
+        composer.clearText()
+        moveCaret(to: 0)
+    }
+
+    private func moveCaret(to location: Int) {
+        selectedRange = NSRange(location: location, length: 0)
+        cursorRevision += 1
+    }
+
     private func apply(_ target: ReplyFormattingTarget, range: NSRange, clipboardText: String? = nil) {
         commit(ReplyTextInsertionEngine.wrapWithBBCode(
             rawTag: target.rawTag, in: composer.text, selectedUTF16Range: range, textForEmptySelection: clipboardText
