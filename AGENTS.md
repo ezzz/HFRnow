@@ -45,6 +45,7 @@ License: [PolyForm Noncommercial 1.0.0](LICENSE) — no commercial use, credit t
 | `tooling/roadmap/` | Board generator and tracker sweep: `lots.json` from `docs/LOTS.md`, `state.json` from the tracker, the boards of #166 and #324, `hygiene.py` (daily, dry-run by default); [README](tooling/roadmap/README.md) has the routine |
 | `docs/lots/` | One spec file per lot (`LOT-XXX-name.md`) |
 | `docs/FEATURES.md` | App feature backlog (FEAT-XXX, with credit to who proposed it) and status; one spec per feature in `docs/features/FEAT-XXX.md` ([ADR 0011](docs/adr/0011-contribution-model-and-feature-intake.md) §2) |
+| `docs/THEMES.md` · `docs/ICONS.md` | The theme and app-icon contracts: model, tokens, decoration and season rules, illustration style, packs, and how to submit a theme or an icon by PR (agents and humans) |
 | `docs/HFR-PROTOCOL.md` | What we know about HFR: URLs, forms, cookies, HTML structure |
 | `docs/FIXTURES.md` | How fixtures are captured, anonymized and used |
 | `docs/adr/` | Architecture Decision Records. A decision not in an ADR is not a decision |

@@ -32,7 +32,7 @@ struct PagerToolbar: ToolbarContent {
         ToolbarItem(placement: .bottomBar) {
             switch status {
             case .page(let number): Text("Page \(number)").monospacedDigit()
-            case .loading: ProgressView()
+            case .loading: ProgressView().accessibilityLabel("Chargement")
             }
         }
         ToolbarSpacer(.flexible, placement: .bottomBar)

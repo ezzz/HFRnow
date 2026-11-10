@@ -99,7 +99,7 @@ Cookies and `hash_check` go from the legacy Keychain item to LOT-065's item and 
 ## Fixtures
 
 - **Small stores** (#347): read in place from `tooling/legacy-oracle/samples/legacy-stores/` (real legacy output on synthetic data): `defaults-*.plist`, `smiley-favorites-*.archive`, `search-history-*`, `upload-history-*`. The expected smiley favourites were read from the same archives by Python's `plistlib`, an independent decoder.
-- **Pseudo lists, drafts**: built in the tests from the legacy shapes (`BlackList.m:43, 51`; `ReplyDraftStore.ActiveDraftItem`, `AnswerView.swift:143-148`, `JSONEncoder` defaults); synthetic pseudos only.
+- **Pseudo lists, drafts**: built in the tests from the legacy shapes (`BlackList.m:43, 51`; `ReplyDraftStore.ActiveDraftItem`, `AnswerView.swift:143-148`, `JSONEncoder` defaults); synthetic pseudos only. Also read from the #709 samples in place (`lists-*`, `defaults-brouillon-*`, `defaults-active-drafts-*`, `active-drafts-*`, real legacy output on synthetic data).
 - **Accounts**: the `storage-keychain.json` synthetic accounts (LOT-004). On macOS, `LegacyAccountArchiveTests` replays legacy's writer (`NSKeyedArchiver` of `NSArray<NSMutableDictionary>` holding `HTTPCookie`s, `MultisManager.m:49-80`) and decodes it; Linux tests use `InMemoryLegacyAccountSource`.
 - **Caches**: temporary folders.
 
@@ -113,7 +113,7 @@ Shown to fail with the behaviour removed (21 mutations, each caught; the budget 
 
 - **M1** (Mac, LOT-158's install-over test): decode a real legacy `HFR_COMPTES_KEY` written by the legacy app with synthetic accounts, and measure whether `NSHTTPCookie` decodes with `requiresSecureCoding = true` and an explicit class list. Until then the decode keeps legacy's insecure read, limited to this one item of the app's own Keychain.
 - None for the small stores: #347 covers them.
-- **Capture wanted** (Fable round 1, Low): legacy-written samples of `blackListDico.plist`, `whiteList.plist`, `blackList.plist` (v0), `brouillon` and `reply_active_drafts_by_topic_v1`, produced by the legacy code on synthetic data like #347; the tests build them from the legacy shapes meanwhile (`BlackList.m:43, 51`, `AnswerView.swift:143-148`). A `host: mac` capture issue, opened by the orchestrator.
+- **Captured** (#709): legacy-written samples of `blackListDico.plist`, `whiteList.plist`, `brouillon` and `reply_active_drafts_by_topic_v1` (the legacy code at `21173e77` on synthetic data), and the v0 `blackList.plist` migration path (the v0 file itself is synthetic: no legacy code at that revision writes it). Read by `LegacyListsDraftsSamplesTests`. Two things the samples show: the real v0 migration (`BlackList.m:186-190`) writes the dictionary over the v0 path, then deletes it, so until the next save no list file is left on disk (`lists-v0-after-load-files.txt` is empty), and the migrated list exists only in memory. And `brouillon` is written only by `AddMessageViewController.m`, which is built into the `SuperHFRplus` target and not into the `HFRswift` app, so its sample comes from that one line transliterated.
 
 ## Retirement
 

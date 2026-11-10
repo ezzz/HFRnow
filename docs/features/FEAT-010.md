@@ -1,7 +1,7 @@
 # FEAT-010 — Appearance
 
 - **Issue:** [#154](https://github.com/ezzz/HFRnow/issues/154) · **Proposed by:** Bybifok (credit kept, see [CREDITS.md](../../CREDITS.md))
-- **Lots:** [LOT-122](../lots/LOT-122-appearance.md) (darker dark, OLED black, separators; #213), LOT-166 (seasonal themes, #256), LOT-180 (single accent with a live preview, M5, #420), LOT-169 (compact mode, done); the one-line message header is LOT-106
+- **Lots:** [LOT-122](../lots/LOT-122-appearance.md) (darker dark, OLED black, separators; #213), LOT-166 (seasonal themes, #256; rules in [THEMES.md](../THEMES.md)), LOT-180 (accent presets with a live preview, #420), LOT-169 (compact mode, done); the one-line message header is LOT-106
 
 ## What and why
 The dark theme gets a choice of depth: the colours the app always had, a near-black (#0B0B0C) that is softer than pure black, and pure OLED black. Readers on OLED screens and at night want a darker app; the legacy dark was a fixed #17181A.

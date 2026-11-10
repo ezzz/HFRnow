@@ -82,7 +82,7 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
         case .search: nil
         case .bookmarks: "LOT-132"
         case .qualityAlerts: "LOT-133"
-        case .credits, .charter: "LOT-120"
+        case .credits, .charter: nil
         case .deleteAccount: "LOT-157"
         }
     }

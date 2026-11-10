@@ -72,4 +72,38 @@ public struct AvatarCache: Sendable {
     private func fileURL(forPseudo pseudo: String) throws -> URL {
         try cache.safeURL(for: .avatars).appending(path: try Self.fileName(forPseudo: pseudo), directoryHint: .notDirectory)
     }
+
+    /// Largest legacy avatar file accepted, in bytes (the download cap of `AnonymousAvatarLoader`).
+    public static let legacyMaximumBytes = 256 * 1024
+
+    /// The cached file of a pseudo; when there is none, the one the legacy app cached under `MD5(lowercased pseudo)` in the
+    /// same folder (`MPListView.swift:911-917` @ `87fe0d1c`), adopted under the SwiftHFR name. The legacy file is only read
+    /// (never changed or removed). It is taken only if it is a regular file, not a link, within `legacyMaximumBytes`, and
+    /// `accepting` approves its bytes (the app checks that they decode as an image); the copy keeps the legacy file's date so
+    /// an old avatar is still refreshed from the pages. Any failure is no entry.
+    public func entryAdoptingLegacy(forPseudo pseudo: String, accepting: (Data) -> Bool, now: Date = .now) throws -> AvatarCacheEntry? {
+        if let entry = try entry(forPseudo: pseudo, now: now) { return entry }
+        let directory = try cache.safeURL(for: .avatars)
+        for name in LegacyAvatarName.candidates(forPseudo: pseudo) {
+            let url = directory.appending(path: name, directoryHint: .notDirectory)
+            guard let (data, date) = Self.readLegacyFile(url), accepting(data) else { continue }
+            let stored = try store(data, forPseudo: pseudo)
+            // Best effort: a failure only makes the avatar look fresh for a day.
+            try? FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: stored.path(percentEncoded: false))
+            return try entry(forPseudo: pseudo, now: now)
+        }
+        return nil
+    }
+
+    /// Known gap, accepted: the type check and the read are two opens, so a link swapped in between would be followed; only code
+    /// already inside the app's sandbox can write there, and the bytes must still be accepted as an image of at most 256 KiB.
+    /// `attributesOfItem` does not follow a final symbolic link, so a link reports `.typeSymbolicLink` and is refused.
+    private static func readLegacyFile(_ url: URL) -> (Data, Date)? {
+        let path = url.path(percentEncoded: false)
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              attributes[.type] as? FileAttributeType == .typeRegular,
+              let size = attributes[.size] as? NSNumber, size.intValue > 0, size.intValue <= legacyMaximumBytes,
+              let data = try? Data(contentsOf: url), !data.isEmpty, data.count <= legacyMaximumBytes else { return nil }
+        return (data, (attributes[.modificationDate] as? Date) ?? .distantPast)
+    }
 }

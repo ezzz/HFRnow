@@ -117,6 +117,9 @@ final class ReplyComposerModel: Identifiable {
         let drafts = services.drafts
         let account = services.account
         let context = target.draftContext
+        // A legacy draft the import left for this topic becomes its draft first (LOT-158): the reader's own call may not have
+        // ended yet when the sheet opens.
+        if case .reply(let reply) = target, let legacyDrafts = services.legacyDrafts { await legacyDrafts.resolve(reply.topic) }
         let draft = await drafts.draft(for: context, account: account)
         if let failure = await drafts.loadFailure() {
             draftWarning = Self.draftWarning(for: failure)
