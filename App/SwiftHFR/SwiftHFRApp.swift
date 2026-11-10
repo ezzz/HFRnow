@@ -7,6 +7,8 @@ import SwiftUI
 struct SwiftHFRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var accounts = AccountsModel.live()
+    /// The legacy import (LOT-158): at launch before the accounts are read, then at each change of the current account.
+    @State private var legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter())
     /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
     @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
@@ -29,13 +31,25 @@ struct SwiftHFRApp: App {
         WindowGroup {
             RootView()
                 .environment(accounts)
+                .environment(legacyImport)
                 .environment(general)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme)
-                // Restores the stored accounts and their sessions once per launch (LOT-081).
-                .task { await accounts.restore() }
+                // The legacy import first (LOT-158), so the accounts it takes over are in the store; then the stored accounts
+                // and their sessions, once per launch (LOT-081).
+                .task {
+                    await legacyImport.runAtLaunch()
+                    await accounts.restore()
+                }
+                // An account became current (restore, login, switch): the import goes on with it until complete (LOT-067 D3),
+                // and the account list is read again when it took accounts over.
+                .onChange(of: accounts.current?.id) { _, account in
+                    Task {
+                        if await legacyImport.accountDidChange(to: account) { await accounts.readStoreAgain() }
+                    }
+                }
                 // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).
                 .task(priority: .utility) { await LiveOfflineStore().evict() }
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).

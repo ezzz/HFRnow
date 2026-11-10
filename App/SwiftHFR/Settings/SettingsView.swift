@@ -52,6 +52,8 @@ struct SettingsView: View {
     private let store: any SettingsStore
     /// The current account's MPStorage sync (LOT-130); nil when logged out.
     private let mpStorage: MPStorageSyncModel?
+    /// "Maintenance" (LOT-120).
+    @State private var maintenance = MaintenanceModel()
 
     /// Reads the "Sujets" values from `store`.
     init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil, mpStorage: MPStorageSyncModel? = nil) {
@@ -80,6 +82,7 @@ struct SettingsView: View {
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 VStack(alignment: .leading, spacing: 4) {
                     LabeledContent("Taille du texte", value: "\(general.textSizePercent) %")
+                        .accessibilityHidden(true) // the slider below speaks both
                     Slider(
                         value: Binding(
                             get: { Double(general.textSizePercent) },
@@ -150,6 +153,10 @@ struct SettingsView: View {
                 Picker("Bouton +", selection: $topics.replyButton) {
                     ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+            }
+            MaintenanceSection(model: maintenance)
+            Section("À propos") {
+                LabeledContent("Version", value: AppVersion.current.display)
             }
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
