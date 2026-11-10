@@ -268,7 +268,10 @@ final class TopicListModel {
         // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
         markedRead = markedRead.filter { $0.value > startedAfter }
         removedFlags = removedFlags.filter { $0.value > startedAfter }
-        if let page = loader.value?.favoritesPage { await favorites?.prune(to: page) }
+        if let page = loader.value?.favoritesPage {
+            await favorites?.prune(to: page)
+            await favorites?.placePendingSuperFavorites(from: page)
+        }
         // The choice changed while this page was loading (or the sign-in turned out different): ask again with the current one.
         if wantedFilter != loadedFilter { await load(page: 1) }
     }

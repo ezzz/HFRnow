@@ -71,8 +71,7 @@ struct AccountsView: View {
     @ViewBuilder
     private func storeProblemSection(_ problem: StoreProblem) -> some View {
         Section {
-            Label(AccountMessages.message(for: problem), systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
+            StatusLabel(text: AccountMessages.message(for: problem), symbol: "exclamationmark.triangle.fill", tint: .red)
             switch problem {
             case .corrupted:
                 Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
@@ -131,7 +130,7 @@ struct AccountRowView: View {
                         if let status = AccountRowView.statusText(row.status) {
                             Text(status)
                                 .scaledFont(.footnote)
-                                .foregroundStyle(row.status == .expired ? .red : .secondary)
+                                .foregroundStyle(row.status == .expired ? AccessibleColors.errorText : Color.secondary)
                         }
                     }
                     Spacer(minLength: 0)

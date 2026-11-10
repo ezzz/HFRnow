@@ -53,6 +53,7 @@ extension View {
 /// `FavoritePostFilterProgressBanner`, `Favorites.swift:1099-1135`).
 struct FilteredPostsBanner: View {
     let model: FilteredPostsModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(spacing: 10) {
@@ -61,7 +62,7 @@ struct FilteredPostsBanner: View {
             } else {
                 Image(systemName: "info.circle").font(.footnote).foregroundStyle(.secondary)
             }
-            Text(model.bannerText ?? "").font(.footnote).lineLimit(1).monospacedDigit()
+            Text(model.bannerText ?? "").font(.footnote).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1).monospacedDigit()
             Spacer(minLength: 8)
             if model.statusMessage == nil {
                 Button("Annuler") { model.cancel() }.font(.footnote.weight(.semibold))
