@@ -138,7 +138,7 @@ struct TopicHTMLBuilderTests {
         // The avatar button repeats the author button: assistive technologies skip it (LOT-163), so it carries no label.
         #expect(html.contains("aria-hidden=\"true\" tabindex=\"-1\">") && !html.contains("aria-label"))
         let document = TopicHTMLBuilder.document(for: page([odd]), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
-        #expect(document.contains("&gt;a&quot;&gt;&lt;img src=x&gt;</button>"))
+        #expect(document.contains("menu\">a&quot;&gt;&lt;img src=x&gt;</button>"))
         #expect(!document.contains("<img src=x>"))
     }
 

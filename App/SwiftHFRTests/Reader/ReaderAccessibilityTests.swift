@@ -36,6 +36,8 @@ struct ReaderAccessibilityAdapterTests: ReaderWebTesting {
         <div class="Topic masque"><p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/a.png" \
         alt="https://forum-images.hardware.fr/images/a.png"></p></div>\
         </td></tr></table>
+        <p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/b.png"></p>
+        <p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/c.png" alt="photo"></p>
         """
 
     /// Runs `body` on the shown page; the recorder holds the window, so it lives as long as the body.
@@ -98,9 +100,13 @@ struct ReaderAccessibilityAdapterTests: ReaderWebTesting {
         }
     }
 
-    @Test func aPostedPictureWithoutADescriptionIsReadAsImage() async throws {
+    @Test func aPostedPictureWithoutARealDescriptionIsReadAsImage() async throws {
         try await onShownPage { controller in
-            #expect(try await attribute("alt", of: "img.hfrplusimg", in: controller) == "Image")
+            let alts = try await evaluate(
+                "return Array.from(document.querySelectorAll('img.hfrplusimg')).map((i) => i.getAttribute('alt'));", in: controller
+            ) as? [String]
+            // An address as alt (HFR's own), a missing alt: "Image"; a real description stays.
+            #expect(alts == ["Image", "Image", "photo"])
         }
     }
 }
