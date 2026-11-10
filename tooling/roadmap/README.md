@@ -14,7 +14,7 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 | `unblocked.py` | After a merge: the lots whose dependencies are now all done |
 | `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (`status: blocked` only), missing "Done in" closures, `status:*` labels left on closed issues (removed, counted), reports (including the blocked lots gated only by an open capture, every lot dependency done) |
 | `../docs/fold.py` | Folds the fragments of `docs/changelog-legacy.d/` and `docs/migration/gap.d/` into `docs/CHANGELOG-LEGACY.md` and the GAP report, regenerates the H.1 lists and the Counts table (`--check` is the Docs consistency step, `--dry-run` writes nothing). Tests: `scripts/tests/test_docs_fold.py` ([#612](https://github.com/ezzz/HFRnow/issues/612)) |
-| `weekly/build.py`, `weekly/shot.js` | The weekly 6-slide deck: `build.py OUTDIR` writes HTML from git and the tracker, `shot.js OUTDIR` renders 2880×1620 JPEGs with Playwright. Delivered to the maintainer, never posted |
+| `weekly/build.py`, `weekly/shot.js` | The weekly deck data (`gather()`) and the earlier 6-slide fallback ([format](#weekly-report-format-operator-2026-11-10)): `build.py OUTDIR` writes HTML from git and the tracker, `shot.js OUTDIR` renders 2880×1620 JPEGs with Playwright. Delivered to the maintainer, never posted |
 
 Tests: `scripts/tests/test_roadmap.py` (run by CI with the other `scripts/tests`).
 
@@ -36,5 +36,33 @@ python3 tooling/docs/fold.py                   # daily: fold the GAP and changel
 ```
 
 M1/M2 membership is hand-kept in `generate.py`, and the whole lots moved to M5 in `m5.py`; the (b) halves of the splits are the lots of the `## M5 · UX evolutions` section of `docs/LOTS.md`. M3 is Phase 3 minus M1, M4 the rest (M4 = validated legacy parity, M5 = evolutions, operator 2026-11-02). The sweep never unblocks an M5 lot: M5 opens by the orchestrator's decision.
+
+## Weekly report: format (operator, 2026-11-10)
+
+The weekly report is a morning deck, ready when the maintainer wakes up. Since 2026-11-10 it is a claude.ai Slides artifact built by the orchestrator from the data of `weekly/build.py` (`gather()`), the tracker and the counts below. It is refreshed shortly before the morning and delivered as a private link, never posted. The six JPEG slides of `build.py` remain a fallback.
+
+**Order of the slides**
+1. **Overall**:
+   - the three fronts, each with its count: test feedback (`beta-test finding`), fixing the current app (the `[Legacy …]` issues and the PRs on `master`), and the backport into Swift (`origin: legacy-evolution`);
+   - a quick mention of the gaps (rows of the GAP report's Counts table) and of the changelog entries (`docs/CHANGELOG-LEGACY.md`).
+
+   On every slide, the legacy app is called **the current app**, never "legacy".
+2. **KPIs**: lots done over planned, duration (days since 2026-10-24), CI runs, failures and cancellations over 7 days, version (`MARKETING_VERSION`), issues (total and open, opened and closed that day), commits, merged PRs (total, 7 days, that day), Swift tests and lines.
+3. **Milestones M1 to M5**: one progress bar each, with done/total and the end date.
+4. **M1, M2, M3 and M4**: one feature-card slide each, explaining what the milestone contains, with its status pill.
+5. **The app day to day**: test feedback, the current app, and the backport.
+6. **M5**: the big features, as one feature-card slide.
+7. **Today**: the decisions awaited from the operator, the Mac work, and what runs in the cloud.
+
+**Design language**
+- Apple release feature cards: a light grouped background (`#F2F2F7`) and rounded cards (radius 36-48).
+- On each slide, one large gradient hero card next to small white cards, each with an icon and a short label.
+- Big numbers in Inter Tight 800, body text in Inter.
+- A touch of "Apple" and "iOS 26/27" (Liquid Glass, iOS 27 wording); keep the same look from week to week.
+- French text, statuses stated in words as well as colour.
+
+**Counting rules**
+- Count only what a query names, and put the query in the speaker notes.
+- A credit label such as `moust4ki aka bybifok finding` marks lots and issues credited to a contributor, mostly planned on 2026-10-27. It is not test feedback, so never add it to the feedback count.
 
 Owner: `cloud/docs-steward` (see #368).
