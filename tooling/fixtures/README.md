@@ -180,11 +180,16 @@ that every PR appended to did, #612/#620 did the same for the ledger).
 ```
 
 `publish.py` reads every `*.json` of the folder in file name order and refuses a raw id or a corpus id that two
-files (or one file twice) declare, naming them. `manifest_check.py` and `anonymize.py check --corpus` stay the
-arbiters, so a capture still needs its `MANIFEST.md` row and its anonymized files. A PR that already appended rows
-to the old `corpus.json` moves them: merge `dev-swift`, `git rm tooling/fixtures/corpus.json` (the conflict), and
-paste the rows your branch had added into a new `corpus.d/<batch>.json` (`git diff $(git merge-base HEAD origin/dev-swift)
-HEAD -- tooling/fixtures/corpus.json` shows them).
+files (or one file twice) declare, naming them. `anonymize.py check --corpus` stays the arbiter on the files, and a
+capture still needs its `MANIFEST.md` row. `00-base.json` is frozen (a test pins its ids).
+
+A PR that already appended rows to the old `corpus.json` moves them. Merge `dev-swift`: git sees `corpus.json` as
+renamed to `corpus.d/00-base.json`, so the conflict is **inside `00-base.json`** (your rows against the newer ones of
+`dev-swift`). Keep `dev-swift`'s file whole with `git checkout --theirs tooling/fixtures/corpus.d/00-base.json`
+(during a merge, `theirs` is `dev-swift`), put the rows your branch added into a new `corpus.d/<batch>.json`
+(`git diff $(git merge-base HEAD origin/dev-swift) HEAD -- tooling/fixtures/corpus.json` lists them), then `git add` both. If git
+reports a modify/delete conflict on `corpus.json` instead, `git rm tooling/fixtures/corpus.json`. Check with
+`python3 -m unittest discover tooling/fixtures/tests` and `anonymize.py check --corpus`.
 
 ## Capture
 

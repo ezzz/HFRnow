@@ -44,10 +44,12 @@ def _load_fragment(path):
     try:
         with open(path, encoding="utf-8") as fh:
             entries = json.load(fh)["captures"]
-    except json.JSONDecodeError as exc:
-        raise ValueError("%s: not valid JSON (%s)" % (path, exc)) from exc
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError("%s: not valid UTF-8 JSON (%s)" % (path, exc)) from exc
     except (KeyError, TypeError) as exc:
         raise ValueError("%s: no `captures` list" % path) from exc
+    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+        raise ValueError("%s: `captures` must be a list of objects" % path)
     for e in entries:
         missing = {"raw", "id", "slug", "ext", "private"} - set(e)
         if missing:
