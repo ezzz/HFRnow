@@ -40,7 +40,7 @@ struct PlusEntryView: View {
         if entry == .search {
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
         } else if entry.isBuilt {
-            SettingsView(reader: environment.reader)
+            SettingsView(reader: environment.reader, mpStorage: model.mpStorage)
         } else {
             ContentUnavailableView(
                 entry.title, systemImage: entry.symbol,

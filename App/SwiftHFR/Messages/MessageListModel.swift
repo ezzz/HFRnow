@@ -88,6 +88,9 @@ final class MessageListModel {
     /// Why a "Marquer comme non lu" failed once its reader was gone; a reader on screen says it itself.
     var actionFailure: String?
 
+    /// MPStorage sync of the current account (LOT-130), for the group rows' flags; nil when logged out.
+    let mpStorage: MPStorageSyncModel?
+
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
     private let topicPages: any TopicPageSource
@@ -111,8 +114,10 @@ final class MessageListModel {
         isLoggedIn: @escaping @Sendable () async -> Bool = { false },
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
-        settings: (any SettingsStore)? = nil
+        settings: (any SettingsStore)? = nil,
+        mpStorage: MPStorageSyncModel? = nil
     ) {
+        self.mpStorage = mpStorage
         self.settings = settings
         self.source = source
         self.isLoggedIn = isLoggedIn
@@ -224,17 +229,30 @@ final class MessageListModel {
         return model
     }
 
-    /// Where a row opens: the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with
-    /// new messages shows them. MP rows carry no flag link (`sujetCase5` is empty, `R13u1`), so there is no resume position.
-    /// The reader then opens at the page's last message, as the link's `#bas` does in legacy
-    /// (`OnlineMessagesTableViewController.m:1838,2050`). A row without a usable latest-message link opens like any topic row.
+    /// Where a row opens: a group row with an MPStorage flag opens at the flag (LOT-130, `HFRMPViewController.m:228-251` @
+    /// 87fe0d1c); otherwise the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with
+    /// new messages shows them. MP rows carry no HFR flag link (`sujetCase5` is empty, `R13u1`). The reader then opens at the
+    /// page's last message, as the link's `#bas` does in legacy (`OnlineMessagesTableViewController.m:1838,2050`). A row
+    /// without a usable latest-message link opens like any topic row.
     private func openingTarget(of thread: PrivateMessageThread) -> (target: ReaderTarget, fromLatestMessage: Bool)? {
+        if let flag = mpStorage?.flag(for: thread), let path = MPStorageFlagLink.path(of: flag),
+           let target = ReaderTarget(link: path, fallbackTopic: thread.summary.topicID) {
+            return (target, false)
+        }
         if let last = thread.summary.lastPost?.path,
            let target = ReaderTarget(link: last, fallbackTopic: thread.summary.topicID) {
             return (target, true)
         }
         guard let target = ReaderTarget(opening: thread.summary) else { return nil }
         return (target, false)
+    }
+
+    /// The group row's MPStorage flag as legacy wrote it, `⚑ <page> / <max>` (`MPListView.swift:775-786` @ 87fe0d1c), max being
+    /// at least the flag's page (`:368`); nil without a flag (one-to-one rows, MPStorage off, no document yet).
+    func flagLabel(for thread: PrivateMessageThread) -> String? {
+        guard let page = mpStorage?.flag(for: thread)?.page else { return nil }
+        let current = max(page, 1)
+        return "⚑ \(current) / \(max(thread.summary.pageCount, current))"
     }
 
     /// The new-MP composer the page on screen links to (legacy `newTopic` on the MP list, `TopicsTableViewController.m:222-245`

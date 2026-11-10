@@ -22,6 +22,8 @@ final class RootModel {
     let favoriteOptions: FavoritesOptionsModel?
     /// The forum search form and results (LOT-115), shared by the tab bar and the sidebar so a size-class change keeps them.
     let search: ForumSearchModel
+    /// MPStorage sync of the current account (LOT-130), shared by the Messages list (flags) and Réglages; nil logged out.
+    let mpStorage: MPStorageSyncModel?
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -81,8 +83,10 @@ final class RootModel {
     init(
         forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
         search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
-        store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil
+        store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
+        mpStorage: MPStorageSyncModel? = nil
     ) {
+        self.mpStorage = mpStorage
         self.favoriteOptions = favoriteOptions
         self.forums = forums
         self.categories = categories
@@ -107,10 +111,12 @@ final class RootModel {
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
-    private static func messageList(_ environment: AppEnvironment, store: any SettingsStore) -> MessageListModel {
+    private static func messageList(
+        _ environment: AppEnvironment, store: any SettingsStore, mpStorage: MPStorageSyncModel?
+    ) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions, settings: store
+            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage
         )
     }
 
@@ -120,6 +126,10 @@ final class RootModel {
             dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
         let options = FavoritesOptionsModel(settings: store, stores: environment.favoriteStores)
+        // One per account session: a new account rebuilds the root, so no account's MPStorage state shows under another.
+        let mpStorage = environment.currentAccountName.map {
+            MPStorageSyncModel.live(account: $0, session: environment.session, settings: store)
+        }
         func navigation(startup: TopicSource?, favorites: FavoritesOptionsModel? = nil) -> NavigationModel {
             NavigationModel(
                 dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
@@ -132,12 +142,12 @@ final class RootModel {
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource),
             favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options),
-            messages: Self.messageList(environment, store: store),
+            messages: Self.messageList(environment, store: store, mpStorage: mpStorage),
             search: ForumSearchModel(
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
                 renderOptions: environment.reader.settings.renderOptions, store: store
             ),
-            store: store, initial: initial, favoriteOptions: options
+            store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage
         )
     }
 

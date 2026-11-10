@@ -4,8 +4,8 @@ import Foundation
 public enum MPStorageSyncState: String, Sendable, Hashable, Codable, CaseIterable {
     /// No choice yet (the default): the app looks for a storage thread, and asks at the first write when there is none.
     case unasked
-    /// Sync runs: found a thread, or the member switched it on.
-    case on
+    /// Sync runs: found a thread, or the member switched it on. Named as ADR 0013 §7 and stored as is in iCloud.
+    case on // swiftlint:disable:this identifier_name - the ADR's name; a raw-value alias would read worse at every call site
     /// The member answered no to the creation question; Réglages can switch it on later.
     case declined
     /// The member switched it off in Réglages.

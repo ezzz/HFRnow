@@ -39,7 +39,7 @@ public actor MPStorageSync {
 
     /// The `mpFlags` item of conversation `post` in `document` (legacy `getUrlFlagForTopidId:`, `MPStorage.m:527-565` @
     /// 87fe0d1c): the writable entry's, the first with that number.
-    public nonisolated static func flag(forThread post: Int, in document: MPStorageDocument) -> MPStorageMPFlag? {
+    nonisolated public static func flag(forThread post: Int, in document: MPStorageDocument) -> MPStorageMPFlag? {
         guard let index = document.writableEntryIndex else { return nil }
         return document.data[index].mpFlags?.list.first { $0.topic == post }
     }
