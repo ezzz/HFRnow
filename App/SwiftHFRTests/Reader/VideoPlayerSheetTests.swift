@@ -36,22 +36,22 @@ struct VideoPlayerSheetTests {
 
     // MARK: Referer for the YouTube player only (#752, LOT-071 R3 exception)
 
-    @Test func theYouTubePlayerRequestIdentifiesTheApp() {
+    @MainActor @Test func theYouTubePlayerRequestIdentifiesTheApp() {
         let request = VideoPlayerSheet.playerRequest(
-            for: url("https://www.youtube.com/embed/a"), provider: .youtube, referer: "https://app.example/"
+            for: url("https://www.youtube.com/embed/a"), referer: "https://app.example/"
         )
         #expect(request.value(forHTTPHeaderField: "Referer") == "https://app.example/")
         #expect(VideoPlayerSheet.appReferer(bundleIdentifier: "hfrplus.red.super") == "https://hfrplus.red.super/")
+        #expect(VideoPlayerSheet.appReferer(bundleIdentifier: "Com.Example.App") == "https://com.example.app/")
         #expect(VideoPlayerSheet.refererHosts == ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com"])
     }
 
     @Test(arguments: [
-        ("https://player.vimeo.com/video/1", EmbedProvider.vimeo),
-        ("https://streamable.com/s/x", EmbedProvider.streamable),
-        ("https://evil.example/embed/a", EmbedProvider.youtube)
+        "https://player.vimeo.com/video/1", "https://streamable.com/s/x", "https://evil.example/embed/a",
+        "https://www.youtube.com.evil.example/embed/a"
     ])
-    func noOtherPlayerGetsAReferer(player: String, provider: EmbedProvider) {
-        let request = VideoPlayerSheet.playerRequest(for: url(player), provider: provider, referer: "https://app.example/")
+    @MainActor func noOtherPlayerGetsAReferer(player: String) {
+        let request = VideoPlayerSheet.playerRequest(for: url(player), referer: "https://app.example/")
         #expect(request.value(forHTTPHeaderField: "Referer") == nil)
     }
 
@@ -65,24 +65,24 @@ struct VideoPlayerSheetTests {
     /// A real web view loading the request the sheet builds: the loopback host stands for the provider's.
     @MainActor
     private func load(
-        _ provider: EmbedProvider, status: Int = 200, failure: @escaping () -> Void = {}
+        _ refererHosts: Set<String>, status: Int = 200, failure: @escaping () -> Void = {}
     ) async throws -> Loaded {
         let server = try RequestRecordingServer(status: status)
         try await server.ready()
         let target = url("http://127.0.0.1:\(server.port)/embed/a")
         let request = VideoPlayerSheet.playerRequest(
-            for: target, provider: provider, referer: "https://app.example/", refererHosts: ["127.0.0.1"]
+            for: target, referer: "https://app.example/", refererHosts: refererHosts
         )
         let coordinator = PlayerWebView.Coordinator(host: "127.0.0.1", onFailure: failure)
         let webView = PlayerWebView.makeWebView(request: request, delegate: coordinator)
-        for _ in 0..<500 where server.requests.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
+        for _ in 0..<3000 where server.requests.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
         return Loaded(server: server, webView: webView, coordinator: coordinator)
     }
 
     @MainActor @Test func theWebViewSendsTheRefererOnTheWireForYouTubeOnly() async throws {
-        let youtube = try await load(.youtube)
+        let youtube = try await load(["127.0.0.1"])
         defer { youtube.server.stop() }
-        let vimeo = try await load(.vimeo)
+        let vimeo = try await load([])
         defer { vimeo.server.stop() }
         #expect(
             youtube.server.requests.count == 1 && youtube.server.header("Referer") == "https://app.example/",
@@ -99,14 +99,17 @@ struct VideoPlayerSheetTests {
 
     @MainActor @Test func aPlayerThatAnswers401ReportsItAndAHealthyOneDoesNot() async throws {
         var failures = 0
-        let bad = try await load(.vimeo, status: 401) { failures += 1 }
+        let bad = try await load([], status: 401) { failures += 1 }
         defer { bad.server.stop() }
-        for _ in 0..<500 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
+        for _ in 0..<3000 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(failures >= 1)
         var healthyFailures = 0
-        let good = try await load(.vimeo) { healthyFailures += 1 }
+        let good = try await load([]) { healthyFailures += 1 }
         defer { good.server.stop() }
-        try await Task.sleep(for: .seconds(1))
+        // Wait for the request, then for the end of the load, before asserting that nothing was reported.
+        for _ in 0..<3000 where good.webView.isLoading { try await Task.sleep(for: .milliseconds(10)) }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(good.server.requests.count == 1 && !good.webView.isLoading)
         #expect(healthyFailures == 0)
         withExtendedLifetime((bad, good)) {}
     }
@@ -121,7 +124,7 @@ struct VideoPlayerSheetTests {
         var failures = 0
         let coordinator = PlayerWebView.Coordinator(host: "127.0.0.1") { failures += 1 }
         let webView = PlayerWebView.makeWebView(request: URLRequest(url: url("http://127.0.0.1:1/x")), delegate: coordinator)
-        for _ in 0..<500 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
+        for _ in 0..<3000 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(failures >= 1)
         withExtendedLifetime((webView, coordinator)) {}
     }

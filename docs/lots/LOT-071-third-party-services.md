@@ -87,7 +87,7 @@ implementing a row of the inventory applies them and tests them.
   HFR-PROTOCOL §7 E26: **pending capture**). The reader document must not leak its own URL either (LOT-083: a `no-referrer` policy or
   images fetched by the cookie-less client).
   **Exception (operator, 2026-11-10, #752): the YouTube embed player.** Its request carries `Referer: https://<app id>/` (the app's bundle
-  identifier, `VideoPlayerSheet.appReferer`), for the hosts of `VideoPlayerSheet.allowedHosts(for: .youtube)` only
+  identifier lowercased, as YouTube's example does; a development build sends its own id; `VideoPlayerSheet.appReferer`), for the hosts of `VideoPlayerSheet.allowedHosts(for: .youtube)` only
   (`www.youtube.com`, `youtube.com`, `www.youtube-nocookie.com`; no wildcard, no other provider, no other host). Cause: YouTube's player
   answers "Erreur 153" to an embed that does not identify its client. Source: YouTube API Services, *Required Minimum Functionality*,
   "API Client Identity and Credentials" (developers.google.com/youtube/terms/required-minimum-functionality, read 2026-11-10: identify

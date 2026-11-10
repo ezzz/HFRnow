@@ -22,7 +22,7 @@ struct VideoPlayerSheet: View {
         NavigationStack {
             Group {
                 if let url = VideoPlayerSheet.playerURL(for: embed, failed: playerFailed) {
-                    PlayerWebView(request: VideoPlayerSheet.playerRequest(for: url, provider: embed.provider)) {
+                    PlayerWebView(request: VideoPlayerSheet.playerRequest(for: url)) {
                         playerFailed = true
                     }
                 } else {
@@ -57,18 +57,19 @@ struct VideoPlayerSheet: View {
     /// Hosts of the YouTube embed player: the only ones that get a `Referer` (LOT-071 R3 exception, #752).
     static let refererHosts: Set<String> = allowedHosts(for: .youtube)
 
-    /// The `Referer` that identifies the app to YouTube's embed player: `https://` and the app id, as YouTube's
-    /// "API Client Identity" rule asks (developers.google.com/youtube/terms/required-minimum-functionality).
+    /// The `Referer` that identifies the app to YouTube's embed player: `https://` and the lowercased app id (a development
+    /// build sends its own id), as YouTube's "API Client Identity" rule asks (developers.google.com/youtube/terms/required-minimum-functionality).
     static func appReferer(bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> String {
-        "https://\(bundleIdentifier ?? "hfrplus.red.super")/"
+        "https://\((bundleIdentifier ?? "hfrplus.red.super").lowercased())/"
     }
 
-    /// The player request: `Referer` for a YouTube embed host only, none for any other provider or host.
+    /// The player request: `Referer` for a YouTube embed host only, none for any other host. WebKit does not resend it
+    /// after a redirect, so a YouTube redirect would bring error 153 back.
     static func playerRequest(
-        for url: URL, provider: EmbedProvider, referer: String = appReferer(), refererHosts: Set<String> = refererHosts
+        for url: URL, referer: String = appReferer(), refererHosts: Set<String> = refererHosts
     ) -> URLRequest {
         var request = URLRequest(url: url)
-        if provider == .youtube, let host = url.host()?.lowercased(), refererHosts.contains(host) {
+        if let host = url.host()?.lowercased(), refererHosts.contains(host) {
             request.setValue(referer, forHTTPHeaderField: "Referer")
         }
         return request
@@ -154,9 +155,12 @@ struct PlayerWebView: UIViewRepresentable {
             report(error)
         }
 
-        /// A cancelled load (our own `.cancel` above) is not a second failure.
+        /// A cancelled load is not a second failure: our own `.cancel` of an error status reaches here as
+        /// `WebKitErrorDomain` 102 ("frame load interrupted"), a cancelled URL load as `NSURLErrorCancelled`.
         private func report(_ error: any Error) {
-            if (error as NSError).code != NSURLErrorCancelled { onFailure() }
+            let nsError = error as NSError
+            let ours = nsError.domain == "WebKitErrorDomain" && nsError.code == 102
+            if !ours && nsError.code != NSURLErrorCancelled { onFailure() }
         }
 
         /// The main frame stays on the player's host; the player's own frames may load what they need.
