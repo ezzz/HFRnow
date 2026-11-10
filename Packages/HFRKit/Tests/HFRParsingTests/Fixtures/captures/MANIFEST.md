@@ -110,6 +110,10 @@ Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 r
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
 
+Run 15 (2026-11-10, `mac/m4-captures` batch `b716`, ezzz/HFRnow#716, read-only, 7 requests at one per minute): user1's login, its MP list
+(read only to take a one-to-one row's `profilebdd.php` link as the page writes it; not published), then that link hop by hop with redirects
+not followed, logged in and without cookies, and the same link with a pseudo that does not exist (`R716a`-`R716e`). Nothing was sent to the forum.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -405,6 +409,11 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R603d | `R603d-list-subcat-owntopic3.html` | `owntopic=3` with `subcat=<s>`: 200 in place, 14 rows (12 `favoris.gif`, 2 with an empty flag cell), `<title>` "<sub-forum> - <category> - FORUM HardWare.fr", pager `1` alone | R08 | 022, 024 |
 | R603e | `R603e-favourites-owntopic2.html` | `forum1f.php?…&owntopic=2&new=0&nojs=0` (user2): title "Vos sujets", 3 category headers linking `owntopic=2`, 5 topic rows, one sticky, all `flag0.gif`, and under the second header no topic, only the row "Aucun nouveau message" | R10 | 024 |
 | R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); `tns3` can be absent | E1 | 057 |
+| R716a | meta only | `/profilebdd.php?config=hfr.inc&pseudo=<pseudo>`, the `sujetCase6` link of a one-to-one MP row (user1, pseudo of user2): `301` with `Location: /hfr/profil-<id>.htm` (relative, the member's id), empty body, no cookie set | — | #714, 027, 126 |
+| R716b | `R716b-profile-operator-user1.html` | The redirect target `/hfr/profil-<id>.htm`, logged in (user1 viewing user2): `200`, the public profile of `R56a` plus a row "Ajouter <pseudo> à votre liste de contacts" (`/user/contactlist.php?adduser=<id>`) and the account's own style sheets | R56 | #714, 027 |
+| R716c | meta only | `R716a`'s link without cookies: the same `301` to the same `/hfr/profil-<id>.htm` (its target, logged out, is `R56a`) | — | #714, 027 |
+| R716d | meta only | `profilebdd.php` with a pseudo that does not exist, logged in: `301` with `Location: /hfr/profil-.htm` (empty id) | — | #714 |
+| R716e | `R716e-profile-empty-id-404.html` | `R716d`'s target `/hfr/profil-.htm`: the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`, 213 bytes), not a forum page | — | #714 |
 
 ## Not captured
 

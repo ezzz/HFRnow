@@ -297,6 +297,11 @@
     {"raw": "l574-T67", "id": "T67", "slug": "aq-create-flood-blocked-local", "ext": "", "private": false},
     {"raw": "l574-T68", "id": "T68", "slug": "aq-create-blacklisted-local", "ext": "", "private": false},
     {"raw": "l574-T69", "id": "T69", "slug": "aq-alerts-after-flood-local", "ext": "xml", "private": false},
-    {"raw": "l574-T71", "id": "T71", "slug": "aq-alerts-no-topic-local", "ext": "xml", "private": false}
+    {"raw": "l574-T71", "id": "T71", "slug": "aq-alerts-no-topic-local", "ext": "xml", "private": false},
+    {"raw": "m716-u1-hop1", "id": "R716a", "slug": "profilebdd-redirect-user1", "ext": "", "private": false},
+    {"raw": "m716-u1-hop2", "id": "R716b", "slug": "profile-operator-user1", "ext": "html", "private": false},
+    {"raw": "m716-anon-hop1", "id": "R716c", "slug": "profilebdd-redirect-anon", "ext": "", "private": false},
+    {"raw": "m716-u1-unknown", "id": "R716d", "slug": "profilebdd-unknown-pseudo-user1", "ext": "", "private": false},
+    {"raw": "m716-u1-unknown-hop2", "id": "R716e", "slug": "profile-empty-id-404", "ext": "html", "private": false}
   ]
 }
