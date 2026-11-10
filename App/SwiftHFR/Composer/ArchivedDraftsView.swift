@@ -15,7 +15,7 @@ struct ArchivedDraftsView: View {
             Group {
                 if model.archivedDrafts.isEmpty && !model.canArchiveCurrent {
                     ContentUnavailableView(
-                        "Aucun brouillon", systemImage: "tray", description: Text("Les brouillons sont conservés par sujet.")
+                        "Aucun brouillon", systemImage: "tray", description: Text("Les brouillons sont conservés par topic.")
                     )
                 } else {
                     list
@@ -27,7 +27,7 @@ struct ArchivedDraftsView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Vider", role: .destructive) { Task { await model.discardAllArchived() } }
-                        .disabled(model.archivedDrafts.isEmpty)
+                        .disabled(model.archivedDrafts.isEmpty || model.isMovingDrafts)
                 }
             }
         }
@@ -49,6 +49,7 @@ struct ArchivedDraftsView: View {
                     ForEach(model.archivedDrafts) { draft in
                         Button { Task { await model.use(draft); onDone() } } label: { row(draft) }
                             .buttonStyle(.plain)
+                            .disabled(model.isMovingDrafts)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button("Supprimer", systemImage: "trash", role: .destructive) {
                                     Task { await model.discardArchived(draft) }

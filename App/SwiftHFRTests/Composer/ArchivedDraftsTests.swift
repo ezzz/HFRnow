@@ -156,6 +156,30 @@ struct ArchivedDraftsTests {
         #expect(composer.canEdit)
     }
 
+    @Test func aPendingAutosaveNeverBringsBackTheTextSetAside() async {
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(50))
+        await composer.start()
+        composer.update(text: "en attente")
+        await composer.archiveAndClear()
+        await composer.waitForAutosave()
+        #expect(await ComposerFixture.storedText(drafts) == nil)
+        #expect(await archived(drafts) == ["en attente"])
+        #expect(composer.canEdit)
+    }
+
+    @Test func nothingIsDeletedFromTheArchiveWhileAMoveRuns() async throws {
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        try await drafts.archiveReply("a", topic: replyTarget.topic, source: .quickReply, account: ComposerFixture.account)
+        let composer = await opened(drafts)
+        composer.isMovingDrafts = true
+        await composer.discardAllArchived()
+        await composer.discardArchived(try #require(composer.archivedDrafts.first))
+        composer.isMovingDrafts = false
+        #expect(await archived(drafts) == ["a"])
+        #expect(composer.canEdit)
+    }
+
     @Test func otherComposersHaveNoArchive() async {
         let drafts = DraftStore(persistence: InMemoryDraftPersistence())
         let composer = ReplyComposerModel(

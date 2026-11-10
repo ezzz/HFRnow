@@ -33,7 +33,7 @@ extension ReplyComposerModel {
         do {
             try await services.drafts.archiveReply(text, topic: topic, source: draftSource, account: services.account)
         } catch {
-            draftWarning = Self.draftWarning(for: error)
+            reportDraftFailure(error)
             return
         }
         replaceText(with: "")
@@ -59,7 +59,7 @@ extension ReplyComposerModel {
                 picked = try await services.drafts.archiveReply(draft.text, topic: topic, source: draft.source, account: services.account)
                     ?? draft
             } catch {
-                draftWarning = Self.draftWarning(for: error)
+                reportDraftFailure(error)
                 await refreshArchivedDrafts()
                 return
             }
@@ -73,24 +73,24 @@ extension ReplyComposerModel {
 
     /// Deletes one archived draft (swipe "Supprimer").
     func discardArchived(_ draft: ArchivedDraft) async {
-        guard let topic = archiveTopic else { return }
+        guard let topic = archiveTopic, !isMovingDrafts else { return }
         do {
             try await services.drafts.discardArchivedReply(id: draft.id, topic: topic, account: services.account)
             if pickedArchivedID == draft.id { pickedArchivedID = nil }
         } catch {
-            draftWarning = Self.draftWarning(for: error)
+            reportDraftFailure(error)
         }
         await refreshArchivedDrafts()
     }
 
     /// Deletes every archived draft of the topic ("Vider").
     func discardAllArchived() async {
-        guard let topic = archiveTopic else { return }
+        guard let topic = archiveTopic, !isMovingDrafts else { return }
         do {
             try await services.drafts.discardArchivedReplies(topic: topic, account: services.account)
             pickedArchivedID = nil
         } catch {
-            draftWarning = Self.draftWarning(for: error)
+            reportDraftFailure(error)
         }
         await refreshArchivedDrafts()
     }

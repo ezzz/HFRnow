@@ -186,6 +186,11 @@ final class ReplyComposerModel: Identifiable {
         didEdit()
     }
 
+    /// Shows the draft warning for a failed archive write (LOT-101); the text on screen stays.
+    func reportDraftFailure(_ error: any Error) {
+        draftWarning = Self.draftWarning(for: error)
+    }
+
     /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it.
     func replaceText(with newText: String) {
         text = newText

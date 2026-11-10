@@ -25,10 +25,12 @@ enum ArchivedDraftsFormat {
     static func dateLabel(
         of date: Date, now: Date = .now, calendar: Calendar = .current, locale: Locale = .current
     ) -> String {
-        let time = Date.FormatStyle(date: .omitted, time: .shortened, locale: locale, calendar: calendar, timeZone: calendar.timeZone)
-        if calendar.isDate(date, inSameDayAs: now) { return "Aujourd’hui \(date.formatted(time))" }
+        // Legacy's fixed `HH:mm` (`AnswerView.swift:1989`), whatever the device's 12/24-hour setting.
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        let time = String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+        if calendar.isDate(date, inSameDayAs: now) { return "Aujourd’hui \(time)" }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
-            return "Hier \(date.formatted(time))"
+            return "Hier \(time)"
         }
         let full = Date.FormatStyle(date: .numeric, time: .shortened, locale: locale, calendar: calendar, timeZone: calendar.timeZone)
         return date.formatted(full)
