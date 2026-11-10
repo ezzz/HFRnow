@@ -90,7 +90,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-068 | Bookmark from a message | Alert with a title field, duplicates refused. | MessagesView.swift:2059-2085 | Bookmark from the actions menu. | LOT-132, LOT-087 | same | port: ezzz Swift layer | a |
 | GAP-069 | AQ from a message | Checks "already signaled", then creation alert. | MessagesView.swift:1993-2030 | AQ check and creation. | LOT-134 | same | port: ezzz Swift layer | a |
 | GAP-070 | Moderator alert | Sheet with the prepared alert form. | MessagesView.swift:6265 | Moderator alert screen. | LOT-135, LOT-050 | same | port: ezzz Swift layer | a |
-| GAP-071 | Swipe between pages | Horizontal drag ≥ 120 pt changes page, hard-coded. | MessagesView.swift:4510-4534 | "Swipe pages" reader setting. | LOT-106 | ported with changes | port: ezzz Swift layer | a |
+| GAP-071 | Swipe between pages | Horizontal drag ≥ 120 pt changes page, hard-coded. At `87fe0d1c` (`b16eb82d`) a drag whose touch started in a `[fixed]` block that scrolls sideways changes no page, even at the block's edge (measured); a `[code]` line (`ol.olcode`) does not scroll on HFR, so a fling on it still turns the page ([Mac check of `87fe0d1c` on #372](https://github.com/ezzz/HFRnow/pull/372#issuecomment-6737029007), checks 4a, 4a'). | MessagesView.swift:4510-4534; `MessagesView.swift:1102-1142, 5398-5428` @ `87fe0d1c` | "Swipe pages" reader setting; no swipe from a block that scrolls sideways (#672): `[fixed]` as legacy at `87fe0d1c`, and `[code]` too, since `table.code td` scrolls in SwiftHFR (`reader.css:123`). | LOT-106, #672 | ported with changes | port: ezzz Swift layer | a |
 | GAP-072 | Continuous scrolling | None. | — | Option, off by default, haptic per page. | LOT-148, FEAT-017 | new | new UX: Bybifok (FEAT-017) | b |
 | GAP-073 | Quick-reply bar and quote tray | None. | — | Bottom bar with the count of checked quotes and a quick reply. | LOT-153, FEAT-006 | new | new UX: Bybifok (FEAT-006) | b |
 | GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
@@ -124,6 +124,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-100 | Send errors | Toast with the error text ("Hooray" / "Ooops"); text kept. | AnswerView.swift:704, 719-726 | Each failure says whether something may have been posted; never auto-resent. | LOT-084, LOT-048 | UX change | new UX: spec | a |
 | GAP-101 | Session expiry while composing | Toast "Session expirée"; text kept. | ReplyService.swift:12, 22 | Expiry sheet; resent after re-login only when HFR confirmed nothing was posted. | LOT-142, FEAT-009 | UX change | new UX: Bybifok (FEAT-009) | b |
 | GAP-102 | "+" button modes | At `2440d79` no modes, "+" means new topic. At `2fe43da3` (`08a63c8e`) a "Bouton +" setting (Réponse rapide, default; Répondre comme le forum; Pas d'icône; key `reply_button_behavior`) drives a floating reply button on topic pages, and "Répondre" is in the "…" menu. | MainWindow.swift:748-752; Common.swift:261-280, AppSettingsView.swift:481-485 @ 2fe43da3 | Floating reply button with its "Bouton +" setting, same values (#654, M4). | #654 | same | port: ezzz Swift layer | a·master |
+| GAP-703 | Archived drafts on the update | Kept per topic, 3 archived per topic, in `reply_drafts_by_topic_v1`, beside the active draft of each topic. | AnswerView.swift:137-272 @ 2fe43da3 | Not imported by the update: they stay in the legacy `UserDefaults`, never deleted; the active draft of each topic is imported and becomes the topic's reply draft when it opens (LOT-067, decision D1). | LOT-067 | UX change | new UX: operator | b·operator |
 
 ## Private messages
 
@@ -233,12 +234,13 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-213 | iPhone orientation | Portrait unless `landscape_mode`; portrait forced while composing. At `2fe43da3`: no lock on the unfolded iPhone Duo, which ignores supported orientations. | Common.swift:144-172 @ `2440d79`; `Common.swift:187-200, 214-242` @ `2fe43da3` | Same policy, applied live; no lock on the unfolded Duo (LOT-147). | LOT-119, LOT-147 | same | port: ezzz Swift layer | a |
 | GAP-214 | Large iPhone landscape | Same single column, stretched; still the tab bar at `2fe43da3` (regular width, compact height). | Common.swift:164-172; MainWindow.swift:1357-1365 @ 2fe43da3 | Regular width shows list and reader side by side. | LOT-082, LOT-170 | UX change | new UX: spec | b |
 | GAP-215 | iPhone Duo inner screen | `.phone` idiom at `2440d79`: tab bar and stretched iPhone stack, rotation not locked. At `2fe43da3` the unfolded inner screen gets the split root (regular in both dimensions: sidebar, list, topic), the topic full width in portrait once chosen, list and topic in landscape. | MainWindow.swift:1132-1134 @ `2440d79`; `MainWindow.swift:1357-1373, 1702-1709` @ `2fe43da3` | As legacy at `2fe43da3`: split root unfolded, topic full width in portrait once chosen, list and topic in landscape, fold handoff (GAP-217). LOT-147, M4 (operator 2026-11-09, #655, #659). The FEAT-016 additions are GAP-655. | LOT-147 | same | port: legacy evolution (2fe43da3) | a·master |
-| GAP-216 | iPhone Duo cover screen | iPhone layout with a black band (reported in #368 G.1). At `2fe43da3` the cover screen keeps the tab-bar layout. | — @ `2440d79`; `MainWindow.swift:1357-1365` @ `2fe43da3` | Compact layout filling the screen. | #432, LOT-147 | UX change | new UX: Bybifok (FEAT-016) | a |
+| GAP-216 | iPhone Duo cover screen | iPhone layout with a black band (reported in #368 G.1). At `2fe43da3` the cover screen keeps the tab-bar layout. At `87fe0d1c` it still does, with inline tab-root titles, and its code puts "Actualiser" and "Retour" at the bottom of the toolbar column; measured there on the forum list, Favoris and the topic, not on Catégories and Messages (GAP-713). | — @ `2440d79`; `MainWindow.swift:1357-1365` @ `2fe43da3`; `PhoneDisplayPolicy.swift:44-70` @ `87fe0d1c` | Compact layout filling the screen. | #432, LOT-147 | UX change | new UX: Bybifok (FEAT-016) | a |
 | GAP-217 | Fold / unfold continuity | No handling at `2440d79`; PR #4 (not merged) proposes one hierarchy. At `2fe43da3` `FoldHandoffStore` carries the topic read at the root of the selected tab, on its page, across fold and unfold (split detail on unfold, compact push on fold; pushed readers are not carried). | — @ `2440d79`; `FoldHandoffStore.swift:11-103`, `FoldHandoffDestination.swift:1-57`, `MainWindow.swift:2087-2140`, `MessagesView.swift:3180-3208` @ `2fe43da3` | Topic and page kept across fold and unfold, as legacy at `2fe43da3` (not the scroll position) (LOT-147, M4, operator 2026-11-09 on #659). | LOT-147 | same | port: legacy evolution (2fe43da3) | a·master |
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list at `2440d79`. At `2fe43da3` Bookmarks and Alertes Qualitay are three-column (list, topic in the detail column), the other entries two-column; the Plus tab opens Réglages. | MainWindow.swift:1337-1345; MainWindow.swift:1307-1313, 1391-1402, 1796-1821 @ 2fe43da3 | Entries in a two-column split, Bookmarks and Alertes Qualitay three-column (#685, M4); Plus opens Réglages. | LOT-170, #685 | same | port: ezzz Swift layer | a·master |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false at `2440d79`; true at `2fe43da3` (`afec5433`): each window starts a fresh root, no per-window restoration. | HFRswift/Info.plist:206-208 @ `2440d79`; `HFRswift/Info.plist:204-208`, `HFRswiftApp.swift:24-36` @ `2fe43da3` | iPad multi-window, as legacy at `2fe43da3` (LOT-146, M4). | LOT-146 | new | port: legacy evolution (2fe43da3) | a·master |
 | GAP-228 | App icon | Layered `.icon` `Icon-RedFace3D` (`ASSETCATALOG_COMPILER_APPICON_NAME`). | SuperHFRplus.xcodeproj/project.pbxproj:1803, 6040, 6125 | Main icon ported unchanged (#580); alternates done in LOT-123 (GAP-148). | #580, LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-655 | iPhone Duo: FEAT-016 additions | None at `2fe43da3`: the folded Duo keeps the tab bar; the topic-list split root opens with the sidebar hidden (`doubleColumn`) and persists the user's show / hide choice until a destination is picked (back to `doubleColumn`); the other destinations' split shows it (`.all`), not persisted; no pin setting. | `MainWindow.swift:1317-1322, 1343, 1355, 1357-1365, 1452-1469, 1796-1820, 2075-2082` @ `2fe43da3` | Opt-in settings, off by default: tab rail when folded; sidebar pinned. Design in the LOT-147 spec, approved by the operator on #237 before code. | LOT-147, FEAT-016 | new | new UX: Bybifok (FEAT-016), M4 by operator decision 2026-11-09 | b·operator |
+| GAP-713 | iPhone Duo cover-screen thumb actions | None at `2fe43da3`. At `87fe0d1c` (`ea531a2a`), on the cover screen only (a `.phone` without the split root that is an `iPhone19,4`, has a side safe-area inset in portrait, or showed the split root since launch), the code puts "Actualiser" of Catégories, a forum's topic list, Favoris and Messages at the bottom of the toolbar column instead of top trailing, and a "Retour" button there on a pushed topic list or topic; the system back button and the edge swipe stay. Measured ([Mac check of `87fe0d1c` on #372](https://github.com/ezzz/HFRnow/pull/372#issuecomment-6737029007), checks 2a-2e): as intended on the forum list, Favoris and the topic; Catégories and Messages keep "Actualiser" at the top (legacy defect, reported on #372). Tab-root titles are inline on both Duo displays (`903bcb06`, iOS 27 hang, measured fixed). | `PhoneDisplayPolicy.swift:44-89`, `CoverScreenThumbActions.swift:1-35`, `MainWindow.swift:206, 376-393, 844-854`, `Common.swift:337-388` @ `87fe0d1c` | The intended placement: "Actualiser" at the bottom on all four lists and "Retour" on pushed views, on the cover screen (LOT-147, M4); legacy's top placement on Catégories and Messages is not ported. Inline titles only if SwiftHFR hangs too (#681). | LOT-147, #681 | new | port: legacy evolution (87fe0d1c) | a·master |
 
 ## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
 
@@ -267,11 +269,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 39 |
 | ported with changes | 49 |
 | ported with changes (engine only) | 1 |
-| UX change | 47 |
-| new | 26 |
+| UX change | 48 |
+| new | 27 |
 | dropped | 2 |
 | not planned | 6 |
-| **Total** | **170** |
+| **Total** | **172** |
 
 ## Convergence notes
 
@@ -302,14 +304,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (122)
+### GAP rows of type `ported with changes`, `UX change` or `new` (124)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 47 |
-| a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219 | 9 |
+| a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 089, 133, 181 | 6 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 655 | 20 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 655, 703 | 21 |
 | b | 008, 009, 012, 014, 015, 020, 022, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 40 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
