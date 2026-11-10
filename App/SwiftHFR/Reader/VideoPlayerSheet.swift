@@ -58,7 +58,8 @@ struct VideoPlayerSheet: View {
     static let refererHosts: Set<String> = allowedHosts(for: .youtube)
 
     /// The `Referer` that identifies the app to YouTube's embed player: `https://` and the lowercased app id (a development
-    /// build sends its own id), as YouTube's "API Client Identity" rule asks (developers.google.com/youtube/terms/required-minimum-functionality).
+    /// build sends its own id), as YouTube's "API Client Identity" rule asks
+    /// (developers.google.com/youtube/terms/required-minimum-functionality).
     static func appReferer(bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> String {
         "https://\((bundleIdentifier ?? "hfrplus.red.super").lowercased())/"
     }
