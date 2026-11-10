@@ -51,6 +51,15 @@ final class ReplyComposerModel: Identifiable {
     private(set) var mayHavePosted = false
     /// The draft could not be read or written; the text on screen is still there.
     private(set) var draftWarning: String?
+    /// Replies set aside in this topic (LOT-101), newest first; empty for every other composer. Read when the sheet opens and
+    /// after each change made here.
+    var archivedDrafts: [ArchivedDraft] = []
+    /// Where the text on screen came from, which labels it when it is set aside (LOT-101).
+    var draftSource = ArchivedDraftSource.quickReply
+    /// The archived draft now in the editor: removed from the archive once HFR confirms the reply (legacy `selectedDraft`).
+    var pickedArchivedID: UUID?
+    /// An archive operation is writing: the text must not change under it.
+    var isMovingDrafts = false
     /// Set once the sheet must close.
     private(set) var closeReason: CloseReason?
     /// Cancel was tapped with text: the sheet asks whether to keep the draft.
@@ -79,6 +88,7 @@ final class ReplyComposerModel: Identifiable {
         self.services = services
         self.autosaveDelay = autosaveDelay
         if case .reply = target { initialQuote = quote } else { initialQuote = nil }
+        if initialQuote != nil { draftSource = .quote }
         prefill = nil
         if case .newPrivateMessage(let message) = target { recipient = message.recipient }
     }
@@ -104,7 +114,7 @@ final class ReplyComposerModel: Identifiable {
     private(set) var picker = NewTopicSubcategories()
 
     /// The editor accepts typing.
-    var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
+    var canEdit: Bool { hasRestored && !isSending && !isClosing && !isMovingDrafts && closeReason == nil }
 
     /// The draft store refused a write or cannot be read (`draftWarning`): keep, discard and Cancel on an emptied text all
     /// write, so the sheet offers this exit instead of trapping the user.
@@ -121,6 +131,7 @@ final class ReplyComposerModel: Identifiable {
         // ended yet when the sheet opens.
         if case .reply(let reply) = target, let legacyDrafts = services.legacyDrafts { await legacyDrafts.resolve(reply.topic) }
         let draft = await drafts.draft(for: context, account: account)
+        await refreshArchivedDrafts()
         if let failure = await drafts.loadFailure() {
             draftWarning = Self.draftWarning(for: failure)
         }
@@ -175,6 +186,13 @@ final class ReplyComposerModel: Identifiable {
         didEdit()
     }
 
+    /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it.
+    func replaceText(with newText: String) {
+        text = newText
+        errorMessage = nil
+        mayHavePosted = false
+    }
+
     /// The user edited the subject of a new private message: saved with the text.
     func update(subject newSubject: String) {
         guard hasSubjectField, canEdit, newSubject != subject else { return }
@@ -227,6 +245,7 @@ final class ReplyComposerModel: Identifiable {
             // closes even if the draft cannot be deleted (spec, edge cases).
             if let release = initialQuote?.release { await services.quoting?.release(release, postedText: sent) }
             _ = await discardDraft()
+            await releasePickedArchivedDraft()
             isSending = false
             closeReason = .sent(result)
         } catch {
@@ -358,7 +377,7 @@ final class ReplyComposerModel: Identifiable {
         }
     }
 
-    private func settleAutosave() async {
+    func settleAutosave() async {
         let pending = autosave
         autosave = nil
         pending?.cancel()
@@ -367,7 +386,7 @@ final class ReplyComposerModel: Identifiable {
 
     /// The one write path of the draft. Blank text removes it (LOT-063 removes an empty one): a whitespace-only draft
     /// would come back in an editor that looks empty. Returns whether the write succeeded.
-    private func persist() async -> Bool {
+    func persist() async -> Bool {
         do {
             // An edit back to what the form served leaves no draft, so the next opening shows the message as HFR holds it.
             let keeps = differsFromPrefill

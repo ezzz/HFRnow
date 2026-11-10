@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode, GAP-096)
-// @ 2440d79.
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode,
+// GAP-096) @ 2440d79; the "Brouillons" button (LOT-101, GAP-093) is `AnswerView.swift:783-796` @ 87fe0d1c.
 // Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
@@ -41,6 +41,8 @@ struct ReplyComposerView: View {
     @State private var imageInserted = false
     /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
     @State private var rangeImage = NSRange(location: 0, length: 0)
+    /// The archived drafts' picker is open (LOT-101).
+    @State private var isShowingArchive = false
 
     init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
@@ -99,6 +101,14 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { formatting.selectedRange = rangeImage; formatting.insert($0); imageInserted = true }
         )
+        .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
+            ArchivedDraftsView(model: model) {
+                isShowingArchive = false
+                formatting.placeCaretAtEnd()
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        })
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
@@ -287,6 +297,18 @@ struct ReplyComposerView: View {
         ToolbarItem(placement: .cancellationAction) {
             Button("Annuler") { Task { await model.requestClose() } }
             .disabled(model.isSending)
+        }
+        if model.offersArchivedDrafts {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Brouillons", systemImage: "tray") {
+                    Task {
+                        await model.refreshArchivedDrafts()
+                        isShowingArchive = true
+                    }
+                }
+                .symbolVariant(model.archivedDrafts.isEmpty ? .none : .fill)
+                .disabled(!model.canEdit)
+            }
         }
         ToolbarItem(placement: .confirmationAction) {
             if model.isSending {

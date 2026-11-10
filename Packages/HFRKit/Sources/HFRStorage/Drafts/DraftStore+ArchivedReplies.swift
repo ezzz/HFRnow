@@ -87,6 +87,8 @@ extension DraftStore {
     }
 
     private static func newestFirst<T>(_ items: [T], by date: KeyPath<T, Date>) -> [T] {
-        items.enumerated().sorted { (items[$0.offset][keyPath: date], $0.offset) > (items[$1.offset][keyPath: date], $1.offset) }.map(\.element)
+        items.enumerated()
+            .sorted { (items[$0.offset][keyPath: date], $0.offset) > (items[$1.offset][keyPath: date], $1.offset) }
+            .map(\.element)
     }
 }
