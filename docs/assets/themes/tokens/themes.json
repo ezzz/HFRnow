@@ -1,0 +1,748 @@
+{
+ "schemaVersion": 1,
+ "comment": "Draft theme tokens for SwiftHFR (docs/THEMES.md). Colours are sRGB hex. 'variants' has 'light' and 'dark', or only 'any' for a theme that looks the same in both. accentText is the accent used for text and glyphs (SF Symbols, chevrons) on surface (>= 4.5:1); accent is only a fill behind onAccent content (>= 4.5:1) or a decorative tint. Any text drawn directly on background (navigation title, section headers) uses sectionHeader.",
+ "tokenKeys": [
+  "background",
+  "surface",
+  "surfaceRaised",
+  "title",
+  "textPrimary",
+  "textSecondary",
+  "sectionHeader",
+  "accent",
+  "accentText",
+  "onAccent",
+  "separator",
+  "link",
+  "quoteBackground",
+  "quoteBorder",
+  "codeBackground",
+  "codeText",
+  "unread",
+  "onUnread",
+  "spoilerBackground",
+  "spoilerText",
+  "selection"
+ ],
+ "families": [
+  {
+   "id": "classiques",
+   "name": "Classiques"
+  },
+  {
+   "id": "retro",
+   "name": "Rétro"
+  },
+  {
+   "id": "og",
+   "name": "OG Web"
+  },
+  {
+   "id": "noel",
+   "name": "Noël",
+   "window": {
+    "from": "12-01",
+    "to": "12-26"
+   }
+  },
+  {
+   "id": "samain",
+   "name": "Samain",
+   "window": {
+    "from": "10-01",
+    "to": "10-31"
+   }
+  }
+ ],
+ "themes": [
+  {
+   "id": "legacy",
+   "name": "Legacy",
+   "family": "classiques",
+   "author": "ezzz",
+   "default": true,
+   "fontDesign": "default",
+   "decorations": null,
+   "source": "legacy SwiftUI layer, origin/master 21173e7: HFRswift/Swift/Common.swift:746-760 (AppThemePalette: systemGroupedBackground, secondarySystemGroupedBackground, tertiarySystemGroupedBackground, dark surfaces scaled by theme_night_brightness), Common.swift:514-519 + AppSettingsView.swift:16,328-333,436-446 (hue slider: light HSB(h,0.65,1.0), dark HSB(h,0.70,0.95), default 190/360), Common.swift:819-828 (unread badge), MainWindow.swift:250-262 (category row: icon + 'N sous-forums'); checked against 11 operator screenshots 2026-10-28",
+   "variants": {
+    "light": {
+     "background": "#F2F2F7",
+     "surface": "#FFFFFF",
+     "surfaceRaised": "#FFFFFF",
+     "title": "#000000",
+     "textPrimary": "#000000",
+     "textSecondary": "#6C6C70",
+     "sectionHeader": "#6C6C70",
+     "accent": "#59E3FF",
+     "accentText": "#0F8096",
+     "onAccent": "#000000",
+     "separator": "#C6C6C8",
+     "link": "#0F8096",
+     "quoteBackground": "#F2F2F7",
+     "quoteBorder": "#C6C6C8",
+     "codeBackground": "#F2F2F7",
+     "codeText": "#000000",
+     "unread": "#6C6C70",
+     "onUnread": "#FFFFFF",
+     "spoilerBackground": "#E5E5EA",
+     "spoilerText": "#000000",
+     "selection": "#E5E5EA"
+    },
+    "dark": {
+     "background": "#000000",
+     "surface": "#1C1C1E",
+     "surfaceRaised": "#2C2C2E",
+     "title": "#FFFFFF",
+     "textPrimary": "#FFFFFF",
+     "textSecondary": "#98989F",
+     "sectionHeader": "#98989F",
+     "accent": "#49D6F2",
+     "accentText": "#49D6F2",
+     "onAccent": "#000000",
+     "separator": "#38383A",
+     "link": "#49D6F2",
+     "quoteBackground": "#2C2C2E",
+     "quoteBorder": "#48484A",
+     "codeBackground": "#2C2C2E",
+     "codeText": "#FFFFFF",
+     "unread": "#C7C7C8",
+     "onUnread": "#000000",
+     "spoilerBackground": "#3A3A3C",
+     "spoilerText": "#FFFFFF",
+     "selection": "#2C2C2E"
+    }
+   },
+   "accentModel": {
+    "type": "hue",
+    "default": 0.5278,
+    "light": {
+     "saturation": 0.65,
+     "brightness": 1.0
+    },
+    "dark": {
+     "saturation": 0.7,
+     "brightness": 0.95
+    },
+    "accentTextLight": "same hue, saturation 0.9, brightness lowered until >= 4.6:1 on white (intentional difference: legacy tints text with the raw hue)",
+    "presets": [
+     {
+      "name": "Rouge",
+      "hue": 0.0
+     },
+     {
+      "name": "Orange HFR",
+      "hue": 0.091
+     },
+     {
+      "name": "Jaune",
+      "hue": 0.14
+     },
+     {
+      "name": "Vert",
+      "hue": 0.33
+     },
+     {
+      "name": "Sarcelle",
+      "hue": 0.47
+     },
+     {
+      "name": "Cyan",
+      "hue": 0.5
+     },
+     {
+      "name": "Cyan HFR (défaut)",
+      "hue": 0.528
+     },
+     {
+      "name": "Bleu",
+      "hue": 0.6
+     },
+     {
+      "name": "Violet",
+      "hue": 0.74
+     },
+     {
+      "name": "Rose",
+      "hue": 0.92
+     }
+    ],
+    "accentTextDark": "same hue, brightness 0.95, saturation lowered from 0.70 until >= 4.6:1 on #1C1C1E (blues and violets only; intentional difference)"
+   },
+   "listStyle": "legacyCards"
+  },
+  {
+   "id": "swift",
+   "name": "Swift",
+   "family": "classiques",
+   "author": "",
+   "fontDesign": "default",
+   "decorations": null,
+   "variants": {
+    "light": {
+     "background": "#F2F3F9",
+     "surface": "#FFFFFF",
+     "surfaceRaised": "#EDEFF6",
+     "title": "#1C1F2B",
+     "textPrimary": "#1C1F2B",
+     "textSecondary": "#696B73",
+     "sectionHeader": "#5F616B",
+     "accent": "#5B4BE0",
+     "accentText": "#5B4BE0",
+     "onAccent": "#FFFFFF",
+     "separator": "#EBEBEC",
+     "link": "#5B4BE0",
+     "quoteBackground": "#EDEFF6",
+     "quoteBorder": "#5B4BE0",
+     "codeBackground": "#EDEFF6",
+     "codeText": "#1C1F2B",
+     "unread": "#5B4BE0",
+     "onUnread": "#FFFFFF",
+     "spoilerBackground": "#DCDFEA",
+     "spoilerText": "#1C1F2B",
+     "selection": "#E6E3FB"
+    },
+    "dark": {
+     "background": "#1C1F2B",
+     "surface": "#252836",
+     "surfaceRaised": "#2D3142",
+     "title": "#FFFFFF",
+     "textPrimary": "#FFFFFF",
+     "textSecondary": "#ACADB3",
+     "sectionHeader": "#A6A8B0",
+     "accent": "#C26BF2",
+     "accentText": "#C26BF2",
+     "onAccent": "#1C1F2B",
+     "separator": "#343744",
+     "link": "#C26BF2",
+     "quoteBackground": "#2D3142",
+     "quoteBorder": "#C26BF2",
+     "codeBackground": "#2D3142",
+     "codeText": "#FFFFFF",
+     "unread": "#C26BF2",
+     "onUnread": "#1C1F2B",
+     "spoilerBackground": "#343744",
+     "spoilerText": "#FFFFFF",
+     "selection": "#3A2F55"
+    }
+   },
+   "source": "night-blue dashboard design language chosen by the operator (2026-10-28); alpha tokens flattened onto surface",
+   "notes": "Night-blue dashboard: opaque cards radius 24 with 1 pt stroke, soft shadow in light only, two diffuse radial halos on the background, accent indigo (light) / orchid (dark), aurora gradient used sparingly (unread bar, selector swatch), rounded light numerals for counters.",
+   "extras": {
+    "cardRadius": 24,
+    "cardPadding": 18,
+    "spacing": 16,
+    "strokeWidth": 1,
+    "light": {
+     "gradient": [
+      "#5B4BFF",
+      "#B45CF0",
+      "#D9437F"
+     ],
+     "halos": [
+      {
+       "color": "#6D5DFC24",
+       "anchor": "topLeading",
+       "radius": 520
+      },
+      {
+       "color": "#C43FB417",
+       "anchor": "bottomTrailing",
+       "radius": 560
+      }
+     ],
+     "cardStroke": "#1C1F2B0F",
+     "cardShadow": {
+      "color": "#1C1F2B0F",
+      "radius": 14,
+      "y": 4
+     }
+    },
+    "dark": {
+     "gradient": [
+      "#5B4BFF",
+      "#B45CF0",
+      "#F0649A"
+     ],
+     "halos": [
+      {
+       "color": "#6D5DFC47",
+       "anchor": "topLeading",
+       "radius": 520
+      },
+      {
+       "color": "#E45FD229",
+       "anchor": "bottomTrailing",
+       "radius": 560
+      }
+     ],
+     "cardStroke": "#FFFFFF0F",
+     "cardShadow": null
+    }
+   }
+  },
+  {
+   "id": "retro",
+   "name": "Rétro 5250",
+   "family": "retro",
+   "author": "",
+   "fontDesign": "monospaced",
+   "decorations": "retro-cursor",
+   "notes": "Green-screen terminal look (inspired by IBM 5250 terminals): green phosphor on black, reverse video for selection, uppercase section headers, no rounded cards (corner radius 0), dashed separators. Optional blinking block cursor after the title (off with Reduce Motion).",
+   "variants": {
+    "any": {
+     "background": "#000000",
+     "surface": "#000000",
+     "surfaceRaised": "#000000",
+     "title": "#33FF33",
+     "textPrimary": "#33FF33",
+     "textSecondary": "#1FB81F",
+     "sectionHeader": "#FFFFFF",
+     "accent": "#33FF33",
+     "accentText": "#33FF33",
+     "onAccent": "#000000",
+     "separator": "#1A7A1A",
+     "link": "#40E0D0",
+     "quoteBackground": "#001A00",
+     "quoteBorder": "#33FF33",
+     "codeBackground": "#001A00",
+     "codeText": "#FFFF55",
+     "unread": "#FFFF55",
+     "onUnread": "#000000",
+     "spoilerBackground": "#33FF33",
+     "spoilerText": "#000000",
+     "selection": "#33FF33"
+    }
+   },
+   "description": "inspired by IBM 5250 green-screen terminals"
+  },
+  {
+   "id": "noel-abuse",
+   "name": "Noël abusé",
+   "family": "noel",
+   "author": "",
+   "fontDesign": "rounded",
+   "decorations": "noel-full",
+   "notes": "Identical in light and dark (operator example). Patterned fir-green background, garland on the navigation bar, ornaments on section headers, gifts under the list.",
+   "variants": {
+    "any": {
+     "background": "#0F4D2E",
+     "surface": "#FFF8EC",
+     "surfaceRaised": "#B3122E",
+     "title": "#FFF8EC",
+     "textPrimary": "#1B1410",
+     "textSecondary": "#5E4B3C",
+     "sectionHeader": "#FFE7A3",
+     "accent": "#D21F3C",
+     "accentText": "#B3122E",
+     "onAccent": "#FFFFFF",
+     "separator": "#E9D9BF",
+     "link": "#B3122E",
+     "quoteBackground": "#FCEFD6",
+     "quoteBorder": "#E3B341",
+     "codeBackground": "#F4EAD6",
+     "codeText": "#1B1410",
+     "unread": "#E3B341",
+     "onUnread": "#1B1410",
+     "spoilerBackground": "#0F4D2E",
+     "spoilerText": "#FFF8EC",
+     "selection": "#FBE3E7"
+    }
+   }
+  },
+  {
+   "id": "noel-soft",
+   "name": "Noël soft",
+   "family": "noel",
+   "author": "",
+   "fontDesign": "default",
+   "decorations": "noel-soft",
+   "defaultOn": {
+    "date": "12-01",
+    "until": "12-24"
+   },
+   "notes": "Light snowfall, snow piled on the first card and the navigation bar edge, a Christmas item crosses the screen every 20-90 min.",
+   "variants": {
+    "light": {
+     "background": "#EEF2F7",
+     "surface": "#FFFFFF",
+     "surfaceRaised": "#F7F9FC",
+     "title": "#0E1621",
+     "textPrimary": "#0E1621",
+     "textSecondary": "#56627A",
+     "sectionHeader": "#56627A",
+     "accent": "#C8283A",
+     "accentText": "#B3202F",
+     "onAccent": "#FFFFFF",
+     "separator": "#DCE3EC",
+     "link": "#B3202F",
+     "quoteBackground": "#F2F5FA",
+     "quoteBorder": "#C8283A",
+     "codeBackground": "#F2F5FA",
+     "codeText": "#0E1621",
+     "unread": "#C8283A",
+     "onUnread": "#FFFFFF",
+     "spoilerBackground": "#D5DDE8",
+     "spoilerText": "#0E1621",
+     "selection": "#FBE6E8"
+    },
+    "dark": {
+     "background": "#0E1621",
+     "surface": "#162231",
+     "surfaceRaised": "#1B2A3C",
+     "title": "#EEF2F7",
+     "textPrimary": "#EEF2F7",
+     "textSecondary": "#9AA8BD",
+     "sectionHeader": "#9AA8BD",
+     "accent": "#FF5C67",
+     "accentText": "#FF7A83",
+     "onAccent": "#0E1621",
+     "separator": "#24364C",
+     "link": "#FF7A83",
+     "quoteBackground": "#1B2A3C",
+     "quoteBorder": "#FF5C67",
+     "codeBackground": "#1B2A3C",
+     "codeText": "#EEF2F7",
+     "unread": "#FF5C67",
+     "onUnread": "#0E1621",
+     "spoilerBackground": "#24364C",
+     "spoilerText": "#EEF2F7",
+     "selection": "#3A2230"
+    }
+   }
+  },
+  {
+   "id": "spooktober-abuse",
+   "name": "Spooktober abusé",
+   "family": "samain",
+   "author": "",
+   "fontDesign": "rounded",
+   "decorations": "samain-full",
+   "notes": "Identical in light and dark. Orange / black / purple dominant, moon and bats behind the title, spider webs in the corners, pumpkins under the list.",
+   "variants": {
+    "any": {
+     "background": "#140A1F",
+     "surface": "#24123A",
+     "surfaceRaised": "#0B0612",
+     "title": "#FFEBD9",
+     "textPrimary": "#FFEBD9",
+     "textSecondary": "#CDB3E6",
+     "sectionHeader": "#FF8A1F",
+     "accent": "#FF7A00",
+     "accentText": "#FF9A3D",
+     "onAccent": "#140A1F",
+     "separator": "#3B2257",
+     "link": "#FF9A3D",
+     "quoteBackground": "#2E1849",
+     "quoteBorder": "#FF7A00",
+     "codeBackground": "#0B0612",
+     "codeText": "#B8F28C",
+     "unread": "#FF7A00",
+     "onUnread": "#140A1F",
+     "spoilerBackground": "#3B2257",
+     "spoilerText": "#FFEBD9",
+     "selection": "#3B2257"
+    }
+   }
+  },
+  {
+   "id": "spooktober-soft",
+   "name": "Spooktober soft",
+   "family": "samain",
+   "author": "",
+   "fontDesign": "default",
+   "decorations": "samain-soft",
+   "defaultOn": {
+    "date": "10-01",
+    "until": "10-31"
+   },
+   "notes": "A bit of spider web in a corner, a candelabra under the title, a small bat; a Halloween item (lightning, ghost, witch on a broom) crosses the screen every 20-90 min.",
+   "variants": {
+    "light": {
+     "background": "#F6F1EC",
+     "surface": "#FFFFFF",
+     "surfaceRaised": "#FBF7F3",
+     "title": "#1A1218",
+     "textPrimary": "#1A1218",
+     "textSecondary": "#665566",
+     "sectionHeader": "#665566",
+     "accent": "#E8650A",
+     "accentText": "#B44D00",
+     "onAccent": "#1A1218",
+     "separator": "#E8DED5",
+     "link": "#B44D00",
+     "quoteBackground": "#F8F1EA",
+     "quoteBorder": "#E8650A",
+     "codeBackground": "#F8F1EA",
+     "codeText": "#1A1218",
+     "unread": "#E8650A",
+     "onUnread": "#1A1218",
+     "spoilerBackground": "#E3D6E6",
+     "spoilerText": "#1A1218",
+     "selection": "#FBE5D3"
+    },
+    "dark": {
+     "background": "#121014",
+     "surface": "#1D1820",
+     "surfaceRaised": "#231D27",
+     "title": "#F3ECF2",
+     "textPrimary": "#F3ECF2",
+     "textSecondary": "#A99AAD",
+     "sectionHeader": "#A99AAD",
+     "accent": "#FF8A2A",
+     "accentText": "#FF9A45",
+     "onAccent": "#121014",
+     "separator": "#2E2633",
+     "link": "#FF9A45",
+     "quoteBackground": "#231D27",
+     "quoteBorder": "#FF8A2A",
+     "codeBackground": "#231D27",
+     "codeText": "#F3ECF2",
+     "unread": "#FF8A2A",
+     "onUnread": "#121014",
+     "spoilerBackground": "#2E2633",
+     "spoilerText": "#F3ECF2",
+     "selection": "#3A2618"
+    }
+   },
+   "decorationColors": {
+    "bat": {
+     "light": "#140A1F",
+     "dark": "#A99AAD"
+    },
+    "rule": "dark variant: bat drawn in textSecondary #A99AAD = 7.13:1 on #121014 (operator, 2026-10-28; black was 1.11:1)"
+   }
+  },
+  {
+   "id": "og-clair",
+   "name": "OG clair",
+   "family": "og",
+   "author": "d'après le forum HFR (thème web)",
+   "credit": "OG — d'après le forum HFR (thème web)",
+   "fontDesign": "default",
+   "decorations": null,
+   "listStyle": "ogTable",
+   "source": "og-css/findings.md (2026-10-28): /include/the_style1.php (both colour keys) and the static the_style.css; orange from the HARDWARE.FR logo bitmap (sampled)",
+   "notes": "Default light skin of the web forum (logged out). Navy header bands, light-grey rows, alternating columns, navy bold links, orange accent. Code blocks: #FFFFFF with a #000000 border in both skins; no a:visited rule (visited = link).",
+   "variants": {
+    "any": {
+     "background": "#FFFFFF",
+     "surface": "#F7F7F7",
+     "surfaceRaised": "#001932",
+     "title": "#001932",
+     "textPrimary": "#000000",
+     "textSecondary": "#566471",
+     "sectionHeader": "#000080",
+     "accent": "#F18F18",
+     "accentText": "#000080",
+     "onAccent": "#000000",
+     "separator": "#C0C0C0",
+     "link": "#000080",
+     "quoteBackground": "#FFFFFF",
+     "quoteBorder": "#C0C0C0",
+     "codeBackground": "#FFFFFF",
+     "codeText": "#000000",
+     "unread": "#CC0000",
+     "onUnread": "#FFFFFF",
+     "spoilerBackground": "#FFFFFF",
+     "spoilerText": "#000000",
+     "selection": "#C2C3F4",
+     "headerBand": "#001932",
+     "onHeaderBand": "#FFFFFF",
+     "rowAlt": "#DEDFDF",
+     "meta": "#566471",
+     "pageBar": "#C2C3F4",
+     "onPageBar": "#000080"
+    }
+   },
+   "wcagFixes": [
+    "meta .cFondu #73818E on #F7F7F7/#DEDFDF = 3.73/2.99:1 -> #566471",
+    "unread #F00 (the_style.css) with white = 4.0:1 -> #CC0000 (5.9:1)",
+    "accent = orange-hfr (logo bitmap; the forum CSS has no orange), fill only"
+   ],
+   "cssRaw": {
+    "background": "#FFFFFF",
+    "headerBand": "#001932",
+    "onHeaderBand": "#FFFFFF",
+    "row": "#F7F7F7",
+    "rowAlt": "#DEDFDF",
+    "cellBorder": "#000000",
+    "boxBorder": "#C0C0C0",
+    "link": "#000080",
+    "cCatTopic": "#000080",
+    "cCatTopicVIP": "#0000FF",
+    "text": "#000000",
+    "cFondu": "#73818E",
+    "barre": "#C2C3F4",
+    "quoteSpoiler": "#FFFFFF",
+    "caseModo": "#FFEEEE",
+    "code": "#FFFFFF + 1px #000000 border",
+    "unread": "#FF0000",
+    "visited": "none (= link)"
+   }
+  },
+  {
+   "id": "og-gris",
+   "name": "OG gris",
+   "family": "og",
+   "author": "d'après le forum HFR (thème web)",
+   "credit": "OG — d'après le forum HFR (thème web)",
+   "fontDesign": "default",
+   "decorations": null,
+   "listStyle": "ogTable",
+   "source": "og-css/findings.md (2026-10-28): /include/the_style1.php (both colour keys) and the static the_style.css; orange from the HARDWARE.FR logo bitmap (sampled)",
+   "notes": "Grey skin of the web forum (logged-in user preference). Mid-grey rows, darker alternation, same navy header bands, blue counters. Code blocks: #FFFFFF with a #000000 border in both skins; no a:visited rule (visited = link).",
+   "variants": {
+    "any": {
+     "background": "#666666",
+     "surface": "#AAAAAA",
+     "surfaceRaised": "#202530",
+     "title": "#FFFFFF",
+     "textPrimary": "#000000",
+     "textSecondary": "#3C3F45",
+     "sectionHeader": "#FFFFFF",
+     "accent": "#F18F18",
+     "accentText": "#1A2A3C",
+     "onAccent": "#000000",
+     "separator": "#000000",
+     "link": "#1A2A3C",
+     "quoteBackground": "#EEEEEE",
+     "quoteBorder": "#000000",
+     "codeBackground": "#FFFFFF",
+     "codeText": "#000000",
+     "unread": "#CC0000",
+     "onUnread": "#FFFFFF",
+     "spoilerBackground": "#EEEEEE",
+     "spoilerText": "#000000",
+     "selection": "#C2C3F4",
+     "headerBand": "#202530",
+     "onHeaderBand": "#8B8B8B",
+     "rowAlt": "#BBBBBB",
+     "meta": "#3C3F45",
+     "pageBar": "#C2C3F4",
+     "onPageBar": "#000000",
+     "counter": "#0000B0"
+    }
+   },
+   "wcagFixes": [
+    "meta .cFondu #4F5258 on #AAAAAA/#BBBBBB = 3.37/4.08:1 -> #3C3F45",
+    "header text #888888 on #202530 = 4.33:1 -> onHeaderBand #8B8B8B",
+    "supercat text #888888 on page #666666 = 1.62:1 -> sectionHeader/title #FFFFFF (5.74:1)",
+    "counters .cCatTopicVIP #0000FF on #AAAAAA = 3.7:1 -> counter #0000B0",
+    "unread #F00 (the_style.css) with white = 4.0:1 -> #CC0000 (5.9:1)",
+    "accent = orange-hfr (logo bitmap; the forum CSS has no orange), fill only"
+   ],
+   "cssRaw": {
+    "background": "#666666",
+    "headerBand": "#202530",
+    "onHeaderBand": "#888888",
+    "row": "#AAAAAA",
+    "rowAlt": "#BBBBBB",
+    "cellBorder": "#000000",
+    "boxBorder": "#000000",
+    "link": "#000080",
+    "cCatTopic": "#1A2A3C",
+    "cCatTopicVIP": "#0000FF",
+    "text": "#000000",
+    "cFondu": "#4F5258",
+    "supercat": "#888888",
+    "barre": "#C2C3F4",
+    "quoteSpoiler": "#EEEEEE",
+    "caseModo": "#FFEEEE",
+    "code": "#FFFFFF + 1px #000000 border",
+    "unread": "#FF0000",
+    "visited": "none (= link)"
+   }
+  }
+ ],
+ "events": [
+  {
+   "id": "noel-arrival",
+   "family": "noel",
+   "trigger": "first launch in 12-01..12-26 (once per year); auto-enable of Noël soft only in 12-01..12-24",
+   "overlay": "sleigh-crossing",
+   "maxSeconds": 5,
+   "then": "alert 'Oh Oh Oh ! Thème disponible dans les réglages' [OK] [Désactiver]"
+  },
+  {
+   "id": "noel-packing",
+   "family": "noel",
+   "trigger": "first launch on or after 12-27 while a Noël theme is active",
+   "overlay": "elves-packing",
+   "maxSeconds": 5,
+   "message": "Allez on remballe",
+   "overlayOnlyWithinDays": 7,
+   "afterThat": "restore the previous theme silently"
+  },
+  {
+   "id": "samain-arrival",
+   "family": "samain",
+   "trigger": "first launch in 10-01..10-31 (once per year)",
+   "overlay": "witch|ghost|bat crossing (random)",
+   "maxSeconds": 5,
+   "then": "alert 'Spooktober est là ! Thème disponible dans les réglages' [OK] [Désactiver]"
+  },
+  {
+   "id": "samain-packing",
+   "family": "samain",
+   "trigger": "first launch on or after 11-01 while a Samain theme is active (operator confirmed 2026-10-28: from 01/11)",
+   "overlay": "witch-sweeping",
+   "maxSeconds": 5,
+   "message": "Allez on remballe",
+   "overlayOnlyWithinDays": 7,
+   "afterThat": "restore the previous theme silently"
+  },
+  {
+   "id": "fete-nationale",
+   "family": null,
+   "trigger": "first launch on 07-14 (local date)",
+   "overlay": "marianne-fireworks",
+   "minSeconds": 3,
+   "maxSeconds": 5,
+   "message": "Fête nationale",
+   "gatedBy": "Animations de saison toggle (and Reduce Motion)"
+  }
+ ],
+ "crossingItems": {
+  "minIntervalMinutes": 20,
+  "maxIntervalMinutes": 90,
+  "noel-soft": [
+   "sleigh-small",
+   "star-shooting",
+   "gift-parachute",
+   "snowman-sled"
+  ],
+  "samain-soft": [
+   "lightning",
+   "ghost",
+   "witch-broom"
+  ],
+  "maxDurationSeconds": 3,
+  "path": "enter one edge, exit the opposite edge, random angle and direction, object faces its direction of travel",
+  "haptic": "light impact on entry (app haptics setting on; none with Reduce Motion)",
+  "lightning": {
+   "flashes": 5,
+   "flashSeconds": 0.3,
+   "windowSeconds": 3,
+   "positions": "random"
+  },
+  "sizeSoftPt": 64,
+  "sizeOverlay": "1/4 of the window height, <= 240 pt"
+ },
+ "optionalTokenKeys": {
+  "headerBand": "surfaceRaised",
+  "onHeaderBand": "title",
+  "rowAlt": "surface",
+  "meta": "textSecondary",
+  "pageBar": "surfaceRaised",
+  "onPageBar": "title"
+ },
+ "orangeHfr": {
+  "value": "#F18F18",
+  "source": "forum_logo.gif, exact pixel count (/img/forum_logo.gif: logo square and '.FR' letters), og-css/findings.md, 2026-10-28",
+  "deltaE76": {
+   "#ED8F05": 3.3,
+   "#E9A44A (screenshot sample)": 19.8
+  },
+  "rule": "fill only, never text"
+ }
+}

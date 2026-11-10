@@ -188,6 +188,7 @@ flowchart LR
 | [docs/lots/](docs/lots/) | One spec per engine lot — the file a lot is built from |
 | [docs/FEATURES.md](docs/FEATURES.md) | The app feature backlog (FEAT-XXX): proposals with credit, status; the operator's UX principles |
 | `docs/features/` | One spec per app feature (`FEAT-XXX.md`), created with the first feature |
+| [docs/THEMES.md](docs/THEMES.md) · [docs/ICONS.md](docs/ICONS.md) | How themes and app icons are built, and how to propose one by PR |
 | [docs/HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) | How forum.hardware.fr works, every fact with its source |
 | [docs/FIXTURES.md](docs/FIXTURES.md) | How pages are captured and anonymized |
 | [docs/adr/](docs/adr/) | Architecture decisions |
