@@ -297,6 +297,7 @@
     {"raw": "l574-T67", "id": "T67", "slug": "aq-create-flood-blocked-local", "ext": "", "private": false},
     {"raw": "l574-T68", "id": "T68", "slug": "aq-create-blacklisted-local", "ext": "", "private": false},
     {"raw": "l574-T69", "id": "T69", "slug": "aq-alerts-after-flood-local", "ext": "xml", "private": false},
-    {"raw": "l574-T71", "id": "T71", "slug": "aq-alerts-no-topic-local", "ext": "xml", "private": false}
+    {"raw": "l574-T71", "id": "T71", "slug": "aq-alerts-no-topic-local", "ext": "xml", "private": false},
+    {"raw": "m170-poll-form", "id": "R170a", "slug": "new-poll-form", "ext": "html", "private": false}
   ]
 }
