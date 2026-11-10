@@ -47,7 +47,18 @@ struct AccountDataEraser: Sendable {
         smileyFavorites: ComposerServices.liveSmileyFavorites
     )
 
-    /// Erases `kinds` of `account` (the account's key, `md_user` value). Every kind is tried even when an earlier one
+    /// The account keys (`AccountKey`) that still have data in one of the stores; a store that cannot be read adds none.
+    func accountKeys() async -> Set<String> {
+        var keys = await drafts.accountKeys()
+        keys.formUnion(await pseudoLists.blocklistAccountKeys())
+        // Positions are stored under the account's spelling, not its key.
+        keys.formUnion(await positions.accounts().map(AccountKey.make))
+        keys.formUnion(await superFavorites.accountKeys())
+        keys.formUnion(await smileyFavorites.accountKeys())
+        return keys
+    }
+
+    /// Erases `kinds` of `account` (the account's pseudo or key). Every kind is tried even when an earlier one
     /// failed; returns the kinds that could not be erased, in order.
     func erase(account: String, kinds: [AccountDataKind] = AccountDataKind.allCases) async -> [AccountDataKind] {
         var failed: [AccountDataKind] = []
@@ -69,7 +80,13 @@ struct AccountDataEraser: Sendable {
             // An empty list removes the account's key from the document.
             _ = try await pseudoLists.replaceBlocklist(with: [], account: account)
         case .readingPositions:
-            _ = try await positions.removeAccount(account)
+            // Stored under the spelling the reader used: remove every spelling of the account's key.
+            // An unreadable store lists no account: report it instead of a success.
+            if let failure = await positions.loadFailure() { throw failure }
+            let key = AccountKey.make(account)
+            for stored in await positions.accounts() where AccountKey.make(stored) == key {
+                _ = try await positions.removeAccount(stored)
+            }
         case .superFavorites:
             _ = try await superFavorites.replace([], account: account)
         case .smileyFavorites:

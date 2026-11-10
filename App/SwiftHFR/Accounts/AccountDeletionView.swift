@@ -8,6 +8,7 @@ struct AccountDeletionView: View {
     @Environment(AccountsModel.self) private var accounts
     @Environment(AccountDeletionModel.self) private var deletion
     @State private var pendingErase: AccountRow?
+    @State private var pendingLeftover: String?
 
     var body: some View {
         Form {
@@ -36,6 +37,13 @@ struct AccountDeletionView: View {
                     }
                     .disabled(deletion.isErasing)
                 }
+                // Data of accounts no longer in the app ("Retirer", a wipe that failed in part).
+                ForEach(deletion.leftovers, id: \.self) { key in
+                    Button("Effacer les données restantes de \(key)", systemImage: "trash", role: .destructive) {
+                        pendingLeftover = key
+                    }
+                    .disabled(deletion.isErasing)
+                }
                 result
             } header: {
                 Text("Cet appareil")
@@ -48,6 +56,8 @@ struct AccountDeletionView: View {
         }
         .navigationTitle("Supprimer mon compte")
         .navigationBarTitleDisplayMode(.inline)
+        // Read again whenever the accounts change (a login, a removal elsewhere).
+        .task(id: accounts.rows.map(\.id)) { await deletion.refreshLeftovers() }
         .confirmationDialog(
             "Effacer les données de ce compte ?", isPresented: eraseBinding, titleVisibility: .visible, presenting: pendingErase
         ) { row in
@@ -56,12 +66,24 @@ struct AccountDeletionView: View {
                 Task { await deletion.erase(row) }
             }
         } message: { _ in
-            Text(
-                "Le compte est retiré de l’app avec sa session, ses brouillons, sa liste noire, ses positions de lecture, "
-                    + "ses super-favoris et ses smileys favoris. Le compte HFR lui-même n’est pas supprimé."
-            )
+            Text(Self.erasedItems)
+        }
+        .confirmationDialog(
+            "Effacer les données restantes ?", isPresented: leftoverBinding, titleVisibility: .visible, presenting: pendingLeftover
+        ) { key in
+            Button("Effacer les données de \(key)", role: .destructive) {
+                Task { await deletion.eraseLeftover(key) }
+            }
+        } message: { _ in
+            Text(Self.leftoverItems)
         }
     }
+
+    private static let erasedItems = "Le compte est retiré de l’app avec sa session, ses brouillons, sa liste noire, "
+        + "ses positions de lecture, ses super-favoris et ses smileys favoris. Le compte HFR lui-même n’est pas supprimé."
+
+    private static let leftoverItems = "Ce compte n’est plus dans l’app, mais des données sont restées sur l’appareil. "
+        + "Le compte HFR lui-même n’est pas supprimé."
 
     @ViewBuilder
     private var result: some View {
@@ -77,12 +99,13 @@ struct AccountDeletionView: View {
             Label("Les données de \(name) ont été effacées de cet appareil.", systemImage: "checkmark.circle")
         case .partial(let name, let failures):
             Label(
-                "\(name) a été retiré, mais ces données n’ont pas pu être effacées : \(failures.joined(separator: ", ")).",
+                "Ces données de \(name) n’ont pas pu être effacées : \(failures.joined(separator: ", ")).",
                 systemImage: "exclamationmark.triangle.fill"
             )
             .foregroundStyle(.red)
-            if deletion.canRetry {
+            if deletion.keychainItemPending {
                 Button("Réessayer") { Task { await deletion.retry() } }
+                    .disabled(deletion.isErasing)
             }
         case .refused(let message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
@@ -92,6 +115,10 @@ struct AccountDeletionView: View {
 
     private var eraseBinding: Binding<Bool> {
         Binding(get: { pendingErase != nil }, set: { if !$0 { pendingErase = nil } })
+    }
+
+    private var leftoverBinding: Binding<Bool> {
+        Binding(get: { pendingLeftover != nil }, set: { if !$0 { pendingLeftover = nil } })
     }
 }
 

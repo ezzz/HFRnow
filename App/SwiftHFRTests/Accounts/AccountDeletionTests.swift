@@ -72,6 +72,13 @@ private final class FailingDraftPersistence: DraftPersistence {
     func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
 }
 
+/// A positions file that exists but cannot be read.
+private struct UnreadablePositionPersistence: ReadingPositionPersistence {
+    func load() throws -> ReadingPositionDocument? { throw CocoaError(.fileReadCorruptFile) }
+    func save(_ document: ReadingPositionDocument) throws {}
+    func quarantineUnreadableData() throws {}
+}
+
 /// A credential store whose item cannot be deleted `failures` times (the Keychain refusing a delete).
 private final class UndeletableCredentialStore: CredentialStore {
     let inner: InMemoryCredentialStore
@@ -138,6 +145,29 @@ struct AccountDataEraserTests {
         #expect(await drafts.drafts(account: "user1").isEmpty)
     }
 
+    @Test func positionsStoredUnderAnotherSpellingAreErasedAndKeysAreListed() async throws {
+        let stores = SeededStores()
+        try await stores.seed(["user2"])
+        _ = try await stores.positions.advance(SeededStores.topic, to: ReadingPosition(page: 1), account: "User1")
+        #expect(await stores.eraser.accountKeys() == ["user1", "user2"])
+
+        #expect(await stores.eraser.erase(account: "user1").isEmpty)
+
+        #expect(await stores.positions.accounts() == ["user2"])
+        #expect(await stores.eraser.accountKeys() == ["user2"])
+    }
+
+    @Test func anUnreadablePositionStoreIsReportedNotErasedInSilence() async {
+        let stores = SeededStores()
+        let eraser = AccountDataEraser(
+            drafts: stores.drafts, pseudoLists: stores.pseudoLists,
+            positions: ReadingPositionStore(persistence: UnreadablePositionPersistence()),
+            superFavorites: stores.superFavorites, smileyFavorites: stores.smileyFavorites
+        )
+
+        #expect(await eraser.erase(account: "user1") == [.readingPositions])
+    }
+
     @Test func theLiveEraserWritesTheStoresTheScreensUse() {
         let live = AccountDataEraser.live
         #expect(live.drafts === ComposerServices.liveDrafts)
@@ -179,7 +209,8 @@ struct AccountDeletionModelTests {
         #expect(accounts.currentSession == nil)
         #expect(accounts.session(for: "user1") == nil)
         #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
-        #expect(!deletion.canRetry)
+        #expect(deletion.leftovers.isEmpty)
+        #expect(!deletion.keychainItemPending)
     }
 
     @Test func erasingOneAccountKeepsTheOtherWithItsSessionAndData() async throws {
@@ -218,7 +249,6 @@ struct AccountDeletionModelTests {
 
         #expect(deletion.phase == .refused(message: message))
         #expect(await stores.counts("user1") == [1, 1, 1, 1, 1])
-        #expect(!deletion.canRetry)
     }
 
     @Test func anAccountRemovedMeanwhileIsReportedAndNothingIsErased() async throws {
@@ -238,7 +268,7 @@ struct AccountDeletionModelTests {
         #expect(await stores.counts("user1") == [1, 1, 1, 1, 1])
     }
 
-    @Test func aStoreThatFailedIsNamedAndErasedByRetry() async throws {
+    @Test func aStoreThatFailedIsNamedAndOfferedAgainAsALeftover() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
         let accounts = makeModel(store: store)
         await accounts.restore()
@@ -258,15 +288,70 @@ struct AccountDeletionModelTests {
         await deletion.erase(row)
 
         #expect(deletion.phase == .partial(name: row.displayName, failures: ["les brouillons"]))
-        #expect(deletion.canRetry)
         #expect(store.envelope == nil)
         #expect(await drafts.drafts(account: "user1").count == 1)
+        // What is left is read back from the stores, so it is still offered after a relaunch.
+        #expect(deletion.leftovers == ["user1"])
+        let relaunched = AccountDeletionModel(accounts: accounts, eraser: eraser)
+        await relaunched.refreshLeftovers()
+        #expect(relaunched.leftovers == ["user1"])
 
-        await deletion.retry()
+        await relaunched.eraseLeftover("user1")
 
-        #expect(deletion.phase == .erased(name: row.displayName))
+        #expect(relaunched.phase == .erased(name: "user1"))
         #expect(await drafts.drafts(account: "user1").isEmpty)
-        #expect(!deletion.canRetry)
+        #expect(relaunched.leftovers.isEmpty)
+    }
+
+    @Test func dataOfAnAccountRemovedWithoutAWipeIsOfferedAndErased() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])
+        let accounts = makeModel(store: store)
+        await accounts.restore()
+        let stores = SeededStores()
+        try await stores.seed(["user1", "user2"])
+        let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser)
+        await deletion.refreshLeftovers()
+        #expect(deletion.leftovers.isEmpty)
+        // "Retirer" on the accounts screen keeps the data (legacy `MultisManager.m:125-153`).
+        try accounts.remove("user1")
+
+        await deletion.refreshLeftovers()
+        #expect(deletion.leftovers == ["user1"])
+        await deletion.eraseLeftover("user1")
+
+        #expect(await stores.counts("user1") == [0, 0, 0, 0, 0])
+        #expect(await stores.counts("user2") == [1, 1, 1, 1, 1])
+        #expect(deletion.leftovers.isEmpty)
+        #expect(try store.accounts().map(\.pseudo) == ["user2"])
+    }
+
+    @Test func aStoredAccountIsNeverErasedAsALeftover() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("User1", main: true)])
+        let accounts = makeModel(store: store)
+        await accounts.restore()
+        let stores = SeededStores()
+        try await stores.seed(["User1"])
+        let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser)
+
+        // A key that was left over, then logged in again before the tap.
+        await deletion.eraseLeftover("user1")
+
+        #expect(deletion.phase == .idle)
+        #expect(await stores.counts("User1") == [1, 1, 1, 1, 1])
+    }
+
+    @Test func noLeftoverIsOfferedWhileTheAccountStoreCannotBeRead() async throws {
+        let store = InMemoryCredentialStore(envelope: Data("not an envelope".utf8))
+        let accounts = makeModel(store: store)
+        await accounts.restore()
+        #expect(accounts.storeProblem == .corrupted)
+        let stores = SeededStores()
+        try await stores.seed(["user1"])
+        let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser)
+
+        await deletion.refreshLeftovers()
+
+        #expect(deletion.leftovers.isEmpty)
     }
 
     @Test func aKeychainItemThatCannotBeDeletedIsNamedAndDeletedByRetry() async throws {
@@ -281,6 +366,7 @@ struct AccountDeletionModelTests {
         await deletion.erase(row)
 
         #expect(deletion.phase == .partial(name: row.displayName, failures: ["l’élément du trousseau"]))
+        #expect(deletion.keychainItemPending)
         // The account itself is gone and its data erased; only the empty item is left.
         #expect(accounts.rows.isEmpty)
         #expect(store.inner.envelope != nil)
@@ -288,7 +374,8 @@ struct AccountDeletionModelTests {
 
         await deletion.retry()
 
-        #expect(deletion.phase == .erased(name: row.displayName))
+        #expect(deletion.phase == .idle)
+        #expect(!deletion.keychainItemPending)
         #expect(store.inner.envelope == nil)
     }
 
