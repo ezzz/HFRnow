@@ -10,7 +10,13 @@ struct TopicFlagFilterPicker: View {
     var canFilter: Bool
 
     var body: some View {
-        Picker("Filtre", selection: Binding(get: { canFilter ? filter.flag : .all }, set: { filter.flag = $0 })) {
+        // `.disabled` on a segment does nothing on iOS 27, so the binding refuses what legacy disables (`MainWindow.swift:683-695`
+        // @ 87fe0d1c): logged out, a tap on Favoris, Suivis or Lus must not overwrite the persisted choice.
+        let selection = Binding(
+            get: { canFilter ? filter.flag : .all },
+            set: { if canFilter || $0 == .all { filter.flag = $0 } }
+        )
+        Picker("Filtre", selection: selection) {
             Text("Tous").tag(TopicListFlag.all)
             Text("Favoris").tag(TopicListFlag.favorites).disabled(!canFilter)
             Text("Suivis").tag(TopicListFlag.tracked).disabled(!canFilter)

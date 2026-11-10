@@ -151,16 +151,21 @@ struct TopicFilterTests {
     @Test func aDoubleNextPageRequestsOnePage() async {
         let gate = AsyncGate()
         let fake = FakeDataSource()
-        let list = model(fake: fake, filter: nil)
+        // A sign-in read that suspends, as the real one does: a second tap must not start a second load during it.
+        let list = TopicListModel(
+            source: .forum(.forum(13), title: "Discussions"), dataSource: fake,
+            isLoggedIn: { await Task.yield(); return true }, topicFilter: nil
+        )
         await list.loadIfNeeded()
         fake.topicHandler = { _, page in
             await gate.wait()
             return topicPage(page: page)
         }
+        // Both taps start before anything yields, so the second one meets a first that has not reached the network yet.
         let one = Task { await list.goToNextPage() }
-        while fake.requests.count < 2 { await Task.yield() }
         let two = Task { await list.goToNextPage() }
-        await Task.yield()
+        while fake.requests.count < 2 { await Task.yield() }
+        for _ in 0..<20 { await Task.yield() }
         await gate.open()
         await one.value
         await two.value

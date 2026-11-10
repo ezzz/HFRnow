@@ -31,13 +31,20 @@ struct RootModelTests {
         let forums = ForumListModel(dataSource: source)
         let root = RootModel(
             forums: forums,
-            categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource, topicFilter: filter),
+            categories: NavigationModel(
+                dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource, topicFilter: filter
+            ),
             favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: .tab(.favorites)
         )
+        root.categories.selectedTopic = TopicSummary(
+            topicID: TopicID(category: .forum(13), topic: 1), title: "Ancien", path: "/t1", starterOrInterlocutors: "membre",
+            readState: .read
+        )
         let category = TopicSource.forum(.forum(13), title: "Discussions")
         root.showCategoryFromFavorites(category)
+        #expect(root.categories.selectedTopic == nil)
         #expect(root.selectedDestination == .tab(.categories))
         #expect(root.categories.selectedSource == category)
         #expect(filter.flag == .favorites)

@@ -157,6 +157,8 @@ final class RootModel {
     func showCategoryFromFavorites(_ category: TopicSource) {
         categories.topicFilter?.flag = .favorites
         categories.selectedSource = category
+        // Legacy clears the selected topic too: the detail column must not keep the previous reader.
+        categories.selectedTopic = nil
         selectedDestination = .tab(.categories)
     }
 
