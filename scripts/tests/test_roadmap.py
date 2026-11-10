@@ -20,6 +20,7 @@ import m5  # noqa: E402
 import lots_from_md  # noqa: E402
 import sync_state  # noqa: E402
 import progress  # noqa: E402
+import counts  # noqa: E402
 
 HEAD = "| Lot | Scope | Module | Difficulty | Model | Depends on | Audit | Priority | Issue |\n|---|---|---|---|---|---|---|---|---|\n"
 NOW = datetime(2026, 11, 1, tzinfo=timezone.utc)
@@ -514,3 +515,61 @@ class FoldFragmentsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WeeklyCounts(unittest.TestCase):
+    def test_gap_total_is_read_from_the_counts_table_only(self):
+        text = ("| Gap | Rows |\n|---|---|\n| **Total** | **9** |\n\n## Counts\n\n| Gap | Rows |\n|---|---|\n| same | 39 |\n"
+                "| **Total** | **172** |\n\n## Convergence notes\n\n| **Total** | **1** |\n")
+        self.assertEqual(counts.gap_total(text), 172)
+        with self.assertRaises(ValueError):
+            counts.gap_total("## Counts\n\n| same | 3 |\n")
+        real = (ROADMAP.parent.parent / "docs" / "migration" / "GAP-LEGACY-VS-SWIFT.md").read_text(encoding="utf-8")
+        self.assertGreater(counts.gap_total(real), 0)
+
+    def test_changelog_counts_numbered_rows_not_header_separator_or_prose(self):
+        text = "Intro | with a pipe\n\n| # | Section | Résumé |\n|---|---|---|\n| 1 | T | a |\n| 2 | UX | b |\n| 31 | T | c |\n|x| y |\n"
+        self.assertEqual(counts.changelog_rows(text), 3)
+        self.assertEqual(counts.changelog_rows(""), 0)
+
+    def test_ci_count_at_the_api_cap_is_written_with_a_plus(self):
+        self.assertEqual(counts.fmt_ci(216), "216")
+        self.assertEqual(counts.fmt_ci(2499), "2\u202f499")
+        self.assertEqual(counts.fmt_ci(2500), "2\u202f500+")
+        self.assertEqual(counts.fmt_ci(10, cap=10), "10+")
+
+    def test_state_older_than_six_hours_is_refused(self):
+        now = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
+        self.assertLess(counts.state_age_hours("2026-11-10 07:00 UTC", now), counts.STATE_MAX_AGE_H)
+        self.assertGreater(counts.state_age_hours("2026-11-02 10:05 UTC", now), counts.STATE_MAX_AGE_H)
+        self.assertEqual(counts.state_age_hours("", now), float("inf"))
+
+    def test_daily_groups_never_count_the_credit_label_as_feedback(self):
+        iss = [issue(1, labels=["beta-test finding"]), issue(2, "closed", labels=["beta-test finding"]),
+               issue(3, labels=["moust4ki aka bybifok finding"]), {**issue(4), "title": "[Legacy 4.0.x] fix"},
+               issue(5, labels=["origin: legacy-evolution"])]
+        g = counts.daily_groups(iss)
+        self.assertEqual([i["number"] for i in g["feedback"]], [1, 2])
+        self.assertEqual(counts.open_closed(g["feedback"]), (1, 1))
+        self.assertEqual([i["number"] for i in g["current"]], [4])
+        self.assertEqual([i["number"] for i in g["backport"]], [5])
+
+    def test_titles_on_slides_never_say_legacy(self):
+        t = counts.clean_title("[SwiftHFR] Poll: results with a confirmation, as legacy 4.0.x (M4)")
+        self.assertEqual(t, "Poll: results with a confirmation")
+        self.assertEqual(counts.clean_title("[SwiftHFR] Legacy reference is behind"), "App courante reference is behind")
+        self.assertNotIn("legacy", counts.clean_title("[SwiftHFR] MP badge where legacy (correct) shows 6").lower())
+        self.assertEqual(counts.clean_title("[SwiftHFR] iPad split (bug report)"), "iPad split")
+
+    def test_marketing_version(self):
+        self.assertEqual(counts.marketing_version("MARKETING_VERSION = 5.0;\n MARKETING_VERSION = 5.0;"), "5.0")
+        self.assertEqual(counts.marketing_version(""), "?")
+
+    def test_build_refuses_a_stale_saved_state(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "state.json"
+            f.write_text(json.dumps({"generated_at": "2026-11-02 10:05 UTC"}))
+            r = subprocess.run([sys.executable, str(ROADMAP / "weekly" / "build.py"), d, "--state", str(f)], capture_output=True, text=True)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("6 h", r.stderr)
