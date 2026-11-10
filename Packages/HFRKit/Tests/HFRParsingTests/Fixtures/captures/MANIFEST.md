@@ -118,6 +118,13 @@ replaced by `192.0.2.1` like any IP. They document what that code answers. Each 
 bytes. The requests were built with the legacy body of LOT-055 ("Create (left out)": fields in the legacy order, `A-Za-z0-9._-` kept,
 other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`user7` and a forum URL that names no real topic.
 
+Run 16 (2026-11-10, `mac/m4-captures` batch `b611`, ezzz/HFRnow#611): the refusals run 13 left out, on a **new local instance** set up the same
+way (`roger21/toyo@96c0aea`, `aq/` unmodified, PHP 8.5.12, MariaDB 13.0.2, loopback address, the two tables of the published schema only, both
+clocks in UTC), never on the live service. Same legacy body (UTF-8 bytes percent-encoded), same base values as run 13, one field changed per
+state; the tables are emptied before each create, so every first AQ is `13636` and no flood is ever reached. `T72`-`T85` run under the
+database's default `sql_mode` (`STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION`), `T86`-`T90` with
+an empty `sql_mode` (no strict mode): the live database's mode is not known, so both are recorded.
+
 Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 requests): the two logins, then GETs only. The
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
@@ -431,6 +438,25 @@ not published (the `R13u1`, `R60a`, `R60b` shapes).
 | T68 | (meta only) | The next creation after `T67`: status 403, `Content-Length: 0`, `body_length` 0 (the client is blacklisted). `origin: local-instance` | #574 | 055, 134 |
 | T69 | `T69-aq-alerts-after-flood-local.xml` | The list of the first of the three topics of the flood, read after `T68`: `<alertes/>`. That this topic held an AQ before is a run observation (its create is not published). `origin: local-instance` | #574 | 055, 134 |
 | T71 | `T71-aq-alerts-no-topic-local.xml` | `GET /api/getAlertesByTopic.php` with no `topic_id`: `<alertes/>`. `origin: local-instance` | #574 | 055, 134 |
+| T72 | `T72-aq-create-comment-over-length-local.txt` | `commentaire` of 1025 characters (column: 1024), strict mode: body `-1` (the reporter insert fails; the AQ row stays behind, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T73 | `T73-aq-alerts-after-comment-over-length-local.xml` | The topic's list after `T72`: `<alertes/>`. `origin: local-instance` | #611 | 055, 134 |
+| T74 | `T74-aq-create-comment-at-length-local.txt` | `commentaire` of exactly 1024 characters: body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T75 | `T75-aq-create-accents-local.txt` | `nom`, `topic_titre` and `commentaire` with an accent (`é`, sent `%C3%A9`): body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T76 | `T76-aq-alerts-accents-local.xml` | The list after `T75`: `nom` in UTF-8, as sent (run observation; the committed file holds the redacted `nom` `x x x`). `origin: local-instance` | #611 | 055, 134 |
+| T77 | `T77-aq-create-nom-non-bmp-local.txt` | `nom` with U+1F600 (outside the BMP), strict mode: body `-1`, nothing stored (run observation). `origin: local-instance` | #611 | 055, 134 |
+| T78 | `T78-aq-create-comment-non-bmp-local.txt` | `commentaire` with U+1F600, strict mode: body `-1` (the AQ row stays behind, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T79 | `T79-aq-create-topic-id-not-numeric-local.txt` | `topic_id=abc`, strict mode: body `-1`. `origin: local-instance` | #611 | 055, 134 |
+| T80 | `T80-aq-create-post-id-not-numeric-local.txt` | `post_id=abc`, strict mode: body `-1`. `origin: local-instance` | #611 | 055, 134 |
+| T81 | `T81-aq-create-topic-id-out-of-range-local.txt` | `topic_id=99999999999` (over `int(11)`), strict mode: body `-1`. `origin: local-instance` | #611 | 055, 134 |
+| T82 | `T82-aq-create-before-additions-local.txt` | The create `T83` and `T84` add to: body `1` (AQ `13636`). `origin: local-instance` | #611 | 055, 134 |
+| T83 | `T83-aq-add-empty-pseudo-local.txt` | Addition to `13636` with an empty `pseudo`: body `-3`. `origin: local-instance` | #611 | 055, 134 |
+| T84 | `T84-aq-add-empty-alert-fields-local.txt` | Addition to `13636` with empty `nom`, `topic_id` and `topic_titre` (another pseudo and post): body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T85 | `T85-aq-alerts-after-additions-local.xml` | The list after `T84`: one AQ, `nom` (redacted) and `pseudoInitiateur` of `T82`, `postsIds` `700101,700102`. `origin: local-instance` | #611 | 055, 134 |
+| T86 | `T86-aq-create-comment-over-length-lax-local.txt` | `T72` with an empty `sql_mode`: body `1` (stored cut to 1024 characters, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T87 | `T87-aq-create-post-id-not-numeric-lax-local.txt` | `T80` with an empty `sql_mode`: body `1` (`post_id` stored `0`, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T88 | `T88-aq-create-topic-id-not-numeric-lax-local.txt` | `T79` with an empty `sql_mode`: body `1` (`topic_id` stored `0`, run observation). `origin: local-instance` | #611 | 055, 134 |
+| T89 | `T89-aq-create-nom-non-bmp-lax-local.txt` | `T77` with an empty `sql_mode`: body `1`. `origin: local-instance` | #611 | 055, 134 |
+| T90 | `T90-aq-alerts-nom-non-bmp-lax-local.xml` | The list after `T89`: `nom` `AQ local ????` in the run (committed redacted as `x x ????`), the character outside the BMP stored as four `?`. `origin: local-instance` | #611 | 055, 134 |
 | R97a | `R97a-apple-app-site-association.json` | `/.well-known/apple-app-site-association`: 200 `application/json`, old-format `applinks` with one App ID and paths `/`, `/hfr/*`, `/forum2.php*`, the same App ID in `webcredentials` | — | 095, FEAT-020 |
 | R98a | `R98a-hardware-fr-personal-data-page.html` | `www.hardware.fr/html/donnees_personnelles/` (footer link of every forum page): ISO-8859-1, GDPR rights incl. erasure, exercised by e-mail (address redacted) or by post to the DPO | — | 157 |
 | T10 | meta only | `https://nsa34.casimages.com/…jpg`: no DNS answer (status 0) | — | 056, 083 |
