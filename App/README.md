@@ -37,8 +37,8 @@ Signing is automatic with the team `QMG83DG7YP` and bundle id `hfrplus.red.super
 
 ## API keys (ADR 0007)
 
-The image-rehost key reaches the build through `App/Config/Shared.xcconfig`, which includes the untracked `App/Config/Secrets.xcconfig` when it exists, and `App/Config/Info-Keys.plist` (merged into the generated Info.plist: `RehostBaseURL`, `RehostAPIKey`, `GiphyBaseURL`, `GiphyAPIKey`). The Giphy key (`GIPHY_API_KEY`, base `GIPHY_BASE_URL`) is wired the same way.
+The image-rehost key reaches the build through `App/Config/Shared.xcconfig`, which includes the untracked `App/Config/Secrets.xcconfig` when it exists, and `App/Config/Info-Keys.plist` (merged into the generated Info.plist: `RehostBaseURL`, `RehostAPIKey`, `GiphyBaseURL`, `GiphyAPIKey`). The Giphy key (`GIPHY_API_KEY`, base `GIPHY_BASE_URL`) is wired the same way, and so is the moderators' address of the "Alerter" mail fallback (`MODERATOR_ALERT_MAIL_ADDRESS` → `ModeratorAlertMailAddress`, LOT-135, Q-10: empty, the fallback is off).
 
 - Local build: copy `App/Config/Secrets.xcconfig.example` to `App/Config/Secrets.xcconfig` and fill in the values (git-ignored; write `//` as `/$()/` in a URL).
-- No `Secrets.xcconfig` (fresh clone, CI tests): the build works, both values are empty and the composer hides image upload (LOT-102) and the GIF button (LOT-155).
+- No `Secrets.xcconfig` (fresh clone, CI tests): the build works, these values are empty and the composer hides image upload (LOT-102) and the GIF button (LOT-155).
 - CI/release builds that must upload need `REHOST_BASE_URL`, `REHOST_API_KEY`, `GIPHY_BASE_URL` and `GIPHY_API_KEY` written into `Secrets.xcconfig` from Actions secrets by the build job; the maintainer sets them.
