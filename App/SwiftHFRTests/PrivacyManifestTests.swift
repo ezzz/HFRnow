@@ -37,7 +37,11 @@ struct PrivacyManifestTests {
 
     @Test func infoPlistHasTheUsageStringsAndExportComplianceAnswer() throws {
         let info = try #require(Bundle.main.infoDictionary)
-        for key in ["NSCameraUsageDescription", "NSPhotoLibraryUsageDescription", "NSPhotoLibraryAddUsageDescription"] {
+        for key in [
+            "NSCameraUsageDescription", "NSPhotoLibraryUsageDescription", "NSPhotoLibraryAddUsageDescription",
+            // LOT-173: the app lock asks for Face ID.
+            "NSFaceIDUsageDescription"
+        ] {
             let text = try #require(info[key] as? String, "missing \(key)")
             #expect(!text.isEmpty)
         }

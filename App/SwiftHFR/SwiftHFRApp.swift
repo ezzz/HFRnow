@@ -15,6 +15,8 @@ struct SwiftHFRApp: App {
     @State private var general: GeneralSettingsModel
     /// The "Thème" settings: appearance and colours of every screen and of the reader (LOT-121).
     @State private var theme: ThemeSettingsModel
+    /// The optional Face ID / code lock, one for every scene (LOT-173).
+    @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -33,14 +35,19 @@ struct SwiftHFRApp: App {
                 .environment(accounts)
                 .environment(legacyImport)
                 .environment(general)
+                .environment(appLock)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme)
-                // The legacy import first (LOT-158), so the accounts it takes over are in the store; then the stored accounts
-                // and their sessions, once per launch (LOT-081).
+                // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
+                .appLockCover(appLock)
+                // The legacy import first (LOT-158), so the accounts it takes over are in the store; then what iCloud Keychain
+                // brought (LOT-173: a new device imports its accounts there); then the stored accounts and their sessions, once
+                // per launch (LOT-081).
                 .task {
                     await legacyImport.runAtLaunch()
+                    accounts.reconcileAccountSync()
                     await accounts.restore()
                 }
                 // An account became current (restore, login, switch): the import goes on with it until complete (LOT-067 D3),
@@ -55,7 +62,15 @@ struct SwiftHFRApp: App {
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }
-                    Task { await accounts.recheckUnconfirmedSessions() }
+                    Task {
+                        // What another device changed first, so the re-check sees the current accounts (LOT-173).
+                        accounts.reconcileAccountSync()
+                        await accounts.recheckUnconfirmedSessions()
+                    }
+                }
+                // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                 }
         }
     }

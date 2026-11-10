@@ -150,6 +150,7 @@ struct SettingsView: View {
                     ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
+            SecuritySettingsSections()
             MaintenanceSection(model: maintenance)
             Section("À propos") {
                 LabeledContent("Version", value: AppVersion.current.display)
@@ -189,4 +190,6 @@ struct SettingsDestinationView: View {
     ThemedNavigationStack { SettingsView() }
         .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
         .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+        .environment(AccountsModel.preview())
+        .environment(AppLockModel.preview())
 }

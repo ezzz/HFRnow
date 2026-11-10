@@ -17,7 +17,7 @@ Legacy has **no** account sync and **no** app lock: `git grep -n -i "LAContext\|
 
 ## Legacy counterpart (app lots)
 - `App/SwiftHFR/AppLock/AppLockModel.swift`, `AppLockCover.swift`: none @ 87fe0d1c.
-- `App/SwiftHFR/Accounts/AccountsModel+Sync.swift`, `AccountSyncSection.swift`: none @ 87fe0d1c.
+- `App/SwiftHFR/Accounts/AccountsModel+Sync.swift`, `App/SwiftHFR/Settings/SecuritySettingsSections.swift`: none @ 87fe0d1c.
 - The two rows of the settings screen: none @ 87fe0d1c (`HFRswift/Swift/AppSettingsView.swift` has neither).
 
 ## UX evolutions (app lots)
@@ -62,7 +62,7 @@ This settles the two second-order criteria of #312:
 ### Operations
 Every write to the synchronizable item is a read-compare-write: the item is read, the decision is made, the item is read again just before the write and the write happens only if it still holds the same bytes (Keychain has no conditional write: this narrows the window, the *Race repair* closes it).
 
-**Reconcile** (at launch before the accounts are read, at every foreground, and after every local change):
+**Reconcile** (at launch before the accounts are read, at every foreground, and, as the push, after every local change; only the launch and foreground reads can confirm a provisional bootstrap):
 
 | Switch | Item | Action |
 |---|---|---|
@@ -72,7 +72,7 @@ Every write to the synchronizable item is a read-compare-write: the item is read
 | on | tombstone, `deletedAt < enabledAt` | re-write this device's full envelope over it (superseded opt-out) |
 | on | full, `enabledAt >` mine | switch off (fail closed, ADR *Divergence*); provisional → delete the imported accounts |
 | on | full, `enabledAt <` mine | re-write this device's full envelope (raced or stale) |
-| on | full, equal `enabledAt` | merge; write the device-only item and the item when each changed; provisional and `enabledAt` = the bootstrap's → provisional ends (*confirming read*) |
+| on | full, equal `enabledAt` | merge; write the device-only item and the item when each changed; at launch or foreground, provisional and `enabledAt` = the bootstrap's → provisional ends (*confirming read*) |
 | off | full, `enabledAt <= honouredDeletedAt` | *Race repair*: re-write the tombstone `honouredDeletedAt` |
 | off, no local account | full with accounts, `enabledAt >` every known `deletedAt` | *Bootstrap*: import, switch on, adopt `enabledAt`, provisional, imported = its keys |
 | off, no local account | tombstone | `honouredDeletedAt = max(honouredDeletedAt, deletedAt)`; no device-only item |
@@ -82,29 +82,29 @@ Every write to the synchronizable item is a read-compare-write: the item is read
 
 **Switch off** (the user's toggle): writes the tombstone `deletedAt = max(now, enabledAt)` (a tie switches the other devices off) over whatever the item holds, records it as `honouredDeletedAt`, clears the switch, the stamps of removals and the provisional state. Provisional → deletes the imported accounts first. Never deletes an account entered on the device.
 
-**Local change** (login, re-login, refresh, removal written by `AccountsModel`): records the stamp (login: both dates; refresh: `credentialsAt`; removal: drops the stamp, and while on adds `removed[key]`), then reconciles. A login or re-login ends the provisional state (the device has accounts of its own). Choosing the main account is not a change (D3).
+**Local change** (login, re-login, refresh, removal written by `AccountsModel`; a refresh only when the stored copy really changed): records the stamp (login: both dates; refresh: `credentialsAt`; removal: drops the stamp, and while on adds `removed[key]`), then reconciles (the push). A login or re-login takes that account out of the imported set: it was entered on this device and is never dropped (D8). Choosing the main account is not a change (D3).
 
 ### Provisional bootstrap
-As ADR §6 *Bootstrap*: the imported accounts are deleted only if the device switches off (a tombstone, a later `enabledAt`, its own switch-off) **before** its first login or its first confirming read; accounts that a reconcile adds to the device while provisional are imported too. After that window a switch-off deletes nothing (*Late repair*, accepted residual risk).
+As ADR §6 *Bootstrap*, with one change (D8): the imported accounts are deleted only if the device switches off (a tombstone, a later `enabledAt`, its own switch-off) **before** its first confirming read (the next launch or foreground that finds the envelope it bootstrapped from). A login on the device does not end the window; it takes the account it logs in out of the imported set, so a provisional switch-off deletes the imported accounts only and keeps every account entered on the device (#312 acceptance criterion). The push of a local change is not a confirming read. After the window a switch-off deletes nothing (*Late repair*, accepted residual risk).
 
 ### App side
 - `AccountsModel` takes an optional `AccountSyncing` (the engine; nil in tests that do not need it). It reconciles before its first read at launch and at each foreground, and reports each successful store write (login, refresh, avatar, removal) to it.
 - A report that replaced or added accounts rebuilds their sessions from the stored cookies and checks them; a report that removed accounts drops their sessions; a switch-off by another device is shown once in the settings section ("La synchronisation a été désactivée sur un autre appareil.").
-- Settings, section "Comptes": the toggle "Synchroniser mes comptes via le trousseau iCloud" and its explanation (text below, to be reviewed by the operator before merge).
+- Settings, section "Comptes" (`SecuritySettingsSections`): the toggle "Synchroniser mes comptes via le trousseau iCloud" and its explanation (text below, to be reviewed by the operator before merge).
 
 > Vos comptes (cookies de session et jeton `hash_check`, jamais de mot de passe) sont copiés dans votre trousseau iCloud, chiffré de bout en bout par Apple, et apparaissent sur vos autres appareils où l'option est activée. Désactiver l'option retire la copie iCloud sur tous vos appareils ; chaque appareil garde les comptes qui y sont connectés.
 
 ## Behaviour — app lock
-- Settings, section "Sécurité": "Verrouiller l'app (Face ID / code)" (`app_lock_enabled`, device scope, default off) and "Verrouiller après" (`app_lock_grace_seconds`: 0 "Immédiatement" (default), 60 "1 minute", 300 "5 minutes"; any other value reads as 0). Device scope: a lock is a property of the device (ADR 0013 appendix E has no row for these keys yet; they follow its "device capability" rule).
+- Settings, section "Sécurité": "Verrouiller l'app (Face ID / code)" (`app_lock_enabled`, device scope, default off) and the picker "Verrouiller" (`app_lock_grace_seconds`: 0 "Immédiatement" (default), 60 "Après 1 minute", 300 "Après 5 minutes"; any other value reads as 0). Device scope: a lock is a property of the device (ADR 0013 appendix E has no row for these keys yet; they follow its "device capability" rule).
 - `LocalAuthentication`, policy `deviceOwnerAuthentication` (biometrics, then the device passcode). No PIN of our own. The toggle only turns on when the device can evaluate the policy (a passcode is set); otherwise it stays off with "Définissez un code sur l'appareil pour utiliser le verrouillage."
 - **When:** locked at launch when on; at each return to the foreground when the app spent at least the grace delay in the **background** (`inactive` alone, e.g. the Face ID sheet itself, Control Center, never locks). Turning the option on does not lock immediately.
-- **Cover:** one `AppLockModel` for the app, a cover over **every scene's** root view: shown while locked, and while the app is not `active` when the option is on (so the app switcher snapshot shows the cover, not a topic). The content stays mounted under the cover (no navigation, draft or scroll state lost) and is hidden from VoiceOver (`accessibilityHidden`) while covered; the cover is a modal element with one button "Déverrouiller". Reduce Motion: no transition animation.
+- **Cover:** one `AppLockModel` for the app; each scene gets a window of its own at level `.alert + 1` holding `AppLockCover`, so sheets and alerts are covered too. Shown while locked, and while the app is not `active` when the option is on (so the app switcher snapshot shows the cover, not a topic). The content stays mounted under the cover (no navigation, draft or scroll state lost) and is hidden from VoiceOver (`accessibilityHidden`) while covered; the cover is modal (`accessibilityViewIsModal`, `.isModal`) with one button "Déverrouiller". No animation at all: the cover must be in place before the system takes the snapshot, so Reduce Motion has nothing to reduce.
 - Authentication starts by itself once when the app becomes active while locked, never again after a failure or a cancel (no loop between the system sheet and the scene phase); the button retries. A failed or cancelled authentication keeps the cover. If the device no longer has a passcode (`passcodeNotSet`), the app unlocks (the lock has nothing to rely on; D6) and the option stays on.
 - The lock is UI only: nothing in the engine waits on it, so the background MP check (LOT-140) and the session checks run while locked.
 - `NSFaceIDUsageDescription` = "Utilisé pour déverrouiller l'app lorsque le verrouillage est activé." (both build configurations).
 
 ## Edge cases
-- Two items (accounts and state) cannot be written atomically. Order: switch-off writes the tombstone, then the state, then deletes imported accounts; a crash in between leaves the device off with its accounts (fail closed). Bootstrap writes the state (on, provisional) after the accounts: a crash in between leaves accounts and the switch off, which a later toggle merges.
+- Two items (accounts and state) cannot be written atomically. Order: switch-off writes the tombstone, then deletes the imported accounts of a provisional bootstrap, then writes the state; a crash in between leaves the device on with a tombstone to honour at the next read. Bootstrap writes the state (on, provisional) before the accounts: a crash in between leaves an "on" device without accounts, which merges them at the next read.
 - iCloud Keychain may deliver the envelope after the tombstone, or not at all: absence never acts, a raced envelope is repaired by any switched-off device.
 - A device whose switch is on but whose iCloud Keychain is off keeps writing an item that never leaves it: harmless; turning iCloud Keychain off is the user's choice.
 - The legacy import (LOT-158) and the LOT-157 wipe write the device-only item without going through `AccountsModel`: an account they add is shared at the next reconcile (it has no stamp: any removal marker beats it); an account the LOT-157 wipe removes must be reported as a removal (`AccountSyncing.localChange(.removed)`) or it comes back from the envelope at the next merge (noted on #312 by LOT-157; LOT-157 is not merged yet, so its PR wires it).
@@ -133,6 +133,8 @@ None: synthetic accounts with fake cookie values (`HFRModels` test helpers).
 - **D5** switch-on over a raced envelope (`enabledAt <= honouredDeletedAt`) treats it as a tombstone: a new `enabledAt`, this device's accounts only.
 - **D6** a device whose passcode was removed unlocks instead of locking the user out.
 - **D7** the ADR rules as written above (the maintainer confirms them here, ADR §6 last line).
+- **D8** a login during the provisional window does not end it (ADR §6 says it does): it only marks the logged-in account as the device's own, so a provisional switch-off still drops the lent accounts, as #312's acceptance criterion asks. The window ends at the first launch or foreground read that confirms the envelope.
+- **D9** ADR 0013 appendix E has no row for `app_lock_enabled` and `app_lock_grace_seconds`: they are catalogued `.device` (the device-capability rule); the row is an ADR edit left to the maintainer.
 
 ## Intentional differences from legacy
 New features; legacy had neither.
