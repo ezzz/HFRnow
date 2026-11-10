@@ -101,14 +101,14 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
   <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version, then M5 UX evolutions after the M4 parity; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
 </p>
 
-Figures from the live boards, snapshot 2026-11-09 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
+Figures from the live boards, snapshot 2026-11-10 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
 
 | Milestone | Live board | Lots done | Progress |
 |---|---|---|---|
 | 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 40 of 40 | 100 % |
 | 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 28 of 28 | 100 % |
 | ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 38 of 43 | 88 % |
-| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 5 of 31 | 16 % |
+| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 6 of 31 | 19 % |
 | 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 25 | 0 % |
 
 The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done. The M1 and M2 lot counts are complete, but both milestones also have exit checks (TestFlight builds, hand checks) that are not lots.
