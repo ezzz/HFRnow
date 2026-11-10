@@ -102,15 +102,18 @@ struct VideoPlayerSheetTests {
         let bad = try await load([], status: 401) { failures += 1 }
         defer { bad.server.stop() }
         for _ in 0..<3000 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(failures >= 1)
+        #expect(failures >= 1, "the 401 player reported \(failures) failure(s); wire heads: \(bad.server.requests.count) request(s)")
         var healthyFailures = 0
         let good = try await load([]) { healthyFailures += 1 }
         defer { good.server.stop() }
         // Wait for the request, then for the end of the load, before asserting that nothing was reported.
         for _ in 0..<3000 where good.webView.isLoading { try await Task.sleep(for: .milliseconds(10)) }
         try await Task.sleep(for: .milliseconds(300))
-        #expect(good.server.requests.count == 1 && !good.webView.isLoading)
-        #expect(healthyFailures == 0)
+        #expect(
+            good.server.requests.count == 1 && !good.webView.isLoading,
+            "healthy player: \(good.server.requests.count) request(s), isLoading=\(good.webView.isLoading)"
+        )
+        #expect(healthyFailures == 0, "healthy player reported \(healthyFailures) failure(s)")
         withExtendedLifetime((bad, good)) {}
     }
 
@@ -120,18 +123,26 @@ struct VideoPlayerSheetTests {
         #expect(VideoPlayerSheet.playerURL(for: item, failed: true) == nil)
     }
 
-    @MainActor @Test func aPlayerThatCannotBeReachedReportsIt() async throws {
-        // A loopback port that was open a moment ago and is closed now: the connection is refused at once, no network involved.
-        let closed = try RequestRecordingServer()
-        try await closed.ready()
-        let port = closed.port
-        closed.stop()
-        try await Task.sleep(for: .milliseconds(200))
-        var failures = 0
-        let coordinator = PlayerWebView.Coordinator(host: "127.0.0.1") { failures += 1 }
-        let webView = PlayerWebView.makeWebView(request: URLRequest(url: url("http://127.0.0.1:\(port)/x")), delegate: coordinator)
-        for _ in 0..<3000 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(failures >= 1)
-        withExtendedLifetime((webView, coordinator)) {}
+    /// The delegate's report rule, driven directly: no connection timing of the runner involved.
+    @MainActor @Test(arguments: [
+        (NSURLErrorDomain, NSURLErrorCannotConnectToHost, 1),
+        (NSURLErrorDomain, NSURLErrorNotConnectedToInternet, 1),
+        (NSURLErrorDomain, NSURLErrorTimedOut, 1),
+        (NSURLErrorDomain, NSURLErrorCancelled, 0),
+        ("WebKitErrorDomain", 102, 0)
+    ])
+    func aFailedLoadIsReportedOnceUnlessItWasCancelled(domain: String, code: Int, reports: Int) {
+        for provisional in [true, false] {
+            var failures = 0
+            let coordinator = PlayerWebView.Coordinator(host: "127.0.0.1") { failures += 1 }
+            let webView = WKWebView(frame: .zero)
+            let error = NSError(domain: domain, code: code)
+            if provisional {
+                coordinator.webView(webView, didFailProvisionalNavigation: nil, withError: error)
+            } else {
+                coordinator.webView(webView, didFail: nil, withError: error)
+            }
+            #expect(failures == reports, "\(domain) \(code) provisional=\(provisional): \(failures) report(s), expected \(reports)")
+        }
     }
 }
