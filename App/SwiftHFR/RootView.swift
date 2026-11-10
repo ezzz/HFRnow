@@ -20,8 +20,8 @@ struct RootView: View {
                 RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
                     .id(built.generation)
             } else if legacyImport.isRunning {
-                // The launch import runs before the accounts are read (LOT-158).
-                ProgressView("Import des données de HFR+…")
+                // The launch import runs before the accounts are read (LOT-158); the worker of #754.
+                LegacyImportProgressView(style: .animatedWorker)
             } else {
                 ProgressView()
             }
