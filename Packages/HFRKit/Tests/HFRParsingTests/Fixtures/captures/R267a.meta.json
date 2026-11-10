@@ -1,0 +1,16 @@
+{
+  "id": "R267a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/<cat>/<subcat>/<slug>-sujet_{post}_1.htm",
+  "url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 17:25:17 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "public topic page (R20's topic) after HFR's two-hop redirect, anonymous, for the signature separator (#267)",
+  "file": "R267a-topic-signature-separator-anon.html",
+  "private": false
+}
