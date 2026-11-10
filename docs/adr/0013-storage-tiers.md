@@ -132,6 +132,15 @@ Raised by the design review of LOT-172 part 2 (Fable 5.1) and decided by the ope
 - **Allowlist entries** keep the LOT-061 shape (`word`, `alias`, `mode`) and carry no date; the per-account lists carry `addedAt`. An empty list is a value: it is synced, so removing the last item reaches the other devices.
 - **Budget, measured**: the appendix's worst case, encoded as the stores write it (long pseudos, smiley codes and URLs, fractional-second dates), is about 293 KiB in 46 keys for five accounts with the settings, against the appendix's estimate of < 200 KiB (its 40 B per position was about a third of the real size). The bound is now < 320 KiB and ≤ 60 keys, checked by a LOT-172 test; Apple's limits are 1 MB and 1024 keys.
 
+## Amendment 3 — 2026-11-09: legacy import at the reference `2fe43da3` (LOT-067)
+
+Raised by the LOT-067 spec ([#703](https://github.com/ezzz/HFRnow/pull/703)) and decided by the operator (2026-11-09, [#92](https://github.com/ezzz/HFRnow/issues/92)). It replaces the draft and super-favourite parts of §5 step 1.
+
+- **Drafts.** `composerDraftText` was never persisted (`@State`, `MessagesView.swift:3081`, `MainWindow.swift:312` @ `2fe43da3`): §5's mapping to `DraftContext.legacyGlobal` had no source. The legacy Swift composer keeps one active draft per topic number (`reply_active_drafts_by_topic_v1`) and up to three archived drafts per topic (`reply_drafts_by_topic_v1`), keyed `post-<number>` without category or page (`AnswerView.swift:137-272`). Active drafts go to a **temporary device-only pending list** keyed by topic number; when a topic with that number opens, the entry becomes the ordinary reply draft of that topic (an existing SwiftHFR draft wins) and leaves the list, so the composer has no legacy logic and no new permanent `DraftContext` case exists. Entries expire 30 days after legacy saved them, like LOT-063 drafts. Archived drafts are **not imported**: they stay in `UserDefaults`, never deleted. The ObjC composer's single `brouillon` (`AddMessageViewController.m:69, 483`) goes to `.legacyGlobal`.
+- **Super-favourites.** Legacy stores the topic number alone (`Favorites.swift:132-157`). The numbers go to the **same pending mechanism**: at each favourites-list load, a pending number becomes a super-favourite in every category where the list shows it (legacy matched the number alone), then leaves the list; it is dropped after 90 days or when the user empties the super-favourites. One resolver (`LegacyPendingStore`) serves both lists.
+- **Account of the global items** (super-favourites, app smiley favourites, drafts): the legacy main account, the last one flagged `MAIN` (`MultisManager.m:168-176`); with no legacy account, they wait and go to the first account that logs in, once.
+- **Retirement.** The import code and the pending lists are removed in a later version, once the in-place update has shipped for long enough ([#708](https://github.com/ezzz/HFRnow/issues/708)).
+
 ## Alternatives rejected
 
 | Option | Why not |
