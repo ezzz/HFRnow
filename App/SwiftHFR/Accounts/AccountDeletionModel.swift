@@ -76,8 +76,7 @@ final class AccountDeletionModel {
     func retry() async {
         guard keychainItemPending, !isErasing else { return }
         phase = .erasing(name: Self.keychainTitle)
-        let deleted = removeKeychainItemIfEmpty()
-        phase = deleted ? .idle : .partial(name: Self.keychainTitle, failures: [Self.keychainTitle])
+        phase = removeKeychainItemIfEmpty() ? .idle : .refused(message: Self.keychainFailure)
     }
 
     /// Reads which account keys still have data without a stored account. None while the account store cannot be read
@@ -87,6 +86,8 @@ final class AccountDeletionModel {
             leftovers = []
             return
         }
+        // An empty item left by an earlier refusal, a relaunch ago, or by "Retirer" on the last account: deleted here too.
+        if !isErasing { _ = removeKeychainItemIfEmpty() }
         let keys = await eraser.accountKeys()
         guard accounts.storeProblem == nil else {
             leftovers = []
@@ -123,5 +124,6 @@ final class AccountDeletionModel {
     }
 
     private static let keychainTitle = "l’élément du trousseau"
+    private static let keychainFailure = "L’élément vide du trousseau n’a pas pu être supprimé. Réessayez."
     private static let genericFailure = "Le compte n’a pas pu être retiré. Réessayez."
 }

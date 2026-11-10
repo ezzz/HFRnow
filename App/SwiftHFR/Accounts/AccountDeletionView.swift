@@ -82,8 +82,9 @@ struct AccountDeletionView: View {
     private static let erasedItems = "Le compte est retiré de l’app avec sa session, ses brouillons, sa liste noire, "
         + "ses positions de lecture, ses super-favoris et ses smileys favoris. Le compte HFR lui-même n’est pas supprimé."
 
-    private static let leftoverItems = "Ce compte n’est plus dans l’app, mais des données sont restées sur l’appareil. "
-        + "Le compte HFR lui-même n’est pas supprimé."
+    private static let leftoverItems = "Ce compte n’est plus dans l’app, mais des données sont restées sur l’appareil : "
+        + "brouillons, liste noire, positions de lecture, super-favoris ou smileys favoris. Le compte HFR lui-même n’est pas "
+        + "supprimé."
 
     @ViewBuilder
     private var result: some View {
@@ -103,13 +104,13 @@ struct AccountDeletionView: View {
                 systemImage: "exclamationmark.triangle.fill"
             )
             .foregroundStyle(.red)
-            if deletion.keychainItemPending {
-                Button("Réessayer") { Task { await deletion.retry() } }
-                    .disabled(deletion.isErasing)
-            }
         case .refused(let message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
+        }
+        if deletion.keychainItemPending {
+            Button("Réessayer de supprimer l’élément du trousseau") { Task { await deletion.retry() } }
+                .disabled(deletion.isErasing)
         }
     }
 
