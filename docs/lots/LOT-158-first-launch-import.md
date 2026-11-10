@@ -87,7 +87,7 @@ One instance per file for the whole process (two actors over a file would write 
 
 ## Edge cases
 
-- Keychain locked at launch (`sourceUnavailable` on `accounts`): the summary says it will be retried; "Réessayer" or the next launch imports the accounts, and the account list is read again when a later run imported accounts (`AccountsModel.retryRestore`).
+- Keychain locked at launch (`sourceUnavailable` on `accounts`): the summary says it will be retried; "Réessayer" or the next launch imports the accounts, and the account list is read again when a later run imported accounts (`AccountsModel.readStoreAgain`: it waits for a restore in progress, which may have read the store before the import wrote it, then reads again).
 - No legacy account: the global items wait (`waitingForAccount`, no summary for that alone) and go to the first account that becomes current (D3).
 - A SwiftHFR account already stored (a beta used before the update): kept as it is; the legacy main does not replace it (LOT-067).
 - The app killed during the import: the engine reruns the unfinished steps at the next launch (LOT-067).
@@ -105,8 +105,9 @@ None: no HFR page. The model tests use a scripted importer and in-memory stores;
 ## Tests
 
 `App/SwiftHFRTests/LegacyImport/`:
-- `LegacyImportModelTests` (11): the launch run happens once and names no account; nothing to import, only waiting steps, or a complete import stay silent; an import or refused items show the summary; a retry runs with the current account, keeps what the first run imported and refreshes the same sheet; a later failure shows a closed sheet again, a later run that only finds steps done does not; an account change runs only while incomplete and with an account; a run says when it imported accounts; overlapping runs keep `isRunning` until the last ends.
+- `LegacyImportModelTests` (11): the launch run happens once and names no account; nothing to import, only waiting steps, or a complete import stay silent; an import or refused items show the summary; a retry runs with the current account, keeps what the first run imported and refreshes the same sheet; a later failure shows a closed sheet again, a later run that only finds steps done does not; an account change runs only while incomplete and with an account; a run says when it imported accounts, and a retry that finds nothing refreshes the open sheet; overlapping runs keep `isRunning` until the last ends.
 - `LegacyImportSummaryTests` (9): each step's wording and order, singular and plural; failures and waiting steps; an unreadable source offers no retry; the switch is never shown; the page-cache row only with data, its failure never offers a retry; `alreadyDone` never replaces an earlier result while a later outcome does; refused items add up.
+- `AccountsReadAgainTests` (1): an account written while the launch restore runs is listed after `readStoreAgain`.
 - `LegacyPendingPlacementTests` (5): pending super-favourites placed in every category the loaded favourites list shows, through `TopicListModel.loadIfNeeded`, the unlisted one kept; nothing without an account; the composer starts on the legacy draft; an existing SwiftHFR draft wins; a delivered reader page makes the legacy draft the topic's reply draft.
 
 The model and summary suites also run on Linux in a scratch package over these files and HFRKit (the app cannot build there): 20 tests green, and 9 mutations each caught (the launch guard, the completeness guard, `alreadyDone` replacing a result, the page cache or the switch counted as data, a retry offered for the page cache, the summary always shown, the accounts flag, the run counter). `LegacyImportServices` and the body of `placePendingSuperFavorites` were type-checked there against HFRKit with the app's stores stubbed. The placement suite needs the app target: CI and the Mac run it.
@@ -118,7 +119,8 @@ The model and summary suites also run on Linux in a scratch package over these f
 3. LOT-067 M1: the real `HFR_COMPTES_KEY` decodes (and whether `NSHTTPCookie` decodes with secure coding).
 4. Favoris tab: the legacy super-favourites appear in the "Super favoris" section of every category listing their number; open a topic with a legacy draft: "Répondre" shows it.
 5. Second launch: no summary.
-6. Device locked before the first launch (background launch): `accounts` retried, then imported.
+6. Device locked before the first launch (background launch): `accounts` retried, then imported and listed.
+7. No legacy account, log in from the login sheet: the summary (if the global items imported something) shows once the login sheet is gone, not under it.
 
 ## Intentional differences from legacy
 
@@ -127,3 +129,5 @@ None in behaviour: legacy had no import. Super-favourites and drafts are matched
 ## Learnings
 
 To copy into AGENTS.md §11 when the lot closes.
+- A `KeychainCredentialStore`'s lock is per instance: every writer of the accounts item shares `LiveCredentials.store`, as every small store has one instance per file (Fable round 1 on #720).
+- `AccountsModel.retryRestore()` only waits for a restore in progress: a writer that changed the store meanwhile needs `readStoreAgain()`.

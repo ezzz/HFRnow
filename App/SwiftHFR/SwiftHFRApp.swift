@@ -47,7 +47,7 @@ struct SwiftHFRApp: App {
                 // and the account list is read again when it took accounts over.
                 .onChange(of: accounts.current?.id) { _, account in
                     Task {
-                        if await legacyImport.accountDidChange(to: account) { await accounts.retryRestore() }
+                        if await legacyImport.accountDidChange(to: account) { await accounts.readStoreAgain() }
                     }
                 }
                 // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).

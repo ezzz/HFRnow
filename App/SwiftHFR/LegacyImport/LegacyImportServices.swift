@@ -22,8 +22,8 @@ enum LegacyImportServices {
                 accounts: KeychainLegacyAccountSource(service: bundleID)
             ),
             destinations: LegacyImportDestinations(
-                // The item `AccountsModel.live()` reads; the store keeps no state between calls.
-                credentials: KeychainCredentialStore(service: bundleID),
+                // The instance `AccountsModel.live()` writes through: its lock serializes the two writers.
+                credentials: LiveCredentials.store,
                 pseudoLists: PseudoListsSnapshot.liveStore,
                 superFavorites: FavoritesStores.shared.superFavorites,
                 layout: FavoritesStores.shared.layout,

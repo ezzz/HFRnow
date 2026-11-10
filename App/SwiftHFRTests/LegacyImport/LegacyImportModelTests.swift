@@ -108,7 +108,10 @@ struct LegacyImportModelTests {
         ])
         let model = LegacyImportModel(importer: importer)
         await model.runAtLaunch()
+        #expect(model.summary?.canRetry == true)
         #expect(await model.retry(currentAccount: nil) == false)
+        // The open sheet is refreshed by a retry that finds nothing: the failure and its button go.
+        #expect(model.summary?.canRetry == false)
         #expect(await model.retry(currentAccount: nil) == true)
     }
 

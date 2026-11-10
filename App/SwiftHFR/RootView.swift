@@ -31,7 +31,7 @@ struct RootView: View {
         .sheet(item: Bindable(legacyImport).summary) { summary in
             LegacyImportSummaryView(opened: summary, model: legacyImport) {
                 Task {
-                    if await legacyImport.retry(currentAccount: accounts.current?.id) { await accounts.retryRestore() }
+                    if await legacyImport.retry(currentAccount: accounts.current?.id) { await accounts.readStoreAgain() }
                 }
             }
         }
