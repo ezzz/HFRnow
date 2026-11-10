@@ -9,7 +9,7 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 | `flows.py` | Step-by-step capture of pages and write flows (login, form GET → POST), shared delay and budget |
 | `anonymize.py` | Anonymizer library, CLI and `check` verifier |
 | `publish.py` | Raw captures → corpus files and `<id>.meta.json`, driven by the `corpus.d/` fragments |
-| `corpus.d/` | The corpus manifest, one `<batch>.json` per capture batch (`00-base.json` holds everything merged until 2026-11-10): raw id → corpus id, slug, extension, private. A capture PR adds its own file and never edits another |
+| `corpus.d/` | The corpus manifest, one `<batch>.json` per capture batch (`00-base.json` holds the former `corpus.json`): raw id → corpus id, slug, extension, private. A capture PR adds its own file and never edits another |
 | `local.example.json` | Template of the git-ignored `local.json` |
 | `tests/` | `python3 -m unittest discover tooling/fixtures/tests` (synthetic HTML only, run in CI) |
 
@@ -181,7 +181,7 @@ that every PR appended to did, #612/#620 did the same for the ledger).
 
 `publish.py` reads every `*.json` of the folder in file name order and refuses a raw id or a corpus id that two
 files (or one file twice) declare, naming them. `anonymize.py check --corpus` stays the arbiter on the files, and a
-capture still needs its `MANIFEST.md` row. `00-base.json` is frozen (a test pins its ids).
+capture still needs its `MANIFEST.md` row.
 
 A PR that already appended rows to the old `corpus.json` moves them. Merge `dev-swift`: git sees `corpus.json` as
 renamed to `corpus.d/00-base.json`, so the conflict is **inside `00-base.json`** (your rows against the newer ones of

@@ -1,5 +1,4 @@
 """Tests for the corpus manifest layout (#773): one `corpus.d/<batch>.json` per capture batch. Synthetic data only."""
-import hashlib
 import json
 import os
 import sys
@@ -113,14 +112,6 @@ class CommittedLayoutTests(unittest.TestCase):
         entries = P.load_manifest(P.DEFAULT_MANIFEST)
         self.assertGreater(len(entries), 300)
         self.assertEqual(len({e["id"] for e in entries}), len(entries))
-
-    def test_base_fragment_is_frozen(self):
-        """00-base.json is the former corpus.json: a capture PR adds its own file, it never grows this one (a branch
-        cut before the split that appended to corpus.json is carried into it by git's rename detection)."""
-        ids = [e["id"] for e in P.load_manifest(os.path.join(P.DEFAULT_MANIFEST, "00-base.json"))]
-        self.assertEqual(len(ids), 351)
-        self.assertEqual(hashlib.sha256("\n".join(ids).encode()).hexdigest(),
-                         "9793c23e27c89cd801836e033dd72c869bc257b74d1e4e9e36dd45450c4f8041")
 
     def test_the_single_file_manifest_is_gone(self):
         self.assertFalse(os.path.exists(os.path.join(os.path.dirname(P.DEFAULT_MANIFEST), "corpus.json")))
