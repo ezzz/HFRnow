@@ -99,6 +99,12 @@ opened; user1's MP list read before any reply (`R336`), after one user2 reply (`
 Both accounts then deleted the thread with `W64`'s and `W65`'s body (not published) and the lists were read again: nothing of the thread is left on HFR (run observation, as the answers and those lists are not published).
 Three messages, no edit POST, no retry.
 
+Run 17 (2026-11-10, `mac/m4-captures` batch `b610`, ezzz/HFRnow#610, private MP writes between the two kit accounts only, one request per minute):
+user2 creates `fixture-test-5` for user1 (`W610a`), then user1 creates `fixture-test-6` for user2 (`W610b`), so the first thread sits lower in
+user1's list (`R610a`). user2 then replies on `fixture-test-5` (`W610c`, list `R610b`) and on `fixture-test-6`, which it did not create (`W610d`,
+user1's list `R610c`, user2's list `R610d`). Both accounts then deleted both threads with `W64`'s body (answers not published). Two new
+messages and two replies, no retry. The composer pages read before each POST are not published (the `R47b` and `W138` shapes).
+
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
 published AQ server (`roger21/toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
@@ -352,6 +358,14 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R337 | `R337-mp-list-recipient-unread-after-reply.html` | user1's list after `W139`, thread still unopened: same row, same position and same icon; now a `[non lu]` span ("Ce message n'a pas été lu par : user2"), `sujetCase7` 1, last post `13:47` by user2 | #567, R13 | 140, 023 |
 | W140 | `W140-mp-reply-unread-conversation-second-success.html` | user2's second reply (third message of the thread): same success answer | #567 | 140, 048 |
 | R338 | `R338-mp-list-recipient-unread-after-second-reply.html` | user1's list after `W140`: same row, icon and `[non lu]` span as `R337`, `sujetCase7` 2, last post `13:48` by user2 | #567, R13 | 140, 023 |
+| W610a | `W610a-mp-create-thread-a-success.html` | New MP user2 → user1 `fixture-test-5`: "Votre message a été posté avec succès !" (the `W138` shape) | #610 | 140, 048 |
+| W610b | `W610b-mp-create-thread-b-success.html` | New MP user1 → user2 `fixture-test-6`, three minutes later: the same success answer | #610 | 140, 048 |
+| R610a | `R610a-mp-list-recipient-before-reply-older-row.html` | user1's list before any reply: `fixture-test-6` row 1 (`closedp.gif`, `[non lu]` for user2), another conversation row 2, `fixture-test-5` row 3 (`closedp.gif` "Pas de nouveau message", no `[non lu]`, `sujetCase7` 0) | #610, R13 | 140, 023 |
+| W610c | `W610c-mp-reply-older-row-success.html` | user2 replies on `fixture-test-5`: "Votre réponse a été postée avec succès !" | #610 | 140, 048 |
+| R610b | `R610b-mp-list-recipient-after-reply-older-row.html` | user1's list after `W610c`: `fixture-test-5` moved from row 3 to row 1, `closedbp.gif` "Nouveau message", `[non lu]`, `sujetCase7` 1 | #610, R13 | 140, 023 |
+| W610d | `W610d-mp-reply-by-non-creator-success.html` | user2 replies on `fixture-test-6`, which user1 created: the same success answer | #610 | 140, 048 |
+| R610c | `R610c-mp-list-creator-after-non-creator-reply.html` | The creator's (user1's) list after `W610d`: `fixture-test-6` now above `fixture-test-5` (row 2, under a conversation posted the same minute), `closedbp.gif`, `sujetCase7` 1 | #610, R13 | 140, 023 |
+| R610d | `R610d-mp-list-replier-after-own-replies.html` | user2's list after both replies (3 rows): both threads in last-post order, both `closedbp.gif` "Nouveau message" and `[non lu]` for user1, although user2 posted their last messages | #610, R13 | 140, 023 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |

@@ -165,7 +165,10 @@ struct HopResponseParserTests {
         "W130-mp-create-leading-newline-success", "W131-mp-thread-delete-owner-unread-recipient-success",
         // New MP and two replies on a conversation the recipient never opened (#567).
         "W138-mp-create-unread-conversation-success", "W139-mp-reply-unread-conversation-success",
-        "W140-mp-reply-unread-conversation-second-success"
+        "W140-mp-reply-unread-conversation-second-success",
+        // Two new MPs and two replies around older rows of the MP list (#610).
+        "W610a-mp-create-thread-a-success", "W610b-mp-create-thread-b-success", "W610c-mp-reply-older-row-success",
+        "W610d-mp-reply-by-non-creator-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
         // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
         // (`HopResponseAlertTests`).
