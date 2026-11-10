@@ -49,7 +49,7 @@ enum AccessibleColors {
         case (.badgeText, false): .white
         case (.badgeText, true): .black
         case (.errorText, false): RGB(red: 176, green: 0, blue: 32)
-        case (.errorText, true): RGB(red: 255, green: 105, blue: 97)
+        case (.errorText, true): RGB(red: 255, green: 130, blue: 122)
         case (.warningText, false): RGB(red: 150, green: 70, blue: 0)
         case (.warningText, true): RGB(red: 255, green: 179, blue: 64)
         }

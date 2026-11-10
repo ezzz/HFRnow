@@ -14,6 +14,8 @@ struct ForumSearchView: View {
     let reader: ReaderServices
     let composer: ComposerServices?
     @FocusState private var fieldFocused: Bool
+    /// "Annuler" ended the load: no result to announce (the loader keeps the previous value).
+    @State private var cancelledLoad = false
 
     var body: some View {
         List {
@@ -33,6 +35,7 @@ struct ForumSearchView: View {
         .onChange(of: model.loader.isLoading) { wasLoading, isLoading in
             // The results land below the focused field: announce them (a search is a wait with no other cue).
             guard wasLoading, !isLoading else { return }
+            guard !cancelledLoad else { cancelledLoad = false; return }
             if let error = model.loader.error {
                 AccessibilityNotification.Announcement(error.title).post()
             } else if let content = model.loader.value {
@@ -104,7 +107,7 @@ struct ForumSearchView: View {
             Section {
                 HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
                     .accessibilityElement(children: .combine)
-                Button("Annuler") { model.cancel() }
+                Button("Annuler") { cancelledLoad = true; model.cancel() }
             }
         } else if let error = loader.error {
             Section {
@@ -155,7 +158,5 @@ private struct SearchResultRow: View {
                 Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
             }
         }
-        // One element per result: the title and its excerpt read together.
-        .accessibilityElement(children: .combine)
     }
 }

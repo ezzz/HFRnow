@@ -27,7 +27,7 @@ Screens: forum list (Catégories), topic list (Favoris, forum topics) and its ro
 | Contrast ≥ 4.5:1 | capsules 1.5:1 (#646) and 1.7:1; red/orange text 2.2–3.6:1 | `AccessibleColors` (computed and tested ratios), `BadgeCapsule`, `StatusLabel` |
 | 44 pt targets | section fold chevron 32×28; banner dismiss buttons glyph-sized | 44×44 |
 | Reduce Motion | none of these screens animates by hand (grep `withAnimation`, `.animation`, `.transition`: no hit) | none needed |
-| Async announcements | sent-confirmation banners, failure banner, login error, search outcome were silent | `AccessibilityNotification.Announcement` |
+| Async announcements | sent-confirmation banners, login error, search outcome were silent | `AccessibilityNotification.Announcement`, posted on change (not on appear), none after "Annuler". The load-failure banner is not announced (a reliable trigger needs a failure counter in the models): follow-up |
 
 ## Edge cases
 - The outlined capsule sits on the row's own background: unread MP rows are tinted, and the outlined state only shows on read rows, so it is drawn on the plain card (tested on white, black and the two grouped greys).
