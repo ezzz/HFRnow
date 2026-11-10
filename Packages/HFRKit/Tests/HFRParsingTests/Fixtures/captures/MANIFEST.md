@@ -156,6 +156,7 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R42 | `R42-multiquote-form-cookie.html` | Composer with cookie `quoteshardwarefr-13-<post>=\|a\|b`: two `[quotemsg]` blocks prefilled | R42 | 049 |
 | R45a | `R45a-new-topic-form.html` | New-topic form `/hfr/Discussions/nouveau_sujet.htm`: `sujet`, `toread1..5`, `subcat` select | R45 | 036, 048 |
 | R45b | `R45b-new-mp-form.html` | New-MP form (`dest` prefilled), never submitted | R45 | 036, 048 |
+| R170a | `R170a-new-poll-form.html` | New-poll form `/hfr/Discussions/nouveau_sondage.htm` (user1, never submitted, #170): the `R45a` form with hidden `sond=1` and the shown `div#sondagediv`: `textreponse0` (question), `textreponse1`-`10` (answers, 255 each), `allowvisitor`, `max_votes` 1-10, closing date `jour`/`mois`/`annee`/`heure`/`minute`; no `have_sondage` input | R45 | 100, 036 |
 | R46 | `R46-modo-alert-form.html` | Moderator alert form, GET only, never submitted | R46 | 036, 050 |
 | R53a | `R53a-smiley-search-no-result.html` | Smiley search, no result: 40-byte text "Désolé, aucune réponse n'a été trouvée !" | R53 | 005, 025, 053 |
 | R53b | `R53b-smiley-search-one-word.html` | One word: 657 smileys | R53 | 005, 025, 053 |
