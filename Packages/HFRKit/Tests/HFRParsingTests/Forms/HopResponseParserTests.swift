@@ -165,7 +165,9 @@ struct HopResponseParserTests {
         "W130-mp-create-leading-newline-success", "W131-mp-thread-delete-owner-unread-recipient-success",
         // New MP and two replies on a conversation the recipient never opened (#567).
         "W138-mp-create-unread-conversation-success", "W139-mp-reply-unread-conversation-success",
-        "W140-mp-reply-unread-conversation-second-success"
+        "W140-mp-reply-unread-conversation-second-success",
+        // MPStorage creation and write (#440): the ordinary new-MP and edit successes. `W440c` (another account's message) is a refusal.
+        "W440a-mpstorage-create-success", "W440b-mpstorage-write-unchanged-success"
         // Not here although HFR accepted them: W42 (poll vote, no "avec succès") is a success under `.pollVote` only
         // (`HopResponsePollVoteTests`); W46 (moderator alert, back link and no refresh) under `.alertSubmit` only
         // (`HopResponseAlertTests`).

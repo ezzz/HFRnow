@@ -110,6 +110,14 @@ Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 r
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
 
+Run 19 (2026-11-10, `mac/m4-captures` batch `b440`, ezzz/HFRnow#440, operator decisions of that day): the MPStorage answers LOT-052 assumed.
+The storage creation from user2 to `MultiMP` (`W440a`, legacy's body, `MPStorage.m:738-746` @ `87fe0d1c`) was sent by the main session, the one
+exception to N01 for this run. Then, on that new storage thread, user2's edit POST with the document unchanged (`W440b`); user1's GET of user2's
+storage edit form (`R440a`); user2's delete of its storage thread (`W64`'s body, answer "Action effectuée avec succès", not published) and the
+same edit-form URL afterwards, by user2 (`R440b`) and by user1 (`R440c`); last, user2's edit POST of user1's first message in `fixture-test-9`
+(`W440c`, user1's thread, both kit accounts). Kit accounts only, one request per minute. The list, thread and form pages read along the way are
+not published (the `R13u1`, `R60a`, `R60b` shapes).
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -352,6 +360,12 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R337 | `R337-mp-list-recipient-unread-after-reply.html` | user1's list after `W139`, thread still unopened: same row, same position and same icon; now a `[non lu]` span ("Ce message n'a pas été lu par : user2"), `sujetCase7` 1, last post `13:47` by user2 | #567, R13 | 140, 023 |
 | W140 | `W140-mp-reply-unread-conversation-second-success.html` | user2's second reply (third message of the thread): same success answer | #567 | 140, 048 |
 | R338 | `R338-mp-list-recipient-unread-after-second-reply.html` | user1's list after `W140`: same row, icon and `[non lu]` span as `R337`, `sujetCase7` 2, last post `13:48` by user2 | #567, R13 | 140, 023 |
+| W440a | `W440a-mpstorage-create-success.html` | Storage creation: `bddpost.php` of the new-MP form with `dest=MultiMP` (aliased in the meta, as every pseudo), `sujet` = the storage subject and legacy's empty document, from user2 (no storage thread): "Votre message a été posté avec succès !", the `W10` answer | #440 | 052 |
+| W440b | `W440b-mpstorage-write-unchanged-success.html` | Storage write: `bdd.php` of the storage first-post edit form (`R60b` shape), document unchanged: "Votre message a été édité avec succès !", the `W15` answer | #440 | 052 |
+| R440a | `R440a-mpstorage-edit-form-other-account.html` | user1 GETs the edit-form URL of user2's storage first post (`R60b` URL), thread live: 200, no form, `.hop` "Ce message ne vous est pas destiné, désolé" (`RA5`) | #440 | 052 |
+| R440b | `R440b-mpstorage-edit-form-deleted-owner.html` | The same URL by user2 after deleting its storage thread: 200, no form, the same "Ce message ne vous est pas destiné, désolé" | #440 | 052 |
+| R440c | `R440c-mpstorage-edit-form-deleted-other-account.html` | The same URL by user1 after that delete: the same answer as `R440a` | #440 | 052 |
+| W440c | `W440c-mp-edit-post-other-account-message-refused.html` | user2 POSTs `bdd.php` (its own `R60b`-shaped edit form with `post`/`numreponse` of user1's first message in `fixture-test-9`, `sujet` `fixture-test-9`): refused, "Vous n'avez pas les droits pour éditer ce message !", no success sentence | #440 | 037, 048, 052 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |
