@@ -1,0 +1,370 @@
+[
+{
+"type": "cameraUpdate",
+"width": 1200,
+"height": 900,
+"x": 0,
+"y": -10
+},
+{
+"type": "text",
+"id": "t",
+"x": 300,
+"y": 20,
+"text": "Le cycle d'un changement, de l'intention à la leçon",
+"fontSize": 30
+},
+{
+"type": "rectangle",
+"id": "s1",
+"x": 40,
+"y": 110,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#fff3bf",
+"fillStyle": "solid",
+"strokeColor": "#f59e0b",
+"label": {
+"text": "1. Intention\nuser story, erreurs,\ndéfinition de fini",
+"fontSize": 20
+}
+},
+{
+"type": "rectangle",
+"id": "s2",
+"x": 330,
+"y": 110,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#c3fae8",
+"fillStyle": "solid",
+"strokeColor": "#06b6d4",
+"label": {
+"text": "2. Issue prête\nlabels, doublons,\ndépendances",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "b1",
+"x": 290,
+"y": 170,
+"width": 40,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+40,
+0
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "s3",
+"x": 620,
+"y": 110,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#a5d8ff",
+"fillStyle": "solid",
+"strokeColor": "#4a9eed",
+"label": {
+"text": "3. Lot en TDD\ntest rouge, code, vert\nagent nommé",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "b2",
+"x": 580,
+"y": 170,
+"width": 40,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+40,
+0
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "s4",
+"x": 910,
+"y": 110,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#ffd8a8",
+"fillStyle": "solid",
+"strokeColor": "#f59e0b",
+"label": {
+"text": "4. Revues\nleçons, adversariale,\nconformité",
+"fontSize": 18
+}
+},
+{
+"type": "arrow",
+"id": "b3",
+"x": 870,
+"y": 170,
+"width": 40,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+40,
+0
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "lp",
+"x": 1035,
+"y": 230,
+"width": -290,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+0,
+40
+],
+[
+-290,
+40
+],
+[
+-290,
+0
+]
+],
+"endArrowhead": "arrow",
+"strokeColor": "#ef4444",
+"strokeStyle": "dashed",
+"label": {
+"text": "constats : 1 commit par cycle, 3 cycles max",
+"fontSize": 16
+}
+},
+{
+"type": "rectangle",
+"id": "s5",
+"x": 910,
+"y": 360,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#d0bfff",
+"fillStyle": "solid",
+"strokeColor": "#8b5cf6",
+"label": {
+"text": "5. PR prête\nCI complète,\nverdicts tracés",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "b4",
+"x": 1100,
+"y": 230,
+"width": 0,
+"height": 130,
+"points": [
+[
+0,
+0
+],
+[
+0,
+130
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "s6",
+"x": 620,
+"y": 360,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#ffc9c9",
+"fillStyle": "solid",
+"strokeColor": "#ef4444",
+"label": {
+"text": "6. CI\ntests, SAST, SCA,\nsecrets, revue IA",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "b5",
+"x": 910,
+"y": 420,
+"width": -40,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+-40,
+0
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "s7",
+"x": 330,
+"y": 360,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#b2f2bb",
+"fillStyle": "solid",
+"strokeColor": "#22c55e",
+"label": {
+"text": "7. Merge\nselon la politique\ndu projet",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "b6",
+"x": 620,
+"y": 420,
+"width": -40,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+-40,
+0
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "rectangle",
+"id": "s8",
+"x": 40,
+"y": 360,
+"width": 250,
+"height": 120,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#eebefa",
+"fillStyle": "solid",
+"strokeColor": "#ec4899",
+"label": {
+"text": "8. Mesure\nPR à problème, effort,\nboucles, coût",
+"fontSize": 20
+}
+},
+{
+"type": "arrow",
+"id": "b7",
+"x": 330,
+"y": 420,
+"width": -40,
+"height": 0,
+"points": [
+[
+0,
+0
+],
+[
+-40,
+0
+]
+],
+"endArrowhead": "arrow"
+},
+{
+"type": "arrow",
+"id": "b8",
+"x": 165,
+"y": 360,
+"width": 0,
+"height": -130,
+"points": [
+[
+0,
+0
+],
+[
+0,
+-130
+]
+],
+"endArrowhead": "arrow",
+"strokeColor": "#ec4899",
+"label": {
+"text": "leçons",
+"fontSize": 18
+}
+},
+{
+"type": "rectangle",
+"id": "n1",
+"x": 40,
+"y": 560,
+"width": 1120,
+"height": 150,
+"roundness": {
+"type": 3
+},
+"backgroundColor": "#f8f9fa",
+"fillStyle": "solid",
+"strokeColor": "#757575",
+"strokeWidth": 1,
+"label": {
+"text": "Un écart à une étape se règle à cette étape :\ndécision produit manquante (à clarifier, on ne code pas), test vert sans le changement (refusé),\nboucle de CI ou de revue (arrêt, diagnostic, réaffectation), leçon déjà connue (resserrer l'auto-relecture)",
+"fontSize": 18
+}
+}
+]

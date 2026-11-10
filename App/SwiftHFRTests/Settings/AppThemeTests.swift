@@ -10,9 +10,9 @@ import UIKit
 @Suite(.serialized)
 struct AppThemeTests {
     /// A UIKit view inside the SwiftUI tree, as the reader's `WKWebView` is.
-    private final class Probe: UIView {}
+    final class Probe: UIView {}
 
-    private struct ProbeView: UIViewRepresentable {
+    struct ProbeView: UIViewRepresentable {
         let probe: Probe
         func makeUIView(context: Context) -> Probe { probe }
         func updateUIView(_ uiView: Probe, context: Context) {}
@@ -25,7 +25,7 @@ struct AppThemeTests {
         var body: some View { ProbeView(probe: probe).appTheme(model) }
     }
 
-    private func until(_ condition: () -> Bool) async -> Bool {
+    func until(_ condition: () -> Bool) async -> Bool {
         for _ in 0..<500 {
             if condition() { return true }
             try? await Task.sleep(for: .milliseconds(20))
@@ -63,5 +63,147 @@ struct AppThemeTests {
         #expect(await until { tintIsAccent() }, "tint after the switch")
         model.mode = .system
         #expect(await until { probe.traitCollection.userInterfaceStyle == system }, "automatic theme did not follow iOS again")
+    }
+
+    /// A real window with a navigation stack and a list: the dark style paints the screen, light mode and "standard" do not.
+    struct ListRoot: View {
+        let model: ThemeSettingsModel
+        /// Shows a pushed screen (which carries `appScreenBackground()` like the root, plus a red marker) instead of the root.
+        var pushed = false
+        /// False for the control: the same screens without the modifier.
+        var themed = true
+        /// False for a pushed screen that does not carry the modifier although its root does.
+        var pushedThemed = true
+        @State private var path: [Int] = []
+        var body: some View {
+            NavigationStack(path: $path) {
+                List { Text("") }.screenBackground(themed)
+                    .navigationDestination(for: Int.self) { _ in
+                        // A red band at the top marks the pushed screen: the root has none.
+                        List { Text("") }.overlay(alignment: .top) { Color.red.frame(height: 400) }
+                            .screenBackground(themed && pushedThemed)
+                    }
+            }
+            .appTheme(model)
+            .onAppear { if pushed { path = [1] } }
+        }
+    }
+
+    /// The RGB of a pixel near the bottom of the window, below the one list row.
+    func bottomPixel(of window: UIWindow) -> [Int] {
+        let size = window.bounds.size
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = CGContext(
+            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+        let scale = image.scale
+        if let cgImage = image.cgImage {
+            // Bottom-left origin: put the pixel 20 pt above the bottom edge, in the middle, on the 1 x 1 canvas.
+            let canvas = CGRect(
+                x: -size.width * scale / 2, y: -20 * scale, width: size.width * scale, height: size.height * scale
+            )
+            context?.draw(cgImage, in: canvas)
+        }
+        return pixel.prefix(3).map(Int.init)
+    }
+
+    @Test func theDarkerStylePaintsTheScreenBehindAListAndLightModeIsUntouched() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let store = InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1), "theme_dark_style": .int(1)])
+        let model = ThemeSettingsModel(store: store)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 300, height: 600)
+        window.rootViewController = UIHostingController(rootView: ListRoot(model: model))
+        window.isHidden = false
+        defer { window.isHidden = true }
+
+        func darkIs(_ expected: Int) async -> Bool {
+            await until { window.traitCollection.userInterfaceStyle == .dark && bottomPixel(of: window)[0] == expected }
+        }
+        #expect(await darkIs(11), "darker: \(bottomPixel(of: window))")
+        model.darkStyle = .standard
+        #expect(await darkIs(0), "standard: \(bottomPixel(of: window))")
+        model.darkStyle = .oled
+        #expect(await darkIs(0), "oled: \(bottomPixel(of: window))")
+        model.darkStyle = .darker
+        model.mode = .light
+        // Light: the system's grouped-list grey, not the dark style's.
+        #expect(await until { window.traitCollection.userInterfaceStyle == .light && bottomPixel(of: window)[0] > 200 })
+    }
+
+    /// A screen pushed on a container whose root carries `appScreenBackground()` shows the same background.
+    @Test func aPushedScreenKeepsTheDarkBackground() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1), "theme_dark_style": .int(1)]))
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 300, height: 600)
+        window.rootViewController = UIHostingController(rootView: ListRoot(model: model, pushed: true))
+        window.isHidden = false
+        defer { window.isHidden = true }
+        // Wait until the pushed screen is the one shown (its red band, 250 pt from the top), then read its background.
+        let pushed = await until { pixel(of: window, x: 150, y: 350) == 255 }
+        #expect(pushed, "pushed screen not shown: \(pixel(of: window, x: 150, y: 350))")
+        #expect(bottomPixel(of: window)[0] == 11, "pushed: \(bottomPixel(of: window))")
+    }
+
+    /// A three-column split view as the iPad layout builds it, with each column a list.
+    struct SplitRoot: View {
+        let model: ThemeSettingsModel
+        var body: some View {
+            NavigationSplitView(columnVisibility: .constant(.all)) {
+                List { Text("") }.appScreenBackground()
+            } content: {
+                List { Text("") }.appScreenBackground()
+            } detail: {
+                List { Text("") }.appScreenBackground()
+            }
+            .appTheme(model)
+        }
+    }
+
+    /// The red channel at `x`, `y` pt above the bottom of the window.
+    func pixel(of window: UIWindow, x: CGFloat, y: CGFloat = 20) -> Int {
+        let image = UIGraphicsImageRenderer(size: window.bounds.size).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        var data = [UInt8](repeating: 0, count: 4)
+        let context = CGContext(
+            data: &data, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+        if let cgImage = image.cgImage {
+            let scale = image.scale
+            let canvas = CGRect(
+                x: -x * scale, y: -y * scale, width: window.bounds.width * scale, height: window.bounds.height * scale
+            )
+            context?.draw(cgImage, in: canvas)
+        }
+        return Int(data[0])
+    }
+
+    /// iPad: the sidebar, the content and the detail column of a split view all show the dark style.
+    @Test func everySplitViewColumnShowsTheDarkStyle() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let store = InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1), "theme_dark_style": .int(1)])
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1100, height: 700)
+        window.rootViewController = UIHostingController(rootView: SplitRoot(model: ThemeSettingsModel(store: store)))
+        window.isHidden = false
+        defer { window.isHidden = true }
+        // Left, middle and right thirds: the three columns.
+        let columnXs: [CGFloat] = [60, 500, 900]
+        let shown = await until { columnXs.allSatisfy { pixel(of: window, x: $0) == 11 } }
+        #expect(shown, "columns: \(columnXs.map { pixel(of: window, x: $0) })")
+    }
+}
+
+extension View {
+    /// `appScreenBackground()`, or nothing: the control of the pixel comparisons.
+    @ViewBuilder func screenBackground(_ themed: Bool) -> some View {
+        if themed { appScreenBackground() } else { self }
     }
 }

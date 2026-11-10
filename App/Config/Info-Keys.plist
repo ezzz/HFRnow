@@ -10,5 +10,7 @@
 	<string>$(GIPHY_BASE_URL)</string>
 	<key>GiphyAPIKey</key>
 	<string>$(GIPHY_API_KEY)</string>
+	<key>ModeratorAlertMailAddress</key>
+	<string>$(MODERATOR_ALERT_MAIL_ADDRESS)</string>
 </dict>
 </plist>

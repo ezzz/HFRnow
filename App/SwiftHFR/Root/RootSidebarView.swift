@@ -23,19 +23,19 @@ struct RootSidebarView: View {
             // Legacy: the Plus entries have no list, so a two-column split with the entry in a stack in the detail column
             // (`MainWindow.swift:1305-1311`, `:1744-1755`, `:1876-1891`).
             NavigationSplitView(columnVisibility: $visibility, preferredCompactColumn: $compactColumn) {
-                sidebar
+                sidebar.appScreenBackground()
             } detail: {
                 // A new identity per entry, so the stack drops what the previous entry had pushed.
-                NavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
+                ThemedNavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
                     .id(entry)
             }
         } else {
             NavigationSplitView(columnVisibility: $visibility) {
-                sidebar
+                sidebar.appScreenBackground()
             } content: {
-                content
+                content.appScreenBackground()
             } detail: {
-                detail
+                detail.appScreenBackground()
             }
         }
     }
@@ -68,7 +68,7 @@ struct RootSidebarView: View {
         case .tab(.categories):
             CategoriesSidebarColumn(navigation: model.categories, composer: environment.composer)
         case .tab(.favorites):
-            TopicsColumn(navigation: model.favorites, composer: environment.composer)
+            TopicsColumn(navigation: model.favorites, composer: environment.composer, openCategory: { model.showCategoryFromFavorites($0) })
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
             MessagesListColumn(model: model.messages, composer: environment.composer)
@@ -95,13 +95,14 @@ private struct CategoriesSidebarColumn: View {
     let composer: ComposerServices?
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             ForumListView(navigation: navigation)
                 .navigationDestination(item: $navigation.selectedSource) { source in
                     TopicListView(
                         model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                        composer: composer, open: { navigation.open($0, at: $1) }, tintBase: .clear
+                        composer: composer, open: { navigation.open($0, at: $1) }, tintBase: .clear, scope: navigation.scope(for: source)
                     )
+                    .appScreenBackground()
                 }
         }
     }

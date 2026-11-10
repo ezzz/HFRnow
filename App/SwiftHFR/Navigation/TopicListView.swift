@@ -2,9 +2,10 @@ import HFRModels
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) and HFRswift/Swift/Favorites.swift
-// (FavoritesListView) @ 2440d79. Differences: no Tous / Favoris / Suivis / Lus filter; "Page N" without a fake total (GAP-023, 024;
-// UXD). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) @ 87fe0d1c and HFRswift/Swift/Favorites.swift
+// (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: "Page N"
+// without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
+// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -17,6 +18,10 @@ struct TopicListView: View {
     var open: ((TopicSummary, TopicOpening) -> Void)?
     /// What a tinted row layers over: the grouped card by default, nothing in the iPad sidebar column, which has no card (#584).
     var tintBase: RowTint.Base = .grouped
+    /// The sub-forum menu and the Tous / Favoris / Suivis / Lus filter of a forum list; nil on flags and favourites.
+    var scope: ForumScope?
+    /// Favoris: opens the category a section title names (legacy `headerTitleView`, `Favorites.swift:344-372` @ 87fe0d1c).
+    var openCategory: ((TopicSource) -> Void)?
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
     @State private var pagePrompt: TopicSummary?
@@ -25,6 +30,7 @@ struct TopicListView: View {
     var body: some View {
         let loader = model.loader
         List(selection: $selection) {
+            if let scope { ForumScopeBar(model: model, scope: scope) }
             if loader.value != nil {
                 ForEach(model.displayedGroups) { group in
                     if let title = group.title {
@@ -76,6 +82,10 @@ struct TopicListView: View {
                 Task { await model.newTopicDidClose(reason) }
             }
         }
+        .onChange(of: model.sentConfirmation) { _, text in
+            // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
+            if let text { AccessibilityNotification.Announcement(text).post() }
+        }
         .task(id: model.sentConfirmation) {
             guard model.sentConfirmation != nil else { return }
             // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
@@ -83,7 +93,7 @@ struct TopicListView: View {
             model.clearSentConfirmation()
         }
         .refreshable { await model.refresh() }
-        .task { await model.onAppear() }
+        .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
@@ -203,16 +213,23 @@ struct TopicListView: View {
     /// A category header with its topic count and, when the section has topics, the fold chevron (legacy `sectionHeader`).
     private func header(_ group: TopicGroup, title: String) -> some View {
         HStack {
-            Text(title)
+            if let source = group.opens, let openCategory {
+                Button { openCategory(source) } label: { Text(title).foregroundStyle(.primary) }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Ouvrir le forum")
+            } else {
+                Text(title)
+            }
             Spacer()
             Text("\(group.topics.count)").font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
+                .accessibilityLabel(TopicRowCues.topicCountLabel(group.topics.count))
             if group.isCollapsible, let favorites = model.favorites {
                 Button {
                     Task { await favorites.toggleCollapsed(group.id) }
                 } label: {
                     Image(systemName: group.isCollapsed ? "chevron.right" : "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .frame(width: 32, height: 28)
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -309,7 +326,7 @@ private struct TopicSentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
+            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                 .accessibilityLabel("Masquer")
         }
         .padding(12)

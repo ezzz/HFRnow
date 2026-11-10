@@ -3,7 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
 // (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
-// "non lu" capsule for the correspondent's state (GAP-111).
+// "non lu" capsule for the correspondent's state (GAP-111); capsule at 4.5:1, outlined at half strength (LOT-162, #646).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
 struct MessageRowView: View {
     let thread: PrivateMessageThread
@@ -11,6 +11,8 @@ struct MessageRowView: View {
     let isUnread: Bool
     /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
     var isSelected = false
+    /// A group row's MPStorage position, `⚑ <page> / <max>` (LOT-130); nil shows the interlocutors.
+    var flagLabel: String?
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -19,16 +21,16 @@ struct MessageRowView: View {
 
     var body: some View {
         HStack(spacing: scale.scaled(dynamicType * (density == .compact ? 8 : 12))) {
-            MessageAvatarView(pseudo: thread.interlocutors.first ?? thread.summary.starterOrInterlocutors, isGroup: thread.isGroup)
+            let avatar = Self.avatarSubject(of: thread)
+            MessageAvatarView(pseudo: avatar.pseudo, isGroup: avatar.isGroup)
                 .frame(width: avatarSide, height: avatarSide)
             VStack(alignment: .leading, spacing: density.lineSpacing) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     if let label = MessageRowView.unreadByLabel(thread) {
                         // The correspondent's state, not the member's: legacy's leading badge (`MPListView.swift:430-436, 470` @ 2440d79),
                         // at half strength once the member has viewed the thread (legacy line 435).
-                        Text("non lu").scaledFont(.caption2).foregroundStyle(.white)
-                            .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Color(.systemGray).opacity(isUnread ? 1 : 0.5), in: Capsule())
+                        // Outlined instead of half-strength once the member has viewed it: the half-strength fill measured 1.7:1 (#646).
+                        BadgeCapsule(text: "non lu", isOutlined: !isUnread)
                             .accessibilityLabel(label)
                     }
                     Text(thread.summary.title)
@@ -63,6 +65,19 @@ struct MessageRowView: View {
         return names.isEmpty ? "Non lu par le destinataire" : "Non lu par \(names)"
     }
 
+    /// What the avatar shows (#714): the correspondent of a one-to-one thread, never the account's own pseudo (the list's
+    /// starter cell names the other member), and the group icon for a group, whether the parser read the tooltip or only
+    /// HFR's "Interlocuteurs multiples" label (legacy `MPListView.swift:895-901` @ `87fe0d1c`, which tests the word "multiples";
+    /// here the whole label, so a member whose pseudo holds that word keeps their avatar). A blank name has no avatar:
+    /// the view then draws the monogram.
+    static func avatarSubject(of thread: PrivateMessageThread) -> (pseudo: String?, isGroup: Bool) {
+        let label = "Interlocuteurs multiples"
+        let candidate = thread.interlocutors.first ?? thread.summary.starterOrInterlocutors
+        let name = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        if thread.isGroup || name.caseInsensitiveCompare(label) == .orderedSame { return (nil, true) }
+        return (name.isEmpty ? nil : name, false)
+    }
+
     /// The accent tint of an unread, unselected row; nil leaves the system background (#570).
     static func rowTint(isUnread: Bool, isSelected: Bool) -> RowTint? {
         isUnread && !isSelected ? RowTint() : nil
@@ -84,9 +99,11 @@ struct MessageRowView: View {
         return "\(who) · \(lastPost)"
     }
 
-    /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`).
+    /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`), or
+    /// the group's MPStorage position instead, as legacy shows it (`MPListView.swift:775-786` @ 87fe0d1c).
     private var who: String {
         guard thread.isGroup else { return thread.summary.starterOrInterlocutors }
+        if let flagLabel { return flagLabel }
         return ["Interlocuteurs multiples", counts].compactMap { $0 }.joined(separator: " · ")
     }
 

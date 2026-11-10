@@ -72,6 +72,8 @@ final class UserProfileModel: Identifiable {
     var onListsChanged: (@MainActor () -> Void)?
     /// The sentence of the last list toggle, shown under the buttons.
     private(set) var listFeedback: String?
+    /// Counts the toggles that set `listFeedback`, so a view tells two identical sentences apart (a failure repeated).
+    private(set) var listFeedbackCount = 0
     /// Whether each list holds the member now, for the buttons' labels; false until read.
     private(set) var isBlocked = false
     private(set) var isAllowed = false
@@ -97,6 +99,7 @@ final class UserProfileModel: Identifiable {
     func toggle(_ kind: PseudoListKind) async {
         guard let lists, let pseudo = listPseudo, let result = await lists.toggle(pseudo, in: kind) else { return }
         listFeedback = result.message
+        listFeedbackCount += 1
         await refreshListState()
         if result.changed { onListsChanged?() }
     }

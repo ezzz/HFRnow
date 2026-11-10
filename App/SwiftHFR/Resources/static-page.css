@@ -1,0 +1,19 @@
+:root { color-scheme: light dark; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font: -apple-system-body;
+  margin: 0;
+  padding: 8px 16px 32px;
+  background: transparent;
+  color: CanvasText;
+  overflow-wrap: anywhere;
+}
+h1 { font: -apple-system-headline; font-weight: 700; margin: 1.4em 0 0.4em; }
+h1.first { margin-top: 0.4em; }
+p, li { line-height: 1.4; }
+ul { padding-left: 1.2em; }
+a { color: LinkText; }
+table { border-collapse: collapse; width: 100%; margin: 0.6em 0; }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px 6px 0; border-bottom: 1px solid color-mix(in srgb, CanvasText 20%, transparent); }
+th { font-weight: 600; }
+.note { color: color-mix(in srgb, CanvasText 60%, transparent); font: -apple-system-footnote; }

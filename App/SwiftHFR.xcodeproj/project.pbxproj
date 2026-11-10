@@ -308,6 +308,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = HFR;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Utilisé pour déverrouiller l’app lorsque le verrouillage est activé.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -343,6 +344,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = HFR;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Utilisé pour ajouter des photos aux messages.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Utilisé pour déverrouiller l’app lorsque le verrouillage est activé.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Utilisé pour sauvegarder des photos/images.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Utilisé pour ajouter des photos aux messages.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -66,6 +66,11 @@ final class TopicReaderModel {
 
     /// Where reading positions go (LOT-111); nil when logged out or in a preview.
     @ObservationIgnored var positions: (any ReaderPositionRecording)?
+    /// Places the legacy reply draft the import left for this topic when a page of it is delivered (LOT-158); nil when logged
+    /// out or in a preview.
+    @ObservationIgnored var legacyDrafts: LegacyDraftResolver?
+    /// The last placement started by a delivered page (tests await it).
+    @ObservationIgnored private(set) var legacyDraftTask: Task<Void, Never>?
 
     /// The poll sheet's model, kept here (not in a view) so it outlives the view: a vote in flight or possibly counted is
     /// never offered again from a fresh form when the topic is reopened (LOT-136).
@@ -187,6 +192,9 @@ final class TopicReaderModel {
             keepsScrollPosition: true
         )
     }
+
+    /// `applyDisplaySettings()` as a hook that holds this model weakly, for a sheet that outlives the tap that opened it.
+    var displaySettingsHook: @MainActor () -> Void { { [weak self] in self?.applyDisplaySettings() } }
 
     /// Follows a page swipe (legacy `DragGesture`): the next page opens at its top, the previous one at its last message.
     func swipe(_ swipe: PageSwipe) async {
@@ -424,6 +432,8 @@ final class TopicReaderModel {
             shown = ReaderTarget(source: source).atPage(loaded.currentPage)
             page = loaded
             heldPoll?.pageDidReload(loaded.poll)
+            // The topic is open: a draft legacy kept for its number becomes its reply draft (LOT-067 D1).
+            if let legacyDrafts, let topic = loaded.topicID { legacyDraftTask = Task { await legacyDrafts.resolve(topic) } }
             error = nil
             nextToken += 1
             presentedMenu = nil

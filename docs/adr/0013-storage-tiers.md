@@ -132,6 +132,15 @@ Raised by the design review of LOT-172 part 2 (Fable 5.1) and decided by the ope
 - **Allowlist entries** keep the LOT-061 shape (`word`, `alias`, `mode`) and carry no date; the per-account lists carry `addedAt`. An empty list is a value: it is synced, so removing the last item reaches the other devices.
 - **Budget, measured**: the appendix's worst case, encoded as the stores write it (long pseudos, smiley codes and URLs, fractional-second dates), is about 293 KiB in 46 keys for five accounts with the settings, against the appendix's estimate of < 200 KiB (its 40 B per position was about a third of the real size). The bound is now < 320 KiB and ≤ 60 keys, checked by a LOT-172 test; Apple's limits are 1 MB and 1024 keys.
 
+## Amendment 3 — 2026-11-09: legacy import at the reference `2fe43da3` (LOT-067)
+
+Raised by the LOT-067 spec ([#703](https://github.com/ezzz/HFRnow/pull/703)) and decided by the operator (2026-11-09, [#92](https://github.com/ezzz/HFRnow/issues/92)). It replaces the draft and super-favourite parts of §5 step 1.
+
+- **Drafts.** `composerDraftText` was never persisted (`@State`, `MessagesView.swift:3081`, `MainWindow.swift:312` @ `2fe43da3`): §5's mapping to `DraftContext.legacyGlobal` had no source. The legacy Swift composer keeps one active draft per topic number (`reply_active_drafts_by_topic_v1`) and up to three archived drafts per topic (`reply_drafts_by_topic_v1`), keyed `post-<number>` without category or page (`AnswerView.swift:137-272`). Active drafts go to a **temporary device-only pending list** keyed by topic number; when a topic with that number opens, the entry becomes the ordinary reply draft of that topic (an existing SwiftHFR draft wins) and leaves the list, so the composer has no legacy logic and no new permanent `DraftContext` case exists. Entries expire 30 days after legacy saved them, like LOT-063 drafts. Archived drafts are **not imported**: they stay in `UserDefaults`, never deleted. The ObjC composer's single `brouillon` (`AddMessageViewController.m:69, 483`) goes to `.legacyGlobal`.
+- **Super-favourites.** Legacy stores the topic number alone (`Favorites.swift:132-157`). The numbers go to the **same pending mechanism**: at each favourites-list load, a pending number becomes a super-favourite in every category where the list shows it (legacy matched the number alone), then leaves the list; it is dropped after 90 days or when the user empties the super-favourites. One resolver (`LegacyPendingStore`) serves both lists.
+- **Account of the global items** (super-favourites, app smiley favourites, drafts): the legacy main account, the last one flagged `MAIN` (`MultisManager.m:168-176`); with no legacy account, they wait and go to the first account that logs in, once.
+- **Retirement.** The import code and the pending lists are removed in a later version, once the in-place update has shipped for long enough ([#708](https://github.com/ezzz/HFRnow/issues/708)).
+
 ## Alternatives rejected
 
 | Option | Why not |
@@ -222,6 +231,7 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `auto_theme` (3 system / 0 manual) + `theme` (0 light / 1 dark) | `AppSettingsView.swift:101-102` | No | None | 2 | **iCloud KVS**, one `appearance` picker stored under the legacy keys | Simplification; legacy keys remain the storage shape. |
 | `theme_style` (classic / modern) | `AppSettingsView.swift:103` | No | None | 1 | **iCloud KVS** | Content rendering. |
 | `theme_day_color_action`, `theme_night_color_action`, `…_love` ×2, `…_superfavori` ×2, `theme_night_brightness` | `Common.swift:463-469` | No | None | 7 | **iCloud KVS**, the 7 legacy keys unchanged (LOT-060 `colorSetting`) | Theme parity (LOT-121, operator 2026-10-29): every decided colour is kept; FEAT-010's single accent is out of scope. |
+| `theme_dark_style` — new (LOT-122, FEAT-010; 0 standard, 1 darker, 2 OLED black) | none | No | None | 1 | **Device-only** | Whether black saves power or smears is a property of the screen. |
 | `blacklist_hide_pseudo` | `AppSettingsView.swift:105` | No | None | 1 | **iCloud KVS** | Content filter. |
 | `filter_posts_quotes`, `filter_posts_min_quotes` | `AppSettingsView.swift:107-108` | No | None | 2 | **iCloud KVS** | Content filter. |
 | `size_smileys` (`double`/`default`) | `AppSettingsView.swift:109`; no reader found (audit E §3.1) | No | None | 1 | **iCloud KVS** if the reader honours it, else **dropped** | Q8. |
@@ -231,6 +241,7 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `mp_list_display` — new (LOT-171), no legacy | none | No | None | 1 | **iCloud KVS** | Behaviour: one MP list or two; a preference, not a device fact. |
 | `mp_badge_enabled` | `AppSettingsView.swift:114`, `MainWindow.swift:1349` | No | None | 1 | **Device-only** | Badges are per device. |
 | `recherche_categorie` (last search category) | `ForumSearchView.swift:111` | No | None | 1 | **Device-only** | Transient UI state. |
+| `HFRswiftGlobalTopicListFlag` (last Tous / Favoris / Suivis / Lus choice) | `MainWindow.swift:305` @ `87fe0d1c` | No | None | 1 | **Device-only** | UI state (#427). |
 | `rehost_use_link`, `rehost_resize_before_upload` | `ReplyService.swift:1837`; `RehostImageViewController.m:84-99, 580-622` | No | None | 2 | **iCloud KVS** | Posting preference. |
 | `CollapsedFavoriteSectionIDs`, `FavoritesShowCollapsedSections` | `Favorites.swift:160, 447` | No | None | small | **Device-only** | UI state. |
 | `AnswerView.smileys.*.expanded` ×3, `AnswerView.smileys.search.allKeywords`, `MessageSmileySheetCompactImage` | `AnswerView.swift` (`@AppStorage`), `MessagesView.swift:6020` | No | None | 5 | **Device-only** | UI state. |

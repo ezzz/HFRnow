@@ -14,6 +14,8 @@ struct ForumSearchView: View {
     let reader: ReaderServices
     let composer: ComposerServices?
     @FocusState private var fieldFocused: Bool
+    /// "Annuler" ended the load: no result to announce (the loader keeps the previous value).
+    @State private var cancelledLoad = false
 
     var body: some View {
         List {
@@ -27,7 +29,17 @@ struct ForumSearchView: View {
             if let readerModel = model.reader(for: topic) {
                 TopicReaderView(model: readerModel, services: reader, composer: composer)
             } else {
-                ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder")
+                ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder").appScreenBackground()
+            }
+        }
+        .onChange(of: model.loader.isLoading) { wasLoading, isLoading in
+            // The results land below the focused field: announce them (a search is a wait with no other cue).
+            guard wasLoading, !isLoading else { return }
+            guard !cancelledLoad else { cancelledLoad = false; return }
+            if let error = model.loader.error {
+                AccessibilityNotification.Announcement(error.title).post()
+            } else if let content = model.loader.value {
+                AccessibilityNotification.Announcement(summary(content)).post()
             }
         }
         .onChange(of: forums.loader.value, initial: true) { _, content in model.setCategories(from: content) }
@@ -42,8 +54,9 @@ struct ForumSearchView: View {
                 .focused($fieldFocused)
                 .onSubmit(submit)
             if let word = model.bannedWord {
-                Label("Le mot « \(word) » ne peut pas être recherché.", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                StatusLabel(
+                    text: "Le mot « \(word) » ne peut pas être recherché.", symbol: "exclamationmark.triangle.fill", tint: .orange
+                )
                     .font(.footnote)
             }
             if model.hasShortWord {
@@ -93,7 +106,8 @@ struct ForumSearchView: View {
         if loader.isLoading {
             Section {
                 HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
-                Button("Annuler") { model.cancel() }
+                    .accessibilityElement(children: .combine)
+                Button("Annuler") { cancelledLoad = true; model.cancel() }
             }
         } else if let error = loader.error {
             Section {

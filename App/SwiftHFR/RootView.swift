@@ -7,6 +7,7 @@ import SwiftUI
 /// flags of the previous account never stay on screen.
 struct RootView: View {
     @Environment(AccountsModel.self) private var accounts
+    @Environment(LegacyImportModel.self) private var legacyImport
     @Environment(\.avatarRefresh) private var avatarRefresh
     @State private var built: (generation: Int, environment: AppEnvironment)?
     /// Where the user was: a new session generation rebuilds the navigation but keeps the tab or destination (legacy keeps it,
@@ -18,11 +19,22 @@ struct RootView: View {
             if let built {
                 RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
                     .id(built.generation)
+            } else if legacyImport.isRunning {
+                // The launch import runs before the accounts are read (LOT-158).
+                ProgressView("Import des données de HFR+…")
             } else {
                 ProgressView()
             }
         }
         .onChange(of: buildKey, initial: true) { rebuild() }
+        // What the legacy import took over, shown once it did something or failed (LOT-158).
+        .sheet(item: Bindable(legacyImport).summary) { summary in
+            LegacyImportSummaryView(opened: summary, model: legacyImport) {
+                Task {
+                    if await legacyImport.retry(currentAccount: accounts.current?.id) { await accounts.readStoreAgain() }
+                }
+            }
+        }
     }
 
     /// Changes when the navigation must be built again.
@@ -40,6 +52,8 @@ struct RootView: View {
     let accounts = AccountsModel.preview()
     RootView()
         .environment(accounts)
+        .environment(LegacyImportModel.preview())
+        .environment(AppLockModel.preview())
         // As `SwiftHFRApp`: the navigation appears once the (empty) preview store is read.
         .task { await accounts.restore() }
 }

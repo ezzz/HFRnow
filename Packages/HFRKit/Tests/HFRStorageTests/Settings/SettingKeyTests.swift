@@ -4,9 +4,16 @@ import Testing
 @testable import HFRStorage
 
 @Suite struct SettingKeyTests {
+    @Test func theDarkStyleIsReadFromItsKeyAndAnUnknownValueKeepsTheDefault() {
+        #expect(InMemorySettingsStore(["theme_dark_style": .int(2)]).value(for: SettingKey.darkStyle) == .oled)
+        #expect(InMemorySettingsStore(["theme_dark_style": .string("1")]).value(for: SettingKey.darkStyle) == .darker)
+        #expect(InMemorySettingsStore(["theme_dark_style": .int(9)]).value(for: SettingKey.darkStyle) == .standard)
+    }
+
     @Test func keysAreUniqueAndKeepTheirLegacyNames() {
         #expect(Set(SettingKey.allKeys).count == SettingKey.allKeys.count)
-        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, has no legacy counterpart).
+        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, and the two app-lock keys, LOT-173,
+        // have no legacy counterpart).
         let legacy: Set = [
             "vos_sujets", "sujets_avec_cat", "favorites_auto_refresh", "compact_mode", "tabbar_minimize_on_scroll",
             "text_size_scale", "haptics", "landscape_mode", "icon", "auto_theme", "theme", "theme_style",
@@ -16,7 +23,8 @@ import Testing
             "embedded_videos", "display_sig", "display_images", "mpstorage_active", "mpstorage_last_rw",
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
-            "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior"
+            "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
+            "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -40,6 +48,7 @@ import Testing
         #expect(store.value(for: SettingKey.topicPageSwipe))
         #expect(store.value(for: SettingKey.dayActionColor) == nil)
         #expect(store.value(for: SettingKey.nightBrightness) == nil)
+        #expect(store.value(for: SettingKey.darkStyle) == .standard)
         #expect(!store.value(for: SettingKey.hideBlocklistedPosts))
         #expect(store.value(for: SettingKey.quoteFilterExceptions) == .standard)
         #expect(store.value(for: SettingKey.quoteFilterMinimumCount) == 3)
@@ -206,5 +215,33 @@ import Testing
         }
         #expect(value.count == 19)
         #expect(value.dropFirst(2).first == "-")
+    }
+}
+
+@Suite struct TopicListFlagSettingTests {
+    @Test func theLastChoiceIsReadFromTheLegacyKeyAndDefaultsToAll() {
+        #expect(SettingKey.topicListFlag.key == "HFRswiftGlobalTopicListFlag")
+        #expect(InMemorySettingsStore().value(for: SettingKey.topicListFlag) == .all)
+        #expect(InMemorySettingsStore([SettingKey.topicListFlag.key: .int(1)]).value(for: SettingKey.topicListFlag) == .favorites)
+        #expect(InMemorySettingsStore([SettingKey.topicListFlag.key: .int(2)]).value(for: SettingKey.topicListFlag) == .tracked)
+        #expect(InMemorySettingsStore([SettingKey.topicListFlag.key: .int(3)]).value(for: SettingKey.topicListFlag) == .read)
+        // `@AppStorage` wrote an Int; an unknown or foreign value is "Tous", like legacy's `?? .all`.
+        #expect(InMemorySettingsStore([SettingKey.topicListFlag.key: .int(9)]).value(for: SettingKey.topicListFlag) == .all)
+        #expect(InMemorySettingsStore([SettingKey.topicListFlag.key: .string("x")]).value(for: SettingKey.topicListFlag) == .all)
+    }
+
+    @Test func eachChoiceAsksHFRForItsOwnTopicFilter() {
+        // Legacy `fetchContentForForum:flagIndex:` (`ObjCForumTopicsLoaderWorker.m`): Favoris owntopic 3, Suivis 1, Lus 2.
+        #expect(TopicListFlag.all.filter == .all)
+        #expect(TopicListFlag.favorites.filter == .favorites)
+        #expect(TopicListFlag.tracked.filter == .flagged)
+        #expect(TopicListFlag.read.filter == .read)
+        #expect(TopicListFilter.favorites.rawValue == 3 && TopicListFilter.flagged.rawValue == 1 && TopicListFilter.read.rawValue == 2)
+    }
+
+    @Test func aChoiceIsWrittenAsItsLegacyInteger() {
+        let store = InMemorySettingsStore()
+        store.set(.read, for: SettingKey.topicListFlag)
+        #expect(store.rawValue(forKey: "HFRswiftGlobalTopicListFlag") == .int(3))
     }
 }

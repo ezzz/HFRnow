@@ -27,9 +27,11 @@ struct RootTabsView: View {
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
-                NavigationStack {
+                ThemedNavigationStack {
                     PlusView(model: model)
-                        .navigationDestination(item: $model.plusEntry) { PlusEntryView(entry: $0, model: model, environment: environment) }
+                        .navigationDestination(item: $model.plusEntry) {
+                            PlusEntryView(entry: $0, model: model, environment: environment).appScreenBackground()
+                        }
                 }
                 .environment(\.isSelectedRootTab, model.selectedTab == .more)
             }
@@ -47,11 +49,11 @@ struct CategoriesTabView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            ForumListView(navigation: navigation)
+            ForumListView(navigation: navigation).appScreenBackground()
         } content: {
-            TopicsColumn(navigation: navigation, composer: composer)
+            TopicsColumn(navigation: navigation, composer: composer).appScreenBackground()
         } detail: {
-            ReaderColumn(navigation: navigation, reader: reader, composer: composer)
+            ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
         .filteredPosts(navigation.filtering, reader: reader)
     }
@@ -68,8 +70,9 @@ struct FavoritesTabView: View {
         NavigationSplitView(preferredCompactColumn: $column) {
             TopicsColumn(navigation: navigation, composer: composer)
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: navigation) } }
+                .appScreenBackground()
         } detail: {
-            ReaderColumn(navigation: navigation, reader: reader, composer: composer)
+            ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
         .filteredPosts(navigation.filtering, reader: reader)
     }
@@ -123,12 +126,25 @@ struct TopicsColumn: View {
     @Bindable var navigation: NavigationModel
     /// The current account's composer (LOT-089); nil when logged out.
     let composer: ComposerServices?
+    /// Favoris: what a section title does. Nil pushes the category on this column's stack (compact width, as legacy's
+    /// `NavigationLink`); the regular-width iPad sidebar passes the switch to Catégories (`onOpenForum`, `MainWindow.swift:2221-2232`).
+    var openCategory: ((TopicSource) -> Void)?
 
     var body: some View {
         if let source = navigation.selectedSource {
-            TopicListView(model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                          composer: composer, open: { navigation.open($0, at: $1) })
-                .id(source)
+            TopicListView(
+                model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source),
+                openCategory: navigation.favorites == nil ? nil : (openCategory ?? { navigation.openCategory($0) })
+            )
+            .id(source)
+            .navigationDestination(item: $navigation.openedCategory) { category in
+                TopicListView(
+                    model: navigation.topicList(for: category), selection: $navigation.selectedTopic, filtering: navigation.filtering,
+                    composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category)
+                )
+                .appScreenBackground()
+            }
         } else {
             ContentUnavailableView("Choisissez un forum", systemImage: "list.bullet")
         }
@@ -145,7 +161,7 @@ struct ReaderColumn: View {
     var body: some View {
         if let topic = navigation.selectedTopic, let model = navigation.reader(for: topic) {
             // Its own stack, for the readers a followed link pushes (LOT-137); a new topic starts a new stack.
-            NavigationStack {
+            ThemedNavigationStack {
                 TopicReaderView(
                     model: model, services: reader, composer: composer,
                     onFilterPosts: topic.topicID == nil ? nil : { navigation.filtering.start(opening: topic) },

@@ -265,6 +265,21 @@ PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']MoodStatus[\"'][^>]*>", re.I), "Mood removed."),
 )
+SIGNATURE_PLACEHOLDER = "Signature removed."
+# HFR opens every signature span with its own separator (#267, `R267a`): fifteen dashes, a line break, `<br />`; and
+# closes it with its clear div. Both are HFR's markup, not the member's words, so they are kept around the placeholder.
+SIGNATURE_HEAD_RE = re.compile(r"\A\s*-{15}(?!-)\s*<br\s*/?>", re.I)
+SIGNATURE_TAIL_RE = re.compile(r"<div style=\"clear: both;\">\s*</div>\s*\Z", re.I)
+SIGNATURE_TEXT_RE = re.compile(r"(?:-{15}\s*)?Signature removed\.")
+
+
+def signature_placeholder(inner):
+    """The placeholder for a signature span's content, with HFR's separator head and clear-div tail kept."""
+    head = SIGNATURE_HEAD_RE.match(inner)
+    tail = SIGNATURE_TAIL_RE.search(inner)
+    if not head:
+        return SIGNATURE_PLACEHOLDER
+    return head.group(0) + SIGNATURE_PLACEHOLDER + (tail.group(0) if tail and tail.start() >= head.end() else "")
 # Public profile page (R56): the value cell of these rows is the member's own data. Personal rows get a
 # placeholder; dates and counters keep their format with fixed values (with the pseudo and id aliased, a
 # real arrival date or post count would still single the member out).
@@ -1714,7 +1729,8 @@ class Anonymizer:
             for start, end in _find_para_blocks(text, open_re):
                 if start < last:
                     continue
-                parts += [text[last:start], placeholder]
+                kept = signature_placeholder(text[start:end]) if placeholder == SIGNATURE_PLACEHOLDER else placeholder
+                parts += [text[last:start], kept]
                 last = end
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
@@ -2239,7 +2255,7 @@ class StructuralVerifier(html.parser.HTMLParser):
                 if text not in ("", PROFILE_PLACEHOLDER, PROFILE_NO_ACCESS) and not re.fullmatch(r"01([/-])01\1(?:2000)", text):
                     self._bad("public profile field", text, e["line"])
             elif e["where"] == "signature or mood":
-                if text not in ("", "Signature removed.", "Mood removed."):
+                if text not in ("", "Mood removed.") and not SIGNATURE_TEXT_RE.fullmatch(text):
                     self._bad("signature or mood text", text, e["line"])
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
@@ -2916,8 +2932,12 @@ _V_AQ_LOCAL_ALERT = "13636"
 _V_AQ_LOCAL_UNKNOWN_ALERT = "99999"
 _V_AQ_LOCAL_ID = re.compile(r"700\d{3}")
 _V_AQ_LOCAL_URL = re.compile(r"http://192\.0\.2\.1:\d+(/api/addAlerte\.php|/api/getAlertesByTopic\.php(?:\?topic_id=700\d{3})?)")
-_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other)|AQ flood \d+")
-_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic|AQ flood topic \d+")
+_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other|été|\U0001F600)|AQ flood \d+")
+_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic(?: été)?|AQ flood topic \d+")
+# #611: a body id may also be empty (an addition), not a number or out of int(11); a comment may be 1024 or 1025 `x`
+# (the column's length and one over) or the legacy text with an accent or a character outside the BMP.
+_V_AQ_LOCAL_BODY_ID = re.compile(r"700\d{3}|abc|99999999999|")
+_V_AQ_LOCAL_LONG_COMMENTS = ("x" * 1024, "x" * 1025)
 _V_AQ_LOCAL_POST_URL = re.compile(r"https?://forum\.hardware\.fr/hfr/Discussions/Societe/(?:aq-local-(?:topic|other)|aq-flood-\d+)"
                                   r"-sujet_700\d{3}_1\.htm#t700\d{3}")
 _V_AQ_LOCAL_DATE = re.compile(r"[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT")
@@ -2947,16 +2967,19 @@ def _v_aq_local_body(body, bad):
         bad("alerte_qualitay_id not a local value")
     if f.get("nom") and not _V_AQ_LOCAL_NOM.fullmatch(f["nom"]):
         bad("nom not a local value")
-    if not _V_AQ_LOCAL_TITLE.fullmatch(f.get("topic_titre", "")):
+    if f.get("topic_titre") and not _V_AQ_LOCAL_TITLE.fullmatch(f["topic_titre"]):
         bad("topic_titre not a local value")
     for k in ("topic_id", "post_id"):
-        if not _V_AQ_LOCAL_ID.fullmatch(f.get(k, "")):
+        if not _V_AQ_LOCAL_BODY_ID.fullmatch(f.get(k, "")):
             bad("%s not a local id" % k)
-    if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+    if f.get("pseudo", "") != "" and not FAKE_NAME_RE.fullmatch(f["pseudo"]):
         bad("pseudo not an alias")
     if not _V_AQ_LOCAL_POST_URL.fullmatch(f.get("post_url", "")):
         bad("post_url not a local value")
-    if f.get("commentaire") != "post de %s" % f.get("pseudo"):
+    # An empty pseudo (#611, an addition missing a field) still sends the legacy text of an alias.
+    pseudo = f.get("pseudo") or (f.get("commentaire") or "")[len("post de "):]
+    legacy = "post de %s" % (pseudo if FAKE_NAME_RE.fullmatch(pseudo) else f.get("pseudo"))
+    if f.get("commentaire") not in (legacy, legacy + " été", legacy + " \U0001F600") + _V_AQ_LOCAL_LONG_COMMENTS:
         bad("commentaire not the legacy text")
 
 
