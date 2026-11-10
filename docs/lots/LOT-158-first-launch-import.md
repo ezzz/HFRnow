@@ -57,12 +57,12 @@ The sheet, in French, counts only (no pseudo, no text, ADR 0013 Secrets):
 |---|---|---|
 | `accounts` | Comptes | "n compte(s)" |
 | `pseudoLists` | Listes noire et blanche | "n pseudo(s)" |
-| `superFavorites` | Super favoris | "n sujet(s), placés au prochain chargement des favoris" |
+| `superFavorites` | Super favoris | "n sujet(s), placé(s) au prochain chargement des favoris" |
 | `collapsedSections` | Sections repliées des favoris | "n section(s)" |
 | `smileyFavorites` | Smileys favoris | "n smiley(s)" |
 | `smileySearchHistory` | Recherches de smileys | "n recherche(s)" |
 | `uploadHistory` | Images envoyées | "n image(s)" |
-| `drafts` | Brouillons | "n brouillon(s), rouverts avec leur sujet" |
+| `drafts` | Brouillons | "n brouillon(s), rouvert(s) à l’ouverture du sujet" |
 | `pageCache` | Ancien cache des pages | "n page(s) supprimée(s)" |
 
   Other outcomes: `waitingForAccount` "En attente d’un compte : repris à la première connexion"; `failed(.sourceUnreadable)` "Illisible : ignoré, l’original est conservé"; `failed(.sourceUnavailable)` and `failed(.destinationFailed)` "Échec : sera réessayé".
@@ -75,11 +75,11 @@ The sheet, in French, counts only (no pseudo, no text, ADR 0013 Secrets):
 
 - **Super-favourites.** At each favourites-list load (`TopicListModel.load` of a favourites page, after the folded sections are pruned), `FavoritesOptionsModel.placePendingSuperFavorites(from:)` hands every topic of the page to `LegacyPendingStore.resolveSuperFavorites` for the current account, then reads the super-favourites again when it placed some. Nothing without an account or with an empty page. A failure (the pending store or the super-favourites store refusing) changes nothing visible: the numbers stay pending and the next load tries again; a super-favourites store that cannot be read is already shown by `reload()`.
 - **Discard.** No SwiftHFR action empties the super-favourites at once, as legacy (`Favorites.swift:955`): `discardPendingSuperFavorites` has no caller here; the lot that adds such an action calls it. Pending numbers otherwise expire after 90 days (LOT-067).
-- **Reply drafts.** `LegacyDraftResolver.resolve(_:)` turns the pending draft of the topic's number into the topic's reply draft (`ReplyTarget.draftContext(of:)`, the composer's own context) for the current account; an existing SwiftHFR draft wins (LOT-067). It is called when the reader delivers a page with a topic id (the topic opens), and awaited by `ReplyComposerModel.start()` for a reply before the draft is read, so a composer opened before the reader's call ended still finds the draft. A failure keeps the draft pending, tried again at the next opening; the composer's own draft read shows a draft store failure (LOT-084). The number matches in any category, private messages included, as legacy's `post-<n>` did.
+- **Reply drafts.** `LegacyDraftResolver.resolve(_:)` turns the pending draft of the topic's number into the topic's reply draft (`ReplyTarget.draftContext(of:)`, the composer's own context) for the current account; an existing SwiftHFR draft wins (LOT-067). It is called when the reader delivers a page with a topic id (the topic opens) and offers a reply (it has the account's composer, `TopicReaderModel.adopt(_:composer:)`), and awaited by `ReplyComposerModel.start()` for a reply before the draft is read, so a composer opened before the reader's call ended still finds the draft. A failure keeps the draft pending, tried again at the next opening; the composer's own draft read shows a draft store failure (LOT-084). The number matches in any category, private messages included, as legacy's `post-<n>` did.
 
 ### Call sites (to remove with #708)
 
-`SwiftHFRApp` (launch run, current account changes), `RootView` (progress label, summary sheet), `FavoritesStores.pending`, `FavoritesOptionsModel.placePendingSuperFavorites`, `TopicListModel.load`, `ReaderServices.legacyDrafts`, `TopicReaderModel.legacyDrafts`, `ComposerServices.legacyDrafts`, `ReplyComposerModel.start`, `App/SwiftHFR/LegacyImport/`.
+`SwiftHFRApp` (launch run, current account changes), `RootView` (progress label, summary sheet), `FavoritesStores.pending`, `FavoritesOptionsModel.placePendingSuperFavorites`, `TopicListModel.load`, `TopicReaderModel.adopt(_:composer:)`, `TopicReaderModel.legacyDrafts`, `ComposerServices.legacyDrafts`, `ReplyComposerModel.start`, `App/SwiftHFR/LegacyImport/`.
 
 ### Stores
 
@@ -104,7 +104,12 @@ None: no HFR page. The model tests use a scripted importer and in-memory stores;
 
 ## Tests
 
-`App/SwiftHFRTests/LegacyImport/`: `LegacyImportModelTests` (the launch run happens once and passes no account; nothing to show stays silent; an import shows the summary; a later `alreadyDone` keeps the first result; a retriable failure offers a retry that runs with the current account; the current account change runs only while incomplete; it reports when accounts were imported), `LegacyImportSummaryTests` (each outcome's wording, the hidden switch, the page-cache row, the rejected line, plural forms). `FavoritesOptionsModelTests` (pending numbers placed in every category of the page and shown; nothing without an account), `ReplyComposerDraftTests` (the composer starts on a pending legacy draft; an existing draft wins), `TopicReaderLegacyDraftTests` (a delivered page resolves its topic's pending draft).
+`App/SwiftHFRTests/LegacyImport/`:
+- `LegacyImportModelTests` (11): the launch run happens once and names no account; nothing to import, only waiting steps, or a complete import stay silent; an import or refused items show the summary; a retry runs with the current account, keeps what the first run imported and refreshes the same sheet; a later failure shows a closed sheet again, a later run that only finds steps done does not; an account change runs only while incomplete and with an account; a run says when it imported accounts; overlapping runs keep `isRunning` until the last ends.
+- `LegacyImportSummaryTests` (9): each step's wording and order, singular and plural; failures and waiting steps; an unreadable source offers no retry; the switch is never shown; the page-cache row only with data, its failure never offers a retry; `alreadyDone` never replaces an earlier result while a later outcome does; refused items add up.
+- `LegacyPendingPlacementTests` (5): pending super-favourites placed in every category the loaded favourites list shows, through `TopicListModel.loadIfNeeded`, the unlisted one kept; nothing without an account; the composer starts on the legacy draft; an existing SwiftHFR draft wins; a delivered reader page makes the legacy draft the topic's reply draft.
+
+The model and summary suites also run on Linux in a scratch package over these files and HFRKit (the app cannot build there): 20 tests green, and 9 mutations each caught (the launch guard, the completeness guard, `alreadyDone` replacing a result, the page cache or the switch counted as data, a retry offered for the page cache, the summary always shown, the accounts flag, the run counter). `LegacyImportServices` and the body of `placePendingSuperFavorites` were type-checked there against HFRKit with the app's stores stubbed. The placement suite needs the app target: CI and the Mac run it.
 
 ## Mac checks (device, with #709's samples)
 

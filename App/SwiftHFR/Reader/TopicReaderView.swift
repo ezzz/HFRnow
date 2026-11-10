@@ -322,7 +322,7 @@ struct TopicReaderView: View {
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
             }, notice: { [model] in model.showMenuFeedback($0) }
         )
-        model.positions = services.positions
+        model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.canQuote
         self.controller = controller
     }
