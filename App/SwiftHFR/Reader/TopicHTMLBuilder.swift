@@ -141,7 +141,7 @@ enum TopicHTMLBuilder {
         if opensAuthorMenu {
             // The author opens the author's menu (legacy: the avatar and the pseudo both did); the numbers are ours, never page text.
             html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\" aria-label=\"Menu de \(author)\">\(author)</button>"
+            html += " aria-haspopup=\"menu\">\(author)</button>"
         } else {
             html += "<span class=\"author\">\(author)</span>"
         }

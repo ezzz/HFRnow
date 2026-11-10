@@ -33,6 +33,8 @@ struct ReaderAnnouncements: ViewModifier {
         content
             .onChange(of: model.menuFeedbackSerial) { ReaderAccessibility.announce(model.menuFeedback) }
             .onChange(of: model.page?.currentPage) { old, new in
+                // A reply, edit or delete confirmation is being spoken: the page it lands on must not cut it off.
+                guard model.replyConfirmation == nil else { return }
                 ReaderAccessibility.announce(ReaderAccessibility.pageAnnouncement(from: old, to: new, maxPage: model.page?.maxPage ?? 1))
             }
     }

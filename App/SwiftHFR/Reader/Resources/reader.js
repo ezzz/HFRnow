@@ -32,7 +32,11 @@
   const load = (img, src) => {
     img.addEventListener("error", () => replaceWithLink(img, src), { once: true });
     // A posted picture without a description is read as "Image", not as its file name (LOT-163).
-    if (img.classList.contains("hfrplusimg") && !img.getAttribute("alt")) { img.setAttribute("alt", "Image"); }
+    // HFR's [img] writes the address itself as the alt, so an alt that is empty or an address counts as none.
+    if (img.classList.contains("hfrplusimg")) {
+      const alt = img.getAttribute("alt") || "";
+      if (alt === "" || alt === src || /^https?:/i.test(alt)) { img.setAttribute("alt", "Image"); }
+    }
     // The viewer's list is the original `src` of the pictures this script loaded (the attribute itself is the proxied URL).
     img.dataset.viewerSrc = src;
     img.setAttribute("src", proxied(src));

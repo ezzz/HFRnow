@@ -138,7 +138,7 @@ struct TopicHTMLBuilderTests {
         // The avatar button repeats the author button: assistive technologies skip it (LOT-163), so it carries no label.
         #expect(html.contains("aria-hidden=\"true\" tabindex=\"-1\">") && !html.contains("aria-label"))
         let document = TopicHTMLBuilder.document(for: page([odd]), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
-        #expect(document.contains("aria-label=\"Menu de a&quot;&gt;&lt;img src=x&gt;\""))
+        #expect(document.contains("&gt;a&quot;&gt;&lt;img src=x&gt;</button>"))
         #expect(!document.contains("<img src=x>"))
     }
 
@@ -149,7 +149,7 @@ struct TopicHTMLBuilderTests {
         #expect(plain.components(separatedBy: heading + "<span class=\"author\">").count == 3)
         let menus = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
         #expect(menus.contains(heading + "<button type=\"button\" class=\"author menu-author\""))
-        #expect(menus.contains("aria-haspopup=\"menu\" aria-label=\"Menu de auteur\">auteur</button></span>"))
+        #expect(menus.contains("aria-haspopup=\"menu\">auteur</button></span>"))
     }
 
     @Test func theMessageMenuButtonAnnouncesAMenu() {

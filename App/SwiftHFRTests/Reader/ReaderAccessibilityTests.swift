@@ -23,6 +23,7 @@ struct ReaderAccessibilityTests {
 }
 
 /// What `reader.js` adds for VoiceOver, in a real web view (LOT-163): attributes only, shaped as HFR's own tables.
+@Suite(.serialized)
 @MainActor
 struct ReaderAccessibilityAdapterTests: ReaderWebTesting {
     private let content = """
@@ -32,7 +33,8 @@ struct ReaderAccessibilityAdapterTests: ReaderWebTesting {
         <a href="/hfr/x_1.htm#t2" class="Topic">user9 a écrit :</a></b><br><br><p>texte</p></td></tr></table>
         <table class="code"><tr class="none"><td><b class="s1">Code :</b><br><ol class="olcode"><li>a</li></ol></td></tr></table>
         <table class="spoiler"><tr class="none"><td><b class="s1Topic">Spoiler :</b><br><br>\
-        <div class="Topic masque"><p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/a.png"></p></div>\
+        <div class="Topic masque"><p><img class="hfrplusimg" src="https://forum-images.hardware.fr/images/a.png" \
+        alt="https://forum-images.hardware.fr/images/a.png"></p></div>\
         </td></tr></table>
         """
 
