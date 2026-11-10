@@ -50,6 +50,8 @@ struct SettingsView: View {
     private let reader: ReaderServices?
     /// Where the icon screen reads and writes the choice (`icon`).
     private let store: any SettingsStore
+    /// "Maintenance" (LOT-120).
+    @State private var maintenance = MaintenanceModel()
 
     /// Reads the "Sujets" values from `store`.
     init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil) {
@@ -146,6 +148,10 @@ struct SettingsView: View {
                 Picker("Bouton +", selection: $topics.replyButton) {
                     ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+            }
+            MaintenanceSection(model: maintenance)
+            Section("À propos") {
+                LabeledContent("Version", value: AppVersion.current.display)
             }
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
