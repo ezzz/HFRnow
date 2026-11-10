@@ -1,3 +1,4 @@
+import HFRStorage
 import SwiftUI
 
 // Port of none @ 87fe0d1c: legacy was the app this update replaces and never imported its data (GAP-170, new UX: spec).
