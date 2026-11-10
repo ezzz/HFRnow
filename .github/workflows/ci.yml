@@ -79,6 +79,8 @@ jobs:
       - name: Anonymization check of the committed capture corpus
         # Config-less: the structural verifier, tokens, cookies, ids and private bodies (from each meta).
         run: python3 tooling/fixtures/anonymize.py check --quiet --corpus Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures
+      - name: Corpus manifest and MANIFEST.md name the same captures
+        run: python3 tooling/fixtures/manifest_check.py
 
   engine-linux:
     name: HFRKit tests (Linux)
