@@ -1,3 +1,4 @@
+import Foundation
 import HFRModels
 
 /// What a draft is written for. Each context has its own draft, so writing a quote, an edit or a private message
@@ -13,6 +14,9 @@ public enum DraftContext: Sendable, Hashable, Codable {
     case privateMessage(recipient: String)
     /// The edit of an existing message (`numreponse`) of a topic.
     case edit(topic: TopicID, post: Int)
+    /// A reply set aside in a topic (LOT-101): several per topic, told apart by `id`. `source` is what the text came from, kept
+    /// for the picker's label and not part of the identity.
+    case archivedReply(topic: TopicID, id: UUID, source: ArchivedDraftSource)
     /// The single global draft of the legacy app (`composerDraftText` / `brouillon`), kept by the legacy import (LOT-067).
     case legacyGlobal
 
@@ -27,6 +31,8 @@ public enum DraftContext: Sendable, Hashable, Codable {
             "mp:\(AccountKey.make(recipient))"
         case .edit(let topic, let post):
             "edit:\(topic.category.queryValue):\(topic.topic):\(post)"
+        case .archivedReply(let topic, let id, _):
+            "archived:\(topic.category.queryValue):\(topic.topic):\(id.uuidString)"
         case .legacyGlobal:
             "legacy"
         }
