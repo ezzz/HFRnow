@@ -81,3 +81,8 @@ def clean_title(t, k=64):
     t = re.sub(r'\blegacy\b', "app courante", t, flags=re.I)
     t = t.strip(' ,;:')
     return t if len(t) <= k else t[:k - 1].rsplit(' ', 1)[0].rstrip(' ,;:') + '…'
+
+
+def dropped_issues(issues):
+    """Issues closed as not planned or duplicate: their lots leave every count of the deck (a dropped lot is not planned)."""
+    return {i['number'] for i in issues if i['state'] == 'closed' and i.get('state_reason') not in (None, 'completed')}

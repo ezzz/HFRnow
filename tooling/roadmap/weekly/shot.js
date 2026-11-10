@@ -35,6 +35,18 @@ function audit(minPx) {
   }
   for (const el of document.querySelectorAll('.card,.hero,.body')) {
     if (el.scrollHeight > el.clientHeight + 2) issues.push(`content taller than its box (${el.className}): +${el.scrollHeight - el.clientHeight}px`);
+    if (el.scrollWidth > el.clientWidth + 2) issues.push(`content wider than its box (${el.className}): +${el.scrollWidth - el.clientWidth}px`);
+    if (el.classList.contains('body')) continue;
+    // a child drawn past its card (a nowrap pill or title runs over the next card); one-line ellipsis stays inside
+    const box = el.getBoundingClientRect();
+    for (const c of el.querySelectorAll('*')) {
+      if (c.closest('svg') && c.tagName !== 'svg') continue;
+      const r = c.getBoundingClientRect();
+      if (r.width && (r.right > box.right + 1 || r.left < box.left - 1 || r.bottom > box.bottom + 1)) {
+        issues.push(`drawn outside its card (${el.className}): ${(c.textContent || c.tagName).trim().slice(0, 40)}`);
+        break;
+      }
+    }
   }
   // blocks of the slide body never overlap each other (a grid that grew past its row lands on the next block)
   const blocks = [...document.querySelectorAll('.body > *')].filter(e => e.tagName !== 'STYLE').map(e => e.getBoundingClientRect());

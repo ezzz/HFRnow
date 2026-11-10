@@ -513,10 +513,6 @@ class FoldFragmentsTest(unittest.TestCase):
         self.assertTrue((lay.gap_dir / "GAP-9999.md").exists())
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class WeeklyCounts(unittest.TestCase):
     def test_gap_total_is_read_from_the_counts_table_only(self):
         text = ("| Gap | Rows |\n|---|---|\n| **Total** | **9** |\n\n## Counts\n\n| Gap | Rows |\n|---|---|\n| same | 39 |\n"
@@ -573,3 +569,29 @@ class WeeklyCounts(unittest.TestCase):
             r = subprocess.run([sys.executable, str(ROADMAP / "weekly" / "build.py"), d, "--state", str(f)], capture_output=True, text=True)
             self.assertNotEqual(r.returncode, 0)
             self.assertIn("6 h", r.stderr)
+
+    def test_dropped_lots_are_the_not_planned_and_duplicate_closures(self):
+        iss = [issue(1, "closed"), {**issue(2, "closed"), "state_reason": "not_planned"}, {**issue(3, "closed"), "state_reason": "duplicate"},
+               {**issue(4, "closed"), "state_reason": "completed"}, issue(5)]
+        self.assertEqual(counts.dropped_issues(iss), {2, 3})
+
+    def test_generate_reads_the_state_named_by_roadmap_state(self):
+        import tempfile
+        lot = next(iter(sorted(generate.rows)))
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "state.json"
+            f.write_text(json.dumps({"closed": [generate.rows[lot]["issue"]], "ready": [], "claimed": [], "external": [], "prs": {},
+                                     "merged_pr": {}, "capture": {}, "generated_at": "2026-11-10 22:00 UTC"}))
+            code = f"import generate as G; print(G.GENERATED_AT, G.done({lot!r}), len(G.CLOSED))"
+            r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=ROADMAP,
+                               env={**__import__("os").environ, "ROADMAP_STATE": str(f)})
+            self.assertEqual(r.stdout.split(), ["2026-11-10", "22:00", "UTC", "True", "1"], r.stderr)
+
+    def test_a_slide_never_shows_the_word_legacy(self):
+        import build
+        h = build.page(1, "Legacy et legacy", "le legacy", "<p>LEGACY</p>")
+        self.assertNotIn("legacy", re.sub(r"<style>.*?</style>", "", h, flags=re.S).lower())
+
+
+if __name__ == "__main__":
+    unittest.main()

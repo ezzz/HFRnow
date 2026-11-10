@@ -232,6 +232,7 @@ def gather(since, issues, pulls_all):
     now_dt = datetime.now(timezone.utc)
     pulls = [p for p in pulls_all if p.get('merged_at')]
     byn = {i['number']: i for i in issues}
+    dropped = C.dropped_issues(issues)
     end = since + 'T23:59:59Z'
 
     def done_by(i, t):
@@ -260,7 +261,8 @@ def gather(since, issues, pulls_all):
     week = (now_dt - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')
     day = (now_dt - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
     return {
-        'since': since, 'planned': len(G.rows), 'state_at': G.GENERATED_AT,
+        'since': since, 'planned': sum(1 for r in G.rows.values() if r['issue'] not in dropped), 'state_at': G.GENERATED_AT,
+        'dropped': sorted(l for l, r in G.rows.items() if r['issue'] in dropped),
         'now': {'done': lots_done('9999'), 'prs': len(pulls), 'commits': commits('origin/dev-swift'), 'tests': t1, 'lines': l1,
                 'issues': len(issues), 'open': sum(i['state'] == 'open' for i in issues)},
         'then': {'done': lots_done(end), 'prs': sum(p['merged_at'] <= end for p in pulls), 'commits': commits(base_rev) if base_rev else 0,
@@ -339,9 +341,8 @@ h1 b{font-weight:600;background:var(--grad);-webkit-background-clip:text;backgro
 .card{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);border:1px solid rgba(15,23,32,.04);padding:24px 26px;position:relative}
 .card.dash{background:transparent;box-shadow:none;border:2px dashed #d6dbe3}
 .card.grey{background:var(--soft);box-shadow:none;border:none}
-.hero{border-radius:var(--r);padding:36px 38px;background:linear-gradient(140deg,#eef2ff 0%,#f1ebff 60%,#f8f0ff 100%);border:1px solid rgba(139,92,246,.14);
+.hero{border-radius:var(--r);padding:36px 38px;background:radial-gradient(300px 300px at 100% 0%,rgba(139,92,246,.18),transparent 70%),linear-gradient(140deg,#eef2ff 0%,#f1ebff 60%,#f8f0ff 100%);border:1px solid rgba(139,92,246,.14);
  display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden}
-.hero:after{content:"";position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(closest-side,rgba(139,92,246,.18),transparent)}
 .hero h2{font-size:40px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
 .hero p{font-size:22px;line-height:1.4;color:var(--mute)}
 .hero .big{font-size:84px;font-weight:300;letter-spacing:-.04em;line-height:1}
@@ -356,6 +357,8 @@ h1 b{font-weight:600;background:var(--grad);-webkit-background-clip:text;backgro
 .bar{height:14px;border-radius:14px;background:#eef0f4;overflow:hidden;position:relative}
 .bar i{display:block;height:100%;background:var(--grad);border-radius:14px;position:absolute;left:0;top:0}
 .bar i.then{background:rgba(79,124,255,.25)}
+.ic.sm{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:12px}.ic.sm svg{width:24px;height:24px}
+.cell{position:relative}
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}
 .kpi{padding:22px 24px}
 .kpi b{display:block;font-size:60px;font-weight:300;letter-spacing:-.03em;line-height:1}
@@ -460,7 +463,8 @@ def slide_overview(D):
     kp = [(D['planned'], 'lots planifiés', "issus de l'audit", ''), (N['done'], f"lots terminés · {pct(N['done'], D['planned'])} %", f"{D['planned'] - N['done']} restants", 'g'),
           (C.fr_num(N['prs']), 'PR fusionnées', 'une PR relue par lot', ''), (C.fr_num(N['commits']), 'commits', 'sur dev-swift', ''),
           (C.fr_num(N['tests']), 'tests automatisés', f"{C.fr_num(N['lines'])} lignes de Swift", ''), (N['issues'], 'issues de suivi', f"{N['open']} ouvertes", '')]
-    kh = ''.join(f'<div class="card kpi"><b class="{c}">{v}</b><span><u>{a}</u><br>{b}</span></div>' for v, a, b, c in kp)
+    kic = ['list', 'ci', 'pr', 'chart', 'test', 'tag']
+    kh = ''.join(f'<div class="card kpi">{icon(ic, "ic sm")}<b class="{c}">{v}</b><span><u>{a}</u><br>{b}</span></div>' for ic, (v, a, b, c) in zip(kic, kp))
     Y = D['daily']
     mp = len(D['master_prs'])
     tri = [('bug', 'Feedback de test', Y['feedback'], 'retours de test sur appareil'),
@@ -486,7 +490,7 @@ def slide_kpis(D):
         ('ci', C.fmt_ci(ci['total']), 'runs CI · 7 j'),
         ('ci', f"{C.fmt_ci(ci['failure'])} · {C.fmt_ci(ci['cancelled'])}", 'en échec · annulés'),
     ]
-    kg = ''.join(f'<div class="card kpi"><b>{v}</b><span>{t}</span></div>' for _, v, t in tiles)
+    kg = ''.join(f'<div class="card kpi">{icon(ic, "ic sm")}<b>{v}</b><span>{t}</span></div>' for ic, v, t in tiles)
     line, bars = progress.charts(D)
     inner = (f'<div class="k2"><div class="kg">{kg}</div>{line}{bars}</div>'
              f'<div><div class="lbl">État des lots de chaque étape · fait › en cours › bloqué › humain › macOS › basse prio. › prêt</div>{progress.donuts(D)}</div>')
@@ -584,7 +588,7 @@ def slide_m5(D):
         li = ''.join(f'<li>{"✓ " if G.done(l) else ""}{esc(lot_label(l))}</li>' for l in lots)
         cards += f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><ul>{li}</ul><div style="margin-top:auto">{card_pill(ls)}</div></div>'
     listed = {f'LOT-{x:03d}' for *_, ls in FEATURES['M5'] for x in ls}
-    rest = sorted(l for l in G.M5 if l not in listed)
+    rest = sorted(l for l in G.M5 if l not in listed and l not in D['dropped'])
     cards += (f'<div class="card dash fc"><div class="t">{icon("list")}<b>Aussi dans M5 · {len(rest)}</b></div>'
               f'<ul>{"".join(f"<li><u>{l[4:]}</u>{esc(lot_label(l))}</li>" for l in rest[:5])}</ul></div>')
     text = "Les évolutions que la parité n'exige pas : décisions UX, propositions de fonctions, secondes moitiés des lots scindés. Ouvert par l'orchestrateur après M4."
@@ -595,10 +599,10 @@ def slide_m5(D):
 def slide_today(D):
     N, T = D['now'], D['then']
 
-    def cell(label, a, b, fmt=str):
-        return f'<div class="card cell"><b>{fmt(a)}<em>+{fmt(a - b)}</em></b><span>{label}</span><s>le {day_label(D["since"])} : {fmt(b)}</s></div>'
-    cells = ''.join([cell('lots terminés', N['done'], T['done']), cell('PR fusionnées', N['prs'], T['prs'], C.fr_num), cell('commits', N['commits'], T['commits'], C.fr_num),
-                     cell('tests', N['tests'], T['tests'], C.fr_num), cell('lignes de Swift', N['lines'], T['lines'], C.fr_num), cell('issues de suivi', N['issues'], T['issues'])])
+    def cell(label, a, b, fmt=str, ic='chart'):
+        return f'<div class="card cell">{icon(ic, "ic sm")}<b>{fmt(a)}<em>+{fmt(a - b)}</em></b><span>{label}</span><s>le {day_label(D["since"])} : {fmt(b)}</s></div>'
+    cells = ''.join([cell('lots terminés', N['done'], T['done'], ic='ci'), cell('PR fusionnées', N['prs'], T['prs'], C.fr_num, 'pr'), cell('commits', N['commits'], T['commits'], C.fr_num),
+                     cell('tests', N['tests'], T['tests'], C.fr_num, 'test'), cell('lignes de Swift', N['lines'], T['lines'], C.fr_num, 'list'), cell('issues de suivi', N['issues'], T['issues'], ic='tag')])
     rows = ''
     for m in MS[:4]:
         s = D['ms'][m]

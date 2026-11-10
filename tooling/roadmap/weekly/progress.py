@@ -136,7 +136,7 @@ def _ticks(mx, n=4):
 FS = 20  # smallest text of the deck, in px at the 1920 base (operator, 2026-11-10): the charts are drawn at 1:1
 
 
-def _empty(msg, W=532, H=250):
+def _empty(msg, W=520, H=250):
     return f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}"><text x="{W / 2}" y="{H / 2}" text-anchor="middle" font-size="{FS}" fill="#9aa4b2">{msg}</text></svg>'
 
 
@@ -144,7 +144,7 @@ def _grid(ys, py, L, W):
     return ''.join(f'<line x1="{L}" x2="{W - 4}" y1="{py(v):.1f}" y2="{py(v):.1f}" stroke="#eceef2"/><text x="{L - 10}" y="{py(v) + 7:.1f}" text-anchor="end" font-size="{FS}" fill="#6b7685">{v}</text>' for v in ys)
 
 
-def _line_chart(cum, W=532, H=250):
+def _line_chart(cum, W=520, H=250):
     if not cum:
         return _empty('Aucun commit', W, H)
     L, B, T = 58, 38, 14
@@ -166,7 +166,7 @@ def _line_chart(cum, W=532, H=250):
     return s
 
 
-def _stacked(bins, weekly, W=532, H=250):
+def _stacked(bins, weekly, W=520, H=250):
     if not bins:
         return _empty('Aucune PR fusionnée', W, H)
     L, B, T = 50, 38, 26
