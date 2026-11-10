@@ -73,7 +73,8 @@ struct LegacyImportProgressView: View {
         let display = Self.display(for: style, reduceMotion: reduceMotion)
         VStack(spacing: 16) {
             drawing(display)
-                .frame(width: drawingSize, height: drawingSize)
+                // Capped: at accessibility sizes the text matters more than the picture.
+                .frame(width: min(drawingSize, 200), height: min(drawingSize, 200))
                 // The drawing says nothing the label does not.
                 .accessibilityHidden(true)
             if display == .staticWithIndicator {

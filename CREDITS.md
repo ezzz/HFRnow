@@ -27,7 +27,7 @@ Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperH
 
 ### Import worker
 
-The construction worker shown while the first-launch import runs (#754, `App/SwiftHFR/Assets.xcassets/ImportWorker*.imageset`). Original drawing in the style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6), generated from the committed script `tooling/art/import-worker/make.py` (hand-placed vector shapes, standard library only; no traced, downloaded or existing character), under this repository's licence. Made by Claude Code (Sonnet 5.5) for François Guillon (operator); the previews are rendered by `tooling/art/import-worker/render.mjs`.
+The construction worker shown while the first-launch import runs (#754, `App/SwiftHFR/Assets.xcassets/ImportWorker*.imageset`). Original drawing in the style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6), generated from the committed script `tooling/art/import-worker/make.py` (hand-placed vector shapes, standard library only; no traced, downloaded or existing character), under this repository's licence. Made by Claude Code (Sonnet 5.5) for the operator; the previews are rendered by `tooling/art/import-worker/render.mjs`.
 
 ## Contributors
 

@@ -16,8 +16,8 @@ import argparse
 import json
 import os
 
-SHOULDER = (72, 62)   # pivot of the arm layer; mirrored in ImportWorkerView.shoulderAnchor
-IMPACT_ANGLE = 58     # degrees clockwise from the raised pose to the nail; mirrored in ImportWorkerView
+SHOULDER = (72, 62)   # pivot of the arm layer; mirrored in LegacyImportProgressView.shoulder
+IMPACT_ANGLE = 58     # degrees clockwise from the raised pose to the nail; mirrored in LegacyImportProgressView.impactAngle
 
 LIGHT = dict(line="#3B2F2A", skin="#F0BE96", helmet="#F6B92B", helmet_shade="#E39A12", vest="#F36F2E", stripe="#EEF1F3",
              pants="#46659A", boot="#5E4837", wood="#B98150", wood_dark="#9A6638", metal="#8F99A5", glove="#DCD3C6",
@@ -42,7 +42,7 @@ def body(c):
         f'<ellipse cx="62" cy="117" rx="46" ry="4.5" fill="{c["ground"]}"/>'
         f'<rect x="108" y="58" width="12" height="58" rx="2" {sk(c["wood"], c)}/>'
         f'<rect x="108" y="58" width="5" height="58" rx="2" fill="{c["wood_dark"]}"/>'
-        f'<rect x="102.5" y="63" width="9" height="4" rx="1.5" {sk(c["nail"], c, 1.8)}/>'
+        f'<rect x="112" y="49" width="4" height="10" rx="1.5" {sk(c["nail"], c, 1.8)}/>'
         # back arm (rests along the body), behind the torso
         f'<rect x="28" y="62" width="12" height="28" rx="6" {sk(c["vest"], c)}/>'
         f'<circle cx="34" cy="92" r="6" {sk(c["glove"], c)}/>'
@@ -82,13 +82,13 @@ def arm(c):
 
 
 def spark(c):
-    cx, cy = 104, 61
+    cx, cy = 112, 55
     rays = "".join(
         f'<path d="M{cx} {cy} L{cx + dx} {cy + dy}" stroke="{c["line"]}" stroke-width="5" stroke-linecap="round"/>'
-        for dx, dy in [(-12, -10), (-14, 2), (-9, 13)]
+        for dx, dy in [(-9, -12), (3, -15), (-15, -3)]
     ) + "".join(
         f'<path d="M{cx} {cy} L{cx + dx} {cy + dy}" stroke="{c["spark"]}" stroke-width="2.4" stroke-linecap="round"/>'
-        for dx, dy in [(-12, -10), (-14, 2), (-9, 13)]
+        for dx, dy in [(-9, -12), (3, -15), (-15, -3)]
     )
     return svg(rays)
 

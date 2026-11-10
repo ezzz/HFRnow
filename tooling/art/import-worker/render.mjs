@@ -19,7 +19,6 @@ function page(s, variant) {
     <div class="w">${worker(s, angle, spark)}</div>
     ${variant === 'B' ? '<div class="spin"></div>' : ''}
     <div class="txt">Import de vos données HFR+…</div>
-    ${variant === 'A' ? '' : ''}
   </div></div><div class="cap">${caption}</div></div>`;
   const frames = variant === 'A'
     ? phone(0, false, 'A · marteau levé') + phone(IMPACT, true, 'A · impact (étincelle)')

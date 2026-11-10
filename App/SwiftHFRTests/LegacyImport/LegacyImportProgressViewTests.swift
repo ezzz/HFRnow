@@ -41,4 +41,10 @@ struct LegacyImportProgressViewTests {
             #expect(UIImage(named: name) != nil, "\(name)")
         }
     }
+
+    @Test func theRootShowsTheWorkerWhileTheImportRunsAndNoNavigationYet() {
+        #expect(RootView.content(hasNavigation: false, importIsRunning: true) == .importProgress)
+        #expect(RootView.content(hasNavigation: false, importIsRunning: false) == .loading)
+        #expect(RootView.content(hasNavigation: true, importIsRunning: true) == .navigation)
+    }
 }
