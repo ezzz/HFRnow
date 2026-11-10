@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that the corpus manifest and the capture MANIFEST.md name the same captures (#773).
 
-    manifest_check.py [--corpus corpus.json] [--manifest .../captures/MANIFEST.md]
+    manifest_check.py [--corpus corpus.json|corpus.d] [--manifest .../captures/MANIFEST.md]
 
 Every corpus id must be named in the capture table of MANIFEST.md (a grouped row such as `| T11, T11h |` names
 each id), and every id of that table must exist in the corpus. Only the table whose header starts with `Id` is
@@ -18,7 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import publish  # noqa: E402
 
-DEFAULT_CORPUS = os.path.join(HERE, "corpus.json")
+DEFAULT_CORPUS = publish.DEFAULT_MANIFEST  # follows the corpus layout
 DEFAULT_MANIFEST = os.path.join(HERE, "..", "..", "Packages", "HFRKit", "Tests", "HFRParsingTests", "Fixtures",
                                 "captures", "MANIFEST.md")
 
@@ -68,9 +68,13 @@ def main(argv=None):
     p.add_argument("--corpus", default=DEFAULT_CORPUS)
     p.add_argument("--manifest", default=DEFAULT_MANIFEST)
     args = p.parse_args(argv)
-    with open(args.manifest, encoding="utf-8") as fh:
-        text = fh.read()
-    found = problems([e["id"] for e in publish.load_manifest(args.corpus)], manifest_ids(text))
+    try:
+        with open(args.manifest, encoding="utf-8") as fh:
+            text = fh.read()
+        found = problems([e["id"] for e in publish.load_manifest(args.corpus)], manifest_ids(text))
+    except (OSError, ValueError) as exc:
+        print("FAIL", exc, file=sys.stderr)
+        return 1
     for line in found:
         print("FAIL", line, file=sys.stderr)
     if found:

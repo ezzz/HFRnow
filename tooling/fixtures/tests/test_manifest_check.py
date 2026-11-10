@@ -121,6 +121,23 @@ class MainTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("R77", text)
 
+    def test_manifest_without_capture_table_is_a_fail_line_not_a_traceback(self):
+        self.write_corpus(IDS)
+        with open(self.manifest, "w") as fh:
+            fh.write("# Nothing here\n")
+        code, text = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL", text)
+
+    def test_unreadable_corpus_is_a_fail_line(self):
+        code, text = self.run_main()  # corpus file never written
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL", text)
+
+    def test_default_corpus_follows_the_publish_layout(self):
+        import publish
+        self.assertEqual(M.DEFAULT_CORPUS, publish.DEFAULT_MANIFEST)
+
     def test_committed_corpus_and_manifest_agree(self):
         """The real files: this is the check CI runs, kept here so a local unittest run catches a gap too."""
         self.assertEqual(M.main([]), 0)
