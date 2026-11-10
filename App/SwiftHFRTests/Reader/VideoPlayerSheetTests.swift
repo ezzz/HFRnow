@@ -121,9 +121,15 @@ struct VideoPlayerSheetTests {
     }
 
     @MainActor @Test func aPlayerThatCannotBeReachedReportsIt() async throws {
+        // A loopback port that was open a moment ago and is closed now: the connection is refused at once, no network involved.
+        let closed = try RequestRecordingServer()
+        try await closed.ready()
+        let port = closed.port
+        closed.stop()
+        try await Task.sleep(for: .milliseconds(200))
         var failures = 0
         let coordinator = PlayerWebView.Coordinator(host: "127.0.0.1") { failures += 1 }
-        let webView = PlayerWebView.makeWebView(request: URLRequest(url: url("http://127.0.0.1:1/x")), delegate: coordinator)
+        let webView = PlayerWebView.makeWebView(request: URLRequest(url: url("http://127.0.0.1:\(port)/x")), delegate: coordinator)
         for _ in 0..<3000 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(failures >= 1)
         withExtendedLifetime((webView, coordinator)) {}
