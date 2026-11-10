@@ -94,7 +94,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-072 | Continuous scrolling | None. | — | Option, off by default, haptic per page. | LOT-148, FEAT-017 | new | new UX: Bybifok (FEAT-017) | b |
 | GAP-073 | Quick-reply bar and quote tray | None. | — | Bottom bar with the count of checked quotes and a quick reply. | LOT-153, FEAT-006 | new | new UX: Bybifok (FEAT-006) | b |
 | GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
-| GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for every link that is not a forum topic, MP or profile, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). "Ouvrir l'image" and "Save to Photos" are not ported here: deferred to #615. | #596, #615, LOT-137 | UX change | new UX: operator (2026-11-07) | b·operator |
+| GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for every link that is not a forum topic, MP or profile, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). An image link (extension or rehost host, as legacy `isImageURL`) also offers "Ouvrir l'image" (the viewer) and "Enregistrer dans Photos" (cookie-less download, add-only Photos permission), ported in #615. | #596, #615, LOT-137 | UX change | new UX: operator (2026-11-07) | b·operator |
 | GAP-595 | Default avatar in the reader | `avatar_male_gray_*.png` via CSS `--imagefile-avatar`, class `noavatar` (`MessagesView.swift:2411`, `LinkItem.m:65-69`) | `MessagesView.swift:2411` | Monogram (initials on a pseudo-hashed disc, as the MP list), local markup | #595 | UX change | operator 2026-11-07 | b·operator |
 
 ## Composer
@@ -163,8 +163,8 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-142 | Light / dark / auto | "Automatique (iOS)" or manual Clair / Sombre. | AppSettingsView.swift:127-134 | Same options for native UI and reader. **Kept despite the HIG** (Dark Mode: "Avoid offering an app-specific appearance setting"), by the operator's decision of 2026-11-07. | LOT-121 | same | port: ezzz Swift layer | a |
 | GAP-143 | Time-based auto theme | Day / night time cells, hidden. | PlusSettingsViewController.m:84-85 | Not in any spec. | — | not planned | — | — |
 | GAP-144 | Dark brightness | `theme_night_brightness` scales dark colours; at `2fe43da3` (`f917fafd`) the Swift settings show the "Luminosité du thème sombre" slider (0 to 150 %). | ThemeColors.m:116-118; AppSettingsView.swift:448-462 @ 2fe43da3 | Kept. | LOT-121 | same | port: legacy ObjC | a |
-| GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Darker dark #0B0B0C, OLED black, 1 pt separators. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
-| GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-122 | UX change | new UX: Bybifok (FEAT-010) | b |
+| GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Picker « Style du thème sombre » (Standard par défaut, inchangé / Plus sombre #0B0B0C / Noir OLED) avec aperçu ; les séparateurs sont les jetons de #577, sans réglage dédié. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
+| GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-180 | UX change | new UX: Bybifok (FEAT-010) | b |
 | GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 | Seasonal themes and assets. | LOT-166, FEAT-010 | ported with changes | new UX: Bybifok (FEAT-010) | a |
 | GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker of 9 options (the 8 legacy values on their legacy keys and names, plus REDFACE 3D Big) on a screen behind the "Icône" row; the key is written only after the system accepted the switch (#622). Five of the legacy icons are redrawn as SVG at full resolution (#623). | LOT-123 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
@@ -232,12 +232,13 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-212 | Reader on wide screens | Pushed full width in the tab's stack at `2440d79`. At `2fe43da3` (`03e5e225`) the topic opens in the detail column next to the list, from every list. | Common.swift:3183-3197; MainWindow.swift:1796-1821 @ 2fe43da3 | Detail column next to the list (`NavigationSplitView` per tab). | LOT-082, LOT-170 | same | port: ezzz Swift layer | a·master |
 | GAP-213 | iPhone orientation | Portrait unless `landscape_mode`; portrait forced while composing. At `2fe43da3`: no lock on the unfolded iPhone Duo, which ignores supported orientations. | Common.swift:144-172 @ `2440d79`; `Common.swift:187-200, 214-242` @ `2fe43da3` | Same policy, applied live; no lock on the unfolded Duo (LOT-147). | LOT-119, LOT-147 | same | port: ezzz Swift layer | a |
 | GAP-214 | Large iPhone landscape | Same single column, stretched; still the tab bar at `2fe43da3` (regular width, compact height). | Common.swift:164-172; MainWindow.swift:1357-1365 @ 2fe43da3 | Regular width shows list and reader side by side. | LOT-082, LOT-170 | UX change | new UX: spec | b |
-| GAP-215 | iPhone Duo inner screen | `.phone` idiom at `2440d79`: tab bar and stretched iPhone stack, rotation not locked. At `2fe43da3` the unfolded inner screen gets the split root (regular in both dimensions: sidebar, list, topic), the topic full width in portrait once chosen, list and topic in landscape. | MainWindow.swift:1132-1134 @ `2440d79`; `MainWindow.swift:1357-1373, 1702-1709` @ `2fe43da3` | As legacy at `2fe43da3`: split root unfolded (sidebar, list, topic), full-width topic in portrait (LOT-147, M4: the inner-screen split since 2026-11-09 on #655, the fold handoff GAP-217 on #659). The FEAT-016 rail and pinned sidebar (tabs in a rail, sidebar pinned or on demand) are not in M1–M4. | LOT-147 | UX change | port: legacy evolution (2fe43da3) | a·master |
+| GAP-215 | iPhone Duo inner screen | `.phone` idiom at `2440d79`: tab bar and stretched iPhone stack, rotation not locked. At `2fe43da3` the unfolded inner screen gets the split root (regular in both dimensions: sidebar, list, topic), the topic full width in portrait once chosen, list and topic in landscape. | MainWindow.swift:1132-1134 @ `2440d79`; `MainWindow.swift:1357-1373, 1702-1709` @ `2fe43da3` | As legacy at `2fe43da3`: split root unfolded, topic full width in portrait once chosen, list and topic in landscape, fold handoff (GAP-217). LOT-147, M4 (operator 2026-11-09, #655, #659). The FEAT-016 additions are GAP-655. | LOT-147 | same | port: legacy evolution (2fe43da3) | a·master |
 | GAP-216 | iPhone Duo cover screen | iPhone layout with a black band (reported in #368 G.1). At `2fe43da3` the cover screen keeps the tab-bar layout. | — @ `2440d79`; `MainWindow.swift:1357-1365` @ `2fe43da3` | Compact layout filling the screen. | #432, LOT-147 | UX change | new UX: Bybifok (FEAT-016) | a |
 | GAP-217 | Fold / unfold continuity | No handling at `2440d79`; PR #4 (not merged) proposes one hierarchy. At `2fe43da3` `FoldHandoffStore` carries the topic read at the root of the selected tab, on its page, across fold and unfold (split detail on unfold, compact push on fold; pushed readers are not carried). | — @ `2440d79`; `FoldHandoffStore.swift:11-103`, `FoldHandoffDestination.swift:1-57`, `MainWindow.swift:2087-2140`, `MessagesView.swift:3180-3208` @ `2fe43da3` | Topic and page kept across fold and unfold, as legacy at `2fe43da3` (not the scroll position) (LOT-147, M4, operator 2026-11-09 on #659). | LOT-147 | same | port: legacy evolution (2fe43da3) | a·master |
 | GAP-218 | iPad Plus entries | Plus is a sidebar entry showing its list at `2440d79`. At `2fe43da3` Bookmarks and Alertes Qualitay are three-column (list, topic in the detail column), the other entries two-column; the Plus tab opens Réglages. | MainWindow.swift:1337-1345; MainWindow.swift:1307-1313, 1391-1402, 1796-1821 @ 2fe43da3 | Entries in a two-column split, Bookmarks and Alertes Qualitay three-column (#685, M4); Plus opens Réglages. | LOT-170, #685 | same | port: ezzz Swift layer | a·master |
 | GAP-219 | Multi-window | `UIApplicationSupportsMultipleScenes` false at `2440d79`; true at `2fe43da3` (`afec5433`): each window starts a fresh root, no per-window restoration. | HFRswift/Info.plist:206-208 @ `2440d79`; `HFRswift/Info.plist:204-208`, `HFRswiftApp.swift:24-36` @ `2fe43da3` | iPad multi-window, as legacy at `2fe43da3` (LOT-146, M4). | LOT-146 | new | port: legacy evolution (2fe43da3) | a·master |
 | GAP-228 | App icon | Layered `.icon` `Icon-RedFace3D` (`ASSETCATALOG_COMPILER_APPICON_NAME`). | SuperHFRplus.xcodeproj/project.pbxproj:1803, 6040, 6125 | Main icon ported unchanged (#580); alternates done in LOT-123 (GAP-148). | #580, LOT-123 | same | port: ezzz Swift layer | a |
+| GAP-655 | iPhone Duo: FEAT-016 additions | None at `2fe43da3`: the folded Duo keeps the tab bar; the topic-list split root opens with the sidebar hidden (`doubleColumn`) and persists the user's show / hide choice until a destination is picked (back to `doubleColumn`); the other destinations' split shows it (`.all`), not persisted; no pin setting. | `MainWindow.swift:1317-1322, 1343, 1355, 1357-1365, 1452-1469, 1796-1820, 2075-2082` @ `2fe43da3` | Opt-in settings, off by default: tab rail when folded; sidebar pinned. Design in the LOT-147 spec, approved by the operator on #237 before code. | LOT-147, FEAT-016 | new | new UX: Bybifok (FEAT-016), M4 by operator decision 2026-11-09 | b·operator |
 
 ## Liquid Glass and the iOS 27 HIG (decided 2026-11-07, #545)
 
@@ -263,14 +264,14 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 38 |
+| same | 39 |
 | ported with changes | 49 |
 | ported with changes (engine only) | 1 |
-| UX change | 48 |
-| new | 25 |
+| UX change | 47 |
+| new | 26 |
 | dropped | 2 |
 | not planned | 6 |
-| **Total** | **169** |
+| **Total** | **170** |
 
 ## Convergence notes
 
@@ -306,9 +307,9 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 147, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 47 |
-| a·master | 002, 093, 099, 117, 150, 152, 210, 211, 215, 219 | 10 |
+| a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219 | 9 |
 | b·needed | 024, 056, 058, 089, 133, 181 | 6 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596 | 19 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 655 | 20 |
 | b | 008, 009, 012, 014, 015, 020, 022, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 40 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
