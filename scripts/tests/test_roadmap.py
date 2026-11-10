@@ -575,6 +575,12 @@ class WeeklyCounts(unittest.TestCase):
                {**issue(4, "closed"), "state_reason": "completed"}, issue(5)]
         self.assertEqual(counts.dropped_issues(iss), {2, 3})
 
+    def test_dropped_lots_leave_the_planned_count_and_every_milestone(self):
+        rows = {"LOT-001": {"issue": 1}, "LOT-002": {"issue": 2}, "LOT-003": {"issue": 3}}
+        self.assertEqual(counts.live_lots(rows, rows, {2}), {"LOT-001", "LOT-003"})
+        self.assertEqual(counts.live_lots({"LOT-002"}, rows, {2}), set())
+        self.assertEqual(len(counts.live_lots(rows, rows, set())), 3)
+
     def test_generate_reads_the_state_named_by_roadmap_state(self):
         import tempfile
         lot = next(iter(sorted(generate.rows)))

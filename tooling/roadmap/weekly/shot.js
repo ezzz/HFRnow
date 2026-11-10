@@ -51,6 +51,20 @@ function audit(minPx) {
   // blocks of the slide body never overlap each other (a grid that grew past its row lands on the next block)
   const blocks = [...document.querySelectorAll('.body > *')].filter(e => e.tagName !== 'STYLE').map(e => e.getBoundingClientRect());
   for (let i = 1; i < blocks.length; i++) if (blocks[i].top < blocks[i - 1].bottom - 1) issues.push(`block ${i + 1} overlaps block ${i} by ${Math.round(blocks[i - 1].bottom - blocks[i].top)}px`);
+  // an icon never covers text of its card
+  for (const ic of document.querySelectorAll('.ic')) {
+    const card = ic.closest('.card,.hero');
+    if (!card) continue;
+    const a = ic.getBoundingClientRect();
+    const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let t = tw.nextNode(); t; t = tw.nextNode()) {
+      if (!t.textContent.trim() || ic.contains(t)) continue;
+      const rg = document.createRange(); rg.selectNodeContents(t);
+      for (const b of rg.getClientRects()) {
+        if (b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top) { issues.push(`icon over text: "${t.textContent.trim().slice(0, 30)}"`); break; }
+      }
+    }
+  }
   for (const [t, px] of small) issues.push(`text ${px}px < ${minPx}: "${t}"`);
   return issues;
 }

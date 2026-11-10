@@ -86,3 +86,8 @@ def clean_title(t, k=64):
 def dropped_issues(issues):
     """Issues closed as not planned or duplicate: their lots leave every count of the deck (a dropped lot is not planned)."""
     return {i['number'] for i in issues if i['state'] == 'closed' and i.get('state_reason') not in (None, 'completed')}
+
+
+def live_lots(lots, rows, dropped):
+    """The lots of `lots` whose issue is not in `dropped` (closed not planned or duplicate): the only ones any slide counts or lists."""
+    return {l for l in lots if rows[l]['issue'] not in dropped}

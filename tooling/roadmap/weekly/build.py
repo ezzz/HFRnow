@@ -28,6 +28,7 @@ import counts as C  # noqa: E402
 import sync_state  # noqa: E402
 from sync_state import REPO, gh_pages  # noqa: E402
 
+DROPPED = set()  # issue numbers closed not planned or duplicate (set by gather): their lots leave every count
 G = progress = None  # loaded by load_engine() once the fresh state is in place (generate reads it at import time)
 
 TOTAL = 10
@@ -225,14 +226,15 @@ def lot_n(l):
 
 
 def ms_lots():
-    return {'M1': G.M1, 'M2': G.M2, 'M3': G.M3, 'M4': G.M4, 'M5': G.M5}
+    return {m: C.live_lots(ls, G.rows, DROPPED) for m, ls in (('M1', G.M1), ('M2', G.M2), ('M3', G.M3), ('M4', G.M4), ('M5', G.M5))}
 
 
 def gather(since, issues, pulls_all):
     now_dt = datetime.now(timezone.utc)
     pulls = [p for p in pulls_all if p.get('merged_at')]
     byn = {i['number']: i for i in issues}
-    dropped = C.dropped_issues(issues)
+    DROPPED.clear()
+    DROPPED.update(C.dropped_issues(issues))
     end = since + 'T23:59:59Z'
 
     def done_by(i, t):
@@ -261,8 +263,7 @@ def gather(since, issues, pulls_all):
     week = (now_dt - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')
     day = (now_dt - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
     return {
-        'since': since, 'planned': sum(1 for r in G.rows.values() if r['issue'] not in dropped), 'state_at': G.GENERATED_AT,
-        'dropped': sorted(l for l, r in G.rows.items() if r['issue'] in dropped),
+        'since': since, 'planned': len(C.live_lots(G.rows, G.rows, DROPPED)), 'state_at': G.GENERATED_AT,
         'now': {'done': lots_done('9999'), 'prs': len(pulls), 'commits': commits('origin/dev-swift'), 'tests': t1, 'lines': l1,
                 'issues': len(issues), 'open': sum(i['state'] == 'open' for i in issues)},
         'then': {'done': lots_done(end), 'prs': sum(p['merged_at'] <= end for p in pulls), 'commits': commits(base_rev) if base_rev else 0,
@@ -359,6 +360,7 @@ h1 b{font-weight:600;background:var(--grad);-webkit-background-clip:text;backgro
 .bar i.then{background:rgba(79,124,255,.25)}
 .ic.sm{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:12px}.ic.sm svg{width:24px;height:24px}
 .cell{position:relative}
+.kpi b,.cell b{padding-right:48px}.cell em{display:block;margin:6px 0 0 0}
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}
 .kpi{padding:22px 24px}
 .kpi b{display:block;font-size:60px;font-weight:300;letter-spacing:-.03em;line-height:1}
@@ -398,7 +400,7 @@ h1 b{font-weight:600;background:var(--grad);-webkit-background-clip:text;backgro
 .ch{font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:10px}
 .cells{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}
 .cell b{display:block;font-size:44px;font-weight:300;letter-spacing:-.02em;line-height:1.05}
-.cell em{font-style:normal;font-weight:600;color:#0f8a7d;font-size:22px;margin-left:8px}
+.cell em{font-style:normal;font-weight:600;color:#0f8a7d;font-size:22px}
 .cell span{display:block;color:var(--mute);font-size:20px;margin-top:6px}
 .cell s{display:block;color:var(--faint);text-decoration:none;font-size:20px;margin-top:2px}
 .orch{display:grid;grid-template-columns:repeat(5,1fr);gap:20px}
@@ -434,7 +436,7 @@ def ms_pill(D, m):
 
 
 def card_pill(lots):
-    ls = [f'LOT-{x:03d}' for x in lots if f'LOT-{x:03d}' in G.rows]
+    ls = sorted(C.live_lots({f'LOT-{x:03d}' for x in lots} & set(G.rows), G.rows, DROPPED))
     d = sum(G.done(l) for l in ls)
     if ls and d == len(ls):
         return '<span class="pill ok">✓ Livré</span>'
@@ -488,7 +490,7 @@ def slide_kpis(D):
         ('pr', K['prs_7d'], 'PR fusionnées · 7 j'),
         ('pr', K['prs_24h'], 'PR fusionnées · 24 h'),
         ('ci', C.fmt_ci(ci['total']), 'runs CI · 7 j'),
-        ('ci', f"{C.fmt_ci(ci['failure'])} · {C.fmt_ci(ci['cancelled'])}", 'en échec · annulés'),
+        ('ci', C.fmt_ci(ci['failure']), f"en échec · {C.fmt_ci(ci['cancelled'])} annulés"),
     ]
     kg = ''.join(f'<div class="card kpi">{icon(ic, "ic sm")}<b>{v}</b><span>{t}</span></div>' for ic, v, t in tiles)
     line, bars = progress.charts(D)
@@ -588,7 +590,7 @@ def slide_m5(D):
         li = ''.join(f'<li>{"✓ " if G.done(l) else ""}{esc(lot_label(l))}</li>' for l in lots)
         cards += f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><ul>{li}</ul><div style="margin-top:auto">{card_pill(ls)}</div></div>'
     listed = {f'LOT-{x:03d}' for *_, ls in FEATURES['M5'] for x in ls}
-    rest = sorted(l for l in G.M5 if l not in listed and l not in D['dropped'])
+    rest = sorted(l for l in ms_lots()['M5'] if l not in listed)
     cards += (f'<div class="card dash fc"><div class="t">{icon("list")}<b>Aussi dans M5 · {len(rest)}</b></div>'
               f'<ul>{"".join(f"<li><u>{l[4:]}</u>{esc(lot_label(l))}</li>" for l in rest[:5])}</ul></div>')
     text = "Les évolutions que la parité n'exige pas : décisions UX, propositions de fonctions, secondes moitiés des lots scindés. Ouvert par l'orchestrateur après M4."
