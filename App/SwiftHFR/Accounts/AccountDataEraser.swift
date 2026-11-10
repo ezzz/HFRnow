@@ -1,0 +1,79 @@
+import HFRStorage
+
+/// A store of one account's data on this device (ADR 0013 appendix), as the deletion screen names it (LOT-157).
+enum AccountDataKind: CaseIterable, Hashable, Sendable {
+    /// Unsent drafts (LOT-063).
+    case drafts
+    /// The account's blocklist, local copy (LOT-061).
+    case blocklist
+    /// Reading positions (LOT-090).
+    case readingPositions
+    /// Super-favourites (LOT-064).
+    case superFavorites
+    /// The app's own favourite smileys (LOT-064).
+    case smileyFavorites
+
+    /// Name in a French sentence ("… n’ont pas pu être effacés : les brouillons").
+    var title: String {
+        switch self {
+        case .drafts: "les brouillons"
+        case .blocklist: "la liste noire"
+        case .readingPositions: "les positions de lecture"
+        case .superFavorites: "les super-favoris"
+        case .smileyFavorites: "les smileys favoris"
+        }
+    }
+}
+
+/// Erases one account's data from the app's per-account stores (LOT-157), never another account's entries.
+///
+/// Holds the stores themselves, so the live eraser is checked to write the same actors as the screens (one actor per file:
+/// a second store over the same file would race them). The account itself (Keychain, session) is removed by
+/// `AccountsModel.remove(_:)` and `removeStoreItemIfEmpty()`; stores that belong to no account (allowlist, histories,
+/// offline topics, caches, settings) are not touched.
+struct AccountDataEraser: Sendable {
+    let drafts: DraftStore
+    let pseudoLists: PseudoListStore
+    let positions: ReadingPositionStore
+    let superFavorites: SuperFavoritesStore
+    let smileyFavorites: AppSmileyFavoritesStore
+
+    /// The stores the app writes (`Application Support/`).
+    static let live = AccountDataEraser(
+        drafts: ComposerServices.liveDrafts,
+        pseudoLists: PseudoListsSnapshot.liveStore,
+        positions: LiveReaderPositionRecorder.store,
+        superFavorites: FavoritesStores.shared.superFavorites,
+        smileyFavorites: ComposerServices.liveSmileyFavorites
+    )
+
+    /// Erases `kinds` of `account` (the account's key, `md_user` value). Every kind is tried even when an earlier one
+    /// failed; returns the kinds that could not be erased, in order.
+    func erase(account: String, kinds: [AccountDataKind] = AccountDataKind.allCases) async -> [AccountDataKind] {
+        var failed: [AccountDataKind] = []
+        for kind in kinds {
+            do {
+                try await erase(kind, account: account)
+            } catch {
+                failed.append(kind)
+            }
+        }
+        return failed
+    }
+
+    private func erase(_ kind: AccountDataKind, account: String) async throws {
+        switch kind {
+        case .drafts:
+            _ = try await drafts.discardAll(account: account)
+        case .blocklist:
+            // An empty list removes the account's key from the document.
+            _ = try await pseudoLists.replaceBlocklist(with: [], account: account)
+        case .readingPositions:
+            _ = try await positions.removeAccount(account)
+        case .superFavorites:
+            _ = try await superFavorites.replace([], account: account)
+        case .smileyFavorites:
+            _ = try await smileyFavorites.replace([], account: account)
+        }
+    }
+}

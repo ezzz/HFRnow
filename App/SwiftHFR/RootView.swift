@@ -40,6 +40,7 @@ struct RootView: View {
     let accounts = AccountsModel.preview()
     RootView()
         .environment(accounts)
+        .environment(AccountDeletionModel(accounts: accounts, eraser: .inMemory()))
         // As `SwiftHFRApp`: the navigation appears once the (empty) preview store is read.
         .task { await accounts.restore() }
 }

@@ -6,7 +6,9 @@ import SwiftUI
 @main
 struct SwiftHFRApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var accounts = AccountsModel.live()
+    @State private var accounts: AccountsModel
+    /// The deletion screen's wipe (LOT-157), app-wide: erasing the current account rebuilds the root navigation.
+    @State private var deletion: AccountDeletionModel
     /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
     @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
@@ -16,6 +18,9 @@ struct SwiftHFRApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        let accounts = AccountsModel.live()
+        _accounts = State(initialValue: accounts)
+        _deletion = State(initialValue: AccountDeletionModel(accounts: accounts, eraser: .live))
         // Settings keep their legacy keys: clamp an unknown theme mode and migrate the old text size once (LOT-060).
         _ = LegacySettingsNormalizer.run(on: UserDefaultsSettingsStore())
         // Created after the migration, so it reads the migrated text size.
@@ -29,6 +34,7 @@ struct SwiftHFRApp: App {
         WindowGroup {
             RootView()
                 .environment(accounts)
+                .environment(deletion)
                 .environment(general)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).

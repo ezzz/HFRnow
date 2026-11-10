@@ -37,7 +37,7 @@ Order: the account first, then its data, so no screen keeps writing as that acco
 
 | Store (ADR 0013 appendix) | Where | How |
 |---|---|---|
-| Credentials, cookies, `hash_check`, avatar bytes (A) | Keychain item `hfr.accounts.v1` | `AccountsModel.erase`: `deleteAccount(pseudo:)`; when no account is left, the item itself is deleted (`removeAll()`), so no Keychain item remains |
+| Credentials, cookies, `hash_check`, avatar bytes (A) | Keychain item `hfr.accounts.v1` | `AccountsModel.remove(_:)` (`deleteAccount(pseudo:)`), then `removeStoreItemIfEmpty()`: when no account is left, the item itself is deleted (`removeAll()`), so no Keychain item remains |
 | Live session cookies (A) | the account's in-memory `HFRSession` (ephemeral jar, never `HTTPCookieStorage.shared`) | dropped with the account; the current account moves to the first remaining one |
 | Drafts (D, LOT-063) | `Application Support/Drafts/drafts.json` | `DraftStore.discardAll(account:)` |
 | Blocklist (B, LOT-061 local copy) | `Application Support/PseudoLists/lists.json` | `PseudoListStore.replaceBlocklist(with: [], account:)` (removes the account's key) |
@@ -57,6 +57,8 @@ Every data store is erased even when an earlier one failed; the failures are ret
 - **A store that cannot be read** (corrupt file): its erase throws and is reported by name; "Réessayer" runs it again. The store never overwrites unreadable data (its own rule), so the data stays until the user resolves it where the store offers it.
 - **A write in flight as the erased account** (a debounced draft save in a composer still open on iPad, a reading position recorded by a reader still on screen) can land after the wipe. Known limitation: the composer and reader are tied to the previous `AppEnvironment` and close when it is rebuilt; a late write leaves at most one record, erased by a later wipe of the same pseudo.
 - **Two taps**: one erase runs at a time; the buttons are disabled while it runs.
+- **Erasing the current account** changes the current session, so the root navigation is rebuilt (`RootView`, LOT-081) and the Plus entry reopens: the model is app-wide (`SwiftHFRApp`), not view state, so the result is still on screen after the rebuild.
+- **A new erase while a retry is pending** for another account replaces it: the screen shows one result at a time. The earlier account's leftovers stay until that pseudo is erased again (add it back, erase it).
 - "Retirer" on the accounts screen (LOT-081) still removes only the account (legacy `MultisManager.m:125-153`): the data stays for a re-login. The wipe is the explicit action of this screen.
 
 ## Fixtures

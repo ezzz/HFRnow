@@ -39,6 +39,8 @@ struct PlusEntryView: View {
     var body: some View {
         if entry == .search {
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
+        } else if entry == .deleteAccount {
+            AccountDeletionView()
         } else if entry.isBuilt {
             SettingsView(reader: environment.reader)
         } else {

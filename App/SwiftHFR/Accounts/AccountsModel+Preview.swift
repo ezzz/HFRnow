@@ -33,3 +33,16 @@ private struct NoSessionCheck: SessionChecking {
 private struct NoAvatars: AvatarLoading {
     func avatarData(at url: URL) async -> Data? { nil }
 }
+
+extension AccountDataEraser {
+    /// Stores in memory, for SwiftUI previews and tests: a preview never erases the app's files.
+    static func inMemory() -> AccountDataEraser {
+        AccountDataEraser(
+            drafts: DraftStore(persistence: InMemoryDraftPersistence()),
+            pseudoLists: PseudoListStore(persistence: InMemoryPseudoListPersistence()),
+            positions: ReadingPositionStore(persistence: InMemoryReadingPositionPersistence()),
+            superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()),
+            smileyFavorites: AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence())
+        )
+    }
+}
