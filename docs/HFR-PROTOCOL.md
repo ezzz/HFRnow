@@ -253,7 +253,7 @@ Source: [LOT-027](lots/LOT-027-profile-parser.md), `UserProfileParser`, checked 
 - **Avatar**: `td.profilCase4 > div.avatar_center > img src="https://forum-images.hardware.fr/images/mesdiscussions-<user id>.jpg" alt="<pseudo>"`, only for a member who has one (`R56b`); the cell is empty without (`R56a`). The user id is the one in the profile URL (`profil-910001`) and in the `id_user` of the transaction links.
 - **Personal smileys**: in the `rowspan` cell of the second section, `[:pseudo] <img src=".../images/perso/pseudo.gif" alt="smilie perso" />` then, each after a `<br />`, `[:pseudo:N] <img src=".../images/perso/N/pseudo.gif" alt="pseudo:N" title="pseudo:N" />` (N = 1, 2, 3 on `R56b`). The first one has an `alt` and no `title`. A member without any has the cell with `&nbsp;` only (`R56a`).
 - **Link rows** (`td.profilCase3[colspan=3][align=center]`): transactions per category "Jeux Video -> <a>Transactions (0)</a>" (`/transactions_reports.php?config=hfr.inc&cat=<5|6>&id_user=<id>`, with an `onclick` popup), "Envoyer un message privé à <pseudo>" (`/message.php?config=hfr.inc&cat=prive&sond=&p=1&subcat=&dest=<pseudo>&subcatgroup=0`, `rel="nofollow"`), "Accéder à la liste de tous ses messages" (`/hfr/recherche/pseudo-<pseudo>.htm`). Identical for a visitor on both captures. "Configuration matérielle" is a value row with `<a href="/configuration.php?config=hfr.inc&pseudo=<pseudo>" class="cLink">Lien vers la configuration de cet utilisateur</a>`, present on `R56b` only.
-- **Not seen**: a logged-in view of a profile, an "ajouter à la liste de contacts" row, a status other than "Membre" (see "Pending capture" in the lot spec).
+- **Not seen**: a status other than "Membre" (see "Pending capture" in the lot spec). A logged-in view of a profile and its "ajouter à la liste de contacts" row are in `R716b` (§6c "#714 — `profilebdd.php` redirect").
 
 ### LOT-025 — small parsers
 
@@ -416,7 +416,7 @@ Source: [LOT-031](lots/LOT-031-message-actions.md), `MessageActionsParser`, chec
 - **AASA** (`R97a`, **verified**, 2026-11-02): `GET /.well-known/apple-app-site-association` answers 200 `application/json`, old format: `applinks.apps` empty and one `details` entry, `appID` `QMG83DG7YP.hfrplus.red.super` with `paths` `/`, `/hfr/*`, `/forum2.php*`; `webcredentials.apps` names the same App ID. No other App ID: universal links and shared web credentials of the site are for that legacy App ID only (FEAT-020, Q-1).
 - **Empty-slug topic links** (`R121e` as captured in c56916f (#474); the committed copy no longer holds them, #511 aliased the slug away, #520; #482): a topic whose title yields no slug is linked `/hfr/<cat>/<sub>/sujet_<post>_<page>.htm` (e.g. `/hfr/reseauxpersosoho/FAI/sujet_39106_1.htm`, with and without `#bas`), as the title link carrying `title="Sujet n°39106"` and in the "last page" cell. It is the canonical shape with the slug and its hyphen left out; the router reads post and page from it like any canonical topic link.
 - **Shapes seen and not traced** (`R121c`, #482): the forum's rules link `/hardwarefr/<cat>/sujet-<post>-<page>.htm` (hyphen form, `hardwarefr` prefix, empty slug) and the list filter `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm` ("100% Jeux Video", `-2-1`). No capture follows either link, so where they land and what `n` and `m` mean is unknown: the router leaves both `.external`.
-- **Pending capture**: forums missing from the catalogue (#125), `profilebdd.php?pseudo=`'s redirect target and `forum2.php3`, the targets of `/hardwarefr/<cat>/sujet-<post>-<page>.htm` and `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm`, and an empty-slug link in the committed corpus (#520).
+- **Pending capture**: forums missing from the catalogue (#125), `forum2.php3` (`profilebdd.php?pseudo=`'s redirect target: §6c "#714 — `profilebdd.php` redirect"), the targets of `/hardwarefr/<cat>/sujet-<post>-<page>.htm` and `/hfr/<cat>/liste_sujet_filtre-<n>-<m>.htm`, and an empty-slug link in the committed corpus (#520).
 
 ### LOT-084 — reply composer
 
@@ -444,6 +444,15 @@ Source: [LOT-084](lots/LOT-084-reply-composer.md), `ReplyEntryTests` through `Li
 
 [LOT-126](lots/LOT-126-mp-list.md). No new forum fact: the screen reads the rows `PrivateMessageListParser` already verifies (§6c LOT-023). One thing it relies on, asserted on `R13u1` by `LivePrivateMessageSourceTests` (every row parses to an openable target, `ReaderTarget(opening:) != nil`; the 457-page thread opens the reader on page 457, `theCapturedLongThreadOpensOnItsLastPage`): every MP row's title link is `/forum2.php?config=hfr.inc&cat=prive&post=<id>&page=1&…`, a topic link of category `prive`, and its `sujetCase9` latest-message link names the thread's last page (`…&page=457&…#bas` on the 457-page thread of `R13u1`; `sujetCase5` has no flag link). The reader opens the latter, as legacy does (`HFRMPViewController.m:255`).
 - **Pending capture**: whether fetching an MP thread page marks it read on HFR, and from which page (no before/after pair of the MP list around a thread page fetch); a thread of another member and a group thread opened in the reader (`RA1`-`RA5` exist, all of the owner's own account or threads); the list logged out (#121).
+
+### #714 — `profilebdd.php` redirect
+
+Captures of #716 for the MP list avatars (#714): `R716a`-`R716e` (2026-11-10, user1 and without cookies).
+
+- **Redirect** (`R716a`, `R716c`, **verified**): the `sujetCase6` link of a one-to-one MP row, `/profilebdd.php?config=hfr.inc&pseudo=<pseudo>` (§6c LOT-023), answers `301 Moved Permanently` with a relative `Location: /hfr/profil-<id>.htm`, `<id>` being the member's id, and an empty body; one hop, the same with and without cookies, no cookie set. The pseudo is written raw in that link, spaces kept (user1's MP list of this run, not published; the same as `dest=`, kit README), so a client percent-encodes it before sending.
+- **Target** (`R716b`, logged in; `R56a` logged out, **verified**): the public profile page of §6c LOT-027, `200`. Logged in it adds one link row "Ajouter <pseudo> à votre liste de contacts" (`/user/contactlist.php?adduser=<id>`) and the account's style sheets; the avatar cell is the same (`R56a` and `R716b` show a member without avatar, `R56b` one with an avatar).
+- **Unknown pseudo** (`R716d`, `R716e`, **verified**, logged in): `301` with `Location: /hfr/profil-.htm` (empty id), whose answer is the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`), not a forum page. A client that reads the id from the `Location` can stop on an empty id without the second request.
+- **Not captured**: a deleted account (none known to the operator's accounts); an unknown pseudo without cookies.
 
 ### LOT-128 — MP composers
 
