@@ -125,7 +125,7 @@ struct LegacyImportModelTests {
         #expect(model.isRunning)
         await gate.release()
         await first.value
-        await second.value
+        #expect(await second.value == false)
         #expect(!model.isRunning)
     }
 }
