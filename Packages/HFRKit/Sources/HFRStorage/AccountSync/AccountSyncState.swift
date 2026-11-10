@@ -18,6 +18,8 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
     public var stamps: [String: AccountStamp] = [:]
     /// Per account key: deletions made while on, shared with the other devices.
     public var removed: [String: Date] = [:]
+    /// True once this device held accounts of its own (or imported some): it never bootstraps by itself again.
+    public var hadLocalAccounts = false
 
     /// Version written today.
     static let currentVersion = 1
@@ -29,7 +31,7 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
     public var isProvisional: Bool { provisionalEnabledAt != nil }
 
     private enum CodingKeys: String, CodingKey {
-        case version, isOn, enabledAt, honouredDeletedAt, provisionalEnabledAt, imported, stamps, removed
+        case version, isOn, enabledAt, honouredDeletedAt, provisionalEnabledAt, imported, stamps, removed, hadLocalAccounts
     }
 
     /// Reads a state; a version this code does not know is refused (`DecodingError`), and the caller reads it as off.
@@ -46,6 +48,7 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
         imported = try container.decodeIfPresent(Set<String>.self, forKey: .imported) ?? []
         stamps = try container.decodeIfPresent([String: AccountStamp].self, forKey: .stamps) ?? [:]
         removed = try container.decodeIfPresent([String: Date].self, forKey: .removed) ?? [:]
+        hadLocalAccounts = try container.decodeIfPresent(Bool.self, forKey: .hadLocalAccounts) ?? false
         // An "on" state without its version cannot push safely: read it as off.
         if isOn && enabledAt == nil { isOn = false }
     }
@@ -61,6 +64,7 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
         try container.encode(imported.sorted(), forKey: .imported)
         try container.encode(stamps, forKey: .stamps)
         try container.encode(removed, forKey: .removed)
+        try container.encode(hadLocalAccounts, forKey: .hadLocalAccounts)
     }
 
     /// Bytes for the state item, keys sorted.

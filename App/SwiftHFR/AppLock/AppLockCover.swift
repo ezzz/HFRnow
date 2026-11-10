@@ -72,8 +72,21 @@ extension View {
     /// above the scene's windows; the content stays mounted underneath (no navigation, draft or scroll state is lost) and
     /// is hidden from VoiceOver meanwhile.
     func appLockCover(_ lock: AppLockModel) -> some View {
-        accessibilityHidden(lock.isCovered)
-            .background(AppLockWindowInstaller(lock: lock, isCovered: lock.isCovered))
+        modifier(AppLockCoverModifier(lock: lock))
+    }
+}
+
+/// Reads this scene's own phase: a scene that leaves the foreground while another stays active is covered too (its
+/// app switcher snapshot), although the app's phase stays `active`.
+private struct AppLockCoverModifier: ViewModifier {
+    let lock: AppLockModel
+    @Environment(\.scenePhase) private var scenePhase
+
+    func body(content: Content) -> some View {
+        let covered = lock.isCovered || (lock.isEnabled && scenePhase != .active)
+        content
+            .accessibilityHidden(covered)
+            .background(AppLockWindowInstaller(lock: lock, isCovered: covered))
     }
 }
 
@@ -95,6 +108,7 @@ private struct AppLockWindowInstaller: UIViewRepresentable {
 private final class AppLockAnchorView: UIView {
     private let lock: AppLockModel
     private var cover: UIWindow?
+    private weak var previousKey: UIWindow?
     private var isCovered = false
 
     init(lock: AppLockModel) {
@@ -118,6 +132,7 @@ private final class AppLockAnchorView: UIView {
             let host = UIHostingController(rootView: AppLockCover(lock: lock))
             host.view.accessibilityViewIsModal = true
             cover.rootViewController = host
+            cover.isHidden = true
             self.cover = cover
         }
         apply()
@@ -128,7 +143,20 @@ private final class AppLockAnchorView: UIView {
         apply()
     }
 
+    /// While covered, the cover window is the key window and the scene's other windows end editing, so neither the
+    /// keyboard nor a hardware shortcut reaches the content underneath; uncovered, the previous key window gets it back.
     private func apply() {
-        cover?.isHidden = !isCovered
+        guard let cover else { return }
+        if isCovered {
+            guard cover.isHidden else { return }
+            let scene = cover.windowScene
+            previousKey = scene?.keyWindow
+            scene?.windows.filter { $0 !== cover }.forEach { $0.endEditing(true) }
+            cover.makeKeyAndVisible()
+        } else if !cover.isHidden {
+            cover.isHidden = true
+            previousKey?.makeKey()
+            previousKey = nil
+        }
     }
 }

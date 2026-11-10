@@ -130,8 +130,10 @@ final class AppLockModel {
             return false
         case .active:
             isActive = true
-            if isEnabled, let backgroundedAt, now.timeIntervalSince(backgroundedAt) >= TimeInterval(grace.rawValue) {
-                lock()
+            // A clock set back while away gives a negative time: it locks (fail closed), never waits for the grace.
+            if isEnabled, let backgroundedAt {
+                let away = now.timeIntervalSince(backgroundedAt)
+                if away < 0 || away >= TimeInterval(grace.rawValue) { lock() }
             }
             backgroundedAt = nil
             guard isLocked, promptsByItself, !isAuthenticating else { return false }

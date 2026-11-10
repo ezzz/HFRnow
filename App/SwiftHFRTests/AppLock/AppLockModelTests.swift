@@ -98,6 +98,15 @@ struct AppLockModelTests {
         #expect(lock.isCovered == locks)
     }
 
+    /// The device clock set back while the app was away: elapsed time is negative, the app locks anyway.
+    @Test func aClockSetBackWhileAwayLocks() async {
+        let (lock, _) = model(grace: 300, ScriptedAuthenticator([.success]))
+        await lock.unlock()
+        lock.scenePhaseChanged(to: .background, now: start)
+        #expect(lock.scenePhaseChanged(to: .active, now: start.addingTimeInterval(-3_600)))
+        #expect(lock.isLocked)
+    }
+
     @Test func inactiveAloneCoversButNeverLocks() async {
         let (lock, _) = model(ScriptedAuthenticator([.success]))
         await lock.unlock()

@@ -85,6 +85,8 @@ public final class AccountSync: Sendable {
         try lock.withLock { _ in
             var state = try loadState()
             let now = clock()
+            // Any change of the device-only accounts means this device held some: never a bootstrap source again.
+            state.hadLocalAccounts = true
             switch change {
             case .login(let pseudo):
                 let key = AccountKey.make(pseudo)
@@ -122,6 +124,7 @@ public final class AccountSync: Sendable {
     public func switchOff() throws -> AccountSyncReport {
         try lock.withLock { _ in
             var state = try loadState()
+            try noteLocalAccounts(&state)
             guard state.isOn, let enabledAt = state.enabledAt else { return AccountSyncReport() }
             let deletedAt = max(clock(), enabledAt)
             try item.write(AccountSyncEnvelope.tombstone(deletedAt: deletedAt).encoded())
@@ -137,6 +140,7 @@ public final class AccountSync: Sendable {
 extension AccountSync {
     private func reconcileLocked(confirming: Bool) throws -> AccountSyncReport {
         var state = try loadState()
+        try noteLocalAccounts(&state)
         guard let raw = try item.read() else { return AccountSyncReport() }
         let envelope = try AccountSyncEnvelope.decode(raw)
         if state.isOn, let enabledAt = state.enabledAt {
@@ -183,7 +187,9 @@ extension AccountSync {
             let honoured = state.honouredDeletedAt ?? enabledAt
             report.itemWritten = try write(.tombstone(deletedAt: honoured), ifStill: raw)
         case .full(let enabledAt, let remote, let removed) where !remote.isEmpty:
-            guard try accounts.load().accounts.isEmpty else { break }
+            // Only a new device: one that held accounts (logged out of all of them, or switched off) is never opted in
+            // by itself (ADR 0013 §6 *Bootstrap*: "no device-only item").
+            guard !state.hadLocalAccounts, try accounts.load().accounts.isEmpty else { break }
             report = try bootstrap(&state, enabledAt: enabledAt, remote: remote, removed: removed)
         case .tombstone(let deletedAt):
             guard try accounts.load().accounts.isEmpty, state.honouredDeletedAt.map({ $0 < deletedAt }) ?? true else { break }
@@ -202,6 +208,7 @@ extension AccountSync {
         let keys = Set(book.accounts.map { AccountKey.make($0.pseudo) })
         // State first: a crash before the accounts are written leaves an "on" device that merges them at the next read.
         state.isOn = true
+        state.hadLocalAccounts = true
         state.enabledAt = enabledAt
         state.provisionalEnabledAt = enabledAt
         state.imported = keys
@@ -216,6 +223,7 @@ extension AccountSync {
         }
         guard written else {
             state = AccountSyncState(honouredDeletedAt: state.honouredDeletedAt)
+            state.hadLocalAccounts = true
             try saveState(state)
             return AccountSyncReport()
         }
@@ -227,6 +235,7 @@ extension AccountSync {
 
     private func attemptSwitchOn() throws -> AccountSyncReport? {
         var state = try loadState()
+        try noteLocalAccounts(&state)
         guard !state.isOn else { return AccountSyncReport() }
         let raw = try item.read()
         let envelope = try raw.map(AccountSyncEnvelope.decode)
@@ -266,25 +275,32 @@ extension AccountSync {
     ) throws -> AccountSyncReport {
         guard let enabledAt = state.enabledAt else { return AccountSyncReport() }
         let snapshot = state
-        let result = try accounts.update { book -> AccountSyncMerge in
-            let result = AccountSyncMerge(
+        let mergeLocal: (AccountBook) -> AccountSyncMerge = { book in
+            AccountSyncMerge(
                 local: book, stamps: snapshot.stamps, localRemoved: snapshot.removed, remote: remote.accounts, remoteRemoved: remote.removed
             )
+        }
+        // The item first, the device-only store only once the item holds the merge (or needed no write): a failed or raced
+        // write never leaves another device's accounts on this one.
+        let preview = mergeLocal(try accounts.load())
+        let merged = AccountSyncEnvelope.full(enabledAt: enabledAt, accounts: preview.entries, removed: preview.removed)
+        var report = AccountSyncReport()
+        let unchanged = (try? raw.map(AccountSyncEnvelope.decode)) == .some(merged)
+        if required || !unchanged {
+            report.itemWritten = try write(merged, ifStill: raw)
+            guard report.itemWritten else { return report }
+        }
+        let result = try accounts.update { book -> AccountSyncMerge in
+            let result = mergeLocal(book)
             book = result.book
             return result
         }
         state.stamps = result.stamps
         state.removed = result.removed
         state.imported.formIntersection(result.stamps.keys)
-        let merged = AccountSyncEnvelope.full(enabledAt: enabledAt, accounts: result.entries, removed: result.removed)
-        var report = AccountSyncReport()
         report.replaced = result.replaced
         report.dropped = result.dropped
-        let unchanged = (try? raw.map(AccountSyncEnvelope.decode)) == .some(merged)
-        if required || !unchanged {
-            report.itemWritten = try write(merged, ifStill: raw)
-        }
-        if report.itemWritten || !required { try saveState(state) }
+        try saveState(state)
         return report
     }
 
@@ -304,6 +320,7 @@ extension AccountSync {
         }
         let honoured = [state.honouredDeletedAt, deletedAt].compactMap { $0 }.max()
         var off = AccountSyncState(honouredDeletedAt: honoured)
+        off.hadLocalAccounts = state.hadLocalAccounts
         off.stamps = state.stamps.filter { !report.dropped.map(AccountKey.make).contains($0.key) }
         state = off
         try saveState(state)
@@ -322,6 +339,13 @@ extension AccountSync {
     /// its first unlock) throws: read as "off", the next save would erase the switch and the tombstones it honoured.
     private func loadState() throws -> AccountSyncState {
         AccountSyncState.decoded(from: try stateItem.read())
+    }
+
+    /// Remembers, once, that this device holds accounts of its own: it is not a new device any more.
+    private func noteLocalAccounts(_ state: inout AccountSyncState) throws {
+        guard !state.hadLocalAccounts, try !accounts.load().accounts.isEmpty else { return }
+        state.hadLocalAccounts = true
+        try saveState(state)
     }
 
     private func saveState(_ state: AccountSyncState) throws {

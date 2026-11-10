@@ -44,7 +44,7 @@ No new entitlement: a synchronizable generic-password item in the app's default 
 - Account identity is the frozen account key (ADR §7: U+200B removed, then lower-cased, `AccountKey.make`).
 
 ### Device state (`AccountSyncState`)
-`isOn`, `enabledAt` (the logical version while on), `honouredDeletedAt` (newest tombstone acted on), `provisional` (`enabledAt` of the envelope a bootstrap came from, nil when not provisional), `imported` (account keys lent by that envelope), `stamps` (per account key: `credentialsAt`, `consentAt`), `removed` (per account key: date; recorded only while on). An absent or unreadable state item reads as **off** with nothing known (fail closed).
+`isOn`, `enabledAt` (the logical version while on), `hadLocalAccounts` (set once the device held accounts of its own or imported some: such a device is never a bootstrap target again), `honouredDeletedAt` (newest tombstone acted on), `provisional` (`enabledAt` of the envelope a bootstrap came from, nil when not provisional), `imported` (account keys lent by that envelope), `stamps` (per account key: `credentialsAt`, `consentAt`), `removed` (per account key: date; recorded only while on). An absent or unreadable state item reads as **off** with nothing known (fail closed).
 
 ### Per-account dates (decisions D1, D2)
 - `credentialsAt`: the date of the last change of the account's credentials on any device (login, re-login, a cookie or token refresh written back by the session check, a new avatar).
@@ -60,7 +60,7 @@ This settles the two second-order criteria of #312:
 - **Per-account consent** (D2): a removal marker beats every copy whose `consentAt` is not later than it, so a merge never brings back an account deleted on another device, even when the copy that comes back had its cookies refreshed after the deletion (a refresh is not a consent). An explicit login after the deletion brings it back.
 
 ### Operations
-Every write to the synchronizable item is a read-compare-write: the item is read, the decision is made, the item is read again just before the write and the write happens only if it still holds the same bytes (Keychain has no conditional write: this narrows the window, the *Race repair* closes it).
+A merge writes the synchronizable item **first** and the device-only store only once the item holds the merge (or needed no write): a failed or raced write never leaves another device's accounts on this one, and a switch-on retried over a tombstone that landed meanwhile shares only this device's accounts. Every write to the synchronizable item is a read-compare-write: the item is read, the decision is made, the item is read again just before the write and the write happens only if it still holds the same bytes (Keychain has no conditional write: this narrows the window, the *Race repair* closes it).
 
 **Reconcile** (at launch before the accounts are read, at every foreground, and, as the push, after every local change; only the launch and foreground reads can confirm a provisional bootstrap):
 
@@ -74,7 +74,7 @@ Every write to the synchronizable item is a read-compare-write: the item is read
 | on | full, `enabledAt <` mine | re-write this device's full envelope (raced or stale) |
 | on | full, equal `enabledAt` | merge; write the device-only item and the item when each changed; at launch or foreground, provisional and `enabledAt` = the bootstrap's → provisional ends (*confirming read*) |
 | off | full, `enabledAt <= honouredDeletedAt` | *Race repair*: re-write the tombstone `honouredDeletedAt` |
-| off, no local account | full with accounts, `enabledAt >` every known `deletedAt` | *Bootstrap*: import, switch on, adopt `enabledAt`, provisional, imported = its keys |
+| off, never held accounts (`hadLocalAccounts` false, no local account) | full with accounts, `enabledAt >` every known `deletedAt` | *Bootstrap*: import, switch on, adopt `enabledAt`, provisional, imported = its keys. A device that logged out of every account, or was switched off, is not "a device with no device-only item" (ADR §6) and is never opted in by itself |
 | off, no local account | tombstone | `honouredDeletedAt = max(honouredDeletedAt, deletedAt)`; no device-only item |
 | off | anything else | nothing |
 
@@ -97,8 +97,8 @@ As ADR §6 *Bootstrap*, with one change (D8): the imported accounts are deleted 
 ## Behaviour — app lock
 - Settings, section "Sécurité": "Verrouiller l'app (Face ID / code)" (`app_lock_enabled`, device scope, default off) and the picker "Verrouiller" (`app_lock_grace_seconds`: 0 "Immédiatement" (default), 60 "Après 1 minute", 300 "Après 5 minutes"; any other value reads as 0). Device scope: a lock is a property of the device (ADR 0013 appendix E has no row for these keys yet; they follow its "device capability" rule).
 - `LocalAuthentication`, policy `deviceOwnerAuthentication` (biometrics, then the device passcode). No PIN of our own. The toggle only turns on when the device can evaluate the policy (a passcode is set); otherwise it stays off with "Définissez un code sur l'appareil pour utiliser le verrouillage."
-- **When:** locked at launch when on; at each return to the foreground when the app spent at least the grace delay in the **background** (`inactive` alone, e.g. the Face ID sheet itself, Control Center, never locks). Turning the option on does not lock immediately.
-- **Cover:** one `AppLockModel` for the app; each scene gets a window of its own at level `.alert + 1` holding `AppLockCover`, so sheets and alerts are covered too. Shown while locked, and while the app is not `active` when the option is on (so the app switcher snapshot shows the cover, not a topic). The content stays mounted under the cover (no navigation, draft or scroll state lost) and is hidden from VoiceOver (`accessibilityHidden`) while covered; the cover is modal (`accessibilityViewIsModal`, `.isModal`) with one button "Déverrouiller". No animation at all: the cover must be in place before the system takes the snapshot, so Reduce Motion has nothing to reduce.
+- **When:** locked at launch when on; at each return to the foreground when the app spent at least the grace delay in the **background** (or a negative time: a clock set back while away locks, fail closed) (`inactive` alone, e.g. the Face ID sheet itself, Control Center, never locks). Turning the option on does not lock immediately.
+- **Cover:** one `AppLockModel` for the app; each scene gets a window of its own at level `.alert + 1` holding `AppLockCover`, so sheets and alerts are covered too. Each scene also reads its own phase, so a scene that leaves the foreground while another stays active is covered in the app switcher. While covered, the cover window is key and the scene's other windows end editing (no keyboard or hardware shortcut reaches the content); uncovered, the previous key window gets the focus back. Shown while locked, and while the app is not `active` when the option is on (so the app switcher snapshot shows the cover, not a topic). The content stays mounted under the cover (no navigation, draft or scroll state lost) and is hidden from VoiceOver (`accessibilityHidden`) while covered; the cover is modal (`accessibilityViewIsModal`, `.isModal`) with one button "Déverrouiller". No animation at all: the cover must be in place before the system takes the snapshot, so Reduce Motion has nothing to reduce.
 - Authentication starts by itself once when the app becomes active while locked, never again after a failure or a cancel (no loop between the system sheet and the scene phase); the button retries. A failed or cancelled authentication keeps the cover. If the device no longer has a passcode (`passcodeNotSet`), the app unlocks (the lock has nothing to rely on; D6) and the option stays on.
 - The lock is UI only: nothing in the engine waits on it, so the background MP check (LOT-140) and the session checks run while locked.
 - `NSFaceIDUsageDescription` = "Utilisé pour déverrouiller l'app lorsque le verrouillage est activé." (both build configurations).
@@ -123,7 +123,8 @@ None: synthetic accounts with fake cookie values (`HFRModels` test helpers).
 2. B: re-login one account → A gets the new cookies at its next foreground.
 3. A: switch off → B switches off at its next foreground and keeps its accounts.
 4. App lock on A: background 2 min with "1 minute" → cover and Face ID; cancel keeps the cover; the app switcher shows the cover; VoiceOver reads only "Déverrouiller"; Reduce Motion on: no animation.
-5. `xcodebuild build test` on the iPhone 18 Pro and an iPad simulator (iOS 27.0); `HFR_KEYCHAIN_TESTS=1` suite on a signed host.
+5. Lock with grace "Immédiatement": unlock with the device code (not Face ID); the app must not lock again in a loop (if the passcode sheet sends the app to `background`, the model needs a fix).
+6. `xcodebuild build test` on the iPhone 18 Pro and an iPad simulator (iOS 27.0); `HFR_KEYCHAIN_TESTS=1` suite on a signed host.
 
 ## Decisions needed (defaults implemented)
 - **D1** `updatedAt` tie: per-account merge whenever `enabledAt` is equal (the issue's second option) instead of newest-envelope-wins.
