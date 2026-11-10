@@ -297,6 +297,14 @@
     {"raw": "l574-T67", "id": "T67", "slug": "aq-create-flood-blocked-local", "ext": "", "private": false},
     {"raw": "l574-T68", "id": "T68", "slug": "aq-create-blacklisted-local", "ext": "", "private": false},
     {"raw": "l574-T69", "id": "T69", "slug": "aq-alerts-after-flood-local", "ext": "xml", "private": false},
-    {"raw": "l574-T71", "id": "T71", "slug": "aq-alerts-no-topic-local", "ext": "xml", "private": false}
+    {"raw": "l574-T71", "id": "T71", "slug": "aq-alerts-no-topic-local", "ext": "xml", "private": false},
+    {"raw": "m610-create-a", "id": "W610a", "slug": "mp-create-thread-a-success", "ext": "html", "private": false},
+    {"raw": "m610-create-b", "id": "W610b", "slug": "mp-create-thread-b-success", "ext": "html", "private": false},
+    {"raw": "m610-list-u1-before", "id": "R610a", "slug": "mp-list-recipient-before-reply-older-row", "ext": "html", "private": true},
+    {"raw": "m610-reply-a", "id": "W610c", "slug": "mp-reply-older-row-success", "ext": "html", "private": false},
+    {"raw": "m610-list-u1-after-a", "id": "R610b", "slug": "mp-list-recipient-after-reply-older-row", "ext": "html", "private": true},
+    {"raw": "m610-reply-b", "id": "W610d", "slug": "mp-reply-by-non-creator-success", "ext": "html", "private": false},
+    {"raw": "m610-list-u1-after-b", "id": "R610c", "slug": "mp-list-creator-after-non-creator-reply", "ext": "html", "private": true},
+    {"raw": "m610-list-u2", "id": "R610d", "slug": "mp-list-replier-after-own-replies", "ext": "html", "private": true}
   ]
 }
