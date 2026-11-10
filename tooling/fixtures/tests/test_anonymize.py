@@ -615,6 +615,28 @@ class PositionTests(unittest.TestCase):
         self.assertIn('<span class="signature">Signature removed.</span><div id="after">kept</div>', out)
         self.assertEqual(leaks(out), [])
 
+    def test_signature_keeps_hfrs_separator_and_clear_div(self):
+        # #267 (`R267a`): HFR opens the span with fifteen dashes and `<br />` and closes it with its clear div.
+        html = (post("Bravo") + '<span class="signature"> ---------------\n\t\t\t<br /><strong> <a href="https://example.org/c/'
+                'JeanExemple">Jean Exemple</a> </strong> <br /><div style="clear: both;"> </div></span><div id="after">kept</div>')
+        out = anon(html)
+        _absent(self, out, "Jean Exemple", "JeanExemple", "example.org")
+        self.assertIn('<span class="signature"> ---------------\n\t\t\t<br />Signature removed.<div style="clear: both;"> </div>'
+                      '</span><div id="after">kept</div>', out)
+        self.assertEqual(leaks(out), [])
+
+    def test_signature_dashes_typed_by_the_member_are_not_kept(self):
+        # Sixteen dashes, or dashes not followed by `<br />`, are the member's text: replaced like the rest.
+        for inner in ("----------------<br />Jean Exemple", "--------------- Jean Exemple<br />"):
+            out = anon(post("Bravo") + '<span class="signature">%s</span>' % inner)
+            self.assertIn('<span class="signature">Signature removed.</span>', out)
+            _absent(self, out, "Jean Exemple")
+
+    def test_signature_check_accepts_only_the_separator_before_the_placeholder(self):
+        self.assertEqual(leaks('<span class="signature"> ---------------\n<br />Signature removed.</span>'), [])
+        self.assertNotEqual(leaks('<span class="signature"> ---------------\n<br />Jean Exemple</span>'), [])
+        self.assertNotEqual(leaks('<span class="signature">Signature removed. Jean</span>'), [])
+
     def test_quotemsg_third_value_uses_the_id_table(self):
         html = ('<a href="/hfr/profil-555123.htm">x</a><a href="/hfr/profil-555124.htm">y</a>'
                 '<textarea name="content_form">[quotemsg=99,1,555124]q[/quotemsg]</textarea>'

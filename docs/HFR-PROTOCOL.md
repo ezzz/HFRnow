@@ -327,6 +327,12 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
   `<br /><span class="signature">…</span>` when the author has one. Measured on the 358 messages: 119 clear only, 92 clear > edited,
   80 clear > signature, 45 clear > edited > signature, 22 none of them (private threads `RA1`–`RU2`); never another order
   (`R20` message 1 `para2666682`, 0 `para2666649`, 2 `para2666695`, `para3182834`). 125 messages carry a signature.
+- **Signature separator** (`R267a`, #267, **verified** 2026-11-10, a public topic read anonymously): HFR opens every signature
+  span with its own separator, `<span class="signature"> ---------------` (a space, fifteen dashes), a line break, then `<br />`,
+  and closes it with `<div style="clear: both;"> </div>` before `</span>`; the member's signature lies between. 9 of 9
+  signatures on the page, and the page holds no other run of fifteen dashes. Legacy deletes every `---------------` of the
+  message HTML (`HFRswift/Wrapped/LinkItem.m:74` @ `87fe0d1c`), so it removed this one too, along with any in a message body.
+  The anonymizer keeps the separator and the clear div and replaces only what lies between them (`Signature removed.`).
 - **Smileys**: `<img src alt title>` on `forum-images.hardware.fr`, standard ones under `/icones/` (`/icones/smilies/ange.gif` with
   `alt=":ange:"`, `/icones/redface.gif` with `alt=":o"`, `/icones/biggrin.gif` with `alt=":d" title=":D"`), personal ones under
   `/images/perso/` with `alt="[:<code>]"` (`R20`, `R26`, `R27`); 103 messages hold a personal smiley. Every smiley of the corpus is `https`.
