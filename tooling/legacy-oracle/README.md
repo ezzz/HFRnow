@@ -108,3 +108,5 @@ real pseudo, cookie or hash in this folder.
 `samples/legacy-stores/` and the MANIFEST of the capture corpus. `HFR_ORACLE_SIM` names the simulator to use; the run needs
 `-parallel-testing-enabled NO` (set by the script) so the test host's data stays in the device it exports from. Only the two
 `defaults export` keys of the issue are kept: the domain also holds settings.
+
+`stores-709-master.patch` (#709) is the same kind of exporter for the pseudo lists and drafts, against `origin/master` `21173e77` (the drafts store does not exist at `2440d79`): apply it to a worktree of that commit and run `xcodebuild test -scheme HFRswift -only-testing:HFRswiftTests/Oracle709` with `TEST_RUNNER_HFR_709_OUT=<folder>` (Carthage built as above). `run-oracle.sh` does not drive it.
