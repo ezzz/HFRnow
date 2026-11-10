@@ -155,6 +155,18 @@ struct MPStorageSyncModelTests {
         #expect(fixture.model.lastSync == Self.now)
     }
 
+    @Test func aFailedStartRunsAgainAtTheNextAppearance() async throws {
+        let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7))
+        await fixture.remote.fail(with: .network(.offline))
+        await fixture.model.start()
+        #expect(fixture.model.lastSync == nil)
+        await fixture.remote.fail(with: nil)
+        await fixture.model.start()
+        #expect(await fixture.remote.calls == [.read(7), .read(7)])
+        #expect(fixture.model.lastSync == Self.now)
+        #expect(fixture.model.status == .idle)
+    }
+
     @Test func loggedOutNothingIsFetched() async throws {
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7))
         fixture.login.value = false
@@ -241,6 +253,13 @@ struct MPStorageSyncModelTests {
         #expect(fixture.model.status == .failed("Le MP de stockage est introuvable."))
     }
 
+    @Test(arguments: [MPStorageSyncState.unasked, .declined, .off])
+    func resyncContactsNothingUnlessOn(_ state: MPStorageSyncState) async throws {
+        let fixture = try await Self.make(thread: 7, state: state, copy: MPStorageCopy(post: 7))
+        await fixture.model.resync()
+        #expect(await fixture.remote.calls.isEmpty)
+    }
+
     @Test func aNetworkFailureIsSaidWithoutDetails() async throws {
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7))
         await fixture.remote.fail(with: .network(.offline))
@@ -295,10 +314,11 @@ struct MPStorageSyncModelTests {
     }
 
     @Test func aFlagWithoutPageIsIgnored() async throws {
-        let text = try Self.flagged([MPStorageMPFlag(topic: 31, href: "t555")])
+        let text = try Self.flagged([MPStorageMPFlag(topic: 31, href: "t555"), MPStorageMPFlag(topic: 32, page: 0)])
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: text), text: text)
         await fixture.model.start()
         #expect(fixture.model.flag(for: messageThread(31, group: true)) == nil)
+        #expect(fixture.model.flag(for: messageThread(32, group: true)) == nil)
     }
 
     @Test func theSettingsSayTheStateInWords() {

@@ -86,12 +86,14 @@ final class MPStorageSyncModel {
     /// Whether sync runs for the account.
     var isOn: Bool { record?.state == .on }
 
-    /// First appearance of the Messages tab or Réglages (once per model): the copy is shown, then `on` syncs and `unasked`
-    /// looks for a thread (read-only), at most once per `searchInterval` when the last search found none; found, the
-    /// account turns `on` (ADR 0013 §7). `declined`, `off` and an unreadable state do nothing.
+    /// Appearance of the Messages tab or Réglages, once per model while it succeeds (a failed start runs again at the next
+    /// appearance, as legacy reloaded at each MP list load, `HFRMPViewController.m:32-36`): the copy is shown, then `on`
+    /// syncs and `unasked` looks for a thread (read-only), at most once per `searchInterval` when the last search found none;
+    /// found, the account turns `on` (ADR 0013 §7). `declined`, `off` and an unreadable state do nothing.
     func start() async {
         guard !started else { return }
         started = true
+        defer { if case .failed = status { started = false } }
         guard let copy = await loadCopy() else { return }
         guard await isLoggedIn() else { return }
         switch record?.state {
@@ -174,10 +176,10 @@ final class MPStorageSyncModel {
     }
 
     /// The stored read position of a group conversation (`MPListView.swift:354-373` @ 87fe0d1c), only while `on`; nil for a
-    /// one-to-one conversation and for a flag without a page (legacy's link would hold `(null)`).
+    /// one-to-one conversation and for a flag without a page above 0 (legacy's link would hold `(null)`).
     func flag(for thread: PrivateMessageThread) -> MPStorageMPFlag? {
         guard isOn, thread.isGroup, let document, let post = thread.summary.topicID?.topic,
-              let flag = MPStorageSync.flag(forThread: post, in: document), flag.page != nil
+              let flag = MPStorageSync.flag(forThread: post, in: document), let page = flag.page, page > 0
         else { return nil }
         return flag
     }

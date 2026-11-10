@@ -38,6 +38,14 @@ struct MPStorageSyncTests {
         #expect(await persistence.stored.post == 42)
     }
 
+    @Test func aFailedReadOfTheCachedThreadKeepsItAndDoesNotSearch() async throws {
+        let remote = ScriptedMPStorageRemote(reads: [.failure(.network(.offline))])
+        let (sync, persistence) = Self.make(MPStorageSyncCopy(post: Self.post), remote: remote)
+        await #expect(throws: MPStorageSyncError.transport(.network(.offline))) { try await sync.detect(now: Fixture.now) }
+        #expect(await remote.calls == [.read(Self.post)])
+        #expect(await persistence.stored.post == Self.post)
+    }
+
     @Test func noThreadInTheListIsNotFoundAndDated() async throws {
         let remote = ScriptedMPStorageRemote(finds: [.success(nil)])
         let (sync, persistence) = Self.make(remote: remote)
@@ -139,6 +147,16 @@ struct MPStorageSyncTests {
         #expect(await persistence.stored.pending == pending)
     }
 
+    @Test func anUnreadableReadBackIsNotWrittenAgain() async throws {
+        let pending = try Fixture.text(blocking: ["user9"])
+        let failure = MPStorageTransportError.notVerified(readBack: .network(.offline))
+        let remote = ScriptedMPStorageRemote(reads: [.success(try Fixture.snapshot())], saves: [.failure(failure)])
+        let (sync, persistence) = Self.make(MPStorageSyncCopy(post: Self.post, base: try Fixture.text(), pending: pending), remote: remote)
+        await #expect(throws: MPStorageSyncError.transport(failure)) { try await sync.sync(now: Fixture.now) }
+        #expect(await remote.calls.count == 2)
+        #expect(await persistence.stored.pending == pending)
+    }
+
     @Test func noThreadWritesNothingAndKeepsTheEdits() async throws {
         let pending = try Fixture.text(blocking: ["user9"])
         let remote = ScriptedMPStorageRemote(finds: [.success(nil)], reads: [.failure(.notAddressed)])
@@ -164,7 +182,11 @@ struct MPStorageSyncTests {
         await #expect(throws: MPStorageSyncError.storage(reason: "disk full")) { try await sync.sync(now: Fixture.now) }
     }
 
-    // MARK: Creation
+}
+
+// MARK: - Creation, edits and flags
+
+extension MPStorageSyncTests {
 
     @Test func creationStoresTheNewThread() async throws {
         let remote = ScriptedMPStorageRemote(creations: [.success(.created(try Fixture.snapshot(post: 42)))])
@@ -293,5 +315,13 @@ struct MPStorageSyncTests {
             MPStorageSyncCopy(post: Self.post, base: try MPStorageCodec.encodeForWriting(document)), remote: ScriptedMPStorageRemote()
         )
         #expect(try await sync.document() == document)
+    }
+
+    @Test func aFlagOfAnotherVersionsEntryIsNotRead() throws {
+        let document = try MPStorageCodec.decode(
+            #"{"data":[{"version":"0.2","mpFlags":{"list":[{"post":77,"page":9}]}},"#
+                + #"{"version":"0.1","mpFlags":{"list":[{"post":77,"page":4}]}}]}"#
+        )
+        #expect(MPStorageSync.flag(forThread: 77, in: document)?.page == 4)
     }
 }

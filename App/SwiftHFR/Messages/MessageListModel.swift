@@ -229,16 +229,13 @@ final class MessageListModel {
         return model
     }
 
-    /// Where a row opens: a group row with an MPStorage flag opens at the flag (LOT-130, `HFRMPViewController.m:228-251` @
-    /// 87fe0d1c); otherwise the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with
+    /// Where a row opens: the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with
     /// new messages shows them. MP rows carry no HFR flag link (`sujetCase5` is empty, `R13u1`). The reader then opens at the
     /// page's last message, as the link's `#bas` does in legacy (`OnlineMessagesTableViewController.m:1838,2050`). A row
-    /// without a usable latest-message link opens like any topic row.
+    /// without a usable latest-message link opens like any topic row. A group row does not open at its MPStorage flag yet
+    /// (legacy `HFRMPViewController.m:228-251` @ 87fe0d1c): SwiftHFR does not move the flag while reading, so a flag nobody
+    /// moves would open an old page forever; the opening comes with the reader's flag write (LOT-130 spec, Out of scope).
     private func openingTarget(of thread: PrivateMessageThread) -> (target: ReaderTarget, fromLatestMessage: Bool)? {
-        if let flag = mpStorage?.flag(for: thread), let path = MPStorageFlagLink.path(of: flag),
-           let target = ReaderTarget(link: path, fallbackTopic: thread.summary.topicID) {
-            return (target, false)
-        }
         if let last = thread.summary.lastPost?.path,
            let target = ReaderTarget(link: last, fallbackTopic: thread.summary.topicID) {
             return (target, true)
