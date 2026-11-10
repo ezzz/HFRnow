@@ -5,17 +5,10 @@ import SwiftUI
 /// feels intended. The art is made by `tooling/art/import-worker/make.py` (three SVG layers, light and dark, in the asset
 /// catalogue); SwiftUI turns one layer (the hammer arm) and fades another (the spark), no frame sequence.
 ///
-/// Two variants until the operator picks one (#754): `.animatedWorker` (A) and `.staticWorker` (B, the drawing and a standard
-/// progress indicator). Reduce Motion always gives B's display. The text carries counts only, never an account's data.
+/// Reduce Motion shows the still drawing and a standard progress indicator instead of the loop (the operator chose the
+/// animated worker, #754). The text carries counts only, never an account's data.
 struct LegacyImportProgressView: View {
-    enum Style: Sendable {
-        /// A: the worker's hammer arm swings in one loop.
-        case animatedWorker
-        /// B: the still drawing, with a progress indicator next to it.
-        case staticWorker
-    }
-
-    /// What is on screen once Reduce Motion is read (`Display`).
+    /// What is on screen once Reduce Motion is read.
     enum Display: Sendable, Equatable {
         case animated
         case staticWithIndicator
@@ -37,18 +30,13 @@ struct LegacyImportProgressView: View {
     static let restAngle = 29.0
     static let period = 1.4
 
-    let style: Style
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The drawing grows with the text size.
     @ScaledMetric(relativeTo: .body) private var drawingSize = 128.0
 
-    init(style: Style = .animatedWorker) {
-        self.style = style
-    }
-
-    /// What is shown for a style: motion only for the animated style and when Reduce Motion is off.
-    static func display(for style: Style, reduceMotion: Bool) -> Display {
-        style == .animatedWorker && !reduceMotion ? .animated : .staticWithIndicator
+    /// What is shown: the loop, or the still drawing with a progress indicator under Reduce Motion.
+    static func display(reduceMotion: Bool) -> Display {
+        reduceMotion ? .staticWithIndicator : .animated
     }
 
     /// The loop: raised and still, a quick strike, a hold on the nail with a spark, a slow return. `seconds` is any clock.
@@ -70,7 +58,7 @@ struct LegacyImportProgressView: View {
     }
 
     var body: some View {
-        let display = Self.display(for: style, reduceMotion: reduceMotion)
+        let display = Self.display(reduceMotion: reduceMotion)
         VStack(spacing: 16) {
             drawing(display)
                 // Capped: at accessibility sizes the text matters more than the picture.
@@ -114,11 +102,12 @@ struct LegacyImportProgressView: View {
     }
 }
 
-#Preview("A, animé") {
-    LegacyImportProgressView(style: .animatedWorker)
+#Preview("Animé") {
+    LegacyImportProgressView()
 }
 
-#Preview("B, fixe") {
-    LegacyImportProgressView(style: .staticWorker)
+#Preview("Réduire les animations") {
+    LegacyImportProgressView()
+        .environment(\.accessibilityReduceMotion, true)
         .preferredColorScheme(.dark)
 }

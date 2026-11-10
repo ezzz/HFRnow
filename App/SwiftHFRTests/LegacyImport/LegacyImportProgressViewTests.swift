@@ -7,17 +7,12 @@ import UIKit
 struct LegacyImportProgressViewTests {
     typealias Screen = LegacyImportProgressView
 
-    @Test func theAnimatedWorkerAnimatesWhileTheImportRuns() {
-        #expect(Screen.display(for: .animatedWorker, reduceMotion: false) == .animated)
+    @Test func theWorkerAnimatesWhileTheImportRuns() {
+        #expect(Screen.display(reduceMotion: false) == .animated)
     }
 
     @Test func reduceMotionGivesTheStillDrawingAndAProgressIndicator() {
-        #expect(Screen.display(for: .animatedWorker, reduceMotion: true) == .staticWithIndicator)
-        #expect(Screen.display(for: .staticWorker, reduceMotion: true) == .staticWithIndicator)
-    }
-
-    @Test func theStaticVariantNeverMoves() {
-        #expect(Screen.display(for: .staticWorker, reduceMotion: false) == .staticWithIndicator)
+        #expect(Screen.display(reduceMotion: true) == .staticWithIndicator)
     }
 
     @Test func theLoopRaisesStrikesSparksAndReturns() {

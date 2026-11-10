@@ -36,7 +36,7 @@ struct RootView: View {
                         .id(built.generation)
                 }
             case .importProgress:
-                LegacyImportProgressView(style: .animatedWorker)
+                LegacyImportProgressView()
             case .loading:
                 ProgressView()
             }

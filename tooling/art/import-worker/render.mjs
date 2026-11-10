@@ -1,4 +1,4 @@
-// Renders the preview PNGs of variants A and B (light and dark) from the generated layers (#754).
+// Renders the preview PNGs of the animated worker and of the Reduce Motion form (light and dark) from the generated layers (#754).
 // Usage: node render.mjs <layers-dir> <out-dir>   (Playwright's Chromium is enough; no dependency added)
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
@@ -13,16 +13,15 @@ const worker = (s, angle, spark) => `<svg viewBox="0 0 128 128" width="100%" hei
   <g transform="rotate(${angle} ${SHOULDER[0]} ${SHOULDER[1]})">${strip('arm', s)}</g>${spark ? strip('spark', s) : ''}</svg>`;
 const theme = { light: { bg: '#F2F2F7', card: '#FFFFFF', fg: '#000', sec: '#6C6C70' }, dark: { bg: '#000', card: '#1C1C1E', fg: '#FFF', sec: '#98989D' } };
 
-function page(s, variant) {
+function page(s) {
   const t = theme[s];
-  const phone = (angle, spark, caption) => `<div class="col"><div class="phone"><div class="stack">
+  const phone = (angle, spark, caption, spin = false) => `<div class="col"><div class="phone"><div class="stack">
     <div class="w">${worker(s, angle, spark)}</div>
-    ${variant === 'B' ? '<div class="spin"></div>' : ''}
+    ${spin ? '<div class="spin"></div>' : ''}
     <div class="txt">Import de vos données HFR+…</div>
   </div></div><div class="cap">${caption}</div></div>`;
-  const frames = variant === 'A'
-    ? phone(0, false, 'A · marteau levé') + phone(IMPACT, true, 'A · impact (étincelle)')
-    : phone(IMPACT * 0.5, false, 'B · ouvrier statique + indicateur');
+  const frames = phone(0, false, 'marteau levé') + phone(IMPACT, true, 'impact (étincelle)')
+    + phone(IMPACT * 0.5, false, 'Réduire les animations: dessin fixe + indicateur', true);
   return `<html><body style="margin:0;background:${t.bg};font-family:-apple-system,Helvetica,Arial,sans-serif;color:${t.fg}">
   <style>.row{display:flex;gap:28px;padding:28px;justify-content:center}.col{text-align:center}.cap{margin-top:10px;font-size:14px;color:${t.sec}}
   .phone{width:300px;height:420px;border-radius:36px;background:${t.bg};border:1px solid ${t.sec}55;display:flex;align-items:center;justify-content:center}
@@ -34,11 +33,11 @@ function page(s, variant) {
 }
 
 const browser = await chromium.launch();
-for (const variant of ['A', 'B']) for (const s of ['light', 'dark']) {
-  const ctx = await browser.newContext({ viewport: { width: variant === 'A' ? 720 : 400, height: 600 }, deviceScaleFactor: 2 });
+for (const s of ['light', 'dark']) {
+  const ctx = await browser.newContext({ viewport: { width: 1060, height: 600 }, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
-  await p.setContent(page(s, variant));
-  await p.screenshot({ path: `${out}/import-worker-${variant}-${s}.png`, fullPage: true });
+  await p.setContent(page(s));
+  await p.screenshot({ path: `${out}/import-worker-${s}.png`, fullPage: true });
   await ctx.close();
 }
 await browser.close();
