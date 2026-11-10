@@ -167,6 +167,23 @@ struct MPStorageSyncModelTests {
         #expect(fixture.model.status == .idle)
     }
 
+    @Test func aSearchAtItsLimitIsNotRunAgainAtEachAppearance() async throws {
+        let fixture = try await Self.make(thread: nil)
+        await fixture.remote.fail(with: .searchLimitReached(pages: 50))
+        await fixture.model.start()
+        await fixture.model.start()
+        #expect(await fixture.remote.calls == [.find])
+        #expect(fixture.model.status == .failed("Le MP de stockage n'a pas été trouvé dans les 50 premières pages de MP."))
+    }
+
+    @Test func aMissingThreadIsNotSearchedAgainAtEachAppearance() async throws {
+        let fixture = try await Self.make(thread: nil, state: .on, copy: MPStorageCopy(post: 7))
+        await fixture.model.start()
+        await fixture.model.start()
+        #expect(await fixture.remote.calls == [.read(7), .find])
+        #expect(fixture.model.threadMissing)
+    }
+
     @Test func loggedOutNothingIsFetched() async throws {
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7))
         fixture.login.value = false

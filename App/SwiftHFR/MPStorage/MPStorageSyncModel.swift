@@ -56,6 +56,8 @@ final class MPStorageSyncModel {
     @ObservationIgnored private let isLoggedIn: @Sendable () async -> Bool
     @ObservationIgnored private let clock: @Sendable () -> Date
     @ObservationIgnored private var started = false
+    /// Whether the last failure was the network's: only then does `start()` run again at the next appearance.
+    @ObservationIgnored private var lastFailureWasNetwork = false
 
     /// Creates the model; nothing is read or fetched before `start()`.
     init(
@@ -86,14 +88,15 @@ final class MPStorageSyncModel {
     /// Whether sync runs for the account.
     var isOn: Bool { record?.state == .on }
 
-    /// Appearance of the Messages tab or Réglages, once per model while it succeeds (a failed start runs again at the next
-    /// appearance, as legacy reloaded at each MP list load, `HFRMPViewController.m:32-36`): the copy is shown, then `on`
+    /// Appearance of the Messages tab or Réglages, once per model; after a network failure it runs again at the next
+    /// appearance, as legacy reloaded at each MP list load (`HFRMPViewController.m:32-36`), never after a search that hit its
+    /// limit or found no thread (each run would walk the MP list again: the flood limit is shared). The copy is shown, then `on`
     /// syncs and `unasked` looks for a thread (read-only), at most once per `searchInterval` when the last search found none;
     /// found, the account turns `on` (ADR 0013 §7). `declined`, `off` and an unreadable state do nothing.
     func start() async {
         guard !started else { return }
         started = true
-        defer { if case .failed = status { started = false } }
+        defer { if case .failed = status, lastFailureWasNetwork { started = false } }
         guard let copy = await loadCopy() else { return }
         guard await isLoggedIn() else { return }
         switch record?.state {
@@ -198,11 +201,13 @@ final class MPStorageSyncModel {
     /// Runs one call: `working` while it runs, then the copy is shown again and the status says how it went.
     private func run(_ work: () async throws(MPStorageSyncError) -> Void) async {
         status = .working
+        lastFailureWasNetwork = false
         do {
             try await work()
             status = threadMissing ? .failed("Le MP de stockage est introuvable.") : .idle
         } catch {
             status = .failed(Self.message(for: error))
+            if case .transport(.network) = error { lastFailureWasNetwork = true }
         }
         _ = await loadCopy()
     }
