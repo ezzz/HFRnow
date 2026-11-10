@@ -26,19 +26,28 @@ extension LegacyImporter {
         }
     }
 
-    /// Step 2: `blackListDico.plist` (or the v0 `blackList.plist` when it is absent) and `whiteList.plist`.
+    /// Step 2: `blackListDico.plist` (or the v0 `blackList.plist` when it is absent) and `whiteList.plist`. Each file is
+    /// read on its own, as legacy did (`BlackList.m:173-202`): an unreadable one counts as empty and the other is still
+    /// imported; the step reports `sourceUnreadable` only when nothing readable was found.
     func importPseudoLists(globalAccount: String?, report: inout LegacyImportReport) async -> LegacyImportOutcome {
+        var unreadable = false
         let lists: [String: [String]]
         switch legacyBlocklists(globalAccount: globalAccount) {
-        case .failure(let outcome): return outcome.value
         case .success(let value): lists = value
+        case .failure(let outcome) where outcome.value == .failed(.sourceUnreadable):
+            lists = [:]
+            unreadable = true
+        case .failure(let outcome): return outcome.value
         }
-        let allowlist: [String]
+        var allowlist: [String] = []
         switch readPlist(container.documentsDirectory.appending(path: LegacyKeys.allowlistFile)) {
+        case .failure(.sourceUnreadable): unreadable = true
         case .failure(let error): return .failed(error)
-        case .success(let value): allowlist = value.flatMap(LegacyFormats.pseudoList) ?? []
+        case .success(nil): break
+        case .success(let value?):
+            if let entries = LegacyFormats.pseudoList(value) { allowlist = entries } else { unreadable = true }
         }
-        guard !lists.isEmpty || !allowlist.isEmpty else { return .nothingToImport }
+        guard !lists.isEmpty || !allowlist.isEmpty else { return unreadable ? .failed(.sourceUnreadable) : .nothingToImport }
         return await writePseudoLists(lists, allowlist: allowlist, report: &report)
     }
 

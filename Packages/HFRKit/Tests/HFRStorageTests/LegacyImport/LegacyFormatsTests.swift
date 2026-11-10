@@ -177,3 +177,33 @@ struct ActiveDraftFixture {
         self.time = time
     }
 }
+
+@Suite("Binary property list reader (LOT-067)")
+struct BinaryPropertyListTests {
+    /// A `bplist00` whose array `i` lists array `i + 1` `fanOut` times (the last one empty): a few hundred bytes that a
+    /// reader without a node budget reads `fanOut^levels` times.
+    private func sharedReferenceGraph(levels: Int, fanOut: Int) -> Data {
+        var bytes = Array("bplist00".utf8)
+        var offsets: [Int] = []
+        for level in 0..<levels {
+            offsets.append(bytes.count)
+            let count = level == levels - 1 ? 0 : fanOut
+            bytes.append(0xA0 | UInt8(count))
+            bytes += Array(repeating: UInt8(level + 1), count: count)
+        }
+        let table = bytes.count
+        for offset in offsets { bytes += [UInt8(offset >> 8), UInt8(offset & 0xFF)] }
+        bytes += [0, 0, 0, 0, 0, 0, 2, 1]
+        for value in [levels, 0, table] {
+            bytes += (0..<8).reversed().map { UInt8((value >> ($0 * 8)) & 0xFF) }
+        }
+        return Data(bytes)
+    }
+
+    @Test("a small file of shared references is refused instead of being read exponentially")
+    func nodeBudget() {
+        // 4^12 = 16 777 216 reads without the budget, far above `maximumNodes`.
+        #expect(throws: BinaryPlistError.malformed) { try BinaryPropertyList.parse(sharedReferenceGraph(levels: 13, fanOut: 4)) }
+        #expect(throws: Never.self) { try BinaryPropertyList.parse(sharedReferenceGraph(levels: 4, fanOut: 3)) }
+    }
+}

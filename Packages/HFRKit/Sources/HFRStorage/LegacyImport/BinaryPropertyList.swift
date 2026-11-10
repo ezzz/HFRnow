@@ -30,9 +30,14 @@ struct BinaryPropertyList {
     private let offsets: [Int]
     private let referenceSize: Int
     private var depth = 0
+    private var visited = 0
 
-    /// Upper bound on nested containers: a legacy archive nests three levels; a cycle or a hostile file stops here.
+    /// Upper bound on nested containers: a legacy archive nests three levels; a cycle stops here.
     private static let maximumDepth = 64
+    /// Upper bound on objects read, references counted each time: a file whose containers list the same container
+    /// many times (a shared-reference graph) would otherwise be read an exponential number of times. A legacy smiley
+    /// archive reads about ten objects per favourite.
+    static let maximumNodes = 100_000
 
     /// Parses `data` and returns its top object.
     static func parse(_ data: Data) throws(BinaryPlistError) -> PlistNode {
@@ -72,6 +77,8 @@ struct BinaryPropertyList {
 
     private mutating func object(at index: Int) throws(BinaryPlistError) -> PlistNode {
         guard index >= 0, index < offsets.count else { throw .malformed }
+        visited += 1
+        guard visited <= Self.maximumNodes else { throw .malformed }
         depth += 1
         defer { depth -= 1 }
         guard depth <= Self.maximumDepth else { throw .malformed }

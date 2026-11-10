@@ -103,6 +103,27 @@ struct LegacyImporterRecoveryTests {
         #expect(state.mpStorageSwitch == .notRead)
         #expect(state.done == [.accounts] && state.globalAccount == "fakeuser2")
     }
+
+    @Test("an unreadable allowlist file does not stop a readable blocklist, and the reverse")
+    func pseudoListFilesReadOnTheirOwn() async throws {
+        var harness = try Harness()
+        defer { harness.remove() }
+        harness.accounts = Harness.legacyAccounts
+        try harness.write(blocklistPlist, to: LegacyKeys.blocklistFile)
+        try harness.write("not a plist", to: LegacyKeys.allowlistFile)
+        let report = await harness.importer().run(now: now)
+        #expect(report.outcomes[.pseudoLists] == .imported(2))
+        #expect(await harness.destinations.pseudoLists.blocklist(for: "fakeuser2").map(\.pseudo) == ["fakeblocked1"])
+
+        var reverse = try Harness()
+        defer { reverse.remove() }
+        reverse.accounts = Harness.legacyAccounts
+        try reverse.write("not a plist", to: LegacyKeys.blocklistFile)
+        try reverse.write(allowlistPlist, to: LegacyKeys.allowlistFile)
+        let reverseReport = await reverse.importer().run(now: now)
+        #expect(reverseReport.outcomes[.pseudoLists] == .imported(1))
+        #expect(await reverse.destinations.pseudoLists.allowlist().map(\.pseudo) == ["fakeloved1"])
+    }
 }
 
 /// A credential store whose writes work but whose plain `load()` fails, as a Keychain read refused between two calls.
