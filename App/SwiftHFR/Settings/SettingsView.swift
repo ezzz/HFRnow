@@ -79,6 +79,7 @@ struct SettingsView: View {
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 VStack(alignment: .leading, spacing: 4) {
                     LabeledContent("Taille du texte", value: "\(general.textSizePercent) %")
+                        .accessibilityHidden(true) // the slider below speaks both
                     Slider(
                         value: Binding(
                             get: { Double(general.textSizePercent) },
