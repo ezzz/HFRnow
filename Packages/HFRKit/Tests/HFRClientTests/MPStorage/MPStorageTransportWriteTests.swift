@@ -151,6 +151,59 @@ struct MPStorageTransportWriteTests {
         }
     }
 
+    // MARK: - Captured storage answers (#440)
+
+    @Test("W440b: a storage write is answered by the ordinary edit success")
+    func theCapturedStorageWriteAnswerIsASuccess() async throws {
+        let base = try Self.stored()
+        let ours = try Self.withBlockedPseudo("user9", on: base)
+        let text = try Self.expectedText(base: base, ours: ours, theirs: base)
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.editForm(), try PostingCapture.answer("W440b"), try MPStorageCapture.editForm(holding: text)]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.save(ours, base: base, at: Self.location, stamp: Self.stamp, through: session)
+        }
+        let result = try #require(outcome.value, "\(outcome.result)")
+        #expect(result.wrote)
+        #expect(outcome.posts.count == 1)
+    }
+
+    @Test("W440c: an edit POST of another account's message is never a success; HFR's link-less refusal is unrecognized today")
+    func anotherAccountsMessageIsNotASuccess() async throws {
+        // HFR answers a `.hop` with no link and no refresh, so LOT-037's classifier cannot call it a refusal: the transport
+        // reports it unconfirmed with HFR's sentence (never a success, never retried). Classifying it `rejected`: #756.
+        let base = try Self.stored()
+        let ours = try Self.withBlockedPseudo("user9", on: base)
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.editForm(), try PostingCapture.answer("W440c")]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.save(ours, base: base, at: Self.location, stamp: Self.stamp, through: session)
+        }
+        let sentence = "Vous n'avez pas les droits pour éditer ce message !"
+        #expect(outcome.error == .posting(.unconfirmed(.unrecognizedAnswer(message: sentence))))
+        #expect(outcome.posts.count == 1)
+    }
+
+    /// The location of the storage thread the `R440` pages were read at.
+    static func location440(_ id: String) throws -> MPStorageLocation {
+        MPStorageLocation(post: 3_208_316, numreponse: 1_980_896_947, editURL: try PostingCapture.pageURL(id))
+    }
+
+    @Test(
+        "R440a-c: the storage edit form of another account or of a deleted thread is formUnavailable, nothing posted",
+        arguments: ["R440a", "R440b", "R440c"]
+    )
+    func anUnusableStorageEditFormIsFormUnavailable(id: String) async throws {
+        let base = try Self.stored()
+        let ours = try Self.withBlockedPseudo("user9", on: base)
+        let location = try Self.location440(id)
+        let outcome = await MPStorageHarness.run([try PostingCapture.form(id)]) { transport, session throws(MPStorageTransportError) in
+            try await transport.save(ours, base: base, at: location, stamp: Self.stamp, through: session)
+        }
+        #expect(outcome.error == .posting(.formUnavailable(message: "Ce message ne vous est pas destiné, désolé")))
+        #expect(outcome.posts.isEmpty)
+    }
+
     // MARK: - Create
 
     @Test func anExistingThreadIsReadNotCreated() async throws {
@@ -189,6 +242,23 @@ struct MPStorageTransportWriteTests {
         #expect(outcome.postField("sujet") == MPStorageDocument.subject)
         let posted = try #require(outcome.postField("content_form"))
         #expect(posted == (try MPStorageCodec.encodeForWriting(MPStorageTransport.emptyDocument(stamp: Self.stamp))))
+    }
+
+    @Test("W440a: a storage creation is answered by the ordinary new-MP success")
+    func theCapturedStorageCreationAnswerIsASuccess() async throws {
+        let outcome = await MPStorageHarness.run(
+            [
+                try MPStorageCapture.list("R13a"), try PostingCapture.form("R45b"), try PostingCapture.answer("W440a"),
+                try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.editForm()
+            ]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.create(stamp: Self.stamp, through: session)
+        }
+        guard case .created = outcome.value else {
+            Issue.record("expected a created thread, got \(outcome.result)")
+            return
+        }
+        #expect(outcome.posts.count == 1)
     }
 
     @Test func aConfirmedCreationTheListDoesNotShowIsReported() async throws {
