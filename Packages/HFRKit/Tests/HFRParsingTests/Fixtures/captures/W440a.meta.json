@@ -46,7 +46,7 @@
     "numreponse",
     "post"
   ],
-  "note": "MPStorage creation, legacy body (MPStorage.m:738-832 @ 87fe0d1c), user2, operator go 2026-11-10 (#440)",
+  "note": "MPStorage creation, legacy body (MPStorage.m:738-746 @ 87fe0d1c), user2, operator go 2026-11-10 (#440)",
   "request_body": "p=1&pseudo=user2&ColorUsedMem=&submit=Valider+votre+message&parents=&MsgIcon=1&verifrequet=1100&new=0&search_smilies=&stickold=&sond=0&signature=1&sondage=0&smiley=0&owntopic=0&numrep=&hash_check=REDACTED&cat=prive&wysiwyg=0&page=1&password=&emaill=0&config=hfr.inc&cache=&content_form=%7B%22data%22%3A%5B%7B%22version%22%3A%220.1%22%2C%22blacklist%22%3A%7B%22list%22%3A%5B%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1794326652029%7D%2C%22mpFlags%22%3A%7B%22list%22%3A%5B%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1794326652029%7D%2C%22bookmarks%22%3A%7B%22list%22%3A%5B%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1794326652029%7D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1794326652029%7D%5D%2C%22sourceName%22%3A%22iOS%22%2C%22lastUpdate%22%3A1794326652029%7D&sujet=a2bcc09b796b8c6fab77058ff8446c34&dest=user3&numreponse=&post=",
   "file": "W440a-mpstorage-create-success.html",
   "private": true

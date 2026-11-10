@@ -170,8 +170,9 @@ struct MPStorageTransportWriteTests {
 
     @Test("W440c: an edit POST of another account's message is never a success; HFR's link-less refusal is unrecognized today")
     func anotherAccountsMessageIsNotASuccess() async throws {
-        // HFR answers a `.hop` with no link and no refresh, so LOT-037's classifier cannot call it a refusal: the transport
-        // reports it unconfirmed with HFR's sentence (never a success, never retried). Classifying it `rejected`: #756.
+        // HFR answers a `.hop` with no link (a 3 s refresh to the thread, no "avec succès"), so LOT-037's classifier calls
+        // it neither a refusal nor a success: the transport reports it unconfirmed with HFR's sentence (never a success,
+        // never retried). Classifying it `rejected`: #756.
         let base = try Self.stored()
         let ours = try Self.withBlockedPseudo("user9", on: base)
         let outcome = await MPStorageHarness.run(
