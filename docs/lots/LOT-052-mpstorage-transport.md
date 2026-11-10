@@ -78,7 +78,6 @@ stored copy after a write serve `R60b` with its `content_form` replaced by the t
 sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check alone.
 
 **Pending capture** (never hand-built, LESSONS 36):
-- (Captured since, #333: the storage row on page 2, `R333a` → `R333b`, walked by `MPStorageTransportReadTests.findsTheThreadOnPageTwo`.)
 - A non-empty document from other clients, near the 64 KiB cap, with U+00A0 or smiley codes (#272).
 
 **Captured since** ([#440](https://github.com/ezzz/HFRnow/issues/440), 2026-11-10; HFR-PROTOCOL §6c LOT-052): the storage creation
@@ -88,6 +87,9 @@ by another account (`R440a`) and after the thread was deleted, by its owner (`R4
 "Vous n'avez pas les droits pour éditer ce message !" (a link-less `.hop` with no "avec succès", refreshing to the thread after 3 s, so `save` reports it
 `posting(.unconfirmed(.unrecognizedAnswer))`, never a success; `rejected` is [#756](https://github.com/ezzz/HFRnow/issues/756)).
 Tests in `MPStorageTransportWriteTests`, one per state.
+
+**Captured since** ([#333](https://github.com/ezzz/HFRnow/issues/333)): the storage row on page 2, `R333a` → `R333b`, walked by
+`MPStorageTransportReadTests.findsTheThreadOnPageTwo`.
 
 ## Tests
 `MPStorageTransportReadTests`, `MPStorageTransportWriteTests`, `MPStorageListWalkTests` (HFRClientTests),
