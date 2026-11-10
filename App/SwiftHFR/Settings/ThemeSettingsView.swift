@@ -20,6 +20,7 @@ struct ThemeSettingsView: View {
                     LabeledContent("Teinte d'accent") {
                         Text(theme.accentHue, format: .number.precision(.fractionLength(2)))
                     }
+                    .accessibilityHidden(true) // the slider below speaks both
                     Slider(value: $theme.accentHue, in: 0...1, step: 0.001)
                         .tint(Color(uiColor: ThemeAppearance.dayTint(hue: theme.accentHue).uiColor))
                         .accessibilityLabel("Teinte d'accent")
@@ -33,6 +34,7 @@ struct ThemeSettingsView: View {
                     LabeledContent("Luminosité du thème sombre") {
                         Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0)))
                     }
+                    .accessibilityHidden(true)
                     Slider(value: $theme.darkBrightness, in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01)
                         .accessibilityLabel("Luminosité du thème sombre")
                         .accessibilityValue(Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0))))

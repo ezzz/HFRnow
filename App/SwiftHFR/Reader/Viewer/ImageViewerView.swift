@@ -38,7 +38,8 @@ struct ImageViewerView: View {
     private func page(_ position: Int) -> some View {
         switch model.states[position] {
         case .loaded(let image):
-            ZoomableImage(data: image.data).ignoresSafeArea(edges: .bottom)
+            ZoomableImage(data: image.data, label: ReaderAccessibility.imageLabel(position: position, count: model.images.count))
+                .ignoresSafeArea(edges: .bottom)
         case .failed:
             VStack(spacing: 12) {
                 ContentUnavailableView("Impossible de charger la photo", systemImage: "exclamationmark.triangle")
@@ -108,10 +109,15 @@ private struct SharedImage: Transferable {
 /// with a 7.5x maximum, `ZoomingImageContainerView`).
 private struct ZoomableImage: UIViewRepresentable {
     let data: Data
+    /// VoiceOver's name for the picture ("Image 2 sur 5", LOT-163).
+    let label: String
 
     func makeUIView(context: Context) -> ZoomScrollView { ZoomScrollView() }
 
-    func updateUIView(_ view: ZoomScrollView, context: Context) { view.show(data) }
+    func updateUIView(_ view: ZoomScrollView, context: Context) {
+        view.imageLabel = label
+        view.show(data)
+    }
 }
 
 /// The scroll view behind `ZoomableImage`: the image view is sized to the image's aspect ratio and centred with insets, so
@@ -120,6 +126,12 @@ private final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
     private let imageView = UIImageView()
     private var shownData: Data?
     private var laidOutSize = CGSize.zero
+
+    /// The picture's accessibility label.
+    var imageLabel: String {
+        get { imageView.accessibilityLabel ?? "Image" }
+        set { imageView.accessibilityLabel = newValue }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
