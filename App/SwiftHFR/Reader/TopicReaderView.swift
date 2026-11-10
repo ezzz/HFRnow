@@ -156,6 +156,7 @@ struct TopicReaderView: View {
         }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
         .onChange(of: model.canQuote) { _, canQuote in controller?.offersSelectionQuote = canQuote }
+        .modifier(ReaderAnnouncements(model: model))
         .task {
             // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
             swipeEnabled = services.settings.swipesPages()
@@ -304,8 +305,7 @@ extension TopicReaderView {
     private func installMenuActions() {
         // Weak: the model stores this registry, a strong capture would keep every reader alive.
         let confirm: @MainActor (String) -> Void = { [weak model] text in
-            model?.showMenuFeedback(text)
-            AccessibilityNotification.Announcement(text).post()
+            model?.showMenuFeedback(text) // announced by `ReaderAnnouncements`
         }
         // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
         let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }

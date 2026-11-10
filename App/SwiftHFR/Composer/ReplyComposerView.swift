@@ -123,6 +123,9 @@ struct ReplyComposerView: View {
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
+        // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
+        .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
+        .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flushDraft() } }
         }
