@@ -65,22 +65,26 @@ struct AboutView: View {
 
 /// "Nouveautés": the legacy problems SwiftHFR fixes, per section.
 struct ChangelogView: View {
-    private let changelog = Changelog.bundled()
+    /// Read once the screen appears, not each time a parent's body is evaluated.
+    @State private var changelog: Changelog?
 
     var body: some View {
         List {
-            if changelog.entries.isEmpty {
-                ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles")
-            }
-            ForEach(changelog.sections, id: \.self) { section in
-                Section(section.title) {
-                    ForEach(Array(changelog.entries(in: section).enumerated()), id: \.offset) { _, entry in
-                        Text(entry.summary).scaledFont(.body)
+            if let changelog {
+                if changelog.entries.isEmpty {
+                    ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles")
+                }
+                ForEach(changelog.sections, id: \.self) { section in
+                    Section(section.title) {
+                        ForEach(Array(changelog.entries(in: section).enumerated()), id: \.offset) { _, entry in
+                            Text(entry.summary).scaledFont(.body)
+                        }
                     }
                 }
             }
         }
         .navigationTitle("Nouveautés")
         .navigationBarTitleDisplayMode(.inline)
+        .task { if changelog == nil { changelog = Changelog.bundled() } }
     }
 }

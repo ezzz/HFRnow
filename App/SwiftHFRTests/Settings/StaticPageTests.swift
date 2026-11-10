@@ -94,8 +94,8 @@ struct StaticPageTests {
         webView.navigationDelegate = loader
         let page = "<html><body><script>document.body.setAttribute('data-ran', 'yes')</script></body></html>"
         await loader.load(page, in: webView)
-        let ran = try await webView.evaluateJavaScript("document.body.getAttribute('data-ran')")
-        #expect(ran == nil || ran is NSNull)
+        let ran = try await webView.evaluateJavaScript("String(document.body.getAttribute('data-ran'))")
+        #expect(ran as? String == "null")
     }
 
     /// `https://…` links of a Markdown or licence text, without the closing punctuation.

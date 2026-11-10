@@ -24,7 +24,7 @@ def cells(line):
 
 
 def entries(text):
-    """One entry per numbered row, in file order: row number, section (T or UX), summary without code marks."""
+    """One entry per numbered row, in file order: row number, section (T or UX), summary without code or emphasis marks."""
     result = []
     for line in text.splitlines():
         if not ROW.match(line):
@@ -32,7 +32,7 @@ def entries(text):
         row = cells(line)
         if len(row) < 3 or not row[2]:
             continue
-        result.append({"id": int(row[0]), "section": row[1], "summary": row[2].replace("`", "")})
+        result.append({"id": int(row[0]), "section": row[1], "summary": re.sub(r"\*+", "", row[2].replace("`", ""))})
     return result
 
 

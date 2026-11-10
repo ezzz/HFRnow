@@ -9,22 +9,25 @@ struct StaticPageView: View {
     let page: StaticPage
     /// Where "Navigateur par défaut" is read, at the time of a tap.
     var store: any SettingsStore = UserDefaultsSettingsStore()
-    @State private var html: String
+    /// Read once the page appears, not each time a parent's body is evaluated.
+    @State private var html: String?
     @State private var external: StaticPageExternalLink?
     @Environment(\.openURL) private var openURL
 
-    /// A view of `page`; its HTML is read once.
+    /// A view of `page`.
     init(page: StaticPage, store: any SettingsStore = UserDefaultsSettingsStore()) {
         self.page = page
         self.store = store
-        _html = State(initialValue: page.html())
     }
 
     var body: some View {
-        StaticPageWebView(html: html, onLink: open)
-            .navigationTitle(page.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
+        Group {
+            if let html { StaticPageWebView(html: html, onLink: open) }
+        }
+        .task { if html == nil { html = page.html() } }
+        .navigationTitle(page.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
     }
 
     private func open(_ url: URL) {
