@@ -69,9 +69,9 @@ public final class AccountSync: Sendable {
         self.clock = clock
     }
 
-    /// The device's state (off with nothing known when its item is absent or unreadable).
-    public func state() -> AccountSyncState {
-        lock.withLock { _ in loadState() }
+    /// The device's state (off with nothing known when its item is absent or undecodable).
+    public func state() throws -> AccountSyncState {
+        try lock.withLock { _ in try loadState() }
     }
 
     /// Applies the rules of the reconcile table, at launch and at each foreground; such a read can confirm a provisional
@@ -83,7 +83,7 @@ public final class AccountSync: Sendable {
     /// Records a change of the device-only accounts, then reconciles when the switch is on.
     public func localChange(_ change: AccountSyncChange) throws -> AccountSyncReport {
         try lock.withLock { _ in
-            var state = loadState()
+            var state = try loadState()
             let now = clock()
             switch change {
             case .login(let pseudo):
@@ -121,7 +121,7 @@ public final class AccountSync: Sendable {
     /// The user's switch-off: writes a tombstone over whatever the item holds and keeps the accounts entered here.
     public func switchOff() throws -> AccountSyncReport {
         try lock.withLock { _ in
-            var state = loadState()
+            var state = try loadState()
             guard state.isOn, let enabledAt = state.enabledAt else { return AccountSyncReport() }
             let deletedAt = max(clock(), enabledAt)
             try item.write(AccountSyncEnvelope.tombstone(deletedAt: deletedAt).encoded())
@@ -136,7 +136,7 @@ public final class AccountSync: Sendable {
 
 extension AccountSync {
     private func reconcileLocked(confirming: Bool) throws -> AccountSyncReport {
-        var state = loadState()
+        var state = try loadState()
         guard let raw = try item.read() else { return AccountSyncReport() }
         let envelope = try AccountSyncEnvelope.decode(raw)
         if state.isOn, let enabledAt = state.enabledAt {
@@ -226,7 +226,7 @@ extension AccountSync {
     }
 
     private func attemptSwitchOn() throws -> AccountSyncReport? {
-        var state = loadState()
+        var state = try loadState()
         guard !state.isOn else { return AccountSyncReport() }
         let raw = try item.read()
         let envelope = try raw.map(AccountSyncEnvelope.decode)
@@ -318,8 +318,10 @@ extension AccountSync {
         return true
     }
 
-    private func loadState() -> AccountSyncState {
-        AccountSyncState.decoded(from: try? stateItem.read())
+    /// The state; off with nothing known when the item is absent or undecodable. A Keychain refusal (device locked before
+    /// its first unlock) throws: read as "off", the next save would erase the switch and the tombstones it honoured.
+    private func loadState() throws -> AccountSyncState {
+        AccountSyncState.decoded(from: try stateItem.read())
     }
 
     private func saveState(_ state: AccountSyncState) throws {

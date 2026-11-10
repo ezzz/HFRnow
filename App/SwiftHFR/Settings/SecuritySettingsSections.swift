@@ -1,7 +1,7 @@
 import SwiftUI
 
-// New in SwiftHFR: none @ 87fe0d1c (`HFRswift/Swift/AppSettingsView.swift` has neither row; GAP-312). Differences: the whole
-// feature.
+// New in SwiftHFR: none @ 87fe0d1c (`HFRswift/Swift/AppSettingsView.swift` has neither row; GAP-168, GAP-169).
+// Differences: the whole feature.
 /// The two LOT-173 sections of the settings screen: the opt-in iCloud Keychain sync of the accounts and the app lock.
 struct SecuritySettingsSections: View {
     @Environment(AccountsModel.self) private var accounts

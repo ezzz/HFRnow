@@ -70,7 +70,7 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
         return try encoder.encode(self)
     }
 
-    /// The state stored in `data`; off with nothing known when absent or unreadable.
+    /// The state stored in `data`; off with nothing known when absent or undecodable.
     static func decoded(from data: Data?) -> AccountSyncState {
         guard let data, let state = try? JSONDecoder().decode(AccountSyncState.self, from: data) else { return AccountSyncState() }
         return state

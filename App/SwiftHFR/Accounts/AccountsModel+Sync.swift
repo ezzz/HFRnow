@@ -1,7 +1,7 @@
 import Foundation
 import HFRStorage
 
-// New in SwiftHFR: none @ 87fe0d1c (legacy never shared its accounts; GAP-312). Differences: the whole feature.
+// New in SwiftHFR: none @ 87fe0d1c (legacy never shared its accounts; GAP-168). Differences: the whole feature.
 extension AccountsModel {
     /// Applies the sync rules to what iCloud Keychain delivered (LOT-173): at launch before the first restore, and at each
     /// foreground. An unreadable copy or a Keychain refusal is shown once and changes nothing.
@@ -12,7 +12,7 @@ extension AccountsModel {
         } catch {
             accountSyncNotice = AccountSyncMessages.problem(error)
         }
-        isAccountSyncOn = sync.state().isOn
+        isAccountSyncOn = (try? sync.state())?.isOn ?? isAccountSyncOn
     }
 
     /// The settings switch. Switching off never removes the accounts entered on this device.
@@ -24,7 +24,7 @@ extension AccountsModel {
         } catch {
             accountSyncNotice = AccountSyncMessages.problem(error)
         }
-        isAccountSyncOn = sync.state().isOn
+        isAccountSyncOn = (try? sync.state())?.isOn ?? isAccountSyncOn
     }
 
     /// Reports a change the store accepted, so the copy follows it while the switch is on (and the dates are kept for a
@@ -36,7 +36,7 @@ extension AccountsModel {
         } catch {
             accountSyncNotice = AccountSyncMessages.problem(error)
         }
-        isAccountSyncOn = sync.state().isOn
+        isAccountSyncOn = (try? sync.state())?.isOn ?? isAccountSyncOn
     }
 
     private func apply(_ report: AccountSyncReport) {

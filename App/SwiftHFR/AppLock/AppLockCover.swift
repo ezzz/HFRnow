@@ -30,7 +30,7 @@ struct LocalAuthenticationAuthenticator: DeviceOwnerAuthenticating {
     }
 }
 
-// New in SwiftHFR: none @ 87fe0d1c (legacy has no app lock; GAP-312). Differences: the whole feature.
+// New in SwiftHFR: none @ 87fe0d1c (legacy has no app lock; GAP-169). Differences: the whole feature.
 /// What every scene shows while the app is locked, or not active with the lock on (the app switcher snapshot).
 /// It appears without animation: it must be in place before the system takes the snapshot, so Reduce Motion has nothing
 /// to reduce.

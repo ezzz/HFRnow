@@ -26,7 +26,7 @@ import Testing
         #expect(report.itemWritten)
         #expect(try item.envelope?.enabledAt == moment(100))
         #expect(item.sharedPseudos == ["user-a"])
-        #expect(device.sync.state().enabledAt == moment(100))
+        #expect(try device.sync.state().enabledAt == moment(100))
         #expect(device.isOn)
     }
 
@@ -39,7 +39,7 @@ import Testing
         #expect(item.data != nil)
         #expect(device.accounts.envelope == before)
         #expect(!device.isOn)
-        #expect(device.sync.state().honouredDeletedAt == moment(150))
+        #expect(try device.sync.state().honouredDeletedAt == moment(150))
     }
 
     @Test func aTombstoneHoldsNoCredential() throws {
@@ -52,7 +52,7 @@ import Testing
         let deviceB = try SyncDevice(item: item, accounts: [fakeAccount("user-b")])
         try deviceA.switchOn(at: 100)
         try deviceB.switchOn(at: 120)
-        #expect(deviceB.sync.state().enabledAt == moment(100))
+        #expect(try deviceB.sync.state().enabledAt == moment(100))
         #expect(item.sharedPseudos == ["user-a", "user-b"])
         #expect(deviceB.pseudos == ["user-b", "user-a"])
         let report = try deviceA.reconcile(at: 130)
@@ -81,11 +81,11 @@ import Testing
         #expect(report.bootstrapped)
         #expect(fresh.pseudos == ["user-a"])
         #expect(fresh.isOn)
-        #expect(fresh.sync.state().enabledAt == moment(100))
-        #expect(fresh.sync.state().isProvisional)
+        #expect(try fresh.sync.state().enabledAt == moment(100))
+        #expect(try fresh.sync.state().isProvisional)
         // The confirming read ends the provisional state; the device's own item is the master from then on.
         try fresh.reconcile(at: 120)
-        #expect(!fresh.sync.state().isProvisional)
+        #expect(try !fresh.sync.state().isProvisional)
         try fresh.refresh("user-a", cookie: "fake-fresh", at: 130)
         #expect(fresh.cookie(of: "user-a") == "fake-fresh")
         try deviceA.reconcile(at: 140)
@@ -97,7 +97,7 @@ import Testing
         let fresh = try SyncDevice(item: item)
         try fresh.reconcile(at: 160)
         #expect(!fresh.isOn)
-        #expect(fresh.sync.state().honouredDeletedAt == moment(150))
+        #expect(try fresh.sync.state().honouredDeletedAt == moment(150))
         #expect(fresh.accounts.envelope == nil)
     }
 
@@ -195,7 +195,7 @@ import Testing
         item.data = try AccountSyncEnvelope.tombstone(deletedAt: moment(150)).encoded()
         try device.switchOn(at: 140)
         // Its switch-on is strictly later than the tombstone, even with a clock behind.
-        #expect(try #require(device.sync.state().enabledAt) > moment(150))
+        #expect(try #require(try device.sync.state().enabledAt) > moment(150))
         item.data = try AccountSyncEnvelope.tombstone(deletedAt: moment(150)).encoded()
         let report = try device.reconcile(at: 160)
         #expect(report.itemWritten)
@@ -303,7 +303,7 @@ import Testing
     @Test func aRepairAfterTheProvisionalWindowDeletesNothing() throws {
         let (deviceB, fresh) = try racedEnvelope()
         try fresh.reconcile(at: 166)
-        #expect(!fresh.sync.state().isProvisional)
+        #expect(try !fresh.sync.state().isProvisional)
         try deviceB.reconcile(at: 170)
         let report = try fresh.reconcile(at: 180)
         #expect(report.switchedOff == .tombstone)
@@ -332,6 +332,26 @@ import Testing
         #expect(!device.isOn)
         #expect(throws: CredentialStoreError.self) { try device.reconcile(at: 110) }
         #expect(item.data == bytes)
+    }
+
+    /// A Keychain refusal on the state item (device locked before its first unlock) stops the operation: read as "off",
+    /// the next save would erase the switch and the tombstones it honoured.
+    @Test func aStateTheKeychainRefusesStopsEveryOperation() throws {
+        struct Refusing: SecureDataItem {
+            func read() throws -> Data? { throw CredentialStoreError.keychain(status: -25_308) }
+            func write(_ data: Data) throws { throw CredentialStoreError.keychain(status: -25_308) }
+        }
+        item.data = try AccountSyncEnvelope.full(
+            enabledAt: moment(100), accounts: [SyncedAccount(account: fakeAccount("user-a"), stamp: .unknown)], removed: [:]
+        ).encoded()
+        let before = item.data
+        let accounts = InMemoryCredentialStore()
+        let sync = AccountSync(accounts: accounts, item: item, state: Refusing())
+        #expect(throws: CredentialStoreError.keychain(status: -25_308)) { try sync.reconcile() }
+        #expect(throws: CredentialStoreError.keychain(status: -25_308)) { try sync.switchOn() }
+        #expect(throws: CredentialStoreError.keychain(status: -25_308)) { try sync.localChange(.login(pseudo: "user-b")) }
+        #expect(accounts.envelope == nil)
+        #expect(item.data == before)
     }
 
     @Test func switchingOffWritesItsTombstoneOverAnUnreadableItem() throws {

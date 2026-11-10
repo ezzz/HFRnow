@@ -21,7 +21,7 @@ Legacy has **no** account sync and **no** app lock: `git grep -n -i "LAContext\|
 - The two rows of the settings screen: none @ 87fe0d1c (`HFRswift/Swift/AppSettingsView.swift` has neither).
 
 ## UX evolutions (app lots)
-Two new options, both off by default (operator decision Q12, 2026-10-28): `b·operator`. One new GAP row, `GAP-312` (a `gap-new` block of the PR body's `### Ledger`).
+Two new options, both off by default (operator decision Q12, 2026-10-28), already in the gap report: `GAP-168` (iCloud keychain sync) and `GAP-169` (app lock), `new`, `b·operator`. No ledger entry: the rows say what this lot does.
 
 ## Behaviour — account sync
 

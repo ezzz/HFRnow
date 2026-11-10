@@ -102,7 +102,7 @@ struct SyncDevice {
         (try? accounts.load().account(matching: pseudo))?.cookies.first { $0.name == "md_passs" }?.value
     }
 
-    var isOn: Bool { sync.state().isOn }
+    var isOn: Bool { (try? sync.state())?.isOn ?? false }
 }
 
 extension InMemorySecureDataItem {

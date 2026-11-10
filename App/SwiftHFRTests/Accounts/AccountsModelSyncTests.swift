@@ -53,7 +53,8 @@ struct AccountsModelSyncTests {
         #expect(deviceB.session(for: "user2") == nil)
     }
 
-    @Test func credentialsReplacedOnAnotherDeviceRebuildTheSessionAndCheckIt() async throws {
+    /// The session object stays (a new one would rebuild every screen of the current account): it adopts the cookies.
+    @Test func credentialsReplacedOnAnotherDeviceAreAdoptedByTheSessionAndChecked() async throws {
         let script = LoginScript.success(
             userKey: "user1", displayName: "user1", cookies: Fake.cookies(user: "user1", pass: "fake-new"),
             hashCheck: "fake-hash-2", avatarURL: nil
@@ -65,14 +66,16 @@ struct AccountsModelSyncTests {
         deviceB.reconcileAccountSync()
         await deviceB.restore()
         let before = try #require(deviceB.session(for: "user1"))
+        let generation = deviceB.currentSessionGeneration
 
         try await deviceA.logIn(pseudo: "user1", password: "fake-password", for: .existing(id: "user1", displayName: "user1"))
         deviceB.reconcileAccountSync()
         await deviceB.syncCheckTask?.value
         let after = try #require(deviceB.session(for: "user1"))
-        #expect(after !== before)
+        #expect(after === before)
+        #expect(deviceB.currentSessionGeneration == generation)
         #expect(await after.hashCheck == "fake-hash-2")
-        #expect(deviceB.currentSession === after)
+        #expect(await after.cookies().first { $0.name == "md_passs" }?.value == "fake-new")
     }
 
     @Test func aSwitchOffFromAnotherDeviceIsShownAndKeepsTheAccounts() async throws {

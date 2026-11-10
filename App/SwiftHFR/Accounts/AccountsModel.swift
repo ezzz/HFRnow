@@ -382,7 +382,8 @@ extension AccountsModel {
     }
 
     /// Takes over what the account sync changed in the store (LOT-173): accounts another device removed lose their
-    /// session, accounts it added or whose cookies it replaced get a session rebuilt from the stored cookies, checked like
+    /// session; an added account gets a new session; an account whose cookies another device replaced keeps its session
+    /// object, which adopts them like a re-login (so the screens built on it are not rebuilt); each is then checked like
     /// at launch. Before the first restore nothing is needed: the restore reads the store.
     func adoptSyncReport(_ report: AccountSyncReport) {
         guard hasRestored, !report.replaced.isEmpty || !report.dropped.isEmpty else { return }
@@ -397,18 +398,28 @@ extension AccountsModel {
             storeProblem = StoreProblem(error)
             return
         }
-        var rebuilt: [String] = []
+        var adopted: [(session: HFRSession, account: Account)] = []
         for id in report.replaced {
             guard let account = book.account(matching: id) else { continue }
-            // A new object: a write-back of the previous session's jar is refused by `persistSession`'s identity check.
-            sessions[account.pseudo] = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
+            if let session = sessions[account.pseudo] {
+                adopted.append((session, account))
+                // A write-back of the jar read before the adoption must not overwrite these cookies (as after a re-login).
+                loginSaves[account.pseudo, default: 0] += 1
+            } else {
+                sessions[account.pseudo] = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
+            }
             statuses[account.pseudo] = .checking
-            rebuilt.append(account.pseudo)
         }
         publish(book)
-        guard !rebuilt.isEmpty else { return }
-        let ids = rebuilt
-        syncCheckTask = Task { await self.checkSessions(ids) { $0 == .checking } }
+        let ids = report.replaced.compactMap { book.account(matching: $0)?.pseudo }
+        guard !ids.isEmpty else { return }
+        let installs = adopted
+        syncCheckTask = Task {
+            for install in installs {
+                await install.session.adoptSyncedCredentials(cookies: install.account.cookies, hashCheck: install.account.hashCheck)
+            }
+            await self.checkSessions(ids) { $0 == .checking }
+        }
     }
 
     private func reloadRows() {
@@ -451,5 +462,15 @@ extension AccountsModel {
 
     private static func actionError(_ error: any Error) -> AccountActionError {
         (error as? CredentialStoreError).map(AccountActionError.store) ?? .storeFailed
+    }
+}
+
+extension HFRSession {
+    /// Installs the credentials another device stored for this account (LOT-173) in one actor turn, fenced like a login:
+    /// a token read by a request that left before cannot overwrite them (#340).
+    func adoptSyncedCredentials(cookies: [StoredCookie], hashCheck: String?) {
+        replaceCookies(with: cookies)
+        updateHashCheck(hashCheck)
+        advanceLoginGeneration()
     }
 }

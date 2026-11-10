@@ -47,7 +47,7 @@ protocol DeviceOwnerAuthenticating: Sendable {
     func authenticate(reason: String) async -> AppLockOutcome
 }
 
-// New in SwiftHFR: none @ 87fe0d1c (legacy has no app lock; GAP-312). Differences: the whole feature.
+// New in SwiftHFR: none @ 87fe0d1c (legacy has no app lock; GAP-169). Differences: the whole feature.
 /// The optional Face ID / code lock of the app (LOT-173, ADR 0013 §6), one instance for every scene.
 ///
 /// UI only: nothing in the engine waits on it, so the background MP check and the session checks run while the app is locked.
