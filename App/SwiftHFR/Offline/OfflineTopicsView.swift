@@ -74,7 +74,8 @@ struct OfflineReaderTarget: Hashable, Identifiable {
 }
 
 /// The reader of one saved topic: its model lives in the view's state, so a redraw never reloads the page. No composer, no
-/// save menu (`offline: nil`), no "Favoris" (`flagActions: nil`), no reading position (it would record against the live topic).
+/// save menu (`offline: nil`), no "Favoris" (`flagActions: nil`), no alert form (`moderatorAlerts: nil`), no reading position
+/// (it would record against the live topic).
 private struct OfflineReaderScreen: View {
     let services: ReaderServices
     @State private var reader: TopicReaderModel
@@ -85,6 +86,8 @@ private struct OfflineReaderScreen: View {
         offlineServices.positions = nil
         // No write from a saved copy, as no reply (`composer: nil`): "Favoris" is hidden (LOT-125).
         offlineServices.flagActions = nil
+        // Nor an alert through the form; the mail fallback, which sends nothing itself, stays (LOT-135).
+        offlineServices.moderatorAlerts = nil
         self.services = offlineServices
         _reader = State(initialValue: model.reader(for: topic, renderOptions: services.settings.renderOptions))
     }

@@ -62,6 +62,8 @@ struct TopicReaderView: View {
     @State private var swipeEnabled = true
     /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
     @State private var writes: MessageWriteModel?
+    /// "Alerter" of the message menu (LOT-135); nil until the menu is installed.
+    @State private var alerts: ModeratorAlertModel?
     /// `reply_button_behavior` (LOT-086), read again with the other settings.
     @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
@@ -96,6 +98,7 @@ struct TopicReaderView: View {
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
@@ -255,8 +258,8 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
-    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Editer" and "Supprimer". A later lot adds its handler
-    /// here, the policy is untouched.
+    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
+    /// its handler here, the policy is untouched.
     private func installMenuActions() {
         // Weak: the model stores this registry, a strong capture would keep every reader alive.
         let confirm: @MainActor (String) -> Void = { [weak model] text in
@@ -280,6 +283,14 @@ struct TopicReaderView: View {
         handlers += services.pseudoLists.map {
             PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
         } ?? []
+        let openURL = self.openURL
+        // A new install may come with another account's services: only an alert in progress keeps its model.
+        let alerts = self.alerts.flatMap { $0.isIdle ? nil : $0 } ?? ModeratorAlertModel(
+            alerter: services.moderatorAlerts, mailAddress: services.moderatorAlertMail, confirm: confirm,
+            openMail: { openURL($0) }
+        )
+        self.alerts = alerts
+        handlers.append(alerts.handler)
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
             self.writes = writes
@@ -326,25 +337,6 @@ struct TopicReaderView: View {
         controller.offersSelectionQuote = model.canQuote
         self.controller = controller
     }
-}
-
-/// What the reader shares across pages: the image client, the settings it reads and the position recorder.
-struct ReaderServices: Sendable {
-    /// Images through the cookie-less client.
-    let imageFetcher: ReaderImageFetcher
-    /// Image mode and display choices.
-    let settings: ReaderSettings
-    /// Public profiles opened from a link (LOT-116), fetched without cookies.
-    let profiles: any UserProfileSource
-    /// Records the reading position of the current account (LOT-111); nil when logged out.
-    var positions: (any ReaderPositionRecording)?
-    /// Offline reading (LOT-139): saving the open topic and the list of saved ones; nil in the offline reader itself.
-    var offline: OfflineServices?
-    /// Flag writes of the current account, for "Favoris" (LOT-125) and "Marquer comme non lu" (LOT-127); nil when logged out.
-    var flagActions: TopicFlagActions?
-    /// The blocklist of the current account and the allowlist (LOT-118): the BL / WL menu entries, the profile buttons and the
-    /// editors of Réglages edit them through it; nil in previews.
-    var pseudoLists: PseudoListManager?
 }
 
 /// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.
