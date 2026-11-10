@@ -57,7 +57,7 @@ extension ReplyComposerModel {
         guard canEdit else { return }
         var steps = history
         guard let previous = steps.undo(from: text) else { return }
-        apply(history: steps, text: previous)
+        update(text: previous, history: steps)
     }
 
     /// Replays the last undone change; saved like typing.
@@ -65,7 +65,7 @@ extension ReplyComposerModel {
         guard canEdit else { return }
         var steps = history
         guard let next = steps.redo(from: text) else { return }
-        apply(history: steps, text: next)
+        update(text: next, history: steps)
     }
 
     /// "Vider le texte": empties the text without asking, as legacy (`clearComposer`, `AnswerView.swift:1345-1350` @ 87fe0d1c);

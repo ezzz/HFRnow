@@ -171,18 +171,11 @@ final class ReplyComposerModel: Identifiable {
         if !mayHavePosted { errorMessage = nil }
     }
 
-    /// The user typed: the draft is saved after a pause.
-    func update(text newText: String) {
+    /// The user typed, or an insertion edited the text: one step of the history (#653), the draft saved after a pause. Undo and
+    /// redo pass the history they moved in (`steps`) instead of recording a step.
+    func update(text newText: String, history steps: ComposerHistory? = nil) {
         guard canEdit, newText != text else { return }
-        history.record(text)
-        text = newText
-        didEdit()
-    }
-
-    /// Undo or redo moved in the history (`ComposerHistory`): the text it gives back, saved like typing.
-    func apply(history steps: ComposerHistory, text newText: String) {
-        guard canEdit else { return }
-        history = steps
+        if let steps { history = steps } else { history.record(text) }
         text = newText
         didEdit()
     }
@@ -206,15 +199,6 @@ final class ReplyComposerModel: Identifiable {
         errorMessage = nil
         mayHavePosted = false
         scheduleAutosave()
-    }
-
-    /// Inserts the smiley `code` over `selection` (the end of the text when nil), as legacy did (LOT-104). Returns the
-    /// caret's UTF-16 offset in the new text, nil when the editor does not accept typing (nothing changed).
-    func insert(smiley code: String, replacing selection: Range<String.Index>?) -> Int? {
-        guard canEdit else { return nil }
-        let result = SmileyInsertion.insert(code, into: text, replacing: selection)
-        update(text: result.text)
-        return result.caretUTF16Offset
     }
 
     /// Sends the reply or the new private message. Characters HFR would cut the message at are refused first (Q-3), in
