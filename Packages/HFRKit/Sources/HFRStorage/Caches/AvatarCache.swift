@@ -23,7 +23,7 @@ public struct AvatarCache: Sendable {
     /// Longest accepted key, in UTF-8 bytes. The file name is the hex of the key, which must stay under 255 characters.
     public static let maximumKeyBytes = 100
 
-    let cache: CacheDirectory
+    private let cache: CacheDirectory
 
     /// Creates an avatar cache in the `avatars` area of `cache`.
     public init(cache: CacheDirectory) {
@@ -95,6 +95,8 @@ public struct AvatarCache: Sendable {
         return nil
     }
 
+    /// Known gap, accepted: the type check and the read are two opens, so a link swapped in between would be followed; only code
+    /// already inside the app's sandbox can write there, and the bytes must still be accepted as an image of at most 256 KiB.
     /// `attributesOfItem` does not follow a final symbolic link, so a link reports `.typeSymbolicLink` and is refused.
     private static func readLegacyFile(_ url: URL) -> (Data, Date)? {
         let path = url.path(percentEncoded: false)

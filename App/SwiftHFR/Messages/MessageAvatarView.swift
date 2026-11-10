@@ -2,7 +2,7 @@ import HFRStorage
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 87fe0d1c. Differences: the avatar cache is filled by
+// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79 and @ 87fe0d1c (`:911-917`). Differences: the avatar cache is filled by
 // `AvatarStore` from the pages read, and the legacy app's files are adopted when the cache has none (GAP-230, #714); the placeholder is
 // a monogram, not a grey disc.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a monogram when the cache has none, a group icon for a group
