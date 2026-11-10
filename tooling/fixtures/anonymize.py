@@ -2054,6 +2054,8 @@ class StructuralVerifier(html.parser.HTMLParser):
         if sig is not None:
             # A redacted signature or mood holds text, <br> and at most one clear <div>: an <img> or <a> carries a
             # handle or a link without text (README, fixture anonymizer). Own tag walk, not the redactor's selectors.
+            if len(attrs) != len(a):  # a browser keeps the first duplicate, the dict the last
+                self._bad("signature or mood duplicated attribute <%s>" % tag, tag)
             clear = (tag == "div" and set(a) <= {"style"}
                      and re.fullmatch(r"\s*clear\s*:\s*both\s*;?\s*", a.get("style", ""), re.I) is not None)
             if tag == "br" and not a:
@@ -2156,7 +2158,9 @@ class StructuralVerifier(html.parser.HTMLParser):
 
     def handle_startendtag(self, tag, attrs):
         self.handle_starttag(tag, attrs)
-        if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag:
+        # A browser ignores "/>" on a non-void element: a redacted span stays open.
+        if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag \
+                and self.stack[-1]["where"] != "signature or mood":
             self._close(self.stack.pop())
 
     def parse_endtag(self, i):
@@ -2188,8 +2192,13 @@ class StructuralVerifier(html.parser.HTMLParser):
         self._non_element(data)
 
     def handle_endtag(self, tag):
-        if tag not in ("span", "div", "br") and self._in_signature():
-            self._bad("signature or mood markup </%s>" % tag, tag)
+        if self._in_signature():
+            top = self.stack[-1]
+            # A stray end tag would pop past an enclosing cell, which a browser ignores: accept only the matching one.
+            ok = tag == "br" or (tag == "span" and top["where"] == "signature or mood") \
+                or (tag == "div" and top["tag"] == "div")
+            if not ok:
+                self._bad("signature or mood markup </%s>" % tag, tag)
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i]["tag"] == tag:
                 while len(self.stack) > i:

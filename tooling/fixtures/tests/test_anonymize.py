@@ -636,6 +636,12 @@ class PositionTests(unittest.TestCase):
                     '<span class="signature" class="x">Real Handle<img src="https://example.org/h.png" /></span>'):
             self.assertTrue(A.verify_structure(bad), bad)
         self.assertEqual(A.verify_structure('<span class="signature">Signature removed.<div style="CLEAR: BOTH;"></div></span>'), [])
+        for bad in ('<span class="signature">Signature removed.<div style="background:url(https://example.org/h.png)" '
+                    'style="clear: both;"></div></span>',
+                    '<div><table><tr><td><span class="signature">Signature removed.</div>'
+                    '<img src="https://example.org/h.png" alt=""></span></td></tr></table></div>',
+                    '<span class="signature"/><img src="https://example.org/h.png" alt=""></span>'):
+            self.assertTrue(A.verify_structure(bad), bad)
         for bad in ('<img src="x.png" alt="" />', '<a href="https://example.org/">Mood removed.</a>',
                     '<div style="clear: both;"></div><div style="clear: both;"></div>', '<!-- Real Handle -->'):
             self.assertTrue(A.verify_structure('<span class="MoodStatus">Mood removed.%s</span>' % bad), bad)
