@@ -27,7 +27,7 @@ struct ForumSearchView: View {
             if let readerModel = model.reader(for: topic) {
                 TopicReaderView(model: readerModel, services: reader, composer: composer)
             } else {
-                ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder")
+                ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder").appScreenBackground()
             }
         }
         .onChange(of: forums.loader.value, initial: true) { _, content in model.setCategories(from: content) }

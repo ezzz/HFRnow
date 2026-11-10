@@ -62,6 +62,7 @@ final class ReaderWebController: NSObject {
     var theme = ThemeAppearance.standard {
         didSet {
             guard theme != oldValue else { return }
+            applyUnderPageBackground()
             installUserScripts()
             applyTheme()
         }
@@ -126,6 +127,7 @@ final class ReaderWebController: NSObject {
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
+        trackUnderPageBackground()
         // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
         webView.scrollView.contentInsetAdjustmentBehavior = .never
     }

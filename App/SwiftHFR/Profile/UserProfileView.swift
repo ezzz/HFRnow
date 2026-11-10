@@ -15,7 +15,7 @@ struct UserProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             content
                 .navigationTitle(model.title)
                 .navigationBarTitleDisplayMode(.inline)

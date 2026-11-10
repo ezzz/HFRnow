@@ -14,7 +14,7 @@ struct AccountsView: View {
     @State private var actionError: String?
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             List {
                 if let problem = accounts.storeProblem {
                     storeProblemSection(problem)

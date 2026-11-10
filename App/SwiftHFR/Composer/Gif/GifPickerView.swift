@@ -17,7 +17,7 @@ struct GifPickerView: View {
     private let columns = [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 6)]
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             content
                 .safeAreaBar(edge: .bottom, spacing: 0) { searchBar }
                 .navigationTitle("GIF")
@@ -152,7 +152,7 @@ private struct GifConfirmationView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             VStack(spacing: 16) {
                 preview
                     .aspectRatio(aspect, contentMode: .fit)

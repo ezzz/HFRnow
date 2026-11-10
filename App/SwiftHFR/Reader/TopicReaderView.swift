@@ -142,7 +142,7 @@ struct TopicReaderView: View {
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
         }
-        .onAppear(perform: makeController)
+        .appScreenBackground().onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
         .onAppear {
             controller?.resume()

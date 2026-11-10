@@ -25,7 +25,7 @@ struct SmileyPickerView: View {
     private let favoriteColumns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             ScrollView {
                 if let search = model.search, search.isSearching {
                     searchResults(search)

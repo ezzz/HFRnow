@@ -50,7 +50,7 @@ struct ReplyComposerView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             VStack(spacing: 0) {
                 if let message = model.errorMessage {
                     ComposerBanner(text: message, symbol: "exclamationmark.triangle.fill", tint: .orange) {

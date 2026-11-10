@@ -18,7 +18,7 @@ struct LoginView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             Form {
                 Section {
                     TextField("Pseudo", text: $model.pseudo)
