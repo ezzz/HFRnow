@@ -2159,8 +2159,9 @@ class StructuralVerifier(html.parser.HTMLParser):
     def handle_startendtag(self, tag, attrs):
         self.handle_starttag(tag, attrs)
         # A browser ignores "/>" on a non-void element: a redacted span stays open.
+        # Inside one, no element is popped: the div of "<div/>" stays open too and swallows the span's end tag.
         if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag \
-                and self.stack[-1]["where"] != "signature or mood":
+                and not self._in_signature():
             self._close(self.stack.pop())
 
     def parse_endtag(self, i):

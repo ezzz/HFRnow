@@ -640,7 +640,13 @@ class PositionTests(unittest.TestCase):
                     'style="clear: both;"></div></span>',
                     '<div><table><tr><td><span class="signature">Signature removed.</div>'
                     '<img src="https://example.org/h.png" alt=""></span></td></tr></table></div>',
-                    '<span class="signature"/><img src="https://example.org/h.png" alt=""></span>'):
+                    '<span class="signature"/><img src="https://example.org/h.png" alt=""></span>',
+                    '<div><table><tr><td><span class="signature">Signature removed.<div style="clear: both;"/></span>'
+                    '<img src="https://example.org/h.png" alt=""></td></tr></table></div>',
+                    '<div><table><tr><td><span class="signature">Signature removed.<div/style="clear: both;"/></span>'
+                    '<img src="https://example.org/h.png" alt=""></td></tr></table></div>',
+                    '<span class="signature">Signature removed.<div style="clear: both;" '
+                    'style="background:url(https://example.org/h.png)"></div></span>'):
             self.assertTrue(A.verify_structure(bad), bad)
         for bad in ('<img src="x.png" alt="" />', '<a href="https://example.org/">Mood removed.</a>',
                     '<div style="clear: both;"></div><div style="clear: both;"></div>', '<!-- Real Handle -->'):
