@@ -122,6 +122,10 @@ Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 r
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
 
+Run 15 (2026-11-10, `mac/m4-captures` batch `b716`, ezzz/HFRnow#716, read-only, 7 requests at one per minute): user1's login, its MP list
+(read only to take a one-to-one row's `profilebdd.php` link as the page writes it; not published), then that link hop by hop with redirects
+not followed, logged in and without cookies, and the same link with a pseudo that does not exist (`R716a`-`R716e`). Nothing was sent to the forum.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -293,6 +297,20 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | W61 | `W61-mp-create-bbcode-success.html` | New MP `fixture-test-2` (user2 → user1) whose first post holds b, i, u, strike, spoiler, quote, url (both forms), img, fixed, code, cpp, color, list, nested and unclosed tags, and raw `<b>`/`&`/`"`: "Votre message a été posté avec succès !", refresh to the MP list | W10 | 048, 097 |
 | R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post, `[img]` written as a link there | R43 | 097, 036 |
 | R95d | `R95d-apercu-bbcode-preview.html` | `POST /apercu.php` (`hash_check`, `apercu_contenu` = the `W61` source, `apercu_smiley=0`, `config`): 200, the rendered BBCode in `body.reponse`, line breaks written `\r<br />` (the CR kept) | — | 097, 152 |
+| R443a | `R443a-apercu-smileys-on.html` | `POST /apercu.php` (user1, preview only, #443): Standard and personal smileys, glued codes, codes next to `"` / `&`, in `[code]`, `[fixed]`, `[url]`, `[img]` and a bare URL; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443b | `R443b-apercu-smileys-off.html` | `POST /apercu.php` (user1, preview only, #443): The `R443a` source with `apercu_smiley=1`: no smiley substituted; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443c | `R443c-apercu-colour-email.html` | `POST /apercu.php` (user1, preview only, #443): Colour syntaxes (`[#RRGGBB]`, palette, 3-digit, `[color=red]`), `[email]` and a plain address; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443d | `R443d-apercu-bullets.html` | `POST /apercu.php` (user1, preview only, #443): `[*]` with and without `[list]`, mid-line, empty; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443e | `R443e-apercu-syntax-colours.html` | `POST /apercu.php` (user1, preview only, #443): `[cpp]` and `[code]` with keywords, a string and a comment; `[c]`, `[java]`, `[php]`, `[html]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443f | `R443f-apercu-url-schemes.html` | `POST /apercu.php` (user1, preview only, #443): `[url]` / `[img]` with `http`, `ftp`, `javascript:`, `tel:`, `mailto:`, `//host`, `www.`, a page, `&` and `"`; a bare forum URL; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443g | `R443g-apercu-whitespace.html` | `POST /apercu.php` (user1, preview only, #443): Space runs 1-6, a leading space, a tab, `[fixed]` and `[code]` spacing and breaks, empty lines, trailing breaks, a message starting with spaces; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443h | `R443h-apercu-nesting.html` | `POST /apercu.php` (user1, preview only, #443): Quote in quote, spoiler and code in quote, `[b]` in `[url=]`, `[url]` in `[b]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443i | `R443i-apercu-malformed-crossing.html` | `POST /apercu.php` (user1, preview only, #443): `[b]` across a line break, `[b][quote]x[/quote][/b]`, `[quote][b]x[/quote][/b]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443j | `R443j-apercu-malformed-misc.html` | `POST /apercu.php` (user1, preview only, #443): `[/quote]` alone, `[b][/b]`, `[b][b]x[/b][/b]`, `[b]` in `[code]`, `[quotemsg=1,1,1]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443k | `R443k-apercu-quote-never-closed.html` | `POST /apercu.php` (user1, preview only, #443): An unclosed `[quote]` between two lines; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443l | `R443l-apercu-quote-30-nested.html` | `POST /apercu.php` (user1, preview only, #443): 30 nested `[quote]`; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443m | `R443m-apercu-over-65535-chars.html` | `POST /apercu.php` (user1, preview only, #443): 70,000 `x`: rendered whole; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
+| R443n | `R443n-apercu-pending-defaults.html` | `POST /apercu.php` (user1, preview only, #443): Overlapping smiley codes, colour case and nesting, `www.host:8080`, `[/b]` alone, `[B]`, raw blocks inside raw blocks, spaces before a tag; the source is the meta's `request_body` (HFR-PROTOCOL §6b "BBCode preview, batch 2") | — | 097, 152 |
 | W62 | `W62-mp-reply-bmp-emoji-success.html` | Reply (user1) with U+2764, U+2764 U+FE0F, U+2714, U+2605 and a lone U+FE0F: success | W12 | 048, 096, 151 |
 | R95f | `R95f-mp-edit-form-bmp-emoji-source.html` | Edit form of `W62` (user1): `content_form` keeps every BMP emoji and both U+FE0F unchanged | R43, X9 | 096, 151, 036 |
 | R95h | `R95h-apercu-bmp-emoji-preview.html` | Preview of the `W62` source: the emoji and U+FE0F written as UTF-8 characters, no `<img>` | — | 096, 151, 097 |
@@ -433,6 +451,11 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R603d | `R603d-list-subcat-owntopic3.html` | `owntopic=3` with `subcat=<s>`: 200 in place, 14 rows (12 `favoris.gif`, 2 with an empty flag cell), `<title>` "<sub-forum> - <category> - FORUM HardWare.fr", pager `1` alone | R08 | 022, 024 |
 | R603e | `R603e-favourites-owntopic2.html` | `forum1f.php?…&owntopic=2&new=0&nojs=0` (user2): title "Vos sujets", 3 category headers linking `owntopic=2`, 5 topic rows, one sticky, all `flag0.gif`, and under the second header no topic, only the row "Aucun nouveau message" | R10 | 024 |
 | R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); `tns3` can be absent | E1 | 057 |
+| R716a | meta only | `/profilebdd.php?config=hfr.inc&pseudo=<pseudo>`, the `sujetCase6` link of a one-to-one MP row (user1, pseudo of user2): `301` with `Location: /hfr/profil-<id>.htm` (relative, the member's id), empty body, no cookie set | — | #714, 027, 126 |
+| R716b | `R716b-profile-operator-user1.html` | The redirect target `/hfr/profil-<id>.htm`, logged in (user1 viewing user2): `200`, the public profile of `R56a` plus a row "Ajouter <pseudo> à votre liste de contacts" (`/user/contactlist.php?adduser=<id>`) and the account's own style sheets | R56 | #714, 027 |
+| R716c | meta only | `R716a`'s link without cookies: the same `301` to the same `/hfr/profil-<id>.htm` (its target, logged out, is `R56a`) | — | #714, 027 |
+| R716d | meta only | `profilebdd.php` with a pseudo that does not exist, logged in: `301` with `Location: /hfr/profil-.htm` (empty id) | — | #714 |
+| R716e | `R716e-profile-empty-id-404.html` | `R716d`'s target `/hfr/profil-.htm`: the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`, 213 bytes), not a forum page | — | #714 |
 
 ## Not captured
 
