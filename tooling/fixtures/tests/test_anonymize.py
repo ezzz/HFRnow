@@ -627,10 +627,15 @@ class PositionTests(unittest.TestCase):
                     'Signature removed.<br class="x" />'):
             self.assertTrue(A.verify_structure(sig % bad), bad)
         for bad in ('<!-- Real Handle -->', '<?Real Handle>', '<![CDATA[Real Handle]]>', '<!DOCTYPE RealHandle>',
-                    '</img src="https://example.org/h.png">'):
+                    '</img src="https://example.org/h.png">', '</br title="Real Handle">'):
             self.assertTrue(A.verify_structure(sig % ("Signature removed." + bad)), bad)
         self.assertTrue(A.verify_structure(
             '<span class="signature" title="Real Handle">Signature removed.</span>'))
+        for bad in ('<span class="signature">Signature removed.</span title="Real Handle">',
+                    '<span class="signature">Signature removed.<div style="clear: both;"></div title="Real Handle"></span>',
+                    '<span class="signature" class="x">Real Handle<img src="https://example.org/h.png" /></span>'):
+            self.assertTrue(A.verify_structure(bad), bad)
+        self.assertEqual(A.verify_structure('<span class="signature">Signature removed.<div style="CLEAR: BOTH;"></div></span>'), [])
         for bad in ('<img src="x.png" alt="" />', '<a href="https://example.org/">Mood removed.</a>',
                     '<div style="clear: both;"></div><div style="clear: both;"></div>', '<!-- Real Handle -->'):
             self.assertTrue(A.verify_structure('<span class="MoodStatus">Mood removed.%s</span>' % bad), bad)

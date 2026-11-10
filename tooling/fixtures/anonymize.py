@@ -2041,7 +2041,8 @@ class StructuralVerifier(html.parser.HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         a = {k: (v or "") for k, v in attrs}
-        cls = set(a.get("class", "").split())
+        # Every class value counts: a browser keeps the first of a duplicated attribute, the dict above the last.
+        cls = set(" ".join(v or "" for k, v in attrs if k == "class").split())
         if any(e["where"] == "profile personal field" for e in self.stack):
             # Inside a personal profile cell only bare layout may remain: an <img>/<a> carries data without text.
             if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
@@ -2054,7 +2055,7 @@ class StructuralVerifier(html.parser.HTMLParser):
             # A redacted signature or mood holds text, <br> and at most one clear <div>: an <img> or <a> carries a
             # handle or a link without text (README, fixture anonymizer). Own tag walk, not the redactor's selectors.
             clear = (tag == "div" and set(a) <= {"style"}
-                     and re.fullmatch(r"\s*clear\s*:\s*both\s*;?\s*", a.get("style", "")) is not None)
+                     and re.fullmatch(r"\s*clear\s*:\s*both\s*;?\s*", a.get("style", ""), re.I) is not None)
             if tag == "br" and not a:
                 pass
             elif clear and not sig.get("clear"):
@@ -2157,6 +2158,14 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.handle_starttag(tag, attrs)
         if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag:
             self._close(self.stack.pop())
+
+    def parse_endtag(self, i):
+        # HTMLParser drops the attributes of an end tag: inside a redacted span, refuse any that carries some.
+        inside = self._in_signature()
+        j = super().parse_endtag(i)
+        if inside and j > i and not re.fullmatch(r"</[a-zA-Z][\w-]*\s*>", self.rawdata[i:j]):
+            self._bad("signature or mood end tag", self.rawdata[i:j])
+        return j
 
     def _in_signature(self):
         return any(e["where"] == "signature or mood" for e in self.stack)
