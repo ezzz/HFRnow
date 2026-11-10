@@ -22,7 +22,12 @@ struct StaticPageView: View {
 
     var body: some View {
         Group {
-            if let html { StaticPageWebView(html: html, onLink: open) }
+            if let html {
+                StaticPageWebView(html: html, onLink: open)
+            } else {
+                // A child must exist for `.task` to run.
+                ProgressView()
+            }
         }
         .task { if html == nil { html = page.html() } }
         .navigationTitle(page.title)
