@@ -32,6 +32,13 @@ non-persistent store, `https` on the provider's hosts only, main frame kept on t
   view stays on its reader page, and a tap reports exactly `(post, index, token)`. A positive control loads that server in a plain
   `WKWebView` and must see a connection, so the zero is not a blind spot.
 
+## Added by #752 (YouTube Referer, unavailable state)
+- The YouTube player request carries the app's `Referer` (LOT-071 R3 exception); without it the player shows "Erreur 153" (Mac check of
+  2026-11-10 on #499). `VideoPlayerSheet.playerRequest(for:provider:)` is the one place that sets it, for YouTube's player hosts only.
+- The player web view reports a failure to the sheet when the main frame answers a status of 400 or more (the Vimeo 401 of a removed or
+  private video) or cannot load; the sheet then shows "Vidéo indisponible" with the "Ouvrir le lien" button, never a blank page.
+  A YouTube error drawn inside a page that answered 200 is not detected: the player's own "Regarder la vidéo sur YouTube" link stays.
+
 ## Edge cases
 - Embed whose player URL fails the host check: unavailable view + browser fallback.
 - Source link with another scheme (`tel:`, `file:`): no fallback button.

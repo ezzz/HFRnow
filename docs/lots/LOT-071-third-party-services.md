@@ -86,6 +86,15 @@ implementing a row of the inventory applies them and tests them.
 - **R3 (proposed) — No `Referer` to third parties**, except for a host that needs it in the LOT-056 host table (`reho.st`, reported by redface2,
   HFR-PROTOCOL §7 E26: **pending capture**). The reader document must not leak its own URL either (LOT-083: a `no-referrer` policy or
   images fetched by the cookie-less client).
+  **Exception (operator, 2026-11-10, #752): the YouTube embed player.** Its request carries `Referer: https://<app id>/` (the app's bundle
+  identifier, `VideoPlayerSheet.appReferer`), for the hosts of `VideoPlayerSheet.allowedHosts(for: .youtube)` only
+  (`www.youtube.com`, `youtube.com`, `www.youtube-nocookie.com`; no wildcard, no other provider, no other host). Cause: YouTube's player
+  answers "Erreur 153" to an embed that does not identify its client. Source: YouTube API Services, *Required Minimum Functionality*,
+  "API Client Identity and Credentials" (developers.google.com/youtube/terms/required-minimum-functionality, read 2026-11-10: identify
+  through the `HTTP Referer` header, protocol `HTTPS`, domain = the app ID, reversed domain name) and the IFrame Player API reference
+  (developers.google.com/youtube/iframe_api_reference, read 2026-11-10: error 153, "The request does not include the HTTP Referer header
+  or equivalent API Client identification"). Cost: YouTube learns the app id, which every YouTube client sends; it learns nothing about
+  the forum (no forum URL, no cookie: R1 holds). Vimeo and Streamable keep R3.
 - **R4 — Image loading** follows D-071-1, video players D-071-2.
 - **R5 (proposed) — No analytics or crash-reporting SDK.** Adding one is a new dependency: ADR, maintainer approval (AGENTS.md §3.3) and a row here.
 - **R6 (proposed) — The inventory is the allow-list**: the app contacts no third-party host for a feature that is not in it. Images (T6) and links
@@ -148,7 +157,7 @@ What C means, for LOT-083 (which applies it) and FEAT-011:
 Options considered: (a) auto-loaded player iframes, as `2440d79` did with `embedded_videos=yes` by default: rejected, they load the
 provider's scripts and cookies without a tap; (b) placeholder, player loaded on tap: **chosen**; (c) links only, opened in the browser:
 rejected. The live legacy app has since dropped embeds altogether (`d645f52`, see Legacy sources). LOT-035 detects the links, LOT-083
-shows the placeholder; the player request follows R1 and R3.
+shows the placeholder; the player request follows R1 and R3 (YouTube's player excepted, R3 exception, #752).
 
 ## Decision D-071-3 — AQ requests
 

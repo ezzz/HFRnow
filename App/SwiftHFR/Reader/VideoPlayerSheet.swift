@@ -9,17 +9,22 @@ import WebKit
 ///
 /// It runs in its own web view, never in the reader's: the reader keeps content JavaScript off and allows no frame,
 /// while a player needs the provider's scripts. The data store is non-persistent and the request carries no `Referer`
-/// from the app; navigation stays on the provider's host.
+/// from the app, except for the YouTube player, which refuses to play without one (error 153, #752, LOT-071 R3
+/// exception); navigation stays on the provider's host. A player that answers an error status, or cannot load, shows
+/// "Vidéo indisponible" instead of a blank sheet.
 struct VideoPlayerSheet: View {
     let embed: MessageEmbed
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @State private var playerFailed = false
 
     var body: some View {
         NavigationStack {
             Group {
-                if let url = VideoPlayerSheet.playerURL(for: embed) {
-                    PlayerWebView(url: url)
+                if let url = VideoPlayerSheet.playerURL(for: embed, failed: playerFailed) {
+                    PlayerWebView(request: VideoPlayerSheet.playerRequest(for: url, provider: embed.provider)) {
+                        playerFailed = true
+                    }
                 } else {
                     ContentUnavailableView(
                         "Vidéo indisponible", systemImage: "play.slash",
@@ -49,11 +54,39 @@ struct VideoPlayerSheet: View {
         }
     }
 
+    /// Hosts of the YouTube embed player: the only ones that get a `Referer` (LOT-071 R3 exception, #752).
+    static let refererHosts: Set<String> = allowedHosts(for: .youtube)
+
+    /// The `Referer` that identifies the app to YouTube's embed player: `https://` and the app id, as YouTube's
+    /// "API Client Identity" rule asks (developers.google.com/youtube/terms/required-minimum-functionality).
+    static func appReferer(bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> String {
+        "https://\(bundleIdentifier ?? "hfrplus.red.super")/"
+    }
+
+    /// The player request: `Referer` for a YouTube embed host only, none for any other provider or host.
+    static func playerRequest(
+        for url: URL, provider: EmbedProvider, referer: String = appReferer(), refererHosts: Set<String> = refererHosts
+    ) -> URLRequest {
+        var request = URLRequest(url: url)
+        if provider == .youtube, let host = url.host()?.lowercased(), refererHosts.contains(host) {
+            request.setValue(referer, forHTTPHeaderField: "Referer")
+        }
+        return request
+    }
+
+    /// Whether the main frame's answer means the player cannot play (the Vimeo 401 of a removed video, a 5xx).
+    static func isFailure(statusCode: Int) -> Bool { statusCode >= 400 }
+
     /// The original link the member posted, for "open in browser": `http` or `https` only, nothing else goes to the system.
     static func fallbackURL(for embed: MessageEmbed) -> URL? {
         guard let scheme = embed.sourceURL.scheme?.lowercased(), scheme == "https" || scheme == "http",
               embed.sourceURL.host() != nil else { return nil }
         return embed.sourceURL
+    }
+
+    /// The player URL to show, nil (the "Vidéo indisponible" view) once the player reported a failure.
+    static func playerURL(for embed: MessageEmbed, failed: Bool) -> URL? {
+        failed ? nil : playerURL(for: embed)
     }
 
     /// The embed URL when it is `https` on one of its provider's hosts; nil otherwise.
@@ -65,20 +98,26 @@ struct VideoPlayerSheet: View {
     }
 }
 
-private struct PlayerWebView: UIViewRepresentable {
-    let url: URL
+struct PlayerWebView: UIViewRepresentable {
+    let request: URLRequest
+    let onFailure: () -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(host: url.host()?.lowercased()) }
+    func makeCoordinator() -> Coordinator { Coordinator(host: request.url?.host()?.lowercased(), onFailure: onFailure) }
 
     func makeUIView(context: Context) -> WKWebView {
+        Self.makeWebView(request: request, delegate: context.coordinator)
+    }
+
+    /// The player's web view, loading `request`; split out so tests drive the real thing.
+    static func makeWebView(request: URLRequest, delegate: Coordinator) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.allowsInlineMediaPlayback = true
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsLinkPreview = false
-        webView.navigationDelegate = context.coordinator
-        webView.load(URLRequest(url: url))
+        webView.navigationDelegate = delegate
+        webView.load(request)
         return webView
     }
 
@@ -87,8 +126,38 @@ private struct PlayerWebView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, WKNavigationDelegate {
         let host: String?
+        let onFailure: () -> Void
 
-        init(host: String?) { self.host = host }
+        init(host: String?, onFailure: @escaping () -> Void) {
+            self.host = host
+            self.onFailure = onFailure
+        }
+
+        func webView(
+            _ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void
+        ) {
+            if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse,
+               VideoPlayerSheet.isFailure(statusCode: http.statusCode) {
+                decisionHandler(.cancel)
+                onFailure()
+            } else {
+                decisionHandler(.allow)
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
+            report(error)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: any Error) {
+            report(error)
+        }
+
+        /// A cancelled load (our own `.cancel` above) is not a second failure.
+        private func report(_ error: any Error) {
+            if (error as NSError).code != NSURLErrorCancelled { onFailure() }
+        }
 
         /// The main frame stays on the player's host; the player's own frames may load what they need.
         func webView(
