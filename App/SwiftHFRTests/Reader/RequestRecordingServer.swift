@@ -25,7 +25,11 @@ final class RequestRecordingServer: @unchecked Sendable {
             guard let self else { return }
             connection.start(queue: self.queue)
             connection.receive(minimumIncompleteLength: 1, maximumLength: 16_384) { data, _, _, _ in
-                let head = String(bytes: data ?? Data(), encoding: .utf8) ?? ""
+                // WebKit may open a connection it never writes to (preconnect): that is not a request.
+                guard let data, !data.isEmpty, let head = String(bytes: data, encoding: .utf8) else {
+                    connection.cancel()
+                    return
+                }
                 self.lock.withLock { self.heads.append(head) }
                 connection.send(content: reply, completion: .contentProcessed { _ in connection.cancel() })
             }
@@ -38,9 +42,9 @@ final class RequestRecordingServer: @unchecked Sendable {
     /// The request heads received so far (request line and headers).
     var requests: [String] { lock.withLock { heads } }
 
-    /// The value of `name` in the first request, nil when the header was not sent.
+    /// The value of `name` in the first GET, nil when the header was not sent.
     func header(_ name: String) -> String? {
-        guard let head = requests.first else { return nil }
+        guard let head = requests.first(where: { $0.hasPrefix("GET ") }) else { return nil }
         let prefix = name.lowercased() + ":"
         for line in head.split(separator: "\r\n") where line.lowercased().hasPrefix(prefix) {
             return line.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
