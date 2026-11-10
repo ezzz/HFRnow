@@ -67,7 +67,7 @@ profile page (R56) its `<title>` "X - FORUM HardWare.fr", `h4` "Informations sur
 On that page only (`body#unique__user_page__view_user_profile`), the value cell of every personal row (e-mail, birth
 date, gender, city, job, hobbies, quote, signature) becomes `Profile field removed.` (a birth date `01/01/2000`), the post
 count `100`, the arrival and last-post dates `01/01/2000` / `01-01-2000 à 00:00` and transaction counts `0`: with the
-pseudo and id aliased, real values would still single the member out. Signatures (`span.signature`) and mood statuses (`span.MoodStatus`) are a member's own words (real names, handles, links): their content is always replaced by `Signature removed.` / `Mood removed.`. Names are matched
+pseudo and id aliased, real values would still single the member out. Signatures (`span.signature`) and mood statuses (`span.MoodStatus`) are a member's own words (real names, handles, links): their content is always replaced by `Signature removed.` / `Mood removed.`. `check` also refuses any element inside one other than `br` and a single `div style="clear: both;"`. Names are matched
 whole (a multi-word pseudo is never split) and decoded from entities, `%`-escapes and JSON escapes.
 
 **Personal smiley page** (`uploadsmil.php`, R601b, R601c): the code of each slot, its image path and the image `alt`/`title` (`code:0` on the first slot) are smiley positions like the ones above, in filled and empty slots. Each filled `keyword<N>` input becomes `Keywords removed.`, an empty one stays empty; both verifiers fail on any other value, on any page. The wiki's `keywords<N>` field (R54) is not this position.

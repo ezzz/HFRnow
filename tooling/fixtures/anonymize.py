@@ -2047,6 +2047,18 @@ class StructuralVerifier(html.parser.HTMLParser):
             if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
                     r"url\s*\(|expression\s*\(", a.get("style", ""), re.I):
                 self._bad("public profile field markup", tag)
+        sig = next((e for e in reversed(self.stack) if e["where"] == "signature or mood"), None)
+        if sig is not None:
+            # A redacted signature or mood holds text, <br> and at most one clear <div>: an <img> or <a> carries a
+            # handle or a link without text (README, fixture anonymizer). Own tag walk, not the redactor's selectors.
+            clear = (tag == "div" and set(a) <= {"style"}
+                     and re.fullmatch(r"\s*clear\s*:\s*both\s*;?\s*", a.get("style", "")) is not None)
+            if tag == "br" and not a:
+                pass
+            elif clear and not sig.get("clear"):
+                sig["clear"] = True
+            else:
+                self._bad("signature or mood markup <%s>" % tag, tag)
         for k, v in a.items():
             self.check_value(v)
             if k in ("title", "alt", "content"):

@@ -615,6 +615,19 @@ class PositionTests(unittest.TestCase):
         self.assertIn('<span class="signature">Signature removed.</span><div id="after">kept</div>', out)
         self.assertEqual(leaks(out), [])
 
+    def test_redacted_signature_allows_only_br_and_one_clear_div(self):
+        sig = '<span class="signature">%s</span>'
+        for ok in ("Signature removed.", "Signature removed.<br />", "Signature removed.<br /><div style=\"clear: both;\"></div>",
+                   "<br />Signature removed.<div style=\"clear: both;\"></div>"):
+            self.assertEqual(A.verify_structure(sig % ok), [], ok)
+        for bad in ('Signature removed.<img src="https://example.org/x.png" alt="handle" />',
+                    '<a href="https://example.org/">Signature removed.</a>',
+                    'Signature removed.<b>x</b>', 'Signature removed.<div>x</div>',
+                    'Signature removed.<div style="clear: both;"></div><div style="clear: both;"></div>',
+                    'Signature removed.<br class="x" />'):
+            self.assertTrue(A.verify_structure(sig % bad), bad)
+        self.assertTrue(A.verify_structure('<span class="MoodStatus">Mood removed.<img src="x.png" alt="" /></span>'))
+
     def test_quotemsg_third_value_uses_the_id_table(self):
         html = ('<a href="/hfr/profil-555123.htm">x</a><a href="/hfr/profil-555124.htm">y</a>'
                 '<textarea name="content_form">[quotemsg=99,1,555124]q[/quotemsg]</textarea>'
