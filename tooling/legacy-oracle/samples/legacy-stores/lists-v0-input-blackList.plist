@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>alias</key>
+		<string></string>
+		<key>mode</key>
+		<integer>0</integer>
+		<key>word</key>
+		<string>fakeoldblocked1</string>
+	</dict>
+	<dict>
+		<key>alias</key>
+		<string></string>
+		<key>mode</key>
+		<integer>0</integer>
+		<key>word</key>
+		<string>fake old blocked 2</string>
+	</dict>
+</array>
+</plist>

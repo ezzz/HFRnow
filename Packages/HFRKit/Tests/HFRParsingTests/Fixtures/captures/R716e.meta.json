@@ -1,0 +1,16 @@
+{
+  "id": "R716e",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/hfr/profil-.htm",
+  "url": "https://forum.hardware.fr/hfr/profil-.htm",
+  "final_url": "https://forum.hardware.fr/hfr/profil-.htm",
+  "status": 404,
+  "content_type": "text/html; charset=iso-8859-1",
+  "date": "Tue, 10 Nov 2026 13:32:02 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "redirect target of profilebdd.php for an unknown pseudo (empty id), logged in, hop 2",
+  "file": "R716e-profile-empty-id-404.html",
+  "private": false
+}
