@@ -351,6 +351,7 @@
     {"raw": "l611-T87", "id": "T87", "slug": "aq-create-post-id-not-numeric-lax-local", "ext": "txt", "private": false},
     {"raw": "l611-T88", "id": "T88", "slug": "aq-create-topic-id-not-numeric-lax-local", "ext": "txt", "private": false},
     {"raw": "l611-T89", "id": "T89", "slug": "aq-create-nom-non-bmp-lax-local", "ext": "txt", "private": false},
-    {"raw": "l611-T90", "id": "T90", "slug": "aq-alerts-nom-non-bmp-lax-local", "ext": "xml", "private": false}
+    {"raw": "l611-T90", "id": "T90", "slug": "aq-alerts-nom-non-bmp-lax-local", "ext": "xml", "private": false},
+    {"raw": "m267-topic-anon-d", "id": "R267a", "slug": "topic-signature-separator-anon", "ext": "html", "private": false}
   ]
 }
