@@ -88,7 +88,8 @@ No HFR fact is new here: links, pages, form and answers are LOT-050's (HFR-PROTO
 - A tap on "Alerter" while a preparation runs, or while the sheet is open, does nothing.
 - The sheet dismissed by a swipe drops the reason (legacy did too); nothing was sent.
 - A send still running when the sheet goes away still reports its outcome to the reader.
-- A message with both an alert link and a permalink never offers the mail (legacy `:2232-2254`).
+- A message with both an alert link and a permalink, with an account, never offers the mail (legacy `:2232-2254`). Without
+  an account (a page read before a logout) it offers the mail where legacy opened the form and failed (difference 3).
 - The address `$(MODERATOR_ALERT_MAIL_ADDRESS)` unexpanded, empty or malformed: no fallback.
 
 ## Fixtures
@@ -109,7 +110,9 @@ None new: the engine's tests read the captures; the app's tests drive a scripted
 
 1. `unconfirmed` is never resent (see UX evolutions). CHANGELOG-LEGACY row in the PR's ledger.
 2. Mail fallback only with a configured address; strict query encoding.
-3. Engine differences are LOT-050's (rows 66 and 81).
+3. A message with an alert link but no current account falls back to the mail (when configured) instead of reading the alert
+   page with no session, which can only fail (legacy `:2233` @ `87fe0d1c`: the form path whatever the session).
+4. Engine differences are LOT-050's (rows 66 and 81).
 
 ## Learnings
 

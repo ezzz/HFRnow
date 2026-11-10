@@ -37,6 +37,12 @@ struct ModeratorAlertComposerModelTests {
         #expect(!model.canSend)
     }
 
+    @Test func aConfirmationWithoutASentenceSaysLegacysText() async {
+        let ended = Ended()
+        await sheet(ScriptedAlertForm(.success(" \n")), ended: ended).send()
+        #expect(ended.outcomes == [.sent("Alerte envoyée.")])
+    }
+
     @Test func aRefusalKeepsTheSheetAndTheReasonForAnotherTry() async {
         let refusals: [(ModeratorAlertError, String)] = [
             (.rejected(message: "Merci de patienter avant de poster à nouveau."), "Merci de patienter avant de poster à nouveau."),

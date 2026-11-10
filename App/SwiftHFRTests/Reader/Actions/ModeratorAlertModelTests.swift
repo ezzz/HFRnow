@@ -176,6 +176,27 @@ struct ModeratorAlertModelTests {
         #expect(told.mails == [mail])
     }
 
+    @Test func withAnAccountTheAlertLinkWinsOverTheMail() async {
+        let alerter = ScriptedAlerter(.success(.alreadyAlerted(message: nil)))
+        let told = Told()
+        let alerts = model(alerter, mail: moderationAddress, told: told)
+        await alerts.start(alertContext(permalink: Self.permalink))
+        #expect(await alerter.links == [alertLink])
+        #expect(alerts.pendingMail == nil)
+        #expect(told.mails.isEmpty)
+    }
+
+    @Test func aPendingMailOrAShownFailureKeepsTheModelAcrossAReinstall() async {
+        let mail = model(nil, mail: moderationAddress)
+        await mail.start(alertContext(alert: nil, permalink: Self.permalink))
+        #expect(!mail.isIdle)
+        let failed = model(ScriptedAlerter(.failure(.notLoggedIn)))
+        await failed.start(alertContext())
+        #expect(!failed.isIdle)
+        failed.failure = nil
+        #expect(failed.isIdle)
+    }
+
     @Test func noAccountWithAnAlertLinkFallsBackToTheMail() async {
         let alerts = model(nil, mail: moderationAddress)
         await alerts.start(alertContext(permalink: Self.permalink))

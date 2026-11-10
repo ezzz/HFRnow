@@ -258,48 +258,6 @@ struct TopicReaderView: View {
         askingPage = true
     }
 
-    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
-    /// its handler here, the policy is untouched.
-    private func installMenuActions() {
-        // Weak: the model stores this registry, a strong capture would keep every reader alive.
-        let confirm: @MainActor (String) -> Void = { [weak model] text in
-            model?.showMenuFeedback(text)
-            AccessibilityNotification.Announcement(text).post()
-        }
-        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
-        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
-        model.quoting = composer?.quoting
-        var handlers: [any MessageActionHandler] = [
-            LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
-        ]
-        handlers += model.quoteHandlers(confirm: confirm)
-        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
-        let showProfile = $profile
-        let services = self.services
-        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
-        }
-        if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
-        handlers += services.pseudoLists.map {
-            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
-        } ?? []
-        let openURL = self.openURL
-        // A new install may come with another account's services: only an alert in progress keeps its model.
-        let alerts = self.alerts.flatMap { $0.isIdle ? nil : $0 } ?? ModeratorAlertModel(
-            alerter: services.moderatorAlerts, mailAddress: services.moderatorAlertMail, confirm: confirm,
-            openMail: { openURL($0) }
-        )
-        self.alerts = alerts
-        handlers.append(alerts.handler)
-        if let composer {
-            let writes = writes ?? MessageWriteModel(reader: model, services: composer)
-            self.writes = writes
-            handlers += writes.handlers
-        }
-        model.install(MessageActionRegistry(handlers))
-        controller?.offersSelectionQuote = model.canQuote
-    }
-
     private func makeController() {
         guard controller == nil else { return }
         let controller = ReaderWebController(
@@ -336,6 +294,51 @@ struct TopicReaderView: View {
         model.positions = services.positions
         controller.offersSelectionQuote = model.canQuote
         self.controller = controller
+    }
+}
+
+// Out of the struct body, which reached SwiftLint's `type_body_length` with LOT-135's handler.
+extension TopicReaderView {
+    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
+    /// its handler here, the policy is untouched.
+    private func installMenuActions() {
+        // Weak: the model stores this registry, a strong capture would keep every reader alive.
+        let confirm: @MainActor (String) -> Void = { [weak model] text in
+            model?.showMenuFeedback(text)
+            AccessibilityNotification.Announcement(text).post()
+        }
+        // Weak, declared once out here: a `[weak model]` inside another closure would clash with the outer implicit strong capture.
+        let rebuild: @MainActor () -> Void = { [weak model] in model?.applyDisplaySettings() }
+        model.quoting = composer?.quoting
+        var handlers: [any MessageActionHandler] = [
+            LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
+        ]
+        handlers += model.quoteHandlers(confirm: confirm)
+        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
+        let showProfile = $profile
+        let services = self.services
+        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
+            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
+        }
+        if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
+        handlers += services.pseudoLists.map {
+            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
+        } ?? []
+        let openURL = self.openURL
+        // Each appearance installs again: a fresh model with the current services, unless an alert is in progress.
+        let alerts = self.alerts.flatMap { $0.isIdle ? nil : $0 } ?? ModeratorAlertModel(
+            alerter: services.moderatorAlerts, mailAddress: services.moderatorAlertMail, confirm: confirm,
+            openMail: { openURL($0) }
+        )
+        self.alerts = alerts
+        handlers.append(alerts.handler)
+        if let composer {
+            let writes = writes ?? MessageWriteModel(reader: model, services: composer)
+            self.writes = writes
+            handlers += writes.handlers
+        }
+        model.install(MessageActionRegistry(handlers))
+        controller?.offersSelectionQuote = model.canQuote
     }
 }
 
