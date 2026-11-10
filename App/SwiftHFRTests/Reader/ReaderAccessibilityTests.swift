@@ -50,61 +50,62 @@ struct ReaderAccessibilityAdapterTests: ReaderWebTesting {
         withExtendedLifetime(recorder) {}
     }
 
-    private func attribute(_ name: String, of selector: String, in controller: ReaderWebController) async throws -> String? {
-        try await evaluate("return document.querySelector('\(selector)')?.getAttribute('\(name)') ?? null;", in: controller) as? String
+    /// The attribute's value, nil when it is absent (or the script failed, which every expectation here would then catch).
+    private func attribute(_ name: String, of selector: String, in controller: ReaderWebController) async -> String? {
+        let script = "return document.querySelector('\(selector)')?.getAttribute('\(name)') ?? null;"
+        return (try? await evaluate(script, in: controller)) as? String
     }
 
     @Test func quotesCodeAndSpoilersAreNamedGroupsNotTables() async throws {
         try await onShownPage { controller in
             for selector in ["table.citation", "table.code", "table.spoiler"] {
-                #expect(try await attribute("role", of: selector, in: controller) == "group")
+                #expect(await attribute("role", of: selector, in: controller) == "group")
             }
-            #expect(try await attribute("aria-label", of: "table.citation", in: controller) == "user4 a écrit :")
-            #expect(try await attribute("aria-label", of: "table.code", in: controller) == "Code")
-            #expect(try await attribute("aria-label", of: "table.spoiler", in: controller) == "Spoiler")
+            #expect(await attribute("aria-label", of: "table.citation", in: controller) == "user4 a écrit :")
+            #expect(await attribute("aria-label", of: "table.code", in: controller) == "Code")
+            #expect(await attribute("aria-label", of: "table.spoiler", in: controller) == "Spoiler")
         }
     }
 
     @Test func aBlocklistedQuoteNeverNamesTheAuthorItHides() async throws {
         try await onShownPage { controller in
-            #expect(try await attribute("aria-label", of: "table.quote-blocked", in: controller) == "Citation masquée")
-            #expect(try await attribute("aria-label", of: "table.quote-blocked b.s1", in: controller) == "Citation masquée")
-            #expect(try await attribute("aria-expanded", of: "table.quote-blocked b.s1", in: controller) == "false")
+            #expect(await attribute("aria-label", of: "table.quote-blocked", in: controller) == "Citation masquée")
+            #expect(await attribute("aria-label", of: "table.quote-blocked b.s1", in: controller) == "Citation masquée")
+            #expect(await attribute("aria-expanded", of: "table.quote-blocked b.s1", in: controller) == "false")
         }
     }
 
     @Test func theSpoilerHeaderIsAButtonWhoseStateFollowsTheTap() async throws {
         try await onShownPage { controller in
             let header = "table.spoiler b.s1Topic"
-            #expect(try await attribute("role", of: header, in: controller) == "button")
-            #expect(try await attribute("tabindex", of: header, in: controller) == "0")
-            #expect(try await attribute("aria-expanded", of: header, in: controller) == "false")
+            #expect(await attribute("role", of: header, in: controller) == "button")
+            #expect(await attribute("tabindex", of: header, in: controller) == "0")
+            #expect(await attribute("aria-expanded", of: header, in: controller) == "false")
             _ = try await evaluate("document.querySelector('\(header)').click(); return true;", in: controller)
-            #expect(try await attribute("aria-expanded", of: header, in: controller) == "true")
+            #expect(await attribute("aria-expanded", of: header, in: controller) == "true")
             // The keyboard does what the tap does (Full Keyboard Access, switch control).
             _ = try await evaluate(
                 "document.querySelector('\(header)').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));"
                 + " return true;",
                 in: controller
             )
-            #expect(try await attribute("aria-expanded", of: header, in: controller) == "false")
+            #expect(await attribute("aria-expanded", of: header, in: controller) == "false")
         }
     }
 
     @Test func anOpenedBlocklistedQuoteGivesItsLinkBackAndShowsItsAuthor() async throws {
         try await onShownPage { controller in
             _ = try await evaluate("document.querySelector('table.quote-blocked b.s1').click(); return true;", in: controller)
-            #expect(try await attribute("role", of: "table.quote-blocked b.s1", in: controller) == nil)
-            #expect(try await attribute("aria-label", of: "table.quote-blocked b.s1", in: controller) == nil)
-            #expect(try await attribute("aria-label", of: "table.quote-blocked", in: controller) == "user9 a écrit :")
+            #expect(await attribute("role", of: "table.quote-blocked b.s1", in: controller) == nil)
+            #expect(await attribute("aria-label", of: "table.quote-blocked b.s1", in: controller) == nil)
+            #expect(await attribute("aria-label", of: "table.quote-blocked", in: controller) == "user9 a écrit :")
         }
     }
 
     @Test func aPostedPictureWithoutARealDescriptionIsReadAsImage() async throws {
         try await onShownPage { controller in
-            let alts = try await evaluate(
-                "return Array.from(document.querySelectorAll('img.hfrplusimg')).map((i) => i.getAttribute('alt'));", in: controller
-            ) as? [String]
+            let script = "return Array.from(document.querySelectorAll('img.hfrplusimg')).map((i) => i.getAttribute('alt'));"
+            let alts = (try? await evaluate(script, in: controller)) as? [String]
             // An address as alt (HFR's own), a missing alt: "Image"; a real description stays.
             #expect(alts == ["Image", "Image", "photo"])
         }
