@@ -99,6 +99,12 @@ opened; user1's MP list read before any reply (`R336`), after one user2 reply (`
 Both accounts then deleted the thread with `W64`'s and `W65`'s body (not published) and the lists were read again: nothing of the thread is left on HFR (run observation, as the answers and those lists are not published).
 Three messages, no edit POST, no retry.
 
+Run 17 (2026-11-10, `mac/m4-captures` batch `b610`, ezzz/HFRnow#610, private MP writes between the two kit accounts only, one request per minute):
+user2 creates `fixture-test-5` for user1 (`W610a`), then user1 creates `fixture-test-6` for user2 (`W610b`), so the first thread sits lower in
+user1's list (`R610a`). user2 then replies on `fixture-test-5` (`W610c`, list `R610b`) and on `fixture-test-6`, which it did not create (`W610d`,
+user1's list `R610c`, user2's list `R610d`). Both accounts then deleted both threads with `W64`'s body (answers not published). Two new
+messages and two replies, no retry. The composer pages read before each POST are not published (the `R47b` and `W138` shapes).
+
 Run 13 (2026-11-07, `mac/m2-lead` batch `m2-574`, ezzz/HFRnow#574): the AQ create's refusal answers, produced **only on a local instance** of the
 published AQ server (`roger21/toyo@96c0aea`, folder `aq/`, run unmodified under PHP 8.5 and MariaDB 13 on the loopback address, schema tables only, empty
 data), never on the live service. The files are marked `origin: local-instance` (meta field and the rows below); the loopback address of their URL is
@@ -109,6 +115,10 @@ other bytes `%XX`, no encoder exists in the repository yet), pseudos `user3`-`us
 Run 14 (2026-11-07, `mac/cap-601-603`, ezzz/HFRnow#601 and #603, read-only, 22 requests): the two logins, then GETs only. The
 personal smiley page of both accounts and without cookies (`R601a`-`R601d`); the filtered lists of one category, one sub-forum and
 the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`R603f`). Nothing was sent to the forum.
+
+Run 15 (2026-11-10, `mac/m4-captures` batch `b716`, ezzz/HFRnow#716, read-only, 7 requests at one per minute): user1's login, its MP list
+(read only to take a one-to-one row's `profilebdd.php` link as the page writes it; not published), then that link hop by hop with redirects
+not followed, logged in and without cookies, and the same link with a pseudo that does not exist (`R716a`-`R716e`). Nothing was sent to the forum.
 
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
@@ -150,6 +160,7 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R42 | `R42-multiquote-form-cookie.html` | Composer with cookie `quoteshardwarefr-13-<post>=\|a\|b`: two `[quotemsg]` blocks prefilled | R42 | 049 |
 | R45a | `R45a-new-topic-form.html` | New-topic form `/hfr/Discussions/nouveau_sujet.htm`: `sujet`, `toread1..5`, `subcat` select | R45 | 036, 048 |
 | R45b | `R45b-new-mp-form.html` | New-MP form (`dest` prefilled), never submitted | R45 | 036, 048 |
+| R170a | `R170a-new-poll-form.html` | New-poll form `/hfr/Discussions/nouveau_sondage.htm` (user1, never submitted, #170): the `R45a` form with hidden `sond=1` and the shown `div#sondagediv`: `textreponse0` (question), `textreponse1`-`10` (answers, 255 each), `allowvisitor`, `max_votes` 1-10, closing date `jour`/`mois`/`annee`/`heure`/`minute`; no `have_sondage` input | R45 | 100, 036 |
 | R46 | `R46-modo-alert-form.html` | Moderator alert form, GET only, never submitted | R46 | 036, 050 |
 | R53a | `R53a-smiley-search-no-result.html` | Smiley search, no result: 40-byte text "Désolé, aucune réponse n'a été trouvée !" | R53 | 005, 025, 053 |
 | R53b | `R53b-smiley-search-one-word.html` | One word: 657 smileys | R53 | 005, 025, 053 |
@@ -366,6 +377,14 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R337 | `R337-mp-list-recipient-unread-after-reply.html` | user1's list after `W139`, thread still unopened: same row, same position and same icon; now a `[non lu]` span ("Ce message n'a pas été lu par : user2"), `sujetCase7` 1, last post `13:47` by user2 | #567, R13 | 140, 023 |
 | W140 | `W140-mp-reply-unread-conversation-second-success.html` | user2's second reply (third message of the thread): same success answer | #567 | 140, 048 |
 | R338 | `R338-mp-list-recipient-unread-after-second-reply.html` | user1's list after `W140`: same row, icon and `[non lu]` span as `R337`, `sujetCase7` 2, last post `13:48` by user2 | #567, R13 | 140, 023 |
+| W610a | `W610a-mp-create-thread-a-success.html` | New MP user2 → user1 `fixture-test-5`: "Votre message a été posté avec succès !" (the `W138` shape) | #610 | 140, 048 |
+| W610b | `W610b-mp-create-thread-b-success.html` | New MP user1 → user2 `fixture-test-6`, three minutes later: the same success answer | #610 | 140, 048 |
+| R610a | `R610a-mp-list-recipient-before-reply-older-row.html` | user1's list before any reply: `fixture-test-6` row 1 (`closedp.gif`, `[non lu]` for user2), another conversation row 2, `fixture-test-5` row 3 (`closedp.gif` "Pas de nouveau message", no `[non lu]`, `sujetCase7` 0) | #610, R13 | 140, 023 |
+| W610c | `W610c-mp-reply-older-row-success.html` | user2 replies on `fixture-test-5`: "Votre réponse a été postée avec succès !" | #610 | 140, 048 |
+| R610b | `R610b-mp-list-recipient-after-reply-older-row.html` | user1's list after `W610c`: `fixture-test-5` moved from row 3 to row 1, `closedbp.gif` "Nouveau message", `[non lu]`, `sujetCase7` 1 | #610, R13 | 140, 023 |
+| W610d | `W610d-mp-reply-by-non-creator-success.html` | user2 replies on `fixture-test-6`, which user1 created: the same success answer | #610 | 140, 048 |
+| R610c | `R610c-mp-list-creator-after-non-creator-reply.html` | The creator's (user1's) list after `W610d`: `fixture-test-6` now above `fixture-test-5` (row 2, under a conversation posted the same minute), `closedbp.gif`, `sujetCase7` 1 | #610, R13 | 140, 023 |
+| R610d | `R610d-mp-list-replier-after-own-replies.html` | user2's list after both replies (3 rows): both threads in last-post order, both `closedbp.gif` "Nouveau message" and `[non lu]` for user1, although user2 posted their last messages | #610, R13 | 140, 023 |
 | T01 | `T01-aq-rss-feed.xml` | `aq.super-h.fr/rss.php`: 200 `application/rss+xml;charset=utf-8`, 25 items; each description is CDATA HTML (topic title in `<b>`, count, one `<li>` per reporter "[le <date> à <time>] <b>X (initiateur)</b> : comment"); `&quot;`, `&#039;`, `&amp;` in titles and descriptions; legacy oracle `LOT-028/T01.oracle.json` | P08 | 028, 055 |
 | T02 | `T02-aq-alerts-by-topic.xml` | `aq.super-h.fr/api/getAlertesByTopic.php?topic_id=<topic>` (a topic of `T01`): 200 `text/xml;charset=UTF-8`, `<alertes>` of 123 `<alerte id nom pseudoInitiateur date postsIds/>` (date `dd-mm-yyyy`), `&quot;` and `&amp;` in attributes | P08 | 028, 055 |
 | T50 | `T50-aq-create-answer.txt` | `POST https://aq.super-h.fr/api/addAlerte.php` (legacy `MessagesView.swift:340-399`), operator-approved write on the operator's own topic, first post, #531: 200 `text/plain;charset=UTF-8`, body `1` (no newline), no cookie, no redirect. Request body (meta): `alerte_qualitay_id=-1`, `nom`, `topic_id`, `topic_titre`, `pseudo`, `post_id`, `post_url` (permalink with `#t<post>`), `commentaire` = `post de <author>`. The topic is the operator's own: ids, title, slug and dates aliased by `own_topics` logic (`topic_id=9900001`, `post_id=9910000001`). The alert title (`nom`) is a placeholder, and the permalink's category and sub-category directories are aliased (`own-category/own-subcategory`). A refusal is **not captured** (not approved) | E §6 | 055, 071, 134 |
@@ -419,6 +438,11 @@ the favourites page (`R603a`-`R603e`); the REST `read` bucket of one category (`
 | R603d | `R603d-list-subcat-owntopic3.html` | `owntopic=3` with `subcat=<s>`: 200 in place, 14 rows (12 `favoris.gif`, 2 with an empty flag cell), `<title>` "<sub-forum> - <category> - FORUM HardWare.fr", pager `1` alone | R08 | 022, 024 |
 | R603e | `R603e-favourites-owntopic2.html` | `forum1f.php?…&owntopic=2&new=0&nojs=0` (user2): title "Vos sujets", 3 category headers linking `owntopic=2`, 5 topic rows, one sticky, all `flag0.gif`, and under the second header no topic, only the row "Aucun nouveau message" | R10 | 024 |
 | R603f | `R603f-rest-bucket-read-category.json` | REST `read` bucket of one category (flat shape), 2 topics kept (kit README "REST flag buckets"); `tns3` can be absent | E1 | 057 |
+| R716a | meta only | `/profilebdd.php?config=hfr.inc&pseudo=<pseudo>`, the `sujetCase6` link of a one-to-one MP row (user1, pseudo of user2): `301` with `Location: /hfr/profil-<id>.htm` (relative, the member's id), empty body, no cookie set | — | #714, 027, 126 |
+| R716b | `R716b-profile-operator-user1.html` | The redirect target `/hfr/profil-<id>.htm`, logged in (user1 viewing user2): `200`, the public profile of `R56a` plus a row "Ajouter <pseudo> à votre liste de contacts" (`/user/contactlist.php?adduser=<id>`) and the account's own style sheets | R56 | #714, 027 |
+| R716c | meta only | `R716a`'s link without cookies: the same `301` to the same `/hfr/profil-<id>.htm` (its target, logged out, is `R56a`) | — | #714, 027 |
+| R716d | meta only | `profilebdd.php` with a pseudo that does not exist, logged in: `301` with `Location: /hfr/profil-.htm` (empty id) | — | #714 |
+| R716e | `R716e-profile-empty-id-404.html` | `R716d`'s target `/hfr/profil-.htm`: the web server's `404 Not Found` page (`text/html; charset=iso-8859-1`, 213 bytes), not a forum page | — | #714 |
 
 ## Not captured
 
@@ -456,3 +480,13 @@ stamps `Date()`); `defaults-export-typical.plist` is the real `defaults export` 
 | `smileySearchHistory_v1` (JSON `Data` in **UserDefaults**, not a file) | `search-history-{typical,50-entries,50-entries-after-case-merge,51st-evicts-oldest,after-corrupt-rewrite}.json` (the value) + `defaults-search-history-<same>.plist` (the key as `<data>`), `defaults-search-history-absent.plist` (key never written: the empty state, `record` never writes `[]`), `search-history-corrupt-before.bin` (the first 40 bytes of the real typical value) | case-insensitive merge, ignored 2-character and zero-result queries, exactly 50, a 51st evicting the oldest, corrupt data rewritten as one entry | 067 |
 | `rehostImagesSwiftUI.json` (JSON file in Documents) | `upload-history-{empty,typical,boundary,after-corrupt-rewrite}.json` (img3 URLs of the `U01` shape with synthetic hashes, `previewURL` nil as the only uploader writes it, `ReplyService.swift:1958-2035`), `upload-history-corrupt-before.bin` (the first 60 bytes of the real typical file) | `[]`, 3 images newest first, nil optionals omitted from the JSON, fractional instant, same URL twice, identical id twice, non-ASCII URL, a corrupt file rewritten as the next upload alone | 067 |
 | Not produced | | An array of numeric strings or other types under `SuperFavoritesIds` (the loader accepts them; no legacy writer produces them); a smiley favourite stamped by the real add (date is `Date()`, replaced by a fixed one). `search-history-corrupt-before.bin` and `upload-history-corrupt-before.bin` are cuts of real legacy output, not legacy output. | |
+
+**#709** (pseudo lists and drafts): produced by the legacy app at `origin/master` `21173e77`, not at `2440d79`, because `reply_active_drafts_by_topic_v1` does not exist there. The exporter is an XCTest of the `HFRswiftTests` host, `tooling/legacy-oracle/stores-709-master.patch`, applied to a local worktree, never pushed. It also carries the `AccountsStoreTests.swift` compile fix of `hfrnow.patch`. Run on an iOS 27.0 simulator with no account; `HFR_709_OUT` names the output folder. The real code: `BlackList.m` save/load/add/remove, called at runtime with `MultisManager -getCurrentPseudo` / `-getMainCompte` answering a fake account (the test host has none) and `mpstorage_active` off; `ReplyDraftStore.saveActiveText` (`AnswerView.swift:166-191`). `AddMessageViewController -modifyBrouillon:` is not in the `HFRswift` app (`SuperHFRplus` target only), so its one line (`AddMessageViewController.m:483`, `setObject:forKey:@"brouillon"`) is transliterated. Dates are the legacy code's own `Date()` of the run (2026-11-10), not rewritten. Synthetic pseudos and texts only.
+
+| Store | Files | What they cover | Wanted by |
+|---|---|---|---|
+| `blackListDico.plist` (Documents, XML plist: account → `[{word, alias, mode}]`) | `lists-{typical,two-accounts,emptied,v0-after-load-and-add}-blackListDico.plist` | three entries (a space, accents; a case-only duplicate refused); a second account in the same file; every entry removed (empty arrays kept per account); the migrated v0 list after one add | LOT-067 |
+| `whiteList.plist` (Documents, XML plist array, global) | `lists-{typical,two-accounts,emptied,v0-after-load-and-add}-whiteList.plist` | two entries; the same file whatever the account; emptied (an empty array) | LOT-067 |
+| `blackList.plist` (v0, Documents, array) | `lists-v0-input-blackList.plist` | **synthetic input**, written with `NSArray -writeToFile:` in the `BlackList.m:43` shape, since no code at `21173e77` writes v0. The real `-load` then migrates it and leaves no list file on disk until the next save | LOT-067 |
+| `brouillon` (UserDefaults string) | `defaults-brouillon-{absent,typical,erased}.plist` | no value; a two-line text with BBCode and an accent; `""` after a post that used it (`AddMessageViewController.m:600-602`) | LOT-067 |
+| `reply_active_drafts_by_topic_v1` (JSON `Data` in UserDefaults) | `active-drafts-{typical,one-removed,51-topics}.json` + `defaults-active-drafts-{absent,typical,one-removed,emptied,51-topics}.plist` | two topics newest first (a blank text for a third is not stored, an update moves its topic to the front, spaces kept); one removed by a blank save; the last removed (key deleted); 51 topics capped at 50 (the oldest dropped). Keys in `JSONEncoder` order, `updatedAt` seconds since 2001 with fractions | LOT-067 |

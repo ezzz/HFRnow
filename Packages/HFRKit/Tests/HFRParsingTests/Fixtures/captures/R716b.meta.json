@@ -1,0 +1,16 @@
+{
+  "id": "R716b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/hfr/profil-{id}.htm",
+  "url": "https://forum.hardware.fr/hfr/profil-900002.htm",
+  "final_url": "https://forum.hardware.fr/hfr/profil-900002.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 13:29:02 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "profilebdd.php redirect target, logged in, hop 2",
+  "file": "R716b-profile-operator-user1.html",
+  "private": false
+}

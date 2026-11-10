@@ -6,6 +6,7 @@ Two scripts keep the shared docs conflict-free ([#612](https://github.com/ezzz/H
 |---|---|---|
 | `fold.py` | CI (`--check`), the steward | Folds fragments of `docs/changelog-legacy.d/` and `docs/migration/gap.d/` into `docs/CHANGELOG-LEGACY.md` and `docs/migration/GAP-LEGACY-VS-SWIFT.md`, regenerates the H.1 list and the Counts table. Formats: README of each fragment folder |
 | `ledger.py` | CI (`check-body`, `guard`), the steward (`fold`, `done`) | Turns the `### Ledger` entries of merged PRs into those fragments, applies in-place GAP edits, folds |
+| `export-app-changelog.py` | the steward, before a release (`--check` reports a stale copy) | Exports the "Résumé (FR)" column of `docs/CHANGELOG-LEGACY.md` to `App/SwiftHFR/Resources/changelog-v1.json`, the "Nouveautés" screen of the app ([LOT-120](../../docs/lots/LOT-120-maintenance-about.md)); not wired into CI yet |
 
 ## The ledger rule
 

@@ -63,6 +63,12 @@ body {
   margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
 a { color: var(--action); }
+/* Full Keyboard Access and switch users (LOT-163): the page had no focus ring. Shown for keyboard focus only. */
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+/* Reduce Motion (LOT-163): the reader animates nothing today; this keeps it so. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
 
 .separator1 { border-top: 1px dashed var(--separator); }
 .message { padding: 1em 1em 0.85em; border-bottom: 1px solid var(--separator-strong); }
@@ -85,6 +91,8 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .message button.avatar-wrap::after { content: ""; position: absolute; inset: -0.4em; }
 /* `overflow-wrap: anywhere` on body makes an item's min-content one character, so at accessibility sizes the flex row shrank the
    pseudo to a column; break-word does not, the row wraps (date, then button) and a very long pseudo still breaks (min-width 0). */
+/* The byline is the message's heading (role="heading", LOT-163): it takes the author's place in the header row. */
+.message .byline { display: flex; flex: 1 1 auto; min-width: 0; }
 .message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
 .message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 /* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
