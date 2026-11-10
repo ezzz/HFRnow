@@ -305,6 +305,13 @@
     {"raw": "m610-list-u1-after-a", "id": "R610b", "slug": "mp-list-recipient-after-reply-older-row", "ext": "html", "private": true},
     {"raw": "m610-reply-b", "id": "W610d", "slug": "mp-reply-by-non-creator-success", "ext": "html", "private": false},
     {"raw": "m610-list-u1-after-b", "id": "R610c", "slug": "mp-list-creator-after-non-creator-reply", "ext": "html", "private": true},
-    {"raw": "m610-list-u2", "id": "R610d", "slug": "mp-list-replier-after-own-replies", "ext": "html", "private": true}
+    {"raw": "m610-list-u2", "id": "R610d", "slug": "mp-list-replier-after-own-replies", "ext": "html", "private": true},
+    {"raw": "m610g-create-group", "id": "W610e", "slug": "mp-create-group-four-members-success", "ext": "html", "private": false},
+    {"raw": "m610g-create-8", "id": "W610f", "slug": "mp-create-thread-c-success", "ext": "html", "private": false},
+    {"raw": "m610g-list-u1-before", "id": "R610e", "slug": "mp-list-group-creator-before-member-reply", "ext": "html", "private": true},
+    {"raw": "m610g-list-u2-before", "id": "R610f", "slug": "mp-list-group-member-before-own-reply", "ext": "html", "private": true},
+    {"raw": "m610g-reply-group", "id": "W610g", "slug": "mp-group-reply-by-member-success", "ext": "html", "private": false},
+    {"raw": "m610g-list-u1-after", "id": "R610g", "slug": "mp-list-group-creator-after-member-reply", "ext": "html", "private": true},
+    {"raw": "m610g-list-u2-after", "id": "R610h", "slug": "mp-list-group-member-after-own-reply", "ext": "html", "private": true}
   ]
 }
