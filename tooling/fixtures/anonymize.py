@@ -2047,6 +2047,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
                     r"url\s*\(|expression\s*\(", a.get("style", ""), re.I):
                 self._bad("public profile field markup", tag)
+        if tag == "span" and cls & {"signature", "MoodStatus"} and set(a) - {"class"}:
+            self._bad("signature or mood attributes", tag)
         sig = next((e for e in reversed(self.stack) if e["where"] == "signature or mood"), None)
         if sig is not None:
             # A redacted signature or mood holds text, <br> and at most one clear <div>: an <img> or <a> carries a
@@ -2156,7 +2158,29 @@ class StructuralVerifier(html.parser.HTMLParser):
         if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag:
             self._close(self.stack.pop())
 
+    def _in_signature(self):
+        return any(e["where"] == "signature or mood" for e in self.stack)
+
+    def _non_element(self, data):
+        # A comment, declaration or processing instruction inside a redacted span hides words from the text check.
+        if self._in_signature():
+            self._bad("signature or mood markup (non-element)", data)
+
+    def handle_comment(self, data):
+        self._non_element(data)
+
+    def handle_decl(self, decl):
+        self._non_element(decl)
+
+    def handle_pi(self, data):
+        self._non_element(data)
+
+    def unknown_decl(self, data):
+        self._non_element(data)
+
     def handle_endtag(self, tag):
+        if tag not in ("span", "div", "br") and self._in_signature():
+            self._bad("signature or mood markup </%s>" % tag, tag)
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i]["tag"] == tag:
                 while len(self.stack) > i:

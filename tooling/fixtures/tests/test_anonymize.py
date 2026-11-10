@@ -626,7 +626,14 @@ class PositionTests(unittest.TestCase):
                     'Signature removed.<div style="clear: both;"></div><div style="clear: both;"></div>',
                     'Signature removed.<br class="x" />'):
             self.assertTrue(A.verify_structure(sig % bad), bad)
-        self.assertTrue(A.verify_structure('<span class="MoodStatus">Mood removed.<img src="x.png" alt="" /></span>'))
+        for bad in ('<!-- Real Handle -->', '<?Real Handle>', '<![CDATA[Real Handle]]>', '<!DOCTYPE RealHandle>',
+                    '</img src="https://example.org/h.png">'):
+            self.assertTrue(A.verify_structure(sig % ("Signature removed." + bad)), bad)
+        self.assertTrue(A.verify_structure(
+            '<span class="signature" title="Real Handle">Signature removed.</span>'))
+        for bad in ('<img src="x.png" alt="" />', '<a href="https://example.org/">Mood removed.</a>',
+                    '<div style="clear: both;"></div><div style="clear: both;"></div>', '<!-- Real Handle -->'):
+            self.assertTrue(A.verify_structure('<span class="MoodStatus">Mood removed.%s</span>' % bad), bad)
 
     def test_quotemsg_third_value_uses_the_id_table(self):
         html = ('<a href="/hfr/profil-555123.htm">x</a><a href="/hfr/profil-555124.htm">y</a>'
