@@ -102,10 +102,13 @@ final class NavigationModel {
     /// The sub-forum menu and filter of the forum list `source`; nil for flags and favourites, or where the tab has no filter.
     func scope(for source: TopicSource) -> ForumScope? {
         guard let topicFilter, source.isForumList else { return nil }
-        return ForumScope(section: { [forums] in forums.loader.value?.section(containing: source) }, filter: topicFilter) { [weak self] in
-            // In Favoris the category was pushed, so a sub-forum replaces it there; in Catégories it is the selection.
-            if self?.favorites != nil { self?.openedCategory = $0 } else { self?.selectedSource = $0 }
-        }
+        return ForumScope(
+            section: { [forums] in forums.loader.value?.section(containing: source) }, filter: topicFilter,
+            select: { [weak self] in
+                // In Favoris the category was pushed, so a sub-forum replaces it there; in Catégories it is the selection.
+                if self?.favorites != nil { self?.openedCategory = $0 } else { self?.selectedSource = $0 }
+            }
+        )
     }
 
     /// The reader of `topic`: the same model while the topic stays selected, a new one (a new load) for another topic.
