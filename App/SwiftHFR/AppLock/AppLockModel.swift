@@ -91,10 +91,12 @@ final class AppLockModel {
     init(store: any SettingsStore, authenticator: any DeviceOwnerAuthenticating) {
         self.store = store
         self.authenticator = authenticator
-        isEnabled = store.value(for: SettingKey.appLockEnabled)
+        // A local: `self.isEnabled` cannot be read before every stored property is initialized.
+        let enabled = store.value(for: SettingKey.appLockEnabled)
+        isEnabled = enabled
         grace = AppLockGrace(rawValue: store.value(for: SettingKey.appLockGraceSeconds)) ?? .immediately
-        isLocked = isEnabled
-        promptsByItself = isEnabled
+        isLocked = enabled
+        promptsByItself = enabled
     }
 
     /// Turns the option on or off; on only when the device can authenticate its owner (else `message` says why).
