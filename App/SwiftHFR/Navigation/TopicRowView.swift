@@ -52,9 +52,7 @@ struct TopicRowView: View {
             }
             if let pages = TopicRowCues.unreadPages(topic), showsFlag {
                 Spacer(minLength: 0)
-                Text("\(pages)").scaledFont(.caption2).bold().foregroundStyle(.white)
-                    .padding(.horizontal, 6).padding(.vertical, 1)
-                    .background(.tint, in: Capsule())
+                BadgeCapsule(text: "\(pages)", isBold: true)
                     .accessibilityLabel(TopicRowCues.unreadPagesLabel(pages))
             }
         }

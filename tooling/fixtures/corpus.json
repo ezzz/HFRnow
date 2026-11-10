@@ -312,6 +312,7 @@
     {"raw": "m610g-list-u2-before", "id": "R610f", "slug": "mp-list-group-member-before-own-reply", "ext": "html", "private": true},
     {"raw": "m610g-reply-group", "id": "W610g", "slug": "mp-group-reply-by-member-success", "ext": "html", "private": false},
     {"raw": "m610g-list-u1-after", "id": "R610g", "slug": "mp-list-group-creator-after-member-reply", "ext": "html", "private": true},
-    {"raw": "m610g-list-u2-after", "id": "R610h", "slug": "mp-list-group-member-after-own-reply", "ext": "html", "private": true}
+    {"raw": "m610g-list-u2-after", "id": "R610h", "slug": "mp-list-group-member-after-own-reply", "ext": "html", "private": true},
+    {"raw": "m170-poll-form", "id": "R170a", "slug": "new-poll-form", "ext": "html", "private": false}
   ]
 }

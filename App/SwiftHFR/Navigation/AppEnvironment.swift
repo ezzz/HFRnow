@@ -1,3 +1,4 @@
+import Foundation
 import HFRNetwork
 import HFRStorage
 
@@ -51,7 +52,9 @@ struct AppEnvironment {
             positions: LiveReaderPositionRecorder.live(account: accountName),
             offline: .live(fetcher: fetcher),
             flagActions: flagActions,
-            pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists)
+            pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists),
+            moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
+            moderatorAlertMail: ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:])
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
