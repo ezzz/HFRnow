@@ -124,6 +124,16 @@ struct LegacyImporterRecoveryTests {
         #expect(reverseReport.outcomes[.pseudoLists] == .imported(1))
         #expect(await reverse.destinations.pseudoLists.allowlist().map(\.pseudo) == ["fakeloved1"])
     }
+
+    @Test("an allowlist file of another shape counts as unreadable: nothing else readable, the step says so")
+    func allowlistOfAnotherShape() async throws {
+        var harness = try Harness()
+        defer { harness.remove() }
+        harness.accounts = Harness.legacyAccounts
+        try harness.write(#"<?xml version="1.0"?><plist version="1.0"><dict/></plist>"#, to: LegacyKeys.allowlistFile)
+        let report = await harness.importer().run(now: now)
+        #expect(report.outcomes[.pseudoLists] == .failed(.sourceUnreadable))
+    }
 }
 
 /// A credential store whose writes work but whose plain `load()` fails, as a Keychain read refused between two calls.

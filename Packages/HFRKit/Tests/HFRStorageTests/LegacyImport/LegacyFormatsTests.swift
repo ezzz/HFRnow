@@ -202,8 +202,112 @@ struct BinaryPropertyListTests {
 
     @Test("a small file of shared references is refused instead of being read exponentially")
     func nodeBudget() {
-        // 4^12 = 16 777 216 reads without the budget, far above `maximumNodes`.
+        // 4^12 = 16 777 216 reads for 13 objects without the budget, far above its floor.
         #expect(throws: BinaryPlistError.malformed) { try BinaryPropertyList.parse(sharedReferenceGraph(levels: 13, fanOut: 4)) }
         #expect(throws: Never.self) { try BinaryPropertyList.parse(sharedReferenceGraph(levels: 4, fanOut: 3)) }
+    }
+
+    @Test("a large legitimate archive is read whole: the budget grows with the file")
+    func largeArchiveWithinBudget() throws {
+        let count = 12_000
+        let favorites = try #require(LegacyFormats.smileyFavorites(Self.smileyArchive(count: count)))
+        #expect(favorites.count == count)
+        #expect(favorites.first == LegacySmileyFavorite(
+            code: "[:fake0]", url: "https://forum-images.hardware.fr/images/perso/fake0.gif",
+            addedAt: Date(timeIntervalSinceReferenceDate: 725_760_000)
+        ))
+    }
+
+    /// A keyed archive in the legacy writer's shape (`SmileyCache.m:26-29, 437`: an `NSMutableDictionary` of
+    /// `SmileyFavorite{sCode, sRawUrl, dateAdded}`, top key `$0`), encoded as `bplist00` with 4-byte references.
+    static func smileyArchive(count: Int) -> Data {
+        var objects: [PlistNode] = [.string("$null")]
+        func add(_ node: PlistNode) -> Int {
+            objects.append(node)
+            return objects.count - 1
+        }
+        let rootIndex = add(.null)
+        let favoriteClass = add(.dictionary(["$classname": .string("SmileyFavorite"), "$classes": .array([.string("SmileyFavorite")])]))
+        let dateClass = add(.dictionary(["$classname": .string("NSDate"), "$classes": .array([.string("NSDate")])]))
+        let dictionaryClass = add(.dictionary([
+            "$classname": .string("NSMutableDictionary"), "$classes": .array([.string("NSMutableDictionary")])
+        ]))
+        var keys: [PlistNode] = []
+        var values: [PlistNode] = []
+        for index in 0..<count {
+            let code = add(.string("[:fake\(index)]"))
+            let url = add(.string("https://forum-images.hardware.fr/images/perso/fake\(index).gif"))
+            let date = add(.dictionary(["$class": .uid(dateClass), "NS.time": .real(725_760_000 + Double(index))]))
+            let favorite = add(.dictionary([
+                "$class": .uid(favoriteClass), "sCode": .uid(code), "sRawUrl": .uid(url), "dateAdded": .uid(date)
+            ]))
+            keys.append(.uid(code))
+            values.append(.uid(favorite))
+        }
+        objects[rootIndex] = .dictionary(["$class": .uid(dictionaryClass), "NS.keys": .array(keys), "NS.objects": .array(values)])
+        let top = PlistNode.dictionary([
+            "$archiver": .string("NSKeyedArchiver"), "$version": .integer(100_000),
+            "$top": .dictionary(["$0": .uid(rootIndex)]), "$objects": .array(objects)
+        ])
+        var writer = BinaryPlistWriter()
+        return writer.encode(top)
+    }
+}
+
+/// A minimal `bplist00` writer for the tests: every node is written once, references are 4 bytes.
+private struct BinaryPlistWriter {
+    private var objects: [[UInt8]] = []
+
+    mutating func encode(_ root: PlistNode) -> Data {
+        let top = add(root)
+        var bytes = Array("bplist00".utf8)
+        var offsets: [Int] = []
+        for object in objects {
+            offsets.append(bytes.count)
+            bytes += object
+        }
+        let table = bytes.count
+        for offset in offsets { bytes += Self.bigEndian(offset, size: 4) }
+        bytes += [0, 0, 0, 0, 0, 0, 4, 4]
+        for value in [objects.count, top, table] { bytes += Self.bigEndian(value, size: 8) }
+        return Data(bytes)
+    }
+
+    private mutating func add(_ node: PlistNode) -> Int {
+        let index = objects.count
+        objects.append([])
+        objects[index] = body(node)
+        return index
+    }
+
+    private mutating func body(_ node: PlistNode) -> [UInt8] {
+        switch node {
+        case .null: return [0x00]
+        case .integer(let value): return [0x13] + Self.bigEndian(value, size: 8)
+        case .real(let value): return [0x23] + Self.bigEndian(Int(bitPattern: UInt(value.bitPattern)), size: 8)
+        case .string(let text):
+            if text.allSatisfy(\.isASCII) { return Self.header(0x50, text.utf8.count) + Array(text.utf8) }
+            let units = Array(text.utf16)
+            return Self.header(0x60, units.count) + units.flatMap { [UInt8($0 >> 8), UInt8($0 & 0xFF)] }
+        case .uid(let value): return [0x83] + Self.bigEndian(value, size: 4)
+        case .array(let items):
+            let references = items.map { add($0) }
+            return Self.header(0xA0, items.count) + references.flatMap { Self.bigEndian($0, size: 4) }
+        case .dictionary(let entries):
+            let sorted = entries.sorted { $0.key < $1.key }
+            let keys = sorted.map { add(.string($0.key)) }
+            let values = sorted.map { add($0.value) }
+            return Self.header(0xD0, sorted.count) + (keys + values).flatMap { Self.bigEndian($0, size: 4) }
+        case .bool, .date, .data:
+            preconditionFailure("not used by these archives")
+        }
+    }
+
+    private static func header(_ marker: UInt8, _ count: Int) -> [UInt8] {
+        count < 15 ? [marker | UInt8(count)] : [marker | 0x0F, 0x13] + bigEndian(count, size: 8)
+    }
+
+    private static func bigEndian(_ value: Int, size: Int) -> [UInt8] {
+        (0..<size).reversed().map { UInt8(truncatingIfNeeded: value >> ($0 * 8)) }
     }
 }
