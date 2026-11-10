@@ -127,7 +127,8 @@ import Testing
 
     private func legacyFile(_ temp: TemporaryCache, pseudo: String, bytes: Data) throws -> URL {
         let directory = try temp.cache.prepare(.avatars)
-        let url = directory.appending(path: try #require(LegacyAvatarName.candidates(forPseudo: pseudo).first), directoryHint: .notDirectory)
+        let name = try #require(LegacyAvatarName.candidates(forPseudo: pseudo).first)
+        let url = directory.appending(path: name, directoryHint: .notDirectory)
         try bytes.write(to: url)
         return url
     }
@@ -165,7 +166,8 @@ import Testing
         let temp = try TemporaryCache()
         defer { temp.cleanUp() }
         // Legacy hashed the pseudo as printed, with the U+200B HFR puts in long pseudos.
-        let url = try temp.cache.prepare(.avatars).appending(path: LegacyAvatarName.candidates(forPseudo: "A\u{200B}bc")[0], directoryHint: .notDirectory)
+        let name = LegacyAvatarName.candidates(forPseudo: "A\u{200B}bc")[0]
+        let url = try temp.cache.prepare(.avatars).appending(path: name, directoryHint: .notDirectory)
         try Data([5]).write(to: url)
         let avatars = AvatarCache(cache: temp.cache)
         #expect(try avatars.entryAdoptingLegacy(forPseudo: "A\u{200B}bc", accepting: { _ in true }) != nil)
@@ -206,7 +208,8 @@ import Testing
     @Test func anUnsafeAvatarsFolderThrowsAsTheCacheDoes() throws {
         let temp = try TemporaryCache()
         defer { temp.cleanUp() }
-        let elsewhere = temp.cache.root.deletingLastPathComponent().appending(path: "elsewhere-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let parent = temp.cache.root.deletingLastPathComponent()
+        let elsewhere = parent.appending(path: "elsewhere-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: elsewhere) }
         try FileManager.default.createDirectory(at: temp.cache.root, withIntermediateDirectories: true)

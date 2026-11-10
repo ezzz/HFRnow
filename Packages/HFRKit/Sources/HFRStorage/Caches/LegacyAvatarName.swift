@@ -36,6 +36,8 @@ enum LegacyAvatarName {
         return UInt32(value)
     }
 
+    // The names are RFC 1321's (a, b, c, d, f, g, the bytes b0...b3), kept so the code reads against it.
+    // swiftlint:disable identifier_name
     static func md5(_ message: [UInt8]) -> [UInt8] {
         var a0: UInt32 = 0x6745_2301
         var b0: UInt32 = 0xefcd_ab89
@@ -77,4 +79,5 @@ enum LegacyAvatarName {
         }
         return digest
     }
+    // swiftlint:enable identifier_name
 }
