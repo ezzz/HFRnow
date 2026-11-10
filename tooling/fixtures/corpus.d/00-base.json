@@ -1,5 +1,5 @@
 {
-  "note": "LOT-001 capture corpus: raw capture id -> corpus id, slug, extension (null = meta only), private (anonymize with --private). Used by publish.py.",
+  "note": "Batch fragment of the corpus manifest (#773): raw capture id -> corpus id, slug, extension (null = meta only), private (anonymize with --private). Read by publish.py with the other files of corpus.d/, in file name order. This one holds the 351 captures merged until 2026-11-10 (the former corpus.json).",
   "captures": [
     {"raw": "R01", "id": "R01", "slug": "home-anon", "ext": "html", "private": false},
     {"raw": "R03", "id": "R03", "slug": "home-logged-in-no-unread-mp", "ext": "html", "private": false},

@@ -3,8 +3,8 @@
 
     publish.py --config local.json --raw ~/agent-work/<task>/captures-raw --dest <corpus dir> [ID ...]
 
-For every capture of the manifest (default `corpus.json` next to this script): the page is anonymized
-to `<id>-<slug>.<ext>` (`--private` when the manifest says so) and its metadata to `<id>.meta.json`:
+For every capture of the manifest (default: the `corpus.d/` fragments next to this script, one `<batch>.json` per
+capture batch): the page is anonymized to `<id>-<slug>.<ext>` (`--private` when the manifest says so) and its metadata to `<id>.meta.json`:
 the kept fields of the raw meta, `request_body` (anonymized POST body, from `<raw>.request.txt`),
 `file` and `private`. Page and meta share one alias table, so a pseudo in `final_url` or in the
 request body gets the same `userN` as in the page. Member names seen in any capture of the manifest
@@ -23,7 +23,7 @@ import _ui  # noqa: E402
 import anonymize as A  # noqa: E402
 
 AQ_HOST = "aq.super-h.fr"
-DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.json")
+DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "corpus.d")
 META_KEYS = ("account", "method", "url_template", "url", "final_url", "status", "content_type", "date",
              "redirects", "set_cookie_names", "request_fields", "origin", "note")
 
@@ -39,14 +39,41 @@ def is_aq_capture(raw_meta):
     return "origin" in raw_meta or any(is_aq_host(raw_meta.get(k)) for k in ("url", "final_url"))
 
 
-def load_manifest(path):
-    """[{raw, id, slug, ext, private}] from a manifest file, validated."""
-    with open(path, encoding="utf-8") as fh:
-        entries = json.load(fh)["captures"]
+def _load_fragment(path):
+    """The validated entries of one manifest file."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            entries = json.load(fh)["captures"]
+    except json.JSONDecodeError as exc:
+        raise ValueError("%s: not valid JSON (%s)" % (path, exc)) from exc
+    except (KeyError, TypeError) as exc:
+        raise ValueError("%s: no `captures` list" % path) from exc
     for e in entries:
         missing = {"raw", "id", "slug", "ext", "private"} - set(e)
         if missing:
-            raise ValueError("manifest entry %r lacks %s" % (e.get("raw"), ", ".join(sorted(missing))))
+            raise ValueError("%s: manifest entry %r lacks %s" % (path, e.get("raw"), ", ".join(sorted(missing))))
+    return entries
+
+
+def load_manifest(path):
+    """[{raw, id, slug, ext, private}] from a manifest file or from a folder of `<batch>.json` fragments (read in
+    file name order), validated. A raw id or a corpus id used twice is refused, naming the files."""
+    if not os.path.isdir(path):
+        files = [path]
+    else:
+        files = [os.path.join(path, n) for n in sorted(os.listdir(path)) if n.endswith(".json")]
+        if not files:
+            raise ValueError("%s: no `<batch>.json` fragment" % path)
+    entries, seen = [], {}
+    for f in files:
+        for e in _load_fragment(f):
+            for key in ("raw", "id"):
+                if (key, e[key]) in seen:
+                    where = seen[(key, e[key])]
+                    raise ValueError("%s %r is in %s and in %s" % (key, e[key], os.path.basename(where),
+                                                                  os.path.basename(f)))
+                seen[(key, e[key])] = f
+            entries.append(e)
     return entries
 
 
