@@ -246,6 +246,29 @@ struct PseudoListEditorModelTests {
         #expect(model.pseudos == ["Deux"])
     }
 
+    /// Text typed while an add waits for the queued removals is kept: the add submits what the field held when the user tapped
+    /// "Ajouter", and empties the field only if it still holds that text.
+    @Test func textTypedWhileAnAddWaitsForRemovalsIsKept() async throws {
+        let persistence = GatedPersistence()
+        let store = PseudoListStore(persistence: persistence)
+        for pseudo in ["Un", "Deux"] { try await store.block(pseudo, account: "moi") }
+        let model = PseudoListEditorModel(kind: .blocklist, manager: PseudoListManager(store: store, account: "moi"))
+        await model.load()
+        persistence.close()
+        let removal = model.remove(at: IndexSet(integer: 0)) // Deux, its write is held
+        model.draft = "Trois"
+        let adding = Task { await model.add() } // waits for the held removal
+        for _ in 0..<20 { await Task.yield() }
+        model.draft = "Quatre" // typed during the wait
+        persistence.open()
+        await removal.value
+        await adding.value
+        #expect(model.draft == "Quatre") // the newer text is not cleared, nor submitted
+        #expect(model.errorMessage == nil)
+        #expect(await store.blocklist(for: "moi").map(\.pseudo).sorted() == ["Trois", "Un"])
+        #expect(model.pseudos == ["Trois", "Un"])
+    }
+
     /// An unreadable file shows its failure instead of an empty list, refuses the add and writes nothing.
     @Test func anUnreadableFileKeepsTheEditorReadOnly() async throws {
         let persistence = UnreadablePersistence()
