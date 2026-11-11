@@ -5,7 +5,8 @@ import UIKit
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) @ 87fe0d1c and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: "Page N"
 // without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
-// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
+// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when
+// the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
