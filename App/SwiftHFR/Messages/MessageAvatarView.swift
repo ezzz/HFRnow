@@ -8,8 +8,8 @@ import UIKit
 // still missing is looked up on their profile while the row is shown (`MemberAvatarPrefetcher`, #714); the placeholder is
 // a monogram, not a grey disc.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a monogram when the cache has none, a group icon for a group
-/// thread; the row sets its size (LOT-169 density). It only reads the cache; `AvatarStore` fills it, and the view reads it again
-/// when the store's generation changes.
+/// thread; the row sets its size (LOT-169 density). It reads the cache, which `AvatarStore` fills, and reads it again when the
+/// store's generation changes; on a miss for a one-to-one row it asks `MemberAvatarPrefetcher` to look the member up (#714).
 struct MessageAvatarView: View {
     let pseudo: String?
     let isGroup: Bool

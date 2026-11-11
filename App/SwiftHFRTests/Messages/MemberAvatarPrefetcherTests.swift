@@ -15,16 +15,16 @@ struct MemberAvatarPrefetcherTests {
         private var asked: [String] = []
         private var running = 0
         private var peak = 0
-        private let answer: @Sendable (String) -> URL?
+        private let answer: @Sendable (String) -> MemberAvatarLookupResult
 
-        init(answer: @escaping @Sendable (String) -> URL? = { _ in MemberAvatarPrefetcherTests.avatar }) {
+        init(answer: @escaping @Sendable (String) -> MemberAvatarLookupResult = { _ in .avatar(MemberAvatarPrefetcherTests.avatar) }) {
             self.answer = answer
         }
 
         var pseudos: [String] { lock.withLock { asked } }
         var maximumConcurrency: Int { lock.withLock { peak } }
 
-        func avatarURL(forPseudo pseudo: String) async -> URL? {
+        func avatar(forPseudo pseudo: String) async -> MemberAvatarLookupResult {
             lock.withLock {
                 asked.append(pseudo)
                 running += 1
@@ -45,14 +45,26 @@ struct MemberAvatarPrefetcherTests {
         func add(_ pseudo: String) { lock.withLock { items.append(pseudo) } }
     }
 
+    /// Stands for the avatar cache: a pseudo is cached from the start, or once offered when `offersAreStored`.
+    private final class Cache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var pseudos: Set<String>
+        init(_ pseudos: Set<String>) { self.pseudos = pseudos }
+        func contains(_ pseudo: String) -> Bool { lock.withLock { pseudos.contains(pseudo.lowercased()) } }
+        func add(_ pseudo: String) { lock.withLock { _ = pseudos.insert(pseudo.lowercased()) } }
+    }
+
     private func prefetcher(
-        _ lookup: ScriptedLookup, cached: Set<String> = [], offers: Offers = Offers(), spacing: Duration = .zero
+        _ lookup: ScriptedLookup, cached: Set<String> = [], offers: Offers = Offers(), spacing: Duration = .zero,
+        retryDelay: Duration = .seconds(60), offersAreStored: Bool = true
     ) -> MemberAvatarPrefetcher {
-        MemberAvatarPrefetcher(
-            lookup: lookup, spacing: spacing, hasAvatar: { cached.contains($0.lowercased()) },
+        let cache = Cache(cached)
+        return MemberAvatarPrefetcher(
+            lookup: lookup, spacing: spacing, retryDelay: retryDelay, hasAvatar: { cache.contains($0) },
             offer: { pseudo, url in
                 #expect(url == Self.avatar)
                 offers.add(pseudo)
+                if offersAreStored { cache.add(pseudo) }
             }
         )
     }
@@ -65,9 +77,9 @@ struct MemberAvatarPrefetcherTests {
         #expect(offers.pseudos == ["user2"])
     }
 
-    /// Never twice: the same pseudo, in any case, after a success or after a lookup that found nothing.
-    @Test func aPseudoIsLookedUpOnceWhateverTheOutcome() async {
-        let lookup = ScriptedLookup { $0 == "user3" ? nil : MemberAvatarPrefetcherTests.avatar }
+    /// Never twice: the same pseudo, in any case, after a success or after HFR said there is no avatar.
+    @Test func aPseudoIsLookedUpOnceOnceHFRAnswered() async {
+        let lookup = ScriptedLookup { $0 == "user3" ? .none : .avatar(MemberAvatarPrefetcherTests.avatar) }
         let offers = Offers()
         let prefetcher = prefetcher(lookup, offers: offers)
         for pseudo in ["user2", "User2", "USER2", "user3", "user3"] {
@@ -75,6 +87,31 @@ struct MemberAvatarPrefetcherTests {
         }
         #expect(lookup.pseudos == ["user2", "user3"])
         #expect(offers.pseudos == ["user2"])
+    }
+
+    /// A failed exchange (a list opened offline) is not asked again at once, and is once its retry time has passed.
+    @Test func aFailedLookupIsRetriedOnlyAfterItsDelay() async throws {
+        let lookup = ScriptedLookup { _ in .failed }
+        let prefetcher = prefetcher(lookup, retryDelay: .milliseconds(200))
+        await prefetcher.prefetch(pseudo: "user2")
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2"])
+        try await Task.sleep(for: .milliseconds(250))
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2", "user2"])
+    }
+
+    /// An avatar the store did not keep (a failed download) counts as a failure: retried after the delay, not at once.
+    @Test func anAvatarNotStoredIsRetriedOnlyAfterItsDelay() async throws {
+        let lookup = ScriptedLookup()
+        let offers = Offers()
+        let prefetcher = prefetcher(lookup, offers: offers, retryDelay: .milliseconds(200), offersAreStored: false)
+        await prefetcher.prefetch(pseudo: "user2")
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(lookup.pseudos == ["user2"])
+        try await Task.sleep(for: .milliseconds(250))
+        await prefetcher.prefetch(pseudo: "user2")
+        #expect(offers.pseudos == ["user2", "user2"])
     }
 
     @Test func aCachedAvatarOrABlankPseudoIsNotLookedUp() async {
@@ -159,7 +196,7 @@ struct MemberAvatarPrefetcherTests {
         let rig = try liveRig()
         let html = try #require(String(data: try LiveTopicPageSourceTests.capture("R56b-profile-other-member-anon.html"), encoding: .utf8))
         let expected = try #require(try UserProfileParser.parse(html: html).avatarURL)
-        #expect(await rig.lookup.avatarURL(forPseudo: "user two") == expected)
+        #expect(await rig.lookup.avatar(forPseudo: "user two") == .avatar(expected))
         #expect(await rig.session.requests.isEmpty)
         let requests = await rig.anonymous.requests
         #expect(requests.map(\.url.absoluteString) == [
@@ -170,12 +207,19 @@ struct MemberAvatarPrefetcherTests {
         #expect(requests.allSatisfy { $0.headers["Cookie"] == nil })
     }
 
-    /// An unknown pseudo (`R716d`: empty id) stops after the first request; a location that is not a profile too.
+    /// An unknown pseudo (`R716d`: empty id) stops after the first request, as HFR's answer; a location that is not a profile too.
     @Test(arguments: ["/hfr/profil-.htm", "/forum2.php?config=hfr.inc", "https://evil.example/hfr/profil-910002.htm"])
     func anUnknownMemberCostsOneRequest(location: String) async throws {
         let rig = try liveRig(location: location)
-        #expect(await rig.lookup.avatarURL(forPseudo: "user3") == nil)
+        #expect(await rig.lookup.avatar(forPseudo: "user3") == .none)
         #expect(await rig.anonymous.requests.count == 1)
         #expect(await rig.session.requests.isEmpty)
+    }
+
+    /// A failed exchange is `.failed`, not "no avatar", so the prefetcher asks again later.
+    @Test func aTransportFailureIsAFailure() async {
+        let offline = MockTransport { _ async throws(NetworkError) -> HTTPResponse in throw .offline }
+        let lookup = LiveMemberAvatarLookup(fetcher: PageFetcher(session: MockTransport(replies: []), anonymous: offline))
+        #expect(await lookup.avatar(forPseudo: "user2") == .failed)
     }
 }
