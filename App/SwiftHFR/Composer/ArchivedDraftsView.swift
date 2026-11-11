@@ -38,16 +38,16 @@ struct ArchivedDraftsView: View {
             if model.canArchiveCurrent {
                 Section {
                     Button { Task { await model.archiveAndClear(); onDone() } } label: {
-                        Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
+                        Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down").densityInnerMargin()
                     }
                 }
             }
             Section {
                 if model.archivedDrafts.isEmpty {
-                    Text("Aucun brouillon archivé").foregroundStyle(.secondary)
+                    Text("Aucun brouillon archivé").foregroundStyle(.secondary).densityInnerMargin()
                 } else {
                     ForEach(model.archivedDrafts) { draft in
-                        Button { Task { await model.use(draft); onDone() } } label: { row(draft) }
+                        Button { Task { await model.use(draft); onDone() } } label: { row(draft).densityInnerMargin() }
                             .buttonStyle(.plain)
                             .disabled(model.isMovingDrafts)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {

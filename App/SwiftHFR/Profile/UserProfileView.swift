@@ -37,20 +37,25 @@ struct UserProfileView: View {
                 if let error = model.error {
                     LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                 }
-                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model)
+                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityInnerMargin()
                 ForEach(profile.sections) { section in
-                    Section(section.title) {
-                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open) }
+                    Section {
+                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityInnerMargin() }
+                    } header: {
+                        Text(section.title).densityInnerMargin()
                     }
                 }
                 if !profile.personalSmilies.isEmpty {
                     ProfileSmileysSection(
                         smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
                     )
+                    .densityInnerMargin()
                 }
                 if !profile.actions.isEmpty {
-                    Section("Liens") {
-                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open) }
+                    Section {
+                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityInnerMargin() }
+                    } header: {
+                        Text("Liens").densityInnerMargin()
                     }
                 }
             }

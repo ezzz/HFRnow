@@ -22,6 +22,7 @@ struct ForumSearchView: View {
             formSection
             resultsSection
         }
+        .densityListMargins()
         .navigationTitle("Recherche")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { pagerToolbar }

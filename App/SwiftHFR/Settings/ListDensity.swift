@@ -31,6 +31,12 @@ enum ListDensity: Sendable {
         }
     }
 
+    /// System inner side inset of an inset-grouped row and of its section header.
+    static let systemInnerMargin: CGFloat = 16
+
+    /// How far the density moves a system-inset row sideways (negative: towards the card edge).
+    var innerMarginShift: CGFloat { rowInsets.leading - Self.systemInnerMargin }
+
     /// Space between list sections (legacy compact favourites: 6).
     var sectionSpacing: ListSectionSpacing {
         switch self {
@@ -97,22 +103,32 @@ extension EnvironmentValues {
     @Entry var listDensity = ListDensity.regular
 }
 
-/// Sets the outer side margin of a list from the density; regular leaves the system's.
+/// Sets the outer side margin of a list from the density; a nil margin is the system layout, so the list keeps its identity
+/// (scroll position, row state) when the density changes.
 private struct DensityListMargins: ViewModifier {
     @Environment(\.listDensity) private var density
 
     func body(content: Content) -> some View {
-        if let margin = density.outerMargin {
-            content.contentMargins(.horizontal, margin, for: .scrollContent)
-        } else {
-            content
-        }
+        content.contentMargins(.horizontal, density.outerMargin, for: .scrollContent)
+    }
+}
+
+/// Moves a row's or a section header's content from the system's inner side inset to the density's.
+private struct DensityInnerMargin: ViewModifier {
+    @Environment(\.listDensity) private var density
+
+    func body(content: Content) -> some View {
+        content.padding(.horizontal, density.innerMarginShift)
     }
 }
 
 extension View {
     /// Makes an inset-grouped list's outer side margin follow the density (#799); the rows' inner margin is `rowInsets`.
+    /// Only for `.insetGrouped` lists: on a plain list the margin would leave the row backgrounds short of the screen edge.
     func densityListMargins() -> some View { modifier(DensityListMargins()) }
+
+    /// Aligns a row (or a section header) that keeps the system's inset with the rows that read `rowInsets` (#799).
+    func densityInnerMargin() -> some View { modifier(DensityInnerMargin()) }
 
     /// Applies the type scale and the list density to every screen below (LOT-169): the default font, the row height and
     /// the section spacing of every list, and the environment values rows and the reader read.

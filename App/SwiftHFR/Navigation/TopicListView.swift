@@ -240,6 +240,7 @@ struct TopicListView: View {
                 .accessibilityLabel(group.isCollapsed ? "Déplier \(title)" : "Plier \(title)")
             }
         }
+        .densityInnerMargin()
     }
 
     @ViewBuilder
