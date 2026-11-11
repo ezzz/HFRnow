@@ -138,7 +138,9 @@ table.spoiler { width: 100%; cursor: pointer; border: 1px dashed var(--quote-bor
 table.spoiler div.masque { visibility: hidden; }
 table.spoiler.open div.masque { visibility: visible; }
 
-.signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px dashed var(--separator); font-size: 0.85em; color: var(--secondary); }
+/* HFR's dashes are dropped by the normalizer (#755); the line is one thin full-width rule, as legacy's 1px top border
+   (style-liste-light.css:79 @ 87fe0d1c), solid in the theme's separator colour. */
+.signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px solid var(--separator); font-size: 0.85em; color: var(--secondary); }
 .signature > br:first-child, .content span.signature { display: none; }
 
 /* Images and videos that wait for a tap, and refused images shown as their URL (LOT-071 D-071-1, D-071-2). */
