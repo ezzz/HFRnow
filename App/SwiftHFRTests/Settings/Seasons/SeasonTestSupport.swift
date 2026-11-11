@@ -7,9 +7,11 @@ import HFRStorage
 final class SeasonTestClock {
     var now: Date
     var reduceMotion = false
+    /// The device's time zone, which the user may change during a run.
+    var timeZone = SeasonTestClock.calendar.timeZone
 
-    init(_ day: Int, _ month: Int, _ year: Int, hour: Int = 10) {
-        now = Self.date(day, month, year, hour: hour)
+    init(_ day: Int, _ month: Int, _ year: Int, hour: Int = 10, minute: Int = 0) {
+        now = Self.date(day, month, year, hour: hour, minute: minute)
     }
 
     func move(to day: Int, _ month: Int, _ year: Int, hour: Int = 10) {
@@ -30,6 +32,6 @@ final class SeasonTestClock {
 
     /// A model on `store` reading this clock, as the app builds it at each launch.
     func model(store: any SettingsStore) -> SeasonalThemeModel {
-        SeasonalThemeModel(store: store, now: { self.now }, calendar: Self.calendar, reduceMotion: { self.reduceMotion })
+        SeasonalThemeModel(store: store, now: { self.now }, timeZone: { self.timeZone }, reduceMotion: { self.reduceMotion })
     }
 }

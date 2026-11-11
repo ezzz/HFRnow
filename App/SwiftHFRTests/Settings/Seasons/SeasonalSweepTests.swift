@@ -38,6 +38,36 @@ struct SeasonalSweepTests {
         #expect(store.value(for: SettingKey.noelActiveYear) == nil)
     }
 
+    /// The user moves to another zone during a run: 30/11 23:30 UTC is still November in UTC and already 01/12 in Paris.
+    @Test func aTimeZoneChangeDuringARunIsFollowed() {
+        let clock = SeasonTestClock(1, 12, 2026, hour: 0, minute: 30)
+        clock.timeZone = .gmt
+        let store = InMemorySettingsStore()
+        let model = clock.model(store: store)
+        #expect(model.sceneDidBecomeActive().isEmpty)
+        #expect(!model.isSelectable)
+        clock.timeZone = SeasonTestClock.calendar.timeZone
+        #expect(model.sceneDidBecomeActive() == [.arrival(year: 2026, switchedOn: true, sleigh: true)])
+        #expect(model.isSelectable)
+    }
+
+    /// A clock that ran a year ahead, then was set back: the later season's theme is restored before this one switches on, so
+    /// two saved themes never coexist.
+    @Test func aThemeSwitchedOnUnderAClockAheadIsRestoredWhenTheClockGoesBack() {
+        let clock = SeasonTestClock(5, 12, 2027)
+        let store = InMemorySettingsStore()
+        clock.model(store: store).sceneDidBecomeActive()
+        #expect(store.value(for: SettingKey.noelActiveYear) == 2027)
+        clock.move(to: 5, 12, 2026)
+        let model = clock.model(store: store)
+        #expect(model.sceneDidBecomeActive() == [
+            .restoredSilently(year: 2027), .arrival(year: 2026, switchedOn: true, sleigh: true)
+        ])
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2027)) == nil)
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == SeasonalThemeModel.legacyThemeID)
+        #expect(store.value(for: SettingKey.noelActiveYear) == 2026)
+    }
+
     /// A Buddhist (2569) or Japanese (Reiwa 8) device still names the 2026 season after 2026, in its own time zone.
     @Test(arguments: [Calendar.Identifier.buddhist, .japanese])
     func seasonYearsAreGregorianWhateverTheDeviceCalendar(identifier: Calendar.Identifier) {
@@ -47,7 +77,7 @@ struct SeasonalSweepTests {
         #expect(NoelCalendar.seasonYear(of: date, in: device) == 2026)
         #expect(NoelCalendar.phase(of: date, in: device) == .switchOn)
         let store = InMemorySettingsStore()
-        let model = SeasonalThemeModel(store: store, now: { date }, calendar: device, reduceMotion: { false })
+        let model = SeasonalThemeModel(store: store, now: { date }, timeZone: { device.timeZone }, reduceMotion: { false })
         #expect(model.sceneDidBecomeActive() == [.arrival(year: 2026, switchedOn: true, sleigh: true)])
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == SeasonalThemeModel.legacyThemeID)
     }
