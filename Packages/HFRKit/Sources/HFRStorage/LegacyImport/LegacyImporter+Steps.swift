@@ -16,10 +16,16 @@ extension LegacyImporter {
         guard !records.isEmpty else { return .nothingToImport }
         // Legacy's main account is the last one flagged (`getMainCompte`, `MultisManager.m:168-176`).
         let mainPseudo = records.last { $0.isMain }?.pseudo
+        // An account erased from this device (LOT-157) is not brought back; when it was legacy's main account, the global
+        // items stay its own (skipped by their steps), not given to the account logged in now.
+        let erased = erasedKeys ?? []
+        let isErased = { (pseudo: String?) in pseudo.map { erased.contains(ErasedAccountsEnvelope.key($0)) } ?? false }
+        let kept = records.filter { !isErased($0.pseudo) }
+        let erasedMain = isErased(mainPseudo) ? mainPseudo.map(PseudoNormalizer.cleaned) : nil
         do {
-            let result = try container.credentialsUpdate(destinations.credentials, records, mainPseudo)
+            let result = try container.credentialsUpdate(destinations.credentials, kept, erasedMain == nil ? mainPseudo : nil)
             report.rejectedItems += result.rejected
-            legacyMainAccount = result.mainPseudo
+            legacyMainAccount = erasedMain ?? result.mainPseudo
             return result.imported > 0 ? .imported(result.imported) : .nothingToImport
         } catch {
             return .failed(.destinationFailed)
@@ -80,11 +86,16 @@ extension LegacyImporter {
         } catch {
             return .failed(.destinationFailed)
         }
+        // An erased account's list may be keyed by its legacy display name, read from legacy's Keychain: unreadable, the
+        // list could come back, so the step waits for the next run.
+        guard let erased = erasedListNames() else { return .failed(.sourceUnavailable) }
         var imported = 0
         do {
             for (name, pseudos) in lists.sorted(by: { $0.key < $1.key }) {
                 // Legacy keyed lists by display name (`BlackList.m:91-103`): file them under the account's pseudo.
                 let account = book.account(matching: name)?.pseudo ?? name
+                // The blocklist of an account erased from this device is not brought back (LOT-157).
+                if erased.contains(ErasedAccountsEnvelope.key(account)) { continue }
                 for pseudo in pseudos {
                     imported += try await added(report: &report) { try await $0.block(pseudo, account: account) }
                 }
@@ -96,6 +107,20 @@ extension LegacyImporter {
             return .failed(.destinationFailed)
         }
         return imported > 0 ? .imported(imported) : .nothingToImport
+    }
+
+    /// The keys an erased account's legacy list can be filed under: its pseudo, and its legacy display name (legacy keyed
+    /// lists by display name, and an erased account is no longer in the book to translate it). Nil when there are erased
+    /// accounts and legacy's accounts cannot be read.
+    private func erasedListNames() -> Set<String>? {
+        var names = erasedKeys ?? []
+        guard !names.isEmpty else { return names }
+        guard let records = try? container.accounts.accounts() else { return nil }
+        for record in records {
+            guard let pseudo = record.pseudo, names.contains(ErasedAccountsEnvelope.key(pseudo)) else { continue }
+            if let name = record.displayName { names.insert(ErasedAccountsEnvelope.key(name)) }
+        }
+        return names
     }
 
     /// 1 when the store added the pseudo, 0 when it was there; an empty pseudo is counted as rejected.

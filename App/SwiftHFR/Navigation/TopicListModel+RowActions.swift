@@ -10,7 +10,7 @@ extension TopicListModel {
     /// The row has a flag the user can act on: every row of flags and favourites, a forum row with a flag colour or a flag
     /// link (legacy `topicHasFlag`, `MainWindow.swift:444-449`), until its flag is removed.
     func hasFlag(_ topic: TopicSummary) -> Bool {
-        (source.isFavoritesList || topic.flag != nil || topic.flagPath != nil) && removedFlags[topic.id] == nil
+        (source.isFavoritesList || loadedFilter != .all || topic.flag != nil || topic.flagPath != nil) && removedFlags[topic.id] == nil
     }
 
     /// The user marked the row "Lu" since the last load.

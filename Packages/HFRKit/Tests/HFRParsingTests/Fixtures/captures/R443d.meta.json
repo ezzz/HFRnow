@@ -1,0 +1,23 @@
+{
+  "id": "R443d",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of a composer, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:19:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview only, no write (#443)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=%5B%2A%5Done%0D%0A%5B%2A%5Dtwo%0D%0A%5B%2A%5Dthree%0D%0A%0D%0A%5Blist%5D%0D%0A%5B%2A%5Done%0D%0A%5B%2A%5Dtwo%0D%0A%5B%2A%5Dthree%0D%0A%5B%2Flist%5D%0D%0Amiddle+%5B%2A%5D+of+a+line%0D%0A%5B%2A%5D%0D%0Aend&apercu_smiley=0&config=hfr.inc",
+  "file": "R443d-apercu-bullets.html",
+  "private": false
+}

@@ -615,6 +615,65 @@ class PositionTests(unittest.TestCase):
         self.assertIn('<span class="signature">Signature removed.</span><div id="after">kept</div>', out)
         self.assertEqual(leaks(out), [])
 
+    def test_redacted_signature_allows_only_br_and_one_clear_div(self):
+        sig = '<span class="signature">%s</span>'
+        for ok in ("Signature removed.", "Signature removed.<br />", "Signature removed.<br /><div style=\"clear: both;\"></div>",
+                   "<br />Signature removed.<div style=\"clear: both;\"></div>"):
+            self.assertEqual(A.verify_structure(sig % ok), [], ok)
+        for bad in ('Signature removed.<img src="https://example.org/x.png" alt="handle" />',
+                    '<a href="https://example.org/">Signature removed.</a>',
+                    'Signature removed.<b>x</b>', 'Signature removed.<div>x</div>',
+                    'Signature removed.<div style="clear: both;"></div><div style="clear: both;"></div>',
+                    'Signature removed.<br class="x" />'):
+            self.assertTrue(A.verify_structure(sig % bad), bad)
+        for bad in ('<!-- Real Handle -->', '<?Real Handle>', '<![CDATA[Real Handle]]>', '<!DOCTYPE RealHandle>',
+                    '</img src="https://example.org/h.png">', '</br title="Real Handle">'):
+            self.assertTrue(A.verify_structure(sig % ("Signature removed." + bad)), bad)
+        self.assertTrue(A.verify_structure(
+            '<span class="signature" title="Real Handle">Signature removed.</span>'))
+        for bad in ('<span class="signature">Signature removed.</span title="Real Handle">',
+                    '<span class="signature">Signature removed.<div style="clear: both;"></div title="Real Handle"></span>',
+                    '<span class="signature" class="x">Real Handle<img src="https://example.org/h.png" /></span>'):
+            self.assertTrue(A.verify_structure(bad), bad)
+        self.assertEqual(A.verify_structure('<span class="signature">Signature removed.<div style="CLEAR: BOTH;"></div></span>'), [])
+        for bad in ('<span class="signature">Signature removed.<div style="background:url(https://example.org/h.png)" '
+                    'style="clear: both;"></div></span>',
+                    '<div><table><tr><td><span class="signature">Signature removed.</div>'
+                    '<img src="https://example.org/h.png" alt=""></span></td></tr></table></div>',
+                    '<span class="signature"/><img src="https://example.org/h.png" alt=""></span>',
+                    '<div><table><tr><td><span class="signature">Signature removed.<div style="clear: both;"/></span>'
+                    '<img src="https://example.org/h.png" alt=""></td></tr></table></div>',
+                    '<div><table><tr><td><span class="signature">Signature removed.<div/style="clear: both;"/></span>'
+                    '<img src="https://example.org/h.png" alt=""></td></tr></table></div>',
+                    '<span class="signature">Signature removed.<div style="clear: both;" '
+                    'style="background:url(https://example.org/h.png)"></div></span>'):
+            self.assertTrue(A.verify_structure(bad), bad)
+        for bad in ('<img src="x.png" alt="" />', '<a href="https://example.org/">Mood removed.</a>',
+                    '<div style="clear: both;"></div><div style="clear: both;"></div>', '<!-- Real Handle -->'):
+            self.assertTrue(A.verify_structure('<span class="MoodStatus">Mood removed.%s</span>' % bad), bad)
+
+    def test_signature_keeps_hfrs_separator_and_clear_div(self):
+        # #267 (`R267a`): HFR opens the span with fifteen dashes and `<br />` and closes it with its clear div.
+        html = (post("Bravo") + '<span class="signature"> ---------------\n\t\t\t<br /><strong> <a href="https://example.org/c/'
+                'JeanExemple">Jean Exemple</a> </strong> <br /><div style="clear: both;"> </div></span><div id="after">kept</div>')
+        out = anon(html)
+        _absent(self, out, "Jean Exemple", "JeanExemple", "example.org")
+        self.assertIn('<span class="signature"> ---------------\n\t\t\t<br />Signature removed.<div style="clear: both;"> </div>'
+                      '</span><div id="after">kept</div>', out)
+        self.assertEqual(leaks(out), [])
+
+    def test_signature_dashes_typed_by_the_member_are_not_kept(self):
+        # Sixteen dashes, or dashes not followed by `<br />`, are the member's text: replaced like the rest.
+        for inner in ("----------------<br />Jean Exemple", "--------------- Jean Exemple<br />"):
+            out = anon(post("Bravo") + '<span class="signature">%s</span>' % inner)
+            self.assertIn('<span class="signature">Signature removed.</span>', out)
+            _absent(self, out, "Jean Exemple")
+
+    def test_signature_check_accepts_only_the_separator_before_the_placeholder(self):
+        self.assertEqual(leaks('<span class="signature"> ---------------\n<br />Signature removed.</span>'), [])
+        self.assertNotEqual(leaks('<span class="signature"> ---------------\n<br />Jean Exemple</span>'), [])
+        self.assertNotEqual(leaks('<span class="signature">Signature removed. Jean</span>'), [])
+
     def test_quotemsg_third_value_uses_the_id_table(self):
         html = ('<a href="/hfr/profil-555123.htm">x</a><a href="/hfr/profil-555124.htm">y</a>'
                 '<textarea name="content_form">[quotemsg=99,1,555124]q[/quotemsg]</textarea>'

@@ -152,7 +152,7 @@ order.
    "Hooray" toast becomes HFR's own sentence.
 2. Drafts per topic and account in LOT-063's file store, saved while typing (legacy: `UserDefaults`, saved on dismiss
    only, one store for every account); the archived drafts list (legacy `ReplyDraftPickerSheet`, 3 per topic) is not
-   ported here: it is LOT-101 (M4, legacy at `2fe43da3`, #655).
+   ported here: it is [LOT-101](LOT-101-archived-drafts.md) (M4, legacy at `2fe43da3`, #655), which keeps it in the same store.
 3. Cancel asks keep / discard; swipe-down is blocked while there is text (legacy: swipe kept or lost the text depending
    on the path, user feedback p. 498-506).
 4. Non-BMP characters refused before sending, with the list (legacy Swift sent them and HFR cut the message).

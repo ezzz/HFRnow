@@ -1,0 +1,22 @@
+{
+  "id": "R333b",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/forum1.php?config=hfr.inc&cat=prive&page=2",
+  "url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2",
+  "final_url": "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 18:25:14 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "user1's MP list page 2 once the storage row left page 1 (#333)",
+  "file": "R333b-mp-list-p2-storage-row-first.html",
+  "private": true
+}

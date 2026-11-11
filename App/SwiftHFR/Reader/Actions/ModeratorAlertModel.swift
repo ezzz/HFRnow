@@ -116,7 +116,7 @@ final class ModeratorAlertModel {
 }
 
 /// The mail fallback of legacy (`MessagesView.swift:4572-4585` @ 87fe0d1c): the user writes to the forum's moderation address,
-/// which the build injects (Q-10, ADR 0007: a third party's address stays out of source).
+/// which the build carries as a setting (Q-10: committed in `Shared.xcconfig`, a public contact address, not a key).
 enum ModeratorAlertMail {
     /// The Info.plist key holding the address (`App/Config/Info-Keys.plist`, from `MODERATOR_ALERT_MAIL_ADDRESS`).
     static let addressKey = "ModeratorAlertMailAddress"

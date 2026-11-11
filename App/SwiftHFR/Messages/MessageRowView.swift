@@ -11,6 +11,8 @@ struct MessageRowView: View {
     let isUnread: Bool
     /// The row is the list's selection (iPad): the system highlight must show, so the tint steps aside.
     var isSelected = false
+    /// A group row's MPStorage position, `⚑ <page> / <max>` (LOT-130); nil shows the interlocutors.
+    var flagLabel: String?
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -97,9 +99,11 @@ struct MessageRowView: View {
         return "\(who) · \(lastPost)"
     }
 
-    /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`).
+    /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`), or
+    /// the group's MPStorage position instead, as legacy shows it (`MPListView.swift:775-786` @ 87fe0d1c).
     private var who: String {
         guard thread.isGroup else { return thread.summary.starterOrInterlocutors }
+        if let flagLabel { return flagLabel }
         return ["Interlocuteurs multiples", counts].compactMap { $0 }.joined(separator: " · ")
     }
 
