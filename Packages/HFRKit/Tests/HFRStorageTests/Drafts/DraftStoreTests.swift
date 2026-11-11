@@ -145,6 +145,20 @@ private struct Fixture {
         #expect(await store.drafts(account: "other").count == 1)
     }
 
+    @Test func accountKeysListEveryAccountWithAStoredDraftExpiredIncluded() async throws {
+        let fixture = makeStore(timeToLive: 10 * 86_400)
+        let (store, clock) = (fixture.store, fixture.clock)
+        #expect(await store.accountKeys().isEmpty)
+        try await store.save("old", for: .legacyGlobal, account: "Me")
+        try await store.save("c", for: .legacyGlobal, account: "other")
+        clock.advance(days: 11)
+        // Expired, so invisible to reads, but still in the file until a write purges it.
+        #expect(await store.drafts(account: "me").isEmpty)
+        #expect(await store.accountKeys() == ["me", "other"])
+        try await store.discardAll(account: "me")
+        #expect(await store.accountKeys() == ["other"])
+    }
+
     @Test func expiredDraftsAreInvisibleThenPurged() async throws {
         let fixture = makeStore(timeToLive: 10 * 86_400)
         let (store, persistence, clock) = (fixture.store, fixture.persistence, fixture.clock)

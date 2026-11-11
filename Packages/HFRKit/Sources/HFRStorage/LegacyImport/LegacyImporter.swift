@@ -43,6 +43,8 @@ public struct LegacyImportDestinations: Sendable {
     public var pending: LegacyPendingStore
     /// The settings suite (LOT-060), where `mpstorage_active` is read.
     public var settings: any SettingsStore
+    /// The accounts erased from this device (LOT-157): never imported again, nor their legacy items; nil: none.
+    public var erasedAccounts: (any ErasedAccountStore)?
 
     /// Creates the destinations.
     public init(
@@ -55,7 +57,8 @@ public struct LegacyImportDestinations: Sendable {
         uploads: RehostUploadHistoryStore,
         drafts: DraftStore,
         pending: LegacyPendingStore,
-        settings: any SettingsStore
+        settings: any SettingsStore,
+        erasedAccounts: (any ErasedAccountStore)? = nil
     ) {
         self.credentials = credentials
         self.pseudoLists = pseudoLists
@@ -67,6 +70,7 @@ public struct LegacyImportDestinations: Sendable {
         self.drafts = drafts
         self.pending = pending
         self.settings = settings
+        self.erasedAccounts = erasedAccounts
     }
 }
 
@@ -82,8 +86,11 @@ public actor LegacyImporter {
     private var state: SmallStoreState<LegacyImportStateDocument>
     /// The SwiftHFR pseudo of the legacy main account, set by the accounts step of this run.
     var legacyMainAccount: String?
-    /// The run in progress: runs are serialized, so two overlapping calls (launch, login) never save over each other.
-    private var currentRun: Task<LegacyImportReport, Never>?
+    /// The erased accounts' keys as this run read them; nil when the list could not be read (LOT-157).
+    var erasedKeys: Set<String>? = []
+    /// The last queued call: runs and `forget` are serialized, so two overlapping calls (launch, login, a wipe) never
+    /// save over each other, and a run never misses an account erased before it started.
+    private var tail: Task<Void, Never>?
 
     /// Creates an importer; `state` holds what was done on this device (`migration.legacyImport.version`).
     public init(
@@ -99,17 +106,46 @@ public actor LegacyImporter {
     /// Runs every step not done yet. `currentAccount` is the pseudo of the account logged in now: it receives the
     /// legacy app's global items when legacy had no main account (decision D3).
     public func run(currentAccount: String? = nil, now: Date = .now) async -> LegacyImportReport {
-        let previous = currentRun
+        await enqueue { await self.runSteps(currentAccount: currentAccount, now: now) }
+    }
+
+    /// Records that `pseudo`'s account was erased from this device (LOT-157), after any run in progress: no later run
+    /// imports it or the legacy items it would receive. Nothing is recorded once the import is complete and the legacy
+    /// Keychain lists no such account (nothing could come back), so an erased pseudo is not kept for nothing.
+    public func forget(account pseudo: String) async throws {
+        let result: Result<Void, any Error> = await enqueue { await self.recordErased(pseudo) }
+        try result.get()
+    }
+
+    private func enqueue<Value: Sendable>(_ work: @escaping @Sendable () async -> Value) async -> Value {
+        let previous = tail
         let task = Task {
             _ = await previous?.value
-            return await self.runSteps(currentAccount: currentAccount, now: now)
+            return await work()
         }
-        currentRun = task
+        tail = Task { _ = await task.value }
         return await task.value
+    }
+
+    private func recordErased(_ pseudo: String) -> Result<Void, any Error> {
+        guard let store = destinations.erasedAccounts else { return .success(()) }
+        let key = ErasedAccountsEnvelope.key(pseudo)
+        guard !key.isEmpty else { return .success(()) }
+        let complete = state.document().map { Set($0.done) == Set(LegacyImportStep.allCases) } ?? false
+        if complete, let records = try? container.accounts.accounts(),
+           !records.contains(where: { $0.pseudo.map(ErasedAccountsEnvelope.key) == key }) {
+            return .success(())
+        }
+        return Result { try store.insert(pseudo) }
     }
 
     private func runSteps(currentAccount: String?, now: Date) async -> LegacyImportReport {
         var report = LegacyImportReport()
+        do {
+            erasedKeys = try destinations.erasedAccounts?.keys() ?? []
+        } catch {
+            erasedKeys = nil
+        }
         guard let stored = state.document() else {
             for step in LegacyImportStep.allCases { report.outcomes[step] = .failed(.destinationFailed) }
             return report
@@ -157,6 +193,16 @@ public actor LegacyImporter {
         }
     }
 
+    /// Why a step writes nothing because of the erased accounts (LOT-157), or nil when it runs.
+    private func erasedOutcome(of step: LegacyImportStep, account: String) -> LegacyImportOutcome? {
+        guard step.writesForAnAccount else { return nil }
+        // An unreadable list could let an erased account back in: these steps wait for the next run.
+        guard let erasedKeys else { return .failed(.sourceUnavailable) }
+        // The items legacy gives one account are not imported for an erased one, nor moved to another.
+        if step.needsGlobalAccount, erasedKeys.contains(ErasedAccountsEnvelope.key(account)) { return .nothingToImport }
+        return nil
+    }
+
     /// The account logged in now, when the accounts step found no legacy main account (decision D3).
     private static func cleanedAccount(_ pseudo: String?) -> String? {
         let cleaned = pseudo.map(PseudoNormalizer.cleaned) ?? ""
@@ -171,7 +217,12 @@ public actor LegacyImporter {
         now: Date,
         report: inout LegacyImportReport
     ) async -> LegacyImportOutcome {
-        let outcome = await perform(step, globalAccount: current.globalAccount, now: now, report: &report)
+        let outcome: LegacyImportOutcome
+        if let skipped = erasedOutcome(of: step, account: current.globalAccount ?? "") {
+            outcome = skipped
+        } else {
+            outcome = await perform(step, globalAccount: current.globalAccount, now: now, report: &report)
+        }
         if step == .accounts, outcome.isDone, current.globalAccount == nil {
             current.globalAccount = legacyMainAccount ?? Self.cleanedAccount(currentAccount)
         }

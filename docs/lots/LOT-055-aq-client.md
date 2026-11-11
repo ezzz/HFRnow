@@ -54,7 +54,7 @@ Rules:
 last check 2026-10-01, `newCount` 2).
 
 Captured since: the create's success on the live host (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)) and its refusals on a
-local instance (`T52`-`T71`, #574); the server's own contract (secondary source, ADR 0015) is in HFR-PROTOCOL §8.
+local instance (`T52`-`T71`, #574; `T72`-`T90`, #611: values the database refuses, by `sql_mode`); the server's own contract (secondary source, ADR 0015) is in HFR-PROTOCOL §8.
 
 ## Create (left out)
 Legacy wire facts, for the create follow-up (#531 captured): POST `<base>/api/addAlerte.php`, `Content-Type:

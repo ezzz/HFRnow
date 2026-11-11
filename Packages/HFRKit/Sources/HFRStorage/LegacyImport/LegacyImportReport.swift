@@ -28,6 +28,11 @@ public enum LegacyImportStep: String, Sendable, Hashable, Codable, CaseIterable,
         self == .superFavorites || self == .smileyFavorites || self == .drafts
     }
 
+    /// Steps that write under an account's pseudo, so they read the erased accounts first (LOT-157).
+    var writesForAnAccount: Bool {
+        needsGlobalAccount || self == .accounts || self == .pseudoLists
+    }
+
     public static func < (lhs: Self, rhs: Self) -> Bool {
         (allCases.firstIndex(of: lhs) ?? 0) < (allCases.firstIndex(of: rhs) ?? 0)
     }

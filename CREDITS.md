@@ -25,6 +25,12 @@ Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperH
 | `Icon-BLUE`, `Icon-WHITE` | Legacy 1024 px image, unchanged, in a one-layer `.icon` | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
 | `Icon-CLASSIC`, `Icon-CLASSIC-RED`, `Icon-REDFACE`, `Icon-REDFACEBLUE`, `Icon-BETA` | Legacy designs redrawn as SVG for SwiftHFR (the legacy images stop at 180 px), under this repository's licence | Designs by FLKone (`Icon-CLASSIC`, `Icon-REDFACE`, `Icon-BETA`, 2017) and by Bruno / ezzz (`Icon-CLASSIC-RED`, `Icon-REDFACEBLUE`, 2025), in the legacy history |
 
+**Category icons.** The icons of the Catégories list (`App/SwiftHFR/Assets.xcassets/CategoryIcons/`) are the legacy HFR+ images, unchanged (ezzz/HFRnow `legacy/duo-inner-cover` @ `87fe0d1c`, `SuperHFRplus/Assets/UI/`, `*Filled-40`, `Debian-40`, `cat-apple`): credit to FLKone and the HFR+ contributors, ezzz and the HFRnow contributors; the legacy README and credits page thank [icons8](https://icons8.com/) for its icons.
+
+### Import worker
+
+The construction worker shown while the first-launch import runs (#754, `App/SwiftHFR/Assets.xcassets/ImportWorker*.imageset`). Original drawing in the style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6), generated from the committed script `tooling/art/import-worker/make.py` (hand-placed vector shapes, standard library only; no traced, downloaded or existing character), under this repository's licence. Made by Claude Code (Sonnet 5.5) for the operator; the previews are rendered by `tooling/art/import-worker/render.mjs`.
+
 ## Contributors
 
 Everyone who contributed to the projects above, and every contributor listed in this repository's history.

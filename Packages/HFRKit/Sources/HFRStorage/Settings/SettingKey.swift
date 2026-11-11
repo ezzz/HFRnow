@@ -24,6 +24,10 @@ public enum SettingKey {
     /// in the "flags and favorites" mode. Legacy never registered a default: absent reads false.
     public static let favoritesShowsCollapsedSections = Setting.bool("FavoritesShowCollapsedSections", default: false)
 
+    /// `HFRswiftGlobalTopicListFlag` (`MainWindow.swift:305` @ 87fe0d1c, `ForumTopicsListView`): the last Tous / Favoris / Suivis / Lus
+    /// choice, one for every forum. An unknown value reads as "Tous", like legacy's `?? .all`. Device-only UI state.
+    public static let topicListFlag = Setting.integerEnum("HFRswiftGlobalTopicListFlag", default: TopicListFlag.all)
+
     // MARK: Interface
 
     /// `compact_mode`.
@@ -66,6 +70,12 @@ public enum SettingKey {
     public static let appIconName = Setting.string("icon", default: "superblue")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
+    /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
+    /// never synced.
+    public static let appLockEnabled = Setting.bool("app_lock_enabled", default: false)
+    /// `app_lock_grace_seconds` (LOT-173, new key): time in the background before the lock applies again, 0, 60 or 300;
+    /// any other value reads as 0 (lock at once). Never synced.
+    public static let appLockGraceSeconds = Setting.int("app_lock_grace_seconds", default: 0, isValid: { [0, 60, 300].contains($0) })
     /// `HFRswiftStartupScreen` (`Common.swift:32-37`): an unknown value falls back to the favourites default, like
     /// `AppStartupScreen.rootTab(for:)`. Added by LOT-119, which owns the settings screen.
     public static let startupScreen = Setting.stringEnum("HFRswiftStartupScreen", default: StartupScreen.favorites).synced
@@ -175,13 +185,13 @@ public enum SettingKey {
 
     /// Every setting of the catalogue with its scope, in catalogue order.
     public static let all: [any CatalogueSetting] = [
-        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, compactMode,
+        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

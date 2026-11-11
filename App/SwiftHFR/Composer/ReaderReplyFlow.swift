@@ -20,6 +20,7 @@ struct ReaderReplyFlow: ViewModifier {
             }
             .task(id: model.replyConfirmation) {
                 guard model.replyConfirmation != nil else { return }
+                ReaderAccessibility.announce(model.replyConfirmation)
                 // Long enough to read; cancelled (and nothing hidden) when another confirmation replaces it.
                 guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
                 model.clearReplyConfirmation()
@@ -55,8 +56,10 @@ private struct ReplySentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
-                .accessibilityLabel("Masquer")
+            Button(action: close) {
+                Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(.rect) // 44 pt target
+            }
+            .accessibilityLabel("Masquer")
         }
         .padding(12)
         .glassEffect(.regular, in: .rect(cornerRadius: 12)) // floats over the page, which runs under it (LOT-186)

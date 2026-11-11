@@ -23,6 +23,33 @@ struct RootModelTests {
         return root
     }
 
+    // Regular-width iPad: a Favoris section title switches to Catégories, as legacy (`MainWindow.swift:2221-2232` @ 87fe0d1c), instead
+    // of pushing into the detail column.
+    @Test func aFavorisSectionTitleSwitchesTheContentColumnToCategoriesOnFavoris() {
+        let source = FakeDataSource()
+        let filter = TopicFilterModel(settings: InMemorySettingsStore())
+        let forums = ForumListModel(dataSource: source)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(
+                dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource, topicFilter: filter
+            ),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            messages: MessageListModel(source: FakePrivateMessages()),
+            store: InMemorySettingsStore(), initial: .tab(.favorites)
+        )
+        root.categories.selectedTopic = TopicSummary(
+            topicID: TopicID(category: .forum(13), topic: 1), title: "Ancien", path: "/t1", starterOrInterlocutors: "membre",
+            readState: .read
+        )
+        let category = TopicSource.forum(.forum(13), title: "Discussions")
+        root.showCategoryFromFavorites(category)
+        #expect(root.categories.selectedTopic == nil)
+        #expect(root.selectedDestination == .tab(.categories))
+        #expect(root.categories.selectedSource == category)
+        #expect(filter.flag == .favorites)
+    }
+
     // Both layouts read `RootModel.messages`: the open conversation survives a switch of tab or of layout.
     @Test func messagesModelIsSharedAcrossDestinations() async {
         let root = await model()
@@ -99,10 +126,10 @@ struct RootModelTests {
         #expect(PlusEntry.allCases.filter(\.isDestructive) == [.deleteAccount])
     }
 
-    @Test func settingsSearchCreditsAndCharterAreBuiltAndTheOthersNameTheirLot() {
+    @Test func settingsSearchCreditsCharterAndDeletionAreBuiltAndTheOthersNameTheirLot() {
         let expected: [(PlusEntry, String?)] = [
             (.settings, nil), (.search, nil), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
-            (.credits, nil), (.charter, nil), (.deleteAccount, "LOT-157")
+            (.credits, nil), (.charter, nil), (.deleteAccount, nil)
         ]
         #expect(expected.map(\.0) == PlusEntry.allCases)
         for (entry, lot) in expected {

@@ -20,7 +20,7 @@
 "id": "st",
 "x": 300,
 "y": 42,
-"text": "Snapshot 2026-11-10 · live state on the boards #166 and #324",
+"text": "Snapshot 2026-11-11 · live state on the boards #166 and #324",
 "fontSize": 18,
 "strokeColor": "#555555"
 },
@@ -227,7 +227,7 @@
 "fillStyle": "solid",
 "strokeColor": "#c2410c",
 "label": {
-"text": "M4  Final version\nvalidated legacy parity,\nMPStorage sync, notifications,\naccessibility, compliance,\nApp Store\n19 % · 31 lots",
+"text": "M4  Final version\nvalidated legacy parity,\nMPStorage sync, notifications,\naccessibility, compliance,\nApp Store\n39 % · 38 lots",
 "fontSize": 18
 }
 },

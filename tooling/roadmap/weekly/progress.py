@@ -1,6 +1,6 @@
-"""Slide 6 of the weekly deck, "progress model": commits, PRs by step, state of each step.
+"""The progress model of the weekly KPI slide: commits, PRs by step, state of each step (`data`, `charts`, `donuts`).
 
-Called by build.py (`data` while gathering, `slide` while rendering). Charts are inline SVG: no script, no network.
+Called by build.py (`data` while gathering, `charts` and `donuts` while rendering). Charts are inline SVG: no script, no network.
 Nothing names or ranks a person.
 """
 import html
@@ -133,48 +133,53 @@ def _ticks(mx, n=4):
     return list(range(0, mx + step, step))
 
 
-def _empty(msg):
-    return f'<svg viewBox="0 0 880 300" width="100%"><text x="440" y="150" text-anchor="middle" font-size="18" fill="#9aa4b2">{msg}</text></svg>'
+FS = 20  # smallest text of the deck, in px at the 1920 base (operator, 2026-11-10): the charts are drawn at 1:1
 
 
-def _line_chart(cum):
+def _empty(msg, W=520, H=250):
+    return f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}"><text x="{W / 2}" y="{H / 2}" text-anchor="middle" font-size="{FS}" fill="#9aa4b2">{msg}</text></svg>'
+
+
+def _grid(ys, py, L, W):
+    return ''.join(f'<line x1="{L}" x2="{W - 4}" y1="{py(v):.1f}" y2="{py(v):.1f}" stroke="#eceef2"/><text x="{L - 10}" y="{py(v) + 7:.1f}" text-anchor="end" font-size="{FS}" fill="#6b7685">{v}</text>' for v in ys)
+
+
+def _line_chart(cum, W=520, H=250):
     if not cum:
-        return _empty('Aucun commit')
-    W, H, L, B, T = 880, 300, 64, 44, 14
+        return _empty('Aucun commit', W, H)
+    L, B, T = 58, 38, 14
     ys = _ticks(cum[-1][1])
     top = ys[-1]
-    px = lambda i: L + (W - L - 12) * i / max(1, len(cum) - 1)
+    px = lambda i: L + (W - L - 8) * i / max(1, len(cum) - 1)
     py = lambda v: T + (H - T - B) * (1 - v / top)
-    s = f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Commits cumulés sur dev-swift">'
-    for v in ys:
-        s += f'<line x1="{L}" x2="{W - 12}" y1="{py(v)}" y2="{py(v)}" stroke="#eceef2"/><text x="{L - 10}" y="{py(v) + 5}" text-anchor="end" font-size="14" fill="#6b7685">{v}</text>'
-    every = max(1, len(cum) // 6)
+    s = f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Commits cumulés sur dev-swift">' + _grid(ys, py, L, W)
+    every = max(1, -(-len(cum) // 4))
     for i, (d, _) in enumerate(cum):
-        if i % every == 0 and len(cum) - 1 - i >= every * 0.6 or i == len(cum) - 1:
-            anchor = 'end' if i == len(cum) - 1 else 'middle'
-            s += f'<text x="{px(i)}" y="{H - 20}" text-anchor="{anchor}" font-size="14" fill="#6b7685">{_day(d)}</text>'
+        if (i % every == 0 and len(cum) - 1 - i >= every * 0.7) or i == len(cum) - 1:
+            anchor = 'end' if i == len(cum) - 1 else ('start' if i == 0 else 'middle')
+            s += f'<text x="{px(i):.1f}" y="{H - 6}" text-anchor="{anchor}" font-size="{FS}" fill="#6b7685">{_day(d)}</text>'
     pts = ' '.join(f'{px(i):.1f},{py(v):.1f}' for i, (_, v) in enumerate(cum))
+    area = f'{L},{py(0):.1f} ' + pts + f' {px(len(cum) - 1):.1f},{py(0):.1f}'
+    s += f'<defs><linearGradient id="la" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f7cff" stop-opacity=".18"/><stop offset="1" stop-color="#4f7cff" stop-opacity="0"/></linearGradient></defs><polygon points="{area}" fill="url(#la)"/>'
     s += f'<polyline points="{pts}" fill="none" stroke="#4f7cff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>'
-    s += f'<circle cx="{px(len(cum) - 1)}" cy="{py(cum[-1][1])}" r="6" fill="#4f7cff"/><text x="{px(len(cum) - 1) - 10}" y="{py(cum[-1][1]) - 14}" text-anchor="end" font-size="20" font-weight="600" fill="#0f1720">{cum[-1][1]}</text>'
-    s += f'<text x="{L + (W - L) / 2}" y="{H - 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">jour (UTC)</text><text transform="rotate(-90 14 {T + (H - T - B) / 2})" x="14" y="{T + (H - T - B) / 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">commits (cumul)</text></svg>'
+    s += f'<circle cx="{px(len(cum) - 1):.1f}" cy="{py(cum[-1][1]):.1f}" r="6" fill="#4f7cff"/><text x="{px(len(cum) - 1) - 12:.1f}" y="{py(cum[-1][1]) + 6:.1f}" text-anchor="end" font-size="24" font-weight="600" fill="#0f1720">{cum[-1][1]}</text></svg>'
     return s
 
 
-def _stacked(bins, weekly):
+def _stacked(bins, weekly, W=520, H=250):
     if not bins:
-        return _empty('Aucune PR fusionnée')
-    W, H, L, B, T = 880, 300, 64, 44, 14
+        return _empty('Aucune PR fusionnée', W, H)
+    L, B, T = 50, 38, 26
     order = STEPS + [OTHER]
     tot = {k: sum(v.values()) for k, v in bins.items()}
     ys = _ticks(max(tot.values()))
     top = ys[-1]
     py = lambda v: T + (H - T - B) * (1 - v / top)
     n = len(bins)
-    slot = (W - L - 12) / n
-    bw = min(46, slot * 0.7)
-    s = f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="PR fusionnées par {"semaine" if weekly else "jour"}, par étape">'
-    for v in ys:
-        s += f'<line x1="{L}" x2="{W - 12}" y1="{py(v)}" y2="{py(v)}" stroke="#eceef2"/><text x="{L - 10}" y="{py(v) + 5}" text-anchor="end" font-size="14" fill="#6b7685">{v}</text>'
+    slot = (W - L - 4) / n
+    bw = min(40, slot * 0.72)
+    lab_every = max(1, -(-60 // int(slot)))  # a « 24/10 » label is about 55 px wide at 20 px
+    s = f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="PR fusionnées par {"semaine" if weekly else "jour"}, par étape">' + _grid(ys, py, L, W)
     for k, (b, c) in enumerate(bins.items()):
         x = L + slot * k + (slot - bw) / 2
         acc = 0
@@ -183,59 +188,55 @@ def _stacked(bins, weekly):
             if v:
                 s += f'<rect x="{x:.1f}" y="{py(acc + v):.1f}" width="{bw:.1f}" height="{py(acc) - py(acc + v):.1f}" fill="{STEP_COLORS[st]}"/>'
                 acc += v
-        if tot[b]:
-            s += f'<text x="{x + bw / 2:.1f}" y="{py(acc) - 6:.1f}" text-anchor="middle" font-size="13" font-weight="600" fill="#0f1720">{tot[b]}</text>'
-        if n <= 16 or k % 2 == 0:
-            s += f'<text x="{x + bw / 2:.1f}" y="{H - 22}" text-anchor="middle" font-size="13" fill="#6b7685">{b[8:10]}/{b[5:7]}</text>'
-    s += f'<text x="{L + (W - L) / 2}" y="{H - 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">{"semaine (lundi, UTC)" if weekly else "jour de fusion (UTC)"}</text><text transform="rotate(-90 14 {T + (H - T - B) / 2})" x="14" y="{T + (H - T - B) / 2}" text-anchor="middle" font-size="13" fill="#9aa4b2">PR fusionnées</text></svg>'
-    return s
+        if tot[b] and (slot >= 26 or tot[b] == max(tot.values())):
+            s += f'<text x="{x + bw / 2:.1f}" y="{py(acc) - 6:.1f}" text-anchor="middle" font-size="{FS}" font-weight="600" fill="#0f1720">{tot[b]}</text>'
+        if (n - 1 - k) % lab_every == 0:
+            s += f'<text x="{x + bw / 2:.1f}" y="{H - 6}" text-anchor="middle" font-size="{FS}" fill="#6b7685">{int(b[8:10])}/{int(b[5:7])}</text>'
+    return s + '</svg>'
+
+
+SHORT_BUCKET = {'done': 'fait', 'progress': 'en cours', 'blocked': 'bloqué', 'human': 'humain', 'mac': 'macOS', 'low': 'basse prio.', 'ready': 'prêt'}
 
 
 def _donut(step, counts):
     total = sum(counts.values())
-    r, sw, c = 68, 30, 2 * 3.14159265 * 68
-    s = f'<svg viewBox="0 0 180 180" width="148" height="148" role="img" aria-label="{html.escape(STEP_NAMES[step])}"><g transform="rotate(-90 90 90)">'
+    r, sw, c = 43, 15, 2 * 3.14159265 * 43
+    s = f'<svg viewBox="0 0 108 108" width="108" height="108" role="img" aria-label="{html.escape(STEP_NAMES[step])}"><g transform="rotate(-90 54 54)"><circle cx="54" cy="54" r="{r}" fill="none" stroke="#f1f3f6" stroke-width="{sw}"/>'
     off = 0.0
     for bk in BUCKETS:
         v = counts.get(bk, 0)
         if v:
             ln = c * v / total
-            s += f'<circle cx="90" cy="90" r="{r}" fill="none" stroke="{BUCKET_COLORS[bk]}" stroke-width="{sw}" stroke-dasharray="{ln:.2f} {c - ln:.2f}" stroke-dashoffset="{-off:.2f}"/>'
+            s += f'<circle cx="54" cy="54" r="{r}" fill="none" stroke="{BUCKET_COLORS[bk]}" stroke-width="{sw}" stroke-dasharray="{ln:.2f} {c - ln:.2f}" stroke-dashoffset="{-off:.2f}"/>'
             off += ln
     done = counts.get('done', 0)
-    s += f'</g><text x="90" y="92" text-anchor="middle" font-size="28" font-weight="300" fill="#0f1720">{round(100 * done / total) if total else 0} %</text>'
-    s += f'<text x="90" y="114" text-anchor="middle" font-size="14" fill="#6b7685">{done} / {total}</text></svg>'
-    lines = ''.join(f'<li><i style="background:{BUCKET_COLORS[bk]}"></i>{counts[bk]}<span>{BUCKET_NAMES[bk].split(" (")[0].split(" /")[0]}</span></li>' for bk in BUCKETS if counts.get(bk))
-    return f'<div class="dn"><b>{html.escape(STEP_NAMES[step])}</b>{s}<ul>{lines}</ul></div>'
+    s += f'</g><text x="54" y="61" text-anchor="middle" font-size="21" font-weight="500" fill="#0f1720">{round(100 * done / total) if total else 0} %</text></svg>'
+    lines = ''.join(f'<li><i style="background:{BUCKET_COLORS[bk]}"></i><b>{counts[bk]}</b> {SHORT_BUCKET[bk]}</li>' for bk in BUCKETS if counts.get(bk))
+    return f'<div class="dn"><div class="dh"><b>{html.escape(step if step != "Audit" else "Audit")}</b><span>{done} / {total}</span></div>{s}<ul>{lines}</ul></div>'
 
 
 CSS = """
-.pm{display:flex;flex-direction:column;gap:16px;justify-content:center}
-.pm .two{display:grid;grid-template-columns:1fr 1fr;gap:72px}
-.pm .lbl{margin-bottom:6px}
-.pm .leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mute);margin-top:2px}
-.pm .leg i,.pm .dn li i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.pm .donuts{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:4px}
-.pm .dn{text-align:center}.pm .dn b{display:block;font-size:16px;font-weight:600;margin-bottom:2px}
-.pm .dn ul{list-style:none;text-align:left;margin:0 auto;width:max-content;max-width:100%}
-.pm .dn li{font-size:13px;line-height:1.35;color:var(--ink)}.pm .dn li span{color:var(--mute);margin-left:6px}
-.pm .note{font-size:12.5px;line-height:1.45;color:var(--faint);border-top:1px solid var(--line);padding-top:10px}
+.pm .dn{display:grid;grid-template-columns:108px 1fr;grid-template-rows:auto 1fr;gap:4px 16px;align-items:start}
+.pm .dn .dh{grid-column:1 / 3;display:flex;justify-content:space-between;align-items:baseline;font-size:22px}
+.pm .dn .dh b{font-weight:600}.pm .dn .dh span{color:var(--mute);font-size:20px}
+.pm .dn ul{list-style:none;font-size:20px;line-height:1.3;color:var(--mute);align-self:center;white-space:nowrap}
+.pm .dn li b{color:var(--ink);font-weight:600}
+.pm .leg{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:20px;color:var(--mute);margin-top:8px}
+.pm i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:8px;vertical-align:-1px}
 """
 
 
-def slide(D, page):
+def charts(D):
+    """The two charts of the KPI slide, each in its card: cumulative commits and merged PRs per bin, by step."""
     P = D['progress']
-    legend_steps = ''.join(f'<span><i style="background:{STEP_COLORS[s]}"></i>{html.escape(STEP_NAMES.get(s, s))}</span>' for s in STEPS + [OTHER])
-    legend_buckets = ''.join(f'<span><i style="background:{BUCKET_COLORS[b]}"></i>{BUCKET_NAMES[b]}</span>' for b in BUCKETS)
-    inner = f"""<style>{CSS}</style><div class="pm">
-<div class="two">
-<div><div class="lbl">Commits cumulés sur dev-swift</div>{_line_chart(P['cum'])}</div>
-<div><div class="lbl">PR fusionnées par {'semaine' if P['weekly'] else 'jour'}, par étape</div>{_stacked(P['bins'], P['weekly'])}<div class="leg">{legend_steps}</div></div>
-</div>
-<div><div class="lbl">État des lots de chaque étape</div>
-<div class="donuts">{''.join(_donut(s, P['steps'][s]) for s in STEPS)}</div><div class="leg" style="justify-content:center;margin-top:8px">{legend_buckets}</div></div>
-<p class="note">Lecture : un lot compte dans une seule catégorie, la première qui convient dans l'ordre fait &gt; en cours &gt; bloqué &gt; humain &gt; macOS &gt; basse priorité &gt; prêt.
-En cours : réclamé (<code>status: claimed</code>) ou cité par une PR ouverte, quel que soit l'hôte. Bloqué : <code>status: blocked</code> et au moins un lot dont il dépend qui n'est pas fait, hors capture. Humain : attend une décision, une clé ou un réglage (<code>needs-triage</code>, blocage sans lot à attendre, phrase-barrière).
-macOS : seul le Mac peut le faire (une capture, ou un lot <code>host: mac</code> que le cloud ne code pas ; il code les lots App de M2) ; les vérifications d'appareil dues ne sont pas tracées par lot. Basse priorité : lot de M5 ou <code>priority: low</code>. Prêt : tout le reste, y compris les lots <code>host: mac</code> de M2 que le cloud peut coder. Lots fermés « not planned » exclus. Audit = LOT-000 à 005 (hors M1 ici) ; une PR va à l'étape du premier LOT-XXX de son titre, sinon de son corps, sinon à « {OTHER} ».</p>
-</div>"""
-    return page(6, "Le <b>modèle de progression</b>", "Le rythme du chantier et l'état de chaque grande étape, de l'audit initial à M5.", inner, D)
+    short = {'Audit': 'Audit', 'M1': 'M1', 'M2': 'M2', 'M3': 'M3', 'M4': 'M4', 'M5': 'M5', OTHER: 'infra, docs'}
+    legend = ''.join(f'<span><i style="background:{STEP_COLORS[s]}"></i>{short[s]}</span>' for s in STEPS + [OTHER] if any(s in b for b in P['bins'].values()))
+    line = f'<div class="card pm"><div class="ch">Commits cumulés</div>{_line_chart(P["cum"])}</div>'
+    bars = f'<div class="card pm"><div class="ch">PR fusionnées par {"semaine" if P["weekly"] else "jour"}, par étape</div>{_stacked(P["bins"], P["weekly"])}<div class="leg">{legend}</div></div>'
+    return line, bars
+
+
+def donuts(D):
+    """One donut per step: a lot counts in exactly one bucket (done > in progress > blocked > human > macOS > low > ready)."""
+    P = D['progress']
+    return f'<style>{CSS}</style><div class="card pm donuts">{"".join(_donut(s, P["steps"][s]) for s in STEPS)}</div>'

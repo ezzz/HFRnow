@@ -182,6 +182,33 @@ class AQLocalTests(unittest.TestCase):
         body = dict(LOCAL_BODY, extra="value")
         self.assertIn("AQ local check: the body does not hold exactly the create fields", self.reasons(local_meta(body)))
 
+    def test_the_611_forms_pass(self):
+        # The run of #611: long comments, non-ASCII values, non-numeric or out-of-range ids, an addition with empty fields.
+        long_ok, long_over = "x" * 1024, "x" * 1025
+        for over in ({"commentaire": long_ok}, {"commentaire": long_over},
+                     {"nom": "AQ local été", "topic_titre": "AQ local topic été", "commentaire": "post de user3 été"},
+                     {"nom": "AQ local 😀"}, {"commentaire": "post de user3 😀"},
+                     {"topic_id": "abc"}, {"post_id": "abc"}, {"topic_id": "99999999999"},
+                     {"alerte_qualitay_id": "13636", "pseudo": ""},
+                     {"alerte_qualitay_id": "13636", "nom": "", "topic_titre": "", "topic_id": "", "pseudo": "user4",
+                      "post_id": "700102", "commentaire": "post de user4"}):
+            with self.subTest(fields=sorted(over)):
+                self.assertEqual(self.reasons(local_meta(dict(LOCAL_BODY, **over))), [])
+
+    def test_the_611_forms_stay_closed(self):
+        for field, value, reason in (("commentaire", "x" * 1023, "commentaire not the legacy text"),
+                                     ("commentaire", "y" * 1025, "commentaire not the legacy text"),
+                                     ("commentaire", "post de user3 é", "commentaire not the legacy text"),
+                                     ("nom", "AQ local real words", "nom not a local value"),
+                                     ("topic_titre", "AQ local topic real", "topic_titre not a local value"),
+                                     ("topic_id", "abcd", "topic_id not a local id"),
+                                     ("post_id", "12345678901", "post_id not a local id"),
+                                     ("pseudo", " ", "pseudo not an alias")):
+            with self.subTest(field=field, value=value[:20]):
+                self.assertIn("AQ local check: " + reason, self.reasons(local_meta(dict(LOCAL_BODY, **{field: value}))))
+        empty_pseudo = dict(LOCAL_BODY, alerte_qualitay_id="13636", pseudo="", commentaire="post de Realname")
+        self.assertIn("AQ local check: commentaire not the legacy text", self.reasons(local_meta(empty_pseudo)))
+
     def test_origin_cannot_be_another_value_or_dropped(self):
         self.assertIn("AQ local check: origin is not local-instance", self.reasons(local_meta(origin="live")))
         doc = local_meta()

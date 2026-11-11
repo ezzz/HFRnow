@@ -35,7 +35,7 @@ Everything about the legacy stores themselves (keys, files, formats) is in the [
 ### Launch order
 
 1. `LegacySettingsNormalizer.run` (LOT-119), unchanged, in `SwiftHFRApp.init`.
-2. **Import** (`LegacyImportModel.runAtLaunch`): `LegacyImporter.run(currentAccount: nil)`. It runs before the accounts are read, so the accounts it imports into the LOT-065 Keychain item are in the list when the app shows it. While it runs, the root screen's progress view says "Import des données de HFR+…".
+2. **Import** (`LegacyImportModel.runAtLaunch`): `LegacyImporter.run(currentAccount: nil)`. It runs before the accounts are read, so the accounts it imports into the LOT-065 Keychain item are in the list when the app shows it. While it runs, the root screen shows `LegacyImportProgressView` (#754: an illustrated construction worker and "Import de vos données HFR+…").
 3. **Accounts** (`AccountsModel.restore`, LOT-081): reads the store, now holding the imported accounts.
 4. **After each change of the current account** (restore, login, switch): when the last report is not complete and an account is current, the import runs again with that account (`accountDidChange(to:)`): the global items of decision D3 wait for an account when legacy had no main account, and a step that failed with a retriable error tries again. The engine runs each step once (LOT-067 Idempotence): a complete import costs one read of the state file, and a later call is a no-op.
 

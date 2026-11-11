@@ -165,9 +165,7 @@ extension ReaderWebController {
             let save = linkMenuEnvironment.savePhoto
             Task { [weak self] in
                 let message = await ReaderLinkMenu.saveImage(url, fetcher: fetcher, save: save)
-                self?.events.notice(message)
-                // The feedback banner does not announce itself.
-                AccessibilityNotification.Announcement(message).post()
+                self?.events.notice(message) // shown as the reader's toast, which announces itself
             }
         case .safari:
             let environment = linkMenuEnvironment

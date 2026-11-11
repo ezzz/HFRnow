@@ -32,6 +32,39 @@ struct MPStoragePageParserTests {
         }
     }
 
+    @Test("S-find-R333b: legacy reads page 1 (R333a), then page 2 (R333b), and stops at the first storage row; so does the parser (#333)")
+    func findOnPageTwoMatchesOracle() throws {
+        let oracle = try StorageOracle.load("S-find-R333b")
+        #expect(oracle.responses == ["R333a-mp-list-p1-storage-pushed-to-p2", "R333b-mp-list-p2-storage-row-first"])
+        // Legacy builds page N's URL itself (`MPStorage.m:694`) and recurses while N < the pager's last page (`:731-732`).
+        let pageTwoURL = Self.listURL.replacing("&page=1&", with: "&page=2&")
+        #expect(oracle.requestedURLs == [Self.listURL, pageTwoURL])
+        #expect(oracle.returned)
+        let postText = try #require(oracle.postID)
+        let post = try #require(Int(postText))
+
+        guard case .notOnPage(let navigation) = try MPStoragePageParser.findThread(
+            in: Fixture.capture(oracle.responses[0]), pageURL: Self.listURL)
+        else {
+            Issue.record("R333a holds no storage row")
+            return
+        }
+        #expect(navigation.current == 1)
+        #expect(navigation.nextPath != nil)
+
+        // R333b holds two storage-subject rows, both behind `[non lu]`: row 1 and row 16. Legacy returns inside the row
+        // loop (`MPStorage.m:723`), so its `sPostId` is row 1's thread, never row 16's; the parser takes row 1 too.
+        let pageTwo = try Fixture.capture(oracle.responses[1])
+        let rows = try PrivateMessageListParser.parse(pageTwo, pageURL: pageTwoURL).threads
+        let storageRows = rows.indices.filter { MPStoragePageParser.isStorageSubject(rows[$0].summary.title) }
+        #expect(storageRows.map { $0 + 1 } == [1, 16])
+        #expect(storageRows.allSatisfy { rows[$0].isUnreadByOthers })
+        let rowPosts = storageRows.map { rows[$0].summary.topicID?.topic }
+        #expect(rowPosts.first == post)
+        #expect(rowPosts.last != post)
+        #expect(try MPStoragePageParser.findThread(in: pageTwo, pageURL: pageTwoURL) == .found(post: post))
+    }
+
     @Test("The storage row of R13u1 carries HFR's [non lu] marker and is still found")
     func findsMarkedRow() throws {
         let html = try Fixture.capture("R13u1-mp-list-recipient-unread")

@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode, GAP-096)
-// @ 2440d79.
+// Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode,
+// GAP-096) @ 2440d79; the "Brouillons" button (LOT-101, GAP-093) is `AnswerView.swift:783-796` @ 87fe0d1c.
 // Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
@@ -53,6 +53,8 @@ struct ReplyComposerView: View {
     @State private var gifRequested = false
     /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
     @State private var chosenHeight: ComposerHeight?
+    /// The archived drafts' picker is open (LOT-101).
+    @State private var isShowingArchive = false
 
     init(model: ReplyComposerModel, pageScrolls: Bool = false, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
@@ -114,6 +116,14 @@ struct ReplyComposerView: View {
         )
         .presentationDetents([height.detent(fieldRows: fieldRows)])
         .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, fieldRows: fieldRows, pageScrolls: pageScrolls))
+        .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
+            ArchivedDraftsView(model: model) {
+                isShowingArchive = false
+                formatting.placeCaretAtEnd()
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        })
         // Swiping down would close without the choice: blocked while there is text or a send runs.
         .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
@@ -128,6 +138,9 @@ struct ReplyComposerView: View {
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
+        // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
+        .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
+        .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flushDraft() } }
         }
@@ -239,7 +252,9 @@ struct ReplyComposerView: View {
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
     }
+}
 
+extension ReplyComposerView {
     /// The row has something to show: loading, the options or a failed read (a form without the select shows nothing).
     private var showsSubcategoryRow: Bool {
         model.picker.isLoading || !model.picker.options.isEmpty || model.picker.warning != nil
@@ -283,6 +298,16 @@ struct ReplyComposerView: View {
             Button("Fermer", systemImage: "xmark") { Task { await model.requestClose() } }
                 .keyboardShortcut(.cancelAction)
                 .disabled(model.isSending)
+            if model.offersArchivedDrafts {
+                Button("Brouillons", systemImage: "tray") {
+                    Task {
+                        await model.refreshArchivedDrafts()
+                        isShowingArchive = true
+                    }
+                }
+                .symbolVariant(model.archivedDrafts.isEmpty ? .none : .fill)
+                .disabled(!model.canEdit)
+            }
             if offersHeightToggle {
                 let isPartial = height == .partial
                 Button(

@@ -41,13 +41,15 @@ struct PlusEntryView: View {
         case .search:
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
         case .settings:
-            SettingsView(reader: environment.reader)
+            SettingsView(reader: environment.reader, mpStorage: model.mpStorage)
         // "Crédits" is the About screen (LOT-120, operator decision 2026-10-28).
         case .credits:
             AboutView(environment: environment)
         case .charter:
             StaticPageView(page: .charter)
-        case .bookmarks, .qualityAlerts, .deleteAccount:
+        case .deleteAccount:
+            AccountDeletionView()
+        case .bookmarks, .qualityAlerts:
             placeholder
         }
     }

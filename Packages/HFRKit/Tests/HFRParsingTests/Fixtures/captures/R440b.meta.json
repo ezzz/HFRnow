@@ -1,0 +1,16 @@
+{
+  "id": "R440b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=prive&post={post}&numreponse={n}&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208316&numreponse=1980896947&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&post=3208316&numreponse=1980896947&page=1&p=1&subcat=0&sondage=0&owntopic=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 16:54:17 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "edit form of user2's storage first post after user2 deleted the thread",
+  "file": "R440b-mpstorage-edit-form-deleted-owner.html",
+  "private": true
+}
