@@ -22,6 +22,8 @@ struct MessageListView: View {
                         thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
                         flagLabel: model.flagLabel(for: thread)
                     )
+                    // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
+                    .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
                     .tag(thread)
                 }
             }

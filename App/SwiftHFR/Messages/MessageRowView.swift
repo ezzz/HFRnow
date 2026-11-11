@@ -55,7 +55,6 @@ struct MessageRowView: View {
         }
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
-        .rowPill(MessageRowView.rowTint(isUnread: isUnread, isSelected: isSelected))
     }
 
     /// The capsule's spoken label when the correspondent has not read the thread, else nil (#579).
