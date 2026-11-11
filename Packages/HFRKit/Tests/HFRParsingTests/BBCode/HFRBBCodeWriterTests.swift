@@ -150,7 +150,7 @@ struct HFRBBCodeWriterTests {
         #expect(dOnly.html(for: ":d") == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":d\" title=\":D\" />")
     }
 
-    @Test("Escaping: the four characters HFR escapes, and nothing else, once (R95d)")
+    @Test("Escaping: the four characters HFR escapes, and nothing else, once in text; a quote twice in a URL attribute (R95d, R443f)")
     func escaping() {
         #expect(Self.html("plain <b>html</b> & \"quotes\" 'x'") == "<p>plain &lt;b&gt;html&lt;/b&gt; &amp; &#034;quotes&#034; 'x'")
         #expect(Self.html("a\u{FFFF}b\u{FFFE}c" + String(HFRBBCodeWriter.noBreakSpaceMarker) + "d") == "<p>abcd")
