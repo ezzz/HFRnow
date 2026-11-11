@@ -170,38 +170,21 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         }
     }
 
+    /// Every token by name; an optional one gives its resolved value (its fallback when absent).
+    static let tokensByName: [String: KeyPath<ThemeTokens, ThemeRGB> & Sendable] = [
+        "background": \.background, "surface": \.surface, "surfaceRaised": \.surfaceRaised, "title": \.title,
+        "sectionHeader": \.sectionHeader, "textPrimary": \.textPrimary, "textSecondary": \.textSecondary, "accent": \.accent,
+        "onAccent": \.onAccent, "accentText": \.accentText, "link": \.link, "separator": \.separator, "selection": \.selection,
+        "quoteBackground": \.quoteBackground, "quoteBorder": \.quoteBorder, "codeBackground": \.codeBackground,
+        "codeText": \.codeText, "spoilerBackground": \.spoilerBackground, "spoilerText": \.spoilerText, "unread": \.unread,
+        "onUnread": \.onUnread, "headerBand": \.resolvedHeaderBand, "alternateCell": \.resolvedAlternateCell,
+        "meta": \.resolvedMeta, "pageBar": \.resolvedPageBar, "counter": \.resolvedCounter
+    ]
+
     /// The colour of the token `name`, `systemText` included; nil for an unknown name.
     public func color(named name: String) -> ThemeRGB? {
-        switch name {
-        case "background": background
-        case "surface": surface
-        case "surfaceRaised": surfaceRaised
-        case "title": title
-        case "sectionHeader": sectionHeader
-        case "textPrimary": textPrimary
-        case "textSecondary": textSecondary
-        case "accent": accent
-        case "onAccent": onAccent
-        case "accentText": accentText
-        case "link": link
-        case "separator": separator
-        case "selection": selection
-        case "quoteBackground": quoteBackground
-        case "quoteBorder": quoteBorder
-        case "codeBackground": codeBackground
-        case "codeText": codeText
-        case "spoilerBackground": spoilerBackground
-        case "spoilerText": spoilerText
-        case "unread": unread
-        case "onUnread": onUnread
-        case "headerBand": resolvedHeaderBand
-        case "alternateCell": resolvedAlternateCell
-        case "meta": resolvedMeta
-        case "pageBar": resolvedPageBar
-        case "counter": resolvedCounter
-        case "systemText": isLight ? Self.black : Self.white
-        default: nil
-        }
+        if name == "systemText" { return isLight ? Self.black : Self.white }
+        return Self.tokensByName[name].map { self[keyPath: $0] }
     }
 
     /// The rules this variant breaks; empty when it meets them all.

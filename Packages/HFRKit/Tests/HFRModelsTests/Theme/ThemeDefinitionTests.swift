@@ -41,7 +41,7 @@ import Testing
         let theme = try JSONDecoder().decode(ThemeDefinition.self, from: Self.fixture("test-theme"))
         #expect(theme.id == "test-theme" && theme.family == "Classiques" && theme.author == "user1" && theme.fontDesign == .rounded)
         let variants = try #require(theme.variants)
-        #expect(variants.light.background == ThemeRGB(hex: "#F2F2F7") && variants.dark.background == ThemeRGB(hex: "#101820"))
+        #expect(variants.light.background == ThemeRGB(hex: "#E6EEF8") && variants.dark.background == ThemeRGB(hex: "#101820"))
         #expect(variants.light.isLight && !variants.dark.isLight)
         #expect(theme.contrastViolations.isEmpty, "\(theme.contrastViolations.map { "\($0.variant) \($0.violation)" })")
     }

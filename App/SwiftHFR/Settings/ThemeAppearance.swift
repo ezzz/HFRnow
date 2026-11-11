@@ -17,6 +17,12 @@ struct ThemeAppearance: Equatable, Sendable {
     var darkBrightness: Double
     /// How dark the dark surfaces are (`theme_dark_style`, LOT-122); the brightness multiplier applies on top of it.
     var darkStyle = DarkStyle.standard
+    /// The colours of the gallery's theme (LOT-188), or nil for Legacy: the values above, today's app, untouched. A theme's
+    /// tokens replace the accent, the screen background and the reader's palette; the hue, style and brightness above then only
+    /// feed what the theme does not define (the reader's `--app-dark-*` surfaces, which its own palette covers).
+    var themeVariants: ThemeDefinition.Variants?
+    /// The theme's text design (LOT-188); `.default` for Legacy.
+    var themeFontDesign = ThemeDefinition.FontDesign.default
 
     /// Legacy default accent hue, 190° (`AppSettingsView.swift:16`).
     static let defaultHue = 190.0 / 360.0
@@ -36,8 +42,11 @@ struct ThemeAppearance: Equatable, Sendable {
     /// The accent of the current variant: the light accent in light mode, the dark one in dark mode.
     var accentColor: Color { Color(uiColor: accentUIColor) }
 
-    /// `accentColor` as a dynamic UIKit colour (the window's tint), resolved per trait collection.
+    /// `accentColor` as a dynamic UIKit colour (the window's tint), resolved per trait collection. A theme tints with its
+    /// `accentText`: SwiftUI's one tint colours text and glyphs (buttons, links), which THEMES.md §3 holds to 4.5:1 on `surface`;
+    /// its `accent` (fills) is read from the tokens by the views that fill (`BadgeCapsule` reads `unread`).
     var accentUIColor: UIColor {
+        if let themeVariants { return Self.dynamic(light: themeVariants.light.accentText, dark: themeVariants.dark.accentText) }
         let day = dayAccent.uiColor
         let night = nightAccent.uiColor
         return UIColor { $0.userInterfaceStyle == .dark ? night : day }
@@ -66,6 +75,51 @@ struct ThemeAppearance: Equatable, Sendable {
         return zip(names, palette).map { ($0, ThemeColor(hex: $1)) }
     }
 
+    /// A colour that resolves to `light` or `dark` with the trait collection's style.
+    static func dynamic(light: ThemeRGB, dark: ThemeRGB) -> UIColor {
+        let (light, dark) = (ThemeColor(rgb: light).uiColor, ThemeColor(rgb: dark).uiColor)
+        return UIColor { $0.userInterfaceStyle == .dark ? dark : light }
+    }
+
+    /// The colour of a token, per appearance, or nil for Legacy.
+    func themeColor(_ token: KeyPath<ThemeTokens, ThemeRGB>) -> UIColor? {
+        themeVariants.map { Self.dynamic(light: $0.light[keyPath: token], dark: $0.dark[keyPath: token]) }
+    }
+
+    /// The appearance a single-variant theme imposes (« clair = sombre »: the system's text and chrome must match its one
+    /// palette), or nil: Legacy and two-variant themes follow the "Thème" picker.
+    var forcedColorScheme: ColorScheme? {
+        guard case let .single(tokens)? = themeVariants else { return nil }
+        return tokens.isLight ? .light : .dark
+    }
+
+    /// The text design of every screen, or nil to leave the system's (Legacy, and themes asking for `default`).
+    var fontDesign: Font.Design? {
+        guard themeVariants != nil else { return nil }
+        return switch themeFontDesign {
+        case .default: nil
+        case .rounded: .rounded
+        case .monospaced: .monospaced
+        }
+    }
+
+    /// What paints behind every screen (`appScreenBackground()`). The case decides the view structure: only a change of theme
+    /// or of dark style changes it, never an appearance flip (LOT-122: one structure per appearance).
+    enum ScreenFill: Equatable {
+        /// The system's, untouched: Legacy in the standard style.
+        case system
+        /// Legacy's darker and OLED styles: this colour in dark, the system's in light.
+        case darkOnly(ThemeColor)
+        /// A theme's `background`, in both appearances (a dynamic colour).
+        case theme(light: ThemeRGB, dark: ThemeRGB)
+    }
+
+    /// The screen fill of the current theme and style.
+    var screenFill: ScreenFill {
+        if let themeVariants { return .theme(light: themeVariants.light.background, dark: themeVariants.dark.background) }
+        return darkScreenBackground.map(ScreenFill.darkOnly) ?? .system
+    }
+
     /// The background of every screen in the dark theme, or nil for the system's (`standard`).
     var darkScreenBackground: ThemeColor? {
         switch darkStyle {
@@ -75,10 +129,29 @@ struct ThemeAppearance: Equatable, Sendable {
         }
     }
 
-    /// The CSS variables `reader.css` reads: both accents and the dark surfaces at `darkBrightness`.
+    /// The CSS variables `reader.css` reads: both accents and the dark surfaces at `darkBrightness`; with a theme, its tokens
+    /// for both appearances too (`--app-theme-light-*`, `--app-theme-dark-*`), which `reader.css` reads only while `<html>`
+    /// carries `data-app-theme` (`readerScript`), so Legacy's page is today's.
     var readerVariables: [(name: String, value: String)] {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
             + readerSurfaces.map { ($0.variable, $0.color.cssRGB) }
+            + readerThemeVariables
+    }
+
+    /// The reader's variable of each token (`reader.css`, theme block). The page is the theme's `surface` (the reader is a
+    /// list of messages, the rows and cards of THEMES.md §3, where its text rules hold); placeholders sit on `quoteBackground`.
+    static let readerTokens: [(name: String, token: KeyPath<ThemeTokens, ThemeRGB> & Sendable)] = [
+        ("text", \.textPrimary), ("secondary", \.textSecondary), ("background", \.surface), ("separator", \.separator),
+        ("quote-border", \.quoteBorder), ("quote-background", \.quoteBackground), ("placeholder", \.quoteBackground),
+        ("action", \.accentText), ("link", \.link), ("code-background", \.codeBackground), ("code-text", \.codeText),
+        ("spoiler-background", \.spoilerBackground), ("spoiler-text", \.spoilerText)
+    ]
+
+    private var readerThemeVariables: [(name: String, value: String)] {
+        guard let themeVariants else { return [] }
+        return [("light", themeVariants.light), ("dark", themeVariants.dark)].flatMap { variant, tokens in
+            Self.readerTokens.map { (name: "--app-theme-\(variant)-\($0.name)", value: ThemeColor(rgb: tokens[keyPath: $0.token]).cssRGB) }
+        }
     }
 
     /// The reader's dark surfaces as the page shows them: the style's palette at `darkBrightness`, capped as `readerSurface` says.
@@ -90,6 +163,7 @@ struct ThemeAppearance: Equatable, Sendable {
     /// The reader page's background, for the web view's own layer (what shows while the page bounces past its ends): the system's
     /// in light, the page's `--app-dark-background` in dark.
     var readerBackground: UIColor {
+        if let surface = themeColor(\.surface) { return surface }
         let dark = readerSurfaces.first { $0.variable == "--app-dark-background" }?.color.uiColor ?? .black
         return UIColor { $0.userInterfaceStyle == .dark ? dark : UIColor.systemBackground.resolvedColor(with: $0) }
     }
@@ -108,16 +182,26 @@ struct ThemeAppearance: Equatable, Sendable {
         return capped.adjustedDark(color)
     }
 
-    /// The script that sets `readerVariables` on the document's root element; every value is an `rgb()` the app formats from
-    /// numbers, never page text.
+    /// The script that sets `readerVariables` on the document's root element, then sets `data-app-theme` on it with a theme or
+    /// removes it for Legacy (a live switch back); every value is an `rgb()` the app formats from numbers, never page text.
     var readerScript: String {
         // Inside a function: the reader's world is shared by every user script, so nothing is declared at its top level.
         let lines = readerVariables.map { "s.setProperty('\($0.name)', '\($0.value)');" }
-        return (["(() => { const s = document.documentElement.style;"] + lines + ["})();"]).joined(separator: " ")
+        let flag = themeVariants == nil
+            ? "document.documentElement.removeAttribute('data-app-theme');"
+            : "document.documentElement.setAttribute('data-app-theme', '');"
+        return (["(() => { const s = document.documentElement.style;"] + lines + [flag, "})();"]).joined(separator: " ")
     }
 }
 
 extension ThemeColor {
+    /// The colour of a theme token (LOT-188).
+    init(rgb: ThemeRGB) {
+        self.init(
+            red: Double(rgb.red) / 255, green: Double(rgb.green) / 255, blue: Double(rgb.blue) / 255, alpha: Double(rgb.alpha) / 255
+        )
+    }
+
     /// A colour from hue, saturation and brightness in 0...1, as `UIColor(hue:saturation:brightness:alpha:)` builds it.
     init(hue: Double, saturation: Double, brightness: Double, alpha: Double = 1) {
         let hue = min(max(hue, 0), 1)

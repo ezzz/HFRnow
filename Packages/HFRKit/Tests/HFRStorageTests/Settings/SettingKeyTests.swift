@@ -21,8 +21,8 @@ import Testing
 
     @Test func keysAreUniqueAndKeepTheirLegacyNames() {
         #expect(Set(SettingKey.allKeys).count == SettingKey.allKeys.count)
-        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, `theme_id`, LOT-188, and the two app-lock keys, LOT-173,
-        // have no legacy counterpart).
+        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, `theme_id`, LOT-188, and the two app-lock
+        // keys, LOT-173, have no legacy counterpart).
         let legacy: Set = [
             "vos_sujets", "sujets_avec_cat", "favorites_auto_refresh", "compact_mode", "tabbar_minimize_on_scroll",
             "text_size_scale", "haptics", "landscape_mode", "icon", "auto_theme", "theme", "theme_style",
