@@ -2,7 +2,7 @@ import SwiftUI
 
 // Port of Classes/HFRNavigationController.m (userThemeDidChange, refreshTheme: the animated "snow" image behind the navigation
 // bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:382-388`; the alert `:645-676`) @ 87fe0d1c.
-// Differences (GAP-147): procedural snow falling over the content, not frames in the bar; a snow drift; the operator's alert
+// Differences (GAP-147): procedural snow falling over the content, not frames in the bar; the operator's alert
 // text and its « Désactiver » instead of legacy's one-button « C'est bientôt Noël ! ».
 extension View {
     /// The seasonal layer of the app root (LOT-166): the active theme's decorations over the content, and the arrival alert
@@ -39,10 +39,11 @@ private struct SeasonalDecorationsModifier: ViewModifier {
     }
 }
 
-/// Light falling snow and a drift, between the navigation bar and the bottom bar so that no button, badge, status bar or home
+/// Light falling snow, between the navigation bar and the bottom bar so that no button, badge, status bar or home
 /// indicator is covered (THEMES.md §4 rule 9); never touched, never read by VoiceOver.
 struct NoelSnowLayer: View {
-    /// Flakes fall; without it (Reduce Motion, « Animations de saison » off) only the drift stays.
+    /// Flakes fall; without it (Reduce Motion, « Animations de saison » off) nothing is drawn. Piled snow comes with PR 2: a
+    /// drift drawn over the content crossed row text (screenshot of PR 1).
     let falls: Bool
     /// Height kept clear at the top for the navigation bar, and at the bottom for the tab bar or toolbar.
     static let topBand: CGFloat = 56
@@ -55,14 +56,10 @@ struct NoelSnowLayer: View {
     var body: some View {
         VStack(spacing: 0) {
             Color.clear.frame(height: Self.topBand)
-            ZStack(alignment: .bottom) {
-                if falls {
-                    Snowfall(color: flakeColor, paused: scenePhase != .active || lowPower)
-                }
-                SnowDrift()
-                    .fill(driftColor)
-                    .overlay(SnowDrift().stroke(flakeColor.opacity(0.6), lineWidth: 1))
-                    .frame(height: 10)
+            if falls {
+                Snowfall(color: flakeColor, paused: scenePhase != .active || lowPower)
+            } else {
+                Color.clear
             }
             Color.clear.frame(height: Self.bottomBand)
         }
@@ -78,10 +75,6 @@ struct NoelSnowLayer: View {
     /// A blue-grey in light, so flakes show on white; white in dark (≥ 3:1 on the dark surfaces, THEMES.md §4 rule 7).
     private var flakeColor: Color {
         scheme == .dark ? .white : Color(red: 0.55, green: 0.66, blue: 0.80)
-    }
-
-    private var driftColor: Color {
-        scheme == .dark ? Color.white.opacity(0.85) : Color.white.opacity(0.95)
     }
 }
 
@@ -102,24 +95,5 @@ private struct Snowfall: View {
                 }
             }
         }
-    }
-}
-
-/// A low wavy heap of snow along the bottom of its frame.
-struct SnowDrift: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
-        let bumps = max(Int(rect.width / 60), 1)
-        let step = rect.width / CGFloat(bumps)
-        for index in 0..<bumps {
-            let start = rect.minX + CGFloat(index) * step
-            let crest = index.isMultiple(of: 2) ? rect.minY : rect.minY + rect.height * 0.3
-            path.addQuadCurve(to: CGPoint(x: start + step, y: rect.midY), control: CGPoint(x: start + step / 2, y: crest))
-        }
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.closeSubpath()
-        return path
     }
 }
