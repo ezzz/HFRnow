@@ -1,12 +1,12 @@
 # LOT-055 — AQ client
 
 - **Module:** HFRClient
-- **Difficulty / model:** easy · Opus → Fable (author → reviewer)
+- **Difficulty / model:** easy · Sonnet → Opus (author → reviewer), as `docs/LOTS.md`
 - **Issue:** [#81](https://github.com/ezzz/HFRnow/issues/81). Depends on [LOT-028](LOT-028-aq-parsers.md) (#56, parsers) and
   [LOT-071](LOT-071-third-party-services.md) (#95, rules R1–R6, inventory T1–T3).
 
-Implemented: `AQClient`, `AQConfiguration`, `AQError` (`Sources/HFRClient/AQ/`). **Create is not implemented** (the PR is `Refs #81`);
-its answer is captured since (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)) and left to a follow-up.
+Implemented: `AQClient` (feed, check, create), `AQConfiguration`, `AQError`, `AQCreateError`, `AQReportEncoder` (`Sources/HFRClient/AQ/`). The
+create answer is captured (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)); its refusals are not captured on the live host.
 
 ## Legacy sources
 ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`:
@@ -16,7 +16,7 @@ ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`:
 | Feed + badge | `AQPlusView.swift:39` (`https://aq.super-h.fr/rss.php`), `:41-50` (`last_check_aq`, default 2010-01-01), `:52-57` (category-25 filter), `:60-92` (`AQBadgeCheckService`: GET, 20 s, cache ignored, `URLSession.shared`, count of `isNew`, stale-check guard `:86`), `:202-204` (`isNew = aqDate >= lastCheck`, unreadable date = now), `:248-322` (list view model, `:278` 20 s, sets `last_check_aq` on display) |
 | Launch trigger | `MainWindow.swift:1178-1192` (3 s after the main window, once per process, logged out too) |
 | Per-topic check | `MessagesView.swift:325-338` (`isAQAlreadySignaled`, URL `:327`: GET `…/api/getAlertesByTopic.php?topic_id=`, `URLSession.shared`, default timeout, `content.contains(postID)`, nil on error), called at `:2001`, `:3716` |
-| Create (not ported) | `MessagesView.swift:340-376` (`createAQ`: POST `…/api/addAlerte.php`, 5 s, form content type, ASCII body (lossless: percent-encoded first), `"1"` = success), `:378-398` (`aqRequestBody`, fixed field order), `:434-437` (`legacyPercentEncode`), `:439-441` (pseudo lower-cased); toasts `:2038-2043` |
+| Create | `MessagesView.swift:340-376` (`createAQ`: POST `…/api/addAlerte.php`, 5 s, form content type, ASCII body (lossless: percent-encoded first), `"1"` = success), `:378-398` (`aqRequestBody`, fixed field order), `:434-437` (`legacyPercentEncode`), `:439-441` (pseudo lower-cased); toasts `:2038-2043` |
 
 ## Behaviour
 Inputs: `AQConfiguration(baseURL:)` (R2: the app injects it; the legacy value is `https://aq.super-h.fr`, configuration name
