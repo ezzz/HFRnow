@@ -613,6 +613,16 @@ class WeeklyCounts(unittest.TestCase):
         build = self.with_dropped("LOT-110")
         self.assertNotIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
 
+    def test_m5_feature_cards_keep_the_authored_lot_order_and_skip_an_emptied_feature(self):
+        build = self.with_dropped()
+        out = build.m5_cards()
+        nav = [f"<li>{build.esc(build.lot_label(f'LOT-{x:03d}'))}</li>" for x in build.FEATURES["M5"][0][3]]
+        self.assertEqual([out.index(i) for i in nav], sorted(out.index(i) for i in nav))
+        title = build.FEATURES["M5"][3][1]
+        self.assertIn(f"<b>{title}</b>", out)
+        build = self.with_dropped(*(f"LOT-{x:03d}" for x in build.FEATURES["M5"][3][3]))
+        self.assertNotIn(f"<b>{title}</b>", build.m5_cards())
+
     def test_m5_slide_drops_the_empty_also_card_and_counts_the_rest(self):
         build = self.with_dropped("LOT-176")
         self.assertIn("Aussi dans M5 · 1<", build.m5_cards())

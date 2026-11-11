@@ -589,6 +589,8 @@ def m5_cards():
     cards = ''
     for ic, t, _, ls in FEATURES['M5']:
         lots = sorted(C.live_lots({f'LOT-{x:03d}' for x in ls} & set(G.rows), G.rows, DROPPED), key=lambda l: ls.index(lot_n(l)))
+        if not lots:  # every lot of this feature is dropped: no empty card
+            continue
         li = ''.join(f'<li>{"✓ " if G.done(l) else ""}{esc(lot_label(l))}</li>' for l in lots)
         cards += f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><ul>{li}</ul><div style="margin-top:auto">{card_pill(ls)}</div></div>'
     listed = {f'LOT-{x:03d}' for *_, ls in FEATURES['M5'] for x in ls}
