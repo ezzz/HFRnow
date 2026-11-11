@@ -110,8 +110,12 @@ final class TopicReaderModel {
     /// How the wait is timed; tests replace it with a clock they drive.
     @ObservationIgnored var waitClock: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     @ObservationIgnored private var waitWatch: Task<Void, Never>?
-    /// The current wait ended on `waitLimit`: the screen coming back loads again, as it does after a stopped load.
+    /// The current wait ended on `waitLimit`: the screen coming back loads again, as it does after a stopped load, and a
+    /// retry clears the timeout as it starts.
     private var waitExpired = false
+    /// A view shows this reader (`onAppear` until the current viewer's `viewDidDisappear`): only then is a wait watched, so
+    /// a wait left off screen never comes back as a stale timeout (Fable, #786).
+    private var isOnScreen = false
 
     /// A reader that will open `target`; nothing is fetched before `onAppear()`. With `opensAtLastMessage` the first load
     /// (and "Réessayer" after its failure) opens at the page's last message like a reply does, for a link that stands for
@@ -145,6 +149,7 @@ final class TopicReaderModel {
     func onAppear(viewer: Int? = nil) async {
         // A `.task` whose view already went away (a quick tab flick) must not take the load over from the view still there.
         guard !Task.isCancelled else { return }
+        isOnScreen = true
         if let viewer {
             self.viewer = viewer
             // A new view (the same topic opened again) has a new web view: the document is not shown until it says so (#750).
@@ -165,7 +170,8 @@ final class TopicReaderModel {
         ReaderLog.debug("disappear model=\(debugID) viewer=\(viewer) current=\(current) loading=\(isLoading)")
         guard current else { return }
         self.viewer = nil
-        cancel()
+        isOnScreen = false
+        cancel() // its `watchWait()` ends the watch: the wait belongs to the screen that left
     }
 
     /// A number for the debug trace that tells models apart; never shown.
@@ -398,11 +404,12 @@ final class TopicReaderModel {
         watchWait()
     }
 
-    /// Bounds the wait on "Chargement des messages" (issue #750): one watch per wait, from the moment the screen starts
-    /// waiting (no page yet, or a page whose document the web view has not shown) until it stops; on `waitLimit` the wait
-    /// turns into `timedOut` with "Réessayer". A document that becomes ready after all still shows and clears it.
+    /// Bounds the wait on "Chargement des messages" (issue #750): one watch per wait on screen, from the moment the screen
+    /// starts waiting (no page yet, or a page whose document the web view has not shown) until it stops or the screen leaves;
+    /// on `waitLimit` the wait turns into `timedOut` with "Réessayer". A document that becomes ready after all still shows
+    /// and clears it.
     private func watchWait() {
-        guard isWaiting else {
+        guard isWaiting, isOnScreen else {
             waitWatch?.cancel()
             waitWatch = nil
             return
@@ -423,7 +430,7 @@ final class TopicReaderModel {
 
     private func waitDidExpire() {
         waitWatch = nil
-        guard isWaiting else { return }
+        guard isWaiting, isOnScreen else { return }
         ReaderLog.debug("wait expired model=\(debugID) loading=\(isLoading) document=\(document?.token ?? -1)")
         if page != nil, let document { failedToken = document.token }
         waitExpired = true
@@ -456,7 +463,11 @@ final class TopicReaderModel {
         requestedFollowsPager = followsPager
         isLoading = true
         failedToken = nil // this load owns `error` now: an old document's ready must not clear its failure
-        waitExpired = false
+        if waitExpired {
+            // "Réessayer" after a timeout: the screen waits again, under a new watch, instead of keeping the error up.
+            waitExpired = false
+            error = nil
+        }
         watchWait()
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source

@@ -57,14 +57,12 @@ struct TopicReaderView: View {
     @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
     @State private var pageText = ""
-    /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
-    @State private var swipeEnabled = true
+    /// The swipe and reply button settings, and the display settings, followed while the reader is on screen (#750).
+    @State private var settings = ReaderSettingsWatch()
     /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
     @State private var writes: MessageWriteModel?
     /// "Alerter" of the message menu (LOT-135); nil until the menu is installed.
     @State private var alerts: ModeratorAlertModel?
-    /// `reply_button_behavior` (LOT-086), read again with the other settings.
-    @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.isSelectedRootTab) private var isSelectedTab
@@ -83,7 +81,7 @@ struct TopicReaderView: View {
                 .ignoresSafeArea(edges: .vertical)
                 .opacity(model.hasShownDocument ? 1 : 0)
                 .accessibilityHidden(!model.hasShownDocument)
-                .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
+                .simultaneousGesture(pageSwipe, including: settings.swipesPages ? .all : .none)
             }
             overlay
         }
@@ -159,17 +157,8 @@ struct TopicReaderView: View {
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
         .onChange(of: model.canQuote) { controller?.offersSelectionQuote = model.offersSelectionQuote }
         .modifier(ReaderAnnouncements(model: model))
-        .task {
-            // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
-            swipeEnabled = services.settings.swipesPages()
-            replyBehavior = services.settings.replyButton()
-            model.applyDisplaySettings() // a change made while this reader was away
-            for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
-                swipeEnabled = services.settings.swipesPages()
-                replyBehavior = services.settings.replyButton()
-                model.applyDisplaySettings()
-            }
-        }
+        // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
+        .onAppear { settings.start(services.settings, changed: model.displaySettingsHook) }
         .task {
             installMenuActions()
             await model.onAppear(viewer: viewerID)
@@ -244,8 +233,8 @@ struct TopicReaderView: View {
     /// The reply button's symbol, nil when there is none: logged out, no answer form, or `reply_button_behavior` hidden;
     /// `forum` draws the pencil, `quick` the plus (legacy `replyButtonSystemImage`).
     private var replySymbol: String? {
-        guard composer != nil, model.replyTarget != nil, replyBehavior != .hidden else { return nil }
-        return replyBehavior == .forum ? "square.and.pencil" : "plus"
+        guard composer != nil, model.replyTarget != nil, settings.replyButton != .hidden else { return nil }
+        return settings.replyButton == .forum ? "square.and.pencil" : "plus"
     }
 
     private var linkedReader: Binding<LinkedReader?> {
@@ -292,10 +281,20 @@ struct TopicReaderView: View {
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
             }, notice: { [model] in model.showMenuFeedback($0) },
-            left: { leave() },
-            // On screen again with no `onAppear` (issue #750): the page and its load come back as `onAppear` brings them.
-            returned: { [weak controller, model, viewerID] in
+            // Weak and through bindings, not `self`: the controller stores this closure, and `self`'s `@State` holds the
+            // controller (LOT-087).
+            left: { [weak controller, model, viewerID, covered = $viewer, saver = $saver, settings] in
+                Self.leave(model: model, viewerID: viewerID, covered: covered.wrappedValue != nil) {
+                    saver.wrappedValue?.leave()
+                    settings.stop()
+                    controller?.stopLoading()
+                }
+            },
+            // On screen again with no `onAppear` (issue #750): the page, its load and the settings come back as `onAppear`
+            // brings them.
+            returned: { [weak controller, model, viewerID, settings, readerSettings = services.settings] in
                 controller?.show(model.document)
+                settings.start(readerSettings, changed: model.displaySettingsHook)
                 Task { await model.onAppear(viewer: viewerID) }
             }
         )
@@ -322,11 +321,19 @@ extension TopicReaderView {
 
     /// The reader left the screen: its load, its offline save and its web view stop.
     private func leave() {
+        Self.leave(model: model, viewerID: viewerID, covered: viewer != nil) {
+            saver?.leave()
+            settings.stop()
+            controller?.stopLoading()
+        }
+    }
+
+    /// `stop` stops the offline save, the settings watch and the web view.
+    private static func leave(model: TopicReaderModel, viewerID: Int, covered: Bool, stop: () -> Void) {
         // Checked again here: `events.left` also comes from the web view leaving its window (issue #750).
-        guard model.linkedReader == nil, viewer == nil else { return }
+        guard model.linkedReader == nil, !covered else { return }
         model.viewDidDisappear(viewer: viewerID)
-        saver?.leave()
-        controller?.stopLoading()
+        stop()
     }
 
     /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
@@ -368,25 +375,6 @@ extension TopicReaderView {
         }
         model.install(MessageActionRegistry(handlers))
         controller?.offersSelectionQuote = model.offersSelectionQuote
-    }
-}
-
-/// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.
-struct ReaderWebView: UIViewRepresentable {
-    let controller: ReaderWebController
-    let document: ReaderDocument?
-    let scrollRequest: ScrollRequest?
-    /// The bars and banners over the page (top and bottom only: the page keeps the horizontal safe area).
-    var obscured = EdgeInsets()
-
-    func makeUIView(context: Context) -> WKWebView { controller.webView }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        controller.textScale = context.environment.textScale
-        controller.theme = context.environment.themeAppearance
-        controller.obscuredInsets = UIEdgeInsets(top: obscured.top, left: 0, bottom: obscured.bottom, right: 0)
-        controller.show(document)
-        controller.apply(scrollRequest)
     }
 }
 

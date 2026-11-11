@@ -67,10 +67,62 @@ struct TopicReaderModelWaitTests {
         await fetch.open()
         await opening.value
         #expect(reader.page == nil, "the timed-out load delivered")
-        reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) } // the next wait's watch must not fire
+        reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) } // the retry's own watch must not fire here
         await reader.retry()
         #expect(reader.error == nil)
         #expect(reader.page?.currentPage == 1)
+    }
+
+    /// Fable round 1, finding 2: "Réessayer" after a timeout waits again on the spinner, under a new watch, instead of
+    /// keeping the timeout up while it loads.
+    @Test func aRetryAfterATimeoutClearsItAndIsWatchedAgain() async throws {
+        let pages = FakeTopicPages()
+        let fetch = ReaderGate()
+        let clock = ReaderGate()
+        pages.handler = { target in await fetch.wait(); return readerPage(page: target.page) }
+        let reader = model(pages, clock: clock)
+        let opening = Task { await reader.onAppear(viewer: 1) }
+        await fetch.untilArrived()
+        await clock.untilArrived()
+        await clock.open()
+        await settle { reader.error != nil }
+        #expect(reader.error == .timedOut)
+        let retryFetch = ReaderGate()
+        let retryClock = ReaderGate()
+        pages.handler = { target in await retryFetch.wait(); return readerPage(page: target.page) }
+        reader.waitClock = { _ in await retryClock.wait() }
+        let retrying = Task { await reader.retry() }
+        await retryFetch.untilArrived()
+        #expect(reader.isLoading)
+        // Required: without a watch on the retry, waiting for its clock below would never return.
+        try #require(reader.error == nil, "the timeout stayed up while the retry loads")
+        await retryClock.untilArrived() // the retry's wait is watched
+        await retryClock.open()
+        await settle { reader.error != nil }
+        #expect(reader.error == .timedOut)
+        await fetch.open()
+        await retryFetch.open()
+        await opening.value
+        await retrying.value
+    }
+
+    /// Fable round 1, finding 1: a wait left before its page was shown is not timed out off screen. Opened again more than
+    /// the limit later (the model kept by `NavigationModel.reader(for:)`), the topic waits for its new web view, with no
+    /// stale timeout.
+    @Test func aWaitLeftOffScreenIsNotATimeoutWhenTheTopicIsOpenedAgain() async {
+        let clock = ReaderGate()
+        let reader = model(FakeTopicPages(), clock: clock)
+        await reader.onAppear(viewer: 1)
+        #expect(reader.document?.token == 1)
+        await clock.untilArrived()
+        reader.viewDidDisappear(viewer: 1)
+        await clock.open() // the limit passes while the topic is off screen
+        for _ in 0..<100 { await Task.yield() }
+        #expect(reader.error == nil)
+        reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) }
+        await reader.onAppear(viewer: 2)
+        #expect(reader.error == nil)
+        #expect(!reader.hasShownDocument)
     }
 
     /// A page the web view never shows: on the limit, "Réessayer"; a ready that still comes shows the page.
@@ -102,8 +154,8 @@ struct TopicReaderModelWaitTests {
         #expect(reader.hasShownDocument)
     }
 
-    /// #643's sequence: the load is cancelled by a disappearance and nothing restarts it. The wait still ends on the limit,
-    /// and the screen coming back loads again rather than keeping the timeout.
+    /// A screen still showing the spinner with no load running (a load stopped while its screen stayed, the #643 shape):
+    /// the wait still ends on the limit, and the screen coming back loads again rather than keeping the timeout.
     @Test func aStalledLoadTimesOutAndTheScreenComingBackLoadsAgain() async {
         let pages = FakeTopicPages()
         let fetch = ReaderGate()
@@ -112,7 +164,8 @@ struct TopicReaderModelWaitTests {
         let reader = model(pages, clock: clock)
         let opening = Task { await reader.onAppear(viewer: 1) }
         await fetch.untilArrived()
-        reader.viewDidDisappear(viewer: 1)
+        reader.cancel() // stopped, the screen still there
+        #expect(!reader.isLoading)
         await clock.untilArrived()
         await clock.open()
         await settle { reader.error != nil }
