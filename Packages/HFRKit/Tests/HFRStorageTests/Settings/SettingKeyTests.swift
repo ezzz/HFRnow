@@ -41,6 +41,8 @@ import Testing
         #expect(store.value(for: SettingKey.haptics))
         #expect(store.value(for: SettingKey.landscapeMode) == .galerieMessage)
         #expect(store.value(for: SettingKey.appIconName) == "superblue")
+        #expect(store.value(for: SettingKey.appIconPrevious) == nil)
+        #expect(store.value(for: SettingKey.appIconRevertAsked) == nil)
         #expect(store.value(for: SettingKey.privateMessageBadge))
         #expect(store.value(for: SettingKey.autoTheme) == .system)
         #expect(store.value(for: SettingKey.manualTheme) == .light)

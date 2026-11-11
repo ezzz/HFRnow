@@ -68,6 +68,12 @@ public enum SettingKey {
     )
     /// `icon`: alternate icon name (`superblue`, `classic`, `classic-red`, `redface`, `redface-blue`, `beta`, `blue`, `white`).
     public static let appIconName = Setting.string("icon", default: "superblue")
+    /// `icon_previous` (LOT-189, new key): the `icon` value an app-chosen dated icon replaced, for the "Revenir à l'icône
+    /// précédente ?" question. Nothing stored when no dated icon is active. A property of the device: never synced.
+    public static let appIconPrevious = Setting.optionalString("icon_previous")
+    /// `icon_revert_asked` (LOT-189, new key): `<icon>:<year>` of the dated-icon window whose end the question was already
+    /// asked for, so it is asked once per season. A property of the device: never synced.
+    public static let appIconRevertAsked = Setting.optionalString("icon_revert_asked")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
@@ -187,6 +193,7 @@ public enum SettingKey {
     public static let all: [any CatalogueSetting] = [
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
+        appIconPrevious, appIconRevertAsked,
         privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,

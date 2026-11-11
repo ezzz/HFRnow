@@ -4,23 +4,7 @@ import Testing
 
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct AppIconSettingsModelTests {
-    private struct Refusal: Error {}
-
-    private final class FakeSwitcher: AlternateIconSwitching {
-        init(current: String? = nil) { alternateIconName = current }
-        var supportsAlternateIcons = true
-        var fails = false
-        var applied: [String?] = []
-        var alternateIconName: String?
-        var gate: CheckedContinuation<Void, Never>?
-        var suspends = false
-
-        func setAlternateIconName(_ name: String?) async throws {
-            if suspends { await withCheckedContinuation { gate = $0 } }
-            if fails { throw Refusal() }
-            applied.append(name)
-        }
-    }
+    private typealias FakeSwitcher = FakeIconSwitcher
 
     @Test func emptyStoreShowsTheDefaultIcon() {
         #expect(AppIconSettingsModel(store: InMemorySettingsStore(), switcher: FakeSwitcher()).selection == .superblue)

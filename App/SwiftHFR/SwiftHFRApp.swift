@@ -19,6 +19,8 @@ struct SwiftHFRApp: App {
     @State private var theme: ThemeSettingsModel
     /// The optional Face ID / code lock, one for every scene (LOT-173).
     @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
+    /// The "Revenir à l'icône précédente ?" question once a seasonal icon's dates are over (#730).
+    @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -48,6 +50,7 @@ struct SwiftHFRApp: App {
                 .appTheme(theme)
                 // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
                 .appLockCover(appLock)
+                .appIconSeasonAlert(iconSeason)
                 // The legacy import first (LOT-158), so the accounts it takes over are in the store; then what iCloud Keychain
                 // brought (LOT-173: a new device imports its accounts there); then the stored accounts and their sessions, once
                 // per launch (LOT-081).
