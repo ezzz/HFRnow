@@ -30,14 +30,14 @@ struct LegacyImportProgressView: View {
     static let restAngle = 29.0
     static let period = 1.4
 
-    /// Forces Reduce Motion on or off for previews; nil follows the system setting (the environment value is get-only).
-    let reduceMotionOverride: Bool?
+    /// Forces Reduce Motion on, for previews; false follows the system setting (the environment value is get-only).
+    let forcesReducedMotion: Bool
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     /// The drawing grows with the text size.
     @ScaledMetric(relativeTo: .body) private var drawingSize = 128.0
 
-    init(reduceMotionOverride: Bool? = nil) {
-        self.reduceMotionOverride = reduceMotionOverride
+    init(forcesReducedMotion: Bool = false) {
+        self.forcesReducedMotion = forcesReducedMotion
     }
 
     /// What is shown: the loop, or the still drawing with a progress indicator under Reduce Motion.
@@ -64,7 +64,7 @@ struct LegacyImportProgressView: View {
     }
 
     var body: some View {
-        let display = Self.display(reduceMotion: reduceMotionOverride ?? systemReduceMotion)
+        let display = Self.display(reduceMotion: forcesReducedMotion || systemReduceMotion)
         VStack(spacing: 16) {
             drawing(display)
                 // Capped: at accessibility sizes the text matters more than the picture.
@@ -113,6 +113,6 @@ struct LegacyImportProgressView: View {
 }
 
 #Preview("Réduire les animations") {
-    LegacyImportProgressView(reduceMotionOverride: true)
+    LegacyImportProgressView(forcesReducedMotion: true)
         .preferredColorScheme(.dark)
 }
