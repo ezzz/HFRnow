@@ -674,40 +674,83 @@ class PositionTests(unittest.TestCase):
         self.assertNotEqual(leaks('<span class="signature"> ---------------\n<br />Jean Exemple</span>'), [])
         self.assertNotEqual(leaks('<span class="signature">Signature removed. Jean</span>'), [])
 
-    # #763: a member's signature is member input; an unbalanced end tag inside it must not end the redaction early.
-    # The mood is left to the depth count: what follows it in its cell is HFR's markup (#763 follow-up).
+    # #763: a signature or mood is member input; an unbalanced tag inside it must not end the redaction early. Both are
+    # followed by HFR markup a member cannot write (`R267a`, `R63a`): the next message table, the page footer, the avatar.
+    PAGES = '<table cellspacing="0" cellpadding="4" width="100%"><tr class="cBackHeader fondForum2PagesBas"><td>1</td></tr></table>'
+
     @staticmethod
-    def message(sig, mood='<span class="MoodStatus">Kilo Lima</span>'):
-        """A message row the way topic pages print it (`R267a`): mood last in the author cell, signature last in the para div."""
-        return ('<table class="messagetable"><tr class="message"><td class="messCase1" width="180">'
-                '<div><b class="s2">user1</b></div>%s</td><td class="messCase2" valign="top"><div id="para1">'
+    def message(sig, mood='<span class="MoodStatus">Kilo Lima</span>', n=1, after_mood='<div class="avatar_center" style="clear:both"></div>'):
+        """A message row the way topic pages print it (`R267a`): mood in the author cell, signature last in the para div."""
+        return ('<table cellspacing="0" cellpadding="4" width="100%%" class="messagetable"><tr class="message"><td class="messCase1" '
+                'width="180"><div><b class="s2">user%d</b></div>%s%s</td><td class="messCase2" valign="top"><div id="para%d">'
                 '<p>Corps du message<div style="clear: both;"> </div></p><br /><span class="signature">%s</span></div>'
-                '</td></tr></table>' % (mood, sig))
+                '</td></tr></table>' % (n, mood, after_mood, n, sig))
+
+    def page(self, *sigs, mood='<span class="MoodStatus">Mood removed.</span>', tail=None):
+        return "".join(self.message(s, mood, i + 1) for i, s in enumerate(sigs)) + (self.PAGES if tail is None else tail)
+
+    def reasons(self, html):
+        return " ".join(r for _l, _c, r in A.verify_structure(html))
 
     def test_unbalanced_span_end_in_a_signature_does_not_end_the_redaction(self):
-        sig = (' ---------------\n\t\t\t<br /><b>Jean Exemple</span>Secret Handle<span class="x">Other Words'
+        sig = (' ---------------\n\t\t\t<br /><b>Jean Exemple</SPAN >Secret Handle<span class="x">Other Words'
                '<div style="clear: both;"> </div>')
-        out = anon(self.message(sig))
-        _absent(self, out, "Jean Exemple", "Secret Handle", "Other Words")
+        out = anon(self.page(sig, mood='<span class="MoodStatus">Kilo Lima</span>'))
+        _absent(self, out, "Jean Exemple", "Secret Handle", "Other Words", "Kilo Lima")
         self.assertIn('<span class="signature"> ---------------\n\t\t\t<br />Signature removed.<div style="clear: both;"> </div>'
-                      '</span></div></td></tr></table>', out)
+                      '</span></div></td></tr></table>' + self.PAGES, out)
         self.assertEqual(leaks(out), [])
 
-    def test_unbalanced_span_and_div_ends_in_a_signature_are_redacted_too(self):
-        out = anon(self.message('Jean Exemple</span>Secret Handle</div>Other Words<div style="clear: both;"> </div>'))
-        _absent(self, out, "Jean Exemple", "Secret Handle", "Other Words")
-        self.assertEqual(leaks(out), [])
+    def test_signature_end_tag_case_does_not_matter(self):
+        html = self.page('Jean Exemple</span>Secret Handle<div style="clear: both;"> </div>').replace(
+            '</span></div></td>', '</SPAN ></div></td>')
+        _absent(self, anon(html), "Jean Exemple", "Secret Handle")
 
-    def test_check_refuses_content_after_a_signature_in_its_container(self):
-        self.assertEqual(A.verify_structure(self.message("Signature removed.", mood='<span class="MoodStatus">Mood removed.</span>')), [])
+    def test_unbalanced_ends_in_a_signature_are_redacted_too(self):
+        for sig in ('Jean Exemple</span>Secret Handle</div>Other Words<div style="clear: both;"> </div>',
+                    'Jean Exemple</span></div>Secret Handle</td>Other Words<div style="clear: both;"> </div>',
+                    'Jean Exemple</span></div></td></tr></table>Secret Handle<div>Other Words<div style="clear: both;"> </div>'):
+            for tail in (None, '<br /><script type="text/javascript">var x=1;</script>'):
+                out = anon(self.page(sig, tail=tail))
+                _absent(self, out, "Jean Exemple", "Secret Handle", "Other Words")
+                self.assertEqual(leaks(out), [], sig)
+
+    def test_unbalanced_start_in_a_signature_stops_at_the_next_message(self):
+        # An unclosed <span>, <div> or <td> in a signature must not swallow the next message.
+        for sig in ('<span>Jean Exemple', '<div>Jean Exemple', '<td>Jean Exemple'):
+            out = anon(self.page(sig, "Second signature"))
+            _absent(self, out, "Jean Exemple", "Second signature")
+            self.assertEqual(out.count('class="messagetable"'), 2, sig)
+            self.assertIn("Corps du message", out.split('<div id="para2">')[1], sig)
+            self.assertEqual(leaks(out), [], sig)
+
+    def test_unbalanced_span_end_in_a_mood_does_not_end_the_redaction(self):
+        for after in ('<div class="avatar_center" style="clear:both"></div>',
+                      '<br/><span class="TransactionsReportsLink"><a href="/t">Transactions (0)</a></span>', ''):
+            mood = '<span class="MoodStatus">Kilo</span>Secret Handle<span class="x">Lima</span></span>'
+            out = anon(self.message("Signature removed.", mood, after_mood=after) + self.PAGES)
+            _absent(self, out, "Kilo", "Secret Handle", "Lima")
+            self.assertIn('<span class="MoodStatus">Mood removed.</span>' + after + '</td>', out)
+            self.assertEqual(leaks(out), [], after)
+
+    def test_check_refuses_content_after_a_signature(self):
+        self.assertEqual(A.verify_structure(self.page("Signature removed.", "Signature removed.")), [])
+        self.assertEqual(A.verify_structure(self.page("Signature removed.", tail='<br /><script>var x=1;</script>')), [])
         for sig in ('Signature removed.</span>Secret Handle<span class="x">',
                     'Signature removed.</span><img src="https://example.org/h.png" alt="" />',
-                    'Signature removed.</span><a href="https://example.org/c/handle"></a><span>'):
-            self.assertTrue(A.verify_structure(self.message(sig)), sig)
-            self.assertTrue(leaks(self.message(sig)), sig)
-        # A mood is followed by HFR's own avatar and links in its cell (`R63a`): the rule is the signature's only.
-        self.assertEqual(A.verify_structure(self.message("Signature removed.", mood='<span class="MoodStatus">Mood removed.</span>'
-                                                         '<br/><div class="avatar_center" style="clear:both"></div>')), [])
+                    'Signature removed.</span><a href="https://example.org/c/handle"></a><span>',
+                    'Signature removed.</span></div>Secret Handle</td>',
+                    'Signature removed.</span></div></td></tr>Secret Handle'):
+            self.assertIn("after a signature", self.reasons(self.page(sig)), sig)
+            self.assertTrue(leaks(self.page(sig)), sig)
+
+    def test_check_refuses_content_after_a_mood(self):
+        for after in ('<div class="avatar_center" style="clear:both"></div>', '<br/><span class="TransactionsReportsLink"></span>', ''):
+            self.assertEqual(A.verify_structure(self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>',
+                                                             after_mood=after) + self.PAGES), [], after)
+        for bad in ('Secret Handle', '<span class="x"></span>', '<img src="https://example.org/h.png" alt="" />', '</div>Secret Handle'):
+            html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>' + bad) + self.PAGES
+            self.assertIn("after a mood", self.reasons(html), bad)
 
     def test_check_refuses_a_member_value_in_a_signature_attribute(self):
         for bad in ('<span class="signature" title="Real Handle">Signature removed.</span>',
@@ -715,14 +758,17 @@ class PositionTests(unittest.TestCase):
                     '<span class="signature">Signature removed.<img src="https://example.org/h.png" alt="Real Handle" /></span>',
                     '<span class="signature RealHandle">Signature removed.</span>',
                     '<span class="signature" class="RealHandle">Signature removed.</span>',
+                    '<span class="signature" class="signature">Signature removed.</span>',
                     '<span class="MoodStatus RealHandle">Mood removed.</span>'):
-            self.assertTrue(A.verify_structure(bad), bad)
+            self.assertIn("signature or mood", self.reasons(bad), bad)
 
-    def test_check_refuses_svg_and_math(self):
-        # #768: html.parser reads <style>/<script> as raw text everywhere, a browser not inside svg or math.
+    def test_check_refuses_svg_math_and_cdata(self):
+        # #768: html.parser reads <style>/<script> as raw text everywhere, a browser not inside svg or math; it also reads
+        # `<![CDATA[ … ]]>` as one declaration where a browser ends that bogus comment at the first `>`.
         for bad in ('<p><svg><style><span class="signature">Real Handle</span></style></svg></p>',
                     '<p><math><style><span class="signature">Real Handle</span></style></math></p>',
-                    '<p><SVG/></p>', '<p><Math></Math></p>'):
+                    '<p><SVG/></p>', '<p><Math></Math></p>',
+                    '<td class="messCase1"><![CDATA[ <b class="s2">Real Handle</b> ]]></td>'):
             self.assertTrue(A.verify_structure(bad), bad)
             self.assertTrue(leaks(bad), bad)
 
