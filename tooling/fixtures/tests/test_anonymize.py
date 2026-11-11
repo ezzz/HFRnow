@@ -944,6 +944,16 @@ class PositionTests(unittest.TestCase):
             html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>' + bad) + self.PAGES
             self.assertIn("after a mood", self.reasons(html), bad)
 
+    def test_marked_section_after_a_personal_block_is_refused_on_either_parser_path(self):
+        # html.parser hands `<![if …]>` to unknown_decl or to handle_comment depending on the Python patch release: both
+        # must report it after a signature or mood (#797, CI on 3.13 vs a local 3.13).
+        for what in ("signature", "mood"):
+            for call in ("unknown_decl", "handle_comment"):
+                v = A.StructuralVerifier()
+                v.after_personal = what
+                getattr(v, call)("if Secret Handle")
+                self.assertIn("after a %s" % what, " ".join(r for _l, _c, r in v.found), call)
+
     def test_unknown_markup_before_the_boundary_fails_loudly(self):
         # An HFR element the boundary list does not know (invented `span.MDStatus`) must not be cut silently. Right before
         # a boundary it reads like a member's unbalanced `</span>` (#763), which is redacted: what follows it must be HFR's.

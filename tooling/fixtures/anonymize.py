@@ -2375,6 +2375,8 @@ class StructuralVerifier(html.parser.HTMLParser):
         # shows what follows (#763 review). HFR's pages print none; an XML document (the AQ feed, `T01`) is not HTML.
         if not self.xml:
             self._bad("unexpected markup <![%s" % data[:5], data)
+        # Some html.parser versions route `<![if …]>` here, others to handle_comment: both say where it sits (#797).
+        self._non_element(data)
 
     def handle_endtag(self, tag):
         if self.after_personal:
