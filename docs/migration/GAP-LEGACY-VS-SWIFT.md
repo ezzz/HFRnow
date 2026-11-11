@@ -96,6 +96,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
 | GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for every link that is not a forum topic, MP or profile, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). An image link (extension or rehost host, as legacy `isImageURL`) also offers "Ouvrir l'image" (the viewer) and "Enregistrer dans Photos" (cookie-less download, add-only Photos permission), ported in #615. | #596, #615, LOT-137 | UX change | new UX: operator (2026-11-07) | b·operator |
 | GAP-595 | Default avatar in the reader | `avatar_male_gray_*.png` via CSS `--imagefile-avatar`, class `noavatar` (`MessagesView.swift:2411`, `LinkItem.m:65-69`) | `MessagesView.swift:2411` | Monogram (initials on a pseudo-hashed disc, as the MP list), local markup | #595 | UX change | operator 2026-11-07 | b·operator |
+| GAP-750 | Topic load timeout | 10 s from the page request to its answer, then "Le chargement du topic a expiré. Réessaie." | `MessagesView.swift:3668-3704` @ `87fe0d1c`; `Common.swift:1906-1907` | 30 s (HFRNetwork `RequestTimeout.standard`) from the first "Chargement des messages" to the page shown, fetch and web view together, then the timeout error with Réessayer; a page that still arrives is shown. | #750 | ported with changes | new UX: operator (#750) | b·operator |
 
 ## Composer
 
@@ -106,8 +107,8 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-082 | Quote a selection | "Citer extrait" and "Citer gras" on selected text. | MessagesView.swift:554-555, 574-575 | `[quotemsg]` selection formatter; the reader entry is not named. | LOT-049, LOT-086 | ported with changes | port: ezzz Swift layer | a |
 | GAP-083 | Multi-quote | Per-message toggle (cookie), no count, no tray. | MessagesView.swift:1637-1644, 1852-1877 | Tray with a count; reply takes quotes in topic order; emptied after a confirmed send. | LOT-086, LOT-153, FEAT-006 | UX change | new UX: Bybifok (FEAT-006) | b |
 | GAP-084 | Quote splitting | "Fractionner la citation" cuts at the cursor. | ReplyComposer.swift:141-175 | LOT-085: engine ported and tested, no button yet. | LOT-085 | ported with changes (engine only) | port: ezzz Swift layer | a |
-| GAP-085 | Formatting | Edit-menu BBCode actions (b, i, u, s, spoiler, quote, url, img, fixed). | ReplyComposer.swift:59-70, 99-139 | Formatting toolbar and insertion engine. | LOT-085, LOT-174 | UX change | port: ezzz Swift layer | b |
-| GAP-086 | Clear / undo / redo | Three toolbar buttons. | AnswerView.swift:500-511 | Not in any lot scope. | — | not planned | — | — |
+| GAP-085 | Formatting | Edit-menu BBCode actions (b, i, u, s, spoiler, quote, url, img, fixed). | ReplyComposer.swift:59-70, 99-139 | Formatting toolbar and insertion engine; the bar sits behind Aa at the end of the control row, hidden when the composer opens (legacy at 87fe0d1c, #653). | LOT-085, LOT-174 | UX change | port: ezzz Swift layer | b |
+| GAP-086 | Clear / undo / redo | Three toolbar buttons. | AnswerView.swift:994-1011, 1345-1374 @ 87fe0d1c | Control row: Vider le texte, Annuler, Rétablir; every change of the text is one step (insertions included), 200 kept. | LOT-174, #653 | same | port: ezzz Swift layer | a |
 | GAP-087 | Smileys | Panel: default, forum favourites, app favourites. | AnswerView.swift:1061-1064; ReplySmileyCatalog.swift:110-153 | Catalogue, favourites (synced) and insert; "Smileys du forum" read from the composer form (#600); favourite from the context menu; search in the navigation bar. "Mes smileys" pending capture #601. | LOT-104, LOT-064, #600 | ported with changes | port: ezzz Swift layer | a |
 | GAP-088 | Smiley search | HFR search, "all keywords" toggle, recent and top chips. | AnswerView.swift:1280-1317; SmileySearchService.swift:88-135 | Search, history and wiki keywords. | LOT-105, LOT-053 | same | port: ezzz Swift layer | a |
 | GAP-089 | GIFs | Giphy panel, rating R, recents. | AnswerView.swift:2294-2340 | Giphy client (injected key) and our own GIF grid (trending, search, confirmation); notice N1 before the first request; no recents; GIFs off Giphy's CDN are never shown or posted. | LOT-098, LOT-155 | ported with changes | port: ezzz Swift layer | b·needed |
@@ -125,6 +126,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-101 | Session expiry while composing | Toast "Session expirée"; text kept. | ReplyService.swift:12, 22 | Expiry sheet; resent after re-login only when HFR confirmed nothing was posted. | LOT-142, FEAT-009 | UX change | new UX: Bybifok (FEAT-009) | b |
 | GAP-102 | "+" button modes | At `2440d79` no modes, "+" means new topic. At `2fe43da3` (`08a63c8e`) a "Bouton +" setting (Réponse rapide, default; Répondre comme le forum; Pas d'icône; key `reply_button_behavior`) drives a floating reply button on topic pages, and "Répondre" is in the "…" menu. | MainWindow.swift:748-752; Common.swift:261-280, AppSettingsView.swift:481-485 @ 2fe43da3 | Floating reply button with its "Bouton +" setting, same values (#654, M4). | #654 | same | port: ezzz Swift layer | a·master |
 | GAP-703 | Archived drafts on the update | Kept per topic, 3 archived per topic, in `reply_drafts_by_topic_v1`, beside the active draft of each topic. | AnswerView.swift:137-272 @ 2fe43da3 | Not imported by the update: they stay in the legacy `UserDefaults`, never deleted; the active draft of each topic is imported and becomes the topic's reply draft when it opens (LOT-067, decision D1). | LOT-067 | UX change | new UX: operator | b·operator |
+| GAP-653 | Composer height (iPhone) | Full-screen cover; nothing of the topic is visible while writing. | MessagesView.swift:5429-5443 @ 87fe0d1c | Every composer opens on an iPhone as a card docked on the keyboard, growing with the text up to six lines, with a full-height toggle and inserted images as thumbnails; over the reader the page stays visible and scrollable, its taps ignored while writing; full height in landscape and on iPad. | LOT-174, #653 | UX change | operator 2026-11-08 (#653) | b·operator |
 
 ## Private messages
 
@@ -141,7 +143,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-118 | Group members | Only the tooltip names in the HTML. | MPListView.swift:171-173 | Members action. | LOT-058, LOT-181 | new | new UX: spec | b |
 | GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` label on group rows while the account syncs; opening at the flag comes with the reader's flag write (follow-up). | LOT-062, LOT-130 | ported with changes | port: ezzz Swift layer | a |
 | GAP-120 | MP list logged out | "Connectez-vous pour accéder aux MP". | MPListView.swift:289-296 | "Connexion requise", no request sent. | LOT-126 | same | port: ezzz Swift layer | a |
-| GAP-230 | MP avatar | Cache filled while parsing topic pages (download when missing or older than 24 h); grey disc when absent. | ParseMessagesOperation.m:176, 430-446; MPListView.swift (MPAvatarView) @ 2440d79 | `AvatarStore` fills the cache from every page read (cookie-less, forum image host only, 256 KiB cap, 24 h; not gated by "Images externes": forum avatars are first-party (LOT-071 D-071-1 point 3), as in the reader and legacy); monogram (initials, stable hue, ≥ 4.5:1) replaces the grey disc; groups keep their icon. Profile prefetch for never-opened correspondents: pending capture. | LOT-126, LOT-066, #569 | ported with changes | port: ezzz Swift layer | a |
+| GAP-230 | MP avatar | Cache filled while parsing topic pages (download when missing or older than 24 h); grey disc when absent. | ParseMessagesOperation.m:176, 430-446; MPListView.swift (MPAvatarView) @ 2440d79 | `AvatarStore` fills the cache from every page read (cookie-less, forum image host only, 256 KiB cap, 24 h; not gated by "Images externes": forum avatars are first-party (LOT-071 D-071-1 point 3), as in the reader and legacy); the avatar files the legacy app cached (`MD5(lowercased pseudo)`) are adopted on first read after an update (#714); a one-to-one correspondent still missing is looked up while the row is shown (`profilebdd.php` redirect, then the public profile, both cookie-less, `R716a`-`R716d`; one lookup at a time, each pseudo once per session) and the avatar stored by `AvatarStore` (#714); monogram (initials, stable hue, ≥ 4.5:1) replaces the grey disc when there is none; groups keep their icon. | LOT-126, LOT-066, #569, #714 | ported with changes | port: ezzz Swift layer | a |
 
 ## Search
 
@@ -266,14 +268,14 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 38 |
-| ported with changes | 54 |
+| same | 39 |
+| ported with changes | 55 |
 | ported with changes (engine only) | 1 |
-| UX change | 47 |
+| UX change | 48 |
 | new | 26 |
 | dropped | 2 |
-| not planned | 4 |
-| **Total** | **172** |
+| not planned | 3 |
+| **Total** | **174** |
 
 ## Convergence notes
 
@@ -304,14 +306,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (127)
+### GAP rows of type `ported with changes`, `UX change` or `new` (129)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 50 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 655, 703 | 22 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 750 | 24 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
