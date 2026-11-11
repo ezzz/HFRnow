@@ -45,6 +45,7 @@ struct TopicListView: View {
                 }
             }
         }
+        .densityListMargins()
         .navigationTitle(model.source.title)
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }

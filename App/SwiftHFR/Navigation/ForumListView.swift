@@ -17,6 +17,7 @@ struct ForumListView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .densityListMargins()
         .navigationTitle("Catégories")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

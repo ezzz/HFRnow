@@ -60,6 +60,7 @@ struct ArchivedDraftsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .densityListMargins()
     }
 
     private func row(_ draft: ArchivedDraft) -> some View {

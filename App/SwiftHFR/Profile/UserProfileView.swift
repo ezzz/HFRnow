@@ -55,6 +55,7 @@ struct UserProfileView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .densityListMargins()
             .refreshable { await model.reload() }
         } else if let error = model.error {
             LoadFailureView(error: error, retry: model.reload)
