@@ -14,15 +14,30 @@ struct RootView: View {
     /// `MainWindow.swift:1276-1278`). Nil until the first creation, which applies the start-screen setting.
     @State private var lastDestination: SidebarDestination?
 
+    /// What the root screen shows.
+    enum Content: Equatable {
+        case navigation
+        /// The launch import runs before the accounts are read (LOT-158); the worker of #754.
+        case importProgress
+        case loading
+    }
+
+    static func content(hasNavigation: Bool, importIsRunning: Bool) -> Content {
+        if hasNavigation { return .navigation }
+        return importIsRunning ? .importProgress : .loading
+    }
+
     var body: some View {
         Group {
-            if let built {
-                RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
-                    .id(built.generation)
-            } else if legacyImport.isRunning {
-                // The launch import runs before the accounts are read (LOT-158).
-                ProgressView("Import des données de HFR+…")
-            } else {
+            switch Self.content(hasNavigation: built != nil, importIsRunning: legacyImport.isRunning) {
+            case .navigation:
+                if let built {
+                    RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
+                        .id(built.generation)
+                }
+            case .importProgress:
+                LegacyImportProgressView()
+            case .loading:
                 ProgressView()
             }
         }
