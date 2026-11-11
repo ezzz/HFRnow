@@ -24,7 +24,9 @@ import Testing
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
-            "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag"
+            "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
+            // LOT-166: the two seasonal toggles, new.
+            "season.automatic", "season.animations"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -61,6 +63,24 @@ import Testing
         #expect(store.value(for: SettingKey.searchCategory) == .forum(13))
         #expect(store.value(for: SettingKey.rehostLinkMode) == .imageWithLink)
         #expect(store.value(for: SettingKey.rehostMaxDimension) == .px1200)
+        #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
+        #expect(store.value(for: SettingKey.seasonalAnimations))
+    }
+
+    /// LOT-166: one set of Noël keys per season, named after its year (THEMES.md §5), all empty at first.
+    @Test func theNoelKeysOfASeasonAreNamedAfterItsYear() {
+        #expect(SettingKey.noelArrivalShown(year: 2026).key == noelKey(2026, "arrivalShown"))
+        #expect(SettingKey.noelOptedOut(year: 2026).key == noelKey(2026, "optedOut"))
+        #expect(SettingKey.noelPreviousThemeID(year: 2026).key == noelKey(2026, "previousThemeID"))
+        #expect(SettingKey.noelPackingShown(year: 2027).key == noelKey(2027, "packingShown"))
+        let store = InMemorySettingsStore()
+        #expect(!store.value(for: SettingKey.noelArrivalShown(year: 2026)))
+        #expect(!store.value(for: SettingKey.noelOptedOut(year: 2026)))
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == nil)
+        #expect(!store.value(for: SettingKey.noelPackingShown(year: 2026)))
+        store.set("legacy", for: SettingKey.noelPreviousThemeID(year: 2026))
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == "legacy")
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2027)) == nil)
     }
 
     @Test(arguments: [
@@ -244,4 +264,9 @@ import Testing
         store.set(.read, for: SettingKey.topicListFlag)
         #expect(store.rawValue(forKey: "HFRswiftGlobalTopicListFlag") == .int(3))
     }
+}
+
+/// A Noël season key built from its parts, as THEMES.md §5 names it: `season.noel.<year>.<name>`.
+private func noelKey(_ year: Int, _ name: String) -> String {
+    ["season", "noel", String(year), name].joined(separator: ".")
 }
