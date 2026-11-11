@@ -203,6 +203,8 @@ def markdown(rows):
         found = '<br>'.join(found) or '—'
         if r['outcome'] == 'blocked':
             todo = '`### Blocked by`<br>' + '<br>'.join(x.replace('|', '/') for x in r['blocked_by'])
+        elif r['outcome'] == 'on-hold' and (r['decision'], r['link']) == M5_DECISION:
+            todo = 'the M5_OPEN decision sentence (below)'
         elif r['outcome'] == 'on-hold':
             todo = f"{r['decision']} ([decision]({r['link']}))"
         elif r['outcome'] == 'ready':
@@ -217,6 +219,8 @@ def markdown(rows):
         if extra:
             todo += '<br>_' + ' '.join(extra) + '_'
         out.append(f"| #{r['issue']} | {r['title'].replace('|', '/')} | {r['milestone'] or '—'} | {found} | **{r['outcome']}** | {todo} |")
+    if any(r.get('link') == M5_DECISION[1] for r in rows):
+        out += ['', f"**M5_OPEN decision sentence**, written on each M5 item set `on-hold`: {M5_DECISION[0]} ([decision]({M5_DECISION[1]}))"]
     return '\n'.join(out) + '\n'
 
 
