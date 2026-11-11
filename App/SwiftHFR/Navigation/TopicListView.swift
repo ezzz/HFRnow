@@ -6,6 +6,8 @@ import UIKit
 // (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: "Page N"
 // without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
 // system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
+// List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
+// `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c); no difference to record.
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -16,8 +18,6 @@ struct TopicListView: View {
     var composer: ComposerServices?
     /// Opens a row's topic at a page its menu names (LOT-125); nil hides those entries.
     var open: ((TopicSummary, TopicOpening) -> Void)?
-    /// What a tinted row layers over: the grouped card by default, nothing in the iPad sidebar column, which has no card (#584).
-    var tintBase: RowTint.Base = .grouped
     /// The sub-forum menu and the Tous / Favoris / Suivis / Lus filter of a forum list; nil on flags and favourites.
     var scope: ForumScope?
     /// Favoris: opens the category a section title names (legacy `headerTitleView`, `Favorites.swift:344-372` @ 87fe0d1c).
@@ -117,15 +117,14 @@ struct TopicListView: View {
     }
 
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
-    /// `base` is what the list's rows are drawn on: the card of a grouped list, or `.clear` in a sidebar column (#570, #584).
     static func rowTint(
-        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, base: RowTint.Base = .grouped
+        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool
     ) -> RowTint? {
         let flag = showsFlag ? topic.flag : nil
         guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
             return nil
         }
-        return RowTint(tint: accent.color, weight: accent.weight, base: base)
+        return RowTint(tint: accent.color, weight: accent.weight)
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
@@ -133,10 +132,12 @@ struct TopicListView: View {
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(TopicListView.rowTint(
-                    topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
-                    base: tintBase
-                ))
+                .rowPill(
+                    TopicListView.rowTint(
+                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic
+                    ),
+                    overflow: RowTint.overflow(isSuperFavorite: isSuper)
+                )
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }

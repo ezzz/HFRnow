@@ -60,14 +60,19 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true, isSelected: true) == nil)
     }
 
-    @Test("The row tint takes the base of its list: the grouped card by default, clear in the sidebar column")
-    func rowTintBases() throws {
-        let grouped = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: false))
-        #expect(grouped.base == .grouped)
-        let sidebar = try #require(
-            TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: true, isSelected: false, base: .clear)
-        )
-        #expect(sidebar.base == .clear)
+    @Test("A highlighted row is legacy's pill: overflow 8 side, 2 bottom, 4 on top for a super favourite, 2 otherwise (#803)")
+    func pillOverflow() {
+        #expect(RowTint.overflow(isSuperFavorite: true) == EdgeInsets(top: 4, leading: 8, bottom: 2, trailing: 8))
+        #expect(RowTint.overflow(isSuperFavorite: false) == EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+        #expect(RowTint.cornerRadius == 12)
+    }
+
+    @Test("The pill never reaches past the row insets of the density, so it stays inside the block (#803, #804)")
+    func pillIsCappedByRowInsets() {
+        let overflow = RowTint.overflow(isSuperFavorite: true)
+        #expect(RowTint.capped(overflow, by: ListDensity.regular.rowInsets) == overflow)
+        let compact = RowTint.capped(overflow, by: EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7))
+        #expect(compact == EdgeInsets(top: 3, leading: 7, bottom: 2, trailing: 7))
     }
 
     @Test("The accent weight: quieter for a flag, full for the super favourite")

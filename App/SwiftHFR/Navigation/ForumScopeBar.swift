@@ -20,10 +20,9 @@ struct ForumScopeBar: View {
     var body: some View {
         Group {
             if let section = scope.section(), section.subforumCount > 0 { subforumRow(section) }
-            Section {
-                TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter)
-                if let note { Text(note).font(.footnote).foregroundStyle(.secondary) }
-            }
+            // Rows of the topic block, not a section of their own: legacy's picker and filter sit at the top of the same block (#803).
+            TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter)
+            if let note { Text(note).font(.footnote).foregroundStyle(.secondary) }
         }
     }
 

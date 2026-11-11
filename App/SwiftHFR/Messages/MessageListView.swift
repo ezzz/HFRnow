@@ -26,7 +26,7 @@ struct MessageListView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped) // explicit: the row tint's base colour is the grouped one (#570)
+        .listStyle(.insetGrouped) // explicit: legacy's rounded block (#803)
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .overlay { overlay(loader) }
