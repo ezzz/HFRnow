@@ -777,7 +777,7 @@ PERSONAL_TAILS = {
                                 r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,resizable=yes,"
                                 r"width=\d+,height=\d+,left=\d+,top=\d+'\); return false\"\s*>Transactions \(\d+\)</a\s*>"
                                 r"</span\s*>\s*)?(?:<div class=\"avatar_center\" style=\"clear:both\">(?:<img src=\""
-                                r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.\w+\" alt=\"[^\"<>]*\"\s*/?>)?"
+                                r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png)\" alt=\"[^\"<>]*\"\s*/?>)?"
                                 r"</div\s*>\s*)?</td\s*>\s*"),
 }
 MESSAGE_CELL_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase2[\"']", re.I)
@@ -2106,6 +2106,7 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.after_personal = None  # "signature" or "mood" until HFR's next own element (#763)
         self.personal_cell = None  # the cell that held it: HFR closes it before that element (#797)
         self.mood_tail = set()  # the parts of HFR's author-cell tail seen after a mood (#797)
+        self.after_ends = []  # the end tags between a signature or mood and HFR's next element (#797)
         self.message_table = None  # the message whose cell ended a mood: a second cell there is the member's (#797)
         self.xml = False  # an XML document, where CDATA is CDATA
 
@@ -2184,6 +2185,11 @@ class StructuralVerifier(html.parser.HTMLParser):
                 if self.personal_cell is not None and any(e is self.personal_cell for e in self.stack):
                     # HFR closes the block's cell before printing that element: one printed inside it is the member's (#797).
                     self._bad("%s cell still open at <%s>" % (what, tag), tag)
+                # And it closes exactly its own elements in between (corpus, 2026-11-11): the para div, cell, row and
+                # table after a signature, the author cell after a mood (inside the tail: its link, span and div).
+                closed = [t for t in self.after_ends if what == "signature" or t not in ("a", "span", "div")]
+                if closed != (["div", "td", "tr", "table"] if what == "signature" else ["td"]):
+                    self._bad("%s closing </%s> before <%s>" % (what, ">, </".join(closed), tag), tag)
                 if what == "mood":
                     self.message_table = next((e for e in reversed(self.stack) if e["tag"] == "table" and "messagetable"
                                                in e["cls"]), None) or next((e for e in reversed(self.stack) if e["tag"] == "tr"),
@@ -2369,9 +2375,10 @@ class StructuralVerifier(html.parser.HTMLParser):
         # shows what follows (#763 review). HFR's pages print none; an XML document (the AQ feed, `T01`) is not HTML.
         if not self.xml:
             self._bad("unexpected markup <![%s" % data[:5], data)
-        self._non_element(data)
 
     def handle_endtag(self, tag):
+        if self.after_personal:
+            self.after_ends.append(tag)
         if self._in_signature():
             top = self.stack[-1]
             # A stray end tag would pop past an enclosing cell, which a browser ignores: accept only the matching one.
@@ -2424,6 +2431,7 @@ class StructuralVerifier(html.parser.HTMLParser):
                     self.after_personal = "signature" if "signature" in e["cls"] else "mood"
                     self.personal_cell = next((x for x in reversed(self.stack) if x["tag"] == "td"), None)
                     self.mood_tail = set()
+                    self.after_ends = []
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
                     self._bad("private form copy", text, e["line"])

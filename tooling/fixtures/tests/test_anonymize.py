@@ -869,6 +869,42 @@ class PositionTests(unittest.TestCase):
                                   after_mood='') + self.PAGES)
         self.assertEqual(A.verify_structure(self.page("Signature removed.", "Signature removed.")), [])
 
+    def test_check_requires_hfrs_closing_sequence_before_the_boundary(self):
+        # #797 review round 2: the member closes the block's cell (and more) before printing HFR's next element.
+        for html in (self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span></td></tr></table>'
+                                  '<td class="messCase2">Secret Handle</td><span>', after_mood='') + self.PAGES,
+                     self.page('Signature removed.</span></div></td><table class="messagetable"><tr><td>Secret Handle<div><span>'),
+                     self.page('Signature removed.</span></div></td></tr><script>var x = "Secret Handle";</script><tr><td><div>'
+                               '<span>')):
+            self.assertIn("closing", self.reasons(html), html)
+        self.assertEqual(A.verify_structure(anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>',
+                                                              after_mood=self.TRANSACTIONS + self.AVATAR) + self.PAGES)), [])
+
+    def test_mood_tail_pins_fail_loudly_one_by_one(self):
+        # Each pin of HFR's author-cell tail on its own: the rest of the tail is HFR-exact.
+        img = '<img src="https://forum-images.hardware.fr/images/mesdiscussions-12345678.jpg" alt="" />'
+        redactor = (self.TRANSACTIONS.replace('/transactions_reports.php?config=hfr.inc&amp;cat=13&amp;id_user=12345678',
+                                              '/Secret-Handle'),
+                    self.AVATAR.replace('forum-images.hardware.fr', 'example.org'),
+                    self.AVATAR.replace('clear:both', 'clear:both;background:url(https://example.org/h.png)'),
+                    self.AVATAR.replace('.jpg', '.gif'))
+        for tail in redactor:
+            with self.assertRaises(A.AnonymizeError, msg=tail):
+                anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>', after_mood=tail) + self.PAGES)
+        check = redactor + ('<div class="avatar_center" style="clear:both"></div>' * 2,
+                            '<br/>' + self.LINK + 'Transactions (3)</a>',
+                            img,
+                            self.TRANSACTIONS.replace('<a href=', '<a href="/transactions_reports.php?config=hfr.inc&amp;cat=1'
+                                                                   '&amp;id_user=1" href='))
+        for tail in check:
+            html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>', after_mood=tail) + self.PAGES
+            self.assertIn("after a mood", self.reasons(html), tail)
+
+    def test_check_refuses_a_second_message_cell_in_a_row_outside_a_message_table(self):
+        html = ('<html><body><table><tr><td class="messCase1"><span class="MoodStatus">Mood removed.</span></td>'
+                '<td class="messCase2">x</td><td class="messCase2">Secret Handle</td></tr></table></body></html>')
+        self.assertIn("second message cell after a mood", self.reasons(html))
+
     def test_unclosed_or_unbounded_blocks_in_a_page_fail_loudly(self):
         # A signature never closed before the next message, a mood with no message cell after its avatar, and a message
         # table with no html or body around it: each is a page, so none falls back to the depth count.
