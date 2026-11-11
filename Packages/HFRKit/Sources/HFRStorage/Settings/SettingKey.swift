@@ -184,6 +184,10 @@ public enum SettingKey {
     public static let seasonalThemesAutomatic = Setting.bool("season.automatic", default: true)
     /// `season.animations` (new): seasonal animations play (THEMES.md §4); off counts as Reduce Motion. Device-only.
     public static let seasonalAnimations = Setting.bool("season.animations", default: true)
+    /// `season.noel.activeYear` (new): the season whose Noël theme is on, so a theme left on any number of years ago is restored.
+    public static let noelActiveYear = Setting<Int?>(
+        key: "season.noel.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
+    )
 
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
     public static let deprecatedKeys = ["force_manual_theme", "auto_theme_day_time", "auto_theme_night_time"]
@@ -199,7 +203,7 @@ public enum SettingKey {
         nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
-        seasonalThemesAutomatic, seasonalAnimations
+        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

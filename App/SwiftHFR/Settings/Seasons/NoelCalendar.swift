@@ -1,7 +1,7 @@
 import Foundation
 
 // Port of Classes/HFRplusAppDelegate.m (applicationDidBecomeActive, the "Noel" dates) @ 87fe0d1c. Differences: yearly windows on
-// the user's local calendar instead of 24/12/2022–09/01/2023 hard-coded (`:633-634`); GAP-147.
+// the user's local calendar instead of 24/12/2022–09/01/2023 hard-coded (`:635-636`); GAP-147.
 /// The Noël windows of THEMES.md §5 on local dates. A season is named after the year of its December.
 enum NoelCalendar {
     /// Where a date falls in its season.
@@ -19,9 +19,16 @@ enum NoelCalendar {
         var isSelectable: Bool { self == .switchOn || self == .arrivalOnly }
     }
 
-    /// The phase of `date` in `calendar`'s time zone.
+    /// The Gregorian calendar in `timeZone`: season dates and years never follow a Buddhist or Japanese device calendar.
+    static func gregorian(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    /// The phase of `date` in `calendar`'s time zone (Gregorian dates).
     static func phase(of date: Date, in calendar: Calendar) -> Phase {
-        let parts = calendar.dateComponents([.month, .day], from: date)
+        let parts = gregorian(in: calendar.timeZone).dateComponents([.month, .day], from: date)
         switch (parts.month ?? 0, parts.day ?? 0) {
         case (12, 1...24): return .switchOn
         case (12, 25...26): return .arrivalOnly
@@ -32,7 +39,7 @@ enum NoelCalendar {
 
     /// The season `date` belongs to: its year in December, the year before otherwise (January's packing is December's season).
     static func seasonYear(of date: Date, in calendar: Calendar) -> Int {
-        let parts = calendar.dateComponents([.year, .month], from: date)
+        let parts = gregorian(in: calendar.timeZone).dateComponents([.year, .month], from: date)
         let year = parts.year ?? 0
         return parts.month == 12 ? year : year - 1
     }

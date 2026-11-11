@@ -26,7 +26,7 @@ import Testing
         // LOT-173: the app lock is a property of the device (ADR 0013 §6, appendix E's device-capability rule).
         "app_lock_enabled": .device, "app_lock_grace_seconds": .device,
         // LOT-166: seasonal themes are a presentation of this device, like the dark style (THEMES.md §5).
-        "season.automatic": .device, "season.animations": .device
+        "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {
@@ -41,8 +41,8 @@ import Testing
     @Test func theNoelSeasonKeysStayOnTheDevice() {
         let keys = SettingKey.noelSeason(year: 2026)
         #expect(keys.map(\.key) == [
-            "season.noel.2026.arrivalShown", "season.noel.2026.optedOut", "season.noel.2026.previousThemeID",
-            "season.noel.2026.packingShown"
+            "season.noel.2026.arrivalShown", "season.noel.2026.arrivalPending", "season.noel.2026.optedOut",
+            "season.noel.2026.previousThemeID", "season.noel.2026.packingShown"
         ])
         #expect(keys.allSatisfy { $0.scope == .device })
         #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))
