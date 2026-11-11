@@ -223,6 +223,10 @@ final class TopicListModel {
         }
     }
 
+    /// The top-bar refresh button is enabled unless a load is running (legacy `.disabled(viewModel.isLoading)`,
+    /// `MainWindow.swift:381-393` @ 87fe0d1c). Pull-to-refresh is not gated by it: SwiftUI shows its own spinner.
+    var canRefresh: Bool { !loader.isLoading }
+
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
 
