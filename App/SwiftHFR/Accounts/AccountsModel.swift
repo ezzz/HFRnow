@@ -35,7 +35,7 @@ final class AccountsModel {
     /// change when the current account's session is replaced.
     private(set) var currentSessionGeneration = 0
 
-    @ObservationIgnored private let store: any CredentialStore
+    @ObservationIgnored let store: any CredentialStore // internal for AccountsModel+Erase.swift (LOT-157)
     @ObservationIgnored private let loginService: any AccountLoggingIn
     @ObservationIgnored private let checker: any SessionChecking
     @ObservationIgnored private let avatars: any AvatarLoading

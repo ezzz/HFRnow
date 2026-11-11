@@ -11,6 +11,7 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 | `publish.py` | Raw captures → corpus files and `<id>.meta.json`, driven by the `corpus.d/` fragments |
 | `corpus.d/` | The corpus manifest, one `<batch>.json` per capture batch (`00-base.json` holds the former `corpus.json`): raw id → corpus id, slug, extension, private. A capture PR adds its own file and never edits another |
 | `local.example.json` | Template of the git-ignored `local.json` |
+| `manifest_check.py` | Check run by the `fixture-tooling` unit-test step (`test_committed_corpus_and_manifest_agree`; no workflow edit, so a corpus PR starts no macOS job): every `corpus.json` id is named in a row of the captures' `MANIFEST.md` (grouped rows such as `T11, T11h` count) and every id of its capture table is in the corpus |
 | `tests/` | `python3 -m unittest discover tooling/fixtures/tests` (synthetic HTML only, run in CI) |
 
 ## Safety rules
@@ -67,7 +68,7 @@ profile page (R56) its `<title>` "X - FORUM HardWare.fr", `h4` "Informations sur
 On that page only (`body#unique__user_page__view_user_profile`), the value cell of every personal row (e-mail, birth
 date, gender, city, job, hobbies, quote, signature) becomes `Profile field removed.` (a birth date `01/01/2000`), the post
 count `100`, the arrival and last-post dates `01/01/2000` / `01-01-2000 à 00:00` and transaction counts `0`: with the
-pseudo and id aliased, real values would still single the member out. Signatures (`span.signature`) and mood statuses (`span.MoodStatus`) are a member's own words (real names, handles, links): their content is always replaced by `Signature removed.` / `Mood removed.`. HFR's own signature separator (fifteen dashes and `<br />` at the start of the span) and its closing clear div are kept around the placeholder (#267, `R267a`); `check` accepts the dashes before the placeholder and nothing else. Names are matched
+pseudo and id aliased, real values would still single the member out. Signatures (`span.signature`) and mood statuses (`span.MoodStatus`) are a member's own words (real names, handles, links): their content is always replaced by `Signature removed.` / `Mood removed.`. HFR's own signature separator (fifteen dashes and `<br />` at the start of the span) and its closing clear div are kept around the placeholder (#267, `R267a`); `check` accepts the dashes before the placeholder and nothing else, and refuses any element inside one other than `br` and a single `div style="clear: both;"`. Names are matched
 whole (a multi-word pseudo is never split) and decoded from entities, `%`-escapes and JSON escapes.
 
 **Personal smiley page** (`uploadsmil.php`, R601b, R601c): the code of each slot, its image path and the image `alt`/`title` (`code:0` on the first slot) are smiley positions like the ones above, in filled and empty slots. Each filled `keyword<N>` input becomes `Keywords removed.`, an empty one stays empty; both verifiers fail on any other value, on any page. The wiki's `keywords<N>` field (R54) is not this position.

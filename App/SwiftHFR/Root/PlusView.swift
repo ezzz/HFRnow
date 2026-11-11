@@ -47,7 +47,9 @@ struct PlusEntryView: View {
             AboutView(environment: environment)
         case .charter:
             StaticPageView(page: .charter)
-        case .bookmarks, .qualityAlerts, .deleteAccount:
+        case .deleteAccount:
+            AccountDeletionView()
+        case .bookmarks, .qualityAlerts:
             placeholder
         }
     }

@@ -2,9 +2,10 @@
 ///
 /// Frozen on purpose: the per-account documents of LOT-064, LOT-172's iCloud keys after them, and the blocklists and
 /// drafts (LOT-072) are keyed by it, so a change would re-key stored data. Pseudos are compared by `PseudoNormalizer`.
-enum AccountKey {
+/// Public so the app can tell which stored keys belong to no stored account (LOT-157).
+public enum AccountKey {
     /// The account key of `pseudo`.
-    static func make(_ pseudo: String) -> String {
+    public static func make(_ pseudo: String) -> String {
         String(String.UnicodeScalarView(pseudo.unicodeScalars.filter { $0 != "\u{200B}" })).lowercased()
     }
 

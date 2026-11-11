@@ -87,6 +87,12 @@ public actor LegacyPendingStore {
         state.document()?.replyDrafts[AccountKey.make(account)] ?? []
     }
 
+    /// The account keys with anything pending (LOT-157 lists them as data left on the device); none when unreadable.
+    public func accountKeys() -> Set<String> {
+        guard let document = state.document() else { return [] }
+        return Set(document.superFavorites.keys).union(document.replyDrafts.keys)
+    }
+
     /// The reason writes are refused, or nil when the store is usable (loading it if needed).
     public func loadFailure() -> SmallStoreError? {
         state.failure()
@@ -174,6 +180,16 @@ public actor LegacyPendingStore {
         let key = try Self.key(account)
         _ = try state.mutate { document in
             document.superFavorites.removeValue(forKey: key) != nil
+        }
+    }
+
+    /// Forgets everything pending for `account` (LOT-157, the account's data erased from this device).
+    public func discardAll(account: String) throws(SmallStoreError) {
+        let key = try Self.key(account)
+        _ = try state.mutate { document in
+            let hadFavorites = document.superFavorites.removeValue(forKey: key) != nil
+            let hadDrafts = document.replyDrafts.removeValue(forKey: key) != nil
+            return hadFavorites || hadDrafts
         }
     }
 
