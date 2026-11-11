@@ -99,6 +99,16 @@ extension HFRBBCodeWriter {
         return result
     }
 
+    /// A URL as an attribute value: `escape`, with a typed `"` written `&amp;#034;` (`R443f`: `?a=1&b="2"` →
+    /// `?a=1&amp;b=&amp;#034;2&amp;#034;`).
+    static func attributeEscaped(_ text: Scalars) -> Scalars {
+        var result: Scalars = []
+        for scalar in text {
+            if scalar == "\"" { result += "&amp;#034;".unicodeScalars } else { result += escape([scalar]) }
+        }
+        return result
+    }
+
     /// HFR's whitespace rule, one for plain text, `fixed` and `code` (`R20` `para2666649` against the `R41a` prefill,
     /// `R27b`, `R95d`): in a run of spaces and CRs, the first character becomes `&nbsp;` when the run starts a line
     /// (right after a LF; the start of the message is not a line start), then the run is read two by two: the first of

@@ -102,8 +102,10 @@ struct HFRBBCodeWriter {
 
     /// `[img]U[/img]` → `img` with `U` as `src`, `alt` and `title` (`R95d`), held in a placeholder.
     private static func holdingImages(in text: Scalars, hold: (Scalars) -> Scalars) -> Scalars {
-        replacingPairs("img", in: text, argumentIsURL: true) {
-            let url = escape($0)
+        // HFR takes `http://`, `https://` and `ftp://` only; `javascript:` and `//host` stay text (`R443f`). Its attributes
+        // carry a typed `"` as `&amp;#034;` (`R443f`: the quote's entity is escaped again, a typed `&` once).
+        replacingPairs("img", in: text, argumentIsURL: true, schemes: ["http://", "https://", "ftp://"].map(scalars)) {
+            let url = attributeEscaped($0)
             return hold(scalars("<img src=\"") + url + scalars("\" alt=\"") + url + scalars("\" title=\"") + url + scalars("\" />"))
         }
     }
@@ -112,11 +114,11 @@ struct HFRBBCodeWriter {
     /// → `a.cLink` with `U` as text (all held). A URL argument holding a smiley is not a URL (`R443a`).
     private static func holdingLinks(in text: Scalars, hold: (Scalars, AnchorRole) -> Scalars) -> Scalars {
         let named = replacingNamedURLs(in: text) { url, content in
-            hold(scalars("<a href=\"") + escape(schemed(url)) + scalars("\" class=\"cLink\">"), .open)
+            hold(scalars("<a href=\"") + attributeEscaped(schemed(url)) + scalars("\" class=\"cLink\">"), .open)
                 + trimmedLinkText(content) + hold(scalars("</a>"), .close)
         }
         return replacingPairs("url", in: named, argumentIsURL: true) {
-            hold(scalars("<a href=\"") + escape(schemed($0)) + scalars("\" class=\"cLink\">") + escape(trimmedLinkText($0))
+            hold(scalars("<a href=\"") + attributeEscaped(schemed($0)) + scalars("\" class=\"cLink\">") + escape(trimmedLinkText($0))
                 + scalars("</a>"), .whole)
         }
     }

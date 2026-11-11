@@ -95,9 +95,9 @@ struct HFRBBCodeWriterTests {
         #expect(Self.html("[url]www.a.example:8080/x[/url]")
             == "<p><a href=\"http://www.a.example:8080/x\" class=\"cLink\">www.a.example:8080/x</a>")
         // A run of spaces inside a URL or a link text is written `&nbsp;` as everywhere, never a marker.
-        #expect(Self.html("[url]a  b[/url] [url=a  b]t  u[/url] [img]a  b[/img]")
+        #expect(Self.html("[url]a  b[/url] [url=a  b]t  u[/url] [img]http://a  b[/img]")
             == "<p><a href=\"http://a &nbsp;b\" class=\"cLink\">a &nbsp;b</a> <a href=\"http://a &nbsp;b\" class=\"cLink\">t &nbsp;u</a> "
-            + "<img src=\"a &nbsp;b\" alt=\"a &nbsp;b\" title=\"a &nbsp;b\" />")
+            + "<img src=\"http://a &nbsp;b\" alt=\"http://a &nbsp;b\" title=\"http://a &nbsp;b\" />")
         #expect(Self.html("a\nb\rc") == "<p>a\r<br />b\r<br />c")
         #expect(Self.html("") == "<p>")
     }
@@ -157,7 +157,7 @@ struct HFRBBCodeWriterTests {
         #expect(Self.html("\u{FFFF}0\u{FFFF} [url]https://a.example/[/url]")
             == "<p>0 <a href=\"https://a.example/\" class=\"cLink\">https://a.example/</a>")
         #expect(Self.html("[url=https://a.example/?a=1&b=\"]x & \"y\"[/url]")
-            == "<p><a href=\"https://a.example/?a=1&amp;b=&#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
+            == "<p><a href=\"https://a.example/?a=1&amp;b=&amp;#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
     }
 
     /// The adversarial shapes, each a function of a repeat count: nesting, unclosed tags and colours, rejected URL
@@ -221,10 +221,10 @@ struct HFRBBCodeWriterTests {
         let mark = "\u{301}"
         #expect(Self.html("a\"\(mark)b &\(mark)c <\(mark)d >\(mark)e") == "<p>a&#034;\(mark)b &amp;\(mark)c &lt;\(mark)d &gt;\(mark)e")
         #expect(Self.html("[url=https://a.example/\"\(mark) class=spoiler title=injected]t[/url]")
-            == "<p><a href=\"https://a.example/&#034;\(mark) class=spoiler title=injected\" class=\"cLink\">t</a>")
+            == "<p><a href=\"https://a.example/&amp;#034;\(mark) class=spoiler title=injected\" class=\"cLink\">t</a>")
         #expect(Self.html("[img]https://a.example/i.png\"\(mark) class=x[/img]")
-            == "<p><img src=\"https://a.example/i.png&#034;\(mark) class=x\" alt=\"https://a.example/i.png&#034;\(mark) class=x\""
-            + " title=\"https://a.example/i.png&#034;\(mark) class=x\" />")
+            == "<p><img src=\"https://a.example/i.png&amp;#034;\(mark) class=x\" alt=\"https://a.example/i.png&amp;#034;\(mark) class=x\""
+            + " title=\"https://a.example/i.png&amp;#034;\(mark) class=x\" />")
         #expect(Self.html("[b]x[/b]\(mark)") == "<p><strong>x</strong>\(mark)")
         #expect(Self.html("[quote]a[/quote]\u{FE0F}").hasPrefix("<p></p><div class=\"container\">"))
         #expect(Self.html("x[url=https://a/]t[/url]\(mark)y[url=https://b/]u[/url]")

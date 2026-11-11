@@ -8,11 +8,13 @@ extension HFRBBCodeWriter {
     /// a crossed pair comes out crossed and a tag without its close stays text. With `argumentIsURL`, the content must
     /// be a URL: not empty, no bracket, no line break, no placeholder. With `rawContent`, a content holding a placeholder
     /// (a raw block already held) leaves the tags as text, so no held fragment ever holds another. The next close and
-    /// the next placeholder are searched once and remembered. `nonEmpty`: `[b][/b]` is text (`R443j`). `dropsTagsAroundHeld`:
+    /// the next placeholder are searched once and remembered.
+    /// `schemes`: with `argumentIsURL`, the argument must start with one of them (`[img]`: `R443f`). `nonEmpty`:
+    /// `[b][/b]` is text (`R443j`). `dropsTagsAroundHeld`:
     /// a raw pair around a held block loses its tags and keeps its content (`[fixed]f [cpp]…[/cpp] f[/fixed]`, `R443n`).
     static func replacingPairs(
         _ tag: String, in text: Scalars, argumentIsURL: Bool = false, rawContent: Bool = false, nonEmpty: Bool = false,
-        dropsTagsAroundHeld: Bool = false, with body: (Scalars) -> Scalars
+        dropsTagsAroundHeld: Bool = false, schemes: [Scalars] = [], with body: (Scalars) -> Scalars
     ) -> Scalars {
         let open = scalars("[\(tag)]"), close = scalars("[/\(tag)]")
         var result: Scalars = []
@@ -35,7 +37,8 @@ extension HFRBBCodeWriter {
                 continue
             }
             if argumentIsURL && !isURLArgument(text[contentStart..<closeIndex]) || rawContent && (nextMarker ?? Int.max) < closeIndex
-                || nonEmpty && closeIndex == contentStart {
+                || nonEmpty && closeIndex == contentStart
+                || !schemes.isEmpty && !schemes.contains(where: { startsWithFolded(text[contentStart..<closeIndex], $0) }) {
                 result += text[cursor..<contentStart]
                 cursor = contentStart
                 continue
@@ -46,6 +49,10 @@ extension HFRBBCodeWriter {
         }
         result += text[cursor...]
         return result
+    }
+
+    private static func startsWithFolded(_ slice: ArraySlice<Unicode.Scalar>, _ prefix: Scalars) -> Bool {
+        slice.count >= prefix.count && zip(prefix, slice).allSatisfy { $0 == asciiLowercased($1) }
     }
 
     /// A URL as a tag argument: not empty, no bracket, no line break, no held fragment. Checked on the slice, before

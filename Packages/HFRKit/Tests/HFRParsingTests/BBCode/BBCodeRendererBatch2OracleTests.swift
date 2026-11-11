@@ -160,27 +160,42 @@ struct BBCodeRendererBatch2OracleTests {
         #expect(expected.html.contains("[list]") && expected.html.contains("<li>\r</li></ul><p>end"))
     }
 
-    @Test("Fact 9: URLs, line by line (R443f): http(s) and www match HFR; the sanitizer's own rule (difference 2) drops the rest")
+    @Test("Fact 9: URLs, line by line (R443f): equal to HFR except `tel:` (difference 2)")
     func urls() throws {
         let body = try Self.rawBody("R443f-apercu-url-schemes")
         let segments = body.components(separatedBy: "\r<br />")
         let lines = try Self.sourceLines("R443f")
         #expect(segments.count == lines.count)
-        var matched = 0, differences = 0
-        for (line, segment) in zip(lines, segments) {
+        var differing: [Int] = []
+        for (index, (line, segment)) in zip(lines, segments).enumerated() {
             guard let line else { continue }
             let expected = try Oracle.oracle(contentHTML: "<p>" + segment)
             let actual = try Self.render(line)
-            if actual.html == expected.html && actual.links == expected.links && actual.images == expected.images {
-                matched += 1
-            } else {
-                differences += 1
-                // HFR links or shows what the sanitizer refuses: ftp, `javascript:`, `tel:`, `//host`, a page as `[img]`.
-                #expect(line.contains("ftp:") || line.contains("javascript:") || line.contains("tel:") || line.contains("//example")
-                    || line.contains("page.html") || line.contains("&b="))
+            if actual.html != expected.html || actual.links != expected.links || actual.images != expected.images {
+                differing.append(index)
             }
         }
-        #expect(matched + differences == lines.count - 1)
-        #expect(matched >= 5)
+        // Both sides go through the normalizer, which drops `ftp://`, `javascript:` and `//host` alike: the one line that
+        // differs is `[url]tel:0123[/url]`, which HFR turns into `http://tel:0123`, a valid URL the normalizer keeps as a
+        // link, while the renderer leaves `tel:` as typed and the sanitizer unwraps it (intentional difference 2). Line 4
+        // (`[url]mailto:…`) is damaged in the capture and skipped.
+        #expect(differing == [3])
+        #expect(lines[4] == nil && lines.compactMap { $0 }.count == 15)
+    }
+
+    @Test("R443b (smileys off), R443h (nesting), R443k (quote never closed)")
+    func otherCaptures() throws {
+        let off = try Oracle.oracle(contentHTML: Oracle.previewBody("R443b-apercu-smileys-off"))
+        let options = BBCodeRenderOptions(smileysEnabled: false, smileys: try Self.table())
+        let actual = try BBCodeRenderer.render(Self.source("R443b"), options: options)
+        #expect(actual.smileys.isEmpty && off.smileys.isEmpty)
+        #expect(actual.html == off.html && off.html.contains("\"oui\" ) &amp; )"))
+        let nesting = try Oracle.oracle(contentHTML: Oracle.previewBody("R443h-apercu-nesting"))
+        var mapped = nesting
+        mapped.html = Self.quoteShapeMapped(nesting.html, quotes: 4)
+        Oracle.expectEqual(try Self.render(Self.source("R443h")), mapped)
+        let open = try Oracle.oracle(contentHTML: Oracle.previewBody("R443k-apercu-quote-never-closed"))
+        Oracle.expectEqual(try Self.render(Self.source("R443k")), open)
+        #expect(open.html.contains("[quote]never closed"))
     }
 }
