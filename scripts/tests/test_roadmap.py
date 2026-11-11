@@ -486,6 +486,45 @@ class Hygiene(unittest.TestCase):
         self.assertIsNone(hygiene.numeric_deps("all parsing lots"))
 
 
+class ClassifyBlocked(unittest.TestCase):
+    """#835 part 3: one proposed outcome per open `status: blocked` issue, from the tracker only."""
+    def run_it(self, issues, comments=None):
+        import classify_blocked
+        lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001"), md_row("003", 3, deps="001"))
+        return {r["issue"]: r for r in classify_blocked.classify(issues, [], lots, comments or {}, {"M3": ["LOT-001", "LOT-002", "LOT-003"]})}
+
+    def test_outcomes_from_the_blockers_found(self):
+        rows = self.run_it([issue(1), issue(2, labels=["status: blocked"]), issue(3, labels=["status: blocked"]),
+                            issue(50, labels=["status: blocked"], body="### Depends on\n\n- LOT-001 (#1)\n"),
+                            issue(51, labels=["status: blocked"], body="nothing named"), issue(52, labels=["status: ready"])])
+        self.assertEqual(rows[2]["outcome"], "blocked")
+        self.assertEqual(rows[2]["blocked_by"], ["#1 LOT-001: t1"])  # a `#n` first, so the sweep can read it
+        self.assertEqual(rows[50]["outcome"], "blocked")
+        self.assertEqual(rows[51]["outcome"], "needs-decision")
+        self.assertNotIn(52, rows)
+        rows = self.run_it([issue(1, "closed"), issue(2, labels=["status: blocked"])])
+        self.assertEqual((rows[2]["outcome"], rows[2]["milestone"]), ("ready", "M3"))
+
+    def test_a_dependency_closed_not_planned_is_a_question(self):
+        dep = issue(1, "closed")
+        dep["state_reason"] = "not_planned"
+        rows = self.run_it([dep, issue(2, labels=["status: blocked"])])
+        self.assertEqual(rows[2]["outcome"], "needs-decision")
+        self.assertIn("#1 (closed not_planned)", rows[2]["question"])
+
+    @mock.patch.object(m5, "M5_OPEN", False)
+    def test_m5_items_are_on_hold_with_the_decision_and_the_plan_says_what_to_write(self):
+        import classify_blocked
+        rows = self.run_it([issue(1), issue(60, labels=["status: blocked"]) | {"title": "[SwiftHFR] M5: a new idea"}])
+        self.assertEqual(rows[60]["outcome"], "on-hold")
+        self.assertIn("/issues/379", rows[60]["link"])
+        plan = classify_blocked.plan(list(rows.values()))
+        self.assertEqual({p["issue"]: p["to"] for p in plan}, {60: "status: on-hold"})
+        self.assertIn("M5_OPEN", plan[0]["decision"]["sentence"])
+        md = classify_blocked.markdown(list(rows.values()))
+        self.assertIn("`on-hold` 1", md)
+
+
 class ProgressSlide(unittest.TestCase):
     def test_audit_is_lot_000_to_005_and_other_lots_take_their_milestone(self):
         self.assertEqual(progress.step_of_lot("LOT-000"), "Audit")
