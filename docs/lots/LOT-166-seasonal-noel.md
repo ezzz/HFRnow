@@ -34,7 +34,7 @@ All under GAP-147, class `b·operator` (operator, 2026-10-28; THEMES.md §5): ye
 - **Scheduler** (`SeasonalThemeModel.sceneDidBecomeActive`, called on every scene activation): (1) a theme still on from season Y−1 is restored silently; (2) in a selectable phase, the first activation sets `arrivalShown`, switches Noël soft on when the phase is `switchOn`, « Thèmes de saison automatiques » is on and the season is not opted out, and queues the alert; (3) in `packing` with a theme on, the first activation sets `packingShown` and restores (`packed`, animated only when animations are allowed: the elves of PR 3), later ones restore silently; (4) `outside` with a theme on: silent restore. Each activation returns the events it caused (`arrival`, `packed`, `restoredSilently`).
 - **Noël soft**: the current look, the user's appearance and dark style, with legacy's red accent drawn over it (`ThemeAppearance.applying`). Nothing of the "Thème" settings is written, so restoring is dropping `previousThemeID` and gives the user's theme and accent back exactly. Until LOT-188 there is one theme, saved as `legacy`; with LOT-188 the saved id is the `theme_id` to write back.
 - **Arrival alert**: « Oh Oh Oh ! » / « Thème disponible dans les réglages » [OK] [Désactiver], a system alert (spoken by VoiceOver), shown once the app lock no longer covers the screen. « Désactiver » restores and sets `optedOut`. PR 2 plays the sleigh before it when `sleigh` is true.
-- **Snow**: 28 procedural flakes (`SnowField`, fixed seed) in a `Canvas` driven by `TimelineView(.animation(minimumInterval: 1/30, paused:))`, plus a drift. Drawn over the root content between a 56 pt top band and a 64 pt bottom band inside the safe area, so the navigation bar, the tab bar, the status bar and the home indicator stay clear; sheets, the keyboard and the lock cover are above it. No hit testing, hidden from accessibility. Flakes fall only with animations allowed (setting on, Reduce Motion off); the timeline is paused while the scene is not active and in Low Power Mode.
+- **Snow**: 28 procedural flakes (`SnowField`, fixed seed) in a `Canvas` driven by `TimelineView(.animation(minimumInterval: 1/30, paused:))`. Drawn over the root content between a 56 pt top band and a 64 pt bottom band inside the safe area, so the navigation bar, the tab bar, the status bar and the home indicator stay clear; sheets, the keyboard and the lock cover are above it. No hit testing, hidden from accessibility. Flakes fall only with animations allowed (setting on, Reduce Motion off); the timeline is paused while the scene is not active and in Low Power Mode.
 - **Settings**: Réglages › Thème shows « Thèmes de saison » only in a selectable phase: « Thème habituel » / « Noël soft », then the two toggles.
 
 ## Edge cases
@@ -42,7 +42,7 @@ All under GAP-147, class `b·operator` (operator, 2026-10-28; THEMES.md §5): ye
 - App not opened during the packing days: silent restore at the next activation, including a year later (step 1).
 - 25–26/12 first launch: the alert shows, nothing is switched on; Noël soft can still be picked by hand until 26/12 and is packed on 27/12.
 - « Thèmes de saison automatiques » off: the arrival alert still shows (as on 25/12), nothing is switched on. *(to confirm with the operator, see the PR)*
-- Reduce Motion or « Animations de saison » off: the arrival is the alert alone, packing restores without the elves, flakes do not fall (the drift stays).
+- Reduce Motion or « Animations de saison » off: the arrival is the alert alone, packing restores without the elves, no snow is drawn.
 - The first frame of a launch outside the window never shows a theme left on (`refresh` ignores it before the restore).
 
 ## Fixtures
@@ -52,7 +52,7 @@ None: no HFR page is read. Tests use an injected clock and a Europe/Paris Gregor
 See GAP-147 (edited in PR 1's ledger): yearly windows instead of hard-coded dates; opt-out per year; previous theme restored; the theme reachable; procedural snow over the content instead of the navigation bar frames (licence unknown); the operator's alert. Legacy's festive alert decorations (`ThemeManager.m:213-245`) and Noël tab icons are not ported (issue #256).
 
 ## Not yet (later PRs of this lot)
-Sleigh and crossing objects (PR 2), snow piled on cards (PR 2), elves (PR 3), Noël abusé (PR 4); pausing the snow while a list scrolls and the Instruments figures on a device (THEMES.md §4 rule 8) come with PR 2's overlay work.
+Sleigh and crossing objects (PR 2), snow piled on cards and the bottom edge (PR 2: a first drift drawn over the content crossed row text), elves (PR 3), Noël abusé (PR 4); pausing the snow while a list scrolls and the Instruments figures on a device (THEMES.md §4 rule 8) come with PR 2's overlay work.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
