@@ -78,18 +78,33 @@ extension HFRBBCodeWriter {
         return result
     }
 
-    /// HFR's own escaping of the four characters (`R95d`: `&lt;b&gt;`, `&amp;`, `&#034;`), scalar by scalar.
-    static func escape(_ text: Scalars) -> Scalars {
+    /// HFR's own escaping of the four characters (`R95d`: `&lt;b&gt;`, `&amp;`, `&#034;`), scalar by scalar. With
+    /// `guardingParenthesis`, a `)` right after a typed `"` or `&` gets a space before it (`R443a`, `R443e`: `&#034;oui&#034; )`,
+    /// `&amp; )`, `printf(&#034;text&#034; );`), so that no smiley forms there; HFR does it with smileys off too (`R443b`).
+    static func escape(_ text: Scalars, guardingParenthesis: Bool = false) -> Scalars {
         var result: Scalars = []
         result.reserveCapacity(text.count)
+        var previous: Unicode.Scalar?
         for scalar in text {
             switch scalar {
             case "&": result.append(contentsOf: "&amp;".unicodeScalars)
             case "<": result.append(contentsOf: "&lt;".unicodeScalars)
             case ">": result.append(contentsOf: "&gt;".unicodeScalars)
             case "\"": result.append(contentsOf: "&#034;".unicodeScalars)
+            case ")" where guardingParenthesis && (previous == "\"" || previous == "&"): result.append(contentsOf: " )".unicodeScalars)
             default: result.append(scalar)
             }
+            previous = scalar
+        }
+        return result
+    }
+
+    /// A URL as an attribute value: `escape`, with a typed `"` written `&amp;#034;` (`R443f`: `?a=1&b="2"` →
+    /// `?a=1&amp;b=&amp;#034;2&amp;#034;`).
+    static func attributeEscaped(_ text: Scalars) -> Scalars {
+        var result: Scalars = []
+        for scalar in text {
+            if scalar == "\"" { result += "&amp;#034;".unicodeScalars } else { result += escape([scalar]) }
         }
         return result
     }
@@ -100,18 +115,22 @@ extension HFRBBCodeWriter {
     /// a pair stays (a space as itself, a CR as the `\r` HFR leaves in the text), the second becomes `&nbsp;`; a last one
     /// alone stays. A LF becomes `lineBreak`. In `code`, every run of two or more is read as at a line start
     /// (`everyRunStartsLine`: `code   text` → `code&nbsp; &nbsp;text`, `int x = 1;` kept; a run of one at a code
-    /// line's start becomes `&nbsp;` too, pending capture).
+    /// line's start stays a plain space, `R443g`). A LF consumed by a `[*]` line (`bulletBreaks`) does not start a line:
+    /// HFR writes its bullets before the whitespace (`R443d`: the `\r` of the blank line after a list stays plain).
     /// `  :ange:` → ` &nbsp;`, `)  \r\n\r\n` → ` &nbsp;\r<br />&nbsp;<br />`,
     /// ` \r\n\r\n\r\n ` → ` &nbsp;<br />&nbsp;<br />&nbsp;<br />&nbsp;`, `Bonjour,\r\n\r\n` → `Bonjour,\r<br />&nbsp;<br />`,
     /// nine leading spaces → `&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;`.
-    static func spacedText(_ text: Scalars, lineBreak: Scalars = scalars("<br />"), everyRunStartsLine: Bool = false) -> Scalars {
+    static func spacedText(
+        _ text: Scalars, lineBreak: Scalars = scalars("<br />"), everyRunStartsLine: Bool = false, bulletBreaks: Bool = false
+    ) -> Scalars {
         var result: Scalars = []
         result.reserveCapacity(text.count)
         var run: Scalars = []
-        var atLineStart = everyRunStartsLine
+        var atLineStart = false
+        var bulletOnLine = false
         func flushRun() {
             var position = 0
-            if atLineStart && !run.isEmpty || everyRunStartsLine && run.count > 1 {
+            if everyRunStartsLine ? run.count > 1 : atLineStart && !run.isEmpty {
                 result.append(noBreakSpaceMarker)
                 position = 1
             }
@@ -130,10 +149,14 @@ extension HFRBBCodeWriter {
             case "\n":
                 flushRun()
                 result.append(contentsOf: lineBreak)
-                atLineStart = true
+                atLineStart = !bulletOnLine
+                bulletOnLine = false
             default:
                 flushRun()
                 result.append(scalar)
+                if bulletBreaks, scalar == "]", result.count >= 3, result[result.count - 2] == "*", result[result.count - 3] == "[" {
+                    bulletOnLine = true
+                }
             }
         }
         flushRun()
@@ -152,7 +175,9 @@ extension HFRBBCodeWriter {
     /// A URL without a scheme (`scheme:` prefix, RFC 3986, ASCII) gets `http://` (`R41a` → `R20`: `[url]G3Ferrari / Optima [/url]`
     /// → `href="http://G3Ferrari / Optima "`); a URL with another scheme is left to the normalizer, which drops it.
     static func schemed(_ url: Scalars) -> Scalars {
-        if let first = url.first, isASCIILetter(first) {
+        // `www.host:8080/x` reads as a scheme by RFC 3986, HFR puts `http://` before it (`R443n`).
+        let isWWW = url.count >= 4 && url[0...3].map(asciiLowercased).elementsEqual("www.".unicodeScalars)
+        if !isWWW, let first = url.first, isASCIILetter(first) {
             var index = 1
             while index < url.count, isASCIILetter(url[index]) || isASCIIDigit(url[index]) || "+-.".unicodeScalars.contains(url[index]) {
                 index += 1
