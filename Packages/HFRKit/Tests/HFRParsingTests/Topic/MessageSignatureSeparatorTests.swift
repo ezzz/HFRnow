@@ -44,4 +44,20 @@ struct MessageSignatureSeparatorTests {
         let content = try MessageContentNormalizer.normalize(contentHTML: "<span class=\"signature\">Signature removed.</span>")
         #expect(content.signatureHTML == "Signature removed.")
     }
+
+    @Test("A run of 14 or 16 dashes opening a signature is not HFR's separator and stays (hand-built fragments)",
+          arguments: [14, 16])
+    func otherRunsKept(count: Int) throws {
+        let run = String(repeating: "-", count: count)
+        let content = try MessageContentNormalizer.normalize(
+            contentHTML: "<span class=\"signature\"> \(run)\n<br />Signature removed.</span>"
+        )
+        #expect(content.signatureHTML?.contains(run) == true)
+    }
+
+    @Test("A signature made only of the separator leaves its line break, as legacy's empty block (hand-built, not captured)")
+    func separatorOnly() throws {
+        let content = try MessageContentNormalizer.normalize(contentHTML: "<span class=\"signature\"> ---------------\n<br /></span>")
+        #expect(content.signatureHTML == "<br />")
+    }
 }

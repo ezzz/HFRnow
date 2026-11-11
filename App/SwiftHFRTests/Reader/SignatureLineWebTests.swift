@@ -45,4 +45,26 @@ struct SignatureLineWebTests: ReaderWebTesting {
         let container = try #require((values[4] as? NSNumber)?.doubleValue)
         #expect(width > 0 && abs(width - container) < 1, "the line is as wide as the message text")
     }
+
+    @Test(arguments: [UIUserInterfaceStyle.light, .dark])
+    func theLineTakesTheThemesSeparatorColour(style: UIUserInterfaceStyle) async throws {
+        let message = try Self.signedMessage()
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.webView.overrideUserInterfaceStyle = style
+        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
+        controller.show(ReaderDocument(
+            token: 1, html: TopicHTMLBuilder.document(for: page, token: 1, options: ReaderRenderOptions(showsSignatures: true)),
+            anchor: nil, keepsScrollPosition: false
+        ))
+        #expect(await until { recorder.ready == [1] })
+        let script = """
+            const probe = document.createElement('i');
+            probe.style.color = 'var(--separator)';
+            document.body.appendChild(probe);
+            return [getComputedStyle(document.querySelector('.signature')).borderTopColor, getComputedStyle(probe).color];
+            """
+        let colours = try #require(try await evaluate(script, in: controller) as? [String])
+        #expect(colours[0] == colours[1], "the signature line is the theme separator, not a fixed colour (\(style.rawValue))")
+        #expect(colours[1] != "rgb(211, 211, 211)", "the probe resolved the theme token")
+    }
 }
