@@ -76,10 +76,10 @@ An addition (`existingAlertID` set) sends `alerte_qualitay_id`, `pseudo`, `post_
 - The N1 notice before the first create, and one create at a time, are app logic (LOT-134).
 
 ## Intentional differences from legacy
-- **Create** (`MessagesView.swift:340-376` @ 2440d79): a non-`1` answer was shown to the user as a refusal code; it is now `unconfirmed`
+- **Create** (`MessagesView.swift:340-376` @ 2440d79, `:342-378` @ 87fe0d1c): a non-`1` answer was shown to the user as a refusal code; it is now `unconfirmed`
   (refusals are not captured on the live host). Values the database refuses or silently changes (over-long, outside the BMP, ids out of
-  range) were sent; they are refused before sending (#611). The body is UTF-8 (legacy: lossy ASCII, accents lost), carries `from=SwiftHFR`
-  (#573), and an addition omits `nom` / `topic_*`.
+  range) were sent; they are refused before sending (#611). The body carries `from=SwiftHFR` (#573) and a space is `+` (legacy `%20`, same for PHP); accents
+  were already sent as percent-encoded UTF-8 (`legacyPercentEncode`, `T75`). An addition omits `nom` / `topic_*`.
 - An item with an unreadable date is **not** new. Legacy dated it "now" (`AQPlusView.swift:203`), so it was new on every check and the
   badge never cleared. No such item in `T01`.
 - Redirects are not followed. Legacy used `URLSession.shared`, whose jar holds the `.hardware.fr` cookies: it never sent them to the AQ host
@@ -89,10 +89,10 @@ An addition (`existingAlertID` set) sends `alerte_qualitay_id`, `pseudo`, `post_
 - The check timeout is 20 s (legacy: `URLSession` default, 60 s).
 
 ## Tests (create)
-`AQCreateTests` (8 tests, 18 cases with `AQClientTests`): `T50`'s answer is a success with the exact request (URL, POST, field order, `from`,
+`AQCreateTests` (9 tests; 19 with `AQClientTests`, counting parameterized cases once): `T50`'s answer is a success with the exact request (URL, POST, field order, `from`,
 no `Cookie`, `doNotFollow`, 5 s); addition fields; 8 non-confirming answers (empty, `11`, `-1`, `-4`, page, 403, 201, 500) are `unconfirmed`;
-numeric code carried only when bare; redirect and timeout unconfirmed with one request; 11 invalid reports refused with no request; the
-1024-character boundary and the permalink rule. Mutations checked to fail: any 200 accepted, permalink check removed, BMP check removed.
+numeric code carried only when bare; redirect and timeout unconfirmed with one request; 15 invalid reports refused with no request; the
+1024-character boundary and the permalink rule (scheme, host, no port or userinfo), the 4 KiB answer cap. Mutations checked to fail: any 200 accepted, permalink check removed, BMP check removed.
 
 ## Tests
 `Tests/HFRClientTests/AQ/AQClientTests.swift` (10 tests): requests (URL, method, no body, no `Cookie`, `doNotFollow`, timeout, cap),

@@ -217,6 +217,7 @@ struct AQCreateTests {
         #expect(request.headers["Content-Type"] == FormBody.contentType)
         #expect(request.redirectPolicy == .doNotFollow)
         #expect(request.timeout == 5)
+        #expect(request.maximumBodyBytes == 4096)
         let body = Self.text(request.body)
         let names = body.split(separator: "&").map { $0.split(separator: "=", maxSplits: 1)[0] }
         #expect(names == ["alerte_qualitay_id", "nom", "topic_id", "topic_titre", "pseudo", "post_id", "post_url", "commentaire", "from"])
@@ -314,6 +315,11 @@ struct AQCreateTests {
         var other = Self.report()
         other.postURL = URL(string: "http://forum.hardware.fr/hfr/x_1_1.htm#t1") ?? other.postURL
         await #expect(throws: AQCreateError.invalidReport(.notForumPermalink)) { try await client.create(other) }
+        for bad in ["https://forum.hardware.fr.example.net/hfr/x_1_1.htm#t1", "https://forum.hardware.fr:8443/hfr/x_1_1.htm#t1",
+                    "https://user@forum.hardware.fr/hfr/x_1_1.htm#t1"] {
+            other.postURL = URL(string: bad) ?? other.postURL
+            await #expect(throws: AQCreateError.invalidReport(.notForumPermalink)) { try await client.create(other) }
+        }
         #expect(await transport.requests.count == 1)
     }
 

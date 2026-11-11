@@ -36,11 +36,18 @@ enum AQReportEncoder {
         try number(report.postID, .postID)
         form.append("post_id", String(report.postID))
         let url = report.postURL.absoluteString
-        guard url.hasPrefix(forumPrefix) else { throw .invalidReport(.notForumPermalink) }
+        guard url.hasPrefix(forumPrefix), isForumURL(report.postURL) else { throw .invalidReport(.notForumPermalink) }
         form.append("post_url", try text(url, .postURL, required: true))
         form.append("commentaire", try text(report.comment, .comment, required: false))
         form.append("from", clientName)
         return form
+    }
+
+    /// The server only tests the prefix, which `https://forum.hardware.fr.example.net/` or `:8443` also satisfy.
+    private static func isForumURL(_ url: URL) -> Bool {
+        guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+        return parts.scheme == "https" && parts.host == "forum.hardware.fr" && parts.port == nil
+            && parts.user == nil && parts.password == nil
     }
 
     private static func number(_ value: Int, _ field: AQReportField) throws(AQCreateError) {
