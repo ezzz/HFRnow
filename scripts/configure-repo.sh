@@ -75,8 +75,9 @@ if $REPO_WIDE; then
 {"security_and_analysis":{"secret_scanning":{"status":"enabled"},"secret_scanning_push_protection":{"status":"enabled"}}}
 JSON
 
-  echo "› Merge settings: auto-merge allowed (squash stays the only method, via the ruleset)"
-  gh api -X PATCH "repos/$REPO" -F allow_auto_merge=true >/dev/null
+  echo "› Merge settings: auto-merge allowed (squash stays the only method, via the ruleset); head branches deleted after merge"
+  # delete_branch_on_merge: operator, 2026-11-11 (#773 item 3): 99 merged branches had piled up; cloud sessions cannot delete them.
+  gh api -X PATCH "repos/$REPO" -F allow_auto_merge=true -F delete_branch_on_merge=true >/dev/null
 
   echo "› Workflow token: read-only by default, Actions cannot approve PRs"
   gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
