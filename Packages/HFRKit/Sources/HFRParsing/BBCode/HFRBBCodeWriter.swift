@@ -40,34 +40,54 @@ struct HFRBBCodeWriter {
             return Self.placeholder(placeholders.count - 1)
         }
         var text = Self.normalizedLineBreaks(Array(source.unicodeScalars))
-        // 1. Raw blocks, `cpp` before `code` (HFR numbers the `cpp` block first, `R95d` ids), then `fixed`.
+        // 1. Raw blocks, `cpp` before `code` (HFR numbers the `cpp` block first, `R95d` ids), then `fixed`; a `fixed` around a
+        //    block loses its tags (`R443n`).
         for tag in ["cpp", "code", "fixed"] {
-            text = Self.replacingPairs(tag, in: text, rawContent: true) { hold(Self.rawBlock(tag, content: $0)) }
+            text = Self.replacingPairs(tag, in: text, rawContent: true, dropsTagsAroundHeld: tag == "fixed") {
+                hold(Self.rawBlock(tag, content: $0))
+            }
         }
         // 2. Whitespace, on the text as typed (`R20`, `R27b`, `R95d`); a line break becomes U+FFFE for now.
-        text = Self.spacedText(text, lineBreak: [Self.lineBreakMarker])
-        // 3. Links and images: their URL and text are final, no later pass may rewrite them.
-        text = Self.holdingLinksAndImages(in: text, hold: hold)
-        // 4. Smileys on the text as typed, longest code first, any case: `alt` as typed, `title` the catalogue's code.
+        text = Self.spacedText(text, lineBreak: [Self.lineBreakMarker], bulletBreaks: true)
+        // 3. Images, whose URL is final (`R443a`: smileys never touch it); then the smileys, on the text as typed, longest
+        //    code first, any case: `alt` as typed, `title` the catalogue's code; then the links, which a smiley inside their
+        //    URL makes text (`R443a`: `[url]https://example.invalid/:)[/url]`), and the bare URLs.
+        text = Self.holdingImages(in: text, hold: hold)
         if smileysEnabled {
             text = holdingSmileys(in: text, hold: hold)
         }
-        // 5. The text is escaped once; placeholders and markers hold no escapable character.
-        text = Self.escape(text)
-        // 6. Blocks, innermost first; 7. colour; 8. inline tags, each in one non-greedy pass (crossed tags stay crossed).
+        var anchorOpens = Set<Int>(), anchorCloses = Set<Int>()
+        text = Self.holdingLinks(in: text) { fragment, role in
+            let held = hold(fragment)
+            switch role {
+            case .open: anchorOpens.insert(placeholders.count - 1)
+            case .close: anchorCloses.insert(placeholders.count - 1)
+            case .whole: break
+            }
+            return held
+        }
+        text = Self.autolinking(text, anchorOpens: anchorOpens, anchorCloses: anchorCloses, hold: hold)
+        // 4. The text is escaped once; placeholders and markers hold no escapable character.
+        text = Self.escape(text, guardingParenthesis: true)
+        // 5. Blocks, innermost first (only two levels of quotes, `R443l`); 6. colour; 7. inline tags, each in one non-greedy
+        //    pass (crossed tags stay crossed); a `[b]` around a block loses its tags and `[b][/b]` is text (`R443i`, `R443j`).
         text = Self.replacingNested("quote", in: text,
             open: "</p><div class=\"container\"><table class=\"quote\"><tr class=\"none\"><td><b class=\"s1\">Citation :</b>"
                 + "<br /><br /><p>",
-            close: "<br /></p></td></tr></table></div><p>")
+            close: "<br /></p></td></tr></table></div><p>", maxDepth: 2)
         text = Self.replacingNested("spoiler", in: text,
             open: "</p><div class=\"container\"><table class=\"spoiler\"><tr class=\"none\"><td><b class=\"s1Topic\">Spoiler :</b>"
                 + "<br /><br /><div class=\"Topic masque\"><p>",
             close: "</p></div></td></tr></table></div><p>")
         text = Self.replacingColours(in: text)
+        let paragraphEnd = Self.scalars("</p>")
         for inline in Self.inlineTags {
-            text = Self.replacingPairs(inline.tag, in: text) { Self.scalars(inline.open) + $0 + Self.scalars(inline.close) }
+            let isBold = inline.tag == "b"
+            text = Self.replacingPairs(inline.tag, in: text, nonEmpty: isBold) {
+                isBold && Self.find(paragraphEnd, in: $0, from: 0) != nil ? $0 : Self.scalars(inline.open) + $0 + Self.scalars(inline.close)
+            }
         }
-        // 9. Bullets: the first `[*]` of a line opens `ul > li` for the rest of the line, whose break is consumed (`R95d`).
+        // 8. Bullets: the first `[*]` of a line opens `ul > li` for the rest of the line, whose break is consumed (`R95d`).
         text = Self.replacingBullets(in: text)
         // The thread page opens the message's `<p>` and never closes it: the clear trailer that follows does (`R20`).
         text = Self.scalars("<p>") + text
@@ -77,20 +97,27 @@ struct HFRBBCodeWriter {
         return Self.string(Self.replacingMarkers(in: text))
     }
 
-    /// `[url=U]text[/url]` → `a.cLink` around the formatted text; `[url]U[/url]` → `a.cLink` with `U` as text;
-    /// `[img]U[/img]` → `img` with `U` as `src`, `alt` and `title` (`R95d`); each held in a placeholder.
-    private static func holdingLinksAndImages(in text: Scalars, hold: (Scalars) -> Scalars) -> Scalars {
-        var text = replacingNamedURLs(in: text) { url, content in
-            hold(scalars("<a href=\"") + escape(schemed(url)) + scalars("\" class=\"cLink\">"))
-                + trimmedLinkText(content) + hold(scalars("</a>"))
-        }
-        text = replacingPairs("url", in: text, argumentIsURL: true) {
-            hold(scalars("<a href=\"") + escape(schemed($0)) + scalars("\" class=\"cLink\">") + escape(trimmedLinkText($0))
-                + scalars("</a>"))
-        }
-        return replacingPairs("img", in: text, argumentIsURL: true) {
+    /// What a held anchor fragment is, so a bare URL is never linked inside a link text.
+    enum AnchorRole { case open, close, whole }
+
+    /// `[img]U[/img]` → `img` with `U` as `src`, `alt` and `title` (`R95d`), held in a placeholder.
+    private static func holdingImages(in text: Scalars, hold: (Scalars) -> Scalars) -> Scalars {
+        replacingPairs("img", in: text, argumentIsURL: true) {
             let url = escape($0)
             return hold(scalars("<img src=\"") + url + scalars("\" alt=\"") + url + scalars("\" title=\"") + url + scalars("\" />"))
+        }
+    }
+
+    /// `[url=U]text[/url]` → `a.cLink` around the formatted text (the two tags held, their `AnchorRole` telling which); `[url]U[/url]`
+    /// → `a.cLink` with `U` as text (all held). A URL argument holding a smiley is not a URL (`R443a`).
+    private static func holdingLinks(in text: Scalars, hold: (Scalars, AnchorRole) -> Scalars) -> Scalars {
+        let named = replacingNamedURLs(in: text) { url, content in
+            hold(scalars("<a href=\"") + escape(schemed(url)) + scalars("\" class=\"cLink\">"), .open)
+                + trimmedLinkText(content) + hold(scalars("</a>"), .close)
+        }
+        return replacingPairs("url", in: named, argumentIsURL: true) {
+            hold(scalars("<a href=\"") + escape(schemed($0)) + scalars("\" class=\"cLink\">") + escape(trimmedLinkText($0))
+                + scalars("</a>"), .whole)
         }
     }
 

@@ -65,12 +65,12 @@ struct BBCodeRendererBatch2OracleTests {
             .replacing(tail, with: "</td></tr></tbody></table></div>")
     }
 
-    @Test("Fact 1: [code] is coloured like [cpp] (keywords blue, // comments green and italic with the line's CR); [c] [java] [php] [html] are text (R443e)")
+    @Test("Fact 1: [code] is coloured like [cpp]: keywords, // comments with the line's CR; [c] [java] [php] [html] are text (R443e)")
     func syntaxColours() throws {
         let expected = try Oracle.oracle(contentHTML: Oracle.previewBody("R443e-apercu-syntax-colours"))
         let actual = try Self.render(Self.source("R443e"))
         Oracle.expectEqual(actual, expected)
-        #expect(expected.html.matches(of: /<span style="color:blue">/).count == 14)
+        #expect(expected.html.matches(of: /<span style="color:blue">/).count == 10)
         #expect(expected.html.matches(of: /<span style="color:green"><i>\/\/ comment\r<\/i><\/span>/).count == 2)
         #expect(expected.html.contains("[c]int x;[/c]") && expected.html.contains("[html]&lt;b&gt;x&lt;/b&gt;[/html]"))
     }
@@ -127,7 +127,7 @@ struct BBCodeRendererBatch2OracleTests {
         #expect(overlap.smileys.map(\.code) == [":p:", ":D:"] && overlap.html.contains("pfff: ") && overlap.html.hasSuffix("dtc:</p>"))
     }
 
-    @Test("Fact 6: a colour closes at the first colour close, whatever its case or name; the inner open and outer close stay text (R443c, R443n)")
+    @Test("Fact 6: a colour closes at the first colour close, whatever its name; the inner open stays text (R443c, R443n)")
     func colours() throws {
         // R443c: the first four lines; its `[email]` line is damaged in the capture (follow-up).
         let lines = try Self.sourceLines("R443c")
@@ -139,7 +139,8 @@ struct BBCodeRendererBatch2OracleTests {
         Oracle.expectEqual(actual, expected)
         #expect(expected.html.contains("<span style=\"color:#f00\">court</span>") && expected.html.contains("[color=red]rouge[/color]"))
         let nested = try Self.render("[#0055AA]x[/#0055aa] [#ff0000]a [#00ff00]b[/#00ff00] c[/#ff0000]")
-        #expect(nested.html == "<p><span style=\"color:#0055AA\">x</span> <span style=\"color:#ff0000\">a [#00ff00]b</span> c[/#ff0000]</p>")
+        #expect(nested.html == "<p><span style=\"color:#0055AA\">x</span> "
+            + "<span style=\"color:#ff0000\">a [#00ff00]b</span> c[/#ff0000]</p>")
     }
 
     @Test("Fact 7: whitespace: the message start is not a line start; a single leading space of a code line stays plain (R443g, R443n)")
@@ -156,7 +157,7 @@ struct BBCodeRendererBatch2OracleTests {
         let expected = try Oracle.oracle(contentHTML: Oracle.previewBody("R443d-apercu-bullets"))
         Oracle.expectEqual(try Self.render(Self.source("R443d")), expected)
         #expect(expected.html.matches(of: /<ul>/).count == 3 && expected.html.contains("<li>one\r</li><li>two\r</li><li>three\r</li>"))
-        #expect(expected.html.contains("[list]") && expected.html.contains("<li></li></ul><p>end"))
+        #expect(expected.html.contains("[list]") && expected.html.contains("<li>\r</li></ul><p>end"))
     }
 
     @Test("Fact 9: URLs, line by line (R443f): http(s) and www match HFR; the sanitizer's own rule (difference 2) drops the rest")

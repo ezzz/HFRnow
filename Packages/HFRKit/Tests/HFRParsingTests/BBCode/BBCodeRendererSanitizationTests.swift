@@ -94,7 +94,7 @@ struct BBCodeRendererSanitizationTests {
     func deepNesting() async throws {
         let depth = 10_000
         // Non-greedy pairs: the first `[b]` closes at the first `[/b]`, the rest is text (HFR's nesting of one tag is
-        // pending capture); 1 000 nested quotes are written inside out; 10 000 opens without a close are text.
+        // pending capture); 1 000 nested quotes render two levels, inside out (R443l); 10 000 opens without a close are text.
         let bold = String(repeating: "[b]", count: depth) + "x" + String(repeating: "[/b]", count: depth)
         let quotes = String(repeating: "[quote]", count: depth / 10) + "y" + String(repeating: "[/quote]", count: depth / 10)
         let unclosed = String(repeating: "[b][i][quote][url=https://a.example/]", count: depth / 4) + "z"
@@ -107,7 +107,8 @@ struct BBCodeRendererSanitizationTests {
         #expect(boldContent.html.hasPrefix("<p><strong>[b][b]"))
         #expect(try Self.text(of: boldContent.html).contains("x"))
         #expect(try Self.text(of: quoteContent.html).contains("y"))
-        #expect(quoteContent.html.matches(of: /Citation :/).count == depth / 10)
+        // Only the two outer levels of quotes render (R443l); the other opens and closes are text.
+        #expect(quoteContent.html.matches(of: /Citation :/).count == 2)
         #expect(try Self.text(of: unclosedContent.html) == unclosed)
         #expect(unclosedContent.links.isEmpty)
     }
