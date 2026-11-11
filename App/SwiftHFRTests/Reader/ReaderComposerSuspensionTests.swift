@@ -82,6 +82,34 @@ struct ReaderComposerSuspensionTests: ReaderWebTesting {
         #expect(model.presentedMenu != nil)
     }
 
+    /// The top bar's "Sondage" and the overflow's "Marquer comme non lu" (Fable round 2, #749): neither is offered nor acts under
+    /// an open composer, and both come back once it closes.
+    @Test func underAnOpenComposerNeitherThePollNorMarkUnreadIsOffered() async {
+        let link = url("https://forum.hardware.fr/user/nonlu.php?config=hfr.inc&cat=prive&post=3207033&page=1")
+        let pages = FakeTopicPages { target in
+            var page = readerPage(page: target.page)
+            page.poll = Poll(question: "Q ?", kind: .results([PollResult(id: 1, label: "Oui", percentage: 100, voteCount: 1)]))
+            page.markUnreadURL = link
+            return page
+        }
+        let model = await reader(pages)
+        let writer = FakeFlagWriter()
+        #expect(model.offersPoll)
+        #expect(model.offersMarkUnread)
+        model.composer(.reply, isOpen: true)
+        #expect(!model.offersPoll)
+        #expect(!model.offersMarkUnread)
+        #expect(model.pollModel(voter: nil, account: "user1") == nil)
+        await model.markUnread(with: TopicFlagActions(writer: writer), host: nil)
+        #expect(writer.markedUnread.isEmpty, "no W18 write under the composer")
+        #expect(model.markUnreadState == .idle)
+        model.composer(.reply, isOpen: false)
+        #expect(model.offersPoll)
+        #expect(model.pollModel(voter: nil, account: "user1") != nil)
+        await model.markUnread(with: TopicFlagActions(writer: writer), host: nil)
+        #expect(writer.markedUnread == [link])
+    }
+
     @Test func theWebViewDropsTheTapsButKeepsTheReadingPosition() {
         let (controller, recorder) = makeController(transport: MockTransport { request in HTTPResponse(statusCode: 404, url: request.url) })
         var menus: [Int] = []

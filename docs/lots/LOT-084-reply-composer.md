@@ -85,9 +85,10 @@ per topic). The account is the current one (`md_user` key). `ComposerServices.li
 focused on open. The sheet's keyboard safe area keeps the caret above the keyboard; the editor never rewrites its text
 (legacy cursor jumps came from re-applying state to a `UITextView`).
 
-**Layout** (#653). Top bar "Fermer" (`xmark`, the close choice below) and "Envoyer" (`arrow.up`); legacy's control row (clear,
-undo, redo, Smileys, GIF, image, **Aa**) above the keyboard; on iPhone every composer opens at partial height with the page
-visible and scrollable above, its taps ignored meanwhile. Spec: [LOT-174 § Composer layout and control row](LOT-174-formatting-toolbar.md#composer-layout-and-control-row-653-m4).
+**Layout** (#653). Legacy's top bar: "Fermer" (`xmark`, the close choice below), "Brouillons" (LOT-101), the title, "Envoyer"
+(`arrow.up`); the editor in a rounded card with legacy's control row (clear, undo, redo, Smileys, GIF, image, **Aa**) just under
+it; on iPhone every composer is a card docked on the keyboard that grows with the text, the page visible and scrollable above,
+its taps ignored meanwhile. Spec: [LOT-174 § Composer layout and control row](LOT-174-formatting-toolbar.md#composer-layout-and-control-row-653-m4).
 
 ## Edge cases
 

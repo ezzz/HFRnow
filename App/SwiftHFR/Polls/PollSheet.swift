@@ -14,7 +14,8 @@ struct ReaderPollFlow: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if model.page?.poll != nil {
+                // None under an open composer (#653): its sheet could not show over the composer's.
+                if model.offersPoll {
                     ToolbarItem(placement: .primaryAction) {
                         Button { sheet = model.pollModel(voter: composer?.pollVoter, account: composer?.account) } label: {
                             Label("Sondage", systemImage: "chart.bar.doc.horizontal")

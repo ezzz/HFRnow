@@ -47,10 +47,23 @@ layout. One spec keeps both (AGENTS.md §2: no new document when one has the rol
   text without asking, caret at the start (`clearComposer`, `:1345-1350`), and is one step. The bar starts hidden
   (`isFormattingBarPresented = false`, `:367`); hiding it closes the palette (`:1047-1051`).
 
-**SwiftHFR** (`ComposerControlRow`, `ComposerHistory`, `ComposerHeight`, `ReplyComposerView`):
-- Top bar: "Fermer" (`xmark`, the close choice of LOT-084: keep / discard) on the left, the height toggle next to it, the title,
-  "Envoyer" (`arrow.up`, spinner "Envoi en cours" while sending) on the right. Smileys, image and GIF leave the top bar for the row.
-- Control row above the keyboard, legacy order and labels; the GIF button only when Giphy is configured (LOT-155); the upload
+**Operator reference (2026-11-10, #653): legacy's buttons in the Claude app's layout.** Legacy's placement at `87fe0d1c` (above),
+in a card docked on the keyboard: the page being answered visible and scrollable above it, the card growing with the text up to a
+cap and the editor scrolling inside past it, the full-screen control expanding it, an inserted image as a thumbnail with an ✕
+inside the card above the text, the two pills just under the editor so they move with the keyboard, send ↑ at the top right
+(operator, 2026-11-10: not in the card).
+
+**SwiftHFR** (`ComposerHeader`, `ComposerEditorCard`, `ComposerImageChips`, `ComposerControlRow`, `ComposerHistory`,
+`ComposerHeight`, `ReplyComposerView`):
+- Top bar (`ComposerHeader`, legacy `composerHeader` `:768-819` and its button styles `:1704-1745`): "Fermer" (`xmark`, glass circle,
+  the close choice of LOT-084: keep / discard) and, where LOT-101 archives drafts (a topic's reply), "Brouillons" (`tray`,
+  prominent when drafts are archived) on the left; the title in the middle; "Envoyer" (`arrow.up`, prominent glass when there is
+  something to send, plain glass and disabled while the text is empty; spinner "Envoi en cours" while sending) on the right. Legacy's
+  own header, not a navigation bar: the same buttons, order and groups on every device. VoiceOver labels as legacy ("Fermer",
+  "Brouillons", "Envoyer"; the row's "Vider le texte", "Annuler", "Rétablir").
+- The editor in a rounded glass card (legacy `composerEditorStyle`, `:1748-1760`), the full-screen toggle ("Plein écran" /
+  "Réduire") in its top corner where the composer offers it: legacy's top bar has no such button, so the bar stays legacy's.
+- Control row just under the card, legacy order and labels; the GIF button only when Giphy is configured (LOT-155); the upload
   symbol stays `photo.badge.plus` so it is not mistaken for the bar's `[img]` (`photo`, #598). Cells are `ComposerBarMetrics`
   sized (density, Dynamic Type, text scale); two rows when one does not fit. Clear, undo, redo follow legacy (above); the history
   lives in `ReplyComposerModel` (`update(text:)` is the one path of typing and of every insertion), the text the sheet opens with
@@ -58,18 +71,20 @@ layout. One spec keeps both (AGENTS.md §2: no new document when one has the rol
 - **Aa** shows the bar above the row (hidden on each opening, as legacy); the bar keeps #599 (off while the recipient or subject
   has focus, one view across focus changes) and the #602/#605 behaviour.
 - **Height (b·operator, GAP-653).** On an iPhone every composer opens at partial height: a reply (topic or MP) and an edit
-  (operator, 2026-11-08), a new topic and a new MP too (operator, 2026-11-10). A custom detent of a third of the sheet's room
-  (`ComposerHeight.partialHeight`, at least 220 pt, plus one field line per recipient / sub-category / subject field, scaled by
-  Dynamic Type, so those fields and two lines of text stay usable). The system lifts a sheet above the keyboard, so
-  with the keyboard up the keyboard takes the bottom third, the editor and the row the middle one, and the page being answered
-  stays visible in the top third (measured on the iPhone 18 Pro Max simulator, iOS 27.1). Each height is the sheet's only detent:
+  (operator, 2026-11-08), a new topic and a new MP too (operator, 2026-11-10). At partial height the sheet is the docked card: its
+  detent is the card's measured height (`ComposerCardLayout`: header, banners, fields, image chips, the editor, the row), and the
+  editor is as tall as its text, from 2 lines up to 6 lines of the body font (Dynamic Type included), past which it scrolls inside
+  the card. Six lines keep about the third of the screen #653 first gave the text and the row on a 6.9" iPhone, so the page keeps
+  the top of the screen with the keyboard up; the cap is the author's choice within the reference ("up to a maximum height"). The
+  system lifts the sheet over the keyboard, so the card sits on it (measured on the iPhone 18 Pro Max simulator, iOS 27.2). Each
+  height is the sheet's only detent:
   a sheet that also offers `.large` is expanded to it as soon as the keyboard comes up (measured there too), which hides the page.
   So the toggle ("Plein écran" / "Réduire") swaps the detent; dragging the sheet does not change its height. The height is not
   remembered: every opening starts at partial height (operator, 2026-11-10), except at an accessibility text size (AX), where it
-  starts full with the toggle still offered: there the control row takes two tall rows and a third of the screen leaves no line
-  for the text (measured at AX XL with a new MP on the iPhone 18 Pro Max simulator, iOS 27.2). In compact height (an iPhone in landscape) the system
-  shows a sheet at full height whatever its detents (measured, see #749), so there is no toggle there and the sheet is the full one;
-  back in portrait the choice made before the rotation holds. The iPad is unchanged. The device decides, not the size class: inside
+  starts full with the toggle still offered: there the control row takes two tall rows and a partial card leaves no line for the
+  text (measured at AX XL with a new MP on the iPhone 18 Pro Max simulator, iOS 27.2). Operator decision, confirmed 2026-11-11.
+  In compact height (an iPhone in landscape) the system shows a sheet at full height whatever its detents (measured, see #749), so there is no toggle there and the sheet is the full one;
+  back in portrait the choice made before the rotation holds. On the iPad the presentation is unchanged (a `.large` form sheet, no toggle); its top bar is legacy's too. The device decides, not the size class: inside
   an iPad's form sheet the width is compact too (measured, iPad Pro 13" simulator). The operator asked this layout as the new iPhone default (#653, 2026-11-08), an explicit exception to "defaults keep
   the legacy UX" ([UX principles](../FEATURES.md#ux-principles-operator)).
 - **The page behind the partial sheet (operator, 2026-11-10).** It is not dimmed and it scrolls
@@ -77,24 +92,39 @@ layout. One spec keeps both (AGENTS.md §2: no new document when one has the rol
   again; its taps and actions are ignored while the composer is open. The reader keeps a set of open composers (reply, edit, the
   author menu's MP: `TopicReaderModel.composer(_:isOpen:)`, reported by each presenter from its sheet's state); while one is open
   (`suspendsPageInteractions`) a link, a message menu, a video, a picture, a third-party image placeholder, a selection quote, the
-  reply button, a page change, a swipe, "Actualiser" and "Réessayer" do nothing, the "…" overflow has no entry, the back button is
+  reply button, a page change, a swipe, "Actualiser" and "Réessayer" (both disabled), "Sondage" (hidden; its sheet could not show
+  over the composer's) and "Marquer comme non lu" (no `W18` write) do nothing, the "…" overflow has no entry, the back button is
   hidden (going back would drop the sheet), and the web view drops those taps itself (`ReaderWebController.ignoresPageTaps`: a
   long-pressed link gets an empty menu of ours, never WebKit's previewing one). Scrolling and the reading position go on; the web
   view is neither reloaded nor stopped. A new topic (from a forum's list) and a new MP (from the Messages list) are partial too,
-  but their list stays dimmed and inert (the system default): nothing is answered there, and a list has no such suspension yet
+  but their list stays dimmed and inert (the system default; operator decision, confirmed 2026-11-11): nothing is answered there, and a list has no such suspension yet
   (`.disabled` on a `List` also stops its scrolling, measured on the iPhone 18 Pro Max simulator, iOS 27.2; a tap on a row would
   open a topic under the sheet). The author menu's MP is opened over the reader, so its page scrolls. "Fermer" (×) stays at the
   top left, as legacy's header.
+  Every toolbar entry on the reader and its gate (swept for round 3 of #749): top bar "Actualiser" (disabled), "Sondage"
+  (`offersPoll`); "…" overflow "Filtrer les posts", "Rechercher dans le sujet", the offline save entries, "Marquer comme non lu"
+  (`offersMarkUnread`) and the page items (all hidden); bottom bar ‹ ›, "N / M", "Répondre" (disabled); the failure banner's
+  "Réessayer" (disabled). The model's own actions refuse too (`pollModel`, `markUnread`, `refresh`, `retry`, …).
+- **Image chips.** An image the panel uploaded and inserted shows as a 56 pt thumbnail (the host's mini rendition, as the panel's
+  history) at the top of the card, with an ✕ ("Retirer l'image"). The snippet stays in the text where legacy puts it (at the caret,
+  `AnswerView.swift:646-676` @ 2440d79), so what is posted and the draft do not change; the chip shows while its snippet is in the
+  text (typing it away, "Vider le texte" or an undo hides it, a redo shows it again), and the ✕ takes the snippet out as one undoable
+  step. A link typed by hand in the panel gets no chip (nothing is loaded from an unknown host). Chips last as long as the composer:
+  a draft reopened later shows its snippets as text only. Whether the operator wants the snippet hidden from the text (an attachment,
+  as the Claude app) is open (#749).
 - Swipe-down keeps LOT-084's rule (blocked while there is text or a send runs); dismissal saving the draft is #429 (UXD-15), not
   changed here.
 
-**Decisions** (operator, 2026-11-10, on #653):
-1. Legacy's drafts button (`tray`, archived drafts per topic): not in this layout; it belongs to LOT-101
-   ([#192](https://github.com/ezzz/HFRnow/issues/192), archived drafts, M4). Until then SwiftHFR keeps one draft per target (GAP-092).
+**Decisions** (operator, 2026-11-10 and 2026-11-11, on #653 and #749):
+1. Legacy's drafts button (`tray`, archived drafts per topic) belongs to LOT-101
+   ([#192](https://github.com/ezzz/HFRnow/issues/192)), merged since: the top bar shows it where LOT-101 offers it, after "Fermer".
 2. The page behind the partial sheet scrolls; its taps are ignored while the composer is open (above).
 3. The chosen height is not remembered: every opening starts at a third of the screen.
 4. "Fermer" (×) stays at the top left, as in legacy.
 5. A new topic and a new MP open at partial height too, with the toggle.
+6. Legacy's button placement in the Claude app's layout (reference of 2026-11-10, above); send stays at the top right.
+7. Accessibility text sizes open at full height, with "Réduire"; the lists behind a new topic / new MP stay dimmed and inert
+   (the author's two choices of round 2, confirmed by the operator on 2026-11-11).
 
 ## Edge cases
 - The `[url=…]` form is typed, not validated: the clipboard text goes in as is (as legacy). The clipboard is offered once per change count.

@@ -4,8 +4,8 @@ import SwiftUI
 import Testing
 
 /// Where the composer opens (#653): at partial height on an iPhone, whatever it writes (a reply, an edit, a new topic, a new
-/// private message: operator, 2026-11-10), so the page it was opened from stays visible above it; full height on an iPad and
-/// in compact height, where the system shows a sheet full anyway and no toggle claims otherwise.
+/// private message: operator, 2026-11-10), a card docked on the keyboard so the page it was opened from stays visible above it;
+/// full height on an iPad and in compact height, where the system shows a sheet full anyway and no toggle claims otherwise.
 struct ComposerPresentationTests {
     @Test(arguments: [true, false])
     func everyComposerOpensAtPartialHeightOnlyOnAnIPhone(isPhone: Bool) {
@@ -38,30 +38,45 @@ struct ComposerPresentationTests {
         #expect(ComposerHeight.shown(chosen: .partial, isPhone: true, verticalSizeClass: .regular) == .partial)
     }
 
-    @Test func thePartialHeightLeavesTheTopThirdToThePage() {
-        // The system lifts the sheet above the keyboard: a third of the room, the keyboard below it, the page above.
-        #expect(ComposerHeight.partialHeight(available: 900) == 300)
-        // A short room (landscape, a small phone) still fits two lines of text and the control row, never more than the room.
-        #expect(ComposerHeight.partialHeight(available: 450) == 220)
-        #expect(ComposerHeight.partialHeight(available: 200) == 200)
+    /// The docked card (operator reference of 2026-11-10): as tall as its text, from two lines up to six, then the editor scrolls.
+    @Test func theCardGrowsWithItsTextFromTwoToSixLinesThenTheEditorScrolls() {
+        var layout = ComposerCardLayout(top: 70, controls: 56, text: 0, line: 20)
+        #expect(layout.editorHeight == CGFloat(2 * 20 + 16), "an empty text keeps two lines and the text view's insets")
+        layout.text = 60
+        #expect(layout.editorHeight == CGFloat(60 + 16))
+        layout.text = 120
+        #expect(layout.editorHeight == CGFloat(120 + 16))
+        layout.text = 500
+        #expect(layout.editorHeight == CGFloat(6 * 20 + 16), "past six lines the card stops growing")
+        // A larger text size makes each line, so the cap, taller.
+        layout.line = 30
+        #expect(layout.editorHeight == CGFloat(6 * 30 + 16))
     }
 
-    @Test func aNewTopicOrANewMessageKeepsRoomForItsFieldsAboveTheText() {
-        #expect(ComposerHeight.fieldRows(hasSubject: false, hasSecondField: false) == 0)
-        #expect(ComposerHeight.fieldRows(hasSubject: true, hasSecondField: false) == 1) // the edit of a first message
-        #expect(ComposerHeight.fieldRows(hasSubject: true, hasSecondField: true) == 2) // recipient or sub-category, subject
-        // Two field lines on top of the minimum: they never squeeze the text below two lines.
-        #expect(ComposerHeight.partialHeight(available: 750, fieldRows: 2, rowHeight: 44) == 308)
-        #expect(ComposerHeight.partialHeight(available: 750, fieldRows: 2, rowHeight: 60) == 340)
-        // A tall room: the third already holds them.
-        #expect(ComposerHeight.partialHeight(available: 1_200, fieldRows: 2, rowHeight: 44) == 400)
-        #expect(ComposerHeight.partialHeight(available: 280, fieldRows: 2, rowHeight: 44) == 280)
+    @Test func theCardIsEveryPartAsLaidOut() {
+        var layout = ComposerCardLayout(top: 70, controls: 56, text: 60, line: 20)
+        let gaps = 2 * ComposerCardLayout.gap
+        #expect(layout.cardHeight == 70 + 76 + gaps + 56)
+        layout.chips = 66
+        #expect(layout.cardHeight == 70 + 66 + 76 + gaps + 56)
+        // New lines grow the card, one line at a time.
+        layout.text = 80
+        #expect(layout.cardHeight == 70 + 66 + 96 + gaps + 56)
+    }
+
+    @Test func beforeItsPartsAreMeasuredTheCardHasItsFallbackHeight() {
+        #expect(ComposerCardLayout().cardHeight == ComposerCardLayout.fallbackHeight)
+        #expect(ComposerCardLayout(top: 70, controls: 0, text: 20, line: 20).cardHeight == ComposerCardLayout.fallbackHeight)
+    }
+
+    @Test func aTrailingNewLineOrAnEmptyTextIsMeasuredAsALine() {
+        #expect(ComposerEditorCard.measured("") == " ")
+        #expect(ComposerEditorCard.measured("a\n") == "a\n ")
+        #expect(ComposerEditorCard.measured("a") == "a")
     }
 
     @Test func eachHeightIsTheSheetsOnlyDetentAndTheFullOneIsLarge() {
-        #expect(ComposerHeight.full.detent(fieldRows: 2) == .large)
-        #expect(ComposerHeight.partial.detent(fieldRows: 0) == .custom(PartialComposerDetent.self))
-        #expect(ComposerHeight.partial.detent(fieldRows: 1) == .custom(PartialComposerDetentOneField.self))
-        #expect(ComposerHeight.partial.detent(fieldRows: 2) == .custom(PartialComposerDetentTwoFields.self))
+        #expect(ComposerHeight.full.detent(cardHeight: 300) == .large)
+        #expect(ComposerHeight.partial.detent(cardHeight: 300) == .height(300))
     }
 }

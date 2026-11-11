@@ -19,6 +19,12 @@ extension TopicReaderModel {
 
     /// "Citer extrait" and "Citer gras" in the selection menu: the page can quote and no composer is open over it.
     var offersSelectionQuote: Bool { canQuote && !suspendsPageInteractions }
+
+    /// "Sondage" in the top bar: the page has a poll and no composer is open over it (a second sheet would not show).
+    var offersPoll: Bool { page?.poll != nil && !suspendsPageInteractions }
+
+    /// "Marquer comme non lu" in the "…" overflow: the page carries HFR's link and no composer is open over it.
+    var offersMarkUnread: Bool { page?.markUnreadURL != nil && !suspendsPageInteractions }
 }
 
 /// Applies the suspension to the reader's screen: the web view drops the page's taps, the selection menu loses its quotes, and

@@ -281,10 +281,11 @@ final class TopicReaderModel {
         }
     }
 
-    /// The model of the page's poll for the sheet; nil when the page has none. The held model is reused for this account
-    /// while it holds a vote (sending, counted or possibly counted); otherwise a fresh one starts from the page's poll.
+    /// The model of the page's poll for the sheet; nil when the page has none or a composer is open over it (#653). The held
+    /// model is reused for this account while it holds a vote (sending, counted or possibly counted); otherwise a fresh one
+    /// starts from the page's poll.
     func pollModel(voter: (any PollVoting)?, account: String?) -> PollModel? {
-        guard let poll = page?.poll else { return nil }
+        guard offersPoll, let poll = page?.poll else { return nil }
         if let held = heldPoll, held.account == account, held.holdsVote {
             held.pageDidReload(poll)
             return held

@@ -93,7 +93,8 @@ struct TopicReaderView: View {
         .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
             if let error = model.error, model.page != nil, model.hasShownDocument {
-                LoadFailureBanner(error: error, retry: model.retry)
+                // "Réessayer" does nothing under an open composer (#653): dimmed, as "Actualiser".
+                LoadFailureBanner(error: error, retry: model.retry).disabled(model.suspendsPageInteractions)
             }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))

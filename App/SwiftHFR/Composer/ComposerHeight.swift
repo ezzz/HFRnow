@@ -1,10 +1,10 @@
 import CoreGraphics
 import SwiftUI
-import UIKit
 
 /// How tall the composer sheet is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
-/// partial height, the page it was opened from visible above it, and a control switches to the full height and back
-/// (operator, 2026-11-08 for a reply, 2026-11-10 for the others). The device decides, not the width's size class: inside an
+/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it, and
+/// a control switches to the full height and back (operator, 2026-11-08 for a reply, 2026-11-10 for the others, 2026-11-10
+/// reference for the card). The device decides, not the width's size class: inside an
 /// iPad's form sheet the width is compact too (measured on the iPad Pro 13" simulator, iOS 27.1). In compact height (an iPhone
 /// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there.
 /// Every opening starts at partial height: the height chosen with the toggle is not remembered (operator, 2026-11-10).
@@ -12,7 +12,7 @@ import UIKit
 /// Legacy shows the composer full screen (`MessagesView.swift:5429-5443`, `coverVerticalFullScreen` @ 87fe0d1c): the partial
 /// height is a (b) evolution asked by the operator (GAP-653).
 enum ComposerHeight: Equatable {
-    /// The page keeps the top third of the screen.
+    /// The docked card, as tall as its text up to a cap: the page stays visible above it.
     case partial
     /// The sheet's full height.
     case full
@@ -24,8 +24,8 @@ enum ComposerHeight: Equatable {
 
     /// The height the sheet shows: the one `chosen` with the toggle; before any choice, partial, or full at an accessibility
     /// text size (`largeText`), where the control row takes two tall rows and a third of the screen leaves no line for the text
-    /// (measured at AX XL on the iPhone 18 Pro Max simulator, #749). Full without the toggle (an iPad, or compact height, where
-    /// the system shows the sheet full anyway), whatever was chosen in regular height.
+    /// (measured at AX XL on the iPhone 18 Pro Max simulator, #749; operator decision, confirmed 2026-11-11). Full without the
+    /// toggle (an iPad, or compact height, where the system shows the sheet full anyway), whatever was chosen in regular height.
     static func shown(
         chosen: ComposerHeight?, isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, largeText: Bool = false
     ) -> ComposerHeight {
@@ -36,79 +36,66 @@ enum ComposerHeight: Equatable {
     /// The other height.
     var toggled: ComposerHeight { self == .partial ? .full : .partial }
 
-    /// The smallest partial sheet: the title bar, two lines of text and the control row.
-    static let minimumPartialHeight: CGFloat = 220
-
-    /// One line of the recipient, sub-category or subject fields, before Dynamic Type (`ReplyComposerView.messageFields`).
-    static let fieldRowHeight: CGFloat = 44
-
-    /// The partial sheet's height in the room a sheet may take (`available`, below the status bar): a third of it, but never
-    /// less than the minimum plus `fieldRows` lines of `rowHeight` (a new topic's or a new message's fields stay usable above
-    /// two lines of text), and never more than the room. The system lifts a sheet above the keyboard, so with the keyboard up
-    /// the page keeps the top third, the composer the middle one (measured on the iPhone 18 Pro Max simulator, iOS 27.1).
-    static func partialHeight(available: CGFloat, fieldRows: Int = 0, rowHeight: CGFloat = fieldRowHeight) -> CGFloat {
-        let minimum = minimumPartialHeight + CGFloat(fieldRows) * rowHeight
-        return min(available, max(minimum, (available / 3).rounded()))
-    }
-
-    /// The field lines above the text: recipient (a new private message) or sub-category (a new topic), then the subject.
-    static func fieldRows(hasSubject: Bool, hasSecondField: Bool) -> Int {
-        guard hasSubject else { return 0 }
-        return hasSecondField ? 2 : 1
-    }
-
-    /// The sheet's only detent at this height, for a composer with `fieldRows` field lines. Never both heights: a sheet that
-    /// also offers `.large` is expanded to it as soon as the keyboard comes up (iOS 27.1 simulator), which would hide the page
-    /// again; the toggle swaps them instead.
-    func detent(fieldRows: Int) -> PresentationDetent {
-        guard self == .partial else { return .large }
-        switch fieldRows {
-        case 0: return .custom(PartialComposerDetent.self)
-        case 1: return .custom(PartialComposerDetentOneField.self)
-        default: return .custom(PartialComposerDetentTwoFields.self)
-        }
+    /// The docked card's only detent at this height: its measured height (`ComposerCardLayout.cardHeight`) at partial
+    /// height, `.large` at full. Never both heights: a sheet that also offers `.large` is expanded to it as soon as the keyboard
+    /// comes up (iOS 27.1 simulator), which would hide the page again; the toggle swaps them instead.
+    func detent(cardHeight: CGFloat) -> PresentationDetent {
+        self == .partial ? .height(cardHeight) : .large
     }
 }
 
-/// A partial composer detent: `ComposerHeight.partialHeight` of the sheet's room for `fieldRows` field lines, which follow
-/// Dynamic Type as the fields do.
-protocol PartialComposerDetentRows: CustomPresentationDetent {
-    static var fieldRows: Int { get }
-}
+/// The docked card's height (#653, operator reference of 2026-11-10: "the card grows with the text, up to a maximum height;
+/// past that, the editor scrolls inside it", as the Claude app's input box). Every part but the editor is measured as laid out
+/// (header, banners, fields, image chips, control row); the editor is as tall as its text, between `minimumLines` and
+/// `maximumLines` lines of the body font, plus the text view's own top and bottom insets. The system lifts the sheet over the
+/// keyboard, so the keyboard is no part of it (measured on the iPhone 18 Pro Max simulator, iOS 27.2: a detent that added the
+/// keyboard's inset showed the card at the full height).
+struct ComposerCardLayout: Equatable {
+    /// Lines the editor shows with no text, so the caret and the first line of a reply have room.
+    static let minimumLines: CGFloat = 2
+    /// Lines past which the editor scrolls inside the card: about the third of the screen the original request (#653) gave the
+    /// text and the control row on a 6.9" iPhone, so the page above keeps its top third with the keyboard up.
+    static let maximumLines: CGFloat = 6
+    /// `UITextView`'s `textContainerInset` (8 pt top and bottom), which `TextEditor` keeps around the text.
+    static let editorInsets: CGFloat = 16
+    /// Before the first measure: a card of two lines and the parts' usual heights, so the sheet never opens as a sliver.
+    static let fallbackHeight: CGFloat = 220
 
-extension PartialComposerDetentRows {
-    static func height(in context: Context) -> CGFloat? {
-        let category = UIContentSizeCategory(context.dynamicTypeSize)
-        let row = UIFontMetrics(forTextStyle: .body).scaledValue(
-            for: ComposerHeight.fieldRowHeight, compatibleWith: UITraitCollection(preferredContentSizeCategory: category)
-        )
-        return ComposerHeight.partialHeight(available: context.maxDetentValue, fieldRows: fieldRows, rowHeight: row)
+    /// The header, the banners and the fields above the editor.
+    var top: CGFloat = 0
+    /// The image chips row inside the card, 0 without an image.
+    var chips: CGFloat = 0
+    /// The control row and, when shown, the "Aa" bar above it.
+    var controls: CGFloat = 0
+    /// The text as laid out at the editor's width (a hidden copy of it).
+    var text: CGFloat = 0
+    /// One line of the body font at the current text size.
+    var line: CGFloat = 0
+    /// The space above and below the card.
+    static let gap: CGFloat = 8
+
+    /// The editor's height: its text's, between two and six lines, insets included.
+    var editorHeight: CGFloat {
+        let lines = max(line, 1)
+        return min(max(text, Self.minimumLines * lines), Self.maximumLines * lines) + Self.editorInsets
+    }
+
+    /// The card's height; the fallback until the parts have been measured.
+    var cardHeight: CGFloat {
+        guard top > 0, controls > 0, line > 0 else { return Self.fallbackHeight }
+        return (top + chips + editorHeight + 2 * Self.gap + controls).rounded(.up)
     }
 }
 
-/// A reply, or an edit without a subject.
-struct PartialComposerDetent: PartialComposerDetentRows {
-    static let fieldRows = 0
-}
-
-/// The edit of a topic's first message: its subject.
-struct PartialComposerDetentOneField: PartialComposerDetentRows {
-    static let fieldRows = 1
-}
-
-/// A new topic (sub-category and subject) or a new private message (recipient and subject).
-struct PartialComposerDetentTwoFields: PartialComposerDetentRows {
-    static let fieldRows = 2
-}
-
-/// The composer sheet at partial height (#653): an opaque background (a sheet below full height is glass, and the dimmed page
-/// showed through the editor in dark mode, iOS 27.1 simulator) and, when the presenter ignores its page's taps while the
-/// composer is open, the page above it left undimmed and scrollable (operator, 2026-11-10). Elsewhere the system's own, unchanged.
+/// The composer sheet on an iPhone (#653): an opaque background (a sheet below full height is glass, and the dimmed page showed
+/// through the editor in dark mode, iOS 27.1 simulator) and, when the presenter ignores its page's taps while the composer is
+/// open, the page above the docked card left undimmed and scrollable (operator, 2026-11-10). Elsewhere the system's own.
 struct PartialComposerSheet: ViewModifier {
     /// The composer can be partial on this device (an iPhone): the background stays opaque across the toggle.
     let isEnabled: Bool
     let height: ComposerHeight
-    let fieldRows: Int
+    /// The sheet's current detent (`ComposerHeight.detent(cardHeight:)`).
+    let detent: PresentationDetent
     /// The presenter ignores its page's taps while the composer is open (`TopicReaderModel.suspendsPageInteractions`).
     let pageScrolls: Bool
 
@@ -116,9 +103,7 @@ struct PartialComposerSheet: ViewModifier {
         if isEnabled {
             content
                 .presentationBackground(.background)
-                .presentationBackgroundInteraction(
-                    pageScrolls && height == .partial ? .enabled(upThrough: height.detent(fieldRows: fieldRows)) : .automatic
-                )
+                .presentationBackgroundInteraction(pageScrolls && height == .partial ? .enabled(upThrough: detent) : .automatic)
         } else {
             content
         }

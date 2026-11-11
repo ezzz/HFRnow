@@ -66,6 +66,8 @@ final class ReplyComposerModel: Identifiable {
     var isAskingClose = false
     /// What "Annuler" and "Rétablir" go back to (#653); the text the sheet opened with is no step.
     private(set) var history = ComposerHistory()
+    /// The images the panel inserted, shown as chips in the card while their snippet is in the text (#653).
+    var imageChips: [ComposerImageChip] = []
 
     /// Unique per sheet.
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
