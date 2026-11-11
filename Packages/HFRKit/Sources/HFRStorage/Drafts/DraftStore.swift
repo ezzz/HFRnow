@@ -52,6 +52,13 @@ public actor DraftStore {
         return liveDrafts(now: clock()).filter { $0.account == key }.sorted { $0.updatedAt > $1.updatedAt }
     }
 
+    /// The account keys with at least one stored draft, expired ones included (they stay in the file until purged); empty
+    /// while the stored data is unreadable.
+    public func accountKeys() -> Set<String> {
+        guard case .loaded(let document) = loadedState() else { return [] }
+        return Set(document.drafts.map(\.account))
+    }
+
     /// Why writes are refused (an I/O failure while reading), or nil.
     public func loadFailure() -> DraftError? {
         if case .failed(let error) = loadedState() { return error }

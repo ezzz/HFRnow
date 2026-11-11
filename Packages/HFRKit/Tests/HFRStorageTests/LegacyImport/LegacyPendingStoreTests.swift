@@ -121,4 +121,22 @@ struct LegacyPendingStoreTests {
         let pending = stores().pending
         await #expect(throws: SmallStoreError.emptyAccount) { try await pending.addSuperFavorites([1], account: "\u{200B}", at: start) }
     }
+
+    @Test("erasing an account's pending items keeps the other accounts' (LOT-157), and its key leaves the list")
+    func discardAllKeepsOtherAccounts() async throws {
+        let pending = stores().pending
+        try await pending.addSuperFavorites([12], account: "User1", at: start)
+        try await pending.addReplyDrafts([PendingReplyDraft(number: 7, text: "brouillon", updatedAt: start)], account: "user1", at: start)
+        try await pending.addSuperFavorites([13], account: "user2", at: start)
+        try await pending.addReplyDrafts([PendingReplyDraft(number: 8, text: "autre", updatedAt: start)], account: "user3", at: start)
+        #expect(await pending.accountKeys() == ["user1", "user2", "user3"])
+
+        try await pending.discardAll(account: "USER1")
+
+        #expect(await pending.pendingSuperFavorites(for: "user1").isEmpty)
+        #expect(await pending.pendingReplyDrafts(for: "user1").isEmpty)
+        #expect(await pending.pendingSuperFavorites(for: "user2") == [13])
+        #expect(await pending.pendingReplyDrafts(for: "user3").map(\.number) == [8])
+        #expect(await pending.accountKeys() == ["user2", "user3"])
+    }
 }

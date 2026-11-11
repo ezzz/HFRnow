@@ -11,33 +11,38 @@ enum LegacyImportServices {
         persistence: FileSmallStorePersistence(fileURL: folder.appending(path: "pending.json"))
     )
 
-    /// The importer of this process. Legacy and SwiftHFR share the bundle (Q-1): the legacy data is in this container.
-    static func liveImporter() -> LegacyImporter {
-        let bundleID = Bundle.main.bundleIdentifier ?? "hfrplus.red.super"
-        return LegacyImporter(
-            container: LegacyContainer(
-                documentsDirectory: URL.documentsDirectory,
-                cachesDirectory: URL.cachesDirectory,
-                defaults: UserDefaultsLegacyDefaults(),
-                accounts: KeychainLegacyAccountSource(service: bundleID)
-            ),
-            destinations: LegacyImportDestinations(
-                // The instance `AccountsModel.live()` writes through: its lock serializes the two writers.
-                credentials: LiveCredentials.store,
-                pseudoLists: PseudoListsSnapshot.liveStore,
-                superFavorites: FavoritesStores.shared.superFavorites,
-                layout: FavoritesStores.shared.layout,
-                smileyFavorites: ComposerServices.liveSmileyFavorites,
-                searchHistory: ComposerServices.liveSmileySearchHistory,
-                uploads: ImageUploadServices.liveHistory.store,
-                drafts: ComposerServices.liveDrafts,
-                pending: livePending,
-                settings: UserDefaultsSettingsStore()
-            ),
-            // `migration.legacyImport.version` (ADR 0013 appendix F), device-only.
-            state: FileSmallStorePersistence(fileURL: folder.appending(path: "state.json"))
-        )
-    }
+    /// The accounts erased from this device, which the import never brings back (LOT-157): a Keychain item, so a
+    /// reinstall, which keeps legacy's own item, keeps it too.
+    static let liveErasedAccounts = KeychainErasedAccountStore(service: bundleID)
+
+    /// The importer of this process, one for the app: the launch, the logins and the wipe (LOT-157) go through it, so its
+    /// queue serializes them. Legacy and SwiftHFR share the bundle (Q-1): the legacy data is in this container.
+    static let liveImporter = LegacyImporter(
+        container: LegacyContainer(
+            documentsDirectory: URL.documentsDirectory,
+            cachesDirectory: URL.cachesDirectory,
+            defaults: UserDefaultsLegacyDefaults(),
+            accounts: KeychainLegacyAccountSource(service: bundleID)
+        ),
+        destinations: LegacyImportDestinations(
+            // The instance `AccountsModel.live()` writes through: its lock serializes the two writers.
+            credentials: LiveCredentials.store,
+            pseudoLists: PseudoListsSnapshot.liveStore,
+            superFavorites: FavoritesStores.shared.superFavorites,
+            layout: FavoritesStores.shared.layout,
+            smileyFavorites: ComposerServices.liveSmileyFavorites,
+            searchHistory: ComposerServices.liveSmileySearchHistory,
+            uploads: ImageUploadServices.liveHistory.store,
+            drafts: ComposerServices.liveDrafts,
+            pending: livePending,
+            settings: UserDefaultsSettingsStore(),
+            erasedAccounts: liveErasedAccounts
+        ),
+        // `migration.legacyImport.version` (ADR 0013 appendix F), device-only.
+        state: FileSmallStorePersistence(fileURL: folder.appending(path: "state.json"))
+    )
+
+    private static var bundleID: String { Bundle.main.bundleIdentifier ?? "hfrplus.red.super" }
 
     private static var folder: URL {
         URL.applicationSupportDirectory.appending(path: "LegacyImport", directoryHint: .isDirectory)
