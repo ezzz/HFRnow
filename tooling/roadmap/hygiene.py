@@ -7,13 +7,15 @@ Does (routine, ORCHESTRATION.md "unblock procedure" and AGENTS.md §8 closure):
   unblock  open lot, every numeric dependency closed, not captured-blocked, not claimed -> `status: ready`
            (drops `status: blocked`), comment `Unblocked by #PR`
   close    merged dev-swift PR with `Closes #N` whose issue is still open -> `Done in #PR (merged as <sha>)`, close
+  claim    open issue cited by `Closes`/`Refs #N` on an open dev-swift PR (draft or not), not a `type: roadmap` tracker -> `status: claimed`,
+           and drops its other `status:` labels, so it ends with exactly one (#826). Only a merged `Closes` closes; `Refs` is never touched
   unlabel  closed issue still carrying a `status:*` label -> remove it (rule of 2026-11-06 on #368: whoever closes an issue
            drops its status labels; closing here drops them too), count reported
   fold     GAP and changelog fragments pending in docs/migration/gap.d and docs/changelog-legacy.d (#612) -> `--apply` runs
            tooling/docs/fold.py on the working tree; the steward then commits it as one docs-only PR (never reviewed, merged on green CI)
-  ledger   merged PRs labelled `ledger` and not `ledger: done` (#620) -> reports what `tooling/docs/ledger.py fold --apply --commit`
+  ledger   merged PRs with a `### Ledger` section and no `ledger: done` (#620, #826) -> reports what `tooling/docs/ledger.py fold --apply --commit`
            would write; the steward runs it, opens one docs-only PR on `docs/ledger-<date>`, then `ledger.py done N... --apply`
-Only reports (never changes): claims silent for 72 h, several labels on one axis, no status, `ready`+`claimed`,
+Only reports (never changes): claims with no open PR silent for 72 h (never released), several labels on one axis, no status, `ready`+`claimed`,
 ready lots with an open dependency, ready engine lots without `external: ready`, unblocks with no known PR.
 Needs `gh` (or run after `sync_state.py` for the lots/state files). Reads lots.json: refresh it first with
 lots_from_md.py when LOTS.md changed.
@@ -43,6 +45,7 @@ def is_m5(row):
 
 ENGINE = re.compile(r'^HFR\w+')
 CLOSES = re.compile(r'(?im)^[ \t]*(?:closes|fixes|resolves)[ \t]+#(\d+)\b')  # line-start only, as AGENTS.md §8 writes it
+CITES = re.compile(r'(?im)^[ \t]*(?:closes|fixes|resolves|refs)[ \t]+#(\d+)\b')  # any citation: an open PR on the issue means it is being worked
 STALE = timedelta(hours=72)
 
 
@@ -91,8 +94,23 @@ def analyze(issues, pulls, lots, comments, now):
             stale = sorted(x for x in labels(i) if x.startswith('status: '))
             if stale:
                 actions.append({'kind': 'unlabel', 'issue': i['number'], 'labels': stale})
-    gate, m5_ready, cap_gated = [], [], []
     pending_close = {a['issue'] for a in actions if a['kind'] == 'close'}
+    cited = {}  # open issue -> (first open PR citing it): such an issue is being worked, so it is `status: claimed` (#826)
+    for p in sorted(pulls, key=lambda p: p['number']):
+        if p.get('state') == 'open' and not p.get('merged_at') and (p.get('base') or {}).get('ref') == 'dev-swift':
+            for m in CITES.findall(p.get('body') or ''):
+                cited.setdefault(int(m), p['number'])
+    for n, pn in sorted(cited.items()):
+        i = by_n.get(n)
+        if not i or i['state'].lower() != 'open' or n in pending_close:
+            continue
+        lb = labels(i)
+        if 'type: roadmap' in lb:
+            continue
+        drop = sorted(x for x in lb if x.startswith('status: ') and x != 'status: claimed')
+        if 'status: claimed' not in lb or drop:
+            actions.append({'kind': 'claim', 'issue': n, 'pr': pn, 'drop': drop})
+    gate, m5_ready, cap_gated = [], [], []
     for r in lots:
         n = r['issue']
         i = by_n.get(n)
@@ -118,7 +136,7 @@ def analyze(issues, pulls, lots, comments, now):
         if (deps is not None and 'status: blocked' in lb and not open_deps and n in capture and n not in pending_close
                 and 'status: ready' not in lb and 'status: claimed' not in lb and not is_m5(r)):
             cap_gated.append(f"{r['lot']} #{n} ({st['capture'][str(n)]})")  # every lot dependency is done: the capture is the only gate
-        if deps is None or 'status: ready' in lb or 'status: claimed' in lb or open_deps or n in capture or n in pending_close:
+        if deps is None or 'status: ready' in lb or 'status: claimed' in lb or open_deps or n in capture or n in pending_close or n in cited:
             continue
         if 'status: blocked' not in lb:
             continue
@@ -170,8 +188,8 @@ def analyze(issues, pulls, lots, comments, now):
     for n in sorted(claimed_set):
         cs = (comments(n) if callable(comments) else comments.get(n)) or []
         last = max([ts(c['created_at']) for c in cs] + [ts(by_n[n]['created_at'])]) if n in by_n else None
-        if last and now - last > STALE:
-            reports.append(f'#{n}: claimed, silent for {(now - last).days} days (orchestrator decides, never released by the sweep)')
+        if last and now - last > STALE and n not in cited:
+            reports.append(f'#{n}: claimed, silent for {(now - last).days} days, no open PR (orchestrator decides, never released by the sweep)')
     lot_by_issue = {r['issue']: r for r in lots}
     cand = [n for n in sorted(st['ready']) if n in lot_by_issue and ENGINE.match(lot_by_issue[n]['module'])
             and n not in st['external'] and 'host: mac' not in labels(by_n[n])]
@@ -217,7 +235,12 @@ def apply(actions):
             if cur['state'] != 'open':
                 print('skip (closed meanwhile)', a)
                 continue
-            if a['kind'] == 'unblock':
+            if a['kind'] == 'claim':
+                gone = {x for x in a['drop'] if x in lb}
+                if 'status: claimed' not in lb:
+                    gh('POST', base + '/labels', fields=['labels[]=status: claimed'])
+                drop_status(base, gone, [0])  # the claimed label is on first: a failure half-way never leaves the issue unlabelled
+            elif a['kind'] == 'unblock':
                 if 'status: blocked' not in lb or lb & {'status: claimed', 'status: ready'}:
                     print('skip (labels changed meanwhile)', a)
                     continue
