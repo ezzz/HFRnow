@@ -45,7 +45,7 @@ A theme is a folder `App/SwiftHFR/Themes/<theme-id>/` (folder-synchronized group
 
 | Token | Use | Rule |
 |---|---|---|
-| `background`, `surface`, `surfaceRaised` | screen, rows and cards, bars and sheets | — |
+| `background`, `surface`, `surfaceRaised` | screen, rows and cards, bars and sheets | `accentText` ≥ 4.5:1 on `background`; `textPrimary` ≥ 4.5:1 on `surfaceRaised` (the header band and page bar fall back to it) |
 | `title`, `sectionHeader` | text drawn on `background` | ≥ 4.5:1 on `background` |
 | `textPrimary`, `textSecondary` | body text; dates, counters, read MP titles (#651) | ≥ 4.5:1 on `surface` |
 | `accent`, `onAccent` | fills only (badges, toggles, selection); content on them | `onAccent` ≥ 4.5:1 on `accent` |
@@ -55,7 +55,7 @@ A theme is a folder `App/SwiftHFR/Themes/<theme-id>/` (folder-synchronized group
 | `quoteBackground`, `quoteBorder`, `codeBackground`, `codeText`, `spoilerBackground`, `spoilerText` | reader blocks (`[code]` always monospace) | text ≥ 4.5:1 on its background |
 | `unread`, `onUnread` | unread badge and capsule (#646) | ≥ 4.5:1 |
 
-The quote rule is `textPrimary` and `textSecondary` (a quote's header) on `quoteBackground`. The test also checks every other pair the app draws ([LOT-188](lots/LOT-188-theme-engine.md) lists them): links and accents on quotes, spoilers, code and the reader's even message, the optional tokens, and, since native list rows and text keep the system colours of the appearance a theme shows in, the system text of that appearance (black in light, white in dark; a `light` slot always shows in light) on `background` and `surface`, and `accentText` (the tint) on the system card. A colour in a contrast pair is opaque.
+The quote rule is `textPrimary` and `textSecondary` (a quote's header) on `quoteBackground`. The test also checks every other pair the app draws ([LOT-188](lots/LOT-188-theme-engine.md) lists them): links and accents on quotes, spoilers, code and the reader's even message, the optional tokens, and, since native list rows and text keep the system colours of the appearance a theme shows in, the system text of that appearance (black in light, white in dark; a `light` slot always shows in light) on `background` and `surface`, and `accentText` (the tint) on the system card and on `background`. A colour in a contrast pair is opaque.
 
 **Where LOT-188 draws each token.** Tint: `accentText`; prominent buttons: `accent` and `onAccent`; every themed screen: `background`; unread capsule: `unread`, `onUnread`; the reader: `surface` (its page), `textPrimary`, `textSecondary`, `link`, `accentText`, `separator`, the quote, code and spoiler tokens. Not drawn yet: `surfaceRaised`, `title`, `sectionHeader`, `selection` and the optional tokens; native rows and text keep the system's (operator decision pending on #729). A single-variant theme shows in the appearance its background reads as (light when black text contrasts more), whatever the « Thème » picker says.
 

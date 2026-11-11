@@ -110,7 +110,7 @@ struct ThemeEngineTests {
         #expect(model.preferredColorScheme == .light)
     }
 
-    // MARK: Definitions that read tokens (#646, #651)
+    // MARK: Shared definitions under a theme (#651: system tones, unchanged by a theme)
 
     /// #651: the read and unread MP title tones hold on the rows of every bundled theme. A theme does not recolour native rows
     /// or text (LOT-188 spec, "What a theme does not change"): what a theme decides is the appearance its rows show in (its own

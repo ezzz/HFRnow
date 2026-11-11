@@ -149,8 +149,9 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         ("textPrimary", "quoteBackground"), ("textSecondary", "quoteBackground"),
         ("codeText", "codeBackground"), ("spoilerText", "spoilerBackground"),
         ("onUnread", "unread"),
-        // Native screens: system text on the theme's background and surface, the tint on the system card.
-        ("systemText", "background"), ("systemText", "surface"), ("accentText", "systemCard"),
+        // Native screens: system text on the theme's background and surface, the tint on the system card and on the background
+        // (toolbar and plain buttons, empty-state actions).
+        ("systemText", "background"), ("systemText", "surface"), ("accentText", "systemCard"), ("accentText", "background"),
         // The reader: links and accents in quotes, spoilers and code, and every text of an even message.
         ("link", "quoteBackground"), ("link", "spoilerBackground"), ("link", "codeBackground"),
         ("textSecondary", "codeBackground"), ("accentText", "codeBackground"), ("accentText", "quoteBackground"),

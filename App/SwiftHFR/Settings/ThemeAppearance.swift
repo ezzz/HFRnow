@@ -296,9 +296,9 @@ extension EnvironmentValues {
 }
 
 extension View {
-    /// `.buttonStyle(.borderedProminent)`, filled with a gallery theme's `accent` and labelled in its `onAccent` (LOT-188): the
-    /// app's tint is the theme's `accentText`, a text colour, on which the style's white label need not be legible. Legacy gets
-    /// the plain style, as before.
+    /// `.buttonStyle(.borderedProminent)` for Legacy, as before; under a gallery theme (LOT-188), a capsule filled with its
+    /// `accent` and labelled in its `onAccent` (`ThemedProminentButtonStyle`). The app's tint is the theme's `accentText`, a text
+    /// colour, on which the system style's own white label need not be legible.
     func appProminentButtonStyle() -> some View { modifier(AppProminentButtonStyle()) }
 }
 
@@ -307,9 +307,29 @@ private struct AppProminentButtonStyle: ViewModifier {
 
     @ViewBuilder func body(content: Content) -> some View {
         if let fill = appearance.themeColor(\.accent), let label = appearance.themeColor(\.onAccent) {
-            content.buttonStyle(.borderedProminent).tint(Color(uiColor: fill)).foregroundStyle(Color(uiColor: label))
+            content.buttonStyle(ThemedProminentButtonStyle(fill: Color(uiColor: fill), label: Color(uiColor: label)))
         } else {
             content.buttonStyle(.borderedProminent)
         }
+    }
+}
+
+/// A prominent button that draws its own fill and label colours, so neither depends on how the system style orders them.
+struct ThemedProminentButtonStyle: ButtonStyle {
+    let fill: Color
+    let label: Color
+    @Environment(\.isEnabled) private var isEnabled
+    @ScaledMetric(relativeTo: .body) private var horizontal = 14.0
+    @ScaledMetric(relativeTo: .body) private var vertical = 7.0
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .fontWeight(.semibold)
+            .foregroundStyle(label)
+            .padding(.horizontal, horizontal)
+            .padding(.vertical, vertical)
+            .background(fill, in: Capsule())
+            .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.4)
+            .contentShape(Capsule())
     }
 }

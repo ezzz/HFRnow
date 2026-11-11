@@ -138,6 +138,29 @@ struct ThemeEngineWindowTests {
         #expect(shown, "columns: \(columnXs.map { red(in: window, x: $0) })")
     }
 
+    // MARK: Prominent buttons
+
+    /// A prominent button whose label is a 120 pt square drawn in the label's colour, over the fill.
+    struct ProminentRoot: View {
+        let model: ThemeSettingsModel
+        var body: some View {
+            Button {} label: { Rectangle().frame(width: 120, height: 120) }
+                .appProminentButtonStyle()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .appTheme(model)
+        }
+    }
+
+    /// Under the fixture's dark variant, the button's label is `onAccent` (#000000) on `accent` (#FFB000): the system style's
+    /// white label would be 1.9:1 there (Fable round 2). The centre of the window is the label; 64 pt left of it, the fill.
+    @Test func aProminentButtonUsesTheThemesAccentAndOnAccent() async throws {
+        let model = try themedModel(dark: true)
+        let window = try show(ProminentRoot(model: model), size: CGSize(width: 300, height: 300))
+        defer { window.isHidden = true }
+        let shown = await until { red(in: window, x: 150, y: 150) == 0 && red(in: window, x: 150 - 66, y: 150) == 0xFF }
+        #expect(shown, "label \(red(in: window, x: 150, y: 150)), fill \(red(in: window, x: 84, y: 150))")
+    }
+
     // MARK: Identity
 
     final class Counter { var made = 0 }
