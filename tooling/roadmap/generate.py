@@ -1,7 +1,8 @@
-import json,re
+import json,os,re
 from pathlib import Path
 _H=Path(__file__).resolve().parent
-_S=json.loads((_H/'state.json').read_text(encoding='utf-8'))  # built by sync_state.py from the tracker
+# built by sync_state.py from the tracker; ROADMAP_STATE points to a fresh copy outside the tree (weekly/build.py)
+_S=json.loads(Path(os.environ.get('ROADMAP_STATE') or _H/'state.json').read_text(encoding='utf-8'))
 CLOSED=set(_S['closed']); READY=set(_S['ready']); CLAIMED=set(_S['claimed']); EXTERNAL=set(_S['external'])
 PRS={k:tuple(v) for k,v in _S['prs'].items()}; MERGED_PR=_S['merged_pr']
 CAPTURE={int(k):v for k,v in _S['capture'].items()}
