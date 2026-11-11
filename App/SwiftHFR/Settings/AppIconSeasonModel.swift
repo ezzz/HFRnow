@@ -15,6 +15,8 @@ final class AppIconSeasonModel {
 
     /// The pending question, nil when there is none.
     private(set) var question: Question?
+    /// The French message of a refused « Oui », nil otherwise; the question comes back at the next launch.
+    var errorMessage: String?
 
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let switcher: any AlternateIconSwitching
@@ -59,6 +61,7 @@ final class AppIconSeasonModel {
         do {
             try await switcher.setAlternateIconName(asked.previous.alternateIconName)
         } catch {
+            errorMessage = "Impossible de changer l’icône : \(error.localizedDescription)"
             return
         }
         store.set(asked.previous.rawValue, for: SettingKey.appIconName)
@@ -90,6 +93,14 @@ private struct AppIconSeasonAlert: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task { model.checkAtLaunch() }
+            .alert(
+                "Icône",
+                isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(model.errorMessage ?? "")
+            }
             .alert(
                 "Revenir à l’icône précédente ?",
                 isPresented: Binding(get: { model.question != nil }, set: { _ in }),

@@ -19,17 +19,26 @@ struct AppIconPackTests {
 
     // MARK: Packs
 
-    @Test func theShippedOptionsKeepTheirRawValuesAndNamesAndLiveInLegacyOrBeta() {
-        let shipped: [(String, String?, AppIconPack)] = [
-            ("superblue", nil, .legacy), ("redface3dbig", "Icon-RedFace3DBig", .legacy), ("redface", "Icon-REDFACE", .legacy),
-            ("redface-blue", "Icon-REDFACEBLUE", .legacy), ("blue", "Icon-BLUE", .legacy), ("white", "Icon-WHITE", .legacy),
-            ("classic", "Icon-CLASSIC", .legacy), ("classic-red", "Icon-CLASSIC-RED", .legacy), ("beta", "Icon-BETA", .beta)
+    @Test(arguments: [
+        "superblue", "redface3dbig", "redface", "redface-blue", "blue", "white", "classic", "classic-red", "beta"
+    ])
+    func aShippedOptionKeepsItsRawValueNameAndPack(raw: String) {
+        let names = [
+            "superblue": "", "redface3dbig": "Icon-RedFace3DBig", "redface": "Icon-REDFACE", "redface-blue": "Icon-REDFACEBLUE",
+            "blue": "Icon-BLUE", "white": "Icon-WHITE", "classic": "Icon-CLASSIC", "classic-red": "Icon-CLASSIC-RED", "beta": "Icon-BETA"
         ]
-        for (raw, name, pack) in shipped {
-            let option = AppIconOption(rawValue: raw)
-            #expect(option?.alternateIconName == name)
-            #expect(option?.pack == pack)
-            #expect(option?.window == nil)
+        let option = AppIconOption(rawValue: raw)
+        #expect(option?.alternateIconName ?? "" == names[raw])
+        #expect(option?.pack == (raw == "beta" ? .beta : .legacy))
+        #expect(option?.window == nil)
+    }
+
+    @Test func everyAlternateIconNameIsInTheBuiltInfoPlist() {
+        let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any]
+        let alternates = Set((icons?["CFBundleAlternateIcons"] as? [String: Any])?.keys.map { $0 } ?? [])
+        for option in AppIconOption.allCases {
+            guard let name = option.alternateIconName else { continue }
+            #expect(alternates.contains(name), "\(name) is missing from ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES")
         }
     }
 

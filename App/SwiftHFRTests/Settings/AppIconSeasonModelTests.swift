@@ -88,6 +88,7 @@ struct AppIconSeasonModelTests {
         model.checkAtLaunch()
         await model.revert()
         #expect(model.question == nil)
+        #expect(model.errorMessage?.hasPrefix("Impossible de changer l’icône") == true)
         #expect(store.rawValue(forKey: "icon") == .string("noel-hfr"))
         let again = season(store, switcher, on: IconTestCalendar.date(2027, 1, 3))
         again.checkAtLaunch()

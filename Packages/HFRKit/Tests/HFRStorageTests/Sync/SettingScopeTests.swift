@@ -24,7 +24,9 @@ import Testing
         // device's last sync.
         "size_smileys": .device, "embedded_videos": .device, "mpstorage_active": .device, "mpstorage_last_rw": .device,
         // LOT-173: the app lock is a property of the device (ADR 0013 §6, appendix E's device-capability rule).
-        "app_lock_enabled": .device, "app_lock_grace_seconds": .device
+        "app_lock_enabled": .device, "app_lock_grace_seconds": .device,
+        // LOT-189: the dated-icon bookkeeping follows the icon the device shows.
+        "icon_previous": .device, "icon_revert_asked": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {

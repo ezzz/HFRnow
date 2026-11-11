@@ -37,11 +37,18 @@ for name in "${names[@]}"; do
     "${ICTOOL}" "${src}" --export-image --output-file "${set_dir}/${file}" --platform iOS --rendition "${rendition}" \
       --width "${SIZE}" --height "${SIZE}" --scale 1 > /dev/null
   done
+  # Most icons have no Dark layer: their Dark rendition is the Default one, so only a different one gets its own entry.
+  if cmp -s "${set_dir}/default.png" "${set_dir}/dark.png"; then
+    rm -f "${set_dir}/dark.png"
+    dark_entry=""
+  else
+    dark_entry=',
+    { "appearances" : [ { "appearance" : "luminosity", "value" : "dark" } ], "filename" : "dark.png", "idiom" : "universal" }'
+  fi
   cat > "${set_dir}/Contents.json" <<JSON
 {
   "images" : [
-    { "filename" : "default.png", "idiom" : "universal" },
-    { "appearances" : [ { "appearance" : "luminosity", "value" : "dark" } ], "filename" : "dark.png", "idiom" : "universal" }
+    { "filename" : "default.png", "idiom" : "universal" }${dark_entry}
   ],
   "info" : {
     "author" : "xcode",
