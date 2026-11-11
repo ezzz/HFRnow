@@ -278,6 +278,17 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(calls, [])  # closed meanwhile
         self.assertIn("skip (closed meanwhile)", out)
 
+    def test_an_issue_the_sweep_closes_is_not_also_claimed(self):
+        issues = [issue(7, labels=["type: bug", "status: ready"])]
+        pulls = [pr(10, body="Closes #7", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #7", state="open")]
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("close", 7)])
+
+    def test_apply_claim_drops_every_status_label_found_on_the_re_read(self):
+        calls, _ = self._apply({"state": "open", "labels": [{"name": "status: claimed"}, {"name": "status: ready"}]},
+                               [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])  # `ready` was added after the analysis
+        self.assertEqual(calls, [("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])
+
     def test_unblock_without_a_known_pr_is_only_reported(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
         actions, reports = self.run_sweep(issues, [])

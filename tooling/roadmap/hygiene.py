@@ -236,7 +236,7 @@ def apply(actions):
                 print('skip (closed meanwhile)', a)
                 continue
             if a['kind'] == 'claim':
-                gone = {x for x in a['drop'] if x in lb}
+                gone = {x for x in lb if x.startswith('status: ') and x != 'status: claimed'}  # from the re-read, not the analysis
                 if 'status: claimed' not in lb:
                     gh('POST', base + '/labels', fields=['labels[]=status: claimed'])
                 drop_status(base, gone, [0])  # the claimed label is on first: a failure half-way never leaves the issue unlabelled
@@ -278,7 +278,7 @@ def fold_fragments(do_apply, layout=None):
 
 
 def ledger_pending(prs=None, layout=None):
-    """Report the merged `ledger` PRs waiting for the steward (never writes: `ledger.py fold --apply` does); returns printed lines."""
+    """Report the merged PRs with a `### Ledger` section waiting for the steward (never writes: `ledger.py fold --apply` does); returns printed lines."""
     try:
         prs = docs_ledger.fetch_pending() if prs is None else prs
         if not prs:

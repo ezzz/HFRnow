@@ -83,7 +83,7 @@ def parse_body(body):
     if '```' in FENCE.sub('', sec):
         raise LedgerError('an unclosed or malformed fenced block')
     if not entries:
-        raise LedgerError('the Ledger section has no block (no entry: no section, no label)')
+        raise LedgerError('the Ledger section has no block (no entry: no section)')
     return entries
 
 
