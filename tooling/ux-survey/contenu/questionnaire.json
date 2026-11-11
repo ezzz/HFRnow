@@ -1,0 +1,597 @@
+{
+  "version": "2026-11-v1",
+  "ecrans": [
+    {
+      "id": "accueil",
+      "questions": [
+        "E0"
+      ]
+    },
+    {
+      "id": "profil",
+      "questions": [
+        "P1",
+        "P2",
+        "P3"
+      ]
+    },
+    {
+      "id": "ouverture",
+      "questions": [
+        "O1"
+      ]
+    },
+    {
+      "id": "irritants",
+      "questions": [
+        "G1"
+      ]
+    },
+    {
+      "id": "theme1",
+      "questions": [
+        "L1",
+        "L2"
+      ]
+    },
+    {
+      "id": "theme2-a",
+      "questions": [
+        "D1"
+      ],
+      "condition": {
+        "P1": [
+          "ipad",
+          "duo",
+          "plusieurs"
+        ]
+      }
+    },
+    {
+      "id": "theme2-b",
+      "questions": [
+        "D2"
+      ],
+      "condition": {
+        "P1": [
+          "ipad",
+          "duo",
+          "plusieurs"
+        ]
+      }
+    },
+    {
+      "id": "cartes",
+      "questions": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C09",
+        "C10"
+      ],
+      "melange": true
+    },
+    {
+      "id": "idee",
+      "questions": [
+        "C11"
+      ]
+    },
+    {
+      "id": "mp",
+      "questions": [
+        "M1"
+      ]
+    },
+    {
+      "id": "libre",
+      "questions": [
+        "F1"
+      ]
+    },
+    {
+      "id": "pseudo",
+      "questions": [
+        "I1"
+      ]
+    },
+    {
+      "id": "fin",
+      "questions": [
+        "E1"
+      ],
+      "fin": true
+    }
+  ],
+  "questions": {
+    "E0": {
+      "type": "texte-seul",
+      "libelle": "Aidez-nous à choisir la suite de l'app",
+      "textes": [
+        "Vous utilisez l'app HFR : dites-nous ce que vous aimeriez y voir évoluer. Une vingtaine de réponses, 5 à 7 minutes, toutes facultatives, sans mauvaise réponse. Ce sont des pistes à l'étude, pas des engagements.",
+        "Vos données : ce qui est gardé et pourquoi"
+      ]
+    },
+    "P1": {
+      "libelle": "Sur quel appareil utilisez-vous surtout l'app ?",
+      "type": "choix",
+      "aide": "Votre réponse adapte les questions suivantes : celles sur l'iPad et le Duo ne s'affichent que si vous en utilisez un.",
+      "reponses": [
+        {
+          "code": "iphone",
+          "libelle": "iPhone"
+        },
+        {
+          "code": "ipad",
+          "libelle": "iPad"
+        },
+        {
+          "code": "duo",
+          "libelle": "iPhone Duo"
+        },
+        {
+          "code": "plusieurs",
+          "libelle": "Plusieurs"
+        }
+      ]
+    },
+    "P2": {
+      "libelle": "Comment utilisez-vous le forum ?",
+      "type": "choix",
+      "reponses": [
+        {
+          "code": "lit_surtout",
+          "libelle": "Je lis surtout"
+        },
+        {
+          "code": "lit_repond",
+          "libelle": "Je lis et je réponds parfois"
+        },
+        {
+          "code": "poste_souvent",
+          "libelle": "Je poste souvent"
+        }
+      ]
+    },
+    "P3": {
+      "libelle": "Depuis quand utilisez-vous l'app ?",
+      "type": "choix",
+      "reponses": [
+        {
+          "code": "avant_4_0",
+          "libelle": "Avant la version 4.0"
+        },
+        {
+          "code": "depuis_4_0",
+          "libelle": "Depuis la version 4.0"
+        }
+      ]
+    },
+    "O1": {
+      "libelle": "Pour la suite, vous préférez que l'app…",
+      "type": "choix",
+      "reponses": [
+        {
+          "code": "rester",
+          "libelle": "Reste comme elle est"
+        },
+        {
+          "code": "petites_touches",
+          "libelle": "Évolue par petites touches"
+        },
+        {
+          "code": "oser",
+          "libelle": "Ose des nouveautés"
+        }
+      ]
+    },
+    "G1": {
+      "libelle": "Au quotidien, qu'est-ce qui vous agace ou vous fait perdre du temps dans l'app ?",
+      "type": "texte",
+      "max": 280,
+      "aide": "Un geste trop long, un écran mal fichu, une info introuvable : tout compte. Une ou deux phrases suffisent."
+    },
+    "L1": {
+      "libelle": "Pour lire un long sujet, que préférez-vous ?",
+      "type": "choix",
+      "aide": "Choisissez ce qui vous convient le mieux.",
+      "reponses": [
+        {
+          "code": "pages_ameliorees",
+          "libelle": "Des pages plus agréables",
+          "details": [
+            "Changement de page sans écran blanc",
+            "Séparateur des nouveaux messages plus visible",
+            "Messages masqués repliés sur une ligne qu'on déplie"
+          ],
+          "visuels": [
+            {
+              "fichier": "L1-pages-ameliorees-iphone.png",
+              "alt": "Visuel provisoire : lecture d'un sujet avec des pages plus agréables, sur iPhone"
+            }
+          ]
+        },
+        {
+          "code": "lecture_continue",
+          "libelle": "Des pages plus agréables, et la lecture continue en option",
+          "details": [
+            "Tout ce qui précède",
+            "La page suivante s'affiche à la suite, si vous activez l'option",
+            "Numéro de page en repère discret"
+          ],
+          "visuels": [
+            {
+              "fichier": "L1-lecture-continue-iphone.png",
+              "alt": "Visuel provisoire : lecture continue en option, sur iPhone"
+            }
+          ]
+        },
+        {
+          "code": "comme_aujourdhui",
+          "libelle": "Garder les pages comme aujourd'hui",
+          "visuels": [
+            {
+              "fichier": "L1-comme-aujourdhui-iphone.png",
+              "alt": "Visuel provisoire : capture de la lecture d'un sujet dans l'app actuelle, sur iPhone"
+            }
+          ]
+        }
+      ]
+    },
+    "L2": {
+      "libelle": "Qu'est-ce qui compte le plus pour vous dans la lecture d'un sujet ?",
+      "type": "texte",
+      "max": 280,
+      "aide": "Une phrase suffit. Laissez vide si rien ne vous vient."
+    },
+    "D1": {
+      "libelle": "Sur iPad et sur iPhone Duo déplié, que voulez-vous voir en permanence dans la barre latérale ?",
+      "type": "tri",
+      "aide": "Choisissez les sections à garder dans la barre, mettez-les dans l'ordre qui vous convient et indiquez celles que vous aimeriez pouvoir déplier, par exemple pour voir vos favoris sans quitter la barre. Aujourd'hui : Favoris, Catégories et Messages privés dans le groupe Forum ; Drapeaux dans Favoris ; Alertes Qualitay et Bookmarks dans le groupe Outils ; Recherche et Réglages dans le groupe Plus ; À suivre n'existe pas.",
+      "sections": [
+        {
+          "code": "favoris",
+          "libelle": "Favoris"
+        },
+        {
+          "code": "categories",
+          "libelle": "Catégories"
+        },
+        {
+          "code": "mp",
+          "libelle": "Messages privés"
+        },
+        {
+          "code": "drapeaux",
+          "libelle": "Drapeaux"
+        },
+        {
+          "code": "a_suivre",
+          "libelle": "À suivre (les nouveautés de tous vos sujets suivis)"
+        },
+        {
+          "code": "alertes_qualitay",
+          "libelle": "Alertes Qualitay"
+        },
+        {
+          "code": "bookmarks",
+          "libelle": "Bookmarks"
+        },
+        {
+          "code": "recherche",
+          "libelle": "Recherche"
+        },
+        {
+          "code": "reglages",
+          "libelle": "Réglages"
+        }
+      ],
+      "etats": [
+        {
+          "code": "garder",
+          "libelle": "Dans la barre"
+        },
+        {
+          "code": "deplier",
+          "libelle": "Dans la barre, dépliable"
+        },
+        {
+          "code": "ecarter",
+          "libelle": "Pas dans la barre"
+        }
+      ],
+      "reponse_seule": {
+        "code": "comme_aujourdhui",
+        "libelle": "Laisser la barre comme aujourd'hui"
+      }
+    },
+    "D2": {
+      "libelle": "Sur iPad et sur iPhone Duo déplié, quelle disposition préférez-vous ?",
+      "type": "choix",
+      "aide": "Des visuels et de courtes vidéos montrent chaque disposition si vous n'avez pas l'appareil.",
+      "reponses": [
+        {
+          "code": "comme_aujourdhui",
+          "libelle": "Comme aujourd'hui",
+          "details": [
+            "La barre latérale, la liste, puis le sujet",
+            "Sur le Duo, l'interface de l'iPhone sur l'écran extérieur"
+          ],
+          "visuels": [
+            {
+              "fichier": "D2-comme-aujourdhui-ipad.png",
+              "alt": "Visuel provisoire : disposition actuelle sur iPad : barre latérale, liste, sujet"
+            }
+          ]
+        },
+        {
+          "code": "tableau_de_bord",
+          "libelle": "Une colonne « À suivre »",
+          "details": [
+            "Reprise de la lecture et messages privés",
+            "Favoris et drapeaux avec leurs nouveautés",
+            "Sur iPad et Duo déplié"
+          ],
+          "visuels": [
+            {
+              "fichier": "D2-tableau-de-bord-ipad.png",
+              "alt": "Visuel provisoire : colonne « À suivre » sur iPad"
+            },
+            {
+              "fichier": "D2-tableau-de-bord-duo.mp4",
+              "image_attente": "D2-tableau-de-bord-duo.png",
+              "alt": "Vidéo provisoire : colonne « À suivre » sur iPhone Duo déplié"
+            }
+          ]
+        },
+        {
+          "code": "cote_a_cote",
+          "libelle": "Lire et écrire côte à côte",
+          "details": [
+            "Le sujet reste visible pendant que vous écrivez",
+            "Un aperçu de votre message avant l'envoi",
+            "Sur iPad et Duo déplié"
+          ],
+          "visuels": [
+            {
+              "fichier": "D2-cote-a-cote-ipad.png",
+              "alt": "Visuel provisoire : lire et écrire côte à côte sur iPad"
+            },
+            {
+              "fichier": "D2-cote-a-cote-duo.mp4",
+              "image_attente": "D2-cote-a-cote-duo.png",
+              "alt": "Vidéo provisoire : lire et écrire côte à côte sur iPhone Duo déplié"
+            }
+          ]
+        }
+      ]
+    },
+    "C01": {
+      "libelle": "Filtrer les posts : retrouver en un geste les messages les plus cités d'un sujet, ou ceux de vos pseudos favoris",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C02": {
+      "libelle": "Vérification automatique : vérifier vos messages privés et vos drapeaux depuis l'app Raccourcis d'iOS, à l'heure que vous choisissez",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C03": {
+      "libelle": "Notifications de MP réglables : choisir les messages privés qui vous notifient, et couper un MP à plusieurs trop bavard",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C04": {
+      "libelle": "MP à plusieurs : écrire un message privé à plusieurs personnes à la fois",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C05": {
+      "libelle": "Création de sondage : ajouter un sondage en créant un sujet",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C06": {
+      "libelle": "Gestes identiques partout : les mêmes gestes de glissement dans toutes les listes, pour marquer comme lu, retirer ou passer en super favori",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C07": {
+      "libelle": "Thèmes de saison : des thèmes pour chaque saison, qui s'activent tout seuls si vous le voulez",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C09": {
+      "libelle": "Alertes Qualitay dans le sujet : repérer d'un coup d'œil, en lisant un sujet, les messages signalés en Alerte Qualitay",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C10": {
+      "libelle": "Répondre en bas du sujet : écrire une réponse courte directement en bas du sujet, comme dans une messagerie, sans ouvrir l'éditeur",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
+    "C11": {
+      "libelle": "Ces idées vous en inspirent une autre ?",
+      "type": "texte",
+      "max": 280,
+      "aide": "Une phrase suffit. Laissez vide si rien ne vous vient."
+    },
+    "M1": {
+      "libelle": "Comment préférez-vous retrouver vos messages privés ?",
+      "type": "choix",
+      "reponses": [
+        {
+          "code": "un_onglet",
+          "libelle": "Un seul onglet, comme aujourd'hui"
+        },
+        {
+          "code": "deux_listes",
+          "libelle": "Deux listes dans l'onglet Messages, déjà possible en réglage"
+        },
+        {
+          "code": "deux_onglets",
+          "libelle": "Deux onglets : MP et MP à plusieurs"
+        },
+        {
+          "code": "pas_mp_plusieurs",
+          "libelle": "Je n'utilise pas les MP à plusieurs"
+        }
+      ]
+    },
+    "F1": {
+      "libelle": "Un dernier mot sur l'app, ou sur ce questionnaire ?",
+      "type": "texte",
+      "max": 280,
+      "aide": "Une phrase suffit. Laissez vide si vous n'avez rien à ajouter."
+    },
+    "I1": {
+      "libelle": "Pseudo HFR",
+      "type": "pseudo",
+      "max": 40,
+      "lien": "Vos données : ce qui est gardé et pourquoi",
+      "aide": "Facultatif. Si vous le laissez, seul Bruno, qui mène ce questionnaire, le verra, pour pouvoir vous écrire en MP sur HFR s'il souhaite approfondir une de vos réponses. Il n'est jamais affiché ni publié, et il est effacé deux mois après la fermeture du questionnaire. Pour le faire effacer avant, écrivez à Bruno Arene, ezzz75@gmail.com. Indiquez seulement votre propre pseudo."
+    },
+    "E1": {
+      "type": "texte-seul",
+      "libelle": "Merci !",
+      "textes": [
+        "Merci d'avoir pris ce temps. Ce sont des pistes à l'étude, pas des engagements : vos réponses éclairent les choix, elles ne les décident pas.",
+        "Les résultats s'afficheront quand assez de personnes auront répondu.",
+        "Aucun texte libre ni pseudo n'est jamais affiché."
+      ]
+    }
+  },
+  "cartes": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C09",
+    "C10"
+  ]
+}

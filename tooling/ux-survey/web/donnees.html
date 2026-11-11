@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Vos données dans ce questionnaire</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="page-texte">
+<header class="entete"><a href="/">← Retour au questionnaire</a></header>
+<main class="texte">
+<h1>Vos données dans ce questionnaire</h1>
+<p>Ce questionnaire sert à orienter la nouvelle version de l'app HFR pour iPhone et iPad. Cette page explique ce qui est enregistré, pourquoi, combien de temps, qui le voit, et comment le faire effacer.</p>
+<h2>Qui est responsable</h2>
+<p>Bruno Arene, développeur de l'app, responsable du questionnaire et de ses données.<br>Contact : <a href="mailto:ezzz75@gmail.com">ezzz75@gmail.com</a>.</p>
+<p>Le questionnaire est un projet personnel, sans but commercial. Il n'est pas lié à une entreprise ni à la régie du forum.</p>
+<h2>À quoi servent vos réponses</h2>
+<ul>
+<li>Comprendre comment vous utilisez l'app et quelles idées vous paraissent utiles, pour choisir les évolutions de la nouvelle version.</li>
+<li>Vous montrer, à la fin, comment vos réponses se situent par rapport à celles des autres répondants.</li>
+</ul>
+<p>Elles ne servent à rien d'autre : pas de publicité, pas de revente, pas de profil.</p>
+<h2>Ce qui est enregistré</h2>
+<p>Rien n'est enregistré sur le serveur avant que vous cliquiez sur « Envoyer ». À l'envoi, le serveur enregistre en une seule fois :</p>
+<div class="tableau"><table>
+<thead><tr><th scope="col">Donnée</th><th scope="col">Pourquoi</th></tr></thead>
+<tbody>
+<tr><td>Vos réponses aux questions, et l'ordre dans lequel les cartes d'idées vous ont été montrées</td><td>Le but du questionnaire. L'ordre des cartes est tiré au hasard ; il sert à vérifier qu'il n'influence pas les réponses</td></tr>
+<tr><td>Vos textes libres : ce qui vous agace au quotidien dans l'app, ce qui compte le plus pour vous dans la lecture d'un sujet, une autre idée, le champ libre de la fin</td><td>Lire vos idées avec vos propres mots</td></tr>
+<tr><td>Votre pseudo HFR, si vous le donnez</td><td>Pouvoir vous écrire en MP sur HFR pour approfondir un sujet avec vous, et rien d'autre. Il est rangé à part de vos réponses. C'est la seule donnée qui vous identifie directement, et elle est facultative</td></tr>
+<tr><td>La date d'envoi, sans l'heure</td><td>Suivre la participation jour par jour</td></tr>
+<tr><td>Le temps passé à répondre</td><td>Vérifier que le questionnaire tient dans le temps annoncé</td></tr>
+<tr><td>La version du questionnaire</td><td>Savoir quel texte vous avez lu, s'il est corrigé en cours de route</td></tr>
+<tr><td>Une empreinte du jeton de votre navigateur (voir plus bas)</td><td>Éviter qu'un même navigateur réponde plusieurs fois. Le jeton est tiré au hasard et ne dit rien de vous</td></tr>
+<tr><td>Une empreinte de votre adresse IP</td><td>Même raison. L'adresse est transformée par un calcul à sens unique avec une clé secrète ; l'adresse elle-même n'est jamais enregistrée. Pour limiter les abus, cette empreinte est aussi calculée en mémoire à chaque visite, sans être enregistrée</td></tr>
+</tbody>
+</table></div>
+<p>Toutes les questions sont facultatives. Si vous ne répondez pas à une question, rien n'est enregistré pour elle.</p>
+<h2>Ce qui reste dans votre navigateur</h2>
+<p>Deux choses sont gardées dans le stockage local de votre navigateur, sur votre appareil :</p>
+<ul>
+<li>le <strong>brouillon</strong> de vos réponses, pour qu'un rechargement de la page ne les perde pas ; il est effacé après l'envoi ;</li>
+<li>le <strong>jeton</strong>, un nombre tiré au hasard à l'ouverture du questionnaire et envoyé avec vos réponses, pour que le questionnaire sache que ce navigateur a déjà répondu.</li>
+</ul>
+<p>Ce ne sont pas des cookies et rien n'est partagé avec un autre site. Vous pouvez les effacer à tout moment en supprimant les données du site dans les réglages de votre navigateur.</p>
+<h2>Ce qui n'est pas collecté</h2>
+<ul>
+<li><strong>Pas d'adresse IP conservée au-delà de l'anti-abus</strong> : seule l'empreinte décrite plus haut est gardée, et elle est effacée à la fermeture du questionnaire, le {date_fermeture}. Les journaux techniques du serveur ne contiennent pas votre adresse IP. Le relais Tailscale, lui, la voit passer (voir « Qui voit quoi »).</li>
+<li><strong>Pas de cookie</strong>, ni du questionnaire ni d'un tiers.</li>
+<li><strong>Pas de mesure d'audience</strong> : aucun outil de statistiques de visite, ni dans la page ni sur le serveur, aucun pixel, aucun bouton de réseau social.</li>
+<li><strong>Aucune requête vers un autre site</strong> : la page et ses images viennent toutes du même serveur, et aucune police n'est téléchargée.</li>
+<li><strong>Pas de compte</strong> : vous ne vous connectez pas, et le questionnaire n'a aucun lien avec votre compte HFR. Il ne vérifie pas le pseudo que vous tapez.</li>
+<li><strong>Pas d'adresse e-mail</strong>, sauf si vous écrivez vous-même pour exercer vos droits.</li>
+</ul>
+<h2>Qui voit quoi</h2>
+<ul>
+<li><strong>Bruno Arene</strong> est le seul à voir les pseudos, et le seul à accéder aux réponses telles qu'elles sont enregistrées sur le serveur.</li>
+<li><strong>Pour l'analyse</strong>, Bruno prépare une copie des réponses sans aucun pseudo :
+<ul><li>chaque pseudo est remplacé par un identifiant tiré au hasard ;</li><li>la table qui relie un pseudo à son identifiant reste sur le serveur, et n'est jamais donnée à personne ;</li><li>les textes libres sont relus, et tout pseudo ou détail qui permettrait de reconnaître quelqu'un en est retiré.</li></ul>
+<p>Tant que cette table existe, Bruno peut relier la copie à un pseudo : vos réponses ne sont donc pas anonymes pour lui, mais elles ne portent plus votre pseudo (on dit qu'elles sont « pseudonymisées »).</p></li>
+<li><strong>Seule cette copie sans pseudo</strong> peut être lue par l'autre développeur de l'app, et confiée à un assistant d'intelligence artificielle, un service en ligne d'une société tierce, qui aide Bruno à faire la synthèse. Ni l'un ni l'autre ne reçoit la table de correspondance.</li>
+<li><strong>L'écran de fin</strong> montre, après {seuil_statistiques} réponses, la répartition des réponses aux questions à choix, en pourcentages arrondis. Il ne montre jamais un texte libre, un pseudo, ni le temps passé.</li>
+<li><strong>Les résultats publiés</strong> dans le dépôt public du projet ne contiennent que des chiffres d'ensemble sur les questions à choix. Aucun texte libre n'est publié, même en extrait.</li>
+<li><strong>L'hébergeur du serveur</strong> a un accès technique à la machine, mais n'accède pas aux données dans le cadre normal de son service.</li>
+<li><strong>Tailscale</strong> (Tailscale Inc.), le service qui relaie les connexions jusqu'au serveur, voit passer votre adresse IP et les informations de connexion (heure, volume échangé), mais pas vos réponses : la connexion est chiffrée de bout en bout jusqu'au serveur, et Tailscale ne peut pas la déchiffrer. Ce qu'il garde de ces informations de connexion relève de ses propres règles, pas de ce questionnaire.</li>
+<li>Personne d'autre : rien n'est vendu, prêté, ni transmis à quelqu'un d'autre que ceux cités ici.</li>
+</ul>
+<h2>Où sont les données</h2>
+<p>Vos réponses sont stockées en France, dans l'Union européenne, sur un serveur loué par Bruno. Pour y arriver, votre connexion passe par les serveurs relais de Tailscale, qui peuvent se trouver hors de l'Union européenne ; elle y reste chiffrée. La copie d'analyse sans pseudo reste sur l'ordinateur de Bruno et auprès de l'autre développeur ; elle n'est jamais déposée dans le dépôt public du projet.</p>
+<p>Seuls des extraits de cette copie, sans pseudo ni détail permettant de vous reconnaître, peuvent être envoyés à l'assistant d'intelligence artificielle, dont le service peut se trouver hors de l'Union européenne.</p>
+<h2>Combien de temps</h2>
+<div class="tableau"><table>
+<thead><tr><th scope="col">Donnée</th><th scope="col">Effacée le</th></tr></thead>
+<tbody>
+<tr><td>Empreintes d'adresse IP et de jeton, et la clé secrète qui sert à les calculer</td><td>{date_fermeture}, à la fermeture du questionnaire</td></tr>
+<tr><td>Pseudos, et la table qui les relie aux identifiants d'analyse</td><td>Au plus tard le {date_effacement}, deux mois après la fermeture</td></tr>
+<tr><td>Toutes les réponses, textes libres compris, et toutes les copies d'analyse</td><td>Au plus tard le {date_effacement}, en même temps que les pseudos</td></tr>
+<tr><td>Brouillon dans votre navigateur</td><td>Après l'envoi, ou quand vous effacez les données du site</td></tr>
+<tr><td>Jeton dans votre navigateur</td><td>Quand vous effacez les données du site</td></tr>
+</tbody>
+</table></div>
+<p>Après le {date_effacement}, il ne reste plus rien du questionnaire sur le serveur ni dans les copies d'analyse : seuls subsistent les résultats d'ensemble publiés, des chiffres sans aucun texte libre ni pseudo. Ce que votre navigateur garde de son côté, vous seul pouvez l'effacer.</p>
+<h2>Vos droits</h2>
+<p>Si vous avez laissé votre pseudo, vous pouvez à tout moment demander :</p>
+<ul>
+<li>à <strong>voir</strong> ce qui est enregistré avec votre pseudo, et à en recevoir une copie ;</li>
+<li>à <strong>corriger</strong> ou <strong>effacer</strong> votre pseudo, ou vos réponses avec, y compris dans les copies d'analyse ;</li>
+<li>à <strong>retirer</strong> votre pseudo plus tôt que prévu ;</li>
+<li>à vous <strong>opposer</strong> à l'utilisation de vos réponses, ou à en demander la <strong>limitation</strong>, c'est-à-dire qu'elles soient gardées sans être utilisées.</li>
+</ul>
+<p>Écrivez à <a href="mailto:ezzz75@gmail.com">ezzz75@gmail.com</a> en indiquant votre pseudo. Comme le questionnaire ne vérifie pas les pseudos, Bruno peut vous demander de confirmer la demande par MP sur HFR depuis ce compte : c'est la seule façon de s'assurer qu'elle vient bien de vous. Il répond dans un délai d'un mois au plus.</p>
+<p>Si vous avez répondu <strong>sans pseudo</strong>, vos réponses ne sont reliées à rien qui permette de les retrouver : il est donc impossible de les montrer, de les corriger ou de les effacer à la demande. Elles sont effacées comme les autres, au plus tard le {date_effacement}.</p>
+<p>Si vous estimez que vos données ne sont pas traitées correctement, écrivez d'abord à Bruno. Vous pouvez aussi vous adresser à la CNIL, l'autorité française de protection des données (<a href="https://www.cnil.fr" rel="noopener noreferrer" target="_blank">cnil.fr</a>).</p>
+<h2>Pourquoi c'est permis</h2>
+<p>Pour le pseudo, parce que vous choisissez de le donner : vous pouvez le retirer quand vous voulez, comme indiqué plus haut. Pour le reste, parce que l'intérêt du projet est d'améliorer l'app, que les données gardées sont réduites au strict nécessaire, et que vous pouvez vous y opposer.</p>
+<h2>Si cette page change</h2>
+<p>Toute modification est datée ici. Elle ne s'applique pas aux réponses déjà envoyées si elle réduit vos droits.</p>
+<p>Dernière mise à jour : {date_mise_a_jour}.</p>
+</main>
+</body>
+</html>

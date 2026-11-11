@@ -1,0 +1,125 @@
+/* Mobile d'abord ; unités rem ; polices système ; mode sombre et mouvement réduit respectés. */
+:root {
+  --fond: #fbfbfd;
+  --surface: #ffffff;
+  --texte: #1c1c1e;
+  --discret: #5c5c63;
+  --trait: #c9c9d1;
+  --accent: #0a5bd3;
+  --accent-texte: #ffffff;
+  --barre: #0a5bd3;
+  --piste: #e4e6ee;
+  --vous: #fff4cc;
+  --focus: #0a5bd3;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #101114;
+    --surface: #1a1b20;
+    --texte: #f2f2f5;
+    --discret: #b0b0ba;
+    --trait: #45464f;
+    --accent: #6aa5ff;
+    --accent-texte: #0b0c10;
+    --barre: #6aa5ff;
+    --piste: #2b2d36;
+    --vous: #4a3f12;
+    --focus: #9cc4ff;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--fond); color: var(--texte); }
+main, .entete { max-width: 42rem; margin: 0 auto; padding: 1rem; }
+.entete { padding-bottom: 0; }
+.marque-titre { margin: 0 0 0.5rem; font-weight: 700; }
+progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
+.etape { margin: 0.25rem 0 0; color: var(--discret); font-size: 0.9rem; }
+h1 { font-size: 1.5rem; line-height: 1.25; margin: 1rem 0; }
+h1:focus { outline: none; }
+h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+h3 { font-size: 1rem; margin: 1rem 0 0.25rem; }
+a { color: var(--accent); }
+:focus-visible { outline: 0.19rem solid var(--focus); outline-offset: 0.125rem; }
+.corps > * + * { margin-top: 1.25rem; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { font-weight: 700; padding: 0; margin-bottom: 0.5rem; float: left; width: 100%; }
+legend + * { clear: both; }
+.aide, .reste, .effectif, .mention { color: var(--discret); font-size: 0.95rem; margin: 0.25rem 0 0.75rem; }
+.mention { color: var(--texte); background: var(--surface); border: 1px solid var(--trait); border-radius: 0.5rem; padding: 0.75rem; }
+.pistes { font-weight: 600; }
+
+/* Boutons radio et cases : natifs, habillés en cartes. */
+.option { position: relative; margin: 0.5rem 0; }
+.option input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; inset: 0; cursor: pointer; }
+.option label {
+  display: block; min-height: 2.75rem; padding: 0.65rem 0.75rem 0.65rem 2.5rem; background: var(--surface);
+  border: 1px solid var(--trait); border-radius: 0.6rem; position: relative; cursor: pointer;
+}
+.option label::before {
+  content: ""; position: absolute; left: 0.75rem; top: 0.9rem; width: 1.1rem; height: 1.1rem;
+  border: 2px solid var(--discret); border-radius: 50%; background: var(--surface);
+}
+.option input[type="checkbox"] + label::before { border-radius: 0.25rem; }
+.option input:checked + label { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.option input:checked + label::before { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 0.2rem var(--surface); }
+.option input:focus-visible + label { outline: 0.19rem solid var(--focus); outline-offset: 0.125rem; }
+.option input:disabled + label { opacity: 0.55; cursor: default; }
+.details { margin: 0.25rem 0 0.25rem 0.5rem; padding-left: 1.5rem; color: var(--discret); font-size: 0.95rem; }
+.boutons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.boutons .option { flex: 1 1 8rem; margin: 0; }
+.boutons .option label { text-align: center; padding: 0.65rem 0.5rem; }
+.boutons .option label::before { display: none; }
+.boutons .option input:checked + label { background: var(--accent); color: var(--accent-texte); }
+.carte { border: 1px solid var(--trait); border-radius: 0.75rem; padding: 0.75rem; background: var(--surface); }
+.visuel { margin: 0.5rem 0; }
+.visuel img, .visuel video { display: block; max-width: 100%; height: auto; border-radius: 0.5rem; background: var(--piste); }
+
+/* Textes. */
+textarea, input[type="text"] {
+  width: 100%; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--trait);
+  border-radius: 0.5rem; padding: 0.65rem; min-height: 2.75rem;
+}
+label { font-weight: 600; }
+.option label { font-weight: 400; }
+.texte label { display: block; margin-bottom: 0.25rem; }
+
+/* Tri D1. */
+.sections { list-style: none; margin: 0; padding: 0; counter-reset: rang; }
+.section { background: var(--surface); border: 1px solid var(--trait); border-radius: 0.6rem; padding: 0.75rem; margin: 0.6rem 0; }
+.section .nom { font-weight: 700; }
+.etats { margin-top: 0.4rem; }
+.deplacer { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+
+/* Boutons. */
+button { font: inherit; min-height: 2.75rem; min-width: 2.75rem; padding: 0.5rem 1rem; border-radius: 0.6rem; border: 1px solid var(--trait); cursor: pointer; }
+button.principal { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); font-weight: 700; }
+button.secondaire { background: var(--surface); color: var(--texte); }
+button.lien { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 0.5rem 0; }
+button:disabled { opacity: 0.6; cursor: default; }
+.navigation { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1.5rem; }
+.navigation .principal { margin-left: auto; }
+.message { min-height: 1.5rem; color: var(--discret); }
+
+/* Écran de fin : barres en HTML et CSS. */
+.barres { list-style: none; margin: 0.25rem 0; padding: 0; }
+.barres li { display: grid; grid-template-columns: 1fr 3rem; gap: 0.25rem 0.5rem; margin: 0.5rem 0; padding: 0.25rem 0.4rem; border-radius: 0.4rem; }
+.barres li.vous { background: var(--vous); }
+.etiquette { grid-column: 1 / -1; }
+.piste { height: 0.8rem; background: var(--piste); border-radius: 0.4rem; overflow: hidden; }
+.barre { height: 100%; width: var(--part, 0%); background: var(--barre); }
+.valeur { text-align: right; font-variant-numeric: tabular-nums; }
+.marque { grid-column: 1 / -1; font-size: 0.9rem; }
+
+/* Pages de texte (données). */
+.texte table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+.texte th, .texte td { border: 1px solid var(--trait); padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+.tableau { overflow-x: auto; }
+.page-texte .texte { padding-top: 0; }
+
+/* Utilitaires : lecteur d'écran et champ piège hors écran. */
+.sr-only, .hors-ecran { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.hors-ecran { left: -10000px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
