@@ -17,7 +17,7 @@ import Testing
         "display_sig": .synced, "rehost_use_link": .synced, "rehost_resize_before_upload": .synced,
         "compact_mode": .device, "tabbar_minimize_on_scroll": .device, "text_size_scale": .device,
         "text_size_percent": .device, "haptics": .device, "landscape_mode": .device, "icon": .device,
-        "theme_dark_style": .device, "mp_badge_enabled": .device, "display_images": .device, "recherche_categorie": .device,
+        "theme_dark_style": .device, "theme_id": .device, "mp_badge_enabled": .device, "display_images": .device, "recherche_categorie": .device,
         "FavoritesShowCollapsedSections": .device, "HFRswiftGlobalTopicListFlag": .device,
         // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `embedded_videos` was removed from
         // legacy by `d645f52`, `mpstorage_active` becomes the per-account record of §7, `mpstorage_last_rw` is this
