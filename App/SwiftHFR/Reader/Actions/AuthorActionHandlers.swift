@@ -100,10 +100,12 @@ struct ReaderAuthorMenuSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.sheet(item: $flow.newMessage) { message in
-            ReplyComposerView(model: message) { reason in
+            ReplyComposerView(model: message, pageScrolls: true) { reason in
                 guard let text = PrivateMessageFeedback.text(for: reason) else { return }
                 model.showMenuFeedback(text) // the toast announces itself
             }
         }
+        // The page under the sheet scrolls but ignores its taps while the sheet is up (#653).
+        .onChange(of: flow.newMessage != nil) { _, isOpen in model.composer(.privateMessage, isOpen: isOpen) }
     }
 }

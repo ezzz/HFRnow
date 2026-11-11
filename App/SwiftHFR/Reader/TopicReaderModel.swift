@@ -54,6 +54,8 @@ final class TopicReaderModel {
     var quoteSelected: Set<Int> = []
     /// Title until the page gives its own.
     let initialTitle: String
+    /// The composers open over this reader (#653): while one is, the page still scrolls but its taps and actions do nothing.
+    private(set) var openComposers: Set<ReaderComposer> = []
 
     /// The page last asked for (shown, or failed): what "Réessayer" asks again.
     private(set) var requested: ReaderTarget
@@ -152,6 +154,7 @@ final class TopicReaderModel {
     /// Reloads the page on screen (not page 1, not the page first opened); the content stays while it runs and after a
     /// failure. Before anything is shown, retries the first load.
     func refresh() async {
+        guard !suspendsPageInteractions else { return }
         guard let shown else {
             await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
             return
@@ -161,6 +164,7 @@ final class TopicReaderModel {
 
     /// Asks again for the page that failed; a conversation's latest page still follows its pager (`showLatestPost`).
     func retry() async {
+        guard !suspendsPageInteractions else { return }
         if requestedFollowsPager {
             await loadLatestPage(requested)
         } else {
@@ -171,7 +175,7 @@ final class TopicReaderModel {
     /// Opens page `number` of the topic (clamped to the known pages), at its top or, `atLastMessage`, at its last message
     /// (legacy ‹ and "Dernier post", `MessagesView.swift:4168-4178, 4234-4236` @ 2440d79).
     func goToPage(_ number: Int, atLastMessage: Bool = false) async {
-        guard let shown, let page else { return }
+        guard !suspendsPageInteractions, let shown, let page else { return }
         let clamped = min(max(1, number), page.maxPage)
         await load(shown.atPage(clamped), keepsScrollPosition: false, anchor: atLastMessage ? .lastMessage : .target)
     }
@@ -199,7 +203,7 @@ final class TopicReaderModel {
     /// Follows a page swipe (legacy `DragGesture`): the next page opens at its top, the previous one at its last message.
     func swipe(_ swipe: PageSwipe) async {
         // Not while the web view still shows the previous document: the page on screen would be the wrong starting point.
-        guard let shown, let page, !isLoading, readyToken == document?.token else { return }
+        guard !suspendsPageInteractions, let shown, let page, !isLoading, readyToken == document?.token else { return }
         switch swipe {
         case .next where page.currentPage < page.maxPage:
             await load(shown.atPage(page.currentPage + 1), keepsScrollPosition: false)
@@ -218,7 +222,7 @@ final class TopicReaderModel {
     /// above this one (`linkedReader`), so going back returns to this page at the position it was left.
     func follow(_ target: ReaderTarget) {
         // A second tap while the pushed reader is on its way: the first link wins.
-        guard linkedReader == nil else { return }
+        guard !suspendsPageInteractions, linkedReader == nil else { return }
         // A message link names no page (issue #106): it is on screen when the page shown holds that message.
         if let shown, let page, let anchor = target.anchor, target.source == shown.source,
            target.numreponse != nil || target.page == page.currentPage,
@@ -257,6 +261,11 @@ final class TopicReaderModel {
         return ReplyTarget(formURL: formURL, topic: topic)
     }
 
+    /// A composer over this reader opened or closed (#653): its presenter reports it, from the sheet's own state.
+    func composer(_ composer: ReaderComposer, isOpen: Bool) {
+        if isOpen { openComposers.insert(composer) } else { openComposers.remove(composer) }
+    }
+
     /// The reply sheet closed: after a confirmed reply, shows HFR's sentence and the topic's latest post; after an
     /// unconfirmed one, the latest post only, so the user sees whether it was posted. Closing with or without the draft
     /// changes nothing.
@@ -272,10 +281,11 @@ final class TopicReaderModel {
         }
     }
 
-    /// The model of the page's poll for the sheet; nil when the page has none. The held model is reused for this account
-    /// while it holds a vote (sending, counted or possibly counted); otherwise a fresh one starts from the page's poll.
+    /// The model of the page's poll for the sheet; nil when the page has none or a composer is open over it (#653). The held
+    /// model is reused for this account while it holds a vote (sending, counted or possibly counted); otherwise a fresh one
+    /// starts from the page's poll.
     func pollModel(voter: (any PollVoting)?, account: String?) -> PollModel? {
-        guard let poll = page?.poll else { return nil }
+        guard offersPoll, let poll = page?.poll else { return nil }
         if let held = heldPoll, held.account == account, held.holdsVote {
             held.pageDidReload(poll)
             return held

@@ -93,11 +93,13 @@ struct TopicReaderView: View {
         .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
             if let error = model.error, model.page != nil, model.hasShownDocument {
-                LoadFailureBanner(error: error, retry: model.retry)
+                // "Réessayer" does nothing under an open composer (#653): dimmed, as "Actualiser".
+                LoadFailureBanner(error: error, retry: model.retry).disabled(model.suspendsPageInteractions)
             }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
@@ -107,9 +109,10 @@ struct TopicReaderView: View {
             ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                    .disabled(model.isLoading)
+                    .disabled(model.isLoading || model.suspendsPageInteractions)
             }
-            if let onFilterPosts {
+            // No "…" entry under an open composer (#653): a disabled one would still open the overflow.
+            if let onFilterPosts, !model.suspendsPageInteractions {
                 ToolbarItem(placement: .secondaryAction) {
                     Button(action: onFilterPosts) {
                         Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease")
@@ -118,7 +121,7 @@ struct TopicReaderView: View {
                 }
             }
             // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
-            if let page = model.page, page.maxPage > 1 {
+            if let page = model.page, page.maxPage > 1, !model.suspendsPageInteractions {
                 ToolbarItemGroup(placement: .secondaryAction) {
                     // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
                     Section { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
@@ -155,7 +158,7 @@ struct TopicReaderView: View {
             if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
         }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
-        .onChange(of: model.canQuote) { _, canQuote in controller?.offersSelectionQuote = canQuote }
+        .onChange(of: model.canQuote) { controller?.offersSelectionQuote = model.offersSelectionQuote }
         .modifier(ReaderAnnouncements(model: model))
         .task {
             // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
@@ -293,7 +296,8 @@ struct TopicReaderView: View {
             }, notice: { [model] in model.showMenuFeedback($0) }
         )
         model.adopt(services, composer: composer)
-        controller.offersSelectionQuote = model.canQuote
+        controller.offersSelectionQuote = model.offersSelectionQuote
+        controller.ignoresPageTaps = model.suspendsPageInteractions
         self.controller = controller
     }
 }
@@ -338,7 +342,7 @@ extension TopicReaderView {
             handlers += writes.handlers
         }
         model.install(MessageActionRegistry(handlers))
-        controller?.offersSelectionQuote = model.canQuote
+        controller?.offersSelectionQuote = model.offersSelectionQuote
     }
 }
 

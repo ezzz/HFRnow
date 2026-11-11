@@ -89,6 +89,35 @@ struct ArchivedDraftsTests {
         #expect(await ComposerFixture.storedText(drafts) == "ancien")
     }
 
+    /// The swap is one step of "Annuler" (#749, legacy `archiveAndClearCurrentDraft` pushes the text it clears,
+    /// `AnswerView.swift:734-735` @ 87fe0d1c): undo brings the whole text back, not the keystroke before it.
+    @Test func undoAfterSetAsideBringsTheWholeTextBack() async {
+        let composer = await opened()
+        composer.update(text: "a")
+        composer.update(text: "ab")
+        composer.update(text: "abc")
+        await composer.archiveAndClear()
+        #expect(composer.text.isEmpty)
+        #expect(composer.canUndo)
+        composer.undo()
+        #expect(composer.text == "abc")
+        composer.redo()
+        #expect(composer.text.isEmpty)
+    }
+
+    /// Same for a pick (legacy `useDraft` pushes the text it replaces, `AnswerView.swift:711-712` @ 87fe0d1c).
+    @Test func undoAfterPickingBringsTheReplacedTextBack() async throws {
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        try await drafts.archiveReply("ancien", topic: replyTarget.topic, source: .quote, account: ComposerFixture.account)
+        let composer = await opened(drafts)
+        composer.update(text: "e")
+        composer.update(text: "en cours")
+        await composer.use(try #require(composer.archivedDrafts.first))
+        #expect(composer.text == "ancien")
+        composer.undo()
+        #expect(composer.text == "en cours")
+    }
+
     @Test func pickingTheSameTextArchivesNothingNew() async throws {
         let drafts = DraftStore(persistence: InMemoryDraftPersistence())
         try await drafts.archiveReply("même", topic: replyTarget.topic, source: .quickReply, account: ComposerFixture.account)
