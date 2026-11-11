@@ -8,6 +8,7 @@ import SwiftUI
 /// screen, with a preview of the chosen dark surfaces.
 struct ThemeSettingsView: View {
     @Environment(ThemeSettingsModel.self) private var theme
+    @Environment(SeasonalThemeModel.self) private var seasonal
 
     var body: some View {
         @Bindable var theme = theme
@@ -44,6 +45,10 @@ struct ThemeSettingsView: View {
                     "Le style s’applique au thème sombre : fonds des écrans et du sujet ouvert. "
                         + "La luminosité s’applique aux fonds sombres du sujet ouvert."
                 )
+            }
+            // Only inside a season's window, as legacy's Noël cell (`PlusSettingsViewController.m:112-115` @ 87fe0d1c).
+            if seasonal.isSelectable {
+                SeasonalThemesSection(model: seasonal)
             }
         }
         .navigationTitle("Thème")
@@ -98,4 +103,5 @@ private struct DarkStylePreview: View {
 #Preview("Thème") {
     ThemedNavigationStack { ThemeSettingsView() }
         .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+        .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
 }

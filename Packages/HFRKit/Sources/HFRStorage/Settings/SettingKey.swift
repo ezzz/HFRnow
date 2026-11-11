@@ -178,6 +178,13 @@ public enum SettingKey {
 
     // MARK: Legacy keys
 
+    // MARK: Seasons (LOT-166)
+
+    /// `season.automatic` (new): a seasonal theme is switched on at its first launch (THEMES.md §5). Device-only, like the dark style.
+    public static let seasonalThemesAutomatic = Setting.bool("season.automatic", default: true)
+    /// `season.animations` (new): seasonal animations play (THEMES.md §4); off counts as Reduce Motion. Device-only.
+    public static let seasonalAnimations = Setting.bool("season.animations", default: true)
+
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
     public static let deprecatedKeys = ["force_manual_theme", "auto_theme_day_time", "auto_theme_night_time"]
     /// Pre-`text_size_scale` topic size, read once by the migration (`AppSettingsView.swift:325-335`).
@@ -191,7 +198,8 @@ public enum SettingKey {
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        seasonalThemesAutomatic, seasonalAnimations
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

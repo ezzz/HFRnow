@@ -242,6 +242,8 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `mp_badge_enabled` | `AppSettingsView.swift:114`, `MainWindow.swift:1349` | No | None | 1 | **Device-only** | Badges are per device. |
 | `recherche_categorie` (last search category) | `ForumSearchView.swift:111` | No | None | 1 | **Device-only** | Transient UI state. |
 | `HFRswiftGlobalTopicListFlag` (last Tous / Favoris / Suivis / Lus choice) | `MainWindow.swift:305` @ `87fe0d1c` | No | None | 1 | **Device-only** | UI state (#427). |
+| `season.automatic`, `season.animations` — new (LOT-166; « Thèmes de saison automatiques », « Animations de saison », both default on) | none (legacy: `theme_noel_*`, forced) | No | None | 2 | **Device-only** | Presentation of this device, like the dark style; Reduce Motion is per device too. |
+| `season.noel.<year>.arrivalShown`, `.optedOut`, `.previousThemeID`, `.packingShown` — new (LOT-166, one set per season, THEMES.md §5) | none (legacy: `noel_first_time_2022`) | No | None | 4 per year | **Device-only** | The arrival and packing are per device (each device plays them once); the saved theme is this device's. |
 | `rehost_use_link`, `rehost_resize_before_upload` | `ReplyService.swift:1837`; `RehostImageViewController.m:84-99, 580-622` | No | None | 2 | **iCloud KVS** | Posting preference. |
 | `CollapsedFavoriteSectionIDs`, `FavoritesShowCollapsedSections` | `Favorites.swift:160, 447` | No | None | small | **Device-only** | UI state. |
 | `AnswerView.smileys.*.expanded` ×3, `AnswerView.smileys.search.allKeywords`, `MessageSmileySheetCompactImage` | `AnswerView.swift` (`@AppStorage`), `MessagesView.swift:6020` | No | None | 5 | **Device-only** | UI state. |
