@@ -46,7 +46,7 @@ struct RESTFlagBucketClientTests {
         })
         let result: Result<RESTBrowsingResult<FavoritesPage>, RESTBrowsingError>
         do {
-            result = .success(try await client.topics(in: bucket))
+            result = .success(try await client.topics(in: bucket, postsPerPage: 40))
         } catch {
             result = .failure(error)
         }
@@ -72,7 +72,7 @@ struct RESTFlagBucketClientTests {
             let run = await Self.run(bucket, [.success(try RESTCapture.response(file, id: id))], account: account)
             let result = try run.result.get()
             #expect(result.source == .rest)
-            #expect(result.value == (try RESTDocument.bucket(from: RESTCapture.data(file), bucket: bucket)))
+            #expect(result.value == (try RESTDocument.bucket(from: RESTCapture.data(file), bucket: bucket, postsPerPage: 40)))
             try #require(run.requests.count == 1)
             let request = try #require(run.requests.first)
             #expect(request.method == .get)
@@ -98,7 +98,8 @@ struct RESTFlagBucketClientTests {
     func fallbackToTheFavouritesPage() async throws {
         let cases: [RESTFlagBucket: (file: String, id: String)] = [
             .participated: ("R10-favourites-owntopic1", "R10"),
-            .read: ("R603e-favourites-owntopic2", "R603e")
+            .read: ("R603e-favourites-owntopic2", "R603e"),
+            .favorites: ("R11-favourites-owntopic3-empty", "R11")
         ]
         for (bucket, capture) in cases {
             let (file, id) = capture
@@ -110,7 +111,8 @@ struct RESTFlagBucketClientTests {
                 code: 500, url: try #require(URL(string: "https://forum.hardware.fr/webservices/rest_api.php"))
             ))))
             #expect(result.value == (try FavoritesParser.parse(html.decodedText().text)))
-            #expect(!result.value.sections.isEmpty)
+            // `R11` is an account without favourite: the list body without a row.
+            #expect(result.value.sections.isEmpty == (bucket == .favorites))
             try #require(run.requests.count == 2)
             // The captured URL of the page, not followed if redirected, never a topic page (E25).
             #expect(run.requests[1].url == url)
@@ -178,5 +180,67 @@ struct RESTFlagBucketClientTests {
         let value = try run.result.get().value
         #expect(value.sections.isEmpty)
         #expect(value.notice != nil)
+    }
+
+    @Test("A login adopted while the stale fallback answer was in flight gets no verdict from it: the page is read as is")
+    func loginDuringTheFallback() async throws {
+        let account = Self.account()
+        let stale = try Capture.response("R70b-favourites-owntopic1-stale-session", url: Self.flagsURL)
+        let login = [Self.cookie("md_user", "user2"), Self.cookie("md_passs", "loginpass"), Self.cookie("md_id", "900002")]
+        let restURL = try #require(URL(string: try Capture.meta("R335a").url))
+        let probe = MockTransport { request async throws(NetworkError) -> HTTPResponse in
+            guard request.url == Self.flagsURL else { throw .httpStatus(code: 500, url: restURL) }
+            try? await account.adoptLogin(cookies: login, hashCheck: "newhash", now: Date())
+            return stale
+        }
+        let client = RESTFlagBucketClient(session: account, makeProbe: { _ in probe })
+        let result = try await client.topics(in: .participated, postsPerPage: 40)
+        #expect(result.value == (try FavoritesParser.parse(stale.decodedText().text)))
+        #expect(await account.cookies().first { $0.name == "md_passs" }?.value == "loginpass")
+    }
+
+    @Test("A task cancelled before the call sends nothing")
+    func cancelledBeforeTheCall() async {
+        let probe = MockTransport(replies: [])
+        let client = RESTFlagBucketClient(session: Self.account(), makeProbe: { _ in probe })
+        let task = Task { () async throws -> RESTBrowsingResult<FavoritesPage> in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await client.topics(in: .favorites, postsPerPage: 40)
+        }
+        let failure: RESTBrowsingError? = switch await task.result {
+        case .success: nil
+        case .failure(let error): error as? RESTBrowsingError
+        }
+        #expect(failure == .network(.cancelled))
+        #expect(await probe.requests.isEmpty)
+    }
+
+    @Test("A task cancelled while the REST answer comes back sends no HTML request")
+    func cancelledBeforeTheFallback() async throws {
+        let restURL = try #require(URL(string: try Capture.meta("R335a").url))
+        let probe = MockTransport { _ async throws(NetworkError) -> HTTPResponse in
+            withUnsafeCurrentTask { $0?.cancel() }
+            throw .httpStatus(code: 500, url: restURL)
+        }
+        let client = RESTFlagBucketClient(session: Self.account(), makeProbe: { _ in probe })
+        let task = Task { () async throws -> RESTBrowsingResult<FavoritesPage> in
+            try await client.topics(in: .participated, postsPerPage: 40)
+        }
+        let failure: RESTBrowsingError? = switch await task.result {
+        case .success: nil
+        case .failure(let error): error as? RESTBrowsingError
+        }
+        #expect(failure == .network(.cancelled))
+        #expect(await probe.requests.count == 1)
+    }
+
+    @Test("A posts-per-page below 1 is refused before any request")
+    func invalidPageSize() async {
+        let probe = MockTransport(replies: [])
+        let client = RESTFlagBucketClient(session: Self.account(), makeProbe: { _ in probe })
+        for size in [0, -40] {
+            await #expect(throws: RESTBrowsingError.invalidTarget) { try await client.topics(in: .read, postsPerPage: size) }
+        }
+        #expect(await probe.requests.isEmpty)
     }
 }

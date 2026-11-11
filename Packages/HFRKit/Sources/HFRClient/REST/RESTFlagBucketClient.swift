@@ -3,8 +3,12 @@ import HFRModels
 import HFRNetwork
 import HFRParsing
 
-/// One of the account's flag buckets of the REST API (redface2 E1, LOT-057), and the `owntopic` list of the favourites page
-/// that holds the same topics.
+/// One of the account's flag buckets of the REST API (redface2 E1, LOT-057), and the `owntopic` filter of the favourites
+/// page read when the REST answer fails.
+///
+/// The two may not list the same topics: `forum1f.php?owntopic=1` showed only the topics with news (44 of 57 in one
+/// category, HFR-PROTOCOL §6c "What `forum1f.php` drops", a run observation), and how a bucket compares is not captured
+/// (#830). A result says which source it came from.
 public enum RESTFlagBucket: String, Sendable, CaseIterable {
     /// `topics/participated/` (`R335a`): the topics the member took part in, flags and favourites (`owntopic=1`).
     case participated
@@ -60,18 +64,27 @@ public struct RESTFlagBucketClient: Sendable {
     /// The topics of `bucket`, grouped by category (`R335a`-`R335c`), or the favourites page of the same filter when the
     /// REST answer fails.
     ///
+    /// - Parameter postsPerPage: the account's posts per page (`topicpp`, profile page 3, `R55-p3`, E19), which sets each
+    ///   REST row's page count and last page; the JSON's own page size (40, `links.posts.href`) is not the account's. A
+    ///   value below 1 is `invalidTarget`, before any request.
+    ///
     /// A REST row carries no flag link: it opens at its last page, and its read state is unknown (see the spec). A
     /// fallback page may hold a `notice` instead of sections (`R12`, logged out): as with `FavoritesParser`, the caller
     /// decides from its session.
     /// - Throws: `network` or `page` when the fallback fails too, `network` alone when no fallback is tried,
     ///   `sessionExpired` when the fallback is HFR's stale-session page to the account's current cookies (`R70b`).
-    public func topics(in bucket: RESTFlagBucket) async throws(RESTBrowsingError) -> RESTBrowsingResult<FavoritesPage> {
+    public func topics(
+        in bucket: RESTFlagBucket, postsPerPage: Int
+    ) async throws(RESTBrowsingError) -> RESTBrowsingResult<FavoritesPage> {
+        guard postsPerPage >= 1 else { throw .invalidTarget }
         let seed = await account.refreshSeed(now: Date())
         let probe = probe(cookies: seed.cookies)
         let reason: RESTFallbackReason
         do throws(RESTFailure) {
             let data = try await json(RESTHref.Target(uri: RESTHref.bucketURI(bucket)), on: probe)
-            let page = try RESTFailure.reading { () throws(ParsingError) in try RESTDocument.bucket(from: data, bucket: bucket) }
+            let page = try RESTFailure.reading { () throws(ParsingError) in
+                try RESTDocument.bucket(from: data, bucket: bucket, postsPerPage: postsPerPage)
+            }
             return RESTBrowsingResult(value: page, source: .rest)
         } catch {
             reason = try Self.fallbackReason(for: error)

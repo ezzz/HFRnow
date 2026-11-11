@@ -15,7 +15,7 @@ struct RESTFlagBucketDocumentTests {
     @Test("R335a-R335c: one section per category group, in order, every row as the JSON walked on its own says")
     func bucketsMatchTheirJSON() throws {
         for (bucket, file) in Self.buckets {
-            let page = try RESTDocument.bucket(from: RESTCapture.data(file), bucket: bucket)
+            let page = try RESTDocument.bucket(from: RESTCapture.data(file), bucket: bucket, postsPerPage: 40)
             let groups = try #require(try RESTCapture.object(file)["resource"] as? [String: Any])["resources"] as? [[String: Any]]
             let expected = try #require(groups)
             try #require(page.sections.count == expected.count)
@@ -39,23 +39,44 @@ struct RESTFlagBucketDocumentTests {
         }
     }
 
-    @Test("Bucket rows: the flag is `flag_owntopic` (3 favourite, 1 flag, 0 none), never the bucket's")
+    @Test("Bucket rows: the flag is `flag_owntopic` (3 favourite, 1 flag, 0 none), red for 0 in `read` only")
     func flags() throws {
         let flags = try Self.buckets.map { bucket, file in
-            try RESTDocument.bucket(from: RESTCapture.data(file), bucket: bucket).sections.flatMap(\.topics).map(\.flag)
+            try RESTDocument.bucket(from: RESTCapture.data(file), bucket: bucket, postsPerPage: 40).sections.flatMap(\.topics).map(\.flag)
         }
-        // `R335a`, `R335c`: both topics are favourites too (3); `R335b`: 0 everywhere.
-        #expect(flags == [[.yellow, .yellow], [nil, nil], [.yellow, .yellow]])
+        // `R335a`, `R335c`: both topics are favourites too (3); `R335b`: 0 everywhere, the red flag of every `R603e` row.
+        #expect(flags == [[.yellow, .yellow], [.red, .red], [.yellow, .yellow]])
         for (value, flag) in [(0, nil), (1, TopicFlag.blue), (2, nil), (3, .yellow)] as [(Int, TopicFlag?)] {
             let data = try Self.editedFirstRow(RESTCapture.participated) { $0["flag_owntopic"] = value }
-            #expect(try RESTDocument.bucket(from: data, bucket: .participated).sections.first?.topics.first?.flag == flag)
+            #expect(try RESTDocument.bucket(from: data, bucket: .participated, postsPerPage: 40).sections.first?.topics.first?.flag == flag)
+        }
+        for (value, flag) in [(0, TopicFlag.red), (1, .blue), (2, nil), (3, .yellow)] as [(Int, TopicFlag?)] {
+            let data = try Self.editedFirstRow(RESTCapture.read) { $0["flag_owntopic"] = value }
+            #expect(try RESTDocument.bucket(from: data, bucket: .read, postsPerPage: 40).sections.first?.topics.first?.flag == flag)
+        }
+    }
+
+    @Test("The account's posts per page sets each row's page count and last page; 40 is only the JSON's own size")
+    func accountPageSize() throws {
+        // `R335a`'s first topic has 5001 posts: 126 pages at 40, 251 at 20, 51 at 100.
+        for (size, pages) in [(20, 251), (40, 126), (100, 51), (1, 5001)] {
+            let page = try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .participated, postsPerPage: size)
+            let topic = try #require(page.sections.first?.topics.first)
+            #expect(topic.pageCount == pages)
+            #expect(topic.currentPage == pages)
+            #expect(topic.lastPagePath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=\(pages)")
+            #expect(topic.path == topic.lastPagePath)
+            #expect(topic.repliesCount == 5000)
+        }
+        #expect(throws: ParsingError.invalidValue(field: "posts per page")) {
+            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .participated, postsPerPage: 0)
         }
     }
 
     @Test("R335d: a page 2 of 5 asked of the global bucket is answered as page 1, whole: it decodes like R335a")
     func pagingIsIgnored() throws {
-        let page1 = try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .participated)
-        let page2 = try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participatedPage2), bucket: .participated)
+        let page1 = try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .participated, postsPerPage: 40)
+        let page2 = try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participatedPage2), bucket: .participated, postsPerPage: 40)
         #expect(page2 == page1)
     }
 
@@ -63,20 +84,20 @@ struct RESTFlagBucketDocumentTests {
     func flatFormRefused() throws {
         // Its rows are topics, not groups: the first group field they lack names the failure.
         #expect(throws: ParsingError.invalidValue(field: "resource.resources.page")) {
-            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participatedCategory), bucket: .participated)
+            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participatedCategory), bucket: .participated, postsPerPage: 40)
         }
         #expect(throws: ParsingError.invalidValue(field: "resource.resources.page")) {
-            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.readCategory), bucket: .read)
+            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.readCategory), bucket: .read, postsPerPage: 40)
         }
     }
 
     @Test("A bucket's answer is not another bucket's: the list's href names the bucket asked for")
     func otherBucketRefused() throws {
         #expect(throws: ParsingError.invalidValue(field: "resource.href")) {
-            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .read)
+            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .read, postsPerPage: 40)
         }
         #expect(throws: ParsingError.invalidValue(field: "resource.href")) {
-            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.favorites), bucket: .participated)
+            try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.favorites), bucket: .participated, postsPerPage: 40)
         }
     }
 
@@ -158,7 +179,7 @@ struct RESTFlagBucketDocumentTests {
             object["resource"] = resource
             let data = try JSONSerialization.data(withJSONObject: object)
             #expect(throws: ParsingError.invalidValue(field: breakage.field)) {
-                try RESTDocument.bucket(from: data, bucket: .participated)
+                try RESTDocument.bucket(from: data, bucket: .participated, postsPerPage: 40)
             }
         }
     }
@@ -166,7 +187,7 @@ struct RESTFlagBucketDocumentTests {
     @Test("A bucket row's `is_sticky` is not read: never true in the raw buckets, while `R603e` shows a sticky row")
     func stickyNotRead() throws {
         let data = try Self.editedFirstRow(RESTCapture.favorites) { $0["is_sticky"] = true }
-        #expect(try RESTDocument.bucket(from: data, bucket: .favorites).sections.first?.topics.first?.isSticky == false)
+        #expect(try RESTDocument.bucket(from: data, bucket: .favorites, postsPerPage: 40).sections.first?.topics.first?.isSticky == false)
     }
 
     @Test("A bucket row with no sub-category in its href (HFR-PROTOCOL §6c) is read like the others")
@@ -177,7 +198,7 @@ struct RESTFlagBucketDocumentTests {
             links["subcategory"] = nil
             row["links"] = links
         }
-        let topic = try #require(try RESTDocument.bucket(from: data, bucket: .participated).sections.first?.topics.first)
+        let topic = try #require(try RESTDocument.bucket(from: data, bucket: .participated, postsPerPage: 40).sections.first?.topics.first)
         #expect(topic.topicID == TopicID(category: .forum(101), topic: 9_800_001))
     }
 

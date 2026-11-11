@@ -4,7 +4,8 @@ import HFRParsing
 
 /// Why `RESTBrowsingClient` returned no list or topic (LOT-057).
 public enum RESTBrowsingError: Error, Sendable, Equatable {
-    /// The category or topic is not a forum one (`cat` 1 or more, topic 1 or more); nothing was sent.
+    /// The category or topic is not a forum one (`cat` 1 or more, topic 1 or more), or a posts-per-page below 1; nothing was
+    /// sent.
     case invalidTarget
     /// The last request could not be built or sent, HFR answered an HTTP error, or the task was cancelled.
     case network(NetworkError)
