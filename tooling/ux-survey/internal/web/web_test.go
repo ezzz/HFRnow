@@ -424,8 +424,8 @@ func TestPagesEtValeurs(t *testing.T) {
 			t.Errorf("/donnees : %q absent", attendu)
 		}
 	}
-	if !strings.Contains(b.requete(t, "GET", "/", nil).Body.String(), "15 février 2027") {
-		t.Error("/ : date d'effacement absente du paragraphe du pseudo")
+	if strings.Contains(b.requete(t, "GET", "/", nil).Body.String(), "pseudo sert à une seule chose") {
+		t.Error("/ : le paragraphe de donnees.md §1 n'est plus repris sur l'écran du pseudo")
 	}
 	for _, f := range []string{"/static/app.js", "/static/style.css", "/static/questionnaire.json", "/static/visuels/L1-pages-ameliorees-iphone.png", "/static/logique.js"} {
 		if rec := b.requete(t, "GET", f, nil); rec.Code != 200 || rec.Header().Get("Content-Type") == "" {
@@ -500,5 +500,26 @@ func TestStatsHTTP(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "G1") || strings.Contains(rec.Body.String(), "texte") {
 		t.Error("texte libre dans les stats")
+	}
+}
+
+// R13 par HTTP : une réponse limitée ne compte plus dans les statistiques publiées.
+func TestLimiteeHorsStats(t *testing.T) {
+	b := nouveau(t, nil)
+	var premier string
+	for i := 1; i <= 11; i++ {
+		b.envoi(t, i, map[string]any{"P1": "iphone"}, depuis("198.51.100."+string(rune('0'+i%10))+string(rune('0'+i/10))))
+	}
+	lignes, _ := b.s.Base.Reponses(t.Context())
+	premier = lignes[0].Identifiant
+	if !strings.Contains(b.requete(t, "GET", "/api/stats", nil).Body.String(), `"total":11`) {
+		t.Fatal("11 réponses")
+	}
+	if err := b.s.Base.Limiter(t.Context(), premier, true); err != nil {
+		t.Fatal(err)
+	}
+	b.hor.Set(b.hor.Now().Add(2 * time.Minute)) // le cache d'une minute expire
+	if got := b.requete(t, "GET", "/api/stats", nil).Body.String(); !strings.Contains(got, `"total":10`) {
+		t.Errorf("la réponse limitée sort des statistiques : %s", got)
 	}
 }

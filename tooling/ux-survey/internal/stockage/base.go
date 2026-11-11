@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite" // pilote Go pur, sans cgo : seule dépendance tierce (spec §1)
 )
@@ -40,7 +41,8 @@ CREATE TABLE IF NOT EXISTS reponses (
   version      TEXT NOT NULL,
   duree_s      INTEGER NOT NULL,
   ordre_cartes TEXT NOT NULL,
-  donnees      TEXT NOT NULL
+  donnees      TEXT NOT NULL,
+  limitee      INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS pseudos (
   identifiant TEXT PRIMARY KEY REFERENCES reponses(identifiant),
@@ -52,6 +54,10 @@ CREATE TABLE IF NOT EXISTS jetons (
 CREATE TABLE IF NOT EXISTS empreintes_ip (
   empreinte TEXT PRIMARY KEY,
   envois    INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS meta (
+  cle    TEXT PRIMARY KEY,
+  valeur TEXT NOT NULL
 );`
 
 // Base est la base de réponses ; une seule connexion d'écriture.
@@ -85,6 +91,12 @@ func Ouvrir(dossier string) (*Base, error) {
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("schéma : %w", err)
+	}
+	// Base créée avant l'ajout de la colonne limitee : migration sans perte.
+	if _, err := db.Exec(`ALTER TABLE reponses ADD COLUMN limitee INTEGER NOT NULL DEFAULT 0`); err != nil &&
+		!strings.Contains(err.Error(), "duplicate column") {
+		db.Close()
+		return nil, fmt.Errorf("migration : %w", err)
 	}
 	b := &Base{db: db, dossier: dossier}
 	b.pointDeControle = b.checkpointTronque

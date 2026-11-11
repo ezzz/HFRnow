@@ -3,7 +3,7 @@
 Service du questionnaire sur la suite de l'app (lot UX-10, #634). Il suit
 [`docs/ux/questionnaire/formulaire-spec.md`](../../docs/ux/questionnaire/formulaire-spec.md) ; les textes viennent de
 [`questions.md`](../../docs/ux/questionnaire/questions.md) et [`donnees.md`](../../docs/ux/questionnaire/donnees.md).
-Un binaire Go (bibliothèque standard, plus `modernc.org/sqlite`, seule dépendance tierce), un front sans framework ni
+Un binaire Go (bibliothèque standard, plus deux dépendances tierces épinglées : `modernc.org/sqlite` et `golang.org/x/text` pour la normalisation NFC), un front sans framework ni
 étape de build, une base SQLite. Aucun cookie, aucune requête vers un autre domaine, aucune mesure d'audience.
 
 ## Tests
@@ -92,7 +92,7 @@ docker compose exec ux-survey /ux-survey effacer
 - `fermer` et `effacer` refusent de s'exécuter avant `UX_FERMETURE` (pour fermer plus tôt, avancer `UX_FERMETURE` et
   redémarrer). Le service les lance aussi seul : fermeture au premier passage horaire après `UX_FERMETURE`, effacement
   à `UX_FERMETURE` + 2 mois. `effacer` est idempotent et ne réécrit jamais `agregats.json`.
-- Droits d'un répondant (R7) : `pseudo --chercher <pseudo>`, `--afficher <id>`, `--corriger <id> --question L2
+- Droits d'un répondant (R7, R13) : `pseudo --chercher <pseudo>`, `--afficher <id>`, `--limiter <id>`, `--lever-limite <id>`, `--corriger <id> --question L2
   --valeur-json '"texte"'`, `--effacer-question <id> --question L2`, `--effacer-pseudo <id>`, `--effacer <id>`.
 - Les exports et sauvegardes écrits dans le dossier de données restent à supprimer à la main à la date d'effacement
   (liste à cocher du §12).
@@ -106,7 +106,10 @@ les deux dossiers (un test les veut identiques), et `inventaire.md` est réécri
 
 ## Notes de réalisation
 
-- NFC : la bibliothèque standard n'a pas de normalisation Unicode ; `internal/reponse/texte.go` compose les lettres
-  latines accentuées courantes sans ajouter de dépendance (voir les points ouverts de la PR).
+- NFC : `golang.org/x/text/unicode/norm` (version épinglée dans `go.mod`), la bibliothèque standard n'ayant pas de
+  normalisation Unicode (décision du PO du 11 novembre 2026).
+- `UX_FERMETURE` : mémorisée à la première réponse ; ensuite avançable, jamais repoussable (le service et les
+  commandes refusent de démarrer avec une date plus tardive).
+- Réponse « limitée » (R13) : `pseudo --limiter <id>` (et `--lever-limite <id>`) l'exclut des statistiques et de tous les exports.
 - Le glisser-déposer du tri `D1` (facultatif dans la spec) n'est pas fait : boutons « Monter » et « Descendre » seuls.
 - À vérifier à la main pendant le test à cinq : voir le §14 de la spécification.

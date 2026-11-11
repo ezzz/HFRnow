@@ -151,9 +151,9 @@ function accueil() {
 }
 
 function pseudo() {
-  const mention = document.getElementById('mention-pseudo').content.cloneNode(true);
+  // Aide courte de questions.md sous le champ, puis le lien vers la page détaillée (le paragraphe de donnees.md §1 n'est pas repris ici).
   const q = contenu.questions.I1;
-  return [mention, h('p', {}, h('a', { href: '/donnees', target: '_blank', rel: 'noopener' }, q.lien)), champ('I1')];
+  return [champ('I1'), h('p', {}, h('a', { href: '/donnees', target: '_blank', rel: 'noopener' }, q.lien))];
 }
 
 function champ(id) {

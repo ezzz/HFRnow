@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/reponse"
 )
@@ -17,6 +20,7 @@ type Envoi struct {
 	EmpreinteIP string
 	MaxParIP    int
 	RecueLe     string // AAAA-MM-JJ
+	Fermeture   string // UX_FERMETURE en RFC 3339 : mémorisée à la première réponse (R5)
 }
 
 // Ecrire enregistre réponse, pseudo, jeton et compteur d'adresse dans une seule transaction.
@@ -46,6 +50,11 @@ func (b *Base) Ecrire(ctx context.Context, e Envoi) (string, error) {
 	if _, err := tx.ExecContext(ctx, `INSERT INTO empreintes_ip (empreinte, envois) VALUES (?, 1)
 		ON CONFLICT(empreinte) DO UPDATE SET envois = envois + 1`, e.EmpreinteIP); err != nil {
 		return "", err
+	}
+	if e.Fermeture != "" {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO meta (cle, valeur) VALUES ('fermeture', ?) ON CONFLICT DO NOTHING`, e.Fermeture); err != nil {
+			return "", err
+		}
 	}
 	donnees, err := json.Marshal(e.Donnees)
 	if err != nil {
@@ -81,9 +90,19 @@ func (b *Base) Ecrire(ctx context.Context, e Envoi) (string, error) {
 	return id, tx.Commit()
 }
 
-// Reponses lit toutes les réponses stockées, sans pseudo, triées par identifiant (jamais par ordre d'arrivée).
+// Reponses lit les réponses utilisables, sans pseudo, triées par identifiant (jamais par ordre d'arrivée) :
+// celles marquées « limitées » (R13) en sont exclues. Statistiques, exports et instantané passent par elle.
 func (b *Base) Reponses(ctx context.Context) ([]reponse.Ligne, error) {
-	rows, err := b.db.QueryContext(ctx, `SELECT identifiant, recue_le, version, duree_s, ordre_cartes, donnees FROM reponses ORDER BY identifiant`)
+	return b.lire(ctx, `WHERE limitee = 0`)
+}
+
+// ToutesLesReponses lit aussi les réponses limitées ; réservé aux commandes de droits.
+func (b *Base) ToutesLesReponses(ctx context.Context) ([]reponse.Ligne, error) {
+	return b.lire(ctx, ``)
+}
+
+func (b *Base) lire(ctx context.Context, filtre string) ([]reponse.Ligne, error) {
+	rows, err := b.db.QueryContext(ctx, `SELECT identifiant, recue_le, version, duree_s, ordre_cartes, donnees, limitee FROM reponses `+filtre+` ORDER BY identifiant`)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +120,7 @@ func (b *Base) Reponses(ctx context.Context) ([]reponse.Ligne, error) {
 
 // Reponse lit une réponse par identifiant.
 func (b *Base) Reponse(ctx context.Context, id string) (reponse.Ligne, error) {
-	row := b.db.QueryRowContext(ctx, `SELECT identifiant, recue_le, version, duree_s, ordre_cartes, donnees FROM reponses WHERE identifiant = ?`, id)
+	row := b.db.QueryRowContext(ctx, `SELECT identifiant, recue_le, version, duree_s, ordre_cartes, donnees, limitee FROM reponses WHERE identifiant = ?`, id)
 	l, err := lireLigne(row)
 	if err == sql.ErrNoRows {
 		return l, ErrIntrouvable
@@ -114,9 +133,11 @@ type scanner interface{ Scan(...any) error }
 func lireLigne(s scanner) (reponse.Ligne, error) {
 	var l reponse.Ligne
 	var ordre, donnees string
-	if err := s.Scan(&l.Identifiant, &l.RecueLe, &l.Version, &l.DureeS, &ordre, &donnees); err != nil {
+	var limitee int
+	if err := s.Scan(&l.Identifiant, &l.RecueLe, &l.Version, &l.DureeS, &ordre, &donnees, &limitee); err != nil {
 		return l, err
 	}
+	l.Limitee = limitee != 0
 	if err := json.Unmarshal([]byte(ordre), &l.OrdreCartes); err != nil {
 		return l, err
 	}
@@ -232,4 +253,48 @@ func (b *Base) Compte(ctx context.Context, table string) (int, error) {
 	// le nom de table vient d'une liste fermée ci-dessus, jamais d'une entrée externe
 	err := b.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table).Scan(&n)
 	return n, err
+}
+
+// Limiter marque (ou ne marque plus) une réponse comme « limitée » (R13) : elle reste stockée mais sort
+// des statistiques de l'écran de fin, des exports suivants et de l'instantané des agrégats.
+func (b *Base) Limiter(ctx context.Context, id string, limitee bool) error {
+	v := 0
+	if limitee {
+		v = 1
+	}
+	res, err := b.db.ExecContext(ctx, `UPDATE reponses SET limitee = ? WHERE identifiant = ?`, v, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrIntrouvable
+	}
+	return nil
+}
+
+// ErrFermetureRepoussee signale une UX_FERMETURE plus tardive que celle déjà annoncée (R5).
+var ErrFermetureRepoussee = errors.New("UX_FERMETURE ne peut pas être repoussée après la première réponse reçue : la date déjà annoncée reste la limite")
+
+// VerifierFermeture applique R5 : une fois une réponse reçue, la date de fermeture peut être avancée, jamais
+// repoussée. Une date plus tardive que la date mémorisée est refusée ; une date plus proche la remplace.
+func (b *Base) VerifierFermeture(ctx context.Context, fermeture time.Time) error {
+	var v string
+	err := b.db.QueryRowContext(ctx, `SELECT valeur FROM meta WHERE cle = 'fermeture'`).Scan(&v)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	connue, err := time.Parse(time.RFC3339, v)
+	if err != nil {
+		return err
+	}
+	if fermeture.After(connue) {
+		return fmt.Errorf("%w (mémorisée : %s)", ErrFermetureRepoussee, v)
+	}
+	if fermeture.Before(connue) {
+		_, err = b.db.ExecContext(ctx, `UPDATE meta SET valeur = ? WHERE cle = 'fermeture'`, fermeture.Format(time.RFC3339))
+	}
+	return err
 }

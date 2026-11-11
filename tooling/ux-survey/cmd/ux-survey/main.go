@@ -62,6 +62,10 @@ func charger() (*env, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := base.VerifierFermeture(context.Background(), cfg.Fermeture); err != nil {
+		base.Fermer()
+		return nil, err
+	}
 	return &env{cfg: cfg, q: q, base: base}, nil
 }
 

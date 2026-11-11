@@ -3,6 +3,7 @@ package reponse_test
 import (
 	"encoding/json"
 	"errors"
+	"golang.org/x/text/unicode/norm"
 	"strings"
 	"testing"
 
@@ -124,7 +125,7 @@ func TestNormalisation(t *testing.T) {
 	if n.Pseudo != "Pseudo Sur deux lignes" || present(n, "I1") {
 		t.Errorf("pseudo : %q, dans les données : %v", n.Pseudo, present(n, "I1"))
 	}
-	if c11 != "café" {
+	if c11 != "café" || norm.NFC.String("\u212b\u1100\u1161") != "Å가" {
 		t.Errorf("NFC : %q", c11)
 	}
 }

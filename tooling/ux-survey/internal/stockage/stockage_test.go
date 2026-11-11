@@ -358,3 +358,67 @@ func TestSauvegarde(t *testing.T) {
 		t.Error("une sauvegarde existante ne doit pas être écrasée")
 	}
 }
+
+// R13 : une réponse limitée reste stockée mais sort des lectures d'analyse, de statistiques et d'instantané.
+func TestReponseLimitee(t *testing.T) {
+	b := ouvrir(t)
+	a, _ := ecrire(t, b, 1, "203.0.113.1", "Pseudo", map[string]any{"P1": "iphone"})
+	if _, err := ecrire(t, b, 2, "203.0.113.2", "", map[string]any{"P1": "iphone"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Limiter(ctx, a, true); err != nil {
+		t.Fatal(err)
+	}
+	if l, _ := b.Reponses(ctx); len(l) != 1 || l[0].Identifiant == a {
+		t.Errorf("la réponse limitée est exclue : %v", l)
+	}
+	if l, _ := b.ToutesLesReponses(ctx); len(l) != 2 {
+		t.Errorf("elle reste stockée : %d", len(l))
+	}
+	if l, _ := b.Chercher(ctx, "pseudo"); len(l) != 1 || !l[0].Limitee {
+		t.Errorf("la recherche par pseudo la retrouve, marquée limitée : %v", l)
+	}
+	if err := b.Limiter(ctx, "inconnu", true); !errors.Is(err, ErrIntrouvable) {
+		t.Errorf("identifiant inconnu : %v", err)
+	}
+	fermeture := time.Date(2026, 12, 15, 22, 0, 0, 0, time.UTC)
+	if err := b.Effacement(ctx, fermeture, fermeture.Add(time.Second), instantane); err != nil {
+		t.Fatal(err)
+	}
+	if agr, _ := os.ReadFile(filepath.Join(b.Dossier(), FichierAgregats)); string(agr) != `{"total":1}` {
+		t.Errorf("l'instantané n'inclut pas la réponse limitée : %s", agr)
+	}
+	// levée de la limitation
+	c, _ := ecrire(t, b, 3, "203.0.113.3", "", nil)
+	_ = b.Limiter(ctx, c, true)
+	_ = b.Limiter(ctx, c, false)
+	if l, _ := b.Reponses(ctx); len(l) != 1 || l[0].Identifiant != c {
+		t.Errorf("limitation levée : %v", l)
+	}
+}
+
+// R5 : après la première réponse, la fermeture peut être avancée, jamais repoussée.
+func TestFermeturePasRepoussee(t *testing.T) {
+	b := ouvrir(t)
+	f := time.Date(2026, 12, 15, 22, 0, 0, 0, time.UTC)
+	if err := b.VerifierFermeture(ctx, f.Add(48*time.Hour)); err != nil {
+		t.Errorf("avant toute réponse, toute date est acceptée : %v", err)
+	}
+	q := testutil.Questionnaire(t)
+	norm, _ := (&reponse.Validateur{Q: q}).Valider(testutil.Envoi(t, q, testutil.Jeton(1), nil))
+	if _, err := b.Ecrire(ctx, Envoi{Normalisee: *norm, Version: q.Version, Jeton: testutil.Jeton(1), EmpreinteIP: "x", MaxParIP: 3, RecueLe: "2026-11-20", Fermeture: f.Format(time.RFC3339)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.VerifierFermeture(ctx, f.Add(time.Second)); !errors.Is(err, ErrFermetureRepoussee) {
+		t.Errorf("une date plus tardive est refusée : %v", err)
+	}
+	if err := b.VerifierFermeture(ctx, f); err != nil {
+		t.Errorf("la même date : %v", err)
+	}
+	if err := b.VerifierFermeture(ctx, f.Add(-24*time.Hour)); err != nil {
+		t.Errorf("avancer : %v", err)
+	}
+	if err := b.VerifierFermeture(ctx, f); !errors.Is(err, ErrFermetureRepoussee) {
+		t.Errorf("après avoir avancé, revenir à l'ancienne date est repousser : %v", err)
+	}
+}

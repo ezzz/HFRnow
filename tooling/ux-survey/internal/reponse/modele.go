@@ -39,6 +39,7 @@ type Ligne struct {
 	DureeS      int
 	OrdreCartes []string
 	Donnees     map[string]json.RawMessage
+	Limitee     bool // R13 : conservée mais exclue des statistiques et de tous les exports
 }
 
 // Normalisee est le résultat de la validation, prêt à être écrit.

@@ -140,6 +140,8 @@ func commandePseudo(args []string) error {
 	corriger := fs.String("corriger", "", "identifiant de la réponse à corriger (avec --question et --valeur-json)")
 	effQuestion := fs.String("effacer-question", "", "identifiant de la réponse dont retirer une question (avec --question)")
 	effPseudo := fs.String("effacer-pseudo", "", "identifiant dont supprimer la seule ligne de pseudos")
+	limiter := fs.String("limiter", "", "identifiant à marquer « limitée » (R13) : gardée, exclue des statistiques et des exports")
+	leverLimite := fs.String("lever-limite", "", "identifiant dont lever la limitation")
 	effacer := fs.String("effacer", "", "identifiant dont supprimer la réponse et le pseudo")
 	question := fs.String("question", "", "identifiant de question, par exemple L2")
 	valeur := fs.String("valeur-json", "", "nouvelle valeur JSON : un code, un texte entre guillemets ou un objet D1")
@@ -160,7 +162,11 @@ func commandePseudo(args []string) error {
 			return err
 		}
 		for _, l := range lignes {
-			fmt.Println(l.Identifiant, l.RecueLe)
+			note := ""
+			if l.Limitee {
+				note = " (limitée)"
+			}
+			fmt.Println(l.Identifiant, l.RecueLe+note)
 		}
 		fmt.Printf("%d réponse(s)\n", len(lignes))
 	case *afficher != "":
@@ -191,13 +197,23 @@ func commandePseudo(args []string) error {
 			return err
 		}
 		fmt.Println("pseudo supprimé ; la réponse reste")
+	case *limiter != "":
+		if err := e.base.Limiter(ctx, *limiter, true); err != nil {
+			return err
+		}
+		fmt.Println("réponse limitée : exclue des statistiques et des exports suivants ; refaire un export d'analyse et demander aux destinataires de remplacer leur copie")
+	case *leverLimite != "":
+		if err := e.base.Limiter(ctx, *leverLimite, false); err != nil {
+			return err
+		}
+		fmt.Println("limitation levée")
 	case *effacer != "":
 		if err := e.base.SupprimerReponse(ctx, *effacer); err != nil {
 			return err
 		}
 		fmt.Println("réponse et pseudo supprimés ; refaire un export d'analyse")
 	default:
-		return fmt.Errorf("une action est demandée : --chercher, --afficher, --corriger, --effacer-question, --effacer-pseudo ou --effacer")
+		return fmt.Errorf("une action est demandée : --chercher, --afficher, --corriger, --effacer-question, --effacer-pseudo, --limiter, --lever-limite ou --effacer")
 	}
 	return nil
 }

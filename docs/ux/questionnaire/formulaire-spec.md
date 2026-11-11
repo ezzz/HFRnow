@@ -14,14 +14,14 @@ Décisions du PO reprises ici :
 - question `G1` ajoutée le 8 novembre 2026 : irritants du quotidien, texte libre de 280 caractères, facultatif, sans condition, sur son propre écran juste après `O1` et avant `L1` (cadrage §2, #670) ;
 - hébergement en France (UE).
 
-D4 (description du VPS) est tranchée : Ubuntu 24.04 LTS avec Docker Engine et Docker Compose, en France, partagé avec une autre application. Seul reste ouvert le choix de l'exposition publique (Tailscale Funnel ou proxy inverse avec sous-domaine) ; le déploiement marche dans les deux cas, et la [section 13](#13-points-ouverts-avant-le-déploiement) liste ce qui reste à décider ou à vérifier. Les exigences R1 à R12 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
+D4 (description du VPS) est tranchée : Ubuntu 24.04 LTS avec Docker Engine et Docker Compose, en France, partagé avec une autre application. Seul reste ouvert le choix de l'exposition publique (Tailscale Funnel ou proxy inverse avec sous-domaine) ; le déploiement marche dans les deux cas, et la [section 13](#13-points-ouverts-avant-le-déploiement) liste ce qui reste à décider ou à vérifier. Les exigences R1 à R13 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
 
 ## 1. Choix techniques
 
 | Élément | Choix | Raison |
 |---|---|---|
 | Service | Un binaire **Go**, bibliothèque standard (`net/http`, `embed`, `log/slog`, `crypto/hmac`, `crypto/rand`) | Un seul exécutable, front compris ; aucun interpréteur sur le VPS ; serveur HTTP prévu pour la production ; compile vers Linux x86-64 et arm64 depuis n'importe quel poste |
-| Base | **SQLite**, pilote `modernc.org/sqlite` (Go pur, sans cgo) | Un fichier ; c'est la **seule dépendance tierce**, épinglée dans `go.sum`, soumise à la revue de dépendances. Sauvegarde par `ux-survey sauvegarder` seulement (§12), jamais par copie du fichier pendant que le service tourne |
+| Base | **SQLite**, pilote `modernc.org/sqlite` (Go pur, sans cgo) | Un fichier ; c'est une des **deux dépendances tierces** (avec `golang.org/x/text`, pour la normalisation NFC de `unicode/norm`, que la bibliothèque standard n'a pas ; décision du PO du 11 novembre 2026), épinglées dans `go.mod` et `go.sum`, soumises à la revue de dépendances. Sauvegarde par `ux-survey sauvegarder` seulement (§12), jamais par copie du fichier pendant que le service tourne |
 | Front | HTML, CSS et JavaScript sans framework ni étape de build, servis par le binaire | Tient sous 200 Ko ; rien à charger d'un autre domaine ; relisible en revue de sécurité |
 | Livraison | Image conteneur, lancée par Docker Compose (D4) | Décrite en [section 11](#11-déploiement) |
 | Tests | `go test` pour le service ; `node --test` (exécuteur intégré à Node, sans paquet) pour la logique pure du front | Aucune dépendance de test supplémentaire |
@@ -102,7 +102,7 @@ Types : `texte-seul` (`E0`, `E1`), `choix` (choix simple), `texte` (texte court)
 
 Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop ou différent, sur un ordre différent, sur un bloc `C08` présent dans le JSON (si `questions.md` garde un bloc `C08` marqué retiré, le test l'ignore), et sur un identifiant de `cadrage-construction.md` §2 absent (hors `C08`).
 
-`donnees.html` transcrit la page détaillée de `donnees.md` (#630), et le paragraphe au-dessus de `I1` vient du même document ; `questions.md` garde les libellés courts du champ. Les valeurs entre accolades de `donnees.md` (`{date_fermeture}`, `{date_effacement}`, `{date_mise_a_jour}`, `{seuil_statistiques}`) restent telles quelles dans les fichiers et sont remplacées par le serveur (§10).
+`donnees.html` transcrit la page détaillée de `donnees.md` (#630), ; `questions.md` garde les libellés courts du champ `I1` (aide et lien), seuls affichés sur l'écran du pseudo : le paragraphe de `donnees.md` §1 n'y est pas repris et reste sur la page détaillée (décision du PO du 11 novembre 2026). Les valeurs entre accolades de `donnees.md` (`{date_fermeture}`, `{date_effacement}`, `{date_mise_a_jour}`, `{seuil_statistiques}`) restent telles quelles dans les fichiers et sont remplacées par le serveur (§10).
 
 ## 4. Parcours côté navigateur
 
@@ -122,7 +122,7 @@ Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop 
 - **`G1`** : un écran à lui seul, après `O1` et avant le thème 1, sans condition, toujours affiché. Il vient avant toute proposition, pour que les pistes du questionnaire n'orientent pas la réponse.
 - **Textes** : `G1`, `L2`, `C11`, `F1` limités à 280 caractères, `I1` à 40, avec compteur restant annoncé discrètement.
 - **Visuels** : images avec `loading="lazy"` et texte alternatif ; vidéos `preload="none"`, `muted`, `playsinline`, image d'attente, jamais en lecture automatique.
-- **Mention sur les données** : liens vers `/donnees` dans `E0` et au-dessus de `I1`, ouverts dans un nouvel onglet (`target="_blank" rel="noopener"`) ; le brouillon n'est pas touché (R8).
+- **Mention sur les données** : liens vers `/donnees` dans `E0` et sous le champ `I1` (aide courte de `questions.md`, puis le lien « Vos données : ce qui est gardé et pourquoi »), ouverts dans un nouvel onglet (`target="_blank" rel="noopener"`) ; le brouillon n'est pas touché (R8).
 - **Brouillon** : `localStorage`, clé `ux-survey:<version>:brouillon` (réponses, écran courant, ordre des cartes, heure de début). Écrit à chaque changement, relu au chargement. Effacé après un envoi accepté (201) **et** après un `deja_recu` (409), une fois l'écran de fin rendu (R3). Si `localStorage` est indisponible (navigation privée), le formulaire marche sans brouillon.
 - **Jeton** : au premier chargement, un jeton aléatoire de 128 bits (`crypto.getRandomValues`, hexadécimal) est gardé sous `ux-survey:jeton`, **sans version**, pour qu'une correction de contenu ne remette pas l'anti-doublon à zéro. Il part dans le corps de l'envoi ; aucun cookie n'est posé (R2).
 - **Envoi unique** : à la fin, après `I1`, un seul bouton « Envoyer », désactivé pendant la requête. Réseau en échec : message et nouvel essai possible avec le même jeton, sans risque de doublon (§6).
@@ -187,10 +187,11 @@ Les réponses ne contiennent ni IP, ni jeton, ni heure : aucune table ne relie u
 
 | Table | Colonnes | Rôle | Vidée |
 |---|---|---|---|
-| `reponses` | `identifiant` TEXT PK (16 caractères hexadécimaux tirés de `crypto/rand`, sans lien avec le pseudo ni l'ordre d'arrivée), `recue_le` TEXT (date `AAAA-MM-JJ` seulement, dans le décalage horaire de `UX_FERMETURE`), `version` TEXT, `duree_s` INTEGER, `ordre_cartes` TEXT, `donnees` TEXT (JSON normalisé, sans `I1`) | Les réponses | Par `effacer` (§12) |
+| `reponses` | `identifiant` TEXT PK (16 caractères hexadécimaux tirés de `crypto/rand`, sans lien avec le pseudo ni l'ordre d'arrivée), `recue_le` TEXT (date `AAAA-MM-JJ` seulement, dans le décalage horaire de `UX_FERMETURE`), `version` TEXT, `duree_s` INTEGER, `ordre_cartes` TEXT, `donnees` TEXT (JSON normalisé, sans `I1`), `limitee` INTEGER (0 par défaut ; 1 : réponse « limitée », R13) | Les réponses | Par `effacer` (§12) |
 | `pseudos` | `identifiant` TEXT PK référence `reponses`, `pseudo` TEXT | Table de correspondance pseudo ↔ identifiant (R9) : elle ne quitte jamais le serveur | Par `effacer`, ou ligne par ligne par `pseudo` (§12) |
 | `jetons` | `empreinte` TEXT PK (SHA-256 du jeton) | Anti-doublon par navigateur | À la fermeture |
 | `empreintes_ip` | `empreinte` TEXT PK (HMAC-SHA-256 de l'IP), `envois` INTEGER | Anti-doublon par adresse | À la fermeture |
+| `meta` | `cle` TEXT PK, `valeur` TEXT : une seule clé, `fermeture`, la date de fermeture mémorisée à la première réponse reçue (R5) | Empêcher de repousser la fermeture ; ne contient aucune donnée personnelle | Jamais (une date) |
 
 **Clé des empreintes d'IP** : 32 octets aléatoires dans un fichier séparé `cle-ip` du dossier de données (mode 0600), créé au premier démarrage, **hors de la base**, et supprimé à la fermeture (R4). Une sauvegarde de la base ne contient donc jamais la clé avec les empreintes. Ce fichier n'entre dans aucune sauvegarde (§12).
 
@@ -225,6 +226,7 @@ Toute autre route : 404. Pas de route d'export ni d'administration : ces actions
 
 ## 8. Écran de fin et statistiques
 
+- Les réponses « limitées » (R13) sont exclues de tous les calculs, total compris.
 - Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les neuf cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
 - Pour chaque question : pourcentage de chaque code parmi ceux qui y ont répondu, entier arrondi au plus proche (la somme peut différer de 100), et effectif.
 - Pour `D1` : part de `comme_aujourdhui` parmi les répondants de `D1` ; puis, pour chaque section, part de chaque état et rang médian des sections gardées ou dépliables, calculés sur les répondants qui ont donné un état **à cette section** (son effectif propre, qui suit la règle de seuil par question ci-dessous).
@@ -279,7 +281,7 @@ Variables d'environnement, aucun secret dans le dépôt :
 | `UX_DONNEES` | `./donnees` | Dossier de la base, de `cle-ip` et de `agregats.json` ; `/donnees` dans le conteneur, monté depuis le dossier de données propre au projet Compose |
 | `UX_ORIGINE` | — (obligatoire) | Origine publique, par exemple `https://sondage.exemple.fr` |
 | `UX_PROXY_DE_CONFIANCE` | — (obligatoire) | IP ou CIDR du proxy inverse, ou `aucun` (§6) |
-| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire |
+| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, la date est mémorisée (table `meta`) ; ensuite elle peut être **avancée, jamais repoussée** : au démarrage, une date plus tardive que la date mémorisée fait refuser le démarrage (de même pour toute commande `ux-survey`), une date plus proche la remplace (R5) |
 | `UX_MENTION_MAJ` | — (obligatoire) | Date de dernière mise à jour de la mention |
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; une valeur sous 10 est refusée |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par empreinte d'IP |
@@ -289,7 +291,7 @@ La **date d'effacement** n'est pas une variable : elle vaut toujours `UX_FERMETU
 
 Le service refuse de démarrer si une variable obligatoire manque ou est invalide, ou si `questionnaire.json` est invalide.
 
-**Valeurs dans les textes (R5)** : une valeur est un motif `\{[a-z_]+\}` ; les seules connues sont `{date_fermeture}`, `{date_effacement}`, `{date_mise_a_jour}` et `{seuil_statistiques}`, toutes issues de `donnees.md`. Au démarrage, le serveur les remplace dans `donnees.html` et dans `index.html`, qui porte le paragraphe au-dessus de `I1` repris de `donnees.md` §1, puis sert ces deux pages depuis la mémoire. `questionnaire.json` n'est pas traité : `questions.md` ne contient aucune valeur. Les dates sont écrites en français (« 15 décembre 2026 », table des mois dans le code). Les pages marchent donc sans JavaScript, et la mention affiche toujours les dates appliquées. Un motif inconnu, ou qui reste après remplacement, empêche le démarrage.
+**Valeurs dans les textes (R5)** : une valeur est un motif `\{[a-z_]+\}` ; les seules connues sont `{date_fermeture}`, `{date_effacement}`, `{date_mise_a_jour}` et `{seuil_statistiques}`, toutes issues de `donnees.md`. Au démarrage, le serveur les remplace dans `donnees.html` et dans `index.html` (qui n'en porte plus depuis que le paragraphe au-dessus de `I1` n'est plus repris ; le contrôle reste, pour qu'une valeur ajoutée plus tard ne s'affiche jamais brute), puis sert ces deux pages depuis la mémoire. `questionnaire.json` n'est pas traité : `questions.md` ne contient aucune valeur. Les dates sont écrites en français (« 15 décembre 2026 », table des mois dans le code). Les pages marchent donc sans JavaScript, et la mention affiche toujours les dates appliquées. Un motif inconnu, ou qui reste après remplacement, empêche le démarrage.
 
 ## 11. Déploiement
 
@@ -340,7 +342,8 @@ Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`
 - `--corriger <identifiant> --question <ID> --valeur-json <valeur>` remplace une réponse par une valeur JSON (code, texte, ou objet `D1`), avec la validation du §5.2 ;
 - `--effacer-question <identifiant> --question <ID>` retire une réponse ;
 - `--effacer-pseudo <identifiant>` supprime la ligne de `pseudos` seulement ;
-- `--effacer <identifiant>` supprime la réponse et sa ligne de `pseudos`.
+- `--effacer <identifiant>` supprime la réponse et sa ligne de `pseudos` ;
+- `--limiter <identifiant>` marque la réponse « limitée » (R13 : limitation ou opposition, sans effacement) : elle reste stockée, mais sort des statistiques de l'écran de fin, de l'instantané `agregats.json` et de tous les exports suivants (`analyse` et `agregats`) ; `--lever-limite <identifiant>` la remet. Une réponse limitée est donc absente du total. Comme pour une correction ou un effacement, le PO refait l'export d'analyse et demande aux destinataires de remplacer leur copie.
 
 L'identité du demandeur est vérifiée par MP sur son compte HFR (`donnees.md`). Une correction ou un effacement avant la date d'effacement est suivi d'un nouvel export d'analyse, et le PO demande aux destinataires de remplacer leur copie ; la demande est notée (date, identifiant, sans pseudo) sur la page de suivi privée du PO.
 
@@ -399,6 +402,8 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 21 | Journaux | Un envoi avec un pseudo et l'IP `203.0.113.7` : le journal capturé ne contient ni l'un ni l'autre, ni le texte de `G1` ou des autres textes libres, ni l'agent utilisateur |
 | 22 | Poids, domaines, CSP | `web/` hors `visuels/` pèse 200 Ko au plus ; aucune URL absolue vers un autre domaine ; aucun `innerHTML`, `insertAdjacentHTML`, attribut `style` ni `on…=` dans `web/` |
 | 23 | Accès restreint | Avec `UX_CODE_ACCES` : 401 sans authentification, 200 avec ; `/healthz` toujours ouvert |
+| 24 | Limitée (R13) | Après `pseudo --limiter` : la réponse reste stockée et retrouvée par `--chercher`, mais absente du total des statistiques, des exports `analyse` et `agregats` et de `agregats.json` ; `--lever-limite` la remet |
+| 25 | Fermeture non repoussée (R5) | Avant toute réponse, toute date est acceptée ; après la première réponse, une `UX_FERMETURE` plus tardive refuse le démarrage, une plus proche est acceptée et mémorisée, et revenir à l'ancienne est refusé |
 
 À vérifier à la main pendant le test à cinq : parcours complet au lecteur d'écran (VoiceOver sur iPhone), tri de `D1` aux boutons seuls, mode sombre, texte agrandi à 200 %, rechargement en cours de parcours, connexion lente, barres visibles sur l'écran de fin.
 
@@ -410,7 +415,7 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | R2 aucun cookie | §4, §9 |
 | R3 brouillon effacé après l'envoi | §4 |
 | R4 empreinte jamais exportée, clé détruite à la fermeture | §5.3, §6, §12 |
-| R5 date d'effacement calculée (fermeture + 2 mois), date de mise à jour configurée, toutes deux affichées | §10 |
+| R5 date d'effacement calculée (fermeture + 2 mois), date de mise à jour configurée, toutes deux affichées ; fermeture avançable, jamais repoussable après la première réponse | §5.3, §10 |
 | R6 effacement de tout, sauvegardes et exports compris | §12 |
 | R7 retrouver, corriger, effacer les réponses d'un pseudo | §12 |
 | R8 mention servie par le formulaire, brouillon gardé | §4, §7 |
@@ -418,4 +423,5 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | R10 textes libres relus, trace dans l'export | §12 |
 | R11 export d'ensemble, seul gardé, groupes de moins de 5 omis | §12 |
 | R12 aucune mesure d'audience | §9 |
+| R13 réponse « limitée », exclue des statistiques et des exports | §5.3, §8, §12 |
 
