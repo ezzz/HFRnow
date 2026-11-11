@@ -63,7 +63,87 @@ enum RESTDocument {
         return summary
     }
 
+    /// The global flag bucket `bucket` of the session's account (`R335a`-`R335c`), as the favourites page models it: one
+    /// section per category group in the answer's order, the topics in their group's order.
+    ///
+    /// The answer is complete only as far as its own counts say: every level's `results_count` must equal its number of
+    /// entries (HFR ignores paging here, `R335d`). An answer without a group is not "nothing flagged": what HFR sends to an
+    /// anonymous or expired session is not captured, so the favourites page, which tells them apart, is read instead.
+    static func bucket(from data: Data, bucket: RESTFlagBucket) throws(ParsingError) -> FavoritesPage {
+        let list = try decode(Envelope<BucketList>.self, from: data).resource
+        guard list.listType == "list" else { throw .invalidValue(field: "resource.list_type") }
+        guard list.page == 1 else { throw .invalidValue(field: "resource.page") }
+        guard (try? RESTHref.target(of: list.href).uri) == RESTHref.bucketURI(bucket) else {
+            throw .invalidValue(field: "resource.href")
+        }
+        guard !list.resources.isEmpty else { throw .invalidValue(field: "resource.resources") }
+        guard list.resultsCount == list.resources.count else { throw .invalidValue(field: "resource.results_count") }
+        var sections: [FavoriteSection] = []
+        var seen: Set<Int> = []
+        for group in list.resources {
+            let section = try self.section(of: group, bucket: bucket)
+            guard case .forum(let category)? = section.categoryID, seen.insert(category).inserted else {
+                throw .invalidValue(field: "resource.resources.links.category.href")
+            }
+            sections.append(section)
+        }
+        return FavoritesPage(sections: sections)
+    }
+
     // MARK: - Implementation
+
+    /// One category group of a global bucket.
+    private static func section(of group: BucketGroup, bucket: RESTFlagBucket) throws(ParsingError) -> FavoriteSection {
+        let path = "resource.resources"
+        guard group.listType == "topic" else { throw .invalidValue(field: "\(path).list_type") }
+        guard group.page == 1 else { throw .invalidValue(field: "\(path).page") }
+        let category: Int
+        do {
+            category = try RESTHref.category(of: group.links.category.href)
+        } catch {
+            throw .invalidValue(field: "\(path).links.category.href")
+        }
+        guard (try? RESTHref.target(of: group.href).uri) == RESTHref.bucketURI(bucket, category: category) else {
+            throw .invalidValue(field: "\(path).href")
+        }
+        guard !group.resources.isEmpty else { throw .invalidValue(field: "\(path).resources") }
+        guard group.resultsCount == group.resources.count else { throw .invalidValue(field: "\(path).results_count") }
+        // The favourites page's header names the category's list filtered on the same `owntopic` (`R10`, `R603e`); the
+        // REST group names none, so the path is built (LOT-010 `topicListPath`).
+        guard let forumPath = ForumCatalogue.topicListPath(categoryID: .forum(category), filter: bucket.filter) else {
+            throw .invalidValue(field: "\(path).links.category.href")
+        }
+        let title = try text(group.links.category.title, field: "\(path).links.category.title")
+        var topics: [TopicSummary] = []
+        for row in group.resources {
+            let rowPath = "\(path).resources"
+            var topic = try summary(of: row, at: rowPath, readsSticky: false)
+            guard topic.topicID?.category == .forum(category) else {
+                throw .invalidValue(field: "\(rowPath).links.category.href")
+            }
+            topic.flag = try flag(row.flagOwntopic, field: "\(rowPath).flag_owntopic")
+            // A favourites row opens where the member stopped (`FavoritesParser`): the flag link, else the last post. The
+            // JSON's `last_post_read_id` and `last_position` are not tied to a flag link by any capture, so the row opens at
+            // the last page, as an HTML row without a flag link does.
+            topic.firstPagePath = topic.path
+            topic.path = topic.lastPagePath
+            topic.currentPage = topic.pageCount
+            topics.append(topic)
+        }
+        return FavoriteSection(forum: ForumLink(title: title, path: forumPath), categoryID: .forum(category), topics: topics)
+    }
+
+    /// The flag image an HTML row of the same topic would show: `flag_owntopic` is the topic's strongest flag, not the
+    /// bucket's (HFR-PROTOCOL §6c, `R335a`-`R335c`): 3 a favourite, 1 a flag. 0 (every `read` row) is no flag; 2 is the
+    /// read flag in redface2 C12 only, never captured, so it is no flag either (ADR 0015 point 4).
+    private static func flag(_ value: Int?, field: String) throws(ParsingError) -> TopicFlag? {
+        switch value {
+        case 3: .yellow
+        case 1: .blue
+        case 0, 2: nil
+        default: throw .invalidValue(field: field)
+        }
+    }
 
     /// A topic row; `path` names where it sits in the JSON, for the errors.
     private static func summary(of row: Topic, at path: String, readsSticky: Bool) throws(ParsingError) -> TopicSummary {
@@ -171,6 +251,34 @@ enum RESTDocument {
         let isSticky: Bool
         let href: String
         let links: Links
+        /// Flag buckets only (`R335a`-`R335e`); absent from `R57b`, `R57c`.
+        let flagOwntopic: Int?
+    }
+
+    private struct BucketList: Decodable {
+        let page: Int
+        let resultsCount: Int
+        let listType: String
+        let href: String
+        let resources: [BucketGroup]
+    }
+
+    private struct BucketGroup: Decodable {
+        let page: Int
+        let resultsCount: Int
+        let listType: String
+        let href: String
+        let links: GroupLinks
+        let resources: [Topic]
+    }
+
+    private struct GroupLinks: Decodable {
+        let category: TitledLink
+    }
+
+    private struct TitledLink: Decodable {
+        let href: String
+        let title: String
     }
 
     private struct Links: Decodable {

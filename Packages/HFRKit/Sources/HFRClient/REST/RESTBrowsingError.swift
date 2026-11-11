@@ -12,4 +12,7 @@ public enum RESTBrowsingError: Error, Sendable, Equatable {
     case page(ListPageFailure)
     /// The REST answer of `topic(_:)`, which has no HTML fallback, is not the JSON expected.
     case response(ParsingError)
+    /// HFR refused the account's cookies on the fallback page (its stale-session page, `R70b`), as `SessionRefreshFlow`
+    /// reports it (#383). `RESTFlagBucketClient` only: `RESTBrowsingClient` sends no cookie.
+    case sessionExpired(SessionExpiry)
 }
