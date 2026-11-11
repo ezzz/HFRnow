@@ -36,6 +36,8 @@ final class ReaderWebController: NSObject {
         var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
         /// A short sentence for the reader's feedback line (the result of "Enregistrer dans Photos", #615).
         var notice: @MainActor (_ text: String) -> Void = { _ in }
+        /// The reader left the screen, or came back to it without an `onAppear` (`ReaderWebController+Presence`, issue #750).
+        var left: @MainActor () -> Void = {}, returned: @MainActor () -> Void = {}
     }
 
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
@@ -87,7 +89,9 @@ final class ReaderWebController: NSObject {
     private var reloadedAfterFailure = false
     /// `stopLoading()` ran and the screen has not come back (`resume()`): `show` loads nothing, so a re-render of the hidden
     /// view cannot restart the load just stopped (issue #566).
-    private var stopped = false
+    var stopped = false
+    /// The document `stopLoading()` cut, and whether SwiftUI's last word was `onDisappear` (`ReaderWebController+Presence`).
+    var stoppedDocument: ReaderDocument?, disappeared = false
     /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
@@ -119,6 +123,7 @@ final class ReaderWebController: NSObject {
         webView = QuoteMenuWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.onQuoteSelection = { [weak self] bold in self?.requestSelectionQuote(bold: bold) }
+        webView.onWindowChange = { [weak self] inWindow in self?.windowDidChange(inWindow: inWindow) }
         installUserScripts()
         proxy.owner = self
         messages.owner = self
@@ -175,6 +180,7 @@ final class ReaderWebController: NSObject {
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
         webView.stopLoading()
         stopped = true
+        stoppedDocument = document
         pageNavigation = nil
         if !wasReady {
             document = nil
@@ -183,11 +189,6 @@ final class ReaderWebController: NSObject {
         for task in running.values { task.cancel() }
         running.removeAll()
         waiting.removeAll()
-    }
-
-    /// The screen is back: `show` loads again (call it before `show`).
-    func resume() {
-        stopped = false
     }
 
     static func pageURL(token: Int) -> URL {

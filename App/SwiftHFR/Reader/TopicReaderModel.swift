@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRNetwork
 import HFRParsing
 import Observation
 
@@ -95,6 +96,20 @@ final class TopicReaderModel {
     private var nextToken = 0
     private var nextScrollID = 0
     private var task: Task<Void, Never>?
+    /// The viewer on screen when the web view reported `readyToken`: another view has its own web view, which has not shown
+    /// that document yet (issue #750).
+    private var readyViewer: Int?
+
+    /// The longest the reader shows "Chargement des messages" before it offers "Réessayer" (issue #750): HFRNetwork's limit for
+    /// a topic page request (`RequestTimeout.standard`, legacy `kTimeoutMini`), so a wait no request can end turns into an
+    /// error after the time a request itself may take. Legacy's own 10 s (`HFRNetworkTimeout.content`, `MessagesView.swift:
+    /// 3684-3693` @ 87fe0d1c) covers the fetch only, not the web view, where most of a first open goes (#750 measurement).
+    nonisolated static let waitLimit = Duration.seconds(RequestTimeout.standard)
+    /// How the wait is timed; tests replace it with a clock they drive.
+    @ObservationIgnored var waitClock: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    @ObservationIgnored private var waitWatch: Task<Void, Never>?
+    /// The current wait ended on `waitLimit`: the screen coming back loads again, as it does after a stopped load.
+    private var waitExpired = false
 
     /// A reader that will open `target`; nothing is fetched before `onAppear()`. With `opensAtLastMessage` the first load
     /// (and "Réessayer" after its failure) opens at the page's last message like a reply does, for a link that stands for
@@ -128,11 +143,16 @@ final class TopicReaderModel {
     func onAppear(viewer: Int? = nil) async {
         // A `.task` whose view already went away (a quick tab flick) must not take the load over from the view still there.
         guard !Task.isCancelled else { return }
-        if let viewer { self.viewer = viewer }
+        if let viewer {
+            self.viewer = viewer
+            // A new view (the same topic opened again) has a new web view: the document is not shown until it says so (#750).
+            if readyToken != nil, let shownBy = readyViewer, shownBy != viewer { readyToken = nil }
+        }
         ReaderLog.debug(
             "appear model=\(debugID) viewer=\(viewer ?? -1) page=\(page != nil) loading=\(isLoading) error=\(error != nil)"
         )
-        guard page == nil, !isLoading, error == nil else { return }
+        watchWait()
+        guard page == nil, !isLoading, error == nil || waitExpired else { return }
         await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
     }
 
@@ -340,17 +360,20 @@ final class TopicReaderModel {
         generation += 1
         isLoading = false
         if interrupted { applyDisplaySettings() } // a setting changed during the load that never delivered
+        watchWait()
     }
 
     /// The web view reports a document as ready; an older document's report is ignored.
     func documentDidBecomeReady(token: Int) {
         guard token == document?.token else { return }
         readyToken = token
+        readyViewer = viewer
         // The same document shown after all (loaded again when its screen came back): its own failure is over.
         if failedToken == token {
             failedToken = nil
             error = nil
         }
+        watchWait()
     }
 
     /// The web view could not show the document `token` (its navigation failed twice): the screen offers a retry instead of
@@ -362,6 +385,40 @@ final class TopicReaderModel {
         failedToken = token
         readyToken = nil
         error = .other
+        watchWait()
+    }
+
+    /// Bounds the wait on "Chargement des messages" (issue #750): one watch per wait, from the moment the screen starts
+    /// waiting (no page yet, or a page whose document the web view has not shown) until it stops; on `waitLimit` the wait
+    /// turns into `timedOut` with "Réessayer". A document that becomes ready after all still shows and clears it.
+    private func watchWait() {
+        guard isWaiting else {
+            waitWatch?.cancel()
+            waitWatch = nil
+            return
+        }
+        guard waitWatch == nil else { return }
+        let clock = waitClock
+        waitWatch = Task { [weak self] in
+            do { try await clock(Self.waitLimit) } catch { return }
+            guard !Task.isCancelled else { return } // a wait that ended meanwhile; a newer one has its own watch
+            self?.waitDidExpire()
+        }
+    }
+
+    /// The screen shows "Chargement des messages": no error, and no page yet or a page the web view has not shown.
+    private var isWaiting: Bool {
+        error == nil && (page.map { !$0.messages.isEmpty && readyToken == nil } ?? true)
+    }
+
+    private func waitDidExpire() {
+        waitWatch = nil
+        guard isWaiting else { return }
+        ReaderLog.debug("wait expired model=\(debugID) loading=\(isLoading) document=\(document?.token ?? -1)")
+        if page != nil, let document { failedToken = document.token }
+        waitExpired = true
+        error = .timedOut
+        if task != nil { cancel() } // after `error`: the load's own watch must not start again
     }
 
     // MARK: - Loading
@@ -389,6 +446,8 @@ final class TopicReaderModel {
         requestedFollowsPager = followsPager
         isLoading = true
         failedToken = nil // this load owns `error` now: an old document's ready must not clear its failure
+        waitExpired = false
+        watchWait()
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
@@ -463,6 +522,7 @@ final class TopicReaderModel {
             error = failure == .cancelled ? .other : failure
         }
         applyDisplaySettings() // a setting changed while this load ran and did not deliver a page
+        watchWait()
     }
 }
 

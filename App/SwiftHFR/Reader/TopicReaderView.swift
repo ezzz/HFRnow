@@ -1,5 +1,4 @@
 import HFRModels
-import SafariServices
 import SwiftUI
 import WebKit
 
@@ -93,7 +92,7 @@ struct TopicReaderView: View {
         .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
             if let error = model.error, model.page != nil, model.hasShownDocument {
-                LoadFailureBanner(error: error, retry: model.retry)
+                LoadFailureBanner(error: error, retry: retry)
             }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
@@ -106,7 +105,7 @@ struct TopicReaderView: View {
         .toolbar {
             ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
             ToolbarItem(placement: .primaryAction) {
-                Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
+                Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                     .disabled(model.isLoading)
             }
             if let onFilterPosts {
@@ -148,7 +147,7 @@ struct TopicReaderView: View {
         .appScreenBackground().onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
         .onAppear {
-            controller?.resume()
+            controller?.viewAppeared()
             controller?.show(model.document)
         }
         .onAppear {
@@ -176,9 +175,8 @@ struct TopicReaderView: View {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
             // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
             guard model.linkedReader == nil, viewer == nil else { return }
-            model.viewDidDisappear(viewer: viewerID)
-            saver?.leave()
-            controller?.stopLoading()
+            // The controller checks the window first (issue #750), and calls `leave()` back through `events.left`.
+            if let controller { controller.viewDisappeared() } else { leave() }
         }
     }
 
@@ -186,7 +184,7 @@ struct TopicReaderView: View {
     private var overlay: some View {
         if model.page == nil {
             if let error = model.error {
-                LoadFailureView(error: error, retry: model.retry)
+                LoadFailureView(error: error, retry: retry)
             } else {
                 ProgressView("Chargement des messages")
             }
@@ -196,12 +194,12 @@ struct TopicReaderView: View {
             } description: {
                 Text(page.notice ?? "Cette page ne contient aucun message.")
             } actions: {
-                Button("Actualiser") { Task { await model.refresh() } }
+                Button("Actualiser") { Task { await refresh() } }
             }
         } else if !model.hasShownDocument {
             // The web view could not show the page (issue #566): a retry, never an endless spinner.
             if let error = model.error {
-                LoadFailureView(error: error, retry: model.retry)
+                LoadFailureView(error: error, retry: retry)
             } else {
                 ProgressView("Chargement des messages")
             }
@@ -290,7 +288,13 @@ struct TopicReaderView: View {
             image: { images, index, _ in
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
-            }, notice: { [model] in model.showMenuFeedback($0) }
+            }, notice: { [model] in model.showMenuFeedback($0) },
+            left: { leave() },
+            // On screen again with no `onAppear` (issue #750): the page and its load come back as `onAppear` brings them.
+            returned: { [weak controller, model, viewerID] in
+                controller?.show(model.document)
+                Task { await model.onAppear(viewer: viewerID) }
+            }
         )
         model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.canQuote
@@ -300,6 +304,27 @@ struct TopicReaderView: View {
 
 // Out of the struct body, which reached SwiftLint's `type_body_length` with LOT-135's handler.
 extension TopicReaderView {
+    /// "Réessayer" and "Actualiser" are tapped on screen: the web view shows what they load even if a lifecycle call stopped it
+    /// (#643: "Actualiser does not recover it").
+    private func retry() async {
+        controller?.resume()
+        await model.retry()
+    }
+
+    private func refresh() async {
+        controller?.resume()
+        await model.refresh()
+    }
+
+    /// The reader left the screen: its load, its offline save and its web view stop.
+    private func leave() {
+        // Checked again here: `events.left` also comes from the web view leaving its window (issue #750).
+        guard model.linkedReader == nil, viewer == nil else { return }
+        model.viewDidDisappear(viewer: viewerID)
+        saver?.leave()
+        controller?.stopLoading()
+    }
+
     /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
     /// its handler here, the policy is untouched.
     private func installMenuActions() {
@@ -367,28 +392,4 @@ private struct LinkedReader: Hashable {
 
     static func == (lhs: LinkedReader, rhs: LinkedReader) -> Bool { lhs.model === rhs.model }
     func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(model)) }
-}
-
-struct ExternalLink: Identifiable {
-    let url: URL
-    var id: String { url.absoluteString }
-}
-
-struct VideoItem: Identifiable {
-    let embed: MessageEmbed
-    var id: String { embed.embedURL.absoluteString }
-}
-
-/// A web link opened outside the reader, in Safari's own view (LOT-071 T8): Safari's data, not the app's. Legacy
-/// `SafariInAppView` (`MessagesView.swift:2874-2885` at `21173e77`).
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let controller = SFSafariViewController(url: url)
-        controller.dismissButtonStyle = .close
-        return controller
-    }
-
-    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }
