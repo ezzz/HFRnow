@@ -358,6 +358,8 @@
     {"raw": "m440-editform-deleted-owner", "id": "R440b", "slug": "mpstorage-edit-form-deleted-owner", "ext": "html", "private": false},
     {"raw": "m440-editform-deleted-other", "id": "R440c", "slug": "mpstorage-edit-form-deleted-other-account", "ext": "html", "private": false},
     {"raw": "m440-edit-other-post", "id": "W440c", "slug": "mp-edit-post-other-account-message-refused", "ext": "html", "private": false},
-    {"raw": "m267-topic-anon-d", "id": "R267a", "slug": "topic-signature-separator-anon", "ext": "html", "private": false}
+    {"raw": "m267-topic-anon-d", "id": "R267a", "slug": "topic-signature-separator-anon", "ext": "html", "private": false},
+    {"raw": "m333-p1-after-13", "id": "R333a", "slug": "mp-list-p1-storage-pushed-to-p2", "ext": "html", "private": true},
+    {"raw": "m333-p2-after-13", "id": "R333b", "slug": "mp-list-p2-storage-row-first", "ext": "html", "private": true}
   ]
 }

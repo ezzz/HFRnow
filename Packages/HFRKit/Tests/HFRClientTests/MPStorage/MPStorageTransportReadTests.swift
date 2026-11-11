@@ -16,6 +16,23 @@ struct MPStorageTransportReadTests {
         #expect(outcome.requests.map(\.url) == [try HFREndpoint.privateMessages(page: 1).url])
     }
 
+    @Test("R333a → R333b: a storage row pushed to page 2 is found there, through page 1's next link (#333)")
+    func findsTheThreadOnPageTwo() async throws {
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.list("R333a"), try MPStorageCapture.list("R333b")]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.findThread(through: session)
+        }
+        // `R333b` also holds an older storage thread (row 16): legacy and the parser take the first row.
+        #expect(outcome.value == MPStorageCapture.post)
+        // Page 2 is `R333a`'s own next link, as served.
+        #expect(outcome.requests.map(\.url.absoluteString) == [
+            try HFREndpoint.privateMessages(page: 1).url.absoluteString,
+            "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2&subcat=0&sondage=0&owntopic=0&trash=0"
+                + "&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0"
+        ])
+    }
+
     @Test func aListWithoutTheThreadAndNoNextPageIsNotFound() async throws {
         let replies = [try MPStorageCapture.list("R13a")]
         let outcome = await MPStorageHarness.run(replies) { transport, session throws(MPStorageTransportError) in

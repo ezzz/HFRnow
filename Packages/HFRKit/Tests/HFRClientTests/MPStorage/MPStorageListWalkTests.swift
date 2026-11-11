@@ -4,8 +4,8 @@ import HFRParsing
 import Testing
 @testable import HFRClient
 
-/// The page-by-page search of the MP list (`MPStorage.m:692-736`). No capture has an MP list past page 1 (#333), so the
-/// walk is driven with pager values, not pages.
+/// The page-by-page search of the MP list (`MPStorage.m:692-736`), driven with pager values; the captured page 1 → page 2
+/// walk (`R333a`, `R333b`, #333) is in `MPStorageTransportReadTests`.
 struct MPStorageListWalkTests {
     static let first = URL(string: "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
         ?? URL(fileURLWithPath: "/")
