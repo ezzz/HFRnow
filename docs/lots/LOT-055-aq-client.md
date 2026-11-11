@@ -56,14 +56,23 @@ last check 2026-10-01, `newCount` 2).
 Captured since: the create's success on the live host (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)) and its refusals on a
 local instance (`T52`-`T71`, #574; `T72`-`T90`, #611: values the database refuses, by `sql_mode`); the server's own contract (secondary source, ADR 0015) is in HFR-PROTOCOL §8.
 
-## Create (left out)
-Legacy wire facts, for the create follow-up (#531 captured): POST `<base>/api/addAlerte.php`, `Content-Type:
-application/x-www-form-urlencoded`, body `alerte_qualitay_id=-1&nom=…&topic_id=…&topic_titre=…&pseudo=…&post_id=…&post_url=…&commentaire=post de <author>`
-in that order, values percent-encoded from UTF-8 with `A-Za-z0-9._-` kept, then the body converted to ASCII, which loses nothing since
-every byte is ASCII by then (accents arrive percent-encoded; `MessagesView.swift:389-396`, `:434-437` @ `2440d79`), 5 s, answer `"1"` (trimmed) =
-success, any other text = refusal code shown to the user. Model (`AQNewReport`, LOT-012) exists. Per our write rules (LOT-037,
-LOT-048, LESSONS 11, 30): never retried, redirect not followed, success only on the captured confirmation, a POST that may have left
-is `unconfirmed`, and the N1 notice precedes the first one.
+## Create
+`AQClient.create(_ report: AQNewReport) async throws(AQCreateError)` (`AQCreateError.swift`, `AQReportEncoder.swift`). Wire facts: POST
+`<base>/api/addAlerte.php`, form body (`FormBody`, UTF-8 percent-encoded: accents verified, `T75`) in the legacy order
+`alerte_qualitay_id`, `nom`, `topic_id`, `topic_titre`, `pseudo` (lower-cased as legacy, `MessagesView.swift:439-441`), `post_id`, `post_url`,
+`commentaire`, then `from=SwiftHFR` (decided, #573); 5 s (legacy); no cookie (anonymous transport); redirect not followed; answer read up to 4 KiB.
+An addition (`existingAlertID` set) sends `alerte_qualitay_id`, `pseudo`, `post_id`, `post_url`, `commentaire`, `from` only (the server ignores
+`nom` / `topic_*` then, `T84`, `T85`; fewer fields to a third party).
+- **Success** only status 200 with the trimmed body `1` (`T50`, `T51`).
+- **`unconfirmed`** for everything else: a redirect, a transport failure (the POST may have left; never retried), any other status or body.
+  `unrecognizedAnswer` carries the status and a bare numeric body (`-2`, `-3`, `-4`: seen on a local instance only, `T52`-`T61`) so the app
+  may word a message, but none is read as a refusal: refusals are not captured on the live host, some of them ban the client, and an empty
+  200 or a 403 is "maybe banned" (`T67`, `T68`). The caller checks `alerts(topicID:)` before offering a retry.
+- **Validated before sending** (`invalidReport`, no request): required text (`nom`, `topic_titre` for a new AQ; `pseudo`, `post_url`) not blank
+  and not `0` (PHP `empty()`); `nom` / `topic_titre` / `post_url` ≤ 512, `pseudo` ≤ 128, `commentaire` ≤ 1024 characters (scalars); no
+  character outside the BMP; ids positive and ≤ `int(11)`; `post_url` starts with `https://forum.hardware.fr` (else a 403). Source: HFR-PROTOCOL
+  §6c "Values the database refuses" (`T72`-`T90`, #611): the live `sql_mode` is unknown, so a value either mode would refuse or change is refused here.
+- The N1 notice before the first create, and one create at a time, are app logic (LOT-134).
 
 ## Intentional differences from legacy
 - An item with an unreadable date is **not** new. Legacy dated it "now" (`AQPlusView.swift:203`), so it was new on every check and the
@@ -73,6 +82,12 @@ is `unconfirmed`, and the N1 notice precedes the first one.
   the cookie-less transport and stop at the AQ host.
 - A failed check is an error, not `nil` (same meaning, typed); a non-listing body is an error instead of "not reported".
 - The check timeout is 20 s (legacy: `URLSession` default, 60 s).
+
+## Tests (create)
+`AQCreateTests` (8 tests, 18 cases with `AQClientTests`): `T50`'s answer is a success with the exact request (URL, POST, field order, `from`,
+no `Cookie`, `doNotFollow`, 5 s); addition fields; 8 non-confirming answers (empty, `11`, `-1`, `-4`, page, 403, 201, 500) are `unconfirmed`;
+numeric code carried only when bare; redirect and timeout unconfirmed with one request; 11 invalid reports refused with no request; the
+1024-character boundary and the permalink rule. Mutations checked to fail: any 200 accepted, permalink check removed, BMP check removed.
 
 ## Tests
 `Tests/HFRClientTests/AQ/AQClientTests.swift` (10 tests): requests (URL, method, no body, no `Cookie`, `doNotFollow`, timeout, cap),

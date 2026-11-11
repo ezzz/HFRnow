@@ -177,3 +177,134 @@ struct AQClientTests {
         return try rows.map { try #require($0["isNew"] as? Bool) }
     }
 }
+
+/// LOT-055 create: the captured answer (`T50`: status 200, body `1`), the request, and every other outcome `unconfirmed`.
+@Suite("AQ client: create")
+struct AQCreateTests {
+    static func report(
+        existingAlertID: Int? = nil, title: String = "Alert title", topicID: Int = 9_900_001, topicTitle: String = "Own topic subject",
+        pseudo: String = "User1", postID: Int = 99_100_001, comment: String = "post de user1"
+    ) -> AQNewReport {
+        let permalink = "https://forum.hardware.fr/hfr/own-category/own-subcategory/"
+            + "own-topic-subject-sujet_9900001_1.htm#t99100001"
+        return AQNewReport(
+            existingAlertID: existingAlertID, title: title, topicID: topicID, topicTitle: topicTitle, pseudo: pseudo, postID: postID,
+            postURL: URL(string: permalink) ?? URL(fileURLWithPath: "/"), comment: comment)
+    }
+
+    static func text(_ data: Data?) -> String {
+        String(data: data ?? Data(), encoding: .utf8) ?? ""
+    }
+
+    static func created() throws -> (AQClient, MockTransport) {
+        let body = try AQClientTests.capture("T50-aq-create-answer.txt")
+        return try AQClientTests.client { request async throws(NetworkError) -> HTTPResponse in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/plain;charset=UTF-8"], url: request.url, body: body)
+        }
+    }
+
+    @Test("create: T50's answer is a success; one cookie-less POST of the legacy fields, no redirect, 5 s")
+    func createSucceedsOnCapturedAnswer() async throws {
+        let (client, transport) = try Self.created()
+        try await client.create(Self.report())
+        let requests = await transport.requests
+        #expect(requests.count == 1)
+        let request = try #require(requests.first)
+        #expect(request.url.absoluteString == "https://aq.super-h.fr/api/addAlerte.php")
+        #expect(request.method == .post)
+        #expect(request.headers["Cookie"] == nil)
+        #expect(request.headers["Content-Type"] == FormBody.contentType)
+        #expect(request.redirectPolicy == .doNotFollow)
+        #expect(request.timeout == 5)
+        let body = Self.text(request.body)
+        let names = body.split(separator: "&").map { $0.split(separator: "=", maxSplits: 1)[0] }
+        #expect(names == ["alerte_qualitay_id", "nom", "topic_id", "topic_titre", "pseudo", "post_id", "post_url", "commentaire", "from"])
+        #expect(body.hasPrefix(
+            "alerte_qualitay_id=-1&nom=Alert+title&topic_id=9900001&topic_titre=Own+topic+subject&pseudo=user1&post_id=99100001"))
+        #expect(body.hasSuffix("&from=SwiftHFR"))
+        #expect(body.contains("post_url=https%3A%2F%2Fforum.hardware.fr%2Fhfr%2F"))
+    }
+
+    @Test("create: an addition sends the AQ id and no title or topic fields")
+    func additionFields() async throws {
+        let (client, transport) = try Self.created()
+        try await client.create(Self.report(existingAlertID: 13_636, title: "", topicTitle: ""))
+        let body = Self.text(await transport.requests.first?.body)
+        #expect(body.hasPrefix("alerte_qualitay_id=13636&pseudo=user1&post_id="))
+        #expect(!body.contains("nom=") && !body.contains("topic_id=") && !body.contains("topic_titre="))
+    }
+
+    @Test("create: anything but 200 with `1` is unconfirmed, never a success", arguments: [
+        (200, ""), (200, "11"), (200, "-1"), (200, "-4"), (200, "<html>ok</html>"), (403, ""), (201, "1"), (500, "1")
+    ])
+    func otherAnswersAreUnconfirmed(status: Int, body: String) async throws {
+        let (client, transport) = try AQClientTests.client(AQClientTests.reply(status: status, body: body))
+        do {
+            try await client.create(Self.report())
+            Issue.record("a non-confirmed answer was read as a success")
+        } catch {
+            guard case .unconfirmed(.unrecognizedAnswer(let code, _)) = error else { Issue.record("wrong error \(error)"); return }
+            #expect(code == status)
+        }
+        #expect(await transport.requests.count == 1)
+    }
+
+    @Test("create: a numeric code is carried, a page is not")
+    func codeIsCarriedWhenBare() async throws {
+        let (coded, _) = try AQClientTests.client(AQClientTests.reply(status: 200, body: "-4\n"))
+        let four = AQCreateError.unconfirmed(.unrecognizedAnswer(statusCode: 200, code: "-4"))
+        await #expect(throws: four) { try await coded.create(Self.report()) }
+        let (page, _) = try AQClientTests.client(AQClientTests.reply(status: 200, body: "<html>1</html>"))
+        let none = AQCreateError.unconfirmed(.unrecognizedAnswer(statusCode: 200, code: nil))
+        await #expect(throws: none) { try await page.create(Self.report()) }
+    }
+
+    @Test("create: a redirect and a transport failure are unconfirmed, and the POST is not retried")
+    func redirectAndTransport() async throws {
+        let location: HTTPHeaders = ["Location": "https://forum.hardware.fr/"]
+        let (moved, movedTransport) = try AQClientTests.client(AQClientTests.reply(status: 302, headers: location))
+        await #expect(throws: AQCreateError.unconfirmed(.redirected(statusCode: 302))) { try await moved.create(Self.report()) }
+        #expect(await movedTransport.requests.count == 1)
+        let (slow, slowTransport) = try AQClientTests.client { _ async throws(NetworkError) -> HTTPResponse in throw .timedOut }
+        await #expect(throws: AQCreateError.unconfirmed(.transport(.timedOut))) { try await slow.create(Self.report()) }
+        #expect(await slowTransport.requests.count == 1)
+    }
+
+    @Test("create: a report the database would refuse or change is refused before any request", arguments: [
+        (Self.report(comment: String(repeating: "a", count: 1025)), AQReportProblem.tooLong(.comment)),
+        (Self.report(comment: "ok 😀"), .unsupportedCharacters(.comment)),
+        (Self.report(title: "AQ 😀"), .unsupportedCharacters(.title)),
+        (Self.report(title: "0"), .missing(.title)),
+        (Self.report(title: "  "), .missing(.title)),
+        (Self.report(topicTitle: ""), .missing(.topicTitle)),
+        (Self.report(pseudo: ""), .missing(.pseudo)),
+        (Self.report(pseudo: String(repeating: "p", count: 129)), .tooLong(.pseudo)),
+        (Self.report(topicID: 0), .outOfRange(.topicID)),
+        (Self.report(postID: Int(Int32.max) + 1), .outOfRange(.postID)),
+        (Self.report(existingAlertID: 0), .outOfRange(.existingAlertID))
+    ])
+    func invalidReports(report: AQNewReport, problem: AQReportProblem) async throws {
+        let (client, transport) = try Self.created()
+        await #expect(throws: AQCreateError.invalidReport(problem)) { try await client.create(report) }
+        #expect(await transport.requests.isEmpty)
+    }
+
+    @Test("create: a 1024-character comment is accepted (T74); a permalink off forum.hardware.fr is refused")
+    func boundariesAndPermalink() async throws {
+        let (client, transport) = try Self.created()
+        try await client.create(Self.report(comment: String(repeating: "é", count: 1024)))
+        #expect(await transport.requests.count == 1)
+        var other = Self.report()
+        other.postURL = URL(string: "http://forum.hardware.fr/hfr/x_1_1.htm#t1") ?? other.postURL
+        await #expect(throws: AQCreateError.invalidReport(.notForumPermalink)) { try await client.create(other) }
+        #expect(await transport.requests.count == 1)
+    }
+
+    @Test("create: an addition may leave title and topic empty (T84) but still needs a pseudo (T83)")
+    func additionRules() async throws {
+        let (client, _) = try Self.created()
+        await #expect(throws: AQCreateError.invalidReport(.missing(.pseudo))) {
+            try await client.create(Self.report(existingAlertID: 1, pseudo: ""))
+        }
+    }
+}
