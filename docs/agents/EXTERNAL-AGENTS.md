@@ -130,7 +130,7 @@ re-check that head, and post the new verdict. **A self-spawned review is not eno
 
 | Tier | Models (examples) | May author | May review |
 |---|---|---|---|
-| **A: frontier reasoning** | Claude **Fable 5.1**, Claude **Opus 5.5**; OpenAI **GPT-6.1** (Sol / Terra), GPT-6 Astra; Google **Gemini 4** Carbon / Argon | any lot, including state-changing flows, sessions, security, the message parser | any PR |
+| **A: frontier reasoning** | Claude **Fable 5.2**, Claude **Opus 5.5**; OpenAI **GPT-6.1** (Sol / Terra), GPT-6 Astra; Google **Gemini 4** Carbon / Argon | any lot, including state-changing flows, sessions, security, the message parser | any PR |
 | **B: strong coders** | Claude **Sonnet 5.5**; Moonshot **Kimi K3.1 Pro**; DeepSeek **V4.1**; Mistral **Large 4** / Medium 3.5; Meta **Muse Wonder** | well-specified parsers with oracle, storage, read-only clients, tests, docs | PRs of tier B or C, and non-security docs |
 | **C: fast / small** | Claude **Haiku 5.5**, small open-weight models | mechanical work: renames, doc and label upkeep, fixture checks | only as a second reader, never the required reviewer |
 
@@ -141,7 +141,7 @@ Rules:
 1. **The reviewer is never the author model.** Prefer **another vendor** when you have one: a different training run catches different mistakes.
 2. The reviewer's tier is **≥ the tier the issue requires**. State-changing, session, auth and security PRs need a **tier A** reviewer.
 3. Inside Anthropic, the project's routing applies: work by Sonnet or Haiku → reviewed by Opus; work by Opus → reviewed by Fable; work by Fable → reviewed by Opus.
-4. **When a non-Anthropic model authored or reviewed the PR, an Anthropic tier-A review (Claude Opus 5.5 or Fable 5.1) is also
+4. **When a non-Anthropic model authored or reviewed the PR, an Anthropic tier-A review (Claude Opus 5.5 or Fable 5.2, always the latest version: AGENTS.md §6) is also
    applied, every time.** The project's lessons and conventions were built and measured with those models. Post that review
    as a second verdict. If you cannot run one, flag `REVIEW WANTED: opus` (or `fable` for Opus-authored work).
 5. Every PR and every review states the exact model: `Author model:` in the PR body and `(<model>, …)` in the verdict.
