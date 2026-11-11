@@ -7,7 +7,7 @@ import UIKit
 import WebKit
 
 /// #755 in the real web view, on the captured page `R267a` (#267): HFR's dashes before a signature are gone and one thin
-/// solid line, as wide as the message, sets the signature apart.
+/// dashed line (legacy's), as wide as the message, sets the signature apart.
 @MainActor
 @Suite(.serialized)
 struct SignatureLineWebTests: ReaderWebTesting {
@@ -39,7 +39,7 @@ struct SignatureLineWebTests: ReaderWebTesting {
         let values = try #require(try await evaluate(script, in: controller) as? [Any])
         let text = try #require(values[0] as? String)
         #expect(!text.contains("--") && text.contains("Signature removed."))
-        #expect(values[1] as? String == "solid")
+        #expect(values[1] as? String == "dashed")
         #expect(values[2] as? String == "1px")
         let width = try #require((values[3] as? NSNumber)?.doubleValue)
         let container = try #require((values[4] as? NSNumber)?.doubleValue)
