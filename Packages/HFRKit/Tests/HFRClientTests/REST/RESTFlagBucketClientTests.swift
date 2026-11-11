@@ -36,7 +36,8 @@ struct RESTFlagBucketClientTests {
     }
 
     private static func run(
-        _ bucket: RESTFlagBucket, _ replies: [Result<HTTPResponse, NetworkError>], account: HFRSession = account()
+        _ bucket: RESTFlagBucket, _ replies: [Result<HTTPResponse, NetworkError>], account: HFRSession = account(),
+        postsPerPage: Int = 40
     ) async -> Run {
         let probe = MockTransport(replies: replies)
         let seeds = Seeds()
@@ -46,7 +47,7 @@ struct RESTFlagBucketClientTests {
         })
         let result: Result<RESTBrowsingResult<FavoritesPage>, RESTBrowsingError>
         do {
-            result = .success(try await client.topics(in: bucket, postsPerPage: 40))
+            result = .success(try await client.topics(in: bucket, postsPerPage: postsPerPage))
         } catch {
             result = .failure(error)
         }
@@ -84,6 +85,17 @@ struct RESTFlagBucketClientTests {
         // Only read: the account keeps its cookies and gets no token.
         #expect(await account.cookies() == before)
         #expect(await account.hashCheck == nil)
+    }
+
+    @Test("The account's posts per page reaches the rows: R335a's 5001-post topic has 251 pages at 20")
+    func accountPageSizeReachesTheRows() async throws {
+        let run = await Self.run(
+            .participated, [.success(try RESTCapture.response(RESTCapture.participated, id: "R335a"))], postsPerPage: 20
+        )
+        let topic = try #require(try run.result.get().value.sections.first?.topics.first)
+        #expect(topic.pageCount == 251)
+        #expect(topic.currentPage == 251)
+        #expect(topic.lastPagePath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=251")
     }
 
     @Test("The default probe keeps a loopback-only account's host policy, asserted without sending")
@@ -196,6 +208,9 @@ struct RESTFlagBucketClientTests {
         let client = RESTFlagBucketClient(session: account, makeProbe: { _ in probe })
         let result = try await client.topics(in: .participated, postsPerPage: 40)
         #expect(result.value == (try FavoritesParser.parse(stale.decodedText().text)))
+        // An empty page with its notice, never "nothing flagged" (LESSONS 44).
+        #expect(result.value.sections.isEmpty)
+        #expect(result.value.notice != nil)
         #expect(await account.cookies().first { $0.name == "md_passs" }?.value == "loginpass")
     }
 

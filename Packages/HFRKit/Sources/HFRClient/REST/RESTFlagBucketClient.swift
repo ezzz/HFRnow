@@ -65,8 +65,9 @@ public struct RESTFlagBucketClient: Sendable {
     /// REST answer fails.
     ///
     /// - Parameter postsPerPage: the account's posts per page (`topicpp`, profile page 3, `R55-p3`, E19), which sets each
-    ///   REST row's page count and last page; the JSON's own page size (40, `links.posts.href`) is not the account's. A
-    ///   value below 1 is `invalidTarget`, before any request.
+    ///   REST row's page count and last page; the JSON's own page size (40, `links.posts.href`) is not the account's. No
+    ///   reader of `topicpp` exists yet (#833): a caller with only the anonymous 40 gets wrong last pages for an account
+    ///   with another setting. A value below 1 is `invalidTarget`, before any request.
     ///
     /// A REST row carries no flag link: it opens at its last page, and its read state is unknown (see the spec). A
     /// fallback page may hold a `notice` instead of sections (`R12`, logged out): as with `FavoritesParser`, the caller
