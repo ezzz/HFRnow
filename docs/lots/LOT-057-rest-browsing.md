@@ -1,7 +1,7 @@
 # LOT-057 — REST browsing client
 
 - **Module:** HFRClient (`Sources/HFRClient/REST/`), plus two small public helpers in HFRParsing (`HFRText.decodingHTMLEntities`, `HFRDate.restDate`)
-- **Difficulty / model:** medium (Opus 5.5 author → Fable 5.1 reviewer)
+- **Difficulty / model:** medium (Opus 5.5 author → Fable 5.2 reviewer)
 - **Issue:** [#83](https://github.com/ezzz/HFRnow/issues/83) (audit item redface2 E1; old issue francoisgn/ios-app_SwiftHFR#85)
 - **Builds on:** LOT-010 (list models), LOT-021 (`ForumListParser`), LOT-022 (`TopicListParser`), LOT-041 (`HFREndpoint.rest`, `topicPage`, `topicList`), LOT-042 (`AnonymousTransport`), LOT-045 (`PageFetcher`), LOT-095 (`ForumCatalogue.forumPath`), all done.
 - **Partial:** this PR ships the anonymous part (`Refs #83`). Left: the flag buckets ([#335](https://github.com/ezzz/HFRnow/issues/335)), the sub-categories ([#285](https://github.com/ezzz/HFRnow/issues/285)), list pages after the first, `results_per_page` and the error answers ([#355](https://github.com/ezzz/HFRnow/issues/355)).

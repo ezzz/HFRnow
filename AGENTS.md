@@ -114,7 +114,7 @@ Starting hypothesis, adjusted after the first lots (record changes here).
 | Mechanical work: fixture anonymization, renames, doc/label upkeep, convention checks | Haiku 5.5 |
 
 Rule: **the reviewer is never the author model.** Opus-authored work is reviewed by Fable; Sonnet- and Haiku-authored work by Opus; Fable-authored work by Opus.
-**Always the latest version** (operator, 2026-11-11): a model named in this table means the newest release of that family; Fable is Fable 5.2 since 2026-11-11. A spec, issue or brief that names an older version (e.g. "Fable 5.1") means the latest one; past records (ADRs, audit reports, posted verdicts) keep the version that actually ran.
+**Always the latest version** (operator, 2026-11-11): a model named in this table means the newest release of that family. A spec, issue or brief that names an older version (e.g. "Fable 5.1") means the latest one; past records (ADRs, audit reports, posted verdicts) keep the version that actually ran.
 Sub-agents launched by a session work under the claim they are given, open one PR per lot, and never merge.
 
 ## 7. Labels and prioritization
