@@ -11,6 +11,14 @@ final class QuoteMenuWebView: WKWebView {
     var onQuoteSelection: (@MainActor (_ bold: Bool) -> Void)?
     /// The entries show only while this is true (the reader can quote); the standard menu is untouched either way.
     var offersQuote = false
+    /// Told whether the web view is now in a window (UIKit's `didMoveToWindow`): the reader's ground truth for "on screen",
+    /// which SwiftUI's `onAppear`/`onDisappear` pair does not always give (issue #750).
+    var onWindowChange: (@MainActor (_ inWindow: Bool) -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onWindowChange?(window != nil)
+    }
 
     override func buildMenu(with builder: any UIMenuBuilder) {
         super.buildMenu(with: builder)

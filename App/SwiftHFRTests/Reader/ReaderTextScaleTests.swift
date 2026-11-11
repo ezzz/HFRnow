@@ -78,4 +78,16 @@ struct ReaderTextScaleTests: ReaderWebTesting {
         // The "⋯" button stays a plain tap target (44 pt and up, not a block filling the header), and the default is unchanged.
         #expect(large[2] >= 44 && large[3] >= 44 && large[3] <= 80, "button at 300 %: \(large)")
     }
+
+    /// Issue #785: the text size changes while a page is loading, then the next page is shown: both become ready (the
+    /// setting reinstalls the user scripts and sets the size live, it never stops or reloads a load).
+    @Test func aTextSizeChangeDuringALoadKeepsPagesLoading() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(document(token: 1))
+        controller.textScale = TextScale(percent: 90)
+        #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
+        controller.textScale = TextScale(percent: 110)
+        controller.show(document(token: 2))
+        #expect(await until { recorder.ready == [1, 2] }, "ready: \(recorder.ready)")
+    }
 }

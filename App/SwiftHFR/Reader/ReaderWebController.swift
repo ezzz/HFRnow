@@ -15,29 +15,6 @@ import WebKit
 /// - the data store is non-persistent: no cookie, cache or storage outlives the reader.
 @MainActor
 final class ReaderWebController: NSObject {
-    /// Callbacks to the reader screen.
-    struct Events {
-        /// The document `token` reached DOMContentLoaded and its images were routed.
-        var ready: @MainActor (Int) -> Void = { _ in }
-        /// The document `token` could not be shown: its navigation failed twice (issue #566).
-        var failed: @MainActor (Int) -> Void = { _ in }
-        /// The user tapped a link.
-        var link: @MainActor (URL) -> Void = { _ in }
-        /// The user tapped the placeholder of video `index` of message `post` in document `token`.
-        var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
-        /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
-        var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
-        /// The user tapped the menu button or the author of message `post` in document `token`; `anchor` is the button's
-        /// rectangle in the web view's own coordinates (nil when the page gave none).
-        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ anchor: CGRect?, _ token: Int) -> Void = { _, _, _, _ in }
-        /// The user chose "Citer extrait" or "Citer gras" over `text`, selected in message `post` of document `token` (LOT-086).
-        var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
-        /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
-        var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
-        /// A short sentence for the reader's feedback line (the result of "Enregistrer dans Photos", #615).
-        var notice: @MainActor (_ text: String) -> Void = { _ in }
-    }
-
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
     static let world = WKContentWorld.world(name: "SwiftHFRReader")
     /// Name of the message channel (`window.webkit.messageHandlers.reader` in the reader's world).
@@ -88,7 +65,9 @@ final class ReaderWebController: NSObject {
     private var reloadedAfterFailure = false
     /// `stopLoading()` ran and the screen has not come back (`resume()`): `show` loads nothing, so a re-render of the hidden
     /// view cannot restart the load just stopped (issue #566).
-    private var stopped = false
+    var stopped = false
+    /// The document `stopLoading()` cut, and whether SwiftUI's last word was `onDisappear` (`ReaderWebController+Presence`).
+    var stoppedDocument: ReaderDocument?, disappeared = false
     /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
@@ -120,6 +99,7 @@ final class ReaderWebController: NSObject {
         webView = QuoteMenuWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.onQuoteSelection = { [weak self] bold in self?.requestSelectionQuote(bold: bold) }
+        webView.onWindowChange = { [weak self] inWindow in self?.windowDidChange(inWindow: inWindow) }
         installUserScripts()
         proxy.owner = self
         messages.owner = self
@@ -176,6 +156,7 @@ final class ReaderWebController: NSObject {
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
         webView.stopLoading()
         stopped = true
+        stoppedDocument = document
         pageNavigation = nil
         if !wasReady {
             document = nil
@@ -184,11 +165,6 @@ final class ReaderWebController: NSObject {
         for task in running.values { task.cancel() }
         running.removeAll()
         waiting.removeAll()
-    }
-
-    /// The screen is back: `show` loads again (call it before `show`).
-    func resume() {
-        stopped = false
     }
 
     static func pageURL(token: Int) -> URL {

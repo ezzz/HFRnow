@@ -8,7 +8,10 @@ import Testing
 @MainActor
 struct TopicReaderModelLifecycleTests {
     private func model(_ pages: FakeTopicPages) -> TopicReaderModel {
-        TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), title: "Sujet", source: pages)
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), title: "Sujet", source: pages)
+        // These readers have a viewer but no web view: the wait limit must not depend on how slow the run is (#786 CI).
+        reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) }
+        return reader
     }
 
     /// Issue #566 (H1b): a replacement view appears on the same model while the first view's load runs, then the first view
