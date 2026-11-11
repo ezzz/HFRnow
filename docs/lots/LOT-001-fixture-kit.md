@@ -42,7 +42,7 @@ Python 3 standard library only (no new dependency, AGENTS.md rule 3). Usage, con
 | `capture.py` | GET-only capture of a manifest; refuses an output dir inside a git work tree; ≥ 3 s between requests; stops on 429/5xx; `--dry-run` |
 | `flows.py` | One step per run (login, get, post, form GET → POST with `legacy` or `browser` checkbox semantics, peek); jars and request budget persisted in the work dir; every redirect hop recorded; stops on 429/5xx, captcha, budget; printed output anonymized |
 | `anonymize.py` | Decodes the three crypt prefixes (alphabet `0A12B34C56D78E9F`), redacts, **re-encodes with the same prefix**; member pseudos in every live member position (post headers, quotes, lists, MP list titles, smileys, REST) in raw/`%`/entity/JSON forms → `userN`, then in free text when specific enough; member ids through one id table; tokens, cookies, personal profile fields → `REDACTED`; `--private` replaces message bodies; refuses a page whose markup changed; `check` (config optional, `--corpus`) runs two independent verifiers and the CLI refuses to write a leaking output |
-| `publish.py` | Raw captures → corpus files and metas from `corpus.json` (page and meta share one alias table; member names of the whole corpus replaced in every file's free text) |
+| `publish.py` | Raw captures → corpus files and metas from the `corpus.d/` fragments (page and meta share one alias table; member names of the whole corpus replaced in every file's free text) |
 
 Credentials stay outside the repo (JSON in the task work folder, `chmod 600`); real pseudos only in a git-ignored local config.
 The legacy **oracle is generated from the anonymized HTML**, never from a raw capture (LOT-002..004).

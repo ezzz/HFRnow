@@ -8,8 +8,8 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 | `capture.py` | Polite capture of the pages listed in a manifest (operator-run, Mac) |
 | `flows.py` | Step-by-step capture of pages and write flows (login, form GET → POST), shared delay and budget |
 | `anonymize.py` | Anonymizer library, CLI and `check` verifier |
-| `publish.py` | Raw captures → corpus files and `<id>.meta.json`, driven by `corpus.json` |
-| `corpus.json` | The corpus manifest: raw id → corpus id, slug, extension, private |
+| `publish.py` | Raw captures → corpus files and `<id>.meta.json`, driven by the `corpus.d/` fragments |
+| `corpus.d/` | The corpus manifest, one `<batch>.json` per capture batch (`00-base.json` holds the former `corpus.json`): raw id → corpus id, slug, extension, private. A capture PR adds its own file and never edits another |
 | `local.example.json` | Template of the git-ignored `local.json` |
 | `manifest_check.py` | Check run by the `fixture-tooling` unit-test step (`test_committed_corpus_and_manifest_agree`; no workflow edit, so a corpus PR starts no macOS job): every `corpus.json` id is named in a row of the captures' `MANIFEST.md` (grouped rows such as `T11, T11h` count) and every id of its capture table is in the corpus |
 | `tests/` | `python3 -m unittest discover tooling/fixtures/tests` (synthetic HTML only, run in CI) |
@@ -162,10 +162,35 @@ python3 tooling/fixtures/publish.py --config local.json --raw ~/agent-work/<task
     --dest Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures [RAW_ID ...]
 ```
 
-For each `corpus.json` entry: `<id>-<slug>.<ext>` (anonymized page) and `<id>.meta.json` with the kept raw meta
+For each `corpus.d/` entry: `<id>-<slug>.<ext>` (anonymized page) and `<id>.meta.json` with the kept raw meta
 fields (`account`, `method`, `url_template`, `url`, `final_url`, `status`, `content_type`, `date`, `redirects`,
 `set_cookie_names`, `request_fields`, `note`), `request_body` (the anonymized POST body from `<raw>.request.txt`),
 `file` and `private`. The page and its meta share one alias table. A capture that still leaks is not written.
+
+### Adding a capture batch (`corpus.d/`)
+
+A capture PR lists its captures in **its own file**, `tooling/fixtures/corpus.d/<batch>.json`, named after its issue
+and topic (`capture/333-storage-page-2` → `333-storage-page-2.json`), and never edits another fragment: two capture
+PRs then never touch the same file, so merging one does not conflict with the next (#773; the single `corpus.json`
+that every PR appended to did, #612/#620 did the same for the ledger).
+
+```json
+{"captures": [
+  {"raw": "R801", "id": "R801", "slug": "example", "ext": "html", "private": false}
+]}
+```
+
+`publish.py` reads every `*.json` of the folder in file name order and refuses a raw id or a corpus id that two
+files (or one file twice) declare, naming them. `anonymize.py check --corpus` stays the arbiter on the files, and a
+capture still needs its `MANIFEST.md` row.
+
+A PR that already appended rows to the old `corpus.json` moves them. Merge `dev-swift`: git sees `corpus.json` as
+renamed to `corpus.d/00-base.json`, so the conflict is **inside `00-base.json`** (your rows against the newer ones of
+`dev-swift`). Keep `dev-swift`'s file whole with `git checkout --theirs tooling/fixtures/corpus.d/00-base.json`
+(during a merge, `theirs` is `dev-swift`), put the rows your branch added into a new `corpus.d/<batch>.json`
+(`git diff $(git merge-base HEAD origin/dev-swift) HEAD -- tooling/fixtures/corpus.json` lists them), then `git add` both. If git
+reports a modify/delete conflict on `corpus.json` instead, `git rm tooling/fixtures/corpus.json`. Check with
+`python3 -m unittest discover tooling/fixtures/tests` and `anonymize.py check --corpus`.
 
 ## Capture
 
