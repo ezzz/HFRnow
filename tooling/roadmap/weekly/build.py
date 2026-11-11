@@ -289,7 +289,8 @@ def day_label(d):
 
 def dependents():
     c = Counter()
-    for l, r in G.rows.items():
+    for l in C.live_lots(G.rows, G.rows, DROPPED):  # a dropped lot unblocks nothing
+        r = G.rows[l]
         if not G.done(l):
             for d in G.deps(r):
                 c[d] += 1
@@ -583,18 +584,24 @@ def slide_daily(D):
                 f'<div class="tri" style="flex:1;max-height:720px">{h}</div>')
 
 
-def slide_m5(D):
+def m5_cards():
+    """The cards of the M5 slide: one per feature, then the dashed « Aussi dans M5 » card for the lots no feature lists."""
     cards = ''
     for ic, t, _, ls in FEATURES['M5']:
-        lots = [f'LOT-{x:03d}' for x in ls if f'LOT-{x:03d}' in G.rows]
+        lots = sorted(C.live_lots({f'LOT-{x:03d}' for x in ls} & set(G.rows), G.rows, DROPPED), key=lambda l: ls.index(lot_n(l)))
         li = ''.join(f'<li>{"✓ " if G.done(l) else ""}{esc(lot_label(l))}</li>' for l in lots)
         cards += f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><ul>{li}</ul><div style="margin-top:auto">{card_pill(ls)}</div></div>'
     listed = {f'LOT-{x:03d}' for *_, ls in FEATURES['M5'] for x in ls}
     rest = sorted(l for l in ms_lots()['M5'] if l not in listed)
-    cards += (f'<div class="card dash fc"><div class="t">{icon("list")}<b>Aussi dans M5 · {len(rest)}</b></div>'
-              f'<ul>{"".join(f"<li><u>{l[4:]}</u>{esc(lot_label(l))}</li>" for l in rest[:5])}</ul></div>')
+    if rest:  # no empty card when every remaining lot sits under a feature
+        cards += (f'<div class="card dash fc"><div class="t">{icon("list")}<b>Aussi dans M5 · {len(rest)}</b></div>'
+                  f'<ul>{"".join(f"<li><u>{l[4:]}</u>{esc(lot_label(l))}</li>" for l in rest[:5])}</ul></div>')
+    return cards
+
+
+def slide_m5(D):
     text = "Les évolutions que la parité n'exige pas : décisions UX, propositions de fonctions, secondes moitiés des lots scindés. Ouvert par l'orchestrateur après M4."
-    inner = f'<div class="feat">{hero("M5", D, text)}<div class="cards">{cards}</div></div>'
+    inner = f'<div class="feat">{hero("M5", D, text)}<div class="cards">{m5_cards()}</div></div>'
     return page(9, "<b>M5</b> · les évolutions", "Planifié après la parité de M4, jamais abandonné.", inner)
 
 

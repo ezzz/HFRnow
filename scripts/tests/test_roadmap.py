@@ -581,6 +581,52 @@ class WeeklyCounts(unittest.TestCase):
         self.assertEqual(counts.live_lots({"LOT-002"}, rows, {2}), set())
         self.assertEqual(len(counts.live_lots(rows, rows, set())), 3)
 
+    def with_dropped(self, *lots):
+        """build with the real lots, nothing done, and these lots' issues dropped (issue 784: every slide must agree)."""
+        import build
+        stack = contextlib.ExitStack()
+        stack.enter_context(mock.patch.object(build, "G", generate))
+        stack.enter_context(mock.patch.object(generate, "done", return_value=False))
+        stack.enter_context(mock.patch.object(build, "DROPPED", {generate.rows[l]["issue"] for l in lots}))
+        self.addCleanup(stack.close)
+        return build
+
+    def test_ms_lots_filters_the_dropped_lots(self):
+        build = self.with_dropped("LOT-110")
+        self.assertNotIn("LOT-110", build.ms_lots()["M5"])
+        self.assertEqual(len(build.ms_lots()["M5"]), len(generate.M5) - 1)
+
+    def test_card_pill_counts_live_lots_only(self):
+        build = self.with_dropped("LOT-110")
+        self.assertIn(f"À faire · {len(build.FEATURES['M5'][0][3]) - 1} lots", build.card_pill(build.FEATURES["M5"][0][3]))
+
+    def test_left_card_lists_and_counts_live_lots_only(self):
+        build = self.with_dropped("LOT-110")
+        out = build.left_card("M5", {"titles": {}})
+        self.assertIn(f"Reste à faire · {len(generate.M5) - 1}<", out)
+        self.assertNotIn("<u>110</u>", out)
+
+    def test_m5_slide_lists_no_dropped_lot_in_a_feature_card(self):
+        build = self.with_dropped()
+        label = build.lot_label("LOT-110")
+        self.assertIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
+        build = self.with_dropped("LOT-110")
+        self.assertNotIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
+
+    def test_m5_slide_drops_the_empty_also_card_and_counts_the_rest(self):
+        build = self.with_dropped("LOT-176")
+        self.assertIn("Aussi dans M5 · 1<", build.m5_cards())
+        self.assertNotIn("<u>176</u>", build.m5_cards())
+        build = self.with_dropped("LOT-176", "LOT-183")
+        self.assertNotIn("Aussi dans M5", build.m5_cards())
+
+    def test_a_dropped_lot_does_not_count_in_unblocks(self):
+        build = self.with_dropped()
+        pair = next((d, y) for y, r in generate.rows.items() for d in generate.deps(r))
+        before = build.dependents()[pair[0]]
+        build = self.with_dropped(pair[1])
+        self.assertEqual(build.dependents()[pair[0]], before - 1)
+
     def test_generate_reads_the_state_named_by_roadmap_state(self):
         import tempfile
         lot = next(iter(sorted(generate.rows)))
