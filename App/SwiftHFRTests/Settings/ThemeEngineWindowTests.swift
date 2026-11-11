@@ -151,23 +151,54 @@ struct ThemeEngineWindowTests {
         func updateUIView(_ uiView: UIView, context: Context) {}
     }
 
-    /// Dark, light, dark under a themed stack: the counted view is made once. A change of theme may rebuild (the user's own
-    /// change), a flip may not (LOT-122's rule, kept by LOT-188).
-    @Test func flippingTheAppearanceUnderAThemeRebuildsNothing() async throws {
+    /// The root as the app builds it: `appTheme` is called from a `body`, so a change of the model reaches the window.
+    struct CountingRoot: View {
+        let model: ThemeSettingsModel
+        let counter: Counter
+        var split = false
+        var body: some View {
+            Group {
+                if split {
+                    NavigationSplitView(columnVisibility: .constant(.all)) {
+                        List { Text("") }.appScreenBackground()
+                    } content: {
+                        List { Text("") }.appScreenBackground()
+                    } detail: {
+                        CountingView(counter: counter).appScreenBackground()
+                    }
+                } else {
+                    ThemedNavigationStack { CountingView(counter: counter) }
+                }
+            }
+            .appTheme(model)
+        }
+    }
+
+    /// Dark, light, dark under a themed stack and under a split column: the counted view is made once, and each flip is seen
+    /// (the window's style and the theme's background pixel). A change of theme may rebuild (the user's own change), a flip
+    /// may not (LOT-122's rule, kept by LOT-188).
+    @Test(arguments: [false, true])
+    func flippingTheAppearanceUnderAThemeRebuildsNothing(split: Bool) async throws {
         let model = try themedModel(dark: true)
         let counter = Counter()
-        let root = ThemedNavigationStack { CountingView(counter: counter) }.appTheme(model)
-        let window = try show(root, size: CGSize(width: 400, height: 600))
+        let size = split ? CGSize(width: 1100, height: 700) : CGSize(width: 400, height: 600)
+        let window = try show(CountingRoot(model: model, counter: counter, split: split), size: size)
         defer { window.isHidden = true }
-        _ = await until { window.traitCollection.userInterfaceStyle == .dark && counter.made > 0 }
+        // A list column (split) or nothing over the stack's background: either shows the theme's fill.
+        let x: CGFloat = split ? 60 : 200
+        #expect(await until { window.traitCollection.userInterfaceStyle == .dark && red(in: window, x: x) == Self.darkRed })
+        #expect(counter.made == 1, "shown, made \(counter.made)")
         for mode in [ThemeSettingsModel.Mode.light, .dark] {
             model.mode = mode
-            _ = await until { window.traitCollection.userInterfaceStyle == (mode == .dark ? .dark : .light) }
+            let style: UIUserInterfaceStyle = mode == .dark ? .dark : .light
+            let expected = mode == .dark ? Self.darkRed : Self.lightRed
+            let flipped = await until { window.traitCollection.userInterfaceStyle == style && red(in: window, x: x) == expected }
+            #expect(flipped, "\(mode): \(red(in: window, x: x))")
             for _ in 0..<5 {
-                _ = red(in: window, x: 200)
+                _ = red(in: window, x: x)
                 try? await Task.sleep(for: .milliseconds(60))
             }
         }
-        #expect(counter.made == 1, "made \(counter.made)")
+        #expect(counter.made == 1, "split \(split): made \(counter.made)")
     }
 }

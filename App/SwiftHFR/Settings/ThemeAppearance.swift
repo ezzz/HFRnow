@@ -138,6 +138,16 @@ struct ThemeAppearance: Equatable, Sendable {
             + readerThemeVariables
     }
 
+    /// The reader's text family for the theme's design (`--app-theme-font`), or nil for the page's own; app constants, never
+    /// page text. `[code]` keeps its monospace rule.
+    var readerFontFamily: String? {
+        switch fontDesign {
+        case .rounded?: "ui-rounded, -apple-system, sans-serif"
+        case .monospaced?: "ui-monospace, Menlo, monospace"
+        default: nil
+        }
+    }
+
     /// The reader's variable of each token (`reader.css`, theme block). The page is the theme's `surface` (the reader is a
     /// list of messages, the rows and cards of THEMES.md §3, where its text rules hold); placeholders sit on `quoteBackground`.
     static let readerTokens: [(name: String, token: KeyPath<ThemeTokens, ThemeRGB> & Sendable)] = [
@@ -187,10 +197,13 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerScript: String {
         // Inside a function: the reader's world is shared by every user script, so nothing is declared at its top level.
         let lines = readerVariables.map { "s.setProperty('\($0.name)', '\($0.value)');" }
-        let flag = themeVariants == nil
-            ? "document.documentElement.removeAttribute('data-app-theme');"
-            : "document.documentElement.setAttribute('data-app-theme', '');"
-        return (["(() => { const s = document.documentElement.style;"] + lines + [flag, "})();"]).joined(separator: " ")
+        guard themeVariants != nil else {
+            let flag = "document.documentElement.removeAttribute('data-app-theme');"
+            return (["(() => { const s = document.documentElement.style;"] + lines + [flag, "})();"]).joined(separator: " ")
+        }
+        let font = readerFontFamily.map { "s.setProperty('--app-theme-font', '\($0)');" } ?? "s.removeProperty('--app-theme-font');"
+        let flag = "document.documentElement.setAttribute('data-app-theme', '');"
+        return (["(() => { const s = document.documentElement.style;"] + lines + [font, flag, "})();"]).joined(separator: " ")
     }
 }
 
@@ -280,4 +293,23 @@ extension ThemeColor {
 extension EnvironmentValues {
     /// The theme colours; the app root sets them from the "Thème" settings, the reader reads them.
     @Entry var themeAppearance = ThemeAppearance.standard
+}
+
+extension View {
+    /// `.buttonStyle(.borderedProminent)`, filled with a gallery theme's `accent` and labelled in its `onAccent` (LOT-188): the
+    /// app's tint is the theme's `accentText`, a text colour, on which the style's white label need not be legible. Legacy gets
+    /// the plain style, as before.
+    func appProminentButtonStyle() -> some View { modifier(AppProminentButtonStyle()) }
+}
+
+private struct AppProminentButtonStyle: ViewModifier {
+    @Environment(\.themeAppearance) private var appearance
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let fill = appearance.themeColor(\.accent), let label = appearance.themeColor(\.onAccent) {
+            content.buttonStyle(.borderedProminent).tint(Color(uiColor: fill)).foregroundStyle(Color(uiColor: label))
+        } else {
+            content.buttonStyle(.borderedProminent)
+        }
+    }
 }

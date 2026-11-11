@@ -57,24 +57,17 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     /// Optional: counters of a table-like theme; `textSecondary` when absent.
     public let counter: ThemeRGB?
 
-    private struct Key: CodingKey {
-        let stringValue: String
-        var intValue: Int? { nil }
-        init(stringValue: String) { self.stringValue = stringValue }
-        init?(intValue: Int) { nil }
-    }
-
     /// Decodes every token; a name that is not a token (a typo of an optional one would otherwise be ignored) is an error.
     public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: Key.self)
+        let container = try decoder.container(keyedBy: ThemeFileKey.self)
         let known = Set(Self.requiredNames + Self.optionalNames)
-        if let unknown = container.allKeys.first(where: { !known.contains($0.stringValue) }) {
-            throw DecodingError.dataCorruptedError(
-                forKey: unknown, in: container, debugDescription: "Unknown theme token \(unknown.stringValue)"
-            )
+        try ThemeFileKey.refuseUnknown(in: container, known: known, what: "theme token")
+        func required(_ name: String) throws -> ThemeRGB {
+            try container.decode(ThemeRGB.self, forKey: ThemeFileKey(stringValue: name))
         }
-        func required(_ name: String) throws -> ThemeRGB { try container.decode(ThemeRGB.self, forKey: Key(stringValue: name)) }
-        func optional(_ name: String) throws -> ThemeRGB? { try container.decodeIfPresent(ThemeRGB.self, forKey: Key(stringValue: name)) }
+        func optional(_ name: String) throws -> ThemeRGB? {
+            try container.decodeIfPresent(ThemeRGB.self, forKey: ThemeFileKey(stringValue: name))
+        }
         background = try required("background")
         surface = try required("surface")
         surfaceRaised = try required("surfaceRaised")
@@ -143,17 +136,29 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         public let minimum: Double
     }
 
-    /// Every rule a variant must meet: THEMES.md §3 (WCAG 2.x, 4.5:1, no large-text exception), plus the system's own text of the
-    /// variant's appearance (black in light, white in dark) on `background` and `surface`, since native screens keep the system
-    /// label colours (LOT-188 spec).
+    /// Every rule a variant must meet (WCAG 2.x, 4.5:1, no large-text exception): THEMES.md §3, then every other pair the app
+    /// draws (LOT-188 spec). Three names are derived, not tokens: `systemText` (the system label of the appearance the variant
+    /// shows in, black in light, white in dark: native text keeps it), `systemCard` (the system's list card in that appearance,
+    /// #FFFFFF or #1C1C1E: native rows keep it, and the tint draws on it) and `readerAlternate` (the reader's even message,
+    /// `textPrimary` mixed into `surface` at its strongest, Increase Contrast, strength: 7 % in light, 16 % in dark, `reader.css`).
     public static let contrastRules: [ContrastRule] = [
+        // THEMES.md §3.
         ("title", "background"), ("sectionHeader", "background"),
         ("textPrimary", "surface"), ("textSecondary", "surface"),
         ("onAccent", "accent"), ("accentText", "surface"), ("link", "surface"),
         ("textPrimary", "quoteBackground"), ("textSecondary", "quoteBackground"),
         ("codeText", "codeBackground"), ("spoilerText", "spoilerBackground"),
         ("onUnread", "unread"),
-        ("systemText", "background"), ("systemText", "surface")
+        // Native screens: system text on the theme's background and surface, the tint on the system card.
+        ("systemText", "background"), ("systemText", "surface"), ("accentText", "systemCard"),
+        // The reader: links and accents in quotes, spoilers and code, and every text of an even message.
+        ("link", "quoteBackground"), ("link", "spoilerBackground"), ("link", "codeBackground"),
+        ("textSecondary", "codeBackground"), ("accentText", "codeBackground"), ("accentText", "quoteBackground"),
+        ("textPrimary", "readerAlternate"), ("textSecondary", "readerAlternate"), ("link", "readerAlternate"),
+        ("accentText", "readerAlternate"),
+        // Optional table tokens (LOT-193), on what they sit on.
+        ("meta", "surface"), ("meta", "alternateCell"), ("counter", "surface"), ("counter", "alternateCell"),
+        ("textPrimary", "alternateCell"), ("textPrimary", "headerBand"), ("textPrimary", "pageBar")
     ].map { ContrastRule(foreground: $0.0, background: $0.1, minimum: 4.5) }
 
     /// A rule the variant breaks, or a token of a rule that is not opaque.
@@ -181,21 +186,45 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         "meta": \.resolvedMeta, "pageBar": \.resolvedPageBar, "counter": \.resolvedCounter
     ]
 
-    /// The colour of the token `name`, `systemText` included; nil for an unknown name.
-    public func color(named name: String) -> ThemeRGB? {
-        if name == "systemText" { return isLight ? Self.black : Self.white }
-        return Self.tokensByName[name].map { self[keyPath: $0] }
+    /// The colour of the token `name`, or of a derived name of `contrastRules`, for a variant shown in light (`inLight`) or
+    /// dark; nil for an unknown name.
+    public func color(named name: String, inLight: Bool) -> ThemeRGB? {
+        switch name {
+        case "systemText": inLight ? Self.black : Self.white
+        case "systemCard": inLight ? Self.white : ThemeRGB(red: 0x1C, green: 0x1C, blue: 0x1E)
+        case "readerAlternate": surface.mixed(with: textPrimary, amount: inLight ? 0.07 : 0.16)
+        default: Self.tokensByName[name].map { self[keyPath: $0] }
+        }
     }
 
-    /// The rules this variant breaks; empty when it meets them all.
-    public var contrastViolations: [Violation] {
+    /// The rules this variant breaks, shown in light (`inLight`, a `light` slot or a light single variant) or in dark; empty when
+    /// it meets them all.
+    public func contrastViolations(inLight: Bool) -> [Violation] {
         Self.contrastRules.compactMap { rule in
-            guard let foreground = color(named: rule.foreground), let background = color(named: rule.background) else {
+            guard let foreground = color(named: rule.foreground, inLight: inLight),
+                  let background = color(named: rule.background, inLight: inLight) else {
                 return Violation(rule: rule, ratio: 0)
             }
             guard foreground.isOpaque, background.isOpaque else { return Violation(rule: rule, ratio: 0) }
             let ratio = foreground.contrast(with: background)
             return ratio >= rule.minimum ? nil : Violation(rule: rule, ratio: ratio)
+        }
+    }
+}
+
+/// Any key of a theme file, to refuse the names a theme file does not know (a typo would otherwise be ignored).
+struct ThemeFileKey: CodingKey {
+    let stringValue: String
+    var intValue: Int? { nil }
+    init(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
+
+    /// Throws if `container` holds a key outside `known`.
+    static func refuseUnknown(in container: KeyedDecodingContainer<ThemeFileKey>, known: Set<String>, what: String) throws {
+        if let unknown = container.allKeys.first(where: { !known.contains($0.stringValue) }) {
+            throw DecodingError.dataCorruptedError(
+                forKey: unknown, in: container, debugDescription: "Unknown \(what) \(unknown.stringValue)"
+            )
         }
     }
 }

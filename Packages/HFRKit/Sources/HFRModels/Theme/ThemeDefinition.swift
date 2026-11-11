@@ -76,6 +76,9 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let names = try decoder.container(keyedBy: ThemeFileKey.self)
+        let keys: Set = ["id", "name", "family", "author", "fontDesign", "decorations", "variants"]
+        try ThemeFileKey.refuseUnknown(in: names, known: keys, what: "key")
         id = try container.decode(String.self, forKey: .id)
         guard id.range(of: #"^[a-z0-9]+(-[a-z0-9]+)*$"#, options: .regularExpression) != nil else {
             throw DecodingError.dataCorruptedError(forKey: .id, in: container, debugDescription: "Theme id must be kebab-case: \(id)")
@@ -100,6 +103,8 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
             )
         }
         let nested = try container.nestedContainer(keyedBy: VariantKeys.self, forKey: .variants)
+        let variantNames = try names.nestedContainer(keyedBy: ThemeFileKey.self, forKey: ThemeFileKey(stringValue: "variants"))
+        try ThemeFileKey.refuseUnknown(in: variantNames, known: ["light", "dark", "any"], what: "variant")
         let light = try nested.decodeIfPresent(ThemeTokens.self, forKey: .light)
         let dark = try nested.decodeIfPresent(ThemeTokens.self, forKey: .dark)
         let any = try nested.decodeIfPresent(ThemeTokens.self, forKey: .any)
@@ -118,8 +123,8 @@ public struct ThemeDefinition: Sendable, Hashable, Identifiable, Decodable {
         switch variants {
         case nil: []
         case let .lightDark(light, dark)?:
-            light.contrastViolations.map { ("light", $0) } + dark.contrastViolations.map { ("dark", $0) }
-        case let .single(tokens)?: tokens.contrastViolations.map { ("any", $0) }
+            light.contrastViolations(inLight: true).map { ("light", $0) } + dark.contrastViolations(inLight: false).map { ("dark", $0) }
+        case let .single(tokens)?: tokens.contrastViolations(inLight: tokens.isLight).map { ("any", $0) }
         }
     }
 

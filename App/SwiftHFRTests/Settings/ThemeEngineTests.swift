@@ -84,6 +84,8 @@ struct ThemeEngineTests {
         #expect(variables["--app-theme-dark-link"] == "rgb(140, 200, 255)")
         #expect(variables.count == 6 + 2 * ThemeAppearance.readerTokens.count)
         #expect(appearance.readerScript.contains("setAttribute('data-app-theme', '')"))
+        // The design reaches the reader too (Fable round 1): the rounded system family.
+        #expect(appearance.readerScript.contains("s.setProperty('--app-theme-font', 'ui-rounded, -apple-system, sans-serif');"))
         #expect(!appearance.readerScript.contains("removeAttribute"))
     }
 
@@ -94,6 +96,7 @@ struct ThemeEngineTests {
         let read = Set(css.matches(of: /var\((--app-theme-(?:light|dark)-[a-z-]+)\)/).map { String($0.output.1) })
         let set = Set(["light", "dark"].flatMap { variant in ThemeAppearance.readerTokens.map { "--app-theme-\(variant)-\($0.name)" } })
         #expect(read == set)
+        #expect(css.contains("font-family: var(--app-theme-font);"))
     }
 
     @Test func aSingleVariantThemeImposesItsAppearance() throws {
@@ -109,8 +112,10 @@ struct ThemeEngineTests {
 
     // MARK: Definitions that read tokens (#646, #651)
 
-    /// #651: the read and unread MP title tones hold on the rows of every bundled theme. Rows keep the system card of the
-    /// appearance the theme shows in (LOT-188 spec), so each variant is checked in its own appearance.
+    /// #651: the read and unread MP title tones hold on the rows of every bundled theme. A theme does not recolour native rows
+    /// or text (LOT-188 spec, "What a theme does not change"): what a theme decides is the appearance its rows show in (its own
+    /// for a single variant), so the tones are checked on the system card of each appearance a theme shows in, and the theme's
+    /// own pairs by its contrast test (`accentText` on that card included).
     @Test func theMPTitleTonesHoldInEveryBundledTheme() throws {
         let catalog = ThemeCatalog.bundled
         #expect(catalog.rejections.isEmpty, "\(catalog.rejections)")

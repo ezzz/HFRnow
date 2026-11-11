@@ -61,6 +61,12 @@ public struct ThemeRGB: Sendable, Hashable, Decodable, CustomStringConvertible {
         return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
     }
 
+    /// `other` mixed into this colour by `amount` (0...1), channel by channel in sRGB, as CSS `color-mix(in srgb, …)`.
+    public func mixed(with other: ThemeRGB, amount: Double) -> ThemeRGB {
+        func mix(_ base: Int, _ added: Int) -> Int { Int((Double(base) * (1 - amount) + Double(added) * amount).rounded()) }
+        return ThemeRGB(red: mix(red, other.red), green: mix(green, other.green), blue: mix(blue, other.blue))
+    }
+
     /// WCAG 2.x contrast ratio against `other`, 1...21 (opacity ignored: the rules only pair opaque colours).
     public func contrast(with other: ThemeRGB) -> Double {
         let (lighter, darker) = (max(luminance, other.luminance), min(luminance, other.luminance))

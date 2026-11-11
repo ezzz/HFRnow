@@ -49,7 +49,11 @@ import Testing
     @Test func theBrokenThemeFailsTheContrastRuleItBreaks() throws {
         let theme = try JSONDecoder().decode(ThemeDefinition.self, from: Self.fixture("broken-theme"))
         let failures = theme.contrastViolations.map { "\($0.variant) \($0.violation.rule.foreground)/\($0.violation.rule.background)" }
-        #expect(failures == ["dark link/surface"])
+        // Its dark link fails on every surface links are drawn on (the reader's page, quotes, spoilers, code, even messages).
+        #expect(failures == [
+            "dark link/surface", "dark link/quoteBackground", "dark link/spoilerBackground", "dark link/codeBackground",
+            "dark link/readerAlternate"
+        ])
         #expect(theme.contrastViolations.first?.violation.description == "link on surface: 1.64:1, needs 4.5:1")
     }
 
@@ -99,7 +103,60 @@ import Testing
         #expect(banded.variants?.light.resolvedHeaderBand == ThemeRGB(hex: "#FFFFFF"))
         // A translucent colour in a contrast pair breaks its rule.
         let translucent = try decode { editDark(&$0) { $0["link"] = "#8CC8FF80" } }
-        #expect(translucent.contrastViolations.map(\.violation.ratio) == [0])
+        #expect(!translucent.contrastViolations.isEmpty && translucent.contrastViolations.allSatisfy { $0.violation.ratio == 0 })
+    }
+
+    /// The system text of a slot is the appearance it shows in: a dark palette put in the `light` slot is shown in light, under
+    /// black system text, and fails (Fable round 1 probe).
+    @Test func theSystemTextRuleFollowsTheSlotNotThePalette() throws {
+        var json = try #require(try JSONSerialization.jsonObject(with: Self.fixture("test-theme")) as? [String: Any])
+        var variants = try #require(json["variants"] as? [String: Any])
+        variants["light"] = variants["dark"]
+        json["variants"] = variants
+        let theme = try JSONDecoder().decode(ThemeDefinition.self, from: JSONSerialization.data(withJSONObject: json))
+        let light = theme.contrastViolations.filter { $0.variant == "light" }
+            .map { "\($0.violation.rule.foreground)/\($0.violation.rule.background)" }
+        #expect(light.contains("systemText/background") && light.contains("systemText/surface"))
+        #expect(theme.contrastViolations.allSatisfy { $0.variant == "light" })
+    }
+
+    /// Pairs the app draws beyond THEMES.md §3's table: a link that passes on the page but not on a quote, the reader's even
+    /// message, an optional table token.
+    @Test func theRulesCoverEveryPairTheAppDraws() throws {
+        let tokens = try JSONDecoder().decode(ThemeDefinition.self, from: Self.fixture("test-theme")).variants?.light
+        let light = try #require(tokens)
+        // #767676 is 4.54:1 on white: it passes on the page and fails on the quote (#F2F2F7) and the code (#EAEAF0) backgrounds.
+        let grey = try #require(ThemeRGB(hex: "#767676"))
+        #expect(grey.contrast(with: light.surface) >= 4.5)
+        #expect(grey.contrast(with: light.quoteBackground) < 4.5 && grey.contrast(with: light.codeBackground) < 4.5)
+        let names = Set(ThemeTokens.contrastRules.map { "\($0.foreground)/\($0.background)" })
+        for pair in [
+            "link/quoteBackground", "link/codeBackground", "link/readerAlternate", "textSecondary/codeBackground",
+            "accentText/codeBackground", "accentText/systemCard", "meta/surface", "counter/surface", "textSecondary/readerAlternate"
+        ] {
+            #expect(names.contains(pair), "\(pair)")
+        }
+        // The even message is the text mixed into the surface: 7 % in light, 16 % in dark.
+        #expect(light.color(named: "readerAlternate", inLight: true) == light.surface.mixed(with: light.textPrimary, amount: 0.07))
+        #expect(ThemeRGB(red: 255, green: 255, blue: 255).mixed(with: ThemeRGB(red: 0, green: 0, blue: 0), amount: 0.5)
+            == ThemeRGB(red: 128, green: 128, blue: 128))
+    }
+
+    @Test func unknownKeysAndVariantsAreRefused() throws {
+        func decode(_ edit: (inout [String: Any]) -> Void) throws -> ThemeDefinition {
+            var json = try #require(try JSONSerialization.jsonObject(with: Self.fixture("test-theme")) as? [String: Any])
+            edit(&json)
+            return try JSONDecoder().decode(ThemeDefinition.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        #expect(throws: DecodingError.self) { try decode { $0["fontdesign"] = "monospaced" } }
+        #expect(throws: DecodingError.self) {
+            try decode { json in
+                var variants = json["variants"] as? [String: Any] ?? [:]
+                variants["anny"] = variants["dark"]
+                json["variants"] = variants
+            }
+        }
+        _ = try decode { _ in }
     }
 
     @Test func variantsAreLightAndDarkOrAnyAlone() throws {

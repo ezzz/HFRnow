@@ -48,10 +48,10 @@ struct ThemeGalleryRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(theme.name).foregroundStyle(.primary)
                     if let author = theme.author {
-                        Text("par \(author)").font(.footnote).foregroundStyle(.secondary)
+                        Text("par \(author)").scaledFont(.footnote).foregroundStyle(.secondary)
                     }
                     if case .single? = theme.variants {
-                        Text("clair = sombre").font(.footnote).foregroundStyle(.secondary)
+                        Text("clair = sombre").scaledFont(.footnote).foregroundStyle(.secondary)
                     }
                 }
                 Spacer(minLength: 0)
@@ -62,9 +62,9 @@ struct ThemeGalleryRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
+        // The button stays the element (VoiceOver activates it); its label replaces the texts it reads one by one.
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var accessibilityLabel: String {
@@ -80,8 +80,8 @@ struct ThemeGalleryRow: View {
         case nil:
             let darkBackground = legacy.readerSurfaces.first { $0.variable == "--app-dark-background" }?.color ?? ThemeColor(hex: 0)
             return [
-                .init(background: ThemeColor(hex: 0xF2F2F7), surface: ThemeColor(hex: 0xFFFFFF), accent: legacy.dayAccent),
-                .init(background: darkBackground, surface: ThemeColor(hex: 0x1C1C1E), accent: legacy.nightAccent)
+                .init(background: ThemeColor(hex: 0xF2F2F7), page: ThemeColor(hex: 0xFFFFFF), accent: legacy.dayAccent),
+                .init(background: darkBackground, page: darkBackground, accent: legacy.nightAccent)
             ]
         case let .lightDark(light, dark)?:
             return [.init(light), .init(dark)]
@@ -91,24 +91,26 @@ struct ThemeGalleryRow: View {
     }
 }
 
-/// A small sample of a variant: its background, a card of its surface and an accent dot.
+/// A small sample of a variant, in the colours the app draws with it: the screen background, a card of the reader's page and a
+/// dot of the tint (LOT-188: a theme's `background`, `surface` and `accentText`; Legacy's grouped background, its reader page and
+/// the user's accent).
 struct ThemeSwatch: View {
     /// The colours a swatch shows.
     struct Colors {
         let background: ThemeColor
-        let surface: ThemeColor
+        let page: ThemeColor
         let accent: ThemeColor
 
-        init(background: ThemeColor, surface: ThemeColor, accent: ThemeColor) {
+        init(background: ThemeColor, page: ThemeColor, accent: ThemeColor) {
             self.background = background
-            self.surface = surface
+            self.page = page
             self.accent = accent
         }
 
         init(_ tokens: ThemeTokens) {
             self.init(
-                background: ThemeColor(rgb: tokens.background), surface: ThemeColor(rgb: tokens.surface),
-                accent: ThemeColor(rgb: tokens.accent)
+                background: ThemeColor(rgb: tokens.background), page: ThemeColor(rgb: tokens.surface),
+                accent: ThemeColor(rgb: tokens.accentText)
             )
         }
     }
@@ -121,7 +123,7 @@ struct ThemeSwatch: View {
             .fill(Color(uiColor: swatch.background.uiColor))
             .overlay(alignment: .bottomLeading) {
                 RoundedRectangle(cornerRadius: size / 10)
-                    .fill(Color(uiColor: swatch.surface.uiColor))
+                    .fill(Color(uiColor: swatch.page.uiColor))
                     .frame(width: size * 0.6, height: size * 0.4)
                     .padding(size / 10)
             }

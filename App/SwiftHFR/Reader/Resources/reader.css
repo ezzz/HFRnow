@@ -256,7 +256,11 @@ table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { 
   }
 }
 /* :where() keeps these at the specificity of the rules they extend, and they come last: `b.s1 a` (a quote's author) keeps
-   --text, and a [code] block keeps its own background on an even message instead of stepping back to the page. */
+   --text, a [code] block keeps its own background on an even message instead of stepping back to the page, and a quote inside a
+   spoiler writes --text on its own background, not the spoiler's text. --app-theme-font is the theme's design (unset: the
+   declaration is invalid and the body keeps the system family it inherits). */
+:where(:root[data-app-theme]) body { font-family: var(--app-theme-font); }
 :where(:root[data-app-theme]) a { color: var(--link); }
+:where(:root[data-app-theme]) :is(table.citation, table.oldcitation, table.quote) { color: var(--text); }
 :where(:root[data-app-theme]) :is(table.code, table.fixed) { background: var(--code-background); color: var(--code-text); }
 :where(:root[data-app-theme]) table.spoiler { background: var(--spoiler-background); color: var(--spoiler-text); }
