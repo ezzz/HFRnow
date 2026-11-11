@@ -7,7 +7,8 @@ import UIKit
 // without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
 // system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
-// `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c); no difference to record.
+// `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris pills only super favourites, as legacy;
+// the category lists and flags pill every flagged row, as legacy's `MainWindow` (GAP-027, GAP-227).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -117,10 +118,12 @@ struct TopicListView: View {
     }
 
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
+    /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
+    /// @ 87fe0d1c); the flag's colour stays on its icon.
     static func rowTint(
-        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool
+        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
     ) -> RowTint? {
-        let flag = showsFlag ? topic.flag : nil
+        let flag = showsFlag && flagPills ? topic.flag : nil
         guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
             return nil
         }
@@ -134,9 +137,10 @@ struct TopicListView: View {
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(
-                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic
+                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
+                        flagPills: model.source != .favorites
                     ),
-                    overflow: RowTint.overflow(isSuperFavorite: isSuper)
+                    isSuperFavorite: isSuper
                 )
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {

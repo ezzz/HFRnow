@@ -60,19 +60,30 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true, isSelected: true) == nil)
     }
 
-    @Test("A highlighted row is legacy's pill: overflow 8 side, 2 bottom, 4 on top for a super favourite, 2 otherwise (#803)")
+    @Test("The pill stops 4 pt short of the block edge, 4 pt above and below a flagged row's content, 6 above a super favourite's (#803)")
     func pillOverflow() {
-        #expect(RowTint.overflow(isSuperFavorite: true) == EdgeInsets(top: 4, leading: 8, bottom: 2, trailing: 8))
-        #expect(RowTint.overflow(isSuperFavorite: false) == EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
+        let regular = ListDensity.regular.rowInsets
+        #expect(RowTint.overflow(isSuperFavorite: false, insets: regular) == EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+        #expect(RowTint.overflow(isSuperFavorite: true, insets: regular) == EdgeInsets(top: 6, leading: 12, bottom: 4, trailing: 12))
         #expect(RowTint.cornerRadius == 12)
     }
 
-    @Test("The pill never reaches past the row insets of the density, so it stays inside the block (#803, #804)")
-    func pillIsCappedByRowInsets() {
-        let overflow = RowTint.overflow(isSuperFavorite: true)
-        #expect(RowTint.capped(overflow, by: ListDensity.regular.rowInsets) == overflow)
-        let compact = RowTint.capped(overflow, by: EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7))
-        #expect(compact == EdgeInsets(top: 3, leading: 7, bottom: 2, trailing: 7))
+    @Test("A narrow row inset keeps the 4 pt gap to the block edge, and the vertical reach never passes the cell (#803, #804)")
+    func pillGapSurvivesNarrowInsets() {
+        // #804's compact insets: 7 side, 3 vertical.
+        let compact = EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7)
+        let edge = RowTint.overflow(isSuperFavorite: true, insets: compact)
+        #expect(edge == EdgeInsets(top: 3, leading: 3, bottom: 3, trailing: 3))
+        #expect(compact.leading - edge.leading == RowTint.edgeGap)
+        #expect(RowTint.overflow(isSuperFavorite: false, insets: EdgeInsets()) == EdgeInsets())
+    }
+
+    @Test("Favoris tints only the super favourite, as legacy; the category lists tint every flagged row (#803)")
+    func favorisPillsOnlySuperFavorites() {
+        let flagged = topic(flag: .blue)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false, flagPills: false) == nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: true, isSelected: false, flagPills: false) != nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false) != nil)
     }
 
     @Test("The accent weight: quieter for a flag, full for the super favourite")
