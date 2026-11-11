@@ -2,6 +2,7 @@
 import contextlib
 import io
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -28,6 +29,11 @@ def mp_row(subject, pages=""):
     """An MP list row the way R13u1 prints it: subject in the title cell, page links in the next one."""
     return ('<tr><td scope="row" class="sujetCase3" ondblclick="location.href=\'/m\'"><a href="/m" class="cCatTopic" '
             'title="Sujet n°1">%s</a></td><td class="sujetCase4">%s</td></tr>' % (subject, pages))
+
+
+def _ids(html):
+    """The markup with member ids masked: the anonymizer aliases them."""
+    return re.sub(r"(id_user=|mesdiscussions-)\d+", r"\1N", html)
 
 
 def anon(html, private=False):
@@ -677,6 +683,12 @@ class PositionTests(unittest.TestCase):
     # #763: a signature or mood is member input; an unbalanced tag inside it must not end the redaction early. Both are
     # followed by HFR markup a member cannot write (`R267a`, `R63a`): the next message table, the page footer, the avatar.
     PAGES = '<table cellspacing="0" cellpadding="4" width="100%"><tr class="cBackHeader fondForum2PagesBas"><td>1</td></tr></table>'
+    # HFR's author-cell tail after a mood, the one shape the corpus prints (#797).
+    LINK = ('<a href="/transactions_reports.php?config=hfr.inc&amp;cat=13&amp;id_user=12345678"  onclick="window.open(this.href,'
+            '\'TransactionsReports\',\'toolbar=no,scrollbars=yes,resizable=yes,width=600,height=400,left=10,top=10\'); return false" >')
+    TRANSACTIONS = '<br/><span class="TransactionsReportsLink">' + LINK + 'Transactions (3)</a></span>'
+    AVATAR = ('<div class="avatar_center" style="clear:both"><img src="https://forum-images.hardware.fr/images/'
+              'mesdiscussions-12345678.jpg" alt="" /></div>')
 
     @staticmethod
     def message(sig, mood='<span class="MoodStatus">Kilo Lima</span>', n=1, after_mood='<div class="avatar_center" style="clear:both"></div>'):
@@ -726,11 +738,11 @@ class PositionTests(unittest.TestCase):
 
     def test_unbalanced_span_end_in_a_mood_does_not_end_the_redaction(self):
         for after in ('<div class="avatar_center" style="clear:both"></div>',
-                      '<br/><span class="TransactionsReportsLink"><a href="/t">Transactions (0)</a></span>', ''):
+                      self.TRANSACTIONS, ''):
             mood = '<span class="MoodStatus">Kilo</span>Secret Handle<span class="x">Lima</span></span>'
             out = anon(self.message("Signature removed.", mood, after_mood=after) + self.PAGES)
             _absent(self, out, "Kilo", "Secret Handle", "Lima")
-            self.assertIn('<span class="MoodStatus">Mood removed.</span>' + after + '</td>', out)
+            self.assertIn(_ids('<span class="MoodStatus">Mood removed.</span>' + after + '</td>'), _ids(out))
             self.assertEqual(leaks(out), [], after)
 
     def test_check_refuses_content_after_a_signature(self):
@@ -802,20 +814,73 @@ class PositionTests(unittest.TestCase):
         self.assertIn("mood cell still open", self.reasons(html))
 
     def test_check_accepts_hfrs_tail_after_a_mood(self):
-        tail = ('<br/><span class="TransactionsReportsLink"><a href="/t" onclick="return false" >Transactions (3)</a></span>'
-                '<div class="avatar_center" style="clear:both"><img src="https://example.org/a.png" alt="" /></div>')
+        tail = self.TRANSACTIONS + self.AVATAR
         html = self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>', after_mood=tail) + self.PAGES
         out = anon(html)
-        self.assertIn('<span class="MoodStatus">Mood removed.</span>' + tail + '</td>', out)
+        self.assertIn(_ids('<span class="MoodStatus">Mood removed.</span>' + tail + '</td>'), _ids(out))
         self.assertEqual(A.verify_structure(out), [])
-        for bad in ('<br/><span class="TransactionsReportsLink"><a href="/t">Secret Handle</a></span>',
-                    '<br/><span class="TransactionsReportsLink"><b>Transactions (3)</b></span>',
-                    '<div class="avatar_center" style="clear:both">Secret Handle</div>',
-                    '<div class="avatar_center" style="clear:both"><b></b></div>',
-                    '<div class="avatar_center" style="clear:both"></div><span class="TransactionsReportsLink"></span>',
-                    '<div class="avatar_center" style="clear:both"></div><div class="avatar_center"></div>'):
+        link, img = self.LINK, '<img src="https://forum-images.hardware.fr/images/mesdiscussions-12345678.jpg" alt="" />'
+        div = '<div class="avatar_center" style="clear:both">'
+        span = '<br/><span class="TransactionsReportsLink">'
+        for bad in (span + link + 'Secret Handle</a></span>',
+                    span + '<b>Transactions (3)</b></span>',
+                    span + 'Transactions (3)</span>',
+                    span + link.replace('id_user=12345678', 'id_user=Secret') + 'Transactions (3)</a></span>',
+                    span + link.replace('return false', 'Secret Handle') + 'Transactions (3)</a></span>',
+                    span + link.replace('<a ', '<a title="Secret Handle" ') + 'Transactions (3)</a></span>',
+                    span + '<a href="/transactions_reports.php?config=hfr.inc&amp;cat=13&amp;id_user=1">Transactions (3)</a></span>',
+                    span + link + 'Transactions (3)</a>' + link + '</a></span>',
+                    '<br/><span class="TransactionsReportsLink" title="Secret Handle"></span>',
+                    div + 'Secret Handle</div>',
+                    div + '<b></b></div>',
+                    div + img + img + '</div>',
+                    div + img.replace('alt=""', 'alt="Secret Handle"') + '</div>',
+                    div + img.replace('alt=""', 'alt="" title="Secret Handle"') + '</div>',
+                    div + img.replace('forum-images.hardware.fr', 'example.org') + '</div>',
+                    '<div class="avatar_center" style="clear:both" title="Secret Handle"></div>',
+                    '<div class="avatar_center" style="background:url(https://example.org/h.png)"></div>',
+                    div + '</div><span class="TransactionsReportsLink"></span>',
+                    div + '</div><div class="avatar_center"></div>'):
             out = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>', after_mood=bad) + self.PAGES
             self.assertIn("after a mood", self.reasons(out), bad)
+
+    def test_forged_tail_in_a_mood_fails_loudly(self):
+        # #797 review: a forged transactions link or avatar inside the mood, closed by HFR's own `</span>`.
+        link = '<br/><span class="TransactionsReportsLink"><a href="/Secret-Handle">Transactions (1)</a>'
+        avatar = '<div class="avatar_center" style="clear:both"><img src="https://example.org/Secret-Handle.png" alt="" /></div><span>'
+        for forged in (link, self.TRANSACTIONS.replace('return false', 'Secret Handle')[:-len('</span>')], avatar):
+            for after in ('', self.AVATAR):
+                with self.assertRaises(A.AnonymizeError, msg=forged + after):
+                    anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>' + forged + '</span>',
+                                      after_mood=after) + self.PAGES)
+                html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>' + forged + '</span>',
+                                    after_mood=after) + self.PAGES
+                self.assertIn("after a mood", self.reasons(html), forged + after)
+
+    def test_check_refuses_a_second_message_cell_after_a_mood(self):
+        # The member closes the author cell, then prints a message cell, even in a row of its own (#797 review).
+        for forged in ('</td><td class="messCase2">Secret Handle</td><td><span>',
+                       '</td><td class="messCase2">Secret Handle</td></tr><tr><td><span>'):
+            html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>' + forged + '</span>',
+                                after_mood='') + self.PAGES
+            self.assertIn("second message cell after a mood", self.reasons(html), forged)
+            with self.assertRaises(A.AnonymizeError, msg=forged):
+                anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>' + forged + '</span>',
+                                  after_mood='') + self.PAGES)
+        self.assertEqual(A.verify_structure(self.page("Signature removed.", "Signature removed.")), [])
+
+    def test_unclosed_or_unbounded_blocks_in_a_page_fail_loudly(self):
+        # A signature never closed before the next message, a mood with no message cell after its avatar, and a message
+        # table with no html or body around it: each is a page, so none falls back to the depth count.
+        for html in (self.page("Jean Exemple", "Signature removed.").replace('Jean Exemple</span>', 'Jean Exemple', 1),
+                     '<html><body><table><tr><td class="messCase1"><span class="MoodStatus">Kilo</span>'
+                     '<div class="avatar_center" style="clear:both"></div></td></tr></table></body></html>',
+                     '<html><body><table><tr><td class="messCase1"><span class="MoodStatus">Kilo</span>'
+                     '<div class="avatar_center" style="clear:both"></div></td>',
+                     '<table class="messagetable"><tr><td class="messCase2"><span class="signature">Jean Exemple</span>'
+                     '</td></tr></table>'):
+            with self.assertRaises(A.AnonymizeError, msg=html):
+                anon(html)
 
     def test_no_boundary_after_a_personal_block_fails_loudly(self):
         # A page whose signature or mood is followed by none of HFR's next elements.
@@ -832,7 +897,7 @@ class PositionTests(unittest.TestCase):
     def test_check_refuses_non_elements_after_a_personal_block(self):
         for bad in ('<!-- Secret Handle -->', '<!DOCTYPE Secret Handle>', '<?Secret Handle>', '</b title="Secret Handle">',
                     '<![if Secret Handle]>'):
-            html = self.page("Signature removed.</span>" + bad + '<span>')
+            html = self.page("Signature removed.", tail=bad + self.PAGES)
             self.assertIn("after a signature", self.reasons(html), bad)
             html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>' + bad) + self.PAGES
             self.assertIn("after a mood", self.reasons(html), bad)
@@ -844,9 +909,11 @@ class PositionTests(unittest.TestCase):
                       '<span class="MDStatus">Online</span><br/><img src="https://example.org/a.png" />'):
             with self.assertRaises(A.AnonymizeError, msg=after):
                 anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>', after_mood=after) + self.PAGES)
-        for tail in ('<p>Bas de page</p>', '<div class="x"></div>'):
+        for tail in ('<div><p>Bas de page</p></div>' + self.PAGES, '<div><div class="x"></div></div>' + self.PAGES,
+                     '<br class="x" />' + self.PAGES, self.PAGES.replace('cellspacing="0"', 'border="0"'),
+                     self.PAGES.replace('cellspacing="0"', 'cellspacing="0" title="Secret Handle"')):
             with self.assertRaises(A.AnonymizeError, msg=tail):
-                anon(self.page("Jean Exemple", tail='<div>' + tail + '</div>' + self.PAGES))
+                anon(self.page("Jean Exemple", tail=tail))
         # HFR's own closing, a bare <br> and the footer table stay accepted.
         for tail in (None, '<br /><script>var x=1;</script>', ' \n<br/>\n' + self.PAGES):
             self.assertNotIn("Jean Exemple", anon(self.page("Jean Exemple", tail=tail)), tail)
@@ -857,8 +924,10 @@ class PositionTests(unittest.TestCase):
         for bad in ('<table title="Secret Handle">', '<table class="x">', '<table width="Secret">', '<table>'):
             html = self.page("Signature removed.", tail=bad + '<tr class="cBackHeader"><td>1</td></tr></table>')
             self.assertIn("after a signature", self.reasons(html), bad)
-        html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span><table cellspacing="0">'
-                            '<tr><td></td></tr></table>') + self.PAGES
+        html = self.page("Signature removed.", tail='<table border="0">' + '<tr class="cBackHeader"><td>1</td></tr></table>')
+        self.assertIn("after a signature", self.reasons(html))
+        html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span><table cellspacing="0"></table>') \
+            + self.PAGES
         self.assertIn("after a mood", self.reasons(html))
 
     def test_check_accepts_cdata_in_an_xml_document_only(self):

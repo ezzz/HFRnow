@@ -770,9 +770,15 @@ SPAN_END_RE = re.compile(r"</span\s*>", re.I)
 PERSONAL_TAILS = {
     SIGNATURE_PLACEHOLDER: re.compile(r"</span\s*>\s*</div\s*>\s*</td\s*>\s*</tr\s*>\s*</table\s*>(?:\s|<br\s*/?>)*"
                                       r"(?:<table(?:\s+(?:cellspacing|cellpadding|width)=\"\d+%?\")+\s*>\s*)?", re.I),
-    "Mood removed.": re.compile(r"</span\s*>\s*(?:<br\s*/?>\s*<span class=\"TransactionsReportsLink\"><a\b[^<>]*>"
-                                r"Transactions \(\d+\)</a\s*></span\s*>\s*)?(?:<div class=\"avatar_center\"[^<>]*>"
-                                r"(?:<img\b[^<>]*>)?</div\s*>\s*)?</td\s*>\s*", re.I),
+    # The link and the avatar are pinned to the one shape the corpus prints (24 links, 71 avatars): a member forging them
+    # inside the mood must not carry a value through an attribute (#797 review).
+    "Mood removed.": re.compile(r"</span\s*>\s*(?:<br\s*/?>\s*<span class=\"TransactionsReportsLink\"><a href=\""
+                                r"/transactions_reports\.php\?config=hfr\.inc&amp;cat=\d+&amp;id_user=\d+\"\s+onclick=\""
+                                r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,resizable=yes,"
+                                r"width=\d+,height=\d+,left=\d+,top=\d+'\); return false\"\s*>Transactions \(\d+\)</a\s*>"
+                                r"</span\s*>\s*)?(?:<div class=\"avatar_center\" style=\"clear:both\">(?:<img src=\""
+                                r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.\w+\" alt=\"[^\"<>]*\"\s*/?>)?"
+                                r"</div\s*>\s*)?</td\s*>\s*"),
 }
 MESSAGE_CELL_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase2[\"']", re.I)
 MESSAGE_TABLE_RE = re.compile(r"<table\b[^>]*\bclass=[\"']messagetable[\"']", re.I)
@@ -2076,6 +2082,13 @@ _V_AFTER_END = {
 }
 
 
+# HFR's transactions link and avatar after a mood (corpus, 2026-11-11: 24 links, 71 avatars), as html.parser decodes them.
+_V_TRANSACTIONS_HREF = re.compile(r"/transactions_reports\.php\?config=hfr\.inc&cat=\d+&id_user=\d+")
+_V_TRANSACTIONS_ONCLICK = re.compile(r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,"
+                                     r"resizable=yes,width=\d+,height=\d+,left=\d+,top=\d+'\); return false")
+_V_AVATAR_SRC = re.compile(r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png)")
+
+
 class StructuralVerifier(html.parser.HTMLParser):
     """Collects (line, column, reason) for every non-aliased name or real id in member positions."""
 
@@ -2093,7 +2106,7 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.after_personal = None  # "signature" or "mood" until HFR's next own element (#763)
         self.personal_cell = None  # the cell that held it: HFR closes it before that element (#797)
         self.mood_tail = set()  # the parts of HFR's author-cell tail seen after a mood (#797)
-        self.message_row = None  # the row whose message cell ended a mood: a second one there is the member's (#797)
+        self.message_table = None  # the message whose cell ended a mood: a second cell there is the member's (#797)
         self.xml = False  # an XML document, where CDATA is CDATA
 
     # -- reporting
@@ -2158,11 +2171,11 @@ class StructuralVerifier(html.parser.HTMLParser):
             # markup hidden there escapes this walk, and HFR prints neither.
             self._bad("unexpected markup <%s>" % tag, tag)
         mood_part = None
-        if tag == "td" and "messCase2" in cls and self.message_row is not None:
-            # One message cell per row: a second one after a mood is the member's, printed after closing the author cell.
-            if any(e is self.message_row for e in self.stack):
+        if tag == "td" and "messCase2" in cls and self.message_table is not None:
+            # One message cell per message: a second one after a mood is the member's, printed after closing the author cell.
+            if any(e is self.message_table for e in self.stack):
                 self._bad("second message cell after a mood <%s>" % tag, tag)
-            self.message_row = None
+            self.message_table = None
         if self.after_personal:
             # Between a signature or mood and HFR's next own element only end tags, blanks, a bare <br> and, after a mood,
             # HFR's own author-cell tail belong (#763): anything else is a redaction cut short by the member's markup.
@@ -2172,7 +2185,9 @@ class StructuralVerifier(html.parser.HTMLParser):
                     # HFR closes the block's cell before printing that element: one printed inside it is the member's (#797).
                     self._bad("%s cell still open at <%s>" % (what, tag), tag)
                 if what == "mood":
-                    self.message_row = next((e for e in reversed(self.stack) if e["tag"] == "tr"), None)
+                    self.message_table = next((e for e in reversed(self.stack) if e["tag"] == "table" and "messagetable"
+                                               in e["cls"]), None) or next((e for e in reversed(self.stack) if e["tag"] == "tr"),
+                                                                           None)
                 self.after_personal = self.personal_cell = None
             elif tag == "br" and not attrs:
                 pass
@@ -2297,18 +2312,18 @@ class StructuralVerifier(html.parser.HTMLParser):
 
     def _mood_tail(self, tag, attrs):
         """The part of HFR's author-cell tail after a mood this element is (corpus, 2026-11-11): the transactions link, then
-        the avatar, each once and in that order; None for anything else."""
+        the avatar, each once, in that order and with HFR's attributes only; None for anything else."""
         top = self.stack[-1].get("mood_tail") if self.stack else None
-        names = [k for k, _v in attrs]
+        a = dict(attrs)
         if tag == "span" and attrs == [("class", "TransactionsReportsLink")] and not self.mood_tail & {"transactions", "avatar"}:
             return "transactions"
-        if tag == "a" and top == "transactions" and "link" not in self.mood_tail and len(set(names)) == len(names) \
-                and set(names) <= {"href", "onclick"}:
+        if tag == "a" and top == "transactions" and "link" not in self.mood_tail and [k for k, _v in attrs] == ["href", "onclick"] \
+                and _V_TRANSACTIONS_HREF.fullmatch(a["href"] or "") and _V_TRANSACTIONS_ONCLICK.fullmatch(a["onclick"] or ""):
             return "link"
-        if tag == "div" and "avatar" not in self.mood_tail and names[:1] == ["class"] and attrs[0][1] == "avatar_center" \
-                and len(set(names)) == len(names) and set(names) <= {"class", "style"}:
+        if tag == "div" and "avatar" not in self.mood_tail and attrs == [("class", "avatar_center"), ("style", "clear:both")]:
             return "avatar"
-        if tag == "img" and top == "avatar" and "image" not in self.mood_tail:
+        if tag == "img" and top == "avatar" and "image" not in self.mood_tail and [k for k, _v in attrs] == ["src", "alt"] \
+                and _V_AVATAR_SRC.fullmatch(a["src"] or "") and (not a["alt"] or allowed_name(a["alt"])):
             return "image"
         return None
 
