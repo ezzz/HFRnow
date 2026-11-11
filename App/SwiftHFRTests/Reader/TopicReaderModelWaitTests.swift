@@ -178,4 +178,42 @@ struct TopicReaderModelWaitTests {
         #expect(reader.page?.currentPage == 1)
         #expect(pages.requests.count == 2)
     }
+
+    /// #786 CI: `ReplyEntryTests` lost its reload after a reply when a run took over 30 s. A model no reader view shows has no
+    /// web view to make its page ready, so its wait is never watched (the real clock of a test model fired mid-test).
+    @Test func aReaderNoViewShowsIsNeverTimedOut() async {
+        let reader = model(FakeTopicPages { target in readerPage(page: min(target.page, 5)) })
+        reader.waitClock = { _ in } // the limit passes at once
+        await reader.onAppear()
+        for _ in 0..<200 { await Task.yield() }
+        #expect(reader.error == nil)
+        await reader.showLatestPost()
+        for _ in 0..<200 { await Task.yield() }
+        #expect(reader.error == nil)
+        #expect(reader.page?.currentPage == 5)
+    }
+
+    /// A load started while the screen already waited (Actualiser, the latest post after a reply) gets the whole limit: the
+    /// earlier wait's deadline must not cancel it.
+    @Test func aLoadStartedLateInAWaitGetsTheWholeLimit() async {
+        let pages = FakeTopicPages()
+        let clock = ReaderGate()
+        let reader = model(pages, clock: clock)
+        await reader.onAppear(viewer: 1)
+        #expect(reader.document?.token == 1)
+        await clock.untilArrived()
+        reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) }
+        let fetch = ReaderGate()
+        pages.handler = { target in await fetch.wait(); return readerPage(page: target.page) }
+        let refreshing = Task { await reader.refresh() }
+        await fetch.untilArrived()
+        await clock.open() // the first wait's limit passes while the refresh loads
+        for _ in 0..<200 { await Task.yield() }
+        #expect(reader.error == nil)
+        #expect(reader.isLoading)
+        await fetch.open()
+        await refreshing.value
+        #expect(reader.document?.token == 2)
+        #expect(reader.error == nil)
+    }
 }

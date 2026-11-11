@@ -113,8 +113,9 @@ final class TopicReaderModel {
     /// The current wait ended on `waitLimit`: the screen coming back loads again, as it does after a stopped load, and a
     /// retry clears the timeout as it starts.
     private var waitExpired = false
-    /// A view shows this reader (`onAppear` until the current viewer's `viewDidDisappear`): only then is a wait watched, so
-    /// a wait left off screen never comes back as a stale timeout (Fable, #786).
+    /// A reader view shows this reader (`onAppear(viewer:)` until that viewer's `viewDidDisappear`): only then is a wait
+    /// watched, so a wait left off screen never comes back as a stale timeout (Fable, #786), and a model no view shows (tests,
+    /// which have no web view to make a page ready) never times out.
     private var isOnScreen = false
 
     /// A reader that will open `target`; nothing is fetched before `onAppear()`. With `opensAtLastMessage` the first load
@@ -149,8 +150,8 @@ final class TopicReaderModel {
     func onAppear(viewer: Int? = nil) async {
         // A `.task` whose view already went away (a quick tab flick) must not take the load over from the view still there.
         guard !Task.isCancelled else { return }
-        isOnScreen = true
         if let viewer {
+            isOnScreen = true
             self.viewer = viewer
             // A new view (the same topic opened again) has a new web view: the document is not shown until it says so (#750).
             if readyToken != nil, let shownBy = readyViewer, shownBy != viewer { readyToken = nil }
@@ -158,9 +159,11 @@ final class TopicReaderModel {
         ReaderLog.debug(
             "appear model=\(debugID) viewer=\(viewer ?? -1) page=\(page != nil) loading=\(isLoading) error=\(error != nil)"
         )
-        watchWait()
-        guard page == nil, !isLoading, error == nil || waitExpired else { return }
-        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor)
+        guard page == nil, !isLoading, error == nil || waitExpired else {
+            watchWait()
+            return
+        }
+        await load(requested, keepsScrollPosition: false, anchor: requestedAnchor) // which starts the watch
     }
 
     /// A reader view went away: stops the load in flight only when that view is the last one that appeared, so a view
@@ -405,9 +408,9 @@ final class TopicReaderModel {
     }
 
     /// Bounds the wait on "Chargement des messages" (issue #750): one watch per wait on screen, from the moment the screen
-    /// starts waiting (no page yet, or a page whose document the web view has not shown) until it stops or the screen leaves;
-    /// on `waitLimit` the wait turns into `timedOut` with "Réessayer". A document that becomes ready after all still shows
-    /// and clears it.
+    /// starts waiting (no page yet, or a page whose document the web view has not shown) or a load starts, until the wait
+    /// ends or the screen leaves; on `waitLimit` the wait turns into `timedOut` with "Réessayer". A document that becomes
+    /// ready after all still shows and clears it.
     private func watchWait() {
         guard isWaiting, isOnScreen else {
             waitWatch?.cancel()
@@ -468,6 +471,9 @@ final class TopicReaderModel {
             waitExpired = false
             error = nil
         }
+        // Each load gets the whole limit: the watch of a wait that started earlier must not cut a load that just started.
+        waitWatch?.cancel()
+        waitWatch = nil
         watchWait()
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
