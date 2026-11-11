@@ -26,7 +26,7 @@ import Testing
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
             "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
             // LOT-166: the two seasonal toggles, new.
-            "season.automatic", "season.animations"
+            "season.automatic", "season.animations", "season.noel.activeYear"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -65,12 +65,14 @@ import Testing
         #expect(store.value(for: SettingKey.rehostMaxDimension) == .px1200)
         #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
         #expect(store.value(for: SettingKey.seasonalAnimations))
+        #expect(store.value(for: SettingKey.noelActiveYear) == nil)
     }
 
     /// LOT-166: one set of Noël keys per season, named after its year (THEMES.md §5), all empty at first.
     @Test func theNoelKeysOfASeasonAreNamedAfterItsYear() {
         #expect(SettingKey.noelArrivalShown(year: 2026).key == noelKey(2026, "arrivalShown"))
         #expect(SettingKey.noelOptedOut(year: 2026).key == noelKey(2026, "optedOut"))
+        #expect(SettingKey.noelArrivalPending(year: 2026).key == noelKey(2026, "arrivalPending"))
         #expect(SettingKey.noelPreviousThemeID(year: 2026).key == noelKey(2026, "previousThemeID"))
         #expect(SettingKey.noelPackingShown(year: 2027).key == noelKey(2027, "packingShown"))
         let store = InMemorySettingsStore()
@@ -81,6 +83,11 @@ import Testing
         store.set("legacy", for: SettingKey.noelPreviousThemeID(year: 2026))
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == "legacy")
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2027)) == nil)
+        #expect(!store.value(for: SettingKey.noelArrivalPending(year: 2026)))
+        store.set(2026, for: SettingKey.noelActiveYear)
+        #expect(store.rawValue(forKey: "season.noel.activeYear") == .int(2026))
+        store.set(nil, for: SettingKey.noelActiveYear)
+        #expect(store.rawValue(forKey: "season.noel.activeYear") == nil)
     }
 
     @Test(arguments: [

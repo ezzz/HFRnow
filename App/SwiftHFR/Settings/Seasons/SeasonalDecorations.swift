@@ -1,20 +1,19 @@
 import SwiftUI
 
 // Port of Classes/HFRNavigationController.m (userThemeDidChange, refreshTheme: the animated "snow" image behind the navigation
-// bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:382-388`; the alert `:645-676`) @ 87fe0d1c.
-// Differences (GAP-147): procedural snow falling over the content, not frames in the bar; the operator's alert
-// text and its « Désactiver » instead of legacy's one-button « C'est bientôt Noël ! ».
+// bar, `:85-90, 134-139`) and Classes/HFRplusAppDelegate.m (setTheme `:382-388`) @ 87fe0d1c. Differences (GAP-147): procedural
+// snow falling over the content, not frames in the bar.
 extension View {
     /// The seasonal layer of the app root (LOT-166): the active theme's decorations over the content, and the arrival alert
-    /// once `alertAllowed` (nothing covers the screen, THEMES.md §4 rule 5).
-    func seasonalDecorations(_ model: SeasonalThemeModel, alertAllowed: Bool) -> some View {
-        modifier(SeasonalDecorationsModifier(model: model, alertAllowed: alertAllowed))
+    /// once nothing stands in its way (`isCovered`: the app lock; sheets and the keyboard are checked here, THEMES.md §4 rule 5).
+    func seasonalDecorations(_ model: SeasonalThemeModel, isCovered: @escaping @MainActor () -> Bool) -> some View {
+        modifier(SeasonalDecorationsModifier(model: model))
+            .modifier(SeasonalArrivalAlert(model: model, isCovered: isCovered))
     }
 }
 
 private struct SeasonalDecorationsModifier: ViewModifier {
     let model: SeasonalThemeModel
-    let alertAllowed: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
@@ -23,18 +22,6 @@ private struct SeasonalDecorationsModifier: ViewModifier {
                 if model.activeTheme == .noelSoft {
                     NoelSnowLayer(falls: model.snowFalls && !reduceMotion)
                 }
-            }
-            // A normal alert, spoken by VoiceOver (THEMES.md §4 rule 6). The setter ignores the dismissal: each button
-            // answers, so the alert stays pending until the user does.
-            .alert(
-                "Oh Oh Oh !",
-                isPresented: Binding(get: { alertAllowed && model.pendingAlert != nil }, set: { _ in }),
-                presenting: model.pendingAlert
-            ) { _ in
-                Button("OK") { model.answerArrival(disable: false) }
-                Button("Désactiver") { model.answerArrival(disable: true) }
-            } message: { _ in
-                Text("Thème disponible dans les réglages")
             }
     }
 }

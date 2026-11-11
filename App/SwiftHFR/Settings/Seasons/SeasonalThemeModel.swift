@@ -30,12 +30,25 @@ final class SeasonalThemeModel {
         var id: Self { self }
     }
 
+    /// What the screen shows besides the app's own views: the arrival alert waits while any of it is up (THEMES.md §4 rule 5).
+    nonisolated struct ScreenState: Equatable, Sendable {
+        /// The app lock covers the screen.
+        var isCovered = false
+        /// A sheet, the composer, a full-screen cover or another alert is presented.
+        var isPresenting = false
+        /// The keyboard is up.
+        var isKeyboardVisible = false
+
+        /// Nothing stands in the way of the alert.
+        var allowsAlert: Bool { !isCovered && !isPresenting && !isKeyboardVisible }
+    }
+
     /// The theme a seasonal theme replaces today: the one look the app has until the theme engine (LOT-188) gives it an id.
     static let legacyThemeID = "legacy"
 
     /// The seasonal theme drawn over the "Thème" settings, or nil.
     private(set) var activeTheme: SeasonalTheme?
-    /// The arrival alert waiting to be shown.
+    /// The arrival alert waiting for an answer; stored, so a kill before it is seen shows it again at the next launch.
     private(set) var pendingAlert: Alert?
     /// Today is inside a Noël window: the « Thèmes de saison » section shows and Noël soft can be picked.
     private(set) var isSelectable = false
@@ -57,6 +70,8 @@ final class SeasonalThemeModel {
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let calendar: Calendar
     @ObservationIgnored private let reduceMotion: @MainActor () -> Bool
+    /// The scene showing the arrival alert: with two windows (iPad) only one presents it.
+    @ObservationIgnored private var alertScene: UUID?
 
     /// Reads the state of today's season; writes nothing until the first activation.
     init(
@@ -67,7 +82,8 @@ final class SeasonalThemeModel {
     ) {
         self.store = store
         self.now = now
-        self.calendar = calendar
+        // Season years are Gregorian whatever the device's calendar (a Buddhist year would name other keys).
+        self.calendar = NoelCalendar.gregorian(in: calendar.timeZone)
         self.reduceMotion = reduceMotion
         isAutomatic = store.value(for: SettingKey.seasonalThemesAutomatic)
         animationsEnabled = store.value(for: SettingKey.seasonalAnimations)
@@ -80,20 +96,17 @@ final class SeasonalThemeModel {
         let date = now()
         let year = NoelCalendar.seasonYear(of: date, in: calendar)
         var events: [Event] = []
-        // Last season's theme, left on by an app not opened since its window.
-        if isOn(year: year - 1) {
-            restore(year: year - 1)
-            events.append(.restoredSilently(year: year - 1))
+        // A theme of an earlier season, left on by an app not opened since its window, however long ago.
+        if let active = store.value(for: SettingKey.noelActiveYear), active < year {
+            restore(year: active)
+            events.append(.restoredSilently(year: active))
         }
-        switch NoelCalendar.phase(of: date, in: calendar) {
-        case let phase where phase.isSelectable:
-            guard !store.value(for: SettingKey.noelArrivalShown(year: year)) else { break }
-            store.set(true, for: SettingKey.noelArrivalShown(year: year))
-            let switchOn = phase == .switchOn && isAutomatic && !store.value(for: SettingKey.noelOptedOut(year: year))
-                && !isOn(year: year)
-            if switchOn { store.set(Self.legacyThemeID, for: SettingKey.noelPreviousThemeID(year: year)) }
-            pendingAlert = .noelArrival(year: year)
-            events.append(.arrival(year: year, switchedOn: switchOn, sleigh: animationsAllowed))
+        let phase = NoelCalendar.phase(of: date, in: calendar)
+        // An arrival nobody answered before its window closed is dropped.
+        if !phase.isSelectable { store.reset(SettingKey.noelArrivalPending(year: year)) }
+        switch phase {
+        case .switchOn, .arrivalOnly:
+            if let arrival = arrive(year: year, switching: phase == .switchOn) { events.append(arrival) }
         case .packing where isOn(year: year):
             let first = !store.value(for: SettingKey.noelPackingShown(year: year))
             store.set(true, for: SettingKey.noelPackingShown(year: year))
@@ -109,14 +122,41 @@ final class SeasonalThemeModel {
         return events
     }
 
+    /// The first activation of a window, once per season: the arrival is stored as pending until answered, and Noël soft is
+    /// switched on when `switching` (01/12–24/12), automatic themes are on and the season is not opted out.
+    private func arrive(year: Int, switching: Bool) -> Event? {
+        guard !store.value(for: SettingKey.noelArrivalShown(year: year)) else { return nil }
+        store.set(true, for: SettingKey.noelArrivalShown(year: year))
+        store.set(true, for: SettingKey.noelArrivalPending(year: year))
+        let switched = switching && isAutomatic && !store.value(for: SettingKey.noelOptedOut(year: year)) && !isOn(year: year)
+        if switched { switchOn(year: year) }
+        return .arrival(year: year, switchedOn: switched, sleigh: animationsAllowed)
+    }
+
     /// The answer to the arrival alert: « Désactiver » restores the previous theme and opts out for the season; « OK » keeps it.
     func answerArrival(disable: Bool) {
         guard case let .noelArrival(year) = pendingAlert else { return }
-        pendingAlert = nil
-        guard disable else { return }
-        store.set(true, for: SettingKey.noelOptedOut(year: year))
-        restore(year: year)
+        store.reset(SettingKey.noelArrivalPending(year: year))
+        alertScene = nil
+        if disable {
+            store.set(true, for: SettingKey.noelOptedOut(year: year))
+            restore(year: year)
+        }
         refresh()
+    }
+
+    /// The alert `scene` may present now: the pending one, when `screen` allows it and no other scene shows it.
+    func alert(for scene: UUID, screen: ScreenState) -> Alert? {
+        guard let pendingAlert, alertScene == nil || alertScene == scene else { return nil }
+        // A scene that already shows it keeps it; the others wait for a clear screen.
+        guard alertScene == scene || screen.allowsAlert else { return nil }
+        alertScene = scene
+        return pendingAlert
+    }
+
+    /// `scene` went away without an answer: another scene, or the next launch, shows the alert.
+    func releaseAlert(for scene: UUID) {
+        if alertScene == scene { alertScene = nil }
     }
 
     /// A pick in Réglages › Thème: a seasonal theme inside its window, or nil for the user's own theme.
@@ -126,7 +166,7 @@ final class SeasonalThemeModel {
         if theme == nil {
             if isOn(year: year) { restore(year: year) }
         } else if NoelCalendar.phase(of: date, in: calendar).isSelectable, !isOn(year: year) {
-            store.set(Self.legacyThemeID, for: SettingKey.noelPreviousThemeID(year: year))
+            switchOn(year: year)
         }
         refresh()
     }
@@ -139,6 +179,13 @@ final class SeasonalThemeModel {
     /// engine (LOT-188) it will write the saved id back to the theme key.
     private func restore(year: Int) {
         store.reset(SettingKey.noelPreviousThemeID(year: year))
+        if store.value(for: SettingKey.noelActiveYear) == year { store.reset(SettingKey.noelActiveYear) }
+    }
+
+    /// Saves the current theme and points at the season, so any later activation can find and restore it.
+    private func switchOn(year: Int) {
+        store.set(Self.legacyThemeID, for: SettingKey.noelPreviousThemeID(year: year))
+        store.set(year, for: SettingKey.noelActiveYear)
     }
 
     private func refresh() {
@@ -146,6 +193,7 @@ final class SeasonalThemeModel {
         let year = NoelCalendar.seasonYear(of: date, in: calendar)
         let phase = NoelCalendar.phase(of: date, in: calendar)
         isSelectable = phase.isSelectable
+        pendingAlert = phase.isSelectable && store.value(for: SettingKey.noelArrivalPending(year: year)) ? .noelArrival(year: year) : nil
         // Outside the window a theme left on is about to be restored: never draw it, even for the first frame.
         activeTheme = phase != .outside && isOn(year: year) ? .noelSoft : nil
     }

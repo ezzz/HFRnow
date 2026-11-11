@@ -50,7 +50,7 @@ struct SwiftHFRApp: App {
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme, seasonal: seasonal.activeTheme)
                 // Snow over the screens, under the lock; the arrival alert waits until nothing covers them (LOT-166).
-                .seasonalDecorations(seasonal, alertAllowed: !appLock.isCovered)
+                .seasonalDecorations(seasonal, isCovered: { appLock.isCovered })
                 // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
                 .appLockCover(appLock)
                 // The legacy import first (LOT-158), so the accounts it takes over are in the store; then what iCloud Keychain
