@@ -149,7 +149,9 @@ Rules:
 ## 9. Blocked
 
 Missing capture, spec/code contradiction, a decision, a core-model change: comment on the issue starting with `BLOCKED:` and
-give the exact question or the list of page states to capture. Then `/release ext/<id>` and take the next issue.
+give the exact question or the list of page states to capture. Then `/release ext/<id>` and take the next issue. Never take an
+issue labelled `status: blocked` (its `### Blocked by` section names what it waits on), `status: on-hold` (a decision holds
+it) or `status: needs-decision`.
 
 ## 10. PR rules
 
