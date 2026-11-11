@@ -171,8 +171,11 @@ final class ReplyComposerModel: Identifiable {
         draftWarning = Self.draftWarning(for: error)
     }
 
-    /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it.
+    /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it. The swap
+    /// is one step of the history, as legacy's `useDraft` and `archiveAndClearCurrentDraft` (`AnswerView.swift:711-712`,
+    /// `:734-735` @ 87fe0d1c): "Annuler" brings the whole replaced text back.
     func replaceText(with newText: String) {
+        if newText != text { history.record(text) }
         text = newText
         errorMessage = nil
         mayHavePosted = false
