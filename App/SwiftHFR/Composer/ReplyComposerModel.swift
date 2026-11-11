@@ -64,6 +64,10 @@ final class ReplyComposerModel: Identifiable {
     private(set) var closeReason: CloseReason?
     /// Cancel was tapped with text: the sheet asks whether to keep the draft.
     var isAskingClose = false
+    /// What "Annuler" and "Rétablir" go back to (#653); the text the sheet opened with is no step.
+    private(set) var history = ComposerHistory()
+    /// The images the panel inserted, shown as chips in the card while their snippet is in the text (#653).
+    var imageChips: [ComposerImageChip] = []
 
     /// Unique per sheet.
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
@@ -143,6 +147,7 @@ final class ReplyComposerModel: Identifiable {
         // The quote the sheet was opened with goes after the restored draft, like typing: saved after a pause, so closing the
         // sheet on it keeps it in the draft.
         if let quote = initialQuote { update(text: QuoteDraftMerger.merge(quote.text, into: text)) }
+        history.reset()
     }
 
     /// The user chose a sub-category of the form's list.
@@ -152,9 +157,11 @@ final class ReplyComposerModel: Identifiable {
         if !mayHavePosted { errorMessage = nil }
     }
 
-    /// The user typed: the draft is saved after a pause.
-    func update(text newText: String) {
+    /// The user typed, or an insertion edited the text: one step of the history (#653), the draft saved after a pause. Undo and
+    /// redo pass the history they moved in (`steps`) instead of recording a step.
+    func update(text newText: String, history steps: ComposerHistory? = nil) {
         guard canEdit, newText != text else { return }
+        if let steps { history = steps } else { history.record(text) }
         text = newText
         didEdit()
     }
@@ -164,8 +171,11 @@ final class ReplyComposerModel: Identifiable {
         draftWarning = Self.draftWarning(for: error)
     }
 
-    /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it.
+    /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it. The swap
+    /// is one step of the history, as legacy's `useDraft` and `archiveAndClearCurrentDraft` (`AnswerView.swift:711-712`,
+    /// `:734-735` @ 87fe0d1c): "Annuler" brings the whole replaced text back.
     func replaceText(with newText: String) {
+        if newText != text { history.record(text) }
         text = newText
         errorMessage = nil
         mayHavePosted = false
@@ -190,15 +200,6 @@ final class ReplyComposerModel: Identifiable {
         errorMessage = nil
         mayHavePosted = false
         scheduleAutosave()
-    }
-
-    /// Inserts the smiley `code` over `selection` (the end of the text when nil), as legacy did (LOT-104). Returns the
-    /// caret's UTF-16 offset in the new text, nil when the editor does not accept typing (nothing changed).
-    func insert(smiley code: String, replacing selection: Range<String.Index>?) -> Int? {
-        guard canEdit else { return nil }
-        let result = SmileyInsertion.insert(code, into: text, replacing: selection)
-        update(text: result.text)
-        return result.caretUTF16Offset
     }
 
     /// Sends the reply or the new private message. Characters HFR would cut the message at are refused first (Q-3), in

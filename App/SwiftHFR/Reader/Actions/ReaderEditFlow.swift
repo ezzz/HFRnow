@@ -17,7 +17,8 @@ struct ReaderEditFlow: ViewModifier {
                 }
             }
             .sheet(item: Binding(get: { writes?.editor }, set: { writes?.editor = $0 })) { composer in
-                ReplyComposerView(model: composer) { reason in
+                // The reader suspends its page's taps while `editor` is set (`TopicReaderView`, #653).
+                ReplyComposerView(model: composer, pageScrolls: true) { reason in
                     guard case .edit(let target) = composer.target else { return }
                     Task { await writes?.editorDidClose(reason, post: target.post) }
                 }

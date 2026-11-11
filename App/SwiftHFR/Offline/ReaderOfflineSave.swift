@@ -14,7 +14,8 @@ struct ReaderOfflineSave: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let saver, !model.isPrivateConversation, let page = model.page {
+                // None under an open composer (#653): the "…" overflow stays shut.
+                if let saver, !model.isPrivateConversation, let page = model.page, !model.suspendsPageInteractions {
                     ToolbarItem(placement: .secondaryAction) { menu(saver, page: page) }
                 }
             }
