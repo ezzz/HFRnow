@@ -23,7 +23,7 @@ func write(_ image: CIImage, _ path: String) {
     print("ok   \(path)")
 }
 
-let dark = input.applyingFilter("CIColorControls", parameters: [kCIInputBrightnessKey: -0.3, kCIInputSaturationKey: 0.9])
+let dark = input.applyingFilter("CIColorControls", parameters: [kCIInputBrightnessKey: -0.12, kCIInputSaturationKey: 0.9])
 let tinted = input.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0, kCIInputContrastKey: 1.1])
 write(dark, base + "_dark.png")
 write(tinted, base + "_tinted.png")
