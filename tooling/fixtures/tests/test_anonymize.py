@@ -887,15 +887,21 @@ class PositionTests(unittest.TestCase):
                                               '/Secret-Handle'),
                     self.AVATAR.replace('forum-images.hardware.fr', 'example.org'),
                     self.AVATAR.replace('clear:both', 'clear:both;background:url(https://example.org/h.png)'),
-                    self.AVATAR.replace('.jpg', '.gif'))
+                    self.AVATAR.replace('.jpg', '.svg'))
         for tail in redactor:
             with self.assertRaises(A.AnonymizeError, msg=tail):
                 anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>', after_mood=tail) + self.PAGES)
         check = redactor + ('<div class="avatar_center" style="clear:both"></div>' * 2,
                             '<br/>' + self.LINK + 'Transactions (3)</a>',
                             img,
+                            self.AVATAR.replace('alt=""', 'alt="Secret Handle" alt=""'),  # a browser keeps the first
                             self.TRANSACTIONS.replace('<a href=', '<a href="/transactions_reports.php?config=hfr.inc&amp;cat=1'
                                                                    '&amp;id_user=1" href='))
+        # HFR serves jpg, png and gif avatars (corpus: `mesdiscussions-N.gif` in R57b, R335b).
+        for ext in ('.jpg', '.png', '.gif'):
+            out = anon(self.message("Signature removed.", '<span class="MoodStatus">Kilo</span>',
+                                    after_mood=self.AVATAR.replace('.jpg', ext)) + self.PAGES)
+            self.assertEqual(A.verify_structure(out), [], ext)
         for tail in check:
             html = self.message("Signature removed.", '<span class="MoodStatus">Mood removed.</span>', after_mood=tail) + self.PAGES
             self.assertIn("after a mood", self.reasons(html), tail)

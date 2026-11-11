@@ -777,7 +777,7 @@ PERSONAL_TAILS = {
                                 r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,resizable=yes,"
                                 r"width=\d+,height=\d+,left=\d+,top=\d+'\); return false\"\s*>Transactions \(\d+\)</a\s*>"
                                 r"</span\s*>\s*)?(?:<div class=\"avatar_center\" style=\"clear:both\">(?:<img src=\""
-                                r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png)\" alt=\"[^\"<>]*\"\s*/?>)?"
+                                r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png|gif)\" alt=\"[^\"<>]*\"\s*/?>)?"
                                 r"</div\s*>\s*)?</td\s*>\s*"),
 }
 MESSAGE_CELL_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase2[\"']", re.I)
@@ -2086,7 +2086,7 @@ _V_AFTER_END = {
 _V_TRANSACTIONS_HREF = re.compile(r"/transactions_reports\.php\?config=hfr\.inc&cat=\d+&id_user=\d+")
 _V_TRANSACTIONS_ONCLICK = re.compile(r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,"
                                      r"resizable=yes,width=\d+,height=\d+,left=\d+,top=\d+'\); return false")
-_V_AVATAR_SRC = re.compile(r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png)")
+_V_AVATAR_SRC = re.compile(r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png|gif)")
 
 
 class StructuralVerifier(html.parser.HTMLParser):
