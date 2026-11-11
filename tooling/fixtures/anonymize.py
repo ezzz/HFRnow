@@ -750,6 +750,43 @@ def anonymize_profile_fields(text):
 
 
 PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
+# Where a signature or mood ends is HFR's structure, not the member's markup (#763): a member's unbalanced `</span>`,
+# `</div>` or `<div>` would end or extend a depth count. Each is followed by HFR markup a member cannot write (whole
+# corpus, 2026-11-11): a signature by `</span></div></td></tr></table>` then the next message table, the page's
+# `tr.cBackHeader` footer or a `<script>`; a mood (470 of 470) by the avatar div, the transactions link or the message
+# cell. The block runs to the last `</span>` before that boundary.
+PERSONAL_BOUNDARIES = {
+    SIGNATURE_PLACEHOLDER: re.compile(r"<table\b[^>]*\bclass=[\"']messagetable[\"']|<tr\b[^>]*\bclass=[\"']cBackHeader\b"
+                                      r"|<script\b", re.I),
+    "Mood removed.": re.compile(r"<div\b[^>]*\bclass=[\"']avatar_center[\"']|<span\b[^>]*\bclass=[\"']TransactionsReportsLink"
+                                r"[\"']|<td\b[^>]*\bclass=[\"']messCase2[\"']", re.I),
+}
+SPAN_END_RE = re.compile(r"</span\s*>", re.I)
+
+
+def _personal_blocks(text, open_re, boundary):
+    """Yield (inner_start, inner_end) of every personal block. Every opening counts: a depth count run past a boundary
+    must not hide the next message's block."""
+    for m in open_re.finditer(text):
+        tag_re = re.compile(r"<(/?)%s\b[^>]*>" % re.escape(m.group(1)), re.I)
+        depth, end = 1, len(text)
+        for t in tag_re.finditer(text, m.end()):
+            depth += -1 if t.group(1) else 1
+            if depth == 0:
+                end = t.start()
+                break
+        yield m.end(), _personal_block_end(text, m.end(), end, boundary)
+
+
+def _personal_block_end(text, start, end, boundary):
+    """The end of a personal block's content: the last `</span>` before HFR's next boundary, else the depth count."""
+    b = boundary.search(text, start)
+    if b is None:
+        return end
+    last = None
+    for last in SPAN_END_RE.finditer(text, start, b.start()):
+        pass
+    return end if last is None else last.start()
 
 # Member pseudos other than the operator's: every position where HFR prints one (live, LOT-001
 # corpus; legacy selectors: ParseMessagesOperation.m:149 author `b.s2`, :380 profile link, :200-220
@@ -1726,7 +1763,7 @@ class Anonymizer:
             text, _n = private_thread_subjects(text)
         for open_re, placeholder in PERSONAL_BLOCKS:
             parts, last = [], 0
-            for start, end in _find_para_blocks(text, open_re):
+            for start, end in _personal_blocks(text, open_re, PERSONAL_BOUNDARIES[placeholder]):
                 if start < last:
                     continue
                 kept = signature_placeholder(text[start:end]) if placeholder == SIGNATURE_PLACEHOLDER else placeholder
@@ -1992,6 +2029,14 @@ def allowed_name(name):
     return key in NOT_A_MEMBER or bool(FAKE_NAME_RE.match(key) or re.fullmatch(r"<[\w-]+>|\{[\w-]+\}", key))
 
 
+# What HFR prints after a signature or mood (corpus, 2026-11-11), the verifier's own list (LESSONS 33-34): the next message
+# table, the page footer row or a script after a signature; the avatar, the transactions link or the message cell after a mood.
+_V_AFTER_END = {
+    "signature": {("table", "messagetable"), ("tr", "cBackHeader"), ("script", None)},
+    "mood": {("div", "avatar_center"), ("span", "TransactionsReportsLink"), ("td", "messCase2")},
+}
+
+
 class StructuralVerifier(html.parser.HTMLParser):
     """Collects (line, column, reason) for every non-aliased name or real id in member positions."""
 
@@ -2006,6 +2051,8 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.profile_label = None  # text of the last td.profilCase2 (public profile row label)
         self.form_label = None  # text of the last th.repCase1 (reply / edit form row label)
         self.profile_page = False  # body id of the public profile page (the edit form reuses the labels)
+        self.after_personal = None  # "signature" or "mood" until HFR's next own element (#763)
+        self.xml = False  # an XML document, where CDATA is CDATA
 
     # -- reporting
     def _bad(self, where, value, line=None):
@@ -2064,7 +2111,24 @@ class StructuralVerifier(html.parser.HTMLParser):
             if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
                     r"url\s*\(|expression\s*\(", a.get("style", ""), re.I):
                 self._bad("public profile field markup", tag)
-        if tag == "span" and cls & {"signature", "MoodStatus"} and set(a) - {"class"}:
+        if tag in ("svg", "math"):
+            # html.parser reads <style> and <script> as raw text everywhere, a browser not inside svg or math (#768):
+            # markup hidden there escapes this walk, and HFR prints neither.
+            self._bad("unexpected markup <%s>" % tag, tag)
+        if self.after_personal:
+            # Between a signature or mood and HFR's next own element only end tags, blanks and a bare <br> belong (#763):
+            # anything else is a redaction cut short by the member's markup.
+            if (tag, None) in _V_AFTER_END[self.after_personal] or any(
+                    (tag, c) in _V_AFTER_END[self.after_personal] for c in cls):
+                self.after_personal = None
+            elif not (tag == "br" and not attrs) and not (
+                    # The footer's own table (`R267a`): layout numbers only, before its `tr.cBackHeader`.
+                    tag == "table" and self.after_personal == "signature" and attrs and all(
+                        k in ("cellspacing", "cellpadding", "width") and re.fullmatch(r"\d+%?", v or "") for k, v in attrs)):
+                self._bad("markup after a %s <%s>" % (self.after_personal, tag), tag)
+        if tag == "span" and cls & {"signature", "MoodStatus"} and (
+                set(a) - {"class"} or " ".join(v or "" for k, v in attrs).split() not in (["signature"], ["MoodStatus"])):
+            # Only HFR's own class: another attribute, class token or duplicate carries a value without text (#763).
             self._bad("signature or mood attributes", tag)
         sig = next((e for e in reversed(self.stack) if e["where"] == "signature or mood"), None)
         if sig is not None:
@@ -2206,7 +2270,10 @@ class StructuralVerifier(html.parser.HTMLParser):
         self._non_element(data)
 
     def unknown_decl(self, data):
-        self._non_element(data)
+        # html.parser reads `<![CDATA[ … ]]>` as one declaration; a browser ends that bogus comment at the first `>` and
+        # shows what follows (#763 review). HFR's pages print none; an XML document (the AQ feed, `T01`) is not HTML.
+        if not self.xml:
+            self._bad("unexpected markup <![%s" % data[:5], data)
 
     def handle_endtag(self, tag):
         if self._in_signature():
@@ -2257,6 +2324,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             elif e["where"] == "signature or mood":
                 if text not in ("", "Mood removed.") and not SIGNATURE_TEXT_RE.fullmatch(text):
                     self._bad("signature or mood text", text, e["line"])
+                if self.stack:  # inside a page, not a bare fragment
+                    self.after_personal = "signature" if "signature" in e["cls"] else "mood"
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
                     self._bad("private form copy", text, e["line"])
@@ -2274,6 +2343,8 @@ class StructuralVerifier(html.parser.HTMLParser):
                 self._name(e["where"], text, e["line"])
 
     def handle_data(self, data):
+        if data.strip() and self.after_personal:
+            self._bad("text after a %s" % self.after_personal, data)
         for e in self.stack:
             if e["where"] or e.get("params"):
                 e["text"].append(data)
@@ -3167,6 +3238,7 @@ def verify_structure(text, private=False):
     if looks_json(text):
         return _verify_json(text)
     v = StructuralVerifier(private=private, copies_ok=bool(_V_MPSTORAGE_SUBJECT_TEXT.search(text)) or _v_fixture_thread(text))
+    v.xml = text.lstrip().startswith("<?xml") and not re.search(r"<html\b", text, re.I)
     v.feed(text)
     v.close()
     return v.found
