@@ -132,7 +132,8 @@ import Testing
         let names = Set(ThemeTokens.contrastRules.map { "\($0.foreground)/\($0.background)" })
         for pair in [
             "link/quoteBackground", "link/codeBackground", "link/readerAlternate", "textSecondary/codeBackground",
-            "accentText/codeBackground", "accentText/systemCard", "accentText/background", "meta/surface", "counter/surface", "textSecondary/readerAlternate"
+            "accentText/codeBackground", "accentText/systemCard", "accentText/background", "meta/surface", "counter/surface",
+            "textSecondary/readerAlternate"
         ] {
             #expect(names.contains(pair), "\(pair)")
         }
