@@ -11,6 +11,7 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 | `publish.py` | Raw captures → corpus files and `<id>.meta.json`, driven by `corpus.json` |
 | `corpus.json` | The corpus manifest: raw id → corpus id, slug, extension, private |
 | `local.example.json` | Template of the git-ignored `local.json` |
+| `manifest_check.py` | Check run by the `fixture-tooling` unit-test step (`test_committed_corpus_and_manifest_agree`; no workflow edit, so a corpus PR starts no macOS job): every `corpus.json` id is named in a row of the captures' `MANIFEST.md` (grouped rows such as `T11, T11h` count) and every id of its capture table is in the corpus |
 | `tests/` | `python3 -m unittest discover tooling/fixtures/tests` (synthetic HTML only, run in CI) |
 
 ## Safety rules
