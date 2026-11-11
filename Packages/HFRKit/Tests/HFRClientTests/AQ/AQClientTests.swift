@@ -183,10 +183,11 @@ struct AQClientTests {
 struct AQCreateTests {
     static func report(
         existingAlertID: Int? = nil, title: String = "Alert title", topicID: Int = 9_900_001, topicTitle: String = "Own topic subject",
-        pseudo: String = "User1", postID: Int = 99_100_001, comment: String = "post de user1"
+        pseudo: String = "User1", postID: Int = 99_100_001, comment: String = "post de user1",
+        postURLSuffix: String = ""
     ) -> AQNewReport {
         let permalink = "https://forum.hardware.fr/hfr/own-category/own-subcategory/"
-            + "own-topic-subject-sujet_9900001_1.htm#t99100001"
+            + "own-topic-subject-sujet_9900001_1.htm#t99100001" + postURLSuffix
         return AQNewReport(
             existingAlertID: existingAlertID, title: title, topicID: topicID, topicTitle: topicTitle, pseudo: pseudo, postID: postID,
             postURL: URL(string: permalink) ?? URL(fileURLWithPath: "/"), comment: comment)
@@ -279,6 +280,10 @@ struct AQCreateTests {
         (Self.report(topicTitle: ""), .missing(.topicTitle)),
         (Self.report(pseudo: ""), .missing(.pseudo)),
         (Self.report(pseudo: String(repeating: "p", count: 129)), .tooLong(.pseudo)),
+        (Self.report(pseudo: String(repeating: "İ", count: 65)), .tooLong(.pseudo)),
+        (Self.report(title: String(repeating: "t", count: 513)), .tooLong(.title)),
+        (Self.report(topicTitle: String(repeating: "t", count: 513)), .tooLong(.topicTitle)),
+        (Self.report(postURLSuffix: String(repeating: "x", count: 513)), .tooLong(.postURL)),
         (Self.report(topicID: 0), .outOfRange(.topicID)),
         (Self.report(postID: Int(Int32.max) + 1), .outOfRange(.postID)),
         (Self.report(existingAlertID: 0), .outOfRange(.existingAlertID))
@@ -286,6 +291,18 @@ struct AQCreateTests {
     func invalidReports(report: AQNewReport, problem: AQReportProblem) async throws {
         let (client, transport) = try Self.created()
         await #expect(throws: AQCreateError.invalidReport(problem)) { try await client.create(report) }
+        #expect(await transport.requests.isEmpty)
+    }
+
+    @Test("create: a task cancelled before sending is `cancelled` (nothing sent), not unconfirmed")
+    func cancelledBeforeSending() async throws {
+        let (client, transport) = try Self.created()
+        let task = Task { () async -> AQCreateError? in
+            withUnsafeCurrentTask { $0?.cancel() }
+            do throws(AQCreateError) { try await client.create(Self.report()) } catch { return error }
+            return nil
+        }
+        #expect(await task.value == .cancelled)
         #expect(await transport.requests.isEmpty)
     }
 

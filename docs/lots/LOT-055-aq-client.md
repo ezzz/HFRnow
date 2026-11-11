@@ -72,9 +72,14 @@ An addition (`existingAlertID` set) sends `alerte_qualitay_id`, `pseudo`, `post_
   and not `0` (PHP `empty()`); `nom` / `topic_titre` / `post_url` ≤ 512, `pseudo` ≤ 128, `commentaire` ≤ 1024 characters (scalars); no
   character outside the BMP; ids positive and ≤ `int(11)`; `post_url` starts with `https://forum.hardware.fr` (else a 403). Source: HFR-PROTOCOL
   §6c "Values the database refuses" (`T72`-`T90`, #611): the live `sql_mode` is unknown, so a value either mode would refuse or change is refused here.
+- A task cancelled before the request is handed to the network is `AQCreateError.cancelled` (nothing sent), not `unconfirmed`.
 - The N1 notice before the first create, and one create at a time, are app logic (LOT-134).
 
 ## Intentional differences from legacy
+- **Create** (`MessagesView.swift:340-376` @ 2440d79): a non-`1` answer was shown to the user as a refusal code; it is now `unconfirmed`
+  (refusals are not captured on the live host). Values the database refuses or silently changes (over-long, outside the BMP, ids out of
+  range) were sent; they are refused before sending (#611). The body is UTF-8 (legacy: lossy ASCII, accents lost), carries `from=SwiftHFR`
+  (#573), and an addition omits `nom` / `topic_*`.
 - An item with an unreadable date is **not** new. Legacy dated it "now" (`AQPlusView.swift:203`), so it was new on every check and the
   badge never cleared. No such item in `T01`.
 - Redirects are not followed. Legacy used `URLSession.shared`, whose jar holds the `.hardware.fr` cookies: it never sent them to the AQ host

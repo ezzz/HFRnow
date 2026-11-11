@@ -37,6 +37,8 @@ public enum AQCreateError: Error, Sendable, Equatable {
     case invalidBaseURL
     /// Nothing was sent: the report cannot be accepted by the server as it is.
     case invalidReport(AQReportProblem)
+    /// The task was cancelled before the request was handed to the network: nothing was sent, the user may try again.
+    case cancelled
     /// The report may have been recorded; the app must not resend it on its own (check `alerts(topicID:)` first).
     case unconfirmed(AQCreateUncertainty)
 }

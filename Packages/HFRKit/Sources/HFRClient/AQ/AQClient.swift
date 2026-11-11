@@ -79,6 +79,8 @@ public struct AQClient: Sendable {
         do { url = try configuration.createURL() } catch { throw .invalidBaseURL }
         var request = HTTPRequest.post(url, form: form, timeout: Self.createTimeout, redirectPolicy: .doNotFollow)
         request.maximumBodyBytes = Self.maximumCreateAnswerBytes
+        // Nothing has left the device yet: a cancellation here is a plain failure, not an unknown outcome (LOT-048).
+        if Task.isCancelled { throw .cancelled }
         let response: HTTPResponse
         do {
             response = try await transport.perform(request)

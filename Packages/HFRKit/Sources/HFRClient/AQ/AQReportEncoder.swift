@@ -31,7 +31,8 @@ enum AQReportEncoder {
             form.append("topic_titre", try text(report.topicTitle, .topicTitle, required: true))
         }
         // Legacy lower-cases the pseudo (`MessagesView.swift:439-441` @ 2440d79); the unique keys ignore case anyway.
-        form.append("pseudo", try text(report.pseudo, .pseudo, required: true).lowercased())
+        // Lower-cased first: it can add scalars, and the 128 limit applies to what is sent.
+        form.append("pseudo", try text(report.pseudo.lowercased(), .pseudo, required: true))
         try number(report.postID, .postID)
         form.append("post_id", String(report.postID))
         let url = report.postURL.absoluteString
