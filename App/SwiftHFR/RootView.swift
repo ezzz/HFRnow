@@ -33,6 +33,7 @@ struct RootView: View {
             case .navigation:
                 if let built {
                     RootNavigationView(environment: built.environment, lastDestination: $lastDestination)
+                        .environment(\.memberAvatars, built.environment.memberAvatars)
                         .id(built.generation)
                 }
             case .importProgress:

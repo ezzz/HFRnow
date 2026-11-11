@@ -86,6 +86,8 @@ final class AvatarRefresh {
 extension EnvironmentValues {
     /// The avatar refresh model, injected by the app; nil in previews and tests (the avatar is then read once).
     @Entry var avatarRefresh: AvatarRefresh?
+    /// The current session's MP avatar prefetcher (#714); nil when logged out, in previews and tests (no lookup).
+    @Entry var memberAvatars: MemberAvatarPrefetcher?
 }
 
 /// Hands the avatars of every page the source serves to the store, without delaying the page.
