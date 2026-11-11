@@ -8,7 +8,8 @@ import UIKit
 // year; Noël soft is switched on once per season, the user's theme is saved and restored, « Désactiver » opts out for the
 // year; packing at the end; legacy forced the theme off at every launch (`:103`, `:365`), so it never showed.
 /// The seasonal scheduler (THEMES.md §5), one for the app: at each scene activation it switches Noël soft on, shows the arrival,
-/// packs or restores, from the date of `now` in `calendar`. State lives in the device-only `season.*` keys of `store`.
+/// packs or restores, from the date of `now` in the Gregorian calendar of `timeZone`. State lives in the device-only
+/// `season.*` keys of `store`.
 @MainActor
 @Observable
 final class SeasonalThemeModel {
@@ -68,7 +69,7 @@ final class SeasonalThemeModel {
 
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let now: @MainActor () -> Date
-    @ObservationIgnored private let calendar: Calendar
+    @ObservationIgnored private let timeZone: @MainActor () -> TimeZone
     @ObservationIgnored private let reduceMotion: @MainActor () -> Bool
     /// The scene showing the arrival alert: with two windows (iPad) only one presents it.
     @ObservationIgnored private var alertScene: UUID?
@@ -77,13 +78,12 @@ final class SeasonalThemeModel {
     init(
         store: any SettingsStore,
         now: @escaping @MainActor () -> Date = { Date() },
-        calendar: Calendar = .autoupdatingCurrent,
+        timeZone: @escaping @MainActor () -> TimeZone = { .autoupdatingCurrent },
         reduceMotion: @escaping @MainActor () -> Bool = { UIAccessibility.isReduceMotionEnabled }
     ) {
         self.store = store
         self.now = now
-        // Season years are Gregorian whatever the device's calendar (a Buddhist year would name other keys).
-        self.calendar = NoelCalendar.gregorian(in: calendar.timeZone)
+        self.timeZone = timeZone
         self.reduceMotion = reduceMotion
         isAutomatic = store.value(for: SettingKey.seasonalThemesAutomatic)
         animationsEnabled = store.value(for: SettingKey.seasonalAnimations)
@@ -96,8 +96,9 @@ final class SeasonalThemeModel {
         let date = now()
         let year = NoelCalendar.seasonYear(of: date, in: calendar)
         var events: [Event] = []
-        // A theme of an earlier season, left on by an app not opened since its window, however long ago.
-        if let active = store.value(for: SettingKey.noelActiveYear), active < year {
+        // A theme of another season: left on by an app not opened since its window, however long ago, or switched on under a
+        // clock that ran ahead and was set back. Restored first, so two saved themes never coexist.
+        if let active = store.value(for: SettingKey.noelActiveYear), active != year {
             restore(year: active)
             events.append(.restoredSilently(year: active))
         }
@@ -170,6 +171,10 @@ final class SeasonalThemeModel {
         }
         refresh()
     }
+
+    /// Season dates and years are Gregorian whatever the device's calendar (a Buddhist year would name other keys), in the time
+    /// zone of the moment, so a zone change during a run is followed.
+    private var calendar: Calendar { NoelCalendar.gregorian(in: timeZone()) }
 
     private func isOn(year: Int) -> Bool {
         store.value(for: SettingKey.noelPreviousThemeID(year: year)) != nil
