@@ -84,8 +84,8 @@ sent (`R43a`, X11). One test renames `R60b`'s `sujet` to reach the subject check
 answer `W440a` (the `W10` answer) and the storage write answer `W440b` (the `W15` answer); the edit-form GET of the storage message
 by another account (`R440a`) and after the thread was deleted, by its owner (`R440b`) and by another account (`R440c`): all three are
 `RA5`'s "Ce message ne vous est pas destiné, désolé" page, no form; the edit POST of another account's message (`W440c`): refused,
-"Vous n'avez pas les droits pour éditer ce message !" (a link-less `.hop` with no "avec succès", refreshing to the thread after 3 s, so `save` reports it
-`posting(.unconfirmed(.unrecognizedAnswer))`, never a success; `rejected` is [#756](https://github.com/ezzz/HFRnow/issues/756)).
+"Vous n'avez pas les droits pour éditer ce message !" (a link-less `.hop` with no "avec succès", refreshing to the thread after 3 s, which LOT-037 reads as a refusal by its sentence ([#756](https://github.com/ezzz/HFRnow/issues/756)), so `save` reports it
+`posting(.rejected)` with HFR's sentence, never a success, never retried).
 Tests in `MPStorageTransportWriteTests`, one per state.
 
 **Captured since** ([#333](https://github.com/ezzz/HFRnow/issues/333)): the storage row on page 2, `R333a` → `R333b`, walked by
