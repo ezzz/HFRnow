@@ -5,7 +5,7 @@
 
 Does (routine, ORCHESTRATION.md "unblock procedure" and AGENTS.md §8 closure):
   unblock  open issue whose only status is `status: blocked`, every line of its `### Blocked by` section only `#n`
-           (separators and a parenthesised note allowed), all closed (issue completed, PR merged), and for a lot every numeric dependency closed, not captured-blocked,
+           (separators and a no-space id note such as `(LOT-057)` allowed), all closed (issue completed, PR merged), and for a lot every numeric dependency closed, not captured-blocked,
            not M5 while M5_OPEN is False -> `status: ready` (drops `status: blocked`), comment `Unblocked by #PR`
            (#835: a free-text blocker line is never "closed"; `status: on-hold` and `status: needs-decision` never move)
   close    merged dev-swift PR with `Closes #N` whose issue is still open -> `Done in #PR (merged as <sha>)`, close
@@ -46,8 +46,9 @@ BLOCKED, ON_HOLD = 'status: blocked', 'status: on-hold'
 SECTION = re.compile(r'^#{2,4}[ \t]*Blocked by[ \t]*\r?\n(.*?)(?=^#{1,6}[ \t]|\Z)', re.I | re.M | re.S)
 PLACEHOLDER = re.compile(r'^(none|n/a|tbd|-|_no response_)$', re.I)
 REF = re.compile(r'(?<![\w/])#(\d+)\b')  # an issue or PR of this repository (`owner/repo#n` is another repository)
-# What may surround the refs of a closable line: separators, `and`/`et`, and one parenthesised note per ref.
-FILLER = re.compile(r'\([^()]*\)|[\s,;&/+]+|\b(?:and|et)\b', re.I)
+# What may surround the refs of a closable line: separators, `and`/`et`, and a short id note in parentheses with no
+# space, such as `(LOT-057)`; a note with words in it may be a blocker, so it makes the line free text.
+FILLER = re.compile(r'\([^()\s]*\)|[\s,;&/+]+|\b(?:and|et)\b', re.I)
 
 
 def refs_of(line):
@@ -294,8 +295,11 @@ def apply(actions):
                 gh('POST', base + '/labels', fields=['labels[]=status: ready'])
                 try:
                     gh('DELETE', base + '/labels/status:%20blocked')
-                except RuntimeError:  # never leave two statuses: take `ready` back, the issue stays blocked
-                    gh('DELETE', base + '/labels/status:%20ready')
+                except RuntimeError:  # never leave two statuses: take `ready` back if `blocked` is still there
+                    now = labels(json.loads(subprocess.run(['gh', 'api', '-X', 'GET', base], capture_output=True, text=True,
+                                                           check=True).stdout))
+                    if BLOCKED in now:
+                        gh('DELETE', base + '/labels/status:%20ready')
                     raise
                 gh('POST', base + '/comments', fields=[f"body=Unblocked by #{a['pr']}{FOOT}"])
             else:

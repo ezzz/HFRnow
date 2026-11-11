@@ -478,6 +478,47 @@ class Hygiene(unittest.TestCase):
         actions, _ = self.run_sweep(issues, pulls + [pr(11, body="Closes #2", merged_at="2026-10-31T00:00:00Z")])
         self.assertEqual([a["kind"] for a in actions], ["close"])  # pending close: closed, not unblocked
 
+    def test_a_blocker_written_in_parentheses_is_never_filler(self):
+        pulls = [pr(10, body="Closes #2", merged_at="2026-10-30T00:00:00Z")]
+        for line in ("#2 (waits for the operator)", "#2 (and the capture R55 on the Mac)", "(the operator's go) #2"):
+            issues = [issue(2, "closed"), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n" + line)]
+            self.assertEqual(self.run_sweep(issues, pulls)[0], [], line)
+        self.assertEqual(hygiene.refs_of("#2 (LOT-002)"), [2])  # a short id note, no space, stays a ref line
+
+    def test_a_lot_whose_plan_dependency_was_dropped_is_not_unblocked_by_its_section(self):
+        dep = issue(1, "closed")
+        dep["state_reason"] = "not_planned"
+        lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001"))
+        issues = [dep, issue(9, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#9\n")]
+        actions, _ = hygiene.analyze(issues, [pr(10, body="Closes #9", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual(actions, [])
+
+    def test_an_open_pr_on_another_base_keeps_the_issue_blocked_without_a_report(self):
+        stub = {**issue(12), "pull_request": {"merged_at": None}}
+        issues = [stub, issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n#12\n")]
+        actions, reports = self.run_sweep(issues, [])
+        self.assertEqual(actions, [])
+        self.assertFalse(any("#50" in r for r in reports), reports)
+
+    def test_a_roadmap_tracker_may_carry_no_status(self):
+        _, reports = self.run_sweep([issue(40, labels=["type: roadmap"]), issue(41, labels=["type: chore"])], [])
+        self.assertFalse(any("#40" in r for r in reports))
+        self.assertTrue(any("#41: no `status:` label" in r for r in reports))
+
+    def test_apply_never_takes_ready_back_when_blocked_is_already_gone(self):
+        calls = []
+
+        def fake(method, path, fields=()):
+            calls.append((method, path))
+            if method == "DELETE" and path.endswith("status:%20blocked"):
+                raise RuntimeError("404")
+        reads = [{"state": "open", "labels": [{"name": "status: blocked"}]}, {"state": "open", "labels": [{"name": "status: ready"}]}]
+        runs = [subprocess.CompletedProcess([], 0, stdout=json.dumps(x), stderr="") for x in reads]
+        with mock.patch.object(hygiene.subprocess, "run", side_effect=runs), mock.patch.object(hygiene, "gh", fake), \
+                contextlib.redirect_stdout(io.StringIO()):
+            hygiene.apply([{"kind": "unblock", "issue": 2, "lot": "LOT-002", "pr": 10}])
+        self.assertNotIn(("DELETE", "repos/ezzz/HFRnow/issues/2/labels/status:%20ready"), calls)  # `ready` is its only status now
+
     def test_a_closed_unmerged_pr_on_another_base_is_reported(self):
         stub = {**issue(12, "closed"), "pull_request": {"merged_at": None}}
         issues = [stub, issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n#12\n")]
@@ -495,9 +536,10 @@ class Hygiene(unittest.TestCase):
             calls.append((method, path))
             if method == "DELETE" and path.endswith("status:%20blocked"):
                 raise RuntimeError("boom")
-        got = subprocess.CompletedProcess([], 0, stdout=json.dumps({"state": "open", "labels": [{"name": "status: blocked"}]}), stderr="")
+        got = subprocess.CompletedProcess([], 0, stdout=json.dumps({"state": "open", "labels": [{"name": "status: blocked"}, {"name": "status: ready"}]}), stderr="")
+        first = subprocess.CompletedProcess([], 0, stdout=json.dumps({"state": "open", "labels": [{"name": "status: blocked"}]}), stderr="")
         out = io.StringIO()
-        with mock.patch.object(hygiene.subprocess, "run", return_value=got), mock.patch.object(hygiene, "gh", fake), \
+        with mock.patch.object(hygiene.subprocess, "run", side_effect=[first, got]), mock.patch.object(hygiene, "gh", fake), \
                 contextlib.redirect_stdout(out):
             hygiene.apply([{"kind": "unblock", "issue": 2, "lot": "LOT-002", "pr": 10}])
         self.assertEqual(calls[-1], ("DELETE", "repos/ezzz/HFRnow/issues/2/labels/status:%20ready"))  # one status again
@@ -576,6 +618,18 @@ class ClassifyBlocked(unittest.TestCase):
         rows = self.run_it([issue(1), issue(70, labels=["status: blocked"], body=body)])
         self.assertEqual(rows[70]["outcome"], "blocked")
         self.assertEqual(rows[70]["blocked_by"], ["#1", "The capture issue must land first."])  # bare `#n`: what the sweep reads
+
+    def test_free_text_sharing_a_line_with_a_ref_is_never_dropped(self):
+        for line in ("#1; the sub-domain choice.", "#1 and the operator go for the write", "- LOT-001 then the Mac capture of R55"):
+            body = "### Blocked by\n\n" + line + "\n"
+            rows = self.run_it([issue(1, "closed"), issue(70, labels=["status: blocked"], body=body)])
+            self.assertEqual(rows[70]["outcome"], "needs-decision", line)
+            rows = self.run_it([issue(1), issue(70, labels=["status: blocked"], body=body)])
+            self.assertEqual(rows[70]["outcome"], "blocked", line)
+            self.assertIn(line.lstrip("- "), rows[70]["blocked_by"], line)  # kept, so the sweep never unblocks on #1 alone
+        for line in ("dependencies not done: LOT-001 (#1)", "none: every dependency is merged (unblocked 2026-10-29)", "#1 (LOT-001)"):
+            rows = self.run_it([issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n" + line + "\n")])
+            self.assertEqual(rows[2]["outcome"], "ready", line)  # LOT-002 waits on LOT-001; generated lines and bare refs say nothing more
 
     @mock.patch.object(m5, "M5_OPEN", False)
     def test_m5_items_are_on_hold_with_the_decision_and_the_plan_says_what_to_write(self):

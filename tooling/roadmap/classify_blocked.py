@@ -23,7 +23,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent.parent / 'scripts'))
 import m5  # noqa: E402
-from hygiene import blockers_of, numeric_deps  # noqa: E402
+from hygiene import FILLER, blockers_of, numeric_deps  # noqa: E402
 from sync_state import REPO, build, gh_pages, labels  # noqa: E402
 import issue_claims  # noqa: E402
 
@@ -52,7 +52,7 @@ FREE = {
     708: ['The in-place update shipped on the App Store, plus the delay the operator sets (users who skip versions must still be imported)'],
 }
 # Issue numbers named in prose rather than as `#n` (read by hand): number -> blockers to add.
-EXTRA_REFS = {160: [237], 286: [285], 310: [272], 571: [567], 708: [255], 765: [760], 338: [255, 326], 775: [774]}
+EXTRA_REFS = {160: [237], 286: [285], 310: [272], 571: [567], 632: [631], 708: [255], 765: [760], 338: [255, 326], 775: [774]}
 # Numbers an issue names that are not its blockers (read by hand): number -> refs to leave out, with the reason in NOTES.
 EXCLUDE = {94: {285, 286, 449, 531}}
 # Cannot tell from the tracker: the exact question for the operator.
@@ -82,8 +82,19 @@ REF = re.compile(r'(?<![\w/])#(\d+)\b')
 LOT = re.compile(r'\bLOT-(\d{3})\b')
 
 
+# The lines earlier steward runs generated: their refs and lots say everything they hold.
+GENERATED = re.compile(r'^(?:dependencies not done(?: \(\d+\))?:|none\b.*$)', re.I)
+
+
+def says_more(line):
+    """True when a blocker line holds text beyond refs, lots, id notes and a generated prefix: a blocker of its own."""
+    rest = re.sub(r'\([^()]*\)', lambda m: '' if REF.search(m.group(0)) or LOT.search(m.group(0)) else m.group(0),
+                  GENERATED.sub('', line))  # a note that names the ref, such as `(#81, blocked)`, says nothing more
+    return bool(FILLER.sub('', REF.sub('', LOT.sub('', rest))))
+
+
 def section(body, name):
-    m = re.search(r'(?ims)^#{2,4}[ \t]*' + name + r'[ \t]*\r?\n(.*?)(?=^#{1,6}[ \t]|\Z)', body or '')
+    m = re.search(r'(?ims)^#{2,4}[ \t]*' + name + r'[ \t]*\n(.*?)(?=^#{1,6}[ \t]|\Z)', re.sub(r'\r\n?', '\n', body or ''))
     return m.group(1) if m else ''
 
 
@@ -164,8 +175,7 @@ def classify(issues, pulls, lots, comments, ms):
         free = list(FREE.get(n, []))
         read_by_hand = n in FREE or n in EXTRA_REFS or n in NOTES or n in EXCLUDE
         # a free-text line of the section that names no issue or lot is a blocker of its own unless it was read by hand
-        unread = [] if read_by_hand else [x for x in blockers_of(body) or []
-                                          if not REF.search(x) and not LOT.search(x) and not re.match(r'(?i)none\b', x)]
+        unread = [] if read_by_hand else [x for x in blockers_of(body) or [] if says_more(x)]
         holder = issue_claims.replay(comments.get(n, comments.get(str(n), []))).holder
         row = {'issue': n, 'title': title(n), 'lot': lot, 'milestone': mile, 'blockers': blockers, 'free': free,
                'claim': holder, 'note': NOTES.get(n)}
