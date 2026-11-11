@@ -69,12 +69,18 @@ struct TopicListView: View {
         }
         .toolbar {
             if model.source.isPaged, loader.value != nil { PageBar(model: model) }
-            if let composer, let target = model.newTopicTarget {
-                ToolbarItem(placement: .primaryAction) {
+            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
+            // so the refresh never moves to the bottom bar (`:849-851`).
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let composer, let target = model.newTopicTarget {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
-                        Label("Nouveau sujet", systemImage: "square.and.pencil")
+                        Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
+                Button { Task { await model.refresh() } } label: {
+                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
+                }
+                .disabled(!model.canRefresh)
             }
         }
         .sheet(item: $newTopic) { composer in
@@ -332,5 +338,16 @@ private struct TopicSentBanner: View {
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
+    }
+}
+
+/// `arrow.clockwise` that spins while loading (legacy `ToolbarRefreshIcon`, `Common.swift:393-404` @ 87fe0d1c). The button's label is
+/// never swapped for a `ProgressView`: legacy found that makes the Liquid Glass toolbar morph balloon on the Duo inner display.
+struct ToolbarRefreshIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        Image(systemName: "arrow.clockwise")
+            .symbolEffect(.rotate, options: .repeating, isActive: isLoading)
     }
 }
