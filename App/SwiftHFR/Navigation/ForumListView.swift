@@ -12,7 +12,7 @@ struct ForumListView: View {
         List(selection: $navigation.selectedSource) {
             if let content = loader.value {
                 ForEach(content.sections) { section in
-                    row(section).densityInnerMargin().tag(section.source)
+                    row(section).densityRowMargin().tag(section.source)
                 }
             }
         }

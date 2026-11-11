@@ -31,11 +31,9 @@ enum ListDensity: Sendable {
         }
     }
 
-    /// System inner side inset of an inset-grouped row and of its section header.
-    static let systemInnerMargin: CGFloat = 16
-
-    /// How far the density moves a system-inset row sideways (negative: towards the card edge).
-    var innerMarginShift: CGFloat { rowInsets.leading - Self.systemInnerMargin }
+    /// The inner side inset set on a row that keeps the system's vertical insets: nil in regular rows (the system's), the
+    /// compact inner margin otherwise.
+    var rowSideInset: CGFloat? { outerMargin == nil ? nil : rowInsets.leading }
 
     /// Space between list sections (legacy compact favourites: 6).
     var sectionSpacing: ListSectionSpacing {
@@ -101,24 +99,46 @@ enum ListDensity: Sendable {
 extension EnvironmentValues {
     /// The density of every list; the app root sets it from the "Mode compact" setting.
     @Entry var listDensity = ListDensity.regular
+    /// Left edge of the cards of the enclosing list, in its `densityList` coordinate space (set by `densityListMargins`).
+    @Entry var densityCardEdge: CGFloat = 0
 }
 
 /// Sets the outer side margin of a list from the density; a nil margin is the system layout, so the list keeps its identity
-/// (scroll position, row state) when the density changes.
+/// (scroll position, row state) when the density changes. Also tells the headers where the cards start.
 private struct DensityListMargins: ViewModifier {
     @Environment(\.listDensity) private var density
+    @State private var safeLeading: CGFloat = 0
 
     func body(content: Content) -> some View {
-        content.contentMargins(.horizontal, density.outerMargin, for: .scrollContent)
+        content
+            .contentMargins(.horizontal, density.outerMargin, for: .scrollContent)
+            .coordinateSpace(.named("densityList"))
+            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.leading } action: { safeLeading = $0 }
+            .environment(\.densityCardEdge, (density.outerMargin ?? 0) + safeLeading)
     }
 }
 
-/// Moves a row's or a section header's content from the system's inner side inset to the density's.
-private struct DensityInnerMargin: ViewModifier {
+/// Sets the inner side inset of a row that keeps the system's vertical insets (nil in regular rows: the system's).
+private struct DensityRowMargin: ViewModifier {
     @Environment(\.listDensity) private var density
 
     func body(content: Content) -> some View {
-        content.padding(.horizontal, density.innerMarginShift)
+        content.listRowInsets(.horizontal, density.rowSideInset)
+    }
+}
+
+/// Moves a section header's content onto the density's inner margin. A header takes the system's inset, whatever it is
+/// (16 pt, 20 pt in wide columns): the modifier measures where the header starts and moves it from there.
+private struct DensityHeaderMargin: ViewModifier {
+    @Environment(\.listDensity) private var density
+    @Environment(\.densityCardEdge) private var cardEdge
+    @State private var systemX: CGFloat?
+
+    func body(content: Content) -> some View {
+        let shift = systemX.flatMap { x in density.rowSideInset.map { cardEdge + $0 - x } } ?? 0
+        content
+            .padding(.horizontal, shift)
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("densityList")).minX } action: { systemX = $0 }
     }
 }
 
@@ -127,8 +147,12 @@ extension View {
     /// Only for `.insetGrouped` lists: on a plain list the margin would leave the row backgrounds short of the screen edge.
     func densityListMargins() -> some View { modifier(DensityListMargins()) }
 
-    /// Aligns a row (or a section header) that keeps the system's inset with the rows that read `rowInsets` (#799).
-    func densityInnerMargin() -> some View { modifier(DensityInnerMargin()) }
+    /// Puts a row that keeps the system's vertical insets on the density's inner margin (#799); rows with their own
+    /// `listRowInsets(density.rowInsets)` already are.
+    func densityRowMargin() -> some View { modifier(DensityRowMargin()) }
+
+    /// Aligns a section header's text with the rows' (#799).
+    func densityHeaderMargin() -> some View { modifier(DensityHeaderMargin()) }
 
     /// Applies the type scale and the list density to every screen below (LOT-169): the default font, the row height and
     /// the section spacing of every list, and the environment values rows and the reader read.
