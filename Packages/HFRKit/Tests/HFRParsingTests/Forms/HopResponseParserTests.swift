@@ -55,6 +55,18 @@ struct HopResponseParserTests {
         #expect(response == HopResponse(kind: .loggedOut, message: "Désolé, vous devez être enregistré pour poster sur le forum"))
     }
 
+    @Test("W440c: another account's message edit, a link-less .hop that refreshes to the thread, is rejected with HFR's sentence")
+    func editRightsRefusal() throws {
+        let sentence = "Vous n'avez pas les droits pour éditer ce message !"
+        let response = try HopResponseParser.classify(html: Fixture.capture("W440c-mp-edit-post-other-account-message-refused"))
+        #expect(response == HopResponse(kind: .rejected, message: sentence))
+        // The sentence is a write refusal only: before the alert form it stays unrecognized (no link, nothing captured).
+        let prepare = try HopResponseParser.classify(
+            html: Fixture.capture("W440c-mp-edit-post-other-account-message-refused"), context: .alertPrepare
+        )
+        #expect(prepare.kind == .unrecognized)
+    }
+
     @Test("Flood refusals keep the sentence without the back link text")
     func floodMessageExcludesBackLink() throws {
         let reply = try HopResponseParser.classify(html: Fixture.capture("W20a-mp-reply-flood"))

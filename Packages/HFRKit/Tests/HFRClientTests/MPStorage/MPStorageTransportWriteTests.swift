@@ -168,11 +168,10 @@ struct MPStorageTransportWriteTests {
         #expect(outcome.posts.count == 1)
     }
 
-    @Test("W440c: an edit POST of another account's message is never a success; HFR's link-less refusal is unrecognized today")
+    @Test("W440c: an edit POST of another account's message is never a success; HFR's link-less refusal is rejected")
     func anotherAccountsMessageIsNotASuccess() async throws {
-        // HFR answers a `.hop` with no link (a 3 s refresh to the thread, no "avec succès"), so LOT-037's classifier calls
-        // it neither a refusal nor a success: the transport reports it unconfirmed with HFR's sentence (never a success,
-        // never retried). Classifying it `rejected`: #756.
+        // HFR answers a `.hop` with no link (a 3 s refresh to the thread, no "avec succès"): LOT-037's classifier reads
+        // the sentence as a refusal (#756), so the transport reports it rejected with HFR's sentence (never retried).
         let base = try Self.stored()
         let ours = try Self.withBlockedPseudo("user9", on: base)
         let outcome = await MPStorageHarness.run(
@@ -181,7 +180,7 @@ struct MPStorageTransportWriteTests {
             try await transport.save(ours, base: base, at: Self.location, stamp: Self.stamp, through: session)
         }
         let sentence = "Vous n'avez pas les droits pour éditer ce message !"
-        #expect(outcome.error == .posting(.unconfirmed(.unrecognizedAnswer(message: sentence))))
+        #expect(outcome.error == .posting(.rejected(message: sentence)))
         #expect(outcome.posts.count == 1)
     }
 
