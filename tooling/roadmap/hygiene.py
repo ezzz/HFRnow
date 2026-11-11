@@ -4,8 +4,8 @@
   python3 tooling/roadmap/hygiene.py --apply    # do the routine part (below), still only reports the rest
 
 Does (routine, ORCHESTRATION.md "unblock procedure" and AGENTS.md §8 closure):
-  unblock  open issue whose only status is `status: blocked`, every line of its `### Blocked by` section a `#n` that is
-           closed (issue completed, PR merged), and for a lot every numeric dependency closed, not captured-blocked,
+  unblock  open issue whose only status is `status: blocked`, every line of its `### Blocked by` section only `#n`
+           (separators and a parenthesised note allowed), all closed (issue completed, PR merged), and for a lot every numeric dependency closed, not captured-blocked,
            not M5 while M5_OPEN is False -> `status: ready` (drops `status: blocked`), comment `Unblocked by #PR`
            (#835: a free-text blocker line is never "closed"; `status: on-hold` and `status: needs-decision` never move)
   close    merged dev-swift PR with `Closes #N` whose issue is still open -> `Done in #PR (merged as <sha>)`, close
@@ -45,15 +45,23 @@ BLOCKED, ON_HOLD = 'status: blocked', 'status: on-hold'
 # its lines up to the next heading, bullets stripped, placeholders dropped.
 SECTION = re.compile(r'^#{2,4}[ \t]*Blocked by[ \t]*\r?\n(.*?)(?=^#{1,6}[ \t]|\Z)', re.I | re.M | re.S)
 PLACEHOLDER = re.compile(r'^(none|n/a|tbd|-|_no response_)$', re.I)
-REF = re.compile(r'^#(\d+)\b')  # a blocker line that names an issue or PR of this repository; any other line is free text
+REF = re.compile(r'(?<![\w/])#(\d+)\b')  # an issue or PR of this repository (`owner/repo#n` is another repository)
+# What may surround the refs of a closable line: separators, `and`/`et`, and one parenthesised note per ref.
+FILLER = re.compile(r'\([^()]*\)|[\s,;&/+]+|\b(?:and|et)\b', re.I)
+
+
+def refs_of(line):
+    """The `#n` of a blocker line when it holds nothing else (refs, separators, parenthesised notes); None for free text."""
+    refs = [int(x) for x in REF.findall(line)]
+    return refs if refs and not FILLER.sub('', REF.sub('', line)) else None
 
 
 def blockers_of(body):
     """The blocker lines of the `### Blocked by` section, or None when it is absent or empty."""
-    m = SECTION.search(body or '')
+    m = SECTION.search(re.sub(r'\r\n?', '\n', body or ''))  # a lone CR is a line break, as in JavaScript
     if not m:
         return None
-    lines = [re.sub(r'^\s*[-*][ \t]+', '', x).strip() for x in re.split(r'\r?\n', m.group(1))]
+    lines = [re.sub(r'^\s*[-*][ \t]+', '', x).strip() for x in m.group(1).split('\n')]
     return [x for x in lines if x and not PLACEHOLDER.match(x)] or None
 
 
@@ -152,7 +160,7 @@ def analyze(issues, pulls, lots, comments, now):
     # Unblock (#835): only an issue whose single status is `status: blocked`, and only from its `### Blocked by` section.
     lot_of = {r['issue']: r for r in lots}
     pr_of = {p['number']: p for p in pulls}
-    pr_of.update({i['number']: {'number': i['number'], 'merged_at': (i.get('pull_request') or {}).get('merged_at')}
+    pr_of.update({i['number']: {'number': i['number'], 'merged_at': (i.get('pull_request') or {}).get('merged_at'), 'state': i['state']}
                   for i in issues if 'pull_request' in i and i['number'] not in pr_of})
     no_section = []
     for i in real:
@@ -168,8 +176,8 @@ def analyze(issues, pulls, lots, comments, now):
             continue
         if n in lot_gated:
             continue  # the plan still holds the lot: its own report above says why
-        refs = [int(REF.match(x).group(1)) for x in lines if REF.match(x)]
-        free = [x for x in lines if not REF.match(x)]
+        refs = [d for x in lines for d in (refs_of(x) or [])]
+        free = [x for x in lines if refs_of(x) is None]  # a line with anything else than refs is never "closed"
         merged_refs = [d for d in refs if (pr_of.get(d) or {}).get('merged_at')]
         gone = [d for d in refs if d in dropped or (d in pr_of and not pr_of[d].get('merged_at') and d not in by_n
                                                      and (pr_of[d].get('state') or '').lower() == 'closed')]
@@ -284,7 +292,11 @@ def apply(actions):
                     print('skip (labels changed meanwhile)', a)
                     continue
                 gh('POST', base + '/labels', fields=['labels[]=status: ready'])
-                gh('DELETE', base + '/labels/status:%20blocked')
+                try:
+                    gh('DELETE', base + '/labels/status:%20blocked')
+                except RuntimeError:  # never leave two statuses: take `ready` back, the issue stays blocked
+                    gh('DELETE', base + '/labels/status:%20ready')
+                    raise
                 gh('POST', base + '/comments', fields=[f"body=Unblocked by #{a['pr']}{FOOT}"])
             else:
                 gh('PATCH', base, fields=['state=closed', 'state_reason=completed'])

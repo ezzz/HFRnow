@@ -182,14 +182,15 @@ class Boards(unittest.TestCase):
             f = Path(d) / "state.json"
             base = {"closed": [dn], "ready": [], "claimed": [], "external": [], "prs": {}, "merged_pr": {}, "capture": {}}
             outs = []
-            for hold in ([], [n]):
-                f.write_text(json.dumps({**base, "on_hold": hold}))
+            for key, hold in (("on_hold", []), ("on_hold", [n]), ("needs_decision", [n])):
+                f.write_text(json.dumps({**base, key: hold}))
                 r = subprocess.run([sys.executable, str(root / "unblocked.py"), dep], capture_output=True, text=True, cwd=root,
                                    env={**os.environ, "ROADMAP_STATE": str(f)})
                 self.assertEqual(r.returncode, 0, r.stderr)
                 outs.append(r.stdout)
         self.assertIn(f"{lot} #{n}", outs[0])
         self.assertNotIn(f"{lot} #{n}", outs[1])
+        self.assertNotIn(f"{lot} #{n}", outs[2])
 
     def test_unblocked_helper_knows_m5_and_skips_it_while_closed(self):
         import subprocess, sys, pathlib
@@ -448,6 +449,61 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])
         self.assertTrue(any("#50" in r and "#1" in r and "not planned" in r for r in reports))
 
+    def test_every_ref_of_a_line_must_be_closed_and_any_other_text_keeps_it_blocked(self):
+        pulls = [pr(10, body="Closes #2", merged_at="2026-10-30T00:00:00Z")]
+        for line in ("#2, #3", "- #2 and #3", "#2; the sub-domain choice.", "#2 and the operator go for the write",
+                     "#2 (merged) then capture R55 on the Mac"):
+            issues = [issue(2, "closed"), issue(3), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n" + line)]
+            actions, _ = self.run_sweep(issues, pulls)
+            self.assertEqual(actions, [], line)
+        for line in ("#2", "#2 (LOT-002)", "- #2, #3", "#2 and #3"):  # refs, separators and a parenthesised note only
+            issues = [issue(2, "closed"), issue(3, "closed"), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n" + line)]
+            actions, _ = self.run_sweep(issues, pulls)
+            self.assertEqual([a["issue"] for a in actions], [50], line)
+
+    def test_a_lot_with_an_all_closed_section_stays_blocked_while_its_plan_holds_it(self):
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
+        sec = "### Blocked by\n\n#1\n"
+        cases = {
+            "open plan dependency": (lots_of(md_row("001", 1), md_row("009", 9), md_row("002", 2, deps="001, 009")), [issue(9)]),
+            "open capture": (self.lots, [issue(60, labels=["host: mac"], body="### Wanted by\n\n#2\n")]),
+            "gate sentence": (lots_of(md_row("001", 1), md_row("002", 2, deps="all parsing lots")), []),
+            "unknown lot": (lots_of(md_row("001", 1), md_row("002", 2, deps="001, 999")), []),
+        }
+        for why, (lots, extra) in cases.items():
+            issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body=sec)] + extra
+            actions, _ = hygiene.analyze(issues, pulls, lots, {}, NOW)
+            self.assertEqual([a for a in actions if a["kind"] == "unblock"], [], why)
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body=sec)]
+        actions, _ = self.run_sweep(issues, pulls + [pr(11, body="Closes #2", merged_at="2026-10-31T00:00:00Z")])
+        self.assertEqual([a["kind"] for a in actions], ["close"])  # pending close: closed, not unblocked
+
+    def test_a_closed_unmerged_pr_on_another_base_is_reported(self):
+        stub = {**issue(12, "closed"), "pull_request": {"merged_at": None}}
+        issues = [stub, issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n#12\n")]
+        actions, reports = self.run_sweep(issues, [])
+        self.assertEqual(actions, [])
+        self.assertTrue(any("#50" in r and "#12" in r and "unmerged" in r for r in reports), reports)
+
+    def test_a_lone_carriage_return_ends_the_section_like_the_harness(self):
+        self.assertEqual(hygiene.blockers_of("### Blocked by\n#1\r### X\n#2"), ["#1"])
+
+    def test_apply_takes_ready_back_when_blocked_cannot_be_removed(self):
+        calls = []
+
+        def fake(method, path, fields=()):
+            calls.append((method, path))
+            if method == "DELETE" and path.endswith("status:%20blocked"):
+                raise RuntimeError("boom")
+        got = subprocess.CompletedProcess([], 0, stdout=json.dumps({"state": "open", "labels": [{"name": "status: blocked"}]}), stderr="")
+        out = io.StringIO()
+        with mock.patch.object(hygiene.subprocess, "run", return_value=got), mock.patch.object(hygiene, "gh", fake), \
+                contextlib.redirect_stdout(out):
+            hygiene.apply([{"kind": "unblock", "issue": 2, "lot": "LOT-002", "pr": 10}])
+        self.assertEqual(calls[-1], ("DELETE", "repos/ezzz/HFRnow/issues/2/labels/status:%20ready"))  # one status again
+        self.assertNotIn(("POST", "repos/ezzz/HFRnow/issues/2/comments"), calls)
+        self.assertIn("FAILED", out.getvalue())
+
     def test_an_on_hold_issue_is_never_moved_by_the_sweep(self):
         pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
         for lb in (["status: on-hold"], ["status: on-hold", "status: blocked"], ["status: needs-decision", "status: blocked"]):
@@ -498,7 +554,7 @@ class ClassifyBlocked(unittest.TestCase):
                             issue(50, labels=["status: blocked"], body="### Depends on\n\n- LOT-001 (#1)\n"),
                             issue(51, labels=["status: blocked"], body="nothing named"), issue(52, labels=["status: ready"])])
         self.assertEqual(rows[2]["outcome"], "blocked")
-        self.assertEqual(rows[2]["blocked_by"], ["#1 LOT-001: t1"])  # a `#n` first, so the sweep can read it
+        self.assertEqual(rows[2]["blocked_by"], ["#1"])  # a bare `#n`, the only shape the sweep reads as closable
         self.assertEqual(rows[50]["outcome"], "blocked")
         self.assertEqual(rows[51]["outcome"], "needs-decision")
         self.assertNotIn(52, rows)
@@ -511,6 +567,15 @@ class ClassifyBlocked(unittest.TestCase):
         rows = self.run_it([dep, issue(2, labels=["status: blocked"])])
         self.assertEqual(rows[2]["outcome"], "needs-decision")
         self.assertIn("#1 (closed not_planned)", rows[2]["question"])
+
+    def test_a_free_text_line_of_the_section_is_never_dropped(self):
+        body = "### Blocked by\n\n#1\nThe capture issue must land first.\n"
+        rows = self.run_it([issue(1, "closed"), issue(70, labels=["status: blocked"], body=body)])
+        self.assertEqual(rows[70]["outcome"], "needs-decision")
+        self.assertIn("The capture issue must land first.", rows[70]["question"])
+        rows = self.run_it([issue(1), issue(70, labels=["status: blocked"], body=body)])
+        self.assertEqual(rows[70]["outcome"], "blocked")
+        self.assertEqual(rows[70]["blocked_by"], ["#1", "The capture issue must land first."])  # bare `#n`: what the sweep reads
 
     @mock.patch.object(m5, "M5_OPEN", False)
     def test_m5_items_are_on_hold_with_the_decision_and_the_plan_says_what_to_write(self):

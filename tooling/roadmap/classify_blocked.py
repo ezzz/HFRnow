@@ -23,7 +23,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent.parent / 'scripts'))
 import m5  # noqa: E402
-from hygiene import numeric_deps  # noqa: E402
+from hygiene import blockers_of, numeric_deps  # noqa: E402
 from sync_state import REPO, build, gh_pages, labels  # noqa: E402
 import issue_claims  # noqa: E402
 
@@ -161,7 +161,11 @@ def classify(issues, pulls, lots, comments, ms):
         blockers = [{'ref': x, 'state': state(x), 'title': title(x), 'from': sources[x]} for x in found]
         open_b = [b for b in blockers if b['state'] in ('open', 'unknown')]
         dropped = [b for b in blockers if b['state'].startswith('closed ') and b['state'] != 'closed']
-        free = FREE.get(n, [])
+        free = list(FREE.get(n, []))
+        read_by_hand = n in FREE or n in EXTRA_REFS or n in NOTES or n in EXCLUDE
+        # a free-text line of the section that names no issue or lot is a blocker of its own unless it was read by hand
+        unread = [] if read_by_hand else [x for x in blockers_of(body) or []
+                                          if not REF.search(x) and not LOT.search(x) and not re.match(r'(?i)none\b', x)]
         holder = issue_claims.replay(comments.get(n, comments.get(str(n), []))).holder
         row = {'issue': n, 'title': title(n), 'lot': lot, 'milestone': mile, 'blockers': blockers, 'free': free,
                'claim': holder, 'note': NOTES.get(n)}
@@ -174,8 +178,12 @@ def classify(issues, pulls, lots, comments, ms):
         elif dropped:
             row.update(outcome='needs-decision', question=f"#{n}: its blocker(s) " + ', '.join(f"#{b['ref']} ({b['state']})" for b in dropped)
                        + ' were closed without being done. Is the work still wanted (→ say what it waits on now) or is it dropped too?')
-        elif open_b or free:
-            row.update(outcome='blocked', blocked_by=[f"#{b['ref']} {b['title']}" for b in open_b] + free)
+        elif open_b or free:  # bare `#n` lines: the only shape hygiene.py reads as closable
+            row.update(outcome='blocked', blocked_by=[f"#{b['ref']}" for b in open_b] + free + unread)
+        elif unread:
+            row.update(outcome='needs-decision', question=f"#{n}: every issue it names is closed, but its `### Blocked by` "
+                       'section also says: ' + '; '.join(f'"{x[:160]}"' for x in unread) + '. Is that still pending (→ `blocked`, '
+                       'the line kept) or done (→ `ready`)?')
         elif blockers:
             row.update(outcome='ready')
         else:
@@ -202,7 +210,8 @@ def markdown(rows):
         found += [f"#{b['ref']} {b['state']}" for b in shut] if len(shut) <= 4 else [f"{len(shut)} more closed"]
         found = '<br>'.join(found) or '—'
         if r['outcome'] == 'blocked':
-            todo = '`### Blocked by`<br>' + '<br>'.join(x.replace('|', '/') for x in r['blocked_by'])
+            names = {f"#{b['ref']}": f"#{b['ref']} ({b['title']})" for b in r['blockers']}
+            todo = '`### Blocked by`<br>' + '<br>'.join(names.get(x, x).replace('|', '/') for x in r['blocked_by'])
         elif r['outcome'] == 'on-hold' and (r['decision'], r['link']) == M5_DECISION:
             todo = 'the M5_OPEN decision sentence (below)'
         elif r['outcome'] == 'on-hold':
