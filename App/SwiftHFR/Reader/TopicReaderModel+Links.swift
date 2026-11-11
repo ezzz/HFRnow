@@ -10,6 +10,8 @@ extension TopicReaderModel {
     /// view it does not own) opens in the browser too, never in the reader with the session; a profile opens the profile
     /// sheet (LOT-116), which fetches it without cookies.
     func action(forLink url: URL, defaultBrowser: Bool) -> ReaderLinkAction {
+        // A composer is open over the page (#653): the tap is ignored, the page stays where it is.
+        guard !suspendsPageInteractions else { return .ignored }
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
         if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
@@ -18,7 +20,7 @@ extension TopicReaderModel {
 
     /// The video `index` of message `post` on the page shown, for the player opened on tap (D-071-2).
     func video(post: Int, index: Int, token: Int) -> MessageEmbed? {
-        guard token == document?.token, let message = page?.messages.first(where: { $0.numreponse == post }),
+        guard !suspendsPageInteractions, token == document?.token, let message = page?.messages.first(where: { $0.numreponse == post }),
               message.content.embeds.indices.contains(index) else { return nil }
         return message.content.embeds[index]
     }

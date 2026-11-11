@@ -6,7 +6,12 @@ import SwiftUI
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
 // errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
-/// The composer sheet: a plain text editor, Send and Cancel; a new topic adds its subject and sub-category (LOT-089); a new
+// Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
+// close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
+// "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone the composer is a card docked on the keyboard that
+// grows with the text up to a cap, the page visible and scrollable above it, its taps ignored (`ComposerHeight`,
+// `ComposerCardLayout`, GAP-653, b·operator); the full-screen toggle in the editor's corner; inserted images as chips in the card.
+/// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
 /// `ReplyComposerModel`.
@@ -15,9 +20,13 @@ import SwiftUI
 /// HFR-001) and the text is never rewritten under the cursor; the sheet's keyboard safe area keeps the caret visible.
 struct ReplyComposerView: View {
     let model: ReplyComposerModel
+    /// The presenter ignores its page's taps while this sheet is open: at partial height the page above stays scrollable (#653).
+    let pageScrolls: Bool
     /// Called once with the reason, right before the sheet goes away.
     let onClose: (ReplyComposerModel.CloseReason) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
@@ -41,57 +50,59 @@ struct ReplyComposerView: View {
     @State private var imageInserted = false
     /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
     @State private var rangeImage = NSRange(location: 0, length: 0)
+    /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
+    @State private var gifRequested = false
+    /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
+    @State private var chosenHeight: ComposerHeight?
     /// The archived drafts' picker is open (LOT-101).
     @State private var isShowingArchive = false
+    /// The docked card's parts as last laid out (#653).
+    @State private var measured = ComposerCardLayout()
 
-    init(model: ReplyComposerModel, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+    init(model: ReplyComposerModel, pageScrolls: Bool = false, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
+        self.pageScrolls = pageScrolls
         self.onClose = onClose
         _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
         _imageUpload = State(initialValue: ImageUploadModel(services: model.imageUploadServices))
     }
 
     var body: some View {
-        ThemedNavigationStack {
+        VStack(spacing: 0) {
             VStack(spacing: 0) {
-                if let message = model.errorMessage {
-                    ComposerBanner(text: message, symbol: "exclamationmark.triangle.fill", tint: .orange) {
-                        if model.mayHavePosted {
-                            Button(checkTitle) { Task { await model.checkTopic() } }
-                        }
-                    }
-                }
-                if let warning = model.draftWarning {
-                    ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {
-                        // Keep and discard cannot close while the store refuses writes: the only exit, as the warning says.
-                        if model.canCloseWithoutSaving {
-                            Button("Fermer sans enregistrer", role: .destructive) { Task { await model.closeWithoutSaving() } }
-                        }
-                    }
-                }
+                ComposerHeader(
+                    title: title, isSending: model.isSending, canSend: model.canSend, drafts: drafts,
+                    close: { Task { await model.requestClose() } }, send: { Task { await model.send() } }
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+                banners
                 if model.hasSubjectField { messageFields }
-                editor
             }
-            // Pinned to the bottom of the keyboard safe area as one view kept across focus changes, not a stack child laid
-            // out with the fields (#599). Not `.keyboard` placement: that is an input accessory rebuilt for each focused
-            // field (recipient, subject, text), shown above all three, and gone without an on-screen keyboard.
-            .safeAreaInset(edge: .bottom, spacing: 0) { formattingBar }
-            .gifPanel(services: model.gifServices, formatting: formatting, canEdit: model.canEdit) { focused = .text }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbar }
-            .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
-                clipboardButtons(pending)
-            } message: { pending in
-                Text(pending.message)
-            }
-            .confirmationDialog("Garder ce texte ?", isPresented: askingClose, titleVisibility: .visible) {
-                Button("Garder le brouillon") { Task { await model.keepDraftAndClose() } }
-                Button("Supprimer le brouillon", role: .destructive) { Task { await model.discardDraftAndClose() } }
-                Button("Continuer la saisie", role: .cancel) {}
-            } message: {
-                Text(keepDraftNote)
-            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.top = $0 }
+            editorCard
+                .padding(.horizontal, 16)
+                .padding(.vertical, ComposerCardLayout.gap)
+            // Just under the editor, so it moves with the card and the keyboard (#653); one view kept across focus changes,
+            // after the fields, so moving between them never moves it (#599). Not `.keyboard` placement: that is an input
+            // accessory rebuilt for each focused field (recipient, subject, text), and gone without an on-screen keyboard.
+            controls.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .appScreenBackground()
+        .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
+        .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
+            clipboardButtons(pending)
+        } message: { pending in
+            Text(pending.message)
+        }
+        .confirmationDialog("Garder ce texte ?", isPresented: askingClose, titleVisibility: .visible) {
+            Button("Garder le brouillon") { Task { await model.keepDraftAndClose() } }
+            Button("Supprimer le brouillon", role: .destructive) { Task { await model.discardDraftAndClose() } }
+            Button("Continuer la saisie", role: .cancel) {}
+        } message: {
+            Text(keepDraftNote)
         }
         .sheet(item: $picker, onDismiss: { if smileyInserted { focused = .text } }, content: { picker in
             SmileyPickerView(model: picker) { insertSmiley($0) }
@@ -99,8 +110,10 @@ struct ReplyComposerView: View {
         .imageUploadSheet(
             isPresented: $isShowingImages, model: imageUpload,
             onDismiss: { if imageInserted { focused = .text } },
-            onInsert: { formatting.selectedRange = rangeImage; formatting.insert($0); imageInserted = true }
+            onInsert: { insertImage($0) }
         )
+        .presentationDetents([detent])
+        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
                 isShowingArchive = false
@@ -140,19 +153,6 @@ struct ReplyComposerView: View {
         }
     }
 
-    /// Where typing starts: the first field of a new private message still empty, else the text.
-    private var checkTitle: String {
-        model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
-    }
-
-    private var keepDraftNote: String {
-        if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
-        if model.isEdit { return "Le brouillon est retrouvé à la prochaine modification de ce message." }
-        return model.isNewMessage
-            ? "Le brouillon est retrouvé au prochain message à ce destinataire."
-            : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
-    }
-
     private var askingClose: Binding<Bool> {
         Binding(get: { model.isAskingClose }, set: { model.isAskingClose = $0 })
     }
@@ -185,39 +185,31 @@ struct ReplyComposerView: View {
         selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
     }
 
-    private var editor: some View {
-        TextEditor(text: Binding(get: { model.text }, set: { model.update(text: $0) }), selection: $selection)
-            .focused($focused, equals: .text)
-            .scaledFont(.body)
-            .disabled(!model.canEdit)
-            .padding(.horizontal, 12)
-            .overlay {
-                if model.isRestoring { ProgressView() }
-            }
-            .accessibilityLabel(model.isNewMessage || model.isNewTopic || model.isEdit ? "Texte du message" : "Texte de la réponse")
-            .onChange(of: selection) { _, newValue in
-                guard let newValue else { return }
-                formatting.selectedRange = Self.range(of: newValue, in: model.text)
-            }
-            .onChange(of: formatting.cursorRevision) {
-                // The edit already changed the text: place the caret where the engine says, never at the end.
-                let text = model.text
-                let offset = min(formatting.selectedRange.location, text.utf16.count)
-                // Focus is not taken here: `start()` places the caret too, and a new message opens on its recipient field.
-                selection = TextSelection(insertionPoint: String.Index(utf16Offset: offset, in: text))
-            }
+    private var editorCard: some View {
+        ComposerEditorCard(
+            model: model, formatting: formatting, selection: $selection, focused: $focused, chips: model.shownImageChips,
+            editorHeight: height == .partial ? measured.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
+            onToggle: { chosenHeight = height.toggled }, removeChip: removeImage,
+            measure: { text, line in measured.text = text; measured.line = line }
+        )
     }
 
-    private static func end(of text: String) -> NSRange { NSRange(location: text.utf16.count, length: 0) }
-
-    /// The first selected range as a UTF-16 `NSRange`.
-    private static func range(of selection: TextSelection, in text: String) -> NSRange {
-        switch selection.indices {
-        case .selection(let range) where range.upperBound <= text.endIndex: NSRange(range, in: text)
-        case .multiSelection(let set):
-            // A stale index (the text changed meanwhile) falls back to the end instead of trapping.
-            if let first = set.ranges.first, first.upperBound <= text.endIndex { NSRange(first, in: text) } else { end(of: text) }
-        default: end(of: text)
+    @ViewBuilder
+    private var banners: some View {
+        if let message = model.errorMessage {
+            ComposerBanner(text: message, symbol: "exclamationmark.triangle.fill", tint: .orange) {
+                if model.mayHavePosted {
+                    Button(checkTitle) { Task { await model.checkTopic() } }
+                }
+            }
+        }
+        if let warning = model.draftWarning {
+            ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {
+                // Keep and discard cannot close while the store refuses writes: the only exit, as the warning says.
+                if model.canCloseWithoutSaving {
+                    Button("Fermer sans enregistrer", role: .destructive) { Task { await model.closeWithoutSaving() } }
+                }
+            }
         }
     }
 
@@ -235,8 +227,8 @@ struct ReplyComposerView: View {
                     .padding(.vertical, 10)
                 Divider()
             }
-            if model.offersSubcategories, showsSubcategoryRow {
-                subcategoryRow
+            if model.offersSubcategories, ComposerSubcategoryRow.shows(model.picker) {
+                ComposerSubcategoryRow(model: model)
                 Divider()
             }
             TextField("Sujet", text: Binding(get: { model.subject }, set: { model.update(subject: $0) }))
@@ -250,79 +242,53 @@ struct ReplyComposerView: View {
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
     }
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button("Smileys", systemImage: "face.smiling", action: openSmileys)
-                .disabled(!model.canEdit)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button("Image", systemImage: "photo.badge.plus", action: openImages)
-                .disabled(!model.canEdit)
-        }
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Annuler") { Task { await model.requestClose() } }
-            .disabled(model.isSending)
-        }
-        if model.offersArchivedDrafts {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Brouillons", systemImage: "tray") {
-                    Task {
-                        await model.refreshArchivedDrafts()
-                        isShowingArchive = true
-                    }
-                }
-                .symbolVariant(model.archivedDrafts.isEmpty ? .none : .fill)
-                .disabled(!model.canEdit)
-            }
-        }
-        ToolbarItem(placement: .confirmationAction) {
-            if model.isSending {
-                ProgressView().accessibilityLabel("Envoi en cours")
-            } else {
-                Button("Envoyer") { Task { await model.send() } }
-                    .disabled(!model.canSend)
-            }
-        }
-    }
 }
 
 extension ReplyComposerView {
-    /// The row has something to show: loading, the options or a failed read (a form without the select shows nothing).
-    private var showsSubcategoryRow: Bool {
-        model.picker.isLoading || !model.picker.options.isEmpty || model.picker.warning != nil
+    /// The error banner's button after a send that may have posted: where to look.
+    private var checkTitle: String {
+        model.isNewTopic ? "Voir les sujets" : model.isNewMessage ? "Voir les messages" : "Voir le sujet"
     }
 
-    /// The form's sub-categories as a menu (legacy `Picker`, `AnswerView.swift:411`); a failed read says so and offers a retry.
-    @ViewBuilder
-    private var subcategoryRow: some View {
-        if model.picker.isLoading {
-            HStack {
-                Text("Sous-catégorie")
-                Spacer()
-                ProgressView().accessibilityLabel("Chargement des sous-catégories")
-            }
-            .padding(.vertical, 10)
-        } else if !model.picker.options.isEmpty {
-            Picker("Sous-catégorie", selection: Binding(
-                get: { model.picker.selected ?? "" }, set: { model.select(subcategory: $0) }
-            )) {
-                ForEach(model.picker.options, id: \.value) { option in
-                    Text(option.label).tag(option.value)
-                }
-            }
-            .pickerStyle(.menu)
-            .disabled(!model.canEdit)
-            .padding(.vertical, 2)
-        } else if let warning = model.picker.warning {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(warning).scaledFont(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button("Réessayer") { Task { await model.retrySubcategories() } }
-            }
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private var keepDraftNote: String {
+        if model.isNewTopic { return "Le brouillon est retrouvé au prochain nouveau sujet dans ce forum." }
+        if model.isEdit { return "Le brouillon est retrouvé à la prochaine modification de ce message." }
+        return model.isNewMessage
+            ? "Le brouillon est retrouvé au prochain message à ce destinataire."
+            : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
+    }
+
+    private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
+
+    /// An iPhone in regular height: partial height first, and the toggle (#653).
+    private var offersHeightToggle: Bool {
+        ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass)
+    }
+
+    private var height: ComposerHeight {
+        ComposerHeight.shown(
+            chosen: chosenHeight, isPhone: isPhone, verticalSizeClass: verticalSizeClass, largeText: dynamicTypeSize.isAccessibilitySize
+        )
+    }
+
+    /// The sheet's only detent: the docked card's height at partial height (`ComposerCardLayout`), `.large` at full.
+    private var detent: PresentationDetent {
+        var layout = measured
+        layout.chips = model.shownImageChips.isEmpty ? 0 : ComposerImageChipsRow.height
+        return height.detent(cardHeight: layout.cardHeight)
+    }
+
+    /// The "Aa" bar when shown, above the control row: one view kept across focus changes (#599).
+    private var controls: some View {
+        VStack(spacing: 0) {
+            if formatting.isBarShown { formattingBar.transition(.move(edge: .bottom).combined(with: .opacity)) }
+            ComposerControlRow(
+                model: model, formatting: formatting, offersGif: model.gifServices.isAvailable,
+                openSmileys: openSmileys, openGif: { gifRequested = true }, openImages: openImages,
+                refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+            )
         }
+        .animation(.easeInOut(duration: 0.2), value: formatting.isBarShown)
     }
 
     /// Off while the recipient or subject has focus; a tap never takes focus from them (`ComposerBarFocus`, #599).
@@ -334,6 +300,7 @@ extension ReplyComposerView {
             .opacity(allowsBar ? 1 : 0.4)
     }
 
+    /// Where typing starts: the first field of a new private message still empty, else the text.
     private var firstEmptyField: Field {
         guard model.hasSubjectField else { return .text }
         if model.isNewMessage, model.recipient.isEmpty { return .recipient }
@@ -342,29 +309,6 @@ extension ReplyComposerView {
 
     private var title: String {
         model.isEdit ? "Edition" : model.isNewTopic ? "Nouveau sujet" : model.isNewMessage ? "Nouveau message" : "Répondre"
-    }
-}
-
-/// A message above the editor, with an optional action.
-private struct ComposerBanner<Actions: View>: View {
-    let text: String
-    let symbol: String
-    let tint: Color
-    @ViewBuilder let actions: () -> Actions
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbol).foregroundStyle(tint).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(text).scaledFont(.callout).fixedSize(horizontal: false, vertical: true)
-                actions()
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-        .padding(.top, 8)
     }
 }
 
@@ -390,5 +334,31 @@ extension ReplyComposerView {
         imageInserted = false
         rangeImage = formatting.selectedRange
         isShowingImages = true
+    }
+
+    /// The panel's snippet at the caret it had; an upload of the panel also gets its chip in the card (#653).
+    fileprivate func insertImage(_ snippet: String) {
+        formatting.selectedRange = rangeImage
+        formatting.insert(snippet)
+        imageInserted = true
+        if let image = imageUpload.uploadedImage(writing: snippet) {
+            model.imageChips.append(ComposerImageChip(snippet: snippet, thumbnail: image.miniURL ?? image.mediumURL ?? image.fullURL))
+        }
+    }
+
+    /// The chip's ✕: one step of the history, the caret at the end.
+    fileprivate func removeImage(_ chip: ComposerImageChip) {
+        if model.removeImage(chip) { formatting.placeCaretAtEnd() }
+    }
+
+    /// LOT-101's drafts button, where the composer archives drafts (a topic's reply).
+    fileprivate var drafts: ComposerHeader.Drafts? {
+        guard model.offersArchivedDrafts else { return nil }
+        return ComposerHeader.Drafts(hasDrafts: !model.archivedDrafts.isEmpty, isEnabled: model.canEdit) {
+            Task {
+                await model.refreshArchivedDrafts()
+                isShowingArchive = true
+            }
+        }
     }
 }

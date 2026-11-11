@@ -17,7 +17,9 @@ struct ReaderSearchFlow: ViewModifier {
         content
             .toolbar {
                 // Searching a private conversation (`cat=prive`) is not captured: no entry there.
-                if let searcher = composer?.topicSearcher, let topic = model.page?.topicID, !model.isPrivateConversation {
+                // None under an open composer (#653): the "…" overflow stays shut.
+                if let searcher = composer?.topicSearcher, let topic = model.page?.topicID, !model.isPrivateConversation,
+                   !model.suspendsPageInteractions {
                     ToolbarItem(placement: .secondaryAction) {
                         Button { search = TopicSearchModel(topic: topic, searcher: searcher) } label: {
                             Label("Rechercher dans le sujet", systemImage: "magnifyingglass")

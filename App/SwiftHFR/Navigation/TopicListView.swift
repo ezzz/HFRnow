@@ -221,9 +221,12 @@ struct TopicListView: View {
     private func header(_ group: TopicGroup, title: String) -> some View {
         HStack {
             if let source = group.opens, let openCategory {
+                let speech = TopicRowCues.sectionTitleSpeech(title)
                 Button { openCategory(source) } label: { Text(title).foregroundStyle(.primary) }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Ouvrir le forum")
+                    .accessibilityLabel(speech.label)
+                    .accessibilityHint(speech.hint)
+                    .accessibilityAddTraits(.isButton)
             } else {
                 Text(title)
             }

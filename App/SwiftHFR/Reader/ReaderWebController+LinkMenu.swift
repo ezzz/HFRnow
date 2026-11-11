@@ -131,9 +131,15 @@ enum ReaderLinkMenu {
 extension ReaderWebController {
     /// The menu of the element under the finger, or nil for something that is not a link (WebKit's own menu, which loads
     /// nothing for an image already in the page). A link that is not `http(s)` gets an empty menu, never WebKit's default.
+    /// The entries of a long-pressed link: none under an open composer (#653), where the menu stays ours but empty, never
+    /// WebKit's default one, which previews (loads) the link.
+    func linkMenuEntries(for url: URL) -> [ReaderLinkMenu.Entry] {
+        ignoresPageTaps ? [] : ReaderLinkMenu.entries(for: url)
+    }
+
     func linkMenuConfiguration(for url: URL?) -> UIContextMenuConfiguration? {
         guard let url else { return nil }
-        let entries = ReaderLinkMenu.entries(for: url)
+        let entries = linkMenuEntries(for: url)
         // No preview provider: WebKit loads the destination of a link it previews, a request nobody consented to.
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             let actions = entries.map { entry in

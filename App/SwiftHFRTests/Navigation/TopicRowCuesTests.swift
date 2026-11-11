@@ -80,4 +80,14 @@ struct TopicRowCuesTests {
         // A flag removal HFR confirmed hides the icon, the capsule and the footer: the tint goes too.
         #expect(TopicListView.rowTint(topic: topic(flag: .blue), showsFlag: false, isSuperFavorite: false, isSelected: false) == nil)
     }
+
+    @Test("A clickable section title keeps the category name as its label and says the action as a hint (#769)")
+    func sectionTitleSpeech() {
+        for title in ["Hardware", "Discussions"] {
+            let speech = TopicRowCues.sectionTitleSpeech(title)
+            #expect(speech.label == title)
+            #expect(speech.hint == "Ouvrir le forum")
+        }
+        #expect(TopicRowCues.sectionTitleSpeech("Hardware").label != TopicRowCues.sectionTitleSpeech("Discussions").label)
+    }
 }

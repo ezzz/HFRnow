@@ -1,5 +1,4 @@
 import HFRModels
-import SafariServices
 import SwiftUI
 import WebKit
 
@@ -58,14 +57,12 @@ struct TopicReaderView: View {
     @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
     @State private var pageText = ""
-    /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
-    @State private var swipeEnabled = true
+    /// The swipe and reply button settings, and the display settings, followed while the reader is on screen (#750).
+    @State private var settings = ReaderSettingsWatch()
     /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
     @State private var writes: MessageWriteModel?
     /// "Alerter" of the message menu (LOT-135); nil until the menu is installed.
     @State private var alerts: ModeratorAlertModel?
-    /// `reply_button_behavior` (LOT-086), read again with the other settings.
-    @State private var replyBehavior = ReplyButtonBehavior.quick
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.isSelectedRootTab) private var isSelectedTab
@@ -84,7 +81,7 @@ struct TopicReaderView: View {
                 .ignoresSafeArea(edges: .vertical)
                 .opacity(model.hasShownDocument ? 1 : 0)
                 .accessibilityHidden(!model.hasShownDocument)
-                .simultaneousGesture(pageSwipe, including: swipeEnabled ? .all : .none)
+                .simultaneousGesture(pageSwipe, including: settings.swipesPages ? .all : .none)
             }
             overlay
         }
@@ -93,11 +90,13 @@ struct TopicReaderView: View {
         .toolbar(ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab), for: .tabBar)
         .safeAreaInset(edge: .top) {
             if let error = model.error, model.page != nil, model.hasShownDocument {
-                LoadFailureBanner(error: error, retry: model.retry)
+                // "Réessayer" does nothing under an open composer (#653): dimmed, as "Actualiser".
+                LoadFailureBanner(error: error, retry: retry).disabled(model.suspendsPageInteractions)
             }
         }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer))
         .modifier(ReaderPollFlow(model: model, composer: composer))
@@ -106,10 +105,11 @@ struct TopicReaderView: View {
         .toolbar {
             ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
             ToolbarItem(placement: .primaryAction) {
-                Button { Task { await model.refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                    .disabled(model.isLoading)
+                Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
+                    .disabled(model.isLoading || model.suspendsPageInteractions)
             }
-            if let onFilterPosts {
+            // No "…" entry under an open composer (#653): a disabled one would still open the overflow.
+            if let onFilterPosts, !model.suspendsPageInteractions {
                 ToolbarItem(placement: .secondaryAction) {
                     Button(action: onFilterPosts) {
                         Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease")
@@ -118,7 +118,7 @@ struct TopicReaderView: View {
                 }
             }
             // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
-            if let page = model.page, page.maxPage > 1 {
+            if let page = model.page, page.maxPage > 1, !model.suspendsPageInteractions {
                 ToolbarItemGroup(placement: .secondaryAction) {
                     // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
                     Section { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
@@ -148,26 +148,17 @@ struct TopicReaderView: View {
         .appScreenBackground().onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
         .onAppear {
-            controller?.resume()
+            controller?.viewAppeared()
             controller?.show(model.document)
         }
         .onAppear {
             if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
         }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
-        .onChange(of: model.canQuote) { _, canQuote in controller?.offersSelectionQuote = canQuote }
+        .onChange(of: model.canQuote) { controller?.offersSelectionQuote = model.offersSelectionQuote }
         .modifier(ReaderAnnouncements(model: model))
-        .task {
-            // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
-            swipeEnabled = services.settings.swipesPages()
-            replyBehavior = services.settings.replyButton()
-            model.applyDisplaySettings() // a change made while this reader was away
-            for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
-                swipeEnabled = services.settings.swipesPages()
-                replyBehavior = services.settings.replyButton()
-                model.applyDisplaySettings()
-            }
-        }
+        // The settings screen writes `UserDefaults`: a display setting changed there reaches the open reader at once.
+        .onAppear { settings.start(services.settings, changed: model.displaySettingsHook) }
         .task {
             installMenuActions()
             await model.onAppear(viewer: viewerID)
@@ -176,9 +167,8 @@ struct TopicReaderView: View {
             // Covered by the reader of a followed link: this page stays as it is, for the way back.
             // Same for the image viewer (a full-screen cover calls it): stopping would turn the pending pictures into links.
             guard model.linkedReader == nil, viewer == nil else { return }
-            model.viewDidDisappear(viewer: viewerID)
-            saver?.leave()
-            controller?.stopLoading()
+            // The controller checks the window first (issue #750), and calls `leave()` back through `events.left`.
+            if let controller { controller.viewDisappeared() } else { leave() }
         }
     }
 
@@ -186,7 +176,7 @@ struct TopicReaderView: View {
     private var overlay: some View {
         if model.page == nil {
             if let error = model.error {
-                LoadFailureView(error: error, retry: model.retry)
+                LoadFailureView(error: error, retry: retry)
             } else {
                 ProgressView("Chargement des messages")
             }
@@ -196,12 +186,12 @@ struct TopicReaderView: View {
             } description: {
                 Text(page.notice ?? "Cette page ne contient aucun message.")
             } actions: {
-                Button("Actualiser") { Task { await model.refresh() } }
+                Button("Actualiser") { Task { await refresh() } }
             }
         } else if !model.hasShownDocument {
             // The web view could not show the page (issue #566): a retry, never an endless spinner.
             if let error = model.error {
-                LoadFailureView(error: error, retry: model.retry)
+                LoadFailureView(error: error, retry: retry)
             } else {
                 ProgressView("Chargement des messages")
             }
@@ -243,8 +233,8 @@ struct TopicReaderView: View {
     /// The reply button's symbol, nil when there is none: logged out, no answer form, or `reply_button_behavior` hidden;
     /// `forum` draws the pencil, `quick` the plus (legacy `replyButtonSystemImage`).
     private var replySymbol: String? {
-        guard composer != nil, model.replyTarget != nil, replyBehavior != .hidden else { return nil }
-        return replyBehavior == .forum ? "square.and.pencil" : "plus"
+        guard composer != nil, model.replyTarget != nil, settings.replyButton != .hidden else { return nil }
+        return settings.replyButton == .forum ? "square.and.pencil" : "plus"
     }
 
     private var linkedReader: Binding<LinkedReader?> {
@@ -290,16 +280,62 @@ struct TopicReaderView: View {
             image: { images, index, _ in
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
-            }, notice: { [model] in model.showMenuFeedback($0) }
+            }, notice: { [model] in model.showMenuFeedback($0) },
+            // Weak and through bindings, not `self`: the controller stores this closure, and `self`'s `@State` holds the
+            // controller (LOT-087).
+            left: { [weak controller, model, viewerID, covered = $viewer, saver = $saver, settings] in
+                Self.leave(model: model, viewerID: viewerID, covered: covered.wrappedValue != nil) {
+                    saver.wrappedValue?.leave()
+                    settings.stop()
+                    controller?.stopLoading()
+                }
+            },
+            // On screen again with no `onAppear` (issue #750): the page, its load and the settings come back as `onAppear`
+            // brings them.
+            returned: { [weak controller, model, viewerID, settings, readerSettings = services.settings] in
+                controller?.show(model.document)
+                settings.start(readerSettings, changed: model.displaySettingsHook)
+                Task { await model.onAppear(viewer: viewerID) }
+            }
         )
         model.adopt(services, composer: composer)
-        controller.offersSelectionQuote = model.canQuote
+        controller.offersSelectionQuote = model.offersSelectionQuote
+        controller.ignoresPageTaps = model.suspendsPageInteractions
         self.controller = controller
     }
 }
 
 // Out of the struct body, which reached SwiftLint's `type_body_length` with LOT-135's handler.
 extension TopicReaderView {
+    /// "Réessayer" and "Actualiser" are tapped on screen: the web view shows what they load even if a lifecycle call stopped it
+    /// (#643: "Actualiser does not recover it").
+    private func retry() async {
+        controller?.resume()
+        await model.retry()
+    }
+
+    private func refresh() async {
+        controller?.resume()
+        await model.refresh()
+    }
+
+    /// The reader left the screen: its load, its offline save and its web view stop.
+    private func leave() {
+        Self.leave(model: model, viewerID: viewerID, covered: viewer != nil) {
+            saver?.leave()
+            settings.stop()
+            controller?.stopLoading()
+        }
+    }
+
+    /// `stop` stops the offline save, the settings watch and the web view.
+    private static func leave(model: TopicReaderModel, viewerID: Int, covered: Bool, stop: () -> Void) {
+        // Checked again here: `events.left` also comes from the web view leaving its window (issue #750).
+        guard model.linkedReader == nil, !covered else { return }
+        model.viewDidDisappear(viewer: viewerID)
+        stop()
+    }
+
     /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
     /// its handler here, the policy is untouched.
     private func installMenuActions() {
@@ -338,26 +374,7 @@ extension TopicReaderView {
             handlers += writes.handlers
         }
         model.install(MessageActionRegistry(handlers))
-        controller?.offersSelectionQuote = model.canQuote
-    }
-}
-
-/// Hosts the controller's web view and hands it the model's document, scroll requests and what the bars cover of it.
-struct ReaderWebView: UIViewRepresentable {
-    let controller: ReaderWebController
-    let document: ReaderDocument?
-    let scrollRequest: ScrollRequest?
-    /// The bars and banners over the page (top and bottom only: the page keeps the horizontal safe area).
-    var obscured = EdgeInsets()
-
-    func makeUIView(context: Context) -> WKWebView { controller.webView }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        controller.textScale = context.environment.textScale
-        controller.theme = context.environment.themeAppearance
-        controller.obscuredInsets = UIEdgeInsets(top: obscured.top, left: 0, bottom: obscured.bottom, right: 0)
-        controller.show(document)
-        controller.apply(scrollRequest)
+        controller?.offersSelectionQuote = model.offersSelectionQuote
     }
 }
 
@@ -367,28 +384,4 @@ private struct LinkedReader: Hashable {
 
     static func == (lhs: LinkedReader, rhs: LinkedReader) -> Bool { lhs.model === rhs.model }
     func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(model)) }
-}
-
-struct ExternalLink: Identifiable {
-    let url: URL
-    var id: String { url.absoluteString }
-}
-
-struct VideoItem: Identifiable {
-    let embed: MessageEmbed
-    var id: String { embed.embedURL.absoluteString }
-}
-
-/// A web link opened outside the reader, in Safari's own view (LOT-071 T8): Safari's data, not the app's. Legacy
-/// `SafariInAppView` (`MessagesView.swift:2874-2885` at `21173e77`).
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let controller = SFSafariViewController(url: url)
-        controller.dismissButtonStyle = .close
-        return controller
-    }
-
-    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }

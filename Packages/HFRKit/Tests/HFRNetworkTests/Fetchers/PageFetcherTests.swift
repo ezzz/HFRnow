@@ -105,4 +105,24 @@ struct PageFetcherTests {
         #expect(location("/hfr/Discussions/notsujet_5_2.htm") == nil)
         #expect(location("/hfr/Discussions/sujet_5_2.htm") == TopicPageLocation(topic: 5, page: 2))
     }
+
+    /// #714: the lookup goes cookie-less by default (`R716c` answers as `R716a`), is not followed, and reads the id of the `301`.
+    @Test func memberIDIsAnonymousByDefaultAndReadsTheRedirect() async throws {
+        let url = try #require(URL(string: "https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user2"))
+        let found = HTTPResponse(statusCode: 301, headers: ["Location": "/hfr/profil-900002.htm"], url: url)
+        let unknown = HTTPResponse(statusCode: 301, headers: ["Location": "/hfr/profil-.htm"], url: url)
+        let rig = makeRig(session: [.success(found)], anonymous: [.success(found), .success(unknown), .success(okResponse())])
+        #expect(try await rig.fetcher.memberID(pseudo: "user2") == 900002)
+        #expect(try await rig.fetcher.memberID(pseudo: "user3") == nil)
+        #expect(try await rig.fetcher.memberID(pseudo: "user4") == nil)
+        #expect(await rig.anonymous.requests == [
+            try HFREndpoint.profileRedirect(pseudo: "user2"), try HFREndpoint.profileRedirect(pseudo: "user3"),
+            try HFREndpoint.profileRedirect(pseudo: "user4")
+        ])
+        #expect(await rig.session.requests.isEmpty)
+        #expect(try await rig.fetcher.memberID(pseudo: "user2", as: .authenticated) == 900002)
+        #expect(await rig.session.requests.count == 1)
+        await #expect(throws: NetworkError.self) { try await rig.fetcher.memberID(pseudo: " ") }
+        #expect(await rig.anonymous.requests.count == 3)
+    }
 }
