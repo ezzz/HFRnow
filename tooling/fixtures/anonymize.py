@@ -750,6 +750,28 @@ def anonymize_profile_fields(text):
 
 
 PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
+# Where a signature ends is HFR's structure, not the member's markup (#763): it is the last child of its message's
+# `div#para…`, inside `td.messCase2` (whole corpus, 2026-11-11: all 336 signatures are followed by `</div></td>`). A
+# member's unbalanced `</span>` or `</div>` would end a depth count early, so the signature runs to the last `</span>`
+# before each container's end. A mood is followed by HFR's avatar and links in its cell: no such end, depth count only.
+PERSONAL_CONTAINERS = {
+    SIGNATURE_PLACEHOLDER: (PARA_OPEN_RE, re.compile(r"<(td)\b[^>]*\bclass=[\"']messCase2[\"'][^>]*>", re.I)),
+    "Mood removed.": (),
+}
+SPAN_END_RE = re.compile(r"</span\s*>", re.I)
+
+
+def _personal_block_end(text, start, end, containers):
+    """The end of a personal block's content: the depth-counted end, or the last `</span>` before an enclosing
+    container's end when that is further (the further one redacts more)."""
+    for cstart, cend in containers:
+        if cstart <= start < cend:
+            last = None
+            for last in SPAN_END_RE.finditer(text, start, cend):
+                pass
+            if last is not None and last.start() > end:
+                end = last.start()
+    return end
 
 # Member pseudos other than the operator's: every position where HFR prints one (live, LOT-001
 # corpus; legacy selectors: ParseMessagesOperation.m:149 author `b.s2`, :380 profile link, :200-220
@@ -1726,9 +1748,11 @@ class Anonymizer:
             text, _n = private_thread_subjects(text)
         for open_re, placeholder in PERSONAL_BLOCKS:
             parts, last = [], 0
+            containers = [b for c in PERSONAL_CONTAINERS[placeholder] for b in _find_para_blocks(text, c)]
             for start, end in _find_para_blocks(text, open_re):
                 if start < last:
                     continue
+                end = _personal_block_end(text, start, end, containers)
                 kept = signature_placeholder(text[start:end]) if placeholder == SIGNATURE_PLACEHOLDER else placeholder
                 parts += [text[last:start], kept]
                 last = end
@@ -2064,7 +2088,17 @@ class StructuralVerifier(html.parser.HTMLParser):
             if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
                     r"url\s*\(|expression\s*\(", a.get("style", ""), re.I):
                 self._bad("public profile field markup", tag)
-        if tag == "span" and cls & {"signature", "MoodStatus"} and set(a) - {"class"}:
+        if tag in ("svg", "math"):
+            # html.parser reads <style> and <script> as raw text everywhere, a browser not inside svg or math (#768):
+            # markup hidden there escapes this walk, and HFR prints neither.
+            self._bad("unexpected markup <%s>" % tag, tag)
+        if self.stack and self.stack[-1].get("after_signature"):
+            # A signature is the last child of its container (#763): what follows it is a redaction cut short.
+            self._bad("markup after a signature <%s>" % tag, tag)
+        if tag == "span" and cls & {"signature", "MoodStatus"} and (
+                set(a) - {"class"} or len(attrs) != 1
+                or " ".join(v or "" for k, v in attrs).split() not in (["signature"], ["MoodStatus"])):
+            # Only HFR's own class: another attribute, class token or duplicate carries a value without text (#763).
             self._bad("signature or mood attributes", tag)
         sig = next((e for e in reversed(self.stack) if e["where"] == "signature or mood"), None)
         if sig is not None:
@@ -2257,6 +2291,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             elif e["where"] == "signature or mood":
                 if text not in ("", "Mood removed.") and not SIGNATURE_TEXT_RE.fullmatch(text):
                     self._bad("signature or mood text", text, e["line"])
+                if self.stack and "signature" in e["cls"]:
+                    self.stack[-1]["after_signature"] = True
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
                     self._bad("private form copy", text, e["line"])
@@ -2274,6 +2310,8 @@ class StructuralVerifier(html.parser.HTMLParser):
                 self._name(e["where"], text, e["line"])
 
     def handle_data(self, data):
+        if data.strip() and self.stack and self.stack[-1].get("after_signature"):
+            self._bad("text after a signature", data)
         for e in self.stack:
             if e["where"] or e.get("params"):
                 e["text"].append(data)

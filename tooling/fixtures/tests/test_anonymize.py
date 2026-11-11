@@ -674,6 +674,58 @@ class PositionTests(unittest.TestCase):
         self.assertNotEqual(leaks('<span class="signature"> ---------------\n<br />Jean Exemple</span>'), [])
         self.assertNotEqual(leaks('<span class="signature">Signature removed. Jean</span>'), [])
 
+    # #763: a member's signature is member input; an unbalanced end tag inside it must not end the redaction early.
+    # The mood is left to the depth count: what follows it in its cell is HFR's markup (#763 follow-up).
+    @staticmethod
+    def message(sig, mood='<span class="MoodStatus">Kilo Lima</span>'):
+        """A message row the way topic pages print it (`R267a`): mood last in the author cell, signature last in the para div."""
+        return ('<table class="messagetable"><tr class="message"><td class="messCase1" width="180">'
+                '<div><b class="s2">user1</b></div>%s</td><td class="messCase2" valign="top"><div id="para1">'
+                '<p>Corps du message<div style="clear: both;"> </div></p><br /><span class="signature">%s</span></div>'
+                '</td></tr></table>' % (mood, sig))
+
+    def test_unbalanced_span_end_in_a_signature_does_not_end_the_redaction(self):
+        sig = (' ---------------\n\t\t\t<br /><b>Jean Exemple</span>Secret Handle<span class="x">Other Words'
+               '<div style="clear: both;"> </div>')
+        out = anon(self.message(sig))
+        _absent(self, out, "Jean Exemple", "Secret Handle", "Other Words")
+        self.assertIn('<span class="signature"> ---------------\n\t\t\t<br />Signature removed.<div style="clear: both;"> </div>'
+                      '</span></div></td></tr></table>', out)
+        self.assertEqual(leaks(out), [])
+
+    def test_unbalanced_span_and_div_ends_in_a_signature_are_redacted_too(self):
+        out = anon(self.message('Jean Exemple</span>Secret Handle</div>Other Words<div style="clear: both;"> </div>'))
+        _absent(self, out, "Jean Exemple", "Secret Handle", "Other Words")
+        self.assertEqual(leaks(out), [])
+
+    def test_check_refuses_content_after_a_signature_in_its_container(self):
+        self.assertEqual(A.verify_structure(self.message("Signature removed.", mood='<span class="MoodStatus">Mood removed.</span>')), [])
+        for sig in ('Signature removed.</span>Secret Handle<span class="x">',
+                    'Signature removed.</span><img src="https://example.org/h.png" alt="" />',
+                    'Signature removed.</span><a href="https://example.org/c/handle"></a><span>'):
+            self.assertTrue(A.verify_structure(self.message(sig)), sig)
+            self.assertTrue(leaks(self.message(sig)), sig)
+        # A mood is followed by HFR's own avatar and links in its cell (`R63a`): the rule is the signature's only.
+        self.assertEqual(A.verify_structure(self.message("Signature removed.", mood='<span class="MoodStatus">Mood removed.</span>'
+                                                         '<br/><div class="avatar_center" style="clear:both"></div>')), [])
+
+    def test_check_refuses_a_member_value_in_a_signature_attribute(self):
+        for bad in ('<span class="signature" title="Real Handle">Signature removed.</span>',
+                    '<span class="signature">Signature removed.<a href="https://example.org/c/handle"></a></span>',
+                    '<span class="signature">Signature removed.<img src="https://example.org/h.png" alt="Real Handle" /></span>',
+                    '<span class="signature RealHandle">Signature removed.</span>',
+                    '<span class="signature" class="RealHandle">Signature removed.</span>',
+                    '<span class="MoodStatus RealHandle">Mood removed.</span>'):
+            self.assertTrue(A.verify_structure(bad), bad)
+
+    def test_check_refuses_svg_and_math(self):
+        # #768: html.parser reads <style>/<script> as raw text everywhere, a browser not inside svg or math.
+        for bad in ('<p><svg><style><span class="signature">Real Handle</span></style></svg></p>',
+                    '<p><math><style><span class="signature">Real Handle</span></style></math></p>',
+                    '<p><SVG/></p>', '<p><Math></Math></p>'):
+            self.assertTrue(A.verify_structure(bad), bad)
+            self.assertTrue(leaks(bad), bad)
+
     def test_quotemsg_third_value_uses_the_id_table(self):
         html = ('<a href="/hfr/profil-555123.htm">x</a><a href="/hfr/profil-555124.htm">y</a>'
                 '<textarea name="content_form">[quotemsg=99,1,555124]q[/quotemsg]</textarea>'
