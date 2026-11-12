@@ -25,7 +25,9 @@
 - { name: "codeql",               color: "1d76db", description: "Run CodeQL Swift analysis on this PR before merge (#477)" }
 - { name: "status: needs-triage", color: "ffffff", description: "Not yet reviewed by a maintainer" }
 - { name: "status: ready",        color: "0e8a16", description: "Specified and ready to be picked" }
-- { name: "status: blocked",      color: "000000", description: "Waiting on something else" }
+- { name: "status: blocked",      color: "000000", description: "Waits on something that can be named and will end (lot, capture, access): a `### Blocked by` section says what" }
+- { name: "status: on-hold",      color: "c5def5", description: "Held by a decision (milestone not open, operator's call), not by a dependency" }
+- { name: "status: needs-decision", color: "f9d0c4", description: "Product decision expected before coding" }
 - { name: "status: claimed",      color: "1d76db", description: "A session has claimed it (/claim comment); see the claim rules in AGENTS.md" }
 - { name: "external: ready",      color: "c2e0c6", description: "Standalone work open to external contributors' agents (docs/agents/EXTERNAL-AGENTS.md)" }
 - { name: "ledger",              color: "5319e7", description: "PR body has a ### Ledger section: the steward folds it into the changelog and GAP docs after the merge (#620)" }
