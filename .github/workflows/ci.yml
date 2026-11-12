@@ -161,6 +161,8 @@ jobs:
       ${{ !cancelled()
       && (needs.app-changes.result != 'success' || needs.app-changes.outputs.app == 'true') }}
     runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft && 'ubuntu-latest' || 'xcode-27' }}
+    # The test step's 45 minutes plus the Release build and the simulator setup (#801).
+    timeout-minutes: 75
     steps:
       - name: Draft PR (the macOS run starts when the PR is marked ready for review)
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft }}
@@ -192,6 +194,9 @@ jobs:
           ')
           echo "id=$id" >> "$GITHUB_OUTPUT"
       - name: Build and test on the simulator (unsigned)
+        # A green run builds and tests in about 16 minutes. A hung test (a wait that never ends) once held a runner for the
+        # 6-hour default, twice (#801, PR #810): fail it at 45 minutes instead.
+        timeout-minutes: 45
         env:
           SIMULATOR_ID: ${{ steps.sim.outputs.id }}
         run: >-

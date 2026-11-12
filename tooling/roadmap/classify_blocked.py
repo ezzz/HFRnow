@@ -68,8 +68,8 @@ ASK = {
           'it wait for #730 (→ `blocked` by #730, and the claim is released)?'),
 }
 NOTES = {
-    94: 'Its section asks the operator whether LOT-168 (#286, with its capture #285) and LOT-184 (#449) gate the engine '
-        'parity; they are left out here (#286 is a completeness gap legacy also has, #449 is M5): say so if either gates it.',
+    94: 'Operator decision of 2026-11-12 (#94): LOT-168 (#286) and LOT-184 (#449) do not gate the engine parity; '
+        'LOT-070 depends on LOT-055 (#81) and LOT-057 (#83) only.',
     254: 'Its body\'s old `Depends on` list still names LOT-110 (#201), which left LOT-164 for M5 (LOTS.md); the plan is used.',
     105: 'LOT-028 (#56) and the AQ capture #133 are closed: the check can run.',
     108: 'LOT-083 (#101) is closed, and the verification comment of 2026-10-28 says the bug is already fixed in SwiftHFR: '
