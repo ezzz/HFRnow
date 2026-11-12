@@ -151,6 +151,18 @@ struct NoelCrossingModelTests {
         #expect(crossings.current == nil)
     }
 
+    /// An ordinary object cut by a resize just ends: it is not due again.
+    @Test func anInterruptedObjectIsNotReplayed() throws {
+        let crossings = model([0])
+        crossings.foregroundChanged(active: true)
+        spend(30)
+        let crossing = try #require(ask(crossings))
+        crossings.interrupt(crossing.id)
+        #expect(crossings.current == nil)
+        #expect(!crossings.arrivalPending)
+        #expect(ask(crossings) == nil)
+    }
+
     @Test func leavingTheForegroundStopsACrossing() {
         let crossings = model([0])
         crossings.foregroundChanged(active: true)

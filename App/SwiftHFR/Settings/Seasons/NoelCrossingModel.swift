@@ -45,6 +45,8 @@ final class NoelCrossingModel {
     /// The foreground time the next crossing waits for.
     @ObservationIgnored private(set) var nextGap: TimeInterval
     @ObservationIgnored private var lastID = 0
+    /// Times the current arrival was cut and queued again.
+    @ObservationIgnored private var arrivalReplays = 0
 
     /// Draws the first gap: nothing crosses in the first 20 minutes of foreground time.
     init(now: @escaping @MainActor () -> Date, random: any SeasonalRandom, haptics: HapticFeedback = .live) {
@@ -71,7 +73,13 @@ final class NoelCrossingModel {
     }
 
     /// The first launch of a window with animations allowed: the sleigh crosses before the alert.
-    func queueArrival() { arrivalPending = true }
+    func queueArrival() {
+        arrivalPending = true
+        arrivalReplays = 0
+    }
+
+    /// How many times a cut arrival sleigh is played again.
+    static let maxArrivalReplays = 2
 
     /// `scene`'s layer watches for crossings: Noël soft is on, the sleigh is due, or `scene`'s crossing is playing. The last
     /// one keeps the arrival sleigh going on 25–26/12 (or with automatic themes off), when nothing else is on once it started.
@@ -119,6 +127,18 @@ final class NoelCrossingModel {
     /// The crossing `id` reached the far edge, or was tapped away (THEMES.md §4 rule 3).
     func finish(_ id: Int) {
         if current?.id == id { current = nil }
+    }
+
+    /// The crossing `id` was cut before its end by its layer (a rotation, a split view or Stage Manager resize restarts the
+    /// watch): the arrival sleigh is due again, so it still plays before the alert, at most `maxArrivalReplays` times, so
+    /// constant resizes cannot hold the alert back for ever; an ordinary object just ends.
+    func interrupt(_ id: Int) {
+        guard let current, current.id == id else { return }
+        self.current = nil
+        if current.isArrival, arrivalReplays < Self.maxArrivalReplays {
+            arrivalReplays += 1
+            arrivalPending = true
+        }
     }
 
     /// `scene` went away: its crossing stops.

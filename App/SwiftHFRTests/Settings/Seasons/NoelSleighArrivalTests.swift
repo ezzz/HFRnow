@@ -109,6 +109,26 @@ struct NoelSleighArrivalTests {
         #expect(model.crossings.shouldWatch(scene: scene, theme: .noelSoft))
     }
 
+    /// A rotation or a resize restarts the layer's watch during the sleigh: the arrival is due again and still plays before
+    /// the alert, at most twice more (constant resizes cannot loop it forever); then the alert comes alone.
+    @Test func anInterruptedArrivalStaysDueAndStillPlaysBeforeTheAlert() throws {
+        let model = launch(SeasonTestClock(25, 12, 2026))
+        let first = try #require(sleigh(model))
+        model.crossings.interrupt(first.id)
+        #expect(model.crossings.current == nil)
+        #expect(model.crossings.arrivalPending)
+        #expect(model.alert(for: scene, screen: Self.clear) == nil)
+        let second = try #require(sleigh(model))
+        #expect(second.isArrival)
+        model.crossings.interrupt(second.id)
+        let third = try #require(sleigh(model))
+        #expect(third.isArrival)
+        model.crossings.interrupt(third.id)
+        #expect(!model.crossings.arrivalPending)
+        #expect(sleigh(model) == nil)
+        #expect(model.alert(for: scene, screen: Self.clear) == .noelArrival(year: 2026))
+    }
+
     /// A layer asks before it is laid out: the sleigh stays due until it can cross.
     @Test func anEmptyAreaKeepsTheSleighDue() {
         let model = launch(SeasonTestClock(1, 12, 2026))

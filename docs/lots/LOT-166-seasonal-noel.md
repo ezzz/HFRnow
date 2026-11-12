@@ -49,6 +49,7 @@ All under GAP-147, class `b·operator` (operator, 2026-10-28; THEMES.md §5): ye
 - « Thèmes de saison automatiques » off: the arrival alert still shows (as on 25/12), nothing is switched on. *(to confirm with the operator, see the PR)*
 - Reduce Motion or « Animations de saison » off: the arrival is the alert alone, packing restores without the elves, no snow falls, nothing crosses and nothing buzzes; piled snow stays (static).
 - A sheet or the keyboard comes up while an object crosses: it stops at once; the gap restarted when it began.
+- A rotation, split view or Stage Manager resize during the arrival sleigh restarts the layer's watch: the sleigh is queued again (`interrupt`) and plays again before the alert, at most twice; after that the alert comes alone. An ordinary object cut that way just ends.
 - iPad with two windows: one crossing at a time, in one scene; a scene that goes away stops its crossing.
 - The first frame of a launch outside the window never shows a theme left on (`refresh` ignores it before the restore).
 

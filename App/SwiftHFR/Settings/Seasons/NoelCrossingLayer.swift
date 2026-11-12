@@ -78,7 +78,12 @@ struct NoelCrossingLayer: View {
                     try? await Task.sleep(for: .milliseconds(250))
                     crossings.screenChanged(for: scene, screen: screen)
                 }
-                crossings.finish(crossing.id)
+                // Cancelled (the band was resized, the scene went away): the arrival is queued again, not lost.
+                if Task.isCancelled {
+                    crossings.interrupt(crossing.id)
+                } else {
+                    crossings.finish(crossing.id)
+                }
             } else {
                 try? await Task.sleep(for: crossings.arrivalPending ? .milliseconds(500) : .seconds(15))
             }
