@@ -138,7 +138,7 @@ struct PseudoListManagerTests {
 }
 
 /// The two editors of Réglages.
-@MainActor
+@MainActor @Suite(.timeLimit(.minutes(5)))
 struct PseudoListEditorModelTests {
     @Test func theFieldIsCleanedAndAddedThenEmptied() async throws {
         let setup = try await fixture()
