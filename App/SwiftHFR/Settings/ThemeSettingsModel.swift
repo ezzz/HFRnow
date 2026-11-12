@@ -73,14 +73,30 @@ final class ThemeSettingsModel {
             if darkStyle != oldValue { store.set(darkStyle, for: SettingKey.darkStyle) }
         }
     }
+    /// The stored theme id (`theme_id`, LOT-188), as stored: nil or an id no bundled theme has reads as Legacy, and stays.
+    private(set) var themeID: String?
+    /// The bundled themes (LOT-188).
+    let catalog: ThemeCatalog
+    /// The gallery's theme: the stored one, or Legacy.
+    var theme: ThemeDefinition { catalog.theme(id: themeID) }
+
+    /// Selects `theme` and stores its id; Legacy is stored as its id too, so a later default cannot change the user's choice.
+    func select(_ theme: ThemeDefinition) {
+        guard theme.id != themeID else { return }
+        themeID = theme.id
+        store.set(theme.id, for: SettingKey.themeID)
+    }
+
     /// Accent of the light theme: the stored colour, which an older version may have set to any colour, or the default.
     private(set) var dayAccent: ThemeColor
     /// Accent of the dark theme.
     private(set) var nightAccent: ThemeColor
 
-    /// The scheme the app forces, or nil to follow iOS (`AppThemeResolver.preferredColorScheme`).
+    /// The scheme the app forces, or nil to follow iOS (`AppThemeResolver.preferredColorScheme`). A single-variant theme
+    /// imposes its own (LOT-188), whatever the picker says.
     var preferredColorScheme: ColorScheme? {
-        switch mode {
+        if let forced = appearance.forcedColorScheme { return forced }
+        return switch mode {
         case .system: nil
         case .light: .light
         case .dark: .dark
@@ -88,16 +104,20 @@ final class ThemeSettingsModel {
     }
     /// The colours every screen and the reader use.
     var appearance: ThemeAppearance {
-        ThemeAppearance(
-            dayAccent: dayAccent, nightAccent: nightAccent, darkBrightness: darkBrightness, darkStyle: darkStyle
+        let selected = self.theme
+        return ThemeAppearance(
+            dayAccent: dayAccent, nightAccent: nightAccent, darkBrightness: darkBrightness, darkStyle: darkStyle,
+            themeVariants: selected.variants, themeFontDesign: selected.fontDesign
         )
     }
 
     @ObservationIgnored private let store: any SettingsStore
 
-    /// Reads the current values from `store`; writes nothing.
-    init(store: any SettingsStore) {
+    /// Reads the current values from `store`; writes nothing. `catalog` is the bundled themes unless a test gives its own.
+    init(store: any SettingsStore, catalog: ThemeCatalog = .bundled) {
         self.store = store
+        self.catalog = catalog
+        themeID = store.value(for: SettingKey.themeID)
         mode = switch store.value(for: SettingKey.autoTheme) {
         case .system: .system
         case .manual: store.value(for: SettingKey.manualTheme) == .dark ? .dark : .light
@@ -130,6 +150,8 @@ extension View {
         return environment(theme)
             .environment(\.themeAppearance, appearance)
             .tint(appearance.accentColor)
+            // nil for Legacy: no design set, as before (LOT-188); a value change only, never a new structure.
+            .fontDesign(appearance.fontDesign)
             .background(WindowStyle(scheme: theme.preferredColorScheme, tint: appearance.accentUIColor))
     }
 }
@@ -195,8 +217,18 @@ private struct AppScreenBackground: ViewModifier {
     /// Standard applies nothing at all: an empty `containerBackground` is not "no modifier", it clears the stack's own opaque
     /// fill (measured). In light a darker or OLED user gets the system's background on stacks; a split column and a sheet lose
     /// their own fill (the iPad sidebar's material, the sheet's shade) there, which no empty or fallback form avoids.
+    ///
+    /// A theme (LOT-188) paints its `background` in both appearances with one dynamic colour, so a flip changes a value, not
+    /// the structure; a change between Legacy and a theme, or between Legacy's styles, rebuilds, which the user asked for.
     @ViewBuilder func body(content: Content) -> some View {
-        if let color = appearance.darkScreenBackground {
+        switch appearance.screenFill {
+        case let .theme(light, dark):
+            let fill = Color(uiColor: ThemeAppearance.dynamic(light: light, dark: dark))
+            content
+                .scrollContentBackground(.hidden)
+                .containerBackground(for: .navigation) { fill }
+                .containerBackground(for: .navigationSplitView) { fill }
+        case let .darkOnly(color):
             let fill = Color(uiColor: color.uiColor)
             let dark = scheme == .dark
             content
@@ -204,7 +236,7 @@ private struct AppScreenBackground: ViewModifier {
                 .containerBackground(for: .navigation) { if dark { fill } else { Rectangle().fill(.background) } }
                 // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
                 .containerBackground(for: .navigationSplitView) { if dark { fill } }
-        } else {
+        case .system:
             content
         }
     }

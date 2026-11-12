@@ -10,10 +10,19 @@ import Testing
         #expect(InMemorySettingsStore(["theme_dark_style": .int(9)]).value(for: SettingKey.darkStyle) == .standard)
     }
 
+    /// LOT-188: the theme id is read as stored, an id no bundled theme has included (the app reads it as Legacy, the store keeps it).
+    @Test func theThemeIDIsReadAsStored() {
+        #expect(InMemorySettingsStore(["theme_id": .string("gone")]).value(for: SettingKey.themeID) == "gone")
+        #expect(InMemorySettingsStore(["theme_id": .string("")]).value(for: SettingKey.themeID) == nil)
+        let store = InMemorySettingsStore()
+        store.set("swift", for: SettingKey.themeID)
+        #expect(store.value(for: SettingKey.themeID) == "swift")
+    }
+
     @Test func keysAreUniqueAndKeepTheirLegacyNames() {
         #expect(Set(SettingKey.allKeys).count == SettingKey.allKeys.count)
-        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, and the two app-lock keys, LOT-173,
-        // have no legacy counterpart).
+        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, `theme_id`, LOT-188, and the two app-lock
+        // keys, LOT-173, have no legacy counterpart).
         let legacy: Set = [
             "vos_sujets", "sujets_avec_cat", "favorites_auto_refresh", "compact_mode", "tabbar_minimize_on_scroll",
             "text_size_scale", "haptics", "landscape_mode", "icon", "auto_theme", "theme", "theme_style",
@@ -24,7 +33,7 @@ import Testing
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
-            "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
+            "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
             // LOT-166: the two seasonal toggles, new.
             "season.automatic", "season.animations", "season.noel.activeYear"
         ]
@@ -51,6 +60,7 @@ import Testing
         #expect(store.value(for: SettingKey.dayActionColor) == nil)
         #expect(store.value(for: SettingKey.nightBrightness) == nil)
         #expect(store.value(for: SettingKey.darkStyle) == .standard)
+        #expect(store.value(for: SettingKey.themeID) == nil)
         #expect(!store.value(for: SettingKey.hideBlocklistedPosts))
         #expect(store.value(for: SettingKey.quoteFilterExceptions) == .standard)
         #expect(store.value(for: SettingKey.quoteFilterMinimumCount) == 3)

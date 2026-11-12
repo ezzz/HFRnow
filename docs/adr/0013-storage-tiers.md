@@ -232,6 +232,7 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `theme_style` (classic / modern) | `AppSettingsView.swift:103` | No | None | 1 | **iCloud KVS** | Content rendering. |
 | `theme_day_color_action`, `theme_night_color_action`, `…_love` ×2, `…_superfavori` ×2, `theme_night_brightness` | `Common.swift:463-469` | No | None | 7 | **iCloud KVS**, the 7 legacy keys unchanged (LOT-060 `colorSetting`) | Theme parity (LOT-121, operator 2026-10-29): every decided colour is kept; FEAT-010's single accent is out of scope. |
 | `theme_dark_style` — new (LOT-122, FEAT-010; 0 standard, 1 darker, 2 OLED black) | none | No | None | 1 | **Device-only** | Whether black saves power or smears is a property of the screen. |
+| `theme_id` — new (LOT-188; the gallery's theme, a string id; nil or an unknown id reads as Legacy and is left in the store) | none | No | None | 1 | **Device-only** | Same reason as the dark style; a theme added by a later version is not pushed to a device that does not bundle it. |
 | `blacklist_hide_pseudo` | `AppSettingsView.swift:105` | No | None | 1 | **iCloud KVS** | Content filter. |
 | `filter_posts_quotes`, `filter_posts_min_quotes` | `AppSettingsView.swift:107-108` | No | None | 2 | **iCloud KVS** | Content filter. |
 | `size_smileys` (`double`/`default`) | `AppSettingsView.swift:109`; no reader found (audit E §3.1) | No | None | 1 | **iCloud KVS** if the reader honours it, else **dropped** | Q8. |
