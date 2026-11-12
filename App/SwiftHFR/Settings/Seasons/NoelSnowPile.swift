@@ -6,8 +6,11 @@ import SwiftUI
 enum SnowPileLayout {
     /// A cap's height and how far it enters the card's top padding (a row's text starts at least 8 pt below the edge).
     static let capHeight: CGFloat = 11
+    /// Must stay below `rowTextPadding` of the list it sits on: the Catégories rows use the default insets; a list in
+    /// `ListDensity.compact` (3 pt top insets) would need a smaller overlap. The caps are the section's header, so the card also
+    /// covers their base.
     static let capOverlap: CGFloat = 3
-    /// The smallest top padding of a list row before its text.
+    /// The smallest top padding of a Catégories row before its text (default list insets).
     static let rowTextPadding: CGFloat = 8
     /// The caps along the card, in fractions of its width (the board `theme-noel`: two, left and right).
     static let capSpans: [ClosedRange<Double>] = [0.05...0.30, 0.62...0.85]

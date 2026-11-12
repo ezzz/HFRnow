@@ -62,11 +62,12 @@ final class SeasonalScrollActivity {
             }
         }
 
-        /// Waits for the deceleration to end, checking ten times a second only while it lasts.
+        /// Waits for the deceleration to end, checking ten times a second only while it lasts. The first check waits a tick:
+        /// this target may run before the scroll view's own pan handler has started the deceleration.
         private func settle() async {
-            while scrollView?.isDecelerating == true, scrollView?.isTracking == false {
+            repeat {
                 try? await Task.sleep(for: .milliseconds(100))
-            }
+            } while scrollView?.isDecelerating == true && scrollView?.isTracking == false
             if scrollView?.isTracking != true { activity?.set(key, scrolling: false) }
         }
     }

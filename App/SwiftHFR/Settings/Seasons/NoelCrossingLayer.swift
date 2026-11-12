@@ -58,7 +58,7 @@ struct NoelCrossingLayer: View {
     }
 
     /// Something may cross: Noël soft is on, or the sleigh is due.
-    private var isWatching: Bool { seasonal.activeTheme == .noelSoft || crossings.arrivalPending }
+    private var isWatching: Bool { crossings.shouldWatch(scene: scene, theme: seasonal.activeTheme) }
 
     private var screen: SeasonalThemeModel.ScreenState {
         SeasonalThemeModel.ScreenState(isCovered: isCovered(), isPresenting: window.isPresenting, isKeyboardVisible: keyboardVisible)

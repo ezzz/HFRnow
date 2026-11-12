@@ -94,6 +94,21 @@ struct NoelSleighArrivalTests {
         #expect(sleigh(model) != nil)
     }
 
+    /// 25/12, nothing switched on: the layer keeps watching while its sleigh crosses, so the sleigh is not cut after one frame;
+    /// another scene does not, and once the sleigh is done nothing is watched.
+    @Test func aSceneKeepsWatchingWhileItsSleighCrossesWithNoThemeOn() throws {
+        let model = launch(SeasonTestClock(25, 12, 2026))
+        #expect(model.activeTheme == nil)
+        #expect(model.crossings.shouldWatch(scene: scene, theme: model.activeTheme))
+        let crossing = try #require(sleigh(model))
+        #expect(!model.crossings.arrivalPending)
+        #expect(model.crossings.shouldWatch(scene: scene, theme: model.activeTheme))
+        #expect(!model.crossings.shouldWatch(scene: UUID(), theme: model.activeTheme))
+        model.crossings.finish(crossing.id)
+        #expect(!model.crossings.shouldWatch(scene: scene, theme: model.activeTheme))
+        #expect(model.crossings.shouldWatch(scene: scene, theme: .noelSoft))
+    }
+
     /// A layer asks before it is laid out: the sleigh stays due until it can cross.
     @Test func anEmptyAreaKeepsTheSleighDue() {
         let model = launch(SeasonTestClock(1, 12, 2026))

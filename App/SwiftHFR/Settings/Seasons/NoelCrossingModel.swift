@@ -73,6 +73,12 @@ final class NoelCrossingModel {
     /// The first launch of a window with animations allowed: the sleigh crosses before the alert.
     func queueArrival() { arrivalPending = true }
 
+    /// `scene`'s layer watches for crossings: Noël soft is on, the sleigh is due, or `scene`'s crossing is playing. The last
+    /// one keeps the arrival sleigh going on 25–26/12 (or with automatic themes off), when nothing else is on once it started.
+    func shouldWatch(scene: UUID, theme: SeasonalTheme?) -> Bool {
+        theme == .noelSoft || arrivalPending || current?.scene == scene
+    }
+
     /// Where a scene's crossings play: the band between the bars, in a window `windowHeight` high.
     struct Stage: Equatable {
         var area: CGSize
