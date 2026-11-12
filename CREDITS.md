@@ -31,6 +31,10 @@ Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperH
 
 The construction worker shown while the first-launch import runs (#754, `App/SwiftHFR/Assets.xcassets/ImportWorker*.imageset`). Original drawing in the style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6), generated from the committed script `tooling/art/import-worker/make.py` (hand-placed vector shapes, standard library only; no traced, downloaded or existing character), under this repository's licence. Made by Claude Code (Sonnet 5.5) for the operator; the previews are rendered by `tooling/art/import-worker/render.mjs`.
 
+### Seasonal art
+
+The Noël soft images (LOT-166, `App/SwiftHFR/Assets.xcassets/Noel/`): the sleigh with its reindeer, the star, the gifts, the ornament, the snowflake and the snow pile. Original procedural renders made for SwiftHFR on 2026-10-28 from the operator's requests and validated by him on 2026-11-10 ([`docs/assets/themes/`](docs/assets/themes/README.md); no downloaded mesh, texture or image), under this repository's licence; the app's copies are those renders trimmed and scaled by `tooling/art/noel-crossings/derive.swift`, no pixel redrawn.
+
 ## Contributors
 
 Everyone who contributed to the projects above, and every contributor listed in this repository's history.
