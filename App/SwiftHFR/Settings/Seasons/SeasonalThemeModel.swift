@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 import HFRStorage
 import Observation
 import UIKit
@@ -44,8 +45,6 @@ final class SeasonalThemeModel {
         var allowsAlert: Bool { !isCovered && !isPresenting && !isKeyboardVisible }
     }
 
-    /// The id saved when no `theme_id` is stored: Legacy (LOT-188's default, and what the first build always saved).
-    static let legacyThemeID = "legacy"
 
     /// The seasonal theme drawn over the "Thème" settings, or nil.
     private(set) var activeTheme: SeasonalTheme?
@@ -180,8 +179,8 @@ final class SeasonalThemeModel {
         store.value(for: SettingKey.noelPreviousThemeID(year: year)) != nil
     }
 
-    /// Gives the saved theme back. Noël soft never wrote the "Thème" keys, so restoring is dropping the saved id; with the theme
-    /// engine (LOT-188) it will write the saved id back to the theme key.
+    /// Gives the user's theme back. Noël soft never writes the "Thème" keys, so restoring is dropping the saved id; it never
+    /// writes `theme_id` either, so a theme picked during the season stays (operator decision (a), 2026-11-12).
     private func restore(year: Int) {
         store.reset(SettingKey.noelPreviousThemeID(year: year))
         if store.value(for: SettingKey.noelActiveYear) == year { store.reset(SettingKey.noelActiveYear) }
@@ -191,7 +190,7 @@ final class SeasonalThemeModel {
     /// can find and restore it. Restoring drops the saved id: the overlay never writes `theme_id`, so the user's theme is back
     /// as it was; a saved "legacy" from the first build reads the same.
     private func switchOn(year: Int) {
-        store.set(store.value(for: SettingKey.themeID) ?? Self.legacyThemeID, for: SettingKey.noelPreviousThemeID(year: year))
+        store.set(store.value(for: SettingKey.themeID) ?? ThemeDefinition.legacyID, for: SettingKey.noelPreviousThemeID(year: year))
         store.set(year, for: SettingKey.noelActiveYear)
     }
 
