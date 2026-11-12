@@ -10,12 +10,12 @@ private final class DensityBox {
     var density = ListDensity.regular
     var tokens: Set<UUID> = []
     /// Window x of the content of the views that report it, by name.
-    var xs: [String: CGFloat] = [:]
+    var minXs: [String: CGFloat] = [:]
 }
 
 private extension View {
     func reportX(_ name: String, to box: DensityBox) -> some View {
-        onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { box.xs[name] = $0 }
+        onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { box.minXs[name] = $0 }
     }
 }
 
@@ -156,10 +156,10 @@ struct ListDensityMarginsTests {
         for _ in 0..<100 {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            if box.xs.count == 2 { break }
+            if box.minXs.count == 2 { break }
         }
         let card = Self.collectionView(in: window)?.visibleCells.map(\.frame.minX).min() ?? 0
-        return box.xs.mapValues { $0 - card }
+        return box.minXs.mapValues { $0 - card }
     }
 
     @Test("In compact, headers and rows sit 7 pt from the card, in both size classes", arguments: [false, true])
@@ -198,9 +198,9 @@ struct ListDensityMarginsTests {
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
-        guard let data = image.cgImage?.dataProvider?.data, let bytes = CFDataGetBytePtr(data), let cg = image.cgImage else { return nil }
+        guard let cgImage = image.cgImage, let data = cgImage.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return nil }
         let rect = cell.convert(cell.bounds, to: window)
-        let rowBytes = cg.bytesPerRow, pixel = cg.bitsPerPixel / 8
+        let rowBytes = cgImage.bytesPerRow, pixel = cgImage.bitsPerPixel / 8
         // The first column from the card's left edge that differs from the card's background: the text of the row.
         let midY = Int(rect.midY)
         let background = (0..<3).map { Int(bytes[midY * rowBytes + (Int(rect.maxX) - 6) * pixel + $0]) }
