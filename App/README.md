@@ -15,14 +15,17 @@ The iOS app target (SwiftUI, iOS 27), `App/SwiftHFR.xcodeproj` ([ADR 0012](../do
 | `SwiftHFR/Profile/` | Member profile ([LOT-116](../docs/lots/LOT-116-user-profile-screen.md)): `UserProfileModel` (load, reload, links, MP hook for LOT-128), `LiveUserProfileSource` (`PageFetcher.profile` **without cookies** + `UserProfileParser`, served URL checked), `UserProfileView` (sheet opened from a profile link in the reader) |
 | `SwiftHFR/FilteredPosts/` | Post filter ([LOT-114](../docs/lots/LOT-114-filter-posts-view.md)): `FilteredPostsModel` (run, progress, batch, "Résultats suivants"), `FilteredPostsServices` (cookie-less source of LOT-093, criteria from the settings), `FilteredPostsView` (banner, sheet, bottom bar); started from a favourite's context menu and the reader menu |
 | `SwiftHFR/Settings/` (About, Maintenance) | About, static pages and Maintenance ([LOT-120](../docs/lots/LOT-120-maintenance-about.md)): `AboutModel` (version, the two HFR+ topic links read by the link router, their reader), `StaticPage` + `StaticPageView` (credits, charter: bundled HTML, no page script), `Changelog` ("Nouveautés", from `Resources/changelog-v1.json`), `MaintenanceModel` (system-settings shortcut; LOT-179 adds the cache rows); the Plus entries "Crédits" and "Charte du forum" open them |
+| `SwiftHFR/Themes/` | Bundled themes ([LOT-188](../docs/lots/LOT-188-theme-engine.md), [THEMES.md](../docs/THEMES.md)): one folder per theme holding `<id>.theme.json` (resources are copied flat into the bundle: names must be unique); read by `ThemeCatalog.bundled`, chosen in Réglages › Thème (`ThemeGallery`) |
 | `SwiftHFRTests/` | Unit tests (Swift Testing), hosted by the app |
 
 Build and test on the simulator (unsigned, as CI does):
 
 ```sh
 xcodebuild build test -project App/SwiftHFR.xcodeproj -scheme SwiftHFR \
-  -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 18 Pro' CODE_SIGNING_ALLOWED=NO
+  -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 18 Pro' -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
 ```
+
+`-parallel-testing-enabled NO` overrides the scheme's `parallelizable = "YES"` (added by #717), as CI does: with simulator clones, model tests took 270-360 s each and web-view tests timed out on the runner (#801).
 
 A dependency change in `HFRKit` re-resolves and commits this project's `Package.resolved` in the same PR (CI never resolves packages):
 

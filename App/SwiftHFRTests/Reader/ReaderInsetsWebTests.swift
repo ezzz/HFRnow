@@ -169,18 +169,38 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
 
     /// Fable on #662: the restore waits for animation frames, which a hidden page does not draw. No native
     /// call may wait for them, or a reader refreshed while covered and then dropped would never be freed.
+    ///
+    /// The page leaves its window once ready, and the restore a refresh sends (`scroll(toReadingTop:)`, called by
+    /// `documentIsReady`) goes out only once the page says it is hidden, with a probe that waits for two frames sent first. A
+    /// load started while already hidden made the test depend on WebKit running a hidden page's load to the end, which a busy
+    /// CI simulator did not always do (issue #801); hiding at `ready` raced WebKit's deferred visibility change (Fable on
+    /// #841). Now the restore always reaches a page that draws no frames, and the probe answering would say otherwise.
     @Test func aRestoreWhileHiddenDoesNotKeepTheControllerAlive() async throws {
         weak var weakController: ReaderWebController?
+        // Kept outside the controller's scope, so the probe's call stays pending while the controller is released.
+        var hiddenWebView: WKWebView?
+        let framesWhileHidden = TestEvent()
+        let probe = "await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))); return true;"
         do {
             let (controller, recorder) = makeController(transport: imageTransport())
             weakController = controller
+            hiddenWebView = controller.webView
             controller.obscuredInsets = bars
             controller.show(tallDocument(token: 1))
             #expect(await until { recorder.ready == [1] })
             controller.webView.removeFromSuperview()
-            controller.show(tallDocument(token: 2, keepsScrollPosition: true))
-            #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+            let visibility = "return document.visibilityState;"
+            #expect(
+                await until(async: { (try? await self.evaluate(visibility, in: controller) as? String) == "hidden" }),
+                "the page out of its window never reported itself hidden"
+            )
+            controller.webView.callAsyncJavaScript(probe, arguments: [:], in: nil, in: ReaderWebController.world) { result in
+                if case .success = result { framesWhileHidden.fire() }
+            }
+            controller.scroll(toReadingTop: 1000)
         }
         #expect(await until({ weakController == nil }, timeout: .seconds(30)))
+        #expect(!framesWhileHidden.hasFired, "the hidden page drew frames: the restore was not shown to reach a hidden page")
+        withExtendedLifetime(hiddenWebView) {}
     }
 }

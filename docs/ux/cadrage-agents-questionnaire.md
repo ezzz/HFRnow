@@ -14,7 +14,7 @@ Date : 6 novembre 2026, mis à jour le 7 novembre. Ce document découpe la prép
 
 | Modèle | Usage |
 |---|---|
-| Fable 5.1 | Décisions structurantes, ADR sur problèmes durs |
+| Fable 5.2 | Décisions structurantes, ADR sur problèmes durs |
 | Opus 5.5 | Conception, flux sensibles, revue du travail de Sonnet |
 | Sonnet 5.5 | Réalisation de lots bien spécifiés |
 | Haiku 5.5 | Travail mécanique |

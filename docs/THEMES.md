@@ -6,7 +6,7 @@ Source: the operator's requests of 2026-10-28 and the decisions taken that day. 
 
 ## 1. What the user sees
 
-- **Réglages › Thème** keeps its shipped pickers (« Thème » Automatique (iOS) / Clair / Sombre, « Teinte d'accent », « Style du thème sombre », « Luminosité du thème sombre ») and adds a **gallery** below them ([LOT-188](LOTS.md)):
+- **Réglages › Thème** keeps its shipped pickers (« Thème » Automatique (iOS) / Clair / Sombre, « Teinte d'accent », « Style du thème sombre », « Luminosité du thème sombre »; the last three are Legacy's and show while Legacy is the theme) and adds a **gallery** below them ([LOT-188](lots/LOT-188-theme-engine.md); [LOT-180](lots/LOT-180-single-accent.md) moves it into a « Thème » sub-menu with a light and dark preview per theme):
   - themes grouped by **family** (Classiques, Rétro, OG Web, and a seasonal family only inside its window, §5);
   - each row: a light and a dark swatch (one swatch and *clair = sombre* for a single-variant theme), the name, *par &lt;auteur&gt;*, a check mark on the active theme;
   - toggles « Thèmes de saison automatiques » and « Animations de saison » (both on by default, §4–§5);
@@ -32,18 +32,20 @@ Authors also go to [CREDITS.md](../CREDITS.md).
 
 ## 3. Theme model
 
-A theme is a folder `App/SwiftHFR/Themes/<theme-id>/` (folder-synchronized group, [ADR 0012](adr/0012-app-project-file-strategy.md)):
+A theme is a folder `App/SwiftHFR/Themes/<theme-id>/` (folder-synchronized group, [ADR 0012](adr/0012-app-project-file-strategy.md)). Xcode copies the resources of such a folder flat into the app bundle, so every file name is unique across themes: the token file is `<theme-id>.theme.json`, never `theme.json`, and art files carry the theme id too ([LOT-188](lots/LOT-188-theme-engine.md)).
 
 | File | Content |
 |---|---|
-| `theme.json` | `id`, `name`, `family`, `author`, `fontDesign` (`default` / `rounded` / `monospaced`), `decorations` (id or null), `variants` (`light` + `dark`, or `any`) |
+| `<theme-id>.theme.json` | `id` (kebab-case, the folder name), `name`, `family`, `author` (optional), `fontDesign` (`default` / `rounded` / `monospaced`, default `default`), `decorations` (id or null), `variants` (`light` + `dark`, or `any`); colours `#RRGGBB` or `#RRGGBBAA` |
 | `Decorations/` | optional art (PDF or PNG); sources next to the scripts that make them |
+
+**Legacy** is the exception: its file names it and carries no `variants`, because its look is LOT-121/122's code (hue slider, dark styles, brightness), which the engine leaves untouched. Every other theme defines every token. A test fixture is in `App/SwiftHFRTests/Settings/ThemeFixtures/test-theme.theme.json`: copy it to start a theme.
 
 **Tokens** (every variant defines all of them; the contrast rule is a unit test of LOT-188, WCAG 2.x relative luminance, no 3:1 large-text exception):
 
 | Token | Use | Rule |
 |---|---|---|
-| `background`, `surface`, `surfaceRaised` | screen, rows and cards, bars and sheets | — |
+| `background`, `surface`, `surfaceRaised` | screen, rows and cards, bars and sheets | `accentText` ≥ 4.5:1 on `background`; `textPrimary` ≥ 4.5:1 on `surfaceRaised` (the header band and page bar fall back to it) |
 | `title`, `sectionHeader` | text drawn on `background` | ≥ 4.5:1 on `background` |
 | `textPrimary`, `textSecondary` | body text; dates, counters, read MP titles (#651) | ≥ 4.5:1 on `surface` |
 | `accent`, `onAccent` | fills only (badges, toggles, selection); content on them | `onAccent` ≥ 4.5:1 on `accent` |
@@ -53,9 +55,13 @@ A theme is a folder `App/SwiftHFR/Themes/<theme-id>/` (folder-synchronized group
 | `quoteBackground`, `quoteBorder`, `codeBackground`, `codeText`, `spoilerBackground`, `spoilerText` | reader blocks (`[code]` always monospace) | text ≥ 4.5:1 on its background |
 | `unread`, `onUnread` | unread badge and capsule (#646) | ≥ 4.5:1 |
 
-Optional tokens for table-like themes (header band, alternate cell, meta, page bar, counter) fall back to the tokens above, so a theme that omits them is unchanged (LOT-193).
+The quote rule is `textPrimary` and `textSecondary` (a quote's header) on `quoteBackground`. The test also checks every other pair the app draws ([LOT-188](lots/LOT-188-theme-engine.md) lists them): links and accents on quotes, spoilers, code and the reader's even message, the optional tokens, and, since native list rows and text keep the system colours of the appearance a theme shows in, the system text of that appearance (black in light, white in dark; a `light` slot always shows in light) on `background` and `surface`, and `accentText` (the tint) on the system card and on `background`. A colour in a contrast pair is opaque.
 
-The reader receives tokens through the CSS variables LOT-121/122 already set; #568's derived tokens (`--surface-alt`, `--separator-strong`) stay derived. User colours of the reader (`theme_*_color_love`, `_superfavori`) remain user settings, not tokens.
+**Where LOT-188 draws each token.** Tint: `accentText`; prominent buttons: `accent` and `onAccent`; every themed screen: `background`; unread capsule: `unread`, `onUnread`; the reader: `surface` (its page), `textPrimary`, `textSecondary`, `link`, `accentText`, `separator`, the quote, code and spoiler tokens. Not drawn yet: `surfaceRaised`, `title`, `sectionHeader`, `selection` and the optional tokens; native rows and text keep the system's (operator decision of 2026-11-12 on #729, option (a): LOT-188 keeps its scope; native rows, separators, selection and text are #842). A single-variant theme shows in the appearance its background reads as (light when black text contrasts more), whatever the « Thème » picker says.
+
+Optional tokens for table-like themes fall back to the tokens above, so a theme that omits them is unchanged (LOT-193): `headerBand` → `surfaceRaised`, `alternateCell` → `surface`, `meta` → `textSecondary`, `pageBar` → `surfaceRaised`, `counter` → `textSecondary`. Any other name is an error.
+
+The reader receives tokens through CSS variables on the LOT-121/122 path (LOT-188 adds `--app-theme-light-*`, `--app-theme-dark-*` and `--app-theme-font`, read only while `<html>` carries `data-app-theme`; the page is `surface`); #568's derived tokens (`--surface-alt`, `--separator-strong`) stay derived. User colours of the reader (`theme_*_color_love`, `_superfavori`) remain user settings, not tokens.
 
 ## 4. Decorations
 
@@ -104,7 +110,7 @@ Every theme and decoration: iPhone (standard and Pro Max, portrait and landscape
 
 1. Open an issue first: `[SwiftHFR] Theme: <name>`, `### Summary`, family, variants, author as it should be shown; wait for `status: ready` ([AGENTS.md §7–§8](../AGENTS.md)).
 2. Claim it, branch from `dev-swift` (`feat/theme-<id>`).
-3. Add `App/SwiftHFR/Themes/<theme-id>/theme.json` with every token, its decorations and the sources of its art.
+3. Add `App/SwiftHFR/Themes/<theme-id>/<theme-id>.theme.json` with every token, its decorations and the sources of its art.
 4. Add the author to [CREDITS.md](../CREDITS.md).
 5. PR checklist:
    - [ ] contrast test green, every token present

@@ -64,8 +64,10 @@ struct ThemeAppearanceTests {
         #expect(script.hasPrefix("(() => { const s = document.documentElement.style; "))
         #expect(script.hasSuffix(" })();"))
         #expect(script.contains("s.setProperty('--app-action-light', 'rgb(89, 227, 255)');"))
-        // Nothing but the six setters between the prefix and the closing: no page text can reach it.
-        let setters = script.split(separator: ";").dropFirst().dropLast()
+        // Nothing but the six setters and Legacy's fixed attribute removal (LOT-188) between the prefix and the closing: no page
+        // text can reach it.
+        #expect(script.hasSuffix(" document.documentElement.removeAttribute('data-app-theme'); })();"))
+        let setters = script.split(separator: ";").dropFirst().dropLast(2)
         #expect(setters.count == 6)
         #expect(setters.allSatisfy { $0.contains("s.setProperty('--app-") && $0.contains("'rgb(") })
     }
