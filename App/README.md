@@ -22,8 +22,10 @@ Build and test on the simulator (unsigned, as CI does):
 
 ```sh
 xcodebuild build test -project App/SwiftHFR.xcodeproj -scheme SwiftHFR \
-  -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 18 Pro' CODE_SIGNING_ALLOWED=NO
+  -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 18 Pro' -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
 ```
+
+`-parallel-testing-enabled NO` overrides the scheme's `parallelizable = "YES"` (added by #717), as CI does: with simulator clones, model tests took 270-360 s each and web-view tests timed out on the runner (#801).
 
 A dependency change in `HFRKit` re-resolves and commits this project's `Package.resolved` in the same PR (CI never resolves packages):
 
