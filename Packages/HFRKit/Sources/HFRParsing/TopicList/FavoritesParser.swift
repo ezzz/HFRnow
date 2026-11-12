@@ -1,8 +1,9 @@
 import HFRModels
 import SwiftSoup
 
-/// Parses the favourites page (`GET /forum1f.php?owntopic={1|3}`, HFR-PROTOCOL R3): one `tr.fondForum1fCat` header per
-/// category, each followed by its `tr.sujet.ligne_booleen` topic rows, which share the topic list markup.
+/// Parses the favourites page (`GET /forum1f.php?owntopic={1|2|3}`, HFR-PROTOCOL R3; `2` is `R603e`, LOT-057): one
+/// `tr.fondForum1fCat` header per category, each followed by its `tr.sujet.ligne_booleen` topic rows, which share the topic
+/// list markup.
 ///
 /// Port of `-[ObjCFavoritesLoaderWorker parseFavoritesFromData:]` (`ObjCFavoritesLoaderWorker.m:74-139`) and
 /// `Favorite.m:31-210`, as a pure function: the badge and the token come back as data. Differences from legacy are listed in

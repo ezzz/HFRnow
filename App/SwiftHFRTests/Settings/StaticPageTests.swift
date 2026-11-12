@@ -1,6 +1,7 @@
 import Foundation
 @testable import SwiftHFR
 import Testing
+import UIKit
 import WebKit
 
 struct StaticPageTests {
@@ -90,12 +91,20 @@ struct StaticPageTests {
     @Test @MainActor func theWebViewRunsNoPageScript() async throws {
         #expect(StaticPageWebView.makeConfiguration().defaultWebpagePreferences.allowsContentJavaScript == false)
         let webView = WKWebView(frame: .zero, configuration: StaticPageWebView.makeConfiguration())
+        // Shown as in Réglages: in no window, this test took 67 s on green run 43060241312 and 320 s on job 130925974296 (#801).
+        let window = hostInWindow(webView)
         let loader = LoadWaiter()
         webView.navigationDelegate = loader
         let page = "<html><body><script>document.body.setAttribute('data-ran', 'yes')</script></body></html>"
-        await loader.load(page, in: webView)
-        let ran = try await webView.evaluateJavaScript("String(document.body.getAttribute('data-ran'))")
+        webView.loadHTMLString(page, baseURL: nil)
+        let ended = await loader.ended.wait(timeout: .seconds(120))
+        // A page that failed to load runs no script either: only a loaded one proves the setting.
+        #expect(ended && loader.failure == nil, "the page did not load: \(loader.failure ?? "no answer before the deadline")")
+        let ran = try await answer(of: "the static page") {
+            try await webView.evaluateJavaScript("String(document.body.getAttribute('data-ran'))")
+        }
         #expect(ran as? String == "null")
+        withExtendedLifetime(window) {}
     }
 
     /// `https://…` links of a Markdown or licence text, without the closing punctuation.
@@ -105,26 +114,29 @@ struct StaticPageTests {
     }
 }
 
-/// Loads a page into a web view and returns once the load finished.
+/// Tells when a web view's load ended, and how: finished, failed, or its content process died (no other callback comes then,
+/// so a wait on the first two alone could hang the test job, issue #801).
 @MainActor
 private final class LoadWaiter: NSObject, WKNavigationDelegate {
-    private var continuation: CheckedContinuation<Void, Never>?
+    let ended = TestEvent()
+    /// Why the load did not finish; nil when it finished.
+    private(set) var failure: String?
 
-    func load(_ html: String, in webView: WKWebView) async {
-        await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            webView.loadHTMLString(html, baseURL: nil)
-        }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) { ended.fire() }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation?, withError error: any Error) {
+        end(failure: "failed: \(error)")
     }
 
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) { finish() }
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation?, withError error: any Error) {
+        end(failure: "failed before committing: \(error)")
+    }
 
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation?, withError error: any Error) { finish() }
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { end(failure: "the content process terminated") }
 
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation?, withError error: any Error) { finish() }
-
-    private func finish() {
-        continuation?.resume()
-        continuation = nil
+    private func end(failure: String) {
+        guard !ended.hasFired else { return }
+        self.failure = failure
+        ended.fire()
     }
 }
