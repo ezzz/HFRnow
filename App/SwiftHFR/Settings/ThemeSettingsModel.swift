@@ -144,13 +144,15 @@ extension View {
     /// One appearance and one accent for every screen, sheets and the reader included (LOT-121). The scheme is set on the
     /// window, as legacy did (`HFRplusAppDelegate.m:392`), so presented sheets and the reader's `WKWebView`
     /// (`prefers-color-scheme`) read the same trait, and nil hands it back to iOS at once. The app root applies it once.
-    func appTheme(_ theme: ThemeSettingsModel) -> some View {
-        environment(theme)
-            .environment(\.themeAppearance, theme.appearance)
-            .tint(theme.appearance.accentColor)
+    /// A `seasonal` theme (LOT-166) is drawn over the user's colours without changing them.
+    func appTheme(_ theme: ThemeSettingsModel, seasonal: SeasonalTheme? = nil) -> some View {
+        let appearance = theme.appearance.applying(seasonal)
+        return environment(theme)
+            .environment(\.themeAppearance, appearance)
+            .tint(appearance.accentColor)
             // nil for Legacy: no design set, as before (LOT-188); a value change only, never a new structure.
-            .fontDesign(theme.appearance.fontDesign)
-            .background(WindowStyle(scheme: theme.preferredColorScheme, tint: theme.appearance.accentUIColor))
+            .fontDesign(appearance.fontDesign)
+            .background(WindowStyle(scheme: theme.preferredColorScheme, tint: appearance.accentUIColor))
     }
 }
 

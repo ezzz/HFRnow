@@ -87,7 +87,8 @@ Local calendar dates; "first launch" = first scene activation on or after the da
 | Samain | 01/10–31/10 | Spooktober soft, 01/10–31/10, same conditions | 01/10–31/10: a witch on a broom, a ghost or a bat/vampire crosses, then « Spooktober est là ! Thème disponible dans les réglages » [OK] [Désactiver] | from 01/11 (operator, 2026-10-28: « Pour la fin d'Halloween, je prends le 01/11 »), 7-day bound as Noël *(to confirm)*, if a Samain theme is active: a witch sweeps the decorations away (≤ 5 s), « Allez on remballe »; later: silent restore |
 | Fête nationale | — | — | 14/07: statue-like bust of Marianne with fireworks, « Fête nationale », 3–5 s, any theme | — |
 
-- Switching a seasonal theme on saves the current theme; **Désactiver** restores it and opts out for the year; **OK** keeps the seasonal theme. Packing always restores it (fallback: Legacy).
+- Switching a seasonal theme on saves the current theme; **Désactiver** restores it and opts out for the year; **OK** keeps the seasonal theme. Packing always restores it.
+- **Noël soft over a gallery theme** (operator decision (a), 2026-11-12): Noël soft is drawn over the user's theme, never stored. Over Legacy it is legacy's red accent; a gallery theme keeps its own accent (its contrast rules hold) and gets the snow and the crossing objects.
 - A seasonal theme picked by hand is packed the same way.
 - Legacy @ `87fe0d1c` had a Christmas mode (red accent, snow in the navigation bar, a one-time alert; `Classes/HFRplusAppDelegate.m:627-677`), hard-coded to 24/12/2022–09/01/2023 and forced off at launch (`:103`, `:365`). The windows, opt-out and animations above are intentional differences (GAP-147).
 - A new season (the PO's wish for one theme per season, #256) is a new family: add its row here in the PR that adds it.
