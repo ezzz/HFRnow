@@ -119,11 +119,24 @@ public enum MessageContentNormalizer {
             self.main = main
         }
 
+        /// HFR's separator, the first text of `span.signature`: spaces, 15 dashes, a line break (R267a, #755). Only that one goes:
+        /// legacy removed every 15-dash string of the message (`LinkItem.m:74` @ 87fe0d1c), dashes a member typed included.
+        static func droppingSeparator(from html: String) -> String {
+            let separator = String(repeating: "-", count: 15)
+            let rest = html.drop { $0.isWhitespace }
+            guard rest.hasPrefix(separator) else { return html }
+            let after = rest.dropFirst(separator.count)
+            // A longer run of dashes is not HFR's separator.
+            guard after.first != "-" else { return html }
+            return String(after.drop { $0.isWhitespace })
+        }
+
         func result() throws(ParsingError) -> MessageContent {
             guard let html = try? main.html() else { throw .malformedDocument }
             var signatureHTML: String?
             if let signature {
-                guard let text = try? signature.html() else { throw .malformedDocument }
+                guard let html = try? signature.html() else { throw .malformedDocument }
+                let text = Self.droppingSeparator(from: html)
                 // A signature span without content (or with dropped content only) is no signature.
                 signatureHTML = text.isEmpty ? nil : text
             }

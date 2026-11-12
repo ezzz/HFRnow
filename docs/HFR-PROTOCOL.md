@@ -370,7 +370,7 @@ Source: [LOT-034](lots/LOT-034-content-normalization.md), `MessageContentNormali
 - **Formatting seen**: `strong`, `em`, `i`, `strike`, `span.u`, `span[style="color:#0055aa"]` (and `#e2001c`), `ul`/`li`, `br`,
   `&nbsp;` lines; no `script`, `iframe`, `on*` attribute other than the spoiler's `onclick` and the images' `onload`, no `id` other
   than `code<N>`.
-- **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, the `---------------` separator, `oldcitation`.
+- **Not in the corpus**: `hfr-rehost.net` or `reho.st` URLs, `oldcitation`.
 
 ### LOT-056 — image hosts
 
