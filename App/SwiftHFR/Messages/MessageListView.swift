@@ -29,6 +29,7 @@ struct MessageListView: View {
         .listStyle(.insetGrouped) // explicit: the row tint's base colour is the grouped one (#570)
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
+        .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
             if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }

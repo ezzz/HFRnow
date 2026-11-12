@@ -7,13 +7,14 @@ extension View {
     /// The seasonal layer of the app root (LOT-166): the active theme's decorations over the content, and the arrival alert
     /// once nothing stands in its way (`isCovered`: the app lock; sheets and the keyboard are checked here, THEMES.md §4 rule 5).
     func seasonalDecorations(_ model: SeasonalThemeModel, isCovered: @escaping @MainActor () -> Bool) -> some View {
-        modifier(SeasonalDecorationsModifier(model: model))
+        modifier(SeasonalDecorationsModifier(model: model, isCovered: isCovered))
             .modifier(SeasonalArrivalAlert(model: model, isCovered: isCovered))
     }
 }
 
 private struct SeasonalDecorationsModifier: ViewModifier {
     let model: SeasonalThemeModel
+    let isCovered: @MainActor () -> Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
@@ -21,34 +22,53 @@ private struct SeasonalDecorationsModifier: ViewModifier {
             .overlay {
                 if model.activeTheme == .noelSoft {
                     NoelSnowLayer(falls: model.snowFalls && !reduceMotion)
+                    NoelBottomDrifts()
                 }
             }
+            // The sleigh crosses on any theme (25–26/12, automatic themes off); the small objects in Noël soft only.
+            .overlay { NoelBand { NoelCrossingLayer(seasonal: model, isCovered: isCovered) } }
     }
 }
 
-/// Light falling snow, between the navigation bar and the bottom bar so that no button, badge, status bar or home
-/// indicator is covered (THEMES.md §4 rule 9); never touched, never read by VoiceOver.
-struct NoelSnowLayer: View {
-    /// Flakes fall; without it (Reduce Motion, « Animations de saison » off) nothing is drawn. Piled snow comes with PR 2: a
-    /// drift drawn over the content crossed row text (screenshot of PR 1).
-    let falls: Bool
-    /// Height kept clear at the top for the navigation bar, and at the bottom for the tab bar or toolbar.
-    static let topBand: CGFloat = 56
-    static let bottomBand: CGFloat = 64
-
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var scheme
-    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+/// The band between the bars where decorations move: clear of the navigation bar with a large title, of the tab bar or toolbar,
+/// of the status bar and of the home indicator (THEMES.md §4 rule 9).
+struct NoelBand<Content: View>: View {
+    /// Height kept clear at the top for the navigation bar and its large title (about 96 pt), and at the bottom for the tab bar.
+    static var topBand: CGFloat { 104 }
+    static var bottomBand: CGFloat { 64 }
+    @ViewBuilder let content: Content
 
     var body: some View {
         VStack(spacing: 0) {
             Color.clear.frame(height: Self.topBand)
+            content
+            Color.clear.frame(height: Self.bottomBand)
+        }
+    }
+}
+
+/// Light falling snow, in the band between the bars (`NoelBand`), so that no button, badge, status bar or home
+/// indicator is covered (THEMES.md §4 rule 9); never touched, never read by VoiceOver.
+struct NoelSnowLayer: View {
+    /// Flakes fall; without it (Reduce Motion, « Animations de saison » off) none is drawn. Piled snow is static and drawn apart
+    /// (`NoelSnowPile.swift`), off the rows' text.
+    let falls: Bool
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var scheme
+    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+    private let scroll = SeasonalScrollActivity.shared
+
+    /// Flakes stop while the scene is not active, in Low Power Mode and while a list or the reader scrolls (THEMES.md §4 rule 8).
+    static func isPaused(active: Bool, lowPower: Bool, scrolling: Bool) -> Bool { !active || lowPower || scrolling }
+
+    var body: some View {
+        NoelBand {
             if falls {
-                Snowfall(color: flakeColor, paused: scenePhase != .active || lowPower)
+                let paused = Self.isPaused(active: scenePhase == .active, lowPower: lowPower, scrolling: scroll.isScrolling)
+                Snowfall(color: flakeColor, paused: paused)
             } else {
                 Color.clear
             }
-            Color.clear.frame(height: Self.bottomBand)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -65,7 +85,8 @@ struct NoelSnowLayer: View {
     }
 }
 
-/// The falling flakes, redrawn at 30 frames per second at most and not at all while `paused` (inactive, Low Power Mode).
+/// The falling flakes, redrawn at 30 frames per second at most and not at all while `paused` (inactive, Low Power Mode,
+/// scrolling).
 private struct Snowfall: View {
     let color: Color
     let paused: Bool

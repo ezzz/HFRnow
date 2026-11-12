@@ -65,6 +65,8 @@ final class SeasonalThemeModel {
     /// Snow falls: Noël soft is on and animations are allowed (static snow stays otherwise).
     var snowFalls: Bool { activeTheme == .noelSoft && animationsAllowed }
 
+    /// The arrival sleigh and the objects crossing Noël soft (PR 2).
+    @ObservationIgnored let crossings: NoelCrossingModel
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let timeZone: @MainActor () -> TimeZone
@@ -77,8 +79,10 @@ final class SeasonalThemeModel {
         store: any SettingsStore,
         now: @escaping @MainActor () -> Date = { Date() },
         timeZone: @escaping @MainActor () -> TimeZone = { .autoupdatingCurrent },
-        reduceMotion: @escaping @MainActor () -> Bool = { UIAccessibility.isReduceMotionEnabled }
+        reduceMotion: @escaping @MainActor () -> Bool = { UIAccessibility.isReduceMotionEnabled },
+        crossings: NoelCrossingModel? = nil
     ) {
+        self.crossings = crossings ?? NoelCrossingModel(now: now, random: SystemSeasonalRandom())
         self.store = store
         self.now = now
         self.timeZone = timeZone
@@ -129,6 +133,7 @@ final class SeasonalThemeModel {
         store.set(true, for: SettingKey.noelArrivalPending(year: year))
         let switched = switching && isAutomatic && !store.value(for: SettingKey.noelOptedOut(year: year)) && !isOn(year: year)
         if switched { switchOn(year: year) }
+        if animationsAllowed { crossings.queueArrival() }
         return .arrival(year: year, switchedOn: switched, sleigh: animationsAllowed)
     }
 
@@ -147,6 +152,8 @@ final class SeasonalThemeModel {
     /// The alert `scene` may present now: the pending one, when `screen` allows it and no other scene shows it.
     func alert(for scene: UUID, screen: ScreenState) -> Alert? {
         guard let pendingAlert, alertScene == nil || alertScene == scene else { return nil }
+        // The sleigh crosses first (THEMES.md §5).
+        guard !crossings.arrivalPending, crossings.current?.isArrival != true else { return nil }
         // A scene that already shows it keeps it; the others wait for a clear screen.
         guard alertScene == scene || screen.allowsAlert else { return nil }
         alertScene = scene
