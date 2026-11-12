@@ -31,7 +31,7 @@ struct MessageRowView: View {
                             .background(Color(.systemGray).opacity(isUnread ? 1 : 0.5), in: Capsule())
                             .accessibilityLabel(label)
                     }
-                    Text(thread.summary.title)
+                    Text(thread.summary.displayTitle)
                         .scaledFont(density.titleStyle)
                         .fontWeight(titleTone.weight)
                         .foregroundStyle(titleTone.style)

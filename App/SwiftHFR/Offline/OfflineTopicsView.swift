@@ -98,7 +98,7 @@ private struct OfflineTopicRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(topic.title.isEmpty ? "Sujet \(topic.topic.topic)" : topic.title).scaledFont(.body).lineLimit(2)
+            Text(topic.title.isEmpty ? "Sujet \(topic.topic.topic)" : TopicTitle.displayed(topic.title)).scaledFont(.body).lineLimit(2)
             Text("\(OfflinePageCount.text(topic.pages)) · enregistré \(topic.lastSavedAt.formatted(.relative(presentation: .named)))")
                 .scaledFont(.footnote).foregroundStyle(.secondary)
         }
