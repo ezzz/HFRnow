@@ -280,6 +280,84 @@ class Hygiene(unittest.TestCase):
         self.assertIn("skip (reopened meanwhile)", out)
         self.assertIn("removed from closed issues: 0", out)
 
+    def test_an_open_pr_claims_the_issues_it_cites_and_leaves_the_rest(self):
+        issues = [issue(20, labels=["type: bug", "status: ready"]), issue(21, labels=["type: bug", "status: blocked", "status: ready"]),
+                  issue(22, labels=["type: bug", "status: claimed"]), issue(23, labels=["type: roadmap", "status: ready"]),
+                  issue(24, labels=["type: bug"]), issue(25, "closed", labels=["type: bug"]), issue(26, labels=["type: bug", "status: ready"])]
+        pulls = [pr(30, body="Closes #20\nClaim: x\n", state="open", draft=True), pr(31, body="Refs #21\nRefs #22", state="open"),
+                 pr(32, body="Refs #23\nCloses #25", state="open"), pr(33, body="Refs #24", state="open", base="master"),
+                 pr(34, body="Refs #26", state="closed")]  # closed unmerged: not an open PR
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"], a["pr"], a["drop"]) for a in actions if a["kind"] == "claim"],
+                         [("claim", 20, 30, ["status: ready"]), ("claim", 21, 31, ["status: blocked", "status: ready"])])
+
+    def test_a_blocked_lot_with_an_open_pr_is_claimed_not_unblocked(self):
+        issues = [issue(1, "closed"), issue(2, labels=["type: lot", "status: blocked"])]
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #2", state="open")]
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("claim", 2)])
+
+    def test_refs_of_a_merged_pr_never_close_an_issue(self):
+        issues = [issue(1, labels=["type: bug", "status: claimed"]), issue(2, labels=["type: bug", "status: claimed"])]
+        actions, _ = self.run_sweep(issues, [pr(10, body="Refs #1\nCloses #2", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("close", 2)])
+
+    def test_a_claim_is_reported_only_when_no_open_pr_cites_it(self):
+        old = "2026-10-01T00:00:00Z"
+        issues = [issue(3, labels=["type: lot", "status: claimed"], created=old), issue(4, labels=["type: bug", "status: claimed"], created=old)]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Refs #4", state="open")])
+        text = "\n".join(reports)
+        self.assertIn("#3: claimed, silent for 31 days", text)
+        self.assertNotIn("#4: claimed", text)
+        self.assertEqual(actions, [])  # a stale claim is never released
+
+    def test_apply_claim_adds_the_label_first_then_drops_the_others(self):
+        calls, out = self._apply({"state": "open", "labels": [{"name": "status: ready"}, {"name": "status: blocked"}]},
+                                 [{"kind": "claim", "issue": 5, "pr": 9, "drop": ["status: ready", "status: blocked"]}])
+        self.assertEqual(calls, [("POST", "repos/ezzz/HFRnow/issues/5/labels"),
+                                 ("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20blocked"),
+                                 ("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])
+        calls, out = self._apply({"state": "closed", "labels": []}, [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])
+        self.assertEqual(calls, [])  # closed meanwhile
+        self.assertIn("skip (closed meanwhile)", out)
+
+    def test_an_on_hold_issue_with_an_open_pr_is_reported_never_claimed(self):
+        issues = [issue(8, labels=["type: bug", "status: on-hold"])]
+        actions, reports = self.run_sweep(issues, [pr(11, body="Refs #8", state="open")])
+        self.assertEqual(actions, [])
+        self.assertIn("#8: `status: on-hold` but PR #11 cites it", "\n".join(reports))
+
+    def test_needs_decision_and_m5_lots_are_reported_never_claimed(self):
+        issues = [issue(9, labels=["type: bug", "status: needs-decision"]), issue(3, labels=["type: lot", "status: blocked"])]
+        with mock.patch.object(hygiene, "is_m5", lambda r: r["issue"] == 3):  # LOT-003 is an M5 lot, M5 closed
+            actions, reports = self.run_sweep(issues, [pr(11, body="Refs #9\nRefs #3", state="open")])
+        text = "\n".join(reports)
+        self.assertEqual([a for a in actions if a["kind"] == "claim"], [])
+        self.assertIn("#9: `status: needs-decision` but PR #11 cites it", text)
+        self.assertIn("#3: M5 lot held by the M5_OPEN decision but PR #11 cites it", text)
+
+    def test_a_cited_roadmap_issue_is_not_shielded_from_the_unblock_rules(self):
+        issues = [issue(1, "closed"), issue(2, labels=["type: roadmap", "status: blocked"], body="### Blocked by\n\n#1\n")]
+        actions, _ = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #2", state="open")])
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("unblock", 2)])  # no claim: a roadmap tracker; so the unblock stands
+
+    def test_apply_claim_skips_an_issue_put_on_hold_meanwhile(self):
+        for held in ("status: on-hold", "status: needs-decision"):
+            calls, out = self._apply({"state": "open", "labels": [{"name": held}]}, [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])
+            self.assertEqual(calls, [])
+            self.assertIn("skip (labels changed meanwhile)", out)
+
+    def test_an_issue_the_sweep_closes_is_not_also_claimed(self):
+        issues = [issue(7, labels=["type: bug", "status: ready"])]
+        pulls = [pr(10, body="Closes #7", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #7", state="open")]
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("close", 7)])
+
+    def test_apply_claim_drops_every_status_label_found_on_the_re_read(self):
+        calls, _ = self._apply({"state": "open", "labels": [{"name": "status: claimed"}, {"name": "status: ready"}]},
+                               [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])  # `ready` was added after the analysis
+        self.assertEqual(calls, [("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])
+
     def test_unblock_without_a_known_pr_is_only_reported(self):
         issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n")]
         actions, reports = self.run_sweep(issues, [])

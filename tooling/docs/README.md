@@ -10,7 +10,7 @@ Two scripts keep the shared docs conflict-free ([#612](https://github.com/ezzz/H
 
 ## The ledger rule
 
-A feature PR **never** touches `docs/CHANGELOG-LEGACY.md`, `docs/migration/GAP-LEGACY-VS-SWIFT.md`, `docs/changelog-legacy.d/` or `docs/migration/gap.d/` (the *Docs consistency* check fails it, unless its branch is `docs/ledger-*`). Its entries go in the PR body and the PR gets the label `ledger`. No file, no conflict, no late push, no macOS rerun.
+A feature PR **never** touches `docs/CHANGELOG-LEGACY.md`, `docs/migration/GAP-LEGACY-VS-SWIFT.md`, `docs/changelog-legacy.d/` or `docs/migration/gap.d/` (the *Docs consistency* check fails it, unless its branch is `docs/ledger-*`). Its entries go in the PR body; the `### Ledger` section alone decides (#826): there is no label to set. No file, no conflict, no late push, no macOS rerun.
 
 ### Example of the section (PR body)
 
@@ -42,20 +42,20 @@ GAP-LEGACY-VS-SWIFT.md, H.1 decision 2 (line ~277): replace "drops" by "dropped"
 - `gap-edit`: the id alone on the first line, then one `<Column>: <new text>` line per cell to replace (`Feature`, `Legacy behaviour`, `Legacy ref`, `SwiftHFR final`, `Lot/Feat`, `Gap`, `Source`, `H.1`; case and spaces ignored). Other cells stay as they are, and the edited row must stay valid (`Gap` and `H.1` values). One block per row and body. The H.1 list and the Counts table are generated, never written.
 - `ledger-note`: free text for an edit that is not a row (a sentence of the report, say). The steward lists it and applies it **by hand** in a separate, reviewed PR; it never fails a fold.
 - A `|` inside a cell is `\|`. The section ends at the next `#`–`###` heading. The reviewer reviews it like the code.
-- **No entry: no section, no label.** CI fails a `ledger` PR without a section, and a section without the label.
+- **No entry: no section.** CI checks that a section, when there is one, parses; it never reads the `ledger` label (PRs that still carry it keep working, the label is inert). Only `ledger.py done` sets labels (`ledger: done`), never a person or an agent.
 
-The label is added by a member of the repository (a contributor without label access asks for it); CI then needs a new run, so push a commit after the label is added (re-running the check reuses the old event and its old labels). CI checks on each push (not on a body edit): after editing the body, run `python3 tooling/docs/ledger.py check-body --pr N --file body.md` or push. The steward's parser is the final arbiter.
+CI checks on each push (not on a body edit): after editing the body, run `python3 tooling/docs/ledger.py check-body --pr N --file body.md` or push. The steward's parser is the final arbiter.
 
 ## The steward
 
 The orchestrator's hygiene routine (`tooling/roadmap/hygiene.py` reports what is pending, daily, dry-run by default) or any orchestrator after a batch of merges:
 
 ```text
-python3 tooling/docs/ledger.py fold                     # dry run: merged `ledger` PRs without `ledger: done`, what would be written
+python3 tooling/docs/ledger.py fold                     # dry run: merged PRs with a `### Ledger` section and without `ledger: done`, what would be written
 git fetch origin dev-swift && git switch --detach origin/dev-swift
 python3 tooling/docs/ledger.py fold --apply --commit    # clean tree at origin/dev-swift: writes the docs, branch docs/ledger-<date>, one commit
 # push, open one docs-only PR (no App/ or Packages/ file: the macOS jobs are skipped), merge on green CI
-python3 tooling/docs/ledger.py done 590 604 --apply     # swap `ledger` for `ledger: done` on each folded PR; run it again after a failure
+python3 tooling/docs/ledger.py done 590 604 --apply     # set `ledger: done` (dropping a legacy `ledger`) on each folded PR; run it again after a failure
 ```
 
 - A bad PR is **reported and skipped** (PR, block, reason); the others fold. `fold` exits non-zero when nothing was folded although PRs were pending, or with `--strict` when any was skipped. The author fixes the body; the next run folds it.

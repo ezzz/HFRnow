@@ -44,13 +44,12 @@ jobs:
         run: |
           git fetch --no-tags origin "$BASE_REF"
           python3 tooling/docs/ledger.py guard --base "origin/$BASE_REF" --head-ref "$HEAD_REF"
-      - name: The label ledger and the Ledger section of the PR body agree and parse
+      - name: The Ledger section of the PR body, when there is one, parses (the label is not read, #826)
         if: github.event_name == 'pull_request'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, '|') }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: printf '%s' "$PR_BODY" | python3 tooling/docs/ledger.py check-body --pr "$PR_NUMBER" --labels "$PR_LABELS"
+        run: printf '%s' "$PR_BODY" | python3 tooling/docs/ledger.py check-body --pr "$PR_NUMBER"
       - name: Markdown tables and links
         run: npx --yes markdownlint-cli2@0.18.1
 
