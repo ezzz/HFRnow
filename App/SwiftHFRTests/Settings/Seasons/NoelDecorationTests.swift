@@ -1,4 +1,6 @@
 import CoreGraphics
+import Foundation
+import Observation
 @testable import SwiftHFR
 import SwiftUI
 import Testing
@@ -51,6 +53,27 @@ struct NoelDecorationTests {
         withExtendedLifetime(sources) {}
     }
 
+    /// A drag reports every frame: only a change of state is written, so the snow's observers are not invalidated per frame.
+    @Test func repeatedReportsWriteNothing() {
+        let activity = SeasonalScrollActivity()
+        let source = NSObject()
+        let key = ObjectIdentifier(source)
+        activity.set(key, scrolling: true)
+        let writes = Counter()
+        func observe() {
+            withObservationTracking { _ = activity.moving } onChange: { writes.add() }
+        }
+        observe()
+        activity.set(key, scrolling: true)
+        #expect(writes.value == 0)
+        activity.set(key, scrolling: false)
+        #expect(writes.value == 1)
+        observe()
+        activity.set(key, scrolling: false)
+        #expect(writes.value == 1)
+        withExtendedLifetime(source) {}
+    }
+
     @Test(arguments: NoelCrossingItem.allCases)
     func everyItemHasItsTransparentImage(item: NoelCrossingItem) throws {
         let image = try #require(UIImage(named: item.assetName))
@@ -63,4 +86,14 @@ struct NoelDecorationTests {
         #expect(NoelCrossingItem.allCases.filter(\.isDirectional) == [.sleigh])
         #expect(UIImage(named: "NoelSnowPile") != nil)
     }
+}
+
+/// A count bumped from observation callbacks, which are `@Sendable`.
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int { lock.withLock { count } }
+
+    func add() { lock.withLock { count += 1 } }
 }
