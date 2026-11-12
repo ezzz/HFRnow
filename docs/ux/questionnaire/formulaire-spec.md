@@ -14,7 +14,7 @@ Décisions du PO reprises ici :
 - question `G1` ajoutée le 8 novembre 2026 : irritants du quotidien, texte libre de 280 caractères, facultatif, sans condition, sur son propre écran juste après `O1` et avant `L1` (cadrage §2, #670) ;
 - hébergement en France (UE).
 
-D4 (description du VPS) est tranchée : Ubuntu 24.04 LTS avec Docker Engine et Docker Compose, en France, partagé avec une autre application. Seul reste ouvert le choix de l'exposition publique (Tailscale Funnel ou proxy inverse avec sous-domaine) ; le déploiement marche dans les deux cas, et la [section 13](#13-points-ouverts-avant-le-déploiement) liste ce qui reste à décider ou à vérifier. Les exigences R1 à R12 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
+D4 (description du VPS) est tranchée : Ubuntu 24.04 LTS avec Docker Engine et Docker Compose, en France, partagé avec une autre application. L'exposition publique passe par Tailscale Funnel (décision du PO du 9 novembre 2026) ; le proxy inverse avec sous-domaine reste une solution de secours, et la [section 13](#13-points-ouverts-avant-le-déploiement) liste ce qui reste à décider ou à vérifier. Les exigences R1 à R12 de `donnees.md` (#630, #669) sont reprises ; la [section 15](#15-exigences-de-donneesmd) dit où.
 
 ## 1. Choix techniques
 
@@ -302,12 +302,12 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 - déclare un réseau à sous-réseau fixe (par exemple `172.31.250.0/24`, à choisir pour ne pas chevaucher celui de l'autre application) ;
 - fixe `UX_PROXY_DE_CONFIANCE` à l'adresse de la passerelle de ce réseau : un client de l'hôte qui se connecte à `127.0.0.1:<port>` arrive dans le conteneur depuis cette passerelle, quel que soit ce client (Tailscale Funnel ou Caddy, ci-dessous).
 
-**Exposition publique**, décision du PO en attente ; aucun port public n'est ouvert aujourd'hui. Les deux options passent par le port de boucle locale, donc la même configuration du service :
+**Exposition publique** : Tailscale Funnel, décision du PO du 9 novembre 2026. Les répondants ouvrent une adresse publique en `https` sans rien installer ; seul le VPS utilise Tailscale, et l'autre application de l'hôte reste privée. Aucun port public n'est ouvert. L'option (b) ne sert qu'en secours, si la vérification du §13 échoue. Les deux options passent par le port de boucle locale, donc la même configuration du service :
 
 | Option | Ce qui est exposé | TLS | URL | `UX_ORIGINE` | Adresse du client |
 |---|---|---|---|---|---|
-| (a) **Tailscale Funnel**, recommandée | Funnel devant `127.0.0.1:<port>`, aucun port à ouvrir | Terminé sur le VPS par `tailscaled` | Publique en `*.ts.net`, pas de sous-domaine | L'URL Funnel | Transmise par Funnel dans un en-tête, **à vérifier** (§13) |
-| (b) Proxy inverse, par exemple Caddy | Ports 80 et 443 ouverts | Caddy (Let's Encrypt) | Sous-domaine | `https://<sous-domaine>` | `X-Forwarded-For` ajouté par Caddy |
+| (a) **Tailscale Funnel**, retenue | Funnel devant `127.0.0.1:<port>`, aucun port à ouvrir | Terminé sur le VPS par `tailscaled` | Publique en `*.ts.net`, pas de sous-domaine | L'URL Funnel | Transmise par Funnel dans un en-tête, **à vérifier** (§13) |
+| (b) Proxy inverse, par exemple Caddy, en secours | Ports 80 et 443 ouverts | Caddy (Let's Encrypt) | Sous-domaine | `https://<sous-domaine>` | `X-Forwarded-For` ajouté par Caddy |
 
 Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajouté, corps limité à 32 Ko et journal d'accès coupé. Pour (a), le README donne la commande Funnel vers `127.0.0.1:<port>` et rappelle la vérification du §13. Dans les deux cas, le service ne lit que la dernière adresse de `X-Forwarded-For` (§6) ; si la vérification montre que Funnel transmet l'adresse du client dans un autre en-tête, #634 ajoute une variable `UX_EN_TETE_CLIENT` (nom de l'en-tête, lu seulement depuis le proxy de confiance) plutôt que de deviner.
 
@@ -359,14 +359,14 @@ Liste à cocher du PO le même jour, notée sur #628 avec la date :
 - exports partagés avec l'équipe et confiés à l'assistant d'analyse supprimés, confirmation demandée aux destinataires ;
 - seul l'export `agregats` reste.
 
-**Retrait final**, à la date fixée par le PO : arrêter le service, retirer l'hôte du proxy et l'enregistrement DNS, supprimer le dossier de données, et noter la date sur #628.
+**Retrait final**, à la date fixée par le PO : couper Funnel pour ce port (en secours : retirer l'hôte du proxy et l'enregistrement DNS), arrêter le service, supprimer le dossier de données, et noter la date sur #628.
 
 ## 13. Points ouverts avant le déploiement
 
 D4 est tranchée (§11). Reste, avant le déploiement (#635), pas avant la réalisation :
-- **choix de l'exposition** : (a) Tailscale Funnel, recommandée, ou (b) proxy inverse avec sous-domaine et ports ouverts ;
-- si (a) : **vérifier sur l'hôte**, avant l'ouverture, quel en-tête Funnel transmet avec l'adresse publique du client, et que l'étape 3 du §11 voit des adresses distinctes. Si Funnel ne transmet pas l'adresse du client, le PO choisit entre (b) et un anti-doublon sans limite par adresse (jeton et limitation de débit seulement), à noter sur #628. Vérifier aussi ce que `tailscaled` journalise des connexions Funnel (R1), et signaler à #669 que les adresses des répondants transitent par les relais de Tailscale ;
-- si (b) : sous-domaine et accès DNS ;
+- **exposition** : Tailscale Funnel, retenue le 9 novembre 2026 ;
+- pour Funnel : **vérifier sur l'hôte**, avant l'ouverture, quel en-tête Funnel transmet avec l'adresse publique du client, et que l'étape 3 du §11 voit des adresses distinctes. Si Funnel ne transmet pas l'adresse du client, le PO choisit entre (b) et un anti-doublon sans limite par adresse (jeton et limitation de débit seulement), à noter sur #628. Vérifier aussi ce que `tailscaled` journalise des connexions Funnel (R1) ; la mention sur les données (#669) dit déjà que les connexions transitent par les relais de Tailscale ;
+- seulement si l'on bascule en secours sur (b) : sous-domaine et accès DNS ;
 - journal d'accès de l'option retenue pour ce questionnaire coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;
 - sauvegardes du VPS : `cle-ip` en est exclu (exigence), sinon tout le dossier de données du questionnaire ; et comment purger celles qui contiennent la base à la date d'effacement.
 

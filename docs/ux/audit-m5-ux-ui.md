@@ -61,7 +61,7 @@ Les autres lots sont des améliorations locales : formatage, MP, thème, caches,
 - **M4 = parité legacy validée.** M1 à M4 portent la couche Swift d'ezzz avec l'UX legacy, plus quelques exceptions décidées : UXD-01, 12, 13, 15 pour les brouillons par sujet, 24 pour l'iPad.
 - **M5 = évolutions.** Tout écart au legacy ou au plan initial : options B différées, FEAT, moitiés (b) des lots découpés.
 - **Dépendances coupées** pour que M4 n'attende jamais M5. LOT-164, la porte de parité, ne dépend plus de 100, 101, 110 et 146. LOT-163 ne dépend plus de 112.
-- **Statut.** Les lots M5 sont `status: blocked` jusqu'à la validation de la parité M4.
+- **Statut.** Les lots M5 sont `status: on-hold` (retenus par une décision, pas par une dépendance, #835) jusqu'à la validation de la parité M4 et l'ouverture de M5 par l'orchestrateur.
 
 ### 2.2 Principes UX de l'opérateur qui contraignent M5
 

@@ -47,16 +47,17 @@ struct HFREndpointReadTests {
 
     @Test(arguments: [
         (TopicListFilter.favorites, "/forum1f.php?owntopic=3"),
-        (TopicListFilter.flagged, "/forum1f.php?owntopic=1")
+        (TopicListFilter.flagged, "/forum1f.php?owntopic=1"),
+        // LOT-057: the URL of `R603e`, byte for byte.
+        (TopicListFilter.read, "/forum1f.php?config=hfr.inc&owntopic=2&new=0&nojs=0")
     ])
     func favorites(filter: TopicListFilter, expected: String) throws {
         #expect(try HFREndpoint.favorites(filter: filter).url.absoluteString == Self.host + expected)
     }
 
-    @Test func favoritesDefaultsToFavouritesAndRefusesOtherFilters() throws {
+    @Test func favoritesDefaultsToFavouritesAndRefusesAll() throws {
         #expect(try HFREndpoint.favorites().url.absoluteString == "\(Self.host)/forum1f.php?owntopic=3")
         #expect(throws: NetworkError.self) { try HFREndpoint.favorites(filter: .all) }
-        #expect(throws: NetworkError.self) { try HFREndpoint.favorites(filter: .read) }
     }
 
     @Test func privateMessages() throws {

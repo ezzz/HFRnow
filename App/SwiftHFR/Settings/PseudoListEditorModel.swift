@@ -79,14 +79,16 @@ final class PseudoListEditorModel {
         await load()
     }
 
-    /// Adds the pseudo of the field. The field is emptied when the pseudo is listed afterwards, new or not.
+    /// Adds the pseudo of the field. The field is emptied when the pseudo is listed afterwards, new or not, unless the user
+    /// typed something else meanwhile (the add waits for the queued removals): that newer text stays.
     func add() async {
+        let submitted = draft
         let pseudo = trimmedDraft
         guard canAdd else { return }
         await settleRemovals()
         do {
             let added = try await manager.add(pseudo, to: kind)
-            draft = ""
+            if draft == submitted { draft = "" }
             if !added { errorMessage = "\(pseudo) est déjà dans la liste." }
         } catch {
             errorMessage = kind.addFailure

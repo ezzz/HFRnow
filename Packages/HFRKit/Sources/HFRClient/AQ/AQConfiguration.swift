@@ -9,6 +9,9 @@ public struct AQConfiguration: Sendable, Equatable {
     /// Path of the per-topic listing (`MessagesView.swift:327` @ 2440d79, capture `T02`).
     static let alertsPath = "/api/getAlertesByTopic.php"
 
+    /// Path of the create (`MessagesView.swift:340-376` @ 2440d79, captures `T50`, `T51`).
+    static let createPath = "/api/addAlerte.php"
+
     /// Origin of the AQ host, for example `https://aq.super-h.fr`.
     public let baseURL: URL
 
@@ -30,6 +33,11 @@ public struct AQConfiguration: Sendable, Equatable {
     func alertsURL(topicID: Int) throws(AQError) -> URL {
         guard topicID > 0 else { throw .invalidTopicID }
         return try url(path: Self.alertsPath, query: "topic_id=\(topicID)")
+    }
+
+    /// The create URL.
+    func createURL() throws(AQError) -> URL {
+        try url(path: Self.createPath, query: nil)
     }
 
     private func url(path: String, query: String?) throws(AQError) -> URL {
