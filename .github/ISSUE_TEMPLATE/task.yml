@@ -24,6 +24,11 @@ body:
     id: scope
     attributes: { label: Scope and acceptance criteria }
     validations: { required: true }
+  - type: textarea
+    id: blocked-by
+    attributes:
+      label: Blocked by
+      description: "One line per blocker: `#n` (issue or PR) or the external thing (capture, access, third-party decision). Empty if none; required once the issue is `status: blocked`."
 
   - type: dropdown
     id: priority

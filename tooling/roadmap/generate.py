@@ -4,6 +4,8 @@ _H=Path(__file__).resolve().parent
 # built by sync_state.py from the tracker; ROADMAP_STATE points to a fresh copy outside the tree (weekly/build.py)
 _S=json.loads(Path(os.environ.get('ROADMAP_STATE') or _H/'state.json').read_text(encoding='utf-8'))
 CLOSED=set(_S['closed']); READY=set(_S['ready']); CLAIMED=set(_S['claimed']); EXTERNAL=set(_S['external'])
+# `status: on-hold` (held by a decision) and `status: needs-decision` (#835); a state.json older than them has neither
+ON_HOLD=set(_S.get('on_hold',[])); NEEDS_DECISION=set(_S.get('needs_decision',[]))
 PRS={k:tuple(v) for k,v in _S['prs'].items()}; MERGED_PR=_S['merged_pr']
 CAPTURE={int(k):v for k,v in _S['capture'].items()}
 GENERATED_AT=_S.get('generated_at','')  # snapshot time of state.json
@@ -43,6 +45,8 @@ def state(l):
     if l in PRS:
         pr,st,rev=PRS[l]; return 'ongoing',(f'🛠️ draft · PR #{pr}' if st=='draft' else f'🔍 review wanted ({rev}) · PR #{pr}')
     if r['issue'] in CLAIMED: return 'ongoing','🙋 claimed'
+    if r['issue'] in ON_HOLD: return 'todo','⏸️ on hold (decision)'
+    if r['issue'] in NEEDS_DECISION: return 'todo','❓ needs a decision'
     if l in M5 and not m5.M5_OPEN and not miss0(r): return 'todo','⏸️ M5 not opened yet (the orchestrator opens it)'
     if r['issue'] in READY: return 'todo','🟦 ready'
     if r['issue'] in CAPTURE: return 'todo','📸 waits on capture '+CAPTURE[r['issue']]

@@ -50,10 +50,12 @@ LEGEND='''### Legend
 | Column | Emoji | Meaning |
 |---|---|---|
 | 🔜 Todo | 🟦 ready | `status: ready`: every dependency merged, inputs available, nobody claimed it. Claim it with `/claim <id>`. |
-| | ⏸️ M5 not opened | An M5 lot whose dependencies are merged. M5 opens by the orchestrator's decision: do not set `status: ready`. |
+| | ⏸️ on hold | `status: on-hold`: held by a decision of the operator (M5 not open, an operator's call), not by a dependency. Only that decision moves it. |
+| | ❓ needs a decision | `status: needs-decision`: a product decision is missing; do not code it. |
+| | ⏸️ M5 not opened | An M5 lot whose dependencies are merged and that is not labelled `status: on-hold` yet. M5 opens by the orchestrator's decision: do not set `status: ready`. |
 | | ⛔ waits on … | Dependencies not merged yet (lot numbers listed). |
 | | 📸 waits on capture | Every dependency is merged, but a capture (issue linked, `host: mac`) must land first. |
-| | 🟨 triage | Every listed dependency is merged but the issue is still `status: blocked`: either a pending capture blocks it (say which on the issue) or it is ready. |
+| | 🟨 triage | Every listed dependency is merged but the issue is still `status: blocked`: either a pending capture blocks it (name it in its `### Blocked by` section), a decision holds it (`status: on-hold`), or it is ready. |
 | 🔄 Ongoing | 🙋 claimed | Claimed, no PR yet (spec, fixtures, code). |
 | | 🛠️ draft | PR open as draft (CI or self-review not done). |
 | | 🔍 review wanted | CI green, waiting for the adversarial review of the named model. |
@@ -99,7 +101,7 @@ def triage():
         for l in sorted(ms,key=n):
             if state(l)[1].startswith('🟨') and l!='LOT-070': out.append(f"{l} #{rows[l]['issue']}")
     return out
-TRIAGE=(f"## 🟨 Triage ({len(triage())})\n\nThese lots have every dependency merged but are still labelled `status: blocked`: name the capture they wait on, or move them to `status: ready`:\n\n"+' · '.join(triage())+'\n') if triage() else '_Triage of 2026-10-29: the 23 lots left `status: blocked` after their dependencies merged were sorted (14 ready, 9 wait on a capture). The procedure that keeps labels right is in [ORCHESTRATION.md](https://github.com/ezzz/HFRnow/blob/dev-swift/docs/agents/ORCHESTRATION.md)._\n'
+TRIAGE=(f"## 🟨 Triage ({len(triage())})\n\nThese lots have every dependency merged but are still labelled `status: blocked`: name the capture they wait on in their `### Blocked by` section, move them to `status: on-hold` if a decision holds them, or to `status: ready`:\n\n"+' · '.join(triage())+'\n') if triage() else '_Triage of 2026-10-29: the 23 lots left `status: blocked` after their dependencies merged were sorted (14 ready, 9 wait on a capture). The procedure that keeps labels right is in [ORCHESTRATION.md](https://github.com/ezzz/HFRnow/blob/dev-swift/docs/agents/ORCHESTRATION.md)._\n'
 post=f'''### Summary
 
 As a maintainer or contributor, I want **one board per milestone after the MVP**, so that I can see at a glance:
