@@ -127,7 +127,7 @@ LOT-090 to LOT-098 (2026-10-27) and LOT-172 (2026-10-28, [ADR 0013](adr/0013-sto
 | LOT-071 | Third-party services: inventory (image rehost, AQ, Giphy…), data sent, owner, first-use notices, configuration (Q-4, ADR 0007) | docs | easy | Opus → Fable | — | review Q-4 | medium | [#95](https://github.com/ezzz/HFRnow/issues/95) |
 | LOT-072 | Shared pseudo normaliser (ZWSP and format characters, case rules) used by blocklist, drafts and accounts; removes the three private copies | HFRStorage | easy | Sonnet → Opus | 061, 063, 065 | reviews of #30, #31, #34 | low | [#96](https://github.com/ezzz/HFRnow/issues/96) |
 | LOT-073 | MPStorage JSON tokenizer that preserves number lexemes natively, replacing the private-use marker workaround of LOT-062 | HFRModels | medium | Opus → Fable | 062 | review of #33 | low | [#97](https://github.com/ezzz/HFRnow/issues/97) |
-| LOT-070 | Parity gates: differential roll-up, persistence parity checklist, write chapter of HFR-PROTOCOL | docs/tests | medium | Opus → Fable | all parsing/network/storage lots | C18, E-9, D13 | medium | [#94](https://github.com/ezzz/HFRnow/issues/94) |
+| LOT-070 | Parity gates: differential roll-up, persistence parity checklist, write chapter of HFR-PROTOCOL | docs/tests | medium | Opus → Fable | 055, 057 | C18, E-9, D13 | medium | [#94](https://github.com/ezzz/HFRnow/issues/94) |
 
 ## Phase 4 — app: first usable build
 

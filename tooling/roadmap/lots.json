@@ -1014,7 +1014,7 @@
 "module": "docs/tests",
 "diff": "medium",
 "model": "Opus → Fable",
-"deps": "all parsing/network/storage lots",
+"deps": "055, 057",
 "audit": "C18, E-9, D13",
 "prio": "medium",
 "issue": 94,
