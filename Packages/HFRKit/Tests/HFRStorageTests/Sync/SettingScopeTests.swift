@@ -27,7 +27,9 @@ import Testing
         // LOT-173: the app lock is a property of the device (ADR 0013 §6, appendix E's device-capability rule).
         "app_lock_enabled": .device, "app_lock_grace_seconds": .device,
         // LOT-189: the dated-icon bookkeeping follows the icon the device shows.
-        "icon_previous": .device, "icon_revert_asked": .device
+        "icon_previous": .device, "icon_revert_asked": .device,
+        // LOT-166: seasonal themes are a presentation of this device, like the dark style (THEMES.md §5).
+        "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {
@@ -36,6 +38,17 @@ import Testing
             #expect(setting.scope == Self.matrix[setting.key], "\(setting.key)")
         }
         #expect(SettingKey.syncedKeys == Set(Self.matrix.filter { $0.value == .synced }.keys))
+    }
+
+    /// LOT-166: the per-season Noël keys are outside the static catalogue (one set per year) and never sync (THEMES.md §5).
+    @Test func theNoelSeasonKeysStayOnTheDevice() {
+        let keys = SettingKey.noelSeason(year: 2026)
+        #expect(keys.map(\.key) == [
+            "season.noel.2026.arrivalShown", "season.noel.2026.arrivalPending", "season.noel.2026.optedOut",
+            "season.noel.2026.previousThemeID", "season.noel.2026.packingShown"
+        ])
+        #expect(keys.allSatisfy { $0.scope == .device })
+        #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))
     }
 
     @Test func theSevenThemeKeysSyncUnchanged() {

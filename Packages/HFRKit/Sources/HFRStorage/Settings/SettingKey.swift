@@ -185,6 +185,17 @@ public enum SettingKey {
     /// `rehost_resize_before_upload`.
     public static let rehostMaxDimension = Setting.integerEnum("rehost_resize_before_upload", default: RehostMaxDimension.px1200).synced
 
+    // MARK: Seasons (LOT-166)
+
+    /// `season.automatic` (new): a seasonal theme is switched on at its first launch (THEMES.md §5). Device-only, like the dark style.
+    public static let seasonalThemesAutomatic = Setting.bool("season.automatic", default: true)
+    /// `season.animations` (new): seasonal animations play (THEMES.md §4); off counts as Reduce Motion. Device-only.
+    public static let seasonalAnimations = Setting.bool("season.animations", default: true)
+    /// `season.noel.activeYear` (new): the season whose Noël theme is on, so a theme left on any number of years ago is restored.
+    public static let noelActiveYear = Setting<Int?>(
+        key: "season.noel.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
+    )
+
     // MARK: Legacy keys
 
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
@@ -201,7 +212,8 @@ public enum SettingKey {
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

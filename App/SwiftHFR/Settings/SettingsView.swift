@@ -194,6 +194,7 @@ struct SettingsDestinationView: View {
     ThemedNavigationStack { SettingsView() }
         .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
         .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+        .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
         .environment(AccountsModel.preview())
         .environment(AppLockModel.preview())
 }

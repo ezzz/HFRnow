@@ -138,6 +138,8 @@ table.spoiler { width: 100%; cursor: pointer; border: 1px dashed var(--quote-bor
 table.spoiler div.masque { visibility: hidden; }
 table.spoiler.open div.masque { visibility: visible; }
 
+/* HFR's dashes are dropped by the normalizer (#755); the line is legacy's, 1px dashed (`style-liste-light.css:79`,
+   `style-liste-dark.css:45` @ 87fe0d1c), in the theme's separator colour (THEMES.md §3, one definition) instead of lightgray. */
 .signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px dashed var(--separator); font-size: 0.85em; color: var(--secondary); }
 .signature > br:first-child, .content span.signature { display: none; }
 

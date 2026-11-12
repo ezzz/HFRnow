@@ -10,6 +10,7 @@ import SwiftUI
 /// Legacy's own colours: they show while Legacy is the theme.
 struct ThemeSettingsView: View {
     @Environment(ThemeSettingsModel.self) private var theme
+    @Environment(SeasonalThemeModel.self) private var seasonal
 
     var body: some View {
         @Bindable var theme = theme
@@ -30,6 +31,11 @@ struct ThemeSettingsView: View {
                 } else if theme.appearance.forcedColorScheme != nil {
                     Text("« \(theme.theme.name) » n’a qu’une variante : clair = sombre.")
                 }
+            }
+            // Only inside a season's window, as legacy's Noël cell (`PlusSettingsViewController.m:112-115` @ 87fe0d1c); above the
+            // gallery, whose families never show a seasonal one (LOT-188: their window is LOT-166's).
+            if seasonal.isSelectable {
+                SeasonalThemesSection(model: seasonal)
             }
             ThemeGallery()
         }
@@ -113,4 +119,5 @@ private struct DarkStylePreview: View {
 #Preview("Thème") {
     ThemedNavigationStack { ThemeSettingsView() }
         .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+        .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
 }
