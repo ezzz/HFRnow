@@ -40,46 +40,43 @@ enum SnowPileLayout {
     }
 }
 
-extension View {
-    /// Snow piled on this card's top edge while Noël soft is on (LOT-166); put it on the first row of a list.
-    func seasonalSnowCap() -> some View {
-        modifier(SnowCap())
-    }
-}
-
-/// The cap on the first row of a list only.
-struct FirstRowSnowCap: ViewModifier {
-    let isFirst: Bool
-
-    func body(content: Content) -> some View {
-        if isFirst {
-            content.seasonalSnowCap()
-        } else {
-            content
-        }
-    }
-}
-
-private struct SnowCap: ViewModifier {
+/// The rows of a list's first card, with snow caps on its top edge while Noël soft is on (LOT-166): the caps are the section's
+/// header, since a list cell clips what leaves it. Without Noël soft the rows are given as they are, with no section.
+struct SeasonalSnowCapSection<Rows: View>: View {
     /// Optional: previews and test hosts run without the app's seasonal model.
     @Environment(SeasonalThemeModel.self) private var seasonal: SeasonalThemeModel?
-    /// A list row's own top padding: the cap sits on the card's edge above it.
-    private let rowPadding: CGFloat = 11
+    @ViewBuilder let rows: Rows
 
-    func body(content: Content) -> some View {
-        content.overlay(alignment: .top) {
-            if seasonal?.activeTheme == .noelSoft {
-                GeometryReader { proxy in
-                    ForEach(Array(SnowPileLayout.capFrames(cardWidth: proxy.size.width).enumerated()), id: \.offset) { _, frame in
-                        SnowPileImage().frame(width: frame.width, height: frame.height).position(x: frame.midX, y: frame.midY)
-                    }
-                }
-                .frame(height: 0)
-                .offset(y: -rowPadding)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+    var body: some View {
+        if seasonal?.activeTheme == .noelSoft {
+            Section {
+                rows
+            } header: {
+                SnowCaps()
+            }
+        } else {
+            rows
+        }
+    }
+}
+
+/// The caps along the card's width, sitting on its top edge.
+private struct SnowCaps: View {
+    /// The header's own gap above the card, which the caps reach down across.
+    private let headerGap: CGFloat = 8
+
+    var body: some View {
+        GeometryReader { proxy in
+            ForEach(Array(SnowPileLayout.capFrames(cardWidth: proxy.size.width).enumerated()), id: \.offset) { _, frame in
+                SnowPileImage()
+                    .frame(width: frame.width, height: frame.height)
+                    .position(x: frame.midX, y: proxy.size.height + headerGap + frame.midY)
             }
         }
+        .frame(height: SnowPileLayout.capHeight)
+        .listRowInsets(EdgeInsets())
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

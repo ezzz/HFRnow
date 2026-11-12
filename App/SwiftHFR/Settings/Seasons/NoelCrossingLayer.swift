@@ -29,8 +29,9 @@ struct NoelCrossingLayer: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .clipped()
-            .task(id: isWatching) {
-                guard isWatching else { return }
+            // Started again when the band is laid out or resized (rotation, split view), so a path fits the area it crosses.
+            .task(id: WatchKey(isWatching: isWatching, area: proxy.size)) {
+                guard isWatching, proxy.size.width > 0, proxy.size.height > 0 else { return }
                 await watch(area: proxy.size)
             }
         }
@@ -50,6 +51,12 @@ struct NoelCrossingLayer: View {
         .onDisappear { crossings.release(scene: scene) }
     }
 
+    /// What restarts the watch.
+    private struct WatchKey: Equatable {
+        var isWatching: Bool
+        var area: CGSize
+    }
+
     /// Something may cross: Noël soft is on, or the sleigh is due.
     private var isWatching: Bool { seasonal.activeTheme == .noelSoft || crossings.arrivalPending }
 
@@ -65,7 +72,8 @@ struct NoelCrossingLayer: View {
                 for: scene, area: area, windowHeight: windowHeight, screen: screen,
                 animationsAllowed: seasonal.animationsAllowed, crossingsOn: seasonal.activeTheme == .noelSoft
             ) {
-                let end = crossing.startedAt.addingTimeInterval(crossing.path.duration)
+                // Real time on screen: the model's clock schedules, it does not animate.
+                let end = Date().addingTimeInterval(crossing.path.duration)
                 while !Task.isCancelled, crossings.current?.id == crossing.id, Date() < end {
                     try? await Task.sleep(for: .milliseconds(250))
                     crossings.screenChanged(for: scene, screen: screen)
@@ -78,13 +86,14 @@ struct NoelCrossingLayer: View {
     }
 }
 
-/// One object on its line, redrawn every frame only while it crosses.
+/// One object on its line, redrawn every frame only while it crosses, from the moment it appears (one view per crossing).
 private struct CrossingSprite: View {
     let crossing: NoelCrossingModel.Crossing
+    @State private var begin = Date()
 
     var body: some View {
         TimelineView(.animation) { timeline in
-            let elapsed = timeline.date.timeIntervalSince(crossing.startedAt)
+            let elapsed = timeline.date.timeIntervalSince(begin)
             Image(crossing.item.assetName)
                 .resizable()
                 .frame(width: crossing.size.width, height: crossing.size.height)
