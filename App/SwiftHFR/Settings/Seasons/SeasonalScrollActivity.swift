@@ -19,6 +19,8 @@ final class SeasonalScrollActivity {
 
     /// `source` started or stopped scrolling.
     func set(_ source: ObjectIdentifier, scrolling: Bool) {
+        // Only a change is written: a drag reports every frame, and each write would redraw the snow's observers.
+        guard moving.contains(source) != scrolling else { return }
         if scrolling {
             moving.insert(source)
         } else {
