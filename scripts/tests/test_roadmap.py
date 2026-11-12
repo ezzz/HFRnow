@@ -327,6 +327,26 @@ class Hygiene(unittest.TestCase):
         self.assertEqual(actions, [])
         self.assertIn("#8: `status: on-hold` but PR #11 cites it", "\n".join(reports))
 
+    def test_needs_decision_and_m5_lots_are_reported_never_claimed(self):
+        issues = [issue(9, labels=["type: bug", "status: needs-decision"]), issue(3, labels=["type: lot", "status: blocked"])]
+        with mock.patch.object(hygiene, "is_m5", lambda r: r["issue"] == 3):  # LOT-003 is an M5 lot, M5 closed
+            actions, reports = self.run_sweep(issues, [pr(11, body="Refs #9\nRefs #3", state="open")])
+        text = "\n".join(reports)
+        self.assertEqual([a for a in actions if a["kind"] == "claim"], [])
+        self.assertIn("#9: `status: needs-decision` but PR #11 cites it", text)
+        self.assertIn("#3: M5 lot held by the M5_OPEN decision but PR #11 cites it", text)
+
+    def test_a_cited_roadmap_issue_is_not_shielded_from_the_unblock_rules(self):
+        issues = [issue(1, "closed"), issue(2, labels=["type: roadmap", "status: blocked"], body="### Blocked by\n\n#1\n")]
+        actions, _ = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #2", state="open")])
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("unblock", 2)])  # no claim: a roadmap tracker; so the unblock stands
+
+    def test_apply_claim_skips_an_issue_put_on_hold_meanwhile(self):
+        for held in ("status: on-hold", "status: needs-decision"):
+            calls, out = self._apply({"state": "open", "labels": [{"name": held}]}, [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])
+            self.assertEqual(calls, [])
+            self.assertIn("skip (labels changed meanwhile)", out)
+
     def test_an_issue_the_sweep_closes_is_not_also_claimed(self):
         issues = [issue(7, labels=["type: bug", "status: ready"])]
         pulls = [pr(10, body="Closes #7", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #7", state="open")]
