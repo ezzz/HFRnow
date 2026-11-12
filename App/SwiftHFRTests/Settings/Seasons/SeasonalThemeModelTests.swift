@@ -30,7 +30,7 @@ struct SeasonalThemeModelTests {
         #expect(model.activeTheme == .noelSoft)
         #expect(model.pendingAlert == .noelArrival(year: 2026))
         #expect(model.isSelectable)
-        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == SeasonalThemeModel.legacyThemeID)
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == ThemeDefinition.legacyID)
         #expect(store.value(for: SettingKey.noelArrivalShown(year: 2026)))
         // A relaunch the next day finds it on.
         clock.move(to: day + 1, 12, 2026)
@@ -153,7 +153,7 @@ struct SeasonalThemeModelTests {
         model.answerArrival(disable: false)
         model.select(.noelSoft)
         #expect(model.activeTheme == .noelSoft)
-        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == SeasonalThemeModel.legacyThemeID)
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == ThemeDefinition.legacyID)
         clock.move(to: 27, 12, 2026)
         let later = clock.model(store: store)
         #expect(later.sceneDidBecomeActive() == [.packed(year: 2026, animated: true)])

@@ -21,8 +21,8 @@ struct SeasonalThemesSection: View {
             Text("Thèmes de saison")
         } footer: {
             Text(
-                "Noël soft : accent rouge et neige légère, jusqu’au 26 décembre ; votre thème revient ensuite. "
-                    + "Sans animations, la neige ne tombe plus."
+                "Noël soft : neige légère et accent rouge sur le thème Legacy (un thème de la galerie garde son accent), "
+                    + "jusqu’au 26 décembre ; votre thème revient ensuite. Sans animations, la neige ne tombe plus."
             )
         }
     }

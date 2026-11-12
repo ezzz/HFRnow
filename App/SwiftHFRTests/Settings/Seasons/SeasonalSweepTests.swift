@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 import HFRStorage
 @testable import SwiftHFR
 import Testing
@@ -64,7 +65,7 @@ struct SeasonalSweepTests {
             .restoredSilently(year: 2027), .arrival(year: 2026, switchedOn: true, sleigh: true)
         ])
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2027)) == nil)
-        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == SeasonalThemeModel.legacyThemeID)
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == ThemeDefinition.legacyID)
         #expect(store.value(for: SettingKey.noelActiveYear) == 2026)
     }
 
@@ -79,6 +80,6 @@ struct SeasonalSweepTests {
         let store = InMemorySettingsStore()
         let model = SeasonalThemeModel(store: store, now: { date }, timeZone: { device.timeZone }, reduceMotion: { false })
         #expect(model.sceneDidBecomeActive() == [.arrival(year: 2026, switchedOn: true, sleigh: true)])
-        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == SeasonalThemeModel.legacyThemeID)
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == ThemeDefinition.legacyID)
     }
 }

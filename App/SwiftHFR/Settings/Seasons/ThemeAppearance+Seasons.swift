@@ -11,7 +11,8 @@ extension ThemeAppearance {
     /// theme (LOT-188) the accent is the theme's `accentText`, which this leaves alone: the theme keeps its accent and gets the
     /// snow and the crossings (operator decision (a), 2026-11-12, THEMES.md §5).
     func applying(_ seasonal: SeasonalTheme?) -> ThemeAppearance {
-        guard let seasonal else { return self }
+        // Decision (a): over a gallery theme nothing changes; the theme keeps its accent and the reader gets no red --app-action-*.
+        guard let seasonal, themeVariants == nil else { return self }
         var copy = self
         switch seasonal {
         case .noelSoft:
