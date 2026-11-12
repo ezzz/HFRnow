@@ -49,6 +49,7 @@ struct TopicListView: View {
         .densityListMargins()
         .navigationTitle(model.source.title)
         .navigationBarTitleDisplayMode(.inline)
+        .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
             if let problem = model.favorites?.storeProblem {

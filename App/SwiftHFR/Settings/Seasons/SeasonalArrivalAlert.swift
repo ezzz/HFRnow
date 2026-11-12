@@ -68,7 +68,7 @@ final class WindowReference {
 }
 
 /// Hands its window to `reference` once it is in one.
-private struct WindowReader: UIViewRepresentable {
+struct WindowReader: UIViewRepresentable {
     let reference: WindowReference
 
     final class Probe: UIView {

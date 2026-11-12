@@ -30,6 +30,7 @@ struct MessageListView: View {
         .densityListMargins()
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
+        .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
             if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
