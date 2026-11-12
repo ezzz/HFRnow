@@ -44,7 +44,7 @@ final class SeasonalThemeModel {
         var allowsAlert: Bool { !isCovered && !isPresenting && !isKeyboardVisible }
     }
 
-    /// The theme a seasonal theme replaces today: the one look the app has until the theme engine (LOT-188) gives it an id.
+    /// The id saved when no `theme_id` is stored: Legacy (LOT-188's default, and what the first build always saved).
     static let legacyThemeID = "legacy"
 
     /// The seasonal theme drawn over the "Thème" settings, or nil.
@@ -187,9 +187,11 @@ final class SeasonalThemeModel {
         if store.value(for: SettingKey.noelActiveYear) == year { store.reset(SettingKey.noelActiveYear) }
     }
 
-    /// Saves the current theme and points at the season, so any later activation can find and restore it.
+    /// Saves the current theme (LOT-188's stored `theme_id`, Legacy when none) and points at the season, so any later activation
+    /// can find and restore it. Restoring drops the saved id: the overlay never writes `theme_id`, so the user's theme is back
+    /// as it was; a saved "legacy" from the first build reads the same.
     private func switchOn(year: Int) {
-        store.set(Self.legacyThemeID, for: SettingKey.noelPreviousThemeID(year: year))
+        store.set(store.value(for: SettingKey.themeID) ?? Self.legacyThemeID, for: SettingKey.noelPreviousThemeID(year: year))
         store.set(year, for: SettingKey.noelActiveYear)
     }
 
