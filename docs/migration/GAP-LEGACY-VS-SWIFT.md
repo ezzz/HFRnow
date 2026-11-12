@@ -176,6 +176,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-152 | Maintenance | At `2440d79` system-settings shortcut, "Vider le cache" commented out. At `2fe43da3` (`c7693a88`) also "Caches de l'app" (total) and "Pages HTML" (size, file count) with the purge rule in a 7-day / 50 MB footer; clearing still unreachable (the alert is never presented). | AppSettingsView.swift:264-280, 476-486 @ `2440d79`; `AppSettingsView.swift:547-577, 637-644` @ `2fe43da3` | Cache sizes and the system-settings shortcut, as legacy at `2fe43da3`; the footer gives SwiftHFR's page rule (1 day, 20 MB). Clearing is LOT-187 (M5). | LOT-120, LOT-179, LOT-066 | UX change | port: legacy evolution (2fe43da3) | a·master |
 | GAP-153 | Smiley size, video rows | Rows commented out, no effect. | AppSettingsView.swift:422-432 | Not ported. | LOT-119 | dropped | new UX: spec | — |
 | GAP-209 | Pseudo lists after a toggle from the profile | profile sheet dismissed, `loadPage(page)` (`MessagesView.swift:3663-3694`) | `MessagesView.swift:3663` | Sheet stays open with the sentence under the buttons; reader rebuilds on close, no request | #209 | UX change | none | b |
+| GAP-729 | Theme gallery | Two themes, light and dark, with the accent hue and the dark brightness. | Constants.h Theme; AppSettingsView.swift:421-466 @ 87fe0d1c | Galerie de thèmes sous les réglages de Réglages › Thème : familles, pastilles clair et sombre, nom, « par <auteur> », coche ; un thème est un fichier de jetons `<id>.theme.json` ; Legacy, par défaut, est l'app actuelle, inchangée (teinte, style sombre et luminosité réservés à Legacy). | LOT-188 | new | new UX: operator | b·operator |
 
 ## Accounts
 
@@ -272,10 +273,10 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | ported with changes | 55 |
 | ported with changes (engine only) | 1 |
 | UX change | 48 |
-| new | 26 |
+| new | 27 |
 | dropped | 2 |
 | not planned | 3 |
-| **Total** | **174** |
+| **Total** | **175** |
 
 ## Convergence notes
 
@@ -305,14 +306,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (129)
+### GAP rows of type `ported with changes`, `UX change` or `new` (130)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 50 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 750 | 24 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750 | 25 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
