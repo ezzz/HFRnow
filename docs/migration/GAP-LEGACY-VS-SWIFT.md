@@ -73,7 +73,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-051 | Message header | Grey band: 30 px avatar, 13 px bold pseudo, 9 px date, "+" actions button. | HTML/templatev2.htm:2-8; HTML/style-liste-light.css:165-168, 199-243 | Avatar, pseudo and date on one line, actions in a menu. | LOT-083, LOT-087 | UX change | new UX: spec | b |
 | GAP-052 | Classic / modern message style | "Style des messages" setting switches header and padding. | AppSettingsView.swift:402-406; MessagesView.swift:1363 | Layout setting of the reader display settings. | LOT-106 | same | port: ezzz Swift layer | a |
 | GAP-053 | Body text size | 15 pt injected over the 13 px stylesheet, scaled by the text-size picker only. | MessagesView.swift:1455-1460; HTML/style-liste.css:304-309 | `-apple-system-body`: Dynamic Type plus the app offset. | LOT-083, LOT-169 | UX change | new UX: operator | b·operator |
-| GAP-054 | Signatures | Hidden unless `display_sig` is on. | OnlineMessagesTableViewController.m:1608-1613 | Same setting, off by default. | LOT-083, LOT-106 | same | port: legacy ObjC | a |
+| GAP-054 | Signatures | Hidden unless `display_sig` is on. | OnlineMessagesTableViewController.m:1608-1613 | Same setting, off by default. HFR's 15-dash separator before a signature is dropped (only that one; legacy removed every occurrence in the message) and nothing else changes. | LOT-083, LOT-106 | ported with changes | port: legacy ObjC | a |
 | GAP-055 | Quote blocks | 2 px silver left border; "me" and whitelist variants tinted. | HTML/style-liste.css:329-356 | Sanitised quote markup, 3 px border and tint; "Message cité N fois" trailer. | LOT-034, LOT-083 | ported with changes | port: ezzz Swift layer | a |
 | GAP-056 | Image loading | WebKit loads every image with the default (shared) cookie store, always. | MessagesView.swift:907-908, 5547 | Policy C: cookie-less, no private hosts, Wi-Fi auto / cellular on tap, setting never / Wi-Fi / always. | LOT-083, LOT-107, FEAT-011 | UX change | new UX: operator | b·needed |
 | GAP-057 | Image viewer | Full-screen zoom of one image; save, copy link. | Common.swift:2161; MessagesView.swift:1255-1275 | Viewer plus HD gallery with swipe between images. | LOT-109, FEAT-014 | UX change | new UX: Bybifok (FEAT-014) | b |
@@ -168,7 +168,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-144 | Dark brightness | `theme_night_brightness` scales dark colours; at `2fe43da3` (`f917fafd`) the Swift settings show the "Luminosité du thème sombre" slider (0 to 150 %). | ThemeColors.m:116-118; AppSettingsView.swift:448-462 @ 2fe43da3 | Kept. | LOT-121 | same | port: legacy ObjC | a |
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Picker « Style du thème sombre » (Standard par défaut, inchangé / Plus sombre #0B0B0C / Noir OLED) avec aperçu ; les séparateurs sont les jetons de #577, sans réglage dédié. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
 | GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-180 | UX change | new UX: Bybifok (FEAT-010) | b |
-| GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 @ 2440d79; HFRplusAppDelegate.m:627-677 (forced off at :103, :365); ThemeManager.m:213-245; Common.swift:610-627 @ 87fe0d1c | Noël (Noël soft, Noël abusé) selectable 01/12–26/12, Noël soft switched on 01/12–24/12 unless opted out, sleigh arrival with « Oh Oh Oh ! » alert, elves packing and restore of the previous theme; Samain 01/10–31/10 (LOT-191); 14 July overlay (LOT-194); « Thèmes de saison automatiques » and « Animations de saison » settings (docs/THEMES.md §4–§5). | LOT-166, LOT-191, LOT-194, FEAT-010 | UX change | new UX: operator | b·operator |
+| GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 @ 2440d79; HFRplusAppDelegate.m:627-677 (forced off at :103, :365); ThemeManager.m:213-245; Common.swift:610-627; HFRNavigationController.m:85-90, 134-139; HFRplusAppDelegate.m:382-388; PlusSettingsViewController.m:112-115 @ 87fe0d1c | Noël (Noël soft, Noël abusé) selectable 01/12–26/12 on local dates every year, Noël soft switched on 01/12–24/12 unless opted out, sleigh arrival with « Oh Oh Oh ! » alert, elves packing and restore of the previous theme (silent after 02/01); Noël soft = legacy's red accent over the Legacy theme, a gallery theme keeping its own accent (operator, 2026-11-12), never stored, and procedural light snow (legacy's snow frames have no stated licence); Samain 01/10–31/10 (LOT-191); 14 July overlay (LOT-194); « Thèmes de saison automatiques » and « Animations de saison » settings (docs/THEMES.md §4–§5). | LOT-166, LOT-191, LOT-194, FEAT-010 | UX change | new UX: operator | b·operator |
 | GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker grouped by pack (Legacy, Beta, X-face, Saisons): the 9 shipped options on their legacy keys and names plus Orange, Classique Blue, Beta rouge, the X-face variations and season icons; dated icons only inside their window, with a one-time « Revenir à l'icône précédente ? » after it (docs/ICONS.md). | LOT-123, LOT-189, LOT-190 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-150 | Open links in default browser | Absent at `2440d79`; at `2fe43da3` (`9f15513d`) the "Navigateur par défaut" toggle (key `open_links_in_default_browser`, off: in-app browser). | Common.swift:257-259, AppSettingsView.swift:402-406 @ 2fe43da3 | "Navigateur par défaut" toggle; HFR links stay in the app. | LOT-119, LOT-137 | new | port: ezzz Swift layer | a·master |
@@ -269,8 +269,8 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 39 |
-| ported with changes | 55 |
+| same | 38 |
+| ported with changes | 56 |
 | ported with changes (engine only) | 1 |
 | UX change | 48 |
 | new | 27 |
@@ -306,11 +306,11 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (130)
+### GAP rows of type `ported with changes`, `UX change` or `new` (131)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 50 |
+| a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 51 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
 | b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750 | 25 |
