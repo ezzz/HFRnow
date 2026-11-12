@@ -219,3 +219,48 @@ table.quote-blocked > * > tr > td > b.s1::after { content: "\25BC"; }
 table.quote-blocked.open > * > tr > td > b.s1::after { content: "\25B2"; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1 > a { display: none; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { content: "Citation masquée"; }
+
+/* A gallery theme (LOT-188, THEMES.md §3): the app sets --app-theme-{light,dark}-* and data-app-theme on <html>
+   (ThemeAppearance.readerScript); Legacy removes the attribute, so none of the rules below applies and its page is the one above.
+   The page is the theme's surface; #568's --surface-alt and --separator-strong stay derived from --text and --background. */
+:root[data-app-theme] {
+  --text: var(--app-theme-light-text);
+  --secondary: var(--app-theme-light-secondary);
+  --background: var(--app-theme-light-background);
+  --separator: var(--app-theme-light-separator);
+  --quote-border: var(--app-theme-light-quote-border);
+  --quote-background: var(--app-theme-light-quote-background);
+  --placeholder: var(--app-theme-light-placeholder);
+  --action: var(--app-theme-light-action);
+  --link: var(--app-theme-light-link);
+  --code-background: var(--app-theme-light-code-background);
+  --code-text: var(--app-theme-light-code-text);
+  --spoiler-background: var(--app-theme-light-spoiler-background);
+  --spoiler-text: var(--app-theme-light-spoiler-text);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-app-theme] {
+    --text: var(--app-theme-dark-text);
+    --secondary: var(--app-theme-dark-secondary);
+    --background: var(--app-theme-dark-background);
+    --separator: var(--app-theme-dark-separator);
+    --quote-border: var(--app-theme-dark-quote-border);
+    --quote-background: var(--app-theme-dark-quote-background);
+    --placeholder: var(--app-theme-dark-placeholder);
+    --action: var(--app-theme-dark-action);
+    --link: var(--app-theme-dark-link);
+    --code-background: var(--app-theme-dark-code-background);
+    --code-text: var(--app-theme-dark-code-text);
+    --spoiler-background: var(--app-theme-dark-spoiler-background);
+    --spoiler-text: var(--app-theme-dark-spoiler-text);
+  }
+}
+/* :where() keeps these at the specificity of the rules they extend, and they come last: `b.s1 a` (a quote's author) keeps
+   --text, a [code] block keeps its own background on an even message instead of stepping back to the page, and a quote inside a
+   spoiler writes --text on its own background, not the spoiler's text. --app-theme-font is the theme's design (unset: the
+   declaration is invalid and the body keeps the system family it inherits). */
+:where(:root[data-app-theme]) body { font-family: var(--app-theme-font); }
+:where(:root[data-app-theme]) a { color: var(--link); }
+:where(:root[data-app-theme]) :is(table.citation, table.oldcitation, table.quote) { color: var(--text); }
+:where(:root[data-app-theme]) :is(table.code, table.fixed) { background: var(--code-background); color: var(--code-text); }
+:where(:root[data-app-theme]) table.spoiler { background: var(--spoiler-background); color: var(--spoiler-text); }
