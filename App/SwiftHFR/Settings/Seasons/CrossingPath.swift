@@ -54,14 +54,28 @@ struct CrossingPath: Equatable, Sendable {
         return CGVector(dx: sign * cos(rotation), dy: sign * sin(rotation))
     }
 
-    /// A random path across `area` for an object of `size`. `directional` art (drawn facing the trailing edge) faces its travel;
-    /// other art stays upright. `horizontalOnly` keeps it entering by a side (the sleigh); `maxTilt` bounds the angle to the
-    /// crossing axis, in radians.
+    /// What crosses: its size, whether it has a front, how it may enter and how long it takes.
+    struct Traits: Sendable {
+        /// The art's size, in points.
+        var size: CGSize
+        /// Art drawn facing the trailing edge faces its travel; other art stays upright.
+        var directional: Bool
+        /// It enters by a side only (the sleigh).
+        var horizontalOnly: Bool
+        /// The largest angle to the crossing axis, in radians.
+        var maxTilt: Double
+        /// The time asked for, capped at `maxDuration`.
+        var duration: TimeInterval
+    }
+
+    /// A random path across `area` for an object of `traits`.
     @MainActor
-    static func random(
-        in area: CGSize, objectSize size: CGSize, directional: Bool, horizontalOnly: Bool, maxTilt: Double,
-        duration: TimeInterval, random: any SeasonalRandom
-    ) -> CrossingPath? {
+    static func random(in area: CGSize, for traits: Traits, random: any SeasonalRandom) -> CrossingPath? {
+        let size = traits.size
+        let directional = traits.directional
+        let horizontalOnly = traits.horizontalOnly
+        let maxTilt = traits.maxTilt
+        let duration = traits.duration
         guard area.width > 0, area.height > 0, size.width > 0, size.height > 0 else { return nil }
         let horizontal = horizontalOnly || random.unit() < 0.5
         let forward = random.unit() < 0.5
@@ -78,9 +92,9 @@ struct CrossingPath: Equatable, Sendable {
         let drift = tan(tilt) * along
         let first = margin + max(0, -drift) + random.unit() * max(0, room - abs(drift))
         let from = horizontal ? CGPoint(x: -reach, y: first) : CGPoint(x: first, y: -reach)
-        let to = horizontal ? CGPoint(x: area.width + reach, y: first + drift) : CGPoint(x: first + drift, y: area.height + reach)
-        let start = forward ? from : to
-        let end = forward ? to : from
+        let target = horizontal ? CGPoint(x: area.width + reach, y: first + drift) : CGPoint(x: first + drift, y: area.height + reach)
+        let start = forward ? from : target
+        let end = forward ? target : from
         let entry: Edge = horizontal ? (forward ? .leading : .trailing) : (forward ? .top : .bottom)
         let (mirrored, rotation) = orientation(from: start, to: end, directional: directional)
         return CrossingPath(
@@ -92,8 +106,8 @@ struct CrossingPath: Equatable, Sendable {
     /// art is left as drawn.
     private static func orientation(from start: CGPoint, to end: CGPoint, directional: Bool) -> (Bool, Double) {
         guard directional else { return (false, 0) }
-        let dx = end.x - start.x
-        let dy = end.y - start.y
-        return dx < 0 ? (true, atan2(-dy, -dx)) : (false, atan2(dy, dx))
+        let deltaX = end.x - start.x
+        let deltaY = end.y - start.y
+        return deltaX < 0 ? (true, atan2(-deltaY, -deltaX)) : (false, atan2(deltaY, deltaX))
     }
 }

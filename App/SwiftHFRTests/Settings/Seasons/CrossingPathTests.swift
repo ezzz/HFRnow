@@ -14,8 +14,9 @@ struct CrossingPathTests {
         let random = SeededRandom(42)
         return (0..<count).compactMap { _ in
             CrossingPath.random(
-                in: Self.area, objectSize: Self.object, directional: directional, horizontalOnly: horizontalOnly,
-                maxTilt: tilt, duration: 2.5, random: random
+                in: Self.area,
+                for: .init(size: Self.object, directional: directional, horizontalOnly: horizontalOnly, maxTilt: tilt, duration: 2.5),
+                random: random
             )
         }
     }
@@ -25,16 +26,16 @@ struct CrossingPathTests {
         let all = paths(directional: false, horizontalOnly: false)
         #expect(all.count == 300)
         for path in all {
-            let (from, to) = (path.start, path.end)
+            let (from, target) = (path.start, path.end)
             switch path.entry {
-            case .leading: #expect(from.x <= -reach + 0.001 && to.x >= Self.area.width + reach - 0.001)
-            case .trailing: #expect(from.x >= Self.area.width + reach - 0.001 && to.x <= -reach + 0.001)
-            case .top: #expect(from.y <= -reach + 0.001 && to.y >= Self.area.height + reach - 0.001)
-            case .bottom: #expect(from.y >= Self.area.height + reach - 0.001 && to.y <= -reach + 0.001)
+            case .leading: #expect(from.x <= -reach + 0.001 && target.x >= Self.area.width + reach - 0.001)
+            case .trailing: #expect(from.x >= Self.area.width + reach - 0.001 && target.x <= -reach + 0.001)
+            case .top: #expect(from.y <= -reach + 0.001 && target.y >= Self.area.height + reach - 0.001)
+            case .bottom: #expect(from.y >= Self.area.height + reach - 0.001 && target.y <= -reach + 0.001)
             }
             // Across the travel axis the object stays inside the area, at both ends.
             let horizontal = path.entry == .leading || path.entry == .trailing
-            for point in [from, to] {
+            for point in [from, target] {
                 let across = horizontal ? point.y : point.x
                 let limit = horizontal ? Self.area.height : Self.area.width
                 #expect(across >= 32 - 0.001 && across <= limit - 32 + 0.001)
@@ -58,7 +59,7 @@ struct CrossingPathTests {
     @Test func aCrossingLastsAtMostThreeSeconds() {
         let random = SeededRandom(7)
         let long = CrossingPath.random(
-            in: Self.area, objectSize: Self.object, directional: true, horizontalOnly: true, maxTilt: 0.3, duration: 9,
+            in: Self.area, for: .init(size: Self.object, directional: true, horizontalOnly: true, maxTilt: 0.3, duration: 9),
             random: random
         )
         #expect(long?.duration == 3)
@@ -70,12 +71,12 @@ struct CrossingPathTests {
         let all = paths(directional: true, horizontalOnly: true)
         #expect(all.contains { $0.mirrored } && all.contains { !$0.mirrored })
         for path in all {
-            let dx = path.end.x - path.start.x
-            let dy = path.end.y - path.start.y
-            let length = hypot(dx, dy)
-            #expect(abs(path.facing.dx - dx / length) < 1e-9)
-            #expect(abs(path.facing.dy - dy / length) < 1e-9)
-            #expect(path.mirrored == (dx < 0))
+            let deltaX = path.end.x - path.start.x
+            let deltaY = path.end.y - path.start.y
+            let length = hypot(deltaX, deltaY)
+            #expect(abs(path.facing.dx - deltaX / length) < 1e-9)
+            #expect(abs(path.facing.dy - deltaY / length) < 1e-9)
+            #expect(path.mirrored == (deltaX < 0))
             // Never upside down: the turn stays within a quarter turn.
             #expect(abs(path.rotation) < .pi / 2)
         }
@@ -98,8 +99,7 @@ struct CrossingPathTests {
 
     @Test func nothingForAnEmptyArea() {
         let random = SeededRandom(1)
-        #expect(CrossingPath.random(
-            in: .zero, objectSize: Self.object, directional: false, horizontalOnly: false, maxTilt: 0.3, duration: 2, random: random
-        ) == nil)
+        let traits = CrossingPath.Traits(size: Self.object, directional: false, horizontalOnly: false, maxTilt: 0.3, duration: 2)
+        #expect(CrossingPath.random(in: .zero, for: traits, random: random) == nil)
     }
 }

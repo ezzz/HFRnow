@@ -25,7 +25,7 @@ struct NoelSleighArrivalTests {
 
     private func sleigh(_ model: SeasonalThemeModel, windowHeight: CGFloat = 874) -> NoelCrossingModel.Crossing? {
         model.crossings.crossing(
-            for: scene, area: CGSize(width: 402, height: 650), windowHeight: windowHeight, screen: Self.clear,
+            for: scene, on: .init(area: CGSize(width: 402, height: 650), windowHeight: windowHeight), screen: Self.clear,
             animationsAllowed: model.animationsAllowed, crossingsOn: model.activeTheme == .noelSoft
         )
     }
@@ -86,7 +86,7 @@ struct NoelSleighArrivalTests {
         let model = launch(SeasonTestClock(1, 12, 2026))
         let keyboard = SeasonalThemeModel.ScreenState(isKeyboardVisible: true)
         let blocked = model.crossings.crossing(
-            for: scene, area: CGSize(width: 402, height: 650), windowHeight: 874, screen: keyboard, animationsAllowed: true,
+            for: scene, on: .init(area: CGSize(width: 402, height: 650), windowHeight: 874), screen: keyboard, animationsAllowed: true,
             crossingsOn: true
         )
         #expect(blocked == nil)
@@ -98,7 +98,7 @@ struct NoelSleighArrivalTests {
     @Test func anEmptyAreaKeepsTheSleighDue() {
         let model = launch(SeasonTestClock(1, 12, 2026))
         let early = model.crossings.crossing(
-            for: scene, area: .zero, windowHeight: 874, screen: Self.clear, animationsAllowed: true, crossingsOn: true
+            for: scene, on: .init(area: .zero, windowHeight: 874), screen: Self.clear, animationsAllowed: true, crossingsOn: true
         )
         #expect(early == nil)
         #expect(model.crossings.arrivalPending)

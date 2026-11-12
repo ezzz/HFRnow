@@ -73,13 +73,17 @@ final class NoelCrossingModel {
     /// The first launch of a window with animations allowed: the sleigh crosses before the alert.
     func queueArrival() { arrivalPending = true }
 
-    /// The crossing `scene` may start now in an area of `area` (the band between the bars) of a window `windowHeight` high: the
-    /// arrival sleigh when due, else an object once the gap is spent while `crossingsOn` (Noël soft). Nothing while the screen
-    /// is not clear (THEMES.md §4 rule 5), while another crossing plays, or without animations (the arrival is then dropped,
-    /// so the alert comes alone).
+    /// Where a scene's crossings play: the band between the bars, in a window `windowHeight` high.
+    struct Stage: Equatable {
+        var area: CGSize
+        var windowHeight: CGFloat
+    }
+
+    /// The crossing `scene` may start now on `stage`: the arrival sleigh when due, else an object once the gap is spent while
+    /// `crossingsOn` (Noël soft). Nothing while the screen is not clear (THEMES.md §4 rule 5), while another crossing plays, or
+    /// without animations (the arrival is then dropped, so the alert comes alone).
     func crossing(
-        for scene: UUID, area: CGSize, windowHeight: CGFloat, screen: SeasonalThemeModel.ScreenState,
-        animationsAllowed: Bool, crossingsOn: Bool
+        for scene: UUID, on stage: Stage, screen: SeasonalThemeModel.ScreenState, animationsAllowed: Bool, crossingsOn: Bool
     ) -> Crossing? {
         if let current { return current.scene == scene ? current : nil }
         guard animationsAllowed else {
@@ -88,9 +92,9 @@ final class NoelCrossingModel {
         }
         guard screen.allowsAlert, activeSince != nil else { return nil }
         if arrivalPending {
-            let size = NoelCrossingItem.sleigh.size(height: Self.arrivalHeight(window: windowHeight))
+            let size = NoelCrossingItem.sleigh.size(height: Self.arrivalHeight(window: stage.windowHeight))
             // Kept pending until it starts: a layer not laid out yet (empty area) must not lose it.
-            let sleigh = start(.sleigh, size: size, area: area, scene: scene, arrival: true, duration: CrossingPath.maxDuration)
+            let sleigh = start(.sleigh, size: size, area: stage.area, scene: scene, duration: CrossingPath.maxDuration)
             if sleigh != nil { arrivalPending = false }
             return sleigh
         }
@@ -98,7 +102,7 @@ final class NoelCrossingModel {
         let items = NoelCrossingItem.crossing
         let item = items[min(Int(random.unit() * Double(items.count)), items.count - 1)]
         let duration = 2.2 + 0.8 * random.unit()
-        return start(item, size: item.size(height: Self.itemHeight), area: area, scene: scene, arrival: false, duration: duration)
+        return start(item, size: item.size(height: Self.itemHeight), area: stage.area, scene: scene, duration: duration)
     }
 
     /// `scene`'s screen changed: a crossing stops as soon as the keyboard, a sheet, an alert or the lock comes up.
@@ -116,13 +120,14 @@ final class NoelCrossingModel {
         if current?.scene == scene { current = nil }
     }
 
-    private func start(
-        _ item: NoelCrossingItem, size: CGSize, area: CGSize, scene: UUID, arrival: Bool, duration: TimeInterval
-    ) -> Crossing? {
-        guard let path = CrossingPath.random(
-            in: area, objectSize: size, directional: item.isDirectional, horizontalOnly: item == .sleigh,
-            maxTilt: item == .sleigh ? .pi / 12 : .pi / 6, duration: duration, random: random
-        ) else { return nil }
+    /// Starts `item` across `area`; the arrival is the sleigh at full length (`CrossingPath.maxDuration`).
+    private func start(_ item: NoelCrossingItem, size: CGSize, area: CGSize, scene: UUID, duration: TimeInterval) -> Crossing? {
+        let arrival = arrivalPending && item == .sleigh
+        let traits = CrossingPath.Traits(
+            size: size, directional: item.isDirectional, horizontalOnly: item == .sleigh,
+            maxTilt: item == .sleigh ? .pi / 12 : .pi / 6, duration: duration
+        )
+        guard let path = CrossingPath.random(in: area, for: traits, random: random) else { return nil }
         // The gap restarts with the crossing: the next one waits at least 20 minutes of foreground time.
         let date = now()
         foregroundBefore = 0
