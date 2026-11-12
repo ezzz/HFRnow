@@ -6,7 +6,8 @@ struct ForumScope {
     /// Read when the bar draws, so the menu appears once the home page has loaded, whatever view built the scope.
     let section: () -> ForumSection?
     let filter: TopicFilterModel
-    let select: (TopicSource) -> Void
+    /// Runs on the main actor: it writes the navigation model, and the picker binding hands it to SwiftUI as a `@Sendable` setter.
+    let select: @MainActor (TopicSource) -> Void
 }
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView.body: the "Sous-forum" picker and the filter, `:662-710`) @ 87fe0d1c.

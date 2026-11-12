@@ -5,7 +5,8 @@ import UIKit
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) @ 87fe0d1c and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: "Page N"
 // without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
-// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
+// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when
+// the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -70,12 +71,18 @@ struct TopicListView: View {
         }
         .toolbar {
             if model.source.isPaged, loader.value != nil { PageBar(model: model) }
-            if let composer, let target = model.newTopicTarget {
-                ToolbarItem(placement: .primaryAction) {
+            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
+            // so the refresh never moves to the bottom bar (`:849-851`).
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let composer, let target = model.newTopicTarget {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
-                        Label("Nouveau sujet", systemImage: "square.and.pencil")
+                        Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
+                Button { Task { await model.refresh() } } label: {
+                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
+                }
+                .disabled(!model.canRefresh)
             }
         }
         .sheet(item: $newTopic) { composer in
@@ -337,5 +344,16 @@ private struct TopicSentBanner: View {
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
+    }
+}
+
+/// `arrow.clockwise` that spins while loading (legacy `ToolbarRefreshIcon`, `Common.swift:393-404` @ 87fe0d1c). The button's label is
+/// never swapped for a `ProgressView`: legacy found that makes the Liquid Glass toolbar morph balloon on the Duo inner display.
+struct ToolbarRefreshIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        Image(systemName: "arrow.clockwise")
+            .symbolEffect(.rotate, options: .repeating, isActive: isLoading)
     }
 }

@@ -12,7 +12,7 @@ struct LoadFailureView: View {
             Text(error.detail)
         } actions: {
             Button("Réessayer") { Task { await retry() } }
-                .buttonStyle(.borderedProminent)
+                .appProminentButtonStyle()
         }
     }
 }

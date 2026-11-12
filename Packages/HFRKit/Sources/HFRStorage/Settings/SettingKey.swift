@@ -115,6 +115,9 @@ public enum SettingKey {
     /// `theme_dark_style` (LOT-122, new): standard, darker or OLED black dark surfaces. Device-only: whether black saves power
     /// or smears is a property of the screen (ADR 0013 matrix E).
     public static let darkStyle = Setting.integerEnum("theme_dark_style", default: DarkStyle.standard)
+    /// `theme_id` (LOT-188, new): the theme of the gallery (THEMES.md); nil or an id no bundled theme has reads as Legacy, and is
+    /// left in the store. Device-only, like the dark style (ADR 0013 matrix E).
+    public static let themeID = Setting.optionalString("theme_id")
 
     // MARK: Messages
 
@@ -176,6 +179,17 @@ public enum SettingKey {
     /// `rehost_resize_before_upload`.
     public static let rehostMaxDimension = Setting.integerEnum("rehost_resize_before_upload", default: RehostMaxDimension.px1200).synced
 
+    // MARK: Seasons (LOT-166)
+
+    /// `season.automatic` (new): a seasonal theme is switched on at its first launch (THEMES.md §5). Device-only, like the dark style.
+    public static let seasonalThemesAutomatic = Setting.bool("season.automatic", default: true)
+    /// `season.animations` (new): seasonal animations play (THEMES.md §4); off counts as Reduce Motion. Device-only.
+    public static let seasonalAnimations = Setting.bool("season.animations", default: true)
+    /// `season.noel.activeYear` (new): the season whose Noël theme is on, so a theme left on any number of years ago is restored.
+    public static let noelActiveYear = Setting<Int?>(
+        key: "season.noel.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
+    )
+
     // MARK: Legacy keys
 
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
@@ -189,9 +203,10 @@ public enum SettingKey {
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
-        nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,
+        nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

@@ -232,6 +232,7 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `theme_style` (classic / modern) | `AppSettingsView.swift:103` | No | None | 1 | **iCloud KVS** | Content rendering. |
 | `theme_day_color_action`, `theme_night_color_action`, `…_love` ×2, `…_superfavori` ×2, `theme_night_brightness` | `Common.swift:463-469` | No | None | 7 | **iCloud KVS**, the 7 legacy keys unchanged (LOT-060 `colorSetting`) | Theme parity (LOT-121, operator 2026-10-29): every decided colour is kept; FEAT-010's single accent is out of scope. |
 | `theme_dark_style` — new (LOT-122, FEAT-010; 0 standard, 1 darker, 2 OLED black) | none | No | None | 1 | **Device-only** | Whether black saves power or smears is a property of the screen. |
+| `theme_id` — new (LOT-188; the gallery's theme, a string id; nil or an unknown id reads as Legacy and is left in the store) | none | No | None | 1 | **Device-only** | Same reason as the dark style; a theme added by a later version is not pushed to a device that does not bundle it. |
 | `blacklist_hide_pseudo` | `AppSettingsView.swift:105` | No | None | 1 | **iCloud KVS** | Content filter. |
 | `filter_posts_quotes`, `filter_posts_min_quotes` | `AppSettingsView.swift:107-108` | No | None | 2 | **iCloud KVS** | Content filter. |
 | `size_smileys` (`double`/`default`) | `AppSettingsView.swift:109`; no reader found (audit E §3.1) | No | None | 1 | **iCloud KVS** if the reader honours it, else **dropped** | Q8. |
@@ -242,6 +243,8 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `mp_badge_enabled` | `AppSettingsView.swift:114`, `MainWindow.swift:1349` | No | None | 1 | **Device-only** | Badges are per device. |
 | `recherche_categorie` (last search category) | `ForumSearchView.swift:111` | No | None | 1 | **Device-only** | Transient UI state. |
 | `HFRswiftGlobalTopicListFlag` (last Tous / Favoris / Suivis / Lus choice) | `MainWindow.swift:305` @ `87fe0d1c` | No | None | 1 | **Device-only** | UI state (#427). |
+| `season.automatic`, `season.animations` — new (LOT-166; « Thèmes de saison automatiques », « Animations de saison », both default on) | none (legacy: `theme_noel_*`, forced) | No | None | 2 | **Device-only** | Presentation of this device, like the dark style; Reduce Motion is per device too. |
+| `season.noel.<year>.arrivalShown`, `.arrivalPending`, `.optedOut`, `.previousThemeID`, `.packingShown`, and `season.noel.activeYear` (the season whose theme is on) — new (LOT-166, one set per season, THEMES.md §5) | none (legacy: `noel_first_time_2022`) | No | None | 5 per year + 1 | **Device-only** | The arrival and packing are per device (each device plays them once); the saved theme is this device's. |
 | `rehost_use_link`, `rehost_resize_before_upload` | `ReplyService.swift:1837`; `RehostImageViewController.m:84-99, 580-622` | No | None | 2 | **iCloud KVS** | Posting preference. |
 | `CollapsedFavoriteSectionIDs`, `FavoritesShowCollapsedSections` | `Favorites.swift:160, 447` | No | None | small | **Device-only** | UI state. |
 | `AnswerView.smileys.*.expanded` ×3, `AnswerView.smileys.search.allKeywords`, `MessageSmileySheetCompactImage` | `AnswerView.swift` (`@AppStorage`), `MessagesView.swift:6020` | No | None | 5 | **Device-only** | UI state. |

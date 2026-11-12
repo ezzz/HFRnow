@@ -159,7 +159,7 @@ private struct GifConfirmationView: View {
                     .clipShape(.rect(cornerRadius: 10))
                     .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)
                 Button("Insérer") { if let snippet = model.snippet(for: gif) { onInsert(snippet) } }
-                    .buttonStyle(.borderedProminent)
+                    .appProminentButtonStyle()
                     .disabled(model.snippet(for: gif) == nil)
             }
             .padding()
