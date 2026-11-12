@@ -28,12 +28,19 @@ public enum HFREndpoint {
     /// R3: favourites across forums (`ObjCFavoritesLoaderWorker.m:46-48`).
     ///
     /// `owntopic` is 3 (favourites) by default, or 1 (tracked topics) when the legacy `vos_sujets` setting is not 1.
-    /// Other filters are refused: `forum1f.php` only knows those two.
+    /// `.read` (`owntopic=2`, "Vos sujets", LOT-057) is the URL captured for it (`R603e`), the form of HFR's own links, which
+    /// legacy never built. `.all` is refused: `forum1f.php` lists filtered topics only.
     public static func favorites(filter: TopicListFilter = .favorites) throws -> HTTPRequest {
-        guard filter == .favorites || filter == .flagged else {
-            throw NetworkError.invalidRequest(reason: "forum1f.php only lists tracked topics or favourites")
+        switch filter {
+        case .favorites, .flagged:
+            return try .get(url(path: "/forum1f.php", query: [("owntopic", String(filter.rawValue))]))
+        case .read:
+            return try .get(url(path: "/forum1f.php", query: [
+                ("config", config), ("owntopic", String(filter.rawValue)), ("new", "0"), ("nojs", "0")
+            ]))
+        case .all:
+            throw NetworkError.invalidRequest(reason: "forum1f.php only lists tracked, read or favourite topics")
         }
-        return try .get(url(path: "/forum1f.php", query: [("owntopic", String(filter.rawValue))]))
     }
 
     /// R4: the private message list (`ObjCMPTopicsLoaderWorker.m:9`); legacy only ever reads page 1.
