@@ -171,11 +171,17 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
     /// call may wait for them, or a reader refreshed while covered and then dropped would never be freed.
     ///
     /// The page leaves its window the moment the refreshed document reports ready: `documentIsReady` sends the restore from a
-    /// task that runs after `events.ready`, so the restore always reaches a hidden page. Loading the document while already
-    /// hidden made the test depend on WebKit running a hidden page's load to the end, which a busy CI simulator did not always
-    /// do within the deadline (issue #801).
+    /// task that runs after `events.ready`. Loading the document while already hidden made the test depend on WebKit running a
+    /// hidden page's load to the end, which a busy CI simulator did not always do within the deadline (issue #801). WebKit
+    /// tells the page it is hidden asynchronously, so a probe that waits for two frames is sent before the restore: if it
+    /// ever answers, frames came after the page left its window, the restore may have reached a visible page, and the test
+    /// fails rather than pass without proving anything (Fable on #841).
     @Test func aRestoreWhileHiddenDoesNotKeepTheControllerAlive() async throws {
         weak var weakController: ReaderWebController?
+        // Kept outside the controller's scope, so the probe's call stays pending while the controller is released.
+        var hiddenWebView: WKWebView?
+        let framesAfterHiding = TestEvent()
+        let probe = "await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))); return true;"
         do {
             let (controller, recorder) = makeController(transport: imageTransport())
             weakController = controller
@@ -184,10 +190,14 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
             #expect(await until { recorder.ready == [1] })
             let refreshed = TestEvent()
             let record = controller.events.ready
+            hiddenWebView = controller.webView
             controller.events.ready = { [weak controller] token in
                 record(token)
-                guard token == 2 else { return }
-                controller?.webView.removeFromSuperview()
+                guard token == 2, let webView = controller?.webView else { return }
+                webView.callAsyncJavaScript(probe, arguments: [:], in: nil, in: ReaderWebController.world) { result in
+                    if case .success = result { framesAfterHiding.fire() }
+                }
+                webView.removeFromSuperview()
                 refreshed.fire()
             }
             controller.show(tallDocument(token: 2, keepsScrollPosition: true))
@@ -195,5 +205,7 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
             #expect(recorder.ready == [1, 2] && controller.webView.window == nil, "ready: \(recorder.ready)")
         }
         #expect(await until({ weakController == nil }, timeout: .seconds(30)))
+        #expect(!framesAfterHiding.hasFired, "the page drew frames after it left its window: the restore may not have been hidden")
+        withExtendedLifetime(hiddenWebView) {}
     }
 }

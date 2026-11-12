@@ -94,13 +94,26 @@ func answer<T>(
     return try result.get()
 }
 
+/// The deadline of the `until(async:)` running in this task: a WebKit call made by its condition gets no more time than is
+/// left, so a 30-second wait cannot last as long as one call's own deadline.
+enum WaitBudget {
+    @TaskLocal static var deadline: ContinuousClock.Instant?
+
+    /// `timeout`, cut to what is left of the enclosing wait.
+    static func cap(_ timeout: Duration) -> Duration {
+        guard let deadline else { return timeout }
+        return max(.milliseconds(1), min(timeout, deadline - ContinuousClock.now))
+    }
+}
+
 @MainActor
 private final class AnswerBox<T> {
     var result: Result<T, any Error>?
 }
 
-/// Puts `view` in a window of the app's scene, as on screen: WebKit throttles a web view that is in no window, which on a
-/// busy CI simulator made a single load take minutes (issue #801). Keep the window for as long as the view must stay shown.
+/// Puts `view` in a window of the app's scene, as on screen. On the CI simulator, web views in no window were the slow ones:
+/// on the green run 43060241312 the windowless player tests took 245-268 s and the static page 67 s, the reader tests (in a
+/// window) 5-25 s after the first one (issue #801). Keep the window for as long as the view must stay shown.
 @MainActor
 func hostInWindow(_ view: UIView) -> UIWindow? {
     guard let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene else {

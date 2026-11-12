@@ -85,14 +85,17 @@ extension ReaderWebTesting {
         return true
     }
 
+    /// A WebKit call of `condition` gets only what is left of `timeout` (`WaitBudget`).
     func until(async condition: () async -> Bool, timeout: Duration = .seconds(240)) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
-        while await !condition() {
-            if clock.now > deadline { return false }
-            try? await Task.sleep(for: .milliseconds(20))
+        return await WaitBudget.$deadline.withValue(deadline) {
+            while await !condition() {
+                if clock.now > deadline { return false }
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            return true
         }
-        return true
     }
 
     /// The document is loaded and every image has finished (loaded or failed): nothing more will be requested by itself.
@@ -105,7 +108,7 @@ extension ReaderWebTesting {
     /// so `until(async:)` and the tests fail at their deadline instead of hanging the CI job (issue #801).
     func evaluate(_ script: String, in controller: ReaderWebController, timeout: Duration = .seconds(120)) async throws -> Any? {
         let webView = controller.webView
-        return try await answer(of: "the reader page", within: timeout) {
+        return try await answer(of: "the reader page", within: WaitBudget.cap(timeout)) {
             try await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
         }
     }

@@ -67,7 +67,7 @@ struct VideoPlayerSheetTests {
     }
 
     /// A real web view loading the request the sheet builds: the loopback host stands for the provider's. The web view is
-    /// shown in a window, as in the sheet: one in no window is throttled by WebKit, which took minutes on CI (issue #801).
+    /// shown in a window, as in the sheet: in no window, these tests took 245-268 s on CI even when green (`hostInWindow`).
     /// Returns once the server got the request, or at the deadline (`requested` says which).
     @MainActor
     private func load(
