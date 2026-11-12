@@ -53,14 +53,7 @@ extension ReaderWebTesting {
             image: { images, index, _ in recorder.viewers.append((images, index)) },
             notice: { recorder.notices.append($0) }
         )
-        if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
-            let window = UIWindow(windowScene: scene)
-            window.frame = CGRect(x: 0, y: 0, width: 400, height: 800)
-            controller.webView.frame = window.bounds
-            window.addSubview(controller.webView)
-            window.isHidden = false
-            recorder.window = window
-        }
+        recorder.window = hostInWindow(controller.webView)
         return (controller, recorder)
     }
 
@@ -108,8 +101,13 @@ extension ReaderWebTesting {
         return await until(async: { (try? await self.evaluate(script, in: controller) as? Bool) == true })
     }
 
-    func evaluate(_ script: String, in controller: ReaderWebController) async throws -> Any? {
-        try await controller.webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
+    /// Runs `script` in the reader's world. Throws `WaitTimeout` when no answer comes (a dead or suspended content process),
+    /// so `until(async:)` and the tests fail at their deadline instead of hanging the CI job (issue #801).
+    func evaluate(_ script: String, in controller: ReaderWebController, timeout: Duration = .seconds(120)) async throws -> Any? {
+        let webView = controller.webView
+        return try await answer(of: "the reader page", within: timeout) {
+            try await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
+        }
     }
 
     func imageTransport() -> MockTransport {

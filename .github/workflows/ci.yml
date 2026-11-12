@@ -193,6 +193,9 @@ jobs:
           ')
           echo "id=$id" >> "$GITHUB_OUTPUT"
       - name: Build and test on the simulator (unsigned)
+        # A green run builds and tests in about 16 minutes. A hung test (a wait that never ends) once held a runner for the
+        # 6-hour default, twice (#801, PR #810): fail it at 45 minutes instead.
+        timeout-minutes: 45
         env:
           SIMULATOR_ID: ${{ steps.sim.outputs.id }}
         run: >-

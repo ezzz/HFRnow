@@ -169,6 +169,11 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
 
     /// Fable on #662: the restore waits for animation frames, which a hidden page does not draw. No native
     /// call may wait for them, or a reader refreshed while covered and then dropped would never be freed.
+    ///
+    /// The page leaves its window the moment the refreshed document reports ready: `documentIsReady` sends the restore from a
+    /// task that runs after `events.ready`, so the restore always reaches a hidden page. Loading the document while already
+    /// hidden made the test depend on WebKit running a hidden page's load to the end, which a busy CI simulator did not always
+    /// do within the deadline (issue #801).
     @Test func aRestoreWhileHiddenDoesNotKeepTheControllerAlive() async throws {
         weak var weakController: ReaderWebController?
         do {
@@ -177,9 +182,17 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
             controller.obscuredInsets = bars
             controller.show(tallDocument(token: 1))
             #expect(await until { recorder.ready == [1] })
-            controller.webView.removeFromSuperview()
+            let refreshed = TestEvent()
+            let record = controller.events.ready
+            controller.events.ready = { [weak controller] token in
+                record(token)
+                guard token == 2 else { return }
+                controller?.webView.removeFromSuperview()
+                refreshed.fire()
+            }
             controller.show(tallDocument(token: 2, keepsScrollPosition: true))
-            #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+            #expect(await refreshed.wait(timeout: .seconds(240)), "ready: \(recorder.ready)")
+            #expect(recorder.ready == [1, 2] && controller.webView.window == nil, "ready: \(recorder.ready)")
         }
         #expect(await until({ weakController == nil }, timeout: .seconds(30)))
     }
