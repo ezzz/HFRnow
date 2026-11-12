@@ -21,8 +21,8 @@ import Testing
 
     @Test func keysAreUniqueAndKeepTheirLegacyNames() {
         #expect(Set(SettingKey.allKeys).count == SettingKey.allKeys.count)
-        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, `theme_id`, LOT-188, and the two app-lock
-        // keys, LOT-173, have no legacy counterpart).
+        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, `theme_id`, LOT-188, the two app-lock
+        // keys, LOT-173, and `icon_previous` / `icon_revert_asked`, LOT-189, have no legacy counterpart).
         let legacy: Set = [
             "vos_sujets", "sujets_avec_cat", "favorites_auto_refresh", "compact_mode", "tabbar_minimize_on_scroll",
             "text_size_scale", "haptics", "landscape_mode", "icon", "auto_theme", "theme", "theme_style",
@@ -34,6 +34,7 @@ import Testing
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
             "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
+            "icon_previous", "icon_revert_asked",
             // LOT-166: the two seasonal toggles, new.
             "season.automatic", "season.animations", "season.noel.activeYear"
         ]
@@ -52,6 +53,8 @@ import Testing
         #expect(store.value(for: SettingKey.haptics))
         #expect(store.value(for: SettingKey.landscapeMode) == .galerieMessage)
         #expect(store.value(for: SettingKey.appIconName) == "superblue")
+        #expect(store.value(for: SettingKey.appIconPrevious) == nil)
+        #expect(store.value(for: SettingKey.appIconRevertAsked) == nil)
         #expect(store.value(for: SettingKey.privateMessageBadge))
         #expect(store.value(for: SettingKey.autoTheme) == .system)
         #expect(store.value(for: SettingKey.manualTheme) == .light)
