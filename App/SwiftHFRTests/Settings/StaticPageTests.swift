@@ -91,7 +91,7 @@ struct StaticPageTests {
     @Test @MainActor func theWebViewRunsNoPageScript() async throws {
         #expect(StaticPageWebView.makeConfiguration().defaultWebpagePreferences.allowsContentJavaScript == false)
         let webView = WKWebView(frame: .zero, configuration: StaticPageWebView.makeConfiguration())
-        // Shown as in Réglages: in no window, this test took 67-320 s on CI (`hostInWindow`, issue #801).
+        // Shown as in Réglages: in no window, this test took 67 s on green run 43060241312 and 320 s on job 130925974296 (#801).
         let window = hostInWindow(webView)
         let loader = LoadWaiter()
         webView.navigationDelegate = loader
