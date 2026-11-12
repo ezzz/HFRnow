@@ -94,6 +94,18 @@ struct NoelSleighArrivalTests {
         #expect(sleigh(model) != nil)
     }
 
+    /// A layer asks before it is laid out: the sleigh stays due until it can cross.
+    @Test func anEmptyAreaKeepsTheSleighDue() {
+        let model = launch(SeasonTestClock(1, 12, 2026))
+        let early = model.crossings.crossing(
+            for: scene, area: .zero, windowHeight: 874, screen: Self.clear, animationsAllowed: true, crossingsOn: true
+        )
+        #expect(early == nil)
+        #expect(model.crossings.arrivalPending)
+        #expect(model.alert(for: scene, screen: Self.clear) == nil)
+        #expect(sleigh(model)?.isArrival == true)
+    }
+
     @Test func noSleighOnALaterLaunchOfTheSeason() {
         let clock = SeasonTestClock(1, 12, 2026)
         let store = InMemorySettingsStore()

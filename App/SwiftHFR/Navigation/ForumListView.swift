@@ -11,11 +11,11 @@ struct ForumListView: View {
         let loader = navigation.forums.loader
         List(selection: $navigation.selectedSource) {
             if let content = loader.value {
-                ForEach(content.sections) { section in
-                    row(section)
-                        // Noël soft piles a little snow on the card's top edge, above the first row's text (LOT-166).
-                        .modifier(FirstRowSnowCap(isFirst: section.id == content.sections.first?.id))
-                        .tag(section.source)
+                // Noël soft piles a little snow on the card's top edge, in the section header above it (LOT-166).
+                SeasonalSnowCapSection {
+                    ForEach(content.sections) { section in
+                        row(section).tag(section.source)
+                    }
                 }
             }
         }

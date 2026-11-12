@@ -20,7 +20,6 @@ final class NoelCrossingModel {
         let isArrival: Bool
         /// The scene that shows it.
         let scene: UUID
-        let startedAt: Date
     }
 
     /// The shortest and longest foreground time between two crossings (operator, 2026-10-28).
@@ -89,9 +88,11 @@ final class NoelCrossingModel {
         }
         guard screen.allowsAlert, activeSince != nil else { return nil }
         if arrivalPending {
-            arrivalPending = false
             let size = NoelCrossingItem.sleigh.size(height: Self.arrivalHeight(window: windowHeight))
-            return start(.sleigh, size: size, area: area, scene: scene, arrival: true, duration: CrossingPath.maxDuration)
+            // Kept pending until it starts: a layer not laid out yet (empty area) must not lose it.
+            let sleigh = start(.sleigh, size: size, area: area, scene: scene, arrival: true, duration: CrossingPath.maxDuration)
+            if sleigh != nil { arrivalPending = false }
+            return sleigh
         }
         guard crossingsOn, foregroundTime >= nextGap else { return nil }
         let items = NoelCrossingItem.crossing
@@ -128,9 +129,7 @@ final class NoelCrossingModel {
         activeSince = date
         nextGap = Self.minGap + random.unit() * (Self.maxGap - Self.minGap)
         lastID += 1
-        let crossing = Crossing(
-            id: lastID, item: item, size: size, path: path, isArrival: arrival, scene: scene, startedAt: date
-        )
+        let crossing = Crossing(id: lastID, item: item, size: size, path: path, isArrival: arrival, scene: scene)
         current = crossing
         haptics.impact(.light)
         return crossing
