@@ -45,7 +45,6 @@ final class SeasonalThemeModel {
         var allowsAlert: Bool { !isCovered && !isPresenting && !isKeyboardVisible }
     }
 
-
     /// The seasonal theme drawn over the "Thème" settings, or nil.
     private(set) var activeTheme: SeasonalTheme?
     /// The arrival alert waiting for an answer; stored, so a kill before it is seen shows it again at the next launch.
