@@ -69,7 +69,7 @@ struct NoelCrossingLayer: View {
         while !Task.isCancelled {
             let windowHeight = window.window?.bounds.height ?? area.height
             if let crossing = crossings.crossing(
-                for: scene, area: area, windowHeight: windowHeight, screen: screen,
+                for: scene, on: .init(area: area, windowHeight: windowHeight), screen: screen,
                 animationsAllowed: seasonal.animationsAllowed, crossingsOn: seasonal.activeTheme == .noelSoft
             ) {
                 // Real time on screen: the model's clock schedules, it does not animate.

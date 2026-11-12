@@ -21,11 +21,11 @@ struct NoelCrossingModelTests {
 
     private func ask(
         _ model: NoelCrossingModel, scene: UUID? = nil, screen: SeasonalThemeModel.ScreenState = clear,
-        animations: Bool = true, on: Bool = true
+        animations: Bool = true, crossingsOn: Bool = true
     ) -> NoelCrossingModel.Crossing? {
         model.crossing(
-            for: scene ?? self.scene, area: Self.area, windowHeight: 874, screen: screen, animationsAllowed: animations,
-            crossingsOn: on
+            for: scene ?? self.scene, on: .init(area: Self.area, windowHeight: 874), screen: screen, animationsAllowed: animations,
+            crossingsOn: crossingsOn
         )
     }
 
@@ -133,7 +133,7 @@ struct NoelCrossingModelTests {
         let crossings = model([0])
         crossings.foregroundChanged(active: true)
         spend(30)
-        #expect(ask(crossings, on: false) == nil)
+        #expect(ask(crossings, crossingsOn: false) == nil)
         crossings.foregroundChanged(active: false)
         #expect(ask(crossings) == nil)
     }

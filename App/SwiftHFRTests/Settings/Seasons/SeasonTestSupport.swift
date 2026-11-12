@@ -48,7 +48,7 @@ extension SeasonalThemeModel {
     func playArrivalSleigh() {
         crossings.foregroundChanged(active: true)
         if let sleigh = crossings.crossing(
-            for: UUID(), area: CGSize(width: 402, height: 650), windowHeight: 874, screen: ScreenState(),
+            for: UUID(), on: .init(area: CGSize(width: 402, height: 650), windowHeight: 874), screen: ScreenState(),
             animationsAllowed: animationsAllowed, crossingsOn: false
         ) {
             crossings.finish(sleigh.id)
