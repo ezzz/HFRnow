@@ -1,0 +1,10 @@
+{"captures": [
+  {"raw": "R57d", "id": "R57d", "slug": "rest-category-topics-last-page1", "ext": "json", "private": false},
+  {"raw": "R57e", "id": "R57e", "slug": "rest-category-topics-last-page2", "ext": "json", "private": false},
+  {"raw": "R57f", "id": "R57f", "slug": "rest-category-topics-last-per-page50", "ext": "json", "private": false},
+  {"raw": "R57g", "id": "R57g", "slug": "rest-category-topics-last-past-last-page", "ext": "json", "private": false},
+  {"raw": "R57h", "id": "R57h", "slug": "api-href-as-is-404", "ext": "html", "private": false},
+  {"raw": "R57i", "id": "R57i", "slug": "rest-error-unknown-category", "ext": "json", "private": false},
+  {"raw": "R57j", "id": "R57j", "slug": "rest-unknown-topic", "ext": "json", "private": false},
+  {"raw": "R57k", "id": "R57k", "slug": "rest-error-unknown-resource", "ext": "json", "private": false}
+]}

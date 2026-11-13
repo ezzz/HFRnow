@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The reader's "Enregistrer hors ligne" menu and the progress banner (LOT-139). Hidden for a private conversation (it cannot
-/// be read without the session) and in the offline reader itself.
+/// The reader's offline save progress banner (LOT-139); its menu items are `ReaderOfflineMenuItems`, placed in the "…" overflow
+/// by `ReaderOverflowToolbar` (#645). Not offered for a private conversation (it cannot be read without the session) nor in
+/// the offline reader itself.
 struct ReaderOfflineSave: ViewModifier {
     /// How many pages "this page and the next ones" saves, this one included. Legacy read an `offline_max_pages` setting nothing
     /// ever wrote (`OfflineStorage.m:145-294`, commented out): the number is LOT-139's choice, listed in the PR.
@@ -13,19 +14,32 @@ struct ReaderOfflineSave: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                // None under an open composer (#653): the "…" overflow stays shut.
-                if let saver, !model.isPrivateConversation, let page = model.page, !model.suspendsPageInteractions {
-                    ToolbarItem(placement: .secondaryAction) { menu(saver, page: page) }
-                }
-            }
             .safeAreaBar(edge: .top) {
                 if let saver, saver.state != .idle { OfflineSaveBanner(saver: saver) }
             }
     }
 
-    @ViewBuilder
-    private func menu(_ saver: OfflineSaveModel, page: ReaderPage) -> some View {
+    /// Whether the overflow offers it: none under an open composer (#653: the "…" overflow stays shut).
+    static func isOffered(model: TopicReaderModel, saver: OfflineSaveModel?) -> Bool {
+        saver != nil && !model.isPrivateConversation && model.page != nil && !model.suspendsPageInteractions
+    }
+}
+
+extension View {
+    /// Adds the offline save banner of `model`'s topic.
+    func offlineSave(model: TopicReaderModel, saver: OfflineSaveModel?) -> some View {
+        modifier(ReaderOfflineSave(model: model, saver: saver))
+    }
+}
+
+/// The offline save items of the "…" overflow. A view of its own, so `saver.isSaving` is read here and a saved page does not
+/// re-run the reader's body.
+struct ReaderOfflineMenuItems: View {
+    let saver: OfflineSaveModel
+    let model: TopicReaderModel
+    let page: ReaderPage
+
+    var body: some View {
         if saver.isSaving {
             Button("Arrêter l’enregistrement", systemImage: "stop.circle") { saver.cancel() }
         } else {
@@ -33,18 +47,12 @@ struct ReaderOfflineSave: ViewModifier {
                 saver.start(page: page, count: 1, fallbackTitle: model.initialTitle)
             }
             // Disabled on the last page: there are no following pages to save.
-            Button("Enregistrer cette page et les \(Self.pagesInBatch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
-                saver.start(page: page, count: Self.pagesInBatch, fallbackTitle: model.initialTitle)
+            let batch = ReaderOfflineSave.pagesInBatch
+            Button("Enregistrer cette page et les \(batch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
+                saver.start(page: page, count: batch, fallbackTitle: model.initialTitle)
             }
             .disabled(page.currentPage >= page.maxPage)
         }
-    }
-}
-
-extension View {
-    /// Adds the offline save menu of `model`'s topic.
-    func offlineSave(model: TopicReaderModel, saver: OfflineSaveModel?) -> some View {
-        modifier(ReaderOfflineSave(model: model, saver: saver))
     }
 }
 
