@@ -10,10 +10,19 @@ import Testing
         #expect(InMemorySettingsStore(["theme_dark_style": .int(9)]).value(for: SettingKey.darkStyle) == .standard)
     }
 
+    /// LOT-188: the theme id is read as stored, an id no bundled theme has included (the app reads it as Legacy, the store keeps it).
+    @Test func theThemeIDIsReadAsStored() {
+        #expect(InMemorySettingsStore(["theme_id": .string("gone")]).value(for: SettingKey.themeID) == "gone")
+        #expect(InMemorySettingsStore(["theme_id": .string("")]).value(for: SettingKey.themeID) == nil)
+        let store = InMemorySettingsStore()
+        store.set("swift", for: SettingKey.themeID)
+        #expect(store.value(for: SettingKey.themeID) == "swift")
+    }
+
     @Test func keysAreUniqueAndKeepTheirLegacyNames() {
         #expect(Set(SettingKey.allKeys).count == SettingKey.allKeys.count)
-        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, and the two app-lock keys, LOT-173,
-        // have no legacy counterpart).
+        // Legacy names, plus the keys added by the port (`mp_list_display`, LOT-171, `theme_id`, LOT-188, the two app-lock
+        // keys, LOT-173, and `icon_previous` / `icon_revert_asked`, LOT-189, have no legacy counterpart).
         let legacy: Set = [
             "vos_sujets", "sujets_avec_cat", "favorites_auto_refresh", "compact_mode", "tabbar_minimize_on_scroll",
             "text_size_scale", "haptics", "landscape_mode", "icon", "auto_theme", "theme", "theme_style",
@@ -24,7 +33,10 @@ import Testing
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
-            "theme_dark_style", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag"
+            "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
+            "icon_previous", "icon_revert_asked",
+            // LOT-166: the two seasonal toggles, new.
+            "season.automatic", "season.animations", "season.noel.activeYear"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -41,6 +53,8 @@ import Testing
         #expect(store.value(for: SettingKey.haptics))
         #expect(store.value(for: SettingKey.landscapeMode) == .galerieMessage)
         #expect(store.value(for: SettingKey.appIconName) == "superblue")
+        #expect(store.value(for: SettingKey.appIconPrevious) == nil)
+        #expect(store.value(for: SettingKey.appIconRevertAsked) == nil)
         #expect(store.value(for: SettingKey.privateMessageBadge))
         #expect(store.value(for: SettingKey.autoTheme) == .system)
         #expect(store.value(for: SettingKey.manualTheme) == .light)
@@ -49,6 +63,7 @@ import Testing
         #expect(store.value(for: SettingKey.dayActionColor) == nil)
         #expect(store.value(for: SettingKey.nightBrightness) == nil)
         #expect(store.value(for: SettingKey.darkStyle) == .standard)
+        #expect(store.value(for: SettingKey.themeID) == nil)
         #expect(!store.value(for: SettingKey.hideBlocklistedPosts))
         #expect(store.value(for: SettingKey.quoteFilterExceptions) == .standard)
         #expect(store.value(for: SettingKey.quoteFilterMinimumCount) == 3)
@@ -61,6 +76,31 @@ import Testing
         #expect(store.value(for: SettingKey.searchCategory) == .forum(13))
         #expect(store.value(for: SettingKey.rehostLinkMode) == .imageWithLink)
         #expect(store.value(for: SettingKey.rehostMaxDimension) == .px1200)
+        #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
+        #expect(store.value(for: SettingKey.seasonalAnimations))
+        #expect(store.value(for: SettingKey.noelActiveYear) == nil)
+    }
+
+    /// LOT-166: one set of Noël keys per season, named after its year (THEMES.md §5), all empty at first.
+    @Test func theNoelKeysOfASeasonAreNamedAfterItsYear() {
+        #expect(SettingKey.noelArrivalShown(year: 2026).key == noelKey(2026, "arrivalShown"))
+        #expect(SettingKey.noelOptedOut(year: 2026).key == noelKey(2026, "optedOut"))
+        #expect(SettingKey.noelArrivalPending(year: 2026).key == noelKey(2026, "arrivalPending"))
+        #expect(SettingKey.noelPreviousThemeID(year: 2026).key == noelKey(2026, "previousThemeID"))
+        #expect(SettingKey.noelPackingShown(year: 2027).key == noelKey(2027, "packingShown"))
+        let store = InMemorySettingsStore()
+        #expect(!store.value(for: SettingKey.noelArrivalShown(year: 2026)))
+        #expect(!store.value(for: SettingKey.noelOptedOut(year: 2026)))
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == nil)
+        #expect(!store.value(for: SettingKey.noelPackingShown(year: 2026)))
+        store.set("legacy", for: SettingKey.noelPreviousThemeID(year: 2026))
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == "legacy")
+        #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2027)) == nil)
+        #expect(!store.value(for: SettingKey.noelArrivalPending(year: 2026)))
+        store.set(2026, for: SettingKey.noelActiveYear)
+        #expect(store.rawValue(forKey: "season.noel.activeYear") == .int(2026))
+        store.set(nil, for: SettingKey.noelActiveYear)
+        #expect(store.rawValue(forKey: "season.noel.activeYear") == nil)
     }
 
     @Test(arguments: [
@@ -244,4 +284,9 @@ import Testing
         store.set(.read, for: SettingKey.topicListFlag)
         #expect(store.rawValue(forKey: "HFRswiftGlobalTopicListFlag") == .int(3))
     }
+}
+
+/// A Noël season key built from its parts, as THEMES.md §5 names it: `season.noel.<year>.<name>`.
+private func noelKey(_ year: Int, _ name: String) -> String {
+    ["season", "noel", String(year), name].joined(separator: ".")
 }

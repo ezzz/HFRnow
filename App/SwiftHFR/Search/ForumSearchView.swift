@@ -22,6 +22,7 @@ struct ForumSearchView: View {
             formSection
             resultsSection
         }
+        .densityListMargins()
         .navigationTitle("Recherche")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { pagerToolbar }
@@ -98,8 +99,7 @@ struct ForumSearchView: View {
                     Text(content.notice ?? "Aucun résultat").foregroundStyle(.secondary)
                 }
                 ForEach(content.topics) { topic in
-                    Button { model.selected = topic } label: { SearchResultRow(topic: topic) }
-                        .buttonStyle(.plain)
+                    SearchResultRow(topic: topic) { model.selected = topic }
                 }
             }
         }
@@ -148,15 +148,22 @@ struct ForumSearchView: View {
 }
 
 /// A result: the topic row, then the excerpt of the matching message.
-private struct SearchResultRow: View {
+struct SearchResultRow: View {
     let topic: TopicSummary
+    let open: () -> Void
+    @Environment(\.listDensity) private var density
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            TopicRowView(topic: topic)
-            if let snippet = topic.searchHit?.snippet, !snippet.isEmpty {
-                Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
+        Button(action: open) {
+            VStack(alignment: .leading, spacing: 4) {
+                TopicRowView(topic: topic)
+                if let snippet = topic.searchHit?.snippet, !snippet.isEmpty {
+                    Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
+                }
             }
         }
+        .buttonStyle(.plain)
+        // On the row itself: the `listRowInsets` of the `TopicRowView` inside the stack is ignored by the list.
+        .listRowInsets(density.rowInsets)
     }
 }

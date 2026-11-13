@@ -4,7 +4,8 @@ import HFRParsing
 
 /// Why `RESTBrowsingClient` returned no list or topic (LOT-057).
 public enum RESTBrowsingError: Error, Sendable, Equatable {
-    /// The category or topic is not a forum one (`cat` 1 or more, topic 1 or more); nothing was sent.
+    /// The category or topic is not a forum one (`cat` 1 or more, topic 1 or more), or a posts-per-page below 1; nothing was
+    /// sent.
     case invalidTarget
     /// The last request could not be built or sent, HFR answered an HTTP error, or the task was cancelled.
     case network(NetworkError)
@@ -12,4 +13,7 @@ public enum RESTBrowsingError: Error, Sendable, Equatable {
     case page(ListPageFailure)
     /// The REST answer of `topic(_:)`, which has no HTML fallback, is not the JSON expected.
     case response(ParsingError)
+    /// HFR refused the account's cookies on the fallback page (its stale-session page, `R70b`), as `SessionRefreshFlow`
+    /// reports it (#383). `RESTFlagBucketClient` only: `RESTBrowsingClient` sends no cookie.
+    case sessionExpired(SessionExpiry)
 }

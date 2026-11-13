@@ -1,3 +1,4 @@
+import HFRModels
 import SwiftUI
 import UIKit
 
@@ -66,20 +67,25 @@ enum AccessibleColors {
     static var errorText: Color { color(.errorText) }
 }
 
-/// A count capsule ("3", "non lu") that reads at 4.5:1: filled, or outlined for the quieter state (#646).
+/// A count capsule ("3", "non lu") that reads at 4.5:1: filled, or outlined for the quieter state (#646). A gallery theme
+/// (LOT-188) fills it with its `unread` and `onUnread` tokens (THEMES.md §3, 4.5:1 by its contrast test); the outlined state
+/// stays on these colours, since it sits on the row's system card, which themes keep.
 struct BadgeCapsule: View {
     let text: String
     var isBold = false
     /// The quieter state: the fill colour as text and outline on the row's own background.
     var isOutlined = false
+    @Environment(\.themeAppearance) private var appearance
 
     var body: some View {
+        let fill = appearance.themeColor(\.unread).map { Color(uiColor: $0) } ?? AccessibleColors.color(.badgeFill)
+        let onFill = appearance.themeColor(\.onUnread).map { Color(uiColor: $0) } ?? AccessibleColors.color(.badgeText)
         Text(text)
             .scaledFont(.caption2)
             .fontWeight(isBold ? .bold : .regular)
-            .foregroundStyle(isOutlined ? AccessibleColors.color(.badgeFill) : AccessibleColors.color(.badgeText))
+            .foregroundStyle(isOutlined ? AccessibleColors.color(.badgeFill) : onFill)
             .padding(.horizontal, 6).padding(.vertical, 1)
-            .background { if !isOutlined { Capsule().fill(AccessibleColors.color(.badgeFill)) } }
+            .background { if !isOutlined { Capsule().fill(fill) } }
             .overlay { if isOutlined { Capsule().strokeBorder(AccessibleColors.color(.badgeFill), lineWidth: 1) } }
     }
 }

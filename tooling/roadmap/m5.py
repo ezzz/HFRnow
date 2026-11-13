@@ -15,8 +15,10 @@ def moved_ids():
 def is_m5(row):
     return row['lot'] in moved_ids() or row['sec'].startswith('M5')
 
-# False while M5 is closed: the sweep leaves M5 lots blocked and the boards show them as "not opened". The
-# orchestrator sets it to True to open M5 (operator decisions 2026-11-02, #379).
+# False while M5 is closed: M5 lots are held by this decision, so they are `status: on-hold` (#835), never
+# `status: blocked` or `status: ready`; the sweep reports any that is not, never unblocks one, and the boards show them
+# as "on hold" (or "not opened" before the label is set). The orchestrator sets it to True to open M5 (operator
+# decisions 2026-11-02, #379), then moves the on-hold M5 lots by hand.
 M5_OPEN = False
 
 # Standalone (a) follow-ups of the UXD decisions: issues that are not lots, with the milestone whose completion

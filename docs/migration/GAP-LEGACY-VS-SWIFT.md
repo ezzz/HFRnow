@@ -2,13 +2,13 @@
 
 **Role of this file:** the feature-by-feature gap between the legacy app and SwiftHFR **as its specs define it once every lot of M1 to M4 is delivered** (directive G.3, issue [#368](https://github.com/ezzz/HFRnow/issues/368)). It is the input of the convergence work H.1 (separating the port of ezzz's Swift layer from the UX changes). It is a snapshot: it changes only when a spec or a convergence decision changes a row.
 
-- **Legacy** = `master` of ezzz/HFRnow at commit `2440d79`. A bare `Name.swift` is `HFRswift/Swift/Name.swift`; a bare `Name.m` is `Classes/Name.m`; `HTML/` is `SuperHFRplus/Assets/HTML/`. Every line was checked at `2440d79` (not at `origin/master`, which has drifted: LOT-119 and LOT-170 cite `master` lines, e.g. `usesSidebarRoot` is `MainWindow.swift:1353` there and `:1132` here).
+- **Legacy** = `master` of ezzz/HFRnow at commit `2440d79`. A bare `Name.swift` is `HFRswift/Swift/Name.swift`; a bare `Name.m` is `Classes/Name.m`; `HTML/` is `SuperHFRplus/Assets/HTML/`. Rows that cite `2fe43da3` or `87fe0d1c` say so in their legacy columns: the reference moved to `legacy/duo-inner-cover` (#655, now `87fe0d1c`, AGENTS.md §2). Every other line was checked at `2440d79` (not at `origin/master`, which has drifted: LOT-119 and LOT-170 cite `master` lines, e.g. `usesSidebarRoot` is `MainWindow.swift:1353` there and `:1132` here).
 - **SwiftHFR final** = `docs/LOTS.md` scope, the lot spec under `docs/lots/` when it exists, the lot issue otherwise, and [FEATURES.md](../FEATURES.md) with its UX principles. Not the current `App/` code.
 - **Gap**: `same` · `ported with changes` (same feature, different details, no visible UX change) · `UX change` (user-visible difference) · `new` (not in legacy) · `dropped` (removed on purpose by a spec) · `not planned` (legacy feature no lot covers).
-- **Source**: `port: ezzz Swift layer` (the behaviour comes from `HFRswift/Swift`) · `port: legacy ObjC` · `port: legacy evolution (2fe43da3)` (a backport: behaviour legacy added during SwiftHFR's development, absent at `2440d79` and present at the reference `2fe43da3`; operator 2026-11-09 on #655; H.1 `a·master`) · `new UX: operator` · `new UX: Bybifok (FEAT-xxx)` · `new UX: spec` (a lot spec decided it) · `—` (not planned).
+- **Source**: `port: ezzz Swift layer` (the behaviour comes from `HFRswift/Swift`) · `port: legacy ObjC` · `port: legacy evolution (2fe43da3)` (a backport: behaviour legacy added during SwiftHFR's development, absent at `2440d79` and present at the reference `2fe43da3`; operator 2026-11-09 on #655; H.1 `a·master`) · `port: legacy evolution (87fe0d1c)` (the same for behaviour absent at `2fe43da3` and present at `87fe0d1c`, the reference since 2026-11-10, #655: the five beta-feedback commits of #372; rows tagged `2fe43da3` keep their value) · `new UX: operator` · `new UX: Bybifok (FEAT-xxx)` · `new UX: spec` (a lot spec decided it) · `—` (not planned).
 - **H.1** (convergence classification, directive H.1):
   - `a`: a port of ezzz's Swift layer at `2440d79`, or of the ObjC app where the Swift layer had nothing. Technical changes only (new engine, iOS 27 APIs, robustness, added themes with unchanged defaults).
-  - `a·master`: a port of ezzz's later Swift layer on `master`, absent at `2440d79` (UXD-01), or of legacy at `2fe43da3` (#655).
+  - `a·master`: a port of ezzz's later Swift layer on `master`, absent at `2440d79` (UXD-01), or of legacy at `2fe43da3` or `87fe0d1c` (#655).
   - `b`: a UX evolution, in M5 ([#379](https://github.com/ezzz/HFRnow/issues/379), decided 2026-11-02) unless a decision keeps it in M1–M4.
   - `b·needed`: an evolution that parity needs (security, privacy, App Review, an HFR fact).
   - `b·operator`: an evolution the operator already decided.
@@ -64,6 +64,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-038 | Apple category for App Review | Hidden in the ObjC era (audit Q-7). | — | Category 25 hidden logged out and for the review account. | LOT-082 | ported with changes | new UX: spec | a |
 | GAP-039 | AQ list | Plus entry: initiator, relative date, refresh. | AQPlusView.swift:405-441 | AQ feed and badge. | LOT-133 | same | port: ezzz Swift layer | a |
 | GAP-040 | Bookmarks list | Label, author, date; swipe to delete. | BookmarksPlusView.swift:175-218 | Bookmarks synced through MPStorage. | LOT-132 | same | port: ezzz Swift layer | a |
+| GAP-799 | Side margins of the card lists | Fixed wide margins on the inset-grouped lists (~17-20 pt outer system margin + 16 pt inner), whatever the compact mode. | `Favorites.swift:429` @ `87fe0d1c` | Regular: unchanged. Compact: outer margin 10 pt (`contentMargins`) and inner margin 7 pt (rows and section headers) on the inset-grouped lists: Favoris, topic list, Catégories, MP list, profile, archived drafts; forum search gets the outer margin and 7 pt on its result rows (its search form rows keep the system inset). | #799 | UX change | new UX: operator (#799) | b·operator |
 
 ## Reader
 
@@ -73,7 +74,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-051 | Message header | Grey band: 30 px avatar, 13 px bold pseudo, 9 px date, "+" actions button. | HTML/templatev2.htm:2-8; HTML/style-liste-light.css:165-168, 199-243 | Avatar, pseudo and date on one line, actions in a menu. | LOT-083, LOT-087 | UX change | new UX: spec | b |
 | GAP-052 | Classic / modern message style | "Style des messages" setting switches header and padding. | AppSettingsView.swift:402-406; MessagesView.swift:1363 | Layout setting of the reader display settings. | LOT-106 | same | port: ezzz Swift layer | a |
 | GAP-053 | Body text size | 15 pt injected over the 13 px stylesheet, scaled by the text-size picker only. | MessagesView.swift:1455-1460; HTML/style-liste.css:304-309 | `-apple-system-body`: Dynamic Type plus the app offset. | LOT-083, LOT-169 | UX change | new UX: operator | b·operator |
-| GAP-054 | Signatures | Hidden unless `display_sig` is on. | OnlineMessagesTableViewController.m:1608-1613 | Same setting, off by default. | LOT-083, LOT-106 | same | port: legacy ObjC | a |
+| GAP-054 | Signatures | Hidden unless `display_sig` is on. | OnlineMessagesTableViewController.m:1608-1613 | Same setting, off by default. HFR's 15-dash separator before a signature is dropped (only that one; legacy removed every occurrence in the message) and nothing else changes. | LOT-083, LOT-106 | ported with changes | port: legacy ObjC | a |
 | GAP-055 | Quote blocks | 2 px silver left border; "me" and whitelist variants tinted. | HTML/style-liste.css:329-356 | Sanitised quote markup, 3 px border and tint; "Message cité N fois" trailer. | LOT-034, LOT-083 | ported with changes | port: ezzz Swift layer | a |
 | GAP-056 | Image loading | WebKit loads every image with the default (shared) cookie store, always. | MessagesView.swift:907-908, 5547 | Policy C: cookie-less, no private hosts, Wi-Fi auto / cellular on tap, setting never / Wi-Fi / always. | LOT-083, LOT-107, FEAT-011 | UX change | new UX: operator | b·needed |
 | GAP-057 | Image viewer | Full-screen zoom of one image; save, copy link. | Common.swift:2161; MessagesView.swift:1255-1275 | Viewer plus HD gallery with swipe between images. | LOT-109, FEAT-014 | UX change | new UX: Bybifok (FEAT-014) | b |
@@ -168,14 +169,15 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-144 | Dark brightness | `theme_night_brightness` scales dark colours; at `2fe43da3` (`f917fafd`) the Swift settings show the "Luminosité du thème sombre" slider (0 to 150 %). | ThemeColors.m:116-118; AppSettingsView.swift:448-462 @ 2fe43da3 | Kept. | LOT-121 | same | port: legacy ObjC | a |
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); dark is #17181A. | Constants.h:52-55; ThemeColors.m:164 | Picker « Style du thème sombre » (Standard par défaut, inchangé / Plus sombre #0B0B0C / Noir OLED) avec aperçu ; les séparateurs sont les jetons de #577, sans réglage dédié. | LOT-122, FEAT-010 | new | new UX: Bybifok (FEAT-010) | a |
 | GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-180 | UX change | new UX: Bybifok (FEAT-010) | b |
-| GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 @ 2440d79; HFRplusAppDelegate.m:627-677 (forced off at :103, :365); ThemeManager.m:213-245; Common.swift:610-627 @ 87fe0d1c | Noël (Noël soft, Noël abusé) selectable 01/12–26/12, Noël soft switched on 01/12–24/12 unless opted out, sleigh arrival with « Oh Oh Oh ! » alert, elves packing and restore of the previous theme; Samain 01/10–31/10 (LOT-191); 14 July overlay (LOT-194); « Thèmes de saison automatiques » and « Animations de saison » settings (docs/THEMES.md §4–§5). | LOT-166, LOT-191, LOT-194, FEAT-010 | UX change | new UX: operator | b·operator |
-| GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker grouped by pack (Legacy, Beta, X-face, Saisons): the 9 shipped options on their legacy keys and names plus Orange, Classique Blue, Beta rouge, the X-face variations and season icons; dated icons only inside their window, with a one-time « Revenir à l'icône précédente ? » after it (docs/ICONS.md). | LOT-123, LOT-189, LOT-190 | UX change | port: ezzz Swift layer | b·operator |
+| GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 @ 2440d79; HFRplusAppDelegate.m:627-677 (forced off at :103, :365); ThemeManager.m:213-245; Common.swift:610-627; HFRNavigationController.m:85-90, 134-139; HFRplusAppDelegate.m:382-388; PlusSettingsViewController.m:112-115 @ 87fe0d1c | Noël (Noël soft, Noël abusé) selectable 01/12–26/12 on local dates every year, Noël soft switched on 01/12–24/12 unless opted out, arrival: Santa's sleigh pulled by its reindeer crosses the screen, then the « Oh Oh Oh ! » alert; elves packing and restore of the previous theme (silent after 02/01); Noël soft = legacy's red accent over the Legacy theme, a gallery theme keeping its own accent (operator, 2026-11-12), never stored,, procedural light snow (legacy's snow frames have no stated licence), snow piled on the first card and in the bottom corners, and a Christmas object crossing the screen every 20–90 min of foreground time; Samain 01/10–31/10 (LOT-191); 14 July overlay (LOT-194); « Thèmes de saison automatiques » and « Animations de saison » settings (docs/THEMES.md §4–§5). | LOT-166, LOT-191, LOT-194, FEAT-010 | UX change | new UX: operator | b·operator |
+| GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker grouped by pack (Legacy, Beta, X-face, Saisons) as a grid with a preview of every icon (as on the Home Screen, light or dark) and its name: the 9 shipped options on their legacy keys and names plus Noël REDFACE and Noël HFR (01/12 to 26/12), then (LOT-190) Orange, Classique Blue, Beta rouge, the X-face variations and the other season icons; dated icons only inside their window, with a one-time « Revenir à l'icône précédente ? » after it (docs/ICONS.md). | LOT-123, LOT-189, LOT-190 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-150 | Open links in default browser | Absent at `2440d79`; at `2fe43da3` (`9f15513d`) the "Navigateur par défaut" toggle (key `open_links_in_default_browser`, off: in-app browser). | Common.swift:257-259, AppSettingsView.swift:402-406 @ 2fe43da3 | "Navigateur par défaut" toggle; HFR links stay in the app. | LOT-119, LOT-137 | new | port: ezzz Swift layer | a·master |
 | GAP-151 | Crédits, Charte | Bundled HTML pages from Plus. | StaticInfoPageView.swift:10-47 | Static pages; About links to the app's topics, opened in the app. | LOT-120 | ported with changes | port: ezzz Swift layer | a |
 | GAP-152 | Maintenance | At `2440d79` system-settings shortcut, "Vider le cache" commented out. At `2fe43da3` (`c7693a88`) also "Caches de l'app" (total) and "Pages HTML" (size, file count) with the purge rule in a 7-day / 50 MB footer; clearing still unreachable (the alert is never presented). | AppSettingsView.swift:264-280, 476-486 @ `2440d79`; `AppSettingsView.swift:547-577, 637-644` @ `2fe43da3` | Cache sizes and the system-settings shortcut, as legacy at `2fe43da3`; the footer gives SwiftHFR's page rule (1 day, 20 MB). Clearing is LOT-187 (M5). | LOT-120, LOT-179, LOT-066 | UX change | port: legacy evolution (2fe43da3) | a·master |
 | GAP-153 | Smiley size, video rows | Rows commented out, no effect. | AppSettingsView.swift:422-432 | Not ported. | LOT-119 | dropped | new UX: spec | — |
 | GAP-209 | Pseudo lists after a toggle from the profile | profile sheet dismissed, `loadPage(page)` (`MessagesView.swift:3663-3694`) | `MessagesView.swift:3663` | Sheet stays open with the sentence under the buttons; reader rebuilds on close, no request | #209 | UX change | none | b |
+| GAP-729 | Theme gallery | Two themes, light and dark, with the accent hue and the dark brightness. | Constants.h Theme; AppSettingsView.swift:421-466 @ 87fe0d1c | Galerie de thèmes sous les réglages de Réglages › Thème : familles, pastilles clair et sombre, nom, « par <auteur> », coche ; un thème est un fichier de jetons `<id>.theme.json` ; Legacy, par défaut, est l'app actuelle, inchangée (teinte, style sombre et luminosité réservés à Legacy). | LOT-188 | new | new UX: operator | b·operator |
 
 ## Accounts
 
@@ -251,7 +253,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 - **Legacy reference**: `HFRswift/Swift/LiquidGlass.swift` at `2440d79` (`git show 2440d79:HFRswift/Swift/LiquidGlass.swift`). Used by 8 files, 27 lines besides the helper file. Quoted from `git grep -c 'glassEffect\|hfrGlass' 2440d79 -- HFRswift` (one line per file): 9 files and 33 lines in total, `LiquidGlass.swift:6` included; without it, 8 files and 27 lines.
 - **HIG pages read on 2026-11-07**: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets), [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode), [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
 - **Ported by**: LOT-185 (#548) outside the reader, LOT-186 (#549) for the reader chrome, which absorbs #428.
-- **Not in these rows**: the M5 items (the composer bar, LOT-174; the Duo and iPad layouts with the iOS 27.1 APIs, LOT-147; `Tab(role: .search)`; `tabViewBottomAccessory`) and the layered app icon (LOT-123).
+- **Not in these rows**: the M5 items (the composer bar, LOT-174; `Tab(role: .search)`; `tabViewBottomAccessory`) and the layered app icon (LOT-123). LOT-147 and its FEAT-016 additions are M4 (#655, #237, GAP-215, GAP-655).
 
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
@@ -268,14 +270,14 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 39 |
-| ported with changes | 55 |
+| same | 38 |
+| ported with changes | 56 |
 | ported with changes (engine only) | 1 |
-| UX change | 48 |
-| new | 26 |
+| UX change | 49 |
+| new | 27 |
 | dropped | 2 |
 | not planned | 3 |
-| **Total** | **174** |
+| **Total** | **176** |
 
 ## Convergence notes
 
@@ -290,13 +292,12 @@ Decisions the UX review (H.1) has to make; each names its rows.
 7. **Images and videos.** Image policy C (Wi-Fi auto, cellular on tap) and tap-to-play videos replace "always load" (GAP-056, 058).
 8. **Text size and Dynamic Type.** A 4-step picker becomes a slider on Dynamic Type; map the legacy values (GAP-053, 200).
 9. **Composer behaviour.** Per-topic drafts that block swipe-down, emoji refused at send rather than at typing, first-post delete, a quote tray (GAP-083, 092, 095, 097).
-10. **Duo and wide layouts.** The rail, the column widths and the portrait behaviour on the Duo inner screen wait for the Phase 5 design document; LOT-147 cannot start before it (GAP-212, 214, 215, 216).
+10. **Duo and wide layouts.** The Duo inner screen follows legacy at `2fe43da3` (GAP-215, 217); the rail and the pinned sidebar are FEAT-016 additions in M4, opt-in and off by default (operator 2026-11-09, #237), designed in the LOT-147 spec and approved by the operator before code (GAP-655). GAP-212, 214 and 216 are unchanged.
 11. **Uncovered legacy features.** Tab reselect to refresh, quick actions, clear / undo / redo, "+" modes, time-based theme: keep (new lot) or drop on record (GAP-007, 010, 084, 086, 102, 143).
-12. **"Legacy parity" labels that are new.** MP mark unread, delete, members, poll creation, multi-window and archived drafts are not in `2440d79`; relabel or find their legacy source (GAP-093, 099, 116-118, 219).
+12. **"Legacy parity" labels that are new.** MP mark unread, delete, members, poll creation, multi-window and archived drafts are not in `2440d79`; relabel or find their legacy source (GAP-093, 099, 116-118, 219). Poll creation, multi-window and archived drafts are in `2fe43da3`: backports of legacy evolution, M4 (#655, GAP-093, 099, 219).
 
 ### Open questions
 
-- LOT-084 says archived drafts are not ported; LOT-101 plans the picker. Which holds (GAP-093)?
 - Background MP check: every account or only the selected one (GAP-190)?
 - LOT-083 says legacy prefetched neighbouring pages with the shared jar; no prefetch was found in the Swift layer. Check before relying on it.
 - Does LOT-171 ("group MPs like topics") include the quote tray and quick reply (GAP-113)?
@@ -306,14 +307,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (129)
+### GAP rows of type `ported with changes`, `UX change` or `new` (132)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 50 |
+| a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 51 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 750 | 24 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750, 799 | 26 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
@@ -326,15 +327,15 @@ The (b) rows include the ones the merged code already ships: 009, 020, 022, 051,
   - extra themes with defaults unchanged (145, 147);
   - legacy data import (170);
   - compact density on more screens (201);
-  - the cover-screen fix (216). Its lot, LOT-147, is in M5, so the fix is a small M4 item ([#432](https://github.com/ezzz/HFRnow/issues/432), UXD-25).
+  - the cover-screen fix (216). The fix was a small M4 item; LOT-147 is in M4 too since 2026-11-09 (#655; [#432](https://github.com/ezzz/HFRnow/issues/432), UXD-25).
 
 ### App lots (80) and features
 
 | Class | Lots | Count |
 |---|---|---|
-| (a) port | 080, 086, 089, 102, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 32 |
+| (a) port | 080, 086, 089, 100, 101, 102, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 146, 147 (and its FEAT-016 additions, GAP-655, `b·operator`), 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 36 |
 | mixed | 081, 082, 083, 084, 085, 087, 088, 103, 106, 109, 111, 115, 119, 120, 122, 125, 127, 128, 130, 134, 137, 157, 159, 169, 170, 171 | 26 |
-| (b) evolution | 100, 101, 107, 108, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 173 | 22 |
+| (b) evolution | 107, 108, 110, 112, 138, 141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 153, 154, 173 | 18 |
 
 - **Mixed lots whose (b) part stays in M1–M4.**
   - Needed: LOT-083 (policy C), LOT-115 (banned words refused), LOT-130 (per-account MPStorage, merge), LOT-159 (App Review).
@@ -344,7 +345,7 @@ The (b) rows include the ones the merged code already ships: 009, 020, 022, 051,
 - **(b) lots that stay:**
   - needed: LOT-107 (the setting that gates policy C), LOT-108 (players on tap, LOT-071 D-071-2);
   - decided by the operator: LOT-173.
-- **(b) lots in M5:** LOT-100, 101, 110, 112, 138, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151 (UXD-16 picked A), 152, 153, 154 ([#379](https://github.com/ezzz/HFRnow/issues/379)).
+- **(b) lots in M5:** LOT-110, 112, 138, 141, 142, 143, 144, 145, 148, 149, 150, 151 (UXD-16 picked A), 152, 153, 154 ([#379](https://github.com/ezzz/HFRnow/issues/379)).
 - **Features:**
   - All FEAT items are (b) by origin.
   - FEAT-003 (honest paging) is (b) needed.
@@ -357,6 +358,7 @@ The (b) rows include the ones the merged code already ships: 009, 020, 022, 051,
   - LOT-146 (multi-window: `UIApplicationSupportsMultipleScenes` false);
   - LOT-108 (legacy loads iframes at once; the placeholder is new);
   - the delete and members parts of LOT-127 (mark unread has an ObjC source: `OnlineMessagesTableViewController.m` `markUnread`).
+  - LOT-100, 101 and 146 have one at `2fe43da3` (`c7693a88`, `196620d2`, `afec5433`): M4 backports since 2026-11-09 (#655).
   - `LOTS.md` now says so in their Audit cell.
 - **Legacy features in no lot**, a parity loss unless decided: tab reselect (GAP-007, UXD-04), quote splitting and clear / undo / redo (GAP-084, 086, UXD-18), category icons and the topic filter (GAP-021, 023, UXD-05, 06; the flag tints of GAP-027, UXD-07, are back since #584), quick actions and time-based theme (GAP-010, 143, UXD-23).
 
@@ -375,7 +377,7 @@ Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every
 
 | UXD | Decision | Recorded in |
 |---|---|---|
-| 01 | B for start screen, browser and sidebar (`master` counts as ezzz's Swift layer, defaults unchanged); archived drafts go to M5 | LOT-119 and LOT-170 specs; LOT-101 (#192) in M5 |
+| 01 | B for start screen, browser and sidebar (`master` counts as ezzz's Swift layer, defaults unchanged); archived drafts go to M5 | LOT-119 and LOT-170 specs; LOT-101 (#192) in M5, back to M4 on 2026-11-09 (#655) |
 | 02 | A: tab bar hidden while a topic is open (M1) | [#424](https://github.com/ezzz/HFRnow/issues/424); LOT-083 and LOT-170 specs |
 | 03 | A: avatar menu in every list toolbar (M2) | [#425](https://github.com/ezzz/HFRnow/issues/425); LOT-170 spec |
 | 04 | A: reselecting a tab refreshes it, with a haptic (M2) | [#426](https://github.com/ezzz/HFRnow/issues/426); LOT-170 spec |
@@ -398,4 +400,4 @@ Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every
 | 22 | A (LOT-121); the single accent goes to M5 | LOT-180 ([#420](https://github.com/ezzz/HFRnow/issues/420)); LOT-122 (#213) |
 | 23 | Dropped on record: neither works in legacy | GAP-010 and GAP-143 stay `—` |
 | 24 | B on iPad, A on a large iPhone in landscape (M2) | [#431](https://github.com/ezzz/HFRnow/issues/431); LOT-082 spec |
-| 25 | Layouts and continuity go to M5; filling the cover screen is an (a) fix in M4 | LOT-147 (#237) and LOT-145 (#235) in M5; [#432](https://github.com/ezzz/HFRnow/issues/432); legacy #372, #373 |
+| 25 | Layouts and continuity go to M5; filling the cover screen is an (a) fix in M4 | LOT-145 (#235) in M5; LOT-147 (#237) back to M4 on 2026-11-09 (#655); [#432](https://github.com/ezzz/HFRnow/issues/432); legacy #372, #373 |

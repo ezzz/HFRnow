@@ -113,6 +113,8 @@ final class ReaderWebController: NSObject {
         trackUnderPageBackground()
         // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        // Falling snow pauses while the page scrolls (LOT-166).
+        SeasonalScrollActivity.shared.track(webView.scrollView)
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document

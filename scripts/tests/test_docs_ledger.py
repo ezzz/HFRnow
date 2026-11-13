@@ -73,19 +73,17 @@ class ParseTest(unittest.TestCase):
         with self.assertRaisesRegex(ledger.LedgerError, "id of a new row"):
             ledger.check_body(text.replace("#700", "#12"), 701)
 
-    def test_label_and_section_must_agree(self):
+    def test_the_section_alone_decides_and_the_label_is_never_read(self):
         text = BODIES[0]["body"]
-        self.assertIn("ok", ledger.check_pr(text, ["ledger"], 701))
-        self.assertEqual(ledger.check_pr("Closes #1\n", ["type: chore"]), "ledger: no entry")
-        with self.assertRaisesRegex(ledger.LedgerError, "lacks the label"):
-            ledger.check_pr(text, ["type: chore"], 701)
-        with self.assertRaisesRegex(ledger.LedgerError, "no `### Ledger` section"):
-            ledger.check_pr("Closes #1\n", ["ledger"])
+        self.assertIn("ok", ledger.check_pr(text, 701))  # no label anywhere: a section is enough (#826)
+        self.assertEqual(ledger.check_pr("Closes #1\n"), "ledger: no entry")
+        with self.assertRaisesRegex(ledger.LedgerError, "unknown kind"):
+            ledger.check_pr(text.replace("```changelog", "```nope"), 701)  # a section that does not parse still fails
 
     def test_crlf_bodies_parse(self):
         crlf = BODIES[0]["body"].replace("\n", "\r\n")
         self.assertEqual(ledger.check_body(crlf, 701), 1)
-        self.assertEqual(ledger.check_pr(crlf, ["ledger"], 701), "ledger body: 1 block(s) ok")
+        self.assertEqual(ledger.check_pr(crlf, 701), "ledger body: 1 block(s) ok")
 
     def test_issue_number_falls_back_to_the_pr(self):
         self.assertEqual(ledger.issue_number("Refs #12\n", 5), 12)
@@ -152,6 +150,13 @@ class StewardTest(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             code = ledger.main(list(argv), self.layout)
         return code, out.getvalue()
+
+    def test_cli_check_body_ignores_labels(self):
+        path = self.tmp / "body.md"
+        path.write_text(BODIES[0]["body"], encoding="utf-8")
+        self.assertEqual(self.run_main("check-body", "--pr", "701", "--file", str(path), "--labels", "type: chore")[0], 0)  # no `ledger` label
+        path.write_text("Closes #1\n", encoding="utf-8")
+        self.assertEqual(self.run_main("check-body", "--file", str(path), "--labels", "ledger")[0], 0)  # inert label, no section
 
     def test_a_batch_of_three_folds_and_passes_the_check(self):
         res = ledger.plan(BODIES, self.layout, write=True)
@@ -242,9 +247,12 @@ class StewardTest(unittest.TestCase):
         self.assertEqual(res.folded, [730])
         self.assertEqual(res.notes, [(730, "H.1 decision 2, line ~277: replace the sentence.")])
 
-    def test_pending_selects_merged_ledger_prs_not_done(self):
-        issues = [issue_obj(BODIES[0]), issue_obj(BODIES[1], labels=("ledger", "ledger: done")),
-                  issue_obj(BODIES[2], merged=False), {"number": 9, "body": "x", "labels": [{"name": "ledger"}]}]
+    def test_pending_selects_merged_prs_by_section_not_label_and_skips_done(self):
+        issues = [issue_obj(BODIES[0], labels=()),  # section, no label: selected
+                  issue_obj(BODIES[1], labels=("ledger", "ledger: done")),
+                  issue_obj(BODIES[2], merged=False),
+                  {"number": 8, "body": "Closes #1\n", "labels": [{"name": "ledger"}], "pull_request": {"merged_at": "2026-11-07T00:00:00Z"}},  # label, no section: inert
+                  {"number": 9, "body": body(("changelog", CL)), "labels": []}]  # an issue, not a PR
         self.assertEqual([p["number"] for p in ledger.pending(issues)], [701])
         self.assertEqual(ledger.pending(issues)[0]["merged_at"], "2026-11-07T00:00:00Z")
         self.assertEqual([p["number"] for p in ledger.pending(issues, [702, 701])], [701, 702])  # --prs: whatever the label
@@ -252,6 +260,12 @@ class StewardTest(unittest.TestCase):
             ledger.pending(issues, [703])  # not merged
         with self.assertRaises(ledger.LedgerError):
             ledger.pending(issues, [999])
+
+    def test_fetch_pending_does_not_filter_on_the_label(self):
+        page = [issue_obj(BODIES[0], labels=()), issue_obj(BODIES[1], labels=("ledger: done",))]
+        with mock.patch.object(ledger, "gh", return_value=json.dumps(page)) as g:
+            self.assertEqual([p["number"] for p in ledger.fetch_pending()], [701])
+        self.assertFalse(any("labels=" in str(a) for a in g.call_args.args))
 
     def test_cli_fold_prs_dry_run_apply_and_exit_codes(self):
         path = self.tmp / "issues.json"

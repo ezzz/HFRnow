@@ -55,6 +55,19 @@ def parse_command(body: str) -> tuple[str, str | None] | None:
     return None
 
 
+def claim_note(labels: set[str]) -> str | None:
+    """The note a successful claim gets when the issue's status says it should not be coded yet (#835)."""
+    if "status: blocked" in labels:
+        return ("Claimed, but note: this issue is `status: blocked`. Check what its `### Blocked by` section names "
+                "before writing code.")
+    if "status: on-hold" in labels:
+        return ("Claimed, but note: this issue is `status: on-hold`: a decision holds it (milestone not open, "
+                "operator's call), not a dependency. Do not code it until that decision changes.")
+    if "status: needs-decision" in labels:
+        return "Claimed, but note: this issue is `status: needs-decision`: a product decision is missing. Do not code it yet."
+    return None
+
+
 def replay(comments: list[dict]) -> ClaimState:
     """Claim state after `comments` (GitHub REST issue comments, oldest first)."""
     state = ClaimState()
@@ -228,8 +241,8 @@ def sync_issue() -> int:
             reply = "Claim refused: the session id must look like `cloud/c12-sonnet`, `mac/M1` or `human/<login>`."
         elif state.holder != command[1]:
             reply = f"Claim refused: this issue is claimed by `{state.holder}`. Ask it to `/release`, or the maintainer."
-        elif "status: blocked" in labels:
-            reply = "Claimed, but note: this issue is `status: blocked`. Check its dependencies before writing code."
+        else:
+            reply = claim_note(labels)
     if reply:
         api(f"issues/{number}/comments", "POST", {"body": reply})
     rerun_pr_checks(number)

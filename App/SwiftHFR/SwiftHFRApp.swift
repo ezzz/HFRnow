@@ -17,8 +17,12 @@ struct SwiftHFRApp: App {
     @State private var general: GeneralSettingsModel
     /// The "Thème" settings: appearance and colours of every screen and of the reader (LOT-121).
     @State private var theme: ThemeSettingsModel
+    /// The seasonal themes (LOT-166): Noël soft over the "Thème" settings, its window and its arrival.
+    @State private var seasonal = SeasonalThemeModel(store: UserDefaultsSettingsStore())
     /// The optional Face ID / code lock, one for every scene (LOT-173).
     @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
+    /// The "Revenir à l'icône précédente ?" question once a seasonal icon's dates are over (#730).
+    @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -42,12 +46,16 @@ struct SwiftHFRApp: App {
                 .environment(legacyImport)
                 .environment(general)
                 .environment(appLock)
+                .environment(seasonal)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
-                .appTheme(theme)
+                .appTheme(theme, seasonal: seasonal.activeTheme)
+                // Snow over the screens, under the lock; the arrival alert waits until nothing covers them (LOT-166).
+                .seasonalDecorations(seasonal, isCovered: { appLock.isCovered })
                 // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
                 .appLockCover(appLock)
+                .appIconSeasonAlert(iconSeason)
                 // The legacy import first (LOT-158), so the accounts it takes over are in the store; then what iCloud Keychain
                 // brought (LOT-173: a new device imports its accounts there); then the stored accounts and their sessions, once
                 // per launch (LOT-081).
@@ -77,6 +85,10 @@ struct SwiftHFRApp: App {
                 // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
                 .onChange(of: scenePhase, initial: true) { _, phase in
                     if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
+                    // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
+                    if phase == .active { seasonal.sceneDidBecomeActive() }
+                    // Crossing objects wait for foreground time only (THEMES.md §4 rule 4).
+                    seasonal.crossings.foregroundChanged(active: phase == .active)
                 }
         }
     }

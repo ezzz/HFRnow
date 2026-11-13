@@ -8,11 +8,12 @@ the milestone boards without an LLM re-deriving them ([#368](https://github.com/
 | `lots_from_md.py` | Derives `lots.json` from [LOTS.md](../../docs/LOTS.md) (the plan): `python3 tooling/roadmap/lots_from_md.py` |
 | `lots.json` | Generated: the lots as data (scope, module, deps, routing, issue). Never edited by hand |
 | `sync_state.py` | Builds `state.json` from the tracker (`--fetch` uses `gh api`, or give it the saved JSON of `list_issues` and `list_pull_requests`) |
-| `state.json` | Generated: closed, ready, claimed, external issues, open and merged lot PRs, capture blockers |
+| `state.json` | Generated: closed, ready, claimed, external, on-hold and needs-decision issues, open and merged lot PRs, capture blockers |
 | `generate.py` | Milestone membership (M1–M4) and the state of each lot; writes `milestones.json` |
 | `render.py` | Renders the board comments for #166 and #324 |
-| `unblocked.py` | After a merge: the lots whose dependencies are now all done |
-| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (`status: blocked` only), missing "Done in" closures, `status:*` labels left on closed issues (removed, counted), reports (including the blocked lots gated only by an open capture, every lot dependency done) |
+| `unblocked.py` | After a merge: the lots whose dependencies are now all done (an M5 lot while M5 is closed and a `status: on-hold` lot are skipped) |
+| `hygiene.py` | Tracker sweep, dry-run by default (`--apply` does the routine part): unblocks (an issue whose single status is `status: blocked` and whose every `### Blocked by` line holds only `#n` (separators and a short id note such as `(LOT-057)` allowed), all closed; a line with other text keeps it blocked; never `status: on-hold`), `status: claimed` (and the other `status:` labels dropped) on an open issue cited by `Closes`/`Refs` of an open PR (#826; `type: roadmap` trackers, held M5 lots and `status: on-hold`/`needs-decision` issues excepted: reported only), missing "Done in" closures, `status:*` labels left on closed issues (removed, counted), reports (claims with no open PR and no comment for 72 h are listed, never released; including the blocked lots gated only by an open capture, every lot dependency done; the `status: blocked` issues without a `### Blocked by` section; the M5 lots to relabel `status: on-hold`) |
+| `classify_blocked.py` | Dry run of #835 part 3: one outcome per open `status: blocked` issue (`on-hold`, `blocked` with its `### Blocked by` lines, `ready`, `needs-decision`), as a Markdown table and a JSON plan; reads the tracker, writes nothing to it |
 | `../docs/fold.py` | Folds the fragments of `docs/changelog-legacy.d/` and `docs/migration/gap.d/` into `docs/CHANGELOG-LEGACY.md` and the GAP report, regenerates the H.1 lists and the Counts table (`--check` is the Docs consistency step, `--dry-run` writes nothing). Tests: `scripts/tests/test_docs_fold.py` ([#612](https://github.com/ezzz/HFRnow/issues/612)) |
 | `weekly/build.py`, `weekly/progress.py`, `weekly/counts.py`, `weekly/shot.js` | The weekly 10-slide deck (French), below: `build.py OUTDIR` fetches the tracker and writes HTML, `shot.js OUTDIR` renders 2880×1620 JPEGs with Playwright and checks them. Delivered to the maintainer, never posted |
 
@@ -35,7 +36,7 @@ python3 tooling/roadmap/hygiene.py             # daily sweep (add --apply for th
 python3 tooling/docs/fold.py                   # daily: fold the GAP and changelog fragments, then open one docs-only PR (merged on green CI, no adversarial review; hygiene.py reports and, with --apply, runs it)
 ```
 
-M1/M2 membership is hand-kept in `generate.py`, and the whole lots moved to M5 in `m5.py`; the (b) halves of the splits are the lots of the `## M5 · UX evolutions` section of `docs/LOTS.md`. M3 is Phase 3 minus M1, M4 the rest (M4 = validated legacy parity, M5 = evolutions, operator 2026-11-02). The sweep never unblocks an M5 lot: M5 opens by the orchestrator's decision.
+M1/M2 membership is hand-kept in `generate.py`, and the whole lots moved to M5 in `m5.py`; the (b) halves of the splits are the lots of the `## M5 · UX evolutions` section of `docs/LOTS.md`. M3 is Phase 3 minus M1, M4 the rest (M4 = validated legacy parity, M5 = evolutions, operator 2026-11-02). The sweep never unblocks an M5 lot: M5 opens by the orchestrator's decision (`m5.M5_OPEN`), so while it is closed every M5 lot is `status: on-hold` and the sweep reports one that is not (#835).
 
 Owner: `cloud/docs-steward` (see #368).
 
