@@ -47,6 +47,10 @@ struct RowPillHostedTests {
         }
         guard frames.count >= 2 else { return nil }
         try? await Task.sleep(for: .milliseconds(300))
+        window.layoutIfNeeded()
+        // Read again: a late re-layout would move the cells.
+        frames = cells(in: host.view).map { $0.convert($0.bounds, to: window) }.sorted { $0.minY < $1.minY }
+        guard frames.count >= 2 else { return nil }
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -104,8 +108,8 @@ struct RowPillHostedTests {
     @Test("Compact rows (#804, inset 7): the 4 pt gap remains")
     func pillIsInsetInCompactRows() async throws { try await checkGap(density: .compact, dark: false) }
 
-    @Test("Dark, as the iPad Catégories column draws it (#647): the gap keeps the card colour, no base colour under the pill")
-    func darkGapKeepsTheCardColour() async throws {
+    @Test("Dark: the gap keeps the block's colour, no base colour under the pill (#647's device check stays in the PR)")
+    func darkGapKeepsTheBlockColour() async throws {
         try await checkGap(density: .regular, dark: true)
         try await checkGap(density: .compact, dark: true)
     }
