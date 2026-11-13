@@ -97,9 +97,10 @@ enum MPStorageFunctionInfo {
             "Synchronise vos favoris de messages avec vos autres appareils et applications. Ils sont stockés dans le MP de stockage. "
                 + "Désactivée, cette application ne lit ni n'écrit les favoris dans le MP ; rien n'y est supprimé."
         case .mpFlags:
-            "Un MP multiple se lit comme un topic : l'application retient où vous vous êtes arrêté (page et message) "
-                + "et l'affiche dans la liste. La position est stockée dans le MP de stockage. "
-                + "Désactivée, cette application ne lit ni n'écrit ces positions ; rien n'y est supprimé, ni les positions des autres applications."
+            "Affiche dans la liste des MP multiples la position de lecture (page) enregistrée par les autres applications HFR+ "
+                + "dans le MP de stockage. Cette application ne l'écrit pas encore. "
+                + "Désactivée, cette application ne lit pas ces positions ; rien n'y est supprimé, "
+                + "ni les positions des autres applications."
         }
     }
 

@@ -22,9 +22,9 @@ final class MPStorageSyncModel {
         case failed(String)
     }
 
-    /// What a bookmark or blacklist write does (LOT-131, LOT-132 call `writeConsent()` before it).
+    /// What a bookmark or blacklist write does (LOT-131, LOT-132 call `writeConsent(for:)` before it).
     enum WriteConsent: Equatable {
-        /// The account syncs: edit through `edit(_:)`.
+        /// The account syncs: edit through `edit(_:_:)`.
         case sync
         /// The list stays on the device (declined, off, unreadable state).
         case deviceOnly
@@ -166,7 +166,8 @@ final class MPStorageSyncModel {
     static let shippedFunctions: [MPStorageFunction] = [.mpFlags]
 
     /// A function switch of Réglages. Never deletes the section on the forum nor any other client's data: the app only
-    /// stops reading and writing that section (#859).
+    /// stops reading and writing that section (#859). An edit queued before the switch-off is still written at the
+    /// next sync.
     func setFunction(_ function: MPStorageFunction, enabled: Bool) {
         guard states.setFunction(function, enabled: enabled, for: account) else { return }
         record = states.record(for: account)
@@ -198,8 +199,14 @@ final class MPStorageSyncModel {
         return changed
     }
 
-    /// The stored read position of a group conversation (`MPListView.swift:354-373` @ 87fe0d1c), only while `on` and the "dark topic" function is on; nil for a
-    /// one-to-one conversation and for a flag without a page above 0 (legacy's link would hold `(null)`).
+    /// The document for `function`'s reader (LOT-131, LOT-132): nil unless the account is `on` and the function is on.
+    func document(for function: MPStorageFunction) -> MPStorageDocument? {
+        isOn && isEnabled(function) ? document : nil
+    }
+
+    /// The stored read position of a group conversation (`MPListView.swift:354-373` @ 87fe0d1c), only while `on` and the
+    /// "dark topic" function is on; nil for a one-to-one conversation and for a flag
+    /// without a page above 0 (legacy's link would hold `(null)`).
     func flag(for thread: PrivateMessageThread) -> MPStorageMPFlag? {
         guard isOn, isEnabled(.mpFlags), thread.isGroup, let document, let post = thread.summary.topicID?.topic,
               let flag = MPStorageSync.flag(forThread: post, in: document), let page = flag.page, page > 0

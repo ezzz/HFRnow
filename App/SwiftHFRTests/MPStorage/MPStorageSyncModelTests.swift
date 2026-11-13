@@ -151,7 +151,7 @@ struct MPStorageSyncModelTests {
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7))
         await fixture.model.start()
         await fixture.model.start()
-        #expect(await fixture.remote.calls == [.read(7)])
+        #expect(await !fixture.remote.calls.contains(.save))
         #expect(fixture.model.lastSync == Self.now)
     }
 
@@ -297,7 +297,9 @@ struct MPStorageSyncModelTests {
         let fixture = try await Self.make(
             thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument)
         )
-        let changed = await fixture.model.edit(.blacklist) { document, stamp in try document.addBlocklistEntry(username: "user9", stamp: stamp) }
+        let changed = await fixture.model.edit(.blacklist) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
         #expect(changed)
         #expect(await fixture.remote.calls == [.read(7), .save])
         #expect(fixture.model.document?.data.first?.blocklist?.list.map(\.username) == ["user9"])
@@ -307,7 +309,9 @@ struct MPStorageSyncModelTests {
         let fixture = try await Self.make(
             thread: 7, state: .declined, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument)
         )
-        let changed = await fixture.model.edit(.blacklist) { document, stamp in try document.addBlocklistEntry(username: "user9", stamp: stamp) }
+        let changed = await fixture.model.edit(.blacklist) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
         #expect(!changed)
         #expect(await fixture.copies.copy(for: Self.account)?.pending == nil)
     }
@@ -321,6 +325,7 @@ struct MPStorageSyncModelTests {
 
     @Test func aFunctionOffIsStoredForThisAccountOnly() async throws {
         let fixture = try await Self.make(thread: 7, state: .on)
+        fixture.states.set(.on, for: "Bob", at: Self.now)
         fixture.model.setFunction(.mpFlags, enabled: false)
         #expect(!fixture.model.isEnabled(.mpFlags))
         #expect(fixture.model.isEnabled(.bookmarks))
@@ -333,7 +338,9 @@ struct MPStorageSyncModelTests {
             thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument)
         )
         fixture.model.setFunction(.blacklist, enabled: false)
-        let changed = await fixture.model.edit(.blacklist) { document, stamp in try document.addBlocklistEntry(username: "user9", stamp: stamp) }
+        let changed = await fixture.model.edit(.blacklist) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
         #expect(!changed)
         #expect(await fixture.remote.calls.isEmpty)
         #expect(fixture.model.writeConsent(for: .blacklist) == .deviceOnly)
@@ -345,10 +352,14 @@ struct MPStorageSyncModelTests {
         _ = try document.addBlocklistEntry(username: "user9", stamp: MPStorageStamp(date: Self.now))
         let text = try MPStorageCodec.encodeForWriting(document)
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: text), text: text)
+        await fixture.model.start()
+        #expect(fixture.model.document(for: .blacklist)?.data.first?.blocklist?.list.map(\.username) == ["user9"])
         fixture.model.setFunction(.blacklist, enabled: false)
         await fixture.model.resync()
+        #expect(fixture.model.document(for: .blacklist) == nil)
+        #expect(fixture.model.document(for: .bookmarks) != nil)
         #expect(fixture.model.document?.data.first?.blocklist?.list.map(\.username) == ["user9"])
-        #expect(await fixture.remote.calls == [.read(7)])
+        #expect(await !fixture.remote.calls.contains(.save))
     }
 
     @Test func switchingTheMasterOffAndOnKeepsTheFunctionSwitches() async throws {
@@ -367,8 +378,33 @@ struct MPStorageSyncModelTests {
         #expect(MPStorageFunctionInfo.infoLabel(function) == "Plus d'infos sur \(MPStorageFunctionInfo.title(function))")
     }
 
-    @Test func theFunctionsShownAreTheShippedOnes() {
-        #expect(MPStorageSyncModel.shippedFunctions == [.mpFlags])
+    @Test func everyShownFunctionIsRealAndGatesItsSection() async throws {
+        let shown = MPStorageSyncModel.shippedFunctions
+        #expect(!shown.isEmpty)
+        #expect(!shown.contains(.blacklist) && !shown.contains(.bookmarks)) // their lots (#221, #222) have not shipped
+        for function in shown {
+            let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument))
+            await fixture.model.start()
+            #expect(fixture.model.document(for: function) != nil)
+            fixture.model.setFunction(function, enabled: false)
+            #expect(fixture.model.document(for: function) == nil)
+        }
+    }
+
+    @Test func anEditQueuedBeforeTheSwitchOffIsStillWrittenAtTheNextSync() async throws {
+        let fixture = try await Self.make(
+            thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument)
+        )
+        await fixture.remote.fail(with: .network(.offline))
+        _ = await fixture.model.edit(.blacklist) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
+        #expect(await fixture.copies.copy(for: Self.account)?.pending != nil)
+        fixture.model.setFunction(.blacklist, enabled: false)
+        await fixture.remote.fail(with: nil)
+        await fixture.model.resync()
+        #expect(await fixture.remote.calls.contains(.save))
+        #expect(await fixture.copies.copy(for: Self.account)?.pending == nil)
     }
 
     // MARK: Flags

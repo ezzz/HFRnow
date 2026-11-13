@@ -3,9 +3,12 @@ import Foundation
 /// Reads and writes the per-account MPStorage sync records (ADR 0013 §7) in the app's settings store: the `UserDefaults`
 /// mirror, which `SyncedSettingsStore` copies to iCloud once `keys(for:)` are registered with `syncKeys(_:)`.
 ///
-/// The value is a JSON string `{"decidedAt":"<ISO 8601>","state":"<state>"}`, keys sorted. A value this build cannot read
-/// (another shape, a state added by a newer build) is **unreadable**: `record(for:)` answers nil, and nothing but an
-/// explicit `set` replaces it. A `set` keeps the functions switched off (#859).
+/// The value is a JSON string `{"decidedAt":"<ISO 8601>","state":"<state>"}`, keys sorted, plus
+/// `"disabled":["<function>",…]` only while a function is off (#859): absent or empty = every function on, an
+/// unknown name is kept, it syncs with the state. A build without #859 ignores `disabled` and its master toggle
+/// rewrites the record without it (ADR 0013 §7). A value this build cannot read (another shape, a state added by a
+/// newer build) is **unreadable**: `record(for:)` answers nil, and nothing but an explicit `set` replaces it. A
+/// `set` keeps the functions switched off (#859).
 public struct MPStorageSyncStateStore: Sendable {
     /// The prefix of every record key.
     public static let keyPrefix = "mpstorage."
