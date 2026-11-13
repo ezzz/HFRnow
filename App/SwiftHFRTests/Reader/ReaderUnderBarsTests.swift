@@ -24,6 +24,7 @@ struct ReaderUnderBarsTests {
         window.frame = CGRect(x: 0, y: 0, width: 390, height: 800)
         window.rootViewController = host
         window.isHidden = false
+        defer { window.isHidden = true }
         host.view.layoutIfNeeded()
         for _ in 0..<50 where (seen.insets?.bottom ?? 0) < 80 { try await Task.sleep(for: .milliseconds(20)) }
         let insets = try #require(seen.insets)

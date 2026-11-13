@@ -31,5 +31,7 @@ struct ReaderUnderBars<Content: View>: View {
         GeometryReader { proxy in
             content(proxy.safeAreaInsets).ignoresSafeArea(edges: .vertical)
         }
+        // Bars and banners only: the keyboard (an open reply composer) must not move the page's insets, as before.
+        .ignoresSafeArea(.keyboard)
     }
 }
