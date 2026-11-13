@@ -71,12 +71,14 @@ struct ReaderSettingsWatchTests {
             var changes = 0
             watch.start(settings(values)) { changes += 1 }
             for _ in 0..<50 { await Task.yield() }
+            // Not `== 1`: the notification is process-wide, another test may post while this one is parked.
+            let before = changes
             values.swipesPages = false
             NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: nil)
             watch.stop()
             for _ in 0..<50 { await Task.yield() }
             #expect(watch.swipesPages)
-            #expect(changes == 1)
+            #expect(changes == before)
         }
     }
 
