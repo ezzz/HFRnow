@@ -331,7 +331,8 @@ final class MessageListModel {
     }
 
     /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
-    /// later load may have made stale (a row since read must not take a second one off the badge, #762).
+    /// later load may have made stale (a row since read must not take a second one off the badge, #762). Off the page, the
+    /// thread's "opened here" mark is kept by `load`, so the fallback still reads as read.
     private func listed(_ thread: PrivateMessageThread) -> PrivateMessageThread {
         loader.value?.threads.first { $0.id == thread.id } ?? thread
     }
@@ -353,8 +354,11 @@ final class MessageListModel {
             if case .notAuthenticated = error { selected = nil }
             return
         }
-        // Threads opened while this load was running were not in its answer: they stay read until the next load.
-        openedThreads = openedThreads.filter { $0.value >= mine }
+        // Threads opened while this load was running were not in its answer: they stay read until the next load. A thread the
+        // answer does not list (another page, deleted) stays read too: its reader may still be open on the tap's value, and the
+        // badge's -1 / +1 must not take that stale value for the row (#762).
+        let answered = Set(loader.value?.threads.map(\.id) ?? [])
+        openedThreads = openedThreads.filter { $0.value >= mine || !answered.contains($0.key) }
         markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
         if loader.value == .signedOut { selected = nil }
