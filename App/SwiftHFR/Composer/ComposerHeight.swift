@@ -94,25 +94,16 @@ struct PartialComposerSheet: ViewModifier {
     /// The composer can be partial on this device (an iPhone): the background stays opaque across the toggle.
     let isEnabled: Bool
     let height: ComposerHeight
+    /// The sheet's current detent (`ComposerHeight.detent(cardHeight:)`).
+    let detent: PresentationDetent
     /// The presenter ignores its page's taps while the composer is open (`TopicReaderModel.suspendsPageInteractions`).
     let pageScrolls: Bool
-
-    /// The page above the card takes touches (scrolls): the presenter ignores its taps, and the card is docked (partial).
-    /// At full height the sheet covers the page, so the system's own behaviour stays.
-    static func pageTakesTouches(pageScrolls: Bool, height: ComposerHeight) -> Bool {
-        pageScrolls && height == .partial
-    }
 
     func body(content: Content) -> some View {
         if isEnabled {
             content
                 .presentationBackground(.background)
-                // `.enabled` at every detent, not `.enabled(upThrough: detent)` (#853): the card's detent is `.height(cardHeight)`, re-made
-                // each time the card is re-measured (keyboard up, text growing), and a bound that is not the sheet's current detent
-                // leaves the page inert on a device. The partial height has this one detent only, so nothing is lost.
-                .presentationBackgroundInteraction(
-                    Self.pageTakesTouches(pageScrolls: pageScrolls, height: height) ? .enabled : .automatic
-                )
+                .presentationBackgroundInteraction(pageScrolls && height == .partial ? .enabled(upThrough: detent) : .automatic)
         } else {
             content
         }

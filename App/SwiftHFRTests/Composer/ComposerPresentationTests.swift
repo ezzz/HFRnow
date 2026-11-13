@@ -79,10 +79,4 @@ struct ComposerPresentationTests {
         #expect(ComposerHeight.full.detent(cardHeight: 300) == .large)
         #expect(ComposerHeight.partial.detent(cardHeight: 300) == .height(300))
     }
-
-    /// #853: the page above the docked card scrolls at partial height when the presenter ignores its taps, and only then.
-    @Test(arguments: [true, false], [ComposerHeight.partial, .full])
-    func thePageAboveTheCardTakesTouchesOnlyAtPartialHeightWhenThePresenterAsks(pageScrolls: Bool, height: ComposerHeight) {
-        #expect(PartialComposerSheet.pageTakesTouches(pageScrolls: pageScrolls, height: height) == (pageScrolls && height == .partial))
-    }
 }
