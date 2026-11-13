@@ -64,7 +64,7 @@ struct TopicFilterTests {
 
     // R06 and R603d: a sub-forum's own page names its `subcat` in the "new topic" link; the category page does not (R09).
     private static let subforum = TopicSource.subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC")
-    private nonisolated static let newTopicWithSubcat = "/message.php?config=hfr.inc&cat=13&sond=0&p=1&subcat=432&dest=&subcatgroup=0"
+    nonisolated private static let newTopicWithSubcat = "/message.php?config=hfr.inc&cat=13&sond=0&p=1&subcat=432&dest=&subcatgroup=0"
 
     private func subforumFake(newTopicPath: String? = newTopicWithSubcat) -> FakeDataSource {
         let fake = FakeDataSource()
