@@ -46,6 +46,7 @@ struct TopicListView: View {
                 }
             }
         }
+        .densityListMargins()
         .navigationTitle(model.source.title)
         .navigationBarTitleDisplayMode(.inline)
         .seasonalScrollTracking()
@@ -247,6 +248,7 @@ struct TopicListView: View {
                 .accessibilityLabel(group.isCollapsed ? "Déplier \(title)" : "Plier \(title)")
             }
         }
+        .densityHeaderMargin()
     }
 
     @ViewBuilder

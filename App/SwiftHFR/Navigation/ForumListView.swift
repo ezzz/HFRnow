@@ -14,12 +14,13 @@ struct ForumListView: View {
                 // Noël soft piles a little snow on the card's top edge, in the section header above it (LOT-166).
                 SeasonalSnowCapSection {
                     ForEach(content.sections) { section in
-                        row(section).tag(section.source)
+                        row(section).densityRowMargin().tag(section.source)
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .densityListMargins()
         .seasonalScrollTracking()
         .navigationTitle("Catégories")
         .toolbar {

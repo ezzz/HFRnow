@@ -27,6 +27,7 @@ struct MessageListView: View {
             }
         }
         .listStyle(.insetGrouped) // explicit: the row tint's base colour is the grouped one (#570)
+        .densityListMargins()
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .seasonalScrollTracking()

@@ -22,8 +22,8 @@ struct ForumScopeBar: View {
         Group {
             if let section = scope.section(), section.subforumCount > 0 { subforumRow(section) }
             Section {
-                TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter)
-                if let note { Text(note).font(.footnote).foregroundStyle(.secondary) }
+                TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter).densityRowMargin()
+                if let note { Text(note).font(.footnote).foregroundStyle(.secondary).densityRowMargin() }
             }
         }
     }
@@ -39,6 +39,7 @@ struct ForumScopeBar: View {
         }
         .font(.footnote)
         .foregroundStyle(.secondary)
+        .densityRowMargin()
     }
 
     /// Why Favoris, Suivis and Lus cannot be chosen: legacy's note when logged out (`MainWindow.swift:699-706` @ 87fe0d1c), or
