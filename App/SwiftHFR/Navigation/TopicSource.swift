@@ -31,11 +31,13 @@ extension TopicSource {
     /// A forum's list (category or sub-forum), as opposed to the flags and the favourites.
     var isForumList: Bool { isPaged }
 
-    /// A category's own list takes the Tous / Favoris / Suivis / Lus filter (`owntopic`, R2); a sub-forum opened from its link
-    /// does not, as the link carries no `subcat` id (`R603d` shows `subcat=<s>` works; where the id comes from is pending capture).
+    /// A category's list and a sub-forum's take the Tous / Favoris / Suivis / Lus filter (`owntopic`, R2). A sub-forum is
+    /// filtered with its `subcat`, which only its own page names (`SubforumTarget`, `R603d`), so its picker waits for that page.
     var supportsFlagFilter: Bool {
-        if case .forum = self { return true }
-        return false
+        switch self {
+        case .forum, .subforum: true
+        case .flagged, .favorites: false
+        }
     }
 
     /// The two lists the favourites options apply to.
