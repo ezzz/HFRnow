@@ -23,9 +23,9 @@ extension ReaderWebController {
         scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x, y: offsetY)
     }
 
-    /// The content position at the lower edge of the top bars (`ReaderScrollGeometry.readingTop`), in the page's own points
-    /// whatever the pinch zoom: the scroll view counts them `zoomScale` times larger and the next document opens unzoomed, so
-    /// a position kept across a reload is the page's, not the scroll view's (#587).
+    /// The content position at the lower edge of the top bars (`ReaderScrollGeometry.readingTop`), in CSS pixels: the scroll
+    /// view counts a pinch-zoomed page in points `zoomScale` times larger (its bars' inset is not scaled), while
+    /// `window.scrollTo`, which restores it after a refresh, takes CSS pixels at any scale (#587).
     var readingTop: CGFloat {
         let top = ReaderScrollGeometry.readingTop(offsetY: webView.scrollView.contentOffset.y, obscuredTop: obscuredInsets.top)
         return ReaderScrollGeometry.layoutY(readingTop: top, zoomScale: webView.scrollView.zoomScale)
