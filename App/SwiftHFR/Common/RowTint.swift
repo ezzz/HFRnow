@@ -48,7 +48,8 @@ private struct RowPill: ViewModifier {
     @Environment(\.listDensity) private var density
 
     func body(content: Content) -> some View {
-        content.background {
+        // Full width, leading-aligned, so the pill spans the row whatever the title's length (a hugging row gave a short pill).
+        content.frame(maxWidth: .infinity, alignment: .leading).background {
             if let tint {
                 let edge = RowTint.overflow(isSuperFavorite: isSuperFavorite, insets: density.rowInsets)
                 tint.padding(.top, -edge.top).padding(.leading, -edge.leading)

@@ -17,7 +17,7 @@ struct RowPillHostedTests {
     /// colour scheme, the rows on the density's `rowInsets` as the topic lists have them; returns the window image and the
     /// frames of the two cells in it.
     private func render(
-        useListRowBackground: Bool, density: ListDensity = .regular, dark: Bool = false
+        useListRowBackground: Bool, density: ListDensity = .regular, dark: Bool = false, shortRow: Bool = false
     ) async -> (UIImage, [CGRect])? {
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene else { return nil }
         let tint = RowTint(tint: .red, weight: 4)
@@ -25,7 +25,7 @@ struct RowPillHostedTests {
             if useListRowBackground {
                 row("Ligne").listRowInsets(density.rowInsets).listRowBackground(tint)
             } else {
-                row("Ligne").listRowInsets(density.rowInsets).rowPill(tint)
+                (shortRow ? AnyView(Text("Ligne")) : AnyView(row("Ligne"))).listRowInsets(density.rowInsets).rowPill(tint)
             }
             row("Simple").listRowInsets(density.rowInsets)
         }
@@ -112,6 +112,16 @@ struct RowPillHostedTests {
     func darkGapKeepsTheBlockColour() async throws {
         try await checkGap(density: .regular, dark: true)
         try await checkGap(density: .compact, dark: true)
+    }
+
+    @Test("A row with a short title still gets a pill spanning the block, 4 pt short of its trailing edge (#803)")
+    func pillSpansAShortRow() async throws {
+        for density in [ListDensity.regular, .compact] {
+            let (image, frames) = try #require(await render(useListRowBackground: false, density: density, shortRow: true))
+            let tinted = frames[0], plain = frames[1]
+            #expect(isRed(image, CGPoint(x: tinted.maxX - 6, y: tinted.midY)), "the pill reaches the trailing edge minus the gap")
+            #expect(samePixel(image, CGPoint(x: tinted.maxX - 2, y: tinted.midY), CGPoint(x: plain.maxX - 2, y: plain.midY)), "4 pt gap")
+        }
     }
 
     @Test("Control: a listRowBackground tints the row up to the block edge, which the gap test must refuse")
