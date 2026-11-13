@@ -1,9 +1,10 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsPaginationBar, `:926-981`) and of the pager of HFRswift/Swift/ForumSearchView.swift
-// (`:395-432`) @ 2440d79. Differences: legacy drew its own glass capsule, this is the system bottom bar; GAP row pending #545 (LOT-185).
-/// The page controls of a list, as system bottom-bar items (Liquid Glass; on iPhone Duo's cover screen the system moves them
-/// to the side) instead of a hand-built strip with an opaque fill.
+// (`:395-432`) @ 2440d79. Differences: legacy drew its own glass capsule; the iPad sidebar root uses the system bottom bar, the tab bar
+/// root (every iPhone, compact iPad) a glass strip inset above the tab bar (#565); GAP row pending #545 (LOT-185).
+/// The page controls of a list: system bottom-bar items under the iPad sidebar root (Liquid Glass), a glass strip above the tab bar
+/// under the tab bar root (`PagerPlacement`), instead of a hand-built strip with an opaque fill.
 struct PagerToolbar {
     /// The first / previous / next / last page actions; a nil action hides its button (the forum list has no "last").
     struct Step {
@@ -23,7 +24,7 @@ struct PagerToolbar {
         case loading
     }
 
-    /// The system bottom-bar items (regular width: no tab bar, nothing to overlap).
+    /// The system bottom-bar items, for the iPad sidebar root (no tab bar, nothing to overlap).
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .bottomBar) {
@@ -114,6 +115,8 @@ private struct PagerBarModifier: ViewModifier {
                 if let pager { pager.toolbarContent }
             }
         case .inset:
+            // Always attached, with empty content when there is nothing to show: attaching it only when a pager exists would change
+            // the identity of `content` (search focus, list scroll) each time the results or the focus change.
             content.safeAreaBar(edge: .bottom) {
                 if let pager, !hidden { pager.strip.padding(.vertical, 4) }
             }
