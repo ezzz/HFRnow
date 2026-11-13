@@ -113,7 +113,7 @@ struct ReplyComposerView: View {
             onInsert: { insertImage($0) }
         )
         .presentationDetents([detent])
-        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
+        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, pageScrolls: pageScrolls))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
                 isShowingArchive = false
