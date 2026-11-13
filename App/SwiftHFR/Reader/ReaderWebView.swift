@@ -20,3 +20,16 @@ struct ReaderWebView: UIViewRepresentable {
         controller.apply(scrollRequest)
     }
 }
+
+/// Runs the page under the bars (HIG Layout, LOT-186) and hands `content` what they cover. The insets are read where the safe
+/// area still applies: read below `ignoresSafeArea`, a `GeometryReader` reports zero, so the web view got no top or bottom
+/// inset and the first and last lines of a page stayed under the bars (issues #852, #641).
+struct ReaderUnderBars<Content: View>: View {
+    @ViewBuilder let content: (EdgeInsets) -> Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            content(proxy.safeAreaInsets).ignoresSafeArea(edges: .vertical)
+        }
+    }
+}
