@@ -3,7 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (GiphyPanel :2294-2340, SDK picker with confirmation screen) @ 2440d79 (GAP-089).
 // Differences: our own grid over the REST client (LOT-098); notice N1 before the first request (LOT-071); LOT-185 rules: the search
-// bar is a `safeAreaBar` without fill, no hand-made glass.
+// bar is a `safeAreaBar` whose field is system glass (#856), no hand-made fill.
 /// The GIF panel of the reply sheet: trending or search results in a grid, a tap opens a confirmation, "Insérer" posts
 /// `[img]<url>[/img]`. Thin: every rule is in `GifPickerModel`.
 struct GifPickerView: View {
@@ -126,7 +126,9 @@ struct GifPickerView: View {
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 9)
-        .background(.quaternary, in: .rect(cornerRadius: 10))
+        // System glass, not a hand-made fill: it keeps the field legible over any GIF, and the system swaps it for an opaque
+        // surface under Reduce Transparency / Increase Contrast (#856; glass for floating elements, LOT-185).
+        .glassEffect(.regular, in: .capsule)
         .padding(.horizontal, 12).padding(.vertical, 8)
     }
 }
