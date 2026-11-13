@@ -311,7 +311,7 @@ final class MessageListModel {
         case .done(let message):
             sentConfirmation = message
             // Legacy adds one for a row that showed read (`MPListView.swift:536-540` @ 87fe0d1c).
-            if !isUnread(thread) { privateMessageCount?.adjust(by: 1) }
+            if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
             await refresh()
@@ -325,9 +325,15 @@ final class MessageListModel {
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
         // Legacy takes one off the badge for a row that showed unread (`MPListView.swift:497-502` @ 87fe0d1c): once per read.
-        if isUnread(thread) { privateMessageCount?.adjust(by: -1) }
+        if isUnread(listed(thread)) { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
+    }
+
+    /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
+    /// later load may have made stale (a row since read must not take a second one off the badge, #762).
+    private func listed(_ thread: PrivateMessageThread) -> PrivateMessageThread {
+        loader.value?.threads.first { $0.id == thread.id } ?? thread
     }
 
     private func load(page: Int, advancing: Bool = true) async {

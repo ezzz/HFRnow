@@ -130,6 +130,47 @@ struct PrivateMessageBadgeTests {
         #expect(count.latest == 7)
     }
 
+    // Round 2: the reader keeps the thread value of the tap. Open (7 → 6), the list reloads with the row read, then the reader
+    // shows the last page again with that stale value: HFR says 6, so nothing more comes off. Deciding from the argument
+    // instead of the row the list holds fails this test (5).
+    @Test func aStaleThreadValueAfterAReloadTakesNothingMoreOff() async {
+        let count = PrivateMessageCount()
+        count.record(7, ticket: count.ticket())
+        let tapped = messageThread(7, unread: true, pages: 2)
+        let source = FakePrivateMessages()
+        source.handler = { _ in PrivateMessageListPage(threads: [tapped]) }
+        let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages(), privateMessageCount: count)
+        await model.onAppear()
+        model.markOpened(tapped, page: 2, of: 2)
+        #expect(count.latest == 6)
+        source.handler = { _ in PrivateMessageListPage(threads: [messageThread(7, pages: 2)]) }
+        await model.refresh()
+        model.markOpened(tapped, page: 2, of: 2)
+        #expect(count.latest == 6)
+    }
+
+    // The same stale value on "Marquer comme non lu": the list now holds the row read, so HFR's confirmation adds one.
+    // Deciding from the argument (unread) fails this test (6).
+    @Test func aStaleThreadValueAfterAReloadStillAddsOneOnMarkUnread() async {
+        let count = PrivateMessageCount()
+        count.record(7, ticket: count.ticket())
+        let tapped = messageThread(7, unread: true, pages: 2)
+        let source = FakePrivateMessages()
+        source.handler = { _ in PrivateMessageListPage(threads: [tapped]) }
+        let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages(), privateMessageCount: count)
+        await model.onAppear()
+        model.markOpened(tapped, page: 2, of: 2)
+        source.handler = { _ in PrivateMessageListPage(threads: [messageThread(7, pages: 2)]) }
+        await model.refresh()
+        #expect(count.latest == 6)
+        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
+        let reader = TopicReaderModel(
+            target: ReaderTarget(source: .topic(TopicID(category: .privateMessages, topic: 7))), title: "", source: FakeTopicPages()
+        )
+        await model.markUnreadEnded(tapped, in: reader, .done("Le message a été marqué comme non lu avec succès"))
+        #expect(count.latest == 7)
+    }
+
     private func messages(with thread: PrivateMessageThread, count: PrivateMessageCount) -> MessageListModel {
         let source = FakePrivateMessages()
         source.handler = { _ in PrivateMessageListPage(threads: [thread]) }

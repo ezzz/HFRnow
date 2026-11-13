@@ -6,7 +6,8 @@ import Observation
 // unread conversation is opened or one is marked unread (`MPListView.swift:497-502`, `:536-540`). Differences (GAP-004, #762):
 // - topic lists count too: legacy's Swift layer parses their header (`ObjCTopicListParser.m:83-92`) without applying it, only
 //   the ObjC `TopicsTableViewController.m:426-427` does;
-// - topic pages are not counted: legacy reads the 3-cell header of every topic page (`MessagesTableViewController.m:931-944`),
+// - topic pages are not counted: legacy reads the 3-cell header of every topic page (`MessagesTableViewController.m:931-944`,
+//   `OnlineMessagesTableViewController.m:442-453`),
 //   which logged-in public topics carry (R21, R63a) and the captured MP thread pages do not (R123b, RA1, RU2: 2 cells), and
 //   `TopicPage` does not expose it;
 // - the -1 comes when the conversation's last page is shown (the row's own read rule), not on the tap;
