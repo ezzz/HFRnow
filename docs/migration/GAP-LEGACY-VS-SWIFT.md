@@ -64,6 +64,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-038 | Apple category for App Review | Hidden in the ObjC era (audit Q-7). | — | Category 25 hidden logged out and for the review account. | LOT-082 | ported with changes | new UX: spec | a |
 | GAP-039 | AQ list | Plus entry: initiator, relative date, refresh. | AQPlusView.swift:405-441 | AQ feed and badge. | LOT-133 | same | port: ezzz Swift layer | a |
 | GAP-040 | Bookmarks list | Label, author, date; swipe to delete. | BookmarksPlusView.swift:175-218 | Bookmarks synced through MPStorage. | LOT-132 | same | port: ezzz Swift layer | a |
+| GAP-799 | Side margins of the card lists | Fixed wide margins on the inset-grouped lists (~17-20 pt outer system margin + 16 pt inner), whatever the compact mode. | `Favorites.swift:429` @ `87fe0d1c` | Regular: unchanged. Compact: outer margin 10 pt (`contentMargins`) and inner margin 7 pt (rows and section headers) on the inset-grouped lists: Favoris, topic list, Catégories, MP list, profile, archived drafts; forum search gets the outer margin and 7 pt on its result rows (its search form rows keep the system inset). | #799 | UX change | new UX: operator (#799) | b·operator |
 
 ## Reader
 
@@ -272,11 +273,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 38 |
 | ported with changes | 56 |
 | ported with changes (engine only) | 1 |
-| UX change | 48 |
+| UX change | 49 |
 | new | 27 |
 | dropped | 2 |
 | not planned | 3 |
-| **Total** | **175** |
+| **Total** | **176** |
 
 ## Convergence notes
 
@@ -306,14 +307,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (131)
+### GAP rows of type `ported with changes`, `UX change` or `new` (132)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 51 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750 | 25 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750, 799 | 26 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
