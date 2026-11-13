@@ -228,7 +228,7 @@ Rule applied: a **content** preference syncs through iCloud KVS; a **device pres
 | `haptics` | `AppSettingsView.swift:97` | No | None | 1 | **Device-only** | Capability differs (iPad, Mac). |
 | `landscape_mode` (rotation) | `Common.swift:168`, `AppSettingsView.swift:98` | No | None | 1 | **Device-only** | iPhone-specific. |
 | `icon` (alternate app icon) | `AppSettingsView.swift:99` | No | None | 1 | **Device-only** | `setAlternateIconName` runs per device; no icon change under the user. |
-| `icon_previous` (LOT-189, new key: the `icon` an app-chosen dated icon replaced) | none in legacy (new in SwiftHFR, `SettingKey.appIconPrevious`) | No | None | 1 | **Device-only** | Follows `icon`: the dated icon and the one it replaced are this device's. |
+| `icon_previous` (LOT-189, new key: the `icon` that a dated icon the user picked replaced) | none in legacy (new in SwiftHFR, `SettingKey.appIconPrevious`) | No | None | 1 | **Device-only** | Follows `icon`: the dated icon and the one it replaced are this device's. |
 | `icon_revert_asked` (LOT-189, new key: `<icon>:<year>` of the season whose "Revenir à l'icône précédente ?" question was asked) | none in legacy (new in SwiftHFR, `SettingKey.appIconRevertAsked`) | No | None | 1 | **Device-only** | The question is asked once per season on each device that changed its icon. |
 | `auto_theme` (3 system / 0 manual) + `theme` (0 light / 1 dark) | `AppSettingsView.swift:101-102` | No | None | 2 | **iCloud KVS**, one `appearance` picker stored under the legacy keys | Simplification; legacy keys remain the storage shape. |
 | `theme_style` (classic / modern) | `AppSettingsView.swift:103` | No | None | 1 | **iCloud KVS** | Content rendering. |
