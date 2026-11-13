@@ -21,4 +21,11 @@ enum ReaderScrollGeometry {
     static func offsetY(keeping offsetY: CGFloat, from old: CGFloat, to new: CGFloat) -> CGFloat {
         Self.offsetY(readingTop: readingTop(offsetY: offsetY, obscuredTop: old), obscuredTop: new)
     }
+
+    /// The page position, in the page's own layout points (what `window.scrollTo` takes), of a `readingTop` measured in the
+    /// scroll view's points: the scroll view counts them `zoomScale` times larger after a pinch zoom (issue #587).
+    static func layoutY(readingTop: CGFloat, zoomScale: CGFloat) -> CGFloat {
+        guard zoomScale.isFinite, zoomScale > 0 else { return readingTop }
+        return readingTop / zoomScale
+    }
 }

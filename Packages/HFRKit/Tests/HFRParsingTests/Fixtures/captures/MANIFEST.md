@@ -222,6 +222,7 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R335c | `R335c-rest-bucket-favorites.json` | The same for `topics/favorites/` | R57 | 057 |
 | R335d | `R335d-rest-bucket-participated-page2-per-page5.json` | Global `participated` asked with `&page=2&results_per_page=5`: answered like page 1 (`page` 1, the hrefs echo the request); paging is not served | R57 | 057 |
 | R335e | `R335e-rest-bucket-participated-category-page2-per-page5.json` | Flat form `categories/<cat>/topics/participated/&page=2&results_per_page=5` (category aliased `101` in the file and its URL): a `topic` list with no `links`, `page` echoed as 2, every entry returned (2 kept) | R57 | 057 |
+| R830t | `R830t-rest-bucket-participated-stale-session.html` | Global `participated` bucket with user1's `md_user` and `md_id` and a wrong `md_passs` (#830): 200 `text/html`, a `.hop` "Identifiants invalides !", no JSON, no `Set-Cookie` | R57 | 057 |
 | W00 | `W00-login-form-anon.html` | Login page `login.php`: form `form1` fields | W01 (diagnosis) | 043 |
 | W01 | `W01-login-failure.html` | Refused login (user1, stored credentials): `.hop` "Votre mot de passe ou nom d'utilisateur n'est pas valide", refresh to `/`, no cookie | W01 (stands in for W02) | 043 |
 | W03 | `W03-login-success.html` | Login success (user2): "Vérification de votre identification...", refresh to `login_redirection.php`, cookies `md_user`, `md_passs`, `md_id` | W03 | 043, 042, 025 |

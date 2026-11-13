@@ -62,13 +62,69 @@ struct TopicFilterTests {
         #expect(filter.flag == .read)
     }
 
-    @Test func aSubforumHasNoFilterBecauseItsSubcatIsNotKnown() async {
+    // R06 and R603d: a sub-forum's own page names its `subcat` in the "new topic" link; the category page does not (R09).
+    private static let subforum = TopicSource.subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC")
+    nonisolated private static let newTopicWithSubcat = "/message.php?config=hfr.inc&cat=13&sond=0&p=1&subcat=432&dest=&subcatgroup=0"
+
+    private func subforumFake(newTopicPath: String? = newTopicWithSubcat) -> FakeDataSource {
         let fake = FakeDataSource()
+        fake.pathHandler = { _, page in
+            var list = topicPage(page: page)
+            list.newTopicPath = newTopicPath
+            return list
+        }
+        return fake
+    }
+
+    @Test func aSubforumIsFilteredWithTheSubcatItsPageNames() async {
+        let fake = subforumFake()
         let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(1)]))
-        let list = model(.subforum(path: "/hfr/Hardware/minipc/liste_sujet-1.htm", title: "Mini PC"), fake: fake, filter: filter)
+        let list = model(Self.subforum, fake: fake, filter: filter)
+        await list.loadIfNeeded()
+        // The first page is the sub-forum's own, which tells the id; the choice is then asked with it.
+        #expect(fake.requests == ["path:/hfr/Hardware/minipc/liste_sujet-1.htm:1", "topics:13:1:subcat=432:owntopic=3"])
+        #expect(list.offersFilter)
+        #expect(list.loadedFilter == .favorites)
+    }
+
+    @Test func aSubforumChoiceReloadsAndPagesWithItsSubcat() async {
+        let fake = subforumFake()
+        fake.topicHandler = { _, page in
+            var list = topicPage(page: page)
+            list.newTopicPath = Self.newTopicWithSubcat
+            return list
+        }
+        let filter = TopicFilterModel(settings: InMemorySettingsStore())
+        let list = model(Self.subforum, fake: fake, filter: filter)
+        await list.loadIfNeeded()
+        filter.flag = .read
+        await list.onAppear()
+        await list.goToNextPage()
+        filter.flag = .all
+        await list.onAppear()
+        #expect(fake.requests == [
+            "path:/hfr/Hardware/minipc/liste_sujet-1.htm:1", "topics:13:1:subcat=432:owntopic=2",
+            "topics:13:2:subcat=432:owntopic=2", "path:/hfr/Hardware/minipc/liste_sujet-1.htm:1"
+        ])
+    }
+
+    @Test func aSubforumWhosePageNamesNoSubcatOffersNoFilter() async {
+        let fake = subforumFake(newTopicPath: "/hfr/Hardware/nouveau_sujet.htm")
+        let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(1)]))
+        let list = model(Self.subforum, fake: fake, filter: filter)
         await list.loadIfNeeded()
         #expect(fake.requests == ["path:/hfr/Hardware/minipc/liste_sujet-1.htm:1"])
         #expect(!list.offersFilter)
+    }
+
+    @Test func aSubforumLoggedOutStaysOnAll() async {
+        let fake = subforumFake()
+        let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(1)]))
+        let list = model(Self.subforum, fake: fake, filter: filter, loggedIn: false)
+        await list.loadIfNeeded()
+        #expect(fake.requests == ["path:/hfr/Hardware/minipc/liste_sujet-1.htm:1"])
+        #expect(!list.offersFilter)
+        #expect(filter.flag == .favorites)
     }
 
     @Test func aFilteredListShowsEveryRowAsFlagged() async {

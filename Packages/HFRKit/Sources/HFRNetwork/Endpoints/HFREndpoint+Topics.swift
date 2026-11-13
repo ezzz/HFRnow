@@ -4,10 +4,13 @@ import HFRModels
 extension HFREndpoint {
     /// R2: the topic list of a forum (`ObjCForumTopicsLoaderWorker.m:36-89, 128-141`).
     ///
-    /// The query is exactly `config, cat, page, subcat (empty), owntopic`. Private messages use `privateMessages(page:)`.
-    public static func topicList(category: CategoryID, filter: TopicListFilter = .all, page: Int = 1) throws -> HTTPRequest {
+    /// The query is exactly `config, cat, page, subcat (empty), owntopic`, or, with `subcategory` (a sub-forum's numeric
+    /// `subcat`), the longer query of `R603d`. Private messages use `privateMessages(page:)`.
+    public static func topicList(
+        category: CategoryID, subcategory: Int? = nil, filter: TopicListFilter = .all, page: Int = 1
+    ) throws -> HTTPRequest {
         try requirePage(page)
-        guard let path = ForumCatalogue.topicListPath(categoryID: category, filter: filter, page: page) else {
+        guard let path = ForumCatalogue.topicListPath(categoryID: category, subcategory: subcategory, filter: filter, page: page) else {
             throw NetworkError.invalidRequest(reason: "private messages have their own list")
         }
         return try .get(url(path: path))

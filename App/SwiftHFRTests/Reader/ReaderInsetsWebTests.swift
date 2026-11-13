@@ -167,6 +167,33 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(abs(controller.readingTop - 1000) <= 1)
     }
 
+    /// Issue #587: the scroll view counts a pinch-zoomed page in points `zoomScale` times larger than `window.scrollTo`'s CSS
+    /// pixels, while the bars' inset is not scaled; a refresh must still reopen at the content the reader was on.
+    @Test func aRefreshAfterAPinchZoomReopensAtTheSameMessage() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.obscuredInsets = bars
+        controller.show(tallDocument(token: 1))
+        #expect(await until { recorder.ready == [1] })
+        #expect(await settled(controller))
+        let scrollView = controller.webView.scrollView
+        #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
+        scrollView.setZoomScale(2, animated: false)
+        #expect(abs(scrollView.zoomScale - 2) < 0.01, "zoomScale: \(scrollView.zoomScale)")
+        // The CSS content at the bars' edge: the scroll view's points under the (unscaled) bar, divided by the zoom. The page's
+        // own `visualViewport.pageTop` is not a usable reference: it does not follow a native `setZoomScale` (read 1000 here).
+        let before = (scrollView.contentOffset.y + controller.obscuredInsets.top) / scrollView.zoomScale
+        #expect(before > 0, "edge: \(before)")
+        controller.show(tallDocument(token: 2, keepsScrollPosition: true))
+        #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+        let scrollY = { [self] in ((try? await evaluate("return window.scrollY;", in: controller)) as? NSNumber)?.doubleValue }
+        let restored = await until(async: { abs((await scrollY() ?? -1) - before) <= 1 }, timeout: .seconds(30))
+        #expect(restored, "restored scrollY, before \(before)")
+        #expect(await settled(controller))
+        let after = await scrollY() ?? -1
+        #expect(abs(after - before) <= 1, "scrollY after load: \(after), before \(before)")
+        #expect(abs(scrollView.zoomScale - 1) < 0.01, "zoomScale after reload: \(scrollView.zoomScale)")
+    }
+
     /// Fable on #662: the restore waits for animation frames, which a hidden page does not draw. No native
     /// call may wait for them, or a reader refreshed while covered and then dropped would never be freed.
     ///
