@@ -34,6 +34,17 @@ struct HFREndpointReadTests {
         #expect(request.body == nil)
     }
 
+    // R603d: a sub-forum is filtered by the category list URL with its `subcat`.
+    @Test(arguments: [
+        (TopicListFilter.favorites, 432, 1, "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=432&owntopic=3"),
+        (TopicListFilter.read, 433, 2, "/forum1.php?config=hfr.inc&cat=13&page=2&subcat=433&owntopic=2"),
+        (TopicListFilter.all, 0, 1, "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=0")
+    ])
+    func topicListOfASubforum(filter: TopicListFilter, subcategory: Int, page: Int, expected: String) throws {
+        let request = try HFREndpoint.topicList(category: .forum(13), subcategory: subcategory, filter: filter, page: page)
+        #expect(request.url.absoluteString == Self.host + expected)
+    }
+
     @Test func topicListDefaultsToFirstPageOfAllTopics() throws {
         let request = try HFREndpoint.topicList(category: .forum(25))
         #expect(request.url.absoluteString == "\(Self.host)/forum1.php?config=hfr.inc&cat=25&page=1&subcat=&owntopic=0")
