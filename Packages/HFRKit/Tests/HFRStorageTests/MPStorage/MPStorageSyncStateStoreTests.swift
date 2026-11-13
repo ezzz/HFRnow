@@ -74,4 +74,60 @@ import Testing
         let long = String(repeating: "a", count: SyncedListsStore.maximumKeyLength)
         #expect(MPStorageSyncStateStore.keys(for: ["Alice", long, ""]) == ["mpstorage.alice"])
     }
+
+    // MARK: One switch per function (#859)
+
+    @Test func everyFunctionIsOnByDefault() {
+        let store = MPStorageSyncStateStore(settings: InMemorySettingsStore())
+        store.set(.on, for: "Alice", at: Self.date)
+        for function in MPStorageFunction.allCases {
+            #expect(store.record(for: "Alice")?.isEnabled(function) == true)
+        }
+    }
+
+    @Test func aFunctionOffIsStoredPerAccountAndKeepsTheStateAndDate() {
+        let settings = InMemorySettingsStore()
+        let store = MPStorageSyncStateStore(settings: settings)
+        store.set(.on, for: "Alice", at: Self.date)
+        #expect(store.setFunction(.mpFlags, enabled: false, for: "alice"))
+        #expect(store.record(for: "Alice")?.isEnabled(.mpFlags) == false)
+        #expect(store.record(for: "Alice")?.isEnabled(.bookmarks) == true)
+        #expect(store.record(for: "Alice")?.state == .on)
+        #expect(store.record(for: "Alice")?.decidedAt == Self.date)
+        #expect(store.record(for: "Bob")?.isEnabled(.mpFlags) == true)
+        #expect(settings.rawValue(forKey: "mpstorage.alice")
+            == .string(#"{"decidedAt":"2027-01-15T08:00:00Z","disabled":["mpFlags"],"state":"on"}"#))
+    }
+
+    @Test func aStateChangeKeepsTheFunctionsOff() {
+        let store = MPStorageSyncStateStore(settings: InMemorySettingsStore())
+        store.set(.on, for: "Alice", at: Self.date)
+        store.setFunction(.blacklist, enabled: false, for: "Alice")
+        store.set(.off, for: "Alice", at: Self.date)
+        store.set(.on, for: "Alice", at: Self.date)
+        #expect(store.record(for: "Alice")?.isEnabled(.blacklist) == false)
+    }
+
+    @Test func switchingTheLastFunctionBackOnWritesTheOriginalShape() {
+        let settings = InMemorySettingsStore()
+        let store = MPStorageSyncStateStore(settings: settings)
+        store.set(.on, for: "Alice", at: Self.date)
+        store.setFunction(.bookmarks, enabled: false, for: "Alice")
+        store.setFunction(.bookmarks, enabled: true, for: "Alice")
+        #expect(settings.rawValue(forKey: "mpstorage.alice") == .string(#"{"decidedAt":"2027-01-15T08:00:00Z","state":"on"}"#))
+    }
+
+    @Test func aFunctionNameOfANewerBuildIsKept() {
+        let settings = InMemorySettingsStore(
+            ["mpstorage.alice": .string(#"{"decidedAt":"2027-01-15T08:00:00Z","disabled":["superFavs"],"state":"on"}"#)])
+        let store = MPStorageSyncStateStore(settings: settings)
+        store.setFunction(.mpFlags, enabled: false, for: "Alice")
+        #expect(store.record(for: "Alice")?.disabled == ["mpFlags", "superFavs"])
+    }
+
+    @Test func aFunctionCannotBeSwitchedWhenTheRecordIsUnreadable() {
+        let settings = InMemorySettingsStore(["mpstorage.alice": .bool(true)])
+        #expect(!MPStorageSyncStateStore(settings: settings).setFunction(.mpFlags, enabled: false, for: "Alice"))
+        #expect(settings.rawValue(forKey: "mpstorage.alice") == .bool(true))
+    }
 }

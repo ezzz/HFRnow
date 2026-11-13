@@ -5,7 +5,7 @@ import Foundation
 ///
 /// The value is a JSON string `{"decidedAt":"<ISO 8601>","state":"<state>"}`, keys sorted. A value this build cannot read
 /// (another shape, a state added by a newer build) is **unreadable**: `record(for:)` answers nil, and nothing but an
-/// explicit `set` replaces it.
+/// explicit `set` replaces it. A `set` keeps the functions switched off (#859).
 public struct MPStorageSyncStateStore: Sendable {
     /// The prefix of every record key.
     public static let keyPrefix = "mpstorage."
@@ -41,7 +41,20 @@ public struct MPStorageSyncStateStore: Sendable {
     @discardableResult
     public func set(_ state: MPStorageSyncState, for account: String, at date: Date) -> Bool {
         guard let key = Self.key(for: account),
-              let data = try? Self.encoder.encode(MPStorageSyncRecord(state: state, decidedAt: date)),
+              let data = try? Self.encoder.encode(
+                MPStorageSyncRecord(state: state, decidedAt: date, disabled: record(for: account)?.disabled)),
+              let text = String(data: data, encoding: .utf8)
+        else { return false }
+        settings.setRawValue(.string(text), forKey: key)
+        return true
+    }
+
+    /// Switches one function of the account on or off (#859), keeping its state and date. Returns false, and writes
+    /// nothing, for an empty account key or a record this build cannot read.
+    @discardableResult
+    public func setFunction(_ function: MPStorageFunction, enabled: Bool, for account: String) -> Bool {
+        guard let key = Self.key(for: account), let current = record(for: account),
+              let data = try? Self.encoder.encode(current.setting(function, enabled: enabled)),
               let text = String(data: data, encoding: .utf8)
         else { return false }
         settings.setRawValue(.string(text), forKey: key)

@@ -2,18 +2,23 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (mpStorageSection) @ 87fe0d1c. Differences: the current account's state in
-// words, the creation question asked here when switching on (GAP-181, ADR 0013 §7), "Dernier accès" persisted.
+// words, the creation question asked here when switching on (GAP-181, ADR 0013 §7), "Dernier accès" persisted, one switch
+// per function with an info popover each (#859: legacy has the single `mpstorage_active` switch).
 /// The "Stockage MP" section of Réglages (LOT-130). `model` is the current account's; nil when logged out.
 struct MPStorageSettingsSection: View {
     let model: MPStorageSyncModel?
 
     var body: some View {
-        Section("Stockage MP") {
+        Section {
             if let model {
                 MPStorageSettingsRows(model: model)
             } else {
                 Text("Connectez-vous pour utiliser le stockage MP.").foregroundStyle(.secondary)
             }
+        } header: {
+            Text("Stockage MP")
+        } footer: {
+            if model != nil { Text(MPStorageFunctionInfo.footer) }
         }
     }
 }
@@ -41,6 +46,9 @@ struct MPStorageSettingsRows: View {
             LabeledContent("Dernier accès", value: Self.lastSyncText(model.lastSync))
             Button("Resynchroniser") { Task { await model.resync() } }
                 .disabled(model.status == .working)
+            ForEach(MPStorageSyncModel.shippedFunctions, id: \.self) { function in
+                MPStorageFunctionRow(function: function, model: model)
+            }
         }
         if model.status == .working {
             ProgressView().frame(maxWidth: .infinity)
@@ -63,5 +71,63 @@ struct MPStorageSettingsRows: View {
     /// "Dernier accès": the date of the last successful sync on this device, or "Jamais".
     static func lastSyncText(_ date: Date?) -> String {
         date?.formatted(date: .abbreviated, time: .shortened) ?? "Jamais"
+    }
+}
+
+/// The words of one function: its switch and the popover behind its ⓘ.
+enum MPStorageFunctionInfo {
+    /// Under the section: what MPStorage is, without any pseudo or MP id.
+    static let footer = "Le stockage MP utilise un message privé comme espace de stockage, partagé avec les autres applications HFR+."
+
+    static func title(_ function: MPStorageFunction) -> String {
+        switch function {
+        case .blacklist: "Liste noire partagée"
+        case .bookmarks: "Favoris de messages"
+        case .mpFlags: "MP multiples → dark topic"
+        }
+    }
+
+    /// What it does, what it stores in the MP, what turning it off does.
+    static func explanation(_ function: MPStorageFunction) -> String {
+        switch function {
+        case .blacklist:
+            "Synchronise la liste noire avec vos autres appareils et applications. Elle est stockée dans le MP de stockage. "
+                + "Désactivée, cette application ne lit ni n'écrit la liste noire dans le MP ; rien n'y est supprimé."
+        case .bookmarks:
+            "Synchronise vos favoris de messages avec vos autres appareils et applications. Ils sont stockés dans le MP de stockage. "
+                + "Désactivée, cette application ne lit ni n'écrit les favoris dans le MP ; rien n'y est supprimé."
+        case .mpFlags:
+            "Un MP multiple se lit comme un topic : l'application retient où vous vous êtes arrêté (page et message) "
+                + "et l'affiche dans la liste. La position est stockée dans le MP de stockage. "
+                + "Désactivée, cette application ne lit ni n'écrit ces positions ; rien n'y est supprimé, ni les positions des autres applications."
+        }
+    }
+
+    static func infoLabel(_ function: MPStorageFunction) -> String { "Plus d'infos sur \(title(function))" }
+}
+
+/// One function's switch with its ⓘ.
+struct MPStorageFunctionRow: View {
+    let function: MPStorageFunction
+    let model: MPStorageSyncModel
+    @State private var showsInfo = false
+
+    var body: some View {
+        HStack {
+            Toggle(MPStorageFunctionInfo.title(function), isOn: Binding(
+                get: { model.isEnabled(function) }, set: { model.setFunction(function, enabled: $0) }
+            ))
+            Button { showsInfo = true } label: {
+                Image(systemName: "info.circle")
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(MPStorageFunctionInfo.infoLabel(function))
+            .popover(isPresented: $showsInfo) {
+                Text(MPStorageFunctionInfo.explanation(function))
+                    .padding()
+                    .frame(minWidth: 260, maxWidth: 360)
+                    .presentationCompactAdaptation(.popover)
+            }
+        }
     }
 }
