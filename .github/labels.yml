@@ -44,3 +44,8 @@
 - { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }
 - { name: "beta-test finding",    color: "f9a825", description: "Reported during pre-beta or beta testing on a device; counted for stats" }
 - { name: "moust4ki aka bybifok finding", color: "fbca04", description: "Found by Bybifok (GitHub moust4ki): credit them in the fix" }
+- { name: "m4-review: performance",    color: "bfd4f2", description: "Found by the end-of-M4 performance review (#774)" }
+- { name: "m4-review: quality",        color: "bfd4f2", description: "Found by the end-of-M4 quality review (#775)" }
+- { name: "m4-review: duplicates",     color: "bfd4f2", description: "Found by the end-of-M4 duplicates and refactor review (#836)" }
+- { name: "m4-review: external-audit", color: "bfd4f2", description: "Found by the end-of-M4 audit of outside contributors' lots (#326)" }
+- { name: "m4-review: hig-wwdc",       color: "bfd4f2", description: "Found by the end-of-M4 UI/UX review against the HIG and WWDC24-26 (#866)" }
