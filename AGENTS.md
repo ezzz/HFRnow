@@ -134,6 +134,7 @@ Every issue carries one label per axis:
 
 Credit labels: `moust4ki aka bybifok finding` marks work found by Bybifok; the fix credits them.
 `beta-test finding` marks an issue reported during pre-beta or beta testing on a device (operator, 2026-11-07), kept on the issue for statistics.
+`m4-review: <review>` marks an issue opened by an end-of-M4 review (operator, 2026-11-13): `performance` (#774), `quality` (#775), `duplicates` (#836), `external-audit` (#326), `hig-wwdc` (#866). Each review puts its own label on every issue it opens, so the gaps of each review can be counted, qualified and triaged at the end of M4; it is not a status and does not replace the other axes.
 A new issue takes the origin of what it comes from: a follow-up of a lot (including a Mac check it owes) takes the lot's origin, a capture that of the lot or issue that wants it. `beta-test finding` and `moust4ki aka bybifok finding` usually go with `origin: swift-feedback`; they take `origin: parity` only when the fix is the legacy behaviour at the reference and nothing more, and `origin: legacy-evolution` when they port a later legacy change. Legacy-app issues (`[Legacy …]` titles) carry no origin, except a title that also names SwiftHFR (`[Legacy 4.0.x + SwiftHFR] …`).
 
 **Blocked, on hold, needs a decision** (operator, 2026-11-11, [#835](https://github.com/ezzz/HFRnow/issues/835); harness METHODOLOGY §4 and ADR 0003 amendment of 2026-11-11):
