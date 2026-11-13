@@ -98,7 +98,7 @@ struct RootModelTests {
         #expect(root.selectedDestination == .plus(.search))
     }
 
-    @Test func theMessagesBadgeShowsTheUnreadCountFromTheHomePage() async {
+    @Test func theMessagesBadgeShowsTheCountTheCountingSourceRecorded() async {
         #expect(await model(unread: 3).unreadPrivateMessages == 3)
         #expect(await model(unread: nil, loggedIn: false).unreadPrivateMessages == 0)
         #expect(await model(unread: 0).unreadPrivateMessages == 0)

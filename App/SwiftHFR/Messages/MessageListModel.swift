@@ -90,6 +90,9 @@ final class MessageListModel {
 
     /// MPStorage sync of the current account (LOT-130), for the group rows' flags; nil when logged out.
     let mpStorage: MPStorageSyncModel?
+    /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
+    /// do not need it.
+    private let privateMessageCount: PrivateMessageCount?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -115,9 +118,11 @@ final class MessageListModel {
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         settings: (any SettingsStore)? = nil,
-        mpStorage: MPStorageSyncModel? = nil
+        mpStorage: MPStorageSyncModel? = nil,
+        privateMessageCount: PrivateMessageCount? = nil
     ) {
         self.mpStorage = mpStorage
+        self.privateMessageCount = privateMessageCount
         self.settings = settings
         self.source = source
         self.isLoggedIn = isLoggedIn
@@ -305,6 +310,8 @@ final class MessageListModel {
             if currentReader?.model !== reader { actionFailure = reason }
         case .done(let message):
             sentConfirmation = message
+            // Legacy adds one for a row that showed read (`MPListView.swift:536-540` @ 87fe0d1c).
+            if !isUnread(thread) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
             await refresh()
@@ -317,6 +324,8 @@ final class MessageListModel {
     /// is a local display state only; the next load brings HFR's own state back.
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
+        // Legacy takes one off the badge for a row that showed unread (`MPListView.swift:497-502` @ 87fe0d1c): once per read.
+        if isUnread(thread) { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
     }

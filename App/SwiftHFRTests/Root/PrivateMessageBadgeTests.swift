@@ -1,10 +1,12 @@
+import Foundation
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
 import Testing
 
-/// The Messages badge follows the newest count HFR announced on a list page (#762): legacy rewrites `nb_mp` from every
-/// home and favourites page it parses (`ObjCForumsParser.m:516-525`, `ObjCFavoritesLoaderWorker.m:91-98` @ 87fe0d1c).
+/// The Messages badge follows the newest count HFR announced on a list page, moved by one when a conversation is read or
+/// marked unread here (#762): legacy rewrites `nb_mp` from every home and favourites page it parses (`ObjCForumsParser.m:516-525`,
+/// `ObjCFavoritesLoaderWorker.m:91-98` @ 87fe0d1c) and moves it locally (`MPListView.swift:497-502`, `:536-540`).
 @MainActor
 struct PrivateMessageBadgeTests {
     private func root(_ source: FakeDataSource) -> RootModel {
@@ -67,5 +69,80 @@ struct PrivateMessageBadgeTests {
         _ = count.ticket()
         count.record(5, ticket: earlier)
         #expect(count.latest == 5)
+        // A load in flight when a conversation was read here brings a page from before the read: it must not undo it.
+        let inFlight = count.ticket()
+        count.adjust(by: -1)
+        count.record(5, ticket: inFlight)
+        #expect(count.latest == 4)
+    }
+
+    // Reverting `PrivateMessageCountingSource.forumList` to the page's own count (nil logged out) fails this test: a session
+    // that expired in place (same generation, no root rebuild) kept the old badge, where the home-page badge fell to 0.
+    @Test func aLoggedOutHomePageClearsTheCount() async {
+        let source = FakeDataSource()
+        let state = HomeState()
+        source.forumHandler = { state.page }
+        let root = root(source)
+        await root.forums.loadIfNeeded()
+        #expect(root.unreadPrivateMessages == 7)
+        state.page = ForumListPage(forums: [], isLoggedIn: false, unreadPrivateMessages: nil)
+        await root.forums.reload()
+        #expect(root.unreadPrivateMessages == 0)
+    }
+
+    // #762's scenario: the launch said 7 and the member reads an unread conversation here; no list page loads, and legacy
+    // shows 6 at once. Removing the `adjust(by: -1)` of `markOpened` fails this test.
+    @Test func readingAnUnreadConversationToItsLastPageTakesOneOffOnce() async {
+        let count = PrivateMessageCount()
+        count.record(7, ticket: count.ticket())
+        let thread = messageThread(7, unread: true, pages: 2)
+        let model = messages(with: thread, count: count)
+        await model.onAppear()
+        model.markOpened(thread, page: 1, of: 2)
+        #expect(count.latest == 7)
+        model.markOpened(thread, page: 2, of: 2)
+        #expect(count.latest == 6)
+        model.markOpened(thread, page: 2, of: 2)
+        #expect(count.latest == 6)
+        // A conversation already read takes nothing off.
+        let read = messageThread(8)
+        model.markOpened(read, page: 1, of: 1)
+        #expect(count.latest == 6)
+    }
+
+    // Removing the `adjust(by: 1)` of `markUnreadEnded` fails this test; a row already unread adds nothing.
+    @Test func markingAReadConversationUnreadAddsOne() async {
+        let count = PrivateMessageCount()
+        count.record(6, ticket: count.ticket())
+        let read = messageThread(8)
+        let source = FakePrivateMessages()
+        source.handler = { _ in PrivateMessageListPage(threads: [read]) }
+        let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages(), privateMessageCount: count)
+        await model.onAppear()
+        // The reload after the write fails, so the row stays marked unread: a second confirmation finds it unread.
+        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .offline }
+        let reader = TopicReaderModel(
+            target: ReaderTarget(source: .topic(TopicID(category: .privateMessages, topic: 8))), title: "", source: FakeTopicPages()
+        )
+        await model.markUnreadEnded(read, in: reader, .done("Le message a été marqué comme non lu avec succès"))
+        #expect(count.latest == 7)
+        await model.markUnreadEnded(read, in: reader, .done("Le message a été marqué comme non lu avec succès"))
+        #expect(count.latest == 7)
+    }
+
+    private func messages(with thread: PrivateMessageThread, count: PrivateMessageCount) -> MessageListModel {
+        let source = FakePrivateMessages()
+        source.handler = { _ in PrivateMessageListPage(threads: [thread]) }
+        return MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages(), privateMessageCount: count)
+    }
+}
+
+/// The home page a scripted source answers, changed between loads.
+private final class HomeState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current = ForumListPage(forums: [], isLoggedIn: true, unreadPrivateMessages: 7)
+    var page: ForumListPage {
+        get { lock.withLock { current } }
+        set { lock.withLock { current = newValue } }
     }
 }

@@ -3,7 +3,7 @@ import HFRStorage
 import Observation
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView: selectedTab, mp_badge_enabled, tabbar_minimize_on_scroll) @ 2440d79.
-// Differences: the MP badge comes from the count of the latest list page loaded (GAP-004, #762); the start tab is a setting
+// Differences: the MP badge comes from `PrivateMessageCount` (GAP-004, #762); the start tab is a setting
 // taken from master (GAP-002, UXD).
 /// State shared by the root navigation, whether it is the iPhone tab bar or the iPad sidebar: the selected tab or
 /// destination, the unread private-message badge and the tab-bar setting (LOT-170).
@@ -116,11 +116,12 @@ final class RootModel {
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
     private static func messageList(
-        _ environment: AppEnvironment, store: any SettingsStore, mpStorage: MPStorageSyncModel?
+        _ environment: AppEnvironment, store: any SettingsStore, mpStorage: MPStorageSyncModel?, count: PrivateMessageCount
     ) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage
+            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
+            privateMessageCount: count
         )
     }
 
@@ -153,7 +154,7 @@ final class RootModel {
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource, topicFilter: topicFilter),
             favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options, topicFilter: topicFilter),
-            messages: Self.messageList(environment, store: store, mpStorage: mpStorage),
+            messages: Self.messageList(environment, store: store, mpStorage: mpStorage, count: count),
             search: ForumSearchModel(
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
                 renderOptions: environment.reader.settings.renderOptions, store: store
