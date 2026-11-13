@@ -72,13 +72,12 @@ struct TopicReaderView: View {
             if let controller {
                 // The page runs under the bars and banners (HIG Layout: extend content under the bars, LOT-186); what they cover
                 // is the safe area this full-height reader ignores, handed to the web view.
-                GeometryReader { proxy in
+                ReaderUnderBars { obscured in
                     ReaderWebView(
                         controller: controller, document: model.document, scrollRequest: model.scrollRequest,
-                        obscured: proxy.safeAreaInsets
+                        obscured: obscured
                     )
                 }
-                .ignoresSafeArea(edges: .vertical)
                 .opacity(model.hasShownDocument ? 1 : 0)
                 .accessibilityHidden(!model.hasShownDocument)
                 .simultaneousGesture(pageSwipe, including: settings.swipesPages ? .all : .none)
