@@ -38,7 +38,12 @@ final class TopicReaderModel {
     private(set) var linkedReader: TopicReaderModel?
     /// HFR's confirmation of the reply, edit or delete just sent, shown until dismissed; set only by a confirmed write (LOT-084,
     /// LOT-088).
-    private(set) var replyConfirmation: String?
+    private(set) var replyConfirmation: String? {
+        didSet { confirmationDidChange() }
+    }
+
+    /// Clears a success confirmation by itself after `ConfirmationAutoDismiss.delay` (#864).
+    let confirmationTimer = ConfirmationAutoDismiss()
     /// The message menu on screen; nil when none.
     var presentedMenu: MessageMenu?
     /// Short confirmation of the last menu action ("Lien copié"), shown until cleared.
@@ -327,6 +332,12 @@ final class TopicReaderModel {
     /// Hides the reply confirmation.
     func clearReplyConfirmation() {
         replyConfirmation = nil
+    }
+
+    /// A shown confirmation is a success HFR confirmed (errors never reach it): it goes by itself; the cross is the other way.
+    private func confirmationDidChange() {
+        guard replyConfirmation != nil else { return confirmationTimer.cancel() }
+        confirmationTimer.arm { [weak self] in self?.clearReplyConfirmation() }
     }
 
     /// Shows HFR's sentence for a confirmed write on a message of this page (LOT-088).

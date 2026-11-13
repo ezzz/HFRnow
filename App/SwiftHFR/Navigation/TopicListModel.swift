@@ -86,7 +86,12 @@ final class TopicListModel {
     /// Page of the last load that was asked for; a retry after a failure goes back to it.
     private(set) var requestedPage = 1
     /// HFR's confirmation of the topic just created (LOT-089), shown above the list until hidden.
-    private(set) var sentConfirmation: String?
+    private(set) var sentConfirmation: String? {
+        didSet { confirmationDidChange() }
+    }
+
+    /// Clears a success confirmation by itself after `ConfirmationAutoDismiss.delay` (#864).
+    let confirmationTimer = ConfirmationAutoDismiss()
 
     /// Layout options, collapsed sections and super-favourites of the favourites lists (LOT-124); nil for forum lists.
     let favorites: FavoritesOptionsModel?
@@ -198,6 +203,12 @@ final class TopicListModel {
     /// Hides the confirmation of the topic just created.
     func clearSentConfirmation() {
         sentConfirmation = nil
+    }
+
+    /// A shown confirmation is a success HFR confirmed: it goes by itself; the cross is the other way (#864).
+    private func confirmationDidChange() {
+        guard sentConfirmation != nil else { return confirmationTimer.cancel() }
+        confirmationTimer.arm { [weak self] in self?.clearSentConfirmation() }
     }
 
     /// Loads page 1 once; later calls keep what is shown.
