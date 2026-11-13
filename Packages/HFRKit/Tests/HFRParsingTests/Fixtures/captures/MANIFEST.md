@@ -206,6 +206,14 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R57a | `R57a-rest-categories.json` | REST categories (20) | R57 | 057 |
 | R57b | `R57b-rest-category-topics-last.json` | REST last topics of cat 13 (25 per page) | R57 | 057 |
 | R57c | `R57c-rest-topic.json` | REST one topic | R57 | 057 |
+| R57d | `R57d-rest-category-topics-last-page1.json` | REST last topics of cat 13, `&page=1`, anonymous (#355): 5 sticky + 25, taken a minute before `R57e` | R57 | 057 |
+| R57e | `R57e-rest-category-topics-last-page2.json` | The same, `&page=2`: 25 rows, no sticky, `results_count` as page 1 | R57 | 057 |
+| R57f | `R57f-rest-category-topics-last-per-page50.json` | The same, `&page=1&results_per_page=50`: 5 sticky + 50, the 50 topics of `R57d` and `R57e` | R57 | 057 |
+| R57g | `R57g-rest-category-topics-last-past-last-page.json` | The same, a page past the last (⌈`results_count` / 25⌉ + 1): 200, `resources` empty, `page` echoed | R57 | 057 |
+| R57h | `R57h-api-href-as-is-404.html` | An `/api/…` href requested as is (`/api/forums/hardwarefr/categories/`): Apache 404, `text/html` | R57 | 057 |
+| R57i | `R57i-rest-error-unknown-category.json` | REST error, unknown category (`categories/999/topics/last/`): 200 JSON, `error_code` 403 | R57 | 057 |
+| R57j | `R57j-rest-unknown-topic.json` | REST unknown topic (`categories/13/topics/999999999/`): 200, a topic resource with empty title, null date, closed and sticky, posts count 1 | R57 | 057 |
+| R57k | `R57k-rest-error-unknown-resource.json` | REST error, unknown resource (`forums/hardwarefr/nothing/`): 200 JSON, `error_code` 404 | R57 | 057 |
 | R285a | `R285a-rest-subcategories-cat1.json` | REST sub-categories of cat 1 (Hardware), anonymous (#285): 15, the legacy list of `R01` (home + injection), same order | R57 | 057, 021 |
 | R285b | `R285b-rest-subcategories-cat2.json` | The same for cat 2 (Overclocking…): 7, legacy's 6 plus « Divers » (its injection is keyed on a sub-forum the home does not list) | R57 | 057, 021 |
 | R285c | `R285c-rest-subcategories-cat10.json` | The same for cat 10 (Programmation): 27, against 14 in legacy's list of `R01` (13 in common, « PDA » gone) | R57 | 057, 021 |
