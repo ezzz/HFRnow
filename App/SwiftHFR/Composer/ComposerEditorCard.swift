@@ -26,6 +26,7 @@ struct ComposerEditorCard: View {
     /// Type-erased so the card stays one non-generic type for its static helpers.
     var controls: AnyView?
     @State private var textHeight: CGFloat = 0
+    private static let cornerRadius: CGFloat = 18
     @State private var lineHeight: CGFloat = 0
 
     var body: some View {
@@ -40,10 +41,14 @@ struct ComposerEditorCard: View {
                 .padding(.leading, 8)
                 .padding(.trailing, toggle == nil ? 8 : 36)
                 .overlay(alignment: .topTrailing) { toggleButton }
+                .composerProbe(.editor)
             // The editor stops at its cap (`ComposerCardLayout.editorHeight`): the text never covers the controls.
             if let controls { controls }
         }
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        // The "Aa" bar's transition stays inside the card's rounded shape (#854).
+        .clipShape(.rect(cornerRadius: Self.cornerRadius))
+        .composerProbe(.card)
+        .glassEffect(.regular, in: .rect(cornerRadius: Self.cornerRadius))
     }
 
     @ViewBuilder

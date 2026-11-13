@@ -61,6 +61,8 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
+    /// Hosted layout tests only (#854); nil in the app.
+    @Environment(\.composerLayoutProbe) private var probe
 
     init(
         model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void
@@ -145,6 +147,7 @@ struct ReplyComposerView: View {
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
+        .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
@@ -275,7 +278,9 @@ extension ReplyComposerView {
 
     /// The controls, their height measured for the docked card (`ComposerCardLayout.controls`).
     private var measuredControls: some View {
-        controls.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+        controls
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+            .composerProbe(.controls)
     }
 
     /// An iPhone in regular height: partial height first, and the toggle (#653).
@@ -313,7 +318,9 @@ extension ReplyComposerView {
     private var formattingBar: some View {
         let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
         // `.plain` buttons draw no disabled state: the bar dims itself, as `FormattingToolbar` does for `isEnabled`.
-        return FormattingToolbar(model: formatting) { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+        return FormattingToolbar(
+            model: formatting, refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }, inCard: chrome.controlsInCard
+        )
             .disabled(!allowsBar)
             .opacity(allowsBar ? 1 : 0.4)
     }
