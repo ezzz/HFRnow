@@ -151,7 +151,7 @@ struct MPStorageSyncModelTests {
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7))
         await fixture.model.start()
         await fixture.model.start()
-        #expect(await !fixture.remote.calls.contains(.save))
+        #expect(await fixture.remote.calls == [.read(7)])
         #expect(fixture.model.lastSync == Self.now)
     }
 

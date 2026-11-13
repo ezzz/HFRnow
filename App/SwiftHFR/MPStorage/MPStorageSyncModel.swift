@@ -48,7 +48,8 @@ final class MPStorageSyncModel {
     private(set) var threadMissing = false
     /// True while the creation question waits for an answer.
     var asksCreation = false
-    /// The document shown (local edits included), for the MP list flags; nil before the first read.
+    /// The document shown (local edits included), for the MP list flags; nil before the first read. Ungated: LOT-131 and
+    /// LOT-132 read their section through `document(for:)`, which honours the function's switch (#859).
     private(set) var document: MPStorageDocument?
 
     @ObservationIgnored private let sync: MPStorageSync
