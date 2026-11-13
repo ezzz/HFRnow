@@ -70,8 +70,9 @@ struct TopicRowCuesTests {
 
     @Test("A narrow row inset keeps the 4 pt gap to the block edge, and the vertical reach never passes the cell (#803, #804)")
     func pillGapSurvivesNarrowInsets() {
-        // #804's compact insets: 7 side, 3 vertical.
-        let compact = EdgeInsets(top: 3, leading: 7, bottom: 3, trailing: 7)
+        // #804's compact insets (7 side, 3 vertical), read from the density so a change there shows here.
+        let compact = ListDensity.compact.rowInsets
+        #expect(compact.leading == 7)
         let edge = RowTint.overflow(isSuperFavorite: true, insets: compact)
         #expect(edge == EdgeInsets(top: 3, leading: 3, bottom: 3, trailing: 3))
         #expect(compact.leading - edge.leading == RowTint.edgeGap)
