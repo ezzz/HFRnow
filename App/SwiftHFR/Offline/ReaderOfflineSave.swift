@@ -13,19 +13,19 @@ struct ReaderOfflineSave: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                // None under an open composer (#653): the "…" overflow stays shut.
-                if let saver, !model.isPrivateConversation, let page = model.page, !model.suspendsPageInteractions {
-                    ToolbarItem(placement: .secondaryAction) { menu(saver, page: page) }
-                }
-            }
             .safeAreaBar(edge: .top) {
                 if let saver, saver.state != .idle { OfflineSaveBanner(saver: saver) }
             }
     }
 
+    /// Whether the overflow offers it: none under an open composer (#653: the "…" overflow stays shut).
+    static func isOffered(model: TopicReaderModel, saver: OfflineSaveModel?) -> Bool {
+        saver != nil && !model.isPrivateConversation && model.page != nil && !model.suspendsPageInteractions
+    }
+
+    /// The menu items, placed by `ReaderOverflowToolbar` (#645).
     @ViewBuilder
-    private func menu(_ saver: OfflineSaveModel, page: ReaderPage) -> some View {
+    static func menu(_ saver: OfflineSaveModel, model: TopicReaderModel, page: ReaderPage) -> some View {
         if saver.isSaving {
             Button("Arrêter l’enregistrement", systemImage: "stop.circle") { saver.cancel() }
         } else {
@@ -33,8 +33,8 @@ struct ReaderOfflineSave: ViewModifier {
                 saver.start(page: page, count: 1, fallbackTitle: model.initialTitle)
             }
             // Disabled on the last page: there are no following pages to save.
-            Button("Enregistrer cette page et les \(Self.pagesInBatch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
-                saver.start(page: page, count: Self.pagesInBatch, fallbackTitle: model.initialTitle)
+            Button("Enregistrer cette page et les \(pagesInBatch - 1) suivantes", systemImage: "arrow.down.circle.fill") {
+                saver.start(page: page, count: pagesInBatch, fallbackTitle: model.initialTitle)
             }
             .disabled(page.currentPage >= page.maxPage)
         }
