@@ -21,6 +21,8 @@ struct FormattingToolbar: View {
     let model: ComposerFormattingModel
     /// Called after a tap so the editor keeps focus (the keyboard stays up).
     let refocus: () -> Void
+    /// Inside the text card (an iPhone, #854): on the card's glass under a hairline, no `.bar` band of its own.
+    var inCard = false
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
@@ -34,7 +36,7 @@ struct FormattingToolbar: View {
             }
             .padding(.horizontal, 8)
         }
-        .background(.bar)
+        .modifier(BarBackground(inCard: inCard))
         // One container for VoiceOver ("Mise en forme"), its buttons inside (LOT-163).
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Mise en forme")
@@ -81,5 +83,18 @@ struct FormattingToolbar: View {
     private static func swiftUIColor(hex: String) -> Color {
         let value = Int(hex, radix: 16) ?? 0
         return Color(red: Double((value >> 16) & 0xff) / 255, green: Double((value >> 8) & 0xff) / 255, blue: Double(value & 0xff) / 255)
+    }
+}
+
+/// The bar's material under the card, a hairline above it inside the card (#854: no material band on the card's glass).
+private struct BarBackground: ViewModifier {
+    let inCard: Bool
+
+    func body(content: Content) -> some View {
+        if inCard {
+            content.overlay(alignment: .top) { Divider() }
+        } else {
+            content.background(.bar)
+        }
     }
 }

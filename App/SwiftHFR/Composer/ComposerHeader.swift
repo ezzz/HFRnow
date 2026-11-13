@@ -19,8 +19,8 @@ enum ComposerChrome: Equatable {
 
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
-// GAP-653); on an iPhone the buttons are small floating glass capsules and the title a light caption (#854, GAP-653); the drafts
-// button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type.
+// GAP-653); on an iPhone the buttons are small floating glass capsules in 44 pt hit areas, beside a light, truncating title
+// (#854, GAP-653); the drafts button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type.
 /// The composer's top bar, as legacy's (#653, operator reference of 2026-11-10): close `xmark` and the drafts `tray` on the left,
 /// the title in the middle, send `arrow.up` on the right, greyed while there is nothing to send and a spinner while sending.
 /// On an iPhone (`floats`) the same buttons, smaller and lighter, float above the text card (#854).
@@ -66,16 +66,24 @@ struct ComposerHeader: View {
     /// The drafts open once the draft is read, never during a send.
     static func draftsAreEnabled(_ drafts: Drafts, isSending: Bool) -> Bool { drafts.isEnabled && !isSending }
 
+    /// The hit area of each floating button: the capsule is drawn small, as the Claude app's (operator, 2026-11-13), the tap
+    /// target keeps the 44 pt of the HIG.
+    static let hitSize: CGFloat = 44
+
     var body: some View {
+        if floats { floatingBar } else { legacyBar }
+    }
+
+    /// An iPad: legacy's bar, the title centred over the row.
+    private var legacyBar: some View {
         ZStack {
             Text(title)
-                .font(floats ? .subheadline.weight(.semibold) : .headline)
-                .foregroundStyle(floats ? .secondary : .primary)
+                .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .padding(.horizontal, floats ? 84 : 96)
+                .padding(.horizontal, 96)
                 .accessibilityAddTraits(.isHeader)
-            HStack(spacing: floats ? 6 : 8) {
+            HStack(spacing: 8) {
                 closeButton
                 if let drafts {
                     draftsButton(drafts)
@@ -84,12 +92,86 @@ struct ComposerHeader: View {
                 sendButton
             }
         }
-        .frame(minHeight: floats ? 32 : 44)
+        .frame(minHeight: 44)
+    }
+
+    /// An iPhone (#854): the buttons and the title side by side, so the title truncates instead of sitting under a button at
+    /// any text size.
+    private var floatingBar: some View {
+        HStack(spacing: 0) {
+            floatingButton(prominent: false, enabled: Self.closeIsEnabled(isSending: isSending), action: close) {
+                floatingSymbol("xmark")
+            }
+            .keyboardShortcut(.cancelAction)
+            .accessibilityLabel("Fermer")
+            .composerProbe(.close)
+            if let drafts {
+                floatingButton(
+                    prominent: drafts.hasDrafts, enabled: Self.draftsAreEnabled(drafts, isSending: isSending), action: drafts.open
+                ) {
+                    floatingSymbol("tray")
+                }
+                .accessibilityLabel("Brouillons")
+                .composerProbe(.drafts)
+            }
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .accessibilityAddTraits(.isHeader)
+                .composerProbe(.title)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 4)
+            floatingSendButton
+                .composerProbe(.send)
+        }
+        .frame(minHeight: Self.hitSize)
+    }
+
+    private var floatingSendButton: some View {
+        let state = SendState(isSending: isSending, canSend: canSend)
+        return floatingButton(prominent: state.isProminent, enabled: state.isEnabled, action: send) {
+            if state.showsSpinner {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: floatingGlyph, height: floatingGlyph)
+                    .accessibilityLabel(state.label)
+            } else {
+                floatingSymbol("arrow.up")
+            }
+        }
+        .accessibilityLabel(state.label)
+    }
+
+    /// A small glass capsule (the system's `glassEffect`, interactive as a glass button's) inside a 44 pt hit area. `.plain`
+    /// draws no disabled state: dimmed as the control row's buttons.
+    private func floatingButton<Label: View>(
+        prominent: Bool, enabled: Bool, action: @escaping () -> Void, @ViewBuilder label: () -> Label
+    ) -> some View {
+        Button(action: action) {
+            label()
+                .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
+                .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.4)
+    }
+
+    private func floatingSymbol(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.subheadline.weight(.bold))
+            .frame(width: floatingGlyph, height: floatingGlyph)
     }
 
     private var closeButton: some View {
         Button(action: close) { symbol("xmark", size: 14) }
-            .modifier(ButtonShape(floats: floats))
+            .buttonBorderShape(.circle)
             .buttonStyle(.glass)
             .disabled(!Self.closeIsEnabled(isSending: isSending))
             .keyboardShortcut(.cancelAction)
@@ -98,7 +180,7 @@ struct ComposerHeader: View {
 
     private func draftsButton(_ drafts: Drafts) -> some View {
         Button(action: drafts.open) { symbol("tray", size: 15, weight: .semibold) }
-            .modifier(ButtonShape(floats: floats))
+            .buttonBorderShape(.circle)
             .modifier(GlassStyle(isProminent: drafts.hasDrafts))
             .disabled(!Self.draftsAreEnabled(drafts, isSending: isSending))
             .accessibilityLabel("Brouillons")
@@ -110,41 +192,24 @@ struct ComposerHeader: View {
             if state.showsSpinner {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: glyphFrame, height: glyphFrame)
-                    .padding(glyphPadding)
+                    .frame(width: 18, height: 18)
+                    .padding(8)
                     .accessibilityLabel(state.label)
             } else {
                 symbol("arrow.up", size: 16)
             }
         }
-        .modifier(ButtonShape(floats: floats))
+        .buttonBorderShape(.circle)
         .modifier(GlassStyle(isProminent: state.isProminent))
         .disabled(!state.isEnabled)
         .accessibilityLabel(state.label)
     }
 
-    /// The symbol's box: legacy's 18 pt, or the floating buttons' size, which follows Dynamic Type.
-    private var glyphFrame: CGFloat { floats ? floatingGlyph : 18 }
-    private var glyphPadding: CGFloat { floats ? 2 : 8 }
-
     private func symbol(_ name: String, size: CGFloat, weight: Font.Weight = .bold) -> some View {
         Image(systemName: name)
-            .font(floats ? .subheadline.weight(weight) : .system(size: size, weight: weight))
-            .frame(width: glyphFrame, height: glyphFrame)
-            .padding(glyphPadding)
-    }
-}
-
-/// Legacy's round buttons, or the small floating capsules of an iPhone (#854).
-private struct ButtonShape: ViewModifier {
-    let floats: Bool
-
-    func body(content: Content) -> some View {
-        if floats {
-            content.buttonBorderShape(.capsule).controlSize(.small)
-        } else {
-            content.buttonBorderShape(.circle)
-        }
+            .font(.system(size: size, weight: weight))
+            .frame(width: 18, height: 18)
+            .padding(8)
     }
 }
 
