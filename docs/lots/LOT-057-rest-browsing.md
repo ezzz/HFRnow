@@ -4,7 +4,7 @@
 - **Difficulty / model:** medium (Opus 5.5 author → Fable 5.2 reviewer)
 - **Issue:** [#83](https://github.com/ezzz/HFRnow/issues/83) (audit item redface2 E1; old issue francoisgn/ios-app_SwiftHFR#85)
 - **Builds on:** LOT-010 (list models), LOT-021 (`ForumListParser`), LOT-022 (`TopicListParser`), LOT-041 (`HFREndpoint.rest`, `topicPage`, `topicList`), LOT-042 (`AnonymousTransport`), LOT-045 (`PageFetcher`), LOT-095 (`ForumCatalogue.forumPath`), all done.
-- **Partial:** #356 shipped the anonymous part, the second PR the logged-in flag buckets (`R335a`-`R335e`, #335); both `Refs #83`. Left, all waiting on captures: the sub-categories ([#285](https://github.com/ezzz/HFRnow/issues/285)), anonymous list pages after the first, `results_per_page` and the error answers ([#355](https://github.com/ezzz/HFRnow/issues/355)); a bucket row's resume link and read state, the bucket count against the flags page and a bucket without a valid session are captured since ([#830](https://github.com/ezzz/HFRnow/issues/830)) and wait for a PR that uses them.
+- **Partial:** #356 shipped the anonymous part, the second PR the logged-in flag buckets (`R335a`-`R335e`, #335); both `Refs #83`. Left: the sub-categories are captured since ([#285](https://github.com/ezzz/HFRnow/issues/285), `R285a-c`) and wait for a PR that uses them; anonymous list pages after the first, `results_per_page` and the error answers are captured since too ([#355](https://github.com/ezzz/HFRnow/issues/355), `R57d-k`); a bucket row's resume link and read state, the bucket count against the flags page and a bucket without a valid session are captured since ([#830](https://github.com/ezzz/HFRnow/issues/830)) and wait for a PR that uses them.
 
 ## Sources
 The legacy app never called the REST API: there is no `rest_api` in ezzz/HFRnow at `2440d79` nor on `origin/master`, so there is no legacy oracle for the JSON side. The facts come from:
@@ -71,7 +71,7 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 | `categoryID` | `.forum(id)` |
 | `title` | `name`, HTML entities decoded (`Overclocking, Cooling &amp; Modding`) |
 | `path` | `ForumCatalogue.forumPath(for:)`: the same path as the home page link. A category the catalogue does not know fails the decode, so the home page is read instead |
-| `subforums` | empty: the sub-category resource is not captured (#285); the home page keeps them |
+| `subforums` | empty: the sub-category resource is captured since (`R285a-c`, #285, HFR-PROTOCOL §6c LOT-057) but not read by this client yet; the home page keeps them |
 
 **Topic rows** (`R57b` rows, `R57c`):
 
@@ -111,7 +111,7 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 | `R10`, `R603e`, `R12`, `R70b` | The fallback: `owntopic=1` and `2` read with `FavoritesParser` at their captured URLs; the logged-out notice; the stale-session page is `.sessionExpired` |
 
 **Pending capture** (never hand-built, LESSONS 35-36):
-- The sub-categories of a category ([#285](https://github.com/ezzz/HFRnow/issues/285)).
+- **Captured since, not used yet**: the sub-categories of a category ([#285](https://github.com/ezzz/HFRnow/issues/285), `R285a-c`, anonymous; the logged-in answer is a run observation pending publication, #885).
 - A list page 2, a `results_per_page` answer, an `/api/…` href requested as is (E1 says 404), and a REST error answer ([#355](https://github.com/ezzz/HFRnow/issues/355)). Until then the client asks for page 1 only, and every failure is handled the same way: fallback.
 - Any REST answer to a session other than the flag buckets (`R335a`-`R335e`): `RESTBrowsingClient` sends no cookie.
 - **Captured since, not used yet**: a bucket row against the flags page row of the same topic (`last_post_read_id`, `last_position`, `is_read` against the flag link and the news marker), the bucket's topics against the flags page's, the completeness of a large global bucket, and a bucket without a valid session ([#830](https://github.com/ezzz/HFRnow/issues/830), `R830t`, HFR-PROTOCOL §6c LOT-057; the no-cookie answer is pending publication, #885). Until a LOT-057 PR uses them, a REST row opens at its last page, its read state is unknown, and an empty bucket is read from the HTML page.
