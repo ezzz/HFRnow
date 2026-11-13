@@ -10,7 +10,8 @@ import SwiftUI
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
 // "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone the composer is a card docked on the keyboard that
 // grows with the text up to a cap, the page visible and scrollable above it, its taps ignored (`ComposerHeight`,
-// `ComposerCardLayout`, GAP-653, b·operator); the full-screen toggle in the editor's corner; inserted images as chips in the card.
+// `ComposerCardLayout`, GAP-653, b·operator); the full-screen toggle in the editor's corner; inserted images as chips in the card;
+// on an iPhone the control row inside the card and close, drafts and send as small floating buttons (#854, `ComposerChrome`).
 /// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
@@ -72,10 +73,11 @@ struct ReplyComposerView: View {
             VStack(spacing: 0) {
                 ComposerHeader(
                     title: title, isSending: model.isSending, canSend: model.canSend, drafts: drafts,
+                    floats: chrome.headerFloats,
                     close: { Task { await model.requestClose() } }, send: { Task { await model.send() } }
                 )
                 .padding(.horizontal, 16)
-                .padding(.top, 14)
+                .padding(.top, chrome.headerFloats ? 10 : 14)
                 .padding(.bottom, 6)
                 banners
                 if model.hasSubjectField { messageFields }
@@ -87,7 +89,8 @@ struct ReplyComposerView: View {
             // Just under the editor, so it moves with the card and the keyboard (#653); one view kept across focus changes,
             // after the fields, so moving between them never moves it (#599). Not `.keyboard` placement: that is an input
             // accessory rebuilt for each focused field (recipient, subject, text), and gone without an on-screen keyboard.
-            controls.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+            // On an iPhone it is inside the card instead, on its bottom edge (#854).
+            if !chrome.controlsInCard { measuredControls }
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .appScreenBackground()
@@ -190,7 +193,8 @@ struct ReplyComposerView: View {
             model: model, formatting: formatting, selection: $selection, focused: $focused, chips: model.shownImageChips,
             editorHeight: height == .partial ? measured.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
             onToggle: { chosenHeight = height.toggled }, removeChip: removeImage,
-            measure: { text, line in measured.text = text; measured.line = line }
+            measure: { text, line in measured.text = text; measured.line = line },
+            controls: chrome.controlsInCard ? AnyView(measuredControls) : nil
         )
     }
 
@@ -260,6 +264,14 @@ extension ReplyComposerView {
 
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
+    /// An iPhone's lighter composer: the controls in the card, floating buttons (#854).
+    private var chrome: ComposerChrome { ComposerChrome(isPhone: isPhone) }
+
+    /// The controls, their height measured for the docked card (`ComposerCardLayout.controls`).
+    private var measuredControls: some View {
+        controls.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+    }
+
     /// An iPhone in regular height: partial height first, and the toggle (#653).
     private var offersHeightToggle: Bool {
         ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass)
@@ -285,7 +297,7 @@ extension ReplyComposerView {
             ComposerControlRow(
                 model: model, formatting: formatting, offersGif: model.gifServices.isAvailable,
                 openSmileys: openSmileys, openGif: { gifRequested = true }, openImages: openImages,
-                refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+                refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }, inCard: chrome.controlsInCard
             )
         }
         .animation(.easeInOut(duration: 0.2), value: formatting.isBarShown)

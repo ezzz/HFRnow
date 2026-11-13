@@ -3,10 +3,12 @@ import SwiftUI
 // Port of HFRswift/Swift/AnswerView.swift (composerToolbar, editionGroup, insertionGroup, ComposerToolbarGroup, ComposerToolbarButton,
 // `:940-1054`, `:1656-1705`) @ 87fe0d1c. Differences: cells sized by density, Dynamic Type and the text scale (#598,
 // `ComposerBarMetrics`); the GIF button only when Giphy is configured (LOT-155); the upload symbol is `photo.badge.plus`, the
-// bar's `[img]` keeping `photo` (LOT-174); GAP-086, GAP-085 (the bar behind "Aa").
+// bar's `[img]` keeping `photo` (LOT-174); GAP-086, GAP-085 (the bar behind "Aa"); on an iPhone the row sits inside the text
+// card, its buttons on the card's glass instead of two glass capsules (#854, GAP-653).
 /// The composer's control row (#653), above the keyboard: "Vider le texte", "Annuler", "Rétablir" on the left; Smileys, GIF,
 /// image and "Aa" (the formatting bar, shown above the row) on the right. Two lines when one does not fit (Dynamic Type XL),
-/// as legacy's `ViewThatFits`. Thin: the rules are in `ReplyComposerModel` and `ComposerFormattingModel`.
+/// as legacy's `ViewThatFits`. On an iPhone (`inCard`) it is the text card's bottom edge (#854). Thin: the rules are in
+/// `ReplyComposerModel` and `ComposerFormattingModel`.
 struct ComposerControlRow: View {
     let model: ReplyComposerModel
     let formatting: ComposerFormattingModel
@@ -17,6 +19,9 @@ struct ComposerControlRow: View {
     let openImages: () -> Void
     /// Called after an edit of the text so the editor keeps focus (the keyboard stays up).
     let refocus: () -> Void
+    /// Inside the text card (an iPhone, `ComposerChrome.controlsInCard`): the buttons sit on the card's glass, no capsules of
+    /// their own (glass is not stacked on glass).
+    var inCard = false
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
@@ -37,8 +42,8 @@ struct ComposerControlRow: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, inCard ? 4 : 12)
+        .padding(.vertical, inCard ? 2 : 6)
     }
 
     private var edition: some View {
@@ -75,11 +80,16 @@ struct ComposerControlRow: View {
         }
     }
 
-    /// One capsule of buttons (legacy `ComposerToolbarGroup`).
+    /// One capsule of buttons (legacy `ComposerToolbarGroup`); in the card, the buttons alone.
+    @ViewBuilder
     private func group<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        HStack(spacing: 0) { content() }
-            .padding(.horizontal, 4)
-            .glassEffect(.regular, in: .capsule)
+        if inCard {
+            HStack(spacing: 0) { content() }
+        } else {
+            HStack(spacing: 0) { content() }
+                .padding(.horizontal, 4)
+                .glassEffect(.regular, in: .capsule)
+        }
     }
 
     private func button(

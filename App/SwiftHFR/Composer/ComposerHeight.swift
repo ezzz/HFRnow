@@ -49,7 +49,8 @@ enum ComposerHeight: Equatable {
 /// (header, banners, fields, image chips, control row); the editor is as tall as its text, between `minimumLines` and
 /// `maximumLines` lines of the body font, plus the text view's own top and bottom insets. The system lifts the sheet over the
 /// keyboard, so the keyboard is no part of it (measured on the iPhone 18 Pro Max simulator, iOS 27.2: a detent that added the
-/// keyboard's inset showed the card at the full height).
+/// keyboard's inset showed the card at the full height). On an iPhone the controls sit inside the text card, under the editor
+/// (#854, `textCardHeight`): the editor stops at its cap, so the text never covers them.
 struct ComposerCardLayout: Equatable {
     /// Lines the editor shows with no text, so the caret and the first line of a reply have room.
     static let minimumLines: CGFloat = 2
@@ -61,11 +62,11 @@ struct ComposerCardLayout: Equatable {
     /// Before the first measure: a card of two lines and the parts' usual heights, so the sheet never opens as a sliver.
     static let fallbackHeight: CGFloat = 220
 
-    /// The header, the banners and the fields above the editor.
+    /// The floating buttons, the banners and the fields above the text card.
     var top: CGFloat = 0
     /// The image chips row inside the card, 0 without an image.
     var chips: CGFloat = 0
-    /// The control row and, when shown, the "Aa" bar above it.
+    /// The control row and, when shown, the "Aa" bar above it: inside the text card, at its bottom edge (#854).
     var controls: CGFloat = 0
     /// The text as laid out at the editor's width (a hidden copy of it).
     var text: CGFloat = 0
@@ -80,10 +81,14 @@ struct ComposerCardLayout: Equatable {
         return min(max(text, Self.minimumLines * lines), Self.maximumLines * lines) + Self.editorInsets
     }
 
-    /// The card's height; the fallback until the parts have been measured.
+    /// The rounded text card (#854): the image chips, the editor, then the controls on its bottom edge.
+    var textCardHeight: CGFloat { chips + editorHeight + controls }
+
+    /// The docked sheet's height: what is above the text card, the card and its gaps; the fallback until the parts have been
+    /// measured.
     var cardHeight: CGFloat {
         guard top > 0, controls > 0, line > 0 else { return Self.fallbackHeight }
-        return (top + chips + editorHeight + 2 * Self.gap + controls).rounded(.up)
+        return (top + textCardHeight + 2 * Self.gap).rounded(.up)
     }
 }
 
