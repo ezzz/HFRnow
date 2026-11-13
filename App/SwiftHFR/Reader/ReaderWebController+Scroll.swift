@@ -23,9 +23,12 @@ extension ReaderWebController {
         scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x, y: offsetY)
     }
 
-    /// The content position at the lower edge of the top bars (`ReaderScrollGeometry.readingTop`).
+    /// The content position at the lower edge of the top bars (`ReaderScrollGeometry.readingTop`), in the page's own points
+    /// whatever the pinch zoom: the scroll view counts them `zoomScale` times larger and the next document opens unzoomed, so
+    /// a position kept across a reload is the page's, not the scroll view's (#587).
     var readingTop: CGFloat {
-        ReaderScrollGeometry.readingTop(offsetY: webView.scrollView.contentOffset.y, obscuredTop: obscuredInsets.top)
+        let top = ReaderScrollGeometry.readingTop(offsetY: webView.scrollView.contentOffset.y, obscuredTop: obscuredInsets.top)
+        return ReaderScrollGeometry.layoutY(readingTop: top, zoomScale: webView.scrollView.zoomScale)
     }
 
     /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore). The
