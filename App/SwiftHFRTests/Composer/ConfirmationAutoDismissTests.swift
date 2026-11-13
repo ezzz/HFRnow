@@ -88,6 +88,7 @@ struct ConfirmationAutoDismissTests {
         await list.loadIfNeeded()
         await list.newTopicDidClose(.sent(newTopicConfirmed))
         #expect(list.sentConfirmation != nil)
+        await sleeper.waitUntilAsked(1)
         await sleeper.finish(0)
         #expect(list.sentConfirmation == nil)
 
@@ -95,8 +96,30 @@ struct ConfirmationAutoDismissTests {
         messages.confirmationTimer.sleep = sleeper.sleep
         await messages.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet")
         #expect(messages.sentConfirmation != nil)
+        await sleeper.waitUntilAsked(2)
         await sleeper.finish(1)
         #expect(messages.sentConfirmation == nil)
+    }
+
+    @Test func underVoiceOverTheConfirmationStaysUntilTheCross() async throws {
+        let sleeper = ManualSleeper()
+        let pages = FakeTopicPages { target in readerPage(page: target.page) }
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "", source: pages)
+        reader.confirmationTimer.sleep = sleeper.sleep
+        reader.confirmationTimer.isVoiceOverRunning = { true }
+        await reader.onAppear()
+        reader.showConfirmation("Votre réponse a été postée avec succès !")
+        for _ in 0..<50 { await Task.yield() }
+        #expect(sleeper.asked.isEmpty)
+        #expect(reader.replyConfirmation != nil)
+        reader.clearReplyConfirmation()
+        #expect(reader.replyConfirmation == nil)
+    }
+
+    @Test func withoutVoiceOverTheConfirmationIsArmed() async throws {
+        let (reader, sleeper) = try await readerWithConfirmation("Message effacé avec succès !")
+        #expect(sleeper.asked.count == 1)
+        _ = reader
     }
 
     private func readerWithConfirmation(_ sentence: String) async throws -> (TopicReaderModel, ManualSleeper) {
@@ -104,6 +127,7 @@ struct ConfirmationAutoDismissTests {
         let pages = FakeTopicPages { target in readerPage(page: target.page) }
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), title: "", source: pages)
         reader.confirmationTimer.sleep = sleeper.sleep
+        reader.confirmationTimer.isVoiceOverRunning = { false }
         await reader.onAppear()
         reader.showConfirmation(sentence)
         await sleeper.waitUntilAsked(1)
