@@ -1,7 +1,8 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/MessagesView.swift (the toolbar `Menu`, :5589-5604) @ 87fe0d1c. Differences: Rechercher, Hors ligne
-// and Filtrer are secondary actions of the system overflow, and "Répondre" lives in the bottom bar (GAP rows unchanged).
+// Port of HFRswift/Swift/MessagesView.swift (the toolbar `Menu`, :5575-5604) @ 87fe0d1c. Differences: legacy's menu is Rechercher,
+// Répondre, a divider, the page items; SwiftHFR's overflow also holds Hors ligne and Filtrer (secondary actions of the system
+// overflow), and Répondre is not in it: it is a bottom-bar button (`ReaderPageControls`). GAP rows unchanged.
 /// What the reader's system "…" overflow holds and in which order: legacy puts Rechercher first and the page items last.
 enum ReaderOverflow {
     enum Entry: Hashable, Sendable { case search, offline, filter, pages }
@@ -39,7 +40,7 @@ struct ReaderOverflowToolbar: ToolbarContent {
                         .disabled(filterIsBusy)
                 }
             case .pages:
-                // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
+                // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720 @ 2440d79).
                 ToolbarItemGroup(placement: .secondaryAction) { Section { pages } }
             }
         }

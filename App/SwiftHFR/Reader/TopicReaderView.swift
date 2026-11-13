@@ -202,7 +202,7 @@ struct TopicReaderView: View {
                 }
             },
             offline: AnyView(Group {
-                if let saver, let page { ReaderOfflineSave.menu(saver, model: model, page: page) }
+                if let saver, let page { ReaderOfflineMenuItems(saver: saver, model: model, page: page) }
             }),
             filter: { onFilterPosts?() },
             filterIsBusy: filterIsBusy,
