@@ -80,11 +80,20 @@ struct ComposerPresentationTests {
         #expect(ComposerHeight.partial.detent(cardHeight: 300) == .height(300))
     }
 
-    /// #853 device-test variant: partial height offers the card's detent and a larger one (the keyboard-lifted sheet stays within
-    /// the undimmed bound); full height offers `.large` only.
-    @Test func partialHeightOffersALargerDetentAndFullOnlyLarge() {
-        #expect(ComposerHeight.partial.detents(cardHeight: 300) == [.height(300), .large])
-        #expect(ComposerHeight.full.detents(cardHeight: 300) == [.large])
-        #expect(ComposerHeight.partial.undimmedBound == .large)
+    /// #853 device-test variant: a second detent where the keyboard-lifted card sits, only once the keyboard height is known.
+    @Test func partialHeightOffersTheKeyboardLiftedDetentOnlyWithAKeyboard() {
+        #expect(ComposerHeight.partial.detents(cardHeight: 300, keyboardHeight: 0) == [.height(300)])
+        #expect(ComposerHeight.partial.detents(cardHeight: 300, keyboardHeight: 340) == [.height(300), .height(640)])
+        #expect(ComposerHeight.partial.undimmedBound(cardHeight: 300, keyboardHeight: 340) == .height(640))
+        #expect(ComposerHeight.partial.undimmedBound(cardHeight: 300, keyboardHeight: 0) == .height(300))
+        #expect(ComposerHeight.full.detents(cardHeight: 300, keyboardHeight: 340) == [.large])
+    }
+
+    @Test func theKeyboardHeightIsZeroWhenItsFrameIsOffScreen() {
+        func note(minY: CGFloat) -> Notification {
+            Notification(name: UIResponder.keyboardWillChangeFrameNotification, object: nil,
+                         userInfo: [UIResponder.keyboardFrameEndUserInfoKey: CGRect(x: 0, y: minY, width: 390, height: 340)])
+        }
+        #expect(ComposerKeyboard.height(of: note(minY: 500)) == 340)
     }
 }

@@ -1,5 +1,6 @@
 import CoreGraphics
 import SwiftUI
+import UIKit
 
 /// How tall the composer sheet is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
 /// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it, and
@@ -33,14 +34,19 @@ enum ComposerHeight: Equatable {
         return chosen ?? (largeText ? .full : .partial)
     }
 
-    /// #853 device-test variant: the detents the sheet offers. At partial height a second, larger one (`.large`) so that the
-    /// sheet lifted by the keyboard still sits at or below the undimmed bound; the selection stays pinned to `detent`.
-    func detents(cardHeight: CGFloat) -> [PresentationDetent] {
-        self == .partial ? [detent(cardHeight: cardHeight), .large] : [.large]
+    /// #853 device-test variant: the detents the sheet offers. With the keyboard up UIKit moves the sheet to its largest detent,
+    /// so at partial height, once the keyboard height is known, a second detent sits where the keyboard-lifted card is: the move
+    /// lands on the card's own position. Before that, and at full height, one detent, as before.
+    func detents(cardHeight: CGFloat, keyboardHeight: CGFloat) -> [PresentationDetent] {
+        guard self == .partial else { return [.large] }
+        let card = PresentationDetent.height(cardHeight)
+        return keyboardHeight > 0 ? [card, .height(cardHeight + keyboardHeight)] : [card]
     }
 
-    /// #853 device-test variant: the largest detent through which the page above stays interactive (`.large` at partial height).
-    var undimmedBound: PresentationDetent { .large }
+    /// #853 device-test variant: the detent through which the page above stays interactive: the largest one offered.
+    func undimmedBound(cardHeight: CGFloat, keyboardHeight: CGFloat) -> PresentationDetent {
+        detents(cardHeight: cardHeight, keyboardHeight: keyboardHeight).last ?? .large
+    }
 
     /// The other height.
     var toggled: ComposerHeight { self == .partial ? .full : .partial }
@@ -103,8 +109,8 @@ struct PartialComposerSheet: ViewModifier {
     /// The composer can be partial on this device (an iPhone): the background stays opaque across the toggle.
     let isEnabled: Bool
     let height: ComposerHeight
-    /// The sheet's current detent (`ComposerHeight.detent(cardHeight:)`).
-    let detent: PresentationDetent
+    /// The detent through which the page stays interactive (`ComposerHeight.undimmedBound`, #853 device-test variant).
+    let bound: PresentationDetent
     /// The presenter ignores its page's taps while the composer is open (`TopicReaderModel.suspendsPageInteractions`).
     let pageScrolls: Bool
 
@@ -114,10 +120,19 @@ struct PartialComposerSheet: ViewModifier {
                 .presentationBackground(.background)
                 // #853 device-test variant: bound by the larger detent, not the card's own.
                 .presentationBackgroundInteraction(
-                    pageScrolls && height == .partial ? .enabled(upThrough: height.undimmedBound) : .automatic
+                    pageScrolls && height == .partial ? .enabled(upThrough: bound) : .automatic
                 )
         } else {
             content
         }
+    }
+}
+
+/// The keyboard's height on screen from a frame notification (#853 device-test variant): 0 when its frame is off screen.
+enum ComposerKeyboard {
+    static func height(of note: Notification) -> CGFloat {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return 0 }
+        let screen = (note.object as? UIScreen)?.bounds.height ?? .greatestFiniteMagnitude
+        return frame.minY < screen ? frame.height : 0
     }
 }

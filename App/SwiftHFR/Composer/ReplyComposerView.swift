@@ -58,6 +58,8 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
+    /// The keyboard's height on screen, 0 while it is down (#853 device-test variant).
+    @State private var keyboardHeight: CGFloat = 0
 
     init(model: ReplyComposerModel, pageScrolls: Bool = false, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
         self.model = model
@@ -112,9 +114,16 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { insertImage($0) }
         )
-        // #853 device-test variant: two detents at partial height, the selection pinned to the card's own (a drag cannot change it).
-        .presentationDetents(Set(height.detents(cardHeight: cardHeight)), selection: pinnedDetent)
-        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
+        // #853 device-test variant: a second detent where the keyboard-lifted card sits (no selection binding: it kept the
+        // composer from opening focused).
+        .presentationDetents(Set(height.detents(cardHeight: cardHeight, keyboardHeight: keyboardHeight)))
+        .modifier(PartialComposerSheet(
+            isEnabled: isPhone, height: height,
+            bound: height.undimmedBound(cardHeight: cardHeight, keyboardHeight: keyboardHeight), pageScrolls: pageScrolls
+        ))
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            keyboardHeight = ComposerKeyboard.height(of: note)
+        }
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
                 isShowingArchive = false
@@ -271,9 +280,6 @@ extension ReplyComposerView {
             chosen: chosenHeight, isPhone: isPhone, verticalSizeClass: verticalSizeClass, largeText: dynamicTypeSize.isAccessibilitySize
         )
     }
-
-    /// The selection never leaves the card's detent (#853 device-test variant).
-    private var pinnedDetent: Binding<PresentationDetent> { Binding(get: { detent }, set: { _ in }) }
 
     /// The sheet's partial detent: the docked card's height at partial height (`ComposerCardLayout`), `.large` at full.
     private var detent: PresentationDetent { height.detent(cardHeight: cardHeight) }
