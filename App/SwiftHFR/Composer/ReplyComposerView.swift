@@ -23,10 +23,11 @@ import SwiftUI
 /// docked bar) keeps the caret visible.
 struct ReplyComposerView: View {
     let model: ReplyComposerModel
-    /// A sheet, or the reader's bar docked on the keyboard (#853): the presenter then removes it in `onClose`.
+    /// A sheet, or the reader's bar docked on the keyboard (#853).
     let placement: ComposerPlacement
-    /// Called once with the reason, right before the composer goes away.
-    let onClose: (ReplyComposerModel.CloseReason) -> Void
+    /// Called once with the reason, right before the sheet goes away; nil when the presenter watches the close itself
+    /// (`ReaderComposerPresenter`, whose composer can move between the bar and a sheet: one observer, never two).
+    let onClose: ((ReplyComposerModel.CloseReason) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -65,7 +66,7 @@ struct ReplyComposerView: View {
     @State private var measured = ComposerCardLayout()
 
     init(
-        model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void
+        model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: ((ReplyComposerModel.CloseReason) -> Void)? = nil
     ) {
         self.model = model
         self.placement = placement
@@ -155,9 +156,9 @@ struct ReplyComposerView: View {
             if phase != .active { Task { await model.flushDraft() } }
         }
         .onChange(of: model.closeReason) { _, reason in
-            guard let reason else { return }
+            guard let reason, let onClose else { return }
             onClose(reason)
-            if placement == .sheet { dismiss() } // the docked bar's presenter removes it in `onClose`
+            dismiss()
         }
         .onDisappear {
             // Closed without a choice (account switch rebuilt the screens): keep what was typed.

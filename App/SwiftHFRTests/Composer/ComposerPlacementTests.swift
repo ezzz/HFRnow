@@ -50,8 +50,9 @@ struct ComposerPlacementTests: ReaderWebTesting {
         #expect(scroll.keyboardDismissMode == UIScrollView.KeyboardDismissMode.none, "the page prompt's keyboard is left alone")
     }
 
-    /// At partial height the bar's inset reaches the page; at full height the bar covers the page and its insets stay as they
-    /// were, never the whole viewport.
+    /// At partial height the bar's inset reaches the page; when the bar covers the page its insets are the ones it had with no
+    /// docked composer, never the whole viewport, even in the first pass where the bar is already full and the composer has not
+    /// said so yet (still `.partial`).
     @Test func underAFullHeightComposerThePageKeepsItsInsets() async throws {
         let state = DockedState()
         let seen = SeenInsets()
@@ -64,10 +65,17 @@ struct ComposerPlacementTests: ReaderWebTesting {
         state.docked = .partial
         await Self.waitUntil { abs((seen.bottom ?? 0) - base - 200) < 1 }
         #expect(abs((seen.bottom ?? 0) - base - 200) < 1, "partial: \(seen.bottom ?? -1)")
-        state.bar = 800
+        state.bar = 0
+        state.docked = nil
+        await Self.waitUntil { abs((seen.bottom ?? 0) - base) < 1 }
+        // The first pass of a full-height opening: the bar covers the page, the composer has not reported its height yet.
+        state.bar = 820
+        state.docked = .partial
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(abs((seen.bottom ?? 0) - base) < 1, "covered, before the height is known: \(seen.bottom ?? -1)")
         state.docked = .full
         try await Task.sleep(for: .milliseconds(200))
-        #expect(abs((seen.bottom ?? 0) - base - 200) < 1, "full: \(seen.bottom ?? -1)")
+        #expect(abs((seen.bottom ?? 0) - base) < 1, "full: \(seen.bottom ?? -1)")
         state.bar = 250
         state.docked = .partial
         await Self.waitUntil { abs((seen.bottom ?? 0) - base - 250) < 1 }
@@ -164,7 +172,11 @@ struct ComposerPlacementTests: ReaderWebTesting {
 
 @MainActor
 private final class SeenInsets {
-    var bottom: CGFloat?
+    var bottom: CGFloat? {
+        didSet { if let bottom { largest = max(largest ?? bottom, bottom) } }
+    }
+    /// The largest bottom inset handed to the page so far.
+    var largest: CGFloat?
 }
 
 @MainActor
@@ -180,7 +192,8 @@ private final class PresentedComposer {
     var composer: ReplyComposerModel?
     var closes: [ReplyComposerModel.CloseReason] = []
     var path: [Int] = []
-    init(_ composer: ReplyComposerModel) { self.composer = composer }
+    var placement = ComposerPlacement.docked
+    init(_ composer: ReplyComposerModel?) { self.composer = composer }
 }
 
 /// The reader's page as `TopicReaderView` lays it out, over a stand-in scroll view.
@@ -201,7 +214,7 @@ private struct DockHost: View {
     let seen: SeenInsets
 
     var body: some View {
-        Page(seen: seen).modifier(ReaderComposerPresenter(composer: $state.composer, placement: .docked) { _, reason in
+        Page(seen: seen).modifier(ReaderComposerPresenter(composer: $state.composer, placement: state.placement) { _, reason in
             state.closes.append(reason)
         })
     }
@@ -240,5 +253,74 @@ private struct WebHost: View {
     var body: some View {
         ReaderWebView(controller: controller, document: nil, scrollRequest: nil)
             .environment(\.dockedComposer, state.docked)
+    }
+}
+
+// The presenter's paths that a rotation or a full-height opening take (review rounds of #853).
+extension ComposerPlacementTests {
+    /// A composer opened at full height (an accessibility text size opens it full) covers the page from its first pass: the page's
+    /// bottom inset never grows to the viewport, whatever order the bar's layout and its height report come in.
+    @Test(.enabled(if: UIDevice.current.userInterfaceIdiom == .phone))
+    func aComposerOpenedAtFullHeightNeverHandsThePageTheViewport() async throws {
+        let state = PresentedComposer(nil)
+        let seen = SeenInsets()
+        let root = DockHost(state: state, seen: seen).environment(\.dynamicTypeSize, .accessibility3)
+        let host = UIHostingController(rootView: root)
+        let window = try #require(Self.window(host))
+        defer { window.isHidden = true }
+        await Self.waitUntil { seen.bottom != nil }
+        let base = try #require(seen.bottom)
+        seen.largest = nil
+        state.composer = ComposerFixture.model(poster: ScriptedPoster([]))
+        _ = try #require(await Self.waitForTextView(in: host.view))
+        try await Task.sleep(for: .milliseconds(400))
+        let card = try #require(Self.textView(in: host.view)).convert(CGRect.zero, to: window)
+        #expect(card.minY < window.bounds.midY, "opened full: the editor starts in the top half (\(card.minY))")
+        #expect((seen.largest ?? 0) <= base + 1, "the largest bottom inset handed to the page: \(seen.largest ?? -1), base \(base)")
+    }
+
+    /// A rotation moves the open composer between the bar and a sheet (Pro Max: compact to regular width and back): it stays
+    /// open, nothing closes it, and one editor is left in the end.
+    @Test(.enabled(if: UIDevice.current.userInterfaceIdiom == .phone))
+    func aWidthChangeMovesTheComposerBetweenTheBarAndASheetWithoutClosingIt() async throws {
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]))
+        let state = PresentedComposer(composer)
+        let host = UIHostingController(rootView: DockHost(state: state, seen: SeenInsets()))
+        let window = try #require(Self.window(host))
+        defer { window.isHidden = true }
+        _ = try #require(await Self.waitForTextView(in: host.view))
+        state.placement = .sheet
+        await Self.waitUntil { host.presentedViewController.map { Self.textView(in: $0.view) != nil } ?? false }
+        #expect(host.presentedViewController != nil, "a sheet")
+        #expect(Self.textView(in: host.view) == nil, "the bar is gone")
+        state.placement = .docked
+        await Self.waitUntil { host.presentedViewController == nil && Self.textView(in: host.view) != nil }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(state.composer === composer)
+        #expect(state.closes.isEmpty, "\(state.closes)")
+        #expect(host.presentedViewController == nil)
+        #expect(Self.textViews(in: window) == 1)
+    }
+
+    /// The presenter watches the close for its sheet too: `onClose` once, the binding cleared, the sheet dismissed.
+    @Test func aSheetComposerClosesOnceThroughItsPresenter() async throws {
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]))
+        let state = PresentedComposer(composer)
+        state.placement = .sheet
+        let host = UIHostingController(rootView: DockHost(state: state, seen: SeenInsets()))
+        let window = try #require(Self.window(host))
+        defer { window.isHidden = true }
+        await Self.waitUntil { host.presentedViewController != nil }
+        await composer.start()
+        await composer.requestClose()
+        await Self.waitUntil { state.composer == nil && host.presentedViewController == nil }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(state.closes.count == 1, "\(state.closes)")
+        #expect(state.composer == nil)
+        #expect(host.presentedViewController == nil)
+    }
+
+    private static func textViews(in view: UIView) -> Int {
+        (view is UITextView ? 1 : 0) + view.subviews.reduce(0) { $0 + textViews(in: $1) }
     }
 }

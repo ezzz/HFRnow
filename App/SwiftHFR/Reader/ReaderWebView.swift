@@ -28,20 +28,25 @@ struct ReaderWebView: UIViewRepresentable {
 /// inset and the first and last lines of a page stayed under the bars (issues #852, #641).
 ///
 /// Under the reader's docked composer (#853, `dockedComposer`): at partial height the bar sits on the keyboard, so both count
-/// in the bottom inset and the page's last lines stay above them; at full height the bar covers the page, whose insets then
-/// stay as they last were instead of growing to the whole viewport (WebKit would get an empty unobscured area).
+/// in the bottom inset and the page's last lines stay above them. When the bar covers the page (full height, or no page left
+/// above it whatever the composer reported yet) the page gets the insets it had before any composer docked, instead of the
+/// whole viewport (WebKit would get an empty unobscured area). Order-free: the kept insets are only ever taken with no docked
+/// composer, so a first full-height pass before the composer reports its height cannot be kept.
 struct ReaderUnderBars<Content: View>: View {
     @ViewBuilder let content: (EdgeInsets) -> Content
     @Environment(\.dockedComposer) private var docked
-    /// The insets before a full-height composer covered the page.
+    /// The insets with no docked composer.
     @State private var kept: EdgeInsets?
 
     var body: some View {
         GeometryReader { proxy in
-            content(Self.insets(proxy.safeAreaInsets, docked: docked, kept: kept))
+            content(Self.insets(proxy.safeAreaInsets, visibleHeight: proxy.size.height, docked: docked, kept: kept))
                 .ignoresSafeArea(edges: .vertical)
                 .onChange(of: proxy.safeAreaInsets, initial: true) { _, insets in
-                    if docked != .full { kept = insets }
+                    if docked == nil { kept = insets }
+                }
+                .onChange(of: docked) { _, docked in
+                    if docked == nil { kept = proxy.safeAreaInsets }
                 }
         }
         .ignoresSafeArea(Self.ignored(docked: docked))
@@ -53,8 +58,13 @@ struct ReaderUnderBars<Content: View>: View {
         docked == .partial ? [] : .keyboard
     }
 
-    /// The insets handed to the page: the safe area's, or under a full-height docked composer the ones kept from before.
-    static func insets(_ measured: EdgeInsets, docked: DockedComposer?, kept: EdgeInsets?) -> EdgeInsets {
-        docked == .full ? kept ?? measured : measured
+    /// Below this, the page above a docked composer is covered: one line of text does not fit.
+    static var minimumVisibleHeight: CGFloat { 44 }
+
+    /// The insets handed to the page: the safe area's, or, when a docked composer covers the page, the ones kept with no docked
+    /// composer (without any, the bars' top and no bottom inset).
+    static func insets(_ measured: EdgeInsets, visibleHeight: CGFloat, docked: DockedComposer?, kept: EdgeInsets?) -> EdgeInsets {
+        guard let docked, docked == .full || visibleHeight < minimumVisibleHeight else { return measured }
+        return kept ?? EdgeInsets(top: measured.top, leading: measured.leading, bottom: 0, trailing: measured.trailing)
     }
 }
