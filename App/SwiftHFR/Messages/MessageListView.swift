@@ -50,12 +50,6 @@ struct MessageListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .task(id: model.sentConfirmation) {
-            guard model.sentConfirmation != nil else { return }
-            // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
-            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-            model.clearSentConfirmation()
-        }
         .pagerBar(loader.value.map { $0.page > 1 || $0.hasNext } == true ? MessagePageBar(model: model).pager : nil)
         .toolbar {
             if let composer, let target = model.newMessageTarget {

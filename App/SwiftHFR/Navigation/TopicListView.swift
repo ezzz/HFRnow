@@ -95,12 +95,6 @@ struct TopicListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .task(id: model.sentConfirmation) {
-            guard model.sentConfirmation != nil else { return }
-            // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
-            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-            model.clearSentConfirmation()
-        }
         .refreshable { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
