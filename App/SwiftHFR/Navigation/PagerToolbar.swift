@@ -49,56 +49,82 @@ struct PagerToolbar {
         }
     }
 
-    /// The same controls as a strip, for the compact layout.
+    /// The same controls as a strip, for the layouts with a tab bar. The full row (first/last included) falls back to previous,
+    /// status, next when it does not fit (Slide Over, accessibility sizes).
     fileprivate var strip: some View {
-        HStack {
-            Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled)
-            Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
-            Spacer()
-            statusView
-            Spacer()
-            Button("Page suivante", systemImage: "chevron.right", action: next.action).disabled(!next.enabled)
-            if let last {
-                Button("Dernière page", systemImage: "forward.end", action: last.action).disabled(!last.enabled)
-            }
+        ViewThatFits(in: .horizontal) {
+            stripRow(full: true)
+            stripRow(full: false)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.glass)
         .padding(.horizontal)
     }
+
+    private func stripRow(full: Bool) -> some View {
+        HStack {
+            if full { Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled) }
+            Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
+            Spacer()
+            statusView
+            Spacer()
+            Button("Page suivante", systemImage: "chevron.right", action: next.action).disabled(!next.enabled)
+            if full, let last {
+                Button("Dernière page", systemImage: "forward.end", action: last.action).disabled(!last.enabled)
+            }
+        }
+    }
 }
 
 /// Where a list's pager goes (#565): the system bottom bar of a list inside the iPhone tab bar's TabView lands in the floating
-/// tab bar's frame and cannot be used, so compact width (the tab bar root, `RootNavigationView.usesSidebarRoot`) gets an inset above it.
+/// tab bar's frame and cannot be used, so the root with a tab bar gets an inset above it. The size class does not tell the roots
+/// apart (a Plus or Pro Max iPhone in landscape is regular width WITH the tab bar): `RootNavigationView` says which root it built.
 enum PagerPlacement: Equatable {
     case bottomBar
     case inset
 
-    /// An unknown size class takes the inset: a duplicated pager is better than a hidden one.
-    init(horizontalSizeClass: UserInterfaceSizeClass?) {
-        self = horizontalSizeClass == .regular ? .bottomBar : .inset
+    init(rootHasTabBar: Bool) {
+        self = rootHasTabBar ? .inset : .bottomBar
+    }
+}
+
+private struct RootHasTabBarKey: EnvironmentKey {
+    /// A screen outside the two roots (a sheet, a preview) assumes the tab bar: a duplicated pager beats a hidden one.
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    /// True under the tab bar root, false under the iPad sidebar root (`RootNavigationView`).
+    var rootHasTabBar: Bool {
+        get { self[RootHasTabBarKey.self] }
+        set { self[RootHasTabBarKey.self] = newValue }
     }
 }
 
 private struct PagerBarModifier: ViewModifier {
-    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.rootHasTabBar) private var rootHasTabBar
     let pager: PagerToolbar?
+    let hidden: Bool
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        let placement = PagerPlacement(horizontalSizeClass: sizeClass)
-        content
-            .toolbar {
-                if placement == .bottomBar, let pager { pager.toolbarContent }
+        switch PagerPlacement(rootHasTabBar: rootHasTabBar) {
+        case .bottomBar:
+            content.toolbar {
+                if let pager { pager.toolbarContent }
             }
-            .safeAreaBar(edge: .bottom) {
-                if placement == .inset, let pager { pager.strip.padding(.vertical, 4) }
+        case .inset:
+            content.safeAreaBar(edge: .bottom) {
+                if let pager, !hidden { pager.strip.padding(.vertical, 4) }
             }
+        }
     }
 }
 
 extension View {
-    /// Shows `pager` (nil hides it) in the placement that fits the layout; see `PagerPlacement`.
-    func pagerBar(_ pager: PagerToolbar?) -> some View {
-        modifier(PagerBarModifier(pager: pager))
+    /// Shows `pager` (nil hides it) in the placement that fits the root; see `PagerPlacement`. `hidden` hides the strip
+    /// (a focused text field: the inset would float over the form above the keyboard).
+    func pagerBar(_ pager: PagerToolbar?, hidden: Bool = false) -> some View {
+        modifier(PagerBarModifier(pager: pager, hidden: hidden))
     }
 }

@@ -3,22 +3,40 @@ import Testing
 
 @testable import SwiftHFR
 
-/// #565: on iPhone the system bottom bar of a list sat inside the floating tab bar's frame; compact width (the tab bar root) now
-/// gets the pager as an inset above the tab bar, regular width keeps the system bottom bar.
+/// #565: the system bottom bar of a list sat inside the iPhone floating tab bar's frame. The placement follows the root that was
+/// built (tab bar or sidebar), never the size class: a Plus / Pro Max iPhone in landscape is regular width with the tab bar.
 @Suite("Pager placement")
 struct PagerPlacementTests {
-    @Test("compact width has a tab bar: the pager is an inset above it")
-    func compactUsesInset() {
-        #expect(PagerPlacement(horizontalSizeClass: .compact) == .inset)
+    @Test("the tab bar root gets the pager as an inset above it")
+    func tabBarRootUsesInset() {
+        #expect(PagerPlacement(rootHasTabBar: true) == .inset)
     }
 
-    @Test("regular width (sidebar root, no tab bar) keeps the system bottom bar")
-    func regularUsesBottomBar() {
-        #expect(PagerPlacement(horizontalSizeClass: .regular) == .bottomBar)
+    @Test("the sidebar root (no tab bar) keeps the system bottom bar")
+    func sidebarRootUsesBottomBar() {
+        #expect(PagerPlacement(rootHasTabBar: false) == .bottomBar)
     }
 
-    @Test("an unknown size class behaves like compact: a hidden pager is worse than a duplicated one")
-    func unknownUsesInset() {
-        #expect(PagerPlacement(horizontalSizeClass: nil) == .inset)
+    @Test("an iPhone at regular width (landscape Pro Max) builds the tab root, so its pager is an inset")
+    func phoneAtRegularWidthUsesInset() {
+        let sidebar = RootNavigationView.usesSidebarRoot(idiom: .phone, sizeClass: .regular)
+        #expect(PagerPlacement(rootHasTabBar: !sidebar) == .inset)
+    }
+
+    @Test("an iPad at regular width builds the sidebar root, so its pager is the bottom bar")
+    func padAtRegularWidthUsesBottomBar() {
+        let sidebar = RootNavigationView.usesSidebarRoot(idiom: .pad, sizeClass: .regular)
+        #expect(PagerPlacement(rootHasTabBar: !sidebar) == .bottomBar)
+    }
+
+    @Test("a compact-width iPad (Slide Over) builds the tab root")
+    func compactPadUsesInset() {
+        let sidebar = RootNavigationView.usesSidebarRoot(idiom: .pad, sizeClass: .compact)
+        #expect(PagerPlacement(rootHasTabBar: !sidebar) == .inset)
+    }
+
+    @Test("a screen outside the roots assumes the tab bar")
+    func defaultAssumesTabBar() {
+        #expect(EnvironmentValues().rootHasTabBar)
     }
 }

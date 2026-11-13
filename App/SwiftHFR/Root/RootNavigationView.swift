@@ -29,6 +29,7 @@ struct RootNavigationView: View {
                 RootTabsView(model: model, environment: environment)
             }
         }
+        .environment(\.rootHasTabBar, !usesSidebarRoot)
         .task { await model.forums.loadIfNeeded() }
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
@@ -45,6 +46,11 @@ struct RootNavigationView: View {
     }
 
     private var usesSidebarRoot: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular
+        Self.usesSidebarRoot(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass)
+    }
+
+    /// Only an iPad at regular width: a Plus or Pro Max iPhone in landscape is regular width and keeps the tab bar.
+    static func usesSidebarRoot(idiom: UIUserInterfaceIdiom, sizeClass: UserInterfaceSizeClass?) -> Bool {
+        idiom == .pad && sizeClass == .regular
     }
 }
