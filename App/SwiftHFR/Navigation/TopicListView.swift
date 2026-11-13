@@ -70,8 +70,8 @@ struct TopicListView: View {
                 }
             }
         }
+        .pagerBar(model.source.isPaged && loader.value != nil ? PageBar(model: model).pager : nil)
         .toolbar {
-            if model.source.isPaged, loader.value != nil { PageBar(model: model) }
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -315,10 +315,10 @@ private struct EmptyListView: View {
 }
 
 /// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct PageBar: ToolbarContent {
+@MainActor private struct PageBar {
     let model: TopicListModel
 
-    var body: some ToolbarContent {
+    var pager: PagerToolbar {
         PagerToolbar(
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },

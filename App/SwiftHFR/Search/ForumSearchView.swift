@@ -25,7 +25,7 @@ struct ForumSearchView: View {
         .densityListMargins()
         .navigationTitle("Recherche")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { pagerToolbar }
+        .pagerBar(pager)
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
                 TopicReaderView(model: readerModel, services: reader, composer: composer)
@@ -118,10 +118,9 @@ struct ForumSearchView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var pagerToolbar: some ToolbarContent {
+    private var pager: PagerToolbar? {
         if let content = model.loader.value, content.previousPath != nil || content.nextPath != nil {
-            PagerToolbar(
+            return PagerToolbar(
                 first: .init(enabled: model.canGoToPrevious && content.firstPath != nil) {
                     Task { await model.goToFirstPage() }
                 },
@@ -133,6 +132,7 @@ struct ForumSearchView: View {
                 status: .page(content.page)
             )
         }
+        return nil
     }
 
     private func summary(_ content: SearchContent) -> String {
