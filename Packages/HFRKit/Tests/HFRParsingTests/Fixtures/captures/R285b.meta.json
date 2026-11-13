@@ -1,0 +1,15 @@
+{
+  "id": "R285b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/{cat}/subcategories/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/2/subcategories/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/2/subcategories/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Fri, 13 Nov 2026 13:01:17 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R285b-rest-subcategories-cat2.json",
+  "private": false
+}
