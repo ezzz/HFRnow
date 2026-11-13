@@ -87,6 +87,13 @@ struct TopicRowCuesTests {
         #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false) != nil)
     }
 
+    @Test("Favoris and Drapeaux, legacy's one Favoris view, pill no flag; categories do (#803)")
+    func flagPillsBySource() {
+        #expect(!TopicListView.flagPills(for: .favorites))
+        #expect(!TopicListView.flagPills(for: .flagged))
+        #expect(TopicListView.flagPills(for: .forum(.forum(13), title: "Discussions")))
+    }
+
     @Test("The accent weight: quieter for a flag, full for the super favourite")
     func rowTintWeight() throws {
         let flagged = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: false))

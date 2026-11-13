@@ -8,8 +8,9 @@ import UIKit
 // system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when
 // the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
-// `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris pills only super favourites, as legacy;
-// the category lists and flags pill every flagged row, as legacy's `MainWindow` (GAP-027, GAP-227).
+// `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
+// Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
+// `MainWindow` (GAP-027, GAP-227).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -126,6 +127,9 @@ struct TopicListView: View {
         }
     }
 
+    /// Whether a flagged row is a pill: not in Favoris and Drapeaux, legacy's one Favoris view (`Favorites.swift:1134` @ 87fe0d1c).
+    static func flagPills(for source: TopicSource) -> Bool { !source.isFavoritesList }
+
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
     /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
     /// @ 87fe0d1c); the flag's colour stays on its icon.
@@ -147,7 +151,7 @@ struct TopicListView: View {
                 .rowPill(
                     TopicListView.rowTint(
                         topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
-                        flagPills: model.source != .favorites
+                        flagPills: TopicListView.flagPills(for: model.source)
                     ),
                     isSuperFavorite: isSuper
                 )

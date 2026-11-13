@@ -8,44 +8,53 @@ import UIKit
 @MainActor
 @Suite(.serialized)
 struct RowPillHostedTests {
-    private func cell(in view: UIView) -> UIView? {
-        if view is UICollectionViewCell || view is UITableViewCell { return view }
-        return view.subviews.lazy.compactMap { cell(in: $0) }.first
+    private func cells(in view: UIView) -> [UIView] {
+        if view is UICollectionViewCell || view is UITableViewCell { return [view] }
+        return view.subviews.flatMap { cells(in: $0) }
     }
 
-    /// A one-row list drawn with `rowPill` (or, for the control, the old `listRowBackground`); returns the window image and the
-    /// cell's frame in it.
-    private func render(useListRowBackground: Bool) async -> (UIImage, CGRect)? {
+    /// A list of a tinted row (`rowPill`, or for the control the old `listRowBackground`) above a plain one, at a density and
+    /// colour scheme, the rows on the density's `rowInsets` as the topic lists have them; returns the window image and the
+    /// frames of the two cells in it.
+    private func render(
+        useListRowBackground: Bool, density: ListDensity = .regular, dark: Bool = false
+    ) async -> (UIImage, [CGRect])? {
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene else { return nil }
         let tint = RowTint(tint: .red, weight: 4)
         let list = List {
             if useListRowBackground {
-                Text("Ligne").frame(maxWidth: .infinity, minHeight: 60, alignment: .leading).listRowBackground(tint)
+                row("Ligne").listRowInsets(density.rowInsets).listRowBackground(tint)
             } else {
-                Text("Ligne").frame(maxWidth: .infinity, minHeight: 60, alignment: .leading).rowPill(tint)
+                row("Ligne").listRowInsets(density.rowInsets).rowPill(tint)
             }
+            row("Simple").listRowInsets(density.rowInsets)
         }
         .listStyle(.insetGrouped)
-        .environment(\.listDensity, .regular)
+        .environment(\.listDensity, density)
         let host = UIHostingController(rootView: list)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 400)
-        window.overrideUserInterfaceStyle = .light
+        window.overrideUserInterfaceStyle = dark ? .dark : .light
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true }
-        var frame: CGRect?
+        var frames: [CGRect] = []
         for _ in 0..<100 {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            if let found = cell(in: host.view) { frame = found.convert(found.bounds, to: window); break }
+            let found = cells(in: host.view)
+            if found.count >= 2 { frames = found.map { $0.convert($0.bounds, to: window) }.sorted { $0.minY < $1.minY }; break }
         }
-        guard let frame else { return nil }
+        guard frames.count >= 2 else { return nil }
         try? await Task.sleep(for: .milliseconds(300))
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
-        return (image, frame)
+        return (image, frames)
+    }
+
+    private func row(_ text: String) -> some View {
+        Text(text).frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
     }
 
     /// The pixel's sRGB channels, 0 to 255, red first.
@@ -72,32 +81,39 @@ struct RowPillHostedTests {
         return (pixel.max() ?? 0) - (pixel.min() ?? 0) > 25
     }
 
-    /// A y inside the red row: 10 pt below the first red pixel down the middle of the window.
-    private func rowY(_ image: UIImage) -> CGFloat? {
-        stride(from: CGFloat(0), to: image.size.height, by: 1).first { isRed(image, CGPoint(x: image.size.width / 2, y: $0)) }
-            .map { $0 + 10 }
+    private func samePixel(_ image: UIImage, _ one: CGPoint, _ other: CGPoint) -> Bool {
+        guard let first = channels(image, one), let second = channels(image, other) else { return false }
+        return zip(first, second).allSatisfy { abs($0 - $1) <= 2 }
     }
 
-    /// The left edge of the block: the first white pixel along the row's middle (the page behind it is grey).
-    private func blockEdge(_ image: UIImage, y: CGFloat) -> CGFloat? {
-        stride(from: CGFloat(0), to: image.size.width / 2, by: 0.5).first { x in
-            channels(image, CGPoint(x: x, y: y)).map { $0.min() ?? 0 > 250 } ?? false
-        }
+    /// The pill's 4 pt gap at the block edge shows the block's own colour (the plain row's), and the pill begins past it. The
+    /// block edge is the cell's own minX: the cell spans the block.
+    private func checkGap(density: ListDensity, dark: Bool) async throws {
+        let (image, frames) = try #require(await render(useListRowBackground: false, density: density, dark: dark))
+        let tinted = frames[0], plain = frames[1]
+        let edge = tinted.minX
+        let y = tinted.midY, plainY = plain.midY
+        #expect(samePixel(image, CGPoint(x: edge + 2, y: y), CGPoint(x: edge + 2, y: plainY)), "the gap is the block's colour")
+        #expect(isRed(image, CGPoint(x: edge + 6, y: y)), "the pill starts after the 4 pt gap")
+        #expect(!isRed(image, CGPoint(x: edge + 6, y: plainY)))
     }
 
-    @Test("The pill sits inside the block and 4 pt short of its edge; the block's own edge shows through")
-    func pillIsInsetInsideTheBlock() async throws {
-        let (image, _) = try #require(await render(useListRowBackground: false))
-        let y = try #require(rowY(image))
-        let edge = try #require(blockEdge(image, y: y))
-        #expect(!isRed(image, CGPoint(x: edge + 1.5, y: y)), "the gap at the block edge stays the block's")
-        #expect(isRed(image, CGPoint(x: edge + 8, y: y)), "the pill starts inside the gap")
+    @Test("Regular rows: the pill is 4 pt short of the block edge, the block's own colour shows through")
+    func pillIsInsetInsideTheBlock() async throws { try await checkGap(density: .regular, dark: false) }
+
+    @Test("Compact rows (#804, inset 7): the 4 pt gap remains")
+    func pillIsInsetInCompactRows() async throws { try await checkGap(density: .compact, dark: false) }
+
+    @Test("Dark, as the iPad Catégories column draws it (#647): the gap keeps the card colour, no base colour under the pill")
+    func darkGapKeepsTheCardColour() async throws {
+        try await checkGap(density: .regular, dark: true)
+        try await checkGap(density: .compact, dark: true)
     }
 
-    @Test("Control: a listRowBackground tints the row up to the block edge, which the pill test must refuse")
+    @Test("Control: a listRowBackground tints the row up to the block edge, which the gap test must refuse")
     func listRowBackgroundReachesTheEdge() async throws {
-        let (image, _) = try #require(await render(useListRowBackground: true))
-        let y = try #require(rowY(image))
-        #expect(blockEdge(image, y: y) == nil, "no plain block shows left of the tint: it fills the row to the block edge")
+        let (image, frames) = try #require(await render(useListRowBackground: true))
+        let edge = frames[0].minX
+        #expect(isRed(image, CGPoint(x: edge + 2, y: frames[0].midY)), "the tint fills the row to the block edge")
     }
 }
