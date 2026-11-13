@@ -19,7 +19,8 @@ import SwiftUI
 /// `ReplyComposerModel`.
 ///
 /// The editor is SwiftUI's own `TextEditor` with the system keyboard type, so third-party keyboards work (legacy backlog
-/// HFR-001) and the text is never rewritten under the cursor; the sheet's keyboard safe area keeps the caret visible.
+/// HFR-001) and the text is never rewritten under the cursor; the keyboard safe area (the sheet's, or the reader's under the
+/// docked bar) keeps the caret visible.
 struct ReplyComposerView: View {
     let model: ReplyComposerModel
     /// A sheet, or the reader's bar docked on the keyboard (#853): the presenter then removes it in `onClose`.
@@ -98,7 +99,7 @@ struct ReplyComposerView: View {
         // Docked at partial height the bar is as tall as its card; a sheet, or "Plein écran", fills what it is given.
         .frame(maxHeight: placement == .docked && height == .partial ? nil : .infinity, alignment: .top)
         .appScreenBackground()
-        .modifier(DockedComposerBar(isDocked: placement == .docked, fills: height == .full))
+        .modifier(DockedComposerBar(isDocked: placement == .docked, height: height))
         .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
         .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
             clipboardButtons(pending)

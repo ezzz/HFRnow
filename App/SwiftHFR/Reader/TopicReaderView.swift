@@ -29,9 +29,9 @@ enum ReaderTabBar {
     }
 }
 
-/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
-/// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
-/// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
+/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the composers
+/// (`ReaderComposerPresenter`). A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its
+/// host wraps it in a `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
 struct TopicReaderView: View {
     let model: TopicReaderModel
     let services: ReaderServices
@@ -73,7 +73,7 @@ struct TopicReaderView: View {
             if let controller {
                 // The page runs under the bars and banners (HIG Layout: extend content under the bars, LOT-186); what they cover
                 // is the safe area this full-height reader ignores, handed to the web view.
-                ReaderUnderBars(followsKeyboard: model.pageFollowsKeyboard) { obscured in
+                ReaderUnderBars { obscured in
                     ReaderWebView(
                         controller: controller, document: model.document, scrollRequest: model.scrollRequest,
                         obscured: obscured
@@ -313,7 +313,6 @@ struct TopicReaderView: View {
         model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.offersSelectionQuote
         controller.ignoresPageTaps = model.suspendsPageInteractions
-        controller.dismissesKeyboardInteractively = model.pageFollowsKeyboard
         self.controller = controller
     }
 }
