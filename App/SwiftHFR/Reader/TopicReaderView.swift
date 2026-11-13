@@ -48,6 +48,7 @@ struct TopicReaderView: View {
     @State private var viewerID = ReaderViewerID.next()
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
+    @State private var search: TopicSearchModel?
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109); a fresh model per tap.
@@ -97,7 +98,7 @@ struct TopicReaderView: View {
         .modifier(ReaderEditFlow(writes: writes))
         .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
-        .modifier(ReaderSearchFlow(model: model, composer: composer))
+        .modifier(ReaderSearchFlow(model: model, composer: composer, search: $search))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
         .offlineSave(model: model, saver: saver)
@@ -107,22 +108,7 @@ struct TopicReaderView: View {
                 Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
                     .disabled(model.isLoading || model.suspendsPageInteractions)
             }
-            // No "…" entry under an open composer (#653): a disabled one would still open the overflow.
-            if let onFilterPosts, !model.suspendsPageInteractions {
-                ToolbarItem(placement: .secondaryAction) {
-                    Button(action: onFilterPosts) {
-                        Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease")
-                    }
-                    .disabled(filterIsBusy)
-                }
-            }
-            // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
-            if let page = model.page, page.maxPage > 1, !model.suspendsPageInteractions {
-                ToolbarItemGroup(placement: .secondaryAction) {
-                    // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
-                    Section { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
-                }
-            }
+            overflowToolbar
         }
         .alert("Aller à la page", isPresented: $askingPage) {
             TextField("Page", text: $pageText).keyboardType(.numberPad)
@@ -195,6 +181,33 @@ struct TopicReaderView: View {
                 ProgressView("Chargement des messages")
             }
         }
+    }
+
+    /// The "…" overflow, in legacy's order (#645): see `ReaderOverflowToolbar`. None under an open composer (#653).
+    @ToolbarContentBuilder
+    private var overflowToolbar: some ToolbarContent {
+        let page = model.page
+        let pages = page.map { $0.maxPage > 1 } ?? false
+        let offered = !model.suspendsPageInteractions
+        ReaderOverflowToolbar(
+            entries: ReaderOverflow.entries(
+                search: ReaderSearchFlow.isOffered(model: model, composer: composer),
+                offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
+                filter: onFilterPosts != nil && offered,
+                pages: pages && offered),
+            search: {
+                if let topic = model.page?.topicID, let searcher = composer?.topicSearcher {
+                    search = TopicSearchModel(topic: topic, searcher: searcher)
+                }
+            },
+            offline: AnyView(Group {
+                if let saver, let page { ReaderOfflineMenuItems(saver: saver, model: model, page: page) }
+            }),
+            filter: { onFilterPosts?() },
+            filterIsBusy: filterIsBusy,
+            pages: AnyView(Group {
+                if let page { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
+            }))
     }
 
     @ViewBuilder
