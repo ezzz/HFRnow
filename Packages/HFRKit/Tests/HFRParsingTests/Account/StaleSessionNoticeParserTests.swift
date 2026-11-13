@@ -36,7 +36,9 @@ struct StaleSessionNoticeParserTests {
         }
         #expect(recognized.sorted() == [
             "R70a-home-stale-session.html", "R70b-favourites-owntopic1-stale-session.html",
-            "R70c-profile-edit-page1-stale-session.html", "R70d-profile-edit-page5-stale-session.html"
+            "R70c-profile-edit-page1-stale-session.html", "R70d-profile-edit-page5-stale-session.html",
+            // The REST flag bucket asked with the same stale jar answers this very page, not JSON (#830).
+            "R830t-rest-bucket-participated-stale-session.html"
         ])
     }
 
