@@ -16,7 +16,8 @@ struct SubforumTargetTests {
 
     @Test("A category page has none")
     func categoryPage() throws {
-        let page = try TopicListParser.parse(try Fixture.capture("R09-list-cat13-owntopic3-anon"), pageURL: "/hfr/Discussions/liste_sujet-1.htm")
+        let html = try Fixture.capture("R09-list-cat13-owntopic3-anon")
+        let page = try TopicListParser.parse(html, pageURL: "/hfr/Discussions/liste_sujet-1.htm")
         #expect(SubforumTarget(newTopicPath: page.newTopicPath) == nil)
     }
 

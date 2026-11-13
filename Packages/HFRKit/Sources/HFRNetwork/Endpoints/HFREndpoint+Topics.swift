@@ -4,8 +4,8 @@ import HFRModels
 extension HFREndpoint {
     /// R2: the topic list of a forum (`ObjCForumTopicsLoaderWorker.m:36-89, 128-141`).
     ///
-    /// The query is exactly `config, cat, page, subcat (empty), owntopic`. Private messages use `privateMessages(page:)`.
-    /// `subcategory` is a sub-forum's numeric `subcat` (`R603d`); nil lists the whole category.
+    /// The query is exactly `config, cat, page, subcat (empty), owntopic`, or, with `subcategory` (a sub-forum's numeric
+    /// `subcat`), the longer query of `R603d`. Private messages use `privateMessages(page:)`.
     public static func topicList(
         category: CategoryID, subcategory: Int? = nil, filter: TopicListFilter = .all, page: Int = 1
     ) throws -> HTTPRequest {

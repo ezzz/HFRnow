@@ -43,11 +43,11 @@ struct ForumScopeBar: View {
     }
 
     /// Why Favoris, Suivis and Lus cannot be chosen: legacy's note when logged out (`MainWindow.swift:699-706` @ 87fe0d1c), or
-    /// a sub-forum whose page named no `subcat`.
+    /// a list that names no `subcat` (a sub-forum page without one, or a category opened by path).
     private var note: String? {
         guard model.loader.value != nil, !model.offersFilter else { return nil }
         return model.isSignedIn
-            ? "Le filtre n'est pas disponible pour ce sous-forum : choisissez « Tous les sous-forums »."
+            ? "Le filtre n'est pas disponible pour cette liste : choisissez « Tous les sous-forums »."
             : "Connexion requise pour Favoris, Suivis et Lus. Vous pouvez consulter « Tous » sans compte."
     }
 }
