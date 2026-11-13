@@ -112,7 +112,8 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { insertImage($0) }
         )
-        .presentationDetents([detent])
+        // #853 device-test variant: two detents at partial height, the selection pinned to the card's own (a drag cannot change it).
+        .presentationDetents(Set(height.detents(cardHeight: cardHeight)), selection: pinnedDetent)
         .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
@@ -271,11 +272,16 @@ extension ReplyComposerView {
         )
     }
 
-    /// The sheet's only detent: the docked card's height at partial height (`ComposerCardLayout`), `.large` at full.
-    private var detent: PresentationDetent {
+    /// The selection never leaves the card's detent (#853 device-test variant).
+    private var pinnedDetent: Binding<PresentationDetent> { Binding(get: { detent }, set: { _ in }) }
+
+    /// The sheet's partial detent: the docked card's height at partial height (`ComposerCardLayout`), `.large` at full.
+    private var detent: PresentationDetent { height.detent(cardHeight: cardHeight) }
+
+    private var cardHeight: CGFloat {
         var layout = measured
         layout.chips = model.shownImageChips.isEmpty ? 0 : ComposerImageChipsRow.height
-        return height.detent(cardHeight: layout.cardHeight)
+        return layout.cardHeight
     }
 
     /// The "Aa" bar when shown, above the control row: one view kept across focus changes (#599).

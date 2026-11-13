@@ -33,6 +33,15 @@ enum ComposerHeight: Equatable {
         return chosen ?? (largeText ? .full : .partial)
     }
 
+    /// #853 device-test variant: the detents the sheet offers. At partial height a second, larger one (`.large`) so that the
+    /// sheet lifted by the keyboard still sits at or below the undimmed bound; the selection stays pinned to `detent`.
+    func detents(cardHeight: CGFloat) -> [PresentationDetent] {
+        self == .partial ? [detent(cardHeight: cardHeight), .large] : [.large]
+    }
+
+    /// #853 device-test variant: the largest detent through which the page above stays interactive (`.large` at partial height).
+    var undimmedBound: PresentationDetent { .large }
+
     /// The other height.
     var toggled: ComposerHeight { self == .partial ? .full : .partial }
 
@@ -103,7 +112,10 @@ struct PartialComposerSheet: ViewModifier {
         if isEnabled {
             content
                 .presentationBackground(.background)
-                .presentationBackgroundInteraction(pageScrolls && height == .partial ? .enabled(upThrough: detent) : .automatic)
+                // #853 device-test variant: bound by the larger detent, not the card's own.
+                .presentationBackgroundInteraction(
+                    pageScrolls && height == .partial ? .enabled(upThrough: height.undimmedBound) : .automatic
+                )
         } else {
             content
         }

@@ -79,4 +79,12 @@ struct ComposerPresentationTests {
         #expect(ComposerHeight.full.detent(cardHeight: 300) == .large)
         #expect(ComposerHeight.partial.detent(cardHeight: 300) == .height(300))
     }
+
+    /// #853 device-test variant: partial height offers the card's detent and a larger one (the keyboard-lifted sheet stays within
+    /// the undimmed bound); full height offers `.large` only.
+    @Test func partialHeightOffersALargerDetentAndFullOnlyLarge() {
+        #expect(ComposerHeight.partial.detents(cardHeight: 300) == [.height(300), .large])
+        #expect(ComposerHeight.full.detents(cardHeight: 300) == [.large])
+        #expect(ComposerHeight.partial.undimmedBound == .large)
+    }
 }
