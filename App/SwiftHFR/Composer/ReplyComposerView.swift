@@ -9,11 +9,12 @@ import SwiftUI
 // Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
 // "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone the composer is a card docked on the keyboard that
-// grows with the text up to a cap, the page visible and scrollable above it, its taps ignored (`ComposerHeight`,
-// `ComposerCardLayout`, GAP-653, b·operator); the full-screen toggle in the editor's corner; inserted images as chips in the card;
+// grows with the text up to a cap (`ComposerHeight`, `ComposerCardLayout`, GAP-653, b·operator); in the reader that card is a bar
+// docked at the bottom of the page, the page scrollable above it with the keyboard up, its taps ignored (#853,
+// `ComposerPlacement`), elsewhere a sheet; the full-screen toggle in the editor's corner; inserted images as chips in the card;
 // on an iPhone the control row inside the card and close, drafts and send as small floating buttons (#854, `ComposerChrome`).
-/// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
-/// private message adds its recipient and subject
+/// The composer, a sheet or the reader's docked bar: a plain text editor, close and Send; a new topic adds its subject and
+/// sub-category (LOT-089); a new private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
 /// `ReplyComposerModel`.
 ///
@@ -21,9 +22,9 @@ import SwiftUI
 /// HFR-001) and the text is never rewritten under the cursor; the sheet's keyboard safe area keeps the caret visible.
 struct ReplyComposerView: View {
     let model: ReplyComposerModel
-    /// The presenter ignores its page's taps while this sheet is open: at partial height the page above stays scrollable (#653).
-    let pageScrolls: Bool
-    /// Called once with the reason, right before the sheet goes away.
+    /// A sheet, or the reader's bar docked on the keyboard (#853): the presenter then removes it in `onClose`.
+    let placement: ComposerPlacement
+    /// Called once with the reason, right before the composer goes away.
     let onClose: (ReplyComposerModel.CloseReason) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -60,9 +61,11 @@ struct ReplyComposerView: View {
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
 
-    init(model: ReplyComposerModel, pageScrolls: Bool = false, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+    init(
+        model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void
+    ) {
         self.model = model
-        self.pageScrolls = pageScrolls
+        self.placement = placement
         self.onClose = onClose
         _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
         _imageUpload = State(initialValue: ImageUploadModel(services: model.imageUploadServices))
@@ -92,8 +95,10 @@ struct ReplyComposerView: View {
             // On an iPhone it is inside the card instead, on its bottom edge (#854).
             if !chrome.controlsInCard { measuredControls }
         }
-        .frame(maxHeight: .infinity, alignment: .top)
+        // Docked at partial height the bar is as tall as its card; a sheet, or "Plein écran", fills what it is given.
+        .frame(maxHeight: placement == .docked && height == .partial ? nil : .infinity, alignment: .top)
         .appScreenBackground()
+        .modifier(DockedComposerBar(isDocked: placement == .docked, fills: height == .full))
         .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
         .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
             clipboardButtons(pending)
@@ -115,8 +120,10 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { insertImage($0) }
         )
-        .presentationDetents([detent])
-        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
+        .modifier(ComposerSheetSettings(
+            isSheet: placement == .sheet, isPhone: isPhone, detent: detent,
+            dismissDisabled: model.closeNeedsChoice || model.isSending
+        ))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
                 isShowingArchive = false
@@ -125,8 +132,6 @@ struct ReplyComposerView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         })
-        // Swiping down would close without the choice: blocked while there is text or a send runs.
-        .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
             formatting.placeCaretAtEnd()
@@ -148,7 +153,7 @@ struct ReplyComposerView: View {
         .onChange(of: model.closeReason) { _, reason in
             guard let reason else { return }
             onClose(reason)
-            dismiss()
+            if placement == .sheet { dismiss() } // the docked bar's presenter removes it in `onClose`
         }
         .onDisappear {
             // Closed without a choice (account switch rebuilt the screens): keep what was typed.

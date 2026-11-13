@@ -70,7 +70,7 @@ enum PrivateMessageFeedback {
 @Observable
 @MainActor
 final class AuthorMenuFlow {
-    /// The new-MP composer opened from the menu, shown as a sheet by `ReaderAuthorMenuSheet`.
+    /// The new-MP composer opened from the menu, shown by `ReaderAuthorMenuSheet`.
     var newMessage: ReplyComposerModel?
 
     /// Profil (through `reader`'s link router, which alone knows a profile link, LOT-116) and, with a composer, MP.
@@ -93,19 +93,18 @@ final class AuthorMenuFlow {
     }
 }
 
-/// The MP composer sheet of the author menu; its close reason becomes the reader's confirmation.
+/// The MP composer of the author menu (docked on an iPhone, a sheet on an iPad: `ReaderComposerPresenter`); its close reason
+/// becomes the reader's confirmation.
 struct ReaderAuthorMenuSheet: ViewModifier {
     @Bindable var flow: AuthorMenuFlow
     let model: TopicReaderModel
 
     func body(content: Content) -> some View {
-        content.sheet(item: $flow.newMessage) { message in
-            ReplyComposerView(model: message, pageScrolls: true) { reason in
-                guard let text = PrivateMessageFeedback.text(for: reason) else { return }
-                model.showMenuFeedback(text) // the toast announces itself
-            }
-        }
-        // The page under the sheet scrolls but ignores its taps while the sheet is up (#653).
+        content.modifier(ReaderComposerPresenter(composer: $flow.newMessage) { _, reason in
+            guard let text = PrivateMessageFeedback.text(for: reason) else { return }
+            model.showMenuFeedback(text) // the toast announces itself
+        })
+        // The page under the composer scrolls but ignores its taps while it is open (#653).
         .onChange(of: flow.newMessage != nil) { _, isOpen in model.composer(.privateMessage, isOpen: isOpen) }
     }
 }

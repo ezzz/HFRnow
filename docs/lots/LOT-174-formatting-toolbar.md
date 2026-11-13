@@ -87,9 +87,13 @@ inside the card above the text, the two pills just under the editor so they move
   back in portrait the choice made before the rotation holds. On the iPad the presentation is unchanged (a `.large` form sheet, no toggle); its top bar is legacy's too. The device decides, not the size class: inside
   an iPad's form sheet the width is compact too (measured, iPad Pro 13" simulator). The operator asked this layout as the new iPhone default (#653, 2026-11-08), an explicit exception to "defaults keep
   the legacy UX" ([UX principles](../FEATURES.md#ux-principles-operator)).
-- **The page behind the partial sheet (operator, 2026-11-10).** It is not dimmed and it scrolls
-  (`presentationBackgroundInteraction(.enabled(upThrough:))`, partial height only), so the message being answered can be read
-  again; its taps and actions are ignored while the composer is open. The reader keeps a set of open composers (reply, edit, the
+- **The page behind the partial composer (operator, 2026-11-10; #853, 2026-11-13).** It is not dimmed and it scrolls, so the
+  message being answered can be read again. In the reader on an iPhone the composer is not a sheet but a bar docked at the
+  bottom of the page, on the keyboard (`ReaderComposerPresenter`, `ComposerPlacement`): a sheet with
+  `presentationBackgroundInteraction` left the page inert with the keyboard up, because iOS moves a sheet to its largest detent
+  when the keyboard rises (device, 2026-11-13). The page's bottom inset counts the bar and the keyboard, dragging the page down
+  pulls the keyboard down with the finger (`keyboardDismissMode = .interactive`) while the bar stays, the bottom bar is hidden
+  while writing, and "Plein écran" fills the reader with the same composer (navigation bar hidden). Its taps and actions are ignored while the composer is open. The reader keeps a set of open composers (reply, edit, the
   author menu's MP: `TopicReaderModel.composer(_:isOpen:)`, reported by each presenter from its sheet's state); while one is open
   (`suspendsPageInteractions`) a link, a message menu, a video, a picture, a third-party image placeholder, a selection quote, the
   reply button, a page change, a swipe, "Actualiser" and "Réessayer" (both disabled), "Sondage" (hidden; its sheet could not show

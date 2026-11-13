@@ -1,12 +1,14 @@
 import CoreGraphics
 import SwiftUI
 
-/// How tall the composer sheet is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
-/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it, and
+/// How tall the composer is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
+/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it (in the
+/// reader a bar docked at the bottom of the page, elsewhere a sheet: `ComposerPlacement`, #853), and
 /// a control switches to the full height and back (operator, 2026-11-08 for a reply, 2026-11-10 for the others, 2026-11-10
 /// reference for the card). The device decides, not the width's size class: inside an
 /// iPad's form sheet the width is compact too (measured on the iPad Pro 13" simulator, iOS 27.1). In compact height (an iPhone
-/// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there.
+/// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there (the reader's
+/// docked bar fills the reader there too).
 /// Every opening starts at partial height: the height chosen with the toggle is not remembered (operator, 2026-11-10).
 ///
 /// Legacy shows the composer full screen (`MessagesView.swift:5429-5443`, `coverVerticalFullScreen` @ 87fe0d1c): the partial
@@ -92,25 +94,35 @@ struct ComposerCardLayout: Equatable {
     }
 }
 
-/// The composer sheet on an iPhone (#653): an opaque background (a sheet below full height is glass, and the dimmed page showed
-/// through the editor in dark mode, iOS 27.1 simulator) and, when the presenter ignores its page's taps while the composer is
-/// open, the page above the docked card left undimmed and scrollable (operator, 2026-11-10). Elsewhere the system's own.
-struct PartialComposerSheet: ViewModifier {
+/// The settings a composer sheet gives its presentation (a list's composer, an iPad's): its one detent, an opaque background on
+/// an iPhone (a sheet below full height is glass, and the dimmed page showed through the editor in dark mode, iOS 27.1
+/// simulator), and no swipe-down while closing needs a choice or a send runs. None for the reader's docked bar (#853): set from
+/// inside the reader, they would reach the reader's own presentation.
+struct ComposerSheetSettings: ViewModifier {
+    let isSheet: Bool
     /// The composer can be partial on this device (an iPhone): the background stays opaque across the toggle.
-    let isEnabled: Bool
-    let height: ComposerHeight
-    /// The sheet's current detent (`ComposerHeight.detent(cardHeight:)`).
+    let isPhone: Bool
+    /// The sheet's only detent (`ComposerHeight.detent(cardHeight:)`).
     let detent: PresentationDetent
-    /// The presenter ignores its page's taps while the composer is open (`TopicReaderModel.suspendsPageInteractions`).
-    let pageScrolls: Bool
+    /// Swiping down would close without the choice: blocked while there is text or a send runs.
+    let dismissDisabled: Bool
 
     func body(content: Content) -> some View {
-        if isEnabled {
+        if isSheet {
             content
-                .presentationBackground(.background)
-                .presentationBackgroundInteraction(pageScrolls && height == .partial ? .enabled(upThrough: detent) : .automatic)
+                .presentationDetents([detent])
+                .modifier(OpaqueOnPhone(isPhone: isPhone))
+                .interactiveDismissDisabled(dismissDisabled)
         } else {
             content
+        }
+    }
+
+    private struct OpaqueOnPhone: ViewModifier {
+        let isPhone: Bool
+
+        func body(content: Content) -> some View {
+            if isPhone { content.presentationBackground(.background) } else { content }
         }
     }
 }

@@ -27,6 +27,10 @@ final class ReaderWebController: NSObject {
     let webView: QuoteMenuWebView
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
+    /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
+    var dismissesKeyboardInteractively = false {
+        didSet { webView.scrollView.keyboardDismissMode = dismissesKeyboardInteractively ? .interactive : .none }
+    }
     /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
     var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).

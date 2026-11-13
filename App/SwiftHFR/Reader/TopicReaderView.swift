@@ -73,7 +73,7 @@ struct TopicReaderView: View {
             if let controller {
                 // The page runs under the bars and banners (HIG Layout: extend content under the bars, LOT-186); what they cover
                 // is the safe area this full-height reader ignores, handed to the web view.
-                ReaderUnderBars { obscured in
+                ReaderUnderBars(followsKeyboard: model.pageFollowsKeyboard) { obscured in
                     ReaderWebView(
                         controller: controller, document: model.document, scrollRequest: model.scrollRequest,
                         obscured: obscured
@@ -313,6 +313,7 @@ struct TopicReaderView: View {
         model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.offersSelectionQuote
         controller.ignoresPageTaps = model.suspendsPageInteractions
+        controller.dismissesKeyboardInteractively = model.pageFollowsKeyboard
         self.controller = controller
     }
 }

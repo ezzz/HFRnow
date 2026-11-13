@@ -2,7 +2,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (the `ProgressView` of a prefill, `:4472`; the alerts "Edition impossible", "Supprimer ce
 // message ?" and "Suppression impossible", `:4618-4640`; the composer's full-screen cover) @ 2440d79. Differences: GAP-096, GAP-097; the
-// composer is the reader's sheet, as a reply's (LOT-084).
+// composer is the reader's, as a reply's (LOT-084): a bar docked at the bottom of the page on an iPhone (#853), a sheet on an iPad.
 /// The screens of "Editer" and "Supprimer" (LOT-088), all driven by `MessageWriteModel`. No branch on `writes`: it arrives after the
 /// first render, and a branch would rebuild the reader's web view.
 struct ReaderEditFlow: ViewModifier {
@@ -16,13 +16,11 @@ struct ReaderEditFlow: ViewModifier {
                     ProgressView(progress).padding().glassEffect(in: .rect(cornerRadius: 12))
                 }
             }
-            .sheet(item: Binding(get: { writes?.editor }, set: { writes?.editor = $0 })) { composer in
-                // The reader suspends its page's taps while `editor` is set (`TopicReaderView`, #653).
-                ReplyComposerView(model: composer, pageScrolls: true) { reason in
-                    guard case .edit(let target) = composer.target else { return }
-                    Task { await writes?.editorDidClose(reason, post: target.post) }
-                }
-            }
+            // The reader suspends its page's taps while `editor` is set (`TopicReaderView`, #653).
+            .modifier(ReaderComposerPresenter(composer: editor) { composer, reason in
+                guard case .edit(let target) = composer.target else { return }
+                Task { await writes?.editorDidClose(reason, post: target.post) }
+            })
             .alert(
                 "Supprimer ce message ?",
                 isPresented: Binding(get: { writes?.pendingDelete != nil }, set: { if !$0 { writes?.pendingDelete = nil } }),
@@ -45,5 +43,9 @@ struct ReaderEditFlow: ViewModifier {
             } message: { failure in
                 Text(failure.message)
             }
+    }
+
+    private var editor: Binding<ReplyComposerModel?> {
+        Binding(get: { writes?.editor }, set: { writes?.editor = $0 })
     }
 }
