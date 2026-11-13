@@ -31,6 +31,8 @@ struct ReplyComposerView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase
+    /// Hosted layout tests only (#854); nil in the app.
+    @Environment(\.composerLayoutProbe) private var probe
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
     /// The first focus (once the draft is read) happened: later `canEdit` flips (a send) never steal it.
@@ -61,8 +63,6 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
-    /// Hosted layout tests only (#854); nil in the app.
-    @Environment(\.composerLayoutProbe) private var probe
 
     init(
         model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void
