@@ -68,7 +68,8 @@ final class ReaderWebController: NSObject {
     var stopped = false
     /// The document `stopLoading()` cut, and whether SwiftUI's last word was `onDisappear` (`ReaderWebController+Presence`).
     var stoppedDocument: ReaderDocument?, disappeared = false
-    /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
+    /// The reading top (`ReaderScrollGeometry`, in the page's own points) a refresh restores;
+    /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]

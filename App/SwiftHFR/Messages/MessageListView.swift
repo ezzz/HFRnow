@@ -22,11 +22,13 @@ struct MessageListView: View {
                         thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
                         flagLabel: model.flagLabel(for: thread)
                     )
+                    // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
+                    .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
                     .tag(thread)
                 }
             }
         }
-        .listStyle(.insetGrouped) // explicit: the row tint's base colour is the grouped one (#570)
+        .listStyle(.insetGrouped) // explicit: legacy's rounded block (#803)
         .densityListMargins()
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
@@ -50,14 +52,8 @@ struct MessageListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .task(id: model.sentConfirmation) {
-            guard model.sentConfirmation != nil else { return }
-            // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
-            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-            model.clearSentConfirmation()
-        }
+        .pagerBar(loader.value.map { $0.page > 1 || $0.hasNext } == true ? MessagePageBar(model: model).pager : nil)
         .toolbar {
-            if let content = loader.value, content.page > 1 || content.hasNext { MessagePageBar(model: model) }
             if let composer, let target = model.newMessageTarget {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -167,10 +163,10 @@ private struct EmptyMessagesView: View {
 }
 
 /// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct MessagePageBar: ToolbarContent {
+@MainActor private struct MessagePageBar {
     let model: MessageListModel
 
-    var body: some ToolbarContent {
+    var pager: PagerToolbar {
         PagerToolbar(
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },

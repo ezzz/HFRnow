@@ -1,0 +1,15 @@
+{
+  "id": "R57i",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/{unknown_cat}/topics/last/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/999/topics/last/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/999/topics/last/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Fri, 13 Nov 2026 12:23:31 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R57i-rest-error-unknown-category.json",
+  "private": false
+}

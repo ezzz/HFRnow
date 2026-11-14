@@ -206,11 +206,20 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R57a | `R57a-rest-categories.json` | REST categories (20) | R57 | 057 |
 | R57b | `R57b-rest-category-topics-last.json` | REST last topics of cat 13 (25 per page) | R57 | 057 |
 | R57c | `R57c-rest-topic.json` | REST one topic | R57 | 057 |
+| R57d | `R57d-rest-category-topics-last-page1.json` | REST last topics of cat 13, `&page=1`, anonymous (#355): 5 sticky + 25, taken a minute before `R57e` | R57 | 057 |
+| R57e | `R57e-rest-category-topics-last-page2.json` | The same, `&page=2`: 25 rows, no sticky, `results_count` as page 1 | R57 | 057 |
+| R57f | `R57f-rest-category-topics-last-per-page50.json` | The same, `&page=1&results_per_page=50`: 5 sticky + 50, the 50 topics of `R57d` and `R57e` | R57 | 057 |
+| R57g | `R57g-rest-category-topics-last-past-last-page.json` | The same, a page past the last (⌈`results_count` / 25⌉ + 1): 200, `resources` empty, `page` echoed | R57 | 057 |
+| R57h | `R57h-api-href-as-is-404.html` | An `/api/…` href requested as is (`/api/forums/hardwarefr/categories/`): Apache 404, `text/html` | R57 | 057 |
+| R57i | `R57i-rest-error-unknown-category.json` | REST error, unknown category (`categories/999/topics/last/`): 200 JSON, `error_code` 403 | R57 | 057 |
+| R57j | `R57j-rest-unknown-topic.json` | REST unknown topic (`categories/13/topics/999999999/`): 200, a topic resource with empty title, null date, closed and sticky, posts count 1 | R57 | 057 |
+| R57k | `R57k-rest-error-unknown-resource.json` | REST error, unknown resource (`forums/hardwarefr/nothing/`): 200 JSON, `error_code` 404 | R57 | 057 |
 | R335a | `R335a-rest-bucket-participated.json` | REST flag bucket `topics/participated/` (global, grouped by category), logged in (user1): 2 groups of 1 topic, aliased by position so fixtures stay stable and carry no live data (kit README, REST flag buckets) | R57 | 057 |
 | R335b | `R335b-rest-bucket-read.json` | The same for `topics/read/` | R57 | 057 |
 | R335c | `R335c-rest-bucket-favorites.json` | The same for `topics/favorites/` | R57 | 057 |
 | R335d | `R335d-rest-bucket-participated-page2-per-page5.json` | Global `participated` asked with `&page=2&results_per_page=5`: answered like page 1 (`page` 1, the hrefs echo the request); paging is not served | R57 | 057 |
 | R335e | `R335e-rest-bucket-participated-category-page2-per-page5.json` | Flat form `categories/<cat>/topics/participated/&page=2&results_per_page=5` (category aliased `101` in the file and its URL): a `topic` list with no `links`, `page` echoed as 2, every entry returned (2 kept) | R57 | 057 |
+| R830t | `R830t-rest-bucket-participated-stale-session.html` | Global `participated` bucket with user1's `md_user` and `md_id` and a wrong `md_passs` (#830): 200 `text/html`, a `.hop` "Identifiants invalides !", no JSON, no `Set-Cookie` | R57 | 057 |
 | W00 | `W00-login-form-anon.html` | Login page `login.php`: form `form1` fields | W01 (diagnosis) | 043 |
 | W01 | `W01-login-failure.html` | Refused login (user1, stored credentials): `.hop` "Votre mot de passe ou nom d'utilisateur n'est pas valide", refresh to `/`, no cookie | W01 (stands in for W02) | 043 |
 | W03 | `W03-login-success.html` | Login success (user2): "Vérification de votre identification...", refresh to `login_redirection.php`, cookies `md_user`, `md_passs`, `md_id` | W03 | 043, 042, 025 |

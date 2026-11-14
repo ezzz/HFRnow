@@ -60,14 +60,38 @@ struct TopicRowCuesTests {
         #expect(TopicRowCues.accent(flag: .blue, isSuperFavorite: true, isSelected: true) == nil)
     }
 
-    @Test("The row tint takes the base of its list: the grouped card by default, clear in the sidebar column")
-    func rowTintBases() throws {
-        let grouped = try #require(TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: false, isSelected: false))
-        #expect(grouped.base == .grouped)
-        let sidebar = try #require(
-            TopicListView.rowTint(topic: topic(flag: .blue), isSuperFavorite: true, isSelected: false, base: .clear)
-        )
-        #expect(sidebar.base == .clear)
+    @Test("The pill stops 4 pt short of the block edge, 4 pt above and below a flagged row's content, 6 above a super favourite's (#803)")
+    func pillOverflow() {
+        let regular = ListDensity.regular.rowInsets
+        #expect(RowTint.overflow(isSuperFavorite: false, insets: regular) == EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+        #expect(RowTint.overflow(isSuperFavorite: true, insets: regular) == EdgeInsets(top: 6, leading: 12, bottom: 4, trailing: 12))
+        #expect(RowTint.cornerRadius == 12)
+    }
+
+    @Test("A narrow row inset keeps the 4 pt gap to the block edge, and the vertical reach never passes the cell (#803, #804)")
+    func pillGapSurvivesNarrowInsets() {
+        // #804's compact insets (7 side, 3 vertical), read from the density so a change there shows here.
+        let compact = ListDensity.compact.rowInsets
+        #expect(compact.leading == 7)
+        let edge = RowTint.overflow(isSuperFavorite: true, insets: compact)
+        #expect(edge == EdgeInsets(top: 3, leading: 3, bottom: 3, trailing: 3))
+        #expect(compact.leading - edge.leading == RowTint.edgeGap)
+        #expect(RowTint.overflow(isSuperFavorite: false, insets: EdgeInsets()) == EdgeInsets())
+    }
+
+    @Test("Favoris tints only the super favourite, as legacy; the category lists tint every flagged row (#803)")
+    func favorisPillsOnlySuperFavorites() {
+        let flagged = topic(flag: .blue)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false, flagPills: false) == nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: true, isSelected: false, flagPills: false) != nil)
+        #expect(TopicListView.rowTint(topic: flagged, isSuperFavorite: false, isSelected: false) != nil)
+    }
+
+    @Test("Favoris and Drapeaux, legacy's one Favoris view, pill no flag; categories do (#803)")
+    func flagPillsBySource() {
+        #expect(!TopicListView.flagPills(for: .favorites))
+        #expect(!TopicListView.flagPills(for: .flagged))
+        #expect(TopicListView.flagPills(for: .forum(.forum(13), title: "Discussions")))
     }
 
     @Test("The accent weight: quieter for a flag, full for the super favourite")

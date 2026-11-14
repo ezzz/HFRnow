@@ -1,0 +1,16 @@
+{
+  "id": "R830t",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/topics/participated/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/participated/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/topics/participated/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Fri, 13 Nov 2026 12:55:34 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "jar with md_user and md_id of user1 and a wrong md_passs (stale session)",
+  "file": "R830t-rest-bucket-participated-stale-session.html",
+  "private": false
+}
