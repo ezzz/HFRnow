@@ -493,6 +493,15 @@ struct FavoritesListView: View {
         favoritesSortedByCategories ? showCollapsedSections : showsCategoriesOnDemand
     }
 
+    /// Title of the toolbar button that shows or hides the favorite sections; it names the action.
+    private var favoriteSectionsToggleTitle: String {
+        if favoritesSortedByCategories {
+            showsAllFavoriteSections ? "Masquer les sections repliées" : "Afficher les sections repliées"
+        } else {
+            showsCategoriesOnDemand ? "Masquer les catégories" : "Afficher toutes les catégories"
+        }
+    }
+
     private var shouldShowEmptyFavoriteSections: Bool {
         showsAllFavoriteSections && favoritesTabBehavior == "0"
     }
@@ -805,21 +814,11 @@ struct FavoritesListView: View {
                     profileImageURL: nil,
                     refreshPlacement: phoneDisplayKind.refreshToolbarPlacement,
                     leadingRefreshItem: AnyView(
-                        Button {
-                            AppHaptics.impact(.light)
-                            if favoritesSortedByCategories {
-                                showCollapsedSections.toggle()
-                            } else {
-                                showsCategoriesOnDemand.toggle()
-                            }
-                        } label: {
-                            Label(
-                                showsAllFavoriteSections ? "Masquer les catégories" : "Afficher les catégories",
-                                systemImage: showsAllFavoriteSections ? "list.bullet.circle.fill" : "list.bullet.circle"
-                            )
-                            .foregroundStyle(.primary)
-                        }
-                        .contextMenu {
+                        // Tap toggles the sections, long press offers « Tout replier / déplier ».
+                        // System Menu with a primary action instead of a contextMenu hack, and a
+                        // borderless sections symbol (not the filter glyph used by « Filtrer les
+                        // posts ») whose title says what it does.
+                        Menu {
                             Button {
                                 collapseAllSections()
                             } label: {
@@ -833,18 +832,18 @@ struct FavoritesListView: View {
                                 MenuActionLabel("Tout déplier", systemImage: "rectangle.expand.vertical")
                             }
                             .disabled(!usesCategorizedFavoritesList || collapsedSectionIDs.isEmpty)
-                        } preview: {
-                            Color.clear.frame(width: 1, height: 1)
+                        } label: {
+                            Label(favoriteSectionsToggleTitle, systemImage: "list.bullet.indent")
+                                .foregroundStyle(.primary)
+                        } primaryAction: {
+                            AppHaptics.impact(.light)
+                            if favoritesSortedByCategories {
+                                showCollapsedSections.toggle()
+                            } else {
+                                showsCategoriesOnDemand.toggle()
+                            }
                         }
-                        .accessibilityLabel(
-                            favoritesSortedByCategories
-                                ? (showsAllFavoriteSections
-                                    ? "Masquer les sections repliées"
-                                    : "Afficher les sections repliées")
-                                : (showsCategoriesOnDemand
-                                    ? "Masquer les catégories"
-                                    : "Afficher toutes les catégories")
-                        )
+                        .accessibilityLabel(favoriteSectionsToggleTitle)
                     )
                 ) {
                     if !accountsStore.accounts.isEmpty {
@@ -887,7 +886,7 @@ struct FavoritesListView: View {
                             separatorNewMessages: false,
                             initialFavoritePostFilterResult: favoritePostFilterTarget.result
                         )
-                        .toolbar(.hidden, for: .tabBar)
+                        .hfrPushedTopicTabBarVisibility()
                     } else {
                         EmptyView()
                     }

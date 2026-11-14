@@ -3287,7 +3287,7 @@ struct MessagesView: View {
         case .quick:
             return "plus"
         case .forum:
-            return "square.and.pencil"
+            return "arrowshape.turn.up.left"
         case .hidden:
             return "plus"
         }
@@ -4021,7 +4021,7 @@ struct MessagesView: View {
                 navigationDepth: navigationDepth + 1,
                 resetMessagesStackToRootAction: effectiveResetMessagesStackToRootAction
             )
-            .toolbar(.hidden, for: .tabBar)
+            .hfrPushedTopicTabBarVisibility()
         )
         navigateToLinkedTopic = true
     }
@@ -4727,7 +4727,7 @@ struct MessagesView: View {
                     initialSearchContext: newContext,
                     resetMessagesStackToRootAction: effectiveResetMessagesStackToRootAction
                 )
-                .toolbar(.hidden, for: .tabBar)
+                .hfrPushedTopicTabBarVisibility()
             )
             navigateToSearchResult = true
         }
@@ -4977,6 +4977,14 @@ struct MessagesView: View {
         page < currentMaxPage && isWebContentAtBottom
     }
 
+    /// One prominent bottom-bar button per topic view (HIG Toolbars); see `TopicBottomBarEmphasis`.
+    private var bottomBarEmphasis: TopicBottomBarEmphasis {
+        TopicBottomBarEmphasis.resolve(
+            isInSearchMode: isInSearchMode,
+            isReplyButtonVisible: !shouldHideReplyComposerButton
+        )
+    }
+
     private var bottomPreviousPageButton: some View {
         Button {
             navigateToPreviousPageFromBottomButton()
@@ -5009,7 +5017,10 @@ struct MessagesView: View {
                 .font(.system(size: 14, weight: .semibold))
         }
         .disabled(page >= currentMaxPage)
-        .topicBottomBarCircularIconButtonStyle(isProminent: true)
+        // Not prominent: Répondre is the only prominent button (TopicBottomBarEmphasis). What is
+        // left of the end-of-page cue (HFR-008) is the replay transition, the accessibility label
+        // and, before iOS 26, the bordered circle; on iOS 26 it looks like the plain chevron.
+        .topicBottomBarCircularIconButtonStyle(isProminent: false)
         .legacyPageButtonSpacing(edge: .leading)
         .bottomBarStableHitTarget()
         .accessibilityLabel("Page suivante")
@@ -5590,7 +5601,7 @@ struct MessagesView: View {
                                 } label: {
                                     MenuActionLabel(
                                         "Répondre",
-                                        systemImage: "square.and.pencil",
+                                        systemImage: "arrowshape.turn.up.left",
                                         tintColor: themePalette.actionTintColor,
                                         iconTintUIColor: themePalette.actionTintUIColor
                                     )
@@ -5652,7 +5663,7 @@ struct MessagesView: View {
                                     } label: {
                                         Image(systemName: "arrow.forward")
                                     }
-                                    .topicBottomBarButtonStyle(isProminent: true)
+                                    .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .searchNext)
                                     .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
                                     .accessibilityLabel("Résultat suivant")
                                 }
@@ -5670,7 +5681,7 @@ struct MessagesView: View {
                                         Image(systemName: "arrow.clockwise")
                                             .font(.system(size: 14, weight: .semibold))
                                     }
-                                    .topicBottomBarCircularIconButtonStyle(isProminent: true)
+                                    .topicBottomBarCircularIconButtonStyle(isProminent: false)
                                     .bottomBarStableHitTarget()
                                     .accessibilityLabel("Actualiser")
                                     .transition(.opacity.combined(with: .scale))
@@ -5685,7 +5696,7 @@ struct MessagesView: View {
                                         Image(systemName: replyButtonSystemImage)
                                             .font(.system(size: 14, weight: .semibold))
                                     }
-                                    .topicBottomBarButtonStyle(isProminent: false)
+                                    .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .reply)
                                     .bottomBarStableHitTarget()
                                     .accessibilityLabel("Répondre")
                                 }
@@ -5835,7 +5846,7 @@ struct MessagesView: View {
                             } label: {
                                 MenuActionLabel(
                                     "Répondre",
-                                    systemImage: "square.and.pencil",
+                                    systemImage: "arrowshape.turn.up.left",
                                     tintColor: themePalette.actionTintColor,
                                     iconTintUIColor: themePalette.actionTintUIColor
                                 )
@@ -5878,7 +5889,7 @@ struct MessagesView: View {
                             } label: {
                                 Image(systemName: "arrow.forward")
                             }
-                            .topicBottomBarButtonStyle(isProminent: true)
+                            .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .searchNext)
                             .disabled(isAdvancingSearchResults || lastSearchFormSnapshot.isEmpty)
                             .accessibilityLabel("Résultat suivant")
                         }
@@ -5891,7 +5902,7 @@ struct MessagesView: View {
                                 Image(systemName: replyButtonSystemImage)
                                     .font(.system(size: 14, weight: .semibold))
                             }
-                            .topicBottomBarButtonStyle(isProminent: false)
+                            .topicBottomBarButtonStyle(isProminent: bottomBarEmphasis == .reply)
                             .bottomBarStableHitTarget()
                             .accessibilityLabel("Répondre")
                         }
