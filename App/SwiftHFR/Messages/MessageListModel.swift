@@ -84,7 +84,12 @@ final class MessageListModel {
     private(set) var requestedPage = 1
     /// HFR's confirmation of the private message just sent (LOT-128) or of a conversation marked unread (LOT-127), shown
     /// until dismissed.
-    private(set) var sentConfirmation: String?
+    private(set) var sentConfirmation: String? {
+        didSet { confirmationDidChange() }
+    }
+
+    /// Clears a success confirmation by itself after `ConfirmationAutoDismiss.delay` (#864).
+    let confirmationTimer = ConfirmationAutoDismiss()
     /// Why a "Marquer comme non lu" failed once its reader was gone; a reader on screen says it itself.
     var actionFailure: String?
 
@@ -287,6 +292,12 @@ final class MessageListModel {
     /// Hides the confirmation of the private message just sent.
     func clearSentConfirmation() {
         sentConfirmation = nil
+    }
+
+    /// A shown confirmation is a success HFR confirmed: it goes by itself; the cross is the other way (#864).
+    private func confirmationDidChange() {
+        guard sentConfirmation != nil else { return confirmationTimer.cancel() }
+        confirmationTimer.arm { [weak self] in self?.clearSentConfirmation() }
     }
 
     /// Whether the row shows as unread: HFR's state, until the member has seen the conversation's last page; or marked
