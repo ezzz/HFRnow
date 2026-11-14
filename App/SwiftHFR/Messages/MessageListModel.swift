@@ -95,6 +95,9 @@ final class MessageListModel {
 
     /// MPStorage sync of the current account (LOT-130), for the group rows' flags; nil when logged out.
     let mpStorage: MPStorageSyncModel?
+    /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
+    /// do not need it.
+    private let privateMessageCount: PrivateMessageCount?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -120,9 +123,11 @@ final class MessageListModel {
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         settings: (any SettingsStore)? = nil,
-        mpStorage: MPStorageSyncModel? = nil
+        mpStorage: MPStorageSyncModel? = nil,
+        privateMessageCount: PrivateMessageCount? = nil
     ) {
         self.mpStorage = mpStorage
+        self.privateMessageCount = privateMessageCount
         self.settings = settings
         self.source = source
         self.isLoggedIn = isLoggedIn
@@ -316,6 +321,8 @@ final class MessageListModel {
             if currentReader?.model !== reader { actionFailure = reason }
         case .done(let message):
             sentConfirmation = message
+            // Legacy adds one for a row that showed read (`MPListView.swift:536-540` @ 87fe0d1c).
+            if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
             await refresh()
@@ -328,8 +335,17 @@ final class MessageListModel {
     /// is a local display state only; the next load brings HFR's own state back.
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
+        // Legacy takes one off the badge for a row that showed unread (`MPListView.swift:497-502` @ 87fe0d1c): once per read.
+        if isUnread(listed(thread)) { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
+    }
+
+    /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
+    /// later load may have made stale (a row since read must not take a second one off the badge, #762). Off the page, the
+    /// thread's "opened here" mark is kept by `load`, so the fallback still reads as read.
+    private func listed(_ thread: PrivateMessageThread) -> PrivateMessageThread {
+        loader.value?.threads.first { $0.id == thread.id } ?? thread
     }
 
     private func load(page: Int, advancing: Bool = true) async {
@@ -349,8 +365,11 @@ final class MessageListModel {
             if case .notAuthenticated = error { selected = nil }
             return
         }
-        // Threads opened while this load was running were not in its answer: they stay read until the next load.
-        openedThreads = openedThreads.filter { $0.value >= mine }
+        // Threads opened while this load was running were not in its answer: they stay read until the next load. A thread the
+        // answer does not list (another page, deleted) stays read too: its reader may still be open on the tap's value, and the
+        // badge's -1 / +1 must not take that stale value for the row (#762).
+        let answered = Set(loader.value?.threads.map(\.id) ?? [])
+        openedThreads = openedThreads.filter { $0.value >= mine || !answered.contains($0.key) }
         markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
         if loader.value == .signedOut { selected = nil }
