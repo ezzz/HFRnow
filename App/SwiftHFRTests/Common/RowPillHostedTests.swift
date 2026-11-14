@@ -63,7 +63,7 @@ struct RowPillHostedTests {
 
     /// The pixel's sRGB channels, 0 to 255, red first.
     private func channels(_ image: UIImage, _ point: CGPoint) -> [Int]? {
-        guard let cg = image.cgImage, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        guard let source = image.cgImage, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         let scale = image.scale
         let x = Int(point.x * scale), y = Int(point.y * scale)
         var bytes = [UInt8](repeating: 0, count: 4)
@@ -73,7 +73,7 @@ struct RowPillHostedTests {
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
             ) else { return false }
             // The 1x1 context shows the image pixel at (x, y); Core Graphics counts rows from the bottom.
-            context.draw(cg, in: CGRect(x: -x, y: y + 1 - cg.height, width: cg.width, height: cg.height))
+            context.draw(source, in: CGRect(x: -x, y: y + 1 - source.height, width: source.width, height: source.height))
             return true
         }
         return drawn ? [Int(bytes[0]), Int(bytes[1]), Int(bytes[2])] : nil
