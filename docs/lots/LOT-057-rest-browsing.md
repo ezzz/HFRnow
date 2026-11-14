@@ -4,7 +4,7 @@
 - **Difficulty / model:** medium (Opus 5.5 author → Fable 5.2 reviewer)
 - **Issue:** [#83](https://github.com/ezzz/HFRnow/issues/83) (audit item redface2 E1; old issue francoisgn/ios-app_SwiftHFR#85)
 - **Builds on:** LOT-010 (list models), LOT-021 (`ForumListParser`), LOT-022 (`TopicListParser`), LOT-041 (`HFREndpoint.rest`, `topicPage`, `topicList`), LOT-042 (`AnonymousTransport`), LOT-045 (`PageFetcher`), LOT-095 (`ForumCatalogue.forumPath`), all done.
-- **Partial:** #356 shipped the anonymous part, the second PR the logged-in flag buckets (`R335a`-`R335e`, #335); both `Refs #83`. Left, all waiting on captures: the sub-categories ([#285](https://github.com/ezzz/HFRnow/issues/285)), anonymous list pages after the first, `results_per_page` and the error answers ([#355](https://github.com/ezzz/HFRnow/issues/355)); a bucket row's resume link and read state, the bucket count against the flags page and a bucket without a valid session are captured since ([#830](https://github.com/ezzz/HFRnow/issues/830)) and wait for a PR that uses them.
+- **Partial:** #356 shipped the anonymous part, the second PR the logged-in flag buckets (`R335a`-`R335e`, #335); both `Refs #83`. Left: the sub-categories are captured since ([#285](https://github.com/ezzz/HFRnow/issues/285), `R285a-c`) and wait for a PR that uses them; anonymous list pages after the first, `results_per_page` and the error answers are captured since too ([#355](https://github.com/ezzz/HFRnow/issues/355), `R57d-k`); a bucket row's resume link and read state, the bucket count against the flags page and a bucket without a valid session are captured since ([#830](https://github.com/ezzz/HFRnow/issues/830)) and wait for a PR that uses them.
 
 ## Sources
 The legacy app never called the REST API: there is no `rest_api` in ezzz/HFRnow at `2440d79` nor on `origin/master`, so there is no legacy oracle for the JSON side. The facts come from:
@@ -62,7 +62,7 @@ The account's flag buckets, read with its cookies: `topics(in: RESTFlagBucket, p
 ### JSON → LOT-010 models (internal DTOs, `RESTDocument`)
 Every value is checked; a missing, ill-typed or refused field is `ParsingError.invalidValue(field:)` naming the field by its whole JSON path (`resource.resources.links.posts.count`), never the value (the JSON holds pseudos); a body that is not JSON is `.malformedDocument`.
 
-**Hrefs** (`RESTHref`): an href is accepted only as `https://forum.hardware.fr/api/<uri>` (scheme, host, no port, no user, path under `/api/`); `<uri>` is what `rest_api.php?uri=` takes, and the href's own `page` / `results_per_page` become the request's (E1 reports that the `/api/` URL itself answers 404; not tested, #355). A `posts` resource is refused, href or built uri. Each resource's `href` must name the resource asked for, and a topic's category comes from its `links.category.href` (`…/categories/<cat>/`). A topic's `href` is `…/categories/<cat>/topics/<post>/` (`R57c`, the first `R57b` row) or `…/categories/<cat>/subcategories/<sub>/topics/<post>/` (the 29 other `R57b` rows); the sub-category number is not mapped to a sub-forum (pending #285).
+**Hrefs** (`RESTHref`): an href is accepted only as `https://forum.hardware.fr/api/<uri>` (scheme, host, no port, no user, path under `/api/`); `<uri>` is what `rest_api.php?uri=` takes, and the href's own `page` / `results_per_page` become the request's (E1 reports that the `/api/` URL itself answers 404; captured since, `R57h`, #355). A `posts` resource is refused, href or built uri. Each resource's `href` must name the resource asked for, and a topic's category comes from its `links.category.href` (`…/categories/<cat>/`). A topic's `href` is `…/categories/<cat>/topics/<post>/` (`R57c`, the first `R57b` row) or `…/categories/<cat>/subcategories/<sub>/topics/<post>/` (the 29 other `R57b` rows); the sub-category number is not mapped to a sub-forum (pending #285).
 
 **Categories** (`R57a`): `resource.resources[]` in order, each `id` ≥ 1, `name`, `href` = `…/categories/<id>/`.
 
@@ -71,7 +71,7 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 | `categoryID` | `.forum(id)` |
 | `title` | `name`, HTML entities decoded (`Overclocking, Cooling &amp; Modding`) |
 | `path` | `ForumCatalogue.forumPath(for:)`: the same path as the home page link. A category the catalogue does not know fails the decode, so the home page is read instead |
-| `subforums` | empty: the sub-category resource is not captured (#285); the home page keeps them |
+| `subforums` | empty: the sub-category resource is captured since (`R285a-c`, #285, HFR-PROTOCOL §6c LOT-057) but not read by this client yet; the home page keeps them |
 
 **Topic rows** (`R57b` rows, `R57c`):
 
@@ -90,7 +90,7 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 
 `last_post_date` is `yyyy-MM-dd HH:mm`, French wall-clock time (`HFRDate.restDate`, the `HFRDate` rules: Europe/Paris, a skipped time is nil, a repeated one its first occurrence): `2026-10-26 04:10` is `03:10Z` in `R57b` and `R04`, `2003-01-15 14:53` is `13:53Z`.
 
-**Last topics list** (`R57b`): `resource.list_type` = `topic`, `page` ≥ 1, `results_per_page` ≥ 1, at least one row (an empty answer is read from the HTML page, which tells an empty list from a failure, LESSONS 44; HFR's answer for an unknown category is not captured, #355), every row of the requested category. `TopicListPage(topics:, navigation: PageNavigation(current: page, last: page), categoryID: .forum(cat))`: the next page is not offered and `isExact` stays false, because no page after the first is captured. `R57b` holds 30 rows for `results_per_page` 25: the 5 sticky topics come on top of the 25.
+**Last topics list** (`R57b`): `resource.list_type` = `topic`, `page` ≥ 1, `results_per_page` ≥ 1, at least one row (an empty answer is read from the HTML page, which tells an empty list from a failure, LESSONS 44; HFR's answer for an unknown category is captured since, `R57i`, #355, but not read by this client yet), every row of the requested category. `TopicListPage(topics:, navigation: PageNavigation(current: page, last: page), categoryID: .forum(cat))`: the next page is not offered and `isExact` stays false, because no page after the first is captured. `R57b` holds 30 rows for `results_per_page` 25: the 5 sticky topics come on top of the 25.
 
 ## Edge cases
 - The REST order of the last topics can differ from the HTML list by the posts of the minutes between two reads (`R57b` and `R04`: topic 101586 moved).
@@ -111,8 +111,8 @@ Every value is checked; a missing, ill-typed or refused field is `ParsingError.i
 | `R10`, `R603e`, `R12`, `R70b` | The fallback: `owntopic=1` and `2` read with `FavoritesParser` at their captured URLs; the logged-out notice; the stale-session page is `.sessionExpired` |
 
 **Pending capture** (never hand-built, LESSONS 35-36):
-- The sub-categories of a category ([#285](https://github.com/ezzz/HFRnow/issues/285)).
-- A list page 2, a `results_per_page` answer, an `/api/…` href requested as is (E1 says 404), and a REST error answer ([#355](https://github.com/ezzz/HFRnow/issues/355)). Until then the client asks for page 1 only, and every failure is handled the same way: fallback.
+- **Captured since, not used yet**: the sub-categories of a category ([#285](https://github.com/ezzz/HFRnow/issues/285), `R285a-c`, anonymous; the logged-in answer is a run observation pending publication, #885).
+- **Captured since, not used yet**: a list page 2, a `results_per_page` answer, an `/api/…` href requested as is (404) and the REST error answers ([#355](https://github.com/ezzz/HFRnow/issues/355), `R57d-k`). Until a LOT-057 PR uses them, the client asks for page 1 only, and every failure is handled the same way: fallback.
 - Any REST answer to a session other than the flag buckets (`R335a`-`R335e`): `RESTBrowsingClient` sends no cookie.
 - **Captured since, not used yet**: a bucket row against the flags page row of the same topic (`last_post_read_id`, `last_position`, `is_read` against the flag link and the news marker), the bucket's topics against the flags page's, the completeness of a large global bucket, and a bucket without a valid session ([#830](https://github.com/ezzz/HFRnow/issues/830), `R830t`, HFR-PROTOCOL §6c LOT-057; the no-cookie answer is pending publication, #885). Until a LOT-057 PR uses them, a REST row opens at its last page, its read state is unknown, and an empty bucket is read from the HTML page.
 

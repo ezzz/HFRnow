@@ -214,6 +214,9 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R57i | `R57i-rest-error-unknown-category.json` | REST error, unknown category (`categories/999/topics/last/`): 200 JSON, `error_code` 403 | R57 | 057 |
 | R57j | `R57j-rest-unknown-topic.json` | REST unknown topic (`categories/13/topics/999999999/`): 200, a topic resource with empty title, null date, closed and sticky, posts count 1 | R57 | 057 |
 | R57k | `R57k-rest-error-unknown-resource.json` | REST error, unknown resource (`forums/hardwarefr/nothing/`): 200 JSON, `error_code` 404 | R57 | 057 |
+| R285a | `R285a-rest-subcategories-cat1.json` | REST sub-categories of cat 1 (Hardware), anonymous (#285): 15, the legacy list of `R01` (home + injection), same order | R57 | 057, 021 |
+| R285b | `R285b-rest-subcategories-cat2.json` | The same for cat 2 (Overclocking…): 7, legacy's 6 plus « Divers » (its injection is keyed on a sub-forum the home does not list) | R57 | 057, 021 |
+| R285c | `R285c-rest-subcategories-cat10.json` | The same for cat 10 (Programmation): 27, against 14 in legacy's list of `R01` (13 in common, « PDA » gone) | R57 | 057, 021 |
 | R335a | `R335a-rest-bucket-participated.json` | REST flag bucket `topics/participated/` (global, grouped by category), logged in (user1): 2 groups of 1 topic, aliased by position so fixtures stay stable and carry no live data (kit README, REST flag buckets) | R57 | 057 |
 | R335b | `R335b-rest-bucket-read.json` | The same for `topics/read/` | R57 | 057 |
 | R335c | `R335c-rest-bucket-favorites.json` | The same for `topics/favorites/` | R57 | 057 |
