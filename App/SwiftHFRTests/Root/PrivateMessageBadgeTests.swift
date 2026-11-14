@@ -210,6 +210,20 @@ struct PrivateMessageBadgeTests {
         #expect(count.latest == 7)
     }
 
+    // The wrapper only adds the count: every request reaches the source with its own arguments (`subcat`, `owntopic`, path).
+    @Test func theCountingSourceForwardsEveryRequestUnchanged() async throws {
+        let source = FakeDataSource()
+        let counted = PrivateMessageCountingSource(base: source, count: PrivateMessageCount())
+        _ = try await counted.forumList()
+        _ = try await counted.topicList(category: .forum(13), subcategory: 432, filter: .favorites, page: 3)
+        _ = try await counted.topicList(path: "/hfr/Discussions/Viepratique/liste_sujet-1.htm", page: 2)
+        _ = try await counted.favorites(filter: .flagged)
+        #expect(source.requests == [
+            "forums", "topics:13:3:subcat=432:owntopic=\(TopicListFilter.favorites.rawValue)",
+            "path:/hfr/Discussions/Viepratique/liste_sujet-1.htm:2", "favorites:\(TopicListFilter.flagged.rawValue)"
+        ])
+    }
+
     private func messages(with thread: PrivateMessageThread, count: PrivateMessageCount) -> MessageListModel {
         let source = FakePrivateMessages()
         source.handler = { _ in PrivateMessageListPage(threads: [thread]) }

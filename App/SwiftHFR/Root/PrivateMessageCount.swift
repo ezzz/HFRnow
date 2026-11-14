@@ -58,9 +58,11 @@ struct PrivateMessageCountingSource: ForumDataSource {
         try await counted(\.loggedInUnreadPrivateMessages) { () async throws(ListLoadError) in try await base.forumList() }
     }
 
-    func topicList(category: CategoryID, filter: TopicListFilter, page: Int) async throws(ListLoadError) -> TopicListPage {
+    func topicList(
+        category: CategoryID, subcategory: Int?, filter: TopicListFilter, page: Int
+    ) async throws(ListLoadError) -> TopicListPage {
         try await counted(\.unreadPrivateMessages) { () async throws(ListLoadError) in
-            try await base.topicList(category: category, filter: filter, page: page)
+            try await base.topicList(category: category, subcategory: subcategory, filter: filter, page: page)
         }
     }
 
