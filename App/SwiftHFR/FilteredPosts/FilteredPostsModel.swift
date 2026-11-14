@@ -109,7 +109,7 @@ final class FilteredPostsModel {
         }
         // A `numreponse` link names no page (issue #106): the row's own page is the best start.
         let page = target.numreponse == nil ? target.page : max(topic.currentPage ?? 1, 1)
-        start(topic: id, title: topic.title, page: page, after: target.anchor ?? target.numreponse, knownMaxPage: topic.pageCount)
+        start(topic: id, title: topic.displayTitle, page: page, after: target.anchor ?? target.numreponse, knownMaxPage: topic.pageCount)
     }
 
     /// Filters `topic` from `page`, skipping the messages up to `message` on that page.

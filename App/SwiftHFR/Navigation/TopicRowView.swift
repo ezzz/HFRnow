@@ -5,6 +5,7 @@ import SwiftUI
 // "starter or interlocutors · replies · relative date of the last post" (replies added, starter instead of the last poster), after the
 // "⚑ cur / max" footer; the unread-pages capsule (kept with the dot for unread rows); the flag colour tints the icon and the row
 // (GAP-026, 027, #584; `TopicRowCues`).
+// Title: `TopicSummary.displayTitle` ports `filterTU` (`Topic.m:90-94` @ 87fe0d1c; #818). The row shows no other rewrite.
 // Density and text size: legacy TopicListRowView (Common.swift:3194-3245 @ 21173e77) and FavoritesListDensity (LOT-169).
 /// One topic row: title, flag, counters and last post. Pure display.
 struct TopicRowView: View {
@@ -36,7 +37,7 @@ struct TopicRowView: View {
             }
             if showsFlag { flagIcon.scaledFont(density.titleStyle) }
             VStack(alignment: .leading, spacing: density.lineSpacing) {
-                Text(topic.title)
+                Text(topic.displayTitle)
                     .scaledFont(density.titleStyle)
                     .fontWeight(isUnread ? .semibold : .regular)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)

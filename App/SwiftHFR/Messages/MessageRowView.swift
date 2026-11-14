@@ -33,7 +33,7 @@ struct MessageRowView: View {
                         BadgeCapsule(text: "non lu", isOutlined: !isUnread)
                             .accessibilityLabel(label)
                     }
-                    Text(thread.summary.title)
+                    Text(thread.summary.displayTitle)
                         .scaledFont(density.titleStyle)
                         .fontWeight(titleTone.weight)
                         .foregroundStyle(titleTone.style)
