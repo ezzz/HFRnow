@@ -211,7 +211,10 @@ struct TopicRowActionsTests {
         #expect(model.actionFailure?.contains("Actualisez pour vérifier") == true)
     }
 
-    @Test func aRemovalInFlightIsNotSentTwice() async {
+    /// Issue #564: `removeFlag` marks the row on the main actor, then the request reaches the writer from another executor;
+    /// on a loaded CI runner the second tap and the count ran in between (0 sent). The test waits for the request at the
+    /// writer, so the second tap meets a removal that is really in flight.
+    @Test(.timeLimit(.minutes(1))) func aRemovalInFlightIsNotSentTwice() async {
         let writer = FakeFlagWriter()
         let gate = AsyncGate()
         writer.removeHandler = { topic in
@@ -221,7 +224,8 @@ struct TopicRowActionsTests {
         let topic = flaggedTopic(1)
         let (model, _) = await favoritesList([topic], writer: writer)
         let first = Task { await model.removeFlag(topic) }
-        while !model.isRemovingFlag(topic) { await Task.yield() }
+        while writer.removed.isEmpty { await Task.yield() }
+        #expect(model.isRemovingFlag(topic))
         await model.removeFlag(topic)
         #expect(writer.removed.count == 1)
         await gate.open()
