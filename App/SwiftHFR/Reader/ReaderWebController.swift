@@ -72,6 +72,8 @@ final class ReaderWebController: NSObject {
     /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
+    /// Waits for WebKit's reset of a new document's scroll view before its landing or restore (`scrollAfterWebKitReset`).
+    var resetObservation: NSKeyValueObservation?
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var waiting: [(key: ObjectIdentifier, start: () -> Void)] = []
     /// Third-party image URLs the user tapped in the current document, as `reader.js` reported them. Consent lives here,
@@ -132,6 +134,7 @@ final class ReaderWebController: NSObject {
         }
         ReaderLog.debug("show loads token=\(document.token)")
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
+        resetObservation = nil
         self.document = document
         readyToken = nil
         reloadedAfterFailure = false
@@ -236,9 +239,9 @@ final class ReaderWebController: NSObject {
         applyTextScale()
         applyTheme()
         if let anchor = document.anchor {
-            scroll(to: anchor, landing: true)
+            scrollAfterWebKitReset { $0.scroll(to: anchor, landing: true) }
         } else if let readingTop = savedReadingTop {
-            scroll(toReadingTop: readingTop)
+            scrollAfterWebKitReset { $0.scroll(toReadingTop: readingTop) }
         }
         savedReadingTop = nil
         readyToken = token
