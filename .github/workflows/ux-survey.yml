@@ -1,6 +1,7 @@
 name: UX survey
 
-# Questionnaire UX (#634) : go vet, go test, node --test. Filtré pour qu'une correction de libellé dans
+# Questionnaire UX (#634, #635) : go vet, go test -race, node --test, puis construction et démarrage de l'image
+# (compose.yaml compris : utilisateur non root, lecture seule, en-têtes, contrôle de santé). Filtré pour qu'une correction de libellé dans
 # questions.md ou donnees.md relance le test de concordance.
 on:
   pull_request:
@@ -36,5 +37,48 @@ jobs:
           go-version-file: tooling/ux-survey/go.mod
           cache-dependency-path: tooling/ux-survey/go.sum
       - run: go vet ./...
-      - run: go test ./...
+      - run: go test -race ./...
       - run: node --test web/logique.test.mjs
+
+  image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Build and start with compose.yaml
+        working-directory: tooling/ux-survey/deploy
+        run: |
+          set -euo pipefail
+          donnees="$RUNNER_TEMP/ux-donnees"
+          sudo install -d -m 0700 -o 65532 -g 65532 "$donnees"
+          {
+            echo "UX_ORIGINE=https://exemple.invalid"
+            echo "UX_FERMETURE=2099-01-15T23:00:00+01:00"
+            echo "UX_MENTION_MAJ=2026-11-09"
+            echo "UX_PORT_HOTE=18080"
+            echo "UX_DOSSIER_DONNEES=$donnees"
+          } > "$RUNNER_TEMP/ux.env"
+          docker compose --env-file "$RUNNER_TEMP/ux.env" up -d --build --wait --wait-timeout 90
+      - name: Check the running container
+        working-directory: tooling/ux-survey/deploy
+        run: |
+          set -euo pipefail
+          c=$(docker compose --env-file "$RUNNER_TEMP/ux.env" ps -q ux-survey)
+          test "$(docker inspect -f '{{.State.Health.Status}}' "$c")" = healthy
+          test "$(docker inspect -f '{{.Config.User}}' "$c")" = 65532:65532
+          test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$c")" = true
+          test "$(docker inspect -f '{{json .HostConfig.CapDrop}}' "$c")" = '["ALL"]'
+          # Le port n'est publié que sur la boucle locale de l'hôte.
+          test "$(docker inspect -f '{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostIp}}' "$c")" = 127.0.0.1
+          h=$(curl -fsSI http://127.0.0.1:18080/)
+          for e in "content-security-policy: default-src 'none'" "x-content-type-options: nosniff" "referrer-policy: no-referrer" "strict-transport-security: max-age=31536000"; do
+            echo "$h" | grep -qi "^$e" || { echo "en-tête absent : $e"; exit 1; }
+          done
+          test "$(docker image inspect -f '{{.Size}}' ux-survey:local)" -lt 30000000
+          # Rien d'identifiant dans les journaux du conteneur.
+          ! docker logs "$c" 2>&1 | grep -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | grep -v '0\.0\.0\.0:8080'
+      - name: Stop
+        if: always()
+        working-directory: tooling/ux-survey/deploy
+        run: docker compose --env-file "$RUNNER_TEMP/ux.env" down -v
