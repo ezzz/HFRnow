@@ -1018,7 +1018,65 @@ class WeeklyCounts(unittest.TestCase):
         import build
         self.assertEqual(build.TOTAL, 6)
         self.assertEqual(set(build.FEATURES), {"M1", "M2", "M3"})
-        self.assertEqual([r[0] for r in build.REVIEWS], [774, 775, 836, 326, 866])
+        self.assertEqual(tuple(r[0] for r in build.REVIEWS), counts.REVIEW_ISSUES)
+
+    def gather(self, issues):
+        build = self.with_dropped()
+        stack = contextlib.ExitStack()
+        stack.enter_context(mock.patch.object(build, "progress", progress))
+        self.addCleanup(stack.close)
+        return build, build.gather_892(issues, "2026-11-08T23:59:59Z")
+
+    def test_outside_bar_counts_only_issues_outside_every_milestone_now_and_at_the_baseline(self):
+        mk = lambda n, title, state="open", created="2026-11-01T00:00:00Z", closed=None, labels=(): {
+            "number": n, "title": title, "state": state, "state_reason": "completed" if state == "closed" else None,
+            "closed_at": closed, "created_at": created, "labels": [{"name": x} for x in labels]}
+        iss = [mk(9001, "[SwiftHFR] Fixture kit: a chore", "closed", closed="2026-11-05T00:00:00Z"),   # done before the baseline
+               mk(9002, "[SwiftHFR] Backup restore test", "closed", closed="2026-11-12T00:00:00Z"),    # done since
+               mk(9003, "[SwiftHFR] Flaky app test", created="2026-11-10T00:00:00Z", labels=("type: bug",)),  # created since, open
+               mk(9004, "[SwiftHFR] Poll: results (M4)"), mk(9005, "FEAT-021: iPad keyboard shortcuts"),
+               mk(9006, "[SwiftHFR] Tab bar", labels=("beta-test finding",))]
+        build, d = self.gather(iss)
+        o = d["outside"]
+        self.assertEqual((o["done"], o["total"], o["then_done"], o["then_total"]), (2, 3, 1, 2))
+        self.assertEqual(o["open"], [(9003, "Flaky app test")])
+        self.assertEqual(o["kinds"], {"bug": 1})
+
+    def test_slide_5_counts_every_feedback_issue_like_slide_1_dropped_ones_as_set_aside(self):
+        mk = lambda n, title, **kw: {"number": n, "title": title, "state": "open", "created_at": "2026-11-01T00:00:00Z",
+                                     "labels": [{"name": "beta-test finding"}] + [{"name": x} for x in kw.pop("extra", ())], **kw}
+        iss = [mk(1, "[SwiftHFR] Reader: x"), mk(2, "[SwiftHFR] Legacy reference behind", extra=("type: roadmap",)),
+               mk(3, "[SwiftHFR] MP list: y", state="closed", state_reason="not_planned", closed_at="2026-11-02T00:00:00Z")]
+        build, d = self.gather(iss)
+        fb = d["m4"]["fb"]
+        self.assertEqual(fb["total"], counts.open_closed(counts.daily_groups(iss)["feedback"])[0] + 1)
+        self.assertEqual(fb["total"], 3)
+        self.assertEqual(fb["status"], {"ouvert": 2, "écarté": 1})
+
+    def test_slide_3_shows_each_bar_difference_and_the_outside_bar(self):
+        import build
+        ms = {m: {"done": 0, "then": 0, "total": 10} for m in build.MS}
+        ms["M4"] = {"done": 6, "then": 3, "total": 10}
+        z = {"done": 0, "prs": 0, "commits": 0, "tests": 0, "lines": 0, "issues": 0}
+        D = {"now": z, "then": z, "since": "2026-11-08", "ms": ms,
+             "outside": {"done": 104, "total": 205, "then_done": 65, "then_total": 164}}
+        out = build.slide_today(D)
+        self.assertIn("60 % <em", out)
+        self.assertIn("+30 pts", out)
+        self.assertIn("104 / 205", out)
+        self.assertIn("+39 faites", out)
+        self.assertIn("+41 créées", out)
+        self.assertIn("Hors jalon", out)
+
+    def test_m5_slide_never_drops_a_category(self):
+        import build
+        cats = {a: [(f"{a} {k}", False) for k in range(8 - j)] for j, a in enumerate(counts.AXES)}
+        D = {"m5": {"cats": cats, "axes": {a: len(v) for a, v in cats.items()}, "total": 36, "done": 0}, "outside": {"open": [], "kinds": {}}}
+        out = build.slide_m5(D)
+        self.assertEqual(out.count('class="tile '), 6)
+        for a in counts.AXES[5:]:
+            self.assertIn(f"{a[0].upper() + a[1:]} · {len(cats[a])}", out)
+        self.assertIn("Et aussi · 6", out)
 
     def test_a_slide_never_shows_the_word_legacy(self):
         import build
@@ -1047,6 +1105,7 @@ class ReportDeck892(unittest.TestCase):
             "[SwiftHFR] Legacy reference 2440d79 is 44 commits behind": "autre",
             "LOT-110: Page navigator": "navigation",
             "LOT-152: Preview before send": "composer",
+            "[SwiftHFR] MP list: the reader's avatar in each row": "MP",  # the subject decides over later words
             "[SwiftHFR] M5: Messages split into two tabs, one-to-one MPs and group MPs": "MP",
         }
         for title, axis in cases.items():
@@ -1074,6 +1133,10 @@ class ReportDeck892(unittest.TestCase):
         self.assertEqual(ms("x", labels=("m4-review: performance",)), "M4")
         self.assertEqual(ms("x", labels=("experimental",)), "M5")
         self.assertEqual(ms("x", labels=("moust4ki aka bybifok finding",)), None)  # the credit label is not feedback
+        self.assertEqual(ms("FEAT-021: iPad keyboard shortcuts"), "M5")  # docs/ROADMAP.md: the FEAT items are M5
+        self.assertEqual(ms("FEAT-016: iPhone Duo / iPad columns"), "M4")  # … except FEAT-016 (LOT-147, M4)
+        for n in counts.REVIEW_ISSUES:
+            self.assertEqual(ms("[SwiftHFR] End-of-M4 review", n=n), "M4")
 
     def test_swift_issues_status_and_feedback(self):
         mk = lambda n, title="[SwiftHFR] x", state="open", labels=(), **kw: {"number": n, "title": title, "state": state,

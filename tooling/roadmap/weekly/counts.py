@@ -97,10 +97,9 @@ def live_lots(lots, rows, dropped):
 
 # Axes of the two radars (where test feedback concentrates, slide 5; the M5 categories, slide 6), in drawing order.
 AXES = ['lecteur', 'listes', 'composer', 'MP', 'navigation', 'réglages et thèmes', 'performance', 'autre']
-# Performance is read on the whole title first (« Reader: messages load very slowly » is a speed problem, not a reader
-# one). Otherwise the axis is the one whose pattern matches earliest in the subject, the text before the first « : »
-# (« MP list: … », « Réglages › Stockage MP: … »), then in the whole title when the subject says nothing; on a tie the
-# first rule of AXIS_RULES wins.
+# Performance is read first (« Reader: messages load very slowly » is a speed problem, not a reader one). Otherwise the
+# axis is the one whose pattern matches earliest in the title, so the subject before the first « : » decides when it
+# names one (« MP list: … », « Réglages › Stockage MP: … »); on a tie the first rule of AXIS_RULES wins.
 PERF = re.compile(r'\b(slow\w*|freez\w*|hangs?|hang reports?|crash\w*|instabilit\w*|performance|speed|stuck|timeouts?|latency)\b', re.I)
 AXIS_RULES = [
     ('MP', r'\b(mps?|private messages?|dark topics)\b'),
@@ -127,15 +126,15 @@ def axis_of(title):
     t = subject(title)
     if PERF.search(t):
         return 'performance'
-    for text in (t.split(':', 1)[0], t):
-        hits = [(m.start(), k) for k, (_, rx) in enumerate(AXIS_RULES) if (m := re.search(rx, text, re.I))]
-        if hits:
-            return AXIS_RULES[min(hits)[1]][0]
-    return 'autre'
+    hits = [(m.start(), k) for k, (_, rx) in enumerate(AXIS_RULES) if (m := re.search(rx, t, re.I))]
+    return AXIS_RULES[min(hits)[1]][0] if hits else 'autre'
 
 
 MS_TAG = re.compile(r'^M([1-5])\b|\((?:[^()]*,\s*)?M([1-5])\)')
 LOT_TAG = re.compile(r'\bLOT-(\d{3})\b')
+FEAT_TAG = re.compile(r'\bFEAT-(\d{3})\b')
+FEAT_M4 = {16}  # docs/ROADMAP.md, Milestones: the FEAT items are M5, except FEAT-016 (LOT-147, M4, #237)
+REVIEW_ISSUES = (774, 775, 836, 326, 866)  # the end-of-M4 review trackers (#892), M4 work themselves
 REVIEW_PREFIX = 'm4-review: '
 EXPERIMENTAL = 'experimental'
 
@@ -154,17 +153,24 @@ def is_swift_issue(i):
 def issue_milestone(i, lot_ms, followups=None, lot_of_number=None):
     """The milestone of an issue, or None: the first rule that applies.
     1. a lot issue: its lot's milestone (`lot_ms`, issue number -> M1..M5);
-    2. a follow-up of the UX decisions (`followups`, m5.FOLLOWUPS): its milestone;
-    3. the title names one: `M4: …`, `(M4)`, `(UXD-03, M2)`;
-    4. the title names a lot of the plan (`LOT-097 renderer: …`): that lot's milestone (`lot_of_number`, 97 -> issue);
-    5. labels: an end-of-M4 review finding (`m4-review: …`) or test feedback (`beta-test finding`) is M4, an
+    2. a follow-up of the UX decisions (`followups`, m5.FOLLOWUPS): its milestone; an end-of-M4 review tracker
+       (REVIEW_ISSUES): M4;
+    3. a feature intake issue (`FEAT-0xx` in the title): M5, except FEAT-016, M4 (docs/ROADMAP.md, Milestones);
+    4. the title names one: `M4: …`, `(M4)`, `(UXD-03, M2)`;
+    5. the title names a lot of the plan (`LOT-097 renderer: …`): that lot's milestone (`lot_of_number`, 97 -> issue);
+    6. labels: an end-of-M4 review finding (`m4-review: …`) or test feedback (`beta-test finding`) is M4, an
        `experimental` option is M5 (AGENTS.md §7)."""
     n = i['number']
     if n in lot_ms:
         return lot_ms[n]
     if followups and n in followups:
         return followups[n][0]
+    if n in REVIEW_ISSUES:
+        return 'M4'
     t = re.sub(r'^(\[[^\]]*\]\s*)+', '', i.get('title') or '')
+    f = FEAT_TAG.search(t)
+    if f:
+        return 'M4' if int(f.group(1)) in FEAT_M4 else 'M5'
     m = MS_TAG.search(t)
     if m:
         return 'M' + (m.group(1) or m.group(2))

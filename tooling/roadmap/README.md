@@ -63,10 +63,11 @@ The routine runs it on Monday and Thursday at 05:30 Europe/Paris (#892). Slides,
 4. **M1 · M2 · M3**: one pile of tiles per milestone, a head tile (done / total, closing date) and one tile per main
    feature (`FEATURES`) with its lot count computed from its lots. The title says « terminés » only when all three are.
 5. **M4 en détail**: the M4 lots (done, in progress, to do) and the M4 issues outside lots; the M4 lots closed since the
-   `--since` date; the test feedback (`beta-test finding` only) by status (`counts.issue_status`: ouvert, réclamé, fait,
+   `--since` date; the test feedback (every `beta-test finding` issue, as on slide 1) by status (`counts.issue_status`: ouvert, réclamé, fait,
    écarté) and the ones added since; a radar of where it concentrates (all and open); bottom right, one tile per end-of-M4
    review (`REVIEWS`: #774, #775, #836, #326, #866) with its goal and the issues labelled with its `m4-review:` label.
-6. **M5 en détail**: the M5 lots and issues as tiles by category (the radar axes), a category radar, and a bottom band
+6. **M5 en détail**: the M5 lots and issues as tiles by category (the radar axes; past six categories the smallest share
+   the last tile, none is dropped), a category radar, and a bottom band
    listing the open SwiftHFR issues outside every milestone, by kind, hidden when there is none.
 
 Tiles are solid blue → violet gradients stacked like mah-jong tiles (`.tile`, `.pile`): a visible edge drawn by offset
@@ -74,12 +75,13 @@ shadows, a slight overlap; the layout takes its feel from a keynote overview gri
 bold title), with no third-party artwork, icon or trademark. `shot.js` fails a tile whose text lies under another tile.
 
 Milestone of an issue (`counts.issue_milestone`, first rule that applies): a lot issue takes its lot's milestone, a
-follow-up of `m5.FOLLOWUPS` its own, then a tag in the title (`M4: …`, `(M4)`, `(UXD-03, M2)`), then a lot named in the
+follow-up of `m5.FOLLOWUPS` its own, an end-of-M4 review tracker (`counts.REVIEW_ISSUES`) M4, a `FEAT-0xx` intake issue M5
+(FEAT-016 M4, as `docs/ROADMAP.md` says), then a tag in the title (`M4: …`, `(M4)`, `(UXD-03, M2)`), then a lot named in the
 title (`LOT-097 renderer: …`), then the labels (`beta-test finding` and `m4-review: …` are M4, `experimental` is M5).
 « SwiftHFR issues » (`counts.is_swift_issue`) leave out `[Legacy …]` titles without SwiftHFR, `type: roadmap` trackers and
 issues closed as not planned or duplicate. Radar axes (`counts.AXES`, `counts.axis_of`): lecteur, listes, composer, MP,
-navigation, réglages et thèmes, performance, autre; performance is read on the whole title first, then the axis whose
-pattern matches earliest in the subject (before the first « : »), then in the whole title. Both have tests in
+navigation, réglages et thèmes, performance, autre; performance is read first, then the axis whose pattern matches
+earliest in the title (so the subject before the first « : » decides when it names one). Both have tests in
 `scripts/tests/test_roadmap.py` (`ReportDeck892`).
 
 Format rules (operator, 2026-11-10):

@@ -323,7 +323,7 @@ def gather_892(issues, end):
     closed_since = lambda i: i['state'] == 'closed' and (i.get('closed_at') or '') > end
     m4_lots_since = sorted((l for l in lots['M4'] if byn.get(G.rows[l]['issue']) and closed_since(byn[G.rows[l]['issue']])), key=lot_n)
     m4_issues = [i for i in swift if ms_of[i['number']] == 'M4' and i['number'] not in lot_of_issue]
-    fb = C.feedback(swift)
+    fb = C.feedback(issues)  # every `beta-test finding` issue, as on slide 1 (dropped ones show as « écarté »)
     fb_open = [i for i in fb if i['state'] == 'open']
     added = sorted((i for i in fb if i['created_at'] > end), key=lambda i: -i['number'])
     review_label = lambda x: C.REVIEW_PREFIX + x
@@ -635,11 +635,16 @@ def slide_m5(D):
     """Slide 6: M5 contents as tiles by category, the category radar, and the band of the issues outside every milestone."""
     M = D['m5']
     tiles = ''
-    for k, (a, items) in enumerate(sorted(M['cats'].items(), key=lambda x: (-len(x[1]), C.AXES.index(x[0])))[:6]):
+    cats = sorted(M['cats'].items(), key=lambda x: (-len(x[1]), C.AXES.index(x[0])))
+    if len(cats) > 6:  # never drop a category: the smallest ones share the last tile, one line each
+        rest = cats[5:]
+        cats = cats[:5] + [('et aussi', [(f'{a[0].upper() + a[1:]} · {len(v)}', False) for a, v in rest])]
+    for k, (a, items) in enumerate(cats):
         li = ''.join(f'<li>{"✓ " if d else ""}{esc(t)}</li>' for t, d in items[:5])
         if len(items) > 5:
             li += f'<li class="more">+ {len(items) - 5} autres</li>'
-        tiles += (f'<div class="tile v{1 + k % 4}"><div class="hd">{icon(AXIS_ICON[a])}<b class="tt">{a[0].upper() + a[1:]} · {len(items)}</b></div>'
+        n = len(items) if a in M['cats'] else sum(len(v) for _, v in rest)
+        tiles += (f'<div class="tile v{1 + k % 4}"><div class="hd">{icon(AXIS_ICON.get(a, "list"))}<b class="tt">{a[0].upper() + a[1:]} · {n}</b></div>'
                   f'<ul>{li}</ul></div>')
     rad = (f'<div class="card"><div class="ch">Les catégories de M5 · {M["total"]}</div>'
            f'{radar([(M["axes"], "rgba(139,92,246,.18)", "#8b5cf6")], W=548, label="Contenu de M5 par catégorie")}</div>')
