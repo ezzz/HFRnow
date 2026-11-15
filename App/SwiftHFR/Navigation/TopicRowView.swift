@@ -18,7 +18,7 @@ struct TopicRowView: View {
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// 1 at the default Dynamic Type size; multiplies the marker size and its offset.
+    /// 1 at the default Dynamic Type size; multiplies the spacing between the marks and the title.
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
     private var isUnread: Bool { topic.readState == .unread && !markedRead }

@@ -137,9 +137,7 @@ struct TopicReaderView: View {
             controller?.show(model.document)
         }
         .onAppear {
-            // DISABLED(offline, #822): kept for a later design (#846), not reachable
-            guard OfflineSaveAvailability.isReachable else { return }
-            if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
+            if saver == nil { saver = ReaderOfflineSave.saver(services.offline) } // DISABLED(offline, #822): nil, see there
         }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
         .onChange(of: model.canQuote) { controller?.offersSelectionQuote = model.offersSelectionQuote }

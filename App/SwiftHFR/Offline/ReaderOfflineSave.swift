@@ -27,6 +27,13 @@ struct ReaderOfflineSave: ViewModifier {
         )
     }
 
+    /// The reader's saver for `offline`; nil without offline services.
+    static func saver(_ offline: OfflineServices?) -> OfflineSaveModel? {
+        // DISABLED(offline, #822): kept for a later design (#846), not reachable. No saver, so no progress banner either.
+        guard OfflineSaveAvailability.isReachable, let offline else { return nil }
+        return OfflineSaveModel(store: offline.store, fetcher: offline.fetcher)
+    }
+
     /// The rule of `isOffered(model:saver:)` on its inputs.
     static func isOffered(hasSaver: Bool, isPrivate: Bool, hasPage: Bool, suspended: Bool) -> Bool {
         // DISABLED(offline, #822): kept for a later design (#846), not reachable

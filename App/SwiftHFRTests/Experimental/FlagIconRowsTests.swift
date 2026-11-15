@@ -10,9 +10,9 @@ import Testing
 struct FlagIconRowsTests {
     /// The marks are the ones the row showed before the move (`TopicRowView` @ dev-swift bfb855ef).
     @Test func theFlagMarksAreTheRowsOfBeforeTheMove() {
-        #expect(FlagIconRows.flagMark(.blue) == .init(symbol: "flag.fill", color: Color.blue, label: "Drapeau"))
-        #expect(FlagIconRows.flagMark(.red) == .init(symbol: "flag.fill", color: Color.red, label: "Lu"))
-        #expect(FlagIconRows.flagMark(.yellow) == .init(symbol: "star.fill", color: Color.yellow, label: "Favori"))
+        #expect(FlagIconRows.flagMark(.blue) == FlagIconRows.FlagMark(symbol: "flag.fill", color: Color.blue, label: "Drapeau"))
+        #expect(FlagIconRows.flagMark(.red) == FlagIconRows.FlagMark(symbol: "flag.fill", color: Color.red, label: "Lu"))
+        #expect(FlagIconRows.flagMark(.yellow) == FlagIconRows.FlagMark(symbol: "star.fill", color: Color.yellow, label: "Favori"))
         #expect(FlagIconRows.flagMark(nil) == nil)
     }
 

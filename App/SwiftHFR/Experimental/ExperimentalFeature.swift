@@ -1,8 +1,8 @@
 import HFRStorage
 
 /// One option of Réglages › Expérimental (#903): modern code kept behind a switch while the default build keeps the legacy
-/// behaviour. Removing an option means deleting its case, its folder `Experimental/<Option>/` and its `EXPERIMENTAL(<option>, …)`
-/// markers (`git grep "EXPERIMENTAL("`).
+/// behaviour. Removing an option means deleting its case, its folder `Experimental/<Option>/` and the marker comments that
+/// name it (AGENTS.md §7: `git grep` lists every one).
 enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     case modernComposer
     case searchTab

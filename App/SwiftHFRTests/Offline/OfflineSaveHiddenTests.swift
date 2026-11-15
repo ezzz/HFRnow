@@ -19,6 +19,16 @@ struct OfflineSaveHiddenTests {
         #expect(!entries.contains(.offline))
     }
 
+    /// Without a saver the reader shows no progress banner and has nothing to start a save with.
+    @Test func theReaderGetsNoSaver() {
+        let offline = OfflineServices(
+            store: EvictionSpy(), fetcher: FakeOfflineFetcher { _ throws(ListLoadError) in throw .offline },
+            normalizer: LiveContentNormalizer()
+        )
+        #expect(ReaderOfflineSave.saver(offline) == nil)
+        #expect(ReaderOfflineSave.saver(nil) == nil)
+    }
+
     @Test func settingsHaveNoOfflineSection() {
         #expect(!SettingsView.showsOfflineSection)
     }
