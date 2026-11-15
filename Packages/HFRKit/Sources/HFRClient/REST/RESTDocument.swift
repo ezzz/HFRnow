@@ -41,8 +41,10 @@ enum RESTDocument {
 
     /// The sub-categories of `category` (`R285a`-`R285c`), in the answer's order: every one in one answer
     /// (`results_count` = their number), each a link to its list filtered on its `subcat` number, the query `R603d`
-    /// captured (`ForumCatalogue.topicListPath`). The answer names no slug, so the home page's `/hfr/<cat>/<slug>/` path
-    /// cannot be built; the title is the name, entities decoded and trimmed (« BI/Big Data » ends with a space).
+    /// captured (`ForumCatalogue.topicListPath`). That a sub-category's `id` is the HTML lists' `subcat` is a run
+    /// observation (#285: the 19 `subcat` values of categories 1, 2 and 10 on #830's flags pages are all in these
+    /// lists). The answer names no slug, so the home page's `/hfr/<cat>/<slug>/` path cannot be built; the title is the
+    /// name, entities decoded and trimmed (« BI/Big Data » ends with a space).
     static func subcategories(from data: Data, category: Int) throws(ParsingError) -> [ForumLink] {
         let list = try decode(Envelope<SubcategoryList>.self, from: data).resource
         guard list.listType == "forum_subcategory" else { throw .invalidValue(field: "resource.list_type") }
@@ -222,7 +224,8 @@ enum RESTDocument {
             return
         }
         guard let topicID = topic.topicID else { throw .invalidValue(field: "\(path).id") }
-        let page = min(position / postsPerPage + 1, topic.pageCount)
+        // Capped before the + 1: an offset near `Int.max` at one post per page must not trap (Fable review of #918).
+        let page = min(position / postsPerPage, topic.pageCount - 1) + 1
         let flagPath = "\(try self.path(of: topicID, page: page))#t\(post)"
         topic.flagPath = flagPath
         topic.path = flagPath

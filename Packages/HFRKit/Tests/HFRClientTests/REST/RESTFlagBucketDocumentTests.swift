@@ -286,6 +286,16 @@ extension RESTFlagBucketDocumentTests {
         }
     }
 
+    @Test("A `last_position` near Int.max at one post per page is capped at the last page, no overflow")
+    func resumeAtTheLimit() throws {
+        let data = try Self.editedFirstRow(RESTCapture.participated) { $0["last_position"] = Int.max }
+        let decoded = try RESTDocument.bucket(from: data, bucket: .participated, postsPerPage: 1)
+        let topic = try #require(decoded.sections.first?.topics.first)
+        // 5001 posts at 1 per page: 5001 pages.
+        #expect(topic.currentPage == 5001)
+        #expect(topic.flagPath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=5001#t9810000001")
+    }
+
     @Test("A row without news (`is_read` true) has no flag link and opens at its last page, as on the favourites page (#830)")
     func readRow() throws {
         // `R603f`'s second row is read: the flat form is refused as a bucket answer, so the flag is set on R335b's row.

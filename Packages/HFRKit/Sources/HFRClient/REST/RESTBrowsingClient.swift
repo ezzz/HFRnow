@@ -81,7 +81,10 @@ public struct RESTBrowsingClient: Sendable {
     /// Page `page` of the last topics of forum `category` (`R57b`, `R57d`-`R57g`): page 1 holds the sticky topics then 25
     /// others, a later page 25 others; the navigation is exact (`results_count`), and a page past the last is empty
     /// (`R57g`). Page 1 falls back to the HTML list page 1 (`TopicListParser`, LOT-022) when the REST answer fails; a later
-    /// page has no fallback, since an HTML page holds 50 topics and no HTML page holds the same 25.
+    /// page has no fallback, since an HTML page holds 50 topics and no HTML page holds the same 25. So the pages of one
+    /// list must come from one source: after a page 1 from `.html`, the caller pages by that page's HTML navigation
+    /// (`TopicListPage.navigation`'s paths), never by `lastTopics(in:page: 2)`, whose 25 REST rows would repeat rows 26-50
+    /// of the HTML page.
     /// - Throws: `invalidTarget` for a category or a page below 1, before any request; then as `categories()` for page 1,
     ///   as `topic(_:)` for a later page.
     public func lastTopics(in category: Int, page: Int = 1) async throws(RESTBrowsingError) -> RESTBrowsingResult<TopicListPage> {
