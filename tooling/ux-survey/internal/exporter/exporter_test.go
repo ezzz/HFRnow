@@ -104,6 +104,20 @@ func TestAnalyse(t *testing.T) {
 	}
 }
 
+// X1 : une seule colonne, les codes cochés séparés par une espace, dans l'ordre de questions.md.
+func TestAnalyseChoixMultiple(t *testing.T) {
+	q := testutil.Questionnaire(t)
+	b, err := exporter.AnalyseCSV(q, lignes(t, map[string]any{"X1": []string{"choix_images", "composer_moderne"}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := lireCSV(t, b)
+	i := slices.Index(rows[0], "X1")
+	if i < 0 || slices.Index(rows[0], "D2") != i-1 || rows[1][i] != "composer_moderne choix_images" {
+		t.Errorf("X1 : colonne %d, valeur %q", i, rows[1][i])
+	}
+}
+
 func TestPseudosCSV(t *testing.T) {
 	b, err := exporter.PseudosCSV([]stockage.Pseudo{{Identifiant: "ab12", Pseudo: "=Pseudo"}})
 	if err != nil {

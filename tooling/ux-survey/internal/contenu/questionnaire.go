@@ -36,6 +36,8 @@ type Question struct {
 	Sections     []Reponse `json:"sections,omitempty"`
 	Etats        []Reponse `json:"etats,omitempty"`
 	ReponseSeule *Reponse  `json:"reponse_seule,omitempty"`
+	// Exclusive nomme, pour un choix multiple, le code qui exclut les autres réponses.
+	Exclusive string `json:"exclusive,omitempty"`
 }
 
 // Ecran regroupe les questions affichées ensemble ; Condition vaut {question: codes autorisés}.
@@ -63,6 +65,7 @@ var (
 const (
 	TypeTexteSeul = "texte-seul"
 	TypeChoix     = "choix"
+	TypeChoixMult = "choix-multiple"
 	TypeTexte     = "texte"
 	TypeTri       = "tri"
 	TypeReaction  = "reaction"
@@ -140,7 +143,7 @@ func (q *Questionnaire) Valider() error {
 
 func validerQuestion(id string, qu Question) error {
 	switch qu.Type {
-	case TypeTexteSeul, TypeChoix, TypeTexte, TypeTri, TypeReaction, TypePseudo:
+	case TypeTexteSeul, TypeChoix, TypeChoixMult, TypeTexte, TypeTri, TypeReaction, TypePseudo:
 	default:
 		return fmt.Errorf("%s : type inconnu %q", id, qu.Type)
 	}
@@ -159,8 +162,11 @@ func validerQuestion(id string, qu Question) error {
 			vus[r.Code] = true
 		}
 	}
-	if (qu.Type == TypeChoix || qu.Type == TypeReaction) && len(qu.Reponses) == 0 {
+	if (qu.Type == TypeChoix || qu.Type == TypeChoixMult || qu.Type == TypeReaction) && len(qu.Reponses) == 0 {
 		return fmt.Errorf("%s : aucune réponse", id)
+	}
+	if qu.Exclusive != "" && (qu.Type != TypeChoixMult || !slices.Contains(qu.Codes(), qu.Exclusive)) {
+		return fmt.Errorf("%s : exclusive %q doit être un code d'un choix multiple", id, qu.Exclusive)
 	}
 	if qu.Type == TypeTri && (len(qu.Sections) == 0 || len(qu.Etats) != 3 || qu.ReponseSeule == nil) {
 		return fmt.Errorf("%s : tri incomplet", id)
