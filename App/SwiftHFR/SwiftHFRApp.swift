@@ -23,6 +23,8 @@ struct SwiftHFRApp: App {
     @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
     /// The "Revenir à l'icône précédente ?" question once a seasonal icon's dates are over (#730).
     @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
+    /// The Réglages › Expérimental switches (#903), read by the screens whose modern path they gate.
+    @State private var experimental = ExperimentalSettings(store: UserDefaultsSettingsStore())
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -47,6 +49,7 @@ struct SwiftHFRApp: App {
                 .environment(general)
                 .environment(appLock)
                 .environment(seasonal)
+                .environment(experimental)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
