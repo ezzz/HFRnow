@@ -28,7 +28,7 @@ public struct RESTBrowsingClient: Sendable {
 
     /// The forum categories (`R57a`), or the home page's (`ForumListParser`, LOT-021) when the REST answer fails.
     ///
-    /// REST categories carry no sub-forums yet (their resource is not captured, #285); the home page's do.
+    /// REST categories carry no sub-forums: they are one more request each, `subcategories(in:)`; the home page's do.
     /// - Throws: `network` or `page` when the fallback fails too, `network` alone when no fallback is tried.
     public func categories() async throws(RESTBrowsingError) -> RESTBrowsingResult<[ForumCategory]> {
         let reason: RESTFallbackReason
@@ -47,17 +47,56 @@ public struct RESTBrowsingClient: Sendable {
         }
     }
 
-    /// The last topics of forum `category`, page 1 (`R57b`), or its HTML list page 1 (`TopicListParser`, LOT-022) when
-    /// the REST answer fails. A REST page holds the sticky topics then 25 others; the HTML page, 50 others.
-    /// - Throws: `invalidTarget` for a category below 1, before any request; then as `categories()`.
-    public func lastTopics(in category: Int) async throws(RESTBrowsingError) -> RESTBrowsingResult<TopicListPage> {
+    /// The sub-categories of forum `category` (`R285a`-`R285c`), every one HFR has, or the home page's sub-forums of that
+    /// category (`ForumListParser`) when the REST answer fails. The home page lists only some (Programmation: 14 of 27,
+    /// HFR-PROTOCOL §6b), so the source matters: a REST link names its list by `subcat` number (the `R603d` query), a home
+    /// page link by its `/hfr/<cat>/<slug>/` path.
+    /// - Throws: `invalidTarget` for a category below 1, before any request; `page(.malformed)` when the home page has no
+    ///   such category; then as `categories()`.
+    public func subcategories(in category: Int) async throws(RESTBrowsingError) -> RESTBrowsingResult<[ForumLink]> {
         guard category >= 1 else { throw .invalidTarget }
         let reason: RESTFallbackReason
         do throws(RESTFailure) {
-            let data = try await json(RESTHref.Target(uri: RESTHref.lastTopicsURI(category: category)))
-            let page = try RESTFailure.reading { () throws(ParsingError) in try RESTDocument.lastTopics(from: data, category: category) }
-            return RESTBrowsingResult(value: page, source: .rest)
+            let data = try await json(RESTHref.Target(uri: RESTHref.subcategoriesURI(category: category)))
+            let links = try RESTFailure.reading { () throws(ParsingError) in
+                try RESTDocument.subcategories(from: data, category: category)
+            }
+            return RESTBrowsingResult(value: links, source: .rest)
         } catch {
+            reason = try Self.fallbackReason(for: error)
+        }
+        let page = try await html { fetcher async throws(NetworkError) in try await fetcher.home(as: .anonymous) }
+        let forums: [ForumCategory]
+        do {
+            forums = try ForumListParser.parse(page.text).forums
+        } catch {
+            throw .page(error)
+        }
+        guard let forum = forums.first(where: { $0.categoryID == .forum(category) }) else {
+            throw .page(.malformed("the home page lists no category \(category)"))
+        }
+        return RESTBrowsingResult(value: forum.subforums, source: .html(reason))
+    }
+
+    /// Page `page` of the last topics of forum `category` (`R57b`, `R57d`-`R57g`): page 1 holds the sticky topics then 25
+    /// others, a later page 25 others; the navigation is exact (`results_count`), and a page past the last is empty
+    /// (`R57g`). Page 1 falls back to the HTML list page 1 (`TopicListParser`, LOT-022) when the REST answer fails; a later
+    /// page has no fallback, since an HTML page holds 50 topics and no HTML page holds the same 25.
+    /// - Throws: `invalidTarget` for a category or a page below 1, before any request; then as `categories()` for page 1,
+    ///   as `topic(_:)` for a later page.
+    public func lastTopics(in category: Int, page: Int = 1) async throws(RESTBrowsingError) -> RESTBrowsingResult<TopicListPage> {
+        guard category >= 1, page >= 1 else { throw .invalidTarget }
+        // Page 1 is asked as `R57b` was, without paging; a later page as `R57e`, with `page` alone.
+        let target = RESTHref.Target(uri: RESTHref.lastTopicsURI(category: category), page: page == 1 ? nil : page)
+        let reason: RESTFallbackReason
+        do throws(RESTFailure) {
+            let data = try await json(target)
+            let list = try RESTFailure.reading { () throws(ParsingError) in
+                try RESTDocument.lastTopics(from: data, category: category, page: page)
+            }
+            return RESTBrowsingResult(value: list, source: .rest)
+        } catch {
+            guard page == 1 else { throw Self.error(for: error) }
             reason = try Self.fallbackReason(for: error)
         }
         let page = try await html { fetcher async throws(NetworkError) in
@@ -77,15 +116,15 @@ public struct RESTBrowsingClient: Sendable {
     ///   JSON is not that topic.
     public func topic(_ topic: TopicID) async throws(RESTBrowsingError) -> TopicSummary {
         guard case .forum(let category) = topic.category, category >= 1, topic.topic >= 1 else { throw .invalidTarget }
+        let summary: TopicSummary?
         do throws(RESTFailure) {
             let data = try await json(RESTHref.Target(uri: RESTHref.topicURI(category: category, topic: topic.topic)))
-            return try RESTFailure.reading { () throws(ParsingError) in try RESTDocument.topic(from: data, expected: topic) }
+            summary = try RESTFailure.reading { () throws(ParsingError) in try RESTDocument.topic(from: data, expected: topic) }
         } catch {
-            switch error {
-            case .network(let network): throw .network(network)
-            case .response(let parsing): throw .response(parsing)
-            }
+            throw Self.error(for: error)
         }
+        guard let summary else { throw .notFound }
+        return summary
     }
 
     // MARK: - Implementation
@@ -94,6 +133,7 @@ public struct RESTBrowsingClient: Sendable {
     private enum RESTFailure: Error {
         case network(NetworkError)
         case response(ParsingError)
+        case refused(code: Int)
 
         static func reading<Value>(_ read: () throws(ParsingError) -> Value) throws(RESTFailure) -> Value {
             do {
@@ -104,7 +144,7 @@ public struct RESTBrowsingClient: Sendable {
         }
     }
 
-    /// Sends the REST GET; a redirect is a failure, since HFR answers in place.
+    /// Sends the REST GET; a redirect is a failure, since HFR answers in place, and so is HFR's error answer (`R57i`).
     private func json(_ target: RESTHref.Target) async throws(RESTFailure) -> Data {
         guard !Task.isCancelled else { throw .network(.cancelled) }
         let response: HTTPResponse
@@ -114,7 +154,17 @@ public struct RESTBrowsingClient: Sendable {
             throw .network(error)
         }
         guard !response.isRedirect else { throw .network(.httpStatus(code: response.statusCode, url: response.url)) }
+        if let code = RESTDocument.errorCode(in: response.body) { throw .refused(code: code) }
         return response.body
+    }
+
+    /// The error of a call without fallback.
+    private static func error(for failure: RESTFailure) -> RESTBrowsingError {
+        switch failure {
+        case .network(let network): .network(network)
+        case .response(let parsing): .response(parsing)
+        case .refused(let code): .refused(code: code)
+        }
     }
 
     /// The fallback's reason, or the error that ends the call (cancellation, offline, timeout).
@@ -127,6 +177,8 @@ public struct RESTBrowsingClient: Sendable {
             }
         case .response(let error):
             return .response(error)
+        case .refused(let code):
+            return .refused(code: code)
         }
     }
 

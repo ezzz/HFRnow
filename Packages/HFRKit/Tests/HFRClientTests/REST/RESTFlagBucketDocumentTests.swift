@@ -58,14 +58,15 @@ struct RESTFlagBucketDocumentTests {
 
     @Test("The account's posts per page sets each row's page count and last page; 40 is only the JSON's own size")
     func accountPageSize() throws {
-        // `R335a`'s first topic has 5001 posts: 126 pages at 40, 251 at 20, 51 at 100.
-        for (size, pages) in [(20, 251), (40, 126), (100, 51), (1, 5001)] {
+        // `R335a`'s first topic has 5001 posts: 126 pages at 40, 251 at 20, 51 at 100; its `last_position` 201 is on page
+        // 6 at 40, 11 at 20, 3 at 100, 202 at 1.
+        for (size, pages, resume) in [(20, 251, 11), (40, 126, 6), (100, 51, 3), (1, 5001, 202)] {
             let page = try RESTDocument.bucket(from: RESTCapture.data(RESTCapture.participated), bucket: .participated, postsPerPage: size)
             let topic = try #require(page.sections.first?.topics.first)
             #expect(topic.pageCount == pages)
-            #expect(topic.currentPage == pages)
+            #expect(topic.currentPage == resume)
             #expect(topic.lastPagePath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=\(pages)")
-            #expect(topic.path == topic.lastPagePath)
+            #expect(topic.path == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=\(resume)#t9810000001")
             #expect(topic.repliesCount == 5000)
         }
         #expect(throws: ParsingError.invalidValue(field: "posts per page")) {
@@ -220,10 +221,16 @@ struct RESTFlagBucketDocumentTests {
         #expect(postsHref.hasSuffix("/posts/?page=\(pages)&results_per_page=40"))
         #expect(topic.firstPagePath == "\(base)&page=1")
         #expect(topic.lastPagePath == "\(base)&page=\(pages)")
-        #expect(topic.path == topic.lastPagePath)
-        #expect(topic.currentPage == pages)
-        #expect(topic.flagPath == nil)
-        #expect(topic.readState == .unknown)
+        // The resume point (#830): every published row has news, so it opens at its flag link.
+        let isRead = try #require(row["is_read"] as? Bool)
+        let position = try #require(row["last_position"] as? Int)
+        let post = try #require(row["last_post_read_id"] as? Int)
+        #expect(!isRead)
+        let resume = min(position / 40 + 1, pages)
+        #expect(topic.flagPath == "\(base)&page=\(resume)#t\(post)")
+        #expect(topic.path == topic.flagPath)
+        #expect(topic.currentPage == resume)
+        #expect(topic.readState == .unread)
         #expect(topic.lastPost?.author == (links["last_author"] as? [String: Any])?["title"] as? String)
         #expect(topic.lastPost?.path == topic.lastPagePath)
         #expect(topic.lastPost?.date == HFRDate.restDate(from: row["last_post_date"] as? String ?? ""))
@@ -259,5 +266,53 @@ struct RESTFlagBucketDocumentTests {
         editRow(&resource, edit)
         object["resource"] = resource
         return try JSONSerialization.data(withJSONObject: object)
+    }
+}
+
+/// The resume point and read state of a bucket row (#830).
+extension RESTFlagBucketDocumentTests {
+    @Test("A row with news opens at its flag link: `#t<last_post_read_id>` on page `last_position` div the page size + 1 (#830)")
+    func resumePoint() throws {
+        // `last_position` is a 0-based offset: 39 is the last post of page 1, 40 the first of page 2 (at 40 per page).
+        for (position, page) in [(0, 1), (39, 1), (40, 2), (5000, 126), (5001, 126), (90_000, 126)] {
+            let data = try Self.editedFirstRow(RESTCapture.participated) { $0["last_position"] = position }
+            let decoded = try RESTDocument.bucket(from: data, bucket: .participated, postsPerPage: 40)
+            let topic = try #require(decoded.sections.first?.topics.first)
+            // Past the last post (#830: 11 entries), the page's flag link names the last page.
+            #expect(topic.currentPage == page)
+            #expect(topic.flagPath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=\(page)#t9810000001")
+            #expect(topic.path == topic.flagPath)
+            #expect(topic.readState == .unread)
+        }
+    }
+
+    @Test("A row without news (`is_read` true) has no flag link and opens at its last page, as on the favourites page (#830)")
+    func readRow() throws {
+        // `R603f`'s second row is read: the flat form is refused as a bucket answer, so the flag is set on R335b's row.
+        let data = try Self.editedFirstRow(RESTCapture.read) { $0["is_read"] = true }
+        let topic = try #require(try RESTDocument.bucket(from: data, bucket: .read, postsPerPage: 40).sections.first?.topics.first)
+        #expect(topic.flagPath == nil)
+        #expect(topic.path == topic.lastPagePath)
+        #expect(topic.currentPage == topic.pageCount)
+        #expect(topic.readState == .read)
+        #expect(topic.firstPagePath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=1")
+    }
+
+    @Test("A bucket row's resume fields are checked: wrong type, out of range, null, missing", arguments: [
+        "is_read", "last_position", "last_post_read_id"
+    ])
+    func resumeFieldsChecked(field: String) throws {
+        let fieldPath = "resource.resources.resources.\(field)"
+        let wrong: Any = field == "is_read" ? "x" : (field == "last_position" ? -1 : 0)
+        for value in [wrong, NSNull()] {
+            let data = try Self.editedFirstRow(RESTCapture.participated) { $0[field] = value }
+            #expect(throws: ParsingError.invalidValue(field: fieldPath)) {
+                try RESTDocument.bucket(from: data, bucket: .participated, postsPerPage: 40)
+            }
+        }
+        let missing = try Self.editedFirstRow(RESTCapture.participated) { $0[field] = nil }
+        #expect(throws: ParsingError.invalidValue(field: fieldPath)) {
+            try RESTDocument.bucket(from: missing, bucket: .participated, postsPerPage: 40)
+        }
     }
 }
