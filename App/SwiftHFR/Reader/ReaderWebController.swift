@@ -72,8 +72,8 @@ final class ReaderWebController: NSObject {
     /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
-    /// Waits for WebKit's reset of a new document's scroll view before its landing or restore (`scrollAfterWebKitReset`).
-    var resetObservation: NSKeyValueObservation?
+    /// Holds a new document's landing or restore until WebKit has reset its scroll view (#772).
+    let resetWatch = WebKitResetWatch()
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var waiting: [(key: ObjectIdentifier, start: () -> Void)] = []
     /// Third-party image URLs the user tapped in the current document, as `reader.js` reported them. Consent lives here,
@@ -134,7 +134,7 @@ final class ReaderWebController: NSObject {
         }
         ReaderLog.debug("show loads token=\(document.token)")
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
-        resetObservation = nil
+        resetWatch.stop()
         self.document = document
         readyToken = nil
         reloadedAfterFailure = false
@@ -208,6 +208,7 @@ final class ReaderWebController: NSObject {
             documentIsReady(document, token: document.token)
             return nil
         case .position(let post):
+            resetWatch.pageReportedPosition()
             events.position(post, document.token)
             return nil
         case .quote(let post, let text, let bold):
@@ -238,10 +239,11 @@ final class ReaderWebController: NSObject {
         // A size or a colour changed while this document was loading reached the previous one: set them again.
         applyTextScale()
         applyTheme()
+        let scrollView = webView.scrollView
         if let anchor = document.anchor {
-            scrollAfterWebKitReset { $0.scroll(to: anchor, landing: true) }
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: anchor, landing: true) }
         } else if let readingTop = savedReadingTop {
-            scrollAfterWebKitReset { $0.scroll(toReadingTop: readingTop) }
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(toReadingTop: readingTop) }
         }
         savedReadingTop = nil
         readyToken = token

@@ -37,36 +37,4 @@ extension ReaderWebController {
     func scroll(toReadingTop readingTop: CGFloat) {
         run("return window.hfrReader.restoreScroll(y);", arguments: ["y": Double(max(0, readingTop))])
     }
-
-    /// Runs `action` (a new document's landing or restore) once WebKit has reset the scroll view to the new document's top.
-    /// WebKit does it when it applies the document's first layer-tree commit, often after the page reported ready, and the page
-    /// then follows the scroll view: a scroll sent before that reset was undone on a loaded CI runner (`scrollY` 1000, then 0,
-    /// #772), which the two frames `reader.js` waits (#642) did not always cover. While the scroll view still shows another
-    /// offset than the top, the previous document's, the reset is to come and the action waits for it. A drag first is the
-    /// reader's own choice and cancels it.
-    func scrollAfterWebKitReset(_ action: @escaping @MainActor @Sendable (ReaderWebController) -> Void) {
-        resetObservation = nil
-        guard !isAtTop(webView.scrollView) else {
-            action(self)
-            return
-        }
-        resetObservation = webView.scrollView.observe(\.contentOffset) { [weak self] scrollView, _ in
-            MainActor.assumeIsolated {
-                guard let self, scrollView.isTracking || self.isAtTop(scrollView) else { return }
-                // Invalidated, not released: the observation runs this very callback. The next document replaces it.
-                self.resetObservation?.invalidate()
-                guard !scrollView.isTracking else { return }
-                // After this turn, so WebKit's own update of the page for the reset leaves first.
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    action(self)
-                }
-            }
-        }
-    }
-
-    /// The scroll view shows the top of the document, below the bars: where WebKit puts a new document.
-    private func isAtTop(_ scrollView: UIScrollView) -> Bool {
-        abs(ReaderScrollGeometry.readingTop(offsetY: scrollView.contentOffset.y, obscuredTop: obscuredInsets.top)) <= 1
-    }
 }
