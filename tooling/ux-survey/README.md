@@ -97,12 +97,13 @@ docker compose exec ux-survey /ux-survey effacer
 - Les exports et sauvegardes écrits dans le dossier de données restent à supprimer à la main à la date d'effacement
   (liste à cocher du §12).
 
-## Visuels provisoires (#632)
+## Visuels (#631, #632)
 
-Les visuels de #632 n'existent pas encore. `web/visuels/` et `docs/ux/questionnaire/visuels/` contiennent des
-**marques de place** pour les propositions (bandeau « VISUEL PROVISOIRE ») aux noms et formats de `cadrage-construction.md` §3.3 ; les `.mp4`
-sont des conteneurs vides, la page montre leur image d'attente. Les fichiers réels les remplacent aux mêmes noms, dans
-les deux dossiers (un test les veut identiques), et `inventaire.md` est réécrit : aucun changement de code. Les deux captures « comme aujourd'hui » sont les vraies, de l'app 4.0.3 (#911) : elles vivent dans `docs/ux/questionnaire/visuels/actuel/` et sont copiées à plat dans `web/visuels/` (D2 sur Duo reprend la capture iPad).
+Les visuels vivent dans `docs/ux/questionnaire/visuels/` : les captures de l'app 4.0.3 dans `actuel/` (#911), les
+maquettes des propositions dans `scenarios/` (#632). Les deux dossiers sont copiés à plat dans `web/visuels/`, et un
+test les veut identiques octet pour octet ; D2 sur Duo reprend la capture iPad. `inventaire.md` donne le texte
+alternatif de chacun, repris tel quel dans `contenu/questionnaire.json`. Les cartes de D1
+(`scenarios/D1-cartes/`) ne sont pas affichées par le formulaire, qui présente les sections en texte.
 
 ## Notes de réalisation
 

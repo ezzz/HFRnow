@@ -78,9 +78,15 @@ func TestContenuCodesCartesEtVisuels(t *testing.T) {
 		return out
 	}
 	a, b := liste(ref), liste(copie)
-	// les captures de l'app actuelle (#911) vivent dans visuels/actuel/ et sont copiées à plat dans web/visuels
-	for nom, c := range liste(filepath.Join(ref, "actuel")) {
-		a[nom] = c
+	// les captures de l'app actuelle (#911) vivent dans visuels/actuel/, les maquettes (#632) dans visuels/scenarios/ ;
+	// les unes et les autres sont copiées à plat dans web/visuels (les cartes de D1, dans scenarios/D1-cartes/, ne le sont pas)
+	for _, sous := range []string{"actuel", "scenarios"} {
+		for nom, c := range liste(filepath.Join(ref, sous)) {
+			if _, deja := a[nom]; deja {
+				t.Errorf("visuel %s présent dans deux dossiers de docs/ux/questionnaire/visuels", nom)
+			}
+			a[nom] = c
+		}
 	}
 	for nom, c := range a {
 		if !bytes.Equal(c, b[nom]) {

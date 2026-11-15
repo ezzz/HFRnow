@@ -210,7 +210,7 @@
           "visuels": [
             {
               "fichier": "L1-pages-ameliorees-iphone.png",
-              "alt": "Visuel provisoire : lecture d'un sujet avec des pages plus agréables, sur iPhone"
+              "alt": "Maquette sur iPhone, même sujet que la capture actuelle : un message masqué replié sur une ligne « Message masqué de … Afficher », puis un séparateur bien visible « Nouveaux messages » avant le message suivant."
             }
           ]
         },
@@ -224,8 +224,9 @@
           ],
           "visuels": [
             {
-              "fichier": "L1-lecture-continue-iphone.png",
-              "alt": "Visuel provisoire : lecture continue en option, sur iPhone"
+              "fichier": "L1-lecture-continue-iphone.mp4",
+              "image_attente": "L1-lecture-continue-iphone.png",
+              "alt": "Vidéo de 8 secondes sur iPhone : en faisant défiler le sujet, la page 3 s'affiche à la suite de la page 2 avec un discret repère « Page 3 », et le numéro en haut passe de 2 / 712 à 3 / 712."
             }
           ]
         },
@@ -338,12 +339,12 @@
           "visuels": [
             {
               "fichier": "D2-tableau-de-bord-ipad.png",
-              "alt": "Visuel provisoire : colonne « À suivre » sur iPad"
+              "alt": "Maquette sur iPad en paysage : la barre latérale gagne « À suivre », la colonne du milieu regroupe la reprise de la lecture, les messages privés non lus, les favoris et les drapeaux avec leur nombre de nouveaux messages, et le sujet repris s'ouvre à droite."
             },
             {
               "fichier": "D2-tableau-de-bord-duo.mp4",
               "image_attente": "D2-tableau-de-bord-duo.png",
-              "alt": "Vidéo provisoire : colonne « À suivre » sur iPhone Duo déplié"
+              "alt": "Vidéo de 7 secondes sur iPhone Duo déplié, en paysage : la colonne « À suivre » à gauche ; toucher « Reprendre la lecture » ouvre le sujet à droite, au séparateur des nouveaux messages."
             }
           ]
         },
@@ -358,12 +359,12 @@
           "visuels": [
             {
               "fichier": "D2-cote-a-cote-ipad.png",
-              "alt": "Visuel provisoire : lire et écrire côte à côte sur iPad"
+              "alt": "Maquette sur iPad en paysage : le sujet reste visible à gauche pendant qu'on écrit une citation à droite, et un aperçu sous le texte montre le message tel qu'il sera affiché, avant l'envoi."
             },
             {
               "fichier": "D2-cote-a-cote-duo.mp4",
               "image_attente": "D2-cote-a-cote-duo.png",
-              "alt": "Vidéo provisoire : lire et écrire côte à côte sur iPhone Duo déplié"
+              "alt": "Vidéo de 8 secondes sur iPhone Duo déplié, en paysage : le sujet à gauche, l'éditeur à droite, et l'aperçu sous le texte qui se met à jour pendant la frappe."
             }
           ]
         }
