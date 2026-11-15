@@ -265,7 +265,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-favoris.png",
-              "alt": "Carte « Favoris » : icône `star.fill`, mention « Aujourd'hui : groupe Forum »."
+              "alt": "Carte « Favoris » : étoile, aujourd'hui dans le groupe Forum"
             }
           ]
         },
@@ -275,7 +275,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-categories.png",
-              "alt": "Carte « Catégories » : icône `folder.fill`, mention « Aujourd'hui : groupe Forum »."
+              "alt": "Carte « Catégories » : dossier, aujourd'hui dans le groupe Forum"
             }
           ]
         },
@@ -285,7 +285,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-mp.png",
-              "alt": "Carte « Messages privés » : icône `envelope`, mention « Aujourd'hui : groupe Forum »."
+              "alt": "Carte « Messages privés » : enveloppe, aujourd'hui dans le groupe Forum"
             }
           ]
         },
@@ -295,7 +295,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-drapeaux.png",
-              "alt": "Carte « Drapeaux » : icône `flag`, mention « Aujourd'hui : dans Favoris »."
+              "alt": "Carte « Drapeaux » : drapeau, aujourd'hui dans Favoris"
             }
           ]
         },
@@ -305,7 +305,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-a_suivre.png",
-              "alt": "Carte « À suivre » : icône `newspaper`, mention « Les nouveautés de tous vos sujets suivis », et l'étiquette « Nouveau »."
+              "alt": "Carte « À suivre » : journal, les nouveautés de tous vos sujets suivis, avec l'étiquette « Nouveau »"
             }
           ]
         },
@@ -315,7 +315,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-alertes_qualitay.png",
-              "alt": "Carte « Alertes Qualitay » : icône `bell`, mention « Aujourd'hui : groupe Outils »."
+              "alt": "Carte « Alertes Qualitay » : cloche, aujourd'hui dans le groupe Outils"
             }
           ]
         },
@@ -325,7 +325,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-bookmarks.png",
-              "alt": "Carte « Bookmarks » : icône `pin`, mention « Aujourd'hui : groupe Outils »."
+              "alt": "Carte « Bookmarks » : épingle, aujourd'hui dans le groupe Outils"
             }
           ]
         },
@@ -335,7 +335,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-recherche.png",
-              "alt": "Carte « Recherche » : icône `magnifyingglass`, mention « Aujourd'hui : groupe Plus »."
+              "alt": "Carte « Recherche » : loupe, aujourd'hui dans le groupe Plus"
             }
           ]
         },
@@ -345,7 +345,7 @@
           "visuels": [
             {
               "fichier": "D1-cartes/D1-carte-reglages.png",
-              "alt": "Carte « Réglages » : icône `gearshape`, mention « Aujourd'hui : groupe Plus »."
+              "alt": "Carte « Réglages » : roue dentée, aujourd'hui dans le groupe Plus"
             }
           ]
         }

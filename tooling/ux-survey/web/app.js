@@ -297,14 +297,13 @@ function champTexte(id, q) {
 }
 
 // ---- tri de la barre latérale (D1) ----
-/** Carte d'une section, servie par le binaire (même origine que les autres visuels) ; null si la section n'en a pas. */
-function vignetteSection(cache, section) {
-  const carte = L.d1Carte(section);
-  if (!carte) return null;
-  if (!cache.has(section.code)) {
-    cache.set(section.code, h('img', { class: 'vignette', src: carte.src, alt: carte.alt, width: 340, height: 76, loading: 'lazy' }));
+/** Image d'une carte de L.d1Cartes, servie par le binaire (même origine que les autres visuels) ; null si la section n'en a pas. */
+function vignetteSection(cache, carte) {
+  if (!carte.src) return null;
+  if (!cache.has(carte.code)) {
+    cache.set(carte.code, h('img', { class: 'vignette', src: carte.src, alt: carte.alt, width: 340, height: 76, loading: 'lazy' }));
   }
-  return cache.get(section.code);
+  return cache.get(carte.code);
 }
 
 function champTri(id, q) {
@@ -335,14 +334,15 @@ function champTri(id, q) {
     zone.disabled = d1.comme;
     efface.hidden = !L.d1Repondu(d1);
     liste.replaceChildren();
-    for (const code of L.d1Affichage(d1)) {
+    for (const carte of L.d1Cartes(contenu, d1)) {
+      const code = carte.code;
       const s = q.sections.find((x) => x.code === code);
       const etatActuel = d1.etats[code];
       const li = h('li', { class: 'section' });
       const nom = h('span', { class: 'nom' }, s.libelle);
       li.append(nom);
       const corps = h('div', { class: 'section-corps' });
-      const vignette = vignetteSection(vignettes, s);
+      const vignette = vignetteSection(vignettes, carte);
       if (vignette) corps.append(vignette);
       const actions = h('div', { class: 'section-actions' });
       li.append(corps);

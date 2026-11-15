@@ -192,7 +192,7 @@ test('D1 : neuf cartes, une par section, fichiers prÃ©sents dans web/visuels, mÃ
   for (const c of cartes) {
     assert.match(c.src, /^\/static\/visuels\/D1-cartes\/D1-carte-[a-z_]+\.png$/);
     assert.ok(existsSync(new URL(c.src.replace('/static/', './'), import.meta.url)), c.src);
-    assert.ok(c.alt.length > 10, c.code);
+    assert.ok(c.alt.length > 10 && !/[`.]/.test(c.alt), `${c.code} : texte alternatif lisible, sans nom de symbole`);
   }
   assert.equal(new Set(cartes.map((c) => c.src)).size, 9);
 });
