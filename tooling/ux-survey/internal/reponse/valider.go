@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"slices"
 	"sort"
-	"strings"
 
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/contenu"
 )
@@ -19,6 +18,10 @@ const MaxDuree = 7200
 
 // ErrVersion signale une version de questionnaire différente (409, « rechargez la page »).
 var ErrVersion = errors.New("version du questionnaire différente : rechargez la page")
+
+// ErrVide signale un envoi sans aucune réponse (400) : il n'est pas enregistré et ne compte pas dans le seuil.
+// L'ordre des cartes et la durée ne sont pas des réponses.
+var ErrVide = &ErrInvalide{"aucune réponse à enregistrer"}
 
 // ErrInvalide signale une réponse refusée (400) ; son texte dit pourquoi, sans citer le contenu reçu.
 type ErrInvalide struct{ Raison string }
@@ -66,6 +69,9 @@ func (v *Validateur) Valider(e *Envoi) (*Normalisee, error) {
 		res.Donnees[cle] = b
 	}
 	v.AppliquerConditions(res.Donnees)
+	if len(res.Donnees) == 0 && res.Pseudo == "" {
+		return nil, ErrVide
+	}
 	return res, nil
 }
 
@@ -205,9 +211,6 @@ func (v *Validateur) AppliquerConditions(donnees map[string]json.RawMessage) {
 		}
 	}
 }
-
-// CodeEnMinuscules est un utilitaire de comparaison de pseudos (lower(trim(pseudo))).
-func CodeEnMinuscules(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
 // ValiderUne valide la valeur d'une seule question, pour une correction demandée par un répondant (R7).
 // Elle renvoie la valeur normalisée en JSON, ou nil si la réponse devient absente.

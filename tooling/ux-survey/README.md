@@ -108,8 +108,12 @@ les deux dossiers (un test les veut identiques), et `inventaire.md` est réécri
 
 - NFC : `golang.org/x/text/unicode/norm` (version épinglée dans `go.mod`), la bibliothèque standard n'ayant pas de
   normalisation Unicode (décision du PO du 11 novembre 2026).
-- `UX_FERMETURE` : mémorisée à la première réponse ; ensuite avançable, jamais repoussable (le service et les
-  commandes refusent de démarrer avec une date plus tardive).
+- `UX_FERMETURE` : le jour est mémorisé à la première réponse ; ensuite avançable, jamais repoussable (le service et les
+  commandes refusent de démarrer avec un jour plus tardif ; l'heure du même jour n'est pas comparée).
+- Envoi vide : refusé (400), non enregistré, hors du seuil de 10. Adresses IPv6 comptées par /64.
+- Une route inconnue répond 404, sauf `GET /api/reponses` qui répond 405 (la route existe en `POST`).
+- Les dossiers d'export et de sauvegarde (`/donnees/exports`, `/donnees/sauvegardes`) se créent sur l'hôte, propriétaire
+  65532 : l'image distroless n'a pas de shell pour un `mkdir`. `export` n'écrase jamais un fichier existant.
 - Réponse « limitée » (R13) : `pseudo --limiter <id>` (et `--lever-limite <id>`) l'exclut des statistiques et de tous les exports.
 - Le glisser-déposer du tri `D1` (facultatif dans la spec) n'est pas fait : boutons « Monter » et « Descendre » seuls.
 - À vérifier à la main pendant le test à cinq : voir le §14 de la spécification.

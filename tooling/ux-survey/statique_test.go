@@ -45,7 +45,7 @@ func TestWebPoidsDomainesEtCSP(t *testing.T) {
 		}
 		for _, u := range reURL.FindAllString(s, -1) {
 			// seul lien sortant autorisé : la CNIL, dans un <a href> de la page des données (jamais une ressource)
-			if p == "donnees.html" && strings.HasPrefix(u, "https://www.cnil.fr") && strings.Contains(s, `<a href="`+u+`"`) {
+			if p == "donnees.html" && u == "https://www.cnil.fr" && strings.Contains(s, `<a href="`+u+`"`) {
 				continue
 			}
 			t.Errorf("%s : URL absolue %s", p, u)

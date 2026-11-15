@@ -35,7 +35,7 @@ func ecrire(t *testing.T, b *Base, n int, ip, pseudo string, m map[string]any) (
 	if err != nil {
 		t.Fatal(err)
 	}
-	norm.Pseudo = pseudo
+	norm.Pseudo = reponse.NormaliserTexte(pseudo, true) // comme à l'enregistrement
 	return b.Ecrire(ctx, Envoi{Normalisee: *norm, Version: q.Version, Jeton: testutil.Jeton(n),
 		EmpreinteIP: EmpreinteIP([]byte("cle-de-test-0123456789abcdef0123"), ip), MaxParIP: 3, RecueLe: "2026-11-20"})
 }
@@ -277,6 +277,14 @@ func TestDroits(t *testing.T) {
 	if err != nil || len(l) != 2 {
 		t.Fatalf("recherche sans casse ni espaces : %d %v", len(l), err)
 	}
+	// la saisie est normalisée comme à l'enregistrement : NFD collé d'un autre outil, retour à la ligne
+	b2 := ouvrir(t)
+	if _, err := ecrire(t, b2, 4, "203.0.113.4", "Zoé", map[string]any{"P1": "iphone"}); err != nil {
+		t.Fatal(err)
+	}
+	if l, err := b2.Chercher(ctx, " zoe\u0301\n"); err != nil || len(l) != 1 {
+		t.Errorf("recherche en NFD : %d %v", len(l), err)
+	}
 	// corriger valide la valeur, objet D1 compris
 	if err := b.Corriger(ctx, v, a, "O1", `"nimporte"`); err == nil {
 		t.Error("une valeur invalide doit être refusée")
@@ -372,8 +380,8 @@ func TestReponseLimitee(t *testing.T) {
 	if l, _ := b.Reponses(ctx); len(l) != 1 || l[0].Identifiant == a {
 		t.Errorf("la réponse limitée est exclue : %v", l)
 	}
-	if l, _ := b.ToutesLesReponses(ctx); len(l) != 2 {
-		t.Errorf("elle reste stockée : %d", len(l))
+	if _, err := b.Reponse(ctx, a); err != nil {
+		t.Errorf("elle reste stockée : %v", err)
 	}
 	if l, _ := b.Chercher(ctx, "pseudo"); len(l) != 1 || !l[0].Limitee {
 		t.Errorf("la recherche par pseudo la retrouve, marquée limitée : %v", l)
@@ -406,11 +414,14 @@ func TestFermeturePasRepoussee(t *testing.T) {
 	}
 	q := testutil.Questionnaire(t)
 	norm, _ := (&reponse.Validateur{Q: q}).Valider(testutil.Envoi(t, q, testutil.Jeton(1), nil))
-	if _, err := b.Ecrire(ctx, Envoi{Normalisee: *norm, Version: q.Version, Jeton: testutil.Jeton(1), EmpreinteIP: "x", MaxParIP: 3, RecueLe: "2026-11-20", Fermeture: f.Format(time.RFC3339)}); err != nil {
+	if _, err := b.Ecrire(ctx, Envoi{Normalisee: *norm, Version: q.Version, Jeton: testutil.Jeton(1), EmpreinteIP: "x", MaxParIP: 3, RecueLe: "2026-11-20", Fermeture: JourFermeture(f)}); err != nil {
 		t.Fatal(err)
 	}
-	if err := b.VerifierFermeture(ctx, f.Add(time.Second)); !errors.Is(err, ErrFermetureRepoussee) {
-		t.Errorf("une date plus tardive est refusée : %v", err)
+	if err := b.VerifierFermeture(ctx, f.Add(48*time.Hour)); !errors.Is(err, ErrFermetureRepoussee) {
+		t.Errorf("un jour plus tardif est refusé : %v", err)
+	}
+	if err := b.VerifierFermeture(ctx, f.Add(time.Second).Add(30*time.Minute)); err != nil {
+		t.Errorf("même jour, heure ou fraction de seconde différente : R5 compare des jours : %v", err)
 	}
 	if err := b.VerifierFermeture(ctx, f); err != nil {
 		t.Errorf("la même date : %v", err)

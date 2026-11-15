@@ -26,7 +26,6 @@ let contenu;
 let etat;
 let brouillon;
 let jeton;
-let envoyeesSession = {};
 const memoire = new Map(); // repli si localStorage est indisponible (navigation privée)
 
 // ---- stockage local, jamais bloquant ----
@@ -213,7 +212,7 @@ function champChoix(id, q) {
       sauver();
       majProgression();
     });
-    const option = h('div', { class: 'option' }, input, h('label', { for: rid }, r.libelle));
+    const option = h('div', { class: 'option' }, h('div', { class: 'choix' }, input, h('label', { for: rid }, r.libelle)));
     if (r.details?.length) {
       const ul = h('ul', { class: 'details', id: `${rid}-details` }, ...r.details.map((d) => h('li', {}, d)));
       input.setAttribute('aria-describedby', ul.id);
@@ -337,8 +336,13 @@ function champTri(id, q) {
 // ---- envoi ----
 async function envoyer(bouton, message) {
   bouton.disabled = true;
-  message.textContent = 'Envoi en cours…';
   const corps = L.construireEnvoi(contenu, brouillon, jeton, Date.now(), piege.value);
+  if (!L.aDesReponses(corps)) {
+    message.textContent = "Vous n'avez répondu à aucune question : il n'y a rien à envoyer. Revenez en arrière pour répondre à une question de votre choix.";
+    bouton.disabled = false;
+    return;
+  }
+  message.textContent = 'Envoi en cours…';
   try {
     const { statut, donnees } = await json('/api/reponses', {
       method: 'POST',
@@ -346,17 +350,17 @@ async function envoyer(bouton, message) {
       body: JSON.stringify(corps),
     });
     if (statut === 201 || (statut === 409 && donnees.deja_recu)) {
-      envoyeesSession = corps.reponses;
       ecranFin(corps.reponses, donnees.stats);
       retirer(L.cleBrouillon(contenu.version)); // R3 : brouillon effacé après l'écran de fin rendu
       return;
     }
     message.textContent =
       {
-        409: 'Le questionnaire a été mis à jour : rechargez la page. Vos réponses sont gardées.',
+        409: 'Le questionnaire a été mis à jour pendant que vous répondiez : vos réponses en cours sont perdues. Rechargez la page pour recommencer avec la nouvelle version.',
         410: 'Le questionnaire est fermé.',
         429: "Trop d'envois depuis cette adresse. Réessayez plus tard.",
         413: 'Vos réponses sont trop longues.',
+        400: "L'envoi a été refusé : il ne contient aucune réponse valide. Vos réponses sont gardées.",
       }[statut] ?? "L'envoi a échoué. Vos réponses sont gardées : vous pouvez réessayer.";
   } catch {
     message.textContent = 'Connexion impossible. Vos réponses sont gardées : vous pouvez réessayer.';
@@ -421,7 +425,7 @@ async function ecranFerme() {
   etape.hidden = true;
   try {
     const { donnees } = await json('/api/stats');
-    if (donnees.disponible) corps.append(h('div', { class: 'resultats' }, ...rendreComparaison(L.comparer(contenu, donnees, envoyeesSession))));
+    if (donnees.disponible) corps.append(h('div', { class: 'resultats' }, ...rendreComparaison(L.comparer(contenu, donnees))));
     else corps.append(h('p', {}, q.textes[1]));
   } catch {
     /* les statistiques sont facultatives */

@@ -3,6 +3,7 @@ package web_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -97,7 +98,7 @@ func (b *banc) requete(t *testing.T, methode, chemin string, corps any, mod ...f
 func (b *banc) envoi(t *testing.T, n int, m map[string]any, mod ...func(*http.Request)) *httptest.ResponseRecorder {
 	t.Helper()
 	q := testutil.Questionnaire(t)
-	rep := map[string]any{}
+	rep := map[string]any{"P1": "iphone"} // un envoi vide est refusé : une réponse par défaut
 	for k, v := range m {
 		rep[k] = v
 	}
@@ -180,13 +181,11 @@ func TestLimiteParAdresse(t *testing.T) {
 
 // Test 10 : proxy.
 func TestProxy(t *testing.T) {
-	cfgSans := map[string]string{"UX_PROXY_DE_CONFIANCE": ""}
 	if _, err := contenu.ChargerConfig(func(k string) string {
 		return map[string]string{"UX_ORIGINE": origine, "UX_FERMETURE": "2026-12-15T23:00:00+01:00", "UX_MENTION_MAJ": "2026-11-09"}[k]
 	}); err == nil {
 		t.Error("démarrage refusé sans UX_PROXY_DE_CONFIANCE")
 	}
-	_ = cfgSans
 	// derrière le proxy : deux clients, deux compteurs
 	b := nouveau(t, nil)
 	for i := 1; i <= 3; i++ {
@@ -235,12 +234,7 @@ func TestChampPiege(t *testing.T) {
 // Test 12 : débit, et limiteur actif après la fermeture.
 func TestDebit(t *testing.T) {
 	b := nouveau(t, nil)
-	var rec *httptest.ResponseRecorder
-	for i := 0; i < 11; i++ {
-		rec = b.envoi(t, 100+i, nil, depuis("198.51.100."+string(rune('1'+i%9))+"0"))
-	}
 	// 10 par heure et par client : tout depuis le même
-	b = nouveau(t, nil)
 	codes := []int{}
 	for i := 0; i < 11; i++ {
 		codes = append(codes, b.requete(t, "POST", "/api/reponses", "{}").Code)
@@ -248,7 +242,7 @@ func TestDebit(t *testing.T) {
 	if codes[9] == 429 || codes[10] != 429 {
 		t.Errorf("11e envoi : %v", codes)
 	}
-	rec = b.requete(t, "POST", "/api/reponses", "{}")
+	rec := b.requete(t, "POST", "/api/reponses", "{}")
 	if rec.Header().Get("Retry-After") == "" {
 		t.Error("Retry-After attendu")
 	}
@@ -276,7 +270,6 @@ func TestDebit(t *testing.T) {
 	if c != 429 {
 		t.Errorf("limiteur après la fermeture : %d", c)
 	}
-	_ = rec
 }
 
 // Test 13 : origine.
@@ -521,5 +514,105 @@ func TestLimiteeHorsStats(t *testing.T) {
 	b.hor.Set(b.hor.Now().Add(2 * time.Minute)) // le cache d'une minute expire
 	if got := b.requete(t, "GET", "/api/stats", nil).Body.String(); !strings.Contains(got, `"total":10`) {
 		t.Errorf("la réponse limitée sort des statistiques : %s", got)
+	}
+}
+
+func depuis6(ip string) func(*http.Request) {
+	return func(r *http.Request) { r.RemoteAddr = "[" + ip + "]:4000" }
+}
+
+// IPv6 : le compteur d'envois se fait par /64, une adresse IPv4 reste comptée seule.
+func TestLimiteParPrefixeIPv6(t *testing.T) {
+	b := nouveau(t, nil)
+	for i, ip := range []string{"2001:db8:1:2::1", "2001:db8:1:2:aaaa::2", "2001:db8:1:2:ffff:ffff:ffff:ffff"} {
+		if rec := b.envoi(t, i+1, nil, depuis6(ip)); rec.Code != 201 {
+			t.Fatalf("envoi %d : %d", i+1, rec.Code)
+		}
+	}
+	if rec := b.envoi(t, 4, nil, depuis6("2001:db8:1:2:1234:5678:9abc:def0")); rec.Code != 429 {
+		t.Errorf("quatrième envoi dans le même /64 (adresse de confidentialité tournante) : %d", rec.Code)
+	}
+	if rec := b.envoi(t, 5, nil, depuis6("2001:db8:1:3::1")); rec.Code != 201 {
+		t.Errorf("un autre /64 a son compteur : %d", rec.Code)
+	}
+	// IPv4 : inchangé, une adresse = un compteur
+	for i := 6; i <= 8; i++ {
+		if rec := b.envoi(t, i, nil, depuis("198.51.100.9")); rec.Code != 201 {
+			t.Fatalf("envoi IPv4 %d : %d", i, rec.Code)
+		}
+	}
+	if rec := b.envoi(t, 9, nil, depuis("198.51.100.9")); rec.Code != 429 {
+		t.Errorf("quatrième envoi IPv4 : %d", rec.Code)
+	}
+	if rec := b.envoi(t, 10, nil, depuis("198.51.100.10")); rec.Code != 201 {
+		t.Errorf("une autre adresse IPv4 : %d", rec.Code)
+	}
+}
+
+// Le limiteur de débit compte aussi par /64 : un téléphone qui change d'adresse n'échappe pas aux 10 envois par heure.
+func TestDebitParPrefixeIPv6(t *testing.T) {
+	b := nouveau(t, nil)
+	var dernier int
+	for i := 0; i < 11; i++ {
+		dernier = b.requete(t, "POST", "/api/reponses", "{}", depuis6(fmt.Sprintf("2001:db8:7:7:%x::1", i+1))).Code
+	}
+	if dernier != 429 {
+		t.Errorf("11e requête depuis un même /64 : %d", dernier)
+	}
+}
+
+// Un envoi sans aucune réponse est refusé (400), n'est pas enregistré et ne compte pas dans le seuil.
+func TestEnvoiVideRefuse(t *testing.T) {
+	b := nouveau(t, nil)
+	q := testutil.Questionnaire(t)
+	for nom, rep := range map[string]map[string]any{
+		"aucune réponse":                 {},
+		"ordre des cartes":               {"ordre_cartes": q.Cartes},
+		"texte d'espaces":                {"G1": "   "},
+		"réponse sous condition retirée": {"D2": "cote_a_cote"}, // D2 n'existe que pour iPad, Duo ou plusieurs
+	} {
+		rec := b.requete(t, "POST", "/api/reponses", map[string]any{"version": q.Version, "jeton": testutil.Jeton(7), "duree_s": 30, "reponses": rep})
+		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "aucune réponse") {
+			t.Errorf("%s : %d %s", nom, rec.Code, rec.Body)
+		}
+	}
+	if compte(t, b, "reponses") != 0 || compte(t, b, "jetons") != 0 {
+		t.Error("rien n'est enregistré, pas même le jeton : on peut renvoyer le même jeton avec une réponse")
+	}
+	if rec := b.envoi(t, 7, map[string]any{"P1": "iphone"}); rec.Code != 201 {
+		t.Errorf("le même jeton, avec une réponse : %d", rec.Code)
+	}
+	// le pseudo seul est une réponse
+	if rec := b.envoi(t, 8, map[string]any{"I1": "Pseudo"}); rec.Code != 201 {
+		t.Errorf("pseudo seul : %d %s", rec.Code, rec.Body)
+	}
+}
+
+// Double clic ou nouvel essai réseau : deux envois simultanés du même jeton donnent un 201 et un 409, une seule ligne.
+func TestEnvoiSimultanePourUnJeton(t *testing.T) {
+	b := nouveau(t, nil)
+	codes := make([]int, 8)
+	var wg sync.WaitGroup
+	for i := range codes {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			codes[i] = b.envoi(t, 1, map[string]any{"P1": "iphone"}, depuis("198.51.100."+string(rune('1'+i)))).Code
+		}()
+	}
+	wg.Wait()
+	var ok, doublon int
+	for _, c := range codes {
+		switch c {
+		case 201:
+			ok++
+		case 409:
+			doublon++
+		default:
+			t.Errorf("code inattendu %d", c)
+		}
+	}
+	if ok != 1 || doublon != len(codes)-1 || compte(t, b, "reponses") != 1 {
+		t.Errorf("201 : %d, 409 : %d, lignes : %d", ok, doublon, compte(t, b, "reponses"))
 	}
 }

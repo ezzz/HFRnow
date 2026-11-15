@@ -35,7 +35,16 @@ func commandeExport(args []string) error {
 			return err
 		}
 		nom := fmt.Sprintf("%s-%s.%s", *sortie, date, ext)
-		if err := os.WriteFile(nom, contenu, 0o600); err != nil {
+		// O_EXCL : un export existant n'est jamais écrasé (il peut contenir des données à garder).
+		f, err := os.OpenFile(nom, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		if err != nil {
+			return err
+		}
+		if _, err := f.Write(contenu); err != nil {
+			f.Close()
+			return err
+		}
+		if err := f.Close(); err != nil {
 			return err
 		}
 		fmt.Println(nom)
@@ -123,10 +132,7 @@ func commandeEffacer() error {
 		return err
 	}
 	defer e.base.Fermer()
-	instantane := func(l []reponse.Ligne) ([]byte, error) {
-		return exporter.AgregatsJSON(stats.Calculer(e.q, l))
-	}
-	if err := e.base.Effacement(context.Background(), e.cfg.Fermeture, time.Now(), instantane); err != nil {
+	if err := e.base.Effacement(context.Background(), e.cfg.Fermeture, time.Now(), exporter.Instantane(e.q)); err != nil {
 		return err
 	}
 	fmt.Println("effacement terminé")

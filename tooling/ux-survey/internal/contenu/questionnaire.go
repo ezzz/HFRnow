@@ -43,7 +43,6 @@ type Ecran struct {
 	ID        string              `json:"id"`
 	Questions []string            `json:"questions"`
 	Condition map[string][]string `json:"condition,omitempty"`
-	Melange   bool                `json:"melange,omitempty"`
 	Fin       bool                `json:"fin,omitempty"`
 }
 

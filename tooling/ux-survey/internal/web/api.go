@@ -115,7 +115,7 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 		Jeton:       e.Jeton,
 		EmpreinteIP: stockage.EmpreinteIP(cle, s.IPClient(r)),
 		MaxParIP:    s.Cfg.MaxParIP,
-		Fermeture:   s.Cfg.Fermeture.Format(time.RFC3339),
+		Fermeture:   stockage.JourFermeture(s.Cfg.Fermeture),
 		RecueLe:     s.Horloge().In(s.Cfg.Fermeture.Location()).Format(time.DateOnly),
 	})
 	switch {
@@ -144,7 +144,7 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 }
 
 func decoderStrict(corps []byte, v any) error {
-	dec := json.NewDecoder(bytesReader(corps))
+	dec := json.NewDecoder(bytes.NewReader(corps))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
 		return err
@@ -154,5 +154,3 @@ func decoderStrict(corps []byte, v any) error {
 	}
 	return nil
 }
-
-func bytesReader(b []byte) io.Reader { return bytes.NewReader(b) }

@@ -102,10 +102,6 @@ func TestAnalyse(t *testing.T) {
 	if strings.Contains(string(j), "Pseudo-Secret") {
 		t.Error("pseudo dans le JSON")
 	}
-	// l'identifiant n'a pas d'ordre d'arrivée : le tri est par identifiant
-	if !slices.IsSorted([]string{rows[1][0]}) {
-		t.Error("tri")
-	}
 }
 
 func TestPseudosCSV(t *testing.T) {

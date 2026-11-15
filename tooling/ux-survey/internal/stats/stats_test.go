@@ -59,7 +59,6 @@ func TestSeuilParQuestionEtArrondis(t *testing.T) {
 	reps = append(reps, repetees(4, map[string]any{"P1": "duo"})...)
 	// M1 : 9 réponses seulement (sous le seuil)
 	reps[0]["M1"] = "un_onglet"
-	m := map[string]any{}
 	for i := 0; i < 9; i++ {
 		x := map[string]any{}
 		for k, v := range reps[i] {
@@ -68,7 +67,6 @@ func TestSeuilParQuestionEtArrondis(t *testing.T) {
 		x["M1"] = "un_onglet"
 		reps[i] = x
 	}
-	_ = m
 	a := agreger(t, reps)
 	pub := a.Publier(10).(stats.Disponible)
 	if _, ok := pub.Questions["M1"]; ok {
@@ -82,7 +80,7 @@ func TestSeuilParQuestionEtArrondis(t *testing.T) {
 		t.Errorf("P1 : %+v", p1)
 	}
 	// arrondi au plus proche : 1/3 -> 33, 2/3 -> 67, 1/6 -> 17, 5/6 -> 83
-	tiers := agreger(t, append(repetees(4, map[string]any{"O1": "oser"}), append(repetees(8, map[string]any{"O1": "rester"}), repetees(0, nil)...)...))
+	tiers := agreger(t, append(repetees(4, map[string]any{"O1": "oser"}), repetees(8, map[string]any{"O1": "rester"})...))
 	o1 := tiers.Questions["O1"]
 	if o1.Codes["oser"] != 33 || o1.Codes["rester"] != 67 {
 		t.Errorf("arrondis : %+v", o1.Codes)

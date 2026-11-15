@@ -145,6 +145,20 @@ func TestConfiguration(t *testing.T) {
 			t.Errorf("sans %s : doit échouer", v)
 		}
 	}
+	for _, o := range []string{"https://sondage.exemple.fr/questionnaire", "https://sondage.exemple.fr?x=1", "ftp://sondage.exemple.fr", "sondage.exemple.fr", "https://u:p@sondage.exemple.fr"} {
+		m := envValide()
+		m["UX_ORIGINE"] = o
+		if _, err := ChargerConfig(env(m)); err == nil {
+			t.Errorf("UX_ORIGINE=%q doit être refusée", o)
+		}
+	}
+	for _, o := range []string{"http://127.0.0.1:8080", "https://sondage.exemple.fr/"} {
+		m := envValide()
+		m["UX_ORIGINE"] = o
+		if _, err := ChargerConfig(env(m)); err != nil {
+			t.Errorf("UX_ORIGINE=%q : %v", o, err)
+		}
+	}
 	m := envValide()
 	m["UX_SEUIL_STATS"] = "9"
 	if _, err := ChargerConfig(env(m)); err == nil {

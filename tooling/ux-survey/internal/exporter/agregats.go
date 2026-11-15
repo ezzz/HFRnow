@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/contenu"
+	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/reponse"
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/stats"
 )
 
@@ -14,6 +16,11 @@ const SeuilExport = 5
 
 // AgregatsExport applique le seuil de 5 aux agrégats : c'est le contenu de l'export agregats et de agregats.json.
 func AgregatsExport(a stats.Agregats) stats.Agregats { return a.Filtrer(SeuilExport) }
+
+// Instantane est le contenu de agregats.json : même contenu que l'export agregats, calculé pour l'effacement.
+func Instantane(q *contenu.Questionnaire) func([]reponse.Ligne) ([]byte, error) {
+	return func(l []reponse.Ligne) ([]byte, error) { return AgregatsJSON(stats.Calculer(q, l)) }
+}
 
 // AgregatsJSON produit l'export d'ensemble en JSON.
 func AgregatsJSON(a stats.Agregats) ([]byte, error) {

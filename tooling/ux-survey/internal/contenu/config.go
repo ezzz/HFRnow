@@ -3,6 +3,7 @@ package contenu
 import (
 	"fmt"
 	"net/netip"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -38,8 +39,10 @@ func ChargerConfig(get func(string) string) (*Config, error) {
 	if c.Origine == "" {
 		return nil, fmt.Errorf("UX_ORIGINE est obligatoire (par exemple https://sondage.exemple.fr)")
 	}
-	if !strings.HasPrefix(c.Origine, "https://") && !strings.HasPrefix(c.Origine, "http://") {
-		return nil, fmt.Errorf("UX_ORIGINE doit commencer par https:// ou http://")
+	// Une origine, c'est schéma et hôte (port possible) : rien d'autre, sinon chaque POST serait refusé (403).
+	if u, err := url.Parse(c.Origine); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" ||
+		u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		return nil, fmt.Errorf("UX_ORIGINE doit être https://hôte ou http://hôte (port possible), sans chemin ni paramètre")
 	}
 	proxy := strings.TrimSpace(get("UX_PROXY_DE_CONFIANCE"))
 	if proxy == "" {

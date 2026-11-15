@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	_ "modernc.org/sqlite" // pilote Go pur, sans cgo : seule dépendance tierce (spec §1)
 )
@@ -91,12 +90,6 @@ func Ouvrir(dossier string) (*Base, error) {
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("schéma : %w", err)
-	}
-	// Base créée avant l'ajout de la colonne limitee : migration sans perte.
-	if _, err := db.Exec(`ALTER TABLE reponses ADD COLUMN limitee INTEGER NOT NULL DEFAULT 0`); err != nil &&
-		!strings.Contains(err.Error(), "duplicate column") {
-		db.Close()
-		return nil, fmt.Errorf("migration : %w", err)
 	}
 	b := &Base{db: db, dossier: dossier}
 	b.pointDeControle = b.checkpointTronque

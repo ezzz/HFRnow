@@ -178,6 +178,7 @@ Le serveur ne fait pas confiance au front :
   - les rangs ne couvrent que les sections `garder` et `deplier` : uniques et contigus de 1 à leur nombre (pas de 1 à 9) ; une section `ecarter` n'en a pas ;
   - `comme_aujourdhui` faux sans aucune section : `D1` devient absent ;
 - `ordre_cartes` : permutation exacte des neuf cartes, sinon ignoré ;
+- **envoi vide** : après normalisation et application des conditions, un envoi sans aucune réponse (ni question, ni pseudo ; l'ordre des cartes et la durée n'en sont pas) est refusé en 400 « aucune réponse à enregistrer ». Rien n'est stocké, pas même le jeton, et il ne compte ni dans le total ni dans le seuil de 10. Le formulaire le dit avant d'envoyer, avec un message clair ;
 - **conditions**, appliquées avant stockage même si le front a envoyé les valeurs :
   - `P1` absent ou différent de `ipad`, `duo`, `plusieurs` : `D1` et `D2` retirés. C'est la seule condition ; `L2` et `G1` n'en ont pas.
 
@@ -200,7 +201,7 @@ Mode WAL, `busy_timeout` de 5 s, une seule connexion d'écriture. L'écriture d'
 ## 6. Anti-doublon, limitation de débit, champ piège
 
 - **Jeton** : un jeton déjà présent dans `jetons` donne 409 `{"deja_recu": true, "stats": …}` ; le front affiche alors l'écran de fin normalement. Cela couvre aussi la double soumission et le nouvel essai après coupure réseau.
-- **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
+- **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. Une adresse IPv6 est ramenée à son préfixe /64 (celui d'une ligne ou d'un foyer, dans lequel un téléphone change d'adresse à volonté) avant l'empreinte et pour le limiteur de débit ; une adresse IPv4 est comptée telle quelle. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
 - **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, autres routes hors `/static/` 120 par minute, `/static/` non limité (fichiers embarqués, servis depuis la mémoire) ; au-delà, 429 avec `Retry-After`. Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
 - **IP du client** : `UX_PROXY_DE_CONFIANCE` est **obligatoire**. Si la connexion vient de cette adresse ou de ce CIDR, l'IP du client est la **dernière** adresse de `X-Forwarded-For` (celle que le proxy a ajoutée) ; sinon, l'adresse de la connexion. La valeur `aucun` (service exposé sans proxy, ou développement local) fait ignorer l'en-tête. Sans cette variable, le service refuse de démarrer : derrière un proxy, tous les répondants auraient l'adresse du proxy, et le quatrième recevrait 429.
 - **Champ piège** : `site_web` non vide donne la même réponse 201 qu'un envoi accepté, sans rien stocker, pour ne pas renseigner le robot.
@@ -281,7 +282,7 @@ Variables d'environnement, aucun secret dans le dépôt :
 | `UX_DONNEES` | `./donnees` | Dossier de la base, de `cle-ip` et de `agregats.json` ; `/donnees` dans le conteneur, monté depuis le dossier de données propre au projet Compose |
 | `UX_ORIGINE` | — (obligatoire) | Origine publique, par exemple `https://sondage.exemple.fr` |
 | `UX_PROXY_DE_CONFIANCE` | — (obligatoire) | IP ou CIDR du proxy inverse, ou `aucun` (§6) |
-| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, la date est mémorisée (table `meta`) ; ensuite elle peut être **avancée, jamais repoussée** : au démarrage, une date plus tardive que la date mémorisée fait refuser le démarrage (de même pour toute commande `ux-survey`), une date plus proche la remplace (R5) |
+| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, le **jour** de fermeture (`AAAA-MM-JJ`, dans le décalage de la variable) est mémorisé (table `meta`) ; ensuite il peut être **avancé, jamais repoussé** : R5 compare des jours, pas des secondes. Au démarrage, un jour plus tardif que le jour mémorisé fait refuser le démarrage (de même pour toute commande `ux-survey`), un jour plus proche le remplace (R5) |
 | `UX_MENTION_MAJ` | — (obligatoire) | Date de dernière mise à jour de la mention |
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; une valeur sous 10 est refusée |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par empreinte d'IP |
@@ -387,10 +388,10 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 6 | Validation | Clé inconnue (dont `C08`), code ou type inconnu, texte trop long (`G1` à 281 caractères compris), corps trop gros ; `D1` avec `comme_aujourdhui` et des sections, rangs en double ou non contigus, rang sur une section écartée : refus, aucune ligne |
 | 7 | Enregistrement | Un envoi valide : une ligne dans `reponses` avec un identifiant aléatoire, le pseudo seulement dans `pseudos`, `recue_le` sans heure |
 | 8 | Doublon par jeton | Deuxième envoi du même jeton : 409 `deja_recu`, toujours une seule ligne |
-| 9 | Doublon par adresse | Quatrième envoi d'une même IP : 429 ; la base ne contient pas l'IP en clair ; deux clés donnent deux empreintes ; la clé n'est pas dans le fichier SQLite |
+| 9 | Doublon par adresse | Quatrième envoi d'une même IP : 429 ; quatrième envoi depuis un même /64 IPv6 : 429, un autre /64 repart à zéro ; deux envois simultanés du même jeton : un 201 et un 409 ; la base ne contient pas l'IP en clair ; deux clés donnent deux empreintes ; la clé n'est pas dans le fichier SQLite |
 | 10 | Proxy | Démarrage refusé sans `UX_PROXY_DE_CONFIANCE` ; `X-Forwarded-For` ignoré avec `aucun` ou d'une connexion hors du proxy ; derrière le proxy, deux clients aux IP différentes ont deux compteurs distincts |
 | 11 | Champ piège | `site_web` rempli : 201, aucune ligne |
-| 12 | Débit | Au-delà de la limite : 429 avec `Retry-After` ; le limiteur marche encore après la fermeture |
+| 12 | Débit | Au-delà de la limite, aussi depuis un même /64 IPv6 : 429 avec `Retry-After` ; le limiteur marche encore après la fermeture |
 | 13 | Origine | `POST` d'une autre origine : 403 |
 | 14 | Statistiques | 9 réponses : `{"disponible": false, "seuil": 10}` sans compte ; 10 : publiées, à la forme du §8 ; question sous le seuil absente ; arrondis ; aucune clé de texte libre (`G1`, `L2`, `C11`, `F1`), de pseudo, de durée ni d'ordre |
 | 15 | Fermeture | Une seconde après `UX_FERMETURE` : 410 au `POST`, `ouvert` faux ; après la tâche : `cle-ip` absent, `empreintes_ip` et `jetons` vides |
@@ -403,9 +404,10 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | 22 | Poids, domaines, CSP | `web/` hors `visuels/` pèse 200 Ko au plus ; aucune URL absolue vers un autre domaine ; aucun `innerHTML`, `insertAdjacentHTML`, attribut `style` ni `on…=` dans `web/` |
 | 23 | Accès restreint | Avec `UX_CODE_ACCES` : 401 sans authentification, 200 avec ; `/healthz` toujours ouvert |
 | 24 | Limitée (R13) | Après `pseudo --limiter` : la réponse reste stockée et retrouvée par `--chercher`, mais absente du total des statistiques, des exports `analyse` et `agregats` et de `agregats.json` ; `--lever-limite` la remet |
-| 25 | Fermeture non repoussée (R5) | Avant toute réponse, toute date est acceptée ; après la première réponse, une `UX_FERMETURE` plus tardive refuse le démarrage, une plus proche est acceptée et mémorisée, et revenir à l'ancienne est refusé |
+| 25 | Fermeture non repoussée (R5) | Avant toute réponse, toute date est acceptée ; après la première réponse, une `UX_FERMETURE` plus tardive refuse le démarrage, une plus proche est acceptée et mémorisée, et revenir à l'ancienne est refusé ; une autre heure du même jour est acceptée |
+| 26 | Envoi vide | `{}`, l'ordre des cartes seul, un texte d'espaces et une réponse retirée par sa condition donnent 400 sans ligne ni jeton ; le même jeton renvoyé avec une réponse est accepté ; le pseudo seul est une réponse ; le formulaire n'envoie rien sans réponse |
 
-À vérifier à la main pendant le test à cinq : parcours complet au lecteur d'écran (VoiceOver sur iPhone), tri de `D1` aux boutons seuls, mode sombre, texte agrandi à 200 %, rechargement en cours de parcours, connexion lente, barres visibles sur l'écran de fin.
+À vérifier à la main pendant le test à cinq : parcours complet au lecteur d'écran (VoiceOver sur iPhone), tri de `D1` aux boutons seuls, lecture d'une vidéo de `D2` au toucher sans cocher la réponse, mode sombre, texte agrandi à 200 %, rechargement en cours de parcours, connexion lente, barres visibles sur l'écran de fin.
 
 ## 15. Exigences de `donnees.md`
 
@@ -415,7 +417,7 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | R2 aucun cookie | §4, §9 |
 | R3 brouillon effacé après l'envoi | §4 |
 | R4 empreinte jamais exportée, clé détruite à la fermeture | §5.3, §6, §12 |
-| R5 date d'effacement calculée (fermeture + 2 mois), date de mise à jour configurée, toutes deux affichées ; fermeture avançable, jamais repoussable après la première réponse | §5.3, §10 |
+| R5 date d'effacement calculée (fermeture + 2 mois), date de mise à jour configurée, toutes deux affichées ; fermeture avançable, jamais repoussable après la première réponse (comparée au jour) | §5.3, §10 |
 | R6 effacement de tout, sauvegardes et exports compris | §12 |
 | R7 retrouver, corriger, effacer les réponses d'un pseudo | §12 |
 | R8 mention servie par le formulaire, brouillon gardé | §4, §7 |

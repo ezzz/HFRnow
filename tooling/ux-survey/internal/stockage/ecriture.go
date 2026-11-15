@@ -20,7 +20,7 @@ type Envoi struct {
 	EmpreinteIP string
 	MaxParIP    int
 	RecueLe     string // AAAA-MM-JJ
-	Fermeture   string // UX_FERMETURE en RFC 3339 : mémorisée à la première réponse (R5)
+	Fermeture   string // jour de UX_FERMETURE (JourFermeture) : mémorisé à la première réponse (R5)
 }
 
 // Ecrire enregistre réponse, pseudo, jeton et compteur d'adresse dans une seule transaction.
@@ -80,7 +80,7 @@ func (b *Base) Ecrire(ctx context.Context, e Envoi) (string, error) {
 		id = ""
 	}
 	if id == "" {
-		return "", sql.ErrConnDone // collision d'identifiants répétée : pratiquement impossible
+		return "", ErrIdentifiant
 	}
 	if e.Pseudo != "" {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO pseudos (identifiant, pseudo) VALUES (?, ?)`, id, e.Pseudo); err != nil {
@@ -90,15 +90,13 @@ func (b *Base) Ecrire(ctx context.Context, e Envoi) (string, error) {
 	return id, tx.Commit()
 }
 
+// ErrIdentifiant signale des collisions d'identifiant répétées : pratiquement impossible.
+var ErrIdentifiant = errors.New("impossible d'attribuer un identifiant de réponse")
+
 // Reponses lit les réponses utilisables, sans pseudo, triées par identifiant (jamais par ordre d'arrivée) :
 // celles marquées « limitées » (R13) en sont exclues. Statistiques, exports et instantané passent par elle.
 func (b *Base) Reponses(ctx context.Context) ([]reponse.Ligne, error) {
 	return b.lire(ctx, `WHERE limitee = 0`)
-}
-
-// ToutesLesReponses lit aussi les réponses limitées ; réservé aux commandes de droits.
-func (b *Base) ToutesLesReponses(ctx context.Context) ([]reponse.Ligne, error) {
-	return b.lire(ctx, ``)
 }
 
 func (b *Base) lire(ctx context.Context, filtre string) ([]reponse.Ligne, error) {
@@ -168,15 +166,17 @@ func (b *Base) Pseudos(ctx context.Context) ([]Pseudo, error) {
 	return out, rows.Err()
 }
 
-// Chercher renvoie les réponses d'un pseudo, sans tenir compte de la casse ni des espaces de bord.
+// Chercher renvoie les réponses d'un pseudo, sans tenir compte de la casse : la saisie est normalisée comme
+// à l'enregistrement (NFC, espaces de bord, retours à la ligne).
 func (b *Base) Chercher(ctx context.Context, pseudo string) ([]reponse.Ligne, error) {
+	recherche := reponse.NormaliserTexte(pseudo, true)
 	tous, err := b.Pseudos(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var out []reponse.Ligne
 	for _, p := range tous {
-		if strings.EqualFold(strings.TrimSpace(p.Pseudo), strings.TrimSpace(pseudo)) {
+		if strings.EqualFold(p.Pseudo, recherche) {
 			l, err := b.Reponse(ctx, p.Identifiant)
 			if err != nil {
 				return nil, err
@@ -275,8 +275,12 @@ func (b *Base) Limiter(ctx context.Context, id string, limitee bool) error {
 // ErrFermetureRepoussee signale une UX_FERMETURE plus tardive que celle déjà annoncée (R5).
 var ErrFermetureRepoussee = errors.New("UX_FERMETURE ne peut pas être repoussée après la première réponse reçue : la date déjà annoncée reste la limite")
 
+// JourFermeture est la forme mémorisée de la date de fermeture : le jour (AAAA-MM-JJ) dans le décalage de
+// UX_FERMETURE. R5 compare des jours : l'heure et les fractions de seconde ne comptent pas.
+func JourFermeture(fermeture time.Time) string { return fermeture.Format(time.DateOnly) }
+
 // VerifierFermeture applique R5 : une fois une réponse reçue, la date de fermeture peut être avancée, jamais
-// repoussée. Une date plus tardive que la date mémorisée est refusée ; une date plus proche la remplace.
+// repoussée. Un jour plus tardif que celui mémorisé est refusé ; un jour plus proche le remplace.
 func (b *Base) VerifierFermeture(ctx context.Context, fermeture time.Time) error {
 	var v string
 	err := b.db.QueryRowContext(ctx, `SELECT valeur FROM meta WHERE cle = 'fermeture'`).Scan(&v)
@@ -286,15 +290,12 @@ func (b *Base) VerifierFermeture(ctx context.Context, fermeture time.Time) error
 	if err != nil {
 		return err
 	}
-	connue, err := time.Parse(time.RFC3339, v)
-	if err != nil {
-		return err
-	}
-	if fermeture.After(connue) {
+	jour := JourFermeture(fermeture)
+	switch {
+	case jour > v:
 		return fmt.Errorf("%w (mémorisée : %s)", ErrFermetureRepoussee, v)
-	}
-	if fermeture.Before(connue) {
-		_, err = b.db.ExecContext(ctx, `UPDATE meta SET valeur = ? WHERE cle = 'fermeture'`, fermeture.Format(time.RFC3339))
+	case jour < v:
+		_, err = b.db.ExecContext(ctx, `UPDATE meta SET valeur = ? WHERE cle = 'fermeture'`, jour)
 	}
 	return err
 }

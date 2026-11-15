@@ -39,9 +39,12 @@ func Reponses(t testing.TB, m map[string]any) map[string]json.RawMessage {
 	return out
 }
 
-// Envoi fabrique un envoi valide pour la version du contenu, avec les réponses données.
+// Envoi fabrique un envoi valide pour la version du contenu, avec les réponses données (P1 seule si nil : un envoi vide est refusé).
 func Envoi(t testing.TB, q *contenu.Questionnaire, jeton string, m map[string]any) *reponse.Envoi {
 	t.Helper()
+	if m == nil {
+		m = map[string]any{"P1": "iphone"} // un envoi vide est refusé
+	}
 	return &reponse.Envoi{Version: q.Version, Jeton: jeton, DureeS: json.RawMessage("312"), Reponses: Reponses(t, m)}
 }
 

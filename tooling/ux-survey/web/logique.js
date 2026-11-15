@@ -164,6 +164,11 @@ export function construireEnvoi(contenu, brouillon, jeton, maintenant = Date.now
   };
 }
 
+/** Vrai si l'envoi contient au moins une réponse (l'ordre des cartes seul n'en est pas une). */
+export function aDesReponses(envoi) {
+  return Object.keys(envoi.reponses).some((k) => k !== 'ordre_cartes');
+}
+
 // ---- brouillon ----
 
 export function cleBrouillon(version) {

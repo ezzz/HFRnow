@@ -178,6 +178,11 @@ func verifierBloc(t *testing.T, q *Questionnaire, b bloc, qu Question) {
 	} else if g := reGuillemets.FindStringSubmatch(aide); g == nil || g[1] != qu.Aide {
 		t.Errorf("%s : aide %v dans questions.md, %q dans le JSON", b.id, g, qu.Aide)
 	}
+	if qu.Type == TypePseudo { // le lien sous l'aide est le second texte entre guillemets de la ligne Aide
+		if g := reGuillemets.FindAllStringSubmatch(aide, -1); len(g) != 2 || g[1][1] != qu.Lien {
+			t.Errorf("%s : lien %v dans questions.md, %q dans le JSON", b.id, g, qu.Lien)
+		}
+	}
 
 	rep, _ := b.champ("Réponses")
 	switch {

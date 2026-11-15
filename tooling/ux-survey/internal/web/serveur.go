@@ -196,11 +196,6 @@ func (s *Serveur) sourceAgregats(ctx context.Context) (stats.Agregats, error) {
 	return stats.Calculer(s.Q, lignes), nil
 }
 
-// Instantane produit le contenu de agregats.json, identique à l'export agregats.
-func (s *Serveur) Instantane(lignes []reponse.Ligne) ([]byte, error) {
-	return exporter.AgregatsJSON(stats.Calculer(s.Q, lignes))
-}
-
 // Entretien est la tâche horaire : fermeture, puis effacement à la date prévue. Chaque passage est
 // sans effet si c'est déjà fait ; une erreur (point de contrôle occupé) est reprise au passage suivant.
 func (s *Serveur) Entretien(ctx context.Context) {
@@ -216,7 +211,7 @@ func (s *Serveur) Entretien(ctx context.Context) {
 		s.Log.Info("fermeture faite")
 	}
 	if !s.effaceFait && !now.Before(s.Cfg.Effacement()) {
-		if err := s.Base.Effacement(ctx, s.Cfg.Fermeture, now, s.Instantane); err != nil {
+		if err := s.Base.Effacement(ctx, s.Cfg.Fermeture, now, exporter.Instantane(s.Q)); err != nil {
 			s.Log.Error("effacement incomplet, reprise au prochain passage", "erreur", err.Error())
 			return
 		}

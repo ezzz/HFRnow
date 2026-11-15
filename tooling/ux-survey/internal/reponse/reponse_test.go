@@ -29,8 +29,8 @@ func TestConditionsServeur(t *testing.T) {
 		}
 	}
 	for nom, m := range map[string]map[string]any{
-		"iphone": {"P1": "iphone", "D1": d1, "D2": "cote_a_cote"},
-		"absent": {"D1": d1, "D2": "cote_a_cote"},
+		"iphone": {"P1": "iphone", "D1": d1, "D2": "cote_a_cote", "G1": "irritant"},
+		"absent": {"D1": d1, "D2": "cote_a_cote", "G1": "irritant"},
 	} {
 		n, err := valider(t, m)
 		if err != nil || present(n, "D1") || present(n, "D2") {
@@ -105,7 +105,7 @@ func TestValidationRefus(t *testing.T) {
 
 func TestNormalisation(t *testing.T) {
 	n, err := valider(t, map[string]any{
-		"G1":  "  Bonjour\u0000\u0007 tout\r\nle monde\ttab ‮",
+		"G1":  "  Bonjour\u0000\u0007 tout\r\nle monde\ttab \u202e\u200e\u200f\u061c\u2066",
 		"L2":  "   ",
 		"I1":  "  Pseudo\nSur deux lignes ",
 		"C11": "café",
@@ -156,12 +156,12 @@ func TestOrdreCartesEtDuree(t *testing.T) {
 	q := testutil.Questionnaire(t)
 	ordre := append([]string{}, q.Cartes...)
 	ordre[0], ordre[1] = ordre[1], ordre[0]
-	n, _ := valider(t, map[string]any{"ordre_cartes": ordre})
+	n, _ := valider(t, map[string]any{"P1": "iphone", "ordre_cartes": ordre})
 	if len(n.OrdreCartes) != 9 || n.OrdreCartes[0] != ordre[0] {
 		t.Errorf("permutation valide gardée : %v", n.OrdreCartes)
 	}
 	for nom, o := range map[string][]string{"doublon": append([]string{q.Cartes[0]}, q.Cartes[0:8]...), "C08": append([]string{"C08"}, q.Cartes[1:]...), "court": q.Cartes[:5]} {
-		if n, err := valider(t, map[string]any{"ordre_cartes": o}); err != nil || n.OrdreCartes != nil {
+		if n, err := valider(t, map[string]any{"P1": "iphone", "ordre_cartes": o}); err != nil || n.OrdreCartes != nil {
 			t.Errorf("%s : ordre ignoré, sans erreur (%v, %v)", nom, n.OrdreCartes, err)
 		}
 	}

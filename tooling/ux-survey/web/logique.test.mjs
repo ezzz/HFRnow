@@ -46,6 +46,15 @@ test('L2 reste actif sans réponse à L1', () => {
   assert.equal(envoi.reponses.L1, undefined);
 });
 
+test('envoi vide : l\'ordre des cartes seul n\'est pas une réponse', () => {
+  const vide = L.construireEnvoi(contenu, base(), 'a'.repeat(32));
+  assert.equal(L.aDesReponses(vide), false);
+  const un = L.construireEnvoi(contenu, L.changerReponse(contenu, base(), 'P1', 'iphone'), 'a'.repeat(32));
+  assert.equal(L.aDesReponses(un), true);
+  const espaces = L.construireEnvoi(contenu, L.changerReponse(contenu, base(), 'L2', '   '), 'a'.repeat(32));
+  assert.equal(L.aDesReponses(espaces), false);
+});
+
 // Test 5 : mélange et D1.
 test('ordre des cartes : permutation des neuf cartes, stable au rechargement du brouillon', () => {
   const b = L.brouillonVide(contenu, 0);
