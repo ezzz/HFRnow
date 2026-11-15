@@ -12,6 +12,8 @@ import SwiftUI
 // grows with the text up to a cap, the page visible and scrollable above it, its taps ignored (`ComposerHeight`,
 // `ComposerCardLayout`, GAP-653, b·operator); the full-screen toggle in the editor's corner; inserted images as chips in the card;
 // on an iPhone the control row inside the card and close, drafts and send as small floating buttons (#854, `ComposerChrome`).
+// The docked card, its controls and floating buttons only with Réglages › Expérimental › « Composer moderne » on (#903, #904,
+// `ModernComposer`); off, an iPhone shows the full-height sheet with the bar and row an iPad shows.
 /// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
 /// private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
@@ -31,6 +33,8 @@ struct ReplyComposerView: View {
     @Environment(\.scenePhase) private var scenePhase
     /// Hosted layout tests only (#854); nil in the app.
     @Environment(\.composerLayoutProbe) private var probe
+    /// Réglages › Expérimental (#903); nil keeps each option's default (hosted tests, previews).
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
     /// The first focus (once the draft is read) happened: later `canEdit` flips (a send) never steal it.
@@ -118,7 +122,7 @@ struct ReplyComposerView: View {
             onInsert: { insertImage($0) }
         )
         .presentationDetents([detent])
-        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
+        .modifier(PartialComposerSheet(isEnabled: usesModernComposer, height: height, detent: detent, pageScrolls: pageScrolls))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
                 isShowingArchive = false
@@ -265,10 +269,16 @@ extension ReplyComposerView {
             : "Le brouillon est retrouvé à la prochaine réponse dans ce sujet."
     }
 
-    private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
+    // EXPERIMENTAL(modernComposer, #904): replaces the full-height composer with legacy's bar and row (the iPad's; #855 puts
+    // the legacy full-screen cover here) by the compact card docked on the keyboard, on an iPhone (`ModernComposer`).
+    private var usesModernComposer: Bool {
+        ModernComposer.isActive(
+            isPhone: UIDevice.current.userInterfaceIdiom == .phone, isOn: ExperimentalSettings.isOn(.modernComposer, in: experimental)
+        )
+    }
 
-    /// An iPhone's lighter composer: the controls in the card, floating buttons (#854).
-    private var chrome: ComposerChrome { ComposerChrome(isPhone: isPhone) }
+    /// The modern composer's lighter chrome: the controls in the card, floating buttons (#854).
+    private var chrome: ComposerChrome { ComposerChrome(isPhone: usesModernComposer) }
 
     /// The controls, their height measured for the docked card (`ComposerCardLayout.controls`).
     private var measuredControls: some View {
@@ -279,12 +289,13 @@ extension ReplyComposerView {
 
     /// An iPhone in regular height: partial height first, and the toggle (#653).
     private var offersHeightToggle: Bool {
-        ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass)
+        ComposerHeight.offersToggle(isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass)
     }
 
     private var height: ComposerHeight {
         ComposerHeight.shown(
-            chosen: chosenHeight, isPhone: isPhone, verticalSizeClass: verticalSizeClass, largeText: dynamicTypeSize.isAccessibilitySize
+            chosen: chosenHeight, isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass,
+            largeText: dynamicTypeSize.isAccessibilitySize
         )
     }
 
