@@ -1,0 +1,40 @@
+name: UX survey
+
+# Questionnaire UX (#634) : go vet, go test, node --test. Filtré pour qu'une correction de libellé dans
+# questions.md ou donnees.md relance le test de concordance.
+on:
+  pull_request:
+    paths:
+      - 'tooling/ux-survey/**'
+      - 'docs/ux/questionnaire/questions.md'
+      - 'docs/ux/questionnaire/donnees.md'
+      - 'docs/ux/questionnaire/cadrage-construction.md'
+      - 'docs/ux/questionnaire/visuels/**'
+      - '.github/workflows/ux-survey.yml'
+  push:
+    branches: [dev-swift]
+    paths:
+      - 'tooling/ux-survey/**'
+      - 'docs/ux/questionnaire/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Go and Node tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tooling/ux-survey
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tooling/ux-survey/go.mod
+          cache-dependency-path: tooling/ux-survey/go.sum
+      - run: go vet ./...
+      - run: go test ./...
+      - run: node --test web/logique.test.mjs

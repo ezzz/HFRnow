@@ -1,0 +1,41 @@
+# Projet Compose à part : son nom, son réseau, son dossier de données (rien de partagé avec l'autre application).
+# Lancer depuis tooling/ux-survey/deploy :  docker compose --env-file ux-survey.env up -d --build
+name: ux-survey
+
+services:
+  ux-survey:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: ux-survey:local
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    user: "65532:65532"
+    environment:
+      UX_ADRESSE: "0.0.0.0:8080"
+      UX_DONNEES: /donnees
+      UX_ORIGINE: ${UX_ORIGINE:?renseigner UX_ORIGINE}
+      # Un client de l'hôte qui se connecte à 127.0.0.1:<port> arrive dans le conteneur depuis la passerelle du réseau.
+      UX_PROXY_DE_CONFIANCE: ${UX_SOUS_RESEAU_PASSERELLE:-172.31.250.1}
+      UX_FERMETURE: ${UX_FERMETURE:?renseigner UX_FERMETURE}
+      UX_MENTION_MAJ: ${UX_MENTION_MAJ:?renseigner UX_MENTION_MAJ}
+      UX_SEUIL_STATS: ${UX_SEUIL_STATS:-10}
+      UX_MAX_PAR_IP: ${UX_MAX_PAR_IP:-3}
+      UX_CODE_ACCES: ${UX_CODE_ACCES:-}
+    ports:
+      # Jamais sur une interface publique : seulement la boucle locale de l'hôte, sur un port libre choisi au déploiement.
+      - "127.0.0.1:${UX_PORT_HOTE:-18080}:8080"
+    volumes:
+      # Dossier de l'hôte en 0700, propriété de l'utilisateur 65532.
+      - ${UX_DOSSIER_DONNEES:-./donnees}:/donnees
+    networks: [ux]
+
+networks:
+  ux:
+    ipam:
+      config:
+        # À choisir pour ne pas chevaucher le réseau de l'autre application ; la passerelle en est la première adresse.
+        - subnet: 172.31.250.0/24
+          gateway: 172.31.250.1
