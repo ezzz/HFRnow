@@ -25,16 +25,15 @@ struct TopicRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: scale.scaled(dynamicType * 8)) {
-            if isUnread {
-                let marker = scale.scaled(dynamicType * density.markerSize)
-                Circle().fill(.tint).frame(width: marker, height: marker)
-                    .padding(.top, scale.scaled(dynamicType * 6)).accessibilityLabel("Non lu")
-            }
+            // EXPERIMENTAL(flagIconRows, #905): replaces the legacy rows of #817 (whole row tinted by flag, no icon before the
+            // title) by the unread dot and the flag icon. #817 adds the switch-off path here; until then these marks show whatever
+            // the switch, which is why Réglages does not list it yet.
+            if isUnread { UnreadDotMark() }
             if isSuperFavorite {
                 Image(systemName: "star.circle.fill").foregroundStyle(.orange)
                     .scaledFont(density.titleStyle).accessibilityLabel("Super favori")
             }
-            if showsFlag { flagIcon.scaledFont(density.titleStyle) }
+            if showsFlag { FlagIconMark(flag: topic.flag).scaledFont(density.titleStyle) }
             VStack(alignment: .leading, spacing: density.lineSpacing) {
                 Text(topic.title)
                     .scaledFont(density.titleStyle)
@@ -67,15 +66,5 @@ struct TopicRowView: View {
         parts.append(FrenchPlural.count(topic.repliesCount, "réponse", "réponses"))
         if let date = topic.lastPost?.date { parts.append(date.formatted(.relative(presentation: .named))) }
         return parts.joined(separator: " · ")
-    }
-
-    @ViewBuilder
-    private var flagIcon: some View {
-        switch topic.flag {
-        case .blue: Image(systemName: "flag.fill").foregroundStyle(.blue).accessibilityLabel("Drapeau")
-        case .red: Image(systemName: "flag.fill").foregroundStyle(.red).accessibilityLabel("Lu")
-        case .yellow: Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("Favori")
-        case nil: EmptyView()
-        }
     }
 }
