@@ -15,25 +15,48 @@ Ce fichier liste les visuels du questionnaire : texte alternatif, sujet utilisé
 | `actuel/D2-comme-aujourdhui-ipad.png` | Disposition actuelle sur iPad en paysage, trois colonnes : barre latérale (Forum, Outils, Plus), liste des sujets du forum Hardware, sujet ouvert à droite. Sert aussi à `D1` (barre latérale actuelle). | `D2`, `D1` | iPad Pro 13 pouces (M5), simulateur iOS 27.0 |
 - **Badge « 25 » sur Alertes Qualitay** (`D2-comme-aujourdhui-ipad.png`) : il vient de l'app compilée telle quelle, sans compte ; ce n'est pas une donnée de l'utilisateur.
 
-## Duo déplié
+## Maquettes des propositions (#632, UX-08)
 
-Pas de capture propre au Duo (décision du PO) : pour `D2` sur Duo déplié, on réutilise `actuel/D2-comme-aujourdhui-ipad.png` (même disposition que sur iPad).
+- **Sujet, thème, appareils** : ceux des captures ci-dessus, pour qu'on compare d'un coup d'œil. Même sujet et même page, thème clair, heure 9:41, pseudos, auteurs de citation, « édité par », expéditeurs de MP et identifiants de citation masqués par les mêmes rectangles gris. Aucune requête vers HFR : les textes sont ceux des captures.
+- **Base** : l'app 4.0.3 (37), tag `build#37`. La barre d'état, les barres de navigation et les boutons flottants reprennent les captures de #631 au pixel près ; le reste est redessiné à l'identique : styles du lecteur de `SuperHFRplus/Assets/HTML/style-liste-light.css`, icônes de la barre latérale de `HFRswift/Swift/MainWindow.swift` (`iPadSidebarSystemImage`), en-tête et barres d'outils de l'éditeur de `HFRswift/Swift/AnswerView.swift`, tous à `build#37`.
+- **Ce qui change, et seulement cela** :
+  - `L1` « pages améliorées » : séparateur des nouveaux messages bien visible (aujourd'hui un tireté gris, `.separator1`) et message de la liste noire replié sur une ligne qu'on déplie, comme le lecteur de SwiftHFR (`TopicHTMLBuilder.swift`, `blocked-post`). Tout cela reste dans la WebView. Le changement de page sans écran blanc ne se voit pas sur une image fixe : la liste des détails sous la réponse le dit.
+  - `L1` « lecture continue » : la page 3 s'affiche à la suite de la page 2 avec un repère « Page 3 » discret, et le numéro de page du titre suit. Les messages montrés après le repère reprennent des passages de la page 2 : la page 3 n'a pas été capturée.
+  - `D2` « tableau de bord » : une entrée « À suivre » dans la barre latérale et une colonne qui regroupe reprise de la lecture, MP non lus, favoris et drapeaux avec le nombre de nouveaux messages. Les titres des sujets sont ceux de la liste Hardware de la capture iPad ; l'état connecté (MP, compteurs) est inventé pour la maquette, et les objets des deux MP sont fictifs.
+  - `D2` « côte à côte » : le sujet reste à gauche, l'éditeur de l'app à droite, et un aperçu local du message sous le texte (l'aperçu calculé sur l'appareil, LOT-152, pas l'aperçu serveur classé Non). Le préremplissage d'une citation suit la forme `[quotemsg=…]` de `docs/lots/LOT-036-hop-form-parser.md`, identifiants masqués. La réponse tapée est fictive.
+- **Duo déplié** : 951 × 669 points en paysage, @3x, d'après le profil de l'appareil « iPhone Duo » du simulateur (écran intérieur de 2007 × 2853 pixels). La barre latérale y est masquée, comme dans le legacy (`docs/lots/LOT-147-duo-ipad-columns.md`, « Sidebar pinned or on demand »).
+- **Rien de ce qui est classé Non** (`docs/ux/tri-m5-decisions.md` §3.5) : ni scrubber, ni plateau de citations, ni aperçu serveur, ni nouvelle couleur d'accent.
+- **Fabrication** : pages HTML rendues par Chrome sans interface à la taille exacte des appareils, vidéos encodées en H.264 avec AVFoundation, images réduites à 256 couleurs comme les captures de #631. Le code de maquette est jetable et n'entre pas dans le dépôt.
 
-## Marques de place des propositions (UX-10, #634)
+Fichiers du formulaire : `scenarios/` pour les maquettes, `actuel/` pour les captures, tous copiés à plat dans `tooling/ux-survey/web/visuels/` (un test les veut identiques). Pour `D2` sur Duo déplié, « comme aujourd'hui » reprend la capture iPad (décision du PO).
 
-> **PROVISOIRE.** Ces fichiers sont des marques de place ajoutées par UX-10 (#634) pour que le formulaire se construise sans attendre #632 (décision du PO du 9 novembre 2026). Les visuels réels de #632 les remplacent aux mêmes noms ; ce fichier est alors réécrit avec le sujet utilisé et la version de l'app. Le formulaire (`tooling/ux-survey/`) garde une copie de ces fichiers dans `web/visuels/`, et un test vérifie qu'elles sont identiques.
-
-Les deux captures « comme aujourd'hui » (`L1-comme-aujourdhui-iphone.png`, `D2-comme-aujourdhui-ipad.png`) sont décrites par la section « Visuels de l'app actuelle » ci-dessus (#631, UX-07) et vivent dans `visuels/actuel/` ; leurs lignes ci-dessous les recopient pour le test de concordance. Pour D2 sur Duo déplié, on reprend la capture iPad (décision du PO, même disposition).
-
-| Fichier | Texte alternatif | Question | Sujet utilisé | Version de l'app |
+| Fichier | Texte alternatif | Question | Appareil | Nature |
 |---|---|---|---|---|
-| `L1-pages-ameliorees-iphone.png` | Visuel provisoire : lecture d'un sujet avec des pages plus agréables, sur iPhone | `L1` | (provisoire) | (provisoire) |
-| `L1-lecture-continue-iphone.png` | Visuel provisoire : lecture continue en option, sur iPhone | `L1` | (provisoire) | (provisoire) |
-| `L1-comme-aujourdhui-iphone.png` | Lecture d'un long sujet dans l'app actuelle sur iPhone : un message et sa citation, texte plein écran, barre de navigation en haut, boutons de page et de réponse flottants en bas. | `L1` | « Topic Blackwell - Nvidia Geforce RTX 5000 », page 2 | 4.0.3 (37) |
-| `D2-comme-aujourdhui-ipad.png` | Disposition actuelle sur iPad en paysage, trois colonnes : barre latérale (Forum, Outils, Plus), liste des sujets du forum Hardware, sujet ouvert à droite. Sert aussi à D1 (barre latérale actuelle). | `D2` | « Topic Blackwell - Nvidia Geforce RTX 5000 », page 2 | 4.0.3 (37) |
-| `D2-tableau-de-bord-ipad.png` | Visuel provisoire : colonne « À suivre » sur iPad | `D2` | (provisoire) | (provisoire) |
-| `D2-tableau-de-bord-duo.mp4` | Vidéo provisoire : colonne « À suivre » sur iPhone Duo déplié | `D2` | (provisoire) | (provisoire) |
-| `D2-tableau-de-bord-duo.png` | Image d'attente de D2-tableau-de-bord-duo.mp4 | `D2` | (provisoire) | (provisoire) |
-| `D2-cote-a-cote-ipad.png` | Visuel provisoire : lire et écrire côte à côte sur iPad | `D2` | (provisoire) | (provisoire) |
-| `D2-cote-a-cote-duo.mp4` | Vidéo provisoire : lire et écrire côte à côte sur iPhone Duo déplié | `D2` | (provisoire) | (provisoire) |
-| `D2-cote-a-cote-duo.png` | Image d'attente de D2-cote-a-cote-duo.mp4 | `D2` | (provisoire) | (provisoire) |
+| `L1-pages-ameliorees-iphone.png` | Maquette sur iPhone, même sujet que la capture actuelle : un message masqué replié sur une ligne « Message masqué de … Afficher », puis un séparateur bien visible « Nouveaux messages » avant le message suivant. | `L1` | iPhone 17 Pro, 402 × 874 points | maquette, 1206 × 2622 px |
+| `L1-lecture-continue-iphone.mp4` | Vidéo de 8 secondes sur iPhone : en faisant défiler le sujet, la page 3 s'affiche à la suite de la page 2 avec un discret repère « Page 3 », et le numéro en haut passe de 2 / 712 à 3 / 712. | `L1` | iPhone 17 Pro, 402 × 874 points | vidéo H.264, 8 s, 804 × 1748 px, sans son |
+| `L1-lecture-continue-iphone.png` | Image d'attente de L1-lecture-continue-iphone.mp4 : son dernier état. Le repère « Page 3 » au milieu de l'écran, entre la fin de la page 2 et le début de la page 3. | `L1` | iPhone 17 Pro, 402 × 874 points | image d'attente de la vidéo, 1206 × 2622 px |
+| `L1-comme-aujourdhui-iphone.png` | Lecture d'un long sujet dans l'app actuelle sur iPhone : un message et sa citation, texte plein écran, barre de navigation en haut, boutons de page et de réponse flottants en bas. | `L1` | iPhone 17 Pro, simulateur iOS 27.0 | capture (#631), copie de `actuel/` |
+| `D2-comme-aujourdhui-ipad.png` | Disposition actuelle sur iPad en paysage, trois colonnes : barre latérale (Forum, Outils, Plus), liste des sujets du forum Hardware, sujet ouvert à droite. Sert aussi à D1 (barre latérale actuelle). | `D2` | iPad Pro 13 pouces (M5), simulateur iOS 27.0 | capture (#631), copie de `actuel/` ; sert aussi au Duo déplié |
+| `D2-tableau-de-bord-ipad.png` | Maquette sur iPad en paysage : la barre latérale gagne « À suivre », la colonne du milieu regroupe la reprise de la lecture, les messages privés non lus, les favoris et les drapeaux avec leur nombre de nouveaux messages, et le sujet repris s'ouvre à droite. | `D2` | iPad Pro 13 pouces, paysage, 1376 × 1032 points | maquette, 2752 × 2064 px |
+| `D2-tableau-de-bord-duo.mp4` | Vidéo de 7 secondes sur iPhone Duo déplié, en paysage : la colonne « À suivre » à gauche ; toucher « Reprendre la lecture » ouvre le sujet à droite, au séparateur des nouveaux messages. | `D2` | iPhone Duo déplié, paysage, 951 × 669 points | vidéo H.264, 7 s, 1902 × 1338 px, sans son |
+| `D2-tableau-de-bord-duo.png` | Image d'attente de D2-tableau-de-bord-duo.mp4 : son dernier état. La colonne « À suivre » à gauche, le sujet repris ouvert à droite au séparateur des nouveaux messages. | `D2` | iPhone Duo déplié, paysage, 951 × 669 points | image d'attente de la vidéo, 2853 × 2007 px |
+| `D2-cote-a-cote-ipad.png` | Maquette sur iPad en paysage : le sujet reste visible à gauche pendant qu'on écrit une citation à droite, et un aperçu sous le texte montre le message tel qu'il sera affiché, avant l'envoi. | `D2` | iPad Pro 13 pouces, paysage, 1376 × 1032 points | maquette, 2752 × 2064 px |
+| `D2-cote-a-cote-duo.mp4` | Vidéo de 8 secondes sur iPhone Duo déplié, en paysage : le sujet à gauche, l'éditeur à droite, et l'aperçu sous le texte qui se met à jour pendant la frappe. | `D2` | iPhone Duo déplié, paysage, 951 × 669 points | vidéo H.264, 8 s, 1902 × 1338 px, sans son |
+| `D2-cote-a-cote-duo.png` | Image d'attente de D2-cote-a-cote-duo.mp4 : son dernier état. Le sujet à gauche, la citation écrite à droite et son aperçu dessous. | `D2` | iPhone Duo déplié, paysage, 951 × 669 points | image d'attente de la vidéo, 2853 × 2007 px |
+
+## Cartes des sections de la barre latérale (`D1`)
+
+Dans `scenarios/D1-cartes/`, une carte par section de `D1` (questions.md), 340 × 76 points @2x, fond transparent, et la planche des neuf cartes. Icônes de la barre latérale actuelle ; `flag` pour Drapeaux et `newspaper` pour À suivre, que la barre n'a pas. Le formulaire présente aujourd'hui les sections en texte : ces cartes servent au test à cinq et à une éventuelle version illustrée du tri.
+
+| Fichier | Texte alternatif | Question | Appareil |
+|---|---|---|---|
+| `D1-cartes/D1-carte-favoris.png` | Carte « Favoris » : icône `star.fill`, mention « Aujourd'hui : groupe Forum ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-categories.png` | Carte « Catégories » : icône `folder.fill`, mention « Aujourd'hui : groupe Forum ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-mp.png` | Carte « Messages privés » : icône `envelope`, mention « Aujourd'hui : groupe Forum ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-drapeaux.png` | Carte « Drapeaux » : icône `flag`, mention « Aujourd'hui : dans Favoris ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-a_suivre.png` | Carte « À suivre » : icône `newspaper`, mention « Les nouveautés de tous vos sujets suivis », et l'étiquette « Nouveau ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-alertes_qualitay.png` | Carte « Alertes Qualitay » : icône `bell`, mention « Aujourd'hui : groupe Outils ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-bookmarks.png` | Carte « Bookmarks » : icône `pin`, mention « Aujourd'hui : groupe Outils ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-recherche.png` | Carte « Recherche » : icône `magnifyingglass`, mention « Aujourd'hui : groupe Plus ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-reglages.png` | Carte « Réglages » : icône `gearshape`, mention « Aujourd'hui : groupe Plus ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-cartes-planche.png` | Les neuf cartes de la barre latérale sur trois colonnes, dans l'ordre de la question. | `D1` | Aucun (planche) |
