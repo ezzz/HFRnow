@@ -15,6 +15,7 @@ Ce fichier liste les visuels du questionnaire : texte alternatif, sujet utilisé
 |---|---|---|---|
 | `actuel/L1-comme-aujourdhui-iphone.png` | Lecture d'un long sujet dans l'app actuelle sur iPhone : un message et sa citation, texte plein écran, barre de navigation en haut, boutons de page et de réponse flottants en bas. | `L1` | iPhone 17 Pro, simulateur iOS 27.0 |
 | `actuel/D2-comme-aujourdhui-ipad.png` | Disposition actuelle sur iPad en paysage, trois colonnes : barre latérale (Forum, Outils, Plus), liste des sujets du forum Hardware, sujet ouvert à droite. Sert aussi à `D1` (barre latérale actuelle). | `D2`, `D1` | iPad Pro 13 pouces (M5), simulateur iOS 27.0 |
+- **Badge « 25 » sur Alertes Qualitay** (`D2-comme-aujourdhui-ipad.png`) : il vient de l'app compilée telle quelle, sans compte ; ce n'est pas une donnée de l'utilisateur.
 
 ## Duo déplié
 
