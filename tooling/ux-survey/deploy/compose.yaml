@@ -30,6 +30,12 @@ services:
     volumes:
       # Dossier de l'hôte en 0700, propriété de l'utilisateur 65532.
       - ${UX_DOSSIER_DONNEES:-./donnees}:/donnees
+    healthcheck:
+      test: ["CMD", "/ux-survey", "sante"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     networks: [ux]
 
 networks:

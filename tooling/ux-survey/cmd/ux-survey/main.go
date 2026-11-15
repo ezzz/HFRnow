@@ -1,6 +1,7 @@
 // Commande ux-survey : le service du questionnaire UX et ses commandes d'exploitation.
 //
 //	ux-survey serve
+//	ux-survey sante   (sonde du conteneur : GET /healthz sur UX_ADRESSE)
 //	ux-survey export --format analyse|agregats|pseudos --sortie <préfixe>
 //	ux-survey sauvegarder <fichier>
 //	ux-survey fermer
@@ -39,7 +40,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage : ux-survey serve | export | sauvegarder | fermer | effacer | pseudo  (voir README.md)")
+	fmt.Fprintln(os.Stderr, "usage : ux-survey serve | sante | export | sauvegarder | fermer | effacer | pseudo  (voir README.md)")
 }
 
 // env regroupe ce que toutes les commandes chargent : configuration, contenu et base.
@@ -73,6 +74,8 @@ func lancer(commande string, args []string) error {
 	switch commande {
 	case "serve":
 		return serve()
+	case "sante":
+		return commandeSante()
 	case "export":
 		return commandeExport(args)
 	case "sauvegarder":

@@ -56,6 +56,7 @@ install -d -m 0700 -o 65532 -g 65532 /srv/ux-survey/donnees
 docker compose --env-file ux-survey.env up -d --build
 ss -ltn | grep 18080                      # doit n'écouter que sur 127.0.0.1
 curl -I http://127.0.0.1:18080/healthz
+docker compose ps                         # STATUS « healthy » : sonde `ux-survey sante` (l'image n'a ni shell ni curl)
 ```
 
 **Exposition par Tailscale Funnel** (décision du PO, #706) : Funnel devant le port de boucle locale, par exemple
