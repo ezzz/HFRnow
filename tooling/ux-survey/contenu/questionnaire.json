@@ -226,7 +226,7 @@
             {
               "fichier": "L1-lecture-continue-iphone.mp4",
               "image_attente": "L1-lecture-continue-iphone.png",
-              "alt": "Vidéo de 8 secondes sur iPhone : en faisant défiler le sujet, la page 3 s'affiche à la suite de la page 2 avec un discret repère « Page 3 », et le numéro en haut passe de 2 / 712 à 3 / 712."
+              "alt": "Vidéo de 7 secondes sur iPhone : en faisant défiler le sujet, la page 3 s'affiche à la suite de la page 2 avec un discret repère « Page 3 », et le numéro en haut passe de 2 / 712 à 3 / 712."
             }
           ]
         },
@@ -344,7 +344,7 @@
             {
               "fichier": "D2-tableau-de-bord-duo.mp4",
               "image_attente": "D2-tableau-de-bord-duo.png",
-              "alt": "Vidéo de 7 secondes sur iPhone Duo déplié, en paysage : la colonne « À suivre » à gauche ; toucher « Reprendre la lecture » ouvre le sujet à droite, au séparateur des nouveaux messages."
+              "alt": "Vidéo de 5 secondes sur iPhone Duo déplié, en paysage : la colonne « À suivre » à gauche ; toucher « Reprendre la lecture » ouvre le sujet à droite dans le lecteur actuel, au séparateur des nouveaux messages en tireté gris."
             }
           ]
         },
@@ -359,12 +359,12 @@
           "visuels": [
             {
               "fichier": "D2-cote-a-cote-ipad.png",
-              "alt": "Maquette sur iPad en paysage : le sujet reste visible à gauche pendant qu'on écrit une citation à droite, et un aperçu sous le texte montre le message tel qu'il sera affiché, avant l'envoi."
+              "alt": "Maquette sur iPad en paysage, clavier externe supposé : le sujet reste visible à gauche pendant qu'on écrit une citation à droite, et un aperçu sous le texte montre le message tel qu'il sera affiché, avant l'envoi."
             },
             {
               "fichier": "D2-cote-a-cote-duo.mp4",
               "image_attente": "D2-cote-a-cote-duo.png",
-              "alt": "Vidéo de 8 secondes sur iPhone Duo déplié, en paysage : le sujet à gauche, l'éditeur à droite, et l'aperçu sous le texte qui se met à jour pendant la frappe."
+              "alt": "Vidéo de 8 secondes sur iPhone Duo déplié, en paysage : le sujet à gauche, l'éditeur à droite et le clavier à l'écran en bas ; pendant la frappe, seul le haut de l'aperçu reste visible au-dessus du clavier."
             }
           ]
         }
