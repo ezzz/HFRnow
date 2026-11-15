@@ -85,6 +85,11 @@ per topic). The account is the current one (`md_user` key). `ComposerServices.li
 focused on open. The sheet's keyboard safe area keeps the caret above the keyboard; the editor never rewrites its text
 (legacy cursor jumps came from re-applying state to a `UITextView`).
 
+**Layout** (#653). Legacy's top bar: "Fermer" (`xmark`, the close choice below), "Brouillons" (LOT-101), the title, "Envoyer"
+(`arrow.up`); the editor in a rounded card with legacy's control row (clear, undo, redo, Smileys, GIF, image, **Aa**) just under
+it; on iPhone every composer is a card docked on the keyboard that grows with the text, the page visible and scrollable above,
+its taps ignored meanwhile. Spec: [LOT-174 § Composer layout and control row](LOT-174-formatting-toolbar.md#composer-layout-and-control-row-653-m4).
+
 ## Edge cases
 
 - Account switch while the sheet is open: `RootView` rebuilds the navigation; the sheet goes away and its text is saved as
@@ -152,7 +157,7 @@ order.
    "Hooray" toast becomes HFR's own sentence.
 2. Drafts per topic and account in LOT-063's file store, saved while typing (legacy: `UserDefaults`, saved on dismiss
    only, one store for every account); the archived drafts list (legacy `ReplyDraftPickerSheet`, 3 per topic) is not
-   ported here: it is LOT-101 (M4, legacy at `2fe43da3`, #655).
+   ported here: it is [LOT-101](LOT-101-archived-drafts.md) (M4, legacy at `2fe43da3`, #655), which keeps it in the same store.
 3. Cancel asks keep / discard; swipe-down is blocked while there is text (legacy: swipe kept or lost the text depending
    on the path, user feedback p. 498-506).
 4. Non-BMP characters refused before sending, with the list (legacy Swift sent them and HFR cut the message).

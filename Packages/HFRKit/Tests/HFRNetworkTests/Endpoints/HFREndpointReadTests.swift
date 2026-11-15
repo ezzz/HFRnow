@@ -5,6 +5,8 @@ import Testing
 
 struct HFREndpointReadTests {
     private static let host = "https://forum.hardware.fr"
+    /// The end of the query `R603d` was captured with.
+    private static let r603dTail = "&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0"
 
     @Test func homeAndBackgroundCheck() throws {
         let home = try HFREndpoint.home()
@@ -34,6 +36,23 @@ struct HFREndpointReadTests {
         #expect(request.body == nil)
     }
 
+    // R603d: the query a filtered sub-forum was captured with (meta `url`), byte for byte; the category keeps its short form.
+    @Test(arguments: [
+        (TopicListFilter.favorites, 432, 1, "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=432&sondage=0&owntopic=3" + Self.r603dTail),
+        (TopicListFilter.read, 433, 2, "/forum1.php?config=hfr.inc&cat=13&page=2&subcat=433&sondage=0&owntopic=2" + Self.r603dTail),
+        (TopicListFilter.all, 0, 1, "/forum1.php?config=hfr.inc&cat=13&page=1&subcat=&owntopic=0")
+    ])
+    func topicListOfASubforum(filter: TopicListFilter, subcategory: Int, page: Int, expected: String) throws {
+        let request = try HFREndpoint.topicList(category: .forum(13), subcategory: subcategory, filter: filter, page: page)
+        #expect(request.url.absoluteString == Self.host + expected)
+    }
+
+    @Test func topicListOfASubforumIsTheCapturedR603dUrl() throws {
+        let request = try HFREndpoint.topicList(category: .forum(13), subcategory: 432, filter: .favorites, page: 1)
+        #expect(request.url.absoluteString == "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&page=1&subcat=432"
+            + "&sondage=0&owntopic=3&trash=0&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0")
+    }
+
     @Test func topicListDefaultsToFirstPageOfAllTopics() throws {
         let request = try HFREndpoint.topicList(category: .forum(25))
         #expect(request.url.absoluteString == "\(Self.host)/forum1.php?config=hfr.inc&cat=25&page=1&subcat=&owntopic=0")
@@ -47,16 +66,17 @@ struct HFREndpointReadTests {
 
     @Test(arguments: [
         (TopicListFilter.favorites, "/forum1f.php?owntopic=3"),
-        (TopicListFilter.flagged, "/forum1f.php?owntopic=1")
+        (TopicListFilter.flagged, "/forum1f.php?owntopic=1"),
+        // LOT-057: the URL of `R603e`, byte for byte.
+        (TopicListFilter.read, "/forum1f.php?config=hfr.inc&owntopic=2&new=0&nojs=0")
     ])
     func favorites(filter: TopicListFilter, expected: String) throws {
         #expect(try HFREndpoint.favorites(filter: filter).url.absoluteString == Self.host + expected)
     }
 
-    @Test func favoritesDefaultsToFavouritesAndRefusesOtherFilters() throws {
+    @Test func favoritesDefaultsToFavouritesAndRefusesAll() throws {
         #expect(try HFREndpoint.favorites().url.absoluteString == "\(Self.host)/forum1f.php?owntopic=3")
         #expect(throws: NetworkError.self) { try HFREndpoint.favorites(filter: .all) }
-        #expect(throws: NetworkError.self) { try HFREndpoint.favorites(filter: .read) }
     }
 
     @Test func privateMessages() throws {

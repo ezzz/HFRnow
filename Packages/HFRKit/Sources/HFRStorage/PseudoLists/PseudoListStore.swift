@@ -29,6 +29,11 @@ public actor PseudoListStore {
         document?.blocklists[AccountKey.make(account)] ?? []
     }
 
+    /// The account keys that have a blocklist. Empty while the stored data is unreadable.
+    public func blocklistAccountKeys() -> Set<String> {
+        Set(document.map { Array($0.blocklists.keys) } ?? [])
+    }
+
     /// The global allowlist, in the order entries were added.
     public func allowlist() -> [PseudoListEntry] {
         document?.allowlist ?? []

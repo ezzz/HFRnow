@@ -15,27 +15,6 @@ import WebKit
 /// - the data store is non-persistent: no cookie, cache or storage outlives the reader.
 @MainActor
 final class ReaderWebController: NSObject {
-    /// Callbacks to the reader screen.
-    struct Events {
-        /// The document `token` reached DOMContentLoaded and its images were routed.
-        var ready: @MainActor (Int) -> Void = { _ in }
-        /// The document `token` could not be shown: its navigation failed twice (issue #566).
-        var failed: @MainActor (Int) -> Void = { _ in }
-        /// The user tapped a link.
-        var link: @MainActor (URL) -> Void = { _ in }
-        /// The user tapped the placeholder of video `index` of message `post` in document `token`.
-        var video: @MainActor (_ post: Int, _ index: Int, _ token: Int) -> Void = { _, _, _ in }
-        /// Scrolling paused with message `post` topmost in document `token` (LOT-111, recorded as the reading position).
-        var position: @MainActor (_ post: Int, _ token: Int) -> Void = { _, _ in }
-        /// The user tapped the menu button or the author of message `post` in document `token`; `anchor` is the button's
-        /// rectangle in the web view's own coordinates (nil when the page gave none).
-        var menu: @MainActor (_ post: Int, _ source: MessageMenuSource, _ anchor: CGRect?, _ token: Int) -> Void = { _, _, _, _ in }
-        /// The user chose "Citer extrait" or "Citer gras" over `text`, selected in message `post` of document `token` (LOT-086).
-        var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
-        /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
-        var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
-    }
-
     /// The content world of `reader.js` and of its message channel; the page's own world cannot see either.
     static let world = WKContentWorld.world(name: "SwiftHFRReader")
     /// Name of the message channel (`window.webkit.messageHandlers.reader` in the reader's world).
@@ -47,6 +26,7 @@ final class ReaderWebController: NSObject {
 
     let webView: QuoteMenuWebView
     var events = Events()
+    var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
     /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
     var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
@@ -62,6 +42,7 @@ final class ReaderWebController: NSObject {
     var theme = ThemeAppearance.standard {
         didSet {
             guard theme != oldValue else { return }
+            applyUnderPageBackground()
             installUserScripts()
             applyTheme()
         }
@@ -72,7 +53,7 @@ final class ReaderWebController: NSObject {
         didSet { if obscuredInsets != oldValue { applyObscuredInsets(from: oldValue) } }
     }
 
-    private let imageFetcher: ReaderImageFetcher
+    let imageFetcher: ReaderImageFetcher
     let autoLoadsThirdPartyImages: @Sendable () -> Bool
     /// The document shown, or loading; nil before the first and after a load stopped before it was ready.
     private(set) var document: ReaderDocument?
@@ -84,8 +65,11 @@ final class ReaderWebController: NSObject {
     private var reloadedAfterFailure = false
     /// `stopLoading()` ran and the screen has not come back (`resume()`): `show` loads nothing, so a re-render of the hidden
     /// view cannot restart the load just stopped (issue #566).
-    private var stopped = false
-    /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
+    var stopped = false
+    /// The document `stopLoading()` cut, and whether SwiftUI's last word was `onDisappear` (`ReaderWebController+Presence`).
+    var stoppedDocument: ReaderDocument?, disappeared = false
+    /// The reading top (`ReaderScrollGeometry`, in the page's own points) a refresh restores;
+    /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
@@ -116,6 +100,7 @@ final class ReaderWebController: NSObject {
         webView = QuoteMenuWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.onQuoteSelection = { [weak self] bold in self?.requestSelectionQuote(bold: bold) }
+        webView.onWindowChange = { [weak self] inWindow in self?.windowDidChange(inWindow: inWindow) }
         installUserScripts()
         proxy.owner = self
         messages.owner = self
@@ -126,8 +111,11 @@ final class ReaderWebController: NSObject {
         webView.isInspectable = false
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
+        trackUnderPageBackground()
         // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        // Falling snow pauses while the page scrolls (LOT-166).
+        SeasonalScrollActivity.shared.track(webView.scrollView)
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document
@@ -171,6 +159,7 @@ final class ReaderWebController: NSObject {
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
         webView.stopLoading()
         stopped = true
+        stoppedDocument = document
         pageNavigation = nil
         if !wasReady {
             document = nil
@@ -179,11 +168,6 @@ final class ReaderWebController: NSObject {
         for task in running.values { task.cancel() }
         running.removeAll()
         waiting.removeAll()
-    }
-
-    /// The screen is back: `show` loads again (call it before `show`).
-    func resume() {
-        stopped = false
     }
 
     static func pageURL(token: Int) -> URL {
@@ -211,11 +195,12 @@ final class ReaderWebController: NSObject {
     /// Acts on a decoded message of the shown document. `receive` is the entry point of the page (main frame and token checked
     /// first); this one is internal only so tests can drive the actions without a web view round trip.
     func handle(_ message: ReaderBridgeMessage, in document: ReaderDocument) -> Any? {
+        if ignoresPageTaps, message.isTapAction { return nil }
         switch message {
         case .images(let urls):
             return decisions(for: urls)
         case .tap(let url):
-            return recordTap(url)
+            return ignoresPageTaps ? false : recordTap(url)
         case .ready:
             documentIsReady(document, token: document.token)
             return nil

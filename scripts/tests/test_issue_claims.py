@@ -118,3 +118,13 @@ class PullRequestCheckTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClaimNoteTests(unittest.TestCase):
+    def test_a_claim_on_a_blocked_or_held_issue_gets_a_note(self):
+        self.assertIn("status: blocked", ic.claim_note({"status: blocked"}))
+        self.assertIn("Blocked by", ic.claim_note({"status: blocked"}))
+        self.assertIn("status: on-hold", ic.claim_note({"status: on-hold"}))
+        self.assertIn("decision", ic.claim_note({"status: on-hold"}))
+        self.assertIn("status: needs-decision", ic.claim_note({"status: needs-decision"}))
+        self.assertIsNone(ic.claim_note({"status: ready"}))

@@ -11,9 +11,9 @@ struct MessagesRootView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            MessageListView(model: model, composer: environment.composer)
+            MessageListView(model: model, composer: environment.composer).appScreenBackground()
         } detail: {
-            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer)
+            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer).appScreenBackground()
         }
         // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would; one it
         // closed (marked unread, LOT-127) goes back to the list, as legacy pops.
@@ -31,7 +31,7 @@ struct MessagesListColumn: View {
     let composer: ComposerServices?
 
     var body: some View {
-        NavigationStack { MessageListView(model: model, composer: composer) }
+        ThemedNavigationStack { MessageListView(model: model, composer: composer) }
     }
 }
 
@@ -46,7 +46,7 @@ struct MessageReaderColumn: View {
     var body: some View {
         if let thread = model.selected, let readerModel = model.reader(for: thread) {
             // Its own stack, for the readers a followed link pushes (LOT-137); a new conversation starts a new stack.
-            NavigationStack {
+            ThemedNavigationStack {
                 TopicReaderView(
                     model: readerModel, services: reader, composer: composer,
                     onMarkUnread: { [model] outcome in await model.markUnreadEnded(thread, in: readerModel, outcome) }

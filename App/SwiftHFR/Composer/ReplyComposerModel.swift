@@ -51,10 +51,23 @@ final class ReplyComposerModel: Identifiable {
     private(set) var mayHavePosted = false
     /// The draft could not be read or written; the text on screen is still there.
     private(set) var draftWarning: String?
+    /// Replies set aside in this topic (LOT-101), newest first; empty for every other composer. Read when the sheet opens and
+    /// after each change made here.
+    var archivedDrafts: [ArchivedDraft] = []
+    /// Where the text on screen came from, which labels it when it is set aside (LOT-101).
+    var draftSource = ArchivedDraftSource.quickReply
+    /// The archived draft now in the editor: removed from the archive once HFR confirms the reply (legacy `selectedDraft`).
+    var pickedArchivedID: UUID?
+    /// An archive operation is writing: the text must not change under it.
+    var isMovingDrafts = false
     /// Set once the sheet must close.
     private(set) var closeReason: CloseReason?
     /// Cancel was tapped with text: the sheet asks whether to keep the draft.
     var isAskingClose = false
+    /// What "Annuler" and "Rétablir" go back to (#653); the text the sheet opened with is no step.
+    private(set) var history = ComposerHistory()
+    /// The images the panel inserted, shown as chips in the card while their snippet is in the text (#653).
+    var imageChips: [ComposerImageChip] = []
 
     /// Unique per sheet.
     nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
@@ -79,6 +92,7 @@ final class ReplyComposerModel: Identifiable {
         self.services = services
         self.autosaveDelay = autosaveDelay
         if case .reply = target { initialQuote = quote } else { initialQuote = nil }
+        if initialQuote != nil { draftSource = .quote }
         prefill = nil
         if case .newPrivateMessage(let message) = target { recipient = message.recipient }
     }
@@ -101,10 +115,10 @@ final class ReplyComposerModel: Identifiable {
     }
 
     /// The form's sub-category select (LOT-089, a first post's edit form, LOT-088): options, choice, loading and warning.
-    private(set) var picker = NewTopicSubcategories()
+    var picker = NewTopicSubcategories()
 
     /// The editor accepts typing.
-    var canEdit: Bool { hasRestored && !isSending && !isClosing && closeReason == nil }
+    var canEdit: Bool { hasRestored && !isSending && !isClosing && !isMovingDrafts && closeReason == nil }
 
     /// The draft store refused a write or cannot be read (`draftWarning`): keep, discard and Cancel on an emptied text all
     /// write, so the sheet offers this exit instead of trapping the user.
@@ -117,7 +131,11 @@ final class ReplyComposerModel: Identifiable {
         let drafts = services.drafts
         let account = services.account
         let context = target.draftContext
+        // A legacy draft the import left for this topic becomes its draft first (LOT-158): the reader's own call may not have
+        // ended yet when the sheet opens.
+        if case .reply(let reply) = target, let legacyDrafts = services.legacyDrafts { await legacyDrafts.resolve(reply.topic) }
         let draft = await drafts.draft(for: context, account: account)
+        await refreshArchivedDrafts()
         if let failure = await drafts.loadFailure() {
             draftWarning = Self.draftWarning(for: failure)
         }
@@ -129,33 +147,7 @@ final class ReplyComposerModel: Identifiable {
         // The quote the sheet was opened with goes after the restored draft, like typing: saved after a pause, so closing the
         // sheet on it keeps it in the draft.
         if let quote = initialQuote { update(text: QuoteDraftMerger.merge(quote.text, into: text)) }
-    }
-
-    /// Reads the new-topic form's sub-category select; the sheet runs it beside `start()` so the editor never waits for the
-    /// network (legacy loaded it when the sheet opened, `AnswerView.swift:625-640` @ 2440d79). A failure leaves the picker
-    /// empty and the topic sendable: the engine then sends the form's own choice.
-    func loadSubcategories() async {
-        guard case .newTopic(let topic) = target, !picker.isLoading else { return }
-        picker.beginLoading()
-        do throws(PostingError) {
-            picker.apply(try await services.poster.newTopicOptions(formURL: topic.formURL))
-        } catch {
-            picker.fail(ComposerMessages.subcategoriesUnavailable(error))
-        }
-    }
-
-    /// Reads the sub-category list again: from the new-topic form, or from the edit form when an edit's list went stale.
-    func retrySubcategories() async {
-        guard case .edit(let edit) = target else { return await loadSubcategories() }
-        guard !picker.isLoading else { return }
-        picker.beginLoading()
-        do throws(PostingError) {
-            let fresh = try await services.poster.editPrefill(edit)
-            if let options = fresh.subcategories { picker.apply(options) } else { picker.reset() }
-            picker.endLoading()
-        } catch {
-            picker.fail(ComposerMessages.editUnavailable(error))
-        }
+        history.reset()
     }
 
     /// The user chose a sub-category of the form's list.
@@ -165,11 +157,28 @@ final class ReplyComposerModel: Identifiable {
         if !mayHavePosted { errorMessage = nil }
     }
 
-    /// The user typed: the draft is saved after a pause.
-    func update(text newText: String) {
+    /// The user typed, or an insertion edited the text: one step of the history (#653), the draft saved after a pause. Undo and
+    /// redo pass the history they moved in (`steps`) instead of recording a step.
+    func update(text newText: String, history steps: ComposerHistory? = nil) {
         guard canEdit, newText != text else { return }
+        if let steps { history = steps } else { history.record(text) }
         text = newText
         didEdit()
+    }
+
+    /// Shows the draft warning for a failed archive write (LOT-101); the text on screen stays.
+    func reportDraftFailure(_ error: any Error) {
+        draftWarning = Self.draftWarning(for: error)
+    }
+
+    /// Puts `newText` in the editor without the typing rules (a picked archived draft, LOT-101); the caller saves it. The swap
+    /// is one step of the history, as legacy's `useDraft` and `archiveAndClearCurrentDraft` (`AnswerView.swift:711-712`,
+    /// `:734-735` @ 87fe0d1c): "Annuler" brings the whole replaced text back.
+    func replaceText(with newText: String) {
+        if newText != text { history.record(text) }
+        text = newText
+        errorMessage = nil
+        mayHavePosted = false
     }
 
     /// The user edited the subject of a new private message: saved with the text.
@@ -191,15 +200,6 @@ final class ReplyComposerModel: Identifiable {
         errorMessage = nil
         mayHavePosted = false
         scheduleAutosave()
-    }
-
-    /// Inserts the smiley `code` over `selection` (the end of the text when nil), as legacy did (LOT-104). Returns the
-    /// caret's UTF-16 offset in the new text, nil when the editor does not accept typing (nothing changed).
-    func insert(smiley code: String, replacing selection: Range<String.Index>?) -> Int? {
-        guard canEdit else { return nil }
-        let result = SmileyInsertion.insert(code, into: text, replacing: selection)
-        update(text: result.text)
-        return result.caretUTF16Offset
     }
 
     /// Sends the reply or the new private message. Characters HFR would cut the message at are refused first (Q-3), in
@@ -224,6 +224,7 @@ final class ReplyComposerModel: Identifiable {
             // closes even if the draft cannot be deleted (spec, edge cases).
             if let release = initialQuote?.release { await services.quoting?.release(release, postedText: sent) }
             _ = await discardDraft()
+            await releasePickedArchivedDraft()
             isSending = false
             closeReason = .sent(result)
         } catch {
@@ -355,7 +356,7 @@ final class ReplyComposerModel: Identifiable {
         }
     }
 
-    private func settleAutosave() async {
+    func settleAutosave() async {
         let pending = autosave
         autosave = nil
         pending?.cancel()
@@ -364,7 +365,7 @@ final class ReplyComposerModel: Identifiable {
 
     /// The one write path of the draft. Blank text removes it (LOT-063 removes an empty one): a whitespace-only draft
     /// would come back in an editor that looks empty. Returns whether the write succeeded.
-    private func persist() async -> Bool {
+    func persist() async -> Bool {
         do {
             // An edit back to what the form served leaves no draft, so the next opening shows the message as HFR holds it.
             let keeps = differsFromPrefill

@@ -135,7 +135,26 @@ struct TopicHTMLBuilderTests {
         odd.author = "a\"><img src=x>"
         let html = TopicHTMLBuilder.avatar(of: odd, opensMenu: true)
         #expect(!html.contains("<img src=x>"))
-        #expect(html.contains("aria-label=\"Menu de a&quot;&gt;&lt;img src=x&gt;\""))
+        // The avatar button repeats the author button: assistive technologies skip it (LOT-163), so it carries no label.
+        #expect(html.contains("aria-hidden=\"true\" tabindex=\"-1\">") && !html.contains("aria-label"))
+        let document = TopicHTMLBuilder.document(for: page([odd]), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
+        #expect(document.contains("menu\">a&quot;&gt;&lt;img src=x&gt;</button>"))
+        #expect(!document.contains("<img src=x>"))
+    }
+
+    /// LOT-163: the author is the message's heading, so the web rotor's headings step from message to message.
+    @Test func theAuthorIsTheLevelTwoHeadingOfEachMessage() {
+        let heading = "<span class=\"byline\" role=\"heading\" aria-level=\"2\">"
+        let plain = TopicHTMLBuilder.document(for: page([message(), message()]), token: 1)
+        #expect(plain.components(separatedBy: heading + "<span class=\"author\">").count == 3)
+        let menus = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
+        #expect(menus.contains(heading + "<button type=\"button\" class=\"author menu-author\""))
+        #expect(menus.contains("aria-haspopup=\"menu\">auteur</button></span>"))
+    }
+
+    @Test func theMessageMenuButtonAnnouncesAMenu() {
+        let html = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
+        #expect(html.contains("aria-haspopup=\"menu\" aria-label=\"Actions du message de auteur\">⋯</button>"))
     }
 
     @Test func theAvatarIsTheAuthorMenuButtonWithOrWithoutPicture() {

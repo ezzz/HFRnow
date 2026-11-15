@@ -1,0 +1,552 @@
+[
+ {
+  "id": 1,
+  "section": "T",
+  "summary": "Un post refusé par HFR (jeton de sécurité invalide) pouvait être affiché comme réussi : SwiftHFR ne signale un succès que si HFR le confirme explicitement (\"…avec succès\" + redirection vers le forum)."
+ },
+ {
+  "id": 2,
+  "section": "T",
+  "summary": "Une phrase négative (\"…n'a pas été posté avec succès\") ou une page de login/liste vide ne passe plus pour un succès d'écriture."
+ },
+ {
+  "id": 3,
+  "section": "T",
+  "summary": "Une connexion ratée ne déconnecte plus le compte : la nouvelle session est validée à part et n'est installée qu'en cas de succès."
+ },
+ {
+  "id": 4,
+  "section": "T",
+  "summary": "Le rafraîchissement de session ne remplace plus le cookie jar par la réponse : écriture par comparaison, une requête concurrente ne perd plus ses cookies."
+ },
+ {
+  "id": 5,
+  "section": "T",
+  "summary": "La vérification des MP en arrière-plan n'écrase plus les cookies d'une connexion en cours (session sonde, lecture seule)."
+ },
+ {
+  "id": 6,
+  "section": "UX",
+  "summary": "Liste MP : \"non lu par moi\" et \"non lu par l'autre\" ne sont plus confondus ; le marqueur [non lu] est séparé du titre."
+ },
+ {
+  "id": 7,
+  "section": "T",
+  "summary": "Un lien posté dans un message ne peut plus devenir une action (citer, éditer, alerter…) : les actions sont lues uniquement dans la barre d'outils du message, et reconnues par leur chemin exact."
+ },
+ {
+  "id": 8,
+  "section": "T",
+  "summary": "Images des messages : plus aucun chargement vers des adresses du réseau local / privées, ni vers des pages HFR qui ne sont pas des images ; images chargées sans cookies ni Referer."
+ },
+ {
+  "id": 9,
+  "section": "UX",
+  "summary": "Images tierces : chargement auto en Wi-Fi, au tap en cellulaire (réglage jamais / Wi-Fi / toujours) au lieu de \"toujours\"."
+ },
+ {
+  "id": 10,
+  "section": "UX",
+  "summary": "Vidéos intégrées : une vignette, le lecteur tiers ne se charge qu'au tap (plus de lecteurs auto avec scripts tiers)."
+ },
+ {
+  "id": 11,
+  "section": "T",
+  "summary": "Le lecteur de sujet n'exécute aucun script du contenu (CSP stricte, scripts de page désactivés)."
+ },
+ {
+  "id": 12,
+  "section": "UX",
+  "summary": "Pagination des listes honnête : plus de faux nombre total de pages."
+ },
+ {
+  "id": 13,
+  "section": "UX",
+  "summary": "Rafraîchir recharge la page courante (pas la page 1) et garde le contenu pendant le chargement."
+ },
+ {
+  "id": 14,
+  "section": "UX",
+  "summary": "Un lien vers un post ouvre sa page et son ancre, plus la page 1."
+ },
+ {
+  "id": 15,
+  "section": "T",
+  "summary": "Une requête de sujet annulée ne peut plus afficher son résultat à la place du chargement suivant."
+ },
+ {
+  "id": 16,
+  "section": "UX",
+  "summary": "Sous-forums : pagination et ouverture depuis la page d'accueil fiables."
+ },
+ {
+  "id": 17,
+  "section": "T",
+  "summary": "Formulaires : une action de formulaire hors du forum est refusée (pas d'envoi des cookies ailleurs)."
+ },
+ {
+  "id": 18,
+  "section": "T",
+  "summary": "Suppression d'un premier post (= tout le sujet) : confirmation obligatoire hors MP."
+ },
+ {
+  "id": 19,
+  "section": "UX",
+  "summary": "Liens du forum : chaque forme (sujet, liste, profil, MP, favoris, recherche) ouvre son propre écran ; le legacy ouvrait tout lien forum2.php ou /hfr/… comme un sujet (listes et profils compris)."
+ },
+ {
+  "id": 20,
+  "section": "UX",
+  "summary": "Lien vers un message (signet, permalien numreponse=M, lignes de liste) : la page est laissée au serveur au lieu de retomber sur la page 1 (le serveur ignore page= quand numreponse est présent)."
+ },
+ {
+  "id": 21,
+  "section": "T",
+  "summary": "Lien interne : un port explicite ou un schéma autre que http(s) n'est plus traité comme un lien du forum (seul l'hôte était comparé)."
+ },
+ {
+  "id": 22,
+  "section": "T",
+  "summary": "Hébergement d'images : la clé API n'est plus écrite dans le code ; un envoi n'est jamais présenté comme réussi sans la confirmation de l'hébergeur, une redirection n'est pas suivie (elle rejouerait la clé et l'image) et une réponse trop grosse est refusée."
+ },
+ {
+  "id": 23,
+  "section": "T",
+  "summary": "Images d'hébergeurs : l'hébergeur est reconnu par son nom d'hôte analysé (pas par une sous-chaîne), le Referer du forum n'est envoyé qu'à reho.st et n'est jamais recopié sur une redirection."
+ },
+ {
+  "id": 24,
+  "section": "UX",
+  "summary": "Réglages : la taille du texte devient un curseur de 70 % à 130 % (pas de 5 %), au lieu du choix 100 / 110 / 120 / 130 % ; on peut donc réduire le texte, la valeur est enregistrée comme un décalage destiné à s'ajouter à la taille dynamique iOS ; son application aux écrans arrive avec LOT-169 (#295)."
+ },
+ {
+  "id": 25,
+  "section": "UX",
+  "summary": "Le moteur ne déclare un nombre de pages de liste exact que quand HFR le donne vraiment (pager court 1…N sous 10, ou liste sans pager sur la page 1 ; déduit de la forme de la fenêtre, capture de confirmation en attente) ; le dernier lien d'un pager à fenêtre n'est plus pris pour le total (l'app s'appuiera dessus pour désactiver « Dernière page »)."
+ },
+ {
+  "id": 26,
+  "section": "T",
+  "summary": "Favoris et drapeaux : l'ajout aux favoris, le retrait d'un drapeau et le retrait depuis la liste ne partent que si la session est confirmée juste avant. Avec une session expirée, l'app ne dit plus « Favori positionné avec succès » alors que rien n'a changé (HFR renvoie la même page de succès sans session)."
+ },
+ {
+  "id": 27,
+  "section": "UX",
+  "summary": "Réglages de contenu, liste blanche, super-favoris, smileys favoris de l'app et position de lecture fine suivent l'identifiant Apple (stockage clé-valeur iCloud, NSUbiquitousKeyValueStore) ; les comptes restent sur l'appareil sauf activation explicite du trousseau iCloud."
+ },
+ {
+  "id": 28,
+  "section": "T",
+  "summary": "Chargement MPStorage : la liste noire locale est fusionnée avec celle du forum au lieu d'être remplacée ; une synchro ratée n'annule plus un ajout local."
+ },
+ {
+  "id": 29,
+  "section": "UX",
+  "summary": "Synchro MPStorage active d'elle-même quand le compte a déjà un fil de stockage ; sinon demandée au premier signet ou ajout en liste noire, jamais créée sans accord."
+ },
+ {
+  "id": 30,
+  "section": "UX",
+  "summary": "Super-favoris et smileys favoris de l'app : une liste par compte HFR au lieu d'une seule liste globale ; au premier import, les listes legacy vont dans le compte actif à ce moment-là, les autres comptes partent vides."
+ },
+ {
+  "id": 31,
+  "section": "T",
+  "summary": "Drapeau d'un sujet : seul le lien de la barre de fonctions du sujet compte. Un lien « retirer le drapeau » posté dans un message ne peut plus devenir l'action du bouton."
+ },
+ {
+  "id": 32,
+  "section": "T",
+  "summary": "Listes (sujets, MP, favoris, accueil) : un lien sans adresse dans la pagination ou dans une ligne ne fait plus planter l'app (saut de page +10) ; le lien est ignoré, la page et les autres lignes restent."
+ },
+ {
+  "id": 33,
+  "section": "UX",
+  "summary": "Une session non confirmée par le forum (page inconnue, forum injoignable) est revérifiée en silence au retour au premier plan, sans jamais déconnecter le compte ; le legacy ne vérifiait qu'au lancement et ignorait les échecs."
+ },
+ {
+  "id": 34,
+  "section": "UX",
+  "summary": "Réponse : le brouillon est enregistré pendant la frappe (par sujet et par compte) et survit à un kill ; fermer demande garder / supprimer, le glissement vers le bas ne perd plus le texte."
+ },
+ {
+  "id": 35,
+  "section": "UX",
+  "summary": "Réponse : un échec garde toujours le texte et dit si le message a pu partir ; « peut-être posté » invite à vérifier le sujet au lieu de renvoyer."
+ },
+ {
+  "id": 36,
+  "section": "UX",
+  "summary": "Réponse : les emoji hors BMP sont refusés avant l'envoi avec la liste (HFR coupait le message au premier)."
+ },
+ {
+  "id": 37,
+  "section": "UX",
+  "summary": "Après une réponse, le lecteur ouvre la dernière page du sujet sur le dernier message, où que l'on lise (legacy : rechargement seulement si la dernière page était affichée)."
+ },
+ {
+  "id": 38,
+  "section": "UX",
+  "summary": "Listes : la page N est demandée par forum1.php?…&page=N, que HFR redirige vers liste_sujet-N.htm quand on n'est pas connecté (R05a, R05b, anonymes ; la réponse connectée pour N ≥ 2 n'est pas capturée, #278). Le legacy demandait liste_sujet-1.htm?page=N et Bybifok y a vu l'en-tête « page 11 » sur la page 1 ; aucune capture ne montre encore cette réponse de HFR (HFR-PROTOCOL §7b B2)."
+ },
+ {
+  "id": 39,
+  "section": "UX",
+  "summary": "Liste des MP : toutes les pages sont accessibles (précédente / suivante), pas seulement la première."
+ },
+ {
+  "id": 40,
+  "section": "UX",
+  "summary": "Liste des MP : le point « non lu » indique que vous n'avez pas lu la conversation (icône HFR), plus le marqueur [non lu], qui signifie que l'autre n'a pas lu."
+ },
+ {
+  "id": 41,
+  "section": "UX",
+  "summary": "Super-favoris : un sujet est reconnu par sa catégorie et son numéro. Le legacy ne gardait que le numéro, donc deux sujets de même numéro dans deux catégories devenaient super-favoris ensemble."
+ },
+ {
+  "id": 42,
+  "section": "T",
+  "summary": "Historique des images envoyées et historique des recherches de smileys : un fichier illisible n'est plus remplacé par une liste vide au premier ajout ; il est gardé, l'app refuse d'y écrire tant que l'utilisateur n'a pas choisi de le mettre de côté, et un échec d'enregistrement est signalé."
+ },
+ {
+  "id": 43,
+  "section": "T",
+  "summary": "Recherche globale : les résultats sont demandés par un GET sans cookie, au lieu de renvoyer le formulaire en POST à l'adresse des résultats."
+ },
+ {
+  "id": 44,
+  "section": "T",
+  "summary": "Recherche globale : les lettres accentuées partent encodées en UTF-8 (%C3%A9) au lieu d'être envoyées brutes."
+ },
+ {
+  "id": 45,
+  "section": "UX",
+  "summary": "Recherche globale : un mot interdit (jailbreak, cydia…) refuse la recherche avec un avertissement, au lieu de chercher en silence un autre texte à la place (Q-7)."
+ },
+ {
+  "id": 46,
+  "section": "UX",
+  "summary": "Recherche dans un sujet : seuls le message de HFR « aucune réponse » et une redirection sans adresse valent « aucun résultat » ; un jeton refusé ou une session expirée est signalé, et l'adresse renvoyée n'est suivie que si c'est une page du sujet cherché."
+ },
+ {
+  "id": 47,
+  "section": "T",
+  "summary": "Stockage MP : la page lue doit être le fil de stockage (sujet vérifié, première page), le mot « destiné » n'est cherché que dans l'avis d'une page sans message, et un JSON invalide est une erreur typée au lieu de désactiver la fonction pour tous les comptes."
+ },
+ {
+  "id": 48,
+  "section": "UX",
+  "summary": "Filtrer les posts : le premier message du sujet (page 1) peut faire partie des résultats ; le legacy écartait le premier bloc de chaque page, qui n'est la reprise du message précédent qu'à partir de la page 2. Le pseudo du compte est reconnu même long (avec l'espace invisible d'HFR) dans ses propres messages et dans les citations, et un dernier message lu introuvable sur la page n'en fait plus sauter toute la page."
+ },
+ {
+  "id": 49,
+  "section": "UX",
+  "summary": "Liste noire / liste blanche : un pseudo est reconnu même s'il contient des caractères invisibles (U+FEFF, U+2060…) ou des espaces autour ; le legacy n'ignorait que U+200B et la casse. Un pseudo vide une fois nettoyé est refusé, et un pseudo ajouté est enregistré sans ces caractères."
+ },
+ {
+  "id": 50,
+  "section": "UX",
+  "summary": "Notifications de MP : un compteur « déjà notifié » par compte (le legacy en gardait un seul pour tous les comptes) ; un compte avec plus de 1000 MP non lus n'est plus notifié à chaque vérification."
+ },
+ {
+  "id": 51,
+  "section": "UX",
+  "summary": "Vidéos YouTube : l'heure de départ d'un lien est juste (t=1h2m3s démarre à 1 h 2 min 3 s ; le legacy comptait les minutes en heures) et un lien en secondes seules (t=706) démarre aussi au bon moment ; le legacy l'ignorait."
+ },
+ {
+  "id": 52,
+  "section": "T",
+  "summary": "Recherche de smileys : la réponse est lue en UTF-8 (le legacy essayait d'abord le Latin-1, ce qui abîme les accents d'une page UTF-8) ; une erreur du serveur n'est plus présentée comme « aucun smiley » ; un cookie posé par la réponse ne peut plus arriver dans le compte (risque supprimé, aucune capture n'en pose)."
+ },
+ {
+  "id": 53,
+  "section": "UX",
+  "summary": "Liens dans un sujet : seuls les liens vers une page de sujet ou de MP s'ouvrent dans l'app (lecteur empilé : le retour revient au message d'où l'on vient) ; listes, profils, recherches, liens de réponse, vues « citer seulement » ou impression, page illisible et forums inconnus s'ouvrent dans le navigateur (intégré ou par défaut selon le réglage) au lieu d'un faux sujet ; les liens file: ne font plus rien."
+ },
+ {
+  "id": 54,
+  "section": "UX",
+  "summary": "Taille du texte : un curseur de 70 % à 130 % (pas de 5) au lieu de Standard / +10 / +20 / +30 %, donc plus petit que le défaut possible ; il s'applique à tous les écrans et au sujet ouvert sans rechargement, en plus de Dynamic Type."
+ },
+ {
+  "id": 55,
+  "section": "UX",
+  "summary": "Mode compact : appliqué aux listes de sujets, favoris, drapeaux et MP, avec titre sur deux lignes, une seule ligne d'infos en MP et marqueurs plus petits ; le legacy ne serrait que les favoris et les réglages."
+ },
+ {
+  "id": 56,
+  "section": "UX",
+  "summary": "Messages privés : nouveau MP avec destinataire modifiable et brouillon (sujet compris) par destinataire ; après l'envoi confirmé, la liste se recharge et ouvre la conversation créée si un seul fil porte ce sujet ; la réponse dans une conversation ouvre sa dernière page sans jamais demander une page au-delà."
+ },
+ {
+  "id": 57,
+  "section": "UX",
+  "summary": "Thème : un seul choix « Automatique (iOS) / Clair / Sombre » au lieu de « Changement de thème » puis « Luminosité du thème » (mêmes clés) ; la luminosité du thème sombre s'applique aux fonds sombres du sujet, les écrans natifs gardent les fonds sombres du système (LOT-122)."
+ },
+ {
+  "id": 58,
+  "section": "T",
+  "summary": "Stockage MP : une écriture fusionne avec la copie relue juste avant (plus d'écrasement des modifications d'un autre appareil), est relue après envoi, et n'est réussie que sur la phrase de confirmation de HFR ; l'enregistrement asynchrone n'est plus toujours signalé en échec ; le document est lu dans le formulaire d'édition (texte stocké) et le fil n'est créé qu'après une recherche complète."
+ },
+ {
+  "id": 59,
+  "section": "T",
+  "summary": "Suppression d'une conversation MP : un refus de HFR (jeton invalide, réponse en HTTP 200) n'est plus affiché comme une suppression réussie ; la suppression n'est confirmée que par la phrase de HFR et le retour à la liste des MP, et ne part qu'après vérification de la session du compte sélectionné."
+ },
+ {
+  "id": 60,
+  "section": "T",
+  "summary": "Vote de sondage : un vote n'est annoncé comme pris en compte que si HFR répond « Votre vote a bien été pris en compte ! » (le legacy annonçait un succès pour toute page sans lien de retour, même sans message) ; « vous avez déjà voté » est signalé comme tel, et le vote envoie le formulaire complet dans l'ordre de la page avec le bouton « Voter »."
+ },
+ {
+  "id": 61,
+  "section": "T",
+  "summary": "Nouveau sujet : le brouillon (sujet et texte) est gardé par forum et par compte au lieu d'un texte global perdu au relancement ; la liste des sous-catégories se charge sans bloquer la saisie ; un échec dit si le sujet a pu être créé et n'est jamais renvoyé tout seul."
+ },
+ {
+  "id": 62,
+  "section": "UX",
+  "summary": "Menu d'un message : « Supprimer » n'est masqué que sur le premier message du sujet (le legacy le masquait sur le premier message de chaque page) ; la règle s'applique dès qu'un lot enregistre l'action de suppression : LOT-087 ne branche que « Link », donc « Supprimer » n'apparaît encore sur aucun message."
+ },
+ {
+  "id": 63,
+  "section": "UX",
+  "summary": "Menu d'un message : « Link » copie le lien du message dans le presse-papiers (le legacy ouvrait la feuille de partage)."
+ },
+ {
+  "id": 64,
+  "section": "T",
+  "summary": "Envoi d'image dans le compositeur : les métadonnées de la photo (position GPS, EXIF) ne sont plus envoyées à l'hébergeur (réencodage ImageIO sans métadonnées) ; un avis explique la première fois qui reçoit l'image et qu'elle devient publique, et rien ne part avant son acceptation ; une réponse perdue n'est jamais renvoyée toute seule."
+ },
+ {
+  "id": 65,
+  "section": "T",
+  "summary": "Profil d'un membre : la page est chargée sans les cookies du compte et refusée si HFR la sert à une autre adresse ; avatar et smileys passent par le chargeur d'images sans cookies et sa politique (hôtes du forum seulement) au lieu d'AsyncImage. Un lien de profil dans un sujet ouvre la fiche dans l'app (et non plus le navigateur, ligne 53)."
+ },
+ {
+  "id": 66,
+  "section": "UX",
+  "summary": "Alerte modérateur : la réponse de HFR est montrée telle quelle, sans être annoncée comme un succès (sa lecture, W46, est #395) ; les emoji sont refusés avec la liste au lieu d'être retirés en silence ; l'alerte n'est jamais envoyée à une adresse par défaut, seulement à l'action du formulaire si elle vise le même message sur le forum."
+ },
+ {
+  "id": 67,
+  "section": "UX",
+  "summary": "Lecteur : les messages et les citations de l'utilisateur (Egopost / Egoquote) ne sont pas mis en évidence dans les messages privés, comme le commentaire du legacy l'annonçait (son paramètre isMP: n'était jamais lu, donc le legacy les surlignait aussi) ; un message de l'utilisateur lui-même n'est jamais replié, même s'il est dans sa propre liste noire."
+ },
+ {
+  "id": 68,
+  "section": "T",
+  "summary": "MP : « marquer non lu » ne se dit réussi que si HFR le confirme avec sa phrase (« Le message a été marqué comme non lu avec succès ») ; le legacy prenait toute réponse pour un succès. Le lien est celui de l'en-tête de la conversation, sur le forum, jamais un lien posté dans un message."
+ },
+ {
+  "id": 69,
+  "section": "UX",
+  "summary": "Visionneuse d'image : balayage entre les images de la page, bouton Fermer toujours visible (iPad), partager ; les téléchargements passent par le client sans cookie, redirection par redirection."
+ },
+ {
+  "id": 70,
+  "section": "UX",
+  "summary": "Citation multiple : une fois la réponse confirmée par HFR, les messages cités sont désélectionnés. Le legacy laissait le cookie une heure, et le compositeur suivant du sujet les citait à nouveau. Une sélection faite pendant l'envoi est gardée, et rien ne change si la réponse échoue."
+ },
+ {
+  "id": 71,
+  "section": "T",
+  "summary": "Citation d'une sélection : le texte choisi est cherché dans le texte cité seulement, et les balises [quotemsg=…] restent celles d'HFR. Le legacy cherchait aussi dans la balise (choisir un chiffre pouvait y mettre du gras) et la reconstruisait ; l'ObjC passait les numéros par int, qui déborde sur les grands numéros."
+ },
+ {
+  "id": 72,
+  "section": "UX",
+  "summary": "Recherche globale : une aide s'affiche pour les mots de moins de 4 lettres (le legacy n'en avait pas)."
+ },
+ {
+  "id": 73,
+  "section": "UX",
+  "summary": "Favoris : choisir « Drapeaux & Favoris » ou « Favoris uniquement » dans le menu de l'onglet change aussi le réglage (le legacy ne l'avait que dans Réglages) ; les super favoris forment une section en tête (le legacy ne les teintait que) ; le bouton « sections repliées / vides » reste utilisable en liste à plat (le legacy le désactivait)."
+ },
+ {
+  "id": 74,
+  "section": "T",
+  "summary": "Visionneuse d'images : le Referer envoyé à reho.st est https://forum.hardware.fr/ (avec la barre finale), la valeur relevée avec une vraie image (403 sans Referer, 200 avec) ; le legacy l'envoyait sans la barre."
+ },
+ {
+  "id": 75,
+  "section": "UX",
+  "summary": "Lecture hors ligne : le stockage des pages est prêt (l'enregistrement et l'ouverture dans l'app viennent avec LOT-139). Dans le legacy, le téléchargement était en commentaire et la liste était inatteignable. Les pages vont dans le cache de l'appareil (non sauvegardé), une par fichier, sans liste à part. Une page qui contient le jeton de session du compte n'est jamais écrite sur le disque. Les sujets sont reconnus par leur catégorie et leur numéro ; 50 pages par sujet, 200 Mo en tout."
+ },
+ {
+  "id": 76,
+  "section": "UX",
+  "summary": "Recherche de smileys : une saisie de moins de 3 caractères explique pourquoi rien n'est envoyé ; une recherche en échec (réseau, réponse illisible) le dit au lieu d'afficher « Aucun smiley trouvé » ; un smiley servi deux fois par HFR n'est listé qu'une fois."
+ },
+ {
+  "id": 77,
+  "section": "UX",
+  "summary": "Citation multiple : le bouton « + » (Réponse rapide comme « Répondre comme le forum ») reprend les messages sélectionnés, dans l'ordre du sujet. Le legacy ne les reprenait qu'en mode forum, et rien n'était fusionné avec le brouillon. Les citations sont ajoutées au brouillon après une ligne vide, jamais deux fois."
+ },
+ {
+  "id": 78,
+  "section": "UX",
+  "summary": "Citation d'une sélection : une sélection qui commence dans un message et finit dans un autre n'est plus citée (le legacy citait le premier message avec les mots du second)."
+ },
+ {
+  "id": 79,
+  "section": "UX",
+  "summary": "« Citer ☐/☑ » : une confirmation s'affiche après chaque bascule, avec le nombre de messages sélectionnés (le legacy basculait sans rien dire)."
+ },
+ {
+  "id": 80,
+  "section": "T",
+  "summary": "Alertes Qualitay : les entités HTML des titres de sujet du flux AQ (&quot;, &#039;) sont décodées au lieu d'être affichées telles quelles ; un lien du flux qui ne pointe pas vers le forum est ignoré ; une date illisible est lue comme absente (le legacy prenait « maintenant », donc l'élément comptait comme nouveau ; le décompte des nouveaux reste à l'app, à venir) ; « déjà signalé » compare des numéros entiers (plus de sous-chaîne)."
+ },
+ {
+  "id": 81,
+  "section": "UX",
+  "summary": "Alerte modérateur : seule la phrase de confirmation d'HFR (W46) annonce l'alerte comme envoyée ; un refus (flood, alerte déjà en cours R88, jeton invalide) est montré comme un refus, et la page ou la réponse « Vous devez être identifié » (R89, W47) comme une session déconnectée. Le legacy montrait tout texte comme un succès, et lisait la page sans session comme « déjà alerté »."
+ },
+ {
+  "id": 82,
+  "section": "UX",
+  "summary": "Mot de passe enregistré refusé par HFR (capturé avec un md_passs volontairement faux ; un mot de passe changé ailleurs n'est pas capturé) : la vérification de session dit « session expirée » au lieu de garder le compte « connecté » sans rien signaler, et le relevé des MP signale l'expiration au lieu d'un échec silencieux (le legacy n'y trouvait pas de compteur, gardait l'ancien et comptait un échec)."
+ },
+ {
+  "id": 83,
+  "section": "T",
+  "summary": "Composer : la couleur du texte s'écrit [#rrggbb], la balise que HFR reconnaît ; le legacy écrivait [rrggbb], sans le # (rendu de cette forme non capturé)."
+ },
+ {
+  "id": 84,
+  "section": "UX",
+  "summary": "Lecture hors ligne : « Enregistrer cette page hors ligne » (et les 4 suivantes) dans le menu du lecteur, liste « Sujets enregistrés » dans Réglages avec suppression et espace utilisé, lecture des pages enregistrées sans réseau. Le legacy n'avait ni écran ni téléchargement actif. Toutes les pages sont lues sans les cookies du compte, la page affichée comprise, donc les drapeaux ne bougent pas ; une page qui contient des données de session est refusée avec sa raison ; une page qui n'est pas une page de sujet (maintenance, connexion) n'est jamais enregistrée."
+ },
+ {
+  "id": 85,
+  "section": "T",
+  "summary": "Alertes Qualitay : une alerte du flux à la date illisible ne compte plus comme nouvelle (le legacy la datait de « maintenant », elle restait nouvelle à chaque relevé et le badge ne se remettait jamais à zéro) ; les requêtes AQ ne suivent plus de redirection (une redirection vers le forum partait avec la session) et passent par un transport sans cookie."
+ },
+ {
+  "id": 86,
+  "section": "T",
+  "summary": "Listes et menu des messages : « Supprimer » (drapeau ou favori) n'est plus annoncé réussi sur n'importe quelle réponse 2xx, et « Favoris » n'affiche plus « Favori mis à jour » sur n'importe quelle réponse : la session est vérifiée avant l'envoi, seule la phrase de confirmation de HFR vaut succès, une réponse incertaine est signalée sans renvoi, et la ligne reste affichée avec la raison en français."
+ },
+ {
+  "id": 87,
+  "section": "UX",
+  "summary": "Barres et boutons de la liste des sujets, des MP, de la recherche, des posts filtrés, du sélecteur de smileys et de la visionneuse d'images : pagination en barre système du bas (Liquid Glass, déplacée sur le côté sur l'écran externe de l'iPhone Duo), bandeaux du haut sans fond opaque, toasts et bandeau flottant en verre, symboles de barre sans cercle. Les cartes d'information restent en matière (couche de contenu, HIG). Le legacy dessinait sa propre capsule de verre."
+ },
+ {
+  "id": 88,
+  "section": "UX",
+  "summary": "Lecteur iOS 27 (Liquid Glass) : les messages défilent sous les barres en verre ; ‹ › et « Répondre » sont des boutons système de la barre du bas, qui passent sur le côté sur l'écran externe de l'iPhone Duo ; le choix de page (page 1, « Page… », dernières pages, « Dernier post ») est un menu « N / M » dans la barre du bas, que les règles Apple réservent au débordement pour le « … » (les mêmes choix sont aussi dans le « … » du haut, voir 96) ; « Répondre » reste visible en paysage (le système le range dans le menu de débordement s'il manque de place)."
+ },
+ {
+  "id": 89,
+  "section": "T",
+  "summary": "Éditer et supprimer ses messages : le premier message d'un sujet retrouve son titre et sa sous-catégorie (perdus par la couche Swift), un brouillon par message, et une suppression n'est annoncée qu'avec la phrase de confirmation du forum (non confirmée : le message le dit, sans renvoi) ; le formulaire d'un premier message est refusé localement."
+ },
+ {
+  "id": 90,
+  "section": "UX",
+  "summary": "GIF Giphy : un avis (service tiers, seuls les mots recherchés sont envoyés, le GIF choisi est publié par son adresse) avant la première recherche, et rien n'est contacté avant ; recherche par l'API REST de Giphy (plus de SDK fermé, clé injectée : sans clé le bouton « GIF » disparaît) ; les GIF hors du CDN de Giphy ne sont ni affichés ni insérés ; pas d'onglet « récents »."
+ },
+ {
+  "id": 91,
+  "section": "UX",
+  "summary": "MP : « Marquer comme non lu » revient dans le lecteur (absent du menu du lecteur SwiftUI legacy) ; un échec est affiché (le legacy ne disait rien et restait sur la conversation) et, confirmé par HFR, le retour à la liste affiche sa phrase et la ligne reste non lue même si le rechargement échoue."
+ },
+ {
+  "id": 92,
+  "section": "UX",
+  "summary": "MP : une conversation non lue se détache de la liste par une légère teinte d'accent sur la ligne, en plus du titre en gras et du point (le legacy n'avait qu'un titre en gras et une pastille grise « non lu »)."
+ },
+ {
+  "id": 93,
+  "section": "UX",
+  "summary": "Icône de l'app identique au legacy (Icon-RedFace3D, icône à calques portée telle quelle)."
+ },
+ {
+  "id": 94,
+  "section": "UX",
+  "summary": "Lecteur : les messages sont mieux séparés — un message sur deux est teinté (dérivé du thème : clair, sombre, luminosité, contraste renforcé) et le trait entre messages est plus marqué ; le legacy ne traçait qu'un filet de 1 px."
+ },
+ {
+  "id": 95,
+  "section": "UX",
+  "summary": "MP : l'avatar du correspondant s'affiche enfin dans la liste (le cache d'avatars n'était jamais rempli côté Swift : il se remplit à chaque page lue, sans cookie, depuis l'hébergeur d'images du forum seulement, quel que soit le réglage « Images externes » : ce sont des avatars du forum) ; sans avatar, un monogramme coloré (initiales) remplace le disque gris."
+ },
+ {
+  "id": 96,
+  "section": "UX",
+  "summary": "Menu de pages : « Première page », « Aller à la page… » et « Dernière page » (qui remplace le dernier « Page N », avant « Dernier post ») remplacent « Page 1 » et « Page ... » ; le même menu est dans le « … » du haut et dans le « N / M » du bas."
+ },
+ {
+  "id": 589,
+  "section": "UX",
+  "summary": "Thème sombre : choix « Standard » (inchangé) / « Plus sombre » (#0B0B0C) / « Noir OLED » (#000) dans Réglages › Thème, avec aperçu et sur chaque colonne iPad ; le legacy n'avait qu'un fond sombre fixe (#17181A) mis à l'échelle par la luminosité."
+ },
+ {
+  "id": 590,
+  "section": "UX",
+  "summary": "Listes de sujets : la capsule des pages non lues (pages entre le drapeau et la fin), le pied « ⚑ cur / max » et la teinte de ligne par drapeau (favori jaune, bleu, rouge) sont rétablis comme dans le legacy, la teinte étant posée par-dessus le fond réel et masquée sur la ligne sélectionnée (iPad)."
+ },
+ {
+  "id": 594,
+  "section": "UX",
+  "summary": "Lecteur : le menu d'un message s'ouvre au niveau du « ⋯ » touché (une fenêtre ancrée sur le bouton, comme le menu du legacy), titré « Post de <pseudo> »."
+ },
+ {
+  "id": 598,
+  "section": "UX",
+  "summary": "Composer : la barre de mise en forme suit la densité et la taille du texte (cellules de 48 pt, 40 pt en mode compact, multipliées par l'échelle de texte) ; [url] sans sélection propose les deux formes, [url=…][/url] (curseur entre les balises) et [url]…[/url], quand le presse-papiers contient un texte non vide pas encore utilisé (sinon les balises vides [url][/url] sont insérées sans choix) ; le bouton d'envoi d'image du haut a son icône (photo.badge.plus), distincte de la balise [img]."
+ },
+ {
+  "id": 604,
+  "section": "UX",
+  "summary": "Réponse : le sélecteur de smileys montre les sections « Smileys de base », « Smileys du forum » (favoris du compte HFR, lus dans le formulaire), « Favoris de l’app » ; la recherche est le champ de recherche du système en haut ; un appui long sur n’importe quel smiley propose « Ajouter aux favoris » / « Retirer des favoris » (le legacy ne l’offrait que depuis la fiche d’un smiley)."
+ },
+ {
+  "id": 607,
+  "section": "UX",
+  "summary": "Lecteur : un appui long sur un lien propose Ouvrir, Copier le lien, Ouvrir dans Safari et, pour tout lien qui n'est ni un sujet, ni un MP, ni un profil du forum, Ouvrir dans l'app (ou dans YouTube, Vimeo, Streamable), sans aperçu : rien n'est chargé ; le legacy affichait le menu de WebKit avec aperçu de la destination (menu propre aux seuls liens d'image, repris dans #615)."
+ },
+ {
+  "id": 622,
+  "section": "T",
+  "summary": "Le choix d'icône n'est enregistré qu'après acceptation par le système : un changement refusé ne laisse plus la clé icon en désaccord avec l'icône affichée, et la case cochée suit l'icône réellement affichée."
+ },
+ {
+  "id": 622,
+  "section": "UX",
+  "summary": "Nouvelle icône alternative « REDFACE 3D Big » (Icon-RedFace3DBig)."
+ },
+ {
+  "id": 623,
+  "section": "UX",
+  "summary": "Sept icônes alternatives en .icon, cinq redessinées en vectoriel pour rester nettes (LOT-123)"
+ },
+ {
+  "id": 638,
+  "section": "UX",
+  "summary": "Un appui sur l'avatar (ou le pseudo) ouvre le menu du membre (Profil, MP) ; sans avatar, un monogramme remplace l'image absente."
+ },
+ {
+  "id": 640,
+  "section": "UX",
+  "summary": "Réglages › Sujets : listes noire et blanche modifiables (ajout manuel, suppression), « Masquer les pseudos blacklistés » ; Blacklist / Whitelist dans le menu du membre et boutons sur le profil."
+ },
+ {
+  "id": 651,
+  "section": "UX",
+  "summary": "Liste des MP : le titre d'une conversation lue garde la couleur secondaire, plus foncée en thème clair pour rester lisible (contraste 6:1 au lieu de 3,4:1)."
+ },
+ {
+  "id": 690,
+  "section": "T",
+  "summary": "Pages de sujet en cache : supprimées après 1 jour et au-delà de 20 Mo, au lieu de 7 jours et 50 Mo dans le legacy ; le pied de la section « Maintenance » des réglages donnera la règle de SwiftHFR."
+ },
+ {
+  "id": 705,
+  "section": "UX",
+  "summary": "Lecteur : un appui long sur un lien d'image propose aussi Ouvrir l'image (visionneuse) et Enregistrer dans Photos, comme le legacy, sans cookie de session."
+ }
+]

@@ -101,14 +101,14 @@ Details and exit criteria: [roadmap](docs/ROADMAP.md).
   <img src="docs/assets/roadmap-milestones.svg" alt="SwiftHFR milestones: M1 MVP, then M2 read and reply complete on the Mac lane and M3 engine complete on the cloud lane, both leading to M4 final version, then M5 UX evolutions after the M4 parity; below, the life of a lot from todo (ready, blocked, triage) through ongoing (claimed, draft PR, review wanted, changes requested, approved) to done (merged, issue closed, docs up to date)" width="100%">
 </p>
 
-Figures from the live boards, snapshot 2026-11-09 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
+Figures from the live boards, snapshot 2026-11-11 ([#324](https://github.com/ezzz/HFRnow/issues/324) body, [#166](https://github.com/ezzz/HFRnow/issues/166) for M1):
 
 | Milestone | Live board | Lots done | Progress |
 |---|---|---|---|
 | 🚀 M1 · MVP: log in, browse, read, reply, first TestFlight build | [#166](https://github.com/ezzz/HFRnow/issues/166) | 40 of 40 | 100 % |
 | 📖 M2 · Read & reply complete: every reading and answering feature, topics and MPs, offline reading included | [#324](https://github.com/ezzz/HFRnow/issues/324) | 28 of 28 | 100 % |
-| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 38 of 43 | 88 % |
-| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 5 of 31 | 16 % |
+| ⚙️ M3 · Engine complete: every `HFRKit` lot, parity gates green | [#324](https://github.com/ezzz/HFRnow/issues/324) | 39 of 43 | 91 % |
+| 🏁 M4 · Final version: validated legacy parity, compliance, App Store | [#324](https://github.com/ezzz/HFRnow/issues/324) | 15 of 38 | 39 % |
 | 🧪 M5 · UX evolutions: every change from the plan or the legacy that parity does not need (deferred options, FEAT items, split halves) | [#324](https://github.com/ezzz/HFRnow/issues/324) | 0 of 25 | 0 % |
 
 The boards are kanbans: each lot is one issue with its own definition of done, shown as 🔜 todo, 🔄 ongoing or ✅ done. The M1 and M2 lot counts are complete, but both milestones also have exit checks (TestFlight builds, hand checks) that are not lots.
@@ -168,7 +168,7 @@ flowchart LR
 - **CodeRabbit** reviews every PR; its threads are handled in one commit per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
 - **macOS runners are the bottleneck**: a PR iterates as a draft and is marked ready for the final run; docs-only PRs skip the macOS jobs, and CodeQL Swift runs only on PRs labelled `codeql` ([#477](https://github.com/ezzz/HFRnow/issues/477), [CONTRIBUTING §2](CONTRIBUTING.md#2-merge-criteria)).
 - **Mac sessions** run what the cloud cannot: live HFR captures, Xcode builds and checks on a device ([MAC-SESSIONS](docs/agents/MAC-SESSIONS.md)).
-- **Ledger rule**: a feature PR does not edit the GAP report or the legacy changelog; its entries go in a `### Ledger` section of the PR body, with the `ledger` label, and a steward folds them into the docs after the merge ([rule](tooling/docs/README.md#the-ledger-rule), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
+- **Ledger rule**: a feature PR does not edit the GAP report or the legacy changelog; its entries go in a `### Ledger` section of the PR body (no label to set), and a steward folds them into the docs after the merge ([rule](tooling/docs/README.md#the-ledger-rule), [AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Merge policy**: the author merges (squash) once the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold and a different model approved the head; risky flows and PRs from authors without write access are merged by the core orchestrator or the maintainer ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)).
 - **Mistakes become rules**: every review round feeds a [lessons table](docs/agents/LESSONS.md), and recurring classes of errors get automated checks.
 
@@ -188,6 +188,7 @@ flowchart LR
 | [docs/lots/](docs/lots/) | One spec per engine lot — the file a lot is built from |
 | [docs/FEATURES.md](docs/FEATURES.md) | The app feature backlog (FEAT-XXX): proposals with credit, status; the operator's UX principles |
 | `docs/features/` | One spec per app feature (`FEAT-XXX.md`), created with the first feature |
+| [docs/THEMES.md](docs/THEMES.md) · [docs/ICONS.md](docs/ICONS.md) | How themes and app icons are built, and how to propose one by PR |
 | [docs/HFR-PROTOCOL.md](docs/HFR-PROTOCOL.md) | How forum.hardware.fr works, every fact with its source |
 | [docs/FIXTURES.md](docs/FIXTURES.md) | How pages are captured and anonymized |
 | [docs/adr/](docs/adr/) | Architecture decisions |
@@ -217,7 +218,7 @@ Humans and agents follow the same path. Each step links to the one document that
 2. **Pick an issue**: [`status: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22status%3A+ready%22) and not `status: claimed`; if you are an outside contributor's agent, [`external: ready`](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22external%3A+ready%22) ([AGENTS.md §7](AGENTS.md#7-labels-and-prioritization), [EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). The plan of the lots is [LOTS.md](docs/LOTS.md); issues needing the maintainer's Mac carry `host: mac`.
 3. **Claim it** with a comment `/claim <session-id>`, `<host>/<name>` (for example `human/<your-login>` or `cloud/<session>`); the first claim wins, and the orchestrator or the maintainer then sets `status: claimed` by hand (no workflow syncs it yet). Without write access, ask a member to claim for you ([claims](docs/agents/ORCHESTRATION.md#claims), [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
 4. **Branch from `dev-swift`** (never `master`, the legacy app) and work from the issue's one spec ([CONTRIBUTING §1](CONTRIBUTING.md#1-from-a-task-to-a-pr)).
-5. **Open the PR** against `dev-swift` as a draft, with `Closes #N` (or `Refs #N` for partial work), `Claim: <session-id>` and, for a lot, `LOT-XXX`; a small fix without an issue says `Direct-PR: <reason>` ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)). If the PR fixes or deliberately changes a legacy behaviour, adds a gap row or edits an existing one, add a `### Ledger` section to the body and the `ledger` label (no entry, no section, no label); never edit the GAP report or the legacy changelog yourself ([the ledger rule](tooling/docs/README.md#the-ledger-rule)).
+5. **Open the PR** against `dev-swift` as a draft, with `Closes #N` (or `Refs #N` for partial work), `Claim: <session-id>` and, for a lot, `LOT-XXX`; a small fix without an issue says `Direct-PR: <reason>` ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)). If the PR fixes or deliberately changes a legacy behaviour, adds a gap row or edits an existing one, add a `### Ledger` section to the body (no entry, no section; no label to set); never edit the GAP report or the legacy changelog yourself ([the ledger rule](tooling/docs/README.md#the-ledger-rule)).
 6. **Get it reviewed**: an adversarial review by a different model ([routing](AGENTS.md#6-model-routing-which-agent-does-what)); reviews open to outside agents are flagged `REVIEW WANTED: <model>` ([EXTERNAL-AGENTS §4](docs/agents/EXTERNAL-AGENTS.md#4-what-you-may-take)). Handle CodeRabbit once per round ([REVIEW-ROUNDS](docs/agents/REVIEW-ROUNDS.md)).
 7. **Merge**: when the [merge criteria](CONTRIBUTING.md#2-merge-criteria) hold the author merges (squash) unless AGENTS.md §8 reserves the merge for the core orchestrator or the maintainer (risky flows, ADRs, `HFRModels` public types, authors without write access) ([AGENTS.md §8](AGENTS.md#8-git-and-pr-workflow)); whoever merges closes each `Closes #N` issue and leaves `Refs #N` issues open.
 8. **Stuck or stopping?** Say what is done and left on the PR and the issue, then comment `/release` on the issue, not the PR (without write access: `RELEASE REQUEST <session-id>`, a member releases it, [EXTERNAL-AGENTS §5](docs/agents/EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).

@@ -87,4 +87,19 @@ struct ThemeSettingsModelTests {
             #expect(store.rawValue(forKey: key) == nil, "\(key)")
         }
     }
+
+    @Test func theDarkStyleDefaultsToStandardPersistsAndFeedsTheAppearance() {
+        let store = InMemorySettingsStore()
+        let model = ThemeSettingsModel(store: store)
+        #expect(model.darkStyle == .standard)
+        // Reading the model writes nothing, and the default appearance is the unchanged one.
+        #expect(store.rawValue(forKey: "theme_dark_style") == nil)
+        #expect(model.appearance == .standard)
+        model.darkStyle = .oled
+        #expect(store.rawValue(forKey: "theme_dark_style") == .int(2))
+        #expect(model.appearance.darkStyle == .oled)
+        #expect(ThemeSettingsModel(store: store).darkStyle == .oled)
+        model.darkStyle = .standard
+        #expect(ThemeSettingsModel(store: store).appearance == .standard)
+    }
 }

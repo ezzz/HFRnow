@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 import HFRStorage
 @testable import SwiftHFR
 import Testing
@@ -55,5 +56,85 @@ struct ReaderThemeTests: ReaderWebTesting {
         let light = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|rgb(242, 242, 247)" })
         let seen = await colours(in: controller)
         #expect(light, "colours: \(seen)")
+    }
+
+    /// LOT-122: the dark style reaches the page's background and quote surfaces, live, and the standard style is the old colours.
+    @Test func theDarkStyleSetsTheReaderBackgroundAndQuotesLive() async {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .dark
+        controller.show(document(token: 3))
+        #expect(await until { recorder.ready == [3] }, "ready: \(recorder.ready)")
+        func surfaces() async -> String {
+            let script = """
+                const root = getComputedStyle(document.documentElement);
+                return getComputedStyle(document.body).backgroundColor + '|' + root.getPropertyValue('--app-dark-quote-background');
+                """
+            return ((try? await evaluate(script, in: controller)) as? String) ?? ""
+        }
+        let standard = await until(async: { await surfaces().hasPrefix("rgb(0, 0, 0)") })
+        let seenStandard = await surfaces()
+        #expect(standard, "standard: \(seenStandard)")
+
+        var appearance = ThemeAppearance.standard
+        appearance.darkStyle = .darker
+        controller.theme = appearance
+        let darker = await until(async: { await surfaces() == "rgb(11, 11, 12)|rgb(23, 24, 26)" })
+        let seenDarker = await surfaces()
+        #expect(darker, "darker: \(seenDarker)")
+        let quote = await colours(in: controller)
+        #expect(quote.hasSuffix("|rgb(23, 24, 26)"), "quote: \(quote)")
+        // The layer behind the page (what shows while it bounces) follows: dark is the page's background, light the system's.
+        func underPage() -> [Int] {
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+            controller.webView.underPageBackgroundColor?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            return [red, green, blue].map { Int(($0 * 255).rounded()) }
+        }
+        #expect(await until { underPage() == [11, 11, 12] }, "under page, dark: \(underPage())")
+        recorder.window?.overrideUserInterfaceStyle = .light
+        #expect(await until { underPage() == [255, 255, 255] }, "under page, light: \(underPage())")
+        recorder.window?.overrideUserInterfaceStyle = .dark
+
+        appearance.darkStyle = .oled
+        controller.theme = appearance
+        let oled = await until(async: { await surfaces() == "rgb(0, 0, 0)|rgb(17, 17, 19)" })
+        let seenOLED = await surfaces()
+        #expect(oled, "oled: \(seenOLED)")
+        #expect(recorder.ready == [3])
+    }
+
+    /// LOT-188: a gallery theme's tokens reach the page (its surface, links, quotes and code), live, and going back to Legacy
+    /// gives the Legacy page again without a reload.
+    @Test func aThemeRecoloursThePageAndLegacyRestoresIt() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .dark
+        controller.show(document(token: 4))
+        #expect(await until { recorder.ready == [4] }, "ready: \(recorder.ready)")
+        func page() async -> String {
+            let script = """
+                const code = document.createElement('table'); code.className = 'code'; document.body.appendChild(code);
+                const result = getComputedStyle(document.body).backgroundColor + '|' + getComputedStyle(code).backgroundColor;
+                code.remove();
+                return result;
+                """
+            return ((try? await evaluate(script, in: controller)) as? String) ?? ""
+        }
+        var themed = ThemeAppearance.standard
+        let theme = try ThemeFixtures.testTheme()
+        themed.themeVariants = theme.variants
+        controller.theme = themed
+        // Dark tokens: surface #1A2430, code #0A1018, link #8CC8FF, quote #222C38.
+        let applied = await until(async: { await page() == "rgb(26, 36, 48)|rgb(10, 16, 24)" })
+        let seenPage = await page()
+        #expect(applied, "page: \(seenPage)")
+        let linkAndQuote = await colours(in: controller)
+        #expect(linkAndQuote == "rgb(140, 200, 255)|rgb(34, 44, 56)", "link and quote: \(linkAndQuote)")
+
+        controller.theme = .standard
+        let legacy = "\(ThemeAppearance.standard.nightAccent.cssRGB)|rgb(28, 28, 30)"
+        let restored = await until(async: { await colours(in: controller) == legacy })
+        let seenLegacy = await colours(in: controller)
+        #expect(restored, "legacy: \(seenLegacy)")
+        #expect(await page() == "rgb(0, 0, 0)|rgb(28, 28, 30)")
+        #expect(recorder.ready == [4])
     }
 }

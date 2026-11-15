@@ -1,0 +1,21 @@
+{
+  "id": "R170a",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/hfr/Discussions/nouveau_sondage.htm",
+  "url": "https://forum.hardware.fr/hfr/Discussions/nouveau_sondage.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/nouveau_sondage.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:12:22 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "New-poll form of cat 13 (list link), logged in, never submitted",
+  "file": "R170a-new-poll-form.html",
+  "private": false
+}

@@ -13,15 +13,21 @@ extension ReaderWebController: WKNavigationDelegate, WKUIDelegate {
             return decisionHandler(.allow)
         }
         decisionHandler(.cancel)
-        if let url, navigationAction.navigationType == .linkActivated { events.link(url) }
+        if let url, navigationAction.navigationType == .linkActivated { route(link: url) }
     }
 
     func webView(
         _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
         for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
-        if let url = navigationAction.request.url { events.link(url) }
+        if let url = navigationAction.request.url { route(link: url) }
         return nil
+    }
+
+    /// Hands a tapped link to the app, unless a composer is open over the page (#653): the web view never navigates either way.
+    func route(link url: URL) {
+        guard !ignoresPageTaps else { return }
+        events.link(url)
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {

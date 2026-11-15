@@ -1,0 +1,37 @@
+{
+  "id": "T74",
+  "account": "anon",
+  "method": "POST",
+  "url_template": "/api/addAlerte.php",
+  "url": "http://192.0.2.1:8611/api/addAlerte.php",
+  "final_url": "http://192.0.2.1:8611/api/addAlerte.php",
+  "status": 200,
+  "content_type": "text/plain;charset=UTF-8",
+  "date": "Tue, 10 Nov 2026 13:38:58 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "alerte_qualitay_id",
+    "nom",
+    "topic_id",
+    "topic_titre",
+    "pseudo",
+    "post_id",
+    "post_url",
+    "commentaire"
+  ],
+  "origin": "local-instance",
+  "note": "local toyo/aq instance (php -S), not aq.super-h.fr",
+  "response_headers": {
+    "Host": "192.0.2.1:8611",
+    "Date": "Tue, 10 Nov 2026 13:38:58 GMT",
+    "Connection": "close",
+    "X-Powered-By": "PHP/8.5.12",
+    "Content-type": "text/plain;charset=UTF-8",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache"
+  },
+  "request_body": "alerte_qualitay_id=-1&nom=AQ%20local%20test&topic_id=700001&topic_titre=AQ%20local%20topic&pseudo=user3&post_id=700101&post_url=https%3A%2F%2Fforum.hardware.fr%2Fhfr%2FDiscussions%2FSociete%2Faq-local-topic-sujet_700001_1.htm%23t700101&commentaire=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "file": "T74-aq-create-comment-at-length-local.txt",
+  "private": false
+}

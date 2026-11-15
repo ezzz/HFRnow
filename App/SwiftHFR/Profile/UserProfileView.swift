@@ -15,7 +15,7 @@ struct UserProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             content
                 .navigationTitle(model.title)
                 .navigationBarTitleDisplayMode(.inline)
@@ -37,24 +37,30 @@ struct UserProfileView: View {
                 if let error = model.error {
                     LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
                 }
-                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model)
+                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin()
                 ForEach(profile.sections) { section in
-                    Section(section.title) {
-                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open) }
+                    Section {
+                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }
+                    } header: {
+                        Text(section.title).densityHeaderMargin()
                     }
                 }
                 if !profile.personalSmilies.isEmpty {
                     ProfileSmileysSection(
                         smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
                     )
+                    .densityRowMargin()
                 }
                 if !profile.actions.isEmpty {
-                    Section("Liens") {
-                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open) }
+                    Section {
+                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
+                    } header: {
+                        Text("Liens").densityHeaderMargin()
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .densityListMargins()
             .refreshable { await model.reload() }
         } else if let error = model.error {
             LoadFailureView(error: error, retry: model.reload)
@@ -99,6 +105,11 @@ private struct ProfileHeaderSection: View {
                             .scaledFont(.subheadline).foregroundStyle(.secondary)
                     }
                 }
+            }
+            // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast. On the header row
+            // (always there, once): the feedback `Text` appears already holding the first sentence, which no change reports.
+            .onChange(of: model.listFeedbackCount) {
+                if let text = model.listFeedback { AccessibilityNotification.Announcement(text).post() }
             }
             ForEach(profile.summary) { item in
                 LabeledContent {

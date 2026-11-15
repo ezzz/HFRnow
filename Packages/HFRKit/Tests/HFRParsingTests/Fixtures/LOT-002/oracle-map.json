@@ -147,6 +147,18 @@
     "now": "2026-10-26T03:11:50Z",
     "path": "../captures/R27-list-list-programmation-anon.html"
   },
+  "R333a.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=1",
+    "kind": "mp",
+    "now": "2026-11-10T18:24:16Z",
+    "path": "../captures/R333a-mp-list-p1-storage-pushed-to-p2.html"
+  },
+  "R333b.html": {
+    "currentURL": "/forum1.php?config=hfr.inc&cat=prive&page=2",
+    "kind": "mp",
+    "now": "2026-11-10T18:25:14Z",
+    "path": "../captures/R333b-mp-list-p2-storage-row-first.html"
+  },
   "R50a.html": {
     "currentURL": "/search.php?config=hardwarefr.inc",
     "kind": "search",

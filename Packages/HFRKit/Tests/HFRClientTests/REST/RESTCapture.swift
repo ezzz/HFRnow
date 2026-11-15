@@ -1,11 +1,19 @@
 import Foundation
 import HFRNetwork
 
-/// The REST captures `R57a`-`R57c` (LOT-057), read in place like every client capture.
+/// The REST captures `R57a`-`R57c` and the flag buckets `R335a`-`R335e`, `R603f` (LOT-057), read in place like every client capture.
 enum RESTCapture {
     static let categories = "R57a-rest-categories"
     static let lastTopics = "R57b-rest-category-topics-last"
     static let topic = "R57c-rest-topic"
+    /// The logged-in flag buckets (#335): global `participated`, `read`, `favorites`, the global `participated` asked for a
+    /// page 2 of 5, and the flat forms of one category (`R335e`, `R603f`).
+    static let participated = "R335a-rest-bucket-participated"
+    static let read = "R335b-rest-bucket-read"
+    static let favorites = "R335c-rest-bucket-favorites"
+    static let participatedPage2 = "R335d-rest-bucket-participated-page2-per-page5"
+    static let participatedCategory = "R335e-rest-bucket-participated-category-page2-per-page5"
+    static let readCategory = "R603f-rest-bucket-read-category"
 
     /// The JSON bytes as HFR served them.
     static func data(_ file: String) throws -> Data {

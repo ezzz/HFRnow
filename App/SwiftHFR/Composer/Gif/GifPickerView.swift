@@ -17,7 +17,7 @@ struct GifPickerView: View {
     private let columns = [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 6)]
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             content
                 .safeAreaBar(edge: .bottom, spacing: 0) { searchBar }
                 .navigationTitle("GIF")
@@ -152,14 +152,14 @@ private struct GifConfirmationView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             VStack(spacing: 16) {
                 preview
                     .aspectRatio(aspect, contentMode: .fit)
                     .clipShape(.rect(cornerRadius: 10))
                     .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)
                 Button("Insérer") { if let snippet = model.snippet(for: gif) { onInsert(snippet) } }
-                    .buttonStyle(.borderedProminent)
+                    .appProminentButtonStyle()
                     .disabled(model.snippet(for: gif) == nil)
             }
             .padding()
@@ -178,21 +178,21 @@ private struct GifConfirmationView: View {
 }
 
 extension View {
-    /// Adds the "GIF" toolbar button and its sheet to the composer (LOT-155). Nothing is added in a build without a Giphy key, and
-    /// the panel's model is built on tap, so nothing is read or requested before the member opens it. `onClosed` runs when the
-    /// sheet closes after an insertion (the composer takes focus back).
+    /// Adds the GIF sheet to the composer (LOT-155), opened when `request` turns true (the "GIF Giphy" button of the control row,
+    /// #653, shown only when `services.isAvailable`). The panel's model is built then, so nothing is read or requested before the
+    /// member opens it. `onClosed` runs when the sheet closes after an insertion (the composer takes focus back).
     func gifPanel(
-        services: GifServices, formatting: ComposerFormattingModel, canEdit: Bool, onClosed: @escaping () -> Void
+        services: GifServices, formatting: ComposerFormattingModel, request: Binding<Bool>, onClosed: @escaping () -> Void
     ) -> some View {
-        modifier(GifPanel(services: services, formatting: formatting, canEdit: canEdit, onClosed: onClosed))
+        modifier(GifPanel(services: services, formatting: formatting, request: request, onClosed: onClosed))
     }
 }
 
-/// The composer's GIF entry: the button, the saved caret and the sheet.
+/// The composer's GIF entry: the saved caret and the sheet.
 private struct GifPanel: ViewModifier {
     let services: GifServices
     let formatting: ComposerFormattingModel
-    let canEdit: Bool
+    @Binding var request: Bool
     let onClosed: () -> Void
     @State private var picker: GifPickerModel?
     /// A GIF was inserted by the open panel.
@@ -202,17 +202,13 @@ private struct GifPanel: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                if services.isAvailable {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("GIF", systemImage: "g.circle") {
-                            inserted = false
-                            caret = formatting.selectedRange
-                            picker = GifPickerModel(services: services)
-                        }
-                        .disabled(!canEdit)
-                    }
-                }
+            .onChange(of: request) { _, requested in
+                guard requested else { return }
+                request = false
+                guard services.isAvailable, picker == nil else { return }
+                inserted = false
+                caret = formatting.selectedRange
+                picker = GifPickerModel(services: services)
             }
             .sheet(item: $picker, onDismiss: { if inserted { onClosed() } }, content: { picker in
                 GifPickerView(model: picker) { snippet in

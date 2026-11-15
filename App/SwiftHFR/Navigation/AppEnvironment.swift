@@ -1,3 +1,4 @@
+import Foundation
 import HFRNetwork
 import HFRStorage
 
@@ -25,6 +26,8 @@ struct AppEnvironment {
     let favoriteStores: FavoritesStores
     /// Flag writes of the current account (LOT-125): list rows and the message menu; nil when logged out.
     let flagActions: TopicFlagActions?
+    /// Avatars of the MP rows' correspondents the cache lacks (#714), looked up without cookies; nil when logged out.
+    let memberAvatars: MemberAvatarPrefetcher?
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
@@ -51,7 +54,9 @@ struct AppEnvironment {
             positions: LiveReaderPositionRecorder.live(account: accountName),
             offline: .live(fetcher: fetcher),
             flagActions: flagActions,
-            pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists)
+            pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists),
+            moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
+            moderatorAlertMail: ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:])
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
@@ -64,7 +69,9 @@ struct AppEnvironment {
                 prepare: { await lists.refresh() }
             ),
             favoriteStores: .live(account: accountName),
-            flagActions: flagActions
+            flagActions: flagActions,
+            // Only the MP list asks, and it needs an account; the lookups themselves never carry the session.
+            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars)
         )
     }
 

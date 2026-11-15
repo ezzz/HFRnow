@@ -159,3 +159,14 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         return number.intValue
     }
 }
+
+extension ReaderBridgeMessage {
+    /// A tap that opens something, dropped under an open composer (#653): a menu, a video, the image viewer, or a quote of the
+    /// selection (the `tap` of a third-party placeholder answers with a consent and is handled on its own).
+    var isTapAction: Bool {
+        switch self {
+        case .menu, .video, .image, .quote: true
+        case .images, .tap, .ready, .position: false
+        }
+    }
+}

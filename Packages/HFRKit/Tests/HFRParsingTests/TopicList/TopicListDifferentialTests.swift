@@ -30,6 +30,9 @@ struct TopicListDifferentialTests {
         DifferentialCase("R95j", category: "prive"),
         DifferentialCase("R95k", category: "prive"),
         DifferentialCase("R96a", category: "prive"),
+        // MP list pages 1 and 2 once the storage row moved to page 2 (#333, #767).
+        DifferentialCase("R333a", category: "prive"),
+        DifferentialCase("R333b", category: "prive"),
         DifferentialCase("R50b", category: "13"),
         DifferentialCase("R50c", category: nil),
         // M2 read-only captures (#475): logged-out MP list, cross-category searches, logged-in list, anonymous single page.

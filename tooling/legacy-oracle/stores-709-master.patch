@@ -1,0 +1,290 @@
+diff --git a/HFRswiftTests/AccountsStoreTests.swift b/HFRswiftTests/AccountsStoreTests.swift
+index b0a205ac..2c5f4913 100644
+--- a/HFRswiftTests/AccountsStoreTests.swift
++++ b/HFRswiftTests/AccountsStoreTests.swift
+@@ -179,7 +179,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
+         XCTAssertTrue(loader.requests[0].forum === forum)
+         XCTAssertEqual(loader.requests[0].flag, .tracked)
+ 
+-        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
++        loader.requests[0].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil, pageInfo: .empty), nil)
+         flushMainQueue()
+ 
+         XCTAssertFalse(viewModel.isLoading)
+@@ -203,7 +203,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
+ 
+         let cancellation = NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)
+         loader.requests[0].completion(nil, cancellation)
+-        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil), nil)
++        loader.requests[1].completion(ForumTopicsLoadResult(topics: [expectedTopic], newTopicURL: nil, pageInfo: .empty), nil)
+         flushMainQueue()
+ 
+         XCTAssertFalse(viewModel.isLoading)
+@@ -220,7 +220,7 @@ final class CategoriesFlowViewModelTests: XCTestCase {
+ 
+         viewModel.load()
+         XCTAssertEqual(loader.requests.count, 1)
+-        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil), nil)
++        loader.requests[0].completion(ForumTopicsLoadResult(topics: [initialTopic], newTopicURL: nil, pageInfo: .empty), nil)
+         flushMainQueue()
+         XCTAssertEqual(viewModel.topics.count, 1)
+ 
+@@ -276,7 +276,7 @@ private final class ForumTopicsLoaderSpy: ForumTopicsLoading {
+ 
+     private(set) var requests: [Request] = []
+ 
+-    func fetchTopics(for forum: Forum, flag: TopicListFlag, completion: @escaping ForumTopicsLoadCompletion) {
++    func fetchTopics(for forum: Forum, flag: TopicListFlag, pageURL: String?, completion: @escaping ForumTopicsLoadCompletion) {
+         requests.append(Request(forum: forum, flag: flag, completion: completion))
+     }
+ }
+diff --git a/HFRswiftTests/Oracle709Export.swift b/HFRswiftTests/Oracle709Export.swift
+new file mode 100644
+index 00000000..b52778cc
+--- /dev/null
++++ b/HFRswiftTests/Oracle709Export.swift
+@@ -0,0 +1,155 @@
++// Exporter for SwiftHFR #709 (LOT-067 import): the bytes the legacy app writes for its pseudo lists and drafts, produced by
++// the REAL legacy code on synthetic data. Local-only: never committed to hfrnow.
++//
++// Inert unless HFR_709_OUT is set. Writes into that folder:
++//   lists-<case>-blackListDico.plist / lists-<case>-whiteList.plist   Documents files after BlackList.m's real save
++//   lists-v0-input-blackList.plist                                    the v0 file put in place before the real -load (synthetic)
++//   lists-v0-after-load-files.txt / lists-v0-after-load-and-add-*     what the real migration leaves, then after one add
++//   defaults-brouillon-<case>.plist                                   UserDefaults restricted to `brouillon` (xml1)
++//   active-drafts-<case>.json / defaults-active-drafts-<case>.plist   the Data under `reply_active_drafts_by_topic_v1`
++//
++// Real code: BlackList.m (via Oracle709Lists.m), AddMessageViewController -modifyBrouillon:, ReplyDraftStore.saveActiveText
++// (AnswerView.swift:166-191). Dates are the legacy code's own Date() of the run: nothing is rewritten.
++
++import XCTest
++@testable import HFRswift
++
++final class Oracle709: XCTestCase {
++    private var out: URL!
++    private let helper: NSObject.Type = NSClassFromString("Oracle709Lists") as! NSObject.Type
++    private let fm = FileManager.default
++
++    func testExport709() throws {
++        guard let path = ProcessInfo.processInfo.environment["HFR_709_OUT"], !path.isEmpty else {
++            throw XCTSkip("HFR_709_OUT not set")
++        }
++        out = URL(fileURLWithPath: path, isDirectory: true)
++        try fm.createDirectory(at: out, withIntermediateDirectories: true)
++        UserDefaults.standard.set(false, forKey: "mpstorage_active") // BlackList.m:39, :63: no MPStorage round trip
++        try exportLists()
++        try exportV0Migration()
++        try exportBrouillon()
++        try exportActiveDrafts()
++    }
++
++    // MARK: helpers
++
++    private var documents: URL { URL(fileURLWithPath: helper.perform(NSSelectorFromString("documents")).takeUnretainedValue() as! String) }
++    private func file(_ name: String) -> URL { documents.appendingPathComponent(name) }
++    private func call(_ selector: String, _ arg: String?) { _ = helper.perform(NSSelectorFromString(selector), with: arg) }
++    private func bool(_ selector: String, _ arg: String) -> Bool {
++        typealias Fn = @convention(c) (AnyObject, Selector, NSString) -> Bool
++        let sel = NSSelectorFromString(selector)
++        let fn = unsafeBitCast(helper.method(for: sel), to: Fn.self)
++        return fn(helper, sel, arg as NSString)
++    }
++
++    private func removeListFiles() {
++        for name in ["blackListDico.plist", "whiteList.plist", "blackList.plist"] { try? fm.removeItem(at: file(name)) }
++    }
++
++    private func copyLists(_ label: String) throws {
++        for name in ["blackListDico.plist", "whiteList.plist"] where fm.fileExists(atPath: file(name).path) {
++            try fm.copyItem(at: file(name), to: out.appendingPathComponent("lists-\(label)-\(name)"))
++        }
++    }
++
++    private func listing(_ label: String) throws {
++        let names = ["blackListDico.plist", "whiteList.plist", "blackList.plist"].filter { fm.fileExists(atPath: file($0).path) }
++        try (names.joined(separator: "\n") + "\n").write(to: out.appendingPathComponent("lists-\(label)-files.txt"), atomically: true, encoding: .utf8)
++    }
++
++    private func dump(_ keys: [String], _ name: String) throws {
++        var domain: [String: Any] = [:]
++        for key in keys { if let value = UserDefaults.standard.object(forKey: key) { domain[key] = value } }
++        try PropertyListSerialization.data(fromPropertyList: domain, format: .xml, options: 0).write(to: out.appendingPathComponent(name))
++    }
++
++    // MARK: pseudo lists
++
++    private func exportLists() throws {
++        removeListFiles()
++        call("setAccount:", "fakeaccount1")
++        call("reloadLists", nil)
++        try listing("fresh-load") // a launch with an account and no file writes nothing
++        // typical: three blocked (a space, accents), a case-only duplicate refused by -isBL:, two allowed
++        for pseudo in ["fakeblocked1", "fake blocked 2", "fäkeblöcked3"] { XCTAssertTrue(bool("block:", pseudo)) }
++        XCTAssertTrue(bool("block:", "FakeBlocked1"))
++        call("allow:", "fakeallowed1")
++        call("allow:", "fake allowed 2")
++        try copyLists("typical")
++        // a second account keeps its own list in the same dictionary
++        call("setAccount:", "fakeaccount2")
++        call("reloadLists", nil)
++        XCTAssertTrue(bool("block:", "fakeblocked4"))
++        try copyLists("two-accounts")
++        // emptied: every entry removed through the real removes
++        XCTAssertTrue(bool("unblock:", "fakeblocked4"))
++        call("setAccount:", "fakeaccount1")
++        call("reloadLists", nil)
++        for pseudo in ["fakeblocked1", "fake blocked 2", "fäkeblöcked3"] { XCTAssertTrue(bool("unblock:", pseudo)) }
++        for pseudo in ["fakeallowed1", "fake allowed 2"] { XCTAssertTrue(bool("disallow:", pseudo)) }
++        try copyLists("emptied")
++    }
++
++    /// v0: an array file written the way the pre-dictionary app did (NSArray -writeToFile:, the shape BlackList.m:43 builds),
++    /// then the real -load migrates it (BlackList.m:186-190).
++    private func exportV0Migration() throws {
++        removeListFiles()
++        let entries: NSArray = ["fakeoldblocked1", "fake old blocked 2"].map {
++            ["word": $0, "alias": "", "mode": NSNumber(value: 0)] as NSDictionary
++        } as NSArray
++        XCTAssertTrue(entries.write(to: file("blackList.plist"), atomically: true))
++        try fm.copyItem(at: file("blackList.plist"), to: out.appendingPathComponent("lists-v0-input-blackList.plist"))
++        call("setAccount:", "fakeaccount1")
++        call("reloadLists", nil)
++        try listing("v0-after-load")
++        XCTAssertTrue(bool("block:", "fakeblocked5"))
++        try listing("v0-after-load-and-add")
++        try copyLists("v0-after-load-and-add")
++        removeListFiles()
++    }
++
++    // MARK: drafts
++
++    private func exportBrouillon() throws {
++        UserDefaults.standard.removeObject(forKey: "brouillon")
++        try dump(["brouillon"], "defaults-brouillon-absent.plist")
++        XCTAssertTrue(bool("modifyBrouillon:", "Un brouillon fictif\nsur deux lignes [b]gras[/b] é"))
++        try dump(["brouillon"], "defaults-brouillon-typical.plist")
++        XCTAssertTrue(bool("modifyBrouillon:", "")) // AddMessageViewController.m:600-602, after a post that used it
++        try dump(["brouillon"], "defaults-brouillon-erased.plist")
++        UserDefaults.standard.removeObject(forKey: "brouillon")
++    }
++
++    private func exportActiveDrafts() throws {
++        let key = "reply_active_drafts_by_topic_v1"
++        func save(_ label: String) throws {
++            if let data = UserDefaults.standard.data(forKey: key) {
++                try data.write(to: out.appendingPathComponent("active-drafts-\(label).json"))
++            }
++            try dump([key], "defaults-active-drafts-\(label).plist")
++        }
++        UserDefaults.standard.removeObject(forKey: key)
++        try save("absent")
++        let first = ReplyDraftTopicContext(topicID: "post-9800101", topicTitle: "Sujet fictif 1")
++        let second = ReplyDraftTopicContext(topicID: "post-9800102", topicTitle: "Sujet fictif é 2")
++        ReplyDraftStore.saveActiveText("Réponse fictive en cours\n[b]gras[/b]", context: first)
++        Thread.sleep(forTimeInterval: 1.1)
++        ReplyDraftStore.saveActiveText("  deuxième brouillon fictif  ", context: second)
++        Thread.sleep(forTimeInterval: 1.1)
++        ReplyDraftStore.saveActiveText("Réponse fictive modifiée", context: first) // moves to the front
++        ReplyDraftStore.saveActiveText(" \n ", context: ReplyDraftTopicContext(topicID: "post-9800103", topicTitle: "Sujet fictif 3"))
++        try save("typical")
++        ReplyDraftStore.saveActiveText("", context: second) // a blank text removes the topic's draft
++        try save("one-removed")
++        ReplyDraftStore.saveActiveText("", context: first)
++        try save("emptied") // the last removal removes the key
++        for index in 1...51 {
++            ReplyDraftStore.saveActiveText("brouillon fictif \(index)",
++                                           context: ReplyDraftTopicContext(topicID: "post-\(9_800_200 + index)", topicTitle: "Sujet fictif \(index)"))
++        }
++        try save("51-topics") // capped at 50 (AnswerView.swift:142, :187-189)
++        UserDefaults.standard.removeObject(forKey: key)
++    }
++}
+diff --git a/HFRswiftTests/Oracle709Lists.m b/HFRswiftTests/Oracle709Lists.m
+new file mode 100644
+index 00000000..e363e498
+--- /dev/null
++++ b/HFRswiftTests/Oracle709Lists.m
+@@ -0,0 +1,83 @@
++// Exporter helper for SwiftHFR #709 (LOT-067 import): legacy pseudo lists and ObjC draft written by the REAL legacy code
++// (BlackList.m, AddMessageViewController -modifyBrouillon:) on synthetic data. Local-only: never committed to hfrnow.
++#import <Foundation/Foundation.h>
++#import <UIKit/UIKit.h>
++#import <objc/runtime.h>
++#import <objc/message.h>
++
++@interface Oracle709Lists : NSObject
+++ (void)setAccount:(NSString *)pseudo;
+++ (void)reloadLists;
+++ (BOOL)block:(NSString *)pseudo;
+++ (BOOL)unblock:(NSString *)pseudo;
+++ (void)allow:(NSString *)pseudo;
+++ (BOOL)disallow:(NSString *)pseudo;
+++ (NSString *)documents;
+++ (BOOL)modifyBrouillon:(NSString *)text;
++@end
++
++static NSString *gAccount = nil;
++
++@implementation Oracle709Lists
++
+++ (NSString *)documents {
++    return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
++}
++
++/// The account BlackList.m keys its lists by. MultisManager reads it from the keychain (MultisManager.m:168-189); a
++/// test host has no account, so both readers are replaced by ones answering `pseudo` (the PSEUDO_DISPLAY value).
+++ (void)setAccount:(NSString *)pseudo {
++    gAccount = [pseudo copy];
++    Class cls = NSClassFromString(@"MultisManager");
++    Method current = class_getInstanceMethod(cls, NSSelectorFromString(@"getCurrentPseudo"));
++    method_setImplementation(current, imp_implementationWithBlock(^NSString *(id me) { return gAccount; }));
++    Method main = class_getInstanceMethod(cls, NSSelectorFromString(@"getMainCompte"));
++    method_setImplementation(main, imp_implementationWithBlock(^NSDictionary *(id me) {
++        return gAccount ? @{@"PSEUDO_DISPLAY": gAccount} : nil;
++    }));
++}
++
+++ (id)lists {
++    return ((id (*)(id, SEL))objc_msgSend)(NSClassFromString(@"BlackList"), NSSelectorFromString(@"shared"));
++}
++
++/// The real -load (BlackList.m:173-202), after emptying the in-memory lists as a fresh launch has them.
+++ (void)reloadLists {
++    id lists = [self lists];
++    [lists setValue:[NSMutableDictionary dictionary] forKey:@"dicBlackList"];
++    [lists setValue:[NSMutableArray array] forKey:@"listWhiteList"];
++    ((void (*)(id, SEL))objc_msgSend)(lists, NSSelectorFromString(@"load"));
++}
++
+++ (BOOL)block:(NSString *)pseudo {
++    return ((BOOL (*)(id, SEL, NSString *, BOOL))objc_msgSend)([self lists], NSSelectorFromString(@"addToBlackList:andSave:"), pseudo, YES);
++}
++
+++ (BOOL)unblock:(NSString *)pseudo {
++    return ((BOOL (*)(id, SEL, NSString *, BOOL))objc_msgSend)([self lists], NSSelectorFromString(@"removeFromBlackList:andSave:"), pseudo, YES);
++}
++
+++ (void)allow:(NSString *)pseudo {
++    ((void (*)(id, SEL, NSString *))objc_msgSend)([self lists], NSSelectorFromString(@"addToWhiteList:"), pseudo);
++}
++
+++ (BOOL)disallow:(NSString *)pseudo {
++    return ((bool (*)(id, SEL, NSString *))objc_msgSend)([self lists], NSSelectorFromString(@"removeFromWhiteList:"), pseudo);
++}
++
++/// The real -modifyBrouillon: (AddMessageViewController.m:481-484) on a controller built by its own initializer.
+++ (BOOL)modifyBrouillon:(NSString *)text {
++    Class cls = NSClassFromString(@"AddMessageViewController");
++    if (!cls) {
++        // AddMessageViewController.m is built into the SuperHFRplus target only, not into the HFRswift app this test host
++        // runs: transliterate its one line (AddMessageViewController.m:483), as #347 did for the ObjC favourites screen.
++        [[NSUserDefaults standardUserDefaults] setObject:text forKey:@"brouillon"];
++        return YES;
++    }
++    id controller = ((id (*)(id, SEL, NSString *, NSBundle *))objc_msgSend)([cls alloc], NSSelectorFromString(@"initWithNibName:bundle:"), nil, nil);
++    if (!controller) return NO;
++    ((void (*)(id, SEL, NSString *))objc_msgSend)(controller, NSSelectorFromString(@"modifyBrouillon:"), text);
++    return YES;
++}
++
++@end

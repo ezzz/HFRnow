@@ -35,12 +35,12 @@ struct BBCodeRendererSanitizationTests {
     }
 
     @Test(
-        "An img tag with a rejected scheme previews as nothing, never as an image",
+        "An img tag whose URL is not http, https or ftp stays text, never an image (R443f)",
         arguments: ["javascript:alert(1)", "data:image/png;base64,AAAA", "file:///x.png", "blob:https://x/y", "//", " "]
     )
     func rejectedImageSchemes(url: String) throws {
         let content = try BBCodeRenderer.render("a[img]\(url)[/img]b")
-        #expect(content.html == "<p>ab</p>")
+        #expect(content.html.hasPrefix("<p>a[img]") && !content.html.contains("<img"))
         #expect(content.images.isEmpty && content.smileys.isEmpty)
     }
 
@@ -57,14 +57,15 @@ struct BBCodeRendererSanitizationTests {
     @Test("A url argument or an img URL holding quotes or brackets is an attribute value, never markup")
     func attributeInjection() throws {
         let content = try BBCodeRenderer.render("[url=https://a.example/x\"onclick=\"alert(1)]t[/url]")
-        // The quotes are percent-encoded inside the one `href` value: no second attribute appears.
-        #expect(content.html == "<p><a href=\"https://a.example/x%22onclick=%22alert(1)\" class=\"cLink\">t</a></p>")
-        #expect(content.links.map(\.url.absoluteString) == ["https://a.example/x%22onclick=%22alert(1)"])
+        // HFR escapes the attribute twice (`&amp;#034;`, R443f): the quotes stay inside the one `href` value, no second
+        // attribute appears.
+        #expect(content.html == "<p><a href=\"https://a.example/x&amp;#034;onclick=&amp;%23034;alert(1)\" class=\"cLink\">t</a></p>")
+        #expect(content.links.map(\.url.absoluteString) == ["https://a.example/x&#034;onclick=&%23034;alert(1)"])
         // A combining mark after the quote does not hide it from the escaping (scalar-based passes).
         let marked = try BBCodeRenderer.render("[url=https://a.example/\"\u{301} class=spoiler title=injected]t[/url]")
         // The whole argument stays one `href` value (percent-encoded); no `title` or `class` attribute of the member's.
         #expect(!marked.html.contains(" title=\"") && !marked.html.contains(" class=\"spoiler\""))
-        #expect(marked.links.map(\.url.absoluteString) == ["https://a.example/%22%CC%81%20class=spoiler%20title=injected"])
+        #expect(marked.links.map(\.url.absoluteString) == ["https://a.example/&#034;%CC%81%20class=spoiler%20title=injected"])
         let markedImage = try BBCodeRenderer.render("[img]https://a.example/i.png\"\u{301} class=smileycustom title=injected[/img]")
         #expect(!markedImage.html.contains("title=\"injected\"") && !markedImage.html.contains(" class=\"smileycustom\""))
         #expect(markedImage.smileys.isEmpty && markedImage.images.count == 1)
@@ -94,7 +95,7 @@ struct BBCodeRendererSanitizationTests {
     func deepNesting() async throws {
         let depth = 10_000
         // Non-greedy pairs: the first `[b]` closes at the first `[/b]`, the rest is text (HFR's nesting of one tag is
-        // pending capture); 1 000 nested quotes are written inside out; 10 000 opens without a close are text.
+        // pending capture); 1 000 nested quotes render two levels, inside out (R443l); 10 000 opens without a close are text.
         let bold = String(repeating: "[b]", count: depth) + "x" + String(repeating: "[/b]", count: depth)
         let quotes = String(repeating: "[quote]", count: depth / 10) + "y" + String(repeating: "[/quote]", count: depth / 10)
         let unclosed = String(repeating: "[b][i][quote][url=https://a.example/]", count: depth / 4) + "z"
@@ -107,7 +108,8 @@ struct BBCodeRendererSanitizationTests {
         #expect(boldContent.html.hasPrefix("<p><strong>[b][b]"))
         #expect(try Self.text(of: boldContent.html).contains("x"))
         #expect(try Self.text(of: quoteContent.html).contains("y"))
-        #expect(quoteContent.html.matches(of: /Citation :/).count == depth / 10)
+        // Only the two outer levels of quotes render (R443l); the other opens and closes are text.
+        #expect(quoteContent.html.matches(of: /Citation :/).count == 2)
         #expect(try Self.text(of: unclosedContent.html) == unclosed)
         #expect(unclosedContent.links.isEmpty)
     }

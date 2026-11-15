@@ -16,6 +16,16 @@ import Testing
         #expect(await store.blocklist(for: "me").map(\.pseudo) == ["Zed", "Alice"])
     }
 
+    @Test func blocklistAccountKeysNameTheAccountsWithABlocklist() async throws {
+        let (store, _) = makeStore()
+        try await store.block("Zed", account: "Me")
+        try await store.block("Zed", account: "other")
+        try await store.allow("Friend")
+        #expect(await store.blocklistAccountKeys() == ["me", "other"])
+        try await store.replaceBlocklist(with: [], account: "ME")
+        #expect(await store.blocklistAccountKeys() == ["other"])
+    }
+
     @Test func matchingIgnoresCaseAndZeroWidthSpace() async throws {
         let (store, _) = makeStore()
         try await store.block("Ma\u{200B}rc", account: "me")

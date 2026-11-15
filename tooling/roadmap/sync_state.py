@@ -6,6 +6,8 @@
 Rules (all derived, nothing hand-written):
   closed   = closed issues             ready    = open + `status: ready`
   claimed  = open + `status: claimed`  external = open + `external: ready`
+  on_hold  = open + `status: on-hold`  needs_decision = open + `status: needs-decision` (#835: states of their own,
+             neither blocked nor ready)
   open PRs naming LOT-XXX (title or body) -> ongoing (draft or review, reviewer from the lot's routing)
   merged PRs on dev-swift naming LOT-XXX (title) -> merged_pr
   capture  = lot issues waiting on an open capture: their `### Captures needed` section, or an open `host: mac`
@@ -50,7 +52,7 @@ def build(issues, pulls, lots):
     issues = [i for i in issues if 'pull_request' not in i]  # the issues API also lists PRs
     by_lot = {r['lot']: r for r in lots}
     lot_issues = {r['issue'] for r in lots}
-    closed, ready, claimed, external = set(), set(), set(), set()
+    closed, ready, claimed, external, on_hold, needs_decision = set(), set(), set(), set(), set(), set()
     for i in issues:
         n, lb = i['number'], labels(i)
         if i['state'].lower() == 'closed':
@@ -63,6 +65,10 @@ def build(issues, pulls, lots):
             claimed.add(n)
         if 'external: ready' in lb:
             external.add(n)
+        if 'status: on-hold' in lb:
+            on_hold.add(n)
+        if 'status: needs-decision' in lb:
+            needs_decision.add(n)
     capture = {}
     known = {i['number'] for i in issues}  # real issues only: a PR or an unknown #N never blocks
     for i in issues:
@@ -99,6 +105,7 @@ def build(issues, pulls, lots):
     return {
         # a lot waiting on an open capture is not ready on the board, whatever its label says
         'closed': sorted(closed), 'ready': sorted(ready - set(capture)), 'claimed': sorted(claimed), 'external': sorted(external),
+        'on_hold': sorted(on_hold), 'needs_decision': sorted(needs_decision),
         'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
         'prs': prs, 'merged_pr': merged,
         'capture': {str(k): ', '.join(sorted(v, key=lambda x: int(x[1:]))) for k, v in sorted(capture.items())},

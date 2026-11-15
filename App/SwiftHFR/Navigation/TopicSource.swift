@@ -28,6 +28,18 @@ enum TopicSource: Hashable, Sendable {
 }
 
 extension TopicSource {
+    /// A forum's list (category or sub-forum), as opposed to the flags and the favourites.
+    var isForumList: Bool { isPaged }
+
+    /// A category's list and a sub-forum's take the Tous / Favoris / Suivis / Lus filter (`owntopic`, R2). A sub-forum is
+    /// filtered with its `subcat`, which only its own page names (`SubforumTarget`, `R603d`), so its picker waits for that page.
+    var supportsFlagFilter: Bool {
+        switch self {
+        case .forum, .subforum: true
+        case .flagged, .favorites: false
+        }
+    }
+
     /// The two lists the favourites options apply to.
     var isFavoritesList: Bool { self == .flagged || self == .favorites }
 

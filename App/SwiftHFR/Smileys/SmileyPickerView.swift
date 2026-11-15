@@ -25,7 +25,7 @@ struct SmileyPickerView: View {
     private let favoriteColumns = [GridItem(.adaptive(minimum: 78, maximum: 90), spacing: 4)]
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             ScrollView {
                 if let search = model.search, search.isSearching {
                     searchResults(search)
@@ -282,7 +282,7 @@ private struct SmileyDetailView: View {
                 .accessibilityHidden(true)
             Text(smiley.code).font(.title3.monospaced()).textSelection(.enabled)
             Button("Insérer", systemImage: "text.insert") { model.insertPresented() }
-                .buttonStyle(.borderedProminent)
+                .appProminentButtonStyle()
             Button(model.isFavorite(smiley) ? "Retirer des favoris" : "Ajouter aux favoris",
                    systemImage: model.isFavorite(smiley) ? "star.slash" : "star") {
                 Task { await model.setFavorite(smiley, !model.isFavorite(smiley)) }

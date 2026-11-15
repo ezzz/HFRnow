@@ -21,7 +21,7 @@ struct ImageUploadView: View {
     @State private var manualURL = ""
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             List {
                 uploadSection
                 historySection

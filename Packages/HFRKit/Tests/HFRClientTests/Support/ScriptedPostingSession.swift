@@ -87,7 +87,9 @@ enum PostingCapture {
         "R124": "R124-mp-reply-composer-after-removal-no-newdest", "R127": "R127-mp-reply-composer-group-owner-three-members",
         "R128": "R128-mp-reply-composer-group-owner-two-members", "R132": "R132-mp-reply-composer-group-owner-roster-restored",
         "R136": "R136-mp-reply-composer-group-owner-after-refusal", "R137": "R137-mp-reply-composer-group-owner-after-empty-newdest",
-        "R138": "R138-mp-reply-composer-group-member-no-roster", "R139": "R139-mp-reply-composer-group-owner-after-member-newdest"
+        "R138": "R138-mp-reply-composer-group-member-no-roster", "R139": "R139-mp-reply-composer-group-owner-after-member-newdest",
+        "R440a": "R440a-mpstorage-edit-form-other-account", "R440b": "R440b-mpstorage-edit-form-deleted-owner",
+        "R440c": "R440c-mpstorage-edit-form-deleted-other-account"
     ]
 
     /// The write answers, by capture id.
@@ -103,7 +105,9 @@ enum PostingCapture {
         "W40": "W40-public-new-topic-success",
         "W71": "W71-mp-group-reply-roster-unchanged-old-thread", "W74": "W74-mp-group-reply-remove-member-success",
         "W75": "W75-mp-group-reply-add-member-success", "W76": "W76-mp-group-reply-unknown-pseudo-refused",
-        "W41": "W41-public-first-post-edit-add-poll-success", "W49": "W49-public-first-post-delete-topic-success"
+        "W41": "W41-public-first-post-edit-add-poll-success", "W49": "W49-public-first-post-delete-topic-success",
+        "W440a": "W440a-mpstorage-create-success", "W440b": "W440b-mpstorage-write-unchanged-success",
+        "W440c": "W440c-mp-edit-post-other-account-message-refused"
     ]
 
     static func url(_ raw: String) -> URL {
