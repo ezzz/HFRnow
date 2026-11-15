@@ -91,3 +91,109 @@ def dropped_issues(issues):
 def live_lots(lots, rows, dropped):
     """The lots of `lots` whose issue is not in `dropped` (closed not planned or duplicate): the only ones any slide counts or lists."""
     return {l for l in lots if rows[l]['issue'] not in dropped}
+
+
+# ---------------------------------------------------------------- slides 3, 5 and 6 (#892)
+
+# Axes of the two radars (where test feedback concentrates, slide 5; the M5 categories, slide 6), in drawing order.
+AXES = ['lecteur', 'listes', 'composer', 'MP', 'navigation', 'réglages et thèmes', 'performance', 'autre']
+# Performance is read on the whole title first (« Reader: messages load very slowly » is a speed problem, not a reader
+# one). Otherwise the axis is the one whose pattern matches earliest in the subject, the text before the first « : »
+# (« MP list: … », « Réglages › Stockage MP: … »), then in the whole title when the subject says nothing; on a tie the
+# first rule of AXIS_RULES wins.
+PERF = re.compile(r'\b(slow\w*|freez\w*|hangs?|hang reports?|crash\w*|instabilit\w*|performance|speed|stuck|timeouts?|latency)\b', re.I)
+AXIS_RULES = [
+    ('MP', r'\b(mps?|private messages?|dark topics)\b'),
+    ('composer', r'\b(composer|repl(y|ies)|r[ée]ponse|smileys?|gifs?|emoji|formatting|reply button|quote (selection|tray)|preview before send|drafts?)\b'),
+    ('réglages et thèmes', r'\b(r[ée]glages|settings?|th[eè]mes?|app icon|icons?|contrast|density|text size|appearance|accent|colou?rs?|tints?|cache clearing)\b'),
+    ('navigation', r'\b(tab bar|top bar|navigation|ipad|iphone duo|cover screen|account menu|home|universal links?|state restoration|'
+                   r'keyboard shortcuts|page (navigator|scrubber)|app intent|spotlight|session expiry|widgets?|live activities|macos)\b'),
+    ('listes', r'\b(lists?|topic rows?|cat[ée]gories|filters?|favou?rites?|pager|paged|swipes?|bookmarks|nouveau)\b'),
+    ('lecteur', r'\b(reader|signatures?|images?|vid[ée]os?|polls?|quotes?|posts?|gallery|offline|scrolling)\b'),
+]
+PREFIX = re.compile(r'^\s*(\[[^\]]*\]\s*|(LOT-\d{3}|M[1-5]( study)?|Experimental|Fix|check and fix)\s*[:·]\s*)', re.I)
+
+
+def subject(title):
+    """The title without its `[SwiftHFR]`, `LOT-123:`, `M5:` or `Experimental:` prefixes."""
+    t = title or ''
+    while (m := PREFIX.match(t)):
+        t = t[m.end():]
+    return t.strip()
+
+
+def axis_of(title):
+    """The radar axis of an issue, from its title (AXIS_RULES); `autre` when nothing matches."""
+    t = subject(title)
+    if PERF.search(t):
+        return 'performance'
+    for text in (t.split(':', 1)[0], t):
+        hits = [(m.start(), k) for k, (_, rx) in enumerate(AXIS_RULES) if (m := re.search(rx, text, re.I))]
+        if hits:
+            return AXIS_RULES[min(hits)[1]][0]
+    return 'autre'
+
+
+MS_TAG = re.compile(r'^M([1-5])\b|\((?:[^()]*,\s*)?M([1-5])\)')
+LOT_TAG = re.compile(r'\bLOT-(\d{3})\b')
+REVIEW_PREFIX = 'm4-review: '
+EXPERIMENTAL = 'experimental'
+
+
+def is_swift_issue(i):
+    """A SwiftHFR issue: not a pull request, not an issue of the current app alone (`[Legacy …]` without SwiftHFR in the
+    title), not a `type: roadmap` tracker, and not closed as not planned or duplicate."""
+    t = i.get('title') or ''
+    if 'pull_request' in i or 'type: roadmap' in labels(i):
+        return False
+    if t.startswith(CURRENT_APP_PREFIX) and 'SwiftHFR' not in t:
+        return False
+    return not (i['state'] == 'closed' and i.get('state_reason') not in (None, 'completed'))
+
+
+def issue_milestone(i, lot_ms, followups=None, lot_of_number=None):
+    """The milestone of an issue, or None: the first rule that applies.
+    1. a lot issue: its lot's milestone (`lot_ms`, issue number -> M1..M5);
+    2. a follow-up of the UX decisions (`followups`, m5.FOLLOWUPS): its milestone;
+    3. the title names one: `M4: …`, `(M4)`, `(UXD-03, M2)`;
+    4. the title names a lot of the plan (`LOT-097 renderer: …`): that lot's milestone (`lot_of_number`, 97 -> issue);
+    5. labels: an end-of-M4 review finding (`m4-review: …`) or test feedback (`beta-test finding`) is M4, an
+       `experimental` option is M5 (AGENTS.md §7)."""
+    n = i['number']
+    if n in lot_ms:
+        return lot_ms[n]
+    if followups and n in followups:
+        return followups[n][0]
+    t = re.sub(r'^(\[[^\]]*\]\s*)+', '', i.get('title') or '')
+    m = MS_TAG.search(t)
+    if m:
+        return 'M' + (m.group(1) or m.group(2))
+    for x in LOT_TAG.finditer(t):
+        k = (lot_of_number or {}).get(int(x.group(1)))
+        if k in lot_ms:
+            return lot_ms[k]
+    ls = labels(i)
+    if FEEDBACK_LABEL in ls or any(x.startswith(REVIEW_PREFIX) for x in ls):
+        return 'M4'
+    if EXPERIMENTAL in ls:
+        return 'M5'
+    return None
+
+
+def issue_status(i):
+    """`fait` (closed as completed), `écarté` (closed otherwise), `réclamé` (open, `status: claimed`) or `ouvert`."""
+    if i['state'] == 'closed':
+        return 'fait' if i.get('state_reason') in (None, 'completed') else 'écarté'
+    return 'réclamé' if 'status: claimed' in labels(i) else 'ouvert'
+
+
+def feedback(issues):
+    """Test feedback only: the `beta-test finding` label, never the credit label (README, counts)."""
+    return [i for i in issues if FEEDBACK_LABEL in labels(i)]
+
+
+def axis_counts(issues):
+    c = {a: 0 for a in AXES}
+    for i in issues:
+        c[axis_of(i.get('title'))] += 1
+    return c
