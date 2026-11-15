@@ -1,11 +1,15 @@
+import HFRNetwork
 @testable import SwiftHFR
 import Testing
 
 /// #822 (decided in #903): offline save is disabled; its code stays, but no entry reaches it.
 @MainActor
 struct OfflineSaveHiddenTests {
-    @Test func offlineSaveIsNotReachable() {
-        #expect(!OfflineSaveAvailability.isReachable)
+    /// The single source: the screens get their offline services from the environment, which holds none, logged in or out.
+    @Test(arguments: [nil, "user1"] as [String?])
+    func theEnvironmentHoldsNoOfflineServices(account: String?) {
+        let environment = AppEnvironment.make(session: HFRSession(), accountName: account)
+        #expect(environment.reader.offline == nil)
     }
 
     /// A topic page with a saver, the case that offered "Enregistrer cette page hors ligne" before #903: nothing now.
@@ -29,7 +33,15 @@ struct OfflineSaveHiddenTests {
         #expect(ReaderOfflineSave.saver(nil) == nil)
     }
 
+    /// Réglages shows no "Hors ligne" section even for a reader that carries offline services (one built by hand, or a future
+    /// environment that brings them back).
     @Test func settingsHaveNoOfflineSection() {
-        #expect(!SettingsView.showsOfflineSection)
+        var reader = AppEnvironment.make(session: HFRSession(), accountName: nil).reader
+        reader.offline = OfflineServices(
+            store: EvictionSpy(), fetcher: FakeOfflineFetcher { _ throws(ListLoadError) in throw .offline },
+            normalizer: LiveContentNormalizer()
+        )
+        #expect(SettingsView.offlineEntry(in: reader) == nil)
+        #expect(SettingsView.offlineEntry(in: nil) == nil)
     }
 }

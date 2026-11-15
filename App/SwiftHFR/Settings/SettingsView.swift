@@ -60,6 +60,12 @@ struct SettingsView: View {
     /// Whether the "Hors ligne" section and its saved topics are shown: never while offline save is disabled (#822).
     static var showsOfflineSection: Bool { OfflineSaveAvailability.isReachable }
 
+    /// The offline services the "Hors ligne" section opens; nil hides it, even for a reader that carries some.
+    static func offlineEntry(in reader: ReaderServices?) -> OfflineServices? {
+        guard Self.showsOfflineSection, let offline = reader?.offline else { return nil }
+        return offline
+    }
+
     /// Reads the "Sujets" values from `store`.
     init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil, mpStorage: MPStorageSyncModel? = nil) {
         self.reader = reader
@@ -134,7 +140,7 @@ struct SettingsView: View {
                 }
             }
             // DISABLED(offline, #822): kept for a later design (#846), not reachable
-            if Self.showsOfflineSection, let reader, let offline = reader.offline {
+            if let reader, let offline = Self.offlineEntry(in: reader) {
                 Section("Hors ligne") {
                     NavigationLink { OfflineTopicsView(offline: offline, services: reader) } label: {
                         Label("Sujets enregistrés", systemImage: "arrow.down.circle")
