@@ -235,7 +235,7 @@
           "visuels": [
             {
               "fichier": "L1-comme-aujourdhui-iphone.png",
-              "alt": "Visuel provisoire : capture de la lecture d'un sujet dans l'app actuelle, sur iPhone"
+              "alt": "Lecture d'un long sujet dans l'app actuelle sur iPhone : un message et sa citation, texte plein écran, barre de navigation en haut, boutons de page et de réponse flottants en bas."
             }
           ]
         }
@@ -323,7 +323,7 @@
           "visuels": [
             {
               "fichier": "D2-comme-aujourdhui-ipad.png",
-              "alt": "Visuel provisoire : disposition actuelle sur iPad : barre latérale, liste, sujet"
+              "alt": "Disposition actuelle sur iPad en paysage, trois colonnes : barre latérale (Forum, Outils, Plus), liste des sujets du forum Hardware, sujet ouvert à droite. Sert aussi à D1 (barre latérale actuelle)."
             }
           ]
         },

@@ -100,9 +100,9 @@ docker compose exec ux-survey /ux-survey effacer
 ## Visuels provisoires (#632)
 
 Les visuels de #632 n'existent pas encore. `web/visuels/` et `docs/ux/questionnaire/visuels/` contiennent des
-**marques de place** (bandeau « VISUEL PROVISOIRE ») aux noms et formats de `cadrage-construction.md` §3.3 ; les `.mp4`
+**marques de place** pour les propositions (bandeau « VISUEL PROVISOIRE ») aux noms et formats de `cadrage-construction.md` §3.3 ; les `.mp4`
 sont des conteneurs vides, la page montre leur image d'attente. Les fichiers réels les remplacent aux mêmes noms, dans
-les deux dossiers (un test les veut identiques), et `inventaire.md` est réécrit : aucun changement de code.
+les deux dossiers (un test les veut identiques), et `inventaire.md` est réécrit : aucun changement de code. Les deux captures « comme aujourd'hui » sont les vraies, de l'app 4.0.3 (#911) : elles vivent dans `docs/ux/questionnaire/visuels/actuel/` et sont copiées à plat dans `web/visuels/` (D2 sur Duo reprend la capture iPad).
 
 ## Notes de réalisation
 

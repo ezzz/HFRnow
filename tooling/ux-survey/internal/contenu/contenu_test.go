@@ -78,6 +78,10 @@ func TestContenuCodesCartesEtVisuels(t *testing.T) {
 		return out
 	}
 	a, b := liste(ref), liste(copie)
+	// les captures de l'app actuelle (#911) vivent dans visuels/actuel/ et sont copiées à plat dans web/visuels
+	for nom, c := range liste(filepath.Join(ref, "actuel")) {
+		a[nom] = c
+	}
 	for nom, c := range a {
 		if !bytes.Equal(c, b[nom]) {
 			t.Errorf("visuel %s absent ou différent dans web/visuels", nom)
