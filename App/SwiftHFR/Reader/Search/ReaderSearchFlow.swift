@@ -27,16 +27,16 @@ struct ReaderSearchFlow: ViewModifier {
 
     /// Whether the overflow offers the search: a page naming its topic, not a private conversation (not captured), and no open
     /// composer (#653: the "…" overflow stays shut). Without an account it is offered too (#821; the tap asks to sign in), but not
-    /// in the offline reader, which has no composer whatever the account (`services.offline` is nil there).
+    /// in the offline reader (`services.isSavedCopy`), which has no composer whatever the account.
     static func isOffered(model: TopicReaderModel, composer: ComposerServices?, services: ReaderServices) -> Bool {
         isOffered(
             hasTopic: model.page?.topicID != nil, isPrivate: model.isPrivateConversation,
             suspended: model.suspendsPageInteractions, hasSearcher: composer?.topicSearcher != nil,
-            isLiveReader: services.offline != nil)
+            isSavedCopy: services.isSavedCopy)
     }
 
-    static func isOffered(hasTopic: Bool, isPrivate: Bool, suspended: Bool, hasSearcher: Bool, isLiveReader: Bool) -> Bool {
-        hasTopic && !isPrivate && !suspended && (hasSearcher || isLiveReader)
+    static func isOffered(hasTopic: Bool, isPrivate: Bool, suspended: Bool, hasSearcher: Bool, isSavedCopy: Bool) -> Bool {
+        hasTopic && !isPrivate && !suspended && (hasSearcher || !isSavedCopy)
     }
 
     /// The outcome of a tap: the searcher exists only with an account, so without one the answer is the sign-in prompt.

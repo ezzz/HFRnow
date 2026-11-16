@@ -30,10 +30,10 @@ struct ReaderSearchLoggedOutTests {
     }
 
     private func offered(
-        topic: Bool = true, isPrivate: Bool = false, suspended: Bool = false, searcher: Bool = false, live: Bool = true
+        topic: Bool = true, isPrivate: Bool = false, suspended: Bool = false, searcher: Bool = false, savedCopy: Bool = false
     ) -> Bool {
         ReaderSearchFlow.isOffered(
-            hasTopic: topic, isPrivate: isPrivate, suspended: suspended, hasSearcher: searcher, isLiveReader: live)
+            hasTopic: topic, isPrivate: isPrivate, suspended: suspended, hasSearcher: searcher, isSavedCopy: savedCopy)
     }
 
     @Test func theEntryIsInTheMenuWithoutAnAccount() {
@@ -42,9 +42,21 @@ struct ReaderSearchLoggedOutTests {
         #expect(ReaderOverflow.entries(search: offered(), offline: false, filter: false, pages: true) == [.search, .pages])
     }
 
+    @Test func theLiveAppsServicesAreNotASavedCopy() {
+        // Built as `AppEnvironment` does while offline saving is disabled (#822): `offline` nil, and still the live reader.
+        let services = ReaderServices(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            settings: ReaderSettings(
+                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            ),
+            profiles: FakeUserProfiles([]), offline: nil)
+        #expect(!services.isSavedCopy)
+        #expect(offered(searcher: false, savedCopy: services.isSavedCopy))
+    }
+
     @Test func theOfflineReaderHasNoEntryWithoutASearcher() {
         // Signed in or not, the saved copy has no composer: no search to run and no sign-in to ask for.
-        #expect(!offered(searcher: false, live: false))
+        #expect(!offered(searcher: false, savedCopy: true))
     }
 
     @Test func theEntryStaysOutOfPrivateConversationsAndUnderAnOpenComposer() {
