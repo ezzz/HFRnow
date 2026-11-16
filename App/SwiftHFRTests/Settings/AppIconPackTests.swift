@@ -3,6 +3,14 @@ import HFRStorage
 import Testing
 import UIKit
 
+/// The sources sit next to the tests in the checkout CI builds from; the tests that read them are off when they run without it.
+/// Not main-actor isolated: a test trait's closure is `Sendable`.
+private enum IconSources {
+    static let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().appending(path: "SwiftHFR")
+    static let exist = FileManager.default.fileExists(atPath: app.appending(path: "Settings").path)
+}
+
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct AppIconPackTests {
     private let calendar = IconTestCalendar.calendar
@@ -114,21 +122,16 @@ struct AppIconPackTests {
         #expect(alternates == optionNames, "unregistered: \(extra), unbuilt: \(missing)")
     }
 
-    /// The sources sit next to the tests in the checkout CI builds from; the tests below are off when they run without it.
-    private static let appSources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        .deletingLastPathComponent().appending(path: "SwiftHFR")
-    private static let hasSources = FileManager.default.fileExists(atPath: appSources.appending(path: "Settings").path)
-
-    @Test(.enabled(if: Self.hasSources)) func everyOptionHasItsIconBundleInTheSources() {
+    @Test(.enabled(if: IconSources.exist)) func everyOptionHasItsIconBundleInTheSources() {
         for option in AppIconOption.allCases {
-            let manifest = Self.appSources.appending(path: "\(option.iconBundleName).icon").appending(path: "icon.json")
+            let manifest = IconSources.app.appending(path: "\(option.iconBundleName).icon").appending(path: "icon.json")
             #expect(FileManager.default.fileExists(atPath: manifest.path), "no \(option.iconBundleName).icon")
         }
     }
 
     /// #874: the black rim is the real icon, so no appearance of REDFACE 3D Big may bring the red background fill back.
-    @Test(.enabled(if: Self.hasSources)) func redface3DBigBackgroundIsNearBlackInEveryAppearance() throws {
-        let url = Self.appSources.appending(path: "Icon-RedFace3DBig.icon").appending(path: "icon.json")
+    @Test(.enabled(if: IconSources.exist)) func redface3DBigBackgroundIsNearBlackInEveryAppearance() throws {
+        let url = IconSources.app.appending(path: "Icon-RedFace3DBig.icon").appending(path: "icon.json")
         let json = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         let specializations = try #require(json["fill-specializations"] as? [[String: Any]])
         #expect(Set(specializations.compactMap { $0["appearance"] as? String }) == ["dark", "tinted"])
