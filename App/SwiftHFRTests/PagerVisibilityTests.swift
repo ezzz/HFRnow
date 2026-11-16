@@ -37,10 +37,25 @@ import Testing
         #expect(PagerVisibility.isShown(distanceFromEnd: before, wasShown: false, voiceOver: false))
         let after = distance(offset: 1200, inset: 52)
         #expect(after > PagerVisibility.tolerance, "the inset alone pushes the distance past the tolerance")
-        #expect(PagerVisibility.isShown(distanceFromEnd: after, wasShown: true, voiceOver: false))
+        #expect(PagerVisibility.isShown(distanceFromEnd: after, wasShown: true, barHeight: 52, voiceOver: false))
         // Scrolling really away hides it, and then it takes the tolerance again to come back.
-        #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 52), wasShown: true, voiceOver: false))
+        #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 52), wasShown: true, barHeight: 52, voiceOver: false))
         #expect(!PagerVisibility.isShown(distanceFromEnd: after, wasShown: false, voiceOver: false))
+    }
+
+    @Test func aTallerBarThanAnyConstantStaysShownToo() {
+        // Accessibility text sizes: a 90 pt strip. Shown -> inset 90 -> (offset unchanged) still shown, no flicker.
+        let after = distance(offset: 1200, inset: 90)
+        #expect(after > 64 + PagerVisibility.tolerance, "past what a 64 pt guess would allow")
+        #expect(PagerVisibility.isShown(distanceFromEnd: after, wasShown: true, barHeight: 90, voiceOver: false))
+        #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 90), wasShown: true, barHeight: 90, voiceOver: false))
+    }
+
+    @Test func theBarHeightIsMeasuredFromTheStripOrTheInsetItAdds() {
+        #expect(PagerVisibility.measuredBarHeight(strip: 90, inset: 0, hiddenInset: nil) == 90)
+        #expect(PagerVisibility.measuredBarHeight(strip: 0, inset: 142, hiddenInset: 52) == 90)
+        #expect(PagerVisibility.measuredBarHeight(strip: 0, inset: 52, hiddenInset: nil) == 0)
+        #expect(PagerVisibility.measuredBarHeight(strip: 40, inset: 30, hiddenInset: 52) == 40)
     }
 
     @Test func voiceOverAlwaysSeesThePager() {

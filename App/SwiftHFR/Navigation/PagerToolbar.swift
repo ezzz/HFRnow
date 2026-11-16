@@ -124,14 +124,18 @@ enum PagerVisibility {
         contentHeight + bottomInset - containerHeight - offsetY
     }
 
-    /// The bar's own height, about: it adds that much bottom inset without moving the offset, so right after it appears the
-    /// distance from the end is this much larger. Hysteresis on it keeps the bar from hiding itself (flicker at the end).
-    static let barHeight: CGFloat = 64
-
-    /// Whether the bar shows next, given whether it shows now: appears within `tolerance` of the end, hides only beyond
-    /// `tolerance + barHeight`. VoiceOver keeps the bar so the page actions never depend on a scroll position.
-    static func isShown(distanceFromEnd: CGFloat, wasShown: Bool = false, voiceOver: Bool) -> Bool {
+    /// Whether the bar shows next, given whether it shows now and the bar's measured height: it appears within `tolerance` of the
+    /// end and hides only beyond `tolerance + barHeight`, because its own bottom inset can push the distance up by that much
+    /// without the offset moving (no height guessed: a taller bar at large text sizes gets a wider dead zone, no flicker).
+    /// VoiceOver keeps the bar so the page actions never depend on a scroll position.
+    static func isShown(distanceFromEnd: CGFloat, wasShown: Bool = false, barHeight: CGFloat = 0, voiceOver: Bool) -> Bool {
         voiceOver || distanceFromEnd <= tolerance + (wasShown ? barHeight : 0)
+    }
+
+    /// The height the bar adds: the larger of its measured strip (tab root) and the extra bottom inset seen while it shows
+    /// compared with the last inset seen while it was hidden (system bottom bar, which cannot be measured as a view).
+    static func measuredBarHeight(strip: CGFloat, inset: CGFloat, hiddenInset: CGFloat?) -> CGFloat {
+        max(strip, hiddenInset.map { max(0, inset - $0) } ?? 0)
     }
 
     /// The short appear/disappear animation; none under Reduce Motion.
@@ -140,12 +144,21 @@ enum PagerVisibility {
     }
 }
 
+/// What the pager watches in the list's scroll geometry.
+private struct ScrollEnd: Equatable {
+    let distance: CGFloat
+    let inset: CGFloat
+}
+
 private struct PagerBarModifier: ViewModifier {
     @Environment(\.rootHasTabBar) private var rootHasTabBar
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Shown until the first geometry says otherwise (a list not measured yet is not scrolled away from anything).
     @State private var atEnd = true
+    /// The strip's measured height (tab root), and the bottom inset last seen while the bar was hidden (sidebar bottom bar).
+    @State private var stripHeight: CGFloat = 0
+    @State private var hiddenInset: CGFloat?
     let pager: PagerToolbar?
     let hidden: Bool
 
@@ -154,14 +167,19 @@ private struct PagerBarModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         let tracked = content
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                PagerVisibility.distanceFromEnd(
-                    offsetY: geometry.contentOffset.y, containerHeight: geometry.containerSize.height,
-                    contentHeight: geometry.contentSize.height, bottomInset: geometry.contentInsets.bottom
+            .onScrollGeometryChange(for: ScrollEnd.self) { geometry in
+                ScrollEnd(
+                    distance: PagerVisibility.distanceFromEnd(
+                        offsetY: geometry.contentOffset.y, containerHeight: geometry.containerSize.height,
+                        contentHeight: geometry.contentSize.height, bottomInset: geometry.contentInsets.bottom
+                    ),
+                    inset: geometry.contentInsets.bottom
                 )
-            } action: { _, distance in
+            } action: { _, end in
                 // Only the crossing matters: a state write per scroll frame would redraw the list for nothing.
-                let next = PagerVisibility.isShown(distanceFromEnd: distance, wasShown: atEnd, voiceOver: false)
+                let height = PagerVisibility.measuredBarHeight(strip: stripHeight, inset: end.inset, hiddenInset: hiddenInset)
+                let next = PagerVisibility.isShown(distanceFromEnd: end.distance, wasShown: atEnd, barHeight: height, voiceOver: false)
+                if !next, hiddenInset != end.inset { hiddenInset = end.inset }
                 guard next != atEnd else { return }
                 withAnimation(PagerVisibility.animation(reduceMotion: reduceMotion)) { atEnd = next }
             }
@@ -178,7 +196,9 @@ private struct PagerBarModifier: ViewModifier {
             // the identity of `content` (search focus, list scroll) each time the results or the focus change.
             tracked.safeAreaBar(edge: .bottom) {
                 if let pager, !hidden, shown {
-                    pager.strip.padding(.vertical, 4).transition(.move(edge: .bottom).combined(with: .opacity))
+                    pager.strip.padding(.vertical, 4)
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { stripHeight = $0 }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
