@@ -43,6 +43,7 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         // CI job 133090341114 showed the way back sent once and never applied (`window.scrollTo(0, 0)`, the scroll view stayed
         // at its end, offset 4356): the scroll is sent again until the scroll view is there, then the report is checked. A
         // failure of the first wait is a scroll that never happened; of the second, a report `reader.js` did not send.
+        // The same lost-report symptom fails other reader web tests now and then, with WebContent trouble in the log (#934).
         let scrollView = controller.webView.scrollView
         let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
         let atEnd = await until(async: {

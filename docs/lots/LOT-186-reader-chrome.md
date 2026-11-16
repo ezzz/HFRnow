@@ -82,7 +82,7 @@ End of the page (#820, PR `fix/820-page-end-hint`; legacy `shouldShowBottomRefre
 None: no HFR fact. Tests use built pages (`ReaderInsetsWebTests.tallDocument`) and the existing fakes.
 
 ## Tests
-- `ReaderChromeTests` (model and math): reading top and clamping; insets changing both ways and at the top; the page menu's last pages (1, 2, 3, 4, 5, 1200 pages), its item list (1, 2, 40 pages, against legacy's targets) and where each item goes ("Dernière page" at the top of the last page, "Dernier post" at its last message); ‹ and "Dernier post" land at the last message, › at the top, and "Réessayer" keeps it.
+- `ReaderChromeTests` (model and math): reading top and clamping; insets changing both ways and at the top; the page menu's last pages (1, 2, 3, 4, 5, 1200 pages), its item list (1, 2, 3, 40, 1126 pages, against legacy's targets, with legacy's labels, #821) and where each item goes ("Page N" at the top of page N, "Dernier post" at the last page's last message); ‹ and "Dernier post" land at the last message, › at the top, and "Réessayer" keeps it.
 - `ReaderInsetsWebTests` (real `WKWebView`): the insets reach WebKit and the scroll view and the page opens below the bar; a message lands below the bar; the message hidden under the bar is not reported; a refresh reopens at the same content when a banner went away meanwhile.
 
 ## Mac check needed

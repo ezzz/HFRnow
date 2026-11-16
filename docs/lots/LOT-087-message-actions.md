@@ -90,7 +90,7 @@ Known cost: `LiveTopicPageSource.parse` reads the page once more for `MessageAct
 point returning blocks and actions from one document); an engine change is out of this lot. If the counts of blocks and action sets
 ever differ, no message offers an action.
 
-Known limits left open (review round 3, minor): when a page has no usable final URL, the `⋯` buttons are drawn but Link (the only
+Known limits left open (review round 3, minor): when a page has no usable final URL, the `+` buttons are drawn but Link (the only
 handler) has nothing to copy and the tap opens nothing; the bridge caps images at 5 000 like `ReaderWebController.maximumImages`
 (two constants); the leak test copies the view's wiring.
 
