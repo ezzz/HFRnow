@@ -3,7 +3,8 @@ import SwiftUI
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
 // GAP-653); on an iPhone the buttons are small floating glass capsules in 44 pt hit areas, beside a light, truncating title
-// (#854, GAP-653); the drafts button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type.
+// (#854, GAP-653), their glyphs at the card tools' size, `FloatingSpacing.gap` from the sides and the card (#895); the drafts
+// button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type.
 /// The composer's top bar, as legacy's (#653, operator reference of 2026-11-10): close `xmark` and the drafts `tray` on the left,
 /// the title in the middle, send `arrow.up` on the right, greyed while there is nothing to send and a spinner while sending.
 /// On an iPhone (`floats`) the same buttons, smaller and lighter, float above the text card (#854).
@@ -17,7 +18,14 @@ struct ComposerHeader: View {
     var floats = false
     let close: () -> Void
     let send: () -> Void
-    @ScaledMetric(relativeTo: .subheadline) private var floatingGlyph: CGFloat = 16
+    @Environment(\.listDensity) private var density
+    @Environment(\.textScale) private var scale
+    @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
+
+    /// The floating buttons' glyph: the text card's tools' size, one icon size for the whole composer (#895).
+    private var floatingGlyph: CGFloat {
+        ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType).glyphSize
+    }
 
     /// The drafts button's state and action.
     struct Drafts {
@@ -53,9 +61,26 @@ struct ComposerHeader: View {
     /// target keeps the 44 pt of the HIG.
     static let hitSize: CGFloat = 44
 
+    /// A floating capsule's padding around its glyph.
+    static let capsulePadding = CGSize(width: 10, height: 6)
+
+    /// A floating capsule's size around a glyph of `glyph` points.
+    static func capsuleSize(glyph: CGFloat) -> CGSize {
+        CGSize(width: glyph + 2 * capsulePadding.width, height: glyph + 2 * capsulePadding.height)
+    }
+
+    /// The space between a capsule and the edge of its 44 pt hit area, on each side (none once the capsule outgrows it).
+    static func hitSlack(glyph: CGFloat) -> CGSize {
+        let capsule = capsuleSize(glyph: glyph)
+        return CGSize(width: max(0, (hitSize - capsule.width) / 2), height: max(0, (hitSize - capsule.height) / 2))
+    }
+
     var body: some View {
         if floats { floatingBar } else { legacyBar }
     }
+
+    /// The chrome this bar is drawn for.
+    private var chrome: ComposerChrome { floats ? .docked : .sheet }
 
     /// An iPad: legacy's bar, the title centred over the row.
     private var legacyBar: some View {
@@ -76,6 +101,7 @@ struct ComposerHeader: View {
             }
         }
         .frame(minHeight: 44)
+        .padding(chrome.headerInsets(glyph: floatingGlyph))
     }
 
     /// An iPhone (#854): the buttons and the title side by side, so the title truncates instead of sitting under a button at
@@ -110,6 +136,8 @@ struct ComposerHeader: View {
                 .composerProbe(.send)
         }
         .frame(minHeight: Self.hitSize)
+        // The capsules sit `FloatingSpacing.gap` from the sides, the page and the card: their hit areas' slack counts (#895).
+        .padding(chrome.headerInsets(glyph: floatingGlyph))
     }
 
     private var floatingSendButton: some View {
@@ -135,8 +163,8 @@ struct ComposerHeader: View {
         Button(action: action) {
             label()
                 .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, Self.capsulePadding.width)
+                .padding(.vertical, Self.capsulePadding.height)
                 .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
                 .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
                 .contentShape(.rect)
@@ -146,9 +174,10 @@ struct ComposerHeader: View {
         .opacity(enabled ? 1 : 0.4)
     }
 
+    /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895).
     private func floatingSymbol(_ name: String) -> some View {
         Image(systemName: name)
-            .font(.subheadline.weight(.bold))
+            .font(.system(size: floatingGlyph, weight: .medium))
             .frame(width: floatingGlyph, height: floatingGlyph)
     }
 

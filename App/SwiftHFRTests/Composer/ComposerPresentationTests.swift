@@ -55,7 +55,7 @@ struct ComposerPresentationTests {
 
     @Test func theCardIsEveryPartAsLaidOut() {
         var layout = ComposerCardLayout(top: 70, controls: 56, text: 60, line: 20)
-        let gaps = 2 * ComposerCardLayout.gap
+        let gaps = FloatingSpacing.gap // under the card only: the floating buttons carry the one above it (#895)
         #expect(layout.cardHeight == 70 + 76 + gaps + 56)
         layout.chips = 66
         #expect(layout.cardHeight == 70 + 66 + 76 + gaps + 56)

@@ -87,16 +87,12 @@ struct ReplyComposerView: View {
                     floats: chrome.headerFloats,
                     close: { Task { await model.requestClose() } }, send: { Task { await model.send() } }
                 )
-                .padding(.horizontal, 16)
-                .padding(.top, chrome.headerFloats ? 10 : 14)
-                .padding(.bottom, 6)
                 banners
                 if model.hasSubjectField { messageFields }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.top = $0 }
             editorCard
-                .padding(.horizontal, 16)
-                .padding(.vertical, ComposerCardLayout.gap)
+                .padding(chrome.cardInsets)
             // Just under the editor, so it moves with the card and the keyboard (#653); one view kept across focus changes,
             // after the fields, so moving between them never moves it (#599). Not `.keyboard` placement: that is an input
             // accessory rebuilt for each focused field (recipient, subject, text), and gone without an on-screen keyboard.

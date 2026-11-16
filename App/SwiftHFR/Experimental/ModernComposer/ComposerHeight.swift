@@ -74,7 +74,8 @@ struct ComposerCardLayout: Equatable {
     var text: CGFloat = 0
     /// One line of the body font at the current text size.
     var line: CGFloat = 0
-    /// The space above and below the card.
+    /// The space above and below the card with legacy's chrome (an iPad, or the option off). The modern composer's is
+    /// `ComposerChrome.cardInsets` (#895).
     static let gap: CGFloat = 8
 
     /// The editor's height: its text's, between two and six lines, insets included.
@@ -86,11 +87,13 @@ struct ComposerCardLayout: Equatable {
     /// The rounded text card (#854): the image chips, the editor, then the controls on its bottom edge.
     var textCardHeight: CGFloat { chips + editorHeight + controls }
 
-    /// The docked sheet's height: what is above the text card, the card and its gaps; the fallback until the parts have been
-    /// measured.
+    /// The docked sheet's height: what is above the text card (the floating buttons with their insets, #895), the card and
+    /// the modern chrome's gaps around it (`ComposerChrome.cardInsets`); the fallback until the parts have been measured. Only
+    /// the modern composer opens at partial height, so its insets are the ones that count.
     var cardHeight: CGFloat {
         guard top > 0, controls > 0, line > 0 else { return Self.fallbackHeight }
-        return (top + textCardHeight + 2 * Self.gap).rounded(.up)
+        let insets = ComposerChrome.docked.cardInsets
+        return (top + textCardHeight + insets.top + insets.bottom).rounded(.up)
     }
 }
 

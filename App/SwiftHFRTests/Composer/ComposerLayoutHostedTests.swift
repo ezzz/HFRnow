@@ -82,4 +82,21 @@ struct ComposerLayoutHostedTests {
             #expect(button.width >= ComposerHeader.hitSize - 0.5 && button.height >= ComposerHeader.hitSize - 0.5, "\(part) \(button)")
         }
     }
+
+    /// The modern composer's margins as laid out (#895): the text card is `FloatingSpacing.gap` from the window's sides, and the
+    /// close capsule (drawn around the card tools' glyph, inside its 44 pt hit area) is the gap from the side and from the card.
+    @Test func theCardAndTheFloatingButtonsAreTheSharedGapFromTheEdges() async throws {
+        guard isPhone else { return }
+        let box = try await host(size: .large, text: "Bonjour")
+        let card = try #require(box.frames[.card])
+        let close = try #require(box.frames[.close])
+        let gap = FloatingSpacing.gap
+        #expect(abs(card.minX - gap) < 0.5, "card \(card)")
+        #expect(abs(402 - card.maxX - gap) < 0.5, "card \(card)")
+        #expect(close.width >= ComposerHeader.hitSize - 0.5 && close.height >= ComposerHeader.hitSize - 0.5, "close \(close)")
+        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+        let capsule = ComposerHeader.capsuleSize(glyph: glyph)
+        #expect(abs(close.midX - capsule.width / 2 - gap) < 0.5, "close \(close)")
+        #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
+    }
 }

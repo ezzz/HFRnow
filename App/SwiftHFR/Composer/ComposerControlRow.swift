@@ -92,14 +92,31 @@ struct ComposerControlRow: View {
         }
     }
 
+    /// A cell's side: the density's, at least the HIG's 44 pt inside the card (#895: a compact density's 40 pt cell is too
+    /// small a hit area); legacy's row keeps its cells.
+    static func cellSize(_ cell: CGFloat, inCard: Bool) -> CGFloat {
+        inCard ? max(cell, ComposerHeader.hitSize) : cell
+    }
+
+    // EXPERIMENTAL(modernComposer, #904): replaces the bare glyphs of the card's tools by round chips (#895 D), in the card only.
+    @ViewBuilder
+    private func chip(cell: CGFloat) -> some View {
+        if inCard, ComposerToolStyle.current == .pills {
+            let diameter = ComposerToolStyle.chipDiameter(cell: cell)
+            Circle().fill(.quaternary).frame(width: diameter, height: diameter)
+        }
+    }
+
     private func button(
         _ label: String, symbol: String, enabled: Bool, tint: Color? = nil, action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        let cell = Self.cellSize(metrics.cellSize, inCard: inCard)
+        return Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: metrics.glyphSize, weight: .medium))
                 .foregroundStyle(tint ?? .primary)
-                .frame(minWidth: metrics.cellSize, minHeight: metrics.cellSize)
+                .background { chip(cell: cell) }
+                .frame(minWidth: cell, minHeight: cell)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)

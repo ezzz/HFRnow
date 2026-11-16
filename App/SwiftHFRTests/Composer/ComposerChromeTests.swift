@@ -25,9 +25,10 @@ struct ComposerChromeTests {
         #expect(layout.textCardHeight == CGFloat(66 + (6 * 20 + 16) + 56))
     }
 
-    @Test func theSheetIsTheFloatingButtonsTheTextCardAndItsGaps() {
+    /// The floating buttons carry the gap above the card (#895): the sheet adds only the gap under it.
+    @Test func theSheetIsTheFloatingButtonsTheTextCardAndTheGapUnderIt() {
         let layout = ComposerCardLayout(top: 40, chips: 66, controls: 56, text: 60, line: 20)
-        #expect(layout.cardHeight == 40 + layout.textCardHeight + 2 * ComposerCardLayout.gap)
+        #expect(layout.cardHeight == (40 + layout.textCardHeight + FloatingSpacing.gap).rounded(.up))
     }
 
     /// At Dynamic Type XL the control row takes two lines (`ViewThatFits`): the card counts both and the text keeps its two.

@@ -9,10 +9,10 @@ enum ReaderComposer: Hashable, Sendable {
 }
 
 /// The page under an open composer (#653, operator 2026-11-10): on an iPhone with the modern composer (#904) it is a bar docked
-/// at the bottom of the page (#853) and the page above it still scrolls, with the keyboard up too, so the message being answered can be read again;
-/// but its taps and actions are ignored while the composer is open. A link, a message menu, a video, a quote, the reply button,
-/// a page change or a refresh would navigate, open a menu, start a second composer or reload the page underneath the text being
-/// written. Scrolling and the reading position go on; nothing is cancelled or stopped.
+/// at the bottom of the page (#853) and the page above it still scrolls, with the keyboard up too, so the message being
+/// answered can be read again; but its taps and actions are ignored while the composer is open. A link, a message menu, a
+/// video, a quote, the reply button, a page change or a refresh would navigate, open a menu, start a second composer or reload
+/// the page underneath the text being written. Scrolling and the reading position go on; nothing is cancelled or stopped.
 extension TopicReaderModel {
     /// A composer is open over this reader: the page's taps and actions do nothing until it closes.
     var suspendsPageInteractions: Bool { !openComposers.isEmpty }
