@@ -3,8 +3,8 @@ import SwiftUI
 
 // Moved from App/SwiftHFR/Navigation/TopicRowView.swift (#903) unchanged; port pointer of the row: `TopicRowView` (GAP-026, 027).
 /// Today's leading marks of a topic row (#905, behind Réglages › Expérimental › « Lignes avec icônes de drapeau », #903): the
-/// unread dot and the flag icon before the title. #817 builds the legacy rows (the whole row tinted by flag type, no icon before
-/// the title) as the switch-off path; this folder keeps these marks for the switch-on path.
+/// unread dot and the flag icon before the title. The legacy rows (the whole row tinted by flag type, no icon before the title)
+/// are the default, `LegacyTopicRowView` (#817); this folder keeps these marks for the switch-on path.
 enum FlagIconRows {
     /// The flag icon of a row: its symbol, colour and VoiceOver label.
     struct FlagMark: Equatable {

@@ -35,8 +35,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Listed in Réglages only once its switch changes something: an option whose path is not built yet is hidden, so there is
-    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #817's legacy rows (its two
-    /// paths look the same until then); the others wait for their own PR.
+    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #905 to read it at
+    /// `TopicRowStyle.current` (#817 built the legacy rows it switches off); the others wait for their own PR.
     var isListed: Bool {
         switch self {
         case .modernComposer, .mpStorageSwitches: true

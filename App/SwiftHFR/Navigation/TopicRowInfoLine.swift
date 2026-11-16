@@ -15,21 +15,31 @@ enum TopicRowInfoLine {
     /// Right side: "<last poster> - <date>", nil unless both are known (legacy `footerRight`, `MainWindow.swift:495-504` @ 87fe0d1c, from
     /// `aAuthorOfLastPost` and `aDateOfLastPost`). The starter is never shown in its place.
     static func trailing(_ topic: TopicSummary, now: Date = .now) -> String? {
-        guard let post = topic.lastPost, let date = post.date, !post.author.isEmpty else { return nil }
-        return "\(post.author) - \(dateLabel(date, now: now))"
+        guard let post = topic.lastPost, let date = post.date else { return nil }
+        let when = dateLabel(date, now: now)
+        // Legacy prints " - date" without an author (`aAuthorOfLastPost` is ""): the date still shows (#857).
+        return post.author.isEmpty ? when : "\(post.author) - \(when)"
     }
 
-    /// "il y a 13 min" and "il y a 3 h" under 24 hours (a date ahead of the clock reads "il y a 1 min"), then "06/11/26" in Paris time,
-    /// the zone HFR serves its dates in.
+    /// Legacy's rules (`ObjCTopicListParser.m:420-454` @ 87fe0d1c): "HH:mm" for a date ahead of the clock, "il y a 1 min" under a
+    /// minute, "il y a 13 min", "il y a 3 h" under 24 hours, then "06/11/26"; all in Paris time, the zone HFR serves its dates in.
     static func dateLabel(_ date: Date, now: Date = .now) -> String {
         let elapsed = now.timeIntervalSince(date)
+        if elapsed < 0 {
+            let parts = parisCalendar.dateComponents([.hour, .minute], from: date)
+            return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+        }
         if elapsed < 24 * 3600 {
             let minutes = max(1, Int(elapsed / 60))
             return minutes < 60 ? "il y a \(minutes) min" : "il y a \(minutes / 60) h"
         }
+        let parts = parisCalendar.dateComponents([.day, .month, .year], from: date)
+        return String(format: "%02d/%02d/%02d", parts.day ?? 0, parts.month ?? 0, (parts.year ?? 0) % 100)
+    }
+
+    private static var parisCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Paris") ?? .gmt
-        let parts = calendar.dateComponents([.day, .month, .year], from: date)
-        return String(format: "%02d/%02d/%02d", parts.day ?? 0, parts.month ?? 0, (parts.year ?? 0) % 100)
+        return calendar
     }
 }

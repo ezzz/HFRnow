@@ -14,7 +14,7 @@ enum TopicRowStyle {
     /// Today's dense row, kept for Réglages › Expérimental › « Lignes avec icônes de drapeau » (#905).
     case dense
 
-    /// EXPERIMENTAL(denseRows, #905): the switch point; #905 reads the option here. Until then the default is legacy's row.
+    /// EXPERIMENTAL(flagIconRows, #905): the switch point; #905 reads the option here. Until then the default is legacy's row.
     static var current: TopicRowStyle { .legacy }
 }
 
@@ -27,13 +27,14 @@ struct TopicRowView: View {
 
     var body: some View {
         switch TopicRowStyle.current {
-        case .legacy: LegacyTopicRowView(topic: topic, markedRead: markedRead, showsFlag: showsFlag)
+        case .legacy:
+            LegacyTopicRowView(topic: topic, isSuperFavorite: isSuperFavorite, markedRead: markedRead, showsFlag: showsFlag)
         case .dense: DenseTopicRowView(topic: topic, isSuperFavorite: isSuperFavorite, markedRead: markedRead, showsFlag: showsFlag)
         }
     }
 }
 
-/// EXPERIMENTAL(denseRows, #905): today's row, unchanged: title, flag, counters and last post. Pure display.
+/// EXPERIMENTAL(flagIconRows, #905): today's row, unchanged: title, flag, counters and last post. Pure display.
 struct DenseTopicRowView: View {
     let topic: TopicSummary
     /// A super-favourite of the account (LOT-124): the row carries an orange mark.
@@ -52,9 +53,8 @@ struct DenseTopicRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: scale.scaled(dynamicType * 8)) {
-            // EXPERIMENTAL(flagIconRows, #905): replaces the legacy rows of #817 (whole row tinted by flag, no icon before the
-            // title) by the unread dot and the flag icon. #817 adds the switch-off path here; until then these marks show whatever
-            // the switch, which is why Réglages does not list it yet.
+            // EXPERIMENTAL(flagIconRows, #905): the unread dot and the flag icon before the title, in place of the legacy rows of
+            // #817 (`LegacyTopicRowView`, the default). #905 reads the option at `TopicRowStyle.current`.
             if isUnread { UnreadDotMark() }
             if isSuperFavorite {
                 Image(systemName: "star.circle.fill").foregroundStyle(.orange)

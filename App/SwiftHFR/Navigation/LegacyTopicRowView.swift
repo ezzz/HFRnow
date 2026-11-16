@@ -7,13 +7,19 @@ import SwiftUI
 /// The default topic row, as legacy draws it: no flag or star before the title, no reply count, no starter.
 struct LegacyTopicRowView: View {
     let topic: TopicSummary
+    /// A super favourite of the account: its tint is drawn around the row; VoiceOver says it.
+    var isSuperFavorite = false
     var markedRead = false
     var showsFlag = true
     @Environment(\.listDensity) private var density
-    @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var isUnread: Bool { topic.readState == .unread && !markedRead }
+
+    /// What the dense row's marks said and this row shows by weight or tint only (colour is never the only cue).
+    private var spokenState: String {
+        [isUnread ? "Non lu" : nil, isSuperFavorite ? "Super favori" : nil].compactMap { $0 }.joined(separator: ", ")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: density.lineSpacing) {
@@ -38,6 +44,7 @@ struct LegacyTopicRowView: View {
             .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(spokenState)
         .listRowInsets(density.rowInsets)
     }
 }

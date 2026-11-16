@@ -126,7 +126,7 @@ struct TopicListView: View {
 
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
     /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
-    /// @ 87fe0d1c); the flag's colour stays on its icon.
+    /// @ 87fe0d1c); the default row shows no flag colour there.
     static func rowTint(
         topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
     ) -> RowTint? {

@@ -9,7 +9,7 @@ enum TopicSource: Hashable, Sendable {
     case flagged
     case favorites
 
-    /// Navigation title of the topic list.
+    /// Name of the list: a forum's title, or the tab's list picker entry. The title bar is `navigationTitle`.
     var title: String {
         switch self {
         case .forum(_, let title), .subforum(_, let title): title

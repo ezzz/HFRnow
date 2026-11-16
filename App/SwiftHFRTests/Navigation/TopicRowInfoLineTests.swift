@@ -19,10 +19,12 @@ struct TopicRowInfoLineTests {
     func dates() {
         #expect(TopicRowInfoLine.dateLabel(now.addingTimeInterval(-13 * 60), now: now) == "il y a 13 min")
         #expect(TopicRowInfoLine.dateLabel(now.addingTimeInterval(-3 * 3600 - 59), now: now) == "il y a 3 h")
-        #expect(TopicRowInfoLine.dateLabel(now.addingTimeInterval(60), now: now) == "il y a 1 min")
-        // 2026-11-06 12:00 UTC is 13:00 in Paris.
-        let old = Date(timeIntervalSince1970: 1_793_966_400)
-        #expect(TopicRowInfoLine.dateLabel(old, now: old.addingTimeInterval(25 * 3600)) == "06/11/26")
+        #expect(TopicRowInfoLine.dateLabel(now.addingTimeInterval(-20), now: now) == "il y a 1 min")
+        // Ahead of the clock: "HH:mm" in Paris time (legacy `ObjCTopicListParser.m:431-433`); 21:20 UTC is 22:20 in Paris.
+        #expect(TopicRowInfoLine.dateLabel(now.addingTimeInterval(60), now: now) == "22:21")
+        // 2026-11-06 23:30 UTC is 00:30 on the 7th in Paris: the Paris zone, not UTC, decides the day.
+        let late = Date(timeIntervalSince1970: 1_794_007_800)
+        #expect(TopicRowInfoLine.dateLabel(late, now: late.addingTimeInterval(25 * 3600)) == "07/11/26")
     }
 
     @Test("Leading: ⚑ lue / total when flagged, else the page count with the poll mark")
@@ -39,6 +41,9 @@ struct TopicRowInfoLineTests {
         #expect(TopicRowInfoLine.trailing(topic(last: post), now: now) == "last - il y a 13 min")
         #expect(TopicRowInfoLine.trailing(topic(last: LastPost(author: "last", path: "/m")), now: now) == nil)
         #expect(TopicRowInfoLine.trailing(topic(), now: now) == nil)
+        // No author: the date still shows (#857).
+        let anonymous = LastPost(author: "", path: "/m", date: now.addingTimeInterval(-13 * 60))
+        #expect(TopicRowInfoLine.trailing(topic(last: anonymous), now: now) == "il y a 13 min")
     }
 
     @Test("The default row shows neither a reply count nor the starter nor a star")
