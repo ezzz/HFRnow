@@ -19,7 +19,7 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 | Pack | Name (UI) | Raw value | What it is | Window | Status |
 |---|---|---|---|---|---|
 | Legacy | Défaut | `superblue` | primary icon `Icon-RedFace3D` | all year | shipped |
-| | REDFACE 3D Big | `redface3dbig` | legacy layered art | all year | shipped |
+| | REDFACE 3D Big | `redface3dbig` | legacy layered art; **black rim** in every appearance (operator 2026-11-13, #874: the legacy red rim is dropped on purpose) | all year | shipped |
 | | REDFACE, REDFACE Blue | `redface`, `redface-blue` | legacy designs redrawn as SVG (#623) | all year | shipped |
 | | Blue, White | `blue`, `white` | legacy 1024 px art | all year | shipped |
 | | Classique Yellow, Classique Red | `classic`, `classic-red` | legacy designs redrawn as SVG (#623) | all year | shipped |

@@ -51,15 +51,70 @@ struct AppIconPackTests {
         #expect(AppIconOption.noelHfr.pack == .season)
     }
 
-    @Test func sectionsFollowThePackOrderAndOmitEmptyPacks() {
-        let packs = model(on: IconTestCalendar.date(2026, 12, 10)).sections.map(\.pack)
-        #expect(packs == [.legacy, .beta, .season])
-        #expect(model(on: IconTestCalendar.date(2026, 6, 10)).sections.map(\.pack) == [.legacy, .beta])
+    @Test func theLot190IconsHaveTheirRawValueNamePackAndWindow() {
+        let expected: [(String, String, AppIconPack, Bool)] = [
+            ("classic-blue", "Icon-CLASSIC-BLUE", .legacy, false), ("orange", "Icon-ORANGE", .legacy, false),
+            ("beta-red", "Icon-BETA-RED", .beta, false), ("xface", "Icon-XFACE", .xface, false),
+            ("xface-pride", "Icon-XFACE-PRIDE", .xface, false), ("xface-pride-outline", "Icon-XFACE-PRIDE-OUTLINE", .xface, false),
+            ("xface-gradient-light", "Icon-XFACE-GRADIENT-LIGHT", .xface, false),
+            ("xface-gradient-dark", "Icon-XFACE-GRADIENT-DARK", .xface, false), ("xface-gold", "Icon-XFACE-GOLD", .xface, false),
+            ("xface-gold-on-black", "Icon-XFACE-GOLD-ON-BLACK", .xface, false),
+            ("xface-gold-outline", "Icon-XFACE-GOLD-OUTLINE", .xface, false), ("xface-5250", "Icon-XFACE-5250", .xface, false),
+            ("xface-negative", "Icon-XFACE-NEGATIVE", .xface, false),
+            ("xface-negative-inverted", "Icon-XFACE-NEGATIVE-INVERTED", .xface, false),
+            ("xface-sunset", "Icon-XFACE-SUNSET", .xface, false),
+            ("halloween-jack", "Icon-HALLOWEEN-JACK", .season, true), ("halloween-hfr", "Icon-HALLOWEEN-HFR", .season, true),
+            ("spring", "Icon-SPRING", .season, false), ("summer", "Icon-SUMMER", .season, false), ("winter", "Icon-WINTER", .season, false)
+        ]
+        #expect(expected.count == 20)
+        for (raw, name, pack, dated) in expected {
+            let option = AppIconOption(rawValue: raw)
+            #expect(option?.alternateIconName == name, "\(raw)")
+            #expect(option?.pack == pack, "\(raw)")
+            #expect((option?.window != nil) == dated, "\(raw)")
+        }
     }
 
-    @Test func everyOptionBelongsToExactlyOneSectionWhenAllAreOffered() {
+    @Test func halloweenIconsAreOfferedOnlyInOctober() {
+        #expect(offered(on: IconTestCalendar.date(2026, 9, 30)).isDisjoint(with: [.halloweenJack, .halloweenHfr]))
+        #expect(offered(on: IconTestCalendar.date(2026, 10, 1)).isSuperset(of: [.halloweenJack, .halloweenHfr]))
+        #expect(offered(on: IconTestCalendar.date(2026, 10, 31)).isSuperset(of: [.halloweenJack, .halloweenHfr]))
+        #expect(offered(on: IconTestCalendar.date(2026, 11, 1)).isDisjoint(with: [.halloweenJack, .halloweenHfr]))
+    }
+
+    @Test func everyAlternateIconOfTheBuildHasAnOptionWithAPack() {
+        let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any]
+        let alternates = Set((icons?["CFBundleAlternateIcons"] as? [String: Any])?.keys.map { $0 } ?? [])
+        let optionNames = Set(AppIconOption.allCases.compactMap(\.alternateIconName))
+        #expect(!alternates.isEmpty)
+        let extra = alternates.subtracting(optionNames)
+        let missing = optionNames.subtracting(alternates)
+        #expect(alternates == optionNames, "unregistered: \(extra), unbuilt: \(missing)")
+    }
+
+    /// The sources sit next to the tests in the checkout CI builds from; skipped when the tests run without it.
+    @Test func everyOptionHasItsIconBundleInTheSources() throws {
+        let appDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "SwiftHFR")
+        try #require(FileManager.default.fileExists(atPath: appDirectory.appending(path: "Settings").path), "sources not found")
+        for option in AppIconOption.allCases {
+            let manifest = appDirectory.appending(path: "\(option.iconBundleName).icon").appending(path: "icon.json")
+            #expect(FileManager.default.fileExists(atPath: manifest.path), "no \(option.iconBundleName).icon")
+        }
+    }
+
+    @Test func sectionsFollowThePackOrderAndOmitEmptyPacks() {
+        let packs = model(on: IconTestCalendar.date(2026, 12, 10)).sections.map(\.pack)
+        #expect(packs == [.legacy, .beta, .xface, .season])
+        #expect(model(on: IconTestCalendar.date(2026, 6, 10)).sections.map(\.pack) == [.legacy, .beta, .xface, .season])
+    }
+
+    @Test func everyOptionBelongsToExactlyOneSectionWhenItsWindowIsOpen() {
         let sections = model(on: IconTestCalendar.date(2026, 12, 10)).sections
-        #expect(sections.flatMap(\.options).count == AppIconOption.allCases.count)
+        let day = IconTestCalendar.date(2026, 12, 10)
+        let closed = AppIconOption.allCases.filter { !$0.isOffered(on: day, calendar: calendar) }
+        #expect(sections.flatMap(\.options).count == AppIconOption.allCases.count - closed.count)
+        #expect(Set(sections.flatMap(\.options)).count == sections.flatMap(\.options).count)
     }
 
     // MARK: Windows (Noël, 01/12 to 26/12 inclusive)
