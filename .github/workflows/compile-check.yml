@@ -1,0 +1,45 @@
+name: Compile check
+
+# Compile-only macOS check for a draft PR (#956). The ready-PR jobs of ci.yml stay the required checks and are not
+# touched: this job is not required, never runs tests, and only runs on a draft that carries the `compile-check`
+# label. It lets a Linux-only session see a real compiler verdict before it asks for review, without paying for the
+# full app job (#477, CI-BUDGET).
+on:
+  pull_request:
+    # `labeled` starts it when the label is added, `synchronize` re-runs it on each push while the label is on.
+    # `ready_for_review` joins the PR's group and cancels a running check (its job is skipped: the PR is no longer a
+    # draft), so the full app job never runs next to a compile check.
+    types: [labeled, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+# One group per labelled PR: a new push or relabel cancels the older run of the same PR. Any other event (another label
+# added, an unlabelled PR) gets a group of its own (run id), so it never cancels a running check.
+concurrency:
+  group: >-
+    compile-check-${{
+    contains(github.event.pull_request.labels.*.name, 'compile-check')
+    && (github.event.action != 'labeled' || github.event.label.name == 'compile-check')
+    && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile check (iOS 27 simulator, build-for-testing)
+    # Draft only: a ready PR already gets the full app job. The label is re-read from the event payload.
+    if: >-
+      ${{ github.event.pull_request.draft
+      && contains(github.event.pull_request.labels.*.name, 'compile-check')
+      && (github.event.action != 'labeled' || github.event.label.name == 'compile-check') }}
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: xcodebuild -version
+      - name: Compile the app and its tests, run nothing (unsigned)
+        run: >-
+          xcodebuild build-for-testing -project App/SwiftHFR.xcodeproj -scheme SwiftHFR
+          -destination 'generic/platform=iOS Simulator'
+          -disableAutomaticPackageResolution -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO
