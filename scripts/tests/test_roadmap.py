@@ -1013,6 +1013,13 @@ class WeeklyCounts(unittest.TestCase):
                                env={**__import__("os").environ, "ROADMAP_STATE": str(f)})
             self.assertEqual(r.stdout.split(), ["2026-11-10", "22:00", "UTC", "True", "1"], r.stderr)
 
+    def test_done_counts_agree_in_number(self):
+        import build
+        self.assertEqual([build.faites(n) for n in (0, 1, 2)], ["faite", "faite", "faites"])
+        D = {"m5": {"cats": {"MP": [("MP à plusieurs", True)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 37, "done": 1},
+             "outside": {"open": [], "kinds": {}}}
+        self.assertIn("1 faite sur 37", build.slide_m5(D))
+
     def test_m5_band_is_hidden_without_an_open_issue_outside_every_milestone(self):
         import build
         D = {"m5": {"cats": {"MP": [("MP à plusieurs", False)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 1, "done": 0},
@@ -1076,6 +1083,18 @@ class WeeklyCounts(unittest.TestCase):
         self.assertIn("+39 faites", out)
         self.assertIn("+41 créées", out)
         self.assertIn("Hors jalon", out)
+
+    def test_slide_3_agrees_with_a_difference_of_one(self):
+        import build
+        ms = {m: {"done": 0, "then": 0, "total": 10} for m in build.MS}
+        z = {"done": 0, "prs": 0, "commits": 0, "tests": 0, "lines": 0, "issues": 0}
+        D = {"now": z, "then": z, "since": "2026-11-08", "ms": ms,
+             "outside": {"done": 5, "total": 9, "then_done": 4, "then_total": 8}}
+        out = build.slide_today(D)
+        self.assertIn("+1 faite</em>", out)
+        self.assertIn("+1 créée", out)
+        self.assertNotIn("+1 créées", out)
+        self.assertEqual([build.accord(n, "fait") for n in (0, 1, 3)], ["fait", "fait", "faits"])
 
     def test_m5_slide_never_drops_a_category(self):
         import build
