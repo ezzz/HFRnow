@@ -3,7 +3,8 @@ import Foundation
 /// Display rewrite of a topic title: the one place that abbreviates "Topic Unique" and its spellings to "TU".
 ///
 /// Port of `-[NSString filterTU]` (`SuperHFRplus/Helpers/RangeOfCharacters.m:330-343` @ 87fe0d1c), which legacy applies in
-/// `Topic -setATitle:` (`Topic.m:90-94`) and to the reader title (`OnlineMessagesTableViewController.m`, `-setTopicName:`).
+/// `Topic -setATitle:` (`Topic.m:90-94`) and to the reader title (`-setTopicName:` of `HFRswift/Wrapped/MessagesTableViewController.m:113-115`,
+/// the online reader's base class, and of `Classes/OfflineMessagesTableViewController.m:2348-2350`).
 /// Parsers keep the raw title (LOT-022 D4); views show `TopicTitle.displayed(_:)`. Idempotent: "TU" matches no spelling.
 public enum TopicTitle {
     /// Spellings in legacy order; each is a case-insensitive literal match (`NSCaseInsensitiveSearch`, no regex meaning
