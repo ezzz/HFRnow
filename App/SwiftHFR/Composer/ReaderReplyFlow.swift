@@ -23,9 +23,7 @@ struct ReaderReplyFlow: ViewModifier {
             .task(id: model.replyConfirmation) {
                 guard model.replyConfirmation != nil else { return }
                 ReaderAccessibility.announce(model.replyConfirmation)
-                // Long enough to read; cancelled (and nothing hidden) when another confirmation replaces it.
-                guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-                model.clearReplyConfirmation()
+                // The model clears it after `ConfirmationAutoDismiss.delay`, whatever happens to this view meanwhile (#864).
             }
             // The reply button and every quote ask the reader; it hands over once, to the sheet that is not open yet.
             .onChange(of: model.pendingReply) { _, request in
@@ -38,6 +36,8 @@ struct ReaderReplyFlow: ViewModifier {
                 }
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
             }
+            // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
+            // keyboard with the option on (#853) and shows the same sheet with it off.
             .modifier(ReaderComposerPresenter(composer: $reply) { _, reason in
                 Task { await model.composerDidClose(reason) }
             })

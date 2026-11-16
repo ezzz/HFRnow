@@ -11,13 +11,16 @@ struct RootModelTests {
     ) async -> RootModel {
         let source = FakeDataSource()
         source.forumHandler = { ForumListPage(forums: [], isLoggedIn: loggedIn, unreadPrivateMessages: unread) }
-        let forums = ForumListModel(dataSource: source)
+        // As the environment-built root: the badge counts what the pages loaded through this source announce.
+        let count = PrivateMessageCount()
+        let counted = PrivateMessageCountingSource(base: source, count: count)
+        let forums = ForumListModel(dataSource: counted)
         let root = RootModel(
             forums: forums,
-            categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            categories: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.categoriesStartupSource),
+            favorites: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.favoritesStartupSource),
             messages: MessageListModel(source: FakePrivateMessages()),
-            store: store, initial: initial
+            store: store, initial: initial, privateMessageCount: count
         )
         await forums.loadIfNeeded()
         return root
@@ -95,7 +98,7 @@ struct RootModelTests {
         #expect(root.selectedDestination == .plus(.search))
     }
 
-    @Test func theMessagesBadgeShowsTheUnreadCountFromTheHomePage() async {
+    @Test func theMessagesBadgeShowsTheCountTheCountingSourceRecorded() async {
         #expect(await model(unread: 3).unreadPrivateMessages == 3)
         #expect(await model(unread: nil, loggedIn: false).unreadPrivateMessages == 0)
         #expect(await model(unread: 0).unreadPrivateMessages == 0)

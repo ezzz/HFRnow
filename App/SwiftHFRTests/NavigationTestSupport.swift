@@ -23,8 +23,13 @@ final class FakeDataSource: ForumDataSource, @unchecked Sendable {
         return try await forumHandler()
     }
 
-    func topicList(category: CategoryID, filter: TopicListFilter, page: Int) async throws(ListLoadError) -> TopicListPage {
-        record("topics:\(category.queryValue):\(page)" + (filter == .all ? "" : ":owntopic=\(filter.rawValue)"))
+    func topicList(
+        category: CategoryID, subcategory: Int?, filter: TopicListFilter, page: Int
+    ) async throws(ListLoadError) -> TopicListPage {
+        record(
+            "topics:\(category.queryValue):\(page)" + (subcategory.map { ":subcat=\($0)" } ?? "")
+                + (filter == .all ? "" : ":owntopic=\(filter.rawValue)")
+        )
         return try await topicHandler(category, page)
     }
 

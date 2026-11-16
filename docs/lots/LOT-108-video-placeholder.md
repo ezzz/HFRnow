@@ -50,5 +50,8 @@ non-persistent store, `https` on the provider's hosts only, main frame kept on t
 Rendering of placeholder and sheet (light, dark, Dynamic Type XL, iPad), real YouTube/Vimeo/Streamable playback, and what `openURL`
 does on a device with the YouTube app: listed in the PR's "Mac check needed".
 
+## Legacy oracles not compared yet
+`Packages/HFRKit/Tests/HFRParsingTests/Fixtures/LOT-003-settings/R21-sig-noimg-novid` and `R28-noimg-novid` hold legacy's `toHTML` with `embedded_videos=no` (LOT-003): video links left as links. No test compares the reader's rendering with them (LOT-070 gate A owns them without comparing their video half).
+
 ## Learnings
 none yet.

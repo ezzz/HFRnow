@@ -100,6 +100,8 @@ struct ReaderAuthorMenuSheet: ViewModifier {
     let model: TopicReaderModel
 
     func body(content: Content) -> some View {
+        // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
+        // keyboard with the option on (#853) and shows the same sheet with it off.
         content.modifier(ReaderComposerPresenter(composer: $flow.newMessage) { _, reason in
             guard let text = PrivateMessageFeedback.text(for: reason) else { return }
             model.showMenuFeedback(text) // the toast announces itself

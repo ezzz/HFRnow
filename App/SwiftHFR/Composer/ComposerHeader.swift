@@ -1,22 +1,5 @@
 import SwiftUI
 
-/// Where the composer's controls sit (#854, operator 2026-11-12, reference: the Claude app's composer): on an iPhone the control
-/// row inside the text card's bottom edge, and close, drafts and send as small floating glass buttons; an iPad keeps legacy's
-/// bar and the row under the card.
-enum ComposerChrome: Equatable {
-    /// An iPhone: the lighter composer docked on the keyboard.
-    case docked
-    /// An iPad: legacy's top bar and control row.
-    case sheet
-
-    init(isPhone: Bool) { self = isPhone ? .docked : .sheet }
-
-    /// The control row sits inside the text card, on its bottom edge.
-    var controlsInCard: Bool { self == .docked }
-    /// Close, drafts and send are small floating buttons instead of legacy's bar.
-    var headerFloats: Bool { self == .docked }
-}
-
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
 // GAP-653); on an iPhone the buttons are small floating glass capsules in 44 pt hit areas, beside a light, truncating title

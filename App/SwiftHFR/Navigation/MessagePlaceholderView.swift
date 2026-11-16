@@ -8,7 +8,7 @@ struct MessagePlaceholderView: View {
     var body: some View {
         if let topic {
             ContentUnavailableView {
-                Label(topic.title, systemImage: "text.bubble")
+                Label(topic.displayTitle, systemImage: "text.bubble")
             } description: {
                 Text("Ce sujet ne peut pas être ouvert : son lien n'est pas reconnu.")
             }

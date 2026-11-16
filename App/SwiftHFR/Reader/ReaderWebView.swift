@@ -15,6 +15,7 @@ struct ReaderWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         controller.textScale = context.environment.textScale
         controller.theme = context.environment.themeAppearance
+        // EXPERIMENTAL(modernComposer, #904): replaces the page's keyboard dismissal (none) under the docked composer only.
         // Under a docked composer (#853) a drag down on the page pulls the keyboard down with the finger, as in Messages.
         controller.dismissesKeyboardInteractively = context.environment.dockedComposer != nil
         controller.obscuredInsets = UIEdgeInsets(top: obscured.top, left: 0, bottom: obscured.bottom, right: 0)
@@ -54,6 +55,8 @@ struct ReaderUnderBars<Content: View>: View {
 
     /// Bars and banners only, unless a docked composer sits on the keyboard: another keyboard (the "Aller à la page" prompt, a
     /// composer sheet) must not move the page's insets.
+    // EXPERIMENTAL(modernComposer, #904): replaces the keyboard-free insets by ones that count the docked composer's keyboard;
+    // `docked` is nil with the option off (`ReaderComposerPresenter`), so nothing changes there.
     static func ignored(docked: DockedComposer?) -> SafeAreaRegions {
         docked == .partial ? [] : .keyboard
     }

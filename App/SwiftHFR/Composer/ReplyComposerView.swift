@@ -8,11 +8,13 @@ import SwiftUI
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 // Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
-// "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone the composer is a card docked on the keyboard that
-// grows with the text up to a cap (`ComposerHeight`, `ComposerCardLayout`, GAP-653, b·operator); in the reader that card is a bar
-// docked at the bottom of the page, the page scrollable above it with the keyboard up, its taps ignored (#853,
-// `ComposerPlacement`), elsewhere a sheet; the full-screen toggle in the editor's corner; inserted images as chips in the card;
-// on an iPhone the control row inside the card and close, drafts and send as small floating buttons (#854, `ComposerChrome`).
+// "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone with Réglages › Expérimental › « Composer moderne » on
+// (#903, the default until #855; `ModernComposer`), the composer is a card docked on the keyboard that grows with the text up to a
+// cap (`ComposerHeight`, `ComposerCardLayout`, GAP-653, b·operator); in the reader that card is a bar docked at the bottom of the
+// page, the page scrollable above it with the keyboard up, its taps ignored (#853, `ComposerPlacement`), elsewhere a sheet; the
+// full-screen toggle in the editor's corner, the control row inside the card and close, drafts and send as small floating
+// buttons (#854, `ComposerChrome`); with it off, and on an iPad, the full-height sheet with legacy's bar and the row under the
+// card. Inserted images show as chips in the card.
 /// The composer, a sheet or the reader's docked bar: a plain text editor, close and Send; a new topic adds its subject and
 /// sub-category (LOT-089); a new private message adds its recipient and subject
 /// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
@@ -64,6 +66,8 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
+    /// Réglages › Expérimental (#903); nil keeps each option's default (hosted tests, previews).
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     init(
         model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: ((ReplyComposerModel.CloseReason) -> Void)? = nil
@@ -125,7 +129,7 @@ struct ReplyComposerView: View {
             onInsert: { insertImage($0) }
         )
         .modifier(ComposerSheetSettings(
-            isSheet: placement == .sheet, isPhone: isPhone, detent: detent,
+            isSheet: placement == .sheet, isModern: usesModernComposer, detent: detent,
             dismissDisabled: model.closeNeedsChoice || model.isSending
         ))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
@@ -274,8 +278,14 @@ extension ReplyComposerView {
 
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
-    /// An iPhone's lighter composer: the controls in the card, floating buttons (#854).
-    private var chrome: ComposerChrome { ComposerChrome(isPhone: isPhone) }
+    // EXPERIMENTAL(modernComposer, #904): replaces the full-height composer with legacy's bar and row (the iPad's; #855 puts
+    // the legacy full-screen cover here) by the compact card docked on the keyboard, on an iPhone (`ModernComposer`).
+    private var usesModernComposer: Bool {
+        ModernComposer.isActive(isPhone: isPhone, isOn: ExperimentalSettings.isOn(.modernComposer, in: experimental))
+    }
+
+    /// The modern composer's lighter chrome: the controls in the card, floating buttons (#854).
+    private var chrome: ComposerChrome { ComposerChrome(isPhone: usesModernComposer) }
 
     /// The controls, their height measured for the docked card (`ComposerCardLayout.controls`).
     private var measuredControls: some View {
@@ -286,12 +296,13 @@ extension ReplyComposerView {
 
     /// An iPhone in regular height: partial height first, and the toggle (#653).
     private var offersHeightToggle: Bool {
-        ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass)
+        ComposerHeight.offersToggle(isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass)
     }
 
     private var height: ComposerHeight {
         ComposerHeight.shown(
-            chosen: chosenHeight, isPhone: isPhone, verticalSizeClass: verticalSizeClass, largeText: dynamicTypeSize.isAccessibilitySize
+            chosen: chosenHeight, isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass,
+            largeText: dynamicTypeSize.isAccessibilitySize
         )
     }
 

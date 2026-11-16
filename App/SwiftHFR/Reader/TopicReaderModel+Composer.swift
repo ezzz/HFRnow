@@ -8,8 +8,8 @@ enum ReaderComposer: Hashable, Sendable {
     case privateMessage
 }
 
-/// The page under an open composer (#653, operator 2026-11-10): on an iPhone the composer is a bar docked at the bottom of the
-/// page (#853) and the page above it still scrolls, with the keyboard up too, so the message being answered can be read again;
+/// The page under an open composer (#653, operator 2026-11-10): on an iPhone with the modern composer (#904) it is a bar docked
+/// at the bottom of the page (#853) and the page above it still scrolls, with the keyboard up too, so the message being answered can be read again;
 /// but its taps and actions are ignored while the composer is open. A link, a message menu, a video, a quote, the reply button,
 /// a page change or a refresh would navigate, open a menu, start a second composer or reload the page underneath the text being
 /// written. Scrolling and the reading position go on; nothing is cancelled or stopped.
@@ -37,6 +37,8 @@ struct ReaderComposerGuard: ViewModifier {
     /// "Editer" has its composer open.
     let isEditing: Bool
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    /// Réglages › Expérimental (#903); nil keeps each option's default.
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     func body(content: Content) -> some View {
         content
@@ -46,12 +48,15 @@ struct ReaderComposerGuard: ViewModifier {
                 controller?.offersSelectionQuote = model.offersSelectionQuote
             }
             .navigationBarBackButtonHidden(model.suspendsPageInteractions)
+            // EXPERIMENTAL(modernComposer, #904): replaces the bottom bar by the docked composer while it is open (#853); with
+            // the option off the placement is a sheet and the bar stays, as before.
             .toolbar(hidesBottomBar ? .hidden : .automatic, for: .bottomBar)
     }
 
     private var hidesBottomBar: Bool {
         Self.hidesBottomBar(
-            placement: .reader(horizontalSizeClass: horizontalSizeClass), composerIsOpen: model.suspendsPageInteractions
+            placement: .reader(horizontalSizeClass: horizontalSizeClass, experimental: experimental),
+            composerIsOpen: model.suspendsPageInteractions
         )
     }
 

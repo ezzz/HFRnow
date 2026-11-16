@@ -94,14 +94,15 @@ struct ComposerCardLayout: Equatable {
     }
 }
 
-/// The settings a composer sheet gives its presentation (a list's composer, an iPad's): its one detent, an opaque background on
-/// an iPhone (a sheet below full height is glass, and the dimmed page showed through the editor in dark mode, iOS 27.1
-/// simulator), and no swipe-down while closing needs a choice or a send runs. None for the reader's docked bar (#853): set from
-/// inside the reader, they would reach the reader's own presentation.
+/// The settings a composer sheet gives its presentation (a list's composer, an iPad's, the reader's with the option off): its
+/// one detent, no swipe-down while closing needs a choice or a send runs, and for the modern composer only (#904) an opaque
+/// background (a sheet below full height is glass, and the dimmed page showed through the editor in dark mode, iOS 27.1
+/// simulator). None for the reader's docked bar (#853): set from inside the reader, they would reach the reader's own
+/// presentation.
 struct ComposerSheetSettings: ViewModifier {
     let isSheet: Bool
-    /// The composer can be partial on this device (an iPhone): the background stays opaque across the toggle.
-    let isPhone: Bool
+    /// The modern composer (`ModernComposer.isActive`): the background stays opaque across the toggle.
+    let isModern: Bool
     /// The sheet's only detent (`ComposerHeight.detent(cardHeight:)`).
     let detent: PresentationDetent
     /// Swiping down would close without the choice: blocked while there is text or a send runs.
@@ -111,18 +112,19 @@ struct ComposerSheetSettings: ViewModifier {
         if isSheet {
             content
                 .presentationDetents([detent])
-                .modifier(OpaqueOnPhone(isPhone: isPhone))
+                .modifier(OpaqueWhenModern(isModern: isModern))
                 .interactiveDismissDisabled(dismissDisabled)
         } else {
             content
         }
     }
 
-    private struct OpaqueOnPhone: ViewModifier {
-        let isPhone: Bool
+    // EXPERIMENTAL(modernComposer, #904): replaces the system's sheet background by an opaque one.
+    private struct OpaqueWhenModern: ViewModifier {
+        let isModern: Bool
 
         func body(content: Content) -> some View {
-            if isPhone { content.presentationBackground(.background) } else { content }
+            if isModern { content.presentationBackground(.background) } else { content }
         }
     }
 }

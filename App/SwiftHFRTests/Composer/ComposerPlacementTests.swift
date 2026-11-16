@@ -1,5 +1,6 @@
 import Foundation
 import HFRNetwork
+import HFRStorage
 @testable import SwiftHFR
 import SwiftUI
 import Testing
@@ -14,7 +15,25 @@ struct ComposerPlacementTests: ReaderWebTesting {
     func theReaderDocksItsComposersOnlyOnAnIPhoneInCompactWidth(isPhone: Bool, width: UserInterfaceSizeClass) {
         // Regular width on an iPhone is a Pro Max in landscape: the list column beside a docked bar could tear the reader down.
         let expected: ComposerPlacement = isPhone && width == .compact ? .docked : .sheet
-        #expect(ComposerPlacement.reader(isPhone: isPhone, horizontalSizeClass: width) == expected)
+        #expect(ComposerPlacement.reader(isPhone: isPhone, horizontalSizeClass: width, modernComposer: true) == expected)
+    }
+
+    /// The docked bar is the modern composer's (#904): with « Composer moderne » off every reader composer is the sheet it was.
+    @Test(arguments: [true, false], [UserInterfaceSizeClass.compact, .regular])
+    func withTheModernComposerOffTheReaderKeepsItsSheet(isPhone: Bool, width: UserInterfaceSizeClass) {
+        #expect(ComposerPlacement.reader(isPhone: isPhone, horizontalSizeClass: width, modernComposer: false) == .sheet)
+    }
+
+    /// The app's placement reads the switch from `ExperimentalSettings`; without one, the option's default.
+    @Test func theReaderPlacementFollowsTheSwitch() {
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        let settings = ExperimentalSettings(store: InMemorySettingsStore())
+        settings.set(.modernComposer, isOn: false)
+        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: settings) == .sheet)
+        settings.set(.modernComposer, isOn: true)
+        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: settings) == (isPhone ? .docked : .sheet))
+        let byDefault = SettingKey.experimentalModernComposer.defaultValue
+        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: nil) == (isPhone && byDefault ? .docked : .sheet))
     }
 
     @Test func thePageSeesAComposerOnlyWhileItIsDockedAndOpenAtItsHeight() {
@@ -322,5 +341,53 @@ extension ComposerPlacementTests {
 
     private static func textViews(in view: UIView) -> Int {
         (view is UITextView ? 1 : 0) + view.subviews.reduce(0) { $0 + textViews(in: $1) }
+    }
+}
+
+/// The presenter left to the app's rule (no forced placement) with « Composer moderne » off (#904): the reader's composer is the
+/// sheet it was before #853, never the docked bar, on any device.
+@MainActor
+@Suite(.serialized)
+struct ComposerPlacementSwitchHostedTests {
+    @Test func withTheModernComposerOffTheReaderShowsASheet() async throws {
+        let settings = ExperimentalSettings(store: InMemorySettingsStore())
+        settings.set(.modernComposer, isOn: false)
+        let state = SwitchState(ComposerFixture.model(poster: ScriptedPoster([])))
+        let host = UIHostingController(rootView: SwitchHost(state: state).environment(settings))
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true }
+        for _ in 0..<100 where host.presentedViewController == nil { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(host.presentedViewController != nil, "a sheet")
+        #expect(state.docked == nil, "the page sees no docked composer")
+    }
+}
+
+@MainActor
+@Observable
+private final class SwitchState {
+    var composer: ReplyComposerModel?
+    var docked: DockedComposer?
+    init(_ composer: ReplyComposerModel?) { self.composer = composer }
+}
+
+/// The reader's presenter with no forced placement; the page reports what it sees of the composer.
+private struct SwitchHost: View {
+    @Bindable var state: SwitchState
+
+    var body: some View {
+        DockedReader(state: state).modifier(ReaderComposerPresenter(composer: $state.composer) { _, _ in })
+    }
+}
+
+private struct DockedReader: View {
+    let state: SwitchState
+    @Environment(\.dockedComposer) private var docked
+
+    var body: some View {
+        Color.gray.onChange(of: docked, initial: true) { _, value in state.docked = value }
     }
 }

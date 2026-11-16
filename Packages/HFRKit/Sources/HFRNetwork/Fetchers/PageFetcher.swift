@@ -24,9 +24,10 @@ public struct PageFetcher: Sendable {
 
     /// R2: the topic list of a forum.
     public func topicList(
-        category: CategoryID, filter: TopicListFilter = .all, page: Int = 1, as identity: FetchIdentity = .authenticated
+        category: CategoryID, subcategory: Int? = nil, filter: TopicListFilter = .all, page: Int = 1,
+        as identity: FetchIdentity = .authenticated
     ) async throws(NetworkError) -> RawPage {
-        try await fetch({ try HFREndpoint.topicList(category: category, filter: filter, page: page) }, identity)
+        try await fetch({ try HFREndpoint.topicList(category: category, subcategory: subcategory, filter: filter, page: page) }, identity)
     }
 
     /// R3: favourites across forums.

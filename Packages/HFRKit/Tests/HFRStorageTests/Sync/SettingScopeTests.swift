@@ -29,7 +29,10 @@ import Testing
         // LOT-189: the dated-icon bookkeeping follows the icon the device shows.
         "icon_previous": .device, "icon_revert_asked": .device,
         // LOT-166: seasonal themes are a presentation of this device, like the dark style (THEMES.md §5).
-        "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device
+        "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device,
+        // #903: the Expérimental switches try a presentation on this device.
+        "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpStorageSwitches": .device,
+        "experimental.flagIconRows": .device, "experimental.imageLoadingChoice": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {
