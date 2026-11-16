@@ -1,6 +1,6 @@
 // Renders OUTDIR/slides/*.html (from build.py) to OUTDIR/swifthfr-semaine-NN.jpg at 2880x1620, and checks each slide:
 // no overflow of the 1920x1080 page or of an element's own box, no visible text under 20 px at the 1920 base, and
-// never the word « legacy » (the legacy app is « l'app courante »). A failed check is printed and exits 1.
+// never the word « legacy » (the legacy app is « l'app courante »), and no tile text covered by a tile of its pile. A failed check is printed and exits 1.
 // Playwright: pre-installed in the cloud sessions (`require('playwright')` works, Chromium included, do not run
 // `playwright install`). Elsewhere: `npm i playwright && npx playwright install chromium` in a scratch directory.
 const { chromium } = require('playwright');
@@ -33,7 +33,7 @@ function audit(minPx) {
     const r = el.getBoundingClientRect();
     if (r.bottom > 1080 + 1 || r.right > 1920 + 1) issues.push(`off page: ${n.textContent.trim().slice(0, 40)}`);
   }
-  for (const el of document.querySelectorAll('.card,.hero,.body')) {
+  for (const el of document.querySelectorAll('.card,.hero,.tile,.body')) {
     if (el.scrollHeight > el.clientHeight + 2) issues.push(`content taller than its box (${el.className}): +${el.scrollHeight - el.clientHeight}px`);
     if (el.scrollWidth > el.clientWidth + 2) issues.push(`content wider than its box (${el.className}): +${el.scrollWidth - el.clientWidth}px`);
     if (el.classList.contains('body')) continue;
@@ -53,7 +53,7 @@ function audit(minPx) {
   for (let i = 1; i < blocks.length; i++) if (blocks[i].top < blocks[i - 1].bottom - 1) issues.push(`block ${i + 1} overlaps block ${i} by ${Math.round(blocks[i - 1].bottom - blocks[i].top)}px`);
   // an icon never covers text of its card
   for (const ic of document.querySelectorAll('.ic')) {
-    const card = ic.closest('.card,.hero');
+    const card = ic.closest('.card,.hero,.tile');
     if (!card) continue;
     const a = ic.getBoundingClientRect();
     const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
@@ -64,6 +64,32 @@ function audit(minPx) {
         if (b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top) { issues.push(`icon over text: "${t.textContent.trim().slice(0, 30)}"`); break; }
       }
     }
+  }
+  // tiles pile up with a slight overlap (#892): only their edges may be covered, never their text. A tile painted
+  // after another (later in the document, no z-index in the deck) is drawn above it.
+  const tiles = [...document.querySelectorAll('.tile')];
+  for (let i = 0; i < tiles.length; i++) {
+    const tw = document.createTreeWalker(tiles[i], NodeFilter.SHOW_TEXT);
+    let hit = null;
+    for (let t = tw.nextNode(); t && !hit; t = tw.nextNode()) {
+      if (!t.textContent.trim()) continue;
+      const rg = document.createRange(); rg.selectNodeContents(t);
+      // text cut by an ellipsis counts only where it is visible: clip it to its parent's box
+      const pe = t.parentElement, cs = getComputedStyle(pe), clip = cs.overflow !== 'visible' ? pe.getBoundingClientRect() : null;
+      for (const b0 of rg.getClientRects()) {
+        const b = clip ? { left: Math.max(b0.left, clip.left), right: Math.min(b0.right, clip.right), top: Math.max(b0.top, clip.top), bottom: Math.min(b0.bottom, clip.bottom) } : b0;
+        if (b.right <= b.left || b.bottom <= b.top) continue;
+        for (const o of tiles.slice(i + 1)) {
+          if (o.contains(tiles[i]) || tiles[i].contains(o)) continue;
+          const a = o.getBoundingClientRect();
+          if (b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top) { hit = t.textContent.trim().slice(0, 30); break; }
+        }
+        if (hit) break;
+      }
+    }
+    if (hit) issues.push(`tile text under another tile: "${hit}"`);
+    const r = tiles[i].getBoundingClientRect();
+    if (r.right > 1920 - 40 || r.bottom > 1080 || r.left < 40) issues.push(`tile off the page margins: ${tiles[i].textContent.trim().slice(0, 30)}`);
   }
   for (const [t, px] of small) issues.push(`text ${px}px < ${minPx}: "${t}"`);
   return issues;
