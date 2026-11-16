@@ -68,9 +68,9 @@ struct TopicReaderViewHostedTests: ReaderWebTesting {
         let hosted = try await host()
         defer { hosted.window.isHidden = true }
         let reader = hosted.reader
-        let editMenu = try #require(hosted.webView.interactions.compactMap {
-            ($0 as? UIEditMenuInteraction)?.delegate as? ReaderMessageEditMenu
-        }.first)
+        // Out of `#require`: its expansion adds optional chaining to a trailing-closure call (`compactMap { }.first`).
+        let menus = hosted.webView.interactions.compactMap { ($0 as? UIEditMenuInteraction)?.delegate as? ReaderMessageEditMenu }
+        let editMenu = try #require(menus.first)
         // The view installs the menu handlers in its first task (which may rebuild the document); the menu then offers "Link"
         // (the page has a URL).
         let anchor = CGRect(x: 340, y: 300, width: 30, height: 30)
