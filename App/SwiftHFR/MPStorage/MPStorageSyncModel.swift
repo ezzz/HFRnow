@@ -159,8 +159,23 @@ final class MPStorageSyncModel {
         await run { [self] () async throws(MPStorageSyncError) in try await syncOnce() }
     }
 
-    /// Whether `function` is on for the account (#859): every function is on by default; an unreadable record turns all off.
-    func isEnabled(_ function: MPStorageFunction) -> Bool { record?.isEnabled(function) ?? false }
+    /// Réglages › Expérimental, set by the root (nil in a hosted test or preview: the option reads off).
+    var experimental: ExperimentalSettings?
+
+    /// Whether Réglages › Stockage MP offers one switch per function (#859). Off, the single switch governs everything, as
+    /// in legacy, and the stored `disabled` list is ignored, not deleted.
+    var perFunctionSwitches: Bool {
+        // EXPERIMENTAL(mpStorageSwitches, #859): the per-function switches and the `disabled` list they write.
+        ExperimentalSettings.isOn(.mpStorageSwitches, in: experimental)
+    }
+
+    /// Whether `function` is on for the account (#859): every function is on by default, and always while the experimental
+    /// option is off; an unreadable record turns all off.
+    func isEnabled(_ function: MPStorageFunction) -> Bool {
+        guard let record else { return false }
+        // EXPERIMENTAL(mpStorageSwitches, #859): off, the `disabled` list is not read.
+        return !perFunctionSwitches || record.isEnabled(function)
+    }
 
     /// The functions whose switch Réglages shows: those whose lot has shipped (no dead switch, #859). Blacklist (LOT-131)
     /// and bookmarks (LOT-132) join when their lots merge.

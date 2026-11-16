@@ -96,7 +96,7 @@ struct MPStorageSyncModelTests {
 
     static func make(
         thread: Int?, state: MPStorageSyncState? = nil, copy: MPStorageCopy = MPStorageCopy(),
-        text: String = FakeMPStorageRemote.emptyDocument
+        text: String = FakeMPStorageRemote.emptyDocument, perFunctionSwitches: Bool = true
     ) async throws -> Fixture {
         let remote = FakeMPStorageRemote(thread: thread, text: text)
         let settings = InMemorySettingsStore()
@@ -110,6 +110,10 @@ struct MPStorageSyncModelTests {
             sync: MPStorageSync(remote: remote, persistence: MPStorageCopyPersistence(store: copies, account: account)),
             states: states, isLoggedIn: { login.value }, clock: { now }
         )
+        // Réglages › Expérimental › « Stockage MP détaillé » (#859): the function tests below run with it on.
+        let experimental = ExperimentalSettings(store: InMemorySettingsStore())
+        experimental.set(.mpStorageSwitches, isOn: perFunctionSwitches)
+        model.experimental = experimental
         return Fixture(model: model, remote: remote, settings: settings, copies: copies, login: login)
     }
 
@@ -317,6 +321,55 @@ struct MPStorageSyncModelTests {
     }
 
     // MARK: One switch per function (#859)
+
+    // MARK: Behind Réglages › Expérimental (#859)
+
+    /// Off (the default build): legacy's single switch governs every function, whatever `disabled` holds; nothing is deleted.
+    @Test func withTheOptionOffEveryFunctionIsOnWhateverTheStoredListHolds() async throws {
+        let fixture = try await Self.make(thread: 7, state: .on, perFunctionSwitches: true)
+        fixture.model.setFunction(.mpFlags, enabled: false)
+        fixture.model.setFunction(.blacklist, enabled: false)
+        #expect(!fixture.model.isEnabled(.mpFlags))
+        fixture.model.experimental?.set(.mpStorageSwitches, isOn: false)
+        #expect(!fixture.model.perFunctionSwitches)
+        for function in MPStorageFunction.allCases { #expect(fixture.model.isEnabled(function)) }
+        #expect(fixture.model.writeConsent(for: .blacklist) == .sync)
+        #expect(fixture.states.record(for: Self.account)?.disabled == ["blacklist", "mpFlags"])
+        fixture.model.experimental?.set(.mpStorageSwitches, isOn: true)
+        #expect(!fixture.model.isEnabled(.mpFlags))
+        #expect(fixture.model.isEnabled(.bookmarks))
+    }
+
+    @Test func withTheOptionOffTheStoredListGatesNothing() async throws {
+        let text = try Self.flagged([MPStorageMPFlag(topic: 31, pValue: "1", href: "t555", page: 2)])
+        let fixture = try await Self.make(
+            thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: text), text: text
+        )
+        // The list was written while the option was on (a model reads its record at creation, so through the model).
+        fixture.model.setFunction(.mpFlags, enabled: false)
+        fixture.model.setFunction(.blacklist, enabled: false)
+        fixture.model.experimental?.set(.mpStorageSwitches, isOn: false)
+        await fixture.model.start()
+        #expect(fixture.model.flag(for: messageThread(31, group: true))?.href == "t555")
+        #expect(fixture.model.document(for: .blacklist) != nil)
+        let changed = await fixture.model.edit(.blacklist) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
+        #expect(changed)
+    }
+
+    @Test func withoutAnExperimentalEnvironmentTheOptionReadsOff() async throws {
+        let fixture = try await Self.make(thread: 7, state: .on)
+        fixture.model.experimental = nil
+        #expect(!fixture.model.perFunctionSwitches)
+        #expect(fixture.model.isEnabled(.mpFlags))
+    }
+
+    @Test func theOptionIsListedUnderMessagesAndOffByDefault() {
+        #expect(ExperimentalFeature.mpStorageSwitches.isListed)
+        #expect(ExperimentalTheme.messages.listedFeatures == [.mpStorageSwitches])
+        #expect(!ExperimentalSettings(store: InMemorySettingsStore()).isOn(.mpStorageSwitches))
+    }
 
     @Test func everyFunctionIsOnByDefault() async throws {
         let model = try await Self.make(thread: 7, state: .on).model

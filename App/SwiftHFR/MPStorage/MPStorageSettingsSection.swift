@@ -3,7 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (mpStorageSection) @ 87fe0d1c. Differences: the current account's state in
 // words, the creation question asked here when switching on (GAP-181, ADR 0013 §7), "Dernier accès" persisted, one switch
-// per function with an info popover each (#859: legacy has the single `mpstorage_active` switch).
+// per function with an info popover each, behind Réglages › Expérimental (#859: legacy has the single `mpstorage_active` switch).
 /// The "Stockage MP" section of Réglages (LOT-130). `model` is the current account's; nil when logged out.
 struct MPStorageSettingsSection: View {
     let model: MPStorageSyncModel?
@@ -46,8 +46,11 @@ struct MPStorageSettingsRows: View {
             LabeledContent("Dernier accès", value: Self.lastSyncText(model.lastSync))
             Button("Resynchroniser") { Task { await model.resync() } }
                 .disabled(model.status == .working)
-            ForEach(MPStorageSyncModel.shippedFunctions, id: \.self) { function in
-                MPStorageFunctionRow(function: function, model: model)
+            // EXPERIMENTAL(mpStorageSwitches, #859): legacy has the single switch above.
+            if model.perFunctionSwitches {
+                ForEach(MPStorageSyncModel.shippedFunctions, id: \.self) { function in
+                    MPStorageFunctionRow(function: function, model: model)
+                }
             }
         }
         if model.status == .working {

@@ -7,6 +7,7 @@ import SwiftUI
 /// `usesSidebarRoot`). A compact-width iPad (Slide Over, Split View) gets the tab bar, as legacy.
 struct RootNavigationView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var model: RootModel
     private let environment: AppEnvironment
     /// The last destination, kept by `RootView` across session generations (the root is rebuilt on each).
@@ -31,6 +32,8 @@ struct RootNavigationView: View {
         }
         .environment(\.rootHasTabBar, Self.rootHasTabBar(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass))
         .task { await model.forums.loadIfNeeded() }
+        // The per-function Stockage MP switches are an experimental option (#859): the account's model reads it from here.
+        .onAppear { model.mpStorage?.experimental = experimental }
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
