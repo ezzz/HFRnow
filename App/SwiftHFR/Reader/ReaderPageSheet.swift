@@ -53,8 +53,8 @@ enum ReaderPagePicker {
 }
 
 // Port of HFRswift/Swift/Common.swift (TopicPagePickerSheet, TopicPagePickerQuickButton) @ 87fe0d1c (lines 3063-3190).
-// Differences: none intended; the field opens on the current page (issue #823) where legacy opened on its own last input,
-// and the quick buttons use the system tint, not the theme's action colour (GAP-060 follow-up if the theme asks for it).
+// Differences: the quick buttons use the system tint, not `themePalette.actionTintColor` / `.systemGray3` (GAP-060, follow-up
+// in the PR's issue list). The field opens on the current page, as legacy does (`Common.swift:3532` @ 87fe0d1c).
 /// The "Page numéro" sheet: first | number | last, then -10 | -1 | +1 | +10, "Valider" opens the page.
 struct ReaderPageSheet: View {
     let maxPage: Int
