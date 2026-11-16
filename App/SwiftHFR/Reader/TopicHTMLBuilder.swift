@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRParsing
 
 // Port of Classes/ObjCTopicMessageContentBuilder.m and SuperHFRplus/Assets/HTML/templatev2.htm @ 2440d79. Differences: built from the
 // typed MessageContent (ADR 0006); a one-line header instead of the grey band with "+" (GAP-051, UXD).
@@ -148,9 +149,10 @@ enum TopicHTMLBuilder {
         // The author is the message's heading (LOT-163): the web rotor's "Titres" steps from message to message.
         html += "<span class=\"byline\" role=\"heading\" aria-level=\"2\">"
         if opensAuthorMenu {
-            // The author opens the author's menu (legacy: the avatar and the pseudo both did); the numbers are ours, never page text.
+            // The author opens the profile when the message links to it, the author's menu otherwise (#652; legacy: the avatar and
+            // the pseudo both did); only the menu is announced as one. The numbers are ours, never page text.
             html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\">\(author)</button>"
+            html += message.actions.profileMemberID == nil ? " aria-haspopup=\"menu\">\(author)</button>" : ">\(author)</button>"
         } else {
             html += "<span class=\"author\">\(author)</span>"
         }

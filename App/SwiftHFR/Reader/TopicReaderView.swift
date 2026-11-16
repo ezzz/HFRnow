@@ -56,8 +56,7 @@ struct TopicReaderView: View {
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109); a fresh model per tap.
     @State private var viewer: ImageViewerModel?
-    @State private var profile: UserProfileModel?
-    /// The author menu's MP composer and handlers (issue #595).
+    /// The profile sheet, the author menu's MP composer and their handlers (issues #595, #652).
     @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
     /// The page's end is on screen (`reader.js`): the end-of-page bar (#820).
@@ -140,7 +139,10 @@ struct TopicReaderView: View {
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
-        .sheet(item: $profile, onDismiss: model.applyDisplaySettings, content: { UserProfileView(model: $0, services: services) })
+        .sheet(item: $authorMenu.profile, onDismiss: { [model, authorMenu] in
+            model.applyDisplaySettings()
+            authorMenu.profileDidClose() // the MP composer or the toast a quick action asked for (#652)
+        }, content: { UserProfileView(model: $0, services: services) })
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -244,7 +246,8 @@ struct TopicReaderView: View {
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
                 // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook)
+                case .profile(let memberID):
+                    authorMenu.show(services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook))
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -348,12 +351,12 @@ extension TopicReaderView {
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
-        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
-        let showProfile = $profile
+        // Capture the source, not the view: the view holds the model, which stores this registry (a cycle).
         let services = self.services
-        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
-        }
+        handlers += authorMenu.handlers(
+            reader: model, composer: composer, makeProfile: { services.profileModel(memberID: $0, listsChanged: rebuild) },
+            confirm: confirm
+        )
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         handlers += services.pseudoLists.map {
             PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)

@@ -73,7 +73,10 @@ extension TopicReaderModel {
     func openMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) async {
         guard !suspendsPageInteractions else { return }
         if let quoting, let selection = selectionToken(on: page) { quoteSelected = Set(await quoting.selectedNumbers(for: selection)) }
-        requestMenu(post: post, source: source, anchor: anchor, token: token)
+        // The author's profile opens at once when the message links to it (#652); the author menu otherwise.
+        if let profileMenu = requestMenu(post: post, source: source, anchor: anchor, token: token) {
+            await perform(.profile, in: profileMenu)
+        }
     }
 
     /// "Citer ☐/☑": adds the message to the topic's selection or removes it, and returns what to tell the user (nil when
