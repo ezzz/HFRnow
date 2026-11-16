@@ -43,9 +43,13 @@ struct FavoritesOracle: Decodable {
         let hashCheck: String?
     }
 
-    /// Loads `Fixtures/LOT-002/<case>.oracle.json`.
+    /// Cases whose oracle is not in `LOT-002`: the M2 write run (#336).
+    static let folders = ["R123g": "M2-writes"]
+
+    /// Loads `Fixtures/<folder>/<case>.oracle.json`, `LOT-002` unless `folders` names another.
     static func load(_ name: String) throws -> FavoritesOracle {
-        let json = try Fixture.text("\(name).oracle", extension: "json", subdirectory: "Fixtures/LOT-002")
+        let folder = folders[name] ?? "LOT-002"
+        let json = try Fixture.text("\(name).oracle", extension: "json", subdirectory: "Fixtures/\(folder)")
         return try JSONDecoder().decode(FavoritesOracle.self, from: Data(json.utf8))
     }
 

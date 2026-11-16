@@ -16,7 +16,7 @@ struct TopicPageMetadataOracleTests {
     @Test("the case list covers the oracle maps (LOT-003 and the M2 topic captures, #475)")
     func casesCoverTheMap() throws {
         var mapped = Set<String>()
-        for folder in ["LOT-003", "M2-readonly", "M2-misc"] {
+        for folder in ["LOT-003", "M2-readonly", "M2-misc", "M2-writes"] {
             let map = try Self.jsonObject(Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)"))
             // The M2 folders also hold list, form and response cases; only the topic pages are parsed here.
             let topics = map.filter { folder == "LOT-003" || (($0.value as? [String: Any])?["kind"] as? String) == "topic" }

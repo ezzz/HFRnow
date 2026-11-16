@@ -12,3 +12,6 @@ Policy C, `ImageAutoLoad`, `ReaderSettings`, `NetworkMonitor` (default Wi-Fi), t
 - `GeneralSettingsModel.imageLoading` (key `display_images`) and the "Images externes" picker in `SettingsView`.
 - Tests: default and legacy values, write-through, effect on `ReaderSettings` with a stubbed Wi-Fi flag, private host blocked whatever the setting.
 - Pending Mac check: device/simulator look and behaviour (see the PR).
+
+## Legacy oracles not compared yet
+`Packages/HFRKit/Tests/HFRParsingTests/Fixtures/LOT-003-settings/R21-sig-noimg-novid` and `R28-noimg-novid` hold legacy's `toHTML` with `display_images=no` (LOT-003). No test compares the reader's rendering with them: the engine's `MessageContent` does not depend on the setting (LOT-070 gate A, which owns them without comparing their image half).

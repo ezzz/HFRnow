@@ -10,8 +10,13 @@ struct ForumListParserTests {
     static let captures: [(oracle: String, capture: String)] = [
         ("R01", "R01-home-anon"),
         ("R02", "R02-home-logged-in-unread-mp"),
-        ("R03", "R03-home-logged-in-no-unread-mp")
+        ("R03", "R03-home-logged-in-no-unread-mp"),
+        // The home page after an `unlog.php` without token: still logged in (#70, LOT-044).
+        ("R72b", "R72b-home-after-unlog-without-token")
     ]
+
+    /// The stale-session home page (`R70a`): legacy returned an empty list, the port throws (LOT-021 rule 9).
+    static let staleSession = (oracle: "R70a", capture: "R70a-home-stale-session")
 
     // MARK: - Differential tests (ADR 0004)
 
@@ -64,11 +69,23 @@ struct ForumListParserTests {
         )
     }
 
-    @Test("oracle-map.json declares the three home pages as kind forums")
+    @Test("A page without forum rows: legacy's empty list is a malformed page for the port (R70a, LOT-021 rule 9)")
+    func staleSessionPageThrowsWhereLegacyReturnedNothing() throws {
+        let oracle = try ForumListOracle.load(Self.staleSession.oracle)
+        #expect(oracle.exception == nil)
+        #expect(try oracle.result.unwrap().isEmpty)
+        #expect(throws: ListPageFailure.malformed("no forum row (tr class*=cat)")) {
+            try ForumListParser.parse(try Fixture.capture(Self.staleSession.capture))
+        }
+    }
+
+    @Test("oracle-map.json declares exactly these home pages as kind forums")
     func oracleMap() throws {
         let map = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/LOT-002")
         let entries = try #require(JSONSerialization.jsonObject(with: Data(map.utf8)) as? [String: [String: Any]])
-        for (oracle, capture) in Self.captures {
+        let forums = entries.filter { $0.value["kind"] as? String == "forums" }.keys.map { $0.replacing(".html", with: "") }
+        #expect(Set(forums) == Set(Self.captures.map(\.oracle) + [Self.staleSession.oracle]))
+        for (oracle, capture) in Self.captures + [Self.staleSession] {
             let entry = try #require(entries["\(oracle).html"])
             #expect(entry["kind"] as? String == "forums")
             #expect(entry["path"] as? String == "../captures/\(capture).html")
