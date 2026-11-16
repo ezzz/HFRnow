@@ -37,7 +37,8 @@ struct RESTDocumentTests {
         let sticky = rest.topics.map { $0.isSticky }
         #expect(sticky == Array(repeating: true, count: 5) + Array(repeating: false, count: 25))
         #expect(rest.categoryID == .forum(13))
-        #expect(rest.navigation == PageNavigation(current: 1, last: 1))
+        // 93437 topics at 25 per page (`R57g`: the page after ⌈count / 25⌉ is empty).
+        #expect(rest.navigation == PageNavigation(current: 1, last: 3738, isExact: true))
 
         var compared = 0
         for row in rest.topics {
@@ -93,7 +94,7 @@ struct RESTDocumentTests {
     @Test("R57c: the topic equals R57b's row of the same topic; its sticky flag, which contradicts the lists, is not read")
     func topicMatchesItsRow() throws {
         let id = TopicID(category: .forum(13), topic: 28563)
-        let topic = try RESTDocument.topic(from: RESTCapture.data(RESTCapture.topic), expected: id)
+        let topic = try #require(try RESTDocument.topic(from: RESTCapture.data(RESTCapture.topic), expected: id))
         let rows = try RESTDocument.lastTopics(from: RESTCapture.data(RESTCapture.lastTopics), category: 13).topics
         var row = try #require(rows.first { $0.topicID == id })
         #expect(!row.isSticky)
@@ -108,10 +109,17 @@ struct RESTDocumentTests {
         }
     }
 
-    @Test("A topic list of another category is refused")
+    @Test("A topic list of another category is refused, by its href and by each row's category")
     func otherCategoryRefused() throws {
-        #expect(throws: ParsingError.invalidValue(field: "resource.resources.links.category.href")) {
+        #expect(throws: ParsingError.invalidValue(field: "resource.href")) {
             try RESTDocument.lastTopics(from: RESTCapture.data(RESTCapture.lastTopics), category: 14)
+        }
+        var object = try RESTCapture.object(RESTCapture.lastTopics)
+        var resource = try #require(object["resource"] as? [String: Any])
+        resource["href"] = "https://forum.hardware.fr/api/forums/hardwarefr/categories/14/topics/last/?page=1&results_per_page=25"
+        object["resource"] = resource
+        #expect(throws: ParsingError.invalidValue(field: "resource.resources.links.category.href")) {
+            try RESTDocument.lastTopics(from: JSONSerialization.data(withJSONObject: object), category: 14)
         }
     }
 

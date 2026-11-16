@@ -33,6 +33,16 @@ enum RESTHref {
         "\(categoryURI(category))topics/last/"
     }
 
+    /// The sub-categories of a category (`R285a`-`R285c`, the `subcategories` link of an `R57a` row).
+    static func subcategoriesURI(category: Int) -> String {
+        "\(categoryURI(category))subcategories/"
+    }
+
+    /// One sub-category (the `href` of an `R285a`-`R285c` row).
+    static func subcategoryURI(category: Int, subcategory: Int) -> String {
+        "\(subcategoriesURI(category: category))\(subcategory)/"
+    }
+
     /// One topic (`R57c`, the `href` of an `R57b` row).
     static func topicURI(category: Int, topic: Int) -> String {
         "\(categoryURI(category))topics/\(topic)/"

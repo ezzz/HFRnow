@@ -82,7 +82,7 @@ public struct RESTFlagBucketClient: Sendable {
         let probe = probe(cookies: seed.cookies)
         let reason: RESTFallbackReason
         do throws(RESTFailure) {
-            let data = try await json(RESTHref.Target(uri: RESTHref.bucketURI(bucket)), on: probe)
+            let data = try await json(RESTHref.Target(uri: RESTHref.bucketURI(bucket)), seed: seed, on: probe)
             let page = try RESTFailure.reading { () throws(ParsingError) in
                 try RESTDocument.bucket(from: data, bucket: bucket, postsPerPage: postsPerPage)
             }
@@ -99,6 +99,8 @@ public struct RESTFlagBucketClient: Sendable {
     private enum RESTFailure: Error {
         case network(NetworkError)
         case response(ParsingError)
+        case refused(code: Int)
+        case sessionExpired(SessionExpiry)
 
         static func reading<Value>(_ read: () throws(ParsingError) -> Value) throws(RESTFailure) -> Value {
             do {
@@ -109,16 +111,32 @@ public struct RESTFlagBucketClient: Sendable {
         }
     }
 
-    /// Sends the REST GET; a redirect is a failure, since HFR answers in place (`R335a`-`R335e`).
-    private func json(_ target: RESTHref.Target, on probe: any HTTPTransport) async throws(RESTFailure) -> Data {
+    /// Sends the REST GET; a redirect is a failure, since HFR answers in place (`R335a`-`R335e`), and so is an error answer
+    /// (`R57i`). HFR answers a stale session with its `.hop` page instead of JSON (`R830t`): `sessionExpired` under
+    /// `FlaggedTopicsPoll`'s rule, else (the session changed meanwhile) a failure like any page that is not JSON.
+    private func json(
+        _ target: RESTHref.Target, seed: RefreshSeed, on probe: any HTTPTransport
+    ) async throws(RESTFailure) -> Data {
         guard !Task.isCancelled else { throw .network(.cancelled) }
+        let request: HTTPRequest
         let response: HTTPResponse
         do throws(NetworkError) {
-            response = try await probe.send(RESTHref.request(for: target))
+            request = try RESTHref.request(for: target)
+            response = try await probe.send(request)
         } catch {
             throw .network(error)
         }
         guard !response.isRedirect else { throw .network(.httpStatus(code: response.statusCode, url: response.url)) }
+        if StaleSessionAnswer.matches(response, requestedURL: request.url) {
+            let health: SessionHealth
+            do throws(NetworkError) {
+                health = try await account.confirmStaleSession(seed: seed, now: Date())
+            } catch {
+                throw .network(error)
+            }
+            if case .expired(let reason) = health { throw .sessionExpired(reason) }
+        }
+        if let code = RESTDocument.errorCode(in: response.body) { throw .refused(code: code) }
         return response.body
     }
 
@@ -132,6 +150,10 @@ public struct RESTFlagBucketClient: Sendable {
             }
         case .response(let error):
             return .response(error)
+        case .refused(let code):
+            return .refused(code: code)
+        case .sessionExpired(let reason):
+            throw .sessionExpired(reason)
         }
     }
 
