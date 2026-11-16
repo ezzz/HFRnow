@@ -245,17 +245,18 @@ struct ReplyComposerSmileyTests {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(1))
         await composer.start()
         composer.update(text: "Salut toi")
-        let caret = composer.text.index(composer.text.startIndex, offsetBy: 5)
-        let offset = composer.insert(smiley: ":)", replacing: caret..<caret)
+        let formatting = ComposerFormattingModel(composer: composer, clipboard: EmptyClipboard())
+        #expect(formatting.insert(smiley: ":)", at: NSRange(location: 5, length: 0)))
         #expect(composer.text == "Salut :)  toi")
-        #expect(offset == 9)
+        #expect(formatting.selectedRange == NSRange(location: 9, length: 0))
         await composer.waitForAutosave()
         #expect(await ComposerFixture.storedText(drafts) == "Salut :)  toi")
     }
 
     @Test func aSmileyIsNotInsertedBeforeTheDraftIsRead() {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
-        #expect(composer.insert(smiley: ":)", replacing: nil) == nil)
+        let formatting = ComposerFormattingModel(composer: composer, clipboard: EmptyClipboard())
+        #expect(!formatting.insert(smiley: ":)", at: NSRange(location: 0, length: 0)))
         #expect(composer.text.isEmpty)
     }
 }

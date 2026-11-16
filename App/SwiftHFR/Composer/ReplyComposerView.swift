@@ -43,7 +43,7 @@ struct ReplyComposerView: View {
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
-    @State private var rangeForSmiley: Range<String.Index>?
+    @State private var rangeForSmiley = NSRange(location: 0, length: 0)
 
     private typealias Field = ComposerField
 
@@ -174,25 +174,20 @@ struct ReplyComposerView: View {
         )
     }
 
-    /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
-    private var selectedRange: Range<String.Index>? {
-        guard case .selection(let range)? = selection?.indices else { return nil }
-        return range
-    }
-
     private func openSmileys() {
         let services = model.smileyServices
         smileySearch = smileySearch ?? services.search
-        rangeForSmiley = selectedRange
+        // The model's range, kept in step by the editor card: the live `selection` can be nil once the button took focus (#910).
+        rangeForSmiley = formatting.selectedRange
         smileyInserted = false
         let catalogue = SmileyPickerModel.bundledCatalogue()
         picker = services.picker(catalogue: catalogue, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
-        guard let caret = model.insert(smiley: code, replacing: rangeForSmiley) else { return }
+        // The formatting model places the caret after the smiley (`cursorRevision`), as for images and GIFs.
+        guard formatting.insert(smiley: code, at: rangeForSmiley) else { return }
         smileyInserted = true
-        selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
     }
 
     private var editorCard: some View {
