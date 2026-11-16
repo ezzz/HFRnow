@@ -152,6 +152,14 @@ struct TopicHTMLBuilderTests {
         #expect(menus.contains("aria-haspopup=\"menu\">auteur</button></span>"))
     }
 
+    /// Issue #820: the page carries the app's one floating gap (8 points), which the stylesheet puts under the last message.
+    @Test func thePageCarriesTheSharedFloatingGap() {
+        #expect(FloatingSpacing.gap == 8)
+        let html = TopicHTMLBuilder.document(for: page([message()]), token: 1)
+        #expect(html.contains("<html lang=\"fr\" data-token=\"1\" style=\"--floating-gap: 8px\">"))
+        #expect(!html.contains("pull-hint"))
+    }
+
     @Test func theMessageMenuButtonAnnouncesAMenu() {
         let html = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
         #expect(html.contains("aria-haspopup=\"menu\" aria-label=\"Actions du message de auteur\">+</button>"))

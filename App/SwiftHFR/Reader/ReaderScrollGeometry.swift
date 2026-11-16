@@ -28,4 +28,12 @@ enum ReaderScrollGeometry {
         guard zoomScale.isFinite, zoomScale > 0 else { return readingTop }
         return readingTop / zoomScale
     }
+
+    /// How far, in points, a scroll view at `offsetY` is pulled past the end of its content (zero or less when it is not): the
+    /// last offset is the content's end above `insetBottom` points of bars, never above the top (a page shorter than the screen).
+    static func pastEnd(
+        offsetY: CGFloat, viewportHeight: CGFloat, contentHeight: CGFloat, insetTop: CGFloat, insetBottom: CGFloat
+    ) -> CGFloat {
+        offsetY - max(contentHeight + insetBottom - viewportHeight, -insetTop)
+    }
 }

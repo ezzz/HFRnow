@@ -71,7 +71,7 @@ enum TopicHTMLBuilder {
         if page.topicID?.category == .privateMessages { options.visibility = options.visibility.withoutOwnHighlights() }
         var html = """
         <!DOCTYPE html>
-        <html lang="fr" data-token="\(token)">
+        <html lang="fr" data-token="\(token)" style="--floating-gap: \(Int(FloatingSpacing.gap))px">
         <head>
         <meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy" content="\(contentSecurityPolicy)">

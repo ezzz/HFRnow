@@ -3,8 +3,8 @@ import SwiftUI
 import WebKit
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79, and its
-// edit-menu callout @ 87fe0d1c (`ReaderMessageEditMenu`). Differences: the page controls are the legacy ‹ › with a "N / M" page
-// menu, the same page items also sit in the "…" overflow (`ReaderPageControls`, LOT-186, #582); the page
+// end-of-page bar and edit-menu callout @ 87fe0d1c (`ReaderPageControls`, `ReaderMessageEditMenu`). Differences: the "N / M" page
+// bubble and a second "Actualiser" show at the end of the page only, a pull past the end refreshes (#820); the page
 // runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
 // (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
 // split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
@@ -57,6 +57,8 @@ struct TopicReaderView: View {
     /// The author menu's MP composer and handlers (issue #595).
     @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
+    /// The page's end is on screen (`reader.js`): the end-of-page bar (#820).
+    @State private var atPageEnd = false
     @State private var pageText = ""
     /// The swipe and reply button settings, and the display settings, followed while the reader is on screen (#750).
     @State private var settings = ReaderSettingsWatch()
@@ -68,6 +70,7 @@ struct TopicReaderView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.isSelectedRootTab) private var isSelectedTab
     @Environment(\.rootHasTabBar) private var rootHasTabBar
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
     var body: some View {
         ZStack {
@@ -123,6 +126,7 @@ struct TopicReaderView: View {
         }
         .overlay { ReaderMessageMenuAnchor(model: model) }
         .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
+        .onChange(of: model.document?.token) { atPageEnd = false }
         .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
@@ -268,6 +272,7 @@ struct TopicReaderView: View {
                 Task { await model.onAppear(viewer: viewerID) }
             }
         )
+        ReaderRefresh.wirePageEnd(of: controller, model: model, atPageEnd: $atPageEnd)
         model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.offersSelectionQuote
         controller.ignoresPageTaps = model.suspendsPageInteractions
@@ -285,13 +290,15 @@ extension TopicReaderView {
     }
 
     private func refresh() async {
-        controller?.resume()
-        await model.refresh()
+        await ReaderRefresh.run(model: model, controller: controller)
     }
 
     /// The bottom bar's buttons, for both placements.
     private var pageButtons: ReaderPageButtons {
-        ReaderPageButtons(model: model, askPage: askForPage, replySymbol: replySymbol)
+        ReaderPageButtons(
+            model: model, atPageEnd: atPageEnd, voiceOver: voiceOver, askPage: askForPage, replySymbol: replySymbol,
+            refresh: refresh
+        )
     }
 
     private var bottomPlacement: ReaderBottomBar.Placement {
