@@ -107,35 +107,18 @@ struct GeneralSettingsModelTests {
         #expect(GeneralSettingsModel(store: store).mpListDisplay == .split)
     }
 
-    @Test func imageLoadingDefaultsToWiFiAndReadsLegacyValues() {
-        #expect(GeneralSettingsModel(store: InMemorySettingsStore()).imageLoading == .wifiOnly)
-        for (raw, mode) in [("yes", ImageDisplayMode.always), ("no", .never), ("wifi", .wifiOnly)] {
-            let model = GeneralSettingsModel(store: InMemorySettingsStore(["display_images": .string(raw)]))
-            #expect(model.imageLoading == mode)
-        }
-    }
-
-    @Test func imageLoadingChangeIsWrittenAndReachesTheReaderPolicy() {
+    @Test func theModelNoLongerWritesDisplayImages() {
         let store = InMemorySettingsStore()
-        let model = GeneralSettingsModel(store: store)
-        model.imageLoading = .never
-        #expect(store.rawValue(forKey: "display_images") == .string("no"))
-        #expect(ReaderSettings.autoLoad(store: store) == .onTap)
-        model.imageLoading = .always
-        #expect(store.rawValue(forKey: "display_images") == .string("yes"))
-        let settings = ReaderSettings.live(store: store, isOnWiFi: { false })
-        #expect(settings.autoLoadsThirdPartyImages())
-        model.imageLoading = .wifiOnly
-        #expect(!ReaderSettings.live(store: store, isOnWiFi: { false }).autoLoadsThirdPartyImages())
-        #expect(ReaderSettings.live(store: store, isOnWiFi: { true }).autoLoadsThirdPartyImages())
+        _ = GeneralSettingsModel(store: store)
+        #expect(store.rawValue(forKey: "display_images") == nil)
     }
 
     @Test func privateHostsStayBlockedWhateverTheSetting() throws {
         let url = try #require(URL(string: "http://192.168.1.1/a.png"))
         let store = InMemorySettingsStore()
-        let model = GeneralSettingsModel(store: store)
+        store.set(true, for: SettingKey.experimentalImageLoadingChoice)
         for mode in ImageDisplayMode.allCases {
-            model.imageLoading = mode
+            store.set(mode, for: SettingKey.displayImages)
             let auto = ReaderSettings.live(store: store, isOnWiFi: { true }).autoLoadsThirdPartyImages()
             #expect(ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto, tapped: true) == .block)
         }

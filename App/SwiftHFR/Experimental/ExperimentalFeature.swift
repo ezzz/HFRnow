@@ -39,8 +39,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     /// paths look the same until then); the others wait for their own PR.
     var isListed: Bool {
         switch self {
-        case .modernComposer, .mpStorageSwitches: true
-        case .searchTab, .flagIconRows, .imageLoadingChoice: false
+        case .modernComposer, .mpStorageSwitches, .imageLoadingChoice: true
+        case .searchTab, .flagIconRows: false
         }
     }
 
@@ -81,8 +81,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
             "Un point devant les sujets non lus et une icône de drapeau devant le titre. Désactivé : la ligne entière teintée "
                 + "selon le drapeau, comme l’app historique."
         case .imageLoadingChoice:
-            "Choisir quand charger les images : Jamais, Wi-Fi uniquement ou Toujours. Désactivé : les images se chargent "
-                + "toujours, comme l’app historique."
+            "Ajoute un choix du moment où charger les images : Toujours, Wi-Fi uniquement ou Jamais (au toucher). Désactivé : "
+                + "les images se chargent toujours, comme l’app historique."
         }
     }
 }

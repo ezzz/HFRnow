@@ -60,7 +60,7 @@ struct ImagePolicyTests {
     }
 
     @Test func theImageModeFollowsTheSettingAndTheNetwork() {
-        #expect(ImageAutoLoad(setting: nil) == .onWiFi)
+        #expect(ImageAutoLoad(setting: nil) == .always)
         #expect(ImageAutoLoad(setting: .wifiOnly) == .onWiFi)
         #expect(ImageAutoLoad(setting: .never) == .onTap)
         #expect(ImageAutoLoad(setting: .always) == .always)
