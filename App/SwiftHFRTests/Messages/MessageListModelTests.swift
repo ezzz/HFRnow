@@ -95,6 +95,23 @@ struct MessageListModelTests {
         #expect(source.requests == [1, 3, 1])
     }
 
+    @Test func aLowerBoundLastPageIsNotOfferedAndALaterPageCanBeTyped() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in
+            PrivateMessageListPage(
+                threads: [messageThread(page)],
+                navigation: PageNavigation(current: page, last: 10, isExact: false, nextPath: "/next", previousPath: nil)
+            )
+        }
+        let model = model(source)
+        await model.onAppear()
+        #expect(model.pageCount == 10 && !model.pageCountIsExact && model.canGoToNext && !model.canGoToLast)
+        await model.goToLastPage()
+        #expect(source.requests == [1])
+        await model.goToPage(15)
+        #expect(source.requests == [1, 15])
+    }
+
     @Test func goingToThePageOnScreenFetchesNothing() async {
         let source = FakePrivateMessages()
         let model = model(source)

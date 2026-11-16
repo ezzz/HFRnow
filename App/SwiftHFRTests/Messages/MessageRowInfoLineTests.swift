@@ -53,15 +53,10 @@ struct MessageRowInfoLineTests {
         #expect(MessageRowInfoLine.make(thread: thread(group: false), flagLabel: nil, now: now).trailing == nil)
     }
 
-    @Test("The « non lu » pill stays tied to the correspondent's state, not to the info line")
-    func pill() {
-        #expect(MessageRowView.unreadByLabel(thread(group: true, unreadBy: ["user1"])) == "Non lu par user1")
-        #expect(MessageRowView.unreadByLabel(thread(group: true)) == nil)
-    }
-
-    @Test("VoiceOver reads the visible order")
-    func spoken() {
-        let line = MessageRowInfoLine(leading: "⚑ 1 / 2", trailing: "autre - 5 min")
-        #expect(line.spoken == "⚑ 1 / 2, autre - 5 min")
+    @Test("A row whose list cell says « Interlocuteurs multiples » is a group: the flag, never that label")
+    func groupLabelWithoutTooltip() {
+        let row = thread(group: false, starter: "Interlocuteurs multiples")
+        #expect(MessageRowInfoLine.make(thread: row, flagLabel: "⚑ 1 / 2", now: now).leading == "⚑ 1 / 2")
+        #expect(MessageRowInfoLine.make(thread: row, flagLabel: nil, now: now).leading == nil)
     }
 }

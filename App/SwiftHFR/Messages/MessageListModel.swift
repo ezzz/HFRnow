@@ -29,6 +29,8 @@ struct MessageListContent: Sendable, Equatable {
     var hasNext: Bool
     /// HFR's last page (`navigation.last`, a lower bound when HFR's pager is a window), at least `page`: « page x / y » of the pager.
     var pageCount: Int
+    /// `PageNavigation.isExact` (HFR's pager is a window); « page x / y+ » when false.
+    var pageCountIsExact: Bool
     /// Why there is no row, when there is none.
     var emptyReason: EmptyReason?
     /// The page's "new private message" link (`md_btn_new_topic`, `R13a`), resolved on the forum; nil when absent.
@@ -38,12 +40,13 @@ struct MessageListContent: Sendable, Equatable {
     var unreadCount: Int { threads.filter(\.isUnread).count }
 
     init(
-        threads: [PrivateMessageThread], page: Int, hasNext: Bool, pageCount: Int? = nil, emptyReason: EmptyReason?,
-        newMessageURL: URL? = nil
+        threads: [PrivateMessageThread], page: Int, hasNext: Bool, pageCount: Int? = nil, pageCountIsExact: Bool = true,
+        emptyReason: EmptyReason?, newMessageURL: URL? = nil
     ) {
         self.threads = threads
         self.page = page
         self.pageCount = max(pageCount ?? page, page)
+        self.pageCountIsExact = pageCountIsExact
         self.hasNext = hasNext
         self.emptyReason = emptyReason
         self.newMessageURL = newMessageURL
@@ -54,6 +57,7 @@ struct MessageListContent: Sendable, Equatable {
         page = list.navigation.current
         hasNext = list.navigation.nextPath != nil
         pageCount = max(list.navigation.last, list.navigation.current + (list.navigation.nextPath == nil ? 0 : 1))
+        pageCountIsExact = list.navigation.isExact || list.navigation.nextPath == nil
         emptyReason = list.threads.isEmpty ? .nothing : nil
         newMessageURL = list.newMessagePath.flatMap { HFRURL.absolute($0) }
     }
@@ -210,10 +214,12 @@ final class MessageListModel {
 
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
-    /// Pages in the list; 1 before the first load.
+    /// Pages in the list and whether that is the real last page (`MessageListContent`); 1 and true before the first load.
     var pageCount: Int { loader.value?.pageCount ?? 1 }
+    var pageCountIsExact: Bool { loader.value?.pageCountIsExact ?? true }
     var canGoToPrevious: Bool { currentPage > 1 && !loader.isLoading }
     var canGoToNext: Bool { (loader.value?.hasNext ?? false) && !loader.isLoading }
+    var canGoToLast: Bool { canGoToNext && pageCountIsExact }
 
     /// The list became visible: first load, or a refresh, because reading a conversation elsewhere changes its unread state.
     /// Rows stay meanwhile.
@@ -234,12 +240,10 @@ final class MessageListModel {
     /// Going back never searches forward: the member asked for that page.
     func goToPreviousPage() async { if canGoToPrevious { await load(page: currentPage - 1, advancing: false) } }
     func goToFirstPage() async { if canGoToPrevious { await load(page: 1) } }
-    /// The last page HFR's pager gives; the member asked for it, so nothing is searched past it.
-    func goToLastPage() async { await goToPage(pageCount) }
-
-    /// Page `page` (clamped to 1...`pageCount`) of the list, exactly that one HFR page; nothing is searched past it.
+    func goToLastPage() async { if canGoToLast { await goToPage(pageCount) } }
+    /// Exactly HFR page `page`, nothing searched past it; clamped to 1...`pageCount` unless that is only a lower bound.
     func goToPage(_ page: Int) async {
-        let target = min(max(page, 1), pageCount)
+        let target = pageCountIsExact ? min(max(page, 1), pageCount) : max(page, 1)
         guard target != currentPage, !loader.isLoading else { return }
         await load(page: target, advancing: false)
     }

@@ -15,7 +15,8 @@ struct MessageRowInfoLine: Equatable {
     /// What the row shows. `flagLabel` is the group's MPStorage position (`MessageListModel.flagLabel(for:)`).
     static func make(thread: PrivateMessageThread, flagLabel: String?, now: Date = .now) -> MessageRowInfoLine {
         let leading: String?
-        if thread.isGroup {
+        // The same group test as the avatar: a span without tooltip stays non-group in the parser but reads « Interlocuteurs multiples ».
+        if MessageRowView.avatarSubject(of: thread).isGroup {
             leading = flagLabel
         } else {
             let who = thread.summary.starterOrInterlocutors.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,7 +46,4 @@ struct MessageRowInfoLine: Equatable {
             .day(.twoDigits).month(.twoDigits).year()
         return date.formatted(style)
     }
-
-    /// VoiceOver reads the visible order: left side, then right side.
-    var spoken: String { [leading, trailing].compactMap { $0 }.joined(separator: ", ") }
 }

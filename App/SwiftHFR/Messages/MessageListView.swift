@@ -162,7 +162,7 @@ private struct EmptyMessagesView: View {
     }
 }
 
-/// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
+/// The list's pager: « page x / y » (y+ when HFR's pager does not give the real last page) with its menu, and the ‹ › pills.
 @MainActor private struct MessagePageBar {
     let model: MessageListModel
 
@@ -171,8 +171,8 @@ private struct EmptyMessagesView: View {
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
             next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
-            last: .init(enabled: model.canGoToNext) { Task { await model.goToLastPage() } },
-            status: model.loader.isLoading ? .loading : .pageOf(model.currentPage, model.pageCount),
+            last: .init(enabled: model.canGoToLast) { Task { await model.goToLastPage() } },
+            status: model.loader.isLoading ? .loading : .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
             jump: { page in Task { await model.goToPage(page) } }
         )
     }

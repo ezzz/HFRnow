@@ -24,7 +24,7 @@ struct PagerToolbar {
     enum Status {
         case page(Int)
         /// « page x / y » in its own glass pill, left of the ‹ › pills; a tap opens `PagerPageMenu` when `jump` is set (#968, #980).
-        case pageOf(Int, Int)
+        case pageOf(Int, Int, isExact: Bool = true)
         case loading
     }
 
@@ -60,7 +60,8 @@ struct PagerToolbar {
     private var statusView: some View {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
-        case .pageOf(let number, let total): PagerPageMenuPill(current: number, total: total, onPage: jump)
+        case .pageOf(let number, let total, let isExact):
+            PagerPageMenuPill(current: number, total: total, isExact: isExact, onPage: jump)
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }

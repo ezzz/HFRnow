@@ -43,4 +43,13 @@ struct PagerPageMenuTests {
         #expect(menu.page(fromEntry: "huit") == nil)
         #expect(menu.page(fromEntry: "") == nil)
     }
+
+    @Test func aLowerBoundTotalHidesLastPageLabelsItWithAPlusAndAcceptsLaterPages() {
+        let menu = PagerPageMenu(current: 1, total: 10, isExact: false)
+        #expect(!menu.canGoLast && menu.canGoNext && menu.canEnterPage)
+        #expect(menu.label == "page 1 / 10+")
+        #expect(menu.page(fromEntry: "23") == 23)
+        #expect(menu.page(fromEntry: "0") == nil)
+        #expect(PagerPageMenu(current: 1, total: 10).label == "page 1 / 10")
+    }
 }
