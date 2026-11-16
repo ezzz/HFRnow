@@ -69,19 +69,24 @@ struct ComposerLayoutHostedTests {
         #expect(abs(card.height - layout.textCardHeight) < 1, "card \(card.height), textCardHeight \(layout.textCardHeight)")
     }
 
-    /// The title never sits under a floating button, at the default size or an accessibility one, and each button keeps a
-    /// 44 pt hit area although its capsule is drawn smaller (operator, 2026-11-13).
+    /// No title strip (#972): close and drafts on the left, send on the right, in one row directly above the card, each keeping
+    /// a 44 pt hit area although its capsule is drawn smaller (operator, 2026-11-13), at the default size and an accessibility one.
     @Test(arguments: [DynamicTypeSize.large, .accessibility3])
-    func theTitleNeverSitsUnderAFloatingButton(size: DynamicTypeSize) async throws {
+    func theFloatingButtonsSitAboveTheCardWithNoTitle(size: DynamicTypeSize) async throws {
         guard isPhone else { return }
         let box = try await host(size: size, text: "Bonjour")
-        let title = try #require(box.frames[.title])
-        #expect(title.width > 0)
-        for part in [ComposerLayoutProbe.Part.close, .drafts, .send] {
-            let button = try #require(box.frames[part], "\(part) is shown")
-            #expect(!button.intersects(title), "\(part) \(button), title \(title)")
+        #expect(box.frames[.title] == nil, "no title is drawn")
+        let card = try #require(box.frames[.card])
+        let close = try #require(box.frames[.close])
+        let drafts = try #require(box.frames[.drafts])
+        let send = try #require(box.frames[.send])
+        for (part, button) in [("close", close), ("drafts", drafts), ("send", send)] {
             #expect(button.width >= ComposerHeader.hitSize - 0.5 && button.height >= ComposerHeader.hitSize - 0.5, "\(part) \(button)")
+            #expect(button.maxY <= card.minY + 0.5, "\(part) \(button), card \(card)")
         }
+        #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
+        #expect(drafts.maxX < 402 / 2 && send.minX > 402 / 2, "drafts \(drafts), send \(send)")
+        #expect(abs(close.midY - send.midY) < 0.5, "one row: close \(close), send \(send)")
     }
 
     /// The modern composer's margins as laid out (#895): the text card is `FloatingSpacing.gap` from the window's sides, and the
