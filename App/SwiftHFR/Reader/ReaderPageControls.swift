@@ -8,15 +8,16 @@ import SwiftUI
 // visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the lists' pager (#565); at the end of a page the
 // bubble is its own pill between ‹ › and refresh + reply (operator, #961). GAP-060.
 /// The reader's bottom bar, topic and private conversation alike (#836): ‹ ›, then at the end of the page the page bubble and
-/// the refresh, and the reply button; three pills (#961): ‹ ›, the bubble alone, refresh + reply. Legacy promotes › at the end
-/// of a page that is not the last, and the refresh at the end of the last page.
+/// the refresh, and the reply button; three pills (#961): ‹ ›, the bubble alone, refresh + reply. Legacy fills › (and the refresh)
+/// with the accent; here no pill is filled, and an arrow is accent only when its move exists, grey and disabled otherwise (#965).
 enum ReaderBottomBar {
     /// What the bar shows for one scroll position.
     struct State: Equatable {
         var showsPageBubble: Bool
         var showsRefresh: Bool
-        var promotesNext: Bool
-        var promotesRefresh: Bool
+        /// A move to the previous / next page exists (#965): ‹ is greyed and disabled on the first page, › on the last.
+        var canGoPrevious: Bool
+        var canGoNext: Bool
         /// The reply button is drawn (setting, login and answer form allow it).
         var showsReply = true
 
@@ -24,8 +25,13 @@ enum ReaderBottomBar {
         /// the right. An empty pill is not drawn, and the bubble keeps its own pill with or without the others.
         var leading: [Control] { [.previous, .next] }
         var centre: [Control] { showsPageBubble ? [.pageBubble] : [] }
+        var previousTint: ArrowTint { canGoPrevious ? .accent : .grey }
+        var nextTint: ArrowTint { canGoNext ? .accent : .grey }
         var trailing: [Control] { (showsRefresh ? [.refresh] : []) + (showsReply ? [.reply] : []) }
     }
+
+    /// The colour of an arrow (#965): the accent only when its move is possible, grey otherwise. No pill is filled with the accent.
+    enum ArrowTint: Equatable { case accent, grey }
 
     /// One control of the bar.
     enum Control: Hashable { case previous, next, pageBubble, refresh, reply }
@@ -33,10 +39,9 @@ enum ReaderBottomBar {
     /// `atPageEnd`: the page's end is on screen (legacy `isWebContentAtBottom`). VoiceOver users get the bubble everywhere:
     /// hiding it is visual only (#820).
     static func state(currentPage: Int, maxPage: Int, atPageEnd: Bool, voiceOver: Bool, showsReply: Bool = true) -> State {
-        let isLastPage = currentPage >= maxPage
         return State(
             showsPageBubble: atPageEnd || voiceOver, showsRefresh: atPageEnd,
-            promotesNext: atPageEnd && !isLastPage, promotesRefresh: atPageEnd && isLastPage,
+            canGoPrevious: currentPage > 1, canGoNext: currentPage < maxPage,
             showsReply: showsReply
         )
     }
@@ -135,32 +140,40 @@ struct ReaderPageButtons {
     @ViewBuilder
     func view(for control: ReaderBottomBar.Control, page: ReaderPage, state: ReaderBottomBar.State) -> some View {
         switch control {
-        case .previous: previous(page)
-        case .next: next(page, prominent: state.promotesNext)
+        case .previous: previous(page, state: state)
+        case .next: next(page, state: state)
         case .pageBubble: bubble(page)
-        case .refresh: refreshButton(prominent: state.promotesRefresh)
+        case .refresh: refreshButton()
         case .reply: reply()
         }
     }
 
     /// Legacy ‹ opens the previous page at its last message (`navigateToPreviousPageFromBottomButton`, :4960-4964).
-    func previous(_ page: ReaderPage) -> some View {
+    /// Greyed and disabled on the first page; a disabled button is "indisponible" to VoiceOver (#965).
+    func previous(_ page: ReaderPage, state: ReaderBottomBar.State) -> some View {
         Button("Page précédente", systemImage: "chevron.backward") {
             Task { await model.goToPage(page.currentPage - 1, atLastMessage: true) }
         }
-        .disabled(!model.canGoToPrevious || model.isLoading || model.suspendsPageInteractions)
+        .foregroundStyle(Self.color(state.previousTint))
+        .disabled(!state.canGoPrevious || model.isLoading || model.suspendsPageInteractions)
     }
 
-    func next(_ page: ReaderPage, prominent: Bool) -> some View {
+    /// Greyed and disabled on the last page (#965).
+    func next(_ page: ReaderPage, state: ReaderBottomBar.State) -> some View {
         Button("Page suivante", systemImage: "chevron.forward") {
             Task { await model.goToPage(page.currentPage + 1) }
         }
-        .readerBarProminence(prominent)
-        .disabled(!model.canGoToNext || model.isLoading || model.suspendsPageInteractions)
+        .foregroundStyle(Self.color(state.nextTint))
+        .disabled(!state.canGoNext || model.isLoading || model.suspendsPageInteractions)
     }
 
-    func refreshButton(prominent: Bool) -> some View {
-        ReaderRefreshButton(model: model, refresh: refresh).readerBarProminence(prominent)
+    /// No solid accent fill on any pill (#965): only an arrow carries the accent.
+    private static func color(_ tint: ReaderBottomBar.ArrowTint) -> Color {
+        tint == .accent ? .accentColor : .secondary
+    }
+
+    func refreshButton() -> some View {
+        ReaderRefreshButton(model: model, refresh: refresh)
     }
 
     func reply() -> some View {
@@ -191,14 +204,6 @@ struct ReaderRefreshButton: View {
     var body: some View {
         Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
             .disabled(model.isLoading || model.suspendsPageInteractions)
-    }
-}
-
-extension View {
-    /// Legacy `topicBottomBarButtonStyle(isProminent:)`: the next useful action is drawn prominent.
-    @ViewBuilder
-    func readerBarProminence(_ prominent: Bool) -> some View {
-        if prominent { buttonStyle(.glassProminent) } else { self }
     }
 }
 
