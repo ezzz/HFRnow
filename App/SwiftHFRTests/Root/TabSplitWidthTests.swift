@@ -1,5 +1,6 @@
 import HFRModels
 import HFRNetwork
+import HFRStorage
 @testable import SwiftHFR
 import SwiftUI
 import Testing
@@ -59,9 +60,11 @@ struct TabSplitWidthTests {
         return own + controller.children.flatMap { splitViews(in: $0) }
     }
 
-    /// `root` in a Pro Max-in-landscape window (932 × 430, regular width, compact height), deciding for `idiom`.
+    /// `root` in a Pro Max-in-landscape window (932 × 430, regular width, compact height), deciding for `idiom`. The accounts
+    /// model is there as `RootView` puts it: the Catégories list's account button reads it, and SwiftUI traps without it.
     private func hostInLandscape<Root: View>(_ root: Root, idiom: UIUserInterfaceIdiom) throws -> (UIWindow, UIViewController) {
-        let host = UIHostingController(rootView: root.environment(\.tabSplitIdiom, idiom))
+        let accounts = makeModel(store: InMemoryCredentialStore())
+        let host = UIHostingController(rootView: root.environment(\.tabSplitIdiom, idiom).environment(accounts))
         host.traitOverrides.horizontalSizeClass = .regular
         host.traitOverrides.verticalSizeClass = .compact
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
