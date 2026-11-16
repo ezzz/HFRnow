@@ -80,8 +80,7 @@ struct ComposerEditorCard: View {
             }
             .accessibilityLabel(model.isNewMessage || model.isNewTopic || model.isEdit ? "Texte du message" : "Texte de la réponse")
             .onChange(of: selection) { _, newValue in
-                guard let newValue else { return }
-                formatting.selectedRange = Self.range(of: newValue, in: model.text)
+                formatting.selectedRange = Self.syncedRange(newValue, current: formatting.selectedRange, in: model.text)
             }
             .onChange(of: formatting.cursorRevision) {
                 // The edit already changed the text: place the caret where the engine says, never at the end.
@@ -113,6 +112,12 @@ struct ComposerEditorCard: View {
     }
 
     private static func end(of text: String) -> NSRange { NSRange(location: text.utf16.count, length: 0) }
+
+    /// The range the model keeps after the editor reported `selection`: a nil selection (focus lost) keeps `current` (#910).
+    static func syncedRange(_ selection: TextSelection?, current: NSRange, in text: String) -> NSRange {
+        guard let selection else { return current }
+        return range(of: selection, in: text)
+    }
 
     /// The first selected range as a UTF-16 `NSRange`.
     private static func range(of selection: TextSelection, in text: String) -> NSRange {
