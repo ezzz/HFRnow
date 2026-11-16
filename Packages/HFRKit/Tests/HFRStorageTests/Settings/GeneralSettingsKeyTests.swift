@@ -67,29 +67,39 @@ import Testing
     }
 }
 
-/// The key #899 added: the last Messages switch position, seeded once from the retired « Affichage des MP » setting.
-@Suite struct MPListSegmentKeyTests {
-    @Test func absentWithoutTheOldSettingReadsAsAll() {
-        #expect(SettingKey.mpListSegment(from: InMemorySettingsStore()) == .all)
+/// The per-account key #899 added: the last Messages switch position, seeded once from the retired `mp_list_display`.
+@Suite struct MPListSegmentStoreTests {
+    @Test func noAccountOrAnEmptyOneReadsAsAll() {
+        let store = MPListSegmentStore(settings: InMemorySettingsStore(["mp_list_display": .string("split")]))
+        #expect(store.segment(for: nil) == .all)
+        #expect(store.segment(for: "\u{200B}") == .all)
     }
 
     @Test(arguments: [("single", MPSegment.all), ("split", .oneToOne), ("two", .all)])
     func absentSeedsFromTheOldSetting(old: String, expected: MPSegment) {
-        let store = InMemorySettingsStore(["mp_list_display": .string(old)])
-        #expect(SettingKey.mpListSegment(from: store) == expected)
+        let store = MPListSegmentStore(settings: InMemorySettingsStore(["mp_list_display": .string(old)]))
+        #expect(store.segment(for: "Alice") == expected)
     }
 
-    @Test func aStoredChoiceWinsOverTheOldSetting() {
-        let store = InMemorySettingsStore(["mp_list_display": .string("split")])
-        store.set(MPSegment.group, for: SettingKey.mpListSegment)
-        #expect(store.rawValue(forKey: "mp_list_segment") == .string("group"))
-        #expect(SettingKey.mpListSegment(from: store) == .group)
+    @Test func accountsKeepDifferentChoicesUnderTheirAccountKey() {
+        let settings = InMemorySettingsStore(["mp_list_display": .string("split")])
+        let store = MPListSegmentStore(settings: settings)
+        store.set(.group, for: "Alice")
+        #expect(settings.rawValue(forKey: "mp_list_segment.alice") == .string("group"))
+        #expect(store.segment(for: "ALICE") == .group)
+        // Bob has stored nothing: the retired setting seeds him, not Alice's choice.
+        #expect(store.segment(for: "Bob") == .oneToOne)
+        store.set(.all, for: "Bob")
+        #expect(store.segment(for: "Bob") == .all)
+        #expect(store.segment(for: "Alice") == .group)
     }
 
     @Test(arguments: [SettingRawValue.string(""), .string("everything"), .int(1), .bool(true)])
     func anUnknownStoredValueReadsAsAll(raw: SettingRawValue) {
-        let store = InMemorySettingsStore(["mp_list_display": .string("split"), "mp_list_segment": raw])
-        #expect(SettingKey.mpListSegment(from: store) == .all)
+        let store = MPListSegmentStore(settings: InMemorySettingsStore(
+            ["mp_list_display": .string("split"), "mp_list_segment.alice": raw]
+        ))
+        #expect(store.segment(for: "Alice") == .all)
     }
 }
 

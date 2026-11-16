@@ -88,15 +88,6 @@ public enum SettingKey {
     /// `mp_list_display` (LOT-171, new key; retired by #899, now read only to seed `mp_list_segment`): "Tout en un" (`single`,
     /// default) or "Deux listes" (`split`). An unknown value reads as the default.
     public static let mpListDisplay = Setting.stringEnum("mp_list_display", default: MPListDisplay.single).synced
-    /// `mp_list_segment` (#899, new key): the last Messages switch position, Tous (default), MP or MP multiples. An unknown
-    /// value reads as Tous. Device-only UI state, like `HFRswiftGlobalTopicListFlag`.
-    public static let mpListSegment = Setting.stringEnum("mp_list_segment", default: MPSegment.all)
-    /// The switch position to show: `mp_list_segment` when stored, else seeded once from the retired `mp_list_display`
-    /// (« Tout en un » is Tous, « Deux listes » is MP), else Tous.
-    public static func mpListSegment(from store: any SettingsStore) -> MPSegment {
-        guard store.rawValue(forKey: mpListSegment.key) == nil else { return store.value(for: mpListSegment) }
-        return store.value(for: mpListDisplay) == .split ? .oneToOne : .all
-    }
     /// `reply_button_behavior` (`master` @21173e7 `Common.swift:243-263`, added after 2440d79): `quick` (default), `forum` or
     /// `hidden`. An unknown value reads as the default, like legacy's `?? .quick`. Added by LOT-086.
     public static let replyButtonBehavior = Setting.stringEnum("reply_button_behavior", default: ReplyButtonBehavior.quick).synced
@@ -233,7 +224,7 @@ public enum SettingKey {
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
-        privateMessageBadge, startupScreen, mpListDisplay, mpListSegment, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
+        privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,

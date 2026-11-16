@@ -120,8 +120,8 @@ final class RootModel {
     ) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
-            privateMessageCount: count
+            renderOptions: environment.reader.settings.renderOptions, settings: store,
+            account: environment.currentAccountName, mpStorage: mpStorage, privateMessageCount: count
         )
     }
 

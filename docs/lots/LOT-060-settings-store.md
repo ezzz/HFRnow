@@ -49,7 +49,7 @@ Four preferences were added to the legacy app on `origin/master` after the audit
 | `HFRswiftStartupScreen` | String `tab:categories` / `tab:favorites` / `tab:messages` | `tab:favorites` | `Common.swift:32-37`, `AppSettingsView.swift:88` | synced (LOT-119) |
 | `open_links_in_default_browser` | Bool | false | `Common.swift:239-240`, `AppSettingsView.swift:95` | synced (LOT-119) |
 | `mp_list_display` | String enum (`single` / `split`) | `single` | new key, LOT-171 (no legacy counterpart) | synced (LOT-171); retired by #899, read only to seed `mp_list_segment` |
-| `mp_list_segment` | String enum (`all` / `oneToOne` / `group`) | `all` (else seeded from `mp_list_display`) | new key, #899 (no legacy counterpart) | device |
+| `mp_list_segment.<account key>` | String enum (`all` / `oneToOne` / `group`) | `all` (else seeded from `mp_list_display`) | new per-account key, #899, outside the catalogue like `mpstorage.<account key>` (`MPListSegmentStore`) | device |
 | `topic_page_swipe_navigation` | Bool | true | `Common.swift:235-236`, `AppSettingsView.swift:94` | synced |
 | `reply_button_behavior` | String `quick` / `forum` / `hidden` | `quick` | `Common.swift:243-248`, `AppSettingsView.swift:106` | synced |
 

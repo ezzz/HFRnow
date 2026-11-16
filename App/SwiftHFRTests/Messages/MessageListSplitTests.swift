@@ -21,8 +21,8 @@ struct MessageListSplitTests {
     private func model(
         _ source: FakePrivateMessages, segment: MPSegment = .all, store: InMemorySettingsStore = InMemorySettingsStore()
     ) -> MessageListModel {
-        store.set(segment, for: SettingKey.mpListSegment)
-        return MessageListModel(source: source, isLoggedIn: { true }, settings: store)
+        MPListSegmentStore(settings: store).set(segment, for: "Alice")
+        return MessageListModel(source: source, isLoggedIn: { true }, settings: store, account: "Alice")
     }
 
     @Test func defaultShowsEveryRowOfTheListUnchanged() async {
@@ -239,7 +239,7 @@ struct MessageListSplitTests {
     }
 
     @Test func aFreshInstallOpensOnTous() async {
-        let model = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: InMemorySettingsStore())
+        let model = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: InMemorySettingsStore(), account: "Alice")
         #expect(model.segment == .all)
         await model.onAppear()
         #expect(model.visibleThreads.count == 2)
@@ -248,36 +248,64 @@ struct MessageListSplitTests {
 
     @Test func theLastChoiceIsRememberedAcrossModels() async {
         let store = InMemorySettingsStore()
-        let first = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        let first = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
         await first.onAppear()
         await first.select(.group)
-        #expect(store.rawValue(forKey: "mp_list_segment") == .string("group"))
-        let relaunched = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        #expect(store.rawValue(forKey: "mp_list_segment.alice") == .string("group"))
+        let relaunched = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
         #expect(relaunched.segment == .group)
     }
 
     @Test(arguments: [("single", MPSegment.all), ("split", .oneToOne)])
     func theRetiredDisplaySettingSeedsTheFirstChoiceOnce(old: String, expected: MPSegment) async {
         let store = InMemorySettingsStore(["mp_list_display": .string(old)])
-        let first = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        let first = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
         #expect(first.segment == expected)
         await first.select(.group)
         // The old key is ignored from now on, whatever it says.
         store.set(expected == .all ? MPListDisplay.split : .single, for: SettingKey.mpListDisplay)
-        #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store).segment == .group)
+        #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice").segment == .group)
     }
 
     @Test func theSeedIsStoredSoALaterChangeOfTheOldKeyIsIgnored() {
         let store = InMemorySettingsStore(["mp_list_display": .string("split")])
-        _ = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        _ = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
         store.set(MPListDisplay.single, for: SettingKey.mpListDisplay)
-        let rebuilt = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        let rebuilt = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
         #expect(rebuilt.segment == .oneToOne)
     }
 
+    @Test func twoAccountsKeepTheirOwnChoiceAndLoggedOutReadsTous() async {
+        let store = InMemorySettingsStore()
+        let alice = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        let bob = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Bob")
+        await alice.select(.group)
+        await bob.select(.oneToOne)
+        // Each account's rebuilt list shows its own last choice.
+        for (name, expected) in [("Alice", MPSegment.group), ("Bob", .oneToOne)] {
+            let rebuilt = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: name)
+            #expect(rebuilt.segment == expected)
+        }
+        let signedOut = MessageListModel(source: FakePrivateMessages(), settings: store)
+        #expect(signedOut.segment == .all)
+        await signedOut.select(.group)
+        #expect(MessageListModel(source: FakePrivateMessages(), settings: store, account: "Bob").segment == .oneToOne)
+    }
+
+    @Test func theSeedAppliesOncePerAccount() async {
+        let store = InMemorySettingsStore(["mp_list_display": .string("split")])
+        let alice = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        await alice.select(.group)
+        #expect(alice.segment == .group)
+        // Bob is seeded from the retired setting on his own first use, not from Alice's choice.
+        #expect(MessageListModel(source: FakePrivateMessages(), settings: store, account: "Bob").segment == .oneToOne)
+        store.set(MPListDisplay.single, for: SettingKey.mpListDisplay)
+        #expect(MessageListModel(source: FakePrivateMessages(), settings: store, account: "Bob").segment == .oneToOne)
+    }
+
     @Test func anUnknownStoredChoiceReadsAsTous() {
-        let store = InMemorySettingsStore(["mp_list_segment": .string("everything"), "mp_list_display": .string("split")])
-        #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store).segment == .all)
+        let store = InMemorySettingsStore(["mp_list_segment.alice": .string("everything"), "mp_list_display": .string("split")])
+        #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice").segment == .all)
     }
 
     @Test func tousCountsTheUnreadRowsOfBothSegments() async {
@@ -310,7 +338,7 @@ struct MessageListSplitTests {
         await model.onAppear()
         await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
         #expect(model.segment == .oneToOne)
-        #expect(store.rawValue(forKey: "mp_list_segment") == .string("group"))
+        #expect(store.rawValue(forKey: "mp_list_segment.alice") == .string("group"))
     }
 
     @Test func theSegmentRulesFollowTheParsedGroupFlag() {

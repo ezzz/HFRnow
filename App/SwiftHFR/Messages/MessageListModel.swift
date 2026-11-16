@@ -70,8 +70,8 @@ final class MessageListModel {
         didSet { if selected == nil { currentReader = nil } }
     }
 
-    /// The switch position: the last choice (`mp_list_segment`, #899), Tous the first time (or the old « Affichage des MP »
-    /// setting's translation, `SettingKey.mpListSegment(from:)`).
+    /// The switch position: the current account's last choice (`MPListSegmentStore`, #899), Tous the first time (or the old
+    /// « Affichage des MP » setting's translation), Tous when logged out.
     private(set) var segment: MPSegment = .all
     /// Pages after the first that a segment's search may load by itself, so an empty segment cannot walk a whole mailbox.
     static let maxAutoAdvance = 5
@@ -99,8 +99,10 @@ final class MessageListModel {
     private let isLoggedIn: @Sendable () async -> Bool
     private let topicPages: any TopicPageSource
     private let renderOptions: @Sendable () -> ReaderRenderOptions
-    /// Where the switch position is kept (`mp_list_segment`); nil keeps it in memory only.
-    private let settings: (any SettingsStore)?
+    /// Where the switch position is kept, per account; nil keeps it in memory only.
+    private let segments: MPListSegmentStore?
+    /// The account whose choice this list shows (a new account rebuilds the root, so it never changes); nil logged out.
+    private let account: String?
     /// Threads whose last page was shown, each with the number of the load that was the newest when it was opened. A load
     /// brings HFR's own state back only for the threads opened before it started.
     private var openedThreads: [String: Int] = [:]
@@ -119,20 +121,22 @@ final class MessageListModel {
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         settings: (any SettingsStore)? = nil,
+        account: String? = nil,
         mpStorage: MPStorageSyncModel? = nil,
         privateMessageCount: PrivateMessageCount? = nil
     ) {
         self.mpStorage = mpStorage
         self.privateMessageCount = privateMessageCount
-        self.settings = settings
+        segments = settings.map(MPListSegmentStore.init(settings:))
+        self.account = account
         self.source = source
         self.isLoggedIn = isLoggedIn
         self.topicPages = topicPages
         self.renderOptions = renderOptions
         // The first read seeds the new key from the retired setting and stores it, so the old key is never read again.
-        if let settings {
-            segment = SettingKey.mpListSegment(from: settings)
-            settings.set(segment, for: SettingKey.mpListSegment)
+        if let segments {
+            segment = segments.segment(for: account)
+            if let account { segments.set(segment, for: account) }
         }
     }
 
@@ -160,7 +164,7 @@ final class MessageListModel {
     /// `remember` is false for a change the app makes (a sent message's row), which is not the member's last choice.
     func chooseSegment(_ segment: MPSegment, remember: Bool = true) {
         self.segment = segment
-        if remember { settings?.set(segment, for: SettingKey.mpListSegment) }
+        if remember, let account { segments?.set(segment, for: account) }
         dropSelectionHiddenBySegment()
         // A search for the previous segment is stopped, not left to walk on for this one.
         // `loadCount` moves too, so the cancelled load's own follow-up (openedThreads, signed-out check) is dropped.

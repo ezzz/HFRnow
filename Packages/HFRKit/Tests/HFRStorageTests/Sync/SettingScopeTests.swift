@@ -7,7 +7,7 @@ import Testing
     static let matrix: [String: SettingScope] = [
         "vos_sujets": .synced, "sujets_avec_cat": .synced, "favorites_auto_refresh": .synced,
         "HFRswiftStartupScreen": .synced, "open_links_in_default_browser": .synced,
-        "topic_page_swipe_navigation": .synced, "mp_list_display": .synced, "mp_list_segment": .device, "reply_button_behavior": .synced,
+        "topic_page_swipe_navigation": .synced, "mp_list_display": .synced, "reply_button_behavior": .synced,
         "auto_theme": .synced, "theme": .synced, "theme_style": .synced,
         "theme_day_color_action": .synced, "theme_night_color_action": .synced,
         "theme_day_color_love": .synced, "theme_night_color_love": .synced,
