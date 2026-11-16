@@ -9,9 +9,9 @@ import UIKit
 /// (`ParseMessagesOperation.m:176, 430-446` @ 2440d79): download when the cache has no avatar of the author or it is older than 24 h.
 ///
 /// Downloads go through `AnonymousAvatarLoader` (cookie-less, `forum-images.hardware.fr` over HTTPS, no redirect, 256 KiB cap).
-/// The image-loading choice (Réglages › Expérimental, #902) does not gate them: forum avatars are first-party under the image policy (LOT-071 D-071-1
-/// point 3), the reader shows them whatever the setting says, and legacy downloaded them unconditionally. A failed download keeps
-/// the previous file (`AvatarCache` writes atomically and never deletes on a miss).
+/// The image-loading choice (Réglages › Expérimental, #902) does not gate them: forum avatars are first-party under the image
+/// policy (LOT-071 D-071-1 point 3), the reader shows them whatever the setting says, and legacy downloaded them
+/// unconditionally. A failed download keeps the previous file (`AvatarCache` writes atomically and never deletes on a miss).
 actor AvatarStore {
     private let cache: AvatarCache
     private let loader: any AvatarLoading
