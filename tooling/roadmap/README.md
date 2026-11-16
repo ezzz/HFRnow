@@ -67,7 +67,7 @@ The routine runs it on Monday and Thursday at 05:30 Europe/Paris (#892). Slides,
    écarté) and the ones added since; a radar of where it concentrates (all and open); bottom right, one tile per end-of-M4
    review (`REVIEWS`: #774, #775, #836, #326, #866) with its goal and the issues labelled with its `m4-review:` label.
 6. **M5 en détail**: the M5 lots and issues as tiles by category (the radar axes; past six categories the smallest share
-   the last tile, none is dropped), a category radar, and a bottom band
+   the last tile, none is dropped; a `FEAT-0xx` intake issue is left out, its lot stands for it), a category radar, and a bottom band
    listing the open SwiftHFR issues outside every milestone, by kind, hidden when there is none.
 
 Tiles are solid blue → violet gradients stacked like mah-jong tiles (`.tile`, `.pile`): a visible edge drawn by offset
