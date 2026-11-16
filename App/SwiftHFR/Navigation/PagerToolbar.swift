@@ -24,6 +24,16 @@ struct PagerToolbar {
         case loading
     }
 
+    /// The enabled page steps as named actions, for the list's accessibility actions (#898): the bar can be hidden, the pages stay reachable.
+    var pageActions: [(name: LocalizedStringKey, action: () -> Void)] {
+        var actions: [(name: LocalizedStringKey, action: () -> Void)] = []
+        if first.enabled { actions.append(("Première page", first.action)) }
+        if previous.enabled { actions.append(("Page précédente", previous.action)) }
+        if next.enabled { actions.append(("Page suivante", next.action)) }
+        if let last, last.enabled { actions.append(("Dernière page", last.action)) }
+        return actions
+    }
+
     /// The system bottom-bar items, for the iPad sidebar root (no tab bar, nothing to overlap).
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
@@ -102,25 +112,83 @@ extension EnvironmentValues {
     }
 }
 
+/// When a list's pager shows (#898): only once the list is scrolled to its end, so it takes no room above where one reads. A pure
+/// rule, so it is tested without a scroll view.
+enum PagerVisibility {
+    /// How far from the end still counts as the end (rubber band, a half-visible last row's separator).
+    static let tolerance: CGFloat = 24
+
+    /// Points left to scroll down. The bottom inset is part of the range on both sides, so the pager's own safe-area bar
+    /// appearing does not move the end. Zero or negative: the end is visible (a list shorter than the screen is always there).
+    static func distanceFromEnd(offsetY: CGFloat, containerHeight: CGFloat, contentHeight: CGFloat, bottomInset: CGFloat) -> CGFloat {
+        contentHeight + bottomInset - containerHeight - offsetY
+    }
+
+    /// VoiceOver keeps the bar so the page actions never depend on a scroll position.
+    static func isShown(distanceFromEnd: CGFloat, voiceOver: Bool) -> Bool {
+        voiceOver || distanceFromEnd <= tolerance
+    }
+
+    /// The short appear/disappear animation; none under Reduce Motion.
+    static func animation(reduceMotion: Bool) -> Animation? {
+        reduceMotion ? nil : .smooth(duration: 0.25)
+    }
+}
+
 private struct PagerBarModifier: ViewModifier {
     @Environment(\.rootHasTabBar) private var rootHasTabBar
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// True until the first geometry says otherwise: a list that has not been measured yet is not scrolled away from anything.
+    @State private var distanceFromEnd: CGFloat = 0
     let pager: PagerToolbar?
     let hidden: Bool
 
+    private var shown: Bool { PagerVisibility.isShown(distanceFromEnd: distanceFromEnd, voiceOver: voiceOver) }
+
     @ViewBuilder
     func body(content: Content) -> some View {
+        let tracked = content
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                PagerVisibility.distanceFromEnd(
+                    offsetY: geometry.contentOffset.y, containerHeight: geometry.containerSize.height,
+                    contentHeight: geometry.contentSize.height, bottomInset: geometry.contentInsets.bottom
+                )
+            } action: { _, distance in
+                // Only the crossing matters: a state write per scroll frame would redraw the list for nothing.
+                guard (distance <= PagerVisibility.tolerance) != (distanceFromEnd <= PagerVisibility.tolerance) else { return }
+                withAnimation(PagerVisibility.animation(reduceMotion: reduceMotion)) { distanceFromEnd = distance }
+            }
+            .modifier(PagerActions(pager: pager))
         switch PagerPlacement(rootHasTabBar: rootHasTabBar) {
         case .bottomBar:
-            content.toolbar {
-                if let pager { pager.toolbarContent }
-            }
+            tracked
+                .toolbar {
+                    if let pager { pager.toolbarContent }
+                }
+                .toolbar(shown ? .visible : .hidden, for: .bottomBar)
         case .inset:
             // Always attached, with empty content when there is nothing to show: attaching it only when a pager exists would change
             // the identity of `content` (search focus, list scroll) each time the results or the focus change.
-            content.safeAreaBar(edge: .bottom) {
-                if let pager, !hidden { pager.strip.padding(.vertical, 4) }
+            tracked.safeAreaBar(edge: .bottom) {
+                if let pager, !hidden, shown {
+                    pager.strip.padding(.vertical, 4).transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
+    }
+}
+
+/// The page steps as accessibility actions of the list, so hiding the bar is visual only (#898).
+private struct PagerActions: ViewModifier {
+    let pager: PagerToolbar?
+
+    func body(content: Content) -> some View {
+        var view = AnyView(content)
+        for step in pager?.pageActions ?? [] {
+            view = AnyView(view.accessibilityAction(named: Text(step.name), step.action))
+        }
+        return view
     }
 }
 
