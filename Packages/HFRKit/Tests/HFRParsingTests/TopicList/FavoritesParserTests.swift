@@ -55,8 +55,8 @@ struct FavoritesDifferentialTests {
 
         for (index, (row, legacy)) in zip(rows, legacyRows).enumerated() {
             let context = Comment(rawValue: "\(name) row \(index)")
-            // D4: the title stays raw; legacy's "TU" rewrite applied to it gives the oracle's title.
-            #expect(LegacyTitleRewrite.filterTU(row.title) == legacy.aTitle, context)
+            // D4: the title stays raw; the shipped TopicTitle.displayed (#818) applied to it gives the oracle's title.
+            #expect(TopicTitle.displayed(row.title) == legacy.aTitle, context)
             // The resume path (flag link, else last post) is legacy's `aURL`; the title link is its first page.
             #expect(row.path == legacy.aURL, context)
             #expect(row.firstPagePath == legacy.aURLOfFirstPage, context)
