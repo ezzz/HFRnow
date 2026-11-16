@@ -102,10 +102,10 @@ import Testing
     @Test func aStateChangeKeepsTheFunctionsOff() {
         let store = MPStorageSyncStateStore(settings: InMemorySettingsStore())
         store.set(.on, for: "Alice", at: Self.date)
-        store.setFunction(.blacklist, enabled: false, for: "Alice")
+        store.setFunction(.ignoreList, enabled: false, for: "Alice")
         store.set(.off, for: "Alice", at: Self.date)
         store.set(.on, for: "Alice", at: Self.date)
-        #expect(store.record(for: "Alice")?.isEnabled(.blacklist) == false)
+        #expect(store.record(for: "Alice")?.isEnabled(.ignoreList) == false)
     }
 
     @Test func switchingTheLastFunctionBackOnWritesTheOriginalShape() {
@@ -115,6 +115,17 @@ import Testing
         store.setFunction(.bookmarks, enabled: false, for: "Alice")
         store.setFunction(.bookmarks, enabled: true, for: "Alice")
         #expect(settings.rawValue(forKey: "mpstorage.alice") == .string(#"{"decidedAt":"2027-01-15T08:00:00Z","state":"on"}"#))
+    }
+
+    /// The case was renamed, its stored name was not: a `disabled` list written by an earlier build still decodes (#859).
+    @Test func theStoredLegacyNameDecodesToTheIgnoreListFunction() throws {
+        #expect(MPStorageFunction.ignoreList.rawValue == "blacklist")
+        #expect(MPStorageFunction(rawValue: "blacklist") == .ignoreList)
+        let settings = InMemorySettingsStore(
+            ["mpstorage.alice": .string(#"{"decidedAt":"2027-01-15T08:00:00Z","disabled":["blacklist"],"state":"on"}"#)])
+        let record = try #require(MPStorageSyncStateStore(settings: settings).record(for: "Alice"))
+        #expect(!record.isEnabled(.ignoreList))
+        #expect(record.isEnabled(.bookmarks))
     }
 
     @Test func aFunctionNameOfANewerBuildIsKept() {

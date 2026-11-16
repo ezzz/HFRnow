@@ -14,8 +14,9 @@ public enum MPStorageSyncState: String, Sendable, Hashable, Codable, CaseIterabl
 
 /// What MPStorage does for an account, one switch each (#859). Legacy had one switch for all (`mpstorage_active`).
 public enum MPStorageFunction: String, Sendable, Hashable, CaseIterable {
-    /// The shared blacklist (LOT-131).
-    case blacklist
+    /// The shared list of ignored pseudos (LOT-131). The raw value is the MPStorage section's wire name and what `disabled`
+    /// stores: it must stay `blacklist`, or records already written would no longer decode.
+    case ignoreList = "blacklist"
     /// Bookmarks of messages (LOT-132).
     case bookmarks
     /// The read position of group MPs, "MP multiples → dark topic" (#858).

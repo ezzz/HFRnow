@@ -90,7 +90,7 @@ enum MPStorageFunctionInfo {
 
     static func title(_ function: MPStorageFunction) -> String {
         switch function {
-        case .blacklist: "Liste noire partagée"
+        case .ignoreList: "Liste noire partagée"
         case .bookmarks: "Favoris de messages"
         case .mpFlags: "MP multiples → dark topic"
         }
@@ -99,7 +99,7 @@ enum MPStorageFunctionInfo {
     /// What it does, what it stores in the MP, what turning it off does.
     static func explanation(_ function: MPStorageFunction) -> String {
         switch function {
-        case .blacklist:
+        case .ignoreList:
             "Synchronise la liste noire avec vos autres appareils et applications. Elle est stockée dans le MP de stockage. "
                 + "Désactivée, cette application ne lit ni n'écrit la liste noire dans le MP ; rien n'y est supprimé."
         case .bookmarks:
