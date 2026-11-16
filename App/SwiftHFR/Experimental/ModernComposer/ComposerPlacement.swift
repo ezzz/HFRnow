@@ -71,19 +71,22 @@ struct DockedComposerHeightKey: PreferenceKey {
 struct DockedComposerBar: ViewModifier {
     let isDocked: Bool
     let height: ComposerHeight
-    /// The floating buttons' row as laid out (the composer's top bar), 0 before it is measured.
-    var buttonsHeight: CGFloat = 0
+    /// The floating buttons' row as laid out (`ComposerButtonsHeightKey`), 0 before it is measured.
+    @State private var buttonsHeight: CGFloat = 0
 
     /// Where the bar's fill starts, from its top: under the buttons' row at partial height, the top at full height.
-    static func fillStart(height: ComposerHeight, buttonsHeight: CGFloat) -> CGFloat {
+    nonisolated static func fillStart(height: ComposerHeight, buttonsHeight: CGFloat) -> CGFloat {
         height == .partial ? max(0, buttonsHeight) : 0
     }
 
     func body(content: Content) -> some View {
         if isDocked {
             content
+                // The action is `@Sendable` (iOS 18.2 SDK on): it writes through the state's binding.
+                .onPreferenceChange(ComposerButtonsHeightKey.self) { [buttons = $buttonsHeight] in buttons.wrappedValue = $0 }
                 .background(alignment: .top) {
                     Rectangle().fill(.background)
+                        .composerProbe(.fill)
                         .padding(.top, Self.fillStart(height: height, buttonsHeight: buttonsHeight))
                         .ignoresSafeArea()
                 }
@@ -93,5 +96,14 @@ struct DockedComposerBar: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+/// The modern composer's floating buttons' row height, reported to the docked bar (#972) so its fill starts under the row.
+struct ComposerButtonsHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

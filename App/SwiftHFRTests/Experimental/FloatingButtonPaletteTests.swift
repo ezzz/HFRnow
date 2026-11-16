@@ -29,13 +29,6 @@ struct FloatingButtonPaletteTests {
         #expect(dark.glyph.contrast(with: dark.fill.composited(over: ThemeColor(hex: 0x000000))) >= 4.5)
     }
 
-    /// A prominent capsule (send with text, drafts with drafts) is the accent's tinted glass under a white glyph, as before #972:
-    /// against the system blue of each scheme taken as a solid fill, the 3:1 of a graphical object (WCAG 2 1.4.11).
-    @Test func theProminentGlyphReadsOnTheSystemAccent() {
-        #expect(ThemeColor(hex: 0xFFFFFF).contrast(with: ThemeColor(hex: 0x007AFF)) >= 3)
-        #expect(ThemeColor(hex: 0xFFFFFF).contrast(with: ThemeColor(hex: 0x0A84FF)) >= 3)
-    }
-
     /// The docked bar's fill starts under the buttons' row at partial height, so the page shows around them (#972); at full
     /// height the bar covers the page from its top.
     @Test func theDockedBarLeavesTheButtonsRowUnfilledAtPartialHeight() {

@@ -7,6 +7,8 @@ struct ComposerLayoutProbe {
         case title, close, drafts, send, card, editor, controls
         /// The recipient and subject fields; the close button's glyph as drawn (#895).
         case fields, closeGlyph
+        /// The reader's docked bar's opaque fill (#972).
+        case fill
     }
 
     let frame: @MainActor (Part, CGRect) -> Void

@@ -24,11 +24,12 @@ struct ComposerLayoutHostedTests {
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
     private func host(
-        size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([]))
+        size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([])),
+        placement: ComposerPlacement = .sheet
     ) async throws -> ProbeBox {
         let box = ProbeBox()
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
-        let view = ReplyComposerView(model: model) { _ in }
+        let view = ReplyComposerView(model: model, placement: placement) { _ in }
             .environment(\.dynamicTypeSize, size)
             .environment(\.composerLayoutProbe, box.probe)
             .appTypography(TextScale(percent: 100), density: .regular)
@@ -92,6 +93,20 @@ struct ComposerLayoutHostedTests {
         let insets = ComposerChrome.docked.headerInsets(glyph: glyph)
         guard size == .large else { return }
         #expect(abs(box.layout.top - (ComposerHeader.hitSize + insets.top + insets.bottom)) < 0.5, "top \(box.layout.top)")
+    }
+
+    /// The reader's docked bar leaves the buttons' row unfilled (#972): its opaque fill starts at the row's bottom edge, so the
+    /// page shows around the buttons, and covers the card.
+    @Test func theDockedBarsFillStartsUnderTheButtonsRow() async throws {
+        guard isPhone else { return }
+        let box = try await host(size: .large, text: "Bonjour", placement: .docked)
+        let fill = try #require(box.frames[.fill])
+        let close = try #require(box.frames[.close])
+        let card = try #require(box.frames[.card])
+        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+        let rowBottom = close.maxY + ComposerChrome.docked.headerInsets(glyph: glyph).bottom
+        #expect(abs(fill.minY - rowBottom) < 0.5, "fill \(fill), close \(close)")
+        #expect(fill.minY <= card.minY + 0.5 && fill.maxY >= card.maxY - 0.5, "fill \(fill), card \(card)")
     }
 
     /// The modern composer's margins as laid out (#895): the text card is `FloatingSpacing.gap` from the window's sides, and the

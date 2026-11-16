@@ -46,6 +46,10 @@ struct FloatingComposerButtons: View {
         .accessibilityLabel(title)
         // The capsules sit `FloatingSpacing.gap` from the sides, the page and the card: their hit areas' slack counts (#895).
         .padding(ComposerChrome.docked.headerInsets(glyph: glyph))
+        // Where the docked bar's fill starts (#972, `DockedComposerBar`).
+        .background {
+            GeometryReader { Color.clear.preference(key: ComposerButtonsHeightKey.self, value: $0.size.height) }
+        }
     }
 
     private var sendButton: some View {
