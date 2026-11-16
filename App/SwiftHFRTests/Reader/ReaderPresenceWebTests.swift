@@ -22,6 +22,21 @@ struct ReaderPresenceWebTests: ReaderWebTesting {
         #expect(await until({ recorder.ready == [1] }, timeout: .seconds(120)), "ready: \(recorder.ready)")
     }
 
+    /// Issue #908: the model's reload after a write delivers while the reader is stopped. The web view coming back shows that
+    /// newer document, not the one the stop cut (before the fix: the old text stayed).
+    @Test func aDocumentHandedWhileStoppedIsTheOneShownWhenTheReaderComesBack() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        let window = try #require(recorder.window)
+        controller.webView.removeFromSuperview()
+        controller.show(document(token: 1))
+        controller.stopLoading()
+        controller.show(document(token: 2, content: "<p>after-edit</p>"))
+        window.addSubview(controller.webView)
+        #expect(await until({ recorder.ready.contains(2) }, timeout: .seconds(120)), "ready: \(recorder.ready)")
+        #expect(controller.document?.token == 2)
+        #expect(!recorder.ready.contains(1))
+    }
+
     /// The same sequence through the lifecycle calls: the disappearance out of a window leaves, the window brings it back.
     @Test func aDisappearanceBeforeTheWindowLeavesAndTheWindowBringsTheReaderBack() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())

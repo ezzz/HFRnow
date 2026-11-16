@@ -8,6 +8,13 @@ extension ReaderWebController {
         stoppedDocument = nil
     }
 
+    /// `show` while stopped loads nothing, but keeps the latest document it was handed (a reload after a write, #908), so the
+    /// screen coming back shows that one, not the one the stop cut.
+    func hold(_ document: ReaderDocument) {
+        ReaderLog.debug("show skipped token=\(document.token): stopped")
+        if document.token != stoppedDocument?.token { stoppedDocument = document }
+    }
+
     /// SwiftUI's `onAppear`: the screen is back (`resume()`).
     func viewAppeared() {
         disappeared = false

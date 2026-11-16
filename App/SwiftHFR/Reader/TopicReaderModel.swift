@@ -71,6 +71,10 @@ final class TopicReaderModel {
     private var requestedFollowsPager = false
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
+    /// The reload a confirmed or unconfirmed write asked for and that has not delivered yet (#908): a disappearance that stops
+    /// it (`viewDidDisappear`) leaves it owed, and the screen coming back runs it, so the result of a send is never lost to a
+    /// page that stays as it was before the write. Any newer load that delivers settles it.
+    private(set) var owedFollowUp: WriteFollowUp?
 
     /// Where reading positions go (LOT-111); nil when logged out or in a preview.
     @ObservationIgnored var positions: (any ReaderPositionRecording)?
@@ -150,8 +154,9 @@ final class TopicReaderModel {
     var hasShownDocument: Bool { readyToken != nil }
 
     /// First appearance: loads the target once. A view that appears again (rotation, column change) loads nothing, unless
-    /// nothing is shown, loading or failed (a load stopped when a view went away): then it loads again. `viewer` names the
-    /// view that appears, which becomes the one whose disappearance may stop a load (`viewDidDisappear`).
+    /// nothing is shown, loading or failed (a load stopped when a view went away): then it loads again. A write's reload that
+    /// a disappearance stopped (`owedFollowUp`, #908) runs again too. `viewer` names the view that appears, which becomes the
+    /// one whose disappearance may stop a load (`viewDidDisappear`).
     func onAppear(viewer: Int? = nil) async {
         // A `.task` whose view already went away (a quick tab flick) must not take the load over from the view still there.
         guard !Task.isCancelled else { return }
@@ -164,6 +169,10 @@ final class TopicReaderModel {
         ReaderLog.debug(
             "appear model=\(debugID) viewer=\(viewer ?? -1) page=\(page != nil) loading=\(isLoading) error=\(error != nil)"
         )
+        if let owedFollowUp, page != nil, !isLoading {
+            await runOwed(owedFollowUp)
+            return
+        }
         guard page == nil, !isLoading, error == nil || waitExpired else {
             watchWait()
             return
@@ -350,7 +359,10 @@ final class TopicReaderModel {
     /// `page`, this very page (`W31`, `W32`), and past the end it redirects to the last page (`R24`).
     func reloadPage(at post: Int?) async {
         guard let shown else { return }
-        await load(shown.atPage(shown.page), keepsScrollPosition: post == nil, anchor: post.map(AnchorRule.message) ?? .target)
+        await load(
+            shown.atPage(shown.page), keepsScrollPosition: post == nil, anchor: post.map(AnchorRule.message) ?? .target,
+            followUp: .page(message: post)
+        )
     }
 
     /// After a reply: opens the topic's last page at its last message, where HFR appends a reply (`R61d`). The page after
@@ -365,20 +377,31 @@ final class TopicReaderModel {
     func showLatestPost() async {
         guard let page, let shown else { return }
         guard page.topicID?.category == .privateMessages else {
-            await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage)
+            await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage, followUp: .latestPost)
             return
         }
-        await loadLatestPage(shown.atPage(page.maxPage))
+        await loadLatestPage(shown.atPage(page.maxPage), followUp: .latestPost)
     }
 
     /// Loads `target` at its last message, then the page its pager names when it is later (a reply opened it). "Réessayer"
-    /// after a failure comes back here, so the follow-up is not lost.
-    private func loadLatestPage(_ target: ReaderTarget) async {
-        let delivered = await load(target, keepsScrollPosition: false, anchor: .lastMessage, followsPager: true)
+    /// after a failure comes back here, so the follow-up is not lost. `followUp` stays owed until the last of the two delivers.
+    private func loadLatestPage(_ target: ReaderTarget, followUp: WriteFollowUp? = nil) async {
+        let delivered = await load(
+            target, keepsScrollPosition: false, anchor: .lastMessage, followsPager: true, followUp: followUp
+        )
         // Only when that load delivered (not superseded, no failure) and its pager names a later page.
         guard delivered, error == nil, let served = page, let servedTarget = shown,
               served.maxPage > served.currentPage else { return }
-        await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage)
+        await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage, followUp: followUp)
+    }
+
+    /// Runs the reload a write still owes (#908): the screen came back after a disappearance stopped it.
+    private func runOwed(_ followUp: WriteFollowUp) async {
+        ReaderLog.debug("owed follow-up model=\(debugID)")
+        switch followUp {
+        case .page(let post): await reloadPage(at: post)
+        case .latestPost: await showLatestPost()
+        }
     }
 
     /// Stops the load in flight; the content stays.
@@ -454,6 +477,14 @@ final class TopicReaderModel {
 
     // MARK: - Loading
 
+    /// The reload a write asks for once its composer closed (#908).
+    enum WriteFollowUp: Equatable {
+        /// The page on screen, at this message (an edit) or where the user was (a delete).
+        case page(message: Int?)
+        /// The latest message of the topic or the conversation (a reply).
+        case latestPost
+    }
+
     /// Where a loaded document opens.
     private enum AnchorRule: Equatable {
         /// At the target's own anchor, when the page holds it.
@@ -464,14 +495,17 @@ final class TopicReaderModel {
         case message(Int)
     }
 
-    /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it).
+    /// Returns whether this load delivered its result (false when a newer load or `cancel()` superseded it). `followUp` is
+    /// what this load owes a write (#908); a load without one, once it delivers, settles any older one too.
     @discardableResult
     private func load(
-        _ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target, followsPager: Bool = false
+        _ target: ReaderTarget, keepsScrollPosition: Bool, anchor rule: AnchorRule = .target, followsPager: Bool = false,
+        followUp: WriteFollowUp? = nil
     ) async -> Bool {
         task?.cancel()
         generation += 1
         let mine = generation
+        if let followUp { owedFollowUp = followUp }
         requested = target
         requestedAnchor = rule
         requestedFollowsPager = followsPager
@@ -522,6 +556,8 @@ final class TopicReaderModel {
         guard mine == generation else { return }
         isLoading = false
         task = nil
+        // Delivered, page or failure: what a write owed is settled (a failure shows "Réessayer", which asks the same page).
+        owedFollowUp = nil
         switch result {
         case .success(let loaded):
             let source = loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
