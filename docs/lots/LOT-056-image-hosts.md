@@ -61,7 +61,7 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 | Host (subdomains) | Rule | Source |
 |---|---|---|
 | `reho.st` (yes) | `Referer: https://forum.hardware.fr/` (with a trailing slash; legacy sends the same value without it); extension-less; `/thumb/` to `/` | legacy `MessagesView.swift:5748-5762`; E26 captured `T20`-`T24`, `T30`-`T33` |
-| `img3.super-h.fr` (no) | extension-less; `.th.` removed from the file name under `/images/` | legacy `MessagesView.swift:2202-2215` |
+| `img3.super-h.fr` (no) | extension-less; `.th.` and `.md.` (medium, #917) removed from the file name under `/images/` | legacy `MessagesView.swift:2202-2215` |
 | `rehost.diberie.com` (no) | extension-less; `/Picture/Get/t/` to `/Picture/Get/f/` | legacy `MessagesView.swift:2202-2215` |
 | `hostingpics.net`, `casimages.com`, `free.fr`, `photorapide.com`, `camif.fr`, `hn.org` (yes) | `observedHTTPOnly` | LOT-071 (captures `R20`, `R21`, `R22a`) |
 
@@ -77,6 +77,8 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
   other URL unchanged. The legacy code did a text replacement on the whole URL.
 - Blocking private/LAN hosts and non-image `*.hardware.fr` paths (D-071-1 point 1) is **not** here: it belongs to the reader (LOT-083),
   before any request.
+
+**Medium rendition (#917).** `.md.` is removed like `.th.`. Source (**code**, not verified): `Classes/RehostImage.m:328-343` @ `87fe0d1c` (example Chevereto answer with `"medium": {"filename": "example.md.png", …}`), read at `:366-368`; the legacy upload-history sample holding `….md.jpg` is synthetic, not a capture. Capture wanted: #922. No other host has a sourced medium rendition (`reho.st`, `rehost.diberie.com`, the http-only hosts): not sourced, no rule. If the full-size fetch fails the viewer shows the medium it was given (`ImageViewerModel.download`).
 
 ## Edge cases
 
