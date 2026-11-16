@@ -71,7 +71,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
 | GAP-050 | Page rendering | WKWebView with per-message HTML template, CSS and jQuery. | MessagesView.swift:646; HTML/templatev2.htm:1-17 | WKWebView from an app scheme, strict CSP, no page script, one `article` per message. | LOT-083 | ported with changes | port: ezzz Swift layer | a |
-| GAP-051 | Message header | Grey band: 30 px avatar, 13 px bold pseudo, 9 px date, "+" actions button. | HTML/templatev2.htm:2-8; HTML/style-liste-light.css:165-168, 199-243 | Avatar, pseudo and date on one line, actions in a menu. | LOT-083, LOT-087 | UX change | new UX: spec | b |
+| GAP-051 | Message header | Grey band: 30 px avatar, 13 px bold pseudo, 9 px date, "+" actions button. | HTML/templatev2.htm:2-8; HTML/style-liste-light.css:165-168, 199-243 | Avatar, pseudo and date on one line; the legacy "+" actions button again, in the accent colour (#594). | LOT-083, LOT-087 | UX change | new UX: spec | b |
 | GAP-052 | Classic / modern message style | "Style des messages" setting switches header and padding. | AppSettingsView.swift:402-406; MessagesView.swift:1363 | Layout setting of the reader display settings. | LOT-106 | same | port: ezzz Swift layer | a |
 | GAP-053 | Body text size | 15 pt injected over the 13 px stylesheet, scaled by the text-size picker only. | MessagesView.swift:1455-1460; HTML/style-liste.css:304-309 | `-apple-system-body`: Dynamic Type plus the app offset. | LOT-083, LOT-169 | UX change | new UX: operator | b·operator |
 | GAP-054 | Signatures | Hidden unless `display_sig` is on. | OnlineMessagesTableViewController.m:1608-1613 | Same setting, off by default. HFR's 15-dash separator before a signature is dropped (only that one; legacy removed every occurrence in the message) and nothing else changes. | LOT-083, LOT-106 | ported with changes | port: legacy ObjC | a |
@@ -80,11 +80,11 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-057 | Image viewer | Full-screen zoom of one image; save, copy link. | Common.swift:2161; MessagesView.swift:1255-1275 | Viewer plus HD gallery with swipe between images. | LOT-109, FEAT-014 | UX change | new UX: Bybifok (FEAT-014) | b |
 | GAP-058 | Videos | At `2440d79` embeds become auto-loaded iframes. At `2fe43da3` no embeds: a video link stays a plain link and the "Afficher les vidéos" setting is gone (`d645f525`). | Wrapped/LinkItem.m:148-155 @ 2440d79 (removed by `d645f525`) | Placeholder per embed, player opens on tap; the YouTube player alone gets a `Referer` that names the app (LOT-071 R3 exception, #752); an unavailable video shows "Vidéo indisponible" and "Ouvrir le lien". | LOT-108, LOT-035, #752 | UX change | new UX: spec | b·needed |
 | GAP-059 | Polls | Toolbar button when a poll exists; sheet with results and "Voter". | MessagesView.swift:4675-4680; PollView.swift:82-106 | Poll display and vote. | LOT-136 | same | port: ezzz Swift layer | a |
-| GAP-060 | Page controls | Bottom bar ‹ ›, "…" menu with page 1, last pages, "Page…". | MessagesView.swift:4184-4235, 4756-4760 | Page bar first / previous / "Page N / M" / next / last; HFR's served page is followed. The page items are also in the top "…" overflow (#582). | LOT-083, LOT-167 | ported with changes | port: ezzz Swift layer | b |
+| GAP-060 | Page controls | Bottom bar ‹ ›, "…" menu with page 1, last pages, "Page…". | MessagesView.swift:4184-4235, 4756-4760 | Page bar ‹ › / "N / M" page menu / reply; HFR's served page is followed. The page menus (bubble and top "…") use legacy's labels: Page 1, Page …, last pages, Dernier post (#821). Above the tab bar when it shows (#649). | LOT-083, LOT-167 | ported with changes | port: ezzz Swift layer | b |
 | GAP-061 | Page navigator | "Page…" asks for a number in a sheet. | MessagesView.swift:4143-4146 | Navigator from the page number in the title: go to, first/last, ±5, blocks of 50. | LOT-110, FEAT-002 | UX change | new UX: Bybifok (FEAT-002) | b |
 | GAP-062 | Page scrubber | None. | — | Right-edge scrubber, "p. N" bubble, first-unread snap, haptics. | LOT-112, FEAT-004 | new | new UX: Bybifok (FEAT-004) | b |
 | GAP-063 | First unread | Separator inserted after the flag message (dashed in the base stylesheet). | ObjCTopicMessageContentBuilder.m:25-33; HTML/style-liste.css:124-125 | "Nouveau" banner, position stable while images load. | LOT-111, FEAT-007 | UX change | new UX: Bybifok (FEAT-007) | b |
-| GAP-064 | Message actions | "+" menu: Citer, multi-quote, Éditer, Profil, MP, BL/WL, Lien, Alerter, AQ, Bookmark, Supprimer. | MessagesView.swift:111-135, 196-307 | Same actions through a typed JS bridge; popover anchored at the tapped "⋯", titled "Post de <pseudo>" (#594); Alerter is LOT-135's; AQ, Bookmark pending LOT-134, 132. | LOT-087 | ported with changes | port: ezzz Swift layer | a |
+| GAP-064 | Message actions | "+" menu: Citer, multi-quote, Éditer, Profil, MP, BL/WL, Lien, Alerter, AQ, Bookmark, Supprimer. | MessagesView.swift:111-135, 196-307 | Same actions through a typed JS bridge; the system's horizontal edit-menu callout at the tapped "+", paging with "›" (#594); Alerter is LOT-135's; AQ, Bookmark pending LOT-134, 132. | LOT-087 | ported with changes | port: ezzz Swift layer | a |
 | GAP-065 | Link handling | Every forum URL opened as a topic; other links in Safari view. | Common.swift:2044-2090 | Router sends each HFR URL to its screen in the app; others in Safari view. | LOT-095, LOT-137 | UX change | new UX: operator | b·operator |
 | GAP-066 | Blacklist / whitelist in reader | Blacklisted collapsed or hidden, whitelisted highlighted. | MessagesView.swift:3652-3690 | Visibility policy in the reader. | LOT-117 | same | port: ezzz Swift layer | a |
 | GAP-067 | Filter posts | Posts quoted N times, own or whitelisted authors; "Résultats suivants". | MessagesView.swift:3946-3990; FavoritePostFilterService.swift:10-49 | Filtered-posts flow (keeps page 1's first message) and view. | LOT-093, LOT-114 | ported with changes | port: ezzz Swift layer | a |
@@ -127,7 +127,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-101 | Session expiry while composing | Toast "Session expirée"; text kept. | ReplyService.swift:12, 22 | Expiry sheet; resent after re-login only when HFR confirmed nothing was posted. | LOT-142, FEAT-009 | UX change | new UX: Bybifok (FEAT-009) | b |
 | GAP-102 | "+" button modes | At `2440d79` no modes, "+" means new topic. At `2fe43da3` (`08a63c8e`) a "Bouton +" setting (Réponse rapide, default; Répondre comme le forum; Pas d'icône; key `reply_button_behavior`) drives a floating reply button on topic pages, and "Répondre" is in the "…" menu. | MainWindow.swift:748-752; Common.swift:261-280, AppSettingsView.swift:481-485 @ 2fe43da3 | Floating reply button with its "Bouton +" setting, same values (#654, M4). | #654 | same | port: ezzz Swift layer | a·master |
 | GAP-703 | Archived drafts on the update | Kept per topic, 3 archived per topic, in `reply_drafts_by_topic_v1`, beside the active draft of each topic. | AnswerView.swift:137-272 @ 2fe43da3 | Not imported by the update: they stay in the legacy `UserDefaults`, never deleted; the active draft of each topic is imported and becomes the topic's reply draft when it opens (LOT-067, decision D1). | LOT-067 | UX change | new UX: operator | b·operator |
-| GAP-653 | Composer height and controls (iPhone) | Full-screen cover; nothing of the topic is visible while writing. | MessagesView.swift:5429-5443 @ 87fe0d1c | Every composer opens on an iPhone as a card docked on the keyboard, growing with the text up to six lines, with a full-height toggle and inserted images as thumbnails; the control row sits inside the text card's bottom edge, and close, drafts and send are small floating glass capsules, each in a 44 pt hit area (#854; operator 2026-11-13: drawn small as the Claude app's); over the reader the page stays visible and scrollable, its taps ignored while writing; full height in landscape and on iPad, where the composer keeps legacy's top bar and the control row under the card. | LOT-174, #653, #854 | UX change | operator 2026-11-08 (#653), 2026-11-12 and 2026-11-13 (#854) | b·operator |
+| GAP-653 | Composer height and controls (iPhone) | Full-screen cover; nothing of the topic is visible while writing. | MessagesView.swift:5429-5443 @ 87fe0d1c | Behind Réglages › Expérimental › « Composer moderne » (#903, #904), on by default until #855 makes legacy's full-screen cover the default; off, an iPhone shows the full-height sheet with legacy's top bar and the control row under the card, as an iPad. With the option on: every composer opens on an iPhone as a card docked on the keyboard, growing with the text up to six lines, with a full-height toggle and inserted images as thumbnails; the control row sits inside the text card's bottom edge, and close, drafts and send are small floating glass capsules, each in a 44 pt hit area (#854; operator 2026-11-13: drawn small as the Claude app's); over the reader the page stays visible and scrollable, its taps ignored while writing; full height in landscape and on iPad, where the composer keeps legacy's top bar and the control row under the card. | LOT-174, #653, #854, #903 | UX change | operator 2026-11-08 (#653), 2026-11-12 and 2026-11-13 (#854) | b·operator |
 
 ## Private messages
 
@@ -178,6 +178,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-153 | Smiley size, video rows | Rows commented out, no effect. | AppSettingsView.swift:422-432 | Not ported. | LOT-119 | dropped | new UX: spec | — |
 | GAP-209 | Pseudo lists after a toggle from the profile | profile sheet dismissed, `loadPage(page)` (`MessagesView.swift:3663-3694`) | `MessagesView.swift:3663` | Sheet stays open with the sentence under the buttons; reader rebuilds on close, no request | #209 | UX change | none | b |
 | GAP-729 | Theme gallery | Two themes, light and dark, with the accent hue and the dark brightness. | Constants.h Theme; AppSettingsView.swift:421-466 @ 87fe0d1c | Galerie de thèmes sous les réglages de Réglages › Thème : familles, pastilles clair et sombre, nom, « par <auteur> », coche ; un thème est un fichier de jetons `<id>.theme.json` ; Legacy, par défaut, est l'app actuelle, inchangée (teinte, style sombre et luminosité réservés à Legacy). | LOT-188 | new | new UX: operator | b·operator |
+| GAP-903 | Experimental options | None. | — | Section « Expérimental » at the end of Réglages, in sub-menus by theme, each switch with an ⓘ explanation; device keys, off by default (the modern composer stays on until #855). Lists only options whose two paths exist: today « Composer moderne » (#904); « Recherche dans la barre » (#896), « Stockage MP détaillé » (#859), « Lignes avec icônes de drapeau » (#905, after #817) and « Chargement des images » (#902) appear with their PRs. | #903 | new | new UX: operator 2026-11-14 | b·operator |
 
 ## Accounts
 
@@ -199,7 +200,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
-| GAP-180 | Offline topics | Topic pages and images saved for offline reading. | OfflineStorage.m:41-60, 88-103 | Save, list and evict offline pages. | LOT-068, LOT-139 | ported with changes | port: legacy ObjC | a |
+| GAP-180 | Offline topics | Topic pages and images saved for offline reading. | OfflineStorage.m:41-60, 88-103 | Disabled (operator 2026-11-14, #822, as legacy): no entry reaches offline saving or the saved topics (reader overflow, progress banner, Réglages › Hors ligne); the code and the pages already saved stay for a later design (#846), marked `DISABLED(offline, #822)`. | LOT-068, LOT-139, #822, #903 | dropped | operator decision 2026-11-14 (#822) | — |
 | GAP-181 | MPStorage switch | App-wide `mpstorage_active`, "Resynchroniser". | AppSettingsView.swift:225-262 | Per-account state unasked / on / declined / off; merge, never replace. | LOT-130 | UX change | new UX: operator | b·needed |
 | GAP-182 | Blacklist sync | Through the MPStorage thread. | MPStorage.m:202, 230, 271 | Three-way merge, never overwritten by an empty list. | LOT-131, LOT-062 | ported with changes | port: legacy ObjC | a |
 | GAP-183 | Bookmarks sync | Written synchronously to MPStorage. | MPStorage.m:313, 359 | Local first, merged on next sync. | LOT-132, LOT-062 | ported with changes | port: legacy ObjC | a |
@@ -271,13 +272,13 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | Gap | Rows |
 |---|---|
 | same | 38 |
-| ported with changes | 56 |
+| ported with changes | 55 |
 | ported with changes (engine only) | 1 |
 | UX change | 49 |
-| new | 27 |
-| dropped | 2 |
+| new | 28 |
+| dropped | 3 |
 | not planned | 3 |
-| **Total** | **176** |
+| **Total** | **177** |
 
 ## Convergence notes
 
@@ -311,10 +312,10 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 180, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 51 |
+| a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230 | 50 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750, 799 | 26 |
+| b·operator | 013, 016, 053, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 595, 596, 653, 655, 703, 729, 750, 799, 903 | 27 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).

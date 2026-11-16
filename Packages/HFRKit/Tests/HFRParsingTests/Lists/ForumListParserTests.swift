@@ -10,8 +10,13 @@ struct ForumListParserTests {
     static let captures: [(oracle: String, capture: String)] = [
         ("R01", "R01-home-anon"),
         ("R02", "R02-home-logged-in-unread-mp"),
-        ("R03", "R03-home-logged-in-no-unread-mp")
+        ("R03", "R03-home-logged-in-no-unread-mp"),
+        // The home page after an `unlog.php` without token: still logged in (#70, LOT-044).
+        ("R72b", "R72b-home-after-unlog-without-token")
     ]
+
+    /// The stale-session home page (`R70a`): legacy returned an empty list, the port throws (LOT-021 rule 9).
+    static let staleSession = (oracle: "R70a", capture: "R70a-home-stale-session")
 
     // MARK: - Differential tests (ADR 0004)
 
@@ -33,9 +38,17 @@ struct ForumListParserTests {
 
         // Deviation 1: all categories are returned; legacy dropped "Apple" when logged out. Undo that to compare.
         let comparable = page.forums.filter { page.isLoggedIn || $0.title != "Apple" }
-        let expected = try oracle.result.unwrap().map(Self.category(from:))
+        let expected = try oracle.result.unwrap().map(Self.category(from:)).map(Self.droppingLOT168Removals)
         #expect(comparable == expected)
         #expect(page.forums.count == expected.count + (page.isLoggedIn ? 0 : 1))
+    }
+
+    /// Deviation 12 (LOT-168): the injected « PDA » and « Biblio Links » are not in the REST sub-categories (`R285c`), so the
+    /// table dropped them; undo that by removing them from the oracle's list.
+    private static func droppingLOT168Removals(_ forum: ForumCategory) -> ForumCategory {
+        var forum = forum
+        forum.subforums.removeAll { ["PDA", "Biblio Links"].contains($0.title) }
+        return forum
     }
 
     /// Legacy forum as the new model. Deviation 2: no "all" copy of the parent in `subforums`. Deviation 3: `categoryID`
@@ -56,11 +69,23 @@ struct ForumListParserTests {
         )
     }
 
-    @Test("oracle-map.json declares the three home pages as kind forums")
+    @Test("A page without forum rows: legacy's empty list is a malformed page for the port (R70a, LOT-021 rule 9)")
+    func staleSessionPageThrowsWhereLegacyReturnedNothing() throws {
+        let oracle = try ForumListOracle.load(Self.staleSession.oracle)
+        #expect(oracle.exception == nil)
+        #expect(try oracle.result.unwrap().isEmpty)
+        #expect(throws: ListPageFailure.malformed("no forum row (tr class*=cat)")) {
+            try ForumListParser.parse(try Fixture.capture(Self.staleSession.capture))
+        }
+    }
+
+    @Test("oracle-map.json declares exactly these home pages as kind forums")
     func oracleMap() throws {
         let map = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/LOT-002")
         let entries = try #require(JSONSerialization.jsonObject(with: Data(map.utf8)) as? [String: [String: Any]])
-        for (oracle, capture) in Self.captures {
+        let forums = entries.filter { $0.value["kind"] as? String == "forums" }.keys.map { $0.replacing(".html", with: "") }
+        #expect(Set(forums) == Set(Self.captures.map(\.oracle) + [Self.staleSession.oracle]))
+        for (oracle, capture) in Self.captures + [Self.staleSession] {
             let entry = try #require(entries["\(oracle).html"])
             #expect(entry["kind"] as? String == "forums")
             #expect(entry["path"] as? String == "../captures/\(capture).html")
@@ -155,15 +180,15 @@ struct ForumListParserTests {
 
     // MARK: - Sub-forum injection
 
-    @Test("R02 Programmation: injected sub-forums follow their listed trigger, as legacy")
+    @Test("R02 Programmation: injected sub-forums follow their listed trigger, as legacy (PDA dropped, LOT-168)")
     func injectionOrder() throws {
         let html = try Fixture.capture("R02-home-logged-in-unread-mp")
         let forum = try #require(try ForumListParser.parse(html).forums.first { $0.categoryID == .forum(10) })
         #expect(forum.subforums.map(\.title) == [
-            "C++", "C#/.NET managed", "HTML/CSS", "Java", "Langages fonctionnels", "PDA", "Perl", "PHP", "Python", "Ruby/Rails",
+            "C++", "C#/.NET managed", "HTML/CSS", "Java", "Langages fonctionnels", "Perl", "PHP", "Python", "Ruby/Rails",
             "SQL/NoSQL", "Shell/Batch", "VB/VBA/VBS", "XML/XSL"
         ])
-        // Only 6 of those 14 are links of the page: the others come from the table.
+        // Only 6 of those 13 are links of the page: the others come from the table.
         #expect(forum.subforums.filter { html.contains("href=\"\($0.path)\" class=\"Tableau\"") }.count == 6)
     }
 
@@ -174,7 +199,7 @@ struct ForumListParserTests {
             subforums: [("API", "/hfr/Programmation/API-Win32/liste_sujet-1.htm")]
         ))
         let forum = try #require(try ForumListParser.parse(html).forums.first)
-        #expect(forum.subforums.map(\.title) == ["Divers", "ADA", "Algo", "API", "ASM", "ASP", "Biblio Links", "C"])
+        #expect(forum.subforums.map(\.title) == ["Divers", "ADA", "Algo", "API", "ASM", "ASP", "C"])
     }
 
     @Test("Injections are not duplicated when the page lists the sub-forum itself")

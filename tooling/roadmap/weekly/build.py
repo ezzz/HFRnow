@@ -601,7 +601,7 @@ def slide_m4(D):
     L = M['lots']
     lots = (f'<div class="tile v2"><div class="hd">{icon("flag")}<b class="tt">{MS_NAMES["M4"]}</b></div>'
             f'<div class="big" style="margin-top:14px">{s["done"]}<span style="font-size:30px;opacity:.8"> / {s["total"]} lots</span></div>'
-            f'<div class="nums"><span><b>{L["fait"]}</b>faits</span><span><b>{L["en cours"]}</b>en cours</span><span><b>{L["à faire"]}</b>à faire</span></div>'
+            f'<div class="nums"><span><b>{L["fait"]}</b>{accord(L["fait"], "fait")}</span><span><b>{L["en cours"]}</b>en cours</span><span><b>{L["à faire"]}</b>à faire</span></div>'
             f'<p>Hors lots : {M["issues"]["done"]} / {M["issues"]["total"]} issues M4 fermées.</p></div>')
     since = M['lots_since']
     li = ''.join(f'<li><span>✓ {esc(x)}</span></li>' for x in since[:4])
@@ -633,6 +633,16 @@ def slide_m4(D):
     return page(5, "<b>M4</b> en détail", "Les lots, les retours de test et les revues de fin de M4.", inner)
 
 
+def accord(n, singular):
+    """French agreement with a count: 0 and 1 take the singular, more take the plural (`singular` + « s »)."""
+    return singular + "s" if n > 1 else singular
+
+
+def faites(n):
+    """« faite » or « faites » for a count (see `accord`)."""
+    return accord(n, "faite")
+
+
 def slide_m5(D):
     """Slide 6: M5 contents as tiles by category, the category radar, and the band of the issues outside every milestone."""
     M = D['m5']
@@ -658,7 +668,7 @@ def slide_m5(D):
         band = (f'<div class="card band"><div><b class="n">{len(O["open"])}</b></div><div class="k"><b>Issues hors jalon, ouvertes</b><br>{kinds}</div>'
                 f'<ul>{li}</ul></div>')
     inner = f'<div class="m5"><div class="cats">{tiles}</div>{rad}</div>{band}'
-    return page(6, "<b>M5</b> en détail", f"Les évolutions après M4, par catégorie : {M['done']} faites sur {M['total']}.", inner)
+    return page(6, "<b>M5</b> en détail", f"Les évolutions après M4, par catégorie : {M['done']} {faites(M['done'])} sur {M['total']}.", inner)
 
 
 KIND_FR = {'captures': 'captures', 'bug': 'bugs', 'feature': 'fonctions', 'chore': 'tâches', 'docs': 'docs', 'security': 'sécurité', 'lot': 'lots', 'autre': 'autres'}
@@ -682,7 +692,7 @@ def slide_today(D):
         rows += bar(MS_NAMES[m], s['then'], s['done'], s['total'], f'{pct(s["done"], s["total"])} % {plus(pct(s["done"], s["total"]) - pct(s["then"], s["total"]), "pts")}')
     O = D['outside']
     rows += bar('Hors jalon (issues)', O['then_done'], O['done'], O['total'],
-                f'{O["done"]} / {O["total"]} {plus(O["done"] - O["then_done"], "faites")} · +{O["total"] - O["then_total"]} créées')
+                f'{O["done"]} / {O["total"]} {plus(O["done"] - O["then_done"], faites(O["done"] - O["then_done"]))} · +{O["total"] - O["then_total"]} {accord(O["total"] - O["then_total"], "créée")}')
     oh = ''.join(f'<div class="card">{icon(ic)}<b>{t}</b><p>{p}</p></div>' for ic, t, p in ORCH)
     inner = (f'<div><div class="lbl">Depuis le {day_label(D["since"])}</div><div class="cells">{cells}</div></div>'
              f'<div class="card" style="display:flex;flex-direction:column;gap:12px;padding:20px 30px">{rows}</div>'

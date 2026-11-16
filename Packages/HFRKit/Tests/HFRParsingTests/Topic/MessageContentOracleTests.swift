@@ -55,6 +55,49 @@ struct MessageContentOracleTests {
         }
     }
 
+    /// The LOT-003 oracles computed with other settings (`Fixtures/LOT-003-settings`, LOT-003 "other settings values").
+    static let settingsCases = ["R21-sig-noimg-novid", "R26-sig", "R28-noimg-novid"]
+
+    @Test("The settings case list covers the LOT-003-settings map (LOT-070 gate A)")
+    func settingsCasesCoverTheMap() throws {
+        #expect(Set(try TopicOracle.loadMap(folder: "LOT-003-settings").keys) == Set(Self.settingsCases))
+    }
+
+    /// With `display_sig=yes` legacy keeps HFR's `span.signature`; the normalizer returns it whatever the setting, and the
+    /// app decides whether to show it. Images and videos off are app policies (LOT-107, LOT-108), not compared here.
+    @Test("Signatures equal legacy's with display_sig=yes, and none is kept with display_sig=no", arguments: settingsCases)
+    func signaturesFollowTheSettingsOracle(caseID: String) throws {
+        let map = try TopicOracle.loadMap(folder: "LOT-003-settings")
+        let entry = try #require(map[caseID])
+        let oracle = try TopicOracle.load(caseID, folder: "LOT-003-settings")
+        let blocks = try MessageBlockParser.blocks(in: TopicOracle.capture(for: entry))
+        try #require(blocks.count == oracle.result.messages.count, "\(caseID): block count")
+        let showsSignatures = caseID.contains("-sig")
+        var compared = 0
+        for (block, expected) in zip(blocks, oracle.result.messages) {
+            let label = "\(caseID) message \(expected.index)"
+            let html = try #require(expected.html, "\(label): html")
+            let legacySpan = try SwiftSoup.parseBodyFragment(html).select("span.signature").first()
+            guard showsSignatures else {
+                #expect(legacySpan == nil, "\(label): no signature with display_sig=no")
+                continue
+            }
+            let ours = try MessageContentNormalizer.normalize(contentHTML: block.contentHTML).signatureHTML
+            let legacyText = try legacySpan.map { Self.withoutSeparator(Self.compact(try $0.text())) }
+            #expect(try ours.map { Self.compact(try Self.text(of: $0)) } == legacyText.flatMap { $0.isEmpty ? nil : $0 }, "\(label)")
+            compared += ours == nil ? 0 : 1
+        }
+        // Not vacuous: both pages carry signatures.
+        #expect(!showsSignatures || compared > 0)
+    }
+
+    /// Legacy keeps the `---------------` line HFR puts before a signature; the normalizer drops it.
+    static func withoutSeparator(_ compactText: String) -> String {
+        let separator = String(repeating: "-", count: 15)
+        guard compactText.hasPrefix(separator), !compactText.dropFirst(15).hasPrefix("-") else { return compactText }
+        return String(compactText.dropFirst(15))
+    }
+
     @Test("The corpus totals of LOT-003 RC3.9 are reproduced, so the comparison is not vacuous")
     func corpusTotals() throws {
         let map = try TopicOracle.loadMap()
