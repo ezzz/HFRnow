@@ -48,8 +48,8 @@ public struct RESTBrowsingClient: Sendable {
     }
 
     /// The sub-categories of forum `category` (`R285a`-`R285c`), every one HFR has, or the home page's sub-forums of that
-    /// category (`ForumListParser`) when the REST answer fails. The home page lists only some (Programmation: 13 of 27 with the injection table,
-    /// HFR-PROTOCOL §6b), so the source matters: a REST link names its list by `subcat` number (the `R603d` query), a home
+    /// category (`ForumListParser`) when the REST answer fails. The home page lists only some (Programmation: 13 of 27 with the injection
+    /// table, HFR-PROTOCOL §6b), so the source matters: a REST link names its list by `subcat` number (the `R603d` query), a home
     /// page link by its `/hfr/<cat>/<slug>/` path.
     /// - Throws: `invalidTarget` for a category below 1, before any request; `page(.malformed)` when the home page has no
     ///   such category; then as `categories()`.
