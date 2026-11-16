@@ -5,6 +5,8 @@ import HFRModels
 /// The home page shows only part of the sub-forums of a category; the legacy parser completed the list from a table
 /// keyed on the URL of a listed sub-forum (`ObjCForumsParser.m:111-503`). The REST category counts of capture `R57a`
 /// confirm the added forums exist (see `docs/lots/LOT-021-forum-list-parser.md`), so the table is kept as data.
+/// LOT-168 checked it against the REST sub-categories `R285a`-`R285c` (categories 1, 2 and 10): « PDA » and « Biblio
+/// Links » are not there, so they are dropped; the other categories' entries are not captured yet.
 struct SubforumInjection: Sendable, Equatable {
     /// Path of the listed sub-forum that triggers the injection (exact match, as legacy).
     let trigger: String
@@ -30,7 +32,6 @@ struct SubforumInjection: Sendable, Equatable {
             after: [
                 link("ASM", "Programmation/ASM"),
                 link("ASP", "Programmation/ASP"),
-                link("Biblio Links", "Programmation/BiblioLinks"),
                 link("C", "Programmation/C")
             ]
         ),
@@ -43,7 +44,6 @@ struct SubforumInjection: Sendable, Equatable {
         after(
             "/hfr/Programmation/Java/liste_sujet-1.htm",
             link("Langages fonctionnels", "Programmation/Langages-fonctionnels"),
-            link("PDA", "Programmation/PDA"),
             link("Perl", "Programmation/Perl")
         ),
         after(

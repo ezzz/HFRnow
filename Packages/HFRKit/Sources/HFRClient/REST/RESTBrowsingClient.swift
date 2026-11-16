@@ -48,8 +48,8 @@ public struct RESTBrowsingClient: Sendable {
     }
 
     /// The sub-categories of forum `category` (`R285a`-`R285c`), every one HFR has, or the home page's sub-forums of that
-    /// category (`ForumListParser`) when the REST answer fails. The home page lists only some (Programmation: 14 of 27,
-    /// HFR-PROTOCOL §6b), so the source matters: a REST link names its list by `subcat` number (the `R603d` query), a home
+    /// category (`ForumListParser`) when the REST answer fails. The home page lists only some (Programmation: 13 of 27 with the injection
+    /// table, HFR-PROTOCOL §6b), so the source matters: a REST link names its list by `subcat` number (the `R603d` query), a home
     /// page link by its `/hfr/<cat>/<slug>/` path.
     /// - Throws: `invalidTarget` for a category below 1, before any request; `page(.malformed)` when the home page has no
     ///   such category; then as `categories()`.
@@ -76,6 +76,34 @@ public struct RESTBrowsingClient: Sendable {
             throw .page(.malformed("the home page lists no category \(category)"))
         }
         return RESTBrowsingResult(value: forum.subforums, source: .html(reason))
+    }
+
+    /// `forums` (the home page's categories, `ForumListParser`) with every sub-forum HFR has (LOT-168): the home page stays
+    /// the primary source, and each category's REST sub-categories (`subcategories(in:)`) add the rows the page has no link
+    /// for (`ForumListCompletion`: page links and order kept, the added ones are `subcat` paths). One GET per category with a
+    /// `cat` id, in order. A category whose REST answer fails (unreadable JSON, HFR's error answer, an HTTP error) keeps the
+    /// page's list: no HTML fallback, the page is what the caller already holds.
+    /// - Throws: `network` with `.cancelled`, `.offline` or `.timedOut`, which end the call (the caller keeps `forums`).
+    public func completingSubforums(of forums: [ForumCategory]) async throws(RESTBrowsingError) -> [ForumCategory] {
+        var completed: [ForumCategory] = []
+        for forum in forums {
+            guard case .forum(let category)? = forum.categoryID, category >= 1 else {
+                completed.append(forum)
+                continue
+            }
+            var forum = forum
+            do throws(RESTFailure) {
+                let data = try await json(RESTHref.Target(uri: RESTHref.subcategoriesURI(category: category)))
+                let rows = try RESTFailure.reading { () throws(ParsingError) in
+                    try RESTDocument.subcategories(from: data, category: category)
+                }
+                forum.subforums = ForumListCompletion.complete(forum.subforums, with: rows)
+            } catch {
+                _ = try Self.fallbackReason(for: error)
+            }
+            completed.append(forum)
+        }
+        return completed
     }
 
     /// Page `page` of the last topics of forum `category` (`R57b`, `R57d`-`R57g`): page 1 holds the sticky topics then 25
