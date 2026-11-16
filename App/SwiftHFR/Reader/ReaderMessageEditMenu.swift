@@ -5,11 +5,13 @@ import UIKit
 // `editMenuInteraction(_:menuFor:suggestedActions:)` :2799-2827 and its `UIEditMenuInteraction` on the web view :1249-1251)
 // @ 87fe0d1c. Differences: the anchor is the tapped "+" button's rectangle (its target rect), not a point; a menu shown while
 // another is open replaces it. GAP-064.
+// The SDK's `UIEditMenuInteractionDelegate` is not main-actor isolated: the conformance is (SE-0470), as UIKit calls it on
+// the main thread only.
 /// The message menu of the reader: the system's horizontal edit-menu callout, anchored at the tapped "+", which pages to the
 /// further actions with "›" (operator decision of 2026-11-15 on #594, as legacy). It replaces a SwiftUI popover that opened
 /// away from the button.
 @MainActor
-final class ReaderMessageEditMenu: NSObject, UIEditMenuInteractionDelegate {
+final class ReaderMessageEditMenu: NSObject, @MainActor UIEditMenuInteractionDelegate {
     /// Where the callout points: its source point, the button it points at, and the arrow's direction.
     struct Placement: Equatable {
         let point: CGPoint
