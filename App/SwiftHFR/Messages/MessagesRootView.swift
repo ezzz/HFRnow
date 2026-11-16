@@ -1,24 +1,20 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView, Messages tab) and HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79.
-// Differences: a split view on a regular width (GAP-212, UXD), except an iPhone of compact height, a stack as legacy (#431).
+// Differences: a split view on a regular width (GAP-212, UXD).
 /// The Messages tab of the iPhone tab bar: the conversation list, then the reader of the chosen conversation. It owns its
 /// navigation container (a split view that collapses to a stack on a compact width), so a call site adds none.
 struct MessagesRootView: View {
     let model: MessageListModel
-    let reader: ReaderServices
-    /// The current account's composer; nil when logged out.
-    let composer: ComposerServices?
+    let environment: AppEnvironment
     @State private var column = NavigationSplitViewColumn.sidebar
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            MessageListView(model: model, composer: composer).appScreenBackground()
+            MessageListView(model: model, composer: environment.composer).appScreenBackground()
         } detail: {
-            MessageReaderColumn(model: model, reader: reader, composer: composer).appScreenBackground()
+            MessageReaderColumn(model: model, reader: environment.reader, composer: environment.composer).appScreenBackground()
         }
-        // A landscape Pro Max reads full width, as legacy's stack (#431).
-        .modifier(TabSplitWidth())
         // A conversation selected by the model (the thread of a new MP) is shown on a compact width too, as a tap would; one it
         // closed (marked unread, LOT-127) goes back to the list, as legacy pops.
         .onChange(of: model.selected) { _, selected in

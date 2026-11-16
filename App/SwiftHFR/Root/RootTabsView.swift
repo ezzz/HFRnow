@@ -3,8 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView, tab bar branch) @ 2440d79. Differences: the reader opens inside the tab's split;
 // a Favoris / Drapeaux source menu (GAP-032; UXD). The reader hides the tab bar only while the split is collapsed
-// (GAP-008, UXD-02, see `TopicReaderView`). On a large iPhone in landscape the splits collapse to a stack, as legacy's tab root
-// (`TabSplitWidth`, UXD-24, #431).
+// (GAP-008, UXD-02, see `TopicReaderView`).
 // LOT-185: the options menu symbol is `ellipsis`, not `ellipsis.circle`; GAP row pending #545.
 /// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus. Each tab keeps its own navigation, and the reader
 /// opens inside the tab (a collapsed split view is a stack).
@@ -23,7 +22,7 @@ struct RootTabsView: View {
                     .environment(\.isSelectedRootTab, model.selectedTab == .favorites)
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
-                MessagesRootView(model: model.messages, reader: environment.reader, composer: environment.composer)
+                MessagesRootView(model: model.messages, environment: environment)
                     .environment(\.isSelectedRootTab, model.selectedTab == .messages)
             }
             .badge(model.unreadPrivateMessages)
@@ -56,7 +55,6 @@ struct CategoriesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
-        .modifier(TabSplitWidth())
         .filteredPosts(navigation.filtering, reader: reader)
     }
 }
@@ -76,7 +74,6 @@ struct FavoritesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
-        .modifier(TabSplitWidth())
         .filteredPosts(navigation.filtering, reader: reader)
     }
 }

@@ -47,7 +47,7 @@ Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS
 - GAP-020, 021, 022 Catégories as collapsible sections with sub-forum rows, no icons, no sub-forum picker: shipped, then restored by [#427](https://github.com/ezzz/HFRnow/issues/427) (flat list, template icons, "N sous-forums", sub-forum picker in the topic list), **UXD-05** (A).
 - GAP-023 no Tous / Favoris / Suivis / Lus filter: restored by #427 (persisted, `HFRswiftGlobalTopicListFlag`), **UXD-06** (A).
 - GAP-026, 027 topic row "author · replies · date", no "⚑ cur / max", capsule or tint: `b`, shipped, decided 2026-11-02, **UXD-07** (inside LOT-169); reversed by the operator on 2026-11-07: the capsule, the footer and the flag tint are back (#584).
-- GAP-212 detail column on every regular iPad width: decided 2026-11-02, **UXD-24**. GAP-214 large iPhone in landscape: `a` since #431 (the reader full width, as legacy), **UXD-24**.
+- GAP-212, 214 detail column on every regular width: `b`, decided 2026-11-02, **UXD-24**.
 - GAP-024 "Page N" without a fake total: `b·needed` (HFR gives no reliable total, LOT-167). GAP-025, 038: `a`.
 
 ### Decisions of 2026-11-02 (UXD)
@@ -55,7 +55,7 @@ Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS
 Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): every UXD row takes its recommendation. M4 is the validated legacy parity, M5 the evolutions.
 - **UXD-05, UXD-06: A.** The legacy Catégories list (flat, icons, "N sous-forums", sub-forum picker in the topic list) and the persisted Tous / Favoris / Suivis / Lus filter come back in a restore lot ([#427](https://github.com/ezzz/HFRnow/issues/427), M2; M1 if TestFlight testers must find their list there, the orchestrator decides).
 - **UXD-07: A.** The topic row is the legacy one (title, unread capsule, "⚑ cur / max", flag tint), inside LOT-169.
-- **UXD-24:** B on iPad (detail column next to the list on every regular width, shipped); A on a large iPhone in landscape, the reader full width ([#431](https://github.com/ezzz/HFRnow/issues/431), M2): the tab root's splits get a compact width on an iPhone of compact height (`TabSplitWidth`, legacy `MainWindow.swift:1380-1388`, `:1792-1847` @ 87fe0d1c), so they collapse to legacy's stack and the reader hides the tab bar there; an iPhone regular in both dimensions (a foldable's inner screen) keeps the split.
+- **UXD-24:** B on iPad (detail column next to the list on every regular width, shipped); A on a large iPhone in landscape, the reader full width ([#431](https://github.com/ezzz/HFRnow/issues/431), M2).
 
 ## Learnings
 - Typed-throws closures need an explicit `() async throws(E) -> T in` signature and `do throws(E)`, or the error type is inferred as `any Error`.
