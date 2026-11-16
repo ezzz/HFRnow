@@ -40,7 +40,8 @@
 - { name: "origin: swift-feedback",  color: "99dede", description: "Found by testing SwiftHFR: operator device tests, beta testers, Mac checks, Bybifok on SwiftHFR" }
 - { name: "origin: legacy-evolution", color: "c7eeee", description: "Backport of a legacy change made after 2440d79 (the 2fe43da3 sweep of #655)" }
 - { name: "origin: infra",           color: "e3f6f6", description: "Repo, CI, tooling, process, orchestration or docs upkeep not tied to another origin" }
-- { name: "host: mac",            color: "6e7781", description: "Needs the maintainer's Mac (Xcode, legacy app, live captures)" }
+- { name: "host: mac",            color: "6e7781", description: "Only what needs the Mac: live captures, legacy app, signing, TestFlight, measurements" }
+- { name: "host: mac-helps",      color: "a8b1ba", description: "Cloud can do it; a Mac session saves macOS CI runs (local Xcode, simulator iterations)" }
 - { name: "direct-pr",            color: "d93f0b", description: "Break-glass: PR merged without issue/claim (Direct-PR line); counted for stats" }
 - { name: "dependencies",         color: "0366d6", description: "Dependency update (Dependabot)" }
 - { name: "beta-test finding",    color: "f9a825", description: "Reported during pre-beta or beta testing on a device; counted for stats" }

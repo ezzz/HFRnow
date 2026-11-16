@@ -17,7 +17,7 @@ Operators may keep private notes (ledger, handoff lists) outside the repository;
 ## Session start
 1. `git fetch origin dev-swift` and update; read `AGENTS.md`, this file, [REVIEW-ROUNDS](REVIEW-ROUNDS.md) and [LESSONS](LESSONS.md).
 2. List the issues you claimed (your `/claim` comment) and check what changed on your PRs (reviews, CI, merges, new comments) **before starting work**.
-3. New work: a `status: ready` issue nobody claimed, not `host: mac` if you run in the cloud. Claim it, then start.
+3. New work: a `status: ready` issue nobody claimed, not `host: mac` if you run in the cloud (a `host: mac-helps` issue is open to the cloud; a free Mac session takes those first). Claim it, then start.
 
 ## Claims
 - Claim = a `/claim <session-id>` comment (`<host>/<name>`) on the issue, **before writing code** (AGENTS.md §5). The first claim wins; later claims are refused until `/release`. Only members' comments count; a contributor without write access asks a member to claim for them (`CLAIM REQUEST`, [EXTERNAL-AGENTS §5](EXTERNAL-AGENTS.md#5-claim-protocol-no-orchestrator-watches-for-you)).
