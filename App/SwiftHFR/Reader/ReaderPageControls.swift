@@ -8,8 +8,8 @@ import SwiftUI
 // visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the lists' pager (#565); at the end of a page the
 // bubble is its own pill between ‹ › and refresh + reply (operator, #961). GAP-060.
 /// The reader's bottom bar, topic and private conversation alike (#836): ‹ ›, then at the end of the page the page bubble and
-/// the refresh, and the reply button; three pills (#961): ‹ ›, the bubble alone, refresh + reply. Legacy promotes › at the end of a page that is not the last, and the refresh at the end
-/// of the last page.
+/// the refresh, and the reply button; three pills (#961): ‹ ›, the bubble alone, refresh + reply. Legacy promotes › at the end
+/// of a page that is not the last, and the refresh at the end of the last page.
 enum ReaderBottomBar {
     /// What the bar shows for one scroll position.
     struct State: Equatable {
