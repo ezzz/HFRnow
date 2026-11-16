@@ -99,16 +99,23 @@ struct OracleOwnershipTests {
         try #require(Bundle.module.resourceURL?.appending(path: "Fixtures"))
     }
 
-    /// Every `(folder, kind, case)` of every oracle map in the bundle's `Fixtures`.
-    static func mappedCases() throws -> [(folder: String, kind: String, id: String)] {
+    /// One case of an oracle map: its folder, its kind and its id.
+    struct MappedCase {
+        let folder: String
+        let kind: String
+        let id: String
+    }
+
+    /// Every case of every oracle map in the bundle's `Fixtures`.
+    static func mappedCases() throws -> [MappedCase] {
         let root = try fixturesRoot()
-        var cases: [(folder: String, kind: String, id: String)] = []
+        var cases: [MappedCase] = []
         for folder in try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false)).sorted() {
             guard let json = try? Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)") else { continue }
             let map = try #require(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: [String: Any]])
             for (key, entry) in map {
                 let id = URL(fileURLWithPath: key).deletingPathExtension().lastPathComponent
-                cases.append((folder, try #require(entry["kind"] as? String, "\(folder)/\(key): kind"), id))
+                cases.append(MappedCase(folder: folder, kind: try #require(entry["kind"] as? String, "\(folder)/\(key): kind"), id: id))
             }
         }
         return cases
