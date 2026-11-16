@@ -76,7 +76,8 @@ struct ReaderThemeTests: ReaderWebTesting {
         #expect(light, "colours: \(seen)")
     }
 
-    /// LOT-122: the dark style reaches the page's background, live, and the standard style is the old colours. The `--app-dark-quote-background` value is still delivered but the default quote has no fill (#819).
+    /// LOT-122: the dark style reaches the page's background, live, and the standard style is the old colours.
+    /// The `--app-dark-quote-background` value is still delivered but the default quote has no fill (#819).
     @Test func theDarkStyleSetsTheReaderBackgroundAndQuotesLive() async {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = .dark
