@@ -140,10 +140,10 @@ final class TopicReaderModel {
         self.renderOptions = renderOptions
     }
 
-    /// Navigation title.
+    /// Navigation title, with the "TU" abbreviation legacy applies to the reader title (`TopicTitle`).
     var title: String {
-        if let title = page?.title, !title.isEmpty { return title }
-        return initialTitle
+        if let title = page?.title, !title.isEmpty { return TopicTitle.displayed(title) }
+        return TopicTitle.displayed(initialTitle)
     }
 
     /// The web view has shown a document at least once (the first page appears at DOMContentLoaded, not blank before).
