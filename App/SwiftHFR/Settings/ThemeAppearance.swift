@@ -64,7 +64,8 @@ struct ThemeAppearance: Equatable, Sendable {
 
     /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is the `reader.css` dark palette (LOT-083), so the
     /// default is unchanged. These feed `reader.css`'s tokens: its message rule and alternate surface (#568) derive from the
-    /// text colour and `--app-dark-background`, so there is no second separator spec here.
+    /// text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background` is no longer read by the default reader look
+    /// (a border-only quote, #819: legacy `style-liste.css:329-334`); it is kept in the list for the gallery-theme path and the settings tests.
     static func readerDarkSurfaces(_ style: DarkStyle) -> [(variable: String, color: ThemeColor)] {
         let palette: [Int] = switch style {
         case .standard: [0x000000, 0x1C1C1E, 0x2C2C2E, 0x38383A]

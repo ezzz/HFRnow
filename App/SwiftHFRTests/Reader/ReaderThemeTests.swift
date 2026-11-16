@@ -19,6 +19,15 @@ struct ReaderThemeTests: ReaderWebTesting {
         return result.join('|');
         """
 
+    /// The scaled `--placeholder` surface (it follows the dark brightness; the default quote no longer does, #819).
+    private func placeholder(in controller: ReaderWebController) async -> String {
+        let script = """
+            const probe = document.createElement('div'); probe.style.background = 'var(--placeholder)'; document.body.appendChild(probe);
+            const result = getComputedStyle(probe).backgroundColor; probe.remove(); return result;
+            """
+        return ((try? await evaluate(script, in: controller)) as? String) ?? ""
+    }
+
     private func colours(in controller: ReaderWebController) async -> String {
         ((try? await evaluate(probe, in: controller)) as? String) ?? ""
     }
@@ -39,11 +48,18 @@ struct ReaderThemeTests: ReaderWebTesting {
         let first = await until(async: { await colours(in: controller) == expected })
         let seen = await colours(in: controller)
         #expect(first, "colours: \(seen)")
+        // 0x2C2C2E at 150 %.
+        let scaled = await until(async: { await placeholder(in: controller) == "rgb(66, 66, 69)" })
+        let seenPlaceholder = await placeholder(in: controller)
+        #expect(scaled, "placeholder: \(seenPlaceholder)")
 
         controller.theme = ThemeAppearance(dayAccent: blue, nightAccent: red, darkBrightness: 1)
         let live = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
         let seenLive = await colours(in: controller)
         #expect(live, "colours: \(seenLive)")
+        let scaledLive = await until(async: { await placeholder(in: controller) == "rgb(44, 44, 46)" })
+        let seenPlaceholderLive = await placeholder(in: controller)
+        #expect(scaledLive, "placeholder: \(seenPlaceholderLive)")
         #expect(recorder.ready == [1])
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
     }
@@ -54,13 +70,13 @@ struct ReaderThemeTests: ReaderWebTesting {
         controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
         controller.show(document(token: 2))
         #expect(await until { recorder.ready == [2] }, "ready: \(recorder.ready)")
-        // Light quotes keep their light colour whatever the dark brightness.
+        // Light surfaces keep their light colour whatever the dark brightness.
         let light = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
         let seen = await colours(in: controller)
         #expect(light, "colours: \(seen)")
     }
 
-    /// LOT-122: the dark style reaches the page's background and quote surfaces, live, and the standard style is the old colours.
+    /// LOT-122: the dark style reaches the page's background, live, and the standard style is the old colours. The `--app-dark-quote-background` value is still delivered but the default quote has no fill (#819).
     @Test func theDarkStyleSetsTheReaderBackgroundAndQuotesLive() async {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = .dark

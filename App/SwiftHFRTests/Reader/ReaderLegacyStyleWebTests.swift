@@ -5,9 +5,9 @@ import Testing
 import UIKit
 
 /// The legacy message look by default (#819), measured in the real reader. Values are the legacy ones at `87fe0d1c`:
-/// body indent per style (`MessagesView.swift:1827`), 15 pt text over a 17 pt body style (`MessagesView.swift:675-682`, 873),
-/// 2 px quote border without fill (`style-liste.css:329-334`), no paragraph margin (`style-liste.css:40-45`), 10 px under the
-/// body (`style-liste-light.css:495-499`), grey silhouette when there is no avatar (`style-liste-light.css:203-205`).
+/// body indent per style (`MessagesView.swift:1827`), 15 pt text through `UIFontMetrics(.body)` (`MessagesView.swift:3376-3381`, `Common.swift:314-322`),
+/// 2 px quote border without fill (`style-liste.css:329-334`), no paragraph margin (`style-liste.css:39-47`), 10 px under the
+/// body (`style-liste-light.css:504-508`), grey silhouette when there is no avatar (`style-liste-light.css:203-205`).
 @MainActor
 @Suite(.serialized)
 struct ReaderLegacyStyleWebTests: ReaderWebTesting {
@@ -61,6 +61,31 @@ struct ReaderLegacyStyleWebTests: ReaderWebTesting {
         #expect(seen[4] == 0, "gap between paragraphs: \(seen[4])")
         #expect(seen[5] == 10, "padding under the body: \(seen[5])")
         #expect(seen[6] == 1, "silhouette: \(seen[6])")
+    }
+
+    /// A quote nested in an opened blocklisted quote keeps the plain 4 px: the folded quote's cell padding is its own only.
+    @Test func aQuoteNestedInAnOpenedBlockedQuoteKeepsThePlainPadding() async {
+        let message = ReaderMessage(
+            numreponse: 1, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
+            dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil,
+            content: MessageContent(html: """
+                <table class="quote quote-blocked open"><tr><td><b class="s1">cite :</b>
+                <table class="quote"><tr><td><p>imbriquée</p></td></tr></table></td></tr></table>
+                """)
+        )
+        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(ReaderDocument(
+            token: 3, html: TopicHTMLBuilder.document(for: page, token: 3), anchor: nil, keepsScrollPosition: false
+        ))
+        #expect(await until { recorder.ready == [3] })
+        let script = """
+            const outer = getComputedStyle(document.querySelector('table.quote-blocked > tbody > tr > td'));
+            const inner = getComputedStyle(document.querySelector('table.quote-blocked table.quote td'));
+            return [parseFloat(outer.paddingTop), parseFloat(inner.paddingTop), parseFloat(inner.paddingLeft)];
+            """
+        let seen = (try? await evaluate(script, in: controller)) as? [Double] ?? []
+        #expect(seen.count == 3 && seen[0] > 4 && seen[1] == 0 && seen[2] == 4, "padding: \(seen)")
     }
 
     // Legacy classic is the flat style: the body starts 10 px from the edge, as the header does, without the indent.
