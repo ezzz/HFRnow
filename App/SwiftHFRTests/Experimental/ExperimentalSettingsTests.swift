@@ -66,20 +66,18 @@ struct ExperimentalPageTests {
     @Test func thePageGroupsEveryListedOptionByTheme() {
         let groups = ExperimentalPageLayout.groups()
         #expect(groups.map(\.theme) == [.composer, .messages])
+        #expect(groups == ExperimentalTheme.listed.map { ExperimentalPageLayout.Group(theme: $0, features: $0.listedFeatures) })
         #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(groups.allSatisfy { group in group.features.allSatisfy { $0.theme == group.theme } })
     }
 
+    /// The row shows when the page has a group, so a theme without a listed option is never a group.
     @Test func aThemeWithoutListedOptionIsLeftOut() {
-        let groups = ExperimentalPageLayout.groups(of: [.imageLoadingChoice, .modernComposer])
-        #expect(groups == [
-            .init(theme: .composer, features: [.modernComposer]),
-            .init(theme: .imageLoading, features: [.imageLoadingChoice]),
-        ])
-    }
-
-    @Test func noListedOptionMeansNoPageAndNoRow() {
-        #expect(ExperimentalPageLayout.groups(of: []).isEmpty)
+        let themes = ExperimentalPageLayout.groups().map(\.theme)
+        #expect(!themes.contains(.imageLoading))
+        #expect(!themes.contains(.lists))
+        #expect(!ExperimentalPageLayout.groups().isEmpty)
+        #expect(ExperimentalPageLayout.groups().allSatisfy { !$0.features.isEmpty })
     }
 
     /// The move to a page keeps every key: nothing is read or written under another name.

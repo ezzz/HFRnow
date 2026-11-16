@@ -9,12 +9,10 @@ enum ExperimentalPageLayout {
         let features: [ExperimentalFeature]
     }
 
-    /// The groups of `features` (the listed options by default); empty when none is listed, which hides the Réglages row.
-    static func groups(of features: [ExperimentalFeature] = ExperimentalFeature.allCases.filter(\.isListed)) -> [Group] {
-        ExperimentalTheme.allCases.compactMap { theme in
-            let inTheme = features.filter { $0.theme == theme }
-            return inTheme.isEmpty ? nil : Group(theme: theme, features: inTheme)
-        }
+    /// The groups of the listed options (every theme with at least one), in display order; empty when none is listed, which
+    /// hides the Réglages row. Built from `ExperimentalTheme.listed`, the one source of what is listed.
+    static func groups() -> [Group] {
+        ExperimentalTheme.listed.map { Group(theme: $0, features: $0.listedFeatures) }
     }
 }
 
@@ -22,9 +20,9 @@ enum ExperimentalPageLayout {
 /// Nothing when no option is listed.
 struct ExperimentalSettingsSection: View {
     let settings: ExperimentalSettings
-    var groups: [ExperimentalPageLayout.Group] = ExperimentalPageLayout.groups()
 
     var body: some View {
+        let groups = ExperimentalPageLayout.groups()
         if !groups.isEmpty {
             Section {
                 NavigationLink {
@@ -35,7 +33,7 @@ struct ExperimentalSettingsSection: View {
                     } icon: {
                         // Text colour, not tinted; decorative, so VoiceOver reads the row's title only.
                         Image(systemName: "exclamationmark.triangle")
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.primary)
                             .accessibilityHidden(true)
                     }
                 }
