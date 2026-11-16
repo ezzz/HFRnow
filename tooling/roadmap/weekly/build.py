@@ -340,7 +340,9 @@ def gather_892(issues, end):
                  'axes': C.axis_counts(fb), 'axes_open': C.axis_counts(fb_open)},
           'reviews': reviews}
     # M5: its lots and issues, by category (the radar axes)
-    m5 = [i for i in swift if ms_of[i['number']] == 'M5']
+    # a FEAT-0xx intake issue is M5 for the out-of-milestone count, but its lot already stands for it on slide 6
+    feat_intake = lambda i: i['number'] not in lot_of_issue and C.FEAT_TAG.search(i.get('title') or '')
+    m5 = [i for i in swift if ms_of[i['number']] == 'M5' and not feat_intake(i)]
     cats = {a: [] for a in C.AXES}
     for i in sorted(m5, key=lambda i: (i['number'] not in lot_of_issue, i['number'])):
         cats[C.axis_of(i['title'])].append((issue_label(i, lot_of_issue), i['state'] == 'closed'))

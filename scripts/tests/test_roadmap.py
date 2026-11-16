@@ -991,6 +991,15 @@ class WeeklyCounts(unittest.TestCase):
         self.assertEqual(d["m5"]["total"], 1)
         self.assertEqual(d["m5"]["cats"], {"navigation": [(build.lot_label("LOT-110"), False)]})
 
+    def test_m5_slide_skips_feat_intake_issues_that_their_lot_already_shows(self):
+        mk = lambda n, title, **kw: {"number": n, "state": "open", "labels": [], "title": title, "created_at": "2026-11-01T00:00:00Z", **kw}
+        lot = mk(generate.rows["LOT-177"]["issue"], "LOT-177: Uniform swipe set in every list (FEAT-008) (M5)")
+        feat = mk(9152, "FEAT-008: Uniform swipes", state="closed", state_reason="completed", closed_at="2026-11-02T00:00:00Z")
+        build, d = self.gather([lot, feat])
+        self.assertEqual((d["m5"]["total"], d["m5"]["done"]), (1, 0))  # the lot only; the closed intake issue adds nothing
+        self.assertEqual(sum(d["m5"]["axes"].values()), 1)
+        self.assertEqual(d["outside"]["total"], 0)  # the intake issue still has a milestone (M5): not outside
+
 
     def test_generate_reads_the_state_named_by_roadmap_state(self):
         import tempfile
