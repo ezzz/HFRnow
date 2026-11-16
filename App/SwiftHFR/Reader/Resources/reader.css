@@ -156,6 +156,8 @@ button.image-tap, button.video {
 /* The pull-to-refresh hint of the reader's pages (#820): `FloatingSpacing.gap` under the last message, small and almost tone on
    tone, in the flow, so at rest it shows above the floating bar, never under it (operator decision of 2026-11-16 on #932). */
 .pull-hint { margin: var(--floating-gap, 8px) 0 0; padding: 0 16px; text-align: center; font-size: 0.75em; line-height: 1.2; color: var(--secondary); opacity: 0.75; }
+/* Hidden, not removed, while the pull does nothing (a composer is open): the page keeps its length, so nothing moves. */
+.no-pull-hint .pull-hint { visibility: hidden; }
 /* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }

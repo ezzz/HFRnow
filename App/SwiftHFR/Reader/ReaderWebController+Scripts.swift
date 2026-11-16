@@ -44,6 +44,20 @@ extension ReaderWebController {
         run(theme.readerScript)
     }
 
+    /// What a new document takes from the controller once it is ready: the text size, the theme and the hint.
+    func applyDisplayState() {
+        applyTextScale()
+        applyTheme()
+        applyPullHint()
+    }
+
+    /// Shows or hides the end-of-page hint of the shown document (`reader.css` `.no-pull-hint`): off while the pull past the end
+    /// does nothing (a composer is open, #820). The hint keeps its room, so the reading position does not move.
+    func applyPullHint() {
+        guard document != nil else { return }
+        run(Self.pullHintScript(offersPullHint))
+    }
+
     /// The page's own background (the dark style's, LOT-122) shows past the page's ends while it bounces. WebKit resolves the colour
     /// when it is set, so it is set again when iOS or the theme setting flips light and dark.
     func applyUnderPageBackground() {
@@ -55,6 +69,11 @@ extension ReaderWebController {
         webView.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { [weak self] (_: UIView, _) in
             self?.applyUnderPageBackground()
         }
+    }
+
+    /// The script that shows (`true`) or hides the pull hint, with no dependence on `reader.js` having run yet.
+    static func pullHintScript(_ shown: Bool) -> String {
+        "document.documentElement.classList.toggle('no-pull-hint', \(shown ? "false" : "true"));"
     }
 
     /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
