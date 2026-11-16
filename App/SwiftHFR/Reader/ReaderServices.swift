@@ -20,6 +20,9 @@ struct ReaderServices: Sendable {
     var pseudoLists: PseudoListManager?
     /// The moderator alerts of the current account (LOT-135); nil when logged out and in the offline reader.
     var moderatorAlerts: (any ModeratorAlerting)?
+    /// True only in the offline reader (a saved copy, `OfflineTopicsView`): it has no account behind it, so the search entry
+    /// (#821) stays out. Not derived from `offline`, which is also nil in the live app while offline saving is disabled (#822).
+    var isSavedCopy = false
     /// The moderation address of the mail fallback, injected at build time (Q-10); nil when the build carries none.
     var moderatorAlertMail: String?
 }

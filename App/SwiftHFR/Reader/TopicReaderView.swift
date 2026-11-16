@@ -49,6 +49,9 @@ struct TopicReaderView: View {
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
     @State private var search: TopicSearchModel?
+    /// The sign-in prompt of the search entry while logged out (#821), and the accounts screen it leads to.
+    @State private var askingSignIn = false
+    @State private var showsAccounts = false
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109); a fresh model per tap.
@@ -112,6 +115,13 @@ struct TopicReaderView: View {
         .safeAreaBar(edge: .bottom) {
             if bottomPlacement == .inset { ReaderPageStrip(buttons: pageButtons) }
         }
+        .alert("Connexion requise", isPresented: $askingSignIn) {
+            Button("Annuler", role: .cancel) {}
+            Button("Se connecter") { showsAccounts = true }
+        } message: {
+            Text("Connectez-vous pour rechercher dans un sujet.")
+        }
+        .sheet(isPresented: $showsAccounts) { AccountsView() }
         .alert("Aller à la page", isPresented: $askingPage) {
             TextField("Page", text: $pageText).keyboardType(.numberPad)
             Button("Annuler", role: .cancel) {}
@@ -168,13 +178,15 @@ struct TopicReaderView: View {
         let offered = !model.suspendsPageInteractions
         ReaderOverflowToolbar(
             entries: ReaderOverflow.entries(
-                search: ReaderSearchFlow.isOffered(model: model, composer: composer),
+                search: ReaderSearchFlow.isOffered(model: model, composer: composer, services: services),
                 offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
                 filter: onFilterPosts != nil && offered,
                 pages: pages && offered),
             search: {
-                if let topic = model.page?.topicID, let searcher = composer?.topicSearcher {
-                    search = TopicSearchModel(topic: topic, searcher: searcher)
+                switch ReaderSearchFlow.tap(topic: model.page?.topicID, searcher: composer?.topicSearcher) {
+                case .search(let topic, let searcher): search = TopicSearchModel(topic: topic, searcher: searcher)
+                case .signIn: askingSignIn = true
+                case nil: break
                 }
             },
             offline: AnyView(Group {
