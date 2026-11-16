@@ -29,17 +29,28 @@ struct ReaderSearchLoggedOutTests {
         }
     }
 
+    private func offered(
+        topic: Bool = true, isPrivate: Bool = false, suspended: Bool = false, searcher: Bool = false, live: Bool = true
+    ) -> Bool {
+        ReaderSearchFlow.isOffered(
+            hasTopic: topic, isPrivate: isPrivate, suspended: suspended, hasSearcher: searcher, isLiveReader: live)
+    }
+
     @Test func theEntryIsInTheMenuWithoutAnAccount() {
-        // `isOffered` no longer reads the account: logged out and logged in alike give the entry.
-        let offered = ReaderSearchFlow.isOffered(hasTopic: true, isPrivate: false, suspended: false)
-        #expect(offered)
-        #expect(ReaderOverflow.entries(search: offered, offline: false, filter: false, pages: true) == [.search, .pages])
+        #expect(offered(searcher: false))
+        #expect(offered(searcher: true))
+        #expect(ReaderOverflow.entries(search: offered(), offline: false, filter: false, pages: true) == [.search, .pages])
+    }
+
+    @Test func theOfflineReaderHasNoEntryWithoutASearcher() {
+        // Signed in or not, the saved copy has no composer: no search to run and no sign-in to ask for.
+        #expect(!offered(searcher: false, live: false))
     }
 
     @Test func theEntryStaysOutOfPrivateConversationsAndUnderAnOpenComposer() {
-        #expect(!ReaderSearchFlow.isOffered(hasTopic: true, isPrivate: true, suspended: false))
-        #expect(!ReaderSearchFlow.isOffered(hasTopic: true, isPrivate: false, suspended: true))
-        #expect(!ReaderSearchFlow.isOffered(hasTopic: false, isPrivate: false, suspended: false))
+        #expect(!offered(isPrivate: true))
+        #expect(!offered(suspended: true))
+        #expect(!offered(topic: false))
     }
 
     @Test func aTapLoggedOutAsksToSignInAndSendsNoSearch() {

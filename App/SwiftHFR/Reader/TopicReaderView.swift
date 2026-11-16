@@ -178,7 +178,7 @@ struct TopicReaderView: View {
         let offered = !model.suspendsPageInteractions
         ReaderOverflowToolbar(
             entries: ReaderOverflow.entries(
-                search: ReaderSearchFlow.isOffered(model: model, composer: composer),
+                search: ReaderSearchFlow.isOffered(model: model, composer: composer, services: services),
                 offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
                 filter: onFilterPosts != nil && offered,
                 pages: pages && offered),
