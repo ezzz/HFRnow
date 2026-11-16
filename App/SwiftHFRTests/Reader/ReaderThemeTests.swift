@@ -23,6 +23,8 @@ struct ReaderThemeTests: ReaderWebTesting {
         ((try? await evaluate(probe, in: controller)) as? String) ?? ""
     }
 
+    /// The default look has no quote or code fill (#819, legacy `style-liste.css:329-334`); only a gallery theme brings one.
+    private let none = "rgba(0, 0, 0, 0)"
     private let red = ThemeColor(red: 1, green: 0, blue: 0)
     private let blue = ThemeColor(red: 0, green: 0, blue: 1)
 
@@ -32,14 +34,14 @@ struct ReaderThemeTests: ReaderWebTesting {
         controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 1.5)
         controller.show(document(token: 1))
         #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
-        // 0x1C1C1E at 150 %: rgb(42, 42, 45) (ThemeAppearanceTests).
-        let expected = "rgb(0, 0, 255)|rgb(42, 42, 45)"
+        // The dark surfaces scale (0x1C1C1E at 150 %: rgb(42, 42, 45), ThemeAppearanceTests) but the default quote has no fill (#819).
+        let expected = "rgb(0, 0, 255)|\(none)"
         let first = await until(async: { await colours(in: controller) == expected })
         let seen = await colours(in: controller)
         #expect(first, "colours: \(seen)")
 
         controller.theme = ThemeAppearance(dayAccent: blue, nightAccent: red, darkBrightness: 1)
-        let live = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|rgb(28, 28, 30)" })
+        let live = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
         let seenLive = await colours(in: controller)
         #expect(live, "colours: \(seenLive)")
         #expect(recorder.ready == [1])
@@ -53,7 +55,7 @@ struct ReaderThemeTests: ReaderWebTesting {
         controller.show(document(token: 2))
         #expect(await until { recorder.ready == [2] }, "ready: \(recorder.ready)")
         // Light quotes keep their light colour whatever the dark brightness.
-        let light = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|rgb(242, 242, 247)" })
+        let light = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
         let seen = await colours(in: controller)
         #expect(light, "colours: \(seen)")
     }
@@ -82,7 +84,7 @@ struct ReaderThemeTests: ReaderWebTesting {
         let seenDarker = await surfaces()
         #expect(darker, "darker: \(seenDarker)")
         let quote = await colours(in: controller)
-        #expect(quote.hasSuffix("|rgb(23, 24, 26)"), "quote: \(quote)")
+        #expect(quote.hasSuffix("|\(none)"), "quote: \(quote)")
         // The layer behind the page (what shows while it bounces) follows: dark is the page's background, light the system's.
         func underPage() -> [Int] {
             var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
@@ -130,11 +132,11 @@ struct ReaderThemeTests: ReaderWebTesting {
         #expect(linkAndQuote == "rgb(140, 200, 255)|rgb(34, 44, 56)", "link and quote: \(linkAndQuote)")
 
         controller.theme = .standard
-        let legacy = "\(ThemeAppearance.standard.nightAccent.cssRGB)|rgb(28, 28, 30)"
+        let legacy = "\(ThemeAppearance.standard.nightAccent.cssRGB)|\(none)"
         let restored = await until(async: { await colours(in: controller) == legacy })
         let seenLegacy = await colours(in: controller)
         #expect(restored, "legacy: \(seenLegacy)")
-        #expect(await page() == "rgb(0, 0, 0)|rgb(28, 28, 30)")
+        #expect(await page() == "rgb(0, 0, 0)|\(none)")
         #expect(recorder.ready == [4])
     }
 }

@@ -8,10 +8,10 @@ import WebKit
 @MainActor
 @Suite(.serialized)
 struct ReaderTextScaleTests: ReaderWebTesting {
-    /// Body text size over the root's (`-apple-system-body`, Dynamic Type): the in-app factor.
+    /// Body text size over the root's (`-apple-system-body`, Dynamic Type), over the legacy 15/17 (#819): the in-app factor.
     private let ratio = """
         const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        return parseFloat(getComputedStyle(document.querySelector('.content')).fontSize) / root;
+        return parseFloat(getComputedStyle(document.querySelector('.content')).fontSize) / root / (15 / 17);
         """
 
     private func factor(in controller: ReaderWebController) async -> Double {
