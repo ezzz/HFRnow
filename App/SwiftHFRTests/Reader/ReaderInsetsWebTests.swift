@@ -102,10 +102,12 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
 
     /// Scrolls the page itself to `readingTop` (`scrollY`) until the scroll view shows it below the bar too: a native
     /// `setContentOffset` reaches the page's `scrollY` and scroll events asynchronously, and can be undone by a late layout;
-    /// one `window.scrollTo` can be undone by the scroll view's older offset (#934, `scrollPage(toScrollY:)`).
-    /// Waits `deadline`, so a CI log (durations, not messages) tells which step of a test failed.
-    private func scrollPage(to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration) async -> Bool {
-        await scrollPage(toScrollY: Double(readingTop), in: controller, timeout: deadline)
+    /// one `window.scrollTo` was not always applied (`scrollPage(toScrollY:)`, #934). The first scroll gets the page's own
+    /// answer time; the wait for both sides then lasts `deadline`, so a CI log (durations, not messages) tells which step of a
+    /// test failed.
+    private func scrollPage(to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration) async throws -> Bool {
+        _ = try await evaluate("window.scrollTo(0, \(Double(readingTop))); return true;", in: controller)
+        return await scrollPage(toScrollY: Double(readingTop), in: controller, timeout: deadline)
     }
 
     @Test func theMessageHiddenUnderTheTopBarIsNotTheReadingPosition() async throws {
@@ -120,7 +122,7 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         // one the reader sees. `scrollY` is the content at the bar's edge (checked on the scroll view).
         let second = try await top(of: 2, in: controller)
         let offset = controller.webView.scrollView.contentOffset.y
-        #expect(await scrollPage(to: second + 10, in: controller, deadline: .seconds(15)), "offset: \(offset)")
+        #expect(try await scrollPage(to: second + 10, in: controller, deadline: .seconds(15)), "offset: \(offset)")
         // A report may already have come from the load (message 1, at the top): wait for the one after the scroll. The
         // message under the bar would be reported as 1 again, which the page does not repeat, so 2 never comes.
         #expect(await until({ reports.posts.last == 2 }, timeout: .seconds(20)), "reported: \(reports.posts)")
@@ -134,7 +136,7 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await settled(controller))
         let scrollView = controller.webView.scrollView
         // Content 1000 at the bar's edge: offset 900 under the 100-point bar.
-        #expect(await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
+        #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
         // A banner appears above the page: the content at the bars' edge stays.
         controller.obscuredInsets.top = 160
         #expect(
@@ -173,7 +175,7 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
         let scrollView = controller.webView.scrollView
-        #expect(await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
+        #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
         scrollView.setZoomScale(2, animated: false)
         #expect(abs(scrollView.zoomScale - 2) < 0.01, "zoomScale: \(scrollView.zoomScale)")
         // The CSS content at the bars' edge: the scroll view's points under the (unscaled) bar, divided by the zoom. The page's

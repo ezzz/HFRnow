@@ -99,12 +99,11 @@ extension ReaderWebTesting {
     }
 
     /// Scrolls the page itself to `scrollY` (CSS pixels from the bars' edge, the reading top) and returns true once the page
-    /// and the scroll view are both there. One `window.scrollTo` is not enough on a loaded simulator (#934): the page moves at
-    /// once, but the scroll view, in the UI process, applies it a commit later and may first send its older offset back, which
-    /// puts the page where it was. CI job 133090341114 caught it (the way back to the top sent once, the scroll view still at
-    /// the page's end), and jobs 133110414600 and 133160363316 failed on it with the page's WebContent process alive throughout.
-    /// The scroll is sent again until both sides agree, so a test checks what the page reported, not whether one request
-    /// survived. `scrollY` must be reachable (not past the page's end); both sides must be within `tolerance` of it.
+    /// and the scroll view are both there. One `window.scrollTo` was not always enough on a loaded simulator: CI job
+    /// 133090341114 saw the way back to the top sent once and never applied (the scroll view stayed at the page's end), so the
+    /// scroll is sent again until both sides agree, and a test checks what the page reported, not whether one request went
+    /// through. Why that scroll was lost is not established (#934). `scrollY` must be reachable (not past the page's end); both
+    /// sides must be within `tolerance` of it.
     func scrollPage(
         toScrollY scrollY: Double, in controller: ReaderWebController, tolerance: Double = 1, timeout: Duration = .seconds(60)
     ) async -> Bool {
@@ -115,10 +114,12 @@ extension ReaderWebTesting {
         }, timeout: timeout)
     }
 
-    /// Where the page and its scroll view are, for a failure message: which side a lost scroll left behind.
+    /// Where the page and its scroll view are, and whether a landing's reset is still watched, for a failure message.
     func scrollState(of controller: ReaderWebController) async -> String {
         let page = (try? await evaluate("return window.scrollY;", in: controller, timeout: .seconds(10))) as? NSNumber
-        return "page scrollY \(page.map { "\($0.doubleValue)" } ?? "no answer"), scroll view reading top \(controller.readingTop)"
+        let watched = controller.resetWatch.token.map { "\($0)" } ?? "none"
+        return "page scrollY \(page.map { "\($0.doubleValue)" } ?? "no answer"), scroll view reading top \(controller.readingTop), "
+            + "reset watched for \(watched)"
     }
 
     /// The document is loaded and every image has finished (loaded or failed): nothing more will be requested by itself.
