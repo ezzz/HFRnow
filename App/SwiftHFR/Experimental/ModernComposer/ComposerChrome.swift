@@ -26,7 +26,8 @@ enum ComposerChrome: Equatable {
 /// hit area's slack counts toward the gap, so what the eye sees is the gap, and the hit area stays 44 pt. The legacy chrome (an
 /// iPad, or the option off) keeps the paddings it had.
 extension ComposerChrome {
-    /// Around the text card: the gap at its sides and under it, nothing above (the floating buttons' bottom inset is the gap).
+    /// Around the text card: the gap at its sides and under it, nothing above (the floating buttons' bottom inset is the gap, or
+    /// `gapAboveCard` after a banner or the fields).
     var cardInsets: EdgeInsets {
         switch self {
         case .docked:
@@ -36,9 +37,17 @@ extension ComposerChrome {
         }
     }
 
+    /// The space between what sits under the floating buttons (a banner, the recipient and subject fields) and the text card:
+    /// the gap for the modern chrome, whose card has no top inset; nothing when the floating buttons are the last thing above
+    /// it (their bottom inset is the gap), nor for legacy's chrome (the card's own top inset).
+    func gapAboveCard(hasPartsUnderHeader: Bool) -> CGFloat {
+        self == .docked && hasPartsUnderHeader ? FloatingSpacing.gap : 0
+    }
+
     /// Around the composer's top bar, for a glyph of `glyph` points (`ComposerBarMetrics.glyphSize`): floating, each capsule is
-    /// the gap away from the sides, from the page above and from the card below. On the main actor, as `ComposerHeader`'s
-    /// rules it reads.
+    /// the gap away from the sides, from the page above and from the card below. A glyph under 16 pt (the compact density at a
+    /// text size under 100 %) leaves more slack than the gap: the hit area stays 44 pt, so the capsule is that slack away
+    /// instead (at most 10.4 pt, at 70 %). On the main actor, as `ComposerHeader`'s rules it reads.
     @MainActor
     func headerInsets(glyph: CGFloat) -> EdgeInsets {
         switch self {
@@ -51,6 +60,11 @@ extension ComposerChrome {
             return EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16)
         }
     }
+}
+
+extension ReplyComposerModel {
+    /// A banner or the recipient and subject fields sit between the composer's top bar and its text card (#895).
+    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || hasSubjectField }
 }
 
 /// How the text card's tools are drawn (#895 D, operator 2026-11-14: "to try", as the Claude app's `+` and mic in round chips):

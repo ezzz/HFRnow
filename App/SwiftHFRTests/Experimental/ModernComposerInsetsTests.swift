@@ -3,6 +3,13 @@ import CoreGraphics
 import SwiftUI
 import Testing
 
+/// Density, in-app text size and Dynamic Type factor (large, XL, AX3): the text size slider's ends included.
+private let composerSizes: [ComposerSize] = [ListDensity.regular, .compact].flatMap { density in
+    [(100, CGFloat(1)), (70, 1), (130, 1), (100, 19.0 / 17.0), (100, 28.0 / 17.0)].map {
+        ComposerSize(density: density, percent: $0.0, dynamicType: $0.1)
+    }
+}
+
 /// Issue #895 (operator, 2026-11-14; the Claude iOS app's composer is the reference): the modern composer's margins are one
 /// shared gap, `FloatingSpacing.gap` (operator decision of 2026-11-16 on #820 and #895, about 8 pt), its buttons and tools have
 /// one icon size, and every hit area stays at least 44 pt. Legacy's chrome (an iPad, or « Composer moderne » off) keeps its
@@ -24,16 +31,28 @@ struct ModernComposerInsetsTests {
         #expect(insets.top == 0, "the floating buttons' bottom inset is the gap above the card")
     }
 
-    /// What the eye sees around a capsule is the gap: its hit area's slack plus the bar's inset, on every side.
-    @Test(arguments: [ListDensity.regular, .compact], [CGFloat(1), 19.0 / 17.0, 28.0 / 17.0])
-    func eachFloatingCapsuleIsTheGapFromTheSidesThePageAndTheCard(density: ListDensity, dynamicType: CGFloat) {
-        let glyph = ComposerBarMetrics(density: density, scale: TextScale(percent: 100), dynamicType: dynamicType).glyphSize
-        let slack = ComposerHeader.hitSlack(glyph: glyph)
-        let insets = ComposerChrome.docked.headerInsets(glyph: glyph)
-        #expect(abs(insets.leading + slack.width - FloatingSpacing.gap) < 0.001)
-        #expect(abs(insets.trailing + slack.width - FloatingSpacing.gap) < 0.001)
-        #expect(abs(insets.top + slack.height - FloatingSpacing.gap) < 0.001)
-        #expect(abs(insets.bottom + slack.height - FloatingSpacing.gap) < 0.001)
+    /// What the eye sees around a capsule is the gap: its hit area's slack plus the bar's inset, on every side. Under a 16 pt
+    /// glyph (compact density, text under 100 %) the slack alone is wider than the gap: the hit area stays 44 pt and the
+    /// capsule is the slack away, never closer than the gap.
+    @Test(arguments: composerSizes)
+    func eachFloatingCapsuleIsTheGapFromTheSidesThePageAndTheCard(size: ComposerSize) {
+        let metrics = size.metrics
+        let slack = ComposerHeader.hitSlack(glyph: metrics.glyphSize)
+        let insets = ComposerChrome.docked.headerInsets(glyph: metrics.glyphSize)
+        let horizontal = max(FloatingSpacing.gap, slack.width)
+        let vertical = max(FloatingSpacing.gap, slack.height)
+        #expect(abs(insets.leading + slack.width - horizontal) < 0.001)
+        #expect(abs(insets.trailing + slack.width - horizontal) < 0.001)
+        #expect(abs(insets.top + slack.height - vertical) < 0.001)
+        #expect(abs(insets.bottom + slack.height - vertical) < 0.001)
+        #expect(vertical <= 10.5, "the widest visible gap, at 70 % in compact density")
+    }
+
+    /// A banner or the fields between the floating buttons and the card: the gap above the card, inside the measured top.
+    @Test func afterABannerOrTheFieldsTheCardKeepsTheGapAboveIt() {
+        #expect(ComposerChrome.docked.gapAboveCard(hasPartsUnderHeader: true) == FloatingSpacing.gap)
+        #expect(ComposerChrome.docked.gapAboveCard(hasPartsUnderHeader: false) == 0)
+        #expect(ComposerChrome.sheet.gapAboveCard(hasPartsUnderHeader: true) == 0, "legacy's card has its own top inset")
     }
 
     /// A capsule larger than its hit area (an accessibility size) has no slack: the bar's inset is the whole gap.
@@ -50,10 +69,11 @@ struct ModernComposerInsetsTests {
         #expect(header == EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16))
     }
 
-    /// The card's tools keep 44 pt hit areas at the compact density too; legacy's row keeps its cells.
-    @Test(arguments: [ListDensity.regular, .compact])
-    func theCardsToolsKeep44PointHitAreas(density: ListDensity) {
-        let cell = ComposerBarMetrics(density: density, scale: TextScale(percent: 100)).cellSize
+    /// The card's tools and its "Aa" bar keep 44 pt hit areas at the compact density and the smallest text too; legacy's row
+    /// keeps its cells.
+    @Test(arguments: composerSizes)
+    func theCardsToolsKeep44PointHitAreas(size: ComposerSize) {
+        let cell = size.metrics.cellSize
         #expect(ComposerControlRow.cellSize(cell, inCard: true) >= ComposerHeader.hitSize)
         #expect(ComposerControlRow.cellSize(cell, inCard: false) == cell)
     }
@@ -75,4 +95,17 @@ struct ModernComposerInsetsTests {
         #expect(diameter > metrics.glyphSize, "the glyph sits inside its chip")
         #expect(diameter < cell, "neighbouring chips never touch")
     }
+}
+
+/// One text size of the composer's chrome, for parameterised tests.
+struct ComposerSize: Sendable, CustomTestStringConvertible {
+    let density: ListDensity
+    let percent: Int
+    let dynamicType: CGFloat
+
+    var metrics: ComposerBarMetrics {
+        ComposerBarMetrics(density: density, scale: TextScale(percent: percent), dynamicType: dynamicType)
+    }
+
+    var testDescription: String { "\(density) \(percent) % ×\(dynamicType)" }
 }

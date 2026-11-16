@@ -23,10 +23,11 @@ struct ComposerLayoutHostedTests {
 
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
-    private func host(size: DynamicTypeSize, text: String) async throws -> ProbeBox {
+    private func host(
+        size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([]))
+    ) async throws -> ProbeBox {
         let box = ProbeBox()
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
-        let model = ComposerFixture.model(poster: ScriptedPoster([]))
         let view = ReplyComposerView(model: model) { _ in }
             .environment(\.dynamicTypeSize, size)
             .environment(\.composerLayoutProbe, box.probe)
@@ -98,5 +99,32 @@ struct ComposerLayoutHostedTests {
         let capsule = ComposerHeader.capsuleSize(glyph: glyph)
         #expect(abs(close.midX - capsule.width / 2 - gap) < 0.5, "close \(close)")
         #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
+    }
+
+    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size and weight, measured against the
+    /// same symbol drawn by UIKit at that size (a `.subheadline` bold glyph, the size before #895, is about 4 pt smaller).
+    @Test func theFloatingButtonsGlyphIsTheCardToolsSize() async throws {
+        guard isPhone else { return }
+        let box = try await host(size: .large, text: "Bonjour")
+        let glyph = try #require(box.frames[.closeGlyph])
+        let size = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .medium)
+        let expected = try #require(UIImage(systemName: "xmark", withConfiguration: configuration)).size
+        #expect(abs(glyph.height - expected.height) < 1, "glyph \(glyph), UIKit \(expected)")
+        #expect(abs(glyph.width - expected.width) < 1, "glyph \(glyph), UIKit \(expected)")
+    }
+
+    /// A new private message has its recipient and subject between the floating buttons and the card: the card keeps the
+    /// shared gap under them (#895, Fable round 1 on #936).
+    @Test func underTheFieldsTheCardKeepsTheSharedGap() async throws {
+        guard isPhone else { return }
+        let model = ReplyComposerModel(
+            composing: .newPrivateMessage(newMessageTarget), services: ComposerFixture.services(poster: ScriptedPoster([])),
+            autosaveDelay: .seconds(60)
+        )
+        let box = try await host(size: .large, text: "Bonjour", model: model)
+        let fields = try #require(box.frames[.fields])
+        let card = try #require(box.frames[.card])
+        #expect(abs(card.minY - fields.maxY - FloatingSpacing.gap) < 0.5, "fields \(fields), card \(card)")
     }
 }

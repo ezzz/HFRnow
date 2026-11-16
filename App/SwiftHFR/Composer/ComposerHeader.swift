@@ -109,7 +109,7 @@ struct ComposerHeader: View {
     private var floatingBar: some View {
         HStack(spacing: 0) {
             floatingButton(prominent: false, enabled: Self.closeIsEnabled(isSending: isSending), action: close) {
-                floatingSymbol("xmark")
+                floatingSymbol("xmark", probe: .closeGlyph)
             }
             .keyboardShortcut(.cancelAction)
             .accessibilityLabel("Fermer")
@@ -175,10 +175,12 @@ struct ComposerHeader: View {
     }
 
     /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895).
-    private func floatingSymbol(_ name: String) -> some View {
-        Image(systemName: name)
-            .font(.system(size: floatingGlyph, weight: .medium))
-            .frame(width: floatingGlyph, height: floatingGlyph)
+    private func floatingSymbol(_ name: String, probe part: ComposerLayoutProbe.Part? = nil) -> some View {
+        let image = Image(systemName: name).font(.system(size: floatingGlyph, weight: .medium))
+        return Group {
+            if let part { image.composerProbe(part) } else { image }
+        }
+        .frame(width: floatingGlyph, height: floatingGlyph)
     }
 
     private var closeButton: some View {

@@ -89,6 +89,8 @@ struct ReplyComposerView: View {
                 )
                 banners
                 if model.hasSubjectField { messageFields }
+                // Inside the measured top, so the docked sheet's height counts it (#895).
+                Color.clear.frame(height: chrome.gapAboveCard(hasPartsUnderHeader: model.hasPartsUnderHeader))
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.top = $0 }
             editorCard
@@ -255,6 +257,7 @@ struct ReplyComposerView: View {
         .scaledFont(.body)
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
+        .composerProbe(.fields)
     }
 }
 

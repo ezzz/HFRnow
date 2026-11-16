@@ -108,18 +108,20 @@ inside the card above the text, the two pills just under the editor so they move
   (`.disabled` on a `List` also stops its scrolling, measured on the iPhone 18 Pro Max simulator, iOS 27.2; a tap on a row would
   open a topic under the sheet). The author menu's MP is opened over the reader, so its page scrolls. "Fermer" (×) stays at the
   top left, as legacy's header.
-- **Margins and icons of the modern composer (#895, operator 2026-11-14; reference: the Claude iOS app).** One shared gap,
-  `FloatingSpacing.gap` (8 pt, operator decision of 2026-11-16 on #820 and #895; #820's end-of-page hint reuses it): between the
-  floating buttons' capsules and the screen's sides, the page above and the text card, at the card's sides and under it down to
-  the keyboard. A capsule's 44 pt hit area is wider than the capsule: its slack counts toward the gap
-  (`ComposerChrome.headerInsets`), so the hit area stays 44 pt. The floating buttons' glyphs take the card tools' size and weight
-  (`ComposerBarMetrics.glyphSize`), and the card's tools keep 44 pt cells at the compact density. Variant D (each tool in a round
-  chip, `ComposerToolStyle`) is the one the build shows until the operator chooses on the device. Legacy's chrome (an iPad, or the
-  option off) keeps its paddings.
   Every toolbar entry on the reader and its gate (swept for round 3 of #749): top bar "Actualiser" (disabled), "Sondage"
   (`offersPoll`); "…" overflow "Filtrer les posts", "Rechercher dans le sujet", the offline save entries, "Marquer comme non lu"
   (`offersMarkUnread`) and the page items (all hidden); bottom bar ‹ ›, "N / M", "Répondre" (disabled); the failure banner's
   "Réessayer" (disabled). The model's own actions refuse too (`pollModel`, `markUnread`, `refresh`, `retry`, …).
+- **Margins and icons of the modern composer (#895, operator 2026-11-14; reference: the Claude iOS app).** One shared gap,
+  `FloatingSpacing.gap` (8 pt, operator decision of 2026-11-16 on #820 and #895; #820's end-of-page hint reuses it): between the
+  floating buttons' capsules and the screen's sides, the page above and the text card, at the card's sides and under it down to
+  the keyboard. A capsule's 44 pt hit area is wider than the capsule: its slack counts toward the gap
+  (`ComposerChrome.headerInsets`), so the hit area stays 44 pt; under a 16 pt glyph (the compact density at a text size under
+  100 %) the slack is wider than the gap and is kept. After a banner or the recipient and subject fields, the gap is above the
+  card too (`ComposerChrome.gapAboveCard`). The floating buttons' glyphs take the card tools' size and weight
+  (`ComposerBarMetrics.glyphSize`), and the card's tools and its "Aa" bar keep 44 pt cells at the compact density. Variant D (each tool in a round
+  chip, `ComposerToolStyle`) is the one the build shows until the operator chooses on the device. Legacy's chrome (an iPad, or the
+  option off) keeps its paddings.
 - **Image chips.** An image the panel uploaded and inserted shows as a 56 pt thumbnail (the host's mini rendition, as the panel's
   history) at the top of the card, with an ✕ ("Retirer l'image"). The snippet stays in the text where legacy puts it (at the caret,
   `AnswerView.swift:646-676` @ 2440d79), so what is posted and the draft do not change; the chip shows while its snippet is in the

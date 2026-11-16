@@ -37,8 +37,10 @@ struct ReaderComposerPresenter: ViewModifier {
                         .transition(.move(edge: .bottom))
                 }
             }
-            .onPreferenceChange(DockedComposerHeightKey.self) { dockedHeight = $0 }
-            .animation(.snappy, value: composer?.id)
+            // The action is `@Sendable` (iOS 18.2 SDK on): it writes through the state's binding, never the main-actor view.
+            .onPreferenceChange(DockedComposerHeightKey.self) { [height = $dockedHeight] in height.wrappedValue = $0 }
+            // The bar's slide only: a sheet animates itself, and the reader under it must not animate what changes with it.
+            .animation(isDocked ? .snappy : nil, value: composer?.id)
             .sheet(item: sheetComposer) { model in ReplyComposerView(model: model) }
             .onChange(of: composer?.closeReason, initial: true) { _, reason in
                 guard let reason, let model = composer else { return }
