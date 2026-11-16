@@ -107,10 +107,13 @@ struct GeneralSettingsModelTests {
         #expect(GeneralSettingsModel(store: store).mpListDisplay == .split)
     }
 
-    @Test func theModelNoLongerWritesDisplayImages() {
-        let store = InMemorySettingsStore()
-        _ = GeneralSettingsModel(store: store)
-        #expect(store.rawValue(forKey: "display_images") == nil)
+    /// The Réglages › Général model no longer owns the image mode: a stored value is neither read nor rewritten by it.
+    @Test func theGeneralModelLeavesDisplayImagesAlone() {
+        let store = InMemorySettingsStore(["display_images": .string("no")])
+        let model = GeneralSettingsModel(store: store)
+        model.compactMode.toggle()
+        #expect(store.rawValue(forKey: "display_images") == .string("no"))
+        #expect(ReaderSettings.autoLoad(store: store) == .always)
     }
 
     @Test func privateHostsStayBlockedWhateverTheSetting() throws {

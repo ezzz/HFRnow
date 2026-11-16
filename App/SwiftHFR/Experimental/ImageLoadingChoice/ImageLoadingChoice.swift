@@ -11,6 +11,7 @@ enum ImageLoadingChoice {
     /// The image mode: the stored `display_images` while the option is on (« Toujours » until the user picks another), always
     /// otherwise, whatever an earlier build stored. The reader reads this on every page and image request.
     static func autoLoad(store: any SettingsStore) -> ImageAutoLoad {
+        // Reads the store, not `ExperimentalSettings`: the reader calls this off the main actor. The option is listed (`isListed`).
         guard store.value(for: SettingKey.experimentalImageLoadingChoice) else { return .always }
         return ImageAutoLoad(setting: store.value(for: SettingKey.displayImages))
     }
@@ -39,7 +40,7 @@ struct ImageLoadingChoicePicker: View {
 
     var body: some View {
         Picker("Charger les images", selection: $mode) {
-            ForEach(ImageDisplayMode.allCases, id: \.self) { Text($0.title).tag($0) }
+            ForEach([ImageDisplayMode.always, .wifiOnly, .never], id: \.self) { Text($0.title).tag($0) }
         }
         .onChange(of: mode) { _, new in store.set(new, for: SettingKey.displayImages) }
     }
