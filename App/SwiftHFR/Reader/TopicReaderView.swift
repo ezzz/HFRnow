@@ -29,9 +29,9 @@ enum ReaderTabBar {
     }
 }
 
-/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
-/// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
-/// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
+/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the composers
+/// (`ReaderComposerPresenter`). A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its
+/// host wraps it in a `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
 struct TopicReaderView: View {
     let model: TopicReaderModel
     let services: ReaderServices
@@ -98,8 +98,11 @@ struct TopicReaderView: View {
                 LoadFailureBanner(error: error, retry: retry).disabled(model.suspendsPageInteractions)
             }
         }
+        // Inside the composers: above a docked bar, never over it (#853).
+        .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer, search: $search))
@@ -133,12 +136,10 @@ struct TopicReaderView: View {
         }
         .overlay { ReaderMessageMenuAnchor(model: model) }
         .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
-        .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .sheet(item: $profile, onDismiss: model.applyDisplaySettings, content: { UserProfileView(model: $0, services: services) })
-        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)

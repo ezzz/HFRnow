@@ -66,13 +66,15 @@ struct FormattingToolbar: View {
     private func button<Content: View>(
         _ label: String, action: @escaping () -> Void, @ViewBuilder content: () -> Content
     ) -> some View {
-        Button {
+        let cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard)
+        return Button {
             action()
             refocus()
         } label: {
             content()
                 .font(.system(size: metrics.glyphSize))
-                .frame(minWidth: metrics.cellSize, minHeight: metrics.cellSize).contentShape(.rect)
+                // In the card, 44 pt cells at least, as the control row's (#895).
+                .frame(minWidth: cell, minHeight: cell).contentShape(.rect)
         }
         .buttonStyle(.plain)
         .disabled(!model.isEnabled)
