@@ -1,8 +1,25 @@
+import Dispatch
 import Foundation
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
+import Synchronization
 import Testing
+
+/// A list file whose saves wait while the gate is closed, so a test can hold a toggle in the middle of its write.
+private final class HeldPseudoListPersistence: PseudoListPersistence {
+    private let inner = InMemoryPseudoListPersistence()
+    private let closed = Mutex(false)
+    private let gate = DispatchSemaphore(value: 0)
+    func close() { closed.withLock { $0 = true } }
+    func open() { if closed.withLock({ let was = $0; $0 = false; return was }) { gate.signal() } }
+    func load() throws -> PseudoListDocument? { try inner.load() }
+    func save(_ document: PseudoListDocument) throws {
+        if closed.withLock({ $0 }) { gate.wait() }
+        try inner.save(document)
+    }
+    func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
+}
 
 /// #652: a tap on a message's author opens the profile, with legacy's quick actions (`userProfileQuickActions`,
 /// `MessagesView.swift:4387-4412` @ 87fe0d1c), and a quick action closes it before acting (`:4422-4490`).
@@ -170,6 +187,55 @@ struct AuthorProfileFlowTests {
         fixture.flow.profile = nil
         fixture.flow.profileDidClose()
         #expect(confirmed.count == 1, "no stale toast")
+    }
+
+    /// "MP" left the profile (its composer waits for the dismissal) and a toggle of that profile ends meanwhile: the toast is told
+    /// and the composer still opens (review round 2, finding 1).
+    @Test func aToggleEndingAfterMPKeepsTheComposerPending() async throws {
+        let fixture = Fixture()
+        var confirmed: [String] = []
+        let model = try profileModel(store: fixture.store)
+        fixture.flow.showProfile(model, from: context(), composer: fixture.composer) { confirmed.append($0) }
+        await model.onAppear()
+        model.writePrivateMessage()
+        await model.toggle(.allowlist)
+        #expect(confirmed.count == 1)
+        fixture.flow.profileDidClose()
+        #expect(fixture.flow.newMessage != nil)
+    }
+
+    /// Another profile is on screen when a toggle of the first ends: that profile stays, the toast is told at once (round 2,
+    /// finding 2).
+    @Test func aToggleOfAProfileNoLongerShownLeavesTheShownOneOpen() async throws {
+        let fixture = Fixture()
+        var confirmed: [String] = []
+        let first = try profileModel(store: fixture.store)
+        fixture.flow.showProfile(first, from: context(), composer: fixture.composer) { confirmed.append($0) }
+        await first.onAppear()
+        let second = try profileModel(store: fixture.store)
+        fixture.flow.showProfile(second, from: context(author: "autre"), composer: fixture.composer) { confirmed.append($0) }
+        await first.toggle(.allowlist)
+        #expect(fixture.flow.profile === second)
+        #expect(confirmed.count == 1)
+        fixture.flow.profileDidClose()
+        #expect(confirmed.count == 1, "nothing deferred to the second profile")
+    }
+
+    /// A second tap while the first toggle is written does nothing: one toggle, one sentence (round 2, finding 3).
+    @Test func aSecondTapDuringAToggleIsIgnored() async throws {
+        let persistence = HeldPseudoListPersistence()
+        let store = PseudoListStore(persistence: persistence)
+        let model = try profileModel(store: store)
+        await model.onAppear()
+        persistence.close()
+        let first = Task { await model.toggle(.blocklist) }
+        await Task.yield()
+        let second = Task { await model.toggle(.blocklist) }
+        await Task.yield()
+        persistence.open()
+        await first.value
+        await second.value
+        #expect(model.listFeedbackCount == 1 && model.isBlocked)
     }
 
     /// The MP button follows the message even when a hook is set: never on the user's own post (review round 1, finding 4).

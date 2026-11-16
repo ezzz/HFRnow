@@ -124,13 +124,17 @@ final class AuthorMenuFlow {
     ) {
         model.origin = ProfileMessageOrigin(author: context.author, isOwnMessage: context.isOwnMessage)
         if let composer, !context.isOwnMessage, let target = PrivateMessageActionHandler.target(of: context) {
-            model.onPrivateMessage = { [weak self] _ in
-                self?.closeProfile { [weak self] in
+            model.onPrivateMessage = { [weak self, weak model] _ in
+                guard let model else { return }
+                self?.closeProfile(model) { [weak self] in
                     self?.newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
                 }
             }
         }
-        model.onListToggled = { [weak self] text in self?.closeProfile { confirm(text) } }
+        model.onListToggled = { [weak self, weak model] text in
+            guard let model else { return }
+            self?.closeProfile(model) { confirm(text) }
+        }
         show(model)
     }
 
@@ -140,11 +144,11 @@ final class AuthorMenuFlow {
         profile = model
     }
 
-    /// Closes the profile sheet, then runs `next` once it is gone (`profileDidClose`); at once when the user already closed it
-    /// (a toggle that ends after "Fermer"), so nothing waits for a dismissal that will not come.
-    func closeProfile(then next: @escaping @MainActor () -> Void) {
-        guard profile != nil else {
-            afterProfile = nil
+    /// Closes `model`'s sheet, then runs `next` once it is gone (`profileDidClose`). When `model` is no longer on screen (the
+    /// user closed it, or another profile replaced it while a toggle was written), `next` runs at once: nothing waits for a
+    /// dismissal that will not come, and the sheet on screen and its pending follow-up are left alone.
+    func closeProfile(_ model: UserProfileModel, then next: @escaping @MainActor () -> Void) {
+        guard profile === model else {
             next()
             return
         }
