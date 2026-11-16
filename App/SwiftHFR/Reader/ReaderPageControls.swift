@@ -1,33 +1,11 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/MessagesView.swift (bottom bar :5639-5690, `shouldShowBottomRefreshButton` and
-// `shouldPromoteBottomNextPageButton` :4972-4978, `pageChoiceMenuItems` and `pageChoiceMenuFinalTargets` :5019-5046,
-// `topicBottomBarButtonStyle` :7372-7386) @ 87fe0d1c. Differences: the "N / M" page bubble of SwiftHFR is kept, but only at the
-// end of the page, with the bottom refresh (operator, #820, 2026-11-15); the top refresh stays and the bottom one is the same
-// button (`ReaderRefreshButton`); VoiceOver keeps the bubble at all times; "Page …" asks in an alert, not a sheet; under a
-// visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the lists' pager (#565). GAP-060.
-/// The reader's bottom bar, topic and private conversation alike (#836): ‹ ›, then at the end of the page the page bubble and
-/// the refresh, and the reply button. Legacy promotes › at the end of a page that is not the last, and the refresh at the end
-/// of the last page.
+// Port of HFRswift/Swift/MessagesView.swift (bottom bar :5639-5690, `pageChoiceMenuItems` and `pageChoiceMenuFinalTargets`
+// :5019-5046) @ 87fe0d1c. Differences: SwiftHFR's "N / M" page bubble stays in the bar (when it shows is #820's); "Page …" asks
+// in an alert, not a sheet; under a visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the
+// lists' pager (#565). GAP-060.
+/// Where the reader's bottom controls go, topic and private conversation alike (#836).
 enum ReaderBottomBar {
-    /// What the bar shows for one scroll position.
-    struct State: Equatable {
-        var showsPageBubble: Bool
-        var showsRefresh: Bool
-        var promotesNext: Bool
-        var promotesRefresh: Bool
-    }
-
-    /// `atPageEnd`: the page's end is on screen (legacy `isWebContentAtBottom`). VoiceOver users get the bubble everywhere:
-    /// hiding it is visual only (#820).
-    static func state(currentPage: Int, maxPage: Int, atPageEnd: Bool, voiceOver: Bool) -> State {
-        let isLastPage = currentPage >= maxPage
-        return State(
-            showsPageBubble: atPageEnd || voiceOver, showsRefresh: atPageEnd,
-            promotesNext: atPageEnd && !isLastPage, promotesRefresh: atPageEnd && isLastPage
-        )
-    }
-
     /// Where the controls go (#649): the system bottom bar of a reader beside a visible tab bar lands in the floating tab bar's
     /// frame (a Plus or Pro Max iPhone in landscape), so they become a strip inset above it, as `PagerPlacement` does for lists.
     enum Placement: Equatable { case bottomBar, inset }
@@ -38,26 +16,22 @@ enum ReaderBottomBar {
 }
 
 /// The reader's bottom controls as system bottom-bar items (Liquid Glass over the page; on the iPhone Duo cover screen they
-/// move to the side with the system bars). Nothing under a visible tab bar: `ReaderPageStrip` takes over there.
+/// move to the side with the system bars): ‹ ›, the page bubble and the reply button. Nothing under a visible tab bar:
+/// `ReaderPageStrip` takes over there.
 struct ReaderPageControls: ToolbarContent {
     let buttons: ReaderPageButtons
     let placement: ReaderBottomBar.Placement
 
     var body: some ToolbarContent {
         if placement == .bottomBar, let page = buttons.model.page {
-            let state = buttons.state(page)
             ToolbarItemGroup(placement: .bottomBar) {
                 buttons.previous(page)
-                buttons.next(page, prominent: state.promotesNext)
+                buttons.next(page)
             }
             .visibilityPriority(.high)
             ToolbarSpacer(.flexible, placement: .bottomBar)
-            if state.showsPageBubble {
-                ToolbarItem(placement: .bottomBar) { buttons.bubble(page) }
-            }
-            if state.showsRefresh {
-                ToolbarItem(placement: .bottomBar) { buttons.refreshButton(prominent: state.promotesRefresh) }
-            }
+            ToolbarItem(placement: .bottomBar) { buttons.bubble(page) }
+            ToolbarSpacer(.flexible, placement: .bottomBar)
             if buttons.replySymbol != nil {
                 ToolbarItem(placement: .bottomBar) { buttons.reply() }
                     .visibilityPriority(.high)
@@ -72,13 +46,12 @@ struct ReaderPageStrip: View {
 
     var body: some View {
         if let page = buttons.model.page {
-            let state = buttons.state(page)
             HStack {
                 buttons.previous(page)
-                buttons.next(page, prominent: state.promotesNext)
+                buttons.next(page)
                 Spacer()
-                if state.showsPageBubble { buttons.bubble(page) }
-                if state.showsRefresh { buttons.refreshButton(prominent: state.promotesRefresh) }
+                buttons.bubble(page)
+                Spacer()
                 if buttons.replySymbol != nil { buttons.reply() }
             }
             .labelStyle(.iconOnly)
@@ -93,19 +66,10 @@ struct ReaderPageStrip: View {
 @MainActor
 struct ReaderPageButtons {
     let model: TopicReaderModel
-    /// The page's end is on screen (`reader.js` reports it).
-    let atPageEnd: Bool
-    let voiceOver: Bool
     /// Opens the "Aller à la page" prompt.
     let askPage: () -> Void
     /// The reply button's symbol (`reply_button_behavior`); nil draws no button (hidden setting, logged out, no answer form).
     let replySymbol: String?
-    /// The reader's one refresh, also behind the top bar's button.
-    let refresh: @MainActor () async -> Void
-
-    func state(_ page: ReaderPage) -> ReaderBottomBar.State {
-        ReaderBottomBar.state(currentPage: page.currentPage, maxPage: page.maxPage, atPageEnd: atPageEnd, voiceOver: voiceOver)
-    }
 
     /// Legacy ‹ opens the previous page at its last message (`navigateToPreviousPageFromBottomButton`, :4960-4964).
     func previous(_ page: ReaderPage) -> some View {
@@ -115,16 +79,11 @@ struct ReaderPageButtons {
         .disabled(!model.canGoToPrevious || model.isLoading || model.suspendsPageInteractions)
     }
 
-    func next(_ page: ReaderPage, prominent: Bool) -> some View {
+    func next(_ page: ReaderPage) -> some View {
         Button("Page suivante", systemImage: "chevron.forward") {
             Task { await model.goToPage(page.currentPage + 1) }
         }
-        .readerBarProminence(prominent)
         .disabled(!model.canGoToNext || model.isLoading || model.suspendsPageInteractions)
-    }
-
-    func refreshButton(prominent: Bool) -> some View {
-        ReaderRefreshButton(model: model, refresh: refresh).readerBarProminence(prominent)
     }
 
     func reply() -> some View {
@@ -147,7 +106,7 @@ struct ReaderPageButtons {
     }
 }
 
-/// "Actualiser": one button for the top bar and the end of the page (#820), so both run the same refresh.
+/// "Actualiser" of the top bar.
 struct ReaderRefreshButton: View {
     let model: TopicReaderModel
     let refresh: @MainActor () async -> Void
@@ -155,14 +114,6 @@ struct ReaderRefreshButton: View {
     var body: some View {
         Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
             .disabled(model.isLoading || model.suspendsPageInteractions)
-    }
-}
-
-extension View {
-    /// Legacy `topicBottomBarButtonStyle(isProminent:)`: the next useful action is drawn prominent.
-    @ViewBuilder
-    func readerBarProminence(_ prominent: Bool) -> some View {
-        if prominent { buttonStyle(.glassProminent) } else { self }
     }
 }
 

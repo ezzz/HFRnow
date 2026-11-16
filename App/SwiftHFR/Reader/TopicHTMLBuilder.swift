@@ -35,9 +35,6 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var style = ThemeStyle.modern
     /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
     var visibility = VisibilityPolicy.none
-    /// End the page with the pull-to-refresh hint (#820): only the topic and MP reader refreshes on a pull
-    /// (`TopicReaderModel.currentRenderOptions`); "Filtrer les posts" builds its pages without it.
-    var offersPullToRefresh = false
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -95,12 +92,7 @@ enum TopicHTMLBuilder {
                 html += "<div class=\"separator1\"></div>\n"
             }
         }
-        html += "</main>\n"
-        if options.offersPullToRefresh {
-            // Below the last message, tone on tone: pulling past it refreshes (#820). VoiceOver has the "Actualiser" buttons.
-            html += "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>\n"
-        }
-        html += "</body>\n</html>\n"
+        html += "</main>\n</body>\n</html>\n"
         return html
     }
 

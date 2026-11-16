@@ -22,8 +22,8 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 
 ## Behaviour
 
-- **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes nine names (`images`, `tap`, `ready`, `video`, `menu`, `position` since LOT-111, `quote` since LOT-086,
-  `image` since LOT-109 and `edge` since #820) into
+- **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes eight names (`images`, `tap`, `ready`, `video`, `menu`, `position` since LOT-111, `quote` since LOT-086
+  and `image` since LOT-109) into
   `ReaderBridgeMessage`; an unknown name, a body that is not an object, a non-integer or boolean number, a missing field, a post
   below 1 or an unknown `source` is rejected whole (nothing is partly read). The page never supplies code or a selector.
 - **Menu button.** Each non-continuation message draws a `+` button (`data-menu="message"`) when an action of the message menu has

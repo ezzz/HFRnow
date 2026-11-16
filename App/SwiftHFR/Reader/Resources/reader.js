@@ -270,32 +270,9 @@
       }
     }, 500);
   };
-  // The page's end on screen (legacy `notifyScrollState`, MessagesView.swift:1013-1035 @ 87fe0d1c: `scrollY + innerHeight`
-  // within 2 points of the bottom), reported on a change only: the app shows the end-of-page bar (#820). Only a pinch zoom
-  // reads the visual viewport: on iOS its `pageTop` comes back from the UI process later than `scrollY`, so a scroll event
-  // read it stale and the way back to the top went unreported (#924, CI job 133081541823).
-  let atEnd = null;
-  const reportEdge = () => {
-    const vv = window.visualViewport;
-    const zoomed = vv !== null && vv !== undefined && vv.scale > 1.01;
-    const bottom = zoomed ? vv.pageTop + vv.height : window.scrollY + window.innerHeight;
-    const height = Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
-    const now = height - bottom <= 2;
-    if (now !== atEnd) {
-      atEnd = now;
-      channel.postMessage({ type: "edge", token, bottom: now });
-    }
-  };
-  new ResizeObserver(reportEdge).observe(document.documentElement);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", reportEdge, { passive: true });
-    window.visualViewport.addEventListener("scroll", reportEdge, { passive: true });
-  }
-
   window.addEventListener("scroll", () => {
     if (pinned !== null && Math.abs(window.scrollY - pinY) > 4) { releasePin(); }
     if (pinned === null) { scheduleReport(); }
-    reportEdge();
   }, { passive: true });
 
   const images = Array.from(document.querySelectorAll("img[src]"));
@@ -303,5 +280,5 @@
   channel.postMessage({ type: "images", token, urls: sources })
     .then((decisions) => images.forEach((img, index) => apply(img, sources[index], decisions[index])))
     .catch(() => images.forEach((img, index) => apply(img, sources[index], "block")))
-    .finally(() => { channel.postMessage({ type: "ready", token }); reportEdge(); });
+    .finally(() => channel.postMessage({ type: "ready", token }));
 })();

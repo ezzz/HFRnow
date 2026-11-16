@@ -6,7 +6,7 @@ import Foundation
 // untyped values and ignored bad shapes silently.
 
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
-/// selector: the decoder knows nine names and takes only numbers and strings of the shape each one needs; anything else
+/// selector: the decoder knows eight names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.
 enum ReaderBridgeMessage: Equatable, Sendable {
     /// `src` of every image of the document, in order; an entry that is not a string is kept as nil (blocked).
@@ -30,10 +30,6 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     /// The user tapped a posted picture: the `src` of the pictures the page shows (in order) and the tapped one's position
     /// among them (LOT-109). The app re-checks every entry; the page's list is a claim.
     case image(urls: [String], index: Int)
-
-    /// The page's end came on screen (`atBottom`) or left it: legacy's `scrollState` message (`MessagesView.swift:1013-1035`
-    /// @ 87fe0d1c), sent only on a change. It drives the end-of-page bar (#820).
-    case edge(atBottom: Bool)
 
     /// Why a body was rejected.
     enum Failure: Error, Equatable, Sendable {
@@ -76,9 +72,6 @@ enum ReaderBridgeMessage: Equatable, Sendable {
             return .tap(url: url)
         case "ready":
             return .ready
-        case "edge":
-            guard let atBottom = boolean(object["bottom"]) else { throw .invalidPayload }
-            return .edge(atBottom: atBottom)
         default:
             return try messageAboutAPost(ofType: type, in: object)
         }
@@ -173,7 +166,7 @@ extension ReaderBridgeMessage {
     var isTapAction: Bool {
         switch self {
         case .menu, .video, .image, .quote: true
-        case .images, .tap, .ready, .position, .edge: false
+        case .images, .tap, .ready, .position: false
         }
     }
 }

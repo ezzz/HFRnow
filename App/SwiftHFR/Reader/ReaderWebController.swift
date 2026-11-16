@@ -25,8 +25,8 @@ final class ReaderWebController: NSObject {
     static let maximumConcurrentImages = 6
 
     let webView: QuoteMenuWebView
-    /// The message menu, a callout at the tapped "+" (#594), and the pull past the page's end (#820).
-    let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
+    /// The message menu, a callout at the tapped "+" (#594).
+    let messageMenu = ReaderMessageEditMenu()
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
     /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
@@ -121,7 +121,6 @@ final class ReaderWebController: NSObject {
         // Falling snow pauses while the page scrolls (LOT-166).
         SeasonalScrollActivity.shared.track(webView.scrollView)
         messageMenu.attach(to: webView)
-        pullWatcher.track(webView.scrollView) { [weak self] in self?.pulledPastEnd() }
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document
@@ -214,9 +213,6 @@ final class ReaderWebController: NSObject {
         case .position(let post):
             resetWatch.pageReportedPosition()
             events.position(post, document.token)
-            return nil
-        case .edge(let atBottom):
-            events.pageEnd(atBottom, document.token)
             return nil
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
