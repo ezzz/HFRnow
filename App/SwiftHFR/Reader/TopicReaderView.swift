@@ -62,7 +62,6 @@ struct TopicReaderView: View {
     @State private var askingPage = false
     /// The page's end is on screen (`reader.js`): the end-of-page bar (#820).
     @State private var atPageEnd = false
-    @State private var pageText = ""
     /// The swipe and reply button settings, and the display settings, followed while the reader is on screen (#750).
     @State private var settings = ReaderSettingsWatch()
     /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
@@ -128,14 +127,12 @@ struct TopicReaderView: View {
             Text("Connectez-vous pour rechercher dans un sujet.")
         }
         .sheet(isPresented: $showsAccounts) { AccountsView() }
-        .alert("Aller à la page", isPresented: $askingPage) {
-            TextField("Page", text: $pageText).keyboardType(.numberPad)
-            Button("Annuler", role: .cancel) {}
-            Button("Aller") {
-                if let number = Int(pageText) { Task { await model.goToPage(number) } }
+        .sheet(isPresented: $askingPage) {
+            if let page = model.page {
+                ReaderPageSheet(currentPage: page.currentPage, maxPage: page.maxPage) { number in
+                    Task { await model.goToPage(number) }
+                }
             }
-        } message: {
-            if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
         .overlay { ReaderMessageMenuAnchor(model: model) }
         .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
@@ -232,7 +229,6 @@ struct TopicReaderView: View {
     }
 
     private func askForPage() {
-        pageText = ""
         askingPage = true
     }
 

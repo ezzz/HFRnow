@@ -57,6 +57,33 @@ struct ReaderChromeTests {
             == ["Page 1", "Page …", "Page 1124", "Page 1125", "Page 1126", "Dernier post"])
     }
 
+    /// Issue #823: the "Page numéro" sheet's rules (`Common.swift:3063-3190` @ 87fe0d1c).
+    @Test func theSheetStepsAndClampsAsLegacyDoes() {
+        func step(_ input: String, _ kind: ReaderPagePicker.Step) -> String { ReaderPagePicker.stepped(input, by: kind, maxPage: 1126) }
+        #expect(step("5", .minusTen) == "1")
+        #expect(step("1", .minusOne) == "1")
+        #expect(step("12", .minusTen) == "2")
+        #expect(step("1125", .plusOne) == "1126")
+        #expect(step("1126", .plusOne) == "1126")
+        #expect(step("1120", .plusTen) == "1126")
+        #expect(step("600", .plusTen) == "610")
+        // Text that is no page reads as page 1; a page past the end is held at the last one before stepping.
+        #expect(step("", .plusOne) == "2")
+        #expect(step("abc", .minusOne) == "1")
+        #expect(step("5000", .minusOne) == "1125")
+        #expect(ReaderPagePicker.Step.allCases.map(\.title) == ["-10", "-1", "+1", "+10"])
+    }
+
+    @Test func theSheetOpensOnlyAPageOfTheTopic() {
+        #expect(ReaderPagePicker.target("1126", maxPage: 1126) == 1126)
+        #expect(ReaderPagePicker.target(" 7 ", maxPage: 1126) == 7)
+        #expect(ReaderPagePicker.target("0", maxPage: 1126) == nil)
+        #expect(ReaderPagePicker.target("1127", maxPage: 1126) == nil)
+        #expect(ReaderPagePicker.target("", maxPage: 1126) == nil)
+        #expect(ReaderPagePicker.resolved("99999", maxPage: 1126) == 1126)
+        #expect(ReaderPagePicker.clamped(-3, maxPage: 40) == 1)
+    }
+
     @Test func theMenuActionsOpenTheRightPageAndAnchor() {
         func go(_ item: ReaderPageMenu.Item) -> [Int]? {
             ReaderPageMenu.destination(of: item, maxPage: 40).map { [$0.page, $0.atLastMessage ? 1 : 0] }
