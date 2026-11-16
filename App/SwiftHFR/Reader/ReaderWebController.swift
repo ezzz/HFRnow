@@ -25,6 +25,8 @@ final class ReaderWebController: NSObject {
     static let maximumConcurrentImages = 6
 
     let webView: QuoteMenuWebView
+    /// The message menu, a callout at the tapped "+" (#594).
+    let messageMenu = ReaderMessageEditMenu()
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
     /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
@@ -122,6 +124,7 @@ final class ReaderWebController: NSObject {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         // Falling snow pauses while the page scrolls (LOT-166).
         SeasonalScrollActivity.shared.track(webView.scrollView)
+        messageMenu.attach(to: webView)
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document
