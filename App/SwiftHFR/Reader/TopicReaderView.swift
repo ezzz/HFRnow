@@ -247,7 +247,7 @@ struct TopicReaderView: View {
                 case .reader(let target): model.follow(target)
                 // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
                 case .profile(let memberID):
-                    authorMenu.profile = services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook)
+                    authorMenu.show(services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook))
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break

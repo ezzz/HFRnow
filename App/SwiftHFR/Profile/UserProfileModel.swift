@@ -104,9 +104,15 @@ final class UserProfileModel: Identifiable {
         isAllowed = await lists.contains(pseudo, in: .allowlist)
     }
 
+    /// A toggle is being written: a second tap meanwhile does nothing (it would undo the first, or act on a closing profile).
+    @ObservationIgnored private var isToggling = false
+
     /// Adds the member to the list, or removes them (legacy `toggleProfileBlacklist` / `toggleProfileWhitelist`).
     func toggle(_ kind: PseudoListKind) async {
-        guard let lists, let pseudo = listPseudo, let result = await lists.toggle(pseudo, in: kind) else { return }
+        guard !isToggling, let lists, let pseudo = listPseudo else { return }
+        isToggling = true
+        defer { isToggling = false }
+        guard let result = await lists.toggle(pseudo, in: kind) else { return }
         if let onListToggled {
             if result.changed { onListsChanged?() }
             onListToggled(result.message)

@@ -153,12 +153,43 @@ struct AuthorProfileFlowTests {
         #expect(confirmed == ["BIM! auteur ajouté à la liste noire"])
     }
 
+    /// The user closed the profile while the toggle was written: the result is told at once, and nothing stays pending for the
+    /// next profile (review round 1, finding 1).
+    @Test func aToggleThatEndsAfterTheUserClosedTheProfileTellsAtOnce() async throws {
+        let fixture = Fixture()
+        var confirmed: [String] = []
+        let model = try profileModel(store: fixture.store)
+        fixture.flow.showProfile(model, from: context(), composer: fixture.composer) { confirmed.append($0) }
+        await model.onAppear()
+        fixture.flow.profile = nil // "Fermer"
+        fixture.flow.profileDidClose()
+        await model.toggle(.allowlist)
+        #expect(confirmed == ["BOUM BOUM ! auteur ajouté à la love list \u{2665}"])
+        let next = try profileModel(store: fixture.store)
+        fixture.flow.show(next)
+        fixture.flow.profile = nil
+        fixture.flow.profileDidClose()
+        #expect(confirmed.count == 1, "no stale toast")
+    }
+
+    /// The MP button follows the message even when a hook is set: never on the user's own post (review round 1, finding 4).
+    @Test func theMPButtonIsHiddenOnTheUsersOwnPostWhateverTheHook() async throws {
+        let fixture = Fixture()
+        let model = try profileModel(store: fixture.store)
+        model.onPrivateMessage = { _ in }
+        model.origin = ProfileMessageOrigin(author: "auteur", isOwnMessage: true)
+        await model.onAppear()
+        #expect(model.privateMessageRecipient == nil)
+        model.origin = ProfileMessageOrigin(author: "auteur", isOwnMessage: false)
+        #expect(model.privateMessageRecipient != nil)
+    }
+
     /// A profile opened from a link keeps LOT-118's behaviour: it stays open and says the result itself.
     @Test func aProfileFromALinkStaysOpenAfterAToggle() async throws {
         let fixture = Fixture()
         let profile = try UserProfileModelTests.captured("R56b-profile-other-member-anon.html")
         let model = try profileModel(store: fixture.store)
-        fixture.flow.profile = model
+        fixture.flow.show(model)
         await model.onAppear()
         await model.toggle(.allowlist)
         #expect(fixture.flow.profile === model)

@@ -24,16 +24,19 @@ struct ProfileActionHandler: MessageActionHandler {
 
     /// Only a forum profile link (LOT-095's router): any other link leaves the author menu to the tap, as legacy's sheet without
     /// a profile.
-    func isAvailable(for context: MessageMenuContext) -> Bool { Self.memberID(of: context) != nil }
+    func isAvailable(for context: MessageMenuContext) -> Bool { context.actions.profileMemberID != nil }
 
     func perform(with context: MessageMenuContext) async {
-        guard let url = context.actions.profileURL, Self.memberID(of: context) != nil else { return }
+        guard let url = context.actions.profileURL, context.actions.profileMemberID != nil else { return }
         open(url, context)
     }
+}
 
-    /// The member the message's profile link names; nil without a link or for a link that is no profile.
-    static func memberID(of context: MessageMenuContext) -> Int? {
-        guard let url = context.actions.profileURL, case .profile(let memberID) = HFRLinkRoute.route(for: url) else { return nil }
+extension MessageActions {
+    /// The member the message's profile link names (LOT-095's router); nil without a link or for a link that is no profile.
+    /// A tap on the author opens that profile (#652), and the author menu only when this is nil.
+    var profileMemberID: Int? {
+        guard let profileURL, case .profile(let memberID) = HFRLinkRoute.route(for: profileURL) else { return nil }
         return memberID
     }
 }
@@ -128,12 +131,23 @@ final class AuthorMenuFlow {
             }
         }
         model.onListToggled = { [weak self] text in self?.closeProfile { confirm(text) } }
+        show(model)
+    }
+
+    /// Shows `model` with nothing pending from an earlier profile (a profile link in a message body opens through here too).
+    func show(_ model: UserProfileModel) {
         afterProfile = nil
         profile = model
     }
 
-    /// Closes the profile sheet, then runs `next` once it is gone (`profileDidClose`).
+    /// Closes the profile sheet, then runs `next` once it is gone (`profileDidClose`); at once when the user already closed it
+    /// (a toggle that ends after "Fermer"), so nothing waits for a dismissal that will not come.
     func closeProfile(then next: @escaping @MainActor () -> Void) {
+        guard profile != nil else {
+            afterProfile = nil
+            next()
+            return
+        }
         afterProfile = next
         profile = nil
     }
