@@ -5,7 +5,8 @@ import SwiftUI
 // `topicBottomBarButtonStyle` :7372-7386) @ 87fe0d1c. Differences: the "N / M" page bubble of SwiftHFR is kept, but only at the
 // end of the page, with the bottom refresh (operator, #820, 2026-11-15); the top refresh stays and the bottom one is the same
 // button (`ReaderRefreshButton`); VoiceOver keeps the bubble at all times; "Page …" asks in an alert, not a sheet; under a
-// visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the lists' pager (#565). GAP-060.
+// visible tab bar (a foldable's inner screen; a Pro Max in landscape until #431 hid the bar there, #649) the controls are a
+// strip above it, as the lists' pager (#565). GAP-060.
 /// The reader's bottom bar, topic and private conversation alike (#836): ‹ ›, then at the end of the page the page bubble and
 /// the refresh, and the reply button. Legacy promotes › at the end of a page that is not the last, and the refresh at the end
 /// of the last page.
@@ -29,7 +30,8 @@ enum ReaderBottomBar {
     }
 
     /// Where the controls go (#649): the system bottom bar of a reader beside a visible tab bar lands in the floating tab bar's
-    /// frame (a Plus or Pro Max iPhone in landscape), so they become a strip inset above it, as `PagerPlacement` does for lists.
+    /// frame (an iPhone regular in both dimensions; a Pro Max in landscape hides it since #431), so they become a strip inset
+    /// above it, as `PagerPlacement` does for lists.
     enum Placement: Equatable { case bottomBar, inset }
 
     static func placement(rootHasTabBar: Bool, tabBar: Visibility) -> Placement {

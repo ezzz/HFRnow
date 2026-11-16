@@ -7,8 +7,9 @@ import WebKit
 // bubble and a second "Actualiser" show at the end of the page only, a pull past the end refreshes (#820); the page
 // runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
 // (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
-// split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
-// bar, the only way to switch tabs there. The full-screen Plus search and offline readers keep it in regular width too (see GAP-008).
+// split collapsed, also on a Pro Max in landscape, #431) and only when the reader's tab is the selected one: list and reader side
+// by side (iPad, a foldable's inner screen) keep the bar, the only way to switch tabs there. The full-screen Plus search and
+// offline readers keep it in regular width too (see GAP-008).
 /// Whether the reader's root tab is the selected one; `RootTabsView` sets it per tab (default true outside the tab bar).
 private struct IsSelectedRootTabKey: EnvironmentKey {
     static let defaultValue = true
