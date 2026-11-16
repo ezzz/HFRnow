@@ -270,12 +270,15 @@
       }
     }, 500);
   };
-  // The page's end on screen (legacy `notifyScrollState`, MessagesView.swift:1013-1035 @ 87fe0d1c: within 2 points of the
-  // bottom), reported on a change only: the app shows the end-of-page bar (#820). The visual viewport counts a pinch zoom.
+  // The page's end on screen (legacy `notifyScrollState`, MessagesView.swift:1013-1035 @ 87fe0d1c: `scrollY + innerHeight`
+  // within 2 points of the bottom), reported on a change only: the app shows the end-of-page bar (#820). Only a pinch zoom
+  // reads the visual viewport: on iOS its `pageTop` comes back from the UI process later than `scrollY`, so a scroll event
+  // read it stale and the way back to the top went unreported (#924, CI job 133081541823).
   let atEnd = null;
   const reportEdge = () => {
     const vv = window.visualViewport;
-    const bottom = vv ? vv.pageTop + vv.height : window.scrollY + window.innerHeight;
+    const zoomed = vv !== null && vv !== undefined && vv.scale > 1.01;
+    const bottom = zoomed ? vv.pageTop + vv.height : window.scrollY + window.innerHeight;
     const height = Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
     const now = height - bottom <= 2;
     if (now !== atEnd) {
