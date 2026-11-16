@@ -85,7 +85,7 @@ Shared corpus only, no new capture (`Fixtures/captures/`), oracles `Fixtures/LOT
 
 - **Maintenance home page:** none captured. The `.maintenance` path rests on the legacy rule and on a synthetic inline snippet in the tests (not a fixture, behaviour on the live site unverified).
 - **Home page with a row lacking `id="cat<N>"` or a new category** (e.g. a forum added after the catalogue): not captured; the fallback is tested with a synthetic row only.
-- **Complete sub-forum lists:** the home page omits sub-forums that REST lists (Programmation 14 of 27, Overclocking 6 of 7). Not a capture gap: the REST `subcategories` listing completes the list (`RESTBrowsingClient.completingSubforums`, LOT-168).
+- **Complete sub-forum lists:** the home page omits sub-forums that REST lists (Programmation 13 of 27 with the injection table, Overclocking 6 of 7). Not a capture gap: the REST `subcategories` listing completes the list (`RESTBrowsingClient.completingSubforums`, LOT-168).
 
 ## Learnings
 
