@@ -246,7 +246,9 @@ struct ReplyComposerSmileyTests {
         await composer.start()
         composer.update(text: "Salut toi")
         let formatting = ComposerFormattingModel(composer: composer, clipboard: EmptyClipboard())
-        #expect(formatting.insert(smiley: ":)", at: NSRange(location: 5, length: 0)))
+        formatting.selectedRange = NSRange(location: 5, length: 0)
+        formatting.beginPick()
+        #expect(formatting.insert(smiley: ":)"))
         #expect(composer.text == "Salut :)  toi")
         #expect(formatting.selectedRange == NSRange(location: 9, length: 0))
         await composer.waitForAutosave()
@@ -256,7 +258,9 @@ struct ReplyComposerSmileyTests {
     @Test func aSmileyIsNotInsertedBeforeTheDraftIsRead() {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
         let formatting = ComposerFormattingModel(composer: composer, clipboard: EmptyClipboard())
-        #expect(!formatting.insert(smiley: ":)", at: NSRange(location: 0, length: 0)))
+        formatting.selectedRange = NSRange(location: 0, length: 0)
+        formatting.beginPick()
+        #expect(!formatting.insert(smiley: ":)"))
         #expect(composer.text.isEmpty)
     }
 }
