@@ -33,9 +33,17 @@ struct ForumListParserTests {
 
         // Deviation 1: all categories are returned; legacy dropped "Apple" when logged out. Undo that to compare.
         let comparable = page.forums.filter { page.isLoggedIn || $0.title != "Apple" }
-        let expected = try oracle.result.unwrap().map(Self.category(from:))
+        let expected = try oracle.result.unwrap().map(Self.category(from:)).map(Self.droppingLOT168Removals)
         #expect(comparable == expected)
         #expect(page.forums.count == expected.count + (page.isLoggedIn ? 0 : 1))
+    }
+
+    /// Deviation 12 (LOT-168): the injected « PDA » and « Biblio Links » are not in the REST sub-categories (`R285c`), so the
+    /// table dropped them; undo that by removing them from the oracle's list.
+    private static func droppingLOT168Removals(_ forum: ForumCategory) -> ForumCategory {
+        var forum = forum
+        forum.subforums.removeAll { ["PDA", "Biblio Links"].contains($0.title) }
+        return forum
     }
 
     /// Legacy forum as the new model. Deviation 2: no "all" copy of the parent in `subforums`. Deviation 3: `categoryID`
@@ -155,12 +163,12 @@ struct ForumListParserTests {
 
     // MARK: - Sub-forum injection
 
-    @Test("R02 Programmation: injected sub-forums follow their listed trigger, as legacy")
+    @Test("R02 Programmation: injected sub-forums follow their listed trigger, as legacy (PDA dropped, LOT-168)")
     func injectionOrder() throws {
         let html = try Fixture.capture("R02-home-logged-in-unread-mp")
         let forum = try #require(try ForumListParser.parse(html).forums.first { $0.categoryID == .forum(10) })
         #expect(forum.subforums.map(\.title) == [
-            "C++", "C#/.NET managed", "HTML/CSS", "Java", "Langages fonctionnels", "PDA", "Perl", "PHP", "Python", "Ruby/Rails",
+            "C++", "C#/.NET managed", "HTML/CSS", "Java", "Langages fonctionnels", "Perl", "PHP", "Python", "Ruby/Rails",
             "SQL/NoSQL", "Shell/Batch", "VB/VBA/VBS", "XML/XSL"
         ])
         // Only 6 of those 14 are links of the page: the others come from the table.
@@ -174,7 +182,7 @@ struct ForumListParserTests {
             subforums: [("API", "/hfr/Programmation/API-Win32/liste_sujet-1.htm")]
         ))
         let forum = try #require(try ForumListParser.parse(html).forums.first)
-        #expect(forum.subforums.map(\.title) == ["Divers", "ADA", "Algo", "API", "ASM", "ASP", "Biblio Links", "C"])
+        #expect(forum.subforums.map(\.title) == ["Divers", "ADA", "Algo", "API", "ASM", "ASP", "C"])
     }
 
     @Test("Injections are not duplicated when the page lists the sub-forum itself")

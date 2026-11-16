@@ -78,13 +78,14 @@ Shared corpus only, no new capture (`Fixtures/captures/`), oracles `Fixtures/LOT
 | 8 | No row → `[]` | `.malformed` (no row, or none readable) | A home page with no readable forum is a broken page, not an empty forum list |
 | 11 | Any `href` kept as served | Only forum-relative paths (`forumRelativePath`); hostile category row skipped, sub-forum link dropped | Paths are requested with the session later |
 | 9 | Injections without dedupe; a sub-forum repeated by the page is kept twice | Dedupe by path (first occurrence wins) | See above; no capture repeats a link, so the oracle is unaffected |
+| 12 | Injections: « PDA » and « Biblio Links » | Not injected (LOT-168) | Not in the REST sub-categories `R285c`; the other entries are kept (`docs/lots/LOT-168-forum-list-completeness.md`) |
 | 10 | `contents` (first text node) for the MP count | Whole text content | Same on all captures; robust to inline markup |
 
 ## Pending capture
 
 - **Maintenance home page:** none captured. The `.maintenance` path rests on the legacy rule and on a synthetic inline snippet in the tests (not a fixture, behaviour on the live site unverified).
 - **Home page with a row lacking `id="cat<N>"` or a new category** (e.g. a forum added after the catalogue): not captured; the fallback is tested with a synthetic row only.
-- **Complete sub-forum lists:** the home page omits sub-forums that REST lists (Programmation 14 of 27, Overclocking 6 of 7). Not a capture gap: needs the REST `subcategories` listing (not captured; LOT-057).
+- **Complete sub-forum lists:** the home page omits sub-forums that REST lists (Programmation 14 of 27, Overclocking 6 of 7). Not a capture gap: the REST `subcategories` listing completes the list (`RESTBrowsingClient.completingSubforums`, LOT-168).
 
 ## Learnings
 

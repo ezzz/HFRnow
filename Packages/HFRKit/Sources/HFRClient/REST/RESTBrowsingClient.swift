@@ -78,6 +78,34 @@ public struct RESTBrowsingClient: Sendable {
         return RESTBrowsingResult(value: forum.subforums, source: .html(reason))
     }
 
+    /// `forums` (the home page's categories, `ForumListParser`) with every sub-forum HFR has (LOT-168): the home page stays
+    /// the primary source, and each category's REST sub-categories (`subcategories(in:)`) add the rows the page has no link
+    /// for (`ForumListCompletion`: page links and order kept, the added ones are `subcat` paths). One GET per category with a
+    /// `cat` id, in order. A category whose REST answer fails (unreadable JSON, HFR's error answer, an HTTP error) keeps the
+    /// page's list: no HTML fallback, the page is what the caller already holds.
+    /// - Throws: `network` with `.cancelled`, `.offline` or `.timedOut`, which end the call (the caller keeps `forums`).
+    public func completingSubforums(of forums: [ForumCategory]) async throws(RESTBrowsingError) -> [ForumCategory] {
+        var completed: [ForumCategory] = []
+        for forum in forums {
+            guard case .forum(let category)? = forum.categoryID, category >= 1 else {
+                completed.append(forum)
+                continue
+            }
+            var forum = forum
+            do throws(RESTFailure) {
+                let data = try await json(RESTHref.Target(uri: RESTHref.subcategoriesURI(category: category)))
+                let rows = try RESTFailure.reading { () throws(ParsingError) in
+                    try RESTDocument.subcategories(from: data, category: category)
+                }
+                forum.subforums = ForumListCompletion.complete(forum.subforums, with: rows)
+            } catch {
+                _ = try Self.fallbackReason(for: error)
+            }
+            completed.append(forum)
+        }
+        return completed
+    }
+
     /// Page `page` of the last topics of forum `category` (`R57b`, `R57d`-`R57g`): page 1 holds the sticky topics then 25
     /// others, a later page 25 others; the navigation is exact (`results_count`), and a page past the last is empty
     /// (`R57g`). Page 1 falls back to the HTML list page 1 (`TopicListParser`, LOT-022) when the REST answer fails; a later
