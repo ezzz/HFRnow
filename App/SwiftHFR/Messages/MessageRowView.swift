@@ -1,7 +1,9 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 2440d79. Differences: unread from the member's icon state
+// Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 87fe0d1c (earlier pointer: @ 2440d79). Differences: one info line under
+// the title (`MessageRowInfoLine`, #900; legacy `MPListView.swift:775-793`, laid out by `TopicRowView`'s bottom row); the former
+// three-line meta block is kept as the experimental dense row (#905); unread from the member's icon state
 // (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
 // "non lu" capsule for the correspondent's state (GAP-111); capsule at 4.5:1, outlined at half strength (LOT-162, #646).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
@@ -39,15 +41,11 @@ struct MessageRowView: View {
                         .foregroundStyle(titleTone.style)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 }
-                if density.mergesMetaLines {
-                    Text(MessageRowView.metaLine(who: who, lastPost: lastPost))
-                        .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit)
-                } else {
-                    Text(who).scaledFont(.subheadline).foregroundStyle(.secondary).lineLimit(metaLineLimit)
-                    if let last = lastPost { Text(last).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit) }
-                }
+                // EXPERIMENTAL(denseRows, #905): the default is legacy's one info line; the dense rows (today's meta lines, taller)
+                // replace it once #905 adds the switch. Until then `usesDenseRows` is false and Réglages lists nothing.
+                if usesDenseRows { denseMeta } else { infoLine }
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
             if isUnread {
                 let marker = scale.scaled(dynamicType * (density.markerSize + 2))
                 Circle().fill(.tint).frame(width: marker, height: marker).accessibilityLabel("Non lu")
@@ -55,6 +53,39 @@ struct MessageRowView: View {
         }
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
+    }
+
+    /// The default is legacy's one info line; #905 flips this for the dense rows.
+    private var usesDenseRows: Bool { false }
+
+    /// Legacy's bottom row: interlocutor or group flag on the left, « last poster - time » on the right (`MPListView.swift:840-841`).
+    @ViewBuilder private var infoLine: some View {
+        let info = MessageRowInfoLine.make(thread: thread, flagLabel: flagLabel)
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: density.lineSpacing) {
+                if let leading = info.leading { Text(leading) }
+                if let trailing = info.trailing { Text(trailing) }
+            }
+            .scaledFont(.caption).foregroundStyle(.secondary)
+        } else if info.leading != nil || info.trailing != nil {
+            HStack(spacing: 8) {
+                if let leading = info.leading { Text(leading).lineLimit(1) }
+                Spacer(minLength: 0)
+                if let trailing = info.trailing { Text(trailing).lineLimit(1).layoutPriority(-1) }
+            }
+            .scaledFont(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    /// Today's meta lines (the experimental dense rows, #905): who, then the last post, merged on one line when compact.
+    @ViewBuilder private var denseMeta: some View {
+        if density.mergesMetaLines {
+            Text(MessageRowView.metaLine(who: who, lastPost: lastPost))
+                .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit)
+        } else {
+            Text(who).scaledFont(.subheadline).foregroundStyle(.secondary).lineLimit(metaLineLimit)
+            if let last = lastPost { Text(last).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit) }
+        }
     }
 
     /// The capsule's spoken label when the correspondent has not read the thread, else nil (#579).
