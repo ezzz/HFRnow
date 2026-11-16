@@ -5,7 +5,7 @@ import Testing
 import UIKit
 
 /// Message separation in the real reader (#568): the even message sits on a tint of the text colour, the rule below a message is
-/// stronger than the quiet separator, in light and in dark, and what sits inside a tinted message (plain quotes, the folded
+/// stronger than the quiet separator, in light and in dark, and what sits inside a tinted message (the folded
 /// `quote-blocked` tint, the classic header band) is composed over `--background` so its small text keeps 4.5:1.
 @MainActor
 @Suite(.serialized)
@@ -82,21 +82,21 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
     }
 
     // 0x1C1C1E at 5 % over white: 244; rule at 25 %: 198,198,199 (the quiet separator is #d1d1d6: lighter);
-    // quote on --background (white), which keeps its --secondary header at 5.23:1.
+    // the plain quote has no fill (#819): it shows the tinted message, where --secondary stays above 4.5:1 (5 % tint: 4.8:1).
     @Test func inLightTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .light, token: 1,
-            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [255, 255, 255], [255, 255, 255], [], [1, 1, 0]]
+            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [0, 0, 0, 0], [255, 255, 255], [], [1, 1, 0]]
         )
         #expect(matched, "seen: \(seen)")
     }
 
     // 0xF2F2F7 at 9 % over black: 22; rule at 35 %: 85,85,86, against the app's quiet separator rgb(56, 56, 58);
-    // quote on --background (black), 8.16:1 for its --secondary header.
+    // the plain quote has no fill (#819): it shows the tinted message (8 : 1 or more for its --secondary header).
     @Test func inDarkTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
         let (matched, seen) = await read(
             style: .dark, token: 2,
-            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0], [0, 0, 0], [], [1, 1, 0]]
+            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0, 0], [0, 0, 0], [], [1, 1, 0]]
         )
         #expect(matched, "seen: \(seen)")
     }
@@ -105,7 +105,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
     @Test func inClassicLightTheEvenHeaderBandSitsOverTheBackground() async {
         let (matched, seen) = await read(
             style: .light, theme: .classic, token: 3,
-            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [255, 255, 255], [255, 255, 255],
+            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [0, 0, 0, 0], [255, 255, 255],
                        [255, 255, 255], [1, 1, 1]]
         )
         #expect(matched, "seen: \(seen)")
@@ -114,7 +114,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
     @Test func inClassicDarkTheEvenHeaderBandSitsOverTheBackground() async {
         let (matched, seen) = await read(
             style: .dark, theme: .classic, token: 4,
-            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 1, 1]]
+            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 1, 1]]
         )
         #expect(matched, "seen: \(seen)")
     }
