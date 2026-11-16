@@ -84,7 +84,8 @@ extension DarkStyle {
 }
 
 /// A sample of the chosen dark surfaces whatever the current theme: a message on the screen background with its separator, a
-/// border-only quote (as the reader draws it, #819) and the accent, drawn from the surfaces the reader receives (`ThemeAppearance.readerSurfaces`: same brightness, same cap).
+/// border-only quote (as the reader draws it, #819) and the accent, drawn from the surfaces the reader receives
+/// (`ThemeAppearance.readerSurfaces`: same brightness, same cap).
 private struct DarkStylePreview: View {
     let appearance: ThemeAppearance
     // Dynamic Type scales the sample's insets with its text.

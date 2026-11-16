@@ -2,7 +2,8 @@ import Foundation
 import HFRModels
 
 // Port of Classes/ObjCTopicMessageContentBuilder.m and SuperHFRplus/Assets/HTML/templatev2.htm @ 2440d79. Differences: built from the
-// typed MessageContent (ADR 0006); a one-line header instead of the grey band with "+" (GAP-051, UXD); the body is the legacy one again (indent, 15 pt, quotes, #819: reader.css).
+// typed MessageContent (ADR 0006); a one-line header instead of the grey band with "+" (GAP-051, UXD); the body is the legacy one again
+// (indent, 15 pt, quotes, #819: reader.css).
 /// Escapes untrusted text for the two HTML contexts the builder writes: element content and double-quoted attributes.
 enum HTMLEscaping {
     /// `&`, `<`, `>`, `"` and `'` replaced by entities: safe as element content and inside a double-quoted attribute.
@@ -155,7 +156,8 @@ enum TopicHTMLBuilder {
         return html
     }
 
-    /// The avatar: the member's picture over the legacy grey silhouette (#819; the initials stay in the markup but are not drawn, #578 and #595).
+    /// The avatar: the member's picture over the legacy grey silhouette (#819; the initials stay in the markup but are not drawn, #578 and
+    /// #595).
     /// The silhouette is local markup and CSS, no request and no script, so the CSP needs nothing; `reader.js` removes the picture
     /// when it is refused or fails (`has-image` off) and the silhouette shows. A button when it opens the author menu: it repeats
     /// the author button next to it, so assistive technologies skip it (LOT-163) while a finger still reaches it.

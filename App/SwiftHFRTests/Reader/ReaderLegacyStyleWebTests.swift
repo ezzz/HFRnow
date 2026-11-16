@@ -5,7 +5,8 @@ import Testing
 import UIKit
 
 /// The legacy message look by default (#819), measured in the real reader. Values are the legacy ones at `87fe0d1c`:
-/// body indent per style (`MessagesView.swift:1827`), 15 pt text through `UIFontMetrics(.body)` (`MessagesView.swift:3376-3381`, `Common.swift:314-322`),
+/// body indent per style (`MessagesView.swift:1827`), 15 pt text through `UIFontMetrics(.body)` (`MessagesView.swift:3376-3381`,
+/// `Common.swift:314-322`),
 /// 2 px quote border without fill (`style-liste.css:329-334`), no paragraph margin (`style-liste.css:39-47`), 10 px under the
 /// body (`style-liste-light.css:504-508`), grey silhouette when there is no avatar (`style-liste-light.css:203-205`).
 @MainActor
