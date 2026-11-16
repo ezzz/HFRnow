@@ -100,16 +100,14 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         )
     }
 
-    /// Scrolls the page itself to `readingTop` (`scrollY`), then waits until the scroll view shows it below the bar: a native
-    /// `setContentOffset` reaches the page's `scrollY` and scroll events asynchronously, and can be undone by a late layout.
-    /// Waits `deadline`, so a CI log (durations, not messages) tells which step of a test failed.
-    private func scrollPage(
-        to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration
-    ) async throws -> Bool {
+    /// Scrolls the page itself to `readingTop` (`scrollY`) until the scroll view shows it below the bar too: a native
+    /// `setContentOffset` reaches the page's `scrollY` and scroll events asynchronously, and can be undone by a late layout;
+    /// one `window.scrollTo` was not always applied (`scrollPage(toScrollY:)`, #934). The first scroll gets the page's own
+    /// answer time; the wait for both sides then lasts `deadline`, so a CI log (durations, not messages) tells which step of a
+    /// test failed.
+    private func scrollPage(to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration) async throws -> Bool {
         _ = try await evaluate("window.scrollTo(0, \(Double(readingTop))); return true;", in: controller)
-        let scrollView = controller.webView.scrollView
-        let top = controller.obscuredInsets.top
-        return await until({ abs(scrollView.contentOffset.y + top - readingTop) <= 1 }, timeout: deadline)
+        return await scrollPage(toScrollY: Double(readingTop), in: controller, timeout: deadline)
     }
 
     @Test func theMessageHiddenUnderTheTopBarIsNotTheReadingPosition() async throws {
