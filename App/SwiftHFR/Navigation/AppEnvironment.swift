@@ -61,7 +61,8 @@ struct AppEnvironment {
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
-            topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
+            topicPages: pages, reader: reader,
+            privateMessages: ScreenedPrivateMessageSource(base: LivePrivateMessageSource(fetcher: fetcher)),
             composer: .live(session: session, account: accountName),
             // The same lists as the reader's, refreshed at the start of each run (a run can start from a topic list, with no reader
             // load before it).

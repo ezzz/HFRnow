@@ -18,15 +18,17 @@ enum MPSegment: String, CaseIterable, Sendable {
     func contains(_ thread: PrivateMessageThread) -> Bool { thread.isGroup == (self == .group) }
 }
 
-/// A private message list page ready to display.
+/// A screen of the private message list (100 conversations, `ScreenedPrivateMessageSource`) ready to display.
 struct MessageListContent: Sendable, Equatable {
     /// Conversations in page order. Each row keeps its own unread state and group flag, so a later lot can split or count
     /// them without fetching again (LOT-171).
     var threads: [PrivateMessageThread]
     /// Page shown (1-based).
     var page: Int
-    /// A next page exists. The pager is a window, so only "there is a next page" is known, never a total.
+    /// A next page exists.
     var hasNext: Bool
+    /// Screens in the list (⌈last HFR page / 2⌉, `ScreenedPrivateMessageSource`), at least `page`: « page x / y » of the pager.
+    var pageCount: Int
     /// Why there is no row, when there is none.
     var emptyReason: EmptyReason?
     /// The page's "new private message" link (`md_btn_new_topic`, `R13a`), resolved on the forum; nil when absent.
@@ -35,9 +37,13 @@ struct MessageListContent: Sendable, Equatable {
     /// Conversations of this page the member has not read; the mailbox total is the badge's (home page), not this.
     var unreadCount: Int { threads.filter(\.isUnread).count }
 
-    init(threads: [PrivateMessageThread], page: Int, hasNext: Bool, emptyReason: EmptyReason?, newMessageURL: URL? = nil) {
+    init(
+        threads: [PrivateMessageThread], page: Int, hasNext: Bool, pageCount: Int? = nil, emptyReason: EmptyReason?,
+        newMessageURL: URL? = nil
+    ) {
         self.threads = threads
         self.page = page
+        self.pageCount = max(pageCount ?? page, page)
         self.hasNext = hasNext
         self.emptyReason = emptyReason
         self.newMessageURL = newMessageURL
@@ -47,6 +53,7 @@ struct MessageListContent: Sendable, Equatable {
         threads = list.threads
         page = list.navigation.current
         hasNext = list.navigation.nextPath != nil
+        pageCount = max(list.navigation.last, list.navigation.current)
         emptyReason = list.threads.isEmpty ? .nothing : nil
         newMessageURL = list.newMessagePath.flatMap { HFRURL.absolute($0) }
     }
@@ -203,6 +210,8 @@ final class MessageListModel {
 
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
+    /// Screens in the list; 1 before the first load.
+    var pageCount: Int { loader.value?.pageCount ?? 1 }
     var canGoToPrevious: Bool { currentPage > 1 && !loader.isLoading }
     var canGoToNext: Bool { (loader.value?.hasNext ?? false) && !loader.isLoading }
 

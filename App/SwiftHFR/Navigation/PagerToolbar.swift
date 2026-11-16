@@ -21,6 +21,8 @@ struct PagerToolbar {
 
     enum Status {
         case page(Int)
+        /// « page x / y », in its own glass pill (the Messages list, #968).
+        case pageOf(Int, Int)
         case loading
     }
 
@@ -46,6 +48,11 @@ struct PagerToolbar {
     private var statusView: some View {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
+        case .pageOf(let number, let total):
+            Text("page \(number) / \(total)").monospacedDigit()
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .glassEffect(.regular, in: .capsule)
+                .accessibilityLabel("Page \(number) sur \(total)")
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }
