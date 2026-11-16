@@ -53,7 +53,8 @@ struct ReaderBottomBarTests {
     /// Issue #961: the "N / M" bubble is its own pill between ‹ › (left) and refresh + reply (right).
     @Test func thePageBubbleIsItsOwnCentredPill() {
         let end = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: true, voiceOver: false)
-        #expect(end.leading == [.previous, .next])
+        #expect(end.leading == [.previous, .next] && end.separatesArrows, "‹ and › are two pills at the end of the page (#965)")
+        #expect(!ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: true).separatesArrows)
         #expect(end.centre == [.pageBubble])
         #expect(end.trailing == [.refresh, .reply])
         #expect(!end.trailing.contains(.pageBubble) && !end.leading.contains(.pageBubble))

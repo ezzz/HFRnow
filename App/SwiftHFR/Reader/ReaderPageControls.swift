@@ -25,6 +25,8 @@ enum ReaderBottomBar {
         /// the right. An empty pill is not drawn, and the bubble keeps its own pill with or without the others.
         var leading: [Control] { [.previous, .next] }
         var centre: [Control] { showsPageBubble ? [.pageBubble] : [] }
+        /// ‹ and › are two pills at the end of the page and one shared pill mid-page (#965).
+        var separatesArrows: Bool { showsRefresh }
         var previousTint: ArrowTint { canGoPrevious ? .accent : .grey }
         var nextTint: ArrowTint { canGoNext ? .accent : .grey }
         var trailing: [Control] { (showsRefresh ? [.refresh] : []) + (showsReply ? [.reply] : []) }
@@ -64,10 +66,18 @@ struct ReaderPageControls: ToolbarContent {
     var body: some ToolbarContent {
         if placement == .bottomBar, let page = buttons.model.page {
             let state = buttons.state(page)
-            ToolbarItemGroup(placement: .bottomBar) {
-                ForEach(state.leading, id: \.self) { buttons.view(for: $0, page: page, state: state) }
+            if state.separatesArrows {
+                ToolbarItem(placement: .bottomBar) { buttons.view(for: .previous, page: page, state: state) }
+                    .visibilityPriority(.high)
+                ToolbarSpacer(.fixed, placement: .bottomBar)
+                ToolbarItem(placement: .bottomBar) { buttons.view(for: .next, page: page, state: state) }
+                    .visibilityPriority(.high)
+            } else {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    ForEach(state.leading, id: \.self) { buttons.view(for: $0, page: page, state: state) }
+                }
+                .visibilityPriority(.high)
             }
-            .visibilityPriority(.high)
             // Flexible spacers split the glass into one pill per group (#961). The system bar centres the bubble between its two
             // neighbours, not on the screen: it is on the screen's centre only while both side pills are as wide (end of a page,
             // logged in). The strip below always is.
@@ -149,13 +159,13 @@ struct ReaderPageButtons {
     }
 
     /// Legacy ‹ opens the previous page at its last message (`navigateToPreviousPageFromBottomButton`, :4960-4964).
-    /// Greyed and disabled on the first page; a disabled button is "indisponible" to VoiceOver (#965).
+    /// Greyed and disabled on the first page (#965); VoiceOver announces a disabled button as dimmed, wording to check on a device.
     func previous(_ page: ReaderPage, state: ReaderBottomBar.State) -> some View {
         Button("Page précédente", systemImage: "chevron.backward") {
             Task { await model.goToPage(page.currentPage - 1, atLastMessage: true) }
         }
-        .foregroundStyle(Self.color(state.previousTint))
-        .disabled(!state.canGoPrevious || model.isLoading || model.suspendsPageInteractions)
+        .foregroundStyle(Self.color(state.previousTint, enabled: !blocked))
+        .disabled(!state.canGoPrevious || blocked)
     }
 
     /// Greyed and disabled on the last page (#965).
@@ -163,14 +173,17 @@ struct ReaderPageButtons {
         Button("Page suivante", systemImage: "chevron.forward") {
             Task { await model.goToPage(page.currentPage + 1) }
         }
-        .foregroundStyle(Self.color(state.nextTint))
-        .disabled(!state.canGoNext || model.isLoading || model.suspendsPageInteractions)
+        .foregroundStyle(Self.color(state.nextTint, enabled: !blocked))
+        .disabled(!state.canGoNext || blocked)
     }
 
     /// No solid accent fill on any pill (#965): only an arrow carries the accent.
-    private static func color(_ tint: ReaderBottomBar.ArrowTint) -> Color {
-        tint == .accent ? .accentColor : .secondary
+    private static func color(_ tint: ReaderBottomBar.ArrowTint, enabled: Bool) -> Color {
+        tint == .accent && enabled ? .accentColor : .secondary
     }
+
+    /// A page loading, or an open composer: the arrows are disabled, so they are grey too.
+    private var blocked: Bool { model.isLoading || model.suspendsPageInteractions }
 
     func refreshButton() -> some View {
         ReaderRefreshButton(model: model, refresh: refresh)
