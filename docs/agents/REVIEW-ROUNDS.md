@@ -16,6 +16,8 @@ Each round costs a CI run, a re-review and tokens. Do it once, completely.
 
 CodeRabbit can skip a review ("Review skipped") or pause on a branch: after pushing, check that it reviewed the new head, and if not, ask for `@coderabbitai review`. From cloud sessions `@mentions` are altered, so the operator posts it. Check again afterwards: the round is complete only when CodeRabbit has reviewed the pushed head.
 
+**Linux-only children** (no Xcode, #956): add the `compile-check` label to your draft PR and wait for a green **Compile check** run (macOS `build-for-testing`, drafts only, no tests, not a required check) before asking for adversarial review; a push while labelled re-runs it.
+
 **What keeps an adversarial APPROVE** (#612):
 - A merge of `dev-swift` into the branch whose resolution adds nothing to the automatic merge: `git show --remerge-diff <merge-sha>` is empty. A hand-resolved conflict in code is a change nobody reviewed and needs a new round. The author states the `--remerge-diff` result on the PR.
 - A **ledger PR** (branch `docs/ledger-<date>`, touching only `docs/CHANGELOG-LEGACY.md`, `docs/migration/GAP-LEGACY-VS-SWIFT.md` and the two fragment folders: the `### Ledger` entries of merged PRs with a `### Ledger` section, written by `ledger.py`) needs no adversarial review. It is valid only if the script reproduces it: its description gives the command, and on the PR's base `python3 tooling/docs/ledger.py fold --apply --prs <listed PRs> && git diff --exit-code <head>` shows no difference. Merge on green CI. The `ledger-note` entries it lists are applied by hand in a separate PR on a branch `docs/ledger-notes-<date>`: that one is **not** reproducible by the script, so it gets an adversarial review like any other docs change.
