@@ -40,12 +40,12 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         controller.show(documentOf(height: 5000, token: 1))
         #expect(await until { recorder.ready == [1] && !ends.reports.isEmpty })
         #expect(ends.reports.last == false, "reports: \(ends.reports)")
+        // The page scrolls itself: a native `setContentOffset` can be undone by a late layout (`ReaderInsetsWebTests.scrollPage`).
         let scrollView = controller.webView.scrollView
-        let last = scrollView.contentSize.height + bars.bottom - scrollView.bounds.height
-        scrollView.setContentOffset(CGPoint(x: 0, y: last), animated: false)
+        _ = try await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); return true;", in: controller)
         #expect(await until { ends.reports.last == true }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
-        scrollView.setContentOffset(CGPoint(x: 0, y: -bars.top), animated: false)
-        #expect(await until { ends.reports.last == false }, "reports: \(ends.reports)")
+        _ = try await evaluate("window.scrollTo(0, 0); return true;", in: controller)
+        #expect(await until { ends.reports.last == false }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
     }
 
     /// A page shorter than the screen shows its end at once: the end-of-page bar is there without a scroll.
