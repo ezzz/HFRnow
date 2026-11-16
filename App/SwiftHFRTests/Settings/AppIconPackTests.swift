@@ -218,4 +218,17 @@ struct AppIconPackTests {
         #expect(AppIconOption.noelHfr.previewImageName == "IconPreview-Icon-NOEL-HFR")
         #expect(AppIconOption.classicRed.previewImageName == "IconPreview-Icon-CLASSIC-RED")
     }
+
+    // MARK: Grid layout
+
+    @Test(arguments: [(393.0, 4), (390.0, 4), (402.0, 5), (430.0, 5), (375.0, 4), (320.0, 3), (820.0, 10)])
+    func theGridFitsFourColumnsOnA61InchPhone(width: Double, columns: Int) {
+        #expect(AppIconGridLayout.columnCount(screenWidth: CGFloat(width)) == columns)
+    }
+
+    @Test func aThumbnailIsTheHomeScreenSizeAndTheCellKeepsA44ptTarget() {
+        #expect(AppIconGridLayout.iconSide == 60)
+        #expect(AppIconGridLayout.minimumCell >= 44)
+        #expect(AppIconGridLayout.iconSide <= AppIconGridLayout.minimumCell)
+    }
 }
