@@ -1,0 +1,130 @@
+import HFRNetwork
+@testable import SwiftHFR
+import SwiftUI
+import Testing
+import UIKit
+
+/// Issues #820 and #649: the reader's bottom bar at the end of a page (legacy `shouldShowBottomRefreshButton` and
+/// `shouldPromoteBottomNextPageButton`, `MessagesView.swift:4972-4978` @ 87fe0d1c), its place beside a visible tab bar, the
+/// pull past the end, and the one refresh behind every "Actualiser". Topic and private conversation share this bar.
+@MainActor
+struct ReaderBottomBarTests {
+    private typealias State = ReaderBottomBar.State
+
+    @Test func midPageTheBarShowsOnlyTheArrows() {
+        let none = State(showsPageBubble: false, showsRefresh: false, promotesNext: false, promotesRefresh: false)
+        #expect(ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: false) == none)
+        #expect(ReaderBottomBar.state(currentPage: 5, maxPage: 5, atPageEnd: false, voiceOver: false) == none)
+    }
+
+    @Test func atTheEndOfAPageThatIsNotTheLastTheNextArrowIsPromoted() {
+        #expect(ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: true, voiceOver: false)
+            == State(showsPageBubble: true, showsRefresh: true, promotesNext: true, promotesRefresh: false))
+    }
+
+    @Test func atTheEndOfTheLastPageTheRefreshIsPromoted() {
+        #expect(ReaderBottomBar.state(currentPage: 5, maxPage: 5, atPageEnd: true, voiceOver: false)
+            == State(showsPageBubble: true, showsRefresh: true, promotesNext: false, promotesRefresh: true))
+        // A one-page topic or conversation is its own last page.
+        #expect(ReaderBottomBar.state(currentPage: 1, maxPage: 1, atPageEnd: true, voiceOver: false).promotesRefresh)
+    }
+
+    /// Hiding the bubble is visual only: VoiceOver keeps the page menu anywhere on the page.
+    @Test func voiceOverKeepsThePageBubbleMidPage() {
+        let state = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: true)
+        #expect(state.showsPageBubble)
+        #expect(!state.showsRefresh && !state.promotesNext)
+    }
+
+    /// Issue #649: a Pro Max in landscape is regular width with the tab bar shown: the system bottom bar would sit under it.
+    @Test func besideAVisibleTabBarTheControlsAreAStripAboveIt() {
+        func placement(root tabBar: Bool, _ sizeClass: UserInterfaceSizeClass, selected: Bool = true) -> ReaderBottomBar.Placement {
+            ReaderBottomBar.placement(
+                rootHasTabBar: tabBar, tabBar: ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: selected)
+            )
+        }
+        #expect(placement(root: true, .regular) == .inset)
+        // Compact width hides the tab bar while the reader is open: the system bottom bar is free.
+        #expect(placement(root: true, .compact) == .bottomBar)
+        // The iPad sidebar root has no tab bar.
+        #expect(placement(root: false, .regular) == .bottomBar)
+        #expect(placement(root: false, .compact) == .bottomBar)
+    }
+
+    @Test func aPullCountsFromTheContentsEndAboveTheBottomBars() {
+        // 1000 points of content, 800 of screen, 100 of bars on top and 50 below: the last offset is 250.
+        #expect(ReaderScrollGeometry.pastEnd(offsetY: 250, viewportHeight: 800, contentHeight: 1000, insetTop: 100, insetBottom: 50) == 0)
+        #expect(ReaderScrollGeometry.pastEnd(offsetY: 330, viewportHeight: 800, contentHeight: 1000, insetTop: 100, insetBottom: 50) == 80)
+        #expect(ReaderScrollGeometry.pastEnd(offsetY: 0, viewportHeight: 800, contentHeight: 1000, insetTop: 100, insetBottom: 50) < 0)
+        // A page shorter than the screen ends at its top: the pull counts from there.
+        #expect(ReaderScrollGeometry.pastEnd(offsetY: -28, viewportHeight: 800, contentHeight: 300, insetTop: 100, insetBottom: 50) == 72)
+    }
+
+    @Test func onlyAPullBeyondTheThresholdRefreshes() {
+        let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.contentInset = UIEdgeInsets(top: 100, left: 0, bottom: 50, right: 0)
+        scrollView.contentSize = CGSize(width: 390, height: 1000)
+        scrollView.contentOffset = CGPoint(x: 0, y: 250 + ReaderPullWatcher.threshold - 1)
+        #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
+        scrollView.contentOffset = CGPoint(x: 0, y: 250 + ReaderPullWatcher.threshold)
+        #expect(ReaderPullWatcher.isPulledPastEnd(scrollView))
+        // At the end of the page, but not pulled: nothing.
+        scrollView.contentOffset = CGPoint(x: 0, y: 250)
+        #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
+    }
+
+    @MainActor
+    private final class Box {
+        var atPageEnd = false
+        var played: [HapticFeedback.Kind] = []
+    }
+
+    private struct Wired {
+        let reader: TopicReaderModel
+        let controller: ReaderWebController
+        let pages: FakeTopicPages
+        let box: Box
+        let token: Int
+    }
+
+    private func wired() async throws -> Wired {
+        let pages = FakeTopicPages()
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 2), title: "Sujet", source: pages)
+        await reader.onAppear()
+        let controller = ReaderWebController(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            autoLoadsThirdPartyImages: { false }
+        )
+        let box = Box()
+        let binding = Binding(get: { box.atPageEnd }, set: { box.atPageEnd = $0 })
+        ReaderRefresh.wirePageEnd(of: controller, model: reader, atPageEnd: binding) { box.played.append(.impact(.light)) }
+        return Wired(reader: reader, controller: controller, pages: pages, box: box, token: try #require(reader.document?.token))
+    }
+
+    @Test func thePageEndFollowsTheShownDocumentOnly() async throws {
+        let setup = try await wired()
+        let (controller, box, token) = (setup.controller, setup.box, setup.token)
+        controller.events.pageEnd(true, token + 1)
+        #expect(!box.atPageEnd, "a late report of another document changes nothing")
+        controller.events.pageEnd(true, token)
+        #expect(box.atPageEnd)
+        controller.events.pageEnd(false, token)
+        #expect(!box.atPageEnd)
+    }
+
+    /// A pull past the end plays legacy's light impact and reloads the page on screen, keeping the position, as "Actualiser".
+    @Test func aPullPastTheEndRefreshesThePageOnScreenWithAHaptic() async throws {
+        let setup = try await wired()
+        let (reader, controller, pages, box, token) = (setup.reader, setup.controller, setup.pages, setup.box, setup.token)
+        let before = pages.requests.count
+        controller.events.pulled(token + 1)
+        #expect(box.played.isEmpty, "a pull reported for another document does nothing")
+        controller.events.pulled(token)
+        #expect(box.played == [.impact(.light)])
+        for _ in 0..<200 where pages.requests.count == before { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(pages.requests.count == before + 1)
+        #expect(pages.requests.last?.page == 2)
+        #expect(reader.document?.keepsScrollPosition == true)
+    }
+}

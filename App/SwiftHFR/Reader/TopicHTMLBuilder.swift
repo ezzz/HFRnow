@@ -27,7 +27,7 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
-    /// Give each message a `⋯` button (LOT-087). Off until a message-menu handler is registered.
+    /// Give each message a `+` button (LOT-087, the legacy glyph again: #594). Off until a message-menu handler is registered.
     var showsMessageMenus = false
     /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
     var showsAuthorMenus = false
@@ -92,7 +92,10 @@ enum TopicHTMLBuilder {
                 html += "<div class=\"separator1\"></div>\n"
             }
         }
-        html += "</main>\n</body>\n</html>\n"
+        html += "</main>\n"
+        // Below the last message, tone on tone: pulling past it refreshes (#820). VoiceOver has the "Actualiser" buttons.
+        html += "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>\n"
+        html += "</body>\n</html>\n"
         return html
     }
 
@@ -129,7 +132,8 @@ enum TopicHTMLBuilder {
         return html
     }
 
-    /// The message header: avatar, author (a button when the author menu is on), date and the `⋯` button.
+    /// The message header: avatar, author (a button when the author menu is on), date and the `+` button (legacy
+    /// `templatev2.htm:6` @ 87fe0d1c, operator decision of 2026-11-15 on #594: "+" again instead of "⋯").
     private static func header(of message: ReaderMessage, author: String, date: String, options: ReaderRenderOptions) -> String {
         var html = ""
         html += "<header class=\"header\">"
@@ -149,7 +153,7 @@ enum TopicHTMLBuilder {
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
         if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">⋯</button>"
+            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">+</button>"
         }
         html += "</header>\n"
         return html

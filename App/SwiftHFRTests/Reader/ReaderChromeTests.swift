@@ -34,7 +34,7 @@ struct ReaderChromeTests {
         #expect(ReaderPageMenu.finalTargets(maxPage: 1200) == [1198, 1199, 1200])
     }
 
-    /// Legacy `pageChoiceMenuFinalTargets` (`MessagesView.swift:4206-4213` @ 2440d79), restated literally as the oracle.
+    /// Legacy `pageChoiceMenuFinalTargets` (`MessagesView.swift:5019-5026` @ 87fe0d1c), restated literally as the oracle.
     private func legacyFinalTargets(_ maxPage: Int) -> [Int] {
         guard maxPage > 1 else { return [] }
         var seen: Set<Int> = [1]
@@ -44,28 +44,27 @@ struct ReaderChromeTests {
         }
     }
 
-    @Test func thePageMenuItemsFollowLegacyOrderAndAppearOnlyPastOnePage() {
+    /// Issue #821: legacy's `pageChoiceMenuItems` (`MessagesView.swift:5029-5046` @ 87fe0d1c), numbers and not "Première page"
+    /// / "Dernière page", whose "Dernière page" next to "Dernier post" read as the same thing.
+    @Test func thePageMenuItemsAreLegacysNumberedPagesInLegacysOrder() {
         #expect(ReaderPageMenu.items(maxPage: 1).isEmpty)
-        for maxPage in [2, 40] {
-            // "Dernière page" replaces legacy's last "Page N", which is the only target dropped.
-            let expected: [ReaderPageMenu.Item] =
-                [.first, .ask] + legacyFinalTargets(maxPage).dropLast().map(ReaderPageMenu.Item.page) + [.last, .lastPost]
+        for maxPage in [2, 3, 40, 1126] {
+            let expected: [ReaderPageMenu.Item] = [.page(1), .ask] + legacyFinalTargets(maxPage).map(ReaderPageMenu.Item.page) + [.lastPost]
             #expect(ReaderPageMenu.items(maxPage: maxPage) == expected)
         }
-        #expect(ReaderPageMenu.items(maxPage: 2).map(\.title)
-            == ["Première page", "Aller à la page…", "Dernière page", "Dernier post"])
-        #expect(ReaderPageMenu.items(maxPage: 40).map(\.title)
-            == ["Première page", "Aller à la page…", "Page 38", "Page 39", "Dernière page", "Dernier post"])
+        #expect(ReaderPageMenu.items(maxPage: 2).map(\.title) == ["Page 1", "Page …", "Page 2", "Dernier post"])
+        #expect(ReaderPageMenu.items(maxPage: 1126).map(\.title)
+            == ["Page 1", "Page …", "Page 1124", "Page 1125", "Page 1126", "Dernier post"])
     }
 
     @Test func theMenuActionsOpenTheRightPageAndAnchor() {
         func go(_ item: ReaderPageMenu.Item) -> [Int]? {
             ReaderPageMenu.destination(of: item, maxPage: 40).map { [$0.page, $0.atLastMessage ? 1 : 0] }
         }
-        #expect(go(.first) == [1, 0])
+        #expect(go(.page(1)) == [1, 0])
         #expect(go(.ask) == nil)
         #expect(go(.page(39)) == [39, 0])
-        #expect(go(.last) == [40, 0])
+        #expect(go(.page(40)) == [40, 0])
         #expect(go(.lastPost) == [40, 1])
     }
 
