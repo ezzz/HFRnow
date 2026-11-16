@@ -2,9 +2,9 @@ import HFRModels
 import SwiftUI
 import WebKit
 
-// Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
-// the page controls are the legacy ‹ › with a "N / M" page menu, the same page items also sit in the "…" overflow, with new labels
-// (`ReaderPageControls`, LOT-186, #582); the page
+// Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79, and its
+// edit-menu callout @ 87fe0d1c (`ReaderMessageEditMenu`). Differences: the page controls are the legacy ‹ › with a "N / M" page
+// menu, the same page items also sit in the "…" overflow (`ReaderPageControls`, LOT-186, #582); the page
 // runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
 // (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
 // split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
@@ -67,6 +67,7 @@ struct TopicReaderView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.isSelectedRootTab) private var isSelectedTab
+    @Environment(\.rootHasTabBar) private var rootHasTabBar
 
     var body: some View {
         ZStack {
@@ -83,7 +84,7 @@ struct TopicReaderView: View {
                 .accessibilityHidden(!model.hasShownDocument)
                 .simultaneousGesture(pageSwipe, including: settings.swipesPages ? .all : .none)
             }
-            overlay
+            ReaderStateOverlay(model: model, retry: retry, refresh: refresh)
         }
         .navigationTitle(model.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -103,12 +104,13 @@ struct TopicReaderView: View {
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
         .offlineSave(model: model, saver: saver)
         .toolbar {
-            ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
-            ToolbarItem(placement: .primaryAction) {
-                Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                    .disabled(model.isLoading || model.suspendsPageInteractions)
-            }
+            ReaderPageControls(buttons: pageButtons, placement: bottomPlacement)
+            ToolbarItem(placement: .primaryAction) { ReaderRefreshButton(model: model, refresh: refresh) }
             overflowToolbar
+        }
+        // Always attached (empty under the system bottom bar), so the page's identity never changes with the placement (#565).
+        .safeAreaBar(edge: .bottom) {
+            if bottomPlacement == .inset { ReaderPageStrip(buttons: pageButtons) }
         }
         .alert("Aller à la page", isPresented: $askingPage) {
             TextField("Page", text: $pageText).keyboardType(.numberPad)
@@ -120,7 +122,8 @@ struct TopicReaderView: View {
             if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
         }
         .overlay { ReaderMessageMenuAnchor(model: model) }
-        .overlay(alignment: .bottom) { menuFeedbackBanner }
+        .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
+        .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
@@ -157,32 +160,6 @@ struct TopicReaderView: View {
         }
     }
 
-    @ViewBuilder
-    private var overlay: some View {
-        if model.page == nil {
-            if let error = model.error {
-                LoadFailureView(error: error, retry: retry)
-            } else {
-                ProgressView("Chargement des messages")
-            }
-        } else if let page = model.page, page.messages.isEmpty {
-            ContentUnavailableView {
-                Label("Aucun message", systemImage: "text.bubble")
-            } description: {
-                Text(page.notice ?? "Cette page ne contient aucun message.")
-            } actions: {
-                Button("Actualiser") { Task { await refresh() } }
-            }
-        } else if !model.hasShownDocument {
-            // The web view could not show the page (issue #566): a retry, never an endless spinner.
-            if let error = model.error {
-                LoadFailureView(error: error, retry: retry)
-            } else {
-                ProgressView("Chargement des messages")
-            }
-        }
-    }
-
     /// The "…" overflow, in legacy's order (#645): see `ReaderOverflowToolbar`. None under an open composer (#653).
     @ToolbarContentBuilder
     private var overflowToolbar: some ToolbarContent {
@@ -208,25 +185,6 @@ struct TopicReaderView: View {
             pages: AnyView(Group {
                 if let page { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
             }))
-    }
-
-    @ViewBuilder
-    private var menuFeedbackBanner: some View {
-        if let feedback = model.menuFeedback {
-            Text(feedback)
-                .font(.callout)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .glassEffect(.regular, in: .capsule)
-                .padding(.bottom, 8)
-                .task(id: model.menuFeedbackSerial) { [serial = model.menuFeedbackSerial] in
-                    // A cancelled sleep (a newer confirmation, the view going away) must not clear anything.
-                    do {
-                        try await Task.sleep(for: .seconds(2))
-                        model.clearMenuFeedback(serial: serial)
-                    } catch {}
-                }
-        }
     }
 
     /// The legacy horizontal drag that changes the page, when the setting is on (read at the end of each drag).
@@ -329,6 +287,17 @@ extension TopicReaderView {
     private func refresh() async {
         controller?.resume()
         await model.refresh()
+    }
+
+    /// The bottom bar's buttons, for both placements.
+    private var pageButtons: ReaderPageButtons {
+        ReaderPageButtons(model: model, askPage: askForPage, replySymbol: replySymbol)
+    }
+
+    private var bottomPlacement: ReaderBottomBar.Placement {
+        ReaderBottomBar.placement(
+            rootHasTabBar: rootHasTabBar, tabBar: ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab)
+        )
     }
 
     /// The reader left the screen: its load, its offline save and its web view stop.

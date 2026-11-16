@@ -45,7 +45,7 @@ extension TopicReaderModel {
         return options
     }
 
-    /// Whether the document draws the `⋯` button: an action of the message menu is implemented.
+    /// Whether the document draws the `+` button: an action of the message menu is implemented.
     var hasMessageMenus: Bool { registry.offers(.message) }
 
     /// Whether the document makes authors tappable: an action of the author menu is implemented.
