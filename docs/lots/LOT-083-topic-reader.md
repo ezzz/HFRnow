@@ -113,7 +113,8 @@ Confirmed by the orchestrator on 2026-10-28, consistent with the operator's deci
 
 ## Edge cases
 
-- The view appears again (rotation, column change, reselecting the same row): same model, no refetch.
+- The view appears again (rotation, column change, reselecting the same row): same model, no refetch, except the reload a
+  confirmed or unconfirmed send started and a disappearance stopped: it runs once on return, never under an open composer (#908).
 - A page beyond the last: HFR serves the last page; the reader shows it and its number.
 - An anchor not on the page served: the document opens at the top.
 - A huge page: one document per page (≈40 messages); the web content process can be killed under memory pressure, then the same
