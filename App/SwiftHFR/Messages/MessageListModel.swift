@@ -157,9 +157,10 @@ final class MessageListModel {
     /// The synchronous part of a switch change, applied in the order the member made the changes: the position, the
     /// conversation it hides, and the stop of a search running for the previous position. The search itself is
     /// `searchForSegment()`, which always reads the latest position, so an older task can never restore an older segment.
-    func chooseSegment(_ segment: MPSegment) {
+    /// `remember` is false for a change the app makes (a sent message's row), which is not the member's last choice.
+    func chooseSegment(_ segment: MPSegment, remember: Bool = true) {
         self.segment = segment
-        settings?.set(segment, for: SettingKey.mpListSegment)
+        if remember { settings?.set(segment, for: SettingKey.mpListSegment) }
         dropSelectionHiddenBySegment()
         // A search for the previous segment is stopped, not left to walk on for this one.
         // `loadCount` moves too, so the cancelled load's own follow-up (openedThreads, signed-out check) is dropped.
@@ -284,7 +285,7 @@ final class MessageListModel {
             let matches = threads.filter { $0.summary.title == sent }
             if matches.count == 1, let match = matches.first {
                 // The row must stay visible: keep Tous, else show the segment it belongs to.
-                if !segment.contains(match) { chooseSegment(match.isGroup ? .group : .oneToOne) }
+                if !segment.contains(match) { chooseSegment(match.isGroup ? .group : .oneToOne, remember: false) }
                 selected = match
             }
         case .checkTopic:

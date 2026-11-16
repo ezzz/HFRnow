@@ -86,7 +86,7 @@ struct MessageListView: View {
     private func overlay(_ loader: ContentLoader<MessageListContent>) -> some View {
         if let content = loader.value {
             if model.isSearchingSegment, model.visibleThreads.isEmpty {
-                ProgressView("Recherche des \(model.segment.title)")
+                ProgressView("Recherche dans « \(model.segment.title) »")
             } else if model.visibleThreads.isEmpty {
                 EmptyMessagesView(
                     reason: content.emptyReason ?? .nothing, segment: model.segment,

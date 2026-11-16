@@ -267,6 +267,14 @@ struct MessageListSplitTests {
         #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store).segment == .group)
     }
 
+    @Test func theSeedIsStoredSoALaterChangeOfTheOldKeyIsIgnored() {
+        let store = InMemorySettingsStore(["mp_list_display": .string("split")])
+        _ = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        store.set(MPListDisplay.single, for: SettingKey.mpListDisplay)
+        let rebuilt = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store)
+        #expect(rebuilt.segment == .oneToOne)
+    }
+
     @Test func anUnknownStoredChoiceReadsAsTous() {
         let store = InMemorySettingsStore(["mp_list_segment": .string("everything"), "mp_list_display": .string("split")])
         #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store).segment == .all)
@@ -292,6 +300,17 @@ struct MessageListSplitTests {
         await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
         #expect(model.segment == .all)
         #expect(model.selected?.summary.topicID?.topic == 5)
+    }
+
+    @Test func aSentMessageSwitchesTheViewWithoutSavingItAsTheLastChoice() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(1, group: true), messageThread(5)], page: page, last: 1) }
+        let store = InMemorySettingsStore()
+        let model = model(source, segment: .group, store: store)
+        await model.onAppear()
+        await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
+        #expect(model.segment == .oneToOne)
+        #expect(store.rawValue(forKey: "mp_list_segment") == .string("group"))
     }
 
     @Test func theSegmentRulesFollowTheParsedGroupFlag() {
