@@ -105,30 +105,13 @@ struct ReaderBottomBarTests {
         #expect(pulls.times == 1)
     }
 
-    /// The hint sits `FloatingSpacing.gap` under the page's end, in the scroll view, so it shows only while the page is pulled
-    /// past its end and costs no room at rest; it follows the end when the content grows, and VoiceOver skips it.
-    @Test func theHintSitsUnderThePagesEndOnlyWhenShown() {
-        let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
-        scrollView.contentSize = CGSize(width: 390, height: 1000)
-        let watcher = ReaderPullWatcher()
-        watcher.track(scrollView) {}
-        #expect(watcher.hint.superview == nil, "the post filter wires no pull: no hint")
-        watcher.showsHint = true
-        #expect(watcher.hint.superview === scrollView)
-        #expect(watcher.hint.frame.minY == 1000 + FloatingSpacing.gap)
-        #expect(watcher.hint.frame.width == 390 && watcher.hint.frame.height > 0)
-        #expect(watcher.hint.text == "Tirer vers le haut pour actualiser")
-        #expect(!watcher.hint.isAccessibilityElement)
-        scrollView.contentSize = CGSize(width: 390, height: 1600)
-        #expect(watcher.hint.frame.minY == 1600 + FloatingSpacing.gap)
-        watcher.showsHint = false
-        #expect(watcher.hint.superview == nil)
-    }
-
-    /// Only the topic and MP reader refreshes on a pull: wiring the page end turns its hint on.
-    @Test func wiringThePageEndShowsTheHint() async throws {
-        let setup = try await wired()
-        #expect(setup.controller.pullWatcher.hint.superview === setup.controller.webView.scrollView)
+    /// Only the topic and MP reader refreshes on a pull: its pages carry the hint, "Filtrer les posts" builds without it.
+    @Test func onlyTheReadersPagesOfferThePull() async {
+        #expect(!ReaderRenderOptions().offersPullToRefresh)
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), source: FakeTopicPages())
+        #expect(reader.currentRenderOptions().offersPullToRefresh)
+        await reader.onAppear()
+        #expect(reader.document?.html.contains("class=\"pull-hint\"") == true)
     }
 
     @MainActor

@@ -16,13 +16,14 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         var reports: [Bool] = []
     }
 
-    private func documentOf(height: Int, token: Int) -> ReaderDocument {
+    private func documentOf(height: Int, token: Int, pullHint: Bool = true) -> ReaderDocument {
         let message = ReaderMessage(
             numreponse: 1, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil, dateText: "",
             editNote: nil, quotedByCount: nil, content: MessageContent(html: "<div style=\"height:\(height)px\">m</div>")
         )
         let page = ReaderPage(topicID: readerTopic, title: "T", currentPage: 1, maxPage: 1, messages: [message])
-        let html = TopicHTMLBuilder.document(for: page, token: token, options: ReaderRenderOptions(showsMessageMenus: true))
+        let options = ReaderRenderOptions(showsMessageMenus: true, offersPullToRefresh: pullHint)
+        let html = TopicHTMLBuilder.document(for: page, token: token, options: options)
         return ReaderDocument(token: token, html: html, anchor: nil, keepsScrollPosition: false)
     }
 
@@ -52,12 +53,44 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         }, timeout: .seconds(60))
         #expect(atEnd, "the page never reached its end: offset \(scrollView.contentOffset), last \(last())")
         #expect(await until { ends.reports.last == true }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
-        let atTop = await until(async: {
-            _ = try? await evaluate("window.scrollTo(0, 0); return true;", in: controller)
-            return WebKitResetWatch.isAtTop(scrollView)
+        // 20 points before the end is not the end: an end reported early (a viewport that counts the bars) fails here.
+        let nearEnd = last() - 20
+        let backed = await until(async: {
+            let scrollY = Double(nearEnd + bars.top) // `scrollY` counts from the bars' edge (`ReaderInsetsWebTests`)
+            _ = try? await evaluate("window.scrollTo(0, \(scrollY)); return true;", in: controller)
+            return abs(scrollView.contentOffset.y - nearEnd) <= 2
         }, timeout: .seconds(60))
-        #expect(atTop, "the page never came back to its top: offset \(scrollView.contentOffset)")
+        #expect(backed, "the page never came back 20 points: offset \(scrollView.contentOffset), target \(nearEnd)")
         #expect(await until { ends.reports.last == false }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
+    }
+
+    /// Operator decision of 2026-11-16 on #932: at rest at the page's end, the hint shows `FloatingSpacing.gap` under the last
+    /// message, inside what the bars leave visible: above the floating bottom bar, never under it.
+    @Test func atRestTheHintSitsTheSharedGapUnderTheLastMessageAboveTheBar() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.obscuredInsets = bars
+        controller.show(documentOf(height: 3000, token: 1))
+        #expect(await until { recorder.ready == [1] })
+        let scrollView = controller.webView.scrollView
+        let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
+        let atEnd = await until(async: {
+            _ = try? await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); return true;", in: controller)
+            return abs(scrollView.contentOffset.y - last()) <= 2
+        }, timeout: .seconds(60))
+        #expect(atEnd, "the page never reached its end: offset \(scrollView.contentOffset), last \(last())")
+        // Document coordinates are the scroll view's content coordinates at zoom 1 (`ReaderInsetsWebTests`).
+        let script = """
+            const hint = document.querySelector(".pull-hint").getBoundingClientRect();
+            const main = document.querySelector("main").getBoundingClientRect();
+            return [hint.top + window.scrollY, hint.bottom + window.scrollY, hint.top - main.bottom, hint.height];
+            """
+        let found = try #require(try await evaluate(script, in: controller) as? [Double])
+        let visibleTop = Double(scrollView.contentOffset.y + bars.top)
+        let visibleBottom = Double(scrollView.contentOffset.y + scrollView.bounds.height - bars.bottom)
+        #expect(found[3] > 0, "the hint has no height: \(found)")
+        #expect(abs(found[2] - Double(FloatingSpacing.gap)) <= 0.5, "gap under the last message: \(found[2])")
+        #expect(found[0] >= visibleTop - 0.5 && found[1] <= visibleBottom + 0.5,
+                "hint \(found[0])...\(found[1]) out of the visible band \(visibleTop)...\(visibleBottom)")
     }
 
     /// A page shorter than the screen shows its end at once: the end-of-page bar is there without a scroll.
@@ -69,11 +102,11 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         #expect(await until { recorder.ready == [1] && ends.reports.last == true }, "reports: \(ends.reports)")
     }
 
-    /// The page ends `FloatingSpacing.gap` above the bottom bar (operator, #820, 2026-11-16), not the old 2em, and the hint is not
-    /// in the page: the app draws it under the page's end.
+    /// The page ends `FloatingSpacing.gap` above the bottom bar (operator, #820, 2026-11-16), not the old 2em; a page built
+    /// without the pull (the post filter) has no hint.
     @Test func thePageEndsTheSharedGapAboveTheBarWithNoHintInTheFlow() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
-        controller.show(documentOf(height: 100, token: 1))
+        controller.show(documentOf(height: 100, token: 1, pullHint: false))
         #expect(await until { recorder.ready == [1] })
         let script = """
             return [getComputedStyle(document.body).paddingBottom, String(document.querySelectorAll(".pull-hint").length)];

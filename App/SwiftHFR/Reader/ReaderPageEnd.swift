@@ -6,61 +6,20 @@ import UIKit
 // are SwiftHFR's (operator, #820, 2026-11-15).
 /// A pull past the end of the page, let go beyond `threshold`: a refresh. The scroll view's pan gesture is followed without
 /// taking its delegate, which belongs to WebKit (as `SeasonalScrollActivity` does). The hint « Tirer vers le haut pour
-/// actualiser » is a label under the page's end, in the scroll view: it shows only while the page is pulled past its end, so
-/// it costs the page no room at rest (#820).
+/// actualiser » is in the page, `FloatingSpacing.gap` under the last message and above the floating bar
+/// (`ReaderRenderOptions.offersPullToRefresh`; operator decision of 2026-11-16 on #932: visible at rest).
 @MainActor
 final class ReaderPullWatcher: NSObject {
     /// How far past the end, in points, a release refreshes. Shorter pulls do nothing.
     static let threshold: CGFloat = 72
 
-    /// The hint under the page's end; added to the scroll view only once `showsHint` is set.
-    let hint: UILabel = {
-        let label = UILabel()
-        label.text = "Tirer vers le haut pour actualiser"
-        label.font = UIFont.preferredFont(forTextStyle: .footnote)
-        label.adjustsFontForContentSizeCategory = true
-        label.textColor = .secondaryLabel
-        label.alpha = 0.75
-        label.textAlignment = .center
-        // VoiceOver has the "Actualiser" buttons; the hint is for the finger only.
-        label.isAccessibilityElement = false
-        return label
-    }()
-
-    /// Whether the hint is drawn: only a reader that refreshes on a pull (`ReaderRefresh.wirePageEnd`), not the post filter.
-    var showsHint = false {
-        didSet { if showsHint != oldValue { placeHint() } }
-    }
-
     private weak var scrollView: UIScrollView?
     private var pulled: @MainActor () -> Void = {}
-    private var observations: [NSKeyValueObservation] = []
 
     func track(_ scrollView: UIScrollView, pulled: @escaping @MainActor () -> Void) {
         self.scrollView = scrollView
         self.pulled = pulled
         scrollView.panGestureRecognizer.addTarget(self, action: #selector(panned(_:)))
-        // The page's end moves with its content (images, a pinch zoom, a rotation that lays the page out again); never on a
-        // mere scroll, which would place the label every frame.
-        observations = [
-            scrollView.observe(\.contentSize) { [weak self] _, _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.placeHint()
-                }
-            }
-        ]
-    }
-
-    /// Puts the hint `FloatingSpacing.gap` below the end of the content, across the visible width; removes it when not shown.
-    func placeHint() {
-        guard showsHint, let scrollView else { return hint.removeFromSuperview() }
-        if hint.superview !== scrollView { scrollView.addSubview(hint) }
-        let height = hint.sizeThatFits(CGSize(width: scrollView.bounds.width, height: .greatestFiniteMagnitude)).height
-        hint.frame = CGRect(
-            x: 0, y: scrollView.contentSize.height + FloatingSpacing.gap,
-            width: scrollView.bounds.width, height: ceil(height)
-        )
     }
 
     /// Whether letting go of `scrollView` now refreshes. Internal so tests can check it without a finger.
@@ -89,13 +48,12 @@ enum ReaderRefresh {
         await model.refresh()
     }
 
-    /// Follows the end of the page `controller` shows into `atPageEnd`, turns a pull past it into a refresh, and shows the
-    /// pull hint. Reports of another document than the model's (a late one) change nothing.
+    /// Follows the end of the page `controller` shows into `atPageEnd`, and turns a pull past it into a refresh. Reports of
+    /// another document than the model's (a late one) change nothing.
     static func wirePageEnd(
         of controller: ReaderWebController, model: TopicReaderModel, atPageEnd: Binding<Bool>,
         haptic: @escaping @MainActor () -> Void = { HapticFeedback.live.impact(.light) }
     ) {
-        controller.pullWatcher.showsHint = true
         controller.events.pageEnd = { [weak model] atEnd, token in
             guard let model, token == model.document?.token else { return }
             // Legacy animates the bar's change (`.animation(.easeOut(duration: 0.22))`, MessagesView.swift:5789 @ 87fe0d1c).
