@@ -37,7 +37,9 @@ extension ComposerChrome {
     }
 
     /// Around the composer's top bar, for a glyph of `glyph` points (`ComposerBarMetrics.glyphSize`): floating, each capsule is
-    /// the gap away from the sides, from the page above and from the card below.
+    /// the gap away from the sides, from the page above and from the card below. On the main actor, as `ComposerHeader`'s
+    /// rules it reads.
+    @MainActor
     func headerInsets(glyph: CGFloat) -> EdgeInsets {
         switch self {
         case .docked:
