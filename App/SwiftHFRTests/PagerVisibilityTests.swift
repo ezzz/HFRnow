@@ -39,7 +39,8 @@ import Testing
         #expect(after > PagerVisibility.tolerance, "the inset alone pushes the distance past the tolerance")
         #expect(PagerVisibility.isShown(distanceFromEnd: after, wasShown: true, barHeight: 52, voiceOver: false))
         // Scrolling really away hides it, and then it takes the tolerance again to come back.
-        #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 52), wasShown: true, barHeight: 52, voiceOver: false))
+        let away = distance(offset: 1000, inset: 52)
+        #expect(!PagerVisibility.isShown(distanceFromEnd: away, wasShown: true, barHeight: 52, voiceOver: false))
         #expect(!PagerVisibility.isShown(distanceFromEnd: after, wasShown: false, voiceOver: false))
     }
 
@@ -48,7 +49,8 @@ import Testing
         let after = distance(offset: 1200, inset: 90)
         #expect(after > 64 + PagerVisibility.tolerance, "past what a 64 pt guess would allow")
         #expect(PagerVisibility.isShown(distanceFromEnd: after, wasShown: true, barHeight: 90, voiceOver: false))
-        #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 90), wasShown: true, barHeight: 90, voiceOver: false))
+        let away = distance(offset: 1000, inset: 90)
+        #expect(!PagerVisibility.isShown(distanceFromEnd: away, wasShown: true, barHeight: 90, voiceOver: false))
     }
 
     @Test func theBarHeightIsMeasuredFromTheStripOrTheInsetItAdds() {
