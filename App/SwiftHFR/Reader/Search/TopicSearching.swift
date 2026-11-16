@@ -10,7 +10,7 @@ protocol TopicSearching: Sendable {
     func search(_ query: TopicSearchQuery) async throws(TopicSearchError) -> TopicSearchResult
 }
 
-/// LOT-046's flow over the current account's session (its `hash_check` is required, so a logged-out reader has no search).
+/// LOT-046's flow over the current account's session (its `hash_check` is required: a logged-out reader asks to sign in instead, #821).
 struct LiveTopicSearcher: TopicSearching {
     let session: HFRSession
     var flow = TopicSearchFlow()

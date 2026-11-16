@@ -1,28 +1,43 @@
 import Foundation
 import HFRClient
 import HFRModels
+import HFRParsing
 import Observation
 import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (the avatar menu entries `:205-217`; `presentAvatarActionSheet` `:3610-3616`,
 // `openPrivateMessageComposer` `:3533-3547`, `openAvatarPrivateMessage` `:3640-3644`,
-// the sent notice `:4299-4304`, `:2602-2605`) @ 2440d79. Differences: the entries open from an anchored menu (issue #595) where
-// legacy jumped to the profile screen when the message had a profile link; the profile is fetched without cookies (LOT-116);
-// Blacklist and Whitelist wait for LOT-118 (#209), so they are not offered (GAP-064).
+// the sent notice `:4299-4304`, `:2602-2605`) @ 2440d79, and of the profile opened from a message (`presentAvatarActionSheet`
+// `:4415-4420`, `userProfileQuickActions` `:4387-4412`, `dismissUserProfile(then:)` `:4422-4490`) @ 87fe0d1c. Differences: as
+// legacy, a tap on the author opens the profile when the message links to it (#652, which reverses #595's menu-first choice), and
+// the author menu, anchored at the author rather than a sheet, only otherwise (GAP-064); the profile is fetched without cookies
+// (LOT-116, GAP-167); Blacklist and Whitelist are `PseudoListActionHandler` (LOT-118).
 
-/// "Profil" in the author menu: opens the member's profile screen from the message's profile link (LOT-116).
+/// "Profil" in the author menu, and what a tap on the author runs when the message has a profile link (#652): opens the
+/// member's profile screen (LOT-116) for that message.
 @MainActor
 struct ProfileActionHandler: MessageActionHandler {
-    /// Opens the profile of the member `url` names; the reader's link router decides, so a link that is no profile does nothing.
-    let open: @MainActor (URL) -> Void
+    /// Opens the profile `url` names, for the message `context` describes.
+    let open: @MainActor (URL, MessageMenuContext) -> Void
 
     var kind: MessageMenuAction.Kind { .profile }
 
-    func isAvailable(for context: MessageMenuContext) -> Bool { context.actions.profileURL != nil }
+    /// Only a forum profile link (LOT-095's router): any other link leaves the author menu to the tap, as legacy's sheet without
+    /// a profile.
+    func isAvailable(for context: MessageMenuContext) -> Bool { context.actions.profileMemberID != nil }
 
     func perform(with context: MessageMenuContext) async {
-        guard let url = context.actions.profileURL else { return }
-        open(url)
+        guard let url = context.actions.profileURL, context.actions.profileMemberID != nil else { return }
+        open(url, context)
+    }
+}
+
+extension MessageActions {
+    /// The member the message's profile link names (LOT-095's router); nil without a link or for a link that is no profile.
+    /// A tap on the author opens that profile (#652), and the author menu only when this is nil.
+    var profileMemberID: Int? {
+        guard let profileURL, case .profile(let memberID) = HFRLinkRoute.route(for: profileURL) else { return nil }
+        return memberID
     }
 }
 
@@ -65,23 +80,30 @@ enum PrivateMessageFeedback {
     }
 }
 
-/// The author menu's state and handlers for one reader (issue #595): the MP composer it opens, and the handlers to register.
-/// LOT-118 (#209) adds Blacklist and Whitelist to `handlers` as two more entries; the policy is untouched.
+/// The author's state and handlers for one reader (issues #595, #652): the profile sheet, the MP composer, and the handlers to
+/// register. Blacklist and Whitelist are `PseudoListActionHandler` (LOT-118); the policy is untouched.
 @Observable
 @MainActor
 final class AuthorMenuFlow {
-    /// The new-MP composer opened from the menu, shown as a sheet by `ReaderAuthorMenuSheet`.
+    /// The new-MP composer opened from the menu or the profile, shown by `ReaderAuthorMenuSheet`.
     var newMessage: ReplyComposerModel?
+    /// The profile sheet: from a profile link in a message, or from a message's author (#652).
+    var profile: UserProfileModel?
+    /// What runs once the profile sheet is gone (legacy `dismissUserProfile(then:)`, `MessagesView.swift:4422-4436` @
+    /// 87fe0d1c): a sheet cannot open while another closes.
+    @ObservationIgnored private var afterProfile: (@MainActor () -> Void)?
 
-    /// Profil (through `reader`'s link router, which alone knows a profile link, LOT-116) and, with a composer, MP.
+    /// Profil (through `reader`'s link router, LOT-116) and, with a composer, MP. `makeProfile` builds the profile screen's model
+    /// of a member (`ReaderServices.profileModel`); `confirm` tells the user the result of a list toggle made on it.
     /// `reader` is held weakly: the registry lives in it.
     func handlers(
-        reader: TopicReaderModel, composer: ComposerServices?, openProfile: @escaping @MainActor (Int) -> Void
+        reader: TopicReaderModel, composer: ComposerServices?, makeProfile: @escaping @MainActor (Int) -> UserProfileModel,
+        confirm: @escaping @MainActor (String) -> Void
     ) -> [any MessageActionHandler] {
         var handlers: [any MessageActionHandler] = [
-            ProfileActionHandler { [weak reader] url in
-                guard case .profile(let id)? = reader?.action(forLink: url, defaultBrowser: false) else { return }
-                openProfile(id)
+            ProfileActionHandler { [weak self, weak reader] url, context in
+                guard let self, case .profile(let id)? = reader?.action(forLink: url, defaultBrowser: false) else { return }
+                self.showProfile(makeProfile(id), from: context, composer: composer, confirm: confirm)
             }
         ]
         if let composer {
@@ -91,21 +113,71 @@ final class AuthorMenuFlow {
         }
         return handlers
     }
+
+    /// Shows `model`, the profile of `context`'s author, with legacy's quick actions (`userProfileQuickActions`,
+    /// `MessagesView.swift:4387-4412` @ 87fe0d1c): MP to the message's private-message link when not the user's own post and a
+    /// composer exists; the lists on the author's pseudo. "MP" and a toggle close the profile first, then open the composer or
+    /// tell the result (`:4422-4490`).
+    func showProfile(
+        _ model: UserProfileModel, from context: MessageMenuContext, composer: ComposerServices?,
+        confirm: @escaping @MainActor (String) -> Void
+    ) {
+        model.origin = ProfileMessageOrigin(author: context.author, isOwnMessage: context.isOwnMessage)
+        if let composer, !context.isOwnMessage, let target = PrivateMessageActionHandler.target(of: context) {
+            model.onPrivateMessage = { [weak self, weak model] _ in
+                guard let model else { return }
+                self?.closeProfile(model) { [weak self] in
+                    self?.newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
+                }
+            }
+        }
+        model.onListToggled = { [weak self, weak model] text in
+            guard let model else { return }
+            self?.closeProfile(model) { confirm(text) }
+        }
+        show(model)
+    }
+
+    /// Shows `model` with nothing pending from an earlier profile (a profile link in a message body opens through here too).
+    func show(_ model: UserProfileModel) {
+        afterProfile = nil
+        profile = model
+    }
+
+    /// Closes `model`'s sheet, then runs `next` once it is gone (`profileDidClose`). When `model` is no longer on screen (the
+    /// user closed it, or another profile replaced it while a toggle was written), `next` runs at once: nothing waits for a
+    /// dismissal that will not come, and the sheet on screen and its pending follow-up are left alone.
+    func closeProfile(_ model: UserProfileModel, then next: @escaping @MainActor () -> Void) {
+        guard profile === model else {
+            next()
+            return
+        }
+        afterProfile = next
+        profile = nil
+    }
+
+    /// The profile sheet is gone (its `onDismiss`): runs what closing it was for, once.
+    func profileDidClose() {
+        let next = afterProfile
+        afterProfile = nil
+        next?()
+    }
 }
 
-/// The MP composer sheet of the author menu; its close reason becomes the reader's confirmation.
+/// The MP composer of the author menu (docked on an iPhone, a sheet on an iPad: `ReaderComposerPresenter`); its close reason
+/// becomes the reader's confirmation.
 struct ReaderAuthorMenuSheet: ViewModifier {
     @Bindable var flow: AuthorMenuFlow
     let model: TopicReaderModel
 
     func body(content: Content) -> some View {
-        content.sheet(item: $flow.newMessage) { message in
-            ReplyComposerView(model: message, pageScrolls: true) { reason in
-                guard let text = PrivateMessageFeedback.text(for: reason) else { return }
-                model.showMenuFeedback(text) // the toast announces itself
-            }
-        }
-        // The page under the sheet scrolls but ignores its taps while the sheet is up (#653).
+        // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
+        // keyboard with the option on (#853) and shows the same sheet with it off.
+        content.modifier(ReaderComposerPresenter(composer: $flow.newMessage) { _, reason in
+            guard let text = PrivateMessageFeedback.text(for: reason) else { return }
+            model.showMenuFeedback(text) // the toast announces itself
+        })
+        // The page under the composer scrolls but ignores its taps while it is open (#653).
         .onChange(of: flow.newMessage != nil) { _, isOpen in model.composer(.privateMessage, isOpen: isOpen) }
     }
 }

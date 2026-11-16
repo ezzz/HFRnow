@@ -18,9 +18,10 @@ OTHER = 'Infra / docs / captures'
 STEP_COLORS = {'Audit': '#6b7685', 'M1': '#4f7cff', 'M2': '#8b5cf6', 'M3': '#14b8a6', 'M4': '#f59e0b', 'M5': '#ec4899', OTHER: '#cbd2dc'}
 STEP_NAMES = {'Audit': 'Audit initial', 'M1': 'M1 · MVP', 'M2': 'M2 · Lecture et réponse', 'M3': 'M3 · Moteur', 'M4': 'M4 · Version finale', 'M5': 'M5 · Évolutions'}
 # Priority order of the buckets: a lot counts in exactly the first one that fits.
-BUCKETS = ['done', 'progress', 'blocked', 'human', 'mac', 'low', 'ready']
-BUCKET_COLORS = {'done': '#14b8a6', 'progress': '#7dd3fc', 'blocked': '#dc5a4a', 'human': '#f59e0b', 'mac': '#8b5cf6', 'low': '#cbd2dc', 'ready': '#4f7cff'}
-BUCKET_NAMES = {'done': 'fait', 'progress': 'en cours (réclamé ou PR ouverte)', 'blocked': 'bloqué (autres lots)', 'human': 'décision humaine requise', 'mac': 'macOS / Xcode requis (capture ou Mac seul)',
+BUCKETS = ['done', 'progress', 'hold', 'blocked', 'human', 'mac', 'low', 'ready']
+BUCKET_COLORS = {'done': '#14b8a6', 'progress': '#7dd3fc', 'hold': '#94a3b8', 'blocked': '#dc5a4a', 'human': '#f59e0b', 'mac': '#8b5cf6', 'low': '#cbd2dc', 'ready': '#4f7cff'}
+BUCKET_NAMES = {'done': 'fait', 'progress': 'en cours (réclamé ou PR ouverte)', 'hold': 'en attente d\'une décision (M5 non ouvert, choix de l\'opérateur)',
+                'blocked': 'bloqué (autres lots)', 'human': 'décision humaine requise', 'mac': 'macOS / Xcode requis (capture ou Mac seul)',
                 'low': 'basse priorité / hors parité', 'ready': 'prêt'}
 LOT = re.compile(r'\bLOT-(\d{3})\b')
 MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
@@ -53,11 +54,13 @@ def bucket(lot, labels):
     n = r['issue']
     if n in G.CLAIMED or lot in G.PRS:  # claimed, or an open PR names the lot: it is being worked on, whatever its host
         return 'progress'
+    if 'status: on-hold' in labels:  # held by a decision (#835): neither blocked nor ready, and not a bottleneck
+        return 'hold'
     capture = n in G.CAPTURE
     if 'status: blocked' in labels and G.miss0(r) and not capture:  # waits on a lot of the plan that is not done
         return 'blocked'
     # a triage, or a block with no lot left to wait for (gate sentence, M5 not open, a decision, a key or a setting) needs a human
-    if 'status: needs-triage' in labels or ('status: blocked' in labels and not capture):
+    if 'status: needs-triage' in labels or 'status: needs-decision' in labels or ('status: blocked' in labels and not capture):
         return 'human'
     # only the Mac can do it: a capture, or a `host: mac` lot the cloud may not code (the cloud codes the App lots of M2, 2026-11-05)
     if capture or ('host: mac' in labels and not (r['module'] == 'App' and step_of_lot(lot) == 'M2')):
@@ -195,7 +198,7 @@ def _stacked(bins, weekly, W=520, H=250):
     return s + '</svg>'
 
 
-SHORT_BUCKET = {'done': 'fait', 'progress': 'en cours', 'blocked': 'bloqué', 'human': 'humain', 'mac': 'macOS', 'low': 'basse prio.', 'ready': 'prêt'}
+SHORT_BUCKET = {'done': 'fait', 'progress': 'en cours', 'hold': 'en attente', 'blocked': 'bloqué', 'human': 'humain', 'mac': 'macOS', 'low': 'basse prio.', 'ready': 'prêt'}
 
 
 def _donut(step, counts):
@@ -237,6 +240,6 @@ def charts(D):
 
 
 def donuts(D):
-    """One donut per step: a lot counts in exactly one bucket (done > in progress > blocked > human > macOS > low > ready)."""
+    """One donut per step: a lot counts in exactly one bucket (done > in progress > on hold > blocked > human > macOS > low > ready)."""
     P = D['progress']
     return f'<style>{CSS}</style><div class="card pm donuts">{"".join(_donut(s, P["steps"][s]) for s in STEPS)}</div>'

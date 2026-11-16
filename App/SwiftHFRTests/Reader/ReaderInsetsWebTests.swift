@@ -100,16 +100,14 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         )
     }
 
-    /// Scrolls the page itself to `readingTop` (`scrollY`), then waits until the scroll view shows it below the bar: a native
-    /// `setContentOffset` reaches the page's `scrollY` and scroll events asynchronously, and can be undone by a late layout.
-    /// Waits `deadline`, so a CI log (durations, not messages) tells which step of a test failed.
-    private func scrollPage(
-        to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration
-    ) async throws -> Bool {
+    /// Scrolls the page itself to `readingTop` (`scrollY`) until the scroll view shows it below the bar too: a native
+    /// `setContentOffset` reaches the page's `scrollY` and scroll events asynchronously, and can be undone by a late layout;
+    /// one `window.scrollTo` was not always applied (`scrollPage(toScrollY:)`, #934). The first scroll gets the page's own
+    /// answer time; the wait for both sides then lasts `deadline`, so a CI log (durations, not messages) tells which step of a
+    /// test failed.
+    private func scrollPage(to readingTop: CGFloat, in controller: ReaderWebController, deadline: Duration) async throws -> Bool {
         _ = try await evaluate("window.scrollTo(0, \(Double(readingTop))); return true;", in: controller)
-        let scrollView = controller.webView.scrollView
-        let top = controller.obscuredInsets.top
-        return await until({ abs(scrollView.contentOffset.y + top - readingTop) <= 1 }, timeout: deadline)
+        return await scrollPage(toScrollY: Double(readingTop), in: controller, timeout: deadline)
     }
 
     @Test func theMessageHiddenUnderTheTopBarIsNotTheReadingPosition() async throws {
@@ -154,7 +152,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
         // Issue #642: the scroll view still shows the old document's offset, already 900 under the 100-point bar, when the
         // new one is ready; its reset to the top and the restore come after. Only the new document's own `scrollY`, which
-        // starts at 0, tells that the restore happened.
+        // starts at 0, tells that the restore happened. The restore waits for that reset (#772): sent before it, it was undone
+        // now and then on a loaded runner (restored, then `scrollY` 0 below).
         #expect(await until(async: { abs((await scrollY() ?? -1) - 1000) <= 1 }, timeout: .seconds(30)), "restored scrollY")
         // Still there once the document has finished loading (a late layout must not undo the restore).
         #expect(await settled(controller))
@@ -167,20 +166,68 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(abs(controller.readingTop - 1000) <= 1)
     }
 
+    /// Issue #587: the scroll view counts a pinch-zoomed page in points `zoomScale` times larger than `window.scrollTo`'s CSS
+    /// pixels, while the bars' inset is not scaled; a refresh must still reopen at the content the reader was on.
+    @Test func aRefreshAfterAPinchZoomReopensAtTheSameMessage() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.obscuredInsets = bars
+        controller.show(tallDocument(token: 1))
+        #expect(await until { recorder.ready == [1] })
+        #expect(await settled(controller))
+        let scrollView = controller.webView.scrollView
+        #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
+        scrollView.setZoomScale(2, animated: false)
+        #expect(abs(scrollView.zoomScale - 2) < 0.01, "zoomScale: \(scrollView.zoomScale)")
+        // The CSS content at the bars' edge: the scroll view's points under the (unscaled) bar, divided by the zoom. The page's
+        // own `visualViewport.pageTop` is not a usable reference: it does not follow a native `setZoomScale` (read 1000 here).
+        let before = (scrollView.contentOffset.y + controller.obscuredInsets.top) / scrollView.zoomScale
+        #expect(before > 0, "edge: \(before)")
+        controller.show(tallDocument(token: 2, keepsScrollPosition: true))
+        #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+        let scrollY = { [self] in ((try? await evaluate("return window.scrollY;", in: controller)) as? NSNumber)?.doubleValue }
+        let restored = await until(async: { abs((await scrollY() ?? -1) - before) <= 1 }, timeout: .seconds(30))
+        #expect(restored, "restored scrollY, before \(before)")
+        #expect(await settled(controller))
+        let after = await scrollY() ?? -1
+        #expect(abs(after - before) <= 1, "scrollY after load: \(after), before \(before)")
+        #expect(abs(scrollView.zoomScale - 1) < 0.01, "zoomScale after reload: \(scrollView.zoomScale)")
+    }
+
     /// Fable on #662: the restore waits for animation frames, which a hidden page does not draw. No native
     /// call may wait for them, or a reader refreshed while covered and then dropped would never be freed.
+    ///
+    /// The page leaves its window once ready, and the restore a refresh sends (`scroll(toReadingTop:)`, called by
+    /// `documentIsReady`) goes out only once the page says it is hidden, with a probe that waits for two frames sent first. A
+    /// load started while already hidden made the test depend on WebKit running a hidden page's load to the end, which a busy
+    /// CI simulator did not always do (issue #801); hiding at `ready` raced WebKit's deferred visibility change (Fable on
+    /// #841). Now the restore always reaches a page that draws no frames, and the probe answering would say otherwise. The
+    /// controller's own calls into the page wait for no answer (#772): one pending on the hidden page held the controller.
     @Test func aRestoreWhileHiddenDoesNotKeepTheControllerAlive() async throws {
         weak var weakController: ReaderWebController?
+        // Kept outside the controller's scope, so the probe's call stays pending while the controller is released.
+        var hiddenWebView: WKWebView?
+        let framesWhileHidden = TestEvent()
+        let probe = "await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))); return true;"
         do {
             let (controller, recorder) = makeController(transport: imageTransport())
             weakController = controller
+            hiddenWebView = controller.webView
             controller.obscuredInsets = bars
             controller.show(tallDocument(token: 1))
             #expect(await until { recorder.ready == [1] })
             controller.webView.removeFromSuperview()
-            controller.show(tallDocument(token: 2, keepsScrollPosition: true))
-            #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
+            let visibility = "return document.visibilityState;"
+            #expect(
+                await until(async: { (try? await self.evaluate(visibility, in: controller) as? String) == "hidden" }),
+                "the page out of its window never reported itself hidden"
+            )
+            controller.webView.callAsyncJavaScript(probe, arguments: [:], in: nil, in: ReaderWebController.world) { result in
+                if case .success = result { framesWhileHidden.fire() }
+            }
+            controller.scroll(toReadingTop: 1000)
         }
         #expect(await until({ weakController == nil }, timeout: .seconds(30)))
+        #expect(!framesWhileHidden.hasFired, "the hidden page drew frames: the restore was not shown to reach a hidden page")
+        withExtendedLifetime(hiddenWebView) {}
     }
 }

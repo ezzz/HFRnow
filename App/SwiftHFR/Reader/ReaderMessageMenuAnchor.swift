@@ -40,23 +40,28 @@ struct MessageMenuList: View {
     }
 }
 
-// Port of HFRswift/Swift/MessagesView.swift (presentPopupMenu, popupAnchor, popupMenuTitle) @ 2440d79. Differences: a SwiftUI
-// popover instead of a UIEditMenuInteraction, its arrow edge chosen by the system (legacy computed up or down from the tap
-// position, `:1555`); entries are the registry's, so Alerter, AQ and Bookmark wait for their lots (GAP-064).
-/// The message menu of the reader, a popover anchored at the tapped "⋯" like legacy's edit menu at the tapped point
-/// (issue #594). A confirmation dialog hangs from the whole reader: since iOS 26 it opens at the top centre, far from the button.
+// Port of HFRswift/Swift/MessagesView.swift (presentPopupMenu, popupAnchor, popupMenuTitle) @ 2440d79. Differences: legacy opens
+// the author's actions as a sheet (`onPopupAvatarSheetRequest`, :2016-2027 @ 87fe0d1c), SwiftHFR as a popover at the author;
+// the message menu ("+") is the edit-menu callout (`ReaderMessageEditMenu`, #594). GAP-064.
+/// The author menu of the reader, a popover anchored at the tapped author. A confirmation dialog hangs from the whole reader:
+/// since iOS 26 it opens at the top centre, far from the button.
 struct ReaderMessageMenuAnchor: View {
     let model: TopicReaderModel
 
+    /// The author menu on screen; the message menu is the callout's (#594).
+    private var menu: MessageMenu? {
+        model.presentedMenu.flatMap { $0.source == .avatar ? $0 : nil }
+    }
+
     var body: some View {
         GeometryReader { proxy in
-            let rect = model.presentedMenu?.anchor.flatMap { $0.isEmpty ? nil : $0 }
+            let rect = menu?.anchor.flatMap { $0.isEmpty ? nil : $0 }
                 ?? CGRect(x: proxy.size.width / 2, y: proxy.size.height / 2, width: 1, height: 1)
             Color.clear
                 .frame(width: max(rect.width, 1), height: max(rect.height, 1))
                 .position(x: rect.midX, y: rect.midY)
                 .popover(
-                    item: Binding(get: { model.presentedMenu }, set: { if $0 == nil { model.dismissMenu() } }),
+                    item: Binding(get: { menu }, set: { if $0 == nil, menu != nil { model.dismissMenu() } }),
                     attachmentAnchor: .rect(.bounds)
                 ) { menu in
                     MessageMenuList(menu: menu) { action in Task { await model.perform(action, in: menu) } }

@@ -33,9 +33,29 @@ enum RESTHref {
         "\(categoryURI(category))topics/last/"
     }
 
+    /// The sub-categories of a category (`R285a`-`R285c`, the `subcategories` link of an `R57a` row).
+    static func subcategoriesURI(category: Int) -> String {
+        "\(categoryURI(category))subcategories/"
+    }
+
+    /// One sub-category (the `href` of an `R285a`-`R285c` row).
+    static func subcategoryURI(category: Int, subcategory: Int) -> String {
+        "\(subcategoriesURI(category: category))\(subcategory)/"
+    }
+
     /// One topic (`R57c`, the `href` of an `R57b` row).
     static func topicURI(category: Int, topic: Int) -> String {
         "\(categoryURI(category))topics/\(topic)/"
+    }
+
+    /// The global flag bucket of the session's account (`R335a`-`R335c`): every topic, grouped by category.
+    static func bucketURI(_ bucket: RESTFlagBucket) -> String {
+        "forums/hardwarefr/topics/\(bucket.rawValue)/"
+    }
+
+    /// The same bucket for one category (the `href` of a group of `R335a`-`R335c`, `R335e`, `R603f`).
+    static func bucketURI(_ bucket: RESTFlagBucket, category: Int) -> String {
+        "\(categoryURI(category))topics/\(bucket.rawValue)/"
     }
 
     /// The target an href of an answer names, checked: `https://forum.hardware.fr/api/<uri>`, with no port, user or

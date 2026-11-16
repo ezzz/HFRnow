@@ -89,7 +89,7 @@ Aucun désaccord sur les 39 propositions : 31 « d'accord », 7 « à discuter �
 
 **Titre** : `[SwiftHFR] M5: Reader, highlight posts that carry a quality alert (AQ)`
 
-**Labels** : `type: feature`, `area: app`, `priority: medium`, `difficulty: medium`, `status: blocked`
+**Labels** : `type: feature`, `area: app`, `priority: medium`, `difficulty: medium`, `status: on-hold`
 
 ```markdown
 ### Summary
@@ -119,7 +119,7 @@ As a reader, I want posts that carry a quality alert (Alerte Qualitaÿ) to stand
 
 **Titre** : `[SwiftHFR] M5: Reply at the bottom of a topic, messaging-app style`
 
-**Labels** : `type: feature`, `area: app`, `priority: medium`, `difficulty: medium`, `status: blocked`
+**Labels** : `type: feature`, `area: app`, `priority: medium`, `difficulty: medium`, `status: on-hold`
 
 ```markdown
 ### Summary
@@ -180,7 +180,7 @@ Contre-proposition du PO à « On t'a cité », déjà actée dans le tri.
 
 **Titre** : `[SwiftHFR] M5: Filter posts, easier to find and trigger`
 
-**Labels** : `type: feature`, `area: app`, `priority: medium`, `difficulty: easy`, `status: blocked`
+**Labels** : `type: feature`, `area: app`, `priority: medium`, `difficulty: easy`, `status: on-hold`
 
 ```markdown
 ### Summary

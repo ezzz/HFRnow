@@ -4,7 +4,7 @@ import HFRModels
 @testable import SwiftHFR
 import Testing
 
-/// The author menu of the reader (issue #595): Profil and MP, and no Blacklist/Whitelist until LOT-118.
+/// The author menu of the reader (issue #595): Profil and MP; Blacklist and Whitelist are LOT-118's handlers.
 @MainActor
 struct AuthorActionHandlerTests {
     private let profile = url("https://forum.hardware.fr/hfr/profil-1234.htm")
@@ -23,7 +23,7 @@ struct AuthorActionHandlerTests {
         var opened: [URL] = []
         var targets: [NewMessageTarget] = []
         let registry = MessageActionRegistry([
-            ProfileActionHandler { opened.append($0) }, PrivateMessageActionHandler { targets.append($0) }
+            ProfileActionHandler { url, _ in opened.append(url) }, PrivateMessageActionHandler { targets.append($0) }
         ])
         #expect(registry.offers(.avatar) && !registry.offers(.message))
         let entries = registry.entries(for: context(profile: profile, mpLink: mpLink), source: .avatar)
@@ -35,7 +35,7 @@ struct AuthorActionHandlerTests {
         var opened: [URL] = []
         var targets: [NewMessageTarget] = []
         let registry = MessageActionRegistry([
-            ProfileActionHandler { opened.append($0) }, PrivateMessageActionHandler { targets.append($0) }
+            ProfileActionHandler { url, _ in opened.append(url) }, PrivateMessageActionHandler { targets.append($0) }
         ])
         let context = context(profile: profile, mpLink: mpLink)
         #expect(await registry.perform(.profile, with: context))
@@ -45,7 +45,7 @@ struct AuthorActionHandlerTests {
     }
 
     @Test func entriesFollowTheMessagesLinks() {
-        let registry = MessageActionRegistry([ProfileActionHandler { _ in }, PrivateMessageActionHandler { _ in }])
+        let registry = MessageActionRegistry([ProfileActionHandler { _, _ in }, PrivateMessageActionHandler { _ in }])
         #expect(registry.entries(for: context(profile: nil, mpLink: mpLink), source: .avatar) == [.privateMessage])
         #expect(registry.entries(for: context(profile: profile, mpLink: nil), source: .avatar) == [.profile])
         // Your own message has no MP entry (policy).
@@ -62,7 +62,14 @@ struct AuthorActionHandlerTests {
         }
     }
 
-    @Test func theAuthorMenuOpensFromTheAvatarTap() async throws {
+    @Test func aProfileLinkThatIsNoProfileOffersNoProfil() {
+        let registry = MessageActionRegistry([ProfileActionHandler { _, _ in }])
+        let other = url("https://forum.hardware.fr/hfr/recherche/pseudo-user3.htm")
+        #expect(registry.entries(for: context(profile: other, mpLink: nil), source: .avatar).isEmpty)
+    }
+
+    private func reader(profile: URL?) async -> TopicReaderModel {
+        let mpLink = self.mpLink
         let pages = FakeTopicPages { _ in
             ReaderPage(
                 topicID: readerTopic, title: "Sujet", currentPage: 1, maxPage: 1,
@@ -75,14 +82,38 @@ struct AuthorActionHandlerTests {
             )
         }
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), source: pages)
-        reader.install(MessageActionRegistry([ProfileActionHandler { _ in }, PrivateMessageActionHandler { _ in }]))
         await reader.onAppear()
+        return reader
+    }
+
+    /// #652: with a profile link, a tap on the author opens the profile at once, with no menu (legacy `presentAvatarActionSheet`).
+    @Test func theAvatarTapOpensTheProfileWhenTheMessageLinksToIt() async throws {
+        var opened: [(URL, Int)] = []
+        let reader = await reader(profile: profile)
+        reader.install(MessageActionRegistry([
+            ProfileActionHandler { opened.append(($0, $1.numreponse)) }, PrivateMessageActionHandler { _ in }
+        ]))
         #expect(reader.hasAuthorMenus && !reader.hasMessageMenus)
         let token = try #require(reader.document?.token)
+        await reader.openMenu(post: 7, source: .avatar, anchor: CGRect(x: 10, y: 20, width: 40, height: 40), token: token)
+        #expect(reader.presentedMenu == nil)
+        #expect(opened.map(\.0) == [profile] && opened.map(\.1) == [7])
+        // A stale tap opens nothing.
+        await reader.openMenu(post: 7, source: .avatar, token: token + 1)
+        #expect(opened.count == 1)
+    }
+
+    /// #652: without a profile link, the author menu opens at the author, as legacy's fallback sheet.
+    @Test func theAvatarTapOpensTheAuthorMenuWithoutAProfileLink() async throws {
+        var opened = 0
+        let reader = await reader(profile: nil)
+        reader.install(MessageActionRegistry([ProfileActionHandler { _, _ in opened += 1 }, PrivateMessageActionHandler { _ in }]))
+        let token = try #require(reader.document?.token)
         let anchor = CGRect(x: 10, y: 20, width: 40, height: 40)
-        reader.requestMenu(post: 7, source: .avatar, anchor: anchor, token: token)
-        #expect(reader.presentedMenu?.entries == [.profile, .privateMessage])
+        await reader.openMenu(post: 7, source: .avatar, anchor: anchor, token: token)
+        #expect(reader.presentedMenu?.entries == [.privateMessage])
         #expect(reader.presentedMenu?.anchor == anchor)
+        #expect(opened == 0)
     }
 }
 

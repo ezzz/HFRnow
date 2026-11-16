@@ -53,14 +53,7 @@ extension ReaderWebTesting {
             image: { images, index, _ in recorder.viewers.append((images, index)) },
             notice: { recorder.notices.append($0) }
         )
-        if let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene {
-            let window = UIWindow(windowScene: scene)
-            window.frame = CGRect(x: 0, y: 0, width: 400, height: 800)
-            controller.webView.frame = window.bounds
-            window.addSubview(controller.webView)
-            window.isHidden = false
-            recorder.window = window
-        }
+        recorder.window = hostInWindow(controller.webView)
         return (controller, recorder)
     }
 
@@ -92,14 +85,41 @@ extension ReaderWebTesting {
         return true
     }
 
+    /// A WebKit call of `condition` gets only what is left of `timeout` (`WaitBudget`).
     func until(async condition: () async -> Bool, timeout: Duration = .seconds(240)) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
-        while await !condition() {
-            if clock.now > deadline { return false }
-            try? await Task.sleep(for: .milliseconds(20))
+        return await WaitBudget.$deadline.withValue(deadline) {
+            while await !condition() {
+                if clock.now > deadline { return false }
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            return true
         }
-        return true
+    }
+
+    /// Scrolls the page itself to `scrollY` (CSS pixels from the bars' edge, the reading top) and returns true once the page
+    /// and the scroll view are both there. One `window.scrollTo` was not always enough on a loaded simulator: CI job
+    /// 133090341114 saw the way back to the top sent once and never applied (the scroll view stayed at the page's end), so the
+    /// scroll is sent again until both sides agree, and a test checks what the page reported, not whether one request went
+    /// through. Why that scroll was lost is not established (#934). `scrollY` must be reachable (not past the page's end); both
+    /// sides must be within `tolerance` of it.
+    func scrollPage(
+        toScrollY scrollY: Double, in controller: ReaderWebController, tolerance: Double = 1, timeout: Duration = .seconds(60)
+    ) async -> Bool {
+        await until(async: {
+            let script = "window.scrollTo(0, \(scrollY)); return window.scrollY;"
+            guard let page = (try? await self.evaluate(script, in: controller)) as? NSNumber else { return false }
+            return abs(page.doubleValue - scrollY) <= tolerance && abs(Double(controller.readingTop) - scrollY) <= tolerance
+        }, timeout: timeout)
+    }
+
+    /// Where the page and its scroll view are, and whether a landing's reset is still watched, for a failure message.
+    func scrollState(of controller: ReaderWebController) async -> String {
+        let page = (try? await evaluate("return window.scrollY;", in: controller, timeout: .seconds(10))) as? NSNumber
+        let watched = controller.resetWatch.token.map { "\($0)" } ?? "none"
+        return "page scrollY \(page.map { "\($0.doubleValue)" } ?? "no answer"), scroll view reading top \(controller.readingTop), "
+            + "reset watched for \(watched)"
     }
 
     /// The document is loaded and every image has finished (loaded or failed): nothing more will be requested by itself.
@@ -108,8 +128,13 @@ extension ReaderWebTesting {
         return await until(async: { (try? await self.evaluate(script, in: controller) as? Bool) == true })
     }
 
-    func evaluate(_ script: String, in controller: ReaderWebController) async throws -> Any? {
-        try await controller.webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
+    /// Runs `script` in the reader's world. Throws `WaitTimeout` when no answer comes (a dead or suspended content process),
+    /// so `until(async:)` and the tests fail at their deadline instead of hanging the CI job (issue #801).
+    func evaluate(_ script: String, in controller: ReaderWebController, timeout: Duration = .seconds(120)) async throws -> Any? {
+        let webView = controller.webView
+        return try await answer(of: "the reader page", within: WaitBudget.cap(timeout)) {
+            try await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
+        }
     }
 
     func imageTransport() -> MockTransport {

@@ -68,6 +68,12 @@ public enum SettingKey {
     )
     /// `icon`: alternate icon name (`superblue`, `classic`, `classic-red`, `redface`, `redface-blue`, `beta`, `blue`, `white`).
     public static let appIconName = Setting.string("icon", default: "superblue")
+    /// `icon_previous` (LOT-189, new key): the `icon` value an app-chosen dated icon replaced, for the "Revenir à l'icône
+    /// précédente ?" question. Nothing stored when no dated icon is active. A property of the device: never synced.
+    public static let appIconPrevious = Setting.optionalString("icon_previous")
+    /// `icon_revert_asked` (LOT-189, new key): `<icon>:<year>` of the dated-icon window whose end the question was already
+    /// asked for, so it is asked once per season. A property of the device: never synced.
+    public static let appIconRevertAsked = Setting.optionalString("icon_revert_asked")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
@@ -115,6 +121,9 @@ public enum SettingKey {
     /// `theme_dark_style` (LOT-122, new): standard, darker or OLED black dark surfaces. Device-only: whether black saves power
     /// or smears is a property of the screen (ADR 0013 matrix E).
     public static let darkStyle = Setting.integerEnum("theme_dark_style", default: DarkStyle.standard)
+    /// `theme_id` (LOT-188, new): the theme of the gallery (THEMES.md); nil or an id no bundled theme has reads as Legacy, and is
+    /// left in the store. Device-only, like the dark style (ADR 0013 matrix E).
+    public static let themeID = Setting.optionalString("theme_id")
 
     // MARK: Messages
 
@@ -176,6 +185,33 @@ public enum SettingKey {
     /// `rehost_resize_before_upload`.
     public static let rehostMaxDimension = Setting.integerEnum("rehost_resize_before_upload", default: RehostMaxDimension.px1200).synced
 
+    // MARK: Seasons (LOT-166)
+
+    /// `season.automatic` (new): a seasonal theme is switched on at its first launch (THEMES.md §5). Device-only, like the dark style.
+    public static let seasonalThemesAutomatic = Setting.bool("season.automatic", default: true)
+    /// `season.animations` (new): seasonal animations play (THEMES.md §4); off counts as Reduce Motion. Device-only.
+    public static let seasonalAnimations = Setting.bool("season.animations", default: true)
+    /// `season.noel.activeYear` (new): the season whose Noël theme is on, so a theme left on any number of years ago is restored.
+    public static let noelActiveYear = Setting<Int?>(
+        key: "season.noel.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
+    )
+
+    // MARK: Experimental (#903)
+
+    /// `experimental.modernComposer` (new, #903/#904): the compact composer docked on the keyboard on an iPhone. On by default
+    /// until #855 delivers the legacy full-screen composer and flips it, so the app always has a composer. Device-only.
+    public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: true)
+    /// `experimental.searchTab` (new, #903/#896): a fifth tab, Recherche. Device-only.
+    public static let experimentalSearchTab = Setting.bool("experimental.searchTab", default: false)
+    /// `experimental.mpStorageSwitches` (new, #903/#859): one MPStorage switch per function instead of legacy's single one.
+    /// Device-only.
+    public static let experimentalMPStorageSwitches = Setting.bool("experimental.mpStorageSwitches", default: false)
+    /// `experimental.flagIconRows` (new, #903/#905): topic rows with the unread dot and flag icons before the title. Device-only.
+    public static let experimentalFlagIconRows = Setting.bool("experimental.flagIconRows", default: false)
+    /// `experimental.imageLoadingChoice` (new, #903/#902): the Jamais / Wi-Fi uniquement / Toujours choice of image loading.
+    /// Device-only.
+    public static let experimentalImageLoadingChoice = Setting.bool("experimental.imageLoadingChoice", default: false)
+
     // MARK: Legacy keys
 
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
@@ -187,11 +223,14 @@ public enum SettingKey {
     public static let all: [any CatalogueSetting] = [
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
+        appIconPrevious, appIconRevertAsked,
         privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
-        nightSuperFavoriteColor, nightBrightness, darkStyle, hideBlocklistedPosts, quoteFilterExceptions,
+        nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
+        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

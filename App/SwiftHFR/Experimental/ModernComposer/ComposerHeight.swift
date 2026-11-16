@@ -1,12 +1,14 @@
 import CoreGraphics
 import SwiftUI
 
-/// How tall the composer sheet is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
-/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it, and
+/// How tall the composer is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
+/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it (in the
+/// reader a bar docked at the bottom of the page, elsewhere a sheet: `ComposerPlacement`, #853), and
 /// a control switches to the full height and back (operator, 2026-11-08 for a reply, 2026-11-10 for the others, 2026-11-10
 /// reference for the card). The device decides, not the width's size class: inside an
 /// iPad's form sheet the width is compact too (measured on the iPad Pro 13" simulator, iOS 27.1). In compact height (an iPhone
-/// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there.
+/// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there (the reader's
+/// docked bar fills the reader there too).
 /// Every opening starts at partial height: the height chosen with the toggle is not remembered (operator, 2026-11-10).
 ///
 /// Legacy shows the composer full screen (`MessagesView.swift:5429-5443`, `coverVerticalFullScreen` @ 87fe0d1c): the partial
@@ -49,7 +51,8 @@ enum ComposerHeight: Equatable {
 /// (header, banners, fields, image chips, control row); the editor is as tall as its text, between `minimumLines` and
 /// `maximumLines` lines of the body font, plus the text view's own top and bottom insets. The system lifts the sheet over the
 /// keyboard, so the keyboard is no part of it (measured on the iPhone 18 Pro Max simulator, iOS 27.2: a detent that added the
-/// keyboard's inset showed the card at the full height).
+/// keyboard's inset showed the card at the full height). On an iPhone the controls sit inside the text card, under the editor
+/// (#854, `textCardHeight`): the editor stops at its cap, so the text never covers them.
 struct ComposerCardLayout: Equatable {
     /// Lines the editor shows with no text, so the caret and the first line of a reply have room.
     static let minimumLines: CGFloat = 2
@@ -61,17 +64,18 @@ struct ComposerCardLayout: Equatable {
     /// Before the first measure: a card of two lines and the parts' usual heights, so the sheet never opens as a sliver.
     static let fallbackHeight: CGFloat = 220
 
-    /// The header, the banners and the fields above the editor.
+    /// The floating buttons, the banners and the fields above the text card.
     var top: CGFloat = 0
     /// The image chips row inside the card, 0 without an image.
     var chips: CGFloat = 0
-    /// The control row and, when shown, the "Aa" bar above it.
+    /// The control row and, when shown, the "Aa" bar above it: inside the text card, at its bottom edge (#854).
     var controls: CGFloat = 0
     /// The text as laid out at the editor's width (a hidden copy of it).
     var text: CGFloat = 0
     /// One line of the body font at the current text size.
     var line: CGFloat = 0
-    /// The space above and below the card.
+    /// The space above and below the card with legacy's chrome (an iPad, or the option off). The modern composer's is
+    /// `ComposerChrome.cardInsets` (#895).
     static let gap: CGFloat = 8
 
     /// The editor's height: its text's, between two and six lines, insets included.
@@ -80,32 +84,50 @@ struct ComposerCardLayout: Equatable {
         return min(max(text, Self.minimumLines * lines), Self.maximumLines * lines) + Self.editorInsets
     }
 
-    /// The card's height; the fallback until the parts have been measured.
+    /// The rounded text card (#854): the image chips, the editor, then the controls on its bottom edge.
+    var textCardHeight: CGFloat { chips + editorHeight + controls }
+
+    /// The docked sheet's height: what is above the text card (the floating buttons with their insets, #895), the card and
+    /// the modern chrome's gaps around it (`ComposerChrome.cardInsets`); the fallback until the parts have been measured. Only
+    /// the modern composer opens at partial height, so its insets are the ones that count.
     var cardHeight: CGFloat {
         guard top > 0, controls > 0, line > 0 else { return Self.fallbackHeight }
-        return (top + chips + editorHeight + 2 * Self.gap + controls).rounded(.up)
+        let insets = ComposerChrome.docked.cardInsets
+        return (top + textCardHeight + insets.top + insets.bottom).rounded(.up)
     }
 }
 
-/// The composer sheet on an iPhone (#653): an opaque background (a sheet below full height is glass, and the dimmed page showed
-/// through the editor in dark mode, iOS 27.1 simulator) and, when the presenter ignores its page's taps while the composer is
-/// open, the page above the docked card left undimmed and scrollable (operator, 2026-11-10). Elsewhere the system's own.
-struct PartialComposerSheet: ViewModifier {
-    /// The composer can be partial on this device (an iPhone): the background stays opaque across the toggle.
-    let isEnabled: Bool
-    let height: ComposerHeight
-    /// The sheet's current detent (`ComposerHeight.detent(cardHeight:)`).
+/// The settings a composer sheet gives its presentation (a list's composer, an iPad's, the reader's with the option off): its
+/// one detent, no swipe-down while closing needs a choice or a send runs, and for the modern composer only (#904) an opaque
+/// background (a sheet below full height is glass, and the dimmed page showed through the editor in dark mode, iOS 27.1
+/// simulator). None for the reader's docked bar (#853): set from inside the reader, they would reach the reader's own
+/// presentation.
+struct ComposerSheetSettings: ViewModifier {
+    let isSheet: Bool
+    /// The modern composer (`ModernComposer.isActive`): the background stays opaque across the toggle.
+    let isModern: Bool
+    /// The sheet's only detent (`ComposerHeight.detent(cardHeight:)`).
     let detent: PresentationDetent
-    /// The presenter ignores its page's taps while the composer is open (`TopicReaderModel.suspendsPageInteractions`).
-    let pageScrolls: Bool
+    /// Swiping down would close without the choice: blocked while there is text or a send runs.
+    let dismissDisabled: Bool
 
     func body(content: Content) -> some View {
-        if isEnabled {
+        if isSheet {
             content
-                .presentationBackground(.background)
-                .presentationBackgroundInteraction(pageScrolls && height == .partial ? .enabled(upThrough: detent) : .automatic)
+                .presentationDetents([detent])
+                .modifier(OpaqueWhenModern(isModern: isModern))
+                .interactiveDismissDisabled(dismissDisabled)
         } else {
             content
+        }
+    }
+
+    // EXPERIMENTAL(modernComposer, #904): replaces the system's sheet background by an opaque one.
+    private struct OpaqueWhenModern: ViewModifier {
+        let isModern: Bool
+
+        func body(content: Content) -> some View {
+            if isModern { content.presentationBackground(.background) } else { content }
         }
     }
 }

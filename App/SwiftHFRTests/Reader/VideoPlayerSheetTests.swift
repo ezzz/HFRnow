@@ -2,6 +2,7 @@ import Foundation
 import HFRModels
 @testable import SwiftHFR
 import Testing
+import UIKit
 import WebKit
 
 /// What the player sheet may load, and what its "open in browser" fallback may hand to the system.
@@ -55,14 +56,19 @@ struct VideoPlayerSheetTests {
         #expect(request.value(forHTTPHeaderField: "Referer") == nil)
     }
 
-    /// A loaded player: the stand-in server, the web view and its delegate (kept alive together).
+    /// A loaded player: the stand-in server, the web view, its delegate and the window showing it (kept alive together).
     private struct Loaded {
         let server: RequestRecordingServer
         let webView: WKWebView
         let coordinator: PlayerWebView.Coordinator
+        let window: UIWindow?
+        /// The player's request reached the server before the deadline.
+        let requested: Bool
     }
 
-    /// A real web view loading the request the sheet builds: the loopback host stands for the provider's.
+    /// A real web view loading the request the sheet builds: the loopback host stands for the provider's. The web view is
+    /// shown in a window, as in the sheet: in no window, these tests took 245-268 s on CI even when green (`hostInWindow`).
+    /// Returns once the server got the request, or at the deadline (`requested` says which).
     @MainActor
     private func load(
         _ refererHosts: Set<String>, status: Int = 200, failure: @escaping () -> Void = {}
@@ -75,8 +81,9 @@ struct VideoPlayerSheetTests {
         )
         let coordinator = PlayerWebView.Coordinator(host: "127.0.0.1", onFailure: failure)
         let webView = PlayerWebView.makeWebView(request: request, delegate: coordinator)
-        for _ in 0..<3000 where server.requests.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
-        return Loaded(server: server, webView: webView, coordinator: coordinator)
+        let window = hostInWindow(webView)
+        let requested = await server.firstRequest()
+        return Loaded(server: server, webView: webView, coordinator: coordinator, window: window, requested: requested)
     }
 
     @MainActor @Test func theWebViewSendsTheRefererOnTheWireForYouTubeOnly() async throws {
@@ -84,6 +91,7 @@ struct VideoPlayerSheetTests {
         defer { youtube.server.stop() }
         let vimeo = try await load([])
         defer { vimeo.server.stop() }
+        #expect(youtube.requested && vimeo.requested, "no request reached the stand-in server before the deadline")
         #expect(
             youtube.server.requests.count == 1 && youtube.server.header("Referer") == "https://app.example/",
             "\(youtube.server.requests)"
@@ -99,18 +107,33 @@ struct VideoPlayerSheetTests {
 
     @MainActor @Test func aPlayerThatAnswers401ReportsItAndAHealthyOneDoesNot() async throws {
         var failures = 0
-        let bad = try await load([], status: 401) { failures += 1 }
+        let reported = TestEvent()
+        let bad = try await load([], status: 401) {
+            failures += 1
+            reported.fire()
+        }
         defer { bad.server.stop() }
-        for _ in 0..<3000 where failures == 0 { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(failures >= 1, "the 401 player reported \(failures) failure(s); wire heads: \(bad.server.requests.count) request(s)")
+        let badReported = await reported.wait(timeout: .seconds(120))
+        #expect(
+            badReported && failures >= 1,
+            "the 401 player reported \(failures) failure(s); wire heads: \(bad.server.requests.count) request(s)"
+        )
         var healthyFailures = 0
         let good = try await load([]) { healthyFailures += 1 }
         defer { good.server.stop() }
-        // Wait for the request, then for the end of the load, before asserting that nothing was reported.
-        for _ in 0..<3000 where good.webView.isLoading { try await Task.sleep(for: .milliseconds(10)) }
+        // Wait for the request (in `load`), then for the end of the load, before asserting that nothing was reported.
+        let finished = TestEvent()
+        let observation = good.webView.observe(\.isLoading, options: [.initial, .new]) { webView, _ in
+            MainActor.assumeIsolated {
+                if !webView.isLoading { finished.fire() }
+            }
+        }
+        let loadEnded = await finished.wait(timeout: .seconds(120))
+        observation.invalidate()
+        // A failure is reported by the delegate right around the end of the load: leave it the time to arrive.
         try await Task.sleep(for: .milliseconds(300))
         #expect(
-            good.server.requests.count == 1 && !good.webView.isLoading,
+            good.requested && good.server.requests.count == 1 && loadEnded && !good.webView.isLoading,
             "healthy player: \(good.server.requests.count) request(s), isLoading=\(good.webView.isLoading)"
         )
         #expect(healthyFailures == 0, "healthy player reported \(healthyFailures) failure(s)")

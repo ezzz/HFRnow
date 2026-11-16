@@ -9,6 +9,7 @@ Source: the operator's requests of 2026-10-28 and his reviews that day (Legacy a
 - Réglages › Icône lists `AppIconOption`s; a choice calls `setAlternateIconName` and is stored under the legacy key `icon` only once the system accepted it.
 - Each icon is an Icon Composer file `App/SwiftHFR/Icon-<NAME>.icon`, listed in `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in both configurations. The name lives only in `AppIconOption.alternateIconName`: a redrawn icon swaps in under the same name.
 - Raw values of the legacy options are the legacy `icon` values (`HFRswift/Swift/AppSettingsView.swift:33-83` @ `87fe0d1c`), so the choice survives the update. New options use a kebab-case raw value and an `Icon-<PACK>-<NAME>` file name (`noel-hfr` → `Icon-NOEL-HFR`).
+- The picker (`AppIconSettingsView`) is a grid by pack: a **preview of every icon as on the Home Screen**, its name and a ring on the chosen one. The system has no API to read an alternate icon's image, so the previews are asset-catalogue image sets rendered from the `.icon` files by `scripts/icon-previews.sh` (Xcode's `ictool`, Default and Dark renditions, so the grid follows light and dark): `Assets.xcassets/IconPreviews/IconPreview-<bundle name>.imageset` (`AppIconOption.previewImageName`). A test fails when an option has no preview.
 - Apple (HIG › App icons, read 2026-10-28, re-read before quoting): alternate icons need their own dark, clear and tinted variants and go through App Review; 1024 px masters; no baked highlights, shadows or bevels (<https://developer.apple.com/design/human-interface-guidelines/app-icons>).
 
 ## 2. Packs
@@ -27,8 +28,8 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 | Beta | Beta | `beta` | legacy art | all year | shipped |
 | | Beta rouge | `beta-red` | the Beta drawing in black on red, strokes slightly thicker | all year | LOT-190 |
 | X-face | X-face, Fierté, Fierté contour, Dégradé clair, Dégradé sombre, Or, Or sur noir, Or contour, Terminal 5250, Négatif, Négatif inversé, Coucher de soleil | `xface-…` | the redface `:o` with variations: Pride flag with **diagonal** stripes (solid face, or strokes only), light and dark gradients after the Swift theme, gold (gold background, gold drawing on black, black outline on gold), green face (Rétro 5250), white on black and black on white, red-to-yellow gradient; the plain « X-face » and the « Coucher de soleil » names are proposals *(names to confirm)*; drawings: `icons-xface.jpg` | all year | LOT-190 |
-| Saisons | Noël REDFACE | `noel-redface` | redface on white with a Santa hat, a fir tree with gifts in a bottom corner | 01/12–26/12 | LOT-189 |
-| | Noël HFR | `noel-hfr` | the simple HFR icon (white on `orange-hfr`) on fir green, snow on the letters, a garland at the top, a snowman and a gift at the bottom | 01/12–26/12 | LOT-189 |
+| Saisons | Noël REDFACE | `noel-redface` | redface on white with a Santa hat, a fir tree with gifts in a bottom corner | 01/12–26/12 | shipped (LOT-189) |
+| | Noël HFR | `noel-hfr` | the simple HFR icon (white on `orange-hfr`) on fir green, snow on the letters, a garland at the top, a snowman and a gift at the bottom | 01/12–26/12 | shipped (LOT-189) |
 | | Halloween citrouille | `halloween-jack` | the redface turned orange, mouth changed but centred, pumpkin sides and orange gradient | 01/10–31/10 | LOT-190 |
 | | Halloween HFR | `halloween-hfr` | the simple HFR icon with a spider web, a bat and a tiny witch on a broom | 01/10–31/10 | LOT-190 |
 | | Printemps | `spring` | a cherry tree in bloom partly hidden by the redface, dense background | all year | LOT-190 |
@@ -51,7 +52,7 @@ The orange of the forum logo, used as a fill (Orange, Noël HFR, Halloween HFR, 
 ## 5. Submitting an icon (agents and humans)
 
 1. Open an issue `[SwiftHFR] Icon: <name>` (`### Summary`, pack, window), wait for `status: ready`, claim it.
-2. Add `App/SwiftHFR/Icon-<PACK>-<NAME>.icon` with Default, Dark and Tinted annotations and its SVG master; add it to `AppIconOption` (pack, window) and to the alternate names in both configurations.
+2. Add `App/SwiftHFR/Icon-<PACK>-<NAME>.icon` with Default, Dark and Tinted annotations and its master; add a case to `AppIconOption` (title, name, `pack`, `window`: data only) and the name to the alternate names in both configurations; run `scripts/icon-previews.sh Icon-<PACK>-<NAME>` and commit the `IconPreview-…` image set. A full-art PNG icon gets its Dark and Tinted layers from `swift tooling/icons/make-variants.swift <Default PNG>` unless drawn by hand.
 3. PR checklist:
    - [ ] screenshots at 1024 px and on light and dark Home Screens, in Clear and Tinted
    - [ ] readable at 29 pt

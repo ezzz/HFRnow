@@ -26,12 +26,17 @@ Alternate app icons, `App/SwiftHFR/Icon-*.icon`. The legacy art lives in `SuperH
 | `Icon-CLASSIC`, `Icon-CLASSIC-RED`, `Icon-REDFACE`, `Icon-REDFACEBLUE`, `Icon-BETA` | Legacy designs redrawn as SVG for SwiftHFR (the legacy images stop at 180 px), under this repository's licence | Designs by FLKone (`Icon-CLASSIC`, `Icon-REDFACE`, `Icon-BETA`, 2017) and by Bruno / ezzz (`Icon-CLASSIC-RED`, `Icon-REDFACEBLUE`, 2025), in the legacy history |
 | `Icon-CLASSIC-BLUE` | Legacy 1024 px image, unchanged (`HFRswift/Swift/Assets.xcassets/Classic-Blue.appiconset`, ezzz/HFRnow `legacy/duo-inner-cover` @ `87fe0d1c`), in a one-layer `.icon` | FLKone and the HFR+ contributors, ezzz and the HFRnow contributors |
 | `Icon-ORANGE`, `Icon-BETA-RED`, `Icon-XFACE`, `Icon-XFACE-*` (11 variations), `Icon-HALLOWEEN-JACK`, `Icon-HALLOWEEN-HFR`, `Icon-SPRING`, `Icon-SUMMER`, `Icon-WINTER` | Original art (#731, drawings validated by the operator 2026-11-10): the redface of `Icon-REDFACE` and the legacy Beta drawing (`Icon-BETA`) recoloured, the HFR letters on `orange-hfr`, generic Pride flag and season items; style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6); masters in `docs/assets/themes/icons/`, under this repository's licence | Legacy par Ezzz (the redface and Beta designs); the new drawings by Claude Code for the operator |
+| `Icon-NOEL-REDFACE`, `Icon-NOEL-HFR` | Original seasonal art (#730, drawing validated by the operator 2026-11-10): the redface of `Icon-REDFACE` (the legacy design above) with a Santa hat, fir tree and gifts; the HFR letters on `orange-hfr` with snow, garland, snowman and gift. Style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6), masters in `docs/assets/themes/icons/`, under this repository's licence | The redface design is credited on the row above (FLKone, 2017); the seasonal drawing by Claude Code for the operator |
 
 **Category icons.** The icons of the Catégories list (`App/SwiftHFR/Assets.xcassets/CategoryIcons/`) are the legacy HFR+ images, unchanged (ezzz/HFRnow `legacy/duo-inner-cover` @ `87fe0d1c`, `SuperHFRplus/Assets/UI/`, `*Filled-40`, `Debian-40`, `cat-apple`): credit to FLKone and the HFR+ contributors, ezzz and the HFRnow contributors; the legacy README and credits page thank [icons8](https://icons8.com/) for its icons.
 
 ### Import worker
 
 The construction worker shown while the first-launch import runs (#754, `App/SwiftHFR/Assets.xcassets/ImportWorker*.imageset`). Original drawing in the style 1 « digital sketching » ([THEMES.md](docs/THEMES.md) §6), generated from the committed script `tooling/art/import-worker/make.py` (hand-placed vector shapes, standard library only; no traced, downloaded or existing character), under this repository's licence. Made by Claude Code (Sonnet 5.5) for the operator; the previews are rendered by `tooling/art/import-worker/render.mjs`.
+
+### Seasonal art
+
+The Noël soft images (LOT-166, `App/SwiftHFR/Assets.xcassets/Noel/`): the sleigh with its reindeer, the star, the gifts, the ornament, the snowflake and the snow pile. Original procedural renders made for SwiftHFR on 2026-10-28 from the operator's requests and validated by him on 2026-11-10 ([`docs/assets/themes/`](docs/assets/themes/README.md); no downloaded mesh, texture or image), under this repository's licence; the app's copies are those renders trimmed and scaled by `tooling/art/noel-crossings/derive.swift`, no pixel redrawn.
 
 ## Contributors
 

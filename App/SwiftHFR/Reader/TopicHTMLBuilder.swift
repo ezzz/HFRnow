@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRParsing
 
 // Port of Classes/ObjCTopicMessageContentBuilder.m and SuperHFRplus/Assets/HTML/templatev2.htm @ 2440d79. Differences: built from the
 // typed MessageContent (ADR 0006); a one-line header instead of the grey band with "+" (GAP-051, UXD).
@@ -27,7 +28,7 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
-    /// Give each message a `⋯` button (LOT-087). Off until a message-menu handler is registered.
+    /// Give each message a `+` button (LOT-087, the legacy glyph again: #594). Off until a message-menu handler is registered.
     var showsMessageMenus = false
     /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
     var showsAuthorMenus = false
@@ -35,6 +36,9 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var style = ThemeStyle.modern
     /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
     var visibility = VisibilityPolicy.none
+    /// End the page with the pull-to-refresh hint (#820): only the topic and MP reader refreshes on a pull
+    /// (`TopicReaderModel.currentRenderOptions`); "Filtrer les posts" builds its pages without it.
+    var offersPullToRefresh = false
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -71,7 +75,7 @@ enum TopicHTMLBuilder {
         if page.topicID?.category == .privateMessages { options.visibility = options.visibility.withoutOwnHighlights() }
         var html = """
         <!DOCTYPE html>
-        <html lang="fr" data-token="\(token)">
+        <html lang="fr" data-token="\(token)" style="--floating-gap: \(Int(FloatingSpacing.gap))px">
         <head>
         <meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy" content="\(contentSecurityPolicy)">
@@ -92,7 +96,12 @@ enum TopicHTMLBuilder {
                 html += "<div class=\"separator1\"></div>\n"
             }
         }
-        html += "</main>\n</body>\n</html>\n"
+        html += "</main>\n"
+        if options.offersPullToRefresh {
+            // Under the last message, tone on tone, visible at rest (#820, #932). VoiceOver has the "Actualiser" buttons.
+            html += "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>\n"
+        }
+        html += "</body>\n</html>\n"
         return html
     }
 
@@ -129,7 +138,8 @@ enum TopicHTMLBuilder {
         return html
     }
 
-    /// The message header: avatar, author (a button when the author menu is on), date and the `⋯` button.
+    /// The message header: avatar, author (a button when the author menu is on), date and the `+` button (legacy
+    /// `templatev2.htm:6` @ 87fe0d1c, operator decision of 2026-11-15 on #594: "+" again instead of "⋯").
     private static func header(of message: ReaderMessage, author: String, date: String, options: ReaderRenderOptions) -> String {
         var html = ""
         html += "<header class=\"header\">"
@@ -139,9 +149,10 @@ enum TopicHTMLBuilder {
         // The author is the message's heading (LOT-163): the web rotor's "Titres" steps from message to message.
         html += "<span class=\"byline\" role=\"heading\" aria-level=\"2\">"
         if opensAuthorMenu {
-            // The author opens the author's menu (legacy: the avatar and the pseudo both did); the numbers are ours, never page text.
+            // The author opens the profile when the message links to it, the author's menu otherwise (#652; legacy: the avatar and
+            // the pseudo both did); only the menu is announced as one. The numbers are ours, never page text.
             html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\">\(author)</button>"
+            html += message.actions.profileMemberID == nil ? " aria-haspopup=\"menu\">\(author)</button>" : ">\(author)</button>"
         } else {
             html += "<span class=\"author\">\(author)</span>"
         }
@@ -149,7 +160,7 @@ enum TopicHTMLBuilder {
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
         if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">⋯</button>"
+            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">+</button>"
         }
         html += "</header>\n"
         return html

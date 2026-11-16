@@ -58,9 +58,11 @@
 /* -apple-system-body follows the user's Dynamic Type size inside WKWebView; --text-scale is the in-app text size (LOT-169),
    set on <html> by the app (ReaderWebController.textScale), live. Everything below sizes in em, so it all follows. */
 html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
+/* The page ends `FloatingSpacing.gap` above the floating bottom bar (operator, #820, 2026-11-16: one gap with the composer's,
+   #895), set on <html> by the builder. */
 body {
   font-size: calc(var(--text-scale, 1) * 1rem);
-  margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere;
+  margin: 0; padding: 0 0 var(--floating-gap, 8px); color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
 a { color: var(--action); }
 /* Full Keyboard Access and switch users (LOT-163): the page had no focus ring. Shown for keyboard focus only. */
@@ -138,6 +140,8 @@ table.spoiler { width: 100%; cursor: pointer; border: 1px dashed var(--quote-bor
 table.spoiler div.masque { visibility: hidden; }
 table.spoiler.open div.masque { visibility: visible; }
 
+/* HFR's dashes are dropped by the normalizer (#755); the line is legacy's, 1px dashed (`style-liste-light.css:79`,
+   `style-liste-dark.css:45` @ 87fe0d1c), in the theme's separator colour (THEMES.md §3, one definition) instead of lightgray. */
 .signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px dashed var(--separator); font-size: 0.85em; color: var(--secondary); }
 .signature > br:first-child, .content span.signature { display: none; }
 
@@ -149,10 +153,16 @@ button.image-tap, button.video {
 .videos { margin-top: 0.5em; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
 
-/* Message menu (LOT-087): the author and the "⋯" button are buttons that look like text. The padding grows the touch target
+/* The pull-to-refresh hint of the reader's pages (#820): `FloatingSpacing.gap` under the last message, small and almost tone on
+   tone, in the flow, so at rest it shows above the floating bar, never under it (operator decision of 2026-11-16 on #932). */
+.pull-hint { margin: var(--floating-gap, 8px) 0 0; padding: 0 16px; text-align: center; font-size: 0.75em; line-height: 1.2; color: var(--secondary); opacity: 0.75; }
+/* Hidden, not removed, while the pull does nothing (a composer is open): the page keeps its length, so nothing moves. */
+.no-pull-hint .pull-hint { visibility: hidden; }
+/* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
-.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--secondary); font: inherit; font-size: min(1.4em, 32px); line-height: 1; flex: none; }
+/* The legacy "+" in the accent colour (templatev2.htm:6 @ 87fe0d1c; operator, #594, 2026-11-15). */
+.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--action); font: inherit; font-size: min(1.4em, 32px); font-weight: 600; line-height: 1; flex: none; }
 
 /* Visibility (LOT-117). Legacy style-liste-light.css:177-199, 314-325, 359-390, 606-619 and MessagesView.swift:2397-2410: own
    messages and whitelisted authors get a 2 px bar on the header and on the content, a tint, and a coloured avatar ring; the
@@ -219,3 +229,48 @@ table.quote-blocked > * > tr > td > b.s1::after { content: "\25BC"; }
 table.quote-blocked.open > * > tr > td > b.s1::after { content: "\25B2"; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1 > a { display: none; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { content: "Citation masquée"; }
+
+/* A gallery theme (LOT-188, THEMES.md §3): the app sets --app-theme-{light,dark}-* and data-app-theme on <html>
+   (ThemeAppearance.readerScript); Legacy removes the attribute, so none of the rules below applies and its page is the one above.
+   The page is the theme's surface; #568's --surface-alt and --separator-strong stay derived from --text and --background. */
+:root[data-app-theme] {
+  --text: var(--app-theme-light-text);
+  --secondary: var(--app-theme-light-secondary);
+  --background: var(--app-theme-light-background);
+  --separator: var(--app-theme-light-separator);
+  --quote-border: var(--app-theme-light-quote-border);
+  --quote-background: var(--app-theme-light-quote-background);
+  --placeholder: var(--app-theme-light-placeholder);
+  --action: var(--app-theme-light-action);
+  --link: var(--app-theme-light-link);
+  --code-background: var(--app-theme-light-code-background);
+  --code-text: var(--app-theme-light-code-text);
+  --spoiler-background: var(--app-theme-light-spoiler-background);
+  --spoiler-text: var(--app-theme-light-spoiler-text);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-app-theme] {
+    --text: var(--app-theme-dark-text);
+    --secondary: var(--app-theme-dark-secondary);
+    --background: var(--app-theme-dark-background);
+    --separator: var(--app-theme-dark-separator);
+    --quote-border: var(--app-theme-dark-quote-border);
+    --quote-background: var(--app-theme-dark-quote-background);
+    --placeholder: var(--app-theme-dark-placeholder);
+    --action: var(--app-theme-dark-action);
+    --link: var(--app-theme-dark-link);
+    --code-background: var(--app-theme-dark-code-background);
+    --code-text: var(--app-theme-dark-code-text);
+    --spoiler-background: var(--app-theme-dark-spoiler-background);
+    --spoiler-text: var(--app-theme-dark-spoiler-text);
+  }
+}
+/* :where() keeps these at the specificity of the rules they extend, and they come last: `b.s1 a` (a quote's author) keeps
+   --text, a [code] block keeps its own background on an even message instead of stepping back to the page, and a quote inside a
+   spoiler writes --text on its own background, not the spoiler's text. --app-theme-font is the theme's design (unset: the
+   declaration is invalid and the body keeps the system family it inherits). */
+:where(:root[data-app-theme]) body { font-family: var(--app-theme-font); }
+:where(:root[data-app-theme]) a { color: var(--link); }
+:where(:root[data-app-theme]) :is(table.citation, table.oldcitation, table.quote) { color: var(--text); }
+:where(:root[data-app-theme]) :is(table.code, table.fixed) { background: var(--code-background); color: var(--code-text); }
+:where(:root[data-app-theme]) table.spoiler { background: var(--spoiler-background); color: var(--spoiler-text); }

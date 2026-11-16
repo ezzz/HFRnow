@@ -3,9 +3,10 @@
   python3 tooling/roadmap/weekly/build.py OUTDIR [--since 2026-11-03]   # needs `gh` (GH_TOKEN), full git history
   node tooling/roadmap/weekly/shot.js OUTDIR                             # slides/*.html -> 2880x1620 JPEG, checks
 
-Slides: 1 vue d'ensemble · 2 indicateurs (KPIs, progress model) · 3 jalons M1 to M5 · 4-7 M1, M2, M3, M4 (feature
-cards) · 8 l'app au quotidien (feedback, current app, backport) · 9 M5 · 10 aujourd'hui (difference with the baseline
-date, organisation). The legacy app is « l'app courante » on every slide. Nothing names or ranks a person.
+Slides (#892): 1 où en est SwiftHFR · 2 indicateurs (KPIs, progress model) · 3 aujourd'hui (M1 to M5 and the work
+outside every milestone against the baseline date, organisation) · 4 M1 · M2 · M3 (one tile per main feature) · 5 M4 en
+détail (lots, test feedback and its radar, end-of-M4 review tiles) · 6 M5 en détail (tiles and radar by category, band of
+the open issues outside every milestone). The legacy app is « l'app courante » on every slide. Nothing names or ranks a person.
 
 The tracker state is fetched first and written to OUTDIR/state.json (never to tooling/roadmap/state.json, whose
 committed snapshot is stale); `--state FILE` reuses a saved one, refused when older than 6 h.
@@ -31,7 +32,7 @@ from sync_state import REPO, gh_pages  # noqa: E402
 DROPPED = set()  # issue numbers closed not planned or duplicate (set by gather): their lots leave every count
 G = progress = None  # loaded by load_engine() once the fresh state is in place (generate reads it at import time)
 
-TOTAL = 10
+TOTAL = 6
 START = '2026-10-24'  # first commit of SwiftHFR (Phase 0 done that day, ROADMAP)
 MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
 MS = ['M1', 'M2', 'M3', 'M4', 'M5']
@@ -44,46 +45,42 @@ MS_GOALS = {  # docs/ROADMAP.md, Milestones table
     'M5': "Ce que la parité n'exige pas, jamais abandonné : après M4.",
 }
 MS_ICON = {'M1': 'rocket', 'M2': 'book', 'M3': 'gear', 'M4': 'flag', 'M5': 'sparkle'}
-# Open Mac checks that gate a milestone but are not lots (shown in its « reste à faire » card while open)
-EXTRA_MAC = {'M1': [344, 322]}
 
-# Feature cards: (icon, title, one-liner, lots of the card). Written from docs/ROADMAP.md and the lot scopes of
-# lots.json; the pill of each card is computed from its lots.
+# Tiles of the « M1 · M2 · M3 » slide: (icon, title, one-liner, lots of the tile). Written from docs/ROADMAP.md and the
+# lot scopes of lots.json; the status line of each tile is computed from its lots. One-liners stay under 80 characters
+# (two lines in a tile).
 FEATURES = {
     'M1': [
-        ('lock', 'Comptes et connexion', "Plusieurs comptes ; la session est validée avant de remplacer les cookies, puis rafraîchie.", [13, 42, 43, 44, 65, 81]),
-        ('compass', 'Navigation adaptative', "Une seule app pour iPhone, iPad et pliables : catégories, favoris, messages, plus.", [21, 22, 24, 82, 170]),
-        ('book', 'Lecteur de sujet', "Messages normalisés, liens internes ouverts dans l'app, aucun script de page exécuté.", [30, 33, 34, 83, 137]),
-        ('pencil', 'Réponse', "Rédiger, envoyer, brouillons ; un succès n'est affiché que si HFR le confirme.", [36, 37, 48, 84]),
-        ('beaker', "Oracle de l'app courante", "Audit, fixtures anonymisées et oracle : chaque parser est comparé à l'app courante.", [0, 1, 2, 3, 4, 5, 71]),
+        ('lock', 'Comptes et connexion', "Plusieurs comptes ; session validée avant de remplacer les cookies.", [13, 42, 43, 44, 65, 81]),
+        ('compass', 'Navigation adaptative', "Une app pour iPhone, iPad et pliables : catégories, favoris, MP.", [21, 22, 24, 82, 170]),
+        ('book', 'Lecteur de sujet', "Messages normalisés, liens internes dans l'app, aucun script de page.", [30, 33, 34, 83, 137]),
+        ('pencil', 'Réponse', "Rédiger, envoyer, brouillons ; un succès seulement si HFR le confirme.", [36, 37, 48, 84]),
+        ('beaker', "Oracle de l'app courante", "Fixtures anonymisées : chaque parser comparé à l'app courante.", [0, 1, 2, 3, 4, 5, 71]),
     ],
     'M2': [
-        ('quote', 'Citer, éditer, créer', "Citation et multi-citation, édition et suppression de ses messages, nouveau sujet.", [85, 86, 87, 88, 89]),
-        ('smile', 'Smileys, images, GIF', "Sélecteur de smileys avec recherche, envoi d'images, historique, GIF.", [102, 103, 104, 105, 155]),
-        ('photo', 'Médias dans le lecteur', "Réglages d'affichage et d'images, vidéos au tap, visionneuse plein écran.", [106, 107, 108, 109, 111]),
-        ('search', 'Recherche et filtres', "Recherche du forum et dans un sujet, filtre des messages, profils, listes.", [113, 114, 115, 116, 117]),
-        ('envelope', 'MP, sondages, hors ligne', "Liste des MP et badge, actions, nouveau MP ; vote aux sondages, lecture hors ligne.", [124, 125, 126, 127, 128, 136, 139, 171]),
+        ('quote', 'Citer, éditer, créer', "Citation et multi-citation, édition, suppression, nouveau sujet.", [85, 86, 87, 88, 89]),
+        ('smile', 'Smileys, images, GIF', "Sélecteur de smileys avec recherche, envoi d'images, GIF.", [102, 103, 104, 105, 155]),
+        ('photo', 'Médias dans le lecteur', "Réglages d'images, vidéos au tap, visionneuse plein écran.", [106, 107, 108, 109, 111]),
+        ('search', 'Recherche et filtres', "Recherche du forum et dans un sujet, filtres, profils.", [113, 114, 115, 116, 117]),
+        ('envelope', 'MP, sondages, hors ligne', "MP et badge, nouveau MP, vote aux sondages, lecture hors ligne.", [124, 125, 126, 127, 128, 136, 139, 171]),
     ],
     'M3': [
-        ('puzzle', 'Parsers', "MP, sondages, profils, citations, vidéos, liens entrants : chaque page lue comme l'app courante.", [23, 26, 27, 28, 31, 32, 35, 38, 95, 97]),
-        ('arrows', 'Flux du client', "Recherche, alerte modérateur, drapeaux et favoris, vote, MP, smileys, Giphy.", [46, 47, 49, 50, 51, 53, 54, 58, 92, 93, 94, 98]),
-        ('db', 'Stockage', "Réglages, listes noire et blanche, brouillons, caches, import des données, hors ligne.", [60, 61, 63, 64, 66, 67, 68, 72, 90, 91]),
-        ('cloud', 'Synchronisation', "Fil MPStorage et iCloud clé-valeur, sans perte en cas de conflit.", [52, 62, 73, 172]),
-    ],
-    'M4': [
-        ('palette', 'Apparence', "Thèmes, sombre OLED, icônes alternatives, Liquid Glass hors lecteur et dans le lecteur.", [121, 122, 123, 185, 186]),
-        ('access', 'Accessibilité', "Passe complète sur les listes, la navigation, le lecteur et la rédaction.", [162, 163]),
-        ('cloud', 'Synchro et import', "Synchro MPStorage, trousseau iCloud en option, import au premier lancement.", [130, 131, 158, 173]),
-        ('shield', 'Modération et comptes', "Alerte modérateur, listes noire et blanche, suppression de compte, À propos.", [118, 120, 135, 156, 157]),
-    ],
-    'M5': [
-        ('compass', 'Navigation', None, [110, 112, 148, 149, 145]),
-        ('home', 'Accueil et suivi', None, [143, 144, 154, 178, 142]),
-        ('pencil', 'Rédaction', None, [152, 153, 151, 184, 175]),
-        ('envelope', 'MP et listes', None, [181, 182, 177, 180]),
-        ('phone', 'Système', None, [138, 150, 141, 187]),
+        ('puzzle', 'Parsers', "MP, sondages, profils, citations, vidéos : lus comme l'app courante.", [23, 26, 27, 28, 31, 32, 35, 38, 95, 97]),
+        ('arrows', 'Flux du client', "Recherche, alerte modérateur, drapeaux, vote, MP, smileys, Giphy.", [46, 47, 49, 50, 51, 53, 54, 58, 92, 93, 94, 98]),
+        ('db', 'Stockage', "Réglages, listes noire et blanche, brouillons, caches, hors ligne.", [60, 61, 63, 64, 66, 67, 68, 72, 90, 91]),
+        ('cloud', 'Synchronisation', "MPStorage et iCloud clé-valeur, sans perte en cas de conflit.", [52, 62, 73, 172]),
     ],
 }
+# End-of-M4 reviews (#892, operator 2026-11-13): issue, tile title, goal, label of the issues each one opens (AGENTS.md §7).
+REVIEWS = [
+    (774, 'Vitesse & réactivité', 'Calcul, temps de réponse, fluidité.', 'performance'),
+    (775, 'Refacto & qualité', 'Fiabilité, cohérence, maintenabilité.', 'quality'),
+    (836, 'Doublons & factorisation', 'Une seule implémentation par comportement.', 'duplicates'),
+    (326, 'Audit externe', 'Les lots livrés par des contributeurs extérieurs.', 'external-audit'),
+    (866, 'HIG & WWDC', "L'interface face aux guides et sessions 2024–2026.", 'hig-wwdc'),
+]
+AXIS_ICON = {'lecteur': 'book', 'listes': 'list', 'composer': 'pencil', 'MP': 'envelope', 'navigation': 'compass',
+             'réglages et thèmes': 'palette', 'performance': 'clock', 'autre': 'puzzle'}
 # Short French labels of the lots that can show in a « reste à faire » card or on the M5 slide; another lot falls
 # back to its scope, shortened.
 LOT_FR = {
@@ -278,7 +275,7 @@ def gather(since, issues, pulls_all):
         'master_prs': [(p['number'], C.clean_title(p['title'])) for p in sorted(master_prs, key=lambda x: -x['number'])],
         'gap': gap, 'changelog': chg,
         'ms': per_ms, 'days': dict(sorted(days.items())), 'progress': progress.data(pulls, issues),
-        'titles': {i['number']: i['title'] for i in issues if i['state'] == 'open'},
+        **gather_892(issues, end),
     }
 
 
@@ -287,39 +284,71 @@ def day_label(d):
     return f'{dd} {MONTHS[m - 1]}'
 
 
-def dependents():
-    c = Counter()
-    for l in C.live_lots(G.rows, G.rows, DROPPED):  # a dropped lot unblocks nothing
-        r = G.rows[l]
-        if not G.done(l):
-            for d in G.deps(r):
-                c[d] += 1
-    return c
-
-
 def lot_label(l):
     n = lot_n(l)
     return LOT_FR.get(n) or G.short(re.sub(r'`|\*', '', G.rows[l]['scope']), 40)
 
 
-def milestone_view(ms, D):
-    """Blockers and levers of a milestone: captures waited on, ready engine lots (cloud), ready app lots (Mac)."""
-    cap = Counter()
-    ready_cloud, ready_mac = [], []
-    dep = dependents()
-    for l in ms:
-        if G.done(l):
-            continue
-        r = G.rows[l]
-        n = r['issue']
-        if n in G.CAPTURE:
-            for c in re.findall(r'#\d+', G.CAPTURE[n]):
-                cap[c] += 1
-        elif n in G.READY or n in G.CLAIMED:
-            (ready_mac if r['module'] == 'App' else ready_cloud).append((dep[l], l))
-    pick = lambda xs: [(l[4:], lot_label(l), u) for u, l in sorted(xs, key=lambda x: (-x[0], x[1]))[:3]]
-    caps = [(k, v, C.clean_title(re.sub(r'^(\[[^\]]*\]\s*)*Capture( \(Mac\))?:\s*', '', D['titles'].get(int(k[1:]), '')), 40)) for k, v in cap.most_common(3)]
-    return {'caps': caps, 'cloud': pick(ready_cloud), 'n_cloud': len(ready_cloud), 'mac': pick(ready_mac), 'n_mac': len(ready_mac)}
+def issue_label(i, lot_of_issue):
+    """A lot shows its short French label, any other issue its cleaned title."""
+    l = lot_of_issue.get(i['number'])
+    return lot_label(l) if l else C.clean_title(i['title'], 48)
+
+
+def gather_892(issues, end):
+    """Slides 3, 5 and 6 (#892): milestone of every SwiftHFR issue, M4 detail, test feedback, reviews, M5 contents."""
+    lots = ms_lots()
+    lot_ms = {G.rows[l]['issue']: m for m, ls in lots.items() for l in ls}
+    lot_of_issue = {G.rows[l]['issue']: l for l in G.rows}
+    lot_of_number = {lot_n(l): G.rows[l]['issue'] for l in G.rows}
+    from m5 import FOLLOWUPS
+    swift = [i for i in issues if C.is_swift_issue(i)]
+    ms_of = {i['number']: C.issue_milestone(i, lot_ms, FOLLOWUPS, lot_of_number) for i in swift}
+    done_by = lambda i, t: i['state'] == 'closed' and (i.get('closed_at') or '') <= t
+    # work outside every milestone: done / total now and at the baseline, and the open issues for the band of slide 6
+    out = [i for i in swift if ms_of[i['number']] is None]
+    out_open = sorted((i for i in out if i['state'] == 'open'), key=lambda i: -i['number'])
+    kind = lambda i: ('captures' if re.search(r'\b(capture|re-capture)\b', i['title'], re.I) else
+                      next((x[6:] for x in C.labels(i) if x.startswith('type: ')), 'autre'))
+    outside = {'done': sum(done_by(i, '9999') for i in out), 'total': len(out),
+               'then_done': sum(done_by(i, end) for i in out), 'then_total': sum(i['created_at'] <= end for i in out),
+               'kinds': dict(Counter(kind(i) for i in out_open).most_common()),
+               'open': [(i['number'], C.clean_title(i['title'], 56)) for i in out_open]}
+    # M4: lots by state, what changed since the baseline, test feedback, end-of-M4 reviews
+    byn = {i['number']: i for i in issues}
+    b = Counter()
+    for l in lots['M4']:
+        k = progress.bucket(l, C.labels(byn.get(G.rows[l]['issue'], {})))
+        b['fait' if k == 'done' else 'en cours' if k == 'progress' else 'à faire'] += 1
+    closed_since = lambda i: i['state'] == 'closed' and (i.get('closed_at') or '') > end
+    m4_lots_since = sorted((l for l in lots['M4'] if byn.get(G.rows[l]['issue']) and closed_since(byn[G.rows[l]['issue']])), key=lot_n)
+    m4_issues = [i for i in swift if ms_of[i['number']] == 'M4' and i['number'] not in lot_of_issue]
+    fb = C.feedback(issues)  # every `beta-test finding` issue, as on slide 1 (dropped ones show as « écarté »)
+    fb_open = [i for i in fb if i['state'] == 'open']
+    added = sorted((i for i in fb if i['created_at'] > end), key=lambda i: -i['number'])
+    review_label = lambda x: C.REVIEW_PREFIX + x
+    reviews = [{'n': n, 'title': t, 'goal': g, 'state': C.issue_status(byn[n]) if n in byn else 'ouvert',
+                'found': sum(1 for i in swift if review_label(lab) in C.labels(i)),
+                'found_open': sum(1 for i in swift if review_label(lab) in C.labels(i) and i['state'] == 'open')}
+               for n, t, g, lab in REVIEWS]
+    m4 = {'lots': {k: b.get(k, 0) for k in ('fait', 'en cours', 'à faire')},
+          'lots_since': [lot_label(l) for l in m4_lots_since],
+          'issues': {'total': len(m4_issues), 'done': sum(i['state'] == 'closed' for i in m4_issues),
+                     'since': sum(closed_since(i) for i in m4_issues), 'new': sum(i['created_at'] > end for i in m4_issues)},
+          'fb': {'status': dict(Counter(C.issue_status(i) for i in fb)), 'total': len(fb),
+                 'added': [(i['number'], C.clean_title(i['title'], 52), C.issue_status(i)) for i in added],
+                 'axes': C.axis_counts(fb), 'axes_open': C.axis_counts(fb_open)},
+          'reviews': reviews}
+    # M5: its lots and issues, by category (the radar axes)
+    # a FEAT-0xx intake issue is M5 for the out-of-milestone count, but its lot already stands for it on slide 6
+    feat_intake = lambda i: i['number'] not in lot_of_issue and C.FEAT_TAG.search(i.get('title') or '')
+    m5 = [i for i in swift if ms_of[i['number']] == 'M5' and not feat_intake(i)]
+    cats = {a: [] for a in C.AXES}
+    for i in sorted(m5, key=lambda i: (i['number'] not in lot_of_issue, i['number'])):
+        cats[C.axis_of(i['title'])].append((issue_label(i, lot_of_issue), i['state'] == 'closed'))
+    m5d = {'cats': {a: v for a, v in cats.items() if v}, 'axes': {a: len(v) for a, v in cats.items()},
+           'total': len(m5), 'done': sum(i['state'] == 'closed' for i in m5)}
+    return {'outside': outside, 'm4': m4, 'm5': m5d}
 
 
 # ---------------------------------------------------------------- rendering
@@ -382,22 +411,6 @@ h1 b{font-weight:600;background:var(--grad);-webkit-background-clip:text;backgro
 .fc li.more{color:var(--faint)}
 .note{color:var(--mute);font-size:20px;display:flex;gap:36px;flex-wrap:wrap}
 .note b{color:var(--ink);font-weight:600}
-.feat{display:grid;grid-template-columns:540px 1fr;gap:24px;flex:none}
-.feat .cards .span2{grid-column:span 2}
-.feat .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:20px}
-.feat .cards.c2{grid-template-columns:repeat(2,1fr)}
-.lev{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.lev h4{font-size:20px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:8px}
-.lev .b h4{color:#d0503f}.lev .c h4{color:#0f8a7d}.lev .m h4{color:var(--a2)}
-.lev li{list-style:none;font-size:20px;line-height:1.35;padding:3px 0;display:flex;gap:12px;white-space:nowrap}
-.lev li u{text-decoration:none;color:var(--faint);min-width:52px}.lev li span{overflow:hidden;text-overflow:ellipsis}
-.lev li em{font-style:normal;color:var(--mute);margin-left:auto}
-.lev p{color:var(--mute);font-size:20px}
-.msr{display:grid;grid-template-columns:48px 430px 1fr 130px 330px;align-items:center;gap:24px;padding:20px 28px}
-.msr .nm b{display:block;font-size:24px;font-weight:600}.msr .nm small{display:block;color:var(--mute);font-size:20px;margin-top:4px;line-height:1.3}
-.msr .ct{font-size:34px;font-weight:300;text-align:right;letter-spacing:-.02em}.msr .ct small{font-size:20px;color:var(--mute)}
-.msr .ch{grid-column:3 / 4;display:flex;gap:16px;flex-wrap:wrap;color:var(--mute);font-size:20px;margin-top:10px}
-.msr .ch i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:7px}
 .ch{font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:10px}
 .cells{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}
 .cell b{display:block;font-size:44px;font-weight:300;letter-spacing:-.02em;line-height:1.05}
@@ -408,6 +421,47 @@ h1 b{font-weight:600;background:var(--grad);-webkit-background-clip:text;backgro
 .orch .card{display:flex;flex-direction:column;gap:12px}
 .orch b{font-size:22px;font-weight:600;line-height:1.25}.orch p{color:var(--mute);font-size:20px;line-height:1.4}
 .pm.donuts{display:grid;grid-template-columns:repeat(6,1fr);gap:22px;padding:22px 26px}
+/* mah-jong tiles (#892): solid blue → violet gradient, a visible edge drawn by two offset shadows, piled with a slight overlap */
+.tile{--t1:#5b7cfa;--t2:#4f63e6;--te:#3c49b8;position:relative;border-radius:26px;padding:20px 24px 24px;color:#fff;min-width:0;
+ background:linear-gradient(155deg,var(--t1),var(--t2));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(255,255,255,.1),4px 6px 0 var(--te),8px 12px 0 rgba(40,36,120,.22),0 18px 34px rgba(40,36,120,.16)}
+.tile.v1{--t1:#5b7cfa;--t2:#4f63e6;--te:#3c49b8}.tile.v2{--t1:#6f6cf6;--t2:#5d55e6;--te:#4339b6}
+.tile.v3{--t1:#8b6cf7;--t2:#7651e8;--te:#5835b9}.tile.v4{--t1:#9d5cf2;--t2:#8243dc;--te:#6229ad}
+.tile.pale{--t1:#f3f2ff;--t2:#e9e6ff;--te:#cfc9f5;color:var(--ink)}
+.tile b.tt{display:block;font-size:26px;font-weight:700;letter-spacing:-.01em;line-height:1.15}
+.tile p{font-size:20px;line-height:1.35;opacity:.92;margin-top:6px}
+.tile .ic{background:rgba(255,255,255,.18);color:#fff;width:44px;height:44px;border-radius:13px}
+.tile.pale .ic{background:#fff;color:#5b63f0}
+.tile .hd{display:flex;align-items:center;gap:14px}.tile .hd .st{margin:0 0 0 auto}
+.tile .st{display:inline-block;margin-top:10px;font-size:20px;font-weight:600;padding:3px 14px;border-radius:999px;background:rgba(255,255,255,.2);white-space:nowrap}
+.tile.pale .st{background:#fff;color:#4a3fc9}
+.pile{display:flex;flex-direction:column;padding:0 12px 14px 0}
+.pile > .tile + .tile{margin-top:-12px}
+.pile > .tile:nth-child(even){margin-left:10px;margin-right:-10px}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;align-items:start}
+.big{font-size:64px;font-weight:300;letter-spacing:-.03em;line-height:1}
+.nums{display:flex;gap:26px;margin-top:12px;font-size:20px}.nums b{display:block;font-size:34px;font-weight:600;line-height:1.1}
+.m4{display:grid;grid-template-columns:480px minmax(0,1fr) 610px;grid-template-rows:auto auto;gap:26px 28px}
+.m4 .left{grid-row:1 / 3;display:flex;flex-direction:column;gap:26px}
+.revs{grid-column:2 / 4;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 0;padding:0 12px 14px 0}
+.revs .tile{padding:16px 18px 20px}.revs .tile + .tile{margin-left:-6px}.revs .tile:nth-child(even){transform:translateY(8px)}
+.revs .tile b.tt{font-size:22px}.revs .tile .st{white-space:normal}.revs .tile u{text-decoration:none;font-size:20px;opacity:.85}
+.fl{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.fl li{display:flex;gap:12px;align-items:baseline;font-size:20px;line-height:1.3;white-space:nowrap}
+.fl li u{text-decoration:none;color:var(--faint);min-width:52px}.fl li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.fl li i{font-style:normal;font-size:20px;font-weight:600;border-radius:999px;padding:0 10px;flex:none}
+.s-ouvert{background:var(--soft);color:var(--mute)}.s-réclamé{background:rgba(79,124,255,.12);color:#3d5bd9}
+.s-fait{background:rgba(20,184,166,.12);color:#0f8a7d}.s-écarté{background:var(--soft);color:var(--faint)}
+.leg2{display:flex;gap:22px;font-size:20px;color:var(--mute);justify-content:center}.leg2 i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:8px;vertical-align:-1px}
+.m5{display:grid;grid-template-columns:minmax(0,1fr) 600px;gap:28px;align-items:start}
+.cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 22px;padding:0 12px 14px 0}
+.cats .tile ul{list-style:none;margin-top:8px}.cats .tile li{font-size:20px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cats .tile li.more{opacity:.75}
+.band{display:flex;gap:28px;align-items:center;padding:18px 26px}
+.band b.n{font-size:44px;font-weight:300;letter-spacing:-.02em}
+.band .k{color:var(--mute);font-size:20px;line-height:1.4}.band .k b{color:var(--ink)}
+.band ul{list-style:none;flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:2px 24px}
+.band li{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.band li u{text-decoration:none;color:var(--faint);margin-right:10px}
 .k2{display:grid;grid-template-columns:520px 1fr 1fr;gap:20px}
 .k2 .kg{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:16px}
 .k2 .kpi{padding:16px 20px}.k2 .kpi b{font-size:44px}.k2 .kpi span{margin-top:6px}
@@ -425,25 +479,6 @@ def page(n, title, sub, inner):
 
 def pct(a, b):
     return round(100 * a / b) if b else 0
-
-
-def ms_pill(D, m):
-    s = D['ms'][m]
-    if s['total'] and s['done'] == s['total']:
-        return f'<span class="pill ok">✓ Terminé · {s["done"]}/{s["total"]} · {day_label(s["last"])}</span>'
-    if not s['done']:
-        return f'<span class="pill todo">À venir · 0/{s["total"]}</span>'
-    return f'<span class="pill">En cours · {s["done"]}/{s["total"]}</span>'
-
-
-def card_pill(lots):
-    ls = sorted(C.live_lots({f'LOT-{x:03d}' for x in lots} & set(G.rows), G.rows, DROPPED))
-    d = sum(G.done(l) for l in ls)
-    if ls and d == len(ls):
-        return '<span class="pill ok">✓ Livré</span>'
-    if d:
-        return f'<span class="pill">En cours · {d}/{len(ls)}</span>'
-    return f'<span class="pill todo">À faire · {len(ls)} lots</span>'
 
 
 def slide_overview(D):
@@ -500,111 +535,143 @@ def slide_kpis(D):
     return page(2, "Les <b>indicateurs</b>", f"Rythme du chantier, CI et état de chaque étape · tracker lu le {D['state_at']}.", inner)
 
 
-def slide_milestones(D):
-    rows = ''
-    for m in MS:
+def tile_status(lots):
+    ls = sorted(C.live_lots({f'LOT-{x:03d}' for x in lots} & set(G.rows), G.rows, DROPPED))
+    d = sum(G.done(l) for l in ls)
+    if ls and d == len(ls):
+        return f'<span class="st">✓ {d} lot{"s" if d > 1 else ""}</span>'
+    return f'<span class="st">{d} / {len(ls)} lots</span>'
+
+
+def slide_done(D):
+    """Slide 4: one pile per finished milestone, one tile per main feature."""
+    cols = ''
+    for k, m in enumerate(('M1', 'M2', 'M3')):
         s = D['ms'][m]
-        b = s['buckets']
-        chips = ''.join(f'<span><i style="background:{progress.BUCKET_COLORS[k]}"></i>{b[k]} {progress.SHORT_BUCKET[k]}</span>' for k in progress.BUCKETS if b.get(k) and k != 'done')
-        if s['done'] == s['total']:
-            date = f'<span class="pill ok">✓ Terminé le {day_label(s["last"])}</span>'
-        elif s['last']:
-            date = f'<span class="pill">En cours · lot fermé le {day_label(s["last"])}</span>'
-        else:
-            date = '<span class="pill todo">Pas encore ouvert</span>'
-        rows += (f'<div class="card msr">{icon(MS_ICON[m])}<div class="nm"><b>{MS_NAMES[m]}</b><small>{MS_GOALS[m]}</small></div>'
-                 f'<div><div class="bar"><i style="width:{100 * s["done"] / max(1, s["total"]):.1f}%"></i></div>'
-                 f'<div class="ch" style="text-transform:none;letter-spacing:0;margin:10px 0 0;font-weight:400">{chips or "<span>tous les lots sont faits</span>"}</div></div>'
-                 f'<div class="ct">{s["done"]}<small> / {s["total"]}</small></div><div>{date}</div></div>')
-    return page(3, "Les <b>jalons</b> M1 à M5", "Lots faits sur le total de chaque jalon ; la date est la fermeture du dernier lot.", f'<div style="display:flex;flex-direction:column;gap:16px">{rows}</div>')
+        when = f'terminé le {day_label(s["last"])}' if s['done'] == s['total'] else f'{s["total"] - s["done"]} lot{"s" if s["total"] - s["done"] > 1 else ""} restant{"s" if s["total"] - s["done"] > 1 else ""}'
+        head = (f'<div class="tile pale"><div class="hd">{icon(MS_ICON[m])}<b class="tt">{MS_NAMES[m]}</b></div>'
+                f'<span class="st">{s["done"]} / {s["total"]} lots · {when}</span></div>')
+        tiles = ''.join(f'<div class="tile v{1 + (k + j) % 4}"><div class="hd">{icon(ic)}<b class="tt">{t}</b>{tile_status(ls)}</div><p>{p}</p></div>'
+                        for j, (ic, t, p, ls) in enumerate(FEATURES[m]))
+        cols += f'<div class="pile">{head}{tiles}</div>'
+    done = all(D['ms'][m]['done'] == D['ms'][m]['total'] for m in ('M1', 'M2', 'M3'))
+    title = "<b>M1 · M2 · M3</b>, terminés" if done else "<b>M1 · M2 · M3</b>, ce qui est livré"
+    return page(4, title, "Ce que les premiers jalons ont livré : une tuile par fonction principale.", f'<div class="row3">{cols}</div>')
 
 
-def left_card(m, D):
-    """The dashed « reste à faire » card of a milestone: its lots not done, then the open Mac checks that gate it."""
-    ls = sorted((l for l in ms_lots()[m] if not G.done(l)), key=lambda l: (G.state(l)[0] != 'ongoing', lot_n(l)))
-    extra = [n for n in EXTRA_MAC.get(m, []) if n in D['titles']]
-    items = [f'<li><u>{l[4:]}</u>{esc(lot_label(l))}</li>' for l in ls[:5]]
-    items += [f'<li><u>#{n}</u>vérification sur le Mac</li>' for n in extra]
-    more = len(ls) - 5
-    if more > 0:
-        items.append(f'<li class="more">+ {more} autres lots</li>')
-    if not items:
-        return '<div class="card dash fc"><div class="t">' + icon('ci') + '<b>Reste à faire</b></div><p>Rien : le jalon est fermé. La suite est dans les jalons suivants.</p></div>'
-    return f'<div class="card dash fc"><div class="t">{icon("list")}<b>Reste à faire · {len(ls)}</b></div><ul>{"".join(items)}</ul></div>'
+RADAR_LINES = {'réglages et thèmes': ['réglages', 'et thèmes']}
 
 
-def levers(m, D):
-    v = milestone_view(ms_lots()[m], D)
-    if not (v['caps'] or v['cloud'] or v['mac']):
-        return ''
-    li = lambda xs, f, empty: ''.join(f(*x) for x in xs) or f'<p>{empty}</p>'
-    caps = li(v['caps'], lambda c, n, t: f'<li><u>{c}</u><span>{esc(t)}</span><em>{n} lot{"s" if n > 1 else ""}</em></li>', 'Aucune capture attendue.')
-    cloud = li(v['cloud'], lambda l, s, u: f'<li><u>{l}</u><span>{esc(s)}</span><em>{"débloque " + str(u) if u else ""}</em></li>', 'Aucun lot moteur prêt.')
-    mac = li(v['mac'], lambda l, s, u: f'<li><u>{l}</u><span>{esc(s)}</span><em>{"débloque " + str(u) if u else ""}</em></li>', 'Aucun lot écran prêt.')
-    return (f'<div class="lev"><div class="card grey b"><h4>Blocages · captures</h4><ul>{caps}</ul></div>'
-            f'<div class="card grey c"><h4>Leviers cloud · {v["n_cloud"]} prêts</h4><ul>{cloud}</ul></div>'
-            f'<div class="card grey m"><h4>Lots écran · {v["n_mac"]} prêts</h4><ul>{mac}</ul></div></div>')
+def radar(series, W=560, H=380, R=120, label='Radar'):
+    """An 8-axis radar of C.AXES at 1:1 (every label 20 px or more). `series`: (counts, fill, stroke), drawn in order."""
+    import math
+    cx, cy = W / 2, 188
+    mx = max([1] + [v for c, *_ in series for v in c.values()])
+    ang = [math.radians(-90 + 360 * k / len(C.AXES)) for k in range(len(C.AXES))]
+    pt = lambda k, r: (cx + r * math.cos(ang[k]), cy + r * math.sin(ang[k]))
+    poly = lambda rs: ' '.join(f'{x:.1f},{y:.1f}' for x, y in (pt(k, r) for k, r in enumerate(rs)))
+    s = f'<svg viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{esc(label)}">'
+    for f in (.25, .5, .75, 1):
+        s += f'<polygon points="{poly([R * f] * len(C.AXES))}" fill="none" stroke="#e6e8ef"/>'
+    for k in range(len(C.AXES)):
+        x, y = pt(k, R)
+        s += f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="#e6e8ef"/>'
+    for c, fill, stroke in series:
+        s += f'<polygon points="{poly([R * c[a] / mx for a in C.AXES])}" fill="{fill}" stroke="{stroke}" stroke-width="3" stroke-linejoin="round"/>'
+    main = series[0][0]
+    for k, a in enumerate(C.AXES):
+        cs, sn = math.cos(ang[k]), math.sin(ang[k])
+        x, y = pt(k, R + 22)
+        anchor = 'middle' if abs(cs) < .3 else ('start' if cs > 0 else 'end')
+        lines = RADAR_LINES.get(a, [a])
+        n = len(lines) + 1
+        y0 = y - 24 * (n - 1) - 4 if sn < -.3 else (y + 20 if sn > .3 else y - 24 * (n - 1) / 2 + 7)
+        tsp = ''.join(f'<tspan x="{x:.1f}" dy="{0 if j == 0 else 24}">{esc(t)}</tspan>' for j, t in enumerate(lines))
+        s += (f'<text x="{x:.1f}" y="{y0:.1f}" text-anchor="{anchor}" font-size="20" fill="#5f6b7a">{tsp}'
+              f'<tspan x="{x:.1f}" dy="24" font-weight="600" fill="#0f1720">{main[a]}</tspan></text>')
+    return s + '</svg>'
 
 
-def hero(m, D, text=None):
-    s = D['ms'][m]
-    return (f'<div class="hero">{icon(MS_ICON[m])}<h2>{MS_NAMES[m]}</h2><p>{text or MS_GOALS[m]}</p>'
-            f'<div class="big g">{pct(s["done"], s["total"])} %</div><div class="bar" style="background:rgba(255,255,255,.7)"><i style="width:{100 * s["done"] / max(1, s["total"]):.1f}%"></i></div>'
-            f'{ms_pill(D, m)}</div>')
+STATUS_ORDER = ['ouvert', 'réclamé', 'fait', 'écarté']
 
 
-def slide_feature(n, m, D, title, sub):
-    cards = ''.join(f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><p>{p}</p><div style="margin-top:auto">{card_pill(ls)}</div></div>'
-                    for ic, t, p, ls in FEATURES[m])
-    left = left_card(m, D)
-    if len(FEATURES[m]) % 3 == 1:  # 4 cards + the dashed one: it takes two cells, no hole in the 3-column grid
-        left = left.replace('class="card dash fc"', 'class="card dash fc span2"', 1)
-    inner = f'<div class="feat">{hero(m, D)}<div class="cards">{cards}{left}</div></div>{levers(m, D)}'
-    return page(n, title, sub, inner)
+def slide_m4(D):
+    """Slide 5: M4 lots, what changed, test feedback with its radar, the end-of-M4 review tiles (bottom right)."""
+    M, s = D['m4'], D['ms']['M4']
+    L = M['lots']
+    lots = (f'<div class="tile v2"><div class="hd">{icon("flag")}<b class="tt">{MS_NAMES["M4"]}</b></div>'
+            f'<div class="big" style="margin-top:14px">{s["done"]}<span style="font-size:30px;opacity:.8"> / {s["total"]} lots</span></div>'
+            f'<div class="nums"><span><b>{L["fait"]}</b>{accord(L["fait"], "fait")}</span><span><b>{L["en cours"]}</b>en cours</span><span><b>{L["à faire"]}</b>à faire</span></div>'
+            f'<p>Hors lots : {M["issues"]["done"]} / {M["issues"]["total"]} issues M4 fermées.</p></div>')
+    since = M['lots_since']
+    li = ''.join(f'<li><span>✓ {esc(x)}</span></li>' for x in since[:4])
+    if len(since) > 4:
+        li += f'<li><span>+ {len(since) - 4} autres lots</span></li>'
+    li = li or '<li><span>Aucun lot M4 fermé.</span></li>'
+    changes = (f'<div class="card"><div class="ch">Depuis le {day_label(D["since"])}</div><ul class="fl">{li}</ul>'
+               f'<p style="color:var(--mute);margin-top:10px">Issues M4 : {M["issues"]["since"]} fermées, {M["issues"]["new"]} nouvelles.</p></div>')
+    F = M['fb']
+    st = ' · '.join(f'<b>{F["status"].get(k, 0)}</b> {k}s' for k in STATUS_ORDER if F['status'].get(k) or k != 'écarté')
+    added = F['added']
+    rows = ''.join(f'<li><u>#{n}</u><span>{esc(t)}</span><i class="s-{stt}">{stt}</i></li>' for n, t, stt in added[:6])
+    if len(added) > 6:
+        rows += f'<li><span style="color:var(--faint)">+ {len(added) - 6} autres</span></li>'
+    rows = rows or '<li><span style="color:var(--faint)">Aucun nouveau retour.</span></li>'
+    fb = (f'<div class="card"><div class="ch">Feedback de test · {F["total"]}</div><div style="font-size:22px">{st}</div>'
+          f'<div class="ch" style="margin-top:18px">Ajoutés depuis le {day_label(D["since"])} · {len(added)}</div><ul class="fl">{rows}</ul></div>')
+    rad = (f'<div class="card"><div class="ch">Où se concentrent les retours</div>'
+           f'{radar([(F["axes"], "rgba(139,92,246,.16)", "#8b5cf6"), (F["axes_open"], "rgba(79,124,255,.18)", "#4f7cff")], W=556, label="Retours de test par domaine")}'
+           f'<div class="leg2"><span><i style="background:#8b5cf6"></i>tous ({F["total"]})</span><span><i style="background:#4f7cff"></i>ouverts ({sum(F["axes_open"].values())})</span></div></div>')
+    rv = ''
+    for k, r in enumerate(M['reviews']):
+        found = (f'{r["found"]} constat{"s" if r["found"] > 1 else ""} · {r["found_open"]} ouvert{"s" if r["found_open"] > 1 else ""}'
+                 if r['found'] else 'aucun constat')
+        rv += (f'<div class="tile v{1 + k % 4}"><u>#{r["n"]} · {r["state"]}</u><b class="tt">{esc(r["title"])}</b>'
+               f'<p>{esc(r["goal"])}</p><span class="st">{found}</span></div>')
+    inner = (f'<div class="m4"><div class="left">{lots}{changes}</div>{fb}{rad}'
+             f'<div class="revs">{rv}</div></div>')
+    return page(5, "<b>M4</b> en détail", "Les lots, les retours de test et les revues de fin de M4.", inner)
 
 
-def slide_daily(D):
-    Y = D['daily']
-
-    def lst(items, k=7, extra=()):
-        rows = [f'<li><u>#{n}</u>{esc(t)}</li>' for n, t in items[:k]]
-        rows += [f'<li><u>PR {n}</u>{esc(t)}</li>' for n, t in extra]
-        if len(items) > k:
-            rows.append(f'<li class="more">+ {len(items) - k} autres</li>')
-        return ''.join(rows) or '<li class="more">Aucune issue ouverte.</li>'
-    mp = D['master_prs']
-    cards = [
-        ('bug', 'Feedback de test', Y['feedback'], 'retours de test sur appareil', lst(Y['feedback']['items'], 13)),
-        ('wrench', "L'app courante", Y['current'], f"correctifs · {len(mp)} PR ouvertes vers master", lst(Y['current']['items'], 4, mp[:5])),
-        ('merge', 'Backport dans Swift', Y['backport'], "évolutions de l'app courante à porter", lst(Y['backport']['items'], 13)),
-    ]
-    h = ''.join(f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><div class="n"><b>{g["open"]}</b><span>ouvertes · {g["closed"]} fermées</span></div>'
-                f'<p>{s}</p><ul>{l}</ul></div>' for ic, t, g, s, l in cards)
-    return page(8, "L'app <b>au quotidien</b>", "Ce qui arrive en continu à côté des jalons : les retours de test, l'app courante et ce qu'il faut reporter dans Swift.",
-                f'<div class="tri" style="flex:1;max-height:720px">{h}</div>')
+def accord(n, singular):
+    """French agreement with a count: 0 and 1 take the singular, more take the plural (`singular` + « s »)."""
+    return singular + "s" if n > 1 else singular
 
 
-def m5_cards():
-    """The cards of the M5 slide: one per feature, then the dashed « Aussi dans M5 » card for the lots no feature lists."""
-    cards = ''
-    for ic, t, _, ls in FEATURES['M5']:
-        lots = sorted(C.live_lots({f'LOT-{x:03d}' for x in ls} & set(G.rows), G.rows, DROPPED), key=lambda l: ls.index(lot_n(l)))
-        if not lots:  # every lot of this feature is dropped: no empty card
-            continue
-        li = ''.join(f'<li>{"✓ " if G.done(l) else ""}{esc(lot_label(l))}</li>' for l in lots)
-        cards += f'<div class="card fc"><div class="t">{icon(ic)}<b>{t}</b></div><ul>{li}</ul><div style="margin-top:auto">{card_pill(ls)}</div></div>'
-    listed = {f'LOT-{x:03d}' for *_, ls in FEATURES['M5'] for x in ls}
-    rest = sorted(l for l in ms_lots()['M5'] if l not in listed)
-    if rest:  # no empty card when every remaining lot sits under a feature
-        cards += (f'<div class="card dash fc"><div class="t">{icon("list")}<b>Aussi dans M5 · {len(rest)}</b></div>'
-                  f'<ul>{"".join(f"<li><u>{l[4:]}</u>{esc(lot_label(l))}</li>" for l in rest[:5])}</ul></div>')
-    return cards
+def faites(n):
+    """« faite » or « faites » for a count (see `accord`)."""
+    return accord(n, "faite")
 
 
 def slide_m5(D):
-    text = "Les évolutions que la parité n'exige pas : décisions UX, propositions de fonctions, secondes moitiés des lots scindés. Ouvert par l'orchestrateur après M4."
-    inner = f'<div class="feat">{hero("M5", D, text)}<div class="cards">{m5_cards()}</div></div>'
-    return page(9, "<b>M5</b> · les évolutions", "Planifié après la parité de M4, jamais abandonné.", inner)
+    """Slide 6: M5 contents as tiles by category, the category radar, and the band of the issues outside every milestone."""
+    M = D['m5']
+    tiles = ''
+    cats = sorted(M['cats'].items(), key=lambda x: (-len(x[1]), C.AXES.index(x[0])))
+    if len(cats) > 6:  # never drop a category: the smallest ones share the last tile, one line each
+        rest = cats[5:]
+        cats = cats[:5] + [('et aussi', [(f'{a[0].upper() + a[1:]} · {len(v)}', False) for a, v in rest])]
+    for k, (a, items) in enumerate(cats):
+        li = ''.join(f'<li>{"✓ " if d else ""}{esc(t)}</li>' for t, d in items[:5])
+        if len(items) > 5:
+            li += f'<li class="more">+ {len(items) - 5} autres</li>'
+        n = len(items) if a in M['cats'] else sum(len(v) for _, v in rest)
+        tiles += (f'<div class="tile v{1 + k % 4}"><div class="hd">{icon(AXIS_ICON.get(a, "list"))}<b class="tt">{a[0].upper() + a[1:]} · {n}</b></div>'
+                  f'<ul>{li}</ul></div>')
+    rad = (f'<div class="card"><div class="ch">Les catégories de M5 · {M["total"]}</div>'
+           f'{radar([(M["axes"], "rgba(139,92,246,.18)", "#8b5cf6")], W=548, label="Contenu de M5 par catégorie")}</div>')
+    O = D['outside']
+    band = ''
+    if O['open']:
+        kinds = ' · '.join(f'<b>{v}</b> {KIND_FR.get(k, k)}' for k, v in O['kinds'].items())
+        li = ''.join(f'<li><u>#{n}</u>{esc(t)}</li>' for n, t in O['open'][:4])
+        band = (f'<div class="card band"><div><b class="n">{len(O["open"])}</b></div><div class="k"><b>Issues hors jalon, ouvertes</b><br>{kinds}</div>'
+                f'<ul>{li}</ul></div>')
+    inner = f'<div class="m5"><div class="cats">{tiles}</div>{rad}</div>{band}'
+    return page(6, "<b>M5</b> en détail", f"Les évolutions après M4, par catégorie : {M['done']} {faites(M['done'])} sur {M['total']}.", inner)
+
+
+KIND_FR = {'captures': 'captures', 'bug': 'bugs', 'feature': 'fonctions', 'chore': 'tâches', 'docs': 'docs', 'security': 'sécurité', 'lot': 'lots', 'autre': 'autres'}
 
 
 def slide_today(D):
@@ -615,31 +682,26 @@ def slide_today(D):
     cells = ''.join([cell('lots terminés', N['done'], T['done'], ic='ci'), cell('PR fusionnées', N['prs'], T['prs'], C.fr_num, 'pr'), cell('commits', N['commits'], T['commits'], C.fr_num),
                      cell('tests', N['tests'], T['tests'], C.fr_num, 'test'), cell('lignes de Swift', N['lines'], T['lines'], C.fr_num, 'list'), cell('issues de suivi', N['issues'], T['issues'], ic='tag')])
     rows = ''
-    for m in MS[:4]:
+    bar = lambda label, then, done, total, right: (
+        f'<div style="display:grid;grid-template-columns:330px 1fr 380px;gap:24px;align-items:center"><b style="font-size:22px">{label}</b>'
+        f'<div class="bar"><i class="then" style="width:{100 * then / max(1, total):.1f}%;z-index:0"></i><i style="width:{100 * done / max(1, total):.1f}%;opacity:.9;z-index:1"></i></div>'
+        f'<span style="text-align:right;font-size:22px">{right}</span></div>')
+    plus = lambda x, unit: f'<em style="font-style:normal;color:#0f8a7d;font-weight:600">+{x} {unit}</em>'
+    for m in MS:
         s = D['ms'][m]
-        rows += (f'<div style="display:grid;grid-template-columns:330px 1fr 190px;gap:24px;align-items:center"><b style="font-size:22px">{MS_NAMES[m]}</b>'
-                 f'<div class="bar"><i class="then" style="width:{100 * s["then"] / s["total"]:.1f}%;z-index:0"></i><i style="width:{100 * s["done"] / s["total"]:.1f}%;opacity:.9;z-index:1"></i></div>'
-                 f'<span style="text-align:right;font-size:22px">{pct(s["done"], s["total"])} % <em style="font-style:normal;color:#0f8a7d;font-weight:600">+{pct(s["done"], s["total"]) - pct(s["then"], s["total"])} pts</em></span></div>')
+        rows += bar(MS_NAMES[m], s['then'], s['done'], s['total'], f'{pct(s["done"], s["total"])} % {plus(pct(s["done"], s["total"]) - pct(s["then"], s["total"]), "pts")}')
+    O = D['outside']
+    rows += bar('Hors jalon (issues)', O['then_done'], O['done'], O['total'],
+                f'{O["done"]} / {O["total"]} {plus(O["done"] - O["then_done"], faites(O["done"] - O["then_done"]))} · +{O["total"] - O["then_total"]} {accord(O["total"] - O["then_total"], "créée")}')
     oh = ''.join(f'<div class="card">{icon(ic)}<b>{t}</b><p>{p}</p></div>' for ic, t, p in ORCH)
     inner = (f'<div><div class="lbl">Depuis le {day_label(D["since"])}</div><div class="cells">{cells}</div></div>'
-             f'<div class="card" style="display:flex;flex-direction:column;gap:16px;padding:24px 30px">{rows}</div>'
+             f'<div class="card" style="display:flex;flex-direction:column;gap:12px;padding:20px 30px">{rows}</div>'
              f'<div><div class="lbl">Organisation du travail</div><div class="orch">{oh}</div></div>')
-    return page(10, "<b>Aujourd'hui</b>", f"Ce qui a changé depuis le {day_label(D['since'])} (barre claire : l'état de départ) et comment le chantier est mené.", inner)
+    return page(3, "<b>Aujourd'hui</b>", f"Ce qui a changé depuis le {day_label(D['since'])} (barre claire : l'état de départ) et comment le chantier est mené.", inner)
 
 
 def slides(D):
-    return {
-        1: slide_overview(D),
-        2: slide_kpis(D),
-        3: slide_milestones(D),
-        4: slide_feature(4, 'M1', D, "<b>M1</b> · le MVP", "La première build utilisable, sur iPhone, iPad et pliables."),
-        5: slide_feature(5, 'M2', D, "<b>M2</b> · lecture et réponse", "Tout ce que l'app courante sait faire pour lire et répondre."),
-        6: slide_feature(6, 'M3', D, "<b>M3</b> · le moteur", "HFRKit, sans interface : parsers, réseau, flux et stockage, testés contre l'app courante."),
-        7: slide_feature(7, 'M4', D, "<b>M4</b> · la version finale", "La parité avec l'app courante, l'accessibilité et l'App Store."),
-        8: slide_daily(D),
-        9: slide_m5(D),
-        10: slide_today(D),
-    }
+    return {1: slide_overview(D), 2: slide_kpis(D), 3: slide_today(D), 4: slide_done(D), 5: slide_m4(D), 6: slide_m5(D)}
 
 
 if __name__ == '__main__':

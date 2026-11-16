@@ -13,7 +13,7 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79` (the code the LO
 | Legacy | Replaced by |
 |---|---|
 | `HFRswift/Wrapped/LinkItem.m:72` (trim of `dicoHTML`) | tree built from the content element; leading and trailing whitespace is a DOM text node, kept |
-| `:74` (delete the literal `---------------`) | **not ported** (no capture shows it; see Intentional differences 8) |
+| `:74` (delete the literal `---------------`) | **ported for the signature separator only** (capture `R267a`; see Intentional differences 8) |
 | `:96-134` (personal smileys `images/perso/<file>` with `alt="[:<code>]"` → `img.smileycustom` + `onClick` custom scheme) | `MessageSmiley(kind: .custom)` in `smileys`, `<img class="smileycustom" src alt title>` in the HTML |
 | `:138-141, 228-231` (standard smileys `http://forum-images.hardware.fr/…/<file>` → bundled file) | `MessageSmiley(kind: .standard)` in `smileys`, the `<img src alt title>` kept (the app decides whether to use a bundled copy, `CommonSmileyCatalog`) |
 | `:163` (`hfr-rehost.net` → `reho.st`, a global string replace) | host rewrite of every `href` and `src` whose host is `hfr-rehost.net` or ends with `.hfr-rehost.net` (**pending capture**) |
@@ -136,7 +136,7 @@ Checked on the 20 LOT-003 captures (358 messages; facts in HFR-PROTOCOL §6c "LO
 - `hfr-rehost.net` links and images (legacy `:163`); no capture holds the host (`reho.st` neither).
 - The nesting depth HFR actually serves (the deepest capture nests a few quote levels): the 10 000-level check is a robustness bound,
   not an observed page.
-- The `---------------` separator (legacy `:74`): not in any capture, not ported (Intentional differences 8).
+- A message body holding a line of dashes (legacy `:74`): the separator before a signature is captured (`R267a`, #267) and dropped, but no capture has dashes typed by a member; the tests use hand-built fragments (Intentional differences 8).
 - Oracle settings: the LOT-003 oracle runs one combination only (`display_images=yes`, `display_sig=no`, `embedded_videos=yes`). Untested
   against legacy output: signatures shown (`display_sig=yes`: legacy keeps `<span class="signature">` inline, our `signatureHTML` is its inner
   HTML), images off (`display_images=no`: legacy swaps the image for the theme's `landscape` placeholder and moves the URL to `longdesc`,
@@ -189,8 +189,7 @@ Plus, on every message: no `on*` attribute, `id`, `script` or `javascript:` in `
 6. **Whitespace kept**: legacy deleted every newline of the message (quirk 2), which glued words across a source newline (`foo\nbar`);
    HTML collapses whitespace on display anyway.
 7. **Every link is absolute** and `http` forum links become `https`; legacy fixed only `/forum2.php` and `/hfr/` prefixes.
-8. **`---------------` is not deleted** (legacy `:74`): the rule has no visible trigger in the corpus and would also damage code blocks and
-   prose holding a line of dashes. To revisit with a capture that shows what it was for.
+8. **Only HFR's separator before a signature is deleted** (legacy `:74` deleted every `---------------` of the message, #755): HFR opens `span.signature` with a space, 15 dashes, a line break and `<br />` (`R267a`), and that leading separator is dropped from `signatureHTML`. A line of dashes in the body, inside the signature after its first text, or a longer or shorter run (14, 16) stays: the rule would otherwise damage code blocks and prose. A signature made only of the separator leaves `<br />` as its HTML (legacy showed an empty block too; not captured).
 9. **`color:blue` is kept** on `olcode` keywords instead of `var( --color-action)`: a theme rule for the app's stylesheet, not content.
 10. **`oldcitation` is not renamed**: both classes are contract (ADR 0006); the app styles both, as the legacy CSS did
     (`style-liste-light.css:353`).

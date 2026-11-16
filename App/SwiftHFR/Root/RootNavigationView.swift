@@ -7,6 +7,7 @@ import SwiftUI
 /// `usesSidebarRoot`). A compact-width iPad (Slide Over, Split View) gets the tab bar, as legacy.
 struct RootNavigationView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var model: RootModel
     private let environment: AppEnvironment
     /// The last destination, kept by `RootView` across session generations (the root is rebuilt on each).
@@ -29,7 +30,10 @@ struct RootNavigationView: View {
                 RootTabsView(model: model, environment: environment)
             }
         }
+        .environment(\.rootHasTabBar, Self.rootHasTabBar(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass))
         .task { await model.forums.loadIfNeeded() }
+        // EXPERIMENTAL(mpStorageSwitches, #859): the account's model reads the option from here.
+        .onAppear { model.mpStorage?.experimental = experimental }
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
@@ -45,6 +49,17 @@ struct RootNavigationView: View {
     }
 
     private var usesSidebarRoot: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular
+        Self.usesSidebarRoot(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass)
+    }
+
+    /// What the lists read (`\.rootHasTabBar`, #565): the one decision between the sidebar and the tab bar root, so the pager's
+    /// placement can never disagree with the root that was built.
+    static func rootHasTabBar(idiom: UIUserInterfaceIdiom, sizeClass: UserInterfaceSizeClass?) -> Bool {
+        !usesSidebarRoot(idiom: idiom, sizeClass: sizeClass)
+    }
+
+    /// Only an iPad at regular width: a Plus or Pro Max iPhone in landscape is regular width and keeps the tab bar.
+    static func usesSidebarRoot(idiom: UIUserInterfaceIdiom, sizeClass: UserInterfaceSizeClass?) -> Bool {
+        idiom == .pad && sizeClass == .regular
     }
 }

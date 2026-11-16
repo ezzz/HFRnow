@@ -2,9 +2,11 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (body: `ReplyTextEditor` in `composerEditorStyle`, `:470-482`, `:1748-1760`) @ 87fe0d1c.
 // Differences: SwiftUI's `TextEditor` (LOT-084); on an iPhone the card is as tall as its text up to a cap, then the editor scrolls
-// inside it (#653, `ComposerCardLayout`); inserted images as chips at its top; the full-screen toggle in its corner (GAP-653).
+// inside it (#653, `ComposerCardLayout`); inserted images as chips at its top; the full-screen toggle in its corner; on an iPhone
+// the control row on its bottom edge (#854) (GAP-653).
 /// The docked card's editor (#653, operator reference of 2026-11-10): the image chips, then the text in a rounded glass card,
-/// with the "Plein écran" / "Réduire" toggle in its top corner where the composer offers it.
+/// with the "Plein écran" / "Réduire" toggle in its top corner where the composer offers it and, on an iPhone, the controls
+/// on its bottom edge, under the text (#854, operator 2026-11-12: as the buttons inside the Claude app's composer).
 struct ComposerEditorCard: View {
     let model: ReplyComposerModel
     let formatting: ComposerFormattingModel
@@ -20,7 +22,11 @@ struct ComposerEditorCard: View {
     let removeChip: (ComposerImageChip) -> Void
     /// The text's and one line's laid-out heights, for the card's height.
     let measure: (_ text: CGFloat, _ line: CGFloat) -> Void
+    /// The control row inside the card, under the editor (an iPhone, `ComposerChrome.controlsInCard`); nil keeps it outside.
+    /// Type-erased so the card stays one non-generic type for its static helpers.
+    var controls: AnyView?
     @State private var textHeight: CGFloat = 0
+    private static let cornerRadius: CGFloat = 18
     @State private var lineHeight: CGFloat = 0
 
     var body: some View {
@@ -35,8 +41,14 @@ struct ComposerEditorCard: View {
                 .padding(.leading, 8)
                 .padding(.trailing, toggle == nil ? 8 : 36)
                 .overlay(alignment: .topTrailing) { toggleButton }
+                .composerProbe(.editor)
+            // The editor stops at its cap (`ComposerCardLayout.editorHeight`): the text never covers the controls.
+            if let controls { controls }
         }
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        // The "Aa" bar's transition stays inside the card's rounded shape (#854).
+        .clipShape(.rect(cornerRadius: Self.cornerRadius))
+        .composerProbe(.card)
+        .glassEffect(.regular, in: .rect(cornerRadius: Self.cornerRadius))
     }
 
     @ViewBuilder

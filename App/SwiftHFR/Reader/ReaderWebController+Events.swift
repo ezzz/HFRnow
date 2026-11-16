@@ -26,5 +26,21 @@ extension ReaderWebController {
         var left: @MainActor () -> Void = {}
         /// The stopped reader is on screen again: its web view entered a window with no `onAppear` to say so (issue #750).
         var returned: @MainActor () -> Void = {}
+        /// The end of document `token` came on screen (true) or left it (false): the end-of-page bar (#820).
+        var pageEnd: @MainActor (_ atEnd: Bool, _ token: Int) -> Void = { _, _ in }
+        /// The user pulled past the end of document `token` and let go beyond the threshold: a refresh (#820).
+        var pulled: @MainActor (_ token: Int) -> Void = { _ in }
+    }
+
+    /// `reader.js` says whether the page's end is on screen (#820); the page gets no answer.
+    func pageEndReported(_ atEnd: Bool, token: Int) -> Any? {
+        events.pageEnd(atEnd, token)
+        return nil
+    }
+
+    /// The pull watcher saw a pull past the end: reported for the document on screen, never under an open composer (#653).
+    func pulledPastEnd() {
+        guard let document, !ignoresPageTaps else { return }
+        events.pulled(document.token)
     }
 }

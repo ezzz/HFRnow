@@ -5,7 +5,12 @@ import UIKit
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) @ 87fe0d1c and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: "Page N"
 // without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
-// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545.
+// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when
+// the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
+// List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
+// `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
+// Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
+// `MainWindow` (GAP-027, GAP-227).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -16,8 +21,6 @@ struct TopicListView: View {
     var composer: ComposerServices?
     /// Opens a row's topic at a page its menu names (LOT-125); nil hides those entries.
     var open: ((TopicSummary, TopicOpening) -> Void)?
-    /// What a tinted row layers over: the grouped card by default, nothing in the iPad sidebar column, which has no card (#584).
-    var tintBase: RowTint.Base = .grouped
     /// The sub-forum menu and the Tous / Favoris / Suivis / Lus filter of a forum list; nil on flags and favourites.
     var scope: ForumScope?
     /// Favoris: opens the category a section title names (legacy `headerTitleView`, `Favorites.swift:344-372` @ 87fe0d1c).
@@ -45,8 +48,10 @@ struct TopicListView: View {
                 }
             }
         }
+        .densityListMargins()
         .navigationTitle(model.source.title)
         .navigationBarTitleDisplayMode(.inline)
+        .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
             if let problem = model.favorites?.storeProblem {
@@ -67,14 +72,20 @@ struct TopicListView: View {
                 }
             }
         }
+        .pagerBar(model.source.isPaged && loader.value != nil ? PageBar(model: model).pager : nil)
         .toolbar {
-            if model.source.isPaged, loader.value != nil { PageBar(model: model) }
-            if let composer, let target = model.newTopicTarget {
-                ToolbarItem(placement: .primaryAction) {
+            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
+            // so the refresh never moves to the bottom bar (`:849-851`).
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let composer, let target = model.newTopicTarget {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
-                        Label("Nouveau sujet", systemImage: "square.and.pencil")
+                        Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
+                Button { Task { await model.refresh() } } label: {
+                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
+                }
+                .disabled(!model.canRefresh)
             }
         }
         .sheet(item: $newTopic) { composer in
@@ -85,12 +96,6 @@ struct TopicListView: View {
         .onChange(of: model.sentConfirmation) { _, text in
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
-        }
-        .task(id: model.sentConfirmation) {
-            guard model.sentConfirmation != nil else { return }
-            // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
-            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-            model.clearSentConfirmation()
         }
         .refreshable { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
@@ -116,16 +121,20 @@ struct TopicListView: View {
         }
     }
 
+    /// Whether a flagged row is a pill: not in Favoris and Drapeaux, legacy's one Favoris view (`Favorites.swift:1134` @ 87fe0d1c).
+    static func flagPills(for source: TopicSource) -> Bool { !source.isFavoritesList }
+
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
-    /// `base` is what the list's rows are drawn on: the card of a grouped list, or `.clear` in a sidebar column (#570, #584).
+    /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
+    /// @ 87fe0d1c); the flag's colour stays on its icon.
     static func rowTint(
-        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, base: RowTint.Base = .grouped
+        topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
     ) -> RowTint? {
-        let flag = showsFlag ? topic.flag : nil
+        let flag = showsFlag && flagPills ? topic.flag : nil
         guard let accent = TopicRowCues.accent(flag: flag, isSuperFavorite: isSuperFavorite, isSelected: isSelected) else {
             return nil
         }
-        return RowTint(tint: accent.color, weight: accent.weight, base: base)
+        return RowTint(tint: accent.color, weight: accent.weight)
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
@@ -133,10 +142,13 @@ struct TopicListView: View {
             let isSuper = model.isSuperFavorite(topic)
             TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
                 .tag(topic)
-                .listRowBackground(TopicListView.rowTint(
-                    topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
-                    base: tintBase
-                ))
+                .rowPill(
+                    TopicListView.rowTint(
+                        topic: topic, showsFlag: model.hasFlag(topic), isSuperFavorite: isSuper, isSelected: selection == topic,
+                        flagPills: TopicListView.flagPills(for: model.source)
+                    ),
+                    isSuperFavorite: isSuper
+                )
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     if model.canMarkRead(topic) {
                         Button { model.markRead(topic) } label: { Label("Lu", systemImage: "checkmark") }
@@ -239,6 +251,7 @@ struct TopicListView: View {
                 .accessibilityLabel(group.isCollapsed ? "Déplier \(title)" : "Plier \(title)")
             }
         }
+        .densityHeaderMargin()
     }
 
     @ViewBuilder
@@ -305,10 +318,10 @@ private struct EmptyListView: View {
 }
 
 /// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct PageBar: ToolbarContent {
+@MainActor private struct PageBar {
     let model: TopicListModel
 
-    var body: some ToolbarContent {
+    var pager: PagerToolbar {
         PagerToolbar(
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
@@ -335,5 +348,16 @@ private struct TopicSentBanner: View {
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal)
+    }
+}
+
+/// `arrow.clockwise` that spins while loading (legacy `ToolbarRefreshIcon`, `Common.swift:393-404` @ 87fe0d1c). The button's label is
+/// never swapped for a `ProgressView`: legacy found that makes the Liquid Glass toolbar morph balloon on the Duo inner display.
+struct ToolbarRefreshIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        Image(systemName: "arrow.clockwise")
+            .symbolEffect(.rotate, options: .repeating, isActive: isLoading)
     }
 }

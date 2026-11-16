@@ -29,7 +29,9 @@ final class ReaderSettingsWatch {
         let changes = NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification)
         task = Task { [weak self] in
             for await _ in changes {
-                guard let self else { return }
+                // A change that resumed this task before `stop()` ran waits for the main actor: `stop()` cancels first, so
+                // it is dropped here and nothing is read or delivered after `stop()` (#839).
+                guard let self, !Task.isCancelled else { return }
                 read(settings)
                 changed()
             }

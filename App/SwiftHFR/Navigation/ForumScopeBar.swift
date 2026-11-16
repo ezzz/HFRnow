@@ -6,11 +6,12 @@ struct ForumScope {
     /// Read when the bar draws, so the menu appears once the home page has loaded, whatever view built the scope.
     let section: () -> ForumSection?
     let filter: TopicFilterModel
-    let select: (TopicSource) -> Void
+    /// Runs on the main actor: it writes the navigation model, and the picker binding hands it to SwiftUI as a `@Sendable` setter.
+    let select: @MainActor (TopicSource) -> Void
 }
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView.body: the "Sous-forum" picker and the filter, `:662-710`) @ 87fe0d1c.
-// Differences: the filter is disabled on a sub-forum (GAP-022, 023); the notes are the app's own.
+// Differences: a sub-forum's filter waits for its page to name the `subcat` (GAP-022, 023); the notes are the app's own.
 /// The first rows of a forum's topic list: the sub-forum menu (when the category has some), the filter and, when the filter is
 /// off, why.
 struct ForumScopeBar: View {
@@ -20,10 +21,9 @@ struct ForumScopeBar: View {
     var body: some View {
         Group {
             if let section = scope.section(), section.subforumCount > 0 { subforumRow(section) }
-            Section {
-                TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter)
-                if let note { Text(note).font(.footnote).foregroundStyle(.secondary) }
-            }
+            // Rows of the topic block, not a section of their own: legacy's picker and filter sit at the top of the same block (#803).
+            TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter).densityRowMargin()
+            if let note { Text(note).font(.footnote).foregroundStyle(.secondary).densityRowMargin() }
         }
     }
 
@@ -38,14 +38,15 @@ struct ForumScopeBar: View {
         }
         .font(.footnote)
         .foregroundStyle(.secondary)
+        .densityRowMargin()
     }
 
     /// Why Favoris, Suivis and Lus cannot be chosen: legacy's note when logged out (`MainWindow.swift:699-706` @ 87fe0d1c), or
-    /// the category-only rule on a sub-forum.
+    /// a list that names no `subcat` (a sub-forum page without one, or a category opened by path).
     private var note: String? {
         guard model.loader.value != nil, !model.offersFilter else { return nil }
         return model.isSignedIn
-            ? "Le filtre s'applique à la catégorie entière : choisissez « Tous les sous-forums »."
+            ? "Le filtre n'est pas disponible pour cette liste : choisissez « Tous les sous-forums »."
             : "Connexion requise pour Favoris, Suivis et Lus. Vous pouvez consulter « Tous » sans compte."
     }
 }

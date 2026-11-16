@@ -1,4 +1,5 @@
 import Foundation
+import HFRModels
 import HFRStorage
 @testable import SwiftHFR
 import Testing
@@ -99,5 +100,41 @@ struct ReaderThemeTests: ReaderWebTesting {
         let seenOLED = await surfaces()
         #expect(oled, "oled: \(seenOLED)")
         #expect(recorder.ready == [3])
+    }
+
+    /// LOT-188: a gallery theme's tokens reach the page (its surface, links, quotes and code), live, and going back to Legacy
+    /// gives the Legacy page again without a reload.
+    @Test func aThemeRecoloursThePageAndLegacyRestoresIt() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .dark
+        controller.show(document(token: 4))
+        #expect(await until { recorder.ready == [4] }, "ready: \(recorder.ready)")
+        func page() async -> String {
+            let script = """
+                const code = document.createElement('table'); code.className = 'code'; document.body.appendChild(code);
+                const result = getComputedStyle(document.body).backgroundColor + '|' + getComputedStyle(code).backgroundColor;
+                code.remove();
+                return result;
+                """
+            return ((try? await evaluate(script, in: controller)) as? String) ?? ""
+        }
+        var themed = ThemeAppearance.standard
+        let theme = try ThemeFixtures.testTheme()
+        themed.themeVariants = theme.variants
+        controller.theme = themed
+        // Dark tokens: surface #1A2430, code #0A1018, link #8CC8FF, quote #222C38.
+        let applied = await until(async: { await page() == "rgb(26, 36, 48)|rgb(10, 16, 24)" })
+        let seenPage = await page()
+        #expect(applied, "page: \(seenPage)")
+        let linkAndQuote = await colours(in: controller)
+        #expect(linkAndQuote == "rgb(140, 200, 255)|rgb(34, 44, 56)", "link and quote: \(linkAndQuote)")
+
+        controller.theme = .standard
+        let legacy = "\(ThemeAppearance.standard.nightAccent.cssRGB)|rgb(28, 28, 30)"
+        let restored = await until(async: { await colours(in: controller) == legacy })
+        let seenLegacy = await colours(in: controller)
+        #expect(restored, "legacy: \(seenLegacy)")
+        #expect(await page() == "rgb(0, 0, 0)|rgb(28, 28, 30)")
+        #expect(recorder.ready == [4])
     }
 }

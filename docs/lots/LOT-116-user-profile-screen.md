@@ -38,7 +38,7 @@ sections and fields, personal smileys and the page's link rows. Legacy parity, n
 | Fields | one section per page section; an empty value reads "Non renseigné" (legacy); a field link (a member's website) opens in a browser |
 | Smileys | grid of image and code, code selectable; header "Smilies persos (N)" |
 | Links | the page's link rows (MP, all messages, transactions, configuration) in a "Liens" section, opened in a browser like legacy `openLink`: Safari's view, or the default browser when "Navigateur par défaut" is on. Never in the app with the session (LESSONS 43) |
-| MP button | "Écrire un MP" only when a composer hook is set (`onPrivateMessage`) and the page named the pseudo; it hands the pseudo to the hook. **Nothing sets the hook in this lot**: LOT-128 (#219, PR #398) wires it, and decides then whether one's own profile hides it, as legacy hid MP on one's own message |
+| MP button | "Écrire un MP" only when a composer hook is set (`onPrivateMessage`) and the page named the pseudo; it hands the pseudo to the hook. Nothing sets the hook in this lot; the reader sets it on a profile opened from a message's author (#652), from that message's private-message link and never on one's own post, as legacy |
 | Lists | blacklist / whitelist buttons are LOT-118's (#209): it adds its own hook next to `onPrivateMessage` |
 | Text | every member-written text goes through `Text(verbatim:)`: never read as Markdown or HTML |
 

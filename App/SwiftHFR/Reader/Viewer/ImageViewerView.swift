@@ -43,7 +43,7 @@ struct ImageViewerView: View {
         case .failed:
             VStack(spacing: 12) {
                 ContentUnavailableView("Impossible de charger la photo", systemImage: "exclamationmark.triangle")
-                Button("Réessayer") { model.retry(position) }.buttonStyle(.borderedProminent)
+                Button("Réessayer") { model.retry(position) }.appProminentButtonStyle()
             }
         case .idle, .loading:
             ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)

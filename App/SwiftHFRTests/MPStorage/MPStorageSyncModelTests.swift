@@ -96,7 +96,7 @@ struct MPStorageSyncModelTests {
 
     static func make(
         thread: Int?, state: MPStorageSyncState? = nil, copy: MPStorageCopy = MPStorageCopy(),
-        text: String = FakeMPStorageRemote.emptyDocument
+        text: String = FakeMPStorageRemote.emptyDocument, perFunctionSwitches: Bool = true
     ) async throws -> Fixture {
         let remote = FakeMPStorageRemote(thread: thread, text: text)
         let settings = InMemorySettingsStore()
@@ -110,6 +110,10 @@ struct MPStorageSyncModelTests {
             sync: MPStorageSync(remote: remote, persistence: MPStorageCopyPersistence(store: copies, account: account)),
             states: states, isLoggedIn: { login.value }, clock: { now }
         )
+        // Réglages › Expérimental › « Stockage MP détaillé » (#859): the function tests below run with it on.
+        let experimental = ExperimentalSettings(store: InMemorySettingsStore())
+        experimental.set(.mpStorageSwitches, isOn: perFunctionSwitches)
+        model.experimental = experimental
         return Fixture(model: model, remote: remote, settings: settings, copies: copies, login: login)
     }
 
@@ -201,7 +205,7 @@ struct MPStorageSyncModelTests {
         )
         await model.start()
         #expect(model.record == nil)
-        #expect(model.writeConsent() == .deviceOnly)
+        #expect(model.writeConsent(for: .bookmarks) == .deviceOnly)
         #expect(await fixture.remote.calls.isEmpty)
         #expect(fixture.settings.rawValue(forKey: "mpstorage.alice") == .string("paused"))
     }
@@ -287,17 +291,19 @@ struct MPStorageSyncModelTests {
     // MARK: Writes (LOT-131, LOT-132)
 
     @Test func theWriteConsentFollowsTheState() async throws {
-        #expect(try await Self.make(thread: nil).model.writeConsent() == .ask)
-        #expect(try await Self.make(thread: nil, state: .on).model.writeConsent() == .sync)
-        #expect(try await Self.make(thread: nil, state: .declined).model.writeConsent() == .deviceOnly)
-        #expect(try await Self.make(thread: nil, state: .off).model.writeConsent() == .deviceOnly)
+        #expect(try await Self.make(thread: nil).model.writeConsent(for: .bookmarks) == .ask)
+        #expect(try await Self.make(thread: nil, state: .on).model.writeConsent(for: .bookmarks) == .sync)
+        #expect(try await Self.make(thread: nil, state: .declined).model.writeConsent(for: .bookmarks) == .deviceOnly)
+        #expect(try await Self.make(thread: nil, state: .off).model.writeConsent(for: .bookmarks) == .deviceOnly)
     }
 
     @Test func anEditIsWrittenWhileOn() async throws {
         let fixture = try await Self.make(
             thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument)
         )
-        let changed = await fixture.model.edit { document, stamp in try document.addBlocklistEntry(username: "user9", stamp: stamp) }
+        let changed = await fixture.model.edit(.ignoreList) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
         #expect(changed)
         #expect(await fixture.remote.calls == [.read(7), .save])
         #expect(fixture.model.document?.data.first?.blocklist?.list.map(\.username) == ["user9"])
@@ -307,7 +313,9 @@ struct MPStorageSyncModelTests {
         let fixture = try await Self.make(
             thread: 7, state: .declined, copy: MPStorageCopy(post: 7, base: FakeMPStorageRemote.emptyDocument)
         )
-        let changed = await fixture.model.edit { document, stamp in try document.addBlocklistEntry(username: "user9", stamp: stamp) }
+        let changed = await fixture.model.edit(.ignoreList) { document, stamp in
+            try document.addBlocklistEntry(username: "user9", stamp: stamp)
+        }
         #expect(!changed)
         #expect(await fixture.copies.copy(for: Self.account)?.pending == nil)
     }
@@ -328,6 +336,16 @@ struct MPStorageSyncModelTests {
         #expect(fixture.model.flag(for: messageThread(30)) == nil) // one-to-one
         await fixture.model.setEnabled(false)
         #expect(fixture.model.flag(for: messageThread(31, group: true)) == nil)
+    }
+
+    @Test func flagsAreHiddenWhenTheDarkTopicSwitchIsOff() async throws {
+        let text = try Self.flagged([MPStorageMPFlag(topic: 31, pValue: "1", href: "t555", page: 2)])
+        let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: text), text: text)
+        await fixture.model.start()
+        fixture.model.setFunction(.mpFlags, enabled: false)
+        #expect(fixture.model.flag(for: messageThread(31, group: true)) == nil)
+        fixture.model.setFunction(.mpFlags, enabled: true)
+        #expect(fixture.model.flag(for: messageThread(31, group: true))?.href == "t555")
     }
 
     @Test func aFlagWithoutPageIsIgnored() async throws {

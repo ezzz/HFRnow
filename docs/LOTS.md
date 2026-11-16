@@ -4,8 +4,8 @@ The **plan** of the migration: scope, module, dependencies, model routing and pr
 Live state (claim, owner, status, PRs, blockers) is on the issues, never here ([ORCHESTRATION](agents/ORCHESTRATION.md#claims)): [open lot issues](https://github.com/ezzz/HFRnow/issues?q=is%3Aissue+is%3Aopen+label%3A%22type%3A+lot%22). The issues of `francoisgn/ios-app_SwiftHFR` (the mirror) are **frozen history**, linked from each lot issue; never claim, comment on or close them.
 Lots come from the [Phase 1 audit](audit/README.md); the "Audit" column maps each lot to the audit proposals it merges.
 
-- **Claim** a lot with a `/claim <session-id>` comment on its issue, **before** writing code (an orchestrator claims for the sessions it launches). Check first that the issue is `status: ready` and not `status: claimed`. The PR that does the work says `LOT-XXX`, `Closes #N` (a partial PR: `Refs #N` and what is left) and, on its own line, `Claim: <session-id>` ([AGENTS.md §8](../AGENTS.md#8-git-and-pr-workflow)).
-- **New lot**: an issue (`type: lot`, `### Summary` first, `status: ready` once its dependencies are done, else `status: blocked`), then a PR that adds its row here, linked to that issue, and its spec stub.
+- **Claim** a lot with a `/claim <session-id>` comment on its issue, **before** writing code (an orchestrator claims for the sessions it launches). Check first that the issue is `status: ready` and not `status: claimed`, `status: blocked`, `status: on-hold` or `status: needs-decision`. The PR that does the work says `LOT-XXX`, `Closes #N` (a partial PR: `Refs #N` and what is left) and, on its own line, `Claim: <session-id>` ([AGENTS.md §8](../AGENTS.md#8-git-and-pr-workflow)).
+- **New lot**: an issue (`type: lot`, `### Summary` first, `status: ready` once its dependencies are done, else `status: blocked` with a `### Blocked by` section naming them, or `status: on-hold` when a decision holds it, such as an M5 lot while M5 is not open: [AGENTS.md §7](../AGENTS.md#7-labels-and-prioritization)), then a PR that adds its row here, linked to that issue, and its spec stub.
 - This file changes only when the plan does (a new lot, a changed scope, dependency or routing). Progress on a lot never edits it.
 
 Model column: author → reviewer ([AGENTS.md §6](../AGENTS.md#6-model-routing-which-agent-does-what)).
@@ -127,7 +127,7 @@ LOT-090 to LOT-098 (2026-10-27) and LOT-172 (2026-10-28, [ADR 0013](adr/0013-sto
 | LOT-071 | Third-party services: inventory (image rehost, AQ, Giphy…), data sent, owner, first-use notices, configuration (Q-4, ADR 0007) | docs | easy | Opus → Fable | — | review Q-4 | medium | [#95](https://github.com/ezzz/HFRnow/issues/95) |
 | LOT-072 | Shared pseudo normaliser (ZWSP and format characters, case rules) used by blocklist, drafts and accounts; removes the three private copies | HFRStorage | easy | Sonnet → Opus | 061, 063, 065 | reviews of #30, #31, #34 | low | [#96](https://github.com/ezzz/HFRnow/issues/96) |
 | LOT-073 | MPStorage JSON tokenizer that preserves number lexemes natively, replacing the private-use marker workaround of LOT-062 | HFRModels | medium | Opus → Fable | 062 | review of #33 | low | [#97](https://github.com/ezzz/HFRnow/issues/97) |
-| LOT-070 | Parity gates: differential roll-up, persistence parity checklist, write chapter of HFR-PROTOCOL | docs/tests | medium | Opus → Fable | all parsing/network/storage lots | C18, E-9, D13 | medium | [#94](https://github.com/ezzz/HFRnow/issues/94) |
+| LOT-070 | Parity gates: differential roll-up, persistence parity checklist, write chapter of HFR-PROTOCOL | docs/tests | medium | Opus → Fable | 055, 057 | C18, E-9, D13 | medium | [#94](https://github.com/ezzz/HFRnow/issues/94) |
 
 ## Phase 4 — app: first usable build
 
@@ -223,7 +223,7 @@ Every legacy function and the Phase 4 features, one reviewable PR per lot; each 
 | LOT-122 | Appearance: darker dark, OLED black, separators, themes with defaults unchanged (the single accent with a live preview is LOT-180, M5) | App | medium | Sonnet → Opus | 121 | FEAT-010 | medium | [#213](https://github.com/ezzz/HFRnow/issues/213) |
 | LOT-123 | Alternate app icons and haptics | App | easy | Sonnet → Opus | 119 | legacy parity | low | [#214](https://github.com/ezzz/HFRnow/issues/214) |
 | LOT-166 | Seasonal engine (windows, automatic switch, opt-out, restore, decorations, crossing objects, overlays) and the Noël themes (Noël soft, Noël abusé, sleigh, popup, elves), [THEMES.md](THEMES.md) §4–§5; Noël soft before 2026-12-01 (operator 2026-10-28); Noël abusé needs LOT-188 (its last PR, 2026 only if 188 lands in time) | App | difficult | Opus → Fable | 122 | FEAT-010 (seasonal themes; spec: operator 2026-10-28) | high | [#256](https://github.com/ezzz/HFRnow/issues/256) |
-| LOT-188 | Theme engine (`theme.json` tokens, contrast test) and the theme gallery in Réglages › Thème; Legacy = today's look, unchanged ([THEMES.md](THEMES.md)) | App | difficult | Opus → Fable | 121, 122 | operator 2026-10-28 (themes) | medium | [#729](https://github.com/ezzz/HFRnow/issues/729) |
+| LOT-188 | Theme engine (`<id>.theme.json` tokens, contrast test) and the theme gallery in Réglages › Thème; Legacy = today's look, unchanged ([THEMES.md](THEMES.md), [spec](lots/LOT-188-theme-engine.md)) | App | difficult | Opus → Fable | 121, 122 | operator 2026-10-28 (themes) | medium | [#729](https://github.com/ezzz/HFRnow/issues/729) |
 | LOT-189 | App icon picker by pack, dated icons with windows and « Revenir à l'icône précédente ? », the two Noël icons ([ICONS.md](ICONS.md)) | App | medium | Sonnet → Opus | 123 | operator 2026-10-28 (icons) | medium | [#730](https://github.com/ezzz/HFRnow/issues/730) |
 | LOT-190 | App icon art: Orange, Classique Blue, Beta rouge, the X-face pack, Halloween and all-year season icons ([ICONS.md](ICONS.md) §2) | App | medium | Sonnet → Opus | 189 | operator 2026-10-28 (icons) | low | [#731](https://github.com/ezzz/HFRnow/issues/731) |
 | LOT-191 | Samain themes: Spooktober soft and abusé, crossing items, witch sweep (first window October 2027) | App | medium | Sonnet → Opus | 166, 188 | operator 2026-10-28 (themes) | low | [#732](https://github.com/ezzz/HFRnow/issues/732) |
@@ -308,7 +308,7 @@ Applied on 2026-11-02 (operator decisions on [#379](https://github.com/ezzz/HFRn
 
 **Dependencies changed** so that M4 does not wait on M5: LOT-164 (parity gate) no longer depends on 100, 101, 110 and 146 (100, 101 and 146 are back since 2026-11-09, below); LOT-163 no longer depends on 112 (the scrubber's adjustable action goes with LOT-112). The moved lots depend only on each other or on M1–M4 lots. LOT-162, which depends on 125, is unaffected because LOT-125 is split, not moved.
 
-**Splits.** The (a) part keeps the lot id, issue and milestone. The (b) part is a new M5 lot (rows below, `status: blocked` until M4 parity is validated):
+**Splits.** The (a) part keeps the lot id, issue and milestone. The (b) part is a new M5 lot (rows below, `status: on-hold` until M4 parity is validated and the orchestrator opens M5, `m5.M5_OPEN`):
 
 | Split | Lot (a) → new lot (b) | Stays in the lot (a) | New M5 lot (b) | GAP | UXD |
 |---|---|---|---|---|---|

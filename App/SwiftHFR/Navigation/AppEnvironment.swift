@@ -52,7 +52,8 @@ struct AppEnvironment {
             ),
             profiles: LiveUserProfileSource(fetcher: fetcher),
             positions: LiveReaderPositionRecorder.live(account: accountName),
-            offline: .live(fetcher: fetcher),
+            // DISABLED(offline, #822): kept for a later design (#846), not reachable. No offline services, so no screen can offer it.
+            offline: OfflineSaveAvailability.isReachable ? .live(fetcher: fetcher) : nil,
             flagActions: flagActions,
             pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists),
             moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),

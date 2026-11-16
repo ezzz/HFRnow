@@ -282,7 +282,7 @@ private struct SmileyDetailView: View {
                 .accessibilityHidden(true)
             Text(smiley.code).font(.title3.monospaced()).textSelection(.enabled)
             Button("Insérer", systemImage: "text.insert") { model.insertPresented() }
-                .buttonStyle(.borderedProminent)
+                .appProminentButtonStyle()
             Button(model.isFavorite(smiley) ? "Retirer des favoris" : "Ajouter aux favoris",
                    systemImage: model.isFavorite(smiley) ? "star.slash" : "star") {
                 Task { await model.setFavorite(smiley, !model.isFavorite(smiley)) }

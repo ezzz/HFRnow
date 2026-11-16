@@ -17,7 +17,7 @@ public struct ImageHostTable: Sendable, Equatable {
         ),
         ImageHostRule(
             host: "img3.super-h.fr", includesSubdomains: false, servesExtensionlessImages: true,
-            thumbnailRewrite: .fileNameMarker(pathPrefix: "/images/", marker: ".th.")
+            thumbnailRewrite: .fileNameMarkers(pathPrefix: "/images/", markers: [".th.", ".md."])
         ),
         ImageHostRule(
             host: "rehost.diberie.com", includesSubdomains: false, servesExtensionlessImages: true,
@@ -70,11 +70,12 @@ public struct ImageHostTable: Sendable, Equatable {
         case let .pathPrefix(old, replacement):
             guard path.hasPrefix(old) else { return url }
             rewritten = replacement + path.dropFirst(old.count)
-        case let .fileNameMarker(prefix, marker):
+        case let .fileNameMarkers(prefix, markers):
             guard path.hasPrefix(prefix), let slash = path.lastIndex(of: "/") else { return url }
-            let name = path[path.index(after: slash)...]
-            guard name.contains(marker) else { return url }
-            rewritten = String(path[...slash]) + name.replacingOccurrences(of: marker, with: ".")
+            var name = String(path[path.index(after: slash)...])
+            guard markers.contains(where: name.contains) else { return url }
+            for marker in markers { name = name.replacingOccurrences(of: marker, with: ".") }
+            rewritten = String(path[...slash]) + name
         }
         // Foundation's setter traps on a bad percent escape, and a rule is data (a custom one may hold a lone `%`).
         guard Self.isValidEncodedPath(rewritten) else { return url }

@@ -15,8 +15,9 @@ enum ProfileLinkAction: Equatable, Sendable {
 
 // Port of HFRswift/Swift/UserProfileView.swift (GAP-167: UserProfileViewModel, UserProfileQuickActions) @ 2440d79. Differences: the
 // quick actions are hooks set by the lots that own them (LOT-128 MP, LOT-118 lists: "Liste noire" / "Love list", legacy
-// `toggleProfileBlacklist` / `toggleProfileWhitelist`, `MessagesView.swift:3663-3694`); see the LOT-116 spec. The sheet stays open
-// after a toggle (legacy dismissed it); the reader rebuilds its page when the sheet closes.
+// `toggleProfileBlacklist` / `toggleProfileWhitelist`, `MessagesView.swift:3663-3694`); see the LOT-116 spec. Opened from a link,
+// the sheet stays open after a toggle and the reader rebuilds its page when it closes; opened from a message's author (#652,
+// `MessagesView.swift:4387-4412, 4474-4490` @ 87fe0d1c) it closes and the reader shows the result, as legacy.
 /// State of the profile screen (LOT-116): one member's profile, loaded once on appear, reloaded on demand; the profile on
 /// screen stays while a reload runs or fails (`ContentLoader`).
 @MainActor
@@ -24,8 +25,10 @@ enum ProfileLinkAction: Equatable, Sendable {
 final class UserProfileModel: Identifiable {
     /// The member shown (`/hfr/profil-<id>.htm`).
     let memberID: Int
-    /// Opens the MP composer to this pseudo; nil until LOT-128 wires it, and then the button is hidden.
-    let onPrivateMessage: (@MainActor (String) -> Void)?
+    /// Opens the MP composer to this pseudo; nil hides the button (the reader sets it for a profile opened from a message).
+    var onPrivateMessage: (@MainActor (String) -> Void)?
+    /// The message whose author opened this profile (#652); nil for a profile opened from a link.
+    var origin: ProfileMessageOrigin?
 
     /// The pseudo lists the "Liste noire" / "Love list" buttons edit; nil hides them (LOT-118).
     let lists: PseudoListManager?
@@ -64,12 +67,16 @@ final class UserProfileModel: Identifiable {
 
     /// The pseudo the "MP" button writes to: shown only when a composer is wired and the page named the member.
     var privateMessageRecipient: String? {
-        guard onPrivateMessage != nil, let pseudo = profile?.pseudo, !pseudo.isEmpty else { return nil }
+        guard onPrivateMessage != nil, origin?.isOwnMessage != true, let pseudo = profile?.pseudo, !pseudo.isEmpty else { return nil }
         return pseudo
     }
 
     /// Runs after a toggle that changed a list, once the snapshot is refreshed (set by the reader; weak captures only).
     var onListsChanged: (@MainActor () -> Void)?
+    /// Set for a profile opened from a message (#652): takes the sentence of a toggle, closes the profile and tells the user
+    /// from the reader (legacy `toggleProfileBlacklist`, `MessagesView.swift:4474-4490` @ 87fe0d1c). The profile then shows no
+    /// sentence of its own, so VoiceOver hears it once.
+    var onListToggled: (@MainActor (String) -> Void)?
     /// The sentence of the last list toggle, shown under the buttons.
     private(set) var listFeedback: String?
     /// Counts the toggles that set `listFeedback`, so a view tells two identical sentences apart (a failure repeated).
@@ -78,10 +85,12 @@ final class UserProfileModel: Identifiable {
     private(set) var isBlocked = false
     private(set) var isAllowed = false
 
-    /// The pseudo the list buttons act on: the member's, once the page named them; never the account's own
-    /// (legacy `canToggleLists = !isOwnMessage`, `MessagesView.swift:3582-3590`).
+    /// The pseudo the list buttons act on: the message's author for a profile opened from a message, none on the user's own
+    /// post (legacy `canToggleLists = !isOwnMessage && usableAuthorName != nil`, `MessagesView.swift:4387-4392` @ 87fe0d1c);
+    /// otherwise the member's, once the page named them. Never the account's own.
     var listPseudo: String? {
-        guard let lists, let pseudo = profile?.pseudo, !pseudo.isEmpty, !lists.isOwn(pseudo) else { return nil }
+        let named = origin.map { $0.isOwnMessage ? nil : $0.author } ?? profile?.pseudo
+        guard let lists, let pseudo = named, !pseudo.isEmpty, !lists.isOwn(pseudo) else { return nil }
         return pseudo
     }
 
@@ -95,9 +104,20 @@ final class UserProfileModel: Identifiable {
         isAllowed = await lists.contains(pseudo, in: .allowlist)
     }
 
+    /// A toggle is being written: a second tap meanwhile does nothing (it would undo the first, or act on a closing profile).
+    @ObservationIgnored private var isToggling = false
+
     /// Adds the member to the list, or removes them (legacy `toggleProfileBlacklist` / `toggleProfileWhitelist`).
     func toggle(_ kind: PseudoListKind) async {
-        guard let lists, let pseudo = listPseudo, let result = await lists.toggle(pseudo, in: kind) else { return }
+        guard !isToggling, let lists, let pseudo = listPseudo else { return }
+        isToggling = true
+        defer { isToggling = false }
+        guard let result = await lists.toggle(pseudo, in: kind) else { return }
+        if let onListToggled {
+            if result.changed { onListsChanged?() }
+            onListToggled(result.message)
+            return
+        }
         listFeedback = result.message
         listFeedbackCount += 1
         await refreshListState()
@@ -131,6 +151,20 @@ final class UserProfileModel: Identifiable {
     func action(forLink url: URL, defaultBrowser: Bool) -> ProfileLinkAction {
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
+    }
+}
+
+/// What the message a profile was opened from allows (legacy `userProfileQuickActions`, `MessagesView.swift:4387-4412` @
+/// 87fe0d1c): no MP and no list on the user's own post, no list without a pseudo.
+struct ProfileMessageOrigin: Equatable, Sendable {
+    /// The message's author, trimmed; empty when the page named none.
+    let author: String
+    /// The message is the user's own (HFR's edit link, `MessageMenuContext.isOwnMessage`).
+    let isOwnMessage: Bool
+
+    init(author: String, isOwnMessage: Bool) {
+        self.author = author.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.isOwnMessage = isOwnMessage
     }
 }
 

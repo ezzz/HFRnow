@@ -42,10 +42,12 @@ extension TopicReaderModel {
         var options = renderOptions()
         options.showsMessageMenus = hasMessageMenus
         options.showsAuthorMenus = hasAuthorMenus
+        // This reader refreshes on a pull past the end (`ReaderRefresh.wirePageEnd`), so its pages say so (#820).
+        options.offersPullToRefresh = true
         return options
     }
 
-    /// Whether the document draws the `⋯` button: an action of the message menu is implemented.
+    /// Whether the document draws the `+` button: an action of the message menu is implemented.
     var hasMessageMenus: Bool { registry.offers(.message) }
 
     /// Whether the document makes authors tappable: an action of the author menu is implemented.
@@ -75,12 +77,18 @@ extension TopicReaderModel {
 
     /// The web view reports a tap on a message's menu button or author. A menu is shown only for a message of the document
     /// on screen and only when it has entries, so a late or forged request opens nothing.
-    func requestMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) {
-        guard token == document?.token, let context = menuContext(post: post) else { return }
+    /// A tap on the author of a message with a profile link shows no menu (#652, legacy `presentAvatarActionSheet`,
+    /// `MessagesView.swift:4415-4420` @ 87fe0d1c): the menu is returned for the caller to run "Profil" in (`openMenu`).
+    @discardableResult
+    func requestMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) -> MessageMenu? {
+        guard token == document?.token, let context = menuContext(post: post) else { return nil }
         let entries = registry.entries(for: context, source: source)
         // A request that offers nothing leaves an open menu alone, like a refused one (the popover keeps the page tappable).
-        guard !entries.isEmpty else { return }
-        presentedMenu = MessageMenu(post: post, source: source, context: context, entries: entries, anchor: anchor)
+        guard !entries.isEmpty else { return nil }
+        let menu = MessageMenu(post: post, source: source, context: context, entries: entries, anchor: anchor)
+        if source == .avatar, entries.contains(.profile) { return menu }
+        presentedMenu = menu
+        return nil
     }
 
     /// Closes the menu without choosing.

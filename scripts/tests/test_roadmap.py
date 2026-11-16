@@ -109,6 +109,14 @@ class SyncState(unittest.TestCase):
         self.assertRegex(st["generated_at"], r"^\d{4}-\d\d-\d\d \d\d:\d\d UTC$")
 
 
+    def test_on_hold_and_needs_decision_are_states_of_their_own(self):
+        lots = lots_of(md_row("001", 1), md_row("002", 2), md_row("003", 3))
+        issues = [issue(1, labels=["status: on-hold"]), issue(2, labels=["status: needs-decision"]), issue(3, labels=["status: blocked"]),
+                  issue(4, "closed", labels=["status: on-hold"])]
+        st = sync_state.build(issues, [], lots)
+        self.assertEqual((st["on_hold"], st["needs_decision"], st["ready"]), ([1], [2], []))
+
+
 class Milestones(unittest.TestCase):
     def test_m5_membership_is_disjoint_and_complete(self):
         m = {"M1": generate.M1, "M2": generate.M2, "M3": generate.M3, "M4": generate.M4}
@@ -150,6 +158,40 @@ class Boards(unittest.TestCase):
                 mock.patch.object(generate, "CLOSED", closed):
             self.assertTrue(generate.state(lot)[1].startswith("⏸️"))
 
+    def test_an_on_hold_lot_is_its_own_state_neither_blocked_nor_ready(self):
+        lot = next(l for l in sorted(generate.M4) if generate.deps(generate.rows[l]))
+        n = generate.rows[lot]["issue"]
+        quiet = dict(PRS={}, CLAIMED=set(), CLOSED=set(), CAPTURE={})
+        with mock.patch.multiple(generate, **quiet), mock.patch.object(generate, "ON_HOLD", {n}), mock.patch.object(generate, "READY", {n}):
+            self.assertEqual(generate.state(lot), ("todo", "⏸️ on hold (decision)"))
+        with mock.patch.multiple(generate, **quiet), mock.patch.object(generate, "NEEDS_DECISION", {n}):
+            self.assertEqual(generate.state(lot), ("todo", "❓ needs a decision"))
+        with mock.patch.multiple(generate, **quiet), mock.patch.object(generate, "ON_HOLD", {n}), mock.patch.object(generate, "CLAIMED", {n}):
+            self.assertEqual(generate.state(lot)[0], "ongoing")  # a claim outranks the hold
+        legend = (ROADMAP / "render.py").read_text(encoding="utf-8")  # render.py writes the boards on import: read its source
+        self.assertIn("| | ⏸️ on hold |", legend)
+        self.assertIn("| | ❓ needs a decision |", legend)
+
+    def test_unblocked_helper_skips_an_on_hold_lot(self):
+        import tempfile, os
+        lot, dep = next((l, d) for l, r in sorted(generate.rows.items()) for d in generate.deps(r)[:1]
+                        if d in generate.rows and len([x for x in generate.deps(r) if x in generate.rows]) == 1 and l not in generate.M5)
+        n, dn = generate.rows[lot]["issue"], generate.rows[dep]["issue"]
+        root = Path(generate.__file__).parent
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "state.json"
+            base = {"closed": [dn], "ready": [], "claimed": [], "external": [], "prs": {}, "merged_pr": {}, "capture": {}}
+            outs = []
+            for key, hold in (("on_hold", []), ("on_hold", [n]), ("needs_decision", [n])):
+                f.write_text(json.dumps({**base, key: hold}))
+                r = subprocess.run([sys.executable, str(root / "unblocked.py"), dep], capture_output=True, text=True, cwd=root,
+                                   env={**os.environ, "ROADMAP_STATE": str(f)})
+                self.assertEqual(r.returncode, 0, r.stderr)
+                outs.append(r.stdout)
+        self.assertIn(f"{lot} #{n}", outs[0])
+        self.assertNotIn(f"{lot} #{n}", outs[1])
+        self.assertNotIn(f"{lot} #{n}", outs[2])
+
     def test_unblocked_helper_knows_m5_and_skips_it_while_closed(self):
         import subprocess, sys, pathlib
         root = pathlib.Path(generate.__file__).parent
@@ -184,7 +226,8 @@ class Hygiene(unittest.TestCase):
         self.assertNotIn("#7:", text)
 
     def test_unblock_credits_the_merged_pr_and_flags_engine_lots_external(self):
-        issues = [issue(1, "open"), issue(2, labels=["status: blocked"]), issue(4, labels=["status: blocked", "host: mac"])]
+        issues = [issue(1, "open"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n"),
+                  issue(4, labels=["status: blocked", "host: mac"], body="### Blocked by\n\n#1\n")]
         issues[0]["state"] = "closed"
         pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
         actions, reports = self.run_sweep(issues, pulls)
@@ -237,8 +280,86 @@ class Hygiene(unittest.TestCase):
         self.assertIn("skip (reopened meanwhile)", out)
         self.assertIn("removed from closed issues: 0", out)
 
+    def test_an_open_pr_claims_the_issues_it_cites_and_leaves_the_rest(self):
+        issues = [issue(20, labels=["type: bug", "status: ready"]), issue(21, labels=["type: bug", "status: blocked", "status: ready"]),
+                  issue(22, labels=["type: bug", "status: claimed"]), issue(23, labels=["type: roadmap", "status: ready"]),
+                  issue(24, labels=["type: bug"]), issue(25, "closed", labels=["type: bug"]), issue(26, labels=["type: bug", "status: ready"])]
+        pulls = [pr(30, body="Closes #20\nClaim: x\n", state="open", draft=True), pr(31, body="Refs #21\nRefs #22", state="open"),
+                 pr(32, body="Refs #23\nCloses #25", state="open"), pr(33, body="Refs #24", state="open", base="master"),
+                 pr(34, body="Refs #26", state="closed")]  # closed unmerged: not an open PR
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"], a["pr"], a["drop"]) for a in actions if a["kind"] == "claim"],
+                         [("claim", 20, 30, ["status: ready"]), ("claim", 21, 31, ["status: blocked", "status: ready"])])
+
+    def test_a_blocked_lot_with_an_open_pr_is_claimed_not_unblocked(self):
+        issues = [issue(1, "closed"), issue(2, labels=["type: lot", "status: blocked"])]
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #2", state="open")]
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("claim", 2)])
+
+    def test_refs_of_a_merged_pr_never_close_an_issue(self):
+        issues = [issue(1, labels=["type: bug", "status: claimed"]), issue(2, labels=["type: bug", "status: claimed"])]
+        actions, _ = self.run_sweep(issues, [pr(10, body="Refs #1\nCloses #2", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("close", 2)])
+
+    def test_a_claim_is_reported_only_when_no_open_pr_cites_it(self):
+        old = "2026-10-01T00:00:00Z"
+        issues = [issue(3, labels=["type: lot", "status: claimed"], created=old), issue(4, labels=["type: bug", "status: claimed"], created=old)]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Refs #4", state="open")])
+        text = "\n".join(reports)
+        self.assertIn("#3: claimed, silent for 31 days", text)
+        self.assertNotIn("#4: claimed", text)
+        self.assertEqual(actions, [])  # a stale claim is never released
+
+    def test_apply_claim_adds_the_label_first_then_drops_the_others(self):
+        calls, out = self._apply({"state": "open", "labels": [{"name": "status: ready"}, {"name": "status: blocked"}]},
+                                 [{"kind": "claim", "issue": 5, "pr": 9, "drop": ["status: ready", "status: blocked"]}])
+        self.assertEqual(calls, [("POST", "repos/ezzz/HFRnow/issues/5/labels"),
+                                 ("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20blocked"),
+                                 ("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])
+        calls, out = self._apply({"state": "closed", "labels": []}, [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])
+        self.assertEqual(calls, [])  # closed meanwhile
+        self.assertIn("skip (closed meanwhile)", out)
+
+    def test_an_on_hold_issue_with_an_open_pr_is_reported_never_claimed(self):
+        issues = [issue(8, labels=["type: bug", "status: on-hold"])]
+        actions, reports = self.run_sweep(issues, [pr(11, body="Refs #8", state="open")])
+        self.assertEqual(actions, [])
+        self.assertIn("#8: `status: on-hold` but PR #11 cites it", "\n".join(reports))
+
+    def test_needs_decision_and_m5_lots_are_reported_never_claimed(self):
+        issues = [issue(9, labels=["type: bug", "status: needs-decision"]), issue(3, labels=["type: lot", "status: blocked"])]
+        with mock.patch.object(hygiene, "is_m5", lambda r: r["issue"] == 3):  # LOT-003 is an M5 lot, M5 closed
+            actions, reports = self.run_sweep(issues, [pr(11, body="Refs #9\nRefs #3", state="open")])
+        text = "\n".join(reports)
+        self.assertEqual([a for a in actions if a["kind"] == "claim"], [])
+        self.assertIn("#9: `status: needs-decision` but PR #11 cites it", text)
+        self.assertIn("#3: M5 lot held by the M5_OPEN decision but PR #11 cites it", text)
+
+    def test_a_cited_roadmap_issue_is_not_shielded_from_the_unblock_rules(self):
+        issues = [issue(1, "closed"), issue(2, labels=["type: roadmap", "status: blocked"], body="### Blocked by\n\n#1\n")]
+        actions, _ = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #2", state="open")])
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("unblock", 2)])  # no claim: a roadmap tracker; so the unblock stands
+
+    def test_apply_claim_skips_an_issue_put_on_hold_meanwhile(self):
+        for held in ("status: on-hold", "status: needs-decision"):
+            calls, out = self._apply({"state": "open", "labels": [{"name": held}]}, [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])
+            self.assertEqual(calls, [])
+            self.assertIn("skip (labels changed meanwhile)", out)
+
+    def test_an_issue_the_sweep_closes_is_not_also_claimed(self):
+        issues = [issue(7, labels=["type: bug", "status: ready"])]
+        pulls = [pr(10, body="Closes #7", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Refs #7", state="open")]
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"]) for a in actions], [("close", 7)])
+
+    def test_apply_claim_drops_every_status_label_found_on_the_re_read(self):
+        calls, _ = self._apply({"state": "open", "labels": [{"name": "status: claimed"}, {"name": "status: ready"}]},
+                               [{"kind": "claim", "issue": 5, "pr": 9, "drop": []}])  # `ready` was added after the analysis
+        self.assertEqual(calls, [("DELETE", "repos/ezzz/HFRnow/issues/5/labels/status:%20ready")])
+
     def test_unblock_without_a_known_pr_is_only_reported(self):
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n")]
         actions, reports = self.run_sweep(issues, [])
         self.assertEqual(actions, [])
         self.assertTrue(any("#2" in r and "no merged PR" in r for r in reports))
@@ -292,7 +413,7 @@ class Hygiene(unittest.TestCase):
         self.assertTrue(any("#2 LOT-002" in r and "#77" in r for r in reports))
 
     def test_a_later_comment_saying_blocked_keeps_the_lot_blocked(self):
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n")]
         pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
         late = {2: [{"body": "Labelled `status: blocked` on the signing assets.", "created_at": "2026-10-31T00:00:00Z"}]}
         actions, reports = self.run_sweep(issues, pulls, late)
@@ -303,7 +424,7 @@ class Hygiene(unittest.TestCase):
         self.assertEqual([a["issue"] for a in actions], [2])  # the note predates the merge: stale
 
     def test_our_own_unblocked_by_comment_is_not_a_block_note(self):
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n")]
         pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
         own = {2: [{"body": "Unblocked by #10", "created_at": "2026-10-31T00:00:00Z"}]}
         actions, _ = self.run_sweep(issues, pulls, own)
@@ -312,32 +433,212 @@ class Hygiene(unittest.TestCase):
     @mock.patch.object(m5, "M5_OPEN", True)
     def test_once_m5_is_open_its_lots_follow_the_ordinary_sweep_rules(self):
         lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n")]
         actions, _ = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
         self.assertEqual([a["issue"] for a in actions], [2])
 
     @mock.patch.object(m5, "M5_OPEN", False)
-    def test_an_m5_lot_is_never_unblocked_by_the_sweep(self):
-        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App"))
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]
-        actions, reports = hygiene.analyze(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
-        self.assertEqual(actions, [])
-        self.assertTrue(any("M5 lots with every dependency done" in r and "#2" in r for r in reports))
+    def test_an_m5_lot_is_never_unblocked_and_a_blocked_one_is_reported_for_on_hold(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1) + md_row("002", 2, deps="001", module="App")
+                                  + md_row("003", 3, deps="001", module="App"))
+        issues = [issue(1), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n"), issue(3, labels=["status: on-hold"])]
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
+        for state in ("open", "closed"):  # with a dependency open or done: the M5_OPEN decision holds it either way
+            issues[0]["state"] = state
+            actions, reports = hygiene.analyze(issues, pulls, lots, {}, NOW)
+            self.assertEqual([a for a in actions if a["kind"] == "unblock"], [])
+            held = [r for r in reports if "M5_OPEN" in r]
+            self.assertEqual(len(held), 1, reports)
+            self.assertIn("`status: on-hold`", held[0])
+            self.assertIn("LOT-002 #2", held[0])
+            self.assertNotIn("#3", held[0])  # already on hold
+            self.assertFalse(any("names no blocker" in r for r in reports))
 
     @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_labelled_ready_is_reported(self):
         lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1, module="App"))
         issues = [issue(1, labels=["status: ready"])]
         _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
-        self.assertTrue(any("M5 lot labelled `status: ready`" in r and "#1" in r for r in reports))
+        self.assertTrue(any("M5 lot labelled `status: ready`" in r and "#1" in r and "`status: on-hold`" in r for r in reports))
 
     @mock.patch.object(m5, "M5_OPEN", False)
     def test_an_m5_lot_without_a_credited_pr_is_not_offered_for_a_hand_unblock(self):
         lots = lots_from_md.parse("## Phase 3 — engine\n\n" + HEAD + md_row("001", 1) + md_row("110", 2, deps="001", module="App"))
-        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"])]  # LOT-110 is a moved M5 lot; no merged PR credited
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#1\n")]  # LOT-110 is a moved M5 lot
         _, reports = hygiene.analyze(issues, [], lots, {}, NOW)
         self.assertFalse(any("unblock by hand" in r for r in reports))
-        self.assertTrue(any("M5 lots with every dependency done" in r for r in reports))
+        self.assertTrue(any("M5_OPEN" in r and "LOT-110 #2" in r for r in reports))
+
+    @mock.patch.object(m5, "M5_OPEN", True)
+    def test_once_m5_is_open_its_on_hold_lots_are_listed_never_moved(self):
+        lots = lots_from_md.parse("## M5 · UX evolutions\n\n" + HEAD + md_row("001", 1, module="App"))
+        actions, reports = hygiene.analyze([issue(1, labels=["status: on-hold"])], [], lots, {}, NOW)
+        self.assertEqual(actions, [])
+        self.assertTrue(any("M5 is open" in r and "LOT-001 #1" in r for r in reports))
+
+    def test_blocked_by_section_is_read_like_the_harness_check(self):
+        b = hygiene.blockers_of
+        self.assertEqual(b("### Summary\nx\n\n### Blocked by\n\n#12\n#14\n\n### Other\ny"), ["#12", "#14"])
+        self.assertEqual(b("### Blocked by\r\n\r\n- camera access from a third party\r\n"), ["camera access from a third party"])
+        self.assertEqual(b("#### blocked by\n#3"), ["#3"])
+        for body in ("", None, "Summary only", "### Blocked by", "### Blocked by\n\n   \n", "### Blocked by\n\nnone",
+                     "### Blocked by\n\n_No response_", "### Blocked by\n\n### Next\nx", "I am blocked by nothing",
+                     "Blocked by: #3", "### Blocked by this\n#3"):
+            self.assertIsNone(b(body), body)
+
+    def test_a_blocked_issue_without_a_blocked_by_section_is_reported_never_relabelled(self):
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"]), issue(50, labels=["type: bug", "status: blocked"])]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual(actions, [])  # LOT-002's dependency is done, but nothing names it as the blocker
+        text = "\n".join(reports)
+        self.assertIn("names no blocker", text)
+        self.assertIn("#2", text)
+        self.assertIn("#50", text)
+        self.assertIn("`status: on-hold`", text)  # the report says what to do when a decision holds it
+
+    def test_unblock_only_when_every_blocker_of_the_section_is_closed(self):
+        body = "### Summary\nx\n\n### Blocked by\n\n#1\n- #77\n"
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z"), pr(11, body="Closes #77", merged_at="2026-10-31T00:00:00Z")]
+        issues = [issue(1, "closed"), issue(77), issue(50, labels=["type: bug", "status: blocked"], body=body)]
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([a for a in actions if a["kind"] == "unblock"], [])  # #77 still open
+        issues[1]["state"] = "closed"
+        actions, _ = self.run_sweep(issues, pulls)
+        self.assertEqual([(a["kind"], a["issue"], a["pr"]) for a in actions if a["kind"] == "unblock"], [("unblock", 50, 11)])  # the last merge
+
+    def test_a_merged_pr_named_as_blocker_counts_as_closed(self):
+        issues = [issue(50, labels=["type: chore", "status: blocked"], body="### Blocked by\n\n#12\n")]
+        actions, _ = self.run_sweep(issues, [pr(12, title="x", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual([(a["kind"], a["issue"], a["pr"]) for a in actions], [("unblock", 50, 12)])
+        actions, _ = self.run_sweep(issues, [pr(12, title="x", state="open")])
+        self.assertEqual(actions, [])
+
+    def test_a_free_text_blocker_keeps_the_issue_blocked(self):
+        body = "### Blocked by\n\n#1\ncapture of the MP page on the Mac\n"
+        issues = [issue(1, "closed"), issue(50, labels=["type: bug", "status: blocked"], body=body)]
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual(actions, [])
+        self.assertFalse(any("#50" in r for r in reports))  # a real external blocker: nothing to report
+
+    def test_a_blocker_closed_not_planned_is_reported_and_keeps_the_issue_blocked(self):
+        issues = [issue(1, "closed"), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n#1\n")]
+        issues[0]["state_reason"] = "not_planned"
+        actions, reports = self.run_sweep(issues, [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")])
+        self.assertEqual(actions, [])
+        self.assertTrue(any("#50" in r and "#1" in r and "not planned" in r for r in reports))
+
+    def test_every_ref_of_a_line_must_be_closed_and_any_other_text_keeps_it_blocked(self):
+        pulls = [pr(10, body="Closes #2", merged_at="2026-10-30T00:00:00Z")]
+        for line in ("#2, #3", "- #2 and #3", "#2; the sub-domain choice.", "#2 and the operator go for the write",
+                     "#2 (merged) then capture R55 on the Mac"):
+            issues = [issue(2, "closed"), issue(3), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n" + line)]
+            actions, _ = self.run_sweep(issues, pulls)
+            self.assertEqual(actions, [], line)
+        for line in ("#2", "#2 (LOT-002)", "- #2, #3", "#2 and #3"):  # refs, separators and a parenthesised note only
+            issues = [issue(2, "closed"), issue(3, "closed"), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n" + line)]
+            actions, _ = self.run_sweep(issues, pulls)
+            self.assertEqual([a["issue"] for a in actions], [50], line)
+
+    def test_a_lot_with_an_all_closed_section_stays_blocked_while_its_plan_holds_it(self):
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
+        sec = "### Blocked by\n\n#1\n"
+        cases = {
+            "open plan dependency": (lots_of(md_row("001", 1), md_row("009", 9), md_row("002", 2, deps="001, 009")), [issue(9)]),
+            "open capture": (self.lots, [issue(60, labels=["host: mac"], body="### Wanted by\n\n#2\n")]),
+            "gate sentence": (lots_of(md_row("001", 1), md_row("002", 2, deps="all parsing lots")), []),
+            "unknown lot": (lots_of(md_row("001", 1), md_row("002", 2, deps="001, 999")), []),
+        }
+        for why, (lots, extra) in cases.items():
+            issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body=sec)] + extra
+            actions, _ = hygiene.analyze(issues, pulls, lots, {}, NOW)
+            self.assertEqual([a for a in actions if a["kind"] == "unblock"], [], why)
+        issues = [issue(1, "closed"), issue(2, labels=["status: blocked"], body=sec)]
+        actions, _ = self.run_sweep(issues, pulls + [pr(11, body="Closes #2", merged_at="2026-10-31T00:00:00Z")])
+        self.assertEqual([a["kind"] for a in actions], ["close"])  # pending close: closed, not unblocked
+
+    def test_a_blocker_written_in_parentheses_is_never_filler(self):
+        pulls = [pr(10, body="Closes #2", merged_at="2026-10-30T00:00:00Z")]
+        for line in ("#2 (waits for the operator)", "#2 (and the capture R55 on the Mac)", "(the operator's go) #2"):
+            issues = [issue(2, "closed"), issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n" + line)]
+            self.assertEqual(self.run_sweep(issues, pulls)[0], [], line)
+        self.assertEqual(hygiene.refs_of("#2 (LOT-002)"), [2])  # a short id note, no space, stays a ref line
+
+    def test_a_lot_whose_plan_dependency_was_dropped_is_not_unblocked_by_its_section(self):
+        dep = issue(1, "closed")
+        dep["state_reason"] = "not_planned"
+        lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001"))
+        issues = [dep, issue(9, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n#9\n")]
+        actions, _ = hygiene.analyze(issues, [pr(10, body="Closes #9", merged_at="2026-10-30T00:00:00Z")], lots, {}, NOW)
+        self.assertEqual(actions, [])
+
+    def test_an_open_pr_on_another_base_keeps_the_issue_blocked_without_a_report(self):
+        stub = {**issue(12), "pull_request": {"merged_at": None}}
+        issues = [stub, issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n#12\n")]
+        actions, reports = self.run_sweep(issues, [])
+        self.assertEqual(actions, [])
+        self.assertFalse(any("#50" in r for r in reports), reports)
+
+    def test_a_roadmap_tracker_may_carry_no_status(self):
+        _, reports = self.run_sweep([issue(40, labels=["type: roadmap"]), issue(41, labels=["type: chore"])], [])
+        self.assertFalse(any("#40" in r for r in reports))
+        self.assertTrue(any("#41: no `status:` label" in r for r in reports))
+
+    def test_apply_never_takes_ready_back_when_blocked_is_already_gone(self):
+        calls = []
+
+        def fake(method, path, fields=()):
+            calls.append((method, path))
+            if method == "DELETE" and path.endswith("status:%20blocked"):
+                raise RuntimeError("404")
+        reads = [{"state": "open", "labels": [{"name": "status: blocked"}]}, {"state": "open", "labels": [{"name": "status: ready"}]}]
+        runs = [subprocess.CompletedProcess([], 0, stdout=json.dumps(x), stderr="") for x in reads]
+        with mock.patch.object(hygiene.subprocess, "run", side_effect=runs), mock.patch.object(hygiene, "gh", fake), \
+                contextlib.redirect_stdout(io.StringIO()):
+            hygiene.apply([{"kind": "unblock", "issue": 2, "lot": "LOT-002", "pr": 10}])
+        self.assertNotIn(("DELETE", "repos/ezzz/HFRnow/issues/2/labels/status:%20ready"), calls)  # `ready` is its only status now
+
+    def test_a_closed_unmerged_pr_on_another_base_is_reported(self):
+        stub = {**issue(12, "closed"), "pull_request": {"merged_at": None}}
+        issues = [stub, issue(50, labels=["type: bug", "status: blocked"], body="### Blocked by\n\n#12\n")]
+        actions, reports = self.run_sweep(issues, [])
+        self.assertEqual(actions, [])
+        self.assertTrue(any("#50" in r and "#12" in r and "unmerged" in r for r in reports), reports)
+
+    def test_a_lone_carriage_return_ends_the_section_like_the_harness(self):
+        self.assertEqual(hygiene.blockers_of("### Blocked by\n#1\r### X\n#2"), ["#1"])
+
+    def test_apply_takes_ready_back_when_blocked_cannot_be_removed(self):
+        calls = []
+
+        def fake(method, path, fields=()):
+            calls.append((method, path))
+            if method == "DELETE" and path.endswith("status:%20blocked"):
+                raise RuntimeError("boom")
+        got = subprocess.CompletedProcess([], 0, stdout=json.dumps({"state": "open", "labels": [{"name": "status: blocked"}, {"name": "status: ready"}]}), stderr="")
+        first = subprocess.CompletedProcess([], 0, stdout=json.dumps({"state": "open", "labels": [{"name": "status: blocked"}]}), stderr="")
+        out = io.StringIO()
+        with mock.patch.object(hygiene.subprocess, "run", side_effect=[first, got]), mock.patch.object(hygiene, "gh", fake), \
+                contextlib.redirect_stdout(out):
+            hygiene.apply([{"kind": "unblock", "issue": 2, "lot": "LOT-002", "pr": 10}])
+        self.assertEqual(calls[-1], ("DELETE", "repos/ezzz/HFRnow/issues/2/labels/status:%20ready"))  # one status again
+        self.assertNotIn(("POST", "repos/ezzz/HFRnow/issues/2/comments"), calls)
+        self.assertIn("FAILED", out.getvalue())
+
+    def test_an_on_hold_issue_is_never_moved_by_the_sweep(self):
+        pulls = [pr(10, body="Closes #1", merged_at="2026-10-30T00:00:00Z")]
+        for lb in (["status: on-hold"], ["status: on-hold", "status: blocked"], ["status: needs-decision", "status: blocked"]):
+            issues = [issue(1, "closed"), issue(2, labels=lb, body="### Blocked by\n\n#1\n"),
+                      issue(50, labels=["type: bug"] + lb, body="### Blocked by\n\n#1\n")]
+            actions, reports = self.run_sweep(issues, pulls)
+            self.assertEqual(actions, [], lb)
+            if len(lb) > 1:
+                self.assertTrue(any("#50: 2 labels on axis `status`" in r for r in reports), reports)
+
+    def test_apply_never_unblocks_an_issue_that_holds_another_status_meanwhile(self):
+        cur = {"state": "open", "labels": [{"name": "status: blocked"}, {"name": "status: on-hold"}]}
+        calls, out = self._apply(cur, [{"kind": "unblock", "issue": 2, "lot": "LOT-002", "pr": 10}])
+        self.assertEqual(calls, [])
+        self.assertIn("skip (labels changed meanwhile)", out)
 
     def test_a_reopened_issue_is_not_closed_again(self):
         issues = [issue(1)]
@@ -361,6 +662,66 @@ class Hygiene(unittest.TestCase):
         self.assertIsNone(hygiene.numeric_deps("all parsing lots"))
 
 
+class ClassifyBlocked(unittest.TestCase):
+    """#835 part 3: one proposed outcome per open `status: blocked` issue, from the tracker only."""
+    def run_it(self, issues, comments=None):
+        import classify_blocked
+        lots = lots_of(md_row("001", 1), md_row("002", 2, deps="001"), md_row("003", 3, deps="001"))
+        return {r["issue"]: r for r in classify_blocked.classify(issues, [], lots, comments or {}, {"M3": ["LOT-001", "LOT-002", "LOT-003"]})}
+
+    def test_outcomes_from_the_blockers_found(self):
+        rows = self.run_it([issue(1), issue(2, labels=["status: blocked"]), issue(3, labels=["status: blocked"]),
+                            issue(50, labels=["status: blocked"], body="### Depends on\n\n- LOT-001 (#1)\n"),
+                            issue(51, labels=["status: blocked"], body="nothing named"), issue(52, labels=["status: ready"])])
+        self.assertEqual(rows[2]["outcome"], "blocked")
+        self.assertEqual(rows[2]["blocked_by"], ["#1"])  # a bare `#n`, the only shape the sweep reads as closable
+        self.assertEqual(rows[50]["outcome"], "blocked")
+        self.assertEqual(rows[51]["outcome"], "needs-decision")
+        self.assertNotIn(52, rows)
+        rows = self.run_it([issue(1, "closed"), issue(2, labels=["status: blocked"])])
+        self.assertEqual((rows[2]["outcome"], rows[2]["milestone"]), ("ready", "M3"))
+
+    def test_a_dependency_closed_not_planned_is_a_question(self):
+        dep = issue(1, "closed")
+        dep["state_reason"] = "not_planned"
+        rows = self.run_it([dep, issue(2, labels=["status: blocked"])])
+        self.assertEqual(rows[2]["outcome"], "needs-decision")
+        self.assertIn("#1 (closed not_planned)", rows[2]["question"])
+
+    def test_a_free_text_line_of_the_section_is_never_dropped(self):
+        body = "### Blocked by\n\n#1\nThe capture issue must land first.\n"
+        rows = self.run_it([issue(1, "closed"), issue(70, labels=["status: blocked"], body=body)])
+        self.assertEqual(rows[70]["outcome"], "needs-decision")
+        self.assertIn("The capture issue must land first.", rows[70]["question"])
+        rows = self.run_it([issue(1), issue(70, labels=["status: blocked"], body=body)])
+        self.assertEqual(rows[70]["outcome"], "blocked")
+        self.assertEqual(rows[70]["blocked_by"], ["#1", "The capture issue must land first."])  # bare `#n`: what the sweep reads
+
+    def test_free_text_sharing_a_line_with_a_ref_is_never_dropped(self):
+        for line in ("#1; the sub-domain choice.", "#1 and the operator go for the write", "- LOT-001 then the Mac capture of R55"):
+            body = "### Blocked by\n\n" + line + "\n"
+            rows = self.run_it([issue(1, "closed"), issue(70, labels=["status: blocked"], body=body)])
+            self.assertEqual(rows[70]["outcome"], "needs-decision", line)
+            rows = self.run_it([issue(1), issue(70, labels=["status: blocked"], body=body)])
+            self.assertEqual(rows[70]["outcome"], "blocked", line)
+            self.assertIn(line.lstrip("- "), rows[70]["blocked_by"], line)  # kept, so the sweep never unblocks on #1 alone
+        for line in ("dependencies not done: LOT-001 (#1)", "none: every dependency is merged (unblocked 2026-10-29)", "#1 (LOT-001)"):
+            rows = self.run_it([issue(1, "closed"), issue(2, labels=["status: blocked"], body="### Blocked by\n\n" + line + "\n")])
+            self.assertEqual(rows[2]["outcome"], "ready", line)  # LOT-002 waits on LOT-001; generated lines and bare refs say nothing more
+
+    @mock.patch.object(m5, "M5_OPEN", False)
+    def test_m5_items_are_on_hold_with_the_decision_and_the_plan_says_what_to_write(self):
+        import classify_blocked
+        rows = self.run_it([issue(1), issue(60, labels=["status: blocked"]) | {"title": "[SwiftHFR] M5: a new idea"}])
+        self.assertEqual(rows[60]["outcome"], "on-hold")
+        self.assertIn("/issues/379", rows[60]["link"])
+        plan = classify_blocked.plan(list(rows.values()))
+        self.assertEqual({p["issue"]: p["to"] for p in plan}, {60: "status: on-hold"})
+        self.assertIn("M5_OPEN", plan[0]["decision"]["sentence"])
+        md = classify_blocked.markdown(list(rows.values()))
+        self.assertIn("`on-hold` 1", md)
+
+
 class ProgressSlide(unittest.TestCase):
     def test_audit_is_lot_000_to_005_and_other_lots_take_their_milestone(self):
         self.assertEqual(progress.step_of_lot("LOT-000"), "Audit")
@@ -382,6 +743,20 @@ class ProgressSlide(unittest.TestCase):
                 self.assertEqual(progress.bucket(lot, {"status: blocked"}), "blocked")
             with mock.patch.object(generate, "miss0", lambda row: []):
                 self.assertEqual(progress.bucket(lot, {"status: blocked"}), "human")
+
+    def test_an_on_hold_lot_counts_in_its_own_bucket_neither_blocked_nor_ready(self):
+        r = next(r for l, r in generate.rows.items() if generate.deps(r))
+        lot = r["lot"]
+        with mock.patch.object(generate, "CAPTURE", {}), mock.patch.object(generate, "CLOSED", set()), \
+                mock.patch.object(generate, "CLAIMED", set()), mock.patch.object(generate, "PRS", {}):
+            for miss in (["LOT-X"], []):
+                with mock.patch.object(generate, "miss0", lambda row, miss=miss: miss):
+                    self.assertEqual(progress.bucket(lot, {"status: on-hold"}), "hold")
+                    self.assertEqual(progress.bucket(lot, {"status: on-hold", "host: mac", "priority: low"}), "hold")
+            self.assertEqual(progress.bucket(lot, {"status: needs-decision"}), "human")
+        self.assertIn("hold", progress.BUCKETS)
+        for table in (progress.BUCKET_COLORS, progress.BUCKET_NAMES, progress.SHORT_BUCKET):
+            self.assertEqual(set(table), set(progress.BUCKETS))
 
     def test_a_pr_naming_an_unknown_lot_then_a_known_one_goes_to_the_known_step(self):
         self.assertEqual(progress.step_of_pr({"title": "LOT-999 / LOT-080", "body": ""}), "M1")
@@ -596,46 +971,35 @@ class WeeklyCounts(unittest.TestCase):
         self.assertNotIn("LOT-110", build.ms_lots()["M5"])
         self.assertEqual(len(build.ms_lots()["M5"]), len(generate.M5) - 1)
 
-    def test_card_pill_counts_live_lots_only(self):
+    def test_tile_status_counts_live_lots_only(self):
         build = self.with_dropped("LOT-110")
-        self.assertIn(f"À faire · {len(build.FEATURES['M5'][0][3]) - 1} lots", build.card_pill(build.FEATURES["M5"][0][3]))
-
-    def test_left_card_lists_and_counts_live_lots_only(self):
-        build = self.with_dropped("LOT-110")
-        out = build.left_card("M5", {"titles": {}})
-        self.assertIn(f"Reste à faire · {len(generate.M5) - 1}<", out)
-        self.assertNotIn("<u>110</u>", out)
-
-    def test_m5_slide_lists_no_dropped_lot_in_a_feature_card(self):
+        self.assertIn("0 / 4 lots", build.tile_status([110, 112, 148, 149, 145]))
         build = self.with_dropped()
-        label = build.lot_label("LOT-110")
-        self.assertIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
-        build = self.with_dropped("LOT-110")
-        self.assertNotIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
+        with mock.patch.object(generate, "done", return_value=True):
+            self.assertIn("✓ 5 lots", build.tile_status([110, 112, 148, 149, 145]))
 
-    def test_m5_feature_cards_keep_the_authored_lot_order_and_skip_an_emptied_feature(self):
+    def test_m5_slide_counts_and_lists_no_dropped_lot(self):
         build = self.with_dropped()
-        out = build.m5_cards()
-        nav = [f"<li>{build.esc(build.lot_label(f'LOT-{x:03d}'))}</li>" for x in build.FEATURES["M5"][0][3]]
-        self.assertEqual([out.index(i) for i in nav], sorted(out.index(i) for i in nav))
-        title = build.FEATURES["M5"][3][1]
-        self.assertIn(f"<b>{title}</b>", out)
-        build = self.with_dropped(*(f"LOT-{x:03d}" for x in build.FEATURES["M5"][3][3]))
-        self.assertNotIn(f"<b>{title}</b>", build.m5_cards())
+        mk = lambda l, **kw: {"number": generate.rows[l]["issue"], "state": "open", "labels": [], "title": f"{l}: Page navigator",
+                              "created_at": "2026-11-01T00:00:00Z", **kw}
+        stack = contextlib.ExitStack()
+        stack.enter_context(mock.patch.object(build, "progress", progress))
+        self.addCleanup(stack.close)
+        live = mk("LOT-110")
+        dropped = mk("LOT-112", state="closed", state_reason="not_planned", closed_at="2026-11-02T00:00:00Z")
+        d = build.gather_892([live, dropped], "2026-11-08T23:59:59Z")
+        self.assertEqual(d["m5"]["total"], 1)
+        self.assertEqual(d["m5"]["cats"], {"navigation": [(build.lot_label("LOT-110"), False)]})
 
-    def test_m5_slide_drops_the_empty_also_card_and_counts_the_rest(self):
-        build = self.with_dropped("LOT-176")
-        self.assertIn("Aussi dans M5 · 1<", build.m5_cards())
-        self.assertNotIn("<u>176</u>", build.m5_cards())
-        build = self.with_dropped("LOT-176", "LOT-183")
-        self.assertNotIn("Aussi dans M5", build.m5_cards())
+    def test_m5_slide_skips_feat_intake_issues_that_their_lot_already_shows(self):
+        mk = lambda n, title, **kw: {"number": n, "state": "open", "labels": [], "title": title, "created_at": "2026-11-01T00:00:00Z", **kw}
+        lot = mk(generate.rows["LOT-177"]["issue"], "LOT-177: Uniform swipe set in every list (FEAT-008) (M5)")
+        feat = mk(9152, "FEAT-008: Uniform swipes", state="closed", state_reason="completed", closed_at="2026-11-02T00:00:00Z")
+        build, d = self.gather([lot, feat])
+        self.assertEqual((d["m5"]["total"], d["m5"]["done"]), (1, 0))  # the lot only; the closed intake issue adds nothing
+        self.assertEqual(sum(d["m5"]["axes"].values()), 1)
+        self.assertEqual(d["outside"]["total"], 0)  # the intake issue still has a milestone (M5): not outside
 
-    def test_a_dropped_lot_does_not_count_in_unblocks(self):
-        build = self.with_dropped()
-        pair = next((d, y) for y, r in generate.rows.items() for d in generate.deps(r))
-        before = build.dependents()[pair[0]]
-        build = self.with_dropped(pair[1])
-        self.assertEqual(build.dependents()[pair[0]], before - 1)
 
     def test_generate_reads_the_state_named_by_roadmap_state(self):
         import tempfile
@@ -649,10 +1013,173 @@ class WeeklyCounts(unittest.TestCase):
                                env={**__import__("os").environ, "ROADMAP_STATE": str(f)})
             self.assertEqual(r.stdout.split(), ["2026-11-10", "22:00", "UTC", "True", "1"], r.stderr)
 
+    def test_done_counts_agree_in_number(self):
+        import build
+        self.assertEqual([build.faites(n) for n in (0, 1, 2)], ["faite", "faite", "faites"])
+        D = {"m5": {"cats": {"MP": [("MP à plusieurs", True)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 37, "done": 1},
+             "outside": {"open": [], "kinds": {}}}
+        self.assertIn("1 faite sur 37", build.slide_m5(D))
+
+    def test_m5_band_is_hidden_without_an_open_issue_outside_every_milestone(self):
+        import build
+        D = {"m5": {"cats": {"MP": [("MP à plusieurs", False)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 1, "done": 0},
+             "outside": {"open": [], "kinds": {}}}
+        self.assertNotIn("Issues hors jalon", build.slide_m5(D))
+        D["outside"] = {"open": [(907, "Backup restore test")], "kinds": {"chore": 1}}
+        out = build.slide_m5(D)
+        self.assertIn("Issues hors jalon", out)
+        self.assertIn("#907", out)
+
+    def test_the_deck_has_the_six_slides_of_892(self):
+        import build
+        self.assertEqual(build.TOTAL, 6)
+        self.assertEqual(set(build.FEATURES), {"M1", "M2", "M3"})
+        self.assertEqual(tuple(r[0] for r in build.REVIEWS), counts.REVIEW_ISSUES)
+
+    def gather(self, issues):
+        build = self.with_dropped()
+        stack = contextlib.ExitStack()
+        stack.enter_context(mock.patch.object(build, "progress", progress))
+        self.addCleanup(stack.close)
+        return build, build.gather_892(issues, "2026-11-08T23:59:59Z")
+
+    def test_outside_bar_counts_only_issues_outside_every_milestone_now_and_at_the_baseline(self):
+        mk = lambda n, title, state="open", created="2026-11-01T00:00:00Z", closed=None, labels=(): {
+            "number": n, "title": title, "state": state, "state_reason": "completed" if state == "closed" else None,
+            "closed_at": closed, "created_at": created, "labels": [{"name": x} for x in labels]}
+        iss = [mk(9001, "[SwiftHFR] Fixture kit: a chore", "closed", closed="2026-11-05T00:00:00Z"),   # done before the baseline
+               mk(9002, "[SwiftHFR] Backup restore test", "closed", closed="2026-11-12T00:00:00Z"),    # done since
+               mk(9003, "[SwiftHFR] Flaky app test", created="2026-11-10T00:00:00Z", labels=("type: bug",)),  # created since, open
+               mk(9004, "[SwiftHFR] Poll: results (M4)"), mk(9005, "FEAT-021: iPad keyboard shortcuts"),
+               mk(9006, "[SwiftHFR] Tab bar", labels=("beta-test finding",))]
+        build, d = self.gather(iss)
+        o = d["outside"]
+        self.assertEqual((o["done"], o["total"], o["then_done"], o["then_total"]), (2, 3, 1, 2))
+        self.assertEqual(o["open"], [(9003, "Flaky app test")])
+        self.assertEqual(o["kinds"], {"bug": 1})
+
+    def test_slide_5_counts_every_feedback_issue_like_slide_1_dropped_ones_as_set_aside(self):
+        mk = lambda n, title, **kw: {"number": n, "title": title, "state": "open", "created_at": "2026-11-01T00:00:00Z",
+                                     "labels": [{"name": "beta-test finding"}] + [{"name": x} for x in kw.pop("extra", ())], **kw}
+        iss = [mk(1, "[SwiftHFR] Reader: x"), mk(2, "[SwiftHFR] Legacy reference behind", extra=("type: roadmap",)),
+               mk(3, "[SwiftHFR] MP list: y", state="closed", state_reason="not_planned", closed_at="2026-11-02T00:00:00Z")]
+        build, d = self.gather(iss)
+        fb = d["m4"]["fb"]
+        self.assertEqual(fb["total"], counts.open_closed(counts.daily_groups(iss)["feedback"])[0] + 1)
+        self.assertEqual(fb["total"], 3)
+        self.assertEqual(fb["status"], {"ouvert": 2, "écarté": 1})
+
+    def test_slide_3_shows_each_bar_difference_and_the_outside_bar(self):
+        import build
+        ms = {m: {"done": 0, "then": 0, "total": 10} for m in build.MS}
+        ms["M4"] = {"done": 6, "then": 3, "total": 10}
+        z = {"done": 0, "prs": 0, "commits": 0, "tests": 0, "lines": 0, "issues": 0}
+        D = {"now": z, "then": z, "since": "2026-11-08", "ms": ms,
+             "outside": {"done": 104, "total": 205, "then_done": 65, "then_total": 164}}
+        out = build.slide_today(D)
+        self.assertIn("60 % <em", out)
+        self.assertIn("+30 pts", out)
+        self.assertIn("104 / 205", out)
+        self.assertIn("+39 faites", out)
+        self.assertIn("+41 créées", out)
+        self.assertIn("Hors jalon", out)
+
+    def test_slide_3_agrees_with_a_difference_of_one(self):
+        import build
+        ms = {m: {"done": 0, "then": 0, "total": 10} for m in build.MS}
+        z = {"done": 0, "prs": 0, "commits": 0, "tests": 0, "lines": 0, "issues": 0}
+        D = {"now": z, "then": z, "since": "2026-11-08", "ms": ms,
+             "outside": {"done": 5, "total": 9, "then_done": 4, "then_total": 8}}
+        out = build.slide_today(D)
+        self.assertIn("+1 faite</em>", out)
+        self.assertIn("+1 créée", out)
+        self.assertNotIn("+1 créées", out)
+        self.assertEqual([build.accord(n, "fait") for n in (0, 1, 3)], ["fait", "fait", "faits"])
+
+    def test_m5_slide_never_drops_a_category(self):
+        import build
+        cats = {a: [(f"{a} {k}", False) for k in range(8 - j)] for j, a in enumerate(counts.AXES)}
+        D = {"m5": {"cats": cats, "axes": {a: len(v) for a, v in cats.items()}, "total": 36, "done": 0}, "outside": {"open": [], "kinds": {}}}
+        out = build.slide_m5(D)
+        self.assertEqual(out.count('class="tile '), 6)
+        for a in counts.AXES[5:]:
+            self.assertIn(f"{a[0].upper() + a[1:]} · {len(cats[a])}", out)
+        self.assertIn("Et aussi · 6", out)
+
     def test_a_slide_never_shows_the_word_legacy(self):
         import build
         h = build.page(1, "Legacy et legacy", "le legacy", "<p>LEGACY</p>")
         self.assertNotIn("legacy", re.sub(r"<style>.*?</style>", "", h, flags=re.S).lower())
+
+
+class ReportDeck892(unittest.TestCase):
+    """Slides 3, 5 and 6 of the report deck (#892): radar axes, milestone of an issue, feedback status."""
+
+    def test_feedback_titles_map_to_their_radar_axis(self):
+        cases = {
+            "[SwiftHFR] Reader: signatures do not show when « Afficher les signatures » is on": "lecteur",
+            "[SwiftHFR] Topic lists: swipe to add or remove the favourite": "listes",
+            "[SwiftHFR] Composer (iPhone): the page above the open composer no longer scrolls": "composer",
+            "[SwiftHFR] GIF panel: the search field is too transparent over the GIFs": "composer",
+            "[SwiftHFR] MP list: show the correspondent's avatar": "MP",
+            "[SwiftHFR] MP reader: show members' signatures like in topics": "MP",
+            "[SwiftHFR] Tab bar: a fifth item, Recherche, left of Plus": "navigation",
+            "[SwiftHFR] iPad split: Bookmarks open their topics in the detail column": "navigation",
+            "[SwiftHFR] Réglages › Stockage MP: one switch per function": "réglages et thèmes",
+            "[SwiftHFR] App icon « REDFACE 3D Big »: red rim on the Home Screen": "réglages et thèmes",
+            "[SwiftHFR] Changing the text size (100 → 90) stops messages loading, topics and MPs": "réglages et thèmes",
+            "[SwiftHFR] Reader: messages load very slowly or get stuck": "performance",
+            "[SwiftHFR] App instability on device: collect crash and hang reports": "performance",
+            "[SwiftHFR] Legacy reference 2440d79 is 44 commits behind": "autre",
+            "LOT-110: Page navigator": "navigation",
+            "LOT-152: Preview before send": "composer",
+            "[SwiftHFR] MP list: the reader's avatar in each row": "MP",  # the subject decides over later words
+            "[SwiftHFR] M5: Messages split into two tabs, one-to-one MPs and group MPs": "MP",
+        }
+        for title, axis in cases.items():
+            self.assertEqual(counts.axis_of(title), axis, title)
+
+    def test_every_axis_is_reachable_and_counts_cover_every_axis(self):
+        self.assertEqual(len(counts.AXES), 8)
+        self.assertEqual({a for a, _ in counts.AXIS_RULES} | {"performance", "autre"}, set(counts.AXES))
+        c = counts.axis_counts([{"title": "Reader: x"}, {"title": "Reader: y"}, {"title": "nothing here"}])
+        self.assertEqual(list(c), counts.AXES)
+        self.assertEqual((c["lecteur"], c["autre"], sum(c.values())), (2, 1, 3))
+
+    def test_milestone_of_an_issue_follows_the_rules_in_order(self):
+        lot_ms, fu, lots = {10: "M3", 20: "M5"}, {30: ("M2", "x")}, {97: 10}
+        ms = lambda title, n=99, labels=(): counts.issue_milestone({"number": n, "title": title, "labels": [{"name": x} for x in labels]}, lot_ms, fu, lots)
+        self.assertEqual(ms("LOT-097: anything (M4)", n=10), "M3")  # a lot issue keeps its lot's milestone
+        self.assertEqual(ms("anything (M4)", n=30), "M2")
+        self.assertEqual(ms("[SwiftHFR] M4: iPad split view"), "M4")
+        self.assertEqual(ms("[SwiftHFR] Poll: results (M4)"), "M4")
+        self.assertEqual(ms("[SwiftHFR] Account menu: avatar (UXD-03, M2)"), "M2")
+        self.assertEqual(ms("[SwiftHFR] M5 study: native macOS version"), "M5")
+        self.assertEqual(ms("[SwiftHFR] LOT-097 renderer: gaps left"), "M3")
+        self.assertEqual(ms("[SwiftHFR] Report deck focused on M4 detail and M5"), None)  # a milestone named in passing is no tag
+        self.assertEqual(ms("x", labels=("beta-test finding",)), "M4")
+        self.assertEqual(ms("x", labels=("m4-review: performance",)), "M4")
+        self.assertEqual(ms("x", labels=("experimental",)), "M5")
+        self.assertEqual(ms("x", labels=("moust4ki aka bybifok finding",)), None)  # the credit label is not feedback
+        self.assertEqual(ms("FEAT-021: iPad keyboard shortcuts"), "M5")  # docs/ROADMAP.md: the FEAT items are M5
+        self.assertEqual(ms("FEAT-016: iPhone Duo / iPad columns"), "M4")  # … except FEAT-016 (LOT-147, M4)
+        for n in counts.REVIEW_ISSUES:
+            self.assertEqual(ms("[SwiftHFR] End-of-M4 review", n=n), "M4")
+
+    def test_swift_issues_status_and_feedback(self):
+        mk = lambda n, title="[SwiftHFR] x", state="open", labels=(), **kw: {"number": n, "title": title, "state": state,
+                                                                            "labels": [{"name": x} for x in labels], **kw}
+        self.assertFalse(counts.is_swift_issue(mk(1, "[Legacy 4.0.x] Reader")))
+        self.assertTrue(counts.is_swift_issue(mk(2, "[Legacy 4.0.x + SwiftHFR] Reader")))
+        self.assertFalse(counts.is_swift_issue(mk(3, labels=("type: roadmap",))))
+        self.assertFalse(counts.is_swift_issue(mk(4, state="closed", state_reason="not_planned")))
+        self.assertFalse(counts.is_swift_issue({**mk(5), "pull_request": {}}))
+        self.assertEqual(counts.issue_status(mk(6)), "ouvert")
+        self.assertEqual(counts.issue_status(mk(7, labels=("status: claimed",))), "réclamé")
+        self.assertEqual(counts.issue_status(mk(8, state="closed", state_reason="completed")), "fait")
+        self.assertEqual(counts.issue_status(mk(9, state="closed", state_reason="duplicate")), "écarté")
+        fb = counts.feedback([mk(10, labels=("beta-test finding",)), mk(11, labels=("moust4ki aka bybifok finding",))])
+        self.assertEqual([i["number"] for i in fb], [10])
 
 
 if __name__ == "__main__":

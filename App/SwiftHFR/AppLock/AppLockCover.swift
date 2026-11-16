@@ -49,7 +49,7 @@ struct AppLockCover: View {
                 Button("Déverrouiller") {
                     Task { await lock.unlock() }
                 }
-                .buttonStyle(.borderedProminent)
+                .appProminentButtonStyle()
                 .disabled(lock.isAuthenticating)
                 if let message = lock.message {
                     Text(message)

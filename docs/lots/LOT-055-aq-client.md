@@ -1,12 +1,12 @@
 # LOT-055 — AQ client
 
 - **Module:** HFRClient
-- **Difficulty / model:** easy · Opus → Fable (author → reviewer)
+- **Difficulty / model:** easy · Sonnet → Opus (author → reviewer), as `docs/LOTS.md`
 - **Issue:** [#81](https://github.com/ezzz/HFRnow/issues/81). Depends on [LOT-028](LOT-028-aq-parsers.md) (#56, parsers) and
   [LOT-071](LOT-071-third-party-services.md) (#95, rules R1–R6, inventory T1–T3).
 
-Implemented: `AQClient`, `AQConfiguration`, `AQError` (`Sources/HFRClient/AQ/`). **Create is not implemented** (the PR is `Refs #81`);
-its answer is captured since (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)) and left to a follow-up.
+Implemented: `AQClient` (feed, check, create), `AQConfiguration`, `AQError`, `AQCreateError`, `AQReportEncoder` (`Sources/HFRClient/AQ/`). The
+create answer is captured (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)); its refusals are not captured on the live host.
 
 ## Legacy sources
 ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`:
@@ -16,7 +16,7 @@ ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`:
 | Feed + badge | `AQPlusView.swift:39` (`https://aq.super-h.fr/rss.php`), `:41-50` (`last_check_aq`, default 2010-01-01), `:52-57` (category-25 filter), `:60-92` (`AQBadgeCheckService`: GET, 20 s, cache ignored, `URLSession.shared`, count of `isNew`, stale-check guard `:86`), `:202-204` (`isNew = aqDate >= lastCheck`, unreadable date = now), `:248-322` (list view model, `:278` 20 s, sets `last_check_aq` on display) |
 | Launch trigger | `MainWindow.swift:1178-1192` (3 s after the main window, once per process, logged out too) |
 | Per-topic check | `MessagesView.swift:325-338` (`isAQAlreadySignaled`, URL `:327`: GET `…/api/getAlertesByTopic.php?topic_id=`, `URLSession.shared`, default timeout, `content.contains(postID)`, nil on error), called at `:2001`, `:3716` |
-| Create (not ported) | `MessagesView.swift:340-376` (`createAQ`: POST `…/api/addAlerte.php`, 5 s, form content type, ASCII body (lossless: percent-encoded first), `"1"` = success), `:378-398` (`aqRequestBody`, fixed field order), `:434-437` (`legacyPercentEncode`), `:439-441` (pseudo lower-cased); toasts `:2038-2043` |
+| Create | `MessagesView.swift:340-376` (`createAQ`: POST `…/api/addAlerte.php`, 5 s, form content type, ASCII body (lossless: percent-encoded first), `"1"` = success), `:378-398` (`aqRequestBody`, fixed field order), `:434-437` (`legacyPercentEncode`), `:439-441` (pseudo lower-cased); toasts `:2038-2043` |
 
 ## Behaviour
 Inputs: `AQConfiguration(baseURL:)` (R2: the app injects it; the legacy value is `https://aq.super-h.fr`, configuration name
@@ -56,16 +56,30 @@ last check 2026-10-01, `newCount` 2).
 Captured since: the create's success on the live host (`T50`, `T51`, [#531](https://github.com/ezzz/HFRnow/issues/531)) and its refusals on a
 local instance (`T52`-`T71`, #574; `T72`-`T90`, #611: values the database refuses, by `sql_mode`); the server's own contract (secondary source, ADR 0015) is in HFR-PROTOCOL §8.
 
-## Create (left out)
-Legacy wire facts, for the create follow-up (#531 captured): POST `<base>/api/addAlerte.php`, `Content-Type:
-application/x-www-form-urlencoded`, body `alerte_qualitay_id=-1&nom=…&topic_id=…&topic_titre=…&pseudo=…&post_id=…&post_url=…&commentaire=post de <author>`
-in that order, values percent-encoded from UTF-8 with `A-Za-z0-9._-` kept, then the body converted to ASCII, which loses nothing since
-every byte is ASCII by then (accents arrive percent-encoded; `MessagesView.swift:389-396`, `:434-437` @ `2440d79`), 5 s, answer `"1"` (trimmed) =
-success, any other text = refusal code shown to the user. Model (`AQNewReport`, LOT-012) exists. Per our write rules (LOT-037,
-LOT-048, LESSONS 11, 30): never retried, redirect not followed, success only on the captured confirmation, a POST that may have left
-is `unconfirmed`, and the N1 notice precedes the first one.
+## Create
+`AQClient.create(_ report: AQNewReport) async throws(AQCreateError)` (`AQCreateError.swift`, `AQReportEncoder.swift`). Wire facts: POST
+`<base>/api/addAlerte.php`, form body (`FormBody`, UTF-8 percent-encoded: accents verified, `T75`) in the legacy order
+`alerte_qualitay_id`, `nom`, `topic_id`, `topic_titre`, `pseudo` (lower-cased as legacy, `MessagesView.swift:439-441`), `post_id`, `post_url`,
+`commentaire`, then `from=SwiftHFR` (decided, #573); 5 s (legacy); no cookie (anonymous transport); redirect not followed; answer read up to 4 KiB.
+An addition (`existingAlertID` set) sends `alerte_qualitay_id`, `pseudo`, `post_id`, `post_url`, `commentaire`, `from` only (the server ignores
+`nom` / `topic_*` then, `T84`, `T85`; fewer fields to a third party).
+- **Success** only status 200 with the trimmed body `1` (`T50`, `T51`).
+- **`unconfirmed`** for everything else: a redirect, a transport failure (the POST may have left; never retried), any other status or body.
+  `unrecognizedAnswer` carries the status and a bare numeric body (`-2`, `-3`, `-4`: seen on a local instance only, `T52`-`T61`) so the app
+  may word a message, but none is read as a refusal: refusals are not captured on the live host, some of them ban the client, and an empty
+  200 or a 403 is "maybe banned" (`T67`, `T68`). The caller checks `alerts(topicID:)` before offering a retry.
+- **Validated before sending** (`invalidReport`, no request): required text (`nom`, `topic_titre` for a new AQ; `pseudo`, `post_url`) not blank
+  and not `0` (PHP `empty()`); `nom` / `topic_titre` / `post_url` ≤ 512, `pseudo` ≤ 128, `commentaire` ≤ 1024 characters (scalars); no
+  character outside the BMP; ids positive and ≤ `int(11)`; `post_url` starts with `https://forum.hardware.fr` (else a 403). Source: HFR-PROTOCOL
+  §6c "Values the database refuses" (`T72`-`T90`, #611): the live `sql_mode` is unknown, so a value either mode would refuse or change is refused here.
+- A task cancelled before the request is handed to the network is `AQCreateError.cancelled` (nothing sent), not `unconfirmed`.
+- The N1 notice before the first create, and one create at a time, are app logic (LOT-134).
 
 ## Intentional differences from legacy
+- **Create** (`MessagesView.swift:340-376` @ 2440d79, `:342-378` @ 87fe0d1c): a non-`1` answer was shown to the user as a refusal code; it is now `unconfirmed`
+  (refusals are not captured on the live host). Values the database refuses or silently changes (over-long, outside the BMP, ids out of
+  range) were sent; they are refused before sending (#611). The body carries `from=SwiftHFR` (#573) and a space is `+` (legacy `%20`, same for PHP); accents
+  were already sent as percent-encoded UTF-8 (`legacyPercentEncode`, `T75`). An addition omits `nom` / `topic_*`.
 - An item with an unreadable date is **not** new. Legacy dated it "now" (`AQPlusView.swift:203`), so it was new on every check and the
   badge never cleared. No such item in `T01`.
 - Redirects are not followed. Legacy used `URLSession.shared`, whose jar holds the `.hardware.fr` cookies: it never sent them to the AQ host
@@ -73,6 +87,12 @@ is `unconfirmed`, and the N1 notice precedes the first one.
   the cookie-less transport and stop at the AQ host.
 - A failed check is an error, not `nil` (same meaning, typed); a non-listing body is an error instead of "not reported".
 - The check timeout is 20 s (legacy: `URLSession` default, 60 s).
+
+## Tests (create)
+`AQCreateTests` (9 tests; 19 with `AQClientTests`, counting parameterized cases once): `T50`'s answer is a success with the exact request (URL, POST, field order, `from`,
+no `Cookie`, `doNotFollow`, 5 s); addition fields; 8 non-confirming answers (empty, `11`, `-1`, `-4`, page, 403, 201, 500) are `unconfirmed`;
+numeric code carried only when bare; redirect and timeout unconfirmed with one request; 15 invalid reports refused with no request; the
+1024-character boundary and the permalink rule (scheme, host, no port or userinfo), the 4 KiB answer cap. Mutations checked to fail: any 200 accepted, permalink check removed, BMP check removed.
 
 ## Tests
 `Tests/HFRClientTests/AQ/AQClientTests.swift` (10 tests): requests (URL, method, no body, no `Cookie`, `doNotFollow`, timeout, cap),
