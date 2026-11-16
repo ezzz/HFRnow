@@ -44,7 +44,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The sub-menu that lists it.
+    /// The section that lists it.
     var theme: ExperimentalTheme {
         switch self {
         case .modernComposer: .composer
@@ -87,7 +87,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// A sub-menu of Réglages › Expérimental, in display order.
+/// A section of the Réglages › Expérimental page, in display order.
 enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
     case composer
     case navigation
@@ -97,7 +97,7 @@ enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
 
     var id: Self { self }
 
-    /// The sub-menu's row label.
+    /// The section's header.
     var title: String {
         switch self {
         case .composer: "Composer"
@@ -108,22 +108,11 @@ enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The row's symbol.
-    var symbol: String {
-        switch self {
-        case .composer: "square.and.pencil"
-        case .navigation: "dock.rectangle"
-        case .lists: "list.bullet"
-        case .messages: "envelope"
-        case .imageLoading: "photo"
-        }
-    }
-
-    /// The listed options of this sub-menu, in enum order.
+    /// The listed options of this section, in enum order.
     var listedFeatures: [ExperimentalFeature] {
         ExperimentalFeature.allCases.filter { $0.theme == self && $0.isListed }
     }
 
-    /// The sub-menus that list at least one option: an empty one is not shown.
+    /// The sections that list at least one option: an empty one is not shown.
     static var listed: [ExperimentalTheme] { allCases.filter { !$0.listedFeatures.isEmpty } }
 }
