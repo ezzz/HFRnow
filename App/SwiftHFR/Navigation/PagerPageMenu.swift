@@ -48,7 +48,7 @@ struct PagerPageMenuPill: View {
     let total: Int
     var isExact = true
     /// Called with the page chosen in the menu or typed; nil makes the pill a plain label.
-    let onPage: ((Int) -> Void)?
+    let onPage: (@MainActor (Int) -> Void)?
     @State private var isEntering = false
     @State private var entry = ""
 

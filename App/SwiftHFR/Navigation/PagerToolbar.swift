@@ -19,7 +19,7 @@ struct PagerToolbar {
     /// "Page N", or a spinner while a page loads.
     let status: Status
     /// Goes to a page chosen in the « page x / y » menu (`Status.pageOf`); nil leaves that pill a plain label.
-    var jump: ((Int) -> Void)?
+    var jump: (@MainActor (Int) -> Void)?
 
     enum Status {
         case page(Int)
