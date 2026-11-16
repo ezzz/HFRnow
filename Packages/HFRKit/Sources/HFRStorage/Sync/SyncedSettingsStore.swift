@@ -39,11 +39,12 @@ public final class SyncedSettingsStore: SettingsStore {
         var identity: String?
         var quotaViolations: Set<String> = []
         var deviceStateFailure: SmallStoreError?
+        /// The keys copied to iCloud: `SettingKey.syncedKeys` and the keys `syncKeys(_:)` added since.
+        var syncedKeys: Set<String>
     }
 
     private let local: any SettingsStore
     private let cloud: any SyncedKeyValueStore
-    private let syncedKeys: Set<String>
     private let clock: @Sendable () -> Date
     private let state: Mutex<State>
 
@@ -58,9 +59,8 @@ public final class SyncedSettingsStore: SettingsStore {
     ) {
         self.local = local
         self.cloud = cloud
-        self.syncedKeys = syncedKeys
         self.clock = clock
-        state = Mutex(State(device: SmallStoreState(persistence: deviceState)))
+        state = Mutex(State(device: SmallStoreState(persistence: deviceState), syncedKeys: syncedKeys))
         state.withLock { state in
             purge(&state)
             guard let document = state.device.document(), document.identityRecorded else {
@@ -68,7 +68,7 @@ public final class SyncedSettingsStore: SettingsStore {
                 // as at an initial sync (ADR 0013 §5 step 2).
                 state.identity = cloud.accountIdentity()
                 record(&state)
-                merge()
+                merge(state.syncedKeys)
                 return
             }
             state.identity = document.knownIdentity
@@ -83,19 +83,31 @@ public final class SyncedSettingsStore: SettingsStore {
     }
 
     public func setRawValue(_ value: SettingRawValue, forKey key: String) {
-        state.withLock { _ in
+        state.withLock { state in
             local.setRawValue(value, forKey: key)
-            guard syncedKeys.contains(key), cloudSchemaIsReadable else { return }
+            guard state.syncedKeys.contains(key), cloudSchemaIsReadable else { return }
             cloud.set(SyncedValue(value), forKey: key)
             stampSchema()
         }
     }
 
     public func removeValue(forKey key: String) {
-        state.withLock { _ in
+        state.withLock { state in
             local.removeValue(forKey: key)
-            guard syncedKeys.contains(key), cloudSchemaIsReadable else { return }
+            guard state.syncedKeys.contains(key), cloudSchemaIsReadable else { return }
             cloud.removeValue(forKey: key)
+        }
+    }
+
+    /// Copies `keys` to iCloud from now on, besides the catalogue's synced keys: the per-account keys of LOT-130
+    /// (`MPStorageSyncStateStore.keys(for:)`), whose accounts come and go at run time. The keys not synced yet get the
+    /// initial-sync rule at once: the cloud value wins, else the mirror's is pushed. Keys already synced are left alone.
+    public func syncKeys(_ keys: Set<String>) {
+        state.withLock { state in
+            let added = keys.subtracting(state.syncedKeys)
+            guard !added.isEmpty else { return }
+            state.syncedKeys.formUnion(added)
+            merge(added)
         }
     }
 
@@ -124,14 +136,14 @@ public final class SyncedSettingsStore: SettingsStore {
             switch change.reason {
             case .serverChange:
                 guard cloudSchemaIsReadable else { return }
-                for key in change.keys where syncedKeys.contains(key) {
+                for key in change.keys where state.syncedKeys.contains(key) {
                     copyCloudValue(forKey: key)
                 }
             case .initialSync:
                 purge(&state)
-                merge()
+                merge(state.syncedKeys)
             case .quotaViolation:
-                state.quotaViolations.formUnion(change.keys.filter(syncedKeys.contains))
+                state.quotaViolations.formUnion(change.keys.filter(state.syncedKeys.contains))
             case .accountChange:
                 accountChanged(&state)
             }
@@ -158,11 +170,11 @@ public final class SyncedSettingsStore: SettingsStore {
         }
     }
 
-    /// The initial-sync rule: the cloud wins where it has a value, the mirror's value is pushed where it has none.
-    private func merge() {
+    /// The initial-sync rule over `keys`: the cloud wins where it has a value, the mirror's value is pushed where it has none.
+    private func merge(_ keys: Set<String>) {
         guard cloudSchemaIsReadable else { return }
         var pushed = false
-        for key in syncedKeys.sorted() {
+        for key in keys.sorted() {
             if cloud.value(forKey: key) != nil {
                 copyCloudValue(forKey: key)
             } else if let raw = local.rawValue(forKey: key) {
@@ -178,7 +190,7 @@ public final class SyncedSettingsStore: SettingsStore {
         let current = cloud.accountIdentity()
         if let previous, !cloud.isCurrentAccount(previous) {
             var values: [String: SyncedValue] = [:]
-            for key in syncedKeys {
+            for key in state.syncedKeys {
                 if let raw = local.rawValue(forKey: key) { values[key] = SyncedValue(raw) }
                 local.removeValue(forKey: key)
             }
@@ -190,7 +202,7 @@ public final class SyncedSettingsStore: SettingsStore {
         state.identity = current
         record(&state)
         purge(&state)
-        merge()
+        merge(state.syncedKeys)
     }
 
     private func quarantine(_ values: [String: SyncedValue], for owner: String, in state: inout State) {

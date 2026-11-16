@@ -1,0 +1,26 @@
+{
+  "id": "T73",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/api/getAlertesByTopic.php?topic_id=700001",
+  "url": "http://192.0.2.1:8611/api/getAlertesByTopic.php?topic_id=700001",
+  "final_url": "http://192.0.2.1:8611/api/getAlertesByTopic.php?topic_id=700001",
+  "status": 200,
+  "content_type": "text/xml;charset=UTF-8",
+  "date": "Tue, 10 Nov 2026 13:38:58 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "origin": "local-instance",
+  "note": "local toyo/aq instance (php -S), not aq.super-h.fr",
+  "response_headers": {
+    "Host": "192.0.2.1:8611",
+    "Date": "Tue, 10 Nov 2026 13:38:58 GMT",
+    "Connection": "close",
+    "X-Powered-By": "PHP/8.5.12",
+    "Content-type": "text/xml;charset=UTF-8",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache"
+  },
+  "file": "T73-aq-alerts-after-comment-over-length-local.xml",
+  "private": false
+}

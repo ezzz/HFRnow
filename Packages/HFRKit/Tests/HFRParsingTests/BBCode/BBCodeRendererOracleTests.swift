@@ -68,16 +68,9 @@ struct BBCodeRendererOracleTests {
         return source
     }
 
-    /// HFR's rendering normalized. `colourSpans` counts the `[cpp]` syntax-colour spans unwrapped from it: the renderer
-    /// writes a plain code block (LOT-097 spec, intentional difference 3).
-    static func oracle(contentHTML: String, colourSpans: Int = 0) throws -> MessageContent {
-        var content = try MessageContentNormalizer.normalize(contentHTML: contentHTML)
-        let spans = content.html.matches(of: /<span style="color:[a-z]+">([^<]*)<\/span>/)
-        #expect(spans.count == colourSpans)
-        for span in spans.reversed() {
-            content.html.replaceSubrange(span.range, with: span.output.1)
-        }
-        return content
+    /// HFR's rendering normalized, nothing removed (the renderer writes HFR's syntax colours since #742, `R443e`).
+    static func oracle(contentHTML: String) throws -> MessageContent {
+        try MessageContentNormalizer.normalize(contentHTML: contentHTML)
     }
 
     /// The bundled catalogue as the app will pass it, plus the personal smileys the pairs use.
@@ -104,7 +97,7 @@ struct BBCodeRendererOracleTests {
         let source = try Self.postedSource("W61.meta")
         #expect(try Self.postedSource("R95d.meta", field: "apercu_contenu") == source)
         #expect(source.contains("\r\n[b]bold[/b]\r\n"))
-        let expected = try Self.oracle(contentHTML: Self.previewBody("R95d-apercu-bbcode-preview"), colourSpans: 1)
+        let expected = try Self.oracle(contentHTML: Self.previewBody("R95d-apercu-bbcode-preview"))
         Self.expectEqual(try BBCodeRenderer.render(source), expected)
         // Not vacuous (LESSONS 51): two links, one image on a smiley path, no other image, four blocks.
         #expect(expected.links.count == 2 && expected.smileys.count == 1 && expected.images.isEmpty)

@@ -39,6 +39,17 @@ enum TopicRowCues {
         FrenchPlural.count(pages, "page non lue", "pages non lues")
     }
 
+    /// Spoken form of a section header's count ("3 sujets"), which sits next to the title as a bare number.
+    static func topicCountLabel(_ count: Int) -> String {
+        FrenchPlural.count(count, "sujet", "sujets")
+    }
+
+    /// Spoken form of a clickable section title: the category name stays the label (a fixed label made every section read the same,
+    /// #769) and the action is the hint.
+    static func sectionTitleSpeech(_ title: String) -> (label: String, hint: String) {
+        (label: title, hint: "Ouvrir le forum")
+    }
+
     /// The row accent; the super favourite wins over the flag, and the selected row has none (the iPad selection stays visible).
     static func accent(flag: TopicFlag?, isSuperFavorite: Bool, isSelected: Bool) -> Accent? {
         guard !isSelected else { return nil }

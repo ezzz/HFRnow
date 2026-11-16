@@ -26,18 +26,35 @@ extension ReaderWebController {
         }
     }
 
+    /// Runs `script` in the reader's world without waiting for its answer. Nothing holds the controller meanwhile: a page out
+    /// of its window can stay without answering (WebKit suspends its process), and a pending call kept the reader alive (#772).
+    func run(_ script: String, arguments: [String: Any] = [:]) {
+        webView.callAsyncJavaScript(script, arguments: arguments, in: nil, in: Self.world, completionHandler: nil)
+    }
+
     /// Sets `--text-scale` (read by `reader.css`) on the shown document's root element.
     func applyTextScale() {
         guard document != nil else { return }
-        let script = Self.textScaleScript(textScale)
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
+        run(Self.textScaleScript(textScale))
     }
 
     /// Sets the theme's CSS variables (read by `reader.css`) on the shown document's root element.
     func applyTheme() {
         guard document != nil else { return }
-        let script = theme.readerScript
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: Self.world) }
+        run(theme.readerScript)
+    }
+
+    /// The page's own background (the dark style's, LOT-122) shows past the page's ends while it bounces. WebKit resolves the colour
+    /// when it is set, so it is set again when iOS or the theme setting flips light and dark.
+    func applyUnderPageBackground() {
+        webView.underPageBackgroundColor = theme.readerBackground.resolvedColor(with: webView.traitCollection)
+    }
+
+    func trackUnderPageBackground() {
+        applyUnderPageBackground()
+        webView.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { [weak self] (_: UIView, _) in
+            self?.applyUnderPageBackground()
+        }
     }
 
     /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.

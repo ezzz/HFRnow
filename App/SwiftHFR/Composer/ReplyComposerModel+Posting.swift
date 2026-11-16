@@ -2,6 +2,15 @@ import Foundation
 import HFRClient
 
 extension ReplyComposerModel {
+    /// Inserts the smiley `code` over `selection` (the end of the text when nil), as legacy did (LOT-104). Returns the
+    /// caret's UTF-16 offset in the new text, nil when the editor does not accept typing (nothing changed).
+    func insert(smiley code: String, replacing selection: Range<String.Index>?) -> Int? {
+        guard canEdit else { return nil }
+        let result = SmileyInsertion.insert(code, into: text, replacing: selection)
+        update(text: result.text)
+        return result.caretUTF16Offset
+    }
+
     /// A new private message: the sheet shows the recipient and subject fields.
     var isNewMessage: Bool {
         if case .newPrivateMessage = target { true } else { false }

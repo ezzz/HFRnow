@@ -14,7 +14,8 @@ import SwiftSoup
 public enum HopResponseParser {
     /// What the request was, which decides how the same `.hop` shape is read.
     public enum Context: Sendable {
-        /// The answer to a submitted write: a `.hop` with a link or input is a refusal.
+        /// The answer to a submitted write: a `.hop` with a link or input is a refusal, and so is the link-less "pas les droits
+        /// pour éditer" sentence (`W440c`).
         case write
         /// The page that precedes the moderator alert form: a `.hop` with a link or input means "already alerted"
         /// (`ReplyService.swift:1564-1572`, `AlerteModoViewController.m:154-163`, `R88`), the form itself has no `.hop`.
@@ -55,6 +56,8 @@ public enum HopResponseParser {
             case .write, .pollVote, .alertSubmit: return HopResponse(kind: .rejected, message: message)
             }
         }
+        // `W440c`: a link-less refusal of an edit; the refresh to the thread must not make it a success or `unrecognized`.
+        if context == .write, isRightsRefusal(message) { return HopResponse(kind: .rejected, message: message) }
         guard isConfirmation(message, in: context), let target = refreshTarget(in: document, requestURL: requestURL) else {
             return HopResponse(kind: .unrecognized, message: message)
         }
@@ -76,6 +79,10 @@ public enum HopResponseParser {
     static let alertConfirmation = "Un message a été envoyé avec succès aux modérateurs"
     /// Part of the `.hop` text of a write sent without a session (`W17c`).
     private static let loggedOutMarker = "vous devez être enregistré"
+    /// Part of the `.hop` text of an edit POST of another account's message (`W440c`): no link, no input, a 3 s refresh.
+    /// The corpus sweep (282 HTML captures) found no other link-less refusal of a write: the other link-less `.hop`
+    /// pages are lists, the search wait page, login and poll pages, so the sentence is matched, not the shape.
+    private static let rightsRefusalMarker = "pas les droits pour éditer"
     /// The whole `.hop` text of the alert page and of an alert sent without a session (`R89`, `W47`).
     static let alertLoggedOut = "Vous devez être identifié pour prévenir les modérateurs"
 
@@ -135,6 +142,10 @@ public enum HopResponseParser {
         guard let lowered = message?.lowercased(), lowered.contains(successMarker) else { return false }
         let words = lowered.split { !$0.isLetter }
         return !words.contains { negations.contains(String($0)) }
+    }
+
+    private static func isRightsRefusal(_ message: String?) -> Bool {
+        message?.lowercased().contains(rightsRefusalMarker) == true
     }
 
     /// HFR's sentence for a missing session: `W17c`'s in every context, the alert pages' (`R89`, `W47`) in the alert

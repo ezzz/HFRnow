@@ -7,8 +7,9 @@ public struct ImageHostRule: Sendable, Equatable {
     public enum ThumbnailRewrite: Sendable, Equatable {
         /// The path starts with `prefix` (whole components, for example `/thumb/`): replace that prefix with `replacement`.
         case pathPrefix(prefix: String, replacement: String)
-        /// Under `pathPrefix`, the file name carries `marker` (for example `.th.`): remove it.
-        case fileNameMarker(pathPrefix: String, marker: String)
+        /// Under `pathPrefix`, the file name carries one or more of `markers` (for example `.th.` for a thumbnail, `.md.` for a
+        /// medium rendition): remove each one found, so `a.md.jpg` and `a.th.jpg` both become `a.jpg`.
+        case fileNameMarkers(pathPrefix: String, markers: [String])
     }
 
     /// Lower-case host name without trailing dot, for example `reho.st`.

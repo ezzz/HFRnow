@@ -1,7 +1,8 @@
 import HFRModels
 import Observation
 
-// Port of HFRswift/Swift/MainWindow.swift (CategoriesListViewModel) @ 2440d79. Differences: forums from LOT-021, sub-forums as sections.
+// Port of HFRswift/Swift/MainWindow.swift (CategoriesListViewModel) @ 87fe0d1c. Differences: forums from LOT-021; the sub-forums
+// stay known here (the topic list's picker and the "N sous-forums" count read them, GAP-020, 022).
 /// One forum entry of the sidebar.
 struct ForumRow: Identifiable, Hashable, Sendable {
     let id: String
@@ -13,7 +14,16 @@ struct ForumRow: Identifiable, Hashable, Sendable {
 struct ForumSection: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
+    /// The category's own list first ("Tous les sujets"), then its sub-forums.
     let rows: [ForumRow]
+    let categoryID: CategoryID?
+
+    /// What the category row opens: the category's whole list.
+    var source: TopicSource { rows[0].source }
+    /// How many sub-forums the home page (and the completion table, LOT-021) gave for it.
+    var subforumCount: Int { rows.count - 1 }
+    /// The category's image (`ForumCategoryIcon`).
+    var iconName: String { ForumCategoryIcon.assetName(for: categoryID) }
 }
 
 /// The forum list ready to display: Apple category already filtered (Q-7), sources resolved.
@@ -29,13 +39,18 @@ struct ForumListContent: Sendable, Equatable {
         unreadPrivateMessages = page.unreadPrivateMessages
     }
 
+    /// The category `source` belongs to, whether it is the category's own list or one of its sub-forums.
+    func section(containing source: TopicSource) -> ForumSection? {
+        sections.first { section in section.rows.contains { $0.source == source } }
+    }
+
     private static func section(for forum: ForumCategory) -> ForumSection {
         // The category opens by its id when known (same list as its path), every sub-forum by the link the page gave.
         let own = forum.categoryID ?? ForumCatalogue.categoryID(forPath: forum.path)
         let ownSource = own.map { TopicSource.forum($0, title: forum.title) } ?? .subforum(path: forum.path, title: forum.title)
         var rows = [ForumRow(id: forum.id, title: "Tous les sujets", source: ownSource)]
         rows += forum.subforums.map { ForumRow(id: $0.path, title: $0.title, source: .subforum(path: $0.path, title: $0.title)) }
-        return ForumSection(id: forum.id, title: forum.title, rows: rows)
+        return ForumSection(id: forum.id, title: forum.title, rows: rows, categoryID: own)
     }
 }
 
@@ -44,9 +59,6 @@ struct ForumListContent: Sendable, Equatable {
 @Observable
 final class ForumListModel {
     let loader = ContentLoader<ForumListContent>()
-    /// Categories the user has opened; the selected forum's category is opened by `reveal`.
-    var expandedSections: Set<String> = []
-
     private let dataSource: any ForumDataSource
     private let visibility: ForumVisibility
     private let accountName: @Sendable () async -> String?
@@ -76,14 +88,6 @@ final class ForumListModel {
         await loader.load { () async throws(ListLoadError) -> ForumListContent in
             let page = try await dataSource.forumList()
             return ForumListContent(page: page, visibility: visibility, accountName: await accountName())
-        }
-    }
-
-    /// Opens the section holding `source`, so a selection made elsewhere is visible in the sidebar.
-    func reveal(_ source: TopicSource?) {
-        guard let source, let sections = loader.value?.sections else { return }
-        if let section = sections.first(where: { $0.rows.contains { $0.source == source } }) {
-            expandedSections.insert(section.id)
         }
     }
 }

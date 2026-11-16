@@ -21,7 +21,7 @@ extension TopicReaderModel {
     /// has one (`quick` and `forum` alike, see the spec). Without a selection, or when the quotes cannot be fetched, the
     /// composer still opens, so a failed quote never blocks a reply; the message says what was not added.
     func requestReply() async {
-        guard replyTarget != nil, !isLoadingQuote, pendingReply == nil else { return }
+        guard !suspendsPageInteractions, replyTarget != nil, !isLoadingQuote, pendingReply == nil else { return }
         // Busy before the first await: a second tap meanwhile must not start a second fetch.
         isLoadingQuote = true
         defer { isLoadingQuote = false }
@@ -41,7 +41,8 @@ extension TopicReaderModel {
 
     /// "Citer": the message's own quote, merged into the draft. A failure opens nothing and says why.
     func quoteMessage(post: Int) async {
-        guard let quoting, replyTarget != nil, !isLoadingQuote, pendingReply == nil, let actions = actions(of: post) else { return }
+        guard !suspendsPageInteractions, let quoting, replyTarget != nil, !isLoadingQuote, pendingReply == nil,
+              let actions = actions(of: post) else { return }
         isLoadingQuote = true
         defer { isLoadingQuote = false }
         do throws(QuoteError) {
@@ -54,8 +55,8 @@ extension TopicReaderModel {
     /// "Citer extrait" / "Citer gras": the selection `text` of message `post`, narrowed or bolded by LOT-049's formatter. A
     /// selection from another document (a page loaded since) is dropped, like every message of the page.
     func quoteSelection(post: Int, text: String, bold: Bool, token: Int) async {
-        guard token == document?.token, let quoting, replyTarget != nil, !isLoadingQuote, pendingReply == nil,
-              let actions = actions(of: post) else { return }
+        guard !suspendsPageInteractions, token == document?.token, let quoting, replyTarget != nil, !isLoadingQuote,
+              pendingReply == nil, let actions = actions(of: post) else { return }
         isLoadingQuote = true
         defer { isLoadingQuote = false }
         do throws(QuoteError) {
@@ -70,6 +71,7 @@ extension TopicReaderModel {
     /// The message menu a tap asks for: the selection is read from the session first, so the "Citer ☐/☑" entry shows the
     /// state as it is now (a reply sent since has released its messages).
     func openMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) async {
+        guard !suspendsPageInteractions else { return }
         if let quoting, let selection = selectionToken(on: page) { quoteSelected = Set(await quoting.selectedNumbers(for: selection)) }
         requestMenu(post: post, source: source, anchor: anchor, token: token)
     }

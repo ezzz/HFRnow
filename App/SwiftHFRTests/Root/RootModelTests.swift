@@ -11,16 +11,46 @@ struct RootModelTests {
     ) async -> RootModel {
         let source = FakeDataSource()
         source.forumHandler = { ForumListPage(forums: [], isLoggedIn: loggedIn, unreadPrivateMessages: unread) }
-        let forums = ForumListModel(dataSource: source)
+        // As the environment-built root: the badge counts what the pages loaded through this source announce.
+        let count = PrivateMessageCount()
+        let counted = PrivateMessageCountingSource(base: source, count: count)
+        let forums = ForumListModel(dataSource: counted)
         let root = RootModel(
             forums: forums,
-            categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            categories: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.categoriesStartupSource),
+            favorites: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.favoritesStartupSource),
             messages: MessageListModel(source: FakePrivateMessages()),
-            store: store, initial: initial
+            store: store, initial: initial, privateMessageCount: count
         )
         await forums.loadIfNeeded()
         return root
+    }
+
+    // Regular-width iPad: a Favoris section title switches to Catégories, as legacy (`MainWindow.swift:2221-2232` @ 87fe0d1c), instead
+    // of pushing into the detail column.
+    @Test func aFavorisSectionTitleSwitchesTheContentColumnToCategoriesOnFavoris() {
+        let source = FakeDataSource()
+        let filter = TopicFilterModel(settings: InMemorySettingsStore())
+        let forums = ForumListModel(dataSource: source)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(
+                dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource, topicFilter: filter
+            ),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            messages: MessageListModel(source: FakePrivateMessages()),
+            store: InMemorySettingsStore(), initial: .tab(.favorites)
+        )
+        root.categories.selectedTopic = TopicSummary(
+            topicID: TopicID(category: .forum(13), topic: 1), title: "Ancien", path: "/t1", starterOrInterlocutors: "membre",
+            readState: .read
+        )
+        let category = TopicSource.forum(.forum(13), title: "Discussions")
+        root.showCategoryFromFavorites(category)
+        #expect(root.categories.selectedTopic == nil)
+        #expect(root.selectedDestination == .tab(.categories))
+        #expect(root.categories.selectedSource == category)
+        #expect(filter.flag == .favorites)
     }
 
     // Both layouts read `RootModel.messages`: the open conversation survives a switch of tab or of layout.
@@ -68,7 +98,7 @@ struct RootModelTests {
         #expect(root.selectedDestination == .plus(.search))
     }
 
-    @Test func theMessagesBadgeShowsTheUnreadCountFromTheHomePage() async {
+    @Test func theMessagesBadgeShowsTheCountTheCountingSourceRecorded() async {
         #expect(await model(unread: 3).unreadPrivateMessages == 3)
         #expect(await model(unread: nil, loggedIn: false).unreadPrivateMessages == 0)
         #expect(await model(unread: 0).unreadPrivateMessages == 0)
@@ -99,10 +129,10 @@ struct RootModelTests {
         #expect(PlusEntry.allCases.filter(\.isDestructive) == [.deleteAccount])
     }
 
-    @Test func settingsAndSearchAreBuiltAndTheOthersNameTheirLot() {
+    @Test func settingsSearchCreditsCharterAndDeletionAreBuiltAndTheOthersNameTheirLot() {
         let expected: [(PlusEntry, String?)] = [
             (.settings, nil), (.search, nil), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
-            (.credits, "LOT-120"), (.charter, "LOT-120"), (.deleteAccount, "LOT-157")
+            (.credits, nil), (.charter, nil), (.deleteAccount, nil)
         ]
         #expect(expected.map(\.0) == PlusEntry.allCases)
         for (entry, lot) in expected {

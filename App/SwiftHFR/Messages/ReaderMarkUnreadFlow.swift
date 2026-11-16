@@ -19,9 +19,10 @@ typealias MarkUnreadHost = @MainActor (TopicFlagOutcome) async -> Void
 // (`MessagesView.swift:4694-4722`).
 extension TopicReaderModel {
     /// Sends the page's `nonlu.php` link once and tells `host`. HFR's confirmation goes to the list that closes this reader,
-    /// or shows here when no list hosts it; a failure stays here and is never resent, the member picks the entry again.
+    /// or shows here when no list hosts it; a failure stays here and is never resent, the member picks the entry again. Nothing
+    /// is sent under an open composer (#653).
     func markUnread(with actions: TopicFlagActions, host: MarkUnreadHost?) async {
-        guard markUnreadState != .sending, let link = page?.markUnreadURL else { return }
+        guard offersMarkUnread, markUnreadState != .sending, let link = page?.markUnreadURL else { return }
         markUnreadState = .sending
         let outcome = await actions.markUnread(link: link)
         switch outcome {
@@ -50,7 +51,8 @@ struct ReaderMarkUnreadFlow: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let actions, model.page?.markUnreadURL != nil {
+                // None under an open composer (#653): the "…" overflow stays shut.
+                if let actions, model.offersMarkUnread {
                     ToolbarItem(placement: .secondaryAction) {
                         Button { Task { await model.markUnread(with: actions, host: host) } } label: {
                             Label("Marquer comme non lu", systemImage: "envelope.badge")

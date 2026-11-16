@@ -14,20 +14,33 @@ struct ForumSearchView: View {
     let reader: ReaderServices
     let composer: ComposerServices?
     @FocusState private var fieldFocused: Bool
+    /// "Annuler" ended the load: no result to announce (the loader keeps the previous value).
+    @State private var cancelledLoad = false
 
     var body: some View {
         List {
             formSection
             resultsSection
         }
+        .densityListMargins()
         .navigationTitle("Recherche")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { pagerToolbar }
+        .pagerBar(pager, hidden: fieldFocused)
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
                 TopicReaderView(model: readerModel, services: reader, composer: composer)
             } else {
-                ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder")
+                ContentUnavailableView("Sujet introuvable", systemImage: "questionmark.folder").appScreenBackground()
+            }
+        }
+        .onChange(of: model.loader.isLoading) { wasLoading, isLoading in
+            // The results land below the focused field: announce them (a search is a wait with no other cue).
+            guard wasLoading, !isLoading else { return }
+            guard !cancelledLoad else { cancelledLoad = false; return }
+            if let error = model.loader.error {
+                AccessibilityNotification.Announcement(error.title).post()
+            } else if let content = model.loader.value {
+                AccessibilityNotification.Announcement(summary(content)).post()
             }
         }
         .onChange(of: forums.loader.value, initial: true) { _, content in model.setCategories(from: content) }
@@ -42,8 +55,9 @@ struct ForumSearchView: View {
                 .focused($fieldFocused)
                 .onSubmit(submit)
             if let word = model.bannedWord {
-                Label("Le mot « \(word) » ne peut pas être recherché.", systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                StatusLabel(
+                    text: "Le mot « \(word) » ne peut pas être recherché.", symbol: "exclamationmark.triangle.fill", tint: .orange
+                )
                     .font(.footnote)
             }
             if model.hasShortWord {
@@ -85,15 +99,15 @@ struct ForumSearchView: View {
                     Text(content.notice ?? "Aucun résultat").foregroundStyle(.secondary)
                 }
                 ForEach(content.topics) { topic in
-                    Button { model.selected = topic } label: { SearchResultRow(topic: topic) }
-                        .buttonStyle(.plain)
+                    SearchResultRow(topic: topic) { model.selected = topic }
                 }
             }
         }
         if loader.isLoading {
             Section {
                 HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
-                Button("Annuler") { model.cancel() }
+                    .accessibilityElement(children: .combine)
+                Button("Annuler") { cancelledLoad = true; model.cancel() }
             }
         } else if let error = loader.error {
             Section {
@@ -104,10 +118,9 @@ struct ForumSearchView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var pagerToolbar: some ToolbarContent {
+    private var pager: PagerToolbar? {
         if let content = model.loader.value, content.previousPath != nil || content.nextPath != nil {
-            PagerToolbar(
+            return PagerToolbar(
                 first: .init(enabled: model.canGoToPrevious && content.firstPath != nil) {
                     Task { await model.goToFirstPage() }
                 },
@@ -119,6 +132,7 @@ struct ForumSearchView: View {
                 status: .page(content.page)
             )
         }
+        return nil
     }
 
     private func summary(_ content: SearchContent) -> String {
@@ -134,15 +148,22 @@ struct ForumSearchView: View {
 }
 
 /// A result: the topic row, then the excerpt of the matching message.
-private struct SearchResultRow: View {
+struct SearchResultRow: View {
     let topic: TopicSummary
+    let open: () -> Void
+    @Environment(\.listDensity) private var density
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            TopicRowView(topic: topic)
-            if let snippet = topic.searchHit?.snippet, !snippet.isEmpty {
-                Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
+        Button(action: open) {
+            VStack(alignment: .leading, spacing: 4) {
+                TopicRowView(topic: topic)
+                if let snippet = topic.searchHit?.snippet, !snippet.isEmpty {
+                    Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
+                }
             }
         }
+        .buttonStyle(.plain)
+        // On the row itself: the `listRowInsets` of the `TopicRowView` inside the stack is ignored by the list.
+        .listRowInsets(density.rowInsets)
     }
 }

@@ -58,6 +58,7 @@ LOT-052 reads the document from the edit form, so a page HFR renders unlike the 
 |---|---|
 | `R13u1`, `R13u1b` + `LOT-004/S-find-R13u1(b).oracle.json` | storage row on page 1, with HFR's `[non lu]` marker: `post` 3157083, as the oracle's `sPostId` |
 | `R13a` + `S-find-R13a.oracle.json` | no storage row, one page: `.notOnPage`, no next page (the oracle made one GET) |
+| `R333a`, `R333b` + `LOT-004/S-find-R333b.oracle.json` (#767) | storage row on page 2: legacy GETs page 1 then page 2 (`MPStorage.m:694`, `:731-732`) and returns at row 1 (`:723`), never row 16 (an older storage-subject thread); `R333a` is `.notOnPage` with a next page, `R333b` `.found` with the oracle's `sPostId`. The two pages are also LOT-002 `mp` oracles (`LOT-002/R333a.oracle.json`, `R333b.oracle.json`) in the list differential tests |
 | `R60a` + `R60a.oracle.json` | the storage thread's first page: `numreponse` = `sNumRep`, document = `dData`; the text equals the raw paragraph with `&#034;` decoded |
 | `RA5` | "Ce message ne vous est pas destiné, désolé" → `.notAddressed` |
 | `RA1`, `RU1`, `R20` | other threads and a public topic → `.notStorageThread` |
@@ -66,9 +67,10 @@ LOT-052 reads the document from the edit form, so a page HFR renders unlike the 
 
 **Pending capture** (never hand-built, LESSONS 36):
 - A document with other clients' namespaces, member pseudos, near the 64 KiB cap, with a non-BMP character, or with U+00A0 / smiley codes inside strings ([#272](https://github.com/ezzz/HFRnow/issues/272), waits for an operator decision). Until it lands, the U+00A0 removal is **untested** (R60a holds none, and the codec leaves it to this reader) and `.invalidDocument` is only the codec's own invalid-JSON behaviour, never reached from a page.
-- A storage thread found on page 2 or later of the MP list, and the "destiné" page answered for the storage thread itself ([#333](https://github.com/ezzz/HFRnow/issues/333)); `RA5` is the same notice on another MP thread.
 - An MP list page past the last page ([#114](https://github.com/ezzz/HFRnow/issues/114)).
 - A storage message without a paragraph (`.missingParagraph`), and a storage thread's page 2 (`.notFirstPage` on the storage thread itself).
+
+Captured since ([#333](https://github.com/ezzz/HFRnow/issues/333)): the "destiné" page answered for the storage thread itself (`R96b`, as `RA5`), and an MP list whose storage row is on page 2 (`R333a` page 1 without it, `R333b` page 2 with it at row 1, plus an older storage-subject thread at row 16), with their legacy oracles (`LOT-002/R333a`, `LOT-002/R333b`, `LOT-004/S-find-R333b`, #767) pinning that legacy stops at row 1.
 
 ## Intentional differences from legacy
 1. **Pager**: the next page comes from the LOT-022 pager (`navigation.nextPath`), not from the last child of `div.left`, which is a window on long lists (LOT-004 RC4.6).

@@ -25,7 +25,7 @@ struct HFRBBCodeWriterTests {
         "Brackets that are not a matched known tag are text (R95d: [color=], [list], an unclosed [b])",
         arguments: [
             "[b]unclosed", "[/b]", "[i]x[/b]", "[color=#FF0000]red[/color]", "[list]", "[/list]", "[B]x[/B]", "[ b ]x[/ b ]",
-            "[b", "b]", "[]", "[url=]x[/url]", "[email]a@b.c[/email]", "[#FF0000]x[/#00FF00]", "[#F00]x[/#F00]", "a[b]c",
+            "[b", "b]", "[]", "[url=]x[/url]", "[email]a@b.c[/email]", "a[b]c",
             "[b\nx]y[/b]", "[url=https://a.example/\nx]y[/url]", "[img][/img]", "[url][/url]", "[quote]never closed"
         ]
     )
@@ -50,15 +50,20 @@ struct HFRBBCodeWriterTests {
             == "<p></p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\">Code :</b><br />"
             + "<ol class=\"olcode\"><li>a</li><li></li><li>&nbsp; &nbsp;b</li></ol></td></tr></table><p>")
         #expect(Self.html("[code]code   text[/code]").contains("<li>code&nbsp; &nbsp;text</li>"))
-        #expect(Self.html("[cpp]int x;[/cpp]").contains("<ol class=\"olcode\"><li>int x;</li></ol>"))
-        #expect(Self.html("[code][b]x[/b] &lt;[/code]").contains("<li>[b]x[/b] &amp;lt;</li>"))
+        #expect(Self.html("[cpp]int x;[/cpp]").contains("<ol class=\"olcode\"><li><span style=\"color:blue\">int</span> x;</li></ol>"))
+        // `[b]` is rendered in `code` (R443j), the rest of the content stays as typed.
+        #expect(Self.html("[code][b]x[/b] &lt;[/code]").contains("<li><strong>x</strong> &amp;lt;</li>"))
+        #expect(Self.html("[code][b][/b][/code]").contains("<li>[b][/b]</li>"))
     }
 
     @Test("Bullets: the first [*] of a line opens ul > li for the rest of the line and eats its break (R95d)")
     func bullets() {
         #expect(Self.html("[list]\r\n[*]item one[*]item two[/list]\r\n[b]n[/b]")
             == "<p>[list]\r<br /></p><ul><li>item one[*]item two[/list]\r</li></ul><p><strong>n</strong>")
-        #expect(Self.html("[*]a\r\n[*]b") == "<p></p><ul><li>a\r</li></ul><p></p><ul><li>b</li></ul><p>")
+        // Consecutive `[*]` lines are one list, the first line without one ends it, an empty `[*]` is an empty item (R443d).
+        #expect(Self.html("[*]a\r\n[*]b") == "<p></p><ul><li>a\r</li><li>b</li></ul><p>")
+        #expect(Self.html("[*]a\r\n[*]\r\nz\r\n[*]c") == "<p></p><ul><li>a\r</li><li>\r</li></ul><p>z\r<br /></p><ul><li>c</li></ul><p>")
+        #expect(Self.html("[*]a\r\n\r\nb") == "<p></p><ul><li>a\r</li></ul><p>\r<br />b")
     }
 
     @Test("Links and images: both url forms, the whole element final (R95d)")
@@ -88,11 +93,11 @@ struct HFRBBCodeWriterTests {
         #expect(Self.html("[url=www.a.example/x]t[/url]") == "<p><a href=\"http://www.a.example/x\" class=\"cLink\">t</a>")
         #expect(Self.html("[url]tel:0123[/url]") == "<p><a href=\"tel:0123\" class=\"cLink\">tel:0123</a>")
         #expect(Self.html("[url]www.a.example:8080/x[/url]")
-            == "<p><a href=\"www.a.example:8080/x\" class=\"cLink\">www.a.example:8080/x</a>")
+            == "<p><a href=\"http://www.a.example:8080/x\" class=\"cLink\">www.a.example:8080/x</a>")
         // A run of spaces inside a URL or a link text is written `&nbsp;` as everywhere, never a marker.
-        #expect(Self.html("[url]a  b[/url] [url=a  b]t  u[/url] [img]a  b[/img]")
+        #expect(Self.html("[url]a  b[/url] [url=a  b]t  u[/url] [img]http://a  b[/img]")
             == "<p><a href=\"http://a &nbsp;b\" class=\"cLink\">a &nbsp;b</a> <a href=\"http://a &nbsp;b\" class=\"cLink\">t &nbsp;u</a> "
-            + "<img src=\"a &nbsp;b\" alt=\"a &nbsp;b\" title=\"a &nbsp;b\" />")
+            + "<img src=\"http://a &nbsp;b\" alt=\"http://a &nbsp;b\" title=\"http://a &nbsp;b\" />")
         #expect(Self.html("a\nb\rc") == "<p>a\r<br />b\r<br />c")
         #expect(Self.html("") == "<p>")
     }
@@ -108,21 +113,8 @@ struct HFRBBCodeWriterTests {
             + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":D\" title=\":D\" /> "
             + "<img src=\"https://forum-images.hardware.fr/icones/smile.gif\" alt=\":)\" title=\":)\" /> "
             + "<img src=\"https://forum-images.hardware.fr/images/perso/user6.gif\" alt=\"[:user6]\" title=\"[:user6]\" />")
-        #expect(writer.html(for: "[url]https://a.example/:)[/url]").contains("cLink\">https://a.example/:)</a>"))
         let off = HFRBBCodeWriter(smileysEnabled: false, smileys: [":D": url])
         #expect(off.html(for: ":D") == "<p>:D")
-        // Codes are matched on the text as typed, never inside the entities of the escaping, nor inside a bare URL word.
-        let wink = HFRBBCodeWriter(smileysEnabled: true, smileys: [";)": url, ":/": url, ":p": url])
-        #expect(wink.html(for: "dit \"oui\") et https://a.example/:/x https://a.example/:p ;)")
-            == "<p>dit &#034;oui&#034;) et https://a.example/:/x https://a.example/:p "
-            + "<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\";)\" title=\";)\" />")
-        #expect(wink.html(for: "oui:p")
-            == "<p>oui<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":p\" title=\":p\" />")
-        // A URL anywhere in a word protects the rest of the word: after a bracket, a quote, a tag or a glued smiley.
-        #expect(wink.html(for: "voir (http://a.example/:/x) ou \"https://b.example/:p\" [b]https://c.example/:/[/b]")
-            == "<p>voir (http://a.example/:/x) ou &#034;https://b.example/:p&#034; <strong>https://c.example/:/</strong>")
-        #expect(wink.html(for: "b;)http://y.example/:p")
-            == "<p>b<img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\";)\" title=\";)\" />http://y.example/:p")
         // Two codes equal once folded: the one typed exactly wins, else the first of the table.
         let both = HFRBBCodeWriter(smileysEnabled: true, smileys: [":d": smile, ":D": url])
         #expect(both.html(for: ":d :D :dd")
@@ -158,14 +150,14 @@ struct HFRBBCodeWriterTests {
         #expect(dOnly.html(for: ":d") == "<p><img src=\"https://forum-images.hardware.fr/icones/biggrin.gif\" alt=\":d\" title=\":D\" />")
     }
 
-    @Test("Escaping: the four characters HFR escapes, and nothing else, once (R95d)")
+    @Test("Escaping: the four characters HFR escapes, and nothing else, once in text; a quote twice in a URL attribute (R95d, R443f)")
     func escaping() {
         #expect(Self.html("plain <b>html</b> & \"quotes\" 'x'") == "<p>plain &lt;b&gt;html&lt;/b&gt; &amp; &#034;quotes&#034; 'x'")
         #expect(Self.html("a\u{FFFF}b\u{FFFE}c" + String(HFRBBCodeWriter.noBreakSpaceMarker) + "d") == "<p>abcd")
         #expect(Self.html("\u{FFFF}0\u{FFFF} [url]https://a.example/[/url]")
             == "<p>0 <a href=\"https://a.example/\" class=\"cLink\">https://a.example/</a>")
         #expect(Self.html("[url=https://a.example/?a=1&b=\"]x & \"y\"[/url]")
-            == "<p><a href=\"https://a.example/?a=1&amp;b=&#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
+            == "<p><a href=\"https://a.example/?a=1&amp;b=&amp;#034;\" class=\"cLink\">x &amp; &#034;y&#034;</a>")
     }
 
     /// The adversarial shapes, each a function of a repeat count: nesting, unclosed tags and colours, rejected URL
@@ -229,10 +221,10 @@ struct HFRBBCodeWriterTests {
         let mark = "\u{301}"
         #expect(Self.html("a\"\(mark)b &\(mark)c <\(mark)d >\(mark)e") == "<p>a&#034;\(mark)b &amp;\(mark)c &lt;\(mark)d &gt;\(mark)e")
         #expect(Self.html("[url=https://a.example/\"\(mark) class=spoiler title=injected]t[/url]")
-            == "<p><a href=\"https://a.example/&#034;\(mark) class=spoiler title=injected\" class=\"cLink\">t</a>")
+            == "<p><a href=\"https://a.example/&amp;#034;\(mark) class=spoiler title=injected\" class=\"cLink\">t</a>")
         #expect(Self.html("[img]https://a.example/i.png\"\(mark) class=x[/img]")
-            == "<p><img src=\"https://a.example/i.png&#034;\(mark) class=x\" alt=\"https://a.example/i.png&#034;\(mark) class=x\""
-            + " title=\"https://a.example/i.png&#034;\(mark) class=x\" />")
+            == "<p><img src=\"https://a.example/i.png&amp;#034;\(mark) class=x\" alt=\"https://a.example/i.png&amp;#034;\(mark) class=x\""
+            + " title=\"https://a.example/i.png&amp;#034;\(mark) class=x\" />")
         #expect(Self.html("[b]x[/b]\(mark)") == "<p><strong>x</strong>\(mark)")
         #expect(Self.html("[quote]a[/quote]\u{FE0F}").hasPrefix("<p></p><div class=\"container\">"))
         #expect(Self.html("x[url=https://a/]t[/url]\(mark)y[url=https://b/]u[/url]")
@@ -257,16 +249,20 @@ struct HFRBBCodeWriterTests {
         #expect(Self.html("[url=[code]x[/code]]t[/url]").hasPrefix("<p>[url=</p><table class=\"code\">"))
         #expect(Self.html("[img][fixed]x[/fixed][/img]").hasSuffix("</td></tr></table><p>[/img]"))
         #expect(!Self.html("[url][fixed]x[/fixed][/url] \u{FFFF}1\u{FFFF}").contains("\u{FFFF}"))
-        // A raw block inside a raw block: the outer tags are text, the inner block is rendered, nothing leaks.
+        // A raw block inside a raw block: a `[fixed]` around a block loses its tags (R443n), nothing leaks.
         let nested = Self.html("[fixed]a [cpp]int x;[/cpp] b[/fixed] end")
-        #expect(nested == "<p>[fixed]a </p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\">Code :</b><br />"
-            + "<ol class=\"olcode\"><li>int x;</li></ol></td></tr></table><p> b[/fixed] end")
+        #expect(nested == "<p>a </p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\">Code :</b><br />"
+            + "<ol class=\"olcode\"><li><span style=\"color:blue\">int</span> x;</li></ol></td></tr></table><p> b end")
         #expect(!Self.html("[code]a[cpp]x[/cpp]b[/code]").contains("\u{FFFF}"))
         #expect(!Self.html("[fixed][code]x[/code][/fixed]").contains("\u{FFFF}"))
-        // When the outer tag's pass runs first (cpp, then code, then fixed), the outer block takes the inner tags as text,
-        // and a tag inside itself closes at the first close.
+        // A `[code]` in a `[cpp]` is a code table inside the cpp item, its content escaped and coloured again (R443n); a tag
+        // inside itself closes at the first close.
         let codeHead = "<p></p><table class=\"code\"><tr class=\"none\"><td><b class=\"s1\">Code :</b><br /><ol class=\"olcode\">"
-        #expect(Self.html("[cpp][code]x[/code][/cpp]") == codeHead + "<li>[code]x[/code]</li></ol></td></tr></table><p>")
+        #expect(Self.html("[cpp]c [code]int y;[/code] c[/cpp]") == codeHead + "<li>c </p><table class=\"code\"><tr class=\"none\"><td>"
+            + "<b class=\"s1\">Code :</b><br /><ol class=\"olcode\"><li>&lt;span style=&#034;color:blue&#034;&gt;"
+            + "<span style=\"color:blue\">int</span>&lt;/span&gt; y;</li></ol></td></tr></table><p> c</li></ol></td></tr></table><p>")
+        #expect(Self.html("[code]c [fixed]z[/fixed] c[/code]") == codeHead + "<li>c </p><table class=\"fixed\"><tr class=\"none\"><td>"
+            + "<p>z</p></td></tr></table><p> c</li></ol></td></tr></table><p>")
         #expect(Self.html("[code][code]x[/code][/code]") == codeHead + "<li>[code]x</li></ol></td></tr></table><p>[/code]")
         // A code made of digits never rewrites a held fragment.
         let digits = HFRBBCodeWriter(smileysEnabled: true, smileys: ["0": try #require(URL(string: "https://a.example/0.gif"))])

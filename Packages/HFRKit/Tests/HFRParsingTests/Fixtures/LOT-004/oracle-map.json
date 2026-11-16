@@ -242,6 +242,11 @@
     "pseudo": "user1",
     "storage": "mpstorage-op"
   },
+  "S-find-R333b.json": {
+    "kind": "storage",
+    "pseudo": "user1",
+    "storage": "mpstorage-op"
+  },
   "W10.html": {
     "flow": "reply",
     "kind": "response",

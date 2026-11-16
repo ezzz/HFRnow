@@ -1,0 +1,15 @@
+{
+  "id": "R57j",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/{cat}/topics/{unknown_post}/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/13/topics/999999999/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/13/topics/999999999/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Fri, 13 Nov 2026 12:24:32 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R57j-rest-unknown-topic.json",
+  "private": false
+}

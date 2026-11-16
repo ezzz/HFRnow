@@ -51,3 +51,27 @@ extension HFREndpoint {
         return try .get(url(path: "/webservices/rest_api.php", query: query, literals: [UInt8(ascii: "/")]))
     }
 }
+
+extension HFREndpoint {
+    /// #714: the profile link of a one-to-one MP row, `profilebdd.php?config=hfr.inc&pseudo=<pseudo>` (HFR-PROTOCOL §6c
+    /// "#714 — `profilebdd.php` redirect", `R716a`), not followed: HFR answers one `301` to `/hfr/profil-<id>.htm` and the
+    /// caller reads the id with `memberID(inProfileRedirect:)`, so an unknown pseudo (empty id, `R716d`) costs one request.
+    ///
+    /// The pseudo is percent-encoded (a space is `%20`); surrounding white space is dropped and a blank pseudo is refused.
+    public static func profileRedirect(pseudo: String) throws -> HTTPRequest {
+        let trimmed = pseudo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw NetworkError.invalidRequest(reason: "profile lookup needs a pseudo") }
+        return try .get(url(path: "/profilebdd.php", query: [("config", config), ("pseudo", trimmed)]), redirectPolicy: .doNotFollow)
+    }
+
+    /// The member id a `profileRedirect(pseudo:)` answer names: a 3xx whose `Location` is `/hfr/profil-<id>.htm` on the forum's
+    /// own host over HTTPS (`R716a`, `R716c`). Nil for an empty id (`R716d`, unknown pseudo), any other answer or location.
+    public static func memberID(inProfileRedirect response: HTTPResponse) -> Int? {
+        guard response.isRedirect, let location = response.redirectLocation,
+              location.scheme?.lowercased() == "https", location.host()?.lowercased() == "forum.hardware.fr",
+              location.port == nil, location.user == nil, location.query == nil,
+              let match = location.path(percentEncoded: true).wholeMatch(of: /\/hfr\/profil-([0-9]{1,18})\.htm/)
+        else { return nil }
+        return Int(match.1)
+    }
+}

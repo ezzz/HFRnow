@@ -20,9 +20,8 @@ struct ReaderReplyFlow: ViewModifier {
             }
             .task(id: model.replyConfirmation) {
                 guard model.replyConfirmation != nil else { return }
-                // Long enough to read; cancelled (and nothing hidden) when another confirmation replaces it.
-                guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-                model.clearReplyConfirmation()
+                ReaderAccessibility.announce(model.replyConfirmation)
+                // The model clears it after `ConfirmationAutoDismiss.delay`, whatever happens to this view meanwhile (#864).
             }
             // The reply button and every quote ask the reader; it hands over once, to the sheet that is not open yet.
             .onChange(of: model.pendingReply) { _, request in
@@ -36,10 +35,12 @@ struct ReaderReplyFlow: ViewModifier {
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
             }
             .sheet(item: $reply) { composer in
-                ReplyComposerView(model: composer) { reason in
+                ReplyComposerView(model: composer, pageScrolls: true) { reason in
                     Task { await model.composerDidClose(reason) }
                 }
             }
+            // The page under the sheet scrolls but ignores its taps while the sheet is up (#653).
+            .onChange(of: reply != nil) { _, isOpen in model.composer(.reply, isOpen: isOpen) }
     }
 }
 
@@ -53,8 +54,10 @@ private struct ReplySentBanner: View {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
             Text(text).scaledFont(.subheadline)
             Spacer()
-            Button(action: close) { Image(systemName: "xmark") }
-                .accessibilityLabel("Masquer")
+            Button(action: close) {
+                Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(.rect) // 44 pt target
+            }
+            .accessibilityLabel("Masquer")
         }
         .padding(12)
         .glassEffect(.regular, in: .rect(cornerRadius: 12)) // floats over the page, which runs under it (LOT-186)

@@ -18,7 +18,7 @@ Keeping keys out of the repository stops casual reuse from the source, **not** e
 - Keys are provided at build time through an untracked configuration file (git-ignored `.xcconfig`, with a committed `*.example`; the only local exception to AGENTS.md ground rule 4, guarded by `.gitignore`, gitleaks and push protection) and, in CI, through GitHub Actions secrets used **only by the app build job**.
 - Engine clients take keys and base URLs as parameters; `swift test` on Linux never needs a real key (tests use fakes).
 - **For now the legacy key values are reused** (maintainer decision, 2026-10-24): they are placed in the local untracked configuration and in a GitHub Actions secret, never in the repository. Replacing them later only means changing those two places; rotation by each key's owner remains recommended since the values are public in the legacy repository history.
-- Hard-coded third-party endpoints and personal addresses (`aq.super-h.fr`, `marc@hardware.fr`, the account-deletion recipient) are configuration too, decided per feature (Q-4, Q-10).
+- Hard-coded third-party endpoints and personal addresses (`aq.super-h.fr`, `marc@hardware.fr`, the account-deletion recipient) are configuration too, decided per feature (Q-4, Q-10). A public contact address is not an API key: the moderators' alert address is committed in `Shared.xcconfig` (Q-10, operator, 2026-11-10).
 
 ## Alternatives considered
 - **User-supplied key in Settings** (works for Giphy's free tier): kept as an option for Giphy in Phase 4.

@@ -2,16 +2,20 @@ import HFRStorage
 import SwiftUI
 import UIKit
 
-// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79. Differences: the avatar cache is filled by
-// `AvatarStore` from the pages read (GAP-230); the placeholder is a monogram, not a grey disc.
+// Port of HFRswift/Swift/MPListView.swift (MPAvatarView, MPAvatarImageStore) @ 2440d79 and @ 87fe0d1c (`:911-917`).
+// Differences: the avatar cache is filled by
+// `AvatarStore` from the pages read, and the legacy app's files are adopted when the cache has none (GAP-230, #714); a correspondent
+// still missing is looked up on their profile while the row is shown (`MemberAvatarPrefetcher`, #714); the placeholder is
+// a monogram, not a grey disc.
 /// The interlocutor's avatar from the avatar cache (LOT-066), a monogram when the cache has none, a group icon for a group
-/// thread; the row sets its size (LOT-169 density). It only reads the cache; `AvatarStore` fills it, and the view reads it again
-/// when the store's generation changes.
+/// thread; the row sets its size (LOT-169 density). It reads the cache, which `AvatarStore` fills, and reads it again when the
+/// store's generation changes; on a miss for a one-to-one row it asks `MemberAvatarPrefetcher` to look the member up (#714).
 struct MessageAvatarView: View {
     let pseudo: String?
     let isGroup: Bool
     @State private var image: UIImage?
     @Environment(\.avatarRefresh) private var refresh
+    @Environment(\.memberAvatars) private var prefetcher
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -34,6 +38,9 @@ struct MessageAvatarView: View {
             // The detached read is not cancelled with the task: a slow old read must not replace the current row's image.
             guard !Task.isCancelled else { return }
             image = loaded
+            // A one-to-one correspondent with no cached avatar: looked up while the row is shown (the task ends with the row).
+            // The store's write bumps the generation, which runs this task again and reads the new file.
+            if loaded == nil, !isGroup, let pseudo, let prefetcher { await prefetcher.prefetch(pseudo: pseudo) }
         }
     }
 
@@ -74,7 +81,8 @@ struct MessageAvatarView: View {
     private static func cachedImage(pseudo: String?) async -> UIImage? {
         guard let pseudo, !pseudo.isEmpty else { return nil }
         return await Task.detached {
-            guard let entry = try? AvatarCache(cache: .standard).entry(forPseudo: pseudo),
+            // The cache first, then the file the legacy app cached under another name (#714): adopted once, then read as ours.
+            guard let entry = try? AvatarCache(cache: .standard).entryAdoptingLegacy(forPseudo: pseudo, accepting: AvatarImage.isDecodable),
                   let data = try? Data(contentsOf: entry.fileURL) else { return nil }
             return UIImage(data: data)
         }.value

@@ -1,0 +1,23 @@
+{
+  "id": "R443g",
+  "account": "user1",
+  "method": "POST",
+  "url_template": "POST /apercu.php (form apercu_form of a composer, as editPost.js apercevoir())",
+  "url": "https://forum.hardware.fr/apercu.php",
+  "final_url": "https://forum.hardware.fr/apercu.php",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 14:22:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "apercu_contenu",
+    "apercu_smiley",
+    "config"
+  ],
+  "note": "preview only, no write (#443)",
+  "request_body": "hash_check=REDACTED&apercu_contenu=+++starts+with+three+spaces%0D%0A1%3A+a+b%0D%0A2%3A+a++b%0D%0A3%3A+a+++b%0D%0A4%3A+a++++b%0D%0A5%3A+a+++++b%0D%0A6%3A+a++++++b%0D%0A+one+leading+space%0D%0Atab%3A%09after%0D%0A%5Bfixed%5Da++b+++c++++d%5B%2Ffixed%5D%0D%0A%5Bfixed%5Dline+one%0D%0Aline+two%5B%2Ffixed%5D%0D%0A%5Bcode%5Da++b+++c%0D%0A+leading+space+in+code%5B%2Fcode%5D%0D%0A%0D%0Aafter+one+empty+line%0D%0A%0D%0A%0D%0A%0D%0Aafter+three+breaks%0D%0A%0D%0A%0D%0A&apercu_smiley=0&config=hfr.inc",
+  "file": "R443g-apercu-whitespace.html",
+  "private": false
+}

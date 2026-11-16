@@ -27,13 +27,13 @@ To write by the author: one line per SwiftHFR file (`// Port of HFRswift/Swift/T
 None planned: same UX as legacy at `2fe43da3`.
 
 ## Behaviour
-To write, on top of LOT-089 and LOT-088. The poll block of the first-post edit form is captured (`R63b`, `docs/HFR-PROTOCOL.md` edit form); the new-topic form's poll section is not: capture [#170](https://github.com/ezzz/HFRnow/issues/170) (`status: blocked` until it lands, never hand-built, LESSONS 36). The answer to a post with a poll is not captured either: list it as *pending capture*.
+To write, on top of LOT-089 and LOT-088. The poll block of the first-post edit form is captured (`R63b`, `docs/HFR-PROTOCOL.md` edit form); the new-topic form's poll section is `R170a` ([#170](https://github.com/ezzz/HFRnow/issues/170)): a separate form `/hfr/<cat>/nouveau_sondage.htm` with `sond=1` and no `have_sondage` input, so legacy's `canCreatePoll` test is false there (`docs/HFR-PROTOCOL.md` §6b "New poll"). The answer to a post with a poll is not captured either: list it as *pending capture*.
 
 ## Edge cases
 To write (sub-category required on a new topic, form without the poll block, closing date in the past at send, 10 answers).
 
 ## Fixtures
-`R63b`; #170 pending.
+`R63b` (edit form), `R170a` (new-poll form), `R45a` (new-topic form without a poll block).
 
 ## Intentional differences from legacy
 To write.

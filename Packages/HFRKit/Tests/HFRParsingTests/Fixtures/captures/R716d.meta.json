@@ -1,0 +1,20 @@
+{
+  "id": "R716d",
+  "account": "user1",
+  "method": "GET",
+  "url_template": "/profilebdd.php?config=hfr.inc&pseudo=<pseudo>",
+  "url": "https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user3",
+  "final_url": "https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user3",
+  "status": 301,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 10 Nov 2026 13:31:03 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/profil-.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "note": "profilebdd.php with a pseudo that does not exist, logged in",
+  "private": false
+}

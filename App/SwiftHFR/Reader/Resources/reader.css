@@ -63,6 +63,12 @@ body {
   margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
 a { color: var(--action); }
+/* Full Keyboard Access and switch users (LOT-163): the page had no focus ring. Shown for keyboard focus only. */
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+/* Reduce Motion (LOT-163): the reader animates nothing today; this keeps it so. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
 
 .separator1 { border-top: 1px dashed var(--separator); }
 .message { padding: 1em 1em 0.85em; border-bottom: 1px solid var(--separator-strong); }
@@ -85,6 +91,8 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .message button.avatar-wrap::after { content: ""; position: absolute; inset: -0.4em; }
 /* `overflow-wrap: anywhere` on body makes an item's min-content one character, so at accessibility sizes the flex row shrank the
    pseudo to a column; break-word does not, the row wraps (date, then button) and a very long pseudo still breaks (min-width 0). */
+/* The byline is the message's heading (role="heading", LOT-163): it takes the author's place in the header row. */
+.message .byline { display: flex; flex: 1 1 auto; min-width: 0; }
 .message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
 .message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 /* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
@@ -130,6 +138,8 @@ table.spoiler { width: 100%; cursor: pointer; border: 1px dashed var(--quote-bor
 table.spoiler div.masque { visibility: hidden; }
 table.spoiler.open div.masque { visibility: visible; }
 
+/* HFR's dashes are dropped by the normalizer (#755); the line is legacy's, 1px dashed (`style-liste-light.css:79`,
+   `style-liste-dark.css:45` @ 87fe0d1c), in the theme's separator colour (THEMES.md §3, one definition) instead of lightgray. */
 .signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px dashed var(--separator); font-size: 0.85em; color: var(--secondary); }
 .signature > br:first-child, .content span.signature { display: none; }
 
@@ -211,3 +221,48 @@ table.quote-blocked > * > tr > td > b.s1::after { content: "\25BC"; }
 table.quote-blocked.open > * > tr > td > b.s1::after { content: "\25B2"; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1 > a { display: none; }
 table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { content: "Citation masquée"; }
+
+/* A gallery theme (LOT-188, THEMES.md §3): the app sets --app-theme-{light,dark}-* and data-app-theme on <html>
+   (ThemeAppearance.readerScript); Legacy removes the attribute, so none of the rules below applies and its page is the one above.
+   The page is the theme's surface; #568's --surface-alt and --separator-strong stay derived from --text and --background. */
+:root[data-app-theme] {
+  --text: var(--app-theme-light-text);
+  --secondary: var(--app-theme-light-secondary);
+  --background: var(--app-theme-light-background);
+  --separator: var(--app-theme-light-separator);
+  --quote-border: var(--app-theme-light-quote-border);
+  --quote-background: var(--app-theme-light-quote-background);
+  --placeholder: var(--app-theme-light-placeholder);
+  --action: var(--app-theme-light-action);
+  --link: var(--app-theme-light-link);
+  --code-background: var(--app-theme-light-code-background);
+  --code-text: var(--app-theme-light-code-text);
+  --spoiler-background: var(--app-theme-light-spoiler-background);
+  --spoiler-text: var(--app-theme-light-spoiler-text);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-app-theme] {
+    --text: var(--app-theme-dark-text);
+    --secondary: var(--app-theme-dark-secondary);
+    --background: var(--app-theme-dark-background);
+    --separator: var(--app-theme-dark-separator);
+    --quote-border: var(--app-theme-dark-quote-border);
+    --quote-background: var(--app-theme-dark-quote-background);
+    --placeholder: var(--app-theme-dark-placeholder);
+    --action: var(--app-theme-dark-action);
+    --link: var(--app-theme-dark-link);
+    --code-background: var(--app-theme-dark-code-background);
+    --code-text: var(--app-theme-dark-code-text);
+    --spoiler-background: var(--app-theme-dark-spoiler-background);
+    --spoiler-text: var(--app-theme-dark-spoiler-text);
+  }
+}
+/* :where() keeps these at the specificity of the rules they extend, and they come last: `b.s1 a` (a quote's author) keeps
+   --text, a [code] block keeps its own background on an even message instead of stepping back to the page, and a quote inside a
+   spoiler writes --text on its own background, not the spoiler's text. --app-theme-font is the theme's design (unset: the
+   declaration is invalid and the body keeps the system family it inherits). */
+:where(:root[data-app-theme]) body { font-family: var(--app-theme-font); }
+:where(:root[data-app-theme]) a { color: var(--link); }
+:where(:root[data-app-theme]) :is(table.citation, table.oldcitation, table.quote) { color: var(--text); }
+:where(:root[data-app-theme]) :is(table.code, table.fixed) { background: var(--code-background); color: var(--code-text); }
+:where(:root[data-app-theme]) table.spoiler { background: var(--spoiler-background); color: var(--spoiler-text); }

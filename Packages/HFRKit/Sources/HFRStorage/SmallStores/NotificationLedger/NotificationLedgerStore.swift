@@ -34,7 +34,7 @@ public actor NotificationLedgerStore {
     public func recordNews(_ summary: NotificationSummary, account: String) throws(SmallStoreError) -> NotificationNews {
         if let reason = summary.invalidReason { throw .invalidValue(reason: reason) }
         var news = NotificationNews()
-        try update(account) { ledger in
+        _ = try update(account) { ledger in
             news = ledger.diff(summary: summary)
             return ledger.record(summary)
         }
@@ -47,7 +47,7 @@ public actor NotificationLedgerStore {
         account: String, now: Date = .now, minimumInterval: TimeInterval
     ) throws(SmallStoreError) -> Bool {
         var due = false
-        try update(account) { ledger in
+        _ = try update(account) { ledger in
             due = ledger.isDue(now: now, minimumInterval: minimumInterval)
             return due && ledger.markChecked(at: now)
         }

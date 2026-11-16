@@ -3,7 +3,7 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (AppSettingsView) @ 2440d79. Differences: each section comes with its lot; only "Général"
-// for now.
+// for now; "Expérimental" at the end (#903, no legacy counterpart).
 /// What a settings row leads to. Later lots add their cases here (theme: LOT-121, icon: LOT-123) and replace their
 /// case's placeholder in `SettingsDestinationView`, so the shell does not change again.
 enum SettingsDestination: Hashable {
@@ -41,6 +41,8 @@ extension ImageDisplayMode {
 struct SettingsView: View {
     /// The app's one settings model: a change here re-renders every screen at once (LOT-169).
     @Environment(GeneralSettingsModel.self) private var general
+    /// The Réglages › Expérimental switches (#903); nil hides the section (previews).
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     /// The reader display rows of "Sujets" (LOT-106); the open reader follows the store, not this model.
     @State private var topics: TopicsSettingsModel
     /// The favourites options (LOT-124); only the settings here, the folded sections and super-favourites belong to the Favoris tab.
@@ -50,10 +52,24 @@ struct SettingsView: View {
     private let reader: ReaderServices?
     /// Where the icon screen reads and writes the choice (`icon`).
     private let store: any SettingsStore
+    /// The current account's MPStorage sync (LOT-130); nil when logged out.
+    private let mpStorage: MPStorageSyncModel?
+    /// "Maintenance" (LOT-120).
+    @State private var maintenance = MaintenanceModel()
+
+    /// Whether the "Hors ligne" section and its saved topics are shown: never while offline save is disabled (#822).
+    static var showsOfflineSection: Bool { OfflineSaveAvailability.isReachable }
+
+    /// The offline services the "Hors ligne" section opens; nil hides it, even for a reader that carries some.
+    static func offlineEntry(in reader: ReaderServices?) -> OfflineServices? {
+        guard Self.showsOfflineSection, let offline = reader?.offline else { return nil }
+        return offline
+    }
 
     /// Reads the "Sujets" values from `store`.
-    init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil) {
+    init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil, mpStorage: MPStorageSyncModel? = nil) {
         self.reader = reader
+        self.mpStorage = mpStorage
         self.store = store
         _topics = State(initialValue: TopicsSettingsModel(store: store))
         _favorites = State(initialValue: FavoritesOptionsModel(settings: store))
@@ -77,6 +93,7 @@ struct SettingsView: View {
                 Toggle("Réduire la tab bar au scroll", isOn: $general.minimizesTabBarOnScroll)
                 VStack(alignment: .leading, spacing: 4) {
                     LabeledContent("Taille du texte", value: "\(general.textSizePercent) %")
+                        .accessibilityHidden(true) // the slider below speaks both
                     Slider(
                         value: Binding(
                             get: { Double(general.textSizePercent) },
@@ -116,12 +133,14 @@ struct SettingsView: View {
                     ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
+            MPStorageSettingsSection(model: mpStorage)
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
             }
-            if let reader, let offline = reader.offline {
+            // DISABLED(offline, #822): kept for a later design (#846), not reachable
+            if let reader, let offline = Self.offlineEntry(in: reader) {
                 Section("Hors ligne") {
                     NavigationLink { OfflineTopicsView(offline: offline, services: reader) } label: {
                         Label("Sujets enregistrés", systemImage: "arrow.down.circle")
@@ -147,6 +166,12 @@ struct SettingsView: View {
                     ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
+            SecuritySettingsSections()
+            MaintenanceSection(model: maintenance)
+            Section("À propos") {
+                LabeledContent("Version", value: AppVersion.current.display)
+            }
+            if let experimental { ExperimentalSettingsSection(settings: experimental) }
         }
         // Legacy settings spacing in compact mode (`AppSettingsView.swift:597` at 21173e77).
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
@@ -165,6 +190,10 @@ struct SettingsDestinationView: View {
     var store: any SettingsStore = UserDefaultsSettingsStore()
 
     var body: some View {
+        destinationContent.appScreenBackground()
+    }
+
+    @ViewBuilder private var destinationContent: some View {
         switch destination {
         case .theme:
             ThemeSettingsView()
@@ -175,7 +204,11 @@ struct SettingsDestinationView: View {
 }
 
 #Preview("Réglages") {
-    NavigationStack { SettingsView() }
+    ThemedNavigationStack { SettingsView() }
         .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
+        .environment(ExperimentalSettings(store: InMemorySettingsStore()))
         .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+        .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
+        .environment(AccountsModel.preview())
+        .environment(AppLockModel.preview())
 }

@@ -45,6 +45,13 @@ struct ImageGalleryTests {
         #expect(gallery.images[0].allowsThirdParty)
     }
 
+    @Test func anImg3MediumImageAsksForTheFullSizeImageAndKeepsTheMediumAsFallback() throws {
+        let medium = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.md.jpg"
+        let gallery = try #require(build([medium], selected: 0, consented: [medium]))
+        #expect(gallery.images[0].full.absoluteString == "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.jpg")
+        #expect(gallery.images[0].shown.absoluteString == medium)
+    }
+
     @Test func aHostWithoutRewriteRuleKeepsItsURL() throws {
         let url = "https://i.imgur.com/a.jpg"
         let gallery = try #require(build([url], selected: 0, consented: [url]))

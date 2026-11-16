@@ -8,9 +8,12 @@ enum MPStorageCapture {
     static let post = 3_157_083
     static let numreponse = 1_980_164_061
 
-    /// The MP list page `id` (`R13a` without the thread, `R13u1` with it).
+    /// The MP list page `id` (`R13a` without the thread, `R13u1` with it; `R333a` page 1 without it, `R333b` page 2 with it).
     static func list(_ id: String) throws -> Result<HTTPResponse, NetworkError> {
-        let files = ["R13a": "R13a-mp-list", "R13u1": "R13u1-mp-list-recipient-unread"]
+        let files = [
+            "R13a": "R13a-mp-list", "R13u1": "R13u1-mp-list-recipient-unread",
+            "R333a": "R333a-mp-list-p1-storage-pushed-to-p2", "R333b": "R333b-mp-list-p2-storage-row-first"
+        ]
         guard let file = files[id] else { throw Capture.Missing(name: id) }
         return .success(try Capture.response(file, url: PostingCapture.url(try Capture.meta(id).url)))
     }

@@ -1,8 +1,9 @@
 import HFRModels
 import Observation
 
-// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) and HFRswift/Swift/Favorites.swift (FavoritesViewModel) @ 2440d79.
-// Differences: the page on screen is kept on refresh, with a retry banner (GAP-025).
+// Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) @ 87fe0d1c and HFRswift/Swift/Favorites.swift (FavoritesViewModel)
+// @ 2440d79. Differences: the page on screen is kept on refresh, with a retry banner (GAP-025); a sub-forum's `subcat` comes from
+// its own page's "new topic" link, as the home links do not give it (GAP-023), so its filter starts after the first page.
 /// A group of rows under an optional heading (a favourites category); a forum list has one headless group.
 struct TopicGroup: Identifiable, Hashable, Sendable {
     let id: String
@@ -12,6 +13,8 @@ struct TopicGroup: Identifiable, Hashable, Sendable {
     var isCollapsible = false
     /// Favourites: the header shows, the rows do not.
     var isCollapsed = false
+    /// Favourites: the category the heading opens (legacy `headerTitleView`); nil on a forum list and on "Super favoris".
+    var opens: TopicSource?
 }
 
 /// Why a list has no row, so the screen says what to do instead of showing a blank page.
@@ -37,6 +40,10 @@ struct TopicListContent: Sendable, Equatable {
     var categoryID: CategoryID?
     /// The favourites page the groups come from, kept so the layout options apply without a new request; nil for a forum list.
     var favoritesPage: FavoritesPage?
+    /// Whether the account was signed in when the page was fetched: the filters are the account's lists.
+    var isLoggedIn: Bool
+    /// The Tous / Favoris / Suivis / Lus filter the page was asked with.
+    var filter: TopicListFilter = .all
 
     var isEmpty: Bool { groups.allSatisfy { $0.topics.isEmpty } }
 
@@ -47,13 +54,15 @@ struct TopicListContent: Sendable, Equatable {
         emptyReason = Self.reason(isEmpty: page.topics.isEmpty, notice: page.notice, isLoggedIn: isLoggedIn)
         newTopicPath = page.newTopicPath
         categoryID = page.categoryID
+        self.isLoggedIn = isLoggedIn
     }
 
     init(favorites: FavoritesPage, isLoggedIn: Bool) {
-        groups = favorites.sections.map { TopicGroup(id: $0.id, title: $0.forum.title, topics: $0.topics) }
+        groups = favorites.sections.map { TopicGroup(id: $0.id, title: $0.forum.title, topics: $0.topics, opens: $0.source) }
         page = 1
         hasNext = false
         favoritesPage = favorites
+        self.isLoggedIn = isLoggedIn
         let isEmpty = favorites.sections.allSatisfy { $0.topics.isEmpty }
         emptyReason = Self.reason(isEmpty: isEmpty, notice: favorites.notice, isLoggedIn: isLoggedIn)
     }
@@ -77,7 +86,12 @@ final class TopicListModel {
     /// Page of the last load that was asked for; a retry after a failure goes back to it.
     private(set) var requestedPage = 1
     /// HFR's confirmation of the topic just created (LOT-089), shown above the list until hidden.
-    private(set) var sentConfirmation: String?
+    private(set) var sentConfirmation: String? {
+        didSet { confirmationDidChange() }
+    }
+
+    /// Clears a success confirmation by itself after `ConfirmationAutoDismiss.delay` (#864).
+    let confirmationTimer = ConfirmationAutoDismiss()
 
     /// Layout options, collapsed sections and super-favourites of the favourites lists (LOT-124); nil for forum lists.
     let favorites: FavoritesOptionsModel?
@@ -99,17 +113,28 @@ final class TopicListModel {
     /// Why the last row action did not end as asked, in French; the row stays as it was.
     var actionFailure: String?
 
+    /// The Tous / Favoris / Suivis / Lus choice shared by the lists that offer it; nil where there is none.
+    let topicFilter: TopicFilterModel?
+    /// The filter the page on screen was asked with.
+    var loadedFilter: TopicListFilter { loader.value?.filter ?? .all }
+    /// The category and `subcat` a sub-forum's own page named (`SubforumTarget`); nil on other sources and until it is known.
+    private(set) var subforumTarget: SubforumTarget?
+    /// The page on screen was fetched with a signed-in account (false before the first load).
+    var isSignedIn: Bool { loader.value?.isLoggedIn ?? false }
+
     private let dataSource: any ForumDataSource
     private let isLoggedIn: @Sendable () async -> Bool
 
-    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only.
+    /// Creates the model; `isLoggedIn` is read when a load starts. `favorites` applies to the flags and favourites sources only,
+    /// `topicFilter` to a category's list.
     init(
         source: TopicSource, dataSource: any ForumDataSource, isLoggedIn: @escaping @Sendable () async -> Bool = { false },
-        favorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil
+        favorites: FavoritesOptionsModel? = nil, flagActions: TopicFlagActions? = nil, topicFilter: TopicFilterModel? = nil
     ) {
         self.source = source
         self.dataSource = dataSource
         self.isLoggedIn = isLoggedIn
+        self.topicFilter = source.supportsFlagFilter ? topicFilter : nil
         self.favorites = source.isFavoritesList ? favorites : nil
         self.flagActions = flagActions
     }
@@ -140,6 +165,17 @@ final class TopicListModel {
         guard let favorites else { return false }
         return FavoritesPresentation.isSuper(topic, in: favorites.superFavorites)
     }
+
+    /// Favoris, Suivis and Lus can be chosen: a category list (or a sub-forum whose `subcat` is known) and a signed-in account
+    /// (legacy disables them logged out, `MainWindow.swift:683-695` @ 87fe0d1c). "Tous" always can.
+    var offersFilter: Bool {
+        guard topicFilter != nil, source.supportsFlagFilter, isSignedIn else { return false }
+        if case .subforum = source { return subforumTarget != nil }
+        return true
+    }
+
+    /// The filter the list should show now: the stored choice for a signed-in account, "Tous" otherwise.
+    var wantedFilter: TopicListFilter { offersFilter ? (topicFilter?.flag.filter ?? .all) : .all }
 
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
@@ -175,6 +211,12 @@ final class TopicListModel {
         sentConfirmation = nil
     }
 
+    /// A shown confirmation is a success HFR confirmed: it goes by itself; the cross is the other way (#864).
+    private func confirmationDidChange() {
+        guard sentConfirmation != nil else { return confirmationTimer.cancel() }
+        confirmationTimer.arm { [weak self] in self?.clearSentConfirmation() }
+    }
+
     /// Loads page 1 once; later calls keep what is shown.
     func loadIfNeeded() async {
         guard loader.value == nil, !loader.isLoading else { return }
@@ -190,10 +232,17 @@ final class TopicListModel {
         await favorites?.reload()
         if loader.value == nil {
             await loadIfNeeded()
+        } else if wantedFilter != loadedFilter {
+            // The choice changed here or in another list: HFR's page for it starts at 1 (legacy reloads on every change).
+            await load(page: 1)
         } else if !source.isPaged, !loader.isLoading, favorites?.autoRefresh ?? true {
             await refresh()
         }
     }
+
+    /// The top-bar refresh button is enabled unless a load is running (legacy `.disabled(viewModel.isLoading)`,
+    /// `MainWindow.swift:381-393` @ 87fe0d1c). Pull-to-refresh is not gated by it: SwiftUI shows its own spinner.
+    var canRefresh: Bool { !loader.isLoading }
 
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
@@ -212,15 +261,33 @@ final class TopicListModel {
         let source = source
         let dataSource = dataSource
         let isLoggedIn = isLoggedIn
+        // Read here, on the main actor; the signed-in check below runs inside the load, so a second request while one runs
+        // never starts a second login read.
+        let chosenFilter = topicFilter?.flag.filter ?? .all
+        let hasFilter = topicFilter != nil
+        let target = subforumTarget
         let applied = await loader.load { () async throws(ListLoadError) -> TopicListContent in
             let loggedIn = await isLoggedIn()
+            let filter = hasFilter && loggedIn ? chosenFilter : .all
             switch source {
             case .subforum(let path, _):
-                let list = try await dataSource.topicList(path: path, page: page)
-                return TopicListContent(page: list, isLoggedIn: loggedIn)
+                // Filtered through the category list with the sub-forum's `subcat` (`R603d`); without the id yet, or on "Tous",
+                // the sub-forum's own page, which names it.
+                guard filter != .all, let target else {
+                    let list = try await dataSource.topicList(path: path, page: page)
+                    return TopicListContent(page: list, isLoggedIn: loggedIn)
+                }
+                let list = try await dataSource.topicList(
+                    category: target.category, subcategory: target.subcategory, filter: filter, page: page
+                )
+                var content = TopicListContent(page: list, isLoggedIn: loggedIn)
+                content.filter = filter
+                return content
             case .forum(let category, _):
-                let list = try await dataSource.topicList(category: category, page: page)
-                return TopicListContent(page: list, isLoggedIn: loggedIn)
+                let list = try await dataSource.topicList(category: category, subcategory: nil, filter: filter, page: page)
+                var content = TopicListContent(page: list, isLoggedIn: loggedIn)
+                content.filter = filter
+                return content
             case .flagged:
                 return TopicListContent(favorites: try await dataSource.favorites(filter: .flagged), isLoggedIn: loggedIn)
             case .favorites:
@@ -229,10 +296,16 @@ final class TopicListModel {
         }
         // Only the page this call put on screen reconciles: a superseded load (its page dropped) or a failed one changes nothing.
         guard applied else { return }
+        if case .subforum = source, let found = SubforumTarget(newTopicPath: loader.value?.newTopicPath) { subforumTarget = found }
         // HFR's page now says what is read and flagged: the marks made before this load started are forgotten (legacy kept
         // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.
         markedRead = markedRead.filter { $0.value > startedAfter }
         removedFlags = removedFlags.filter { $0.value > startedAfter }
-        if let page = loader.value?.favoritesPage { await favorites?.prune(to: page) }
+        if let page = loader.value?.favoritesPage {
+            await favorites?.prune(to: page)
+            await favorites?.placePendingSuperFavorites(from: page)
+        }
+        // The choice changed while this page was loading (or the sign-in turned out different): ask again with the current one.
+        if wantedFilter != loadedFilter { await load(page: 1) }
     }
 }

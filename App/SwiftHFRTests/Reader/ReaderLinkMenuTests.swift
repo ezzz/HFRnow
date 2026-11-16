@@ -33,6 +33,97 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(ReaderLinkMenu.entries(for: URL(string: "https://vimeo.com/12345")!).last?.title == "Ouvrir dans Vimeo")
     }
 
+    @Test(arguments: [
+        "https://example.org/a/photo.jpg", "https://example.org/a/PHOTO.PNG?x=1", "https://forum-images.hardware.fr/a/b.gif",
+        "https://reho.st/thumb/abc", "https://img3.super-h.fr/images/a.th.x", "https://rehost.diberie.com/Picture/Get/t/12"
+    ])
+    func anImageLinkGetsTheTwoImageEntriesAfterOpen(link: String) throws {
+        let url = try #require(URL(string: link))
+        let entries = ReaderLinkMenu.entries(for: url)
+        #expect(Array(entries.prefix(5)) == [.open, .openImage, .saveImage, .copy, .safari])
+        #expect(entries.map(\.title).prefix(3) == ["Ouvrir", "Ouvrir l'image", "Enregistrer dans Photos"])
+    }
+
+    @Test(arguments: [
+        "https://example.org/page", "https://example.org/photo.jpg.html", "http://192.168.1.1/a.jpg", "http://localhost/a.png"
+    ])
+    func aLinkThatIsNotAnImageOrIsBlockedHasNoImageEntry(link: String) throws {
+        let url = try #require(URL(string: link))
+        #expect(!ReaderLinkMenu.entries(for: url).contains(.openImage))
+        #expect(!ReaderLinkMenu.entries(for: url).contains(.saveImage))
+    }
+
+    @Test func openImageOpensTheViewerOnThatImageWithoutRequestingIt() async {
+        let transport = quietTransport()
+        let (controller, recorder) = makeController(transport: transport)
+        let image = URL(string: "https://example.org/a/photo.jpg")!
+        controller.performLinkEntry(.openImage, url: image)
+        #expect(recorder.viewers.count == 1)
+        #expect(recorder.viewers.first?.index == 0)
+        #expect(recorder.viewers.first?.images.map(\.shown) == [image])
+        #expect(recorder.links.isEmpty)
+        #expect(await transport.requests.isEmpty)
+    }
+
+    @Test func openImageRefusesABlockedHost() {
+        let (controller, recorder) = makeController(transport: quietTransport())
+        controller.performLinkEntry(.openImage, url: URL(string: "http://192.168.1.1/a.jpg")!)
+        #expect(recorder.viewers.isEmpty)
+    }
+
+    @Test func saveImageDownloadsCookieLessThenSavesTheBytes() async throws {
+        let bytes = Data([1, 2, 3])
+        let transport = MockTransport { request in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: request.url, body: bytes)
+        }
+        let (controller, recorder) = makeController(transport: transport)
+        let spy = EnvironmentSpy()
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.saveImage, url: URL(string: "https://example.org/a/photo.jpg")!)
+        #expect(await until { !recorder.notices.isEmpty })
+        #expect(spy.saved == [bytes])
+        #expect(recorder.notices == ["Photo enregistrée"])
+        let requests = await transport.requests
+        #expect(requests.count == 1)
+        #expect(requests.allSatisfy { $0.url.host() == "example.org" })
+    }
+
+    @Test func saveImageSaysWhenTheDownloadFails() async {
+        let (controller, recorder) = makeController(transport: quietTransport())
+        let spy = EnvironmentSpy()
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.saveImage, url: URL(string: "https://example.org/a/photo.jpg")!)
+        #expect(await until { !recorder.notices.isEmpty })
+        #expect(recorder.notices == ["Erreur réseau"])
+        #expect(spy.saved.isEmpty)
+    }
+
+    @Test(arguments: [
+        (ImageSaveError.permissionDenied, "Autorise l'accès aux Photos pour enregistrer l'image."),
+        (ImageSaveError.invalidImage, "Impossible d'enregistrer cette image."),
+        (ImageSaveError.system, "L'enregistrement dans Photos a échoué.")
+    ])
+    func saveImageReportsWhyPhotosRefused(error: ImageSaveError, sentence: String) async {
+        let transport = MockTransport { request in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: Data([9]))
+        }
+        let (controller, recorder) = makeController(transport: transport)
+        let spy = EnvironmentSpy(saveError: error)
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.saveImage, url: URL(string: "https://example.org/a/photo.png")!)
+        #expect(await until { !recorder.notices.isEmpty })
+        #expect(recorder.notices == [sentence])
+    }
+
+    @Test func saveImageNeverRequestsABlockedHost() async {
+        let transport = quietTransport()
+        let (controller, recorder) = makeController(transport: transport)
+        controller.performLinkEntry(.saveImage, url: URL(string: "http://192.168.1.1/a.jpg")!)
+        #expect(await until { !recorder.notices.isEmpty })
+        #expect(recorder.notices == ["Impossible d'enregistrer cette image."])
+        #expect(await transport.requests.isEmpty)
+    }
+
     @Test(arguments: ["mailto:a@b.c", "javascript:alert(1)", "hfrreader://page/1", "file:///etc/passwd", "data:text/html,x", "tel:1"])
     func aNonHTTPLinkHasNoEntry(link: String) throws {
         let url = try #require(URL(string: link))
@@ -123,9 +214,16 @@ private struct Opened: Equatable {
 private final class EnvironmentSpy {
     var opened: [Opened] = []
     var copied: [URL] = []
+    /// The bytes handed to Photos; written from a `@Sendable` closure, hence the lock.
+    private let savedBytes = Locked<[Data]>([])
+    var saved: [Data] { savedBytes.value }
     private let appTakesLinks: Bool
+    private let saveError: ImageSaveError?
 
-    init(appTakesLinks: Bool = false) { self.appTakesLinks = appTakesLinks }
+    init(appTakesLinks: Bool = false, saveError: ImageSaveError? = nil) {
+        self.appTakesLinks = appTakesLinks
+        self.saveError = saveError
+    }
 
     var environment: ReaderLinkMenu.Environment {
         ReaderLinkMenu.Environment(
@@ -133,7 +231,11 @@ private final class EnvironmentSpy {
                 opened.append(Opened(url: url, universalOnly: universalOnly))
                 return universalOnly ? appTakesLinks : true
             },
-            copy: { [self] url in copied.append(url) }
+            copy: { [self] url in copied.append(url) },
+            savePhoto: { [saveError, savedBytes] data async throws(ImageSaveError) in
+                if let saveError { throw saveError }
+                savedBytes.set(savedBytes.value + [data])
+            }
         )
     }
 }

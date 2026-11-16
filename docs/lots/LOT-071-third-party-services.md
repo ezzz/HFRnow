@@ -26,7 +26,7 @@ Drift: `origin/master` has moved past `2440d79`; its commit `d645f52` (2026-09-0
 |---|---|
 | AQ RSS badge, at launch | `Swift/MainWindow.swift:1178-1192` (3 s after the main window appears, once per process, logged out too; called from `:1422`, `:1448`), `Swift/AQPlusView.swift:39, 52-57, 69-90` |
 | AQ "already reported" check | `Swift/MessagesView.swift:325-338` (`URLSession.shared`, body searched for the post id), called on the AQ action (`:2001`, `:3716`) |
-| AQ create | `Swift/MessagesView.swift:340-399` (POST, 5 s, ASCII body with lossy conversion, response `"1"` = success) |
+| AQ create | `Swift/MessagesView.swift:340-399` (POST, 5 s, response `"1"` = success; the body is percent-encoded from UTF-8 before its ASCII conversion, `:389-396`, `:434-437`, so no accent is lost) |
 | AQ, older host | `Classes/OnlineMessagesTableViewController.m:2307, 2443` (`http://alerte-qualitay.toyonos.info/…php5`): not in the HFRswift target, not carried over |
 | Image rehost upload (Chevereto) | `Swift/ReplyService.swift:1970` (`img3.super-h.fr/api/1/upload/?key=…`), `:1984-1997` (JPEG quality 1.0, cookies off, file name `snapshot_<random>.jpg`), `:2045-2055` (multipart, constant `imageCaption`) |
 | Rehost hosts in the viewer | `Swift/MessagesView.swift:2175, 2205-2210, 3301-3306` (`reho.st/thumb/` → full, `rehost.diberie.com/Picture/Get/t/` → `/f/`, `img3` thumbnails), `Wrapped/LinkItem.m:163` (`hfr-rehost.net` → `reho.st`); dead `reho.st/upload` code in `Classes/RehostImage.m:140-168` |
@@ -50,7 +50,7 @@ Owner = who runs the host; none of them is this project or HFR.
 |---|---|---|---|---|---|---|---|
 | T1 | AQ RSS feed (badge "new since") | `aq.super-h.fr` | automatic, at launch | nothing else | community operator of `super-h.fr` | LOT-028 (parser), LOT-055 (client), FEAT-001 | kept as legacy: fetched at launch (D-071-3) |
 | T2 | AQ per-topic check | `aq.super-h.fr` | user opens the AQ action | topic id (says which topic the user reads) | same | LOT-055 | kept (Q-4, D-071-3) |
-| T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`; unauthenticated, so anyone can post as anyone | same | LOT-055 | kept, notice before the first creation (Q-4, D-071-3) |
+| T3 | AQ create | `aq.super-h.fr` | user confirms an AQ | pseudo (lower case), topic id and title, post id and permalink, post author, free-text title, comment `post de <author>`, and a client name (`from=SwiftHFR`, decided on #573); unauthenticated, so anyone can post as anyone. The server stores a keyed hash of the IP address whose key is published, so an IPv4 address can be recovered, and tries to e-mail its operator after each insert attempt, even one that creates no AQ (`-1`, `-4`), and on each blacklisted or banned attempt (HFR-PROTOCOL §8, server source) | same | LOT-055 | kept, notice before the first creation (Q-4, D-071-3) |
 | T4 | Image rehost (Chevereto) | `img3.super-h.fr` | user uploads an image in the composer | the image (re-encoded JPEG, downscaled to the user setting), the API key in the query; no cookie. The uploaded image becomes public; no delete API is evidenced (HFR-PROTOCOL §7b B12). Whether the re-encode strips EXIF/GPS is unverified (audit D §10 Q9) | community operator of `super-h.fr` (also owns the key, ADR 0007) | LOT-056 | kept, notice N1 |
 | T5 | GIF search (Giphy) | Giphy API and CDN | user opens the GIF picker | search terms only (REST API, no SDK: the closed SDK of legacy may have sent more, not audited). The chosen GIF URL is posted, so every reader then loads it from Giphy's CDN (T6) | Giphy | LOT-098 (client), LOT-155 (picker) | kept: REST API, no SDK, notice N1, search terms only |
 | T6 | Images in messages and signatures | any host a poster chose | displaying a page | an image request per URL; `Referer` and cookies depend on who fetches (see rules R3, R4) | the host's operator, unknown | LOT-034 (lists `MessageImage`), LOT-045 (cookie-less client), LOT-056 (host table), LOT-083 (loading), FEAT-011 (setting) | **decided**: D-071-1 |
@@ -68,8 +68,8 @@ Not third-party services of the app:
 - **HFR's own page chrome**: captured topic and list pages carry Google ad scripts (`securepubads.g.doubleclick.net`, 31 captured HTML
   pages) and a tracking pixel (`tracking.groupe-ldlc.com`, 65 pages). SwiftHFR never renders the chrome: parsers read the page and fetch nothing, the reader renders only the
   normalized `MessageContent` without remote scripts (LOT-034, LOT-083). Legacy did the same.
-- **`marc@hardware.fr`** (Q-10): an HFR address used through the system mail composer, so the user sends the mail. It stays out of source,
-  as configuration, decided per feature (Phase 4).
+- **`marc@hardware.fr`** (Q-10): an HFR address used through the system mail composer, so the user sends the mail. It is a public contact address, not a key:
+  committed as configuration in `Shared.xcconfig` (Q-10, operator, 2026-11-10, #751).
 - **Apple**: App Store crash reports and analytics are the device owner's choice in iOS settings; the app links no SDK for them.
 
 ## Rules for SwiftHFR
@@ -86,6 +86,15 @@ implementing a row of the inventory applies them and tests them.
 - **R3 (proposed) — No `Referer` to third parties**, except for a host that needs it in the LOT-056 host table (`reho.st`, reported by redface2,
   HFR-PROTOCOL §7 E26: **pending capture**). The reader document must not leak its own URL either (LOT-083: a `no-referrer` policy or
   images fetched by the cookie-less client).
+  **Exception (operator, 2026-11-10, #752): the YouTube embed player.** Its request carries `Referer: https://<app id>/` (the app's bundle
+  identifier lowercased, as YouTube's example does; a development build sends its own id; `VideoPlayerSheet.appReferer`), for the hosts of `VideoPlayerSheet.allowedHosts(for: .youtube)` only
+  (`www.youtube.com`, `youtube.com`, `www.youtube-nocookie.com`; no wildcard, no other provider, no other host). Cause: YouTube's player
+  answers "Erreur 153" to an embed that does not identify its client. Source: YouTube API Services, *Required Minimum Functionality*,
+  "API Client Identity and Credentials" (developers.google.com/youtube/terms/required-minimum-functionality, read 2026-11-10: identify
+  through the `HTTP Referer` header, protocol `HTTPS`, domain = the app ID, reversed domain name) and the IFrame Player API reference
+  (developers.google.com/youtube/iframe_api_reference, read 2026-11-10: error 153, "The request does not include the HTTP Referer header
+  or equivalent API Client identification"). Cost: YouTube learns the app id, which every YouTube client sends; it learns nothing about
+  the forum (no forum URL, no cookie: R1 holds). Vimeo and Streamable keep R3.
 - **R4 — Image loading** follows D-071-1, video players D-071-2.
 - **R5 (proposed) — No analytics or crash-reporting SDK.** Adding one is a new dependency: ADR, maintainer approval (AGENTS.md §3.3) and a row here.
 - **R6 (proposed) — The inventory is the allow-list**: the app contacts no third-party host for a feature that is not in it. Images (T6) and links
@@ -99,7 +108,7 @@ LOT-055, LOT-056 and the GIF lots (LOT-098, LOT-155) unless the operator objects
 - **N1 — Before the first request** that sends user data (T3, T4, T5), a notice says: the host and who runs it (not HFR, not this app),
   what is sent (the "Data sent" cell above, in plain words), that the result is public when it is (AQ, uploaded images), and that the
   operator's terms apply. Two choices: continue, or cancel (nothing is sent). Accepted once per service and per device; the choice is
-  stored in the settings store (LOT-060) and can be reset in Settings. For AQ this is the decided notice of Q-4 / D-071-3.
+  stored in the settings store (LOT-060) and can be reset in Settings. For AQ this is the decided notice of Q-4 / D-071-3; it also says that the AQ server keeps a recoverable hash of the IP address and e-mails its operator after each insert attempt, even one that creates no AQ (T3).
 - **N2 — Read-only AQ requests** (T1 badge and feed, T2 check) need no notice and run as in legacy (D-071-3): they send no user data
   beyond the topic id.
 - **N3 — Wording** stays factual and short; it is written in the app lot that shows it, and reviewed against this table.
@@ -148,7 +157,7 @@ What C means, for LOT-083 (which applies it) and FEAT-011:
 Options considered: (a) auto-loaded player iframes, as `2440d79` did with `embedded_videos=yes` by default: rejected, they load the
 provider's scripts and cookies without a tap; (b) placeholder, player loaded on tap: **chosen**; (c) links only, opened in the browser:
 rejected. The live legacy app has since dropped embeds altogether (`d645f52`, see Legacy sources). LOT-035 detects the links, LOT-083
-shows the placeholder; the player request follows R1 and R3.
+shows the placeholder; the player request follows R1 and R3 (YouTube's player excepted, R3 exception, #752).
 
 ## Decision D-071-3 — AQ requests
 

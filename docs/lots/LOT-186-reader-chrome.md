@@ -44,7 +44,7 @@ Kept as shipped, not legacy (already recorded): "Page…" asks in an alert, not 
 - ‹ opens the previous page at its last message, › the next page at its top (legacy `4168-4178`; the swipe already did this). Both are disabled at the ends and while a page loads.
 - The page menu (bottom "N / M" and top "…", one list, `ReaderPageMenuItems`): "Première page", "Aller à la page…", the last pages after page 1 without repeats (`ReaderPageMenu.finalTargets`, legacy `pageChoiceMenuFinalTargets`) minus the last one, which "Dernière page" stands for, then "Dernier post" (last page, at its last message). Disabled for a single page (legacy showed no page items then). Its label is a spinner while a page loads, as the shipped page bar was. The served page is still followed (LOT-167).
 - "Répondre" (`plus`, or `square.and.pencil` for `reply_button_behavior = forum`, none when hidden, logged out or without an answer form), disabled while a quote loads; the sheet and the confirmation stay in `ReaderReplyFlow`.
-- APIs: `ToolbarItemGroup(placement: .bottomBar)`, `ToolbarSpacer(_:placement:)` (iOS 26.0+), `ToolbarContent.visibilityPriority(_:)` (iOS 27.0+), all read on the live developer docs on 2026-11-07. No iOS 27.1 API (those would serve FEAT-016's own layouts, M5; LOT-147 ports the legacy Duo layout in M4, #655).
+- APIs: `ToolbarItemGroup(placement: .bottomBar)`, `ToolbarSpacer(_:placement:)` (iOS 26.0+), `ToolbarContent.visibilityPriority(_:)` (iOS 27.0+), all read on the live developer docs on 2026-11-07. No iOS 27.1 API (those would serve the FEAT-016 layouts, which LOT-147 takes in M4 with the legacy Duo layout: #655, #237).
 
 **Page under the bars** (`TopicReaderView`, `ReaderWebController+Scroll`):
 

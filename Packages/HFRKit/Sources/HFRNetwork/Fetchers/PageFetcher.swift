@@ -24,9 +24,10 @@ public struct PageFetcher: Sendable {
 
     /// R2: the topic list of a forum.
     public func topicList(
-        category: CategoryID, filter: TopicListFilter = .all, page: Int = 1, as identity: FetchIdentity = .authenticated
+        category: CategoryID, subcategory: Int? = nil, filter: TopicListFilter = .all, page: Int = 1,
+        as identity: FetchIdentity = .authenticated
     ) async throws(NetworkError) -> RawPage {
-        try await fetch({ try HFREndpoint.topicList(category: category, filter: filter, page: page) }, identity)
+        try await fetch({ try HFREndpoint.topicList(category: category, subcategory: subcategory, filter: filter, page: page) }, identity)
     }
 
     /// R3: favourites across forums.
@@ -56,6 +57,13 @@ public struct PageFetcher: Sendable {
         try await fetch({ try HFREndpoint.publicProfile(memberID: memberID) }, identity)
     }
 
+    /// #714: the member id of `pseudo`, read from `profilebdd.php`'s redirect, which is not followed (`R716a`). Anonymous by
+    /// default: HFR answers the same without cookies (`R716c`). Nil when the answer names no member (`R716d`) or is not that
+    /// redirect; a 4xx or 5xx throws.
+    public func memberID(pseudo: String, as identity: FetchIdentity = .anonymous) async throws(NetworkError) -> Int? {
+        HFREndpoint.memberID(inProfileRedirect: try await send({ try HFREndpoint.profileRedirect(pseudo: pseudo) }, identity))
+    }
+
     /// R7: the smiley search (3 characters at least).
     public func smileySearch(
         _ text: String, requireAll: Bool = false, as identity: FetchIdentity = .authenticated
@@ -69,6 +77,10 @@ public struct PageFetcher: Sendable {
     }
 
     private func fetch(_ build: () throws -> HTTPRequest, _ identity: FetchIdentity) async throws(NetworkError) -> RawPage {
+        RawPage(response: try await send(build, identity))
+    }
+
+    private func send(_ build: () throws -> HTTPRequest, _ identity: FetchIdentity) async throws(NetworkError) -> HTTPResponse {
         let request: HTTPRequest
         do {
             request = try build()
@@ -80,7 +92,7 @@ public struct PageFetcher: Sendable {
         // The transports honour cancellation while waiting; this also stops a task cancelled before it starts.
         if Task.isCancelled { throw .cancelled }
         let transport = identity == .anonymous ? anonymous : session
-        return RawPage(response: try await transport.send(request))
+        return try await transport.send(request)
     }
 }
 

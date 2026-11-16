@@ -11,6 +11,8 @@ struct FavoritesStores: Sendable {
     let superFavorites: SuperFavoritesStore
     /// The current account's key (`md_user` value); super-favourites are per account (LOT-064).
     let account: String?
+    /// The super-favourites the legacy import left without a category (LOT-158); nil in tests that do not need them.
+    var pending: LegacyPendingStore?
 
     /// The process-wide stores, over `Application Support/Favorites/`.
     static let shared = (
@@ -20,7 +22,9 @@ struct FavoritesStores: Sendable {
 
     /// The live stores for `account` (nil when logged out: nothing can be marked then).
     static func live(account: String?) -> FavoritesStores {
-        FavoritesStores(layout: shared.layout, superFavorites: shared.superFavorites, account: account)
+        FavoritesStores(
+            layout: shared.layout, superFavorites: shared.superFavorites, account: account, pending: LegacyImportServices.livePending
+        )
     }
 
     private static func file(_ name: String) -> URL {
@@ -189,6 +193,23 @@ final class FavoritesOptionsModel {
         } catch {
             superWriteProblem = "Impossible d’enregistrer les super favoris."
         }
+    }
+
+    /// Places the legacy super-favourites the import left pending (LOT-067 D2): each number `page` lists becomes a
+    /// super-favourite in every category where it is listed, as legacy matched the number alone (`Favorites.swift:132-157` @
+    /// 87fe0d1c). The list calls it at each load. A failure changes nothing: the numbers stay pending, the next load tries
+    /// again, and a super-favourites store that cannot be read is already shown by `reload()`.
+    func placePendingSuperFavorites(from page: FavoritesPage) async {
+        guard let stores, let account = stores.account, let pending = stores.pending else { return }
+        let listed = page.sections.flatMap(\.topics).compactMap(\.topicID)
+        guard !listed.isEmpty else { return }
+        let placed: Int
+        do {
+            placed = try await pending.resolveSuperFavorites(listed: listed, account: account, into: stores.superFavorites)
+        } catch {
+            return
+        }
+        if placed > 0 { await reload() }
     }
 
     /// Drops the folded sections `page` no longer has (legacy `pruneCollapsedSections`); an empty page prunes nothing, so a

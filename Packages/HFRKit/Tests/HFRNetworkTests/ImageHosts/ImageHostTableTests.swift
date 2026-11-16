@@ -64,10 +64,25 @@ struct ImageHostTableTests {
         }
     }
 
+    @Test func img3MediumAndThumbnailBothOpenTheFullImage() throws {
+        // `.md.` shape: legacy upload history (`upload-history-after-corrupt-rewrite.json`), not yet captured (#917).
+        let base = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5"
+        #expect(table.fullSizeURL(for: try url("\(base).md.jpg")).absoluteString == "\(base).jpg")
+        #expect(table.fullSizeURL(for: try url("\(base).th.jpg")).absoluteString == "\(base).jpg")
+        #expect(table.fullSizeURL(for: try url("\(base).md.jpg?x=1")).absoluteString == "\(base).jpg?x=1")
+        // Unchanged: the full image itself, a `.md.` outside `/images/`, another host, a marker in the directory part.
+        for text in [
+            "\(base).jpg", "https://img3.super-h.fr/other/pic.md.jpg", "https://img4.super-h.fr/images/a.md.jpg",
+            "https://evil.example/images/a.md.jpg", "https://img3.super-h.fr/images/x.md.d/pic.jpg"
+        ] {
+            #expect(table.fullSizeURL(for: try url(text)).absoluteString == text, "\(text)")
+        }
+    }
+
     @Test func aRuleThatWouldBuildAnInvalidPathLeavesTheURLAlone() throws {
         let broken = ImageHostTable(rules: [
             ImageHostRule(host: "img.example", thumbnailRewrite: .pathPrefix(prefix: "/thumb/", replacement: "/100%/")),
-            ImageHostRule(host: "marker.example", thumbnailRewrite: .fileNameMarker(pathPrefix: "/i/", marker: "2F"))
+            ImageHostRule(host: "marker.example", thumbnailRewrite: .fileNameMarkers(pathPrefix: "/i/", markers: ["2F"]))
         ])
         for text in ["https://img.example/thumb/a.png", "https://marker.example/i/a%2Fb.png"] {
             #expect(broken.fullSizeURL(for: try url(text)).absoluteString == text)

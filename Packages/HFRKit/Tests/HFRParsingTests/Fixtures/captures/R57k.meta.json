@@ -1,0 +1,15 @@
+{
+  "id": "R57k",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/nothing/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/nothing/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/nothing/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Fri, 13 Nov 2026 12:25:31 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R57k-rest-error-unknown-resource.json",
+  "private": false
+}

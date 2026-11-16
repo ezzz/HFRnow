@@ -1,0 +1,15 @@
+{
+  "id": "R57h",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/api/forums/hardwarefr/categories/",
+  "url": "https://forum.hardware.fr/api/forums/hardwarefr/categories/",
+  "final_url": "https://forum.hardware.fr/api/forums/hardwarefr/categories/",
+  "status": 404,
+  "content_type": "text/html; charset=iso-8859-1",
+  "date": "Fri, 13 Nov 2026 12:22:31 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R57h-api-href-as-is-404.html",
+  "private": false
+}

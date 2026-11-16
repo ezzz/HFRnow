@@ -67,6 +67,9 @@ struct HFRLinkRouteCorpusTests {
         // The rewritten reply link of a logged-in topic page (`R298b`, `/hfr/<forum>/repondre-<n>-<n>.htm#formulaire`): the reply
         // composer, a `message.php` page kind the router does not own.
         if url.path.wholeMatch(of: #/\/hfr\/[\w-]+\/repondre-[0-9]+-[0-9]+\.htm/#) != nil { return true }
+        // The citation header HFR writes for a `[quotemsg=…]` whose ids name no message (`R443j`, the preview of
+        // `[quotemsg=1,1,1]`): `forum2.php?…&cat=0&post=0…`, no topic, so the router leaves it external (`post` must be positive).
+        if url.path == "/forum2.php", link.contains("&cat=0&"), link.contains("&post=0&") { return true }
         if url.path == "/forum2.php" { return link.contains("print=1") || link.contains("quote_only=1") }
         // Real shapes of R121c whose target is not traced (LOT-095, pending capture): the `hardwarefr` rules link and the
         // filtered list `liste_sujet_filtre-<n>-<m>` (meaning of `n` and `m` not captured).

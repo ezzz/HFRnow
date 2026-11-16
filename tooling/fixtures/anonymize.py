@@ -265,6 +265,21 @@ PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']MoodStatus[\"'][^>]*>", re.I), "Mood removed."),
 )
+SIGNATURE_PLACEHOLDER = "Signature removed."
+# HFR opens every signature span with its own separator (#267, `R267a`): fifteen dashes, a line break, `<br />`; and
+# closes it with its clear div. Both are HFR's markup, not the member's words, so they are kept around the placeholder.
+SIGNATURE_HEAD_RE = re.compile(r"\A\s*-{15}(?!-)\s*<br\s*/?>", re.I)
+SIGNATURE_TAIL_RE = re.compile(r"<div style=\"clear: both;\">\s*</div>\s*\Z", re.I)
+SIGNATURE_TEXT_RE = re.compile(r"(?:-{15}\s*)?Signature removed\.")
+
+
+def signature_placeholder(inner):
+    """The placeholder for a signature span's content, with HFR's separator head and clear-div tail kept."""
+    head = SIGNATURE_HEAD_RE.match(inner)
+    tail = SIGNATURE_TAIL_RE.search(inner)
+    if not head:
+        return SIGNATURE_PLACEHOLDER
+    return head.group(0) + SIGNATURE_PLACEHOLDER + (tail.group(0) if tail and tail.start() >= head.end() else "")
 # Public profile page (R56): the value cell of these rows is the member's own data. Personal rows get a
 # placeholder; dates and counters keep their format with fixed values (with the pseudo and id aliased, a
 # real arrival date or post count would still single the member out).
@@ -735,6 +750,87 @@ def anonymize_profile_fields(text):
 
 
 PARA_OPEN_RE = re.compile(r"<(\w+)\b[^>]*\bid=([\"'])para[^\"']*\2[^>]*>", re.I)
+# Where a signature or mood ends is HFR's structure, not the member's markup (#763): a member's unbalanced `</span>`,
+# `</div>` or `<div>` would end or extend a depth count. Each is followed by HFR markup a member cannot write (whole
+# corpus, 2026-11-11): a signature by `</span></div></td></tr></table>` then the next message table, the page's
+# `tr.cBackHeader` footer or a `<script>`; a mood (470 of 470) by the avatar div, the transactions link or the message
+# cell. The block runs to the last `</span>` before that boundary.
+PERSONAL_BOUNDARIES = {
+    SIGNATURE_PLACEHOLDER: re.compile(r"<table\b[^>]*\bclass=[\"']messagetable[\"']|<tr\b[^>]*\bclass=[\"']cBackHeader\b"
+                                      r"|<script\b", re.I),
+    "Mood removed.": re.compile(r"<div\b[^>]*\bclass=[\"']avatar_center[\"']|<span\b[^>]*\bclass=[\"']TransactionsReportsLink"
+                                r"[\"']|<td\b[^>]*\bclass=[\"']messCase2[\"']", re.I),
+}
+SPAN_END_RE = re.compile(r"</span\s*>", re.I)
+# What HFR prints from a block's last `</span>` to what follows it (whole corpus, 2026-11-11, #797): a signature closes
+# its para div, message cell, row and table, then the boundary, maybe after a `<br />` or the footer's layout-only table;
+# a mood is followed by an optional `<br/>`, the transactions link, the avatar, then the end of its cell and the message
+# cell. Anything else (a boundary printed while the block's cell is still open, an HFR element the boundary list does not
+# know, text) is a shape this redactor does not cover: it raises instead of cutting or keeping it silently.
+PERSONAL_TAILS = {
+    SIGNATURE_PLACEHOLDER: re.compile(r"</span\s*>\s*</div\s*>\s*</td\s*>\s*</tr\s*>\s*</table\s*>(?:\s|<br\s*/?>)*"
+                                      r"(?:<table(?:\s+(?:cellspacing|cellpadding|width)=\"\d+%?\")+\s*>\s*)?", re.I),
+    # The link and the avatar are pinned to the one shape the corpus prints (24 links, 71 avatars): a member forging them
+    # inside the mood must not carry a value through an attribute (#797 review).
+    "Mood removed.": re.compile(r"</span\s*>\s*(?:<br\s*/?>\s*<span class=\"TransactionsReportsLink\"><a href=\""
+                                r"/transactions_reports\.php\?config=hfr\.inc&amp;cat=\d+&amp;id_user=\d+\"\s+onclick=\""
+                                r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,resizable=yes,"
+                                r"width=\d+,height=\d+,left=\d+,top=\d+'\); return false\"\s*>Transactions \(\d+\)</a\s*>"
+                                r"</span\s*>\s*)?(?:<div class=\"avatar_center\" style=\"clear:both\">(?:<img src=\""
+                                r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png|gif)\" alt=\"[^\"<>]*\"\s*/?>)?"
+                                r"</div\s*>\s*)?</td\s*>\s*"),
+}
+MESSAGE_CELL_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase2[\"']", re.I)
+MESSAGE_TABLE_RE = re.compile(r"<table\b[^>]*\bclass=[\"']messagetable[\"']", re.I)
+# A document or a message table: a block there always has HFR's boundary after it. A bare fragment (unit tests only, no
+# corpus file) keeps the depth count.
+PAGE_RE = re.compile(r"<(?:html|body)\b|" + MESSAGE_TABLE_RE.pattern, re.I)
+
+
+def _personal_blocks(text, open_re, placeholder):
+    """Yield (inner_start, inner_end) of every personal block. Every opening counts: a depth count run past a boundary
+    must not hide the next message's block."""
+    page = PAGE_RE.search(text) is not None
+    for m in open_re.finditer(text):
+        tag_re = re.compile(r"<(/?)%s\b[^>]*>" % re.escape(m.group(1)), re.I)
+        depth, end = 1, len(text)
+        for t in tag_re.finditer(text, m.end()):
+            depth += -1 if t.group(1) else 1
+            if depth == 0:
+                end = t.start()
+                break
+        yield m.end(), _personal_block_end(text, m.end(), end, placeholder, page, line_of(text, m.start()))
+
+
+def _personal_block_end(text, start, end, placeholder, page, line):
+    """The end of a personal block's content: the last `</span>` before HFR's next boundary, else the depth count. Raises
+    when what follows that `</span>` is not HFR's own tail (#797)."""
+    what = "signature" if placeholder == SIGNATURE_PLACEHOLDER else "mood"
+    b = PERSONAL_BOUNDARIES[placeholder].search(text, start)
+    if b is None:
+        if page:
+            raise AnonymizeError("line %d: no HFR element after a %s; extend the anonymizer" % (line, what))
+        return end
+    last = None
+    for last in SPAN_END_RE.finditer(text, start, b.start()):
+        pass
+    if last is None:
+        if page:
+            raise AnonymizeError("line %d: a %s never closed before HFR's next element; extend the anonymizer" % (line, what))
+        return end
+    # A signature's tail runs to its boundary; a mood's, through the avatar or transactions link, to the message cell.
+    stop = b.start() if what == "signature" else next((c.start() for c in MESSAGE_CELL_RE.finditer(text, last.start())),
+                                                      len(text) + 1)
+    if stop > len(text) or not PERSONAL_TAILS[placeholder].fullmatch(text, last.start(), stop):
+        raise AnonymizeError("line %d: unexpected markup after a %s (HFR boundary in the member's markup, or an element "
+                             "the boundary list does not know); extend the anonymizer" % (line, what))
+    if what == "mood":
+        # One message cell per message (whole corpus): a second one before the next message table means the first was
+        # printed by the member, after closing the author cell.
+        cell, table = MESSAGE_CELL_RE.search(text, stop + 1), MESSAGE_TABLE_RE.search(text, stop)
+        if cell is not None and (table is None or cell.start() < table.start()):
+            raise AnonymizeError("line %d: a second message cell after a mood; extend the anonymizer" % line)
+    return last.start()
 
 # Member pseudos other than the operator's: every position where HFR prints one (live, LOT-001
 # corpus; legacy selectors: ParseMessagesOperation.m:149 author `b.s2`, :380 profile link, :200-220
@@ -1711,10 +1807,11 @@ class Anonymizer:
             text, _n = private_thread_subjects(text)
         for open_re, placeholder in PERSONAL_BLOCKS:
             parts, last = [], 0
-            for start, end in _find_para_blocks(text, open_re):
+            for start, end in _personal_blocks(text, open_re, placeholder):
                 if start < last:
                     continue
-                parts += [text[last:start], placeholder]
+                kept = signature_placeholder(text[start:end]) if placeholder == SIGNATURE_PLACEHOLDER else placeholder
+                parts += [text[last:start], kept]
                 last = end
             text = "".join(parts) + text[last:]
         text = anonymize_profile_fields(text)
@@ -1976,6 +2073,22 @@ def allowed_name(name):
     return key in NOT_A_MEMBER or bool(FAKE_NAME_RE.match(key) or re.fullmatch(r"<[\w-]+>|\{[\w-]+\}", key))
 
 
+# What HFR prints after a signature or mood (corpus, 2026-11-11), the verifier's own list (LESSONS 33-34): the next message
+# table, the page footer row or a script after a signature; the message cell after a mood, the transactions link and the
+# avatar in between being HFR's own tail of the author cell (`_mood_tail`, #797).
+_V_AFTER_END = {
+    "signature": {("table", "messagetable"), ("tr", "cBackHeader"), ("script", None)},
+    "mood": {("td", "messCase2")},
+}
+
+
+# HFR's transactions link and avatar after a mood (corpus, 2026-11-11: 24 links, 71 avatars), as html.parser decodes them.
+_V_TRANSACTIONS_HREF = re.compile(r"/transactions_reports\.php\?config=hfr\.inc&cat=\d+&id_user=\d+")
+_V_TRANSACTIONS_ONCLICK = re.compile(r"window\.open\(this\.href,'TransactionsReports','toolbar=no,scrollbars=yes,"
+                                     r"resizable=yes,width=\d+,height=\d+,left=\d+,top=\d+'\); return false")
+_V_AVATAR_SRC = re.compile(r"https://forum-images\.hardware\.fr/images/mesdiscussions-\d+\.(?:jpg|png|gif)")
+
+
 class StructuralVerifier(html.parser.HTMLParser):
     """Collects (line, column, reason) for every non-aliased name or real id in member positions."""
 
@@ -1990,6 +2103,12 @@ class StructuralVerifier(html.parser.HTMLParser):
         self.profile_label = None  # text of the last td.profilCase2 (public profile row label)
         self.form_label = None  # text of the last th.repCase1 (reply / edit form row label)
         self.profile_page = False  # body id of the public profile page (the edit form reuses the labels)
+        self.after_personal = None  # "signature" or "mood" until HFR's next own element (#763)
+        self.personal_cell = None  # the cell that held it: HFR closes it before that element (#797)
+        self.mood_tail = set()  # the parts of HFR's author-cell tail seen after a mood (#797)
+        self.after_ends = []  # the end tags between a signature or mood and HFR's next element (#797)
+        self.message_table = None  # the message whose cell ended a mood: a second cell there is the member's (#797)
+        self.xml = False  # an XML document, where CDATA is CDATA
 
     # -- reporting
     def _bad(self, where, value, line=None):
@@ -2041,12 +2160,70 @@ class StructuralVerifier(html.parser.HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         a = {k: (v or "") for k, v in attrs}
-        cls = set(a.get("class", "").split())
+        # Every class value counts: a browser keeps the first of a duplicated attribute, the dict above the last.
+        cls = set(" ".join(v or "" for k, v in attrs if k == "class").split())
         if any(e["where"] == "profile personal field" for e in self.stack):
             # Inside a personal profile cell only bare layout may remain: an <img>/<a> carries data without text.
             if tag not in _V_LAYOUT_TAGS or set(a) - {"class", "style"} or re.search(
                     r"url\s*\(|expression\s*\(", a.get("style", ""), re.I):
                 self._bad("public profile field markup", tag)
+        if tag in ("svg", "math"):
+            # html.parser reads <style> and <script> as raw text everywhere, a browser not inside svg or math (#768):
+            # markup hidden there escapes this walk, and HFR prints neither.
+            self._bad("unexpected markup <%s>" % tag, tag)
+        mood_part = None
+        if tag == "td" and "messCase2" in cls and self.message_table is not None:
+            # One message cell per message: a second one after a mood is the member's, printed after closing the author cell.
+            if any(e is self.message_table for e in self.stack):
+                self._bad("second message cell after a mood <%s>" % tag, tag)
+            self.message_table = None
+        if self.after_personal:
+            # Between a signature or mood and HFR's next own element only end tags, blanks, a bare <br> and, after a mood,
+            # HFR's own author-cell tail belong (#763): anything else is a redaction cut short by the member's markup.
+            what = self.after_personal
+            if (tag, None) in _V_AFTER_END[what] or any((tag, c) in _V_AFTER_END[what] for c in cls):
+                if self.personal_cell is not None and any(e is self.personal_cell for e in self.stack):
+                    # HFR closes the block's cell before printing that element: one printed inside it is the member's (#797).
+                    self._bad("%s cell still open at <%s>" % (what, tag), tag)
+                # And it closes exactly its own elements in between (corpus, 2026-11-11): the para div, cell, row and
+                # table after a signature, the author cell after a mood (inside the tail: its link, span and div).
+                closed = [t for t in self.after_ends if what == "signature" or t not in ("a", "span", "div")]
+                if closed != (["div", "td", "tr", "table"] if what == "signature" else ["td"]):
+                    self._bad("%s closing </%s> before <%s>" % (what, ">, </".join(closed), tag), tag)
+                if what == "mood":
+                    self.message_table = next((e for e in reversed(self.stack) if e["tag"] == "table" and "messagetable"
+                                               in e["cls"]), None) or next((e for e in reversed(self.stack) if e["tag"] == "tr"),
+                                                                           None)
+                self.after_personal = self.personal_cell = None
+            elif tag == "br" and not attrs:
+                pass
+            elif what == "signature" and tag == "table" and attrs and all(
+                    # The footer's own table (`R267a`): layout numbers only, before its `tr.cBackHeader`.
+                    k in ("cellspacing", "cellpadding", "width") and re.fullmatch(r"\d+%?", v or "") for k, v in attrs):
+                pass
+            elif what == "mood" and self._mood_tail(tag, attrs):
+                mood_part = self._mood_tail(tag, attrs)
+                self.mood_tail.add(mood_part)
+            else:
+                self._bad("markup after a %s <%s>" % (what, tag), tag)
+        if tag == "span" and cls & {"signature", "MoodStatus"} and (
+                set(a) - {"class"} or " ".join(v or "" for k, v in attrs).split() not in (["signature"], ["MoodStatus"])):
+            # Only HFR's own class: another attribute, class token or duplicate carries a value without text (#763).
+            self._bad("signature or mood attributes", tag)
+        sig = next((e for e in reversed(self.stack) if e["where"] == "signature or mood"), None)
+        if sig is not None:
+            # A redacted signature or mood holds text, <br> and at most one clear <div>: an <img> or <a> carries a
+            # handle or a link without text (README, fixture anonymizer). Own tag walk, not the redactor's selectors.
+            if len(attrs) != len(a):  # a browser keeps the first duplicate, the dict the last
+                self._bad("signature or mood duplicated attribute <%s>" % tag, tag)
+            clear = (tag == "div" and set(a) <= {"style"}
+                     and re.fullmatch(r"\s*clear\s*:\s*both\s*;?\s*", a.get("style", ""), re.I) is not None)
+            if tag == "br" and not a:
+                pass
+            elif clear and not sig.get("clear"):
+                sig["clear"] = True
+            else:
+                self._bad("signature or mood markup <%s>" % tag, tag)
         for k, v in a.items():
             self.check_value(v)
             if k in ("title", "alt", "content"):
@@ -2137,14 +2314,80 @@ class StructuralVerifier(html.parser.HTMLParser):
                 value = m.group(2).split("'")[0] if href[:m.start(2)].count("'") % 2 else m.group(2)
                 params.append(name_key(html.unescape(urllib.parse.unquote_plus(value)).strip()))
         self.stack.append({"tag": tag, "cls": cls, "where": where, "text": [], "line": self.getpos()[0],
-                           "params": params})
+                           "params": params, "mood_tail": mood_part})
+
+    def _mood_tail(self, tag, attrs):
+        """The part of HFR's author-cell tail after a mood this element is (corpus, 2026-11-11): the transactions link, then
+        the avatar, each once, in that order and with HFR's attributes only; None for anything else."""
+        top = self.stack[-1].get("mood_tail") if self.stack else None
+        a = dict(attrs)
+        if tag == "span" and attrs == [("class", "TransactionsReportsLink")] and not self.mood_tail & {"transactions", "avatar"}:
+            return "transactions"
+        if tag == "a" and top == "transactions" and "link" not in self.mood_tail and [k for k, _v in attrs] == ["href", "onclick"] \
+                and _V_TRANSACTIONS_HREF.fullmatch(a["href"] or "") and _V_TRANSACTIONS_ONCLICK.fullmatch(a["onclick"] or ""):
+            return "link"
+        if tag == "div" and "avatar" not in self.mood_tail and attrs == [("class", "avatar_center"), ("style", "clear:both")]:
+            return "avatar"
+        if tag == "img" and top == "avatar" and "image" not in self.mood_tail and [k for k, _v in attrs] == ["src", "alt"] \
+                and _V_AVATAR_SRC.fullmatch(a["src"] or "") and (not a["alt"] or allowed_name(a["alt"])):
+            return "image"
+        return None
 
     def handle_startendtag(self, tag, attrs):
         self.handle_starttag(tag, attrs)
-        if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag:
+        # A browser ignores "/>" on a non-void element: a redacted span stays open.
+        # Inside one, no element is popped: the div of "<div/>" stays open too and swallows the span's end tag.
+        if tag not in _V_VOID and self.stack and self.stack[-1]["tag"] == tag \
+                and not self._in_signature():
             self._close(self.stack.pop())
 
+    def parse_endtag(self, i):
+        # HTMLParser drops the attributes of an end tag: inside a redacted span or before HFR's next element, refuse any
+        # that carries some.
+        inside, after = self._in_signature(), self.after_personal
+        j = super().parse_endtag(i)
+        if (inside or after) and j > i and not re.fullmatch(r"</[a-zA-Z][\w-]*\s*>", self.rawdata[i:j]):
+            self._bad("end tag after a %s" % after if after and not inside else "signature or mood end tag", self.rawdata[i:j])
+        return j
+
+    def _in_signature(self):
+        return any(e["where"] == "signature or mood" for e in self.stack)
+
+    def _non_element(self, data):
+        # A comment, declaration or processing instruction inside a redacted span, or between it and HFR's next element,
+        # hides words from the text check (#797).
+        if self._in_signature():
+            self._bad("signature or mood markup (non-element)", data)
+        elif self.after_personal:
+            self._bad("markup after a %s (non-element)" % self.after_personal, data)
+
+    def handle_comment(self, data):
+        self._non_element(data)
+
+    def handle_decl(self, decl):
+        self._non_element(decl)
+
+    def handle_pi(self, data):
+        self._non_element(data)
+
+    def unknown_decl(self, data):
+        # html.parser reads `<![CDATA[ … ]]>` as one declaration; a browser ends that bogus comment at the first `>` and
+        # shows what follows (#763 review). HFR's pages print none; an XML document (the AQ feed, `T01`) is not HTML.
+        if not self.xml:
+            self._bad("unexpected markup <![%s" % data[:5], data)
+        # Some html.parser versions route `<![if …]>` here, others to handle_comment: both say where it sits (#797).
+        self._non_element(data)
+
     def handle_endtag(self, tag):
+        if self.after_personal:
+            self.after_ends.append(tag)
+        if self._in_signature():
+            top = self.stack[-1]
+            # A stray end tag would pop past an enclosing cell, which a browser ignores: accept only the matching one.
+            ok = tag == "br" or (tag == "span" and top["where"] == "signature or mood") \
+                or (tag == "div" and top["tag"] == "div")
+            if not ok:
+                self._bad("signature or mood markup </%s>" % tag, tag)
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i]["tag"] == tag:
                 while len(self.stack) > i:
@@ -2184,8 +2427,13 @@ class StructuralVerifier(html.parser.HTMLParser):
                 if text not in ("", PROFILE_PLACEHOLDER, PROFILE_NO_ACCESS) and not re.fullmatch(r"01([/-])01\1(?:2000)", text):
                     self._bad("public profile field", text, e["line"])
             elif e["where"] == "signature or mood":
-                if text not in ("", "Signature removed.", "Mood removed."):
+                if text not in ("", "Mood removed.") and not SIGNATURE_TEXT_RE.fullmatch(text):
                     self._bad("signature or mood text", text, e["line"])
+                if self.stack:  # inside a page, not a bare fragment
+                    self.after_personal = "signature" if "signature" in e["cls"] else "mood"
+                    self.personal_cell = next((x for x in reversed(self.stack) if x["tag"] == "td"), None)
+                    self.mood_tail = set()
+                    self.after_ends = []
             elif e["where"] == "private form copy":
                 if text not in ("", PRIVATE_PLACEHOLDER):
                     self._bad("private form copy", text, e["line"])
@@ -2203,6 +2451,11 @@ class StructuralVerifier(html.parser.HTMLParser):
                 self._name(e["where"], text, e["line"])
 
     def handle_data(self, data):
+        if data.strip() and self.after_personal and not (
+                # HFR's transactions link text, the only text of the author-cell tail after a mood.
+                self.after_personal == "mood" and self.stack and self.stack[-1].get("mood_tail") == "link"
+                and re.fullmatch(r"\s*Transactions \(\d+\)\s*", data)):
+            self._bad("text after a %s" % self.after_personal, data)
         for e in self.stack:
             if e["where"] or e.get("params"):
                 e["text"].append(data)
@@ -2222,6 +2475,9 @@ class StructuralVerifier(html.parser.HTMLParser):
         super().close()
         while self.stack:
             self._close(self.stack.pop())
+        if self.after_personal:
+            # A page always prints HFR's next element after a signature or mood (#797): a missing one is a shape not covered.
+            self._bad("no HFR element after a %s" % self.after_personal, None)
 
 
 def _verify_json(text):
@@ -2861,8 +3117,12 @@ _V_AQ_LOCAL_ALERT = "13636"
 _V_AQ_LOCAL_UNKNOWN_ALERT = "99999"
 _V_AQ_LOCAL_ID = re.compile(r"700\d{3}")
 _V_AQ_LOCAL_URL = re.compile(r"http://192\.0\.2\.1:\d+(/api/addAlerte\.php|/api/getAlertesByTopic\.php(?:\?topic_id=700\d{3})?)")
-_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other)|AQ flood \d+")
-_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic|AQ flood topic \d+")
+_V_AQ_LOCAL_NOM = re.compile(r"AQ local (?:test|other|été|\U0001F600)|AQ flood \d+")
+_V_AQ_LOCAL_TITLE = re.compile(r"AQ local (?:other )?topic(?: été)?|AQ flood topic \d+")
+# #611: a body id may also be empty (an addition), not a number or out of int(11); a comment may be 1024 or 1025 `x`
+# (the column's length and one over) or the legacy text with an accent or a character outside the BMP.
+_V_AQ_LOCAL_BODY_ID = re.compile(r"700\d{3}|abc|99999999999|")
+_V_AQ_LOCAL_LONG_COMMENTS = ("x" * 1024, "x" * 1025)
 _V_AQ_LOCAL_POST_URL = re.compile(r"https?://forum\.hardware\.fr/hfr/Discussions/Societe/(?:aq-local-(?:topic|other)|aq-flood-\d+)"
                                   r"-sujet_700\d{3}_1\.htm#t700\d{3}")
 _V_AQ_LOCAL_DATE = re.compile(r"[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT")
@@ -2892,16 +3152,19 @@ def _v_aq_local_body(body, bad):
         bad("alerte_qualitay_id not a local value")
     if f.get("nom") and not _V_AQ_LOCAL_NOM.fullmatch(f["nom"]):
         bad("nom not a local value")
-    if not _V_AQ_LOCAL_TITLE.fullmatch(f.get("topic_titre", "")):
+    if f.get("topic_titre") and not _V_AQ_LOCAL_TITLE.fullmatch(f["topic_titre"]):
         bad("topic_titre not a local value")
     for k in ("topic_id", "post_id"):
-        if not _V_AQ_LOCAL_ID.fullmatch(f.get(k, "")):
+        if not _V_AQ_LOCAL_BODY_ID.fullmatch(f.get(k, "")):
             bad("%s not a local id" % k)
-    if not FAKE_NAME_RE.fullmatch(f.get("pseudo", "")):
+    if f.get("pseudo", "") != "" and not FAKE_NAME_RE.fullmatch(f["pseudo"]):
         bad("pseudo not an alias")
     if not _V_AQ_LOCAL_POST_URL.fullmatch(f.get("post_url", "")):
         bad("post_url not a local value")
-    if f.get("commentaire") != "post de %s" % f.get("pseudo"):
+    # An empty pseudo (#611, an addition missing a field) still sends the legacy text of an alias.
+    pseudo = f.get("pseudo") or (f.get("commentaire") or "")[len("post de "):]
+    legacy = "post de %s" % (pseudo if FAKE_NAME_RE.fullmatch(pseudo) else f.get("pseudo"))
+    if f.get("commentaire") not in (legacy, legacy + " été", legacy + " \U0001F600") + _V_AQ_LOCAL_LONG_COMMENTS:
         bad("commentaire not the legacy text")
 
 
@@ -3089,6 +3352,7 @@ def verify_structure(text, private=False):
     if looks_json(text):
         return _verify_json(text)
     v = StructuralVerifier(private=private, copies_ok=bool(_V_MPSTORAGE_SUBJECT_TEXT.search(text)) or _v_fixture_thread(text))
+    v.xml = text.lstrip().startswith("<?xml") and not re.search(r"<html\b", text, re.I)
     v.feed(text)
     v.close()
     return v.found

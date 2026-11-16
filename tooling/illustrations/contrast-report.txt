@@ -1,0 +1,410 @@
+ok  legacy/light: title on background = 18.82 (>= 4.5)
+ok  legacy/light: textPrimary on surface = 21.00 (>= 4.5)
+ok  legacy/light: textSecondary on surface = 5.23 (>= 4.5)
+ok  legacy/light: sectionHeader on background = 4.69 (>= 4.5)
+ok  legacy/light: accentText on surface = 4.62 (>= 4.5)
+ok  legacy/light: link on surface = 4.62 (>= 4.5)
+ok  legacy/light: onAccent on accent = 13.86 (>= 4.5)
+ok  legacy/light: onUnread on unread = 5.23 (>= 4.5)
+ok  legacy/light: codeText on codeBackground = 18.82 (>= 4.5)
+ok  legacy/light: spoilerText on spoilerBackground = 16.73 (>= 4.5)
+ok  legacy/light: textPrimary on quoteBackground = 18.82 (>= 4.5)
+ok  legacy/light: onHeaderBand on headerBand = 21.00 (>= 4.5)
+ok  legacy/light: textPrimary on rowAlt = 21.00 (>= 4.5)
+ok  legacy/light: link on rowAlt = 4.62 (>= 4.5)
+ok  legacy/light: meta on surface = 5.23 (>= 4.5)
+ok  legacy/light: meta on rowAlt = 5.23 (>= 4.5)
+ok  legacy/light: onPageBar on pageBar = 21.00 (>= 4.5)
+ok  legacy/dark: title on background = 21.00 (>= 4.5)
+ok  legacy/dark: textPrimary on surface = 17.01 (>= 4.5)
+ok  legacy/dark: textSecondary on surface = 5.94 (>= 4.5)
+ok  legacy/dark: sectionHeader on background = 7.33 (>= 4.5)
+ok  legacy/dark: accentText on surface = 9.87 (>= 4.5)
+ok  legacy/dark: link on surface = 9.87 (>= 4.5)
+ok  legacy/dark: onAccent on accent = 12.18 (>= 4.5)
+ok  legacy/dark: onUnread on unread = 12.43 (>= 4.5)
+ok  legacy/dark: codeText on codeBackground = 13.94 (>= 4.5)
+ok  legacy/dark: spoilerText on spoilerBackground = 11.35 (>= 4.5)
+ok  legacy/dark: textPrimary on quoteBackground = 13.94 (>= 4.5)
+ok  legacy/dark: onHeaderBand on headerBand = 13.94 (>= 4.5)
+ok  legacy/dark: textPrimary on rowAlt = 17.01 (>= 4.5)
+ok  legacy/dark: link on rowAlt = 9.87 (>= 4.5)
+ok  legacy/dark: meta on surface = 5.94 (>= 4.5)
+ok  legacy/dark: meta on rowAlt = 5.94 (>= 4.5)
+ok  legacy/dark: onPageBar on pageBar = 13.94 (>= 4.5)
+ok  swift/light: title on background = 14.81 (>= 4.5)
+ok  swift/light: textPrimary on surface = 16.40 (>= 4.5)
+ok  swift/light: textSecondary on surface = 5.31 (>= 4.5)
+ok  swift/light: sectionHeader on background = 5.56 (>= 4.5)
+ok  swift/light: accentText on surface = 5.95 (>= 4.5)
+ok  swift/light: link on surface = 5.95 (>= 4.5)
+ok  swift/light: onAccent on accent = 5.95 (>= 4.5)
+ok  swift/light: onUnread on unread = 5.95 (>= 4.5)
+ok  swift/light: codeText on codeBackground = 14.28 (>= 4.5)
+ok  swift/light: spoilerText on spoilerBackground = 12.33 (>= 4.5)
+ok  swift/light: textPrimary on quoteBackground = 14.28 (>= 4.5)
+ok  swift/light: onHeaderBand on headerBand = 14.28 (>= 4.5)
+ok  swift/light: textPrimary on rowAlt = 16.40 (>= 4.5)
+ok  swift/light: link on rowAlt = 5.95 (>= 4.5)
+ok  swift/light: meta on surface = 5.31 (>= 4.5)
+ok  swift/light: meta on rowAlt = 5.31 (>= 4.5)
+ok  swift/light: onPageBar on pageBar = 14.28 (>= 4.5)
+ok  swift/dark: title on background = 16.40 (>= 4.5)
+ok  swift/dark: textPrimary on surface = 14.63 (>= 4.5)
+ok  swift/dark: textSecondary on surface = 6.54 (>= 4.5)
+ok  swift/dark: sectionHeader on background = 6.91 (>= 4.5)
+ok  swift/dark: accentText on surface = 4.65 (>= 4.5)
+ok  swift/dark: link on surface = 4.65 (>= 4.5)
+ok  swift/dark: onAccent on accent = 5.22 (>= 4.5)
+ok  swift/dark: onUnread on unread = 5.22 (>= 4.5)
+ok  swift/dark: codeText on codeBackground = 12.89 (>= 4.5)
+ok  swift/dark: spoilerText on spoilerBackground = 11.82 (>= 4.5)
+ok  swift/dark: textPrimary on quoteBackground = 12.89 (>= 4.5)
+ok  swift/dark: onHeaderBand on headerBand = 12.89 (>= 4.5)
+ok  swift/dark: textPrimary on rowAlt = 14.63 (>= 4.5)
+ok  swift/dark: link on rowAlt = 4.65 (>= 4.5)
+ok  swift/dark: meta on surface = 6.54 (>= 4.5)
+ok  swift/dark: meta on rowAlt = 6.54 (>= 4.5)
+ok  swift/dark: onPageBar on pageBar = 12.89 (>= 4.5)
+ok  retro/any: title on background = 15.49 (>= 4.5)
+ok  retro/any: textPrimary on surface = 15.49 (>= 4.5)
+ok  retro/any: textSecondary on surface = 7.93 (>= 4.5)
+ok  retro/any: sectionHeader on background = 21.00 (>= 4.5)
+ok  retro/any: accentText on surface = 15.49 (>= 4.5)
+ok  retro/any: link on surface = 12.79 (>= 4.5)
+ok  retro/any: onAccent on accent = 15.49 (>= 4.5)
+ok  retro/any: onUnread on unread = 19.69 (>= 4.5)
+ok  retro/any: codeText on codeBackground = 17.15 (>= 4.5)
+ok  retro/any: spoilerText on spoilerBackground = 15.49 (>= 4.5)
+ok  retro/any: textPrimary on quoteBackground = 13.50 (>= 4.5)
+ok  retro/any: onHeaderBand on headerBand = 15.49 (>= 4.5)
+ok  retro/any: textPrimary on rowAlt = 15.49 (>= 4.5)
+ok  retro/any: link on rowAlt = 12.79 (>= 4.5)
+ok  retro/any: meta on surface = 7.93 (>= 4.5)
+ok  retro/any: meta on rowAlt = 7.93 (>= 4.5)
+ok  retro/any: onPageBar on pageBar = 15.49 (>= 4.5)
+ok  noel-abuse/any: title on background = 9.38 (>= 4.5)
+ok  noel-abuse/any: textPrimary on surface = 17.23 (>= 4.5)
+ok  noel-abuse/any: textSecondary on surface = 7.81 (>= 4.5)
+ok  noel-abuse/any: sectionHeader on background = 8.11 (>= 4.5)
+ok  noel-abuse/any: accentText on surface = 6.54 (>= 4.5)
+ok  noel-abuse/any: link on surface = 6.54 (>= 4.5)
+ok  noel-abuse/any: onAccent on accent = 5.25 (>= 4.5)
+ok  noel-abuse/any: onUnread on unread = 9.35 (>= 4.5)
+ok  noel-abuse/any: codeText on codeBackground = 15.24 (>= 4.5)
+ok  noel-abuse/any: spoilerText on spoilerBackground = 9.38 (>= 4.5)
+ok  noel-abuse/any: textPrimary on quoteBackground = 15.99 (>= 4.5)
+ok  noel-abuse/any: onHeaderBand on headerBand = 6.54 (>= 4.5)
+ok  noel-abuse/any: textPrimary on rowAlt = 17.23 (>= 4.5)
+ok  noel-abuse/any: link on rowAlt = 6.54 (>= 4.5)
+ok  noel-abuse/any: meta on surface = 7.81 (>= 4.5)
+ok  noel-abuse/any: meta on rowAlt = 7.81 (>= 4.5)
+ok  noel-abuse/any: onPageBar on pageBar = 6.54 (>= 4.5)
+ok  noel-soft/light: title on background = 16.17 (>= 4.5)
+ok  noel-soft/light: textPrimary on surface = 18.18 (>= 4.5)
+ok  noel-soft/light: textSecondary on surface = 6.13 (>= 4.5)
+ok  noel-soft/light: sectionHeader on background = 5.46 (>= 4.5)
+ok  noel-soft/light: accentText on surface = 6.64 (>= 4.5)
+ok  noel-soft/light: link on surface = 6.64 (>= 4.5)
+ok  noel-soft/light: onAccent on accent = 5.50 (>= 4.5)
+ok  noel-soft/light: onUnread on unread = 5.50 (>= 4.5)
+ok  noel-soft/light: codeText on codeBackground = 16.63 (>= 4.5)
+ok  noel-soft/light: spoilerText on spoilerBackground = 13.27 (>= 4.5)
+ok  noel-soft/light: textPrimary on quoteBackground = 16.63 (>= 4.5)
+ok  noel-soft/light: onHeaderBand on headerBand = 17.23 (>= 4.5)
+ok  noel-soft/light: textPrimary on rowAlt = 18.18 (>= 4.5)
+ok  noel-soft/light: link on rowAlt = 6.64 (>= 4.5)
+ok  noel-soft/light: meta on surface = 6.13 (>= 4.5)
+ok  noel-soft/light: meta on rowAlt = 6.13 (>= 4.5)
+ok  noel-soft/light: onPageBar on pageBar = 17.23 (>= 4.5)
+ok  noel-soft/dark: title on background = 16.17 (>= 4.5)
+ok  noel-soft/dark: textPrimary on surface = 14.29 (>= 4.5)
+ok  noel-soft/dark: textSecondary on surface = 6.66 (>= 4.5)
+ok  noel-soft/dark: sectionHeader on background = 7.54 (>= 4.5)
+ok  noel-soft/dark: accentText on surface = 6.40 (>= 4.5)
+ok  noel-soft/dark: link on surface = 6.40 (>= 4.5)
+ok  noel-soft/dark: onAccent on accent = 6.04 (>= 4.5)
+ok  noel-soft/dark: onUnread on unread = 6.04 (>= 4.5)
+ok  noel-soft/dark: codeText on codeBackground = 12.94 (>= 4.5)
+ok  noel-soft/dark: spoilerText on spoilerBackground = 10.94 (>= 4.5)
+ok  noel-soft/dark: textPrimary on quoteBackground = 12.94 (>= 4.5)
+ok  noel-soft/dark: onHeaderBand on headerBand = 12.94 (>= 4.5)
+ok  noel-soft/dark: textPrimary on rowAlt = 14.29 (>= 4.5)
+ok  noel-soft/dark: link on rowAlt = 6.40 (>= 4.5)
+ok  noel-soft/dark: meta on surface = 6.66 (>= 4.5)
+ok  noel-soft/dark: meta on rowAlt = 6.66 (>= 4.5)
+ok  noel-soft/dark: onPageBar on pageBar = 12.94 (>= 4.5)
+ok  spooktober-abuse/any: title on background = 16.59 (>= 4.5)
+ok  spooktober-abuse/any: textPrimary on surface = 14.83 (>= 4.5)
+ok  spooktober-abuse/any: textSecondary on surface = 9.15 (>= 4.5)
+ok  spooktober-abuse/any: sectionHeader on background = 8.15 (>= 4.5)
+ok  spooktober-abuse/any: accentText on surface = 8.13 (>= 4.5)
+ok  spooktober-abuse/any: link on surface = 8.13 (>= 4.5)
+ok  spooktober-abuse/any: onAccent on accent = 7.35 (>= 4.5)
+ok  spooktober-abuse/any: onUnread on unread = 7.35 (>= 4.5)
+ok  spooktober-abuse/any: codeText on codeBackground = 15.36 (>= 4.5)
+ok  spooktober-abuse/any: spoilerText on spoilerBackground = 11.68 (>= 4.5)
+ok  spooktober-abuse/any: textPrimary on quoteBackground = 13.50 (>= 4.5)
+ok  spooktober-abuse/any: onHeaderBand on headerBand = 17.29 (>= 4.5)
+ok  spooktober-abuse/any: textPrimary on rowAlt = 14.83 (>= 4.5)
+ok  spooktober-abuse/any: link on rowAlt = 8.13 (>= 4.5)
+ok  spooktober-abuse/any: meta on surface = 9.15 (>= 4.5)
+ok  spooktober-abuse/any: meta on rowAlt = 9.15 (>= 4.5)
+ok  spooktober-abuse/any: onPageBar on pageBar = 17.29 (>= 4.5)
+ok  spooktober-soft/light: title on background = 16.36 (>= 4.5)
+ok  spooktober-soft/light: textPrimary on surface = 18.36 (>= 4.5)
+ok  spooktober-soft/light: textSecondary on surface = 6.87 (>= 4.5)
+ok  spooktober-soft/light: sectionHeader on background = 6.12 (>= 4.5)
+ok  spooktober-soft/light: accentText on surface = 5.25 (>= 4.5)
+ok  spooktober-soft/light: link on surface = 5.25 (>= 4.5)
+ok  spooktober-soft/light: onAccent on accent = 5.51 (>= 4.5)
+ok  spooktober-soft/light: onUnread on unread = 5.51 (>= 4.5)
+ok  spooktober-soft/light: codeText on codeBackground = 16.41 (>= 4.5)
+ok  spooktober-soft/light: spoilerText on spoilerBackground = 13.14 (>= 4.5)
+ok  spooktober-soft/light: textPrimary on quoteBackground = 16.41 (>= 4.5)
+ok  spooktober-soft/light: onHeaderBand on headerBand = 17.23 (>= 4.5)
+ok  spooktober-soft/light: textPrimary on rowAlt = 18.36 (>= 4.5)
+ok  spooktober-soft/light: link on rowAlt = 5.25 (>= 4.5)
+ok  spooktober-soft/light: meta on surface = 6.87 (>= 4.5)
+ok  spooktober-soft/light: meta on rowAlt = 6.87 (>= 4.5)
+ok  spooktober-soft/light: onPageBar on pageBar = 17.23 (>= 4.5)
+ok  spooktober-soft/dark: title on background = 16.30 (>= 4.5)
+ok  spooktober-soft/dark: textPrimary on surface = 15.03 (>= 4.5)
+ok  spooktober-soft/dark: textSecondary on surface = 6.57 (>= 4.5)
+ok  spooktober-soft/dark: sectionHeader on background = 7.13 (>= 4.5)
+ok  spooktober-soft/dark: accentText on surface = 8.27 (>= 4.5)
+ok  spooktober-soft/dark: link on surface = 8.27 (>= 4.5)
+ok  spooktober-soft/dark: onAccent on accent = 8.04 (>= 4.5)
+ok  spooktober-soft/dark: onUnread on unread = 8.04 (>= 4.5)
+ok  spooktober-soft/dark: codeText on codeBackground = 14.17 (>= 4.5)
+ok  spooktober-soft/dark: spoilerText on spoilerBackground = 12.55 (>= 4.5)
+ok  spooktober-soft/dark: textPrimary on quoteBackground = 14.17 (>= 4.5)
+ok  spooktober-soft/dark: onHeaderBand on headerBand = 14.17 (>= 4.5)
+ok  spooktober-soft/dark: textPrimary on rowAlt = 15.03 (>= 4.5)
+ok  spooktober-soft/dark: link on rowAlt = 8.27 (>= 4.5)
+ok  spooktober-soft/dark: meta on surface = 6.57 (>= 4.5)
+ok  spooktober-soft/dark: meta on rowAlt = 6.57 (>= 4.5)
+ok  spooktober-soft/dark: onPageBar on pageBar = 14.17 (>= 4.5)
+ok  og-clair/any: title on background = 17.72 (>= 4.5)
+ok  og-clair/any: textPrimary on surface = 19.60 (>= 4.5)
+ok  og-clair/any: textSecondary on surface = 7.89 (>= 4.5)
+ok  og-clair/any: sectionHeader on background = 16.01 (>= 4.5)
+ok  og-clair/any: accentText on surface = 14.94 (>= 4.5)
+ok  og-clair/any: link on surface = 14.94 (>= 4.5)
+ok  og-clair/any: onAccent on accent = 8.53 (>= 4.5)
+ok  og-clair/any: onUnread on unread = 5.89 (>= 4.5)
+ok  og-clair/any: codeText on codeBackground = 19.60 (>= 4.5)
+ok  og-clair/any: spoilerText on spoilerBackground = 15.73 (>= 4.5)
+ok  og-clair/any: textPrimary on quoteBackground = 18.31 (>= 4.5)
+ok  og-clair/any: onHeaderBand on headerBand = 17.72 (>= 4.5)
+ok  og-clair/any: textPrimary on rowAlt = 15.73 (>= 4.5)
+ok  og-clair/any: link on rowAlt = 11.99 (>= 4.5)
+ok  og-clair/any: meta on surface = 7.89 (>= 4.5)
+ok  og-clair/any: meta on rowAlt = 6.33 (>= 4.5)
+ok  og-clair/any: onPageBar on pageBar = 11.99 (>= 4.5)
+ok  og-gris/any: title on background = 5.74 (>= 4.5)
+ok  og-gris/any: textPrimary on surface = 9.04 (>= 4.5)
+ok  og-gris/any: textSecondary on surface = 6.85 (>= 4.5)
+ok  og-gris/any: sectionHeader on background = 5.74 (>= 4.5)
+ok  og-gris/any: accentText on surface = 6.28 (>= 4.5)
+ok  og-gris/any: link on surface = 6.28 (>= 4.5)
+ok  og-gris/any: onAccent on accent = 8.53 (>= 4.5)
+ok  og-gris/any: onUnread on unread = 5.89 (>= 4.5)
+ok  og-gris/any: codeText on codeBackground = 10.94 (>= 4.5)
+ok  og-gris/any: spoilerText on spoilerBackground = 5.92 (>= 4.5)
+ok  og-gris/any: textPrimary on quoteBackground = 10.94 (>= 4.5)
+ok  og-gris/any: onHeaderBand on headerBand = 15.34 (>= 4.5)
+ok  og-gris/any: textPrimary on rowAlt = 10.94 (>= 4.5)
+ok  og-gris/any: link on rowAlt = 7.59 (>= 4.5)
+ok  og-gris/any: meta on surface = 6.85 (>= 4.5)
+ok  og-gris/any: meta on rowAlt = 8.29 (>= 4.5)
+ok  og-gris/any: onPageBar on pageBar = 5.92 (>= 4.5)
+ok  og-gris/any: counter on surface = 5.56 (>= 4.5)
+ok  og-gris/any: counter on rowAlt = 6.72 (>= 4.5)
+ok  accent Rouge h=0.000 light fill+black = 6.83
+ok  accent Rouge h=0.000 dark fill+black = 5.82
+ok  accent Rouge h=0.000 light accentText on white = 4.70
+ok  accent Rouge h=0.000 dark accentText on #1C1C1E = 4.72
+info accent Rouge raw light tint on white (legacy) = 3.08
+info accent Rouge raw dark tint on #1C1C1E (legacy) = 4.72
+ok  accent Orange HFR h=0.099 light fill+black = 12.59
+ok  accent Orange HFR h=0.099 dark fill+black = 10.85
+ok  accent Orange HFR h=0.099 light accentText on white = 4.62
+ok  accent Orange HFR h=0.099 dark accentText on #1C1C1E = 8.79
+info accent Orange HFR raw light tint on white (legacy) = 1.67
+info accent Orange HFR raw dark tint on #1C1C1E (legacy) = 8.79
+ok  accent Jaune h=0.140 light fill+black = 16.49
+ok  accent Jaune h=0.140 dark fill+black = 14.59
+ok  accent Jaune h=0.140 light accentText on white = 4.63
+ok  accent Jaune h=0.140 dark accentText on #1C1C1E = 11.82
+info accent Jaune raw light tint on white (legacy) = 1.27
+info accent Jaune raw dark tint on #1C1C1E (legacy) = 11.82
+ok  accent Vert h=0.330 light fill+black = 15.91
+ok  accent Vert h=0.330 dark fill+black = 14.10
+ok  accent Vert h=0.330 light accentText on white = 4.67
+ok  accent Vert h=0.330 dark accentText on #1C1C1E = 11.43
+info accent Vert raw light tint on white (legacy) = 1.32
+info accent Vert raw dark tint on #1C1C1E (legacy) = 11.43
+ok  accent Sarcelle h=0.470 light fill+black = 16.82
+ok  accent Sarcelle h=0.470 dark fill+black = 14.93
+ok  accent Sarcelle h=0.470 light accentText on white = 4.74
+ok  accent Sarcelle h=0.470 dark accentText on #1C1C1E = 12.10
+info accent Sarcelle raw light tint on white (legacy) = 1.25
+info accent Sarcelle raw dark tint on #1C1C1E (legacy) = 12.10
+ok  accent Cyan h=0.500 light fill+black = 17.17
+ok  accent Cyan h=0.500 dark fill+black = 15.27
+ok  accent Cyan h=0.500 light accentText on white = 4.63
+ok  accent Cyan h=0.500 dark accentText on #1C1C1E = 12.37
+info accent Cyan raw light tint on white (legacy) = 1.22
+info accent Cyan raw dark tint on #1C1C1E (legacy) = 12.37
+ok  accent Cyan HFR (défaut) h=0.528 light fill+black = 13.86
+ok  accent Cyan HFR (défaut) h=0.528 dark fill+black = 12.18
+ok  accent Cyan HFR (défaut) h=0.528 light accentText on white = 4.62
+ok  accent Cyan HFR (défaut) h=0.528 dark accentText on #1C1C1E = 9.87
+info accent Cyan HFR (défaut) raw light tint on white (legacy) = 1.52
+info accent Cyan HFR (défaut) raw dark tint on #1C1C1E (legacy) = 9.87
+ok  accent Bleu h=0.600 light fill+black = 7.62
+ok  accent Bleu h=0.600 dark fill+black = 6.38
+ok  accent Bleu h=0.600 light accentText on white = 4.64
+ok  accent Bleu h=0.600 dark accentText on #1C1C1E = 5.17
+info accent Bleu raw light tint on white (legacy) = 2.75
+info accent Bleu raw dark tint on #1C1C1E (legacy) = 5.17
+ok  accent Violet h=0.740 light fill+black = 5.41
+KO  accent Violet h=0.740 dark fill+black = 4.48
+ok  accent Violet h=0.740 light accentText on white = 6.05
+ok  accent Violet h=0.740 dark accentText on #1C1C1E = 4.67
+info accent Violet raw light tint on white (legacy) = 3.88
+info accent Violet raw dark tint on #1C1C1E (legacy) = 3.63
+ok  accent Rose h=0.920 light fill+black = 7.25
+ok  accent Rose h=0.920 dark fill+black = 6.20
+ok  accent Rose h=0.920 light accentText on white = 4.61
+ok  accent Rose h=0.920 dark accentText on #1C1C1E = 5.02
+info accent Rose raw light tint on white (legacy) = 2.90
+info accent Rose raw dark tint on #1C1C1E (legacy) = 5.02
+ok  accent slider h=0.000 light fill+black = 6.83
+ok  accent slider h=0.000 dark fill+black = 5.82
+ok  accent slider h=0.000 light accentText on white = 4.70
+ok  accent slider h=0.000 dark accentText on #1C1C1E = 4.72
+info accent slider raw light tint on white (legacy) = 3.08
+info accent slider raw dark tint on #1C1C1E (legacy) = 4.72
+ok  accent slider h=0.050 light fill+black = 9.09
+ok  accent slider h=0.050 dark fill+black = 7.75
+ok  accent slider h=0.050 light accentText on white = 4.67
+ok  accent slider h=0.050 dark accentText on #1C1C1E = 6.28
+info accent slider raw light tint on white (legacy) = 2.31
+info accent slider raw dark tint on #1C1C1E (legacy) = 6.28
+ok  accent slider h=0.100 light fill+black = 12.68
+ok  accent slider h=0.100 dark fill+black = 10.93
+ok  accent slider h=0.100 light accentText on white = 4.62
+ok  accent slider h=0.100 dark accentText on #1C1C1E = 8.85
+info accent slider raw light tint on white (legacy) = 1.66
+info accent slider raw dark tint on #1C1C1E (legacy) = 8.85
+ok  accent slider h=0.150 light fill+black = 17.63
+ok  accent slider h=0.150 dark fill+black = 15.64
+ok  accent slider h=0.150 light accentText on white = 4.62
+ok  accent slider h=0.150 dark accentText on #1C1C1E = 12.67
+info accent slider raw light tint on white (legacy) = 1.19
+info accent slider raw dark tint on #1C1C1E (legacy) = 12.67
+ok  accent slider h=0.200 light fill+black = 18.55
+ok  accent slider h=0.200 dark fill+black = 16.48
+ok  accent slider h=0.200 light accentText on white = 4.66
+ok  accent slider h=0.200 dark accentText on #1C1C1E = 13.35
+info accent slider raw light tint on white (legacy) = 1.13
+info accent slider raw dark tint on #1C1C1E (legacy) = 13.35
+ok  accent slider h=0.250 light fill+black = 17.20
+ok  accent slider h=0.250 dark fill+black = 15.23
+ok  accent slider h=0.250 light accentText on white = 4.69
+ok  accent slider h=0.250 dark accentText on #1C1C1E = 12.34
+info accent slider raw light tint on white (legacy) = 1.22
+info accent slider raw dark tint on #1C1C1E (legacy) = 12.34
+ok  accent slider h=0.300 light fill+black = 16.28
+ok  accent slider h=0.300 dark fill+black = 14.42
+ok  accent slider h=0.300 light accentText on white = 4.61
+ok  accent slider h=0.300 dark accentText on #1C1C1E = 11.69
+info accent slider raw light tint on white (legacy) = 1.29
+info accent slider raw dark tint on #1C1C1E (legacy) = 11.69
+ok  accent slider h=0.350 light fill+black = 15.94
+ok  accent slider h=0.350 dark fill+black = 14.13
+ok  accent slider h=0.350 light accentText on white = 4.67
+ok  accent slider h=0.350 dark accentText on #1C1C1E = 11.45
+info accent slider raw light tint on white (legacy) = 1.32
+info accent slider raw dark tint on #1C1C1E (legacy) = 11.45
+ok  accent slider h=0.400 light fill+black = 16.21
+ok  accent slider h=0.400 dark fill+black = 14.37
+ok  accent slider h=0.400 light accentText on white = 4.61
+ok  accent slider h=0.400 dark accentText on #1C1C1E = 11.64
+info accent slider raw light tint on white (legacy) = 1.30
+info accent slider raw dark tint on #1C1C1E (legacy) = 11.64
+ok  accent slider h=0.450 light fill+black = 16.61
+ok  accent slider h=0.450 dark fill+black = 14.74
+ok  accent slider h=0.450 light accentText on white = 4.62
+ok  accent slider h=0.450 dark accentText on #1C1C1E = 11.94
+info accent slider raw light tint on white (legacy) = 1.26
+info accent slider raw dark tint on #1C1C1E (legacy) = 11.94
+ok  accent slider h=0.500 light fill+black = 17.17
+ok  accent slider h=0.500 dark fill+black = 15.27
+ok  accent slider h=0.500 light accentText on white = 4.63
+ok  accent slider h=0.500 dark accentText on #1C1C1E = 12.37
+info accent slider raw light tint on white (legacy) = 1.22
+info accent slider raw dark tint on #1C1C1E (legacy) = 12.37
+ok  accent slider h=0.550 light fill+black = 11.60
+ok  accent slider h=0.550 dark fill+black = 10.02
+ok  accent slider h=0.550 light accentText on white = 4.62
+ok  accent slider h=0.550 dark accentText on #1C1C1E = 8.12
+info accent slider raw light tint on white (legacy) = 1.81
+info accent slider raw dark tint on #1C1C1E (legacy) = 8.12
+ok  accent slider h=0.600 light fill+black = 7.62
+ok  accent slider h=0.600 dark fill+black = 6.38
+ok  accent slider h=0.600 light accentText on white = 4.64
+ok  accent slider h=0.600 dark accentText on #1C1C1E = 5.17
+info accent slider raw light tint on white (legacy) = 2.75
+info accent slider raw dark tint on #1C1C1E (legacy) = 5.17
+ok  accent slider h=0.650 light fill+black = 4.93
+KO  accent slider h=0.650 dark fill+black = 4.03
+ok  accent slider h=0.650 light accentText on white = 7.22
+ok  accent slider h=0.650 dark accentText on #1C1C1E = 4.63
+info accent slider raw light tint on white (legacy) = 4.26
+info accent slider raw dark tint on #1C1C1E (legacy) = 3.26
+ok  accent slider h=0.700 light fill+black = 4.70
+KO  accent slider h=0.700 dark fill+black = 3.86
+ok  accent slider h=0.700 light accentText on white = 7.37
+ok  accent slider h=0.700 dark accentText on #1C1C1E = 4.70
+info accent slider raw light tint on white (legacy) = 4.47
+info accent slider raw dark tint on #1C1C1E (legacy) = 3.13
+ok  accent slider h=0.750 light fill+black = 5.63
+ok  accent slider h=0.750 dark fill+black = 4.67
+ok  accent slider h=0.750 light accentText on white = 5.68
+ok  accent slider h=0.750 dark accentText on #1C1C1E = 4.62
+info accent slider raw light tint on white (legacy) = 3.73
+info accent slider raw dark tint on #1C1C1E (legacy) = 3.78
+ok  accent slider h=0.800 light fill+black = 6.98
+ok  accent slider h=0.800 dark fill+black = 5.92
+ok  accent slider h=0.800 light accentText on white = 4.60
+ok  accent slider h=0.800 dark accentText on #1C1C1E = 4.79
+info accent slider raw light tint on white (legacy) = 3.01
+info accent slider raw dark tint on #1C1C1E (legacy) = 4.79
+ok  accent slider h=0.850 light fill+black = 7.92
+ok  accent slider h=0.850 dark fill+black = 6.82
+ok  accent slider h=0.850 light accentText on white = 4.60
+ok  accent slider h=0.850 dark accentText on #1C1C1E = 5.52
+info accent slider raw light tint on white (legacy) = 2.65
+info accent slider raw dark tint on #1C1C1E (legacy) = 5.52
+ok  accent slider h=0.900 light fill+black = 7.42
+ok  accent slider h=0.900 dark fill+black = 6.34
+ok  accent slider h=0.900 light accentText on white = 4.66
+ok  accent slider h=0.900 dark accentText on #1C1C1E = 5.14
+info accent slider raw light tint on white (legacy) = 2.83
+info accent slider raw dark tint on #1C1C1E (legacy) = 5.14
+ok  accent slider h=0.950 light fill+black = 7.05
+ok  accent slider h=0.950 dark fill+black = 6.02
+ok  accent slider h=0.950 light accentText on white = 4.65
+ok  accent slider h=0.950 dark accentText on #1C1C1E = 4.88
+info accent slider raw light tint on white (legacy) = 2.98
+info accent slider raw dark tint on #1C1C1E (legacy) = 4.88
+ok  accent slider h=1.000 light fill+black = 6.83
+ok  accent slider h=1.000 dark fill+black = 5.82
+ok  accent slider h=1.000 light accentText on white = 4.70
+ok  accent slider h=1.000 dark accentText on #1C1C1E = 4.72
+info accent slider raw light tint on white (legacy) = 3.08
+info accent slider raw dark tint on #1C1C1E (legacy) = 4.72
+fails: 3

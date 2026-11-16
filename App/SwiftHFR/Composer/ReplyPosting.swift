@@ -16,7 +16,10 @@ struct ReplyTarget: Hashable, Sendable {
 
     /// The draft of this topic's reply: one per topic and account, whatever the page (legacy kept one per topic,
     /// `HFRswift/Swift/AnswerView.swift:137-190`); LOT-063 asks for a constant page for that.
-    var draftContext: DraftContext { .reply(topic: topic, page: 1) }
+    var draftContext: DraftContext { Self.draftContext(of: topic) }
+
+    /// The reply draft of `topic`, which the legacy import's pending drafts also go to (LOT-158).
+    static func draftContext(of topic: TopicID) -> DraftContext { .reply(topic: topic, page: 1) }
 }
 
 // Port of HFRswift/Swift/MessagesView.swift:4208-4224 (openPrivateMessageComposer) and Classes/QuoteMessageViewController.m:254-256,
@@ -246,6 +249,8 @@ struct ComposerServices: Sendable {
     var imageUpload: ImageUploadServices = .live()
     /// The GIF panel's services (LOT-155): built with the struct, nothing is contacted until the panel is opened and N1 accepted.
     var gif: GifServices = .live()
+    /// Places the legacy reply draft the import left pending for a topic (LOT-158); nil in tests that do not need it.
+    var legacyDrafts: LegacyDraftResolver?
 
     /// What the smiley panel opens with: a new search model over the lookups, none without an account.
     /// `formURL` is the composer's own form, whose `#dynamic_smilies` are the forum favourites.
@@ -297,7 +302,7 @@ struct ComposerServices: Sendable {
         return ComposerServices(
             poster: LiveReplyPoster(session: session), drafts: liveDrafts, account: account, pollVoter: LivePollVoter(session: session),
             topicSearcher: LiveTopicSearcher(session: session), quoting: LiveQuoter(session: session),
-            smileyLookups: LiveSmileyLookups(session: session)
+            smileyLookups: LiveSmileyLookups(session: session), legacyDrafts: LegacyDraftResolver.live(account: account)
         )
     }
 }

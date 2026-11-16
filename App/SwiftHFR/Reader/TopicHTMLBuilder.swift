@@ -136,17 +136,20 @@ enum TopicHTMLBuilder {
         let showsMessageMenu = options.showsMessageMenus && !message.isContinuation
         let opensAuthorMenu = options.showsAuthorMenus && !message.isContinuation
         html += avatar(of: message, opensMenu: opensAuthorMenu)
+        // The author is the message's heading (LOT-163): the web rotor's "Titres" steps from message to message.
+        html += "<span class=\"byline\" role=\"heading\" aria-level=\"2\">"
         if opensAuthorMenu {
             // The author opens the author's menu (legacy: the avatar and the pseudo both did); the numbers are ours, never page text.
-            html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\">"
-            html += "\(author)</button>"
+            html += "<button type=\"button\" class=\"author menu-author\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\""
+            html += " aria-haspopup=\"menu\">\(author)</button>"
         } else {
             html += "<span class=\"author\">\(author)</span>"
         }
+        html += "</span>"
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
         if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
-            html += " aria-label=\"Actions du message de \(author)\">⋯</button>"
+            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">⋯</button>"
         }
         html += "</header>\n"
         return html
@@ -154,7 +157,8 @@ enum TopicHTMLBuilder {
 
     /// The avatar: the member's picture over a monogram (initials on a disc coloured from the pseudo, as the MP list's, #578).
     /// The monogram is local markup, no request and no script, so the CSP needs nothing; `reader.js` removes the picture
-    /// when it is refused or fails (`has-image` off) and the monogram shows. A button when it opens the author menu.
+    /// when it is refused or fails (`has-image` off) and the monogram shows. A button when it opens the author menu: it repeats
+    /// the author button next to it, so assistive technologies skip it (LOT-163) while a finger still reaches it.
     static func avatar(of message: ReaderMessage, opensMenu: Bool) -> String {
         let mark = Monogram(pseudo: message.author)
         let light = Monogram.hex(mark.background(dark: false)), dark = Monogram.hex(mark.background(dark: true))
@@ -162,7 +166,7 @@ enum TopicHTMLBuilder {
         let classes = "avatar-wrap" + (hasImage ? " has-image" : "")
         var html = opensMenu
             ? "<button type=\"button\" class=\"\(classes) menu-avatar\" data-menu=\"avatar\" data-post=\"\(message.numreponse)\""
-                + " aria-label=\"Menu de \(HTMLEscaping.text(message.author))\">"
+                + " aria-hidden=\"true\" tabindex=\"-1\">"
             : "<span class=\"\(classes)\">"
         html += "<span class=\"avatar avatar-default\" style=\"--mono-light:\(light);--mono-dark:\(dark)\" aria-hidden=\"true\">"
         html += "\(HTMLEscaping.text(mark.initials))</span>"

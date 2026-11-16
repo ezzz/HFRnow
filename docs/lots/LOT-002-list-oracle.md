@@ -178,7 +178,7 @@ Re-run: `tooling/legacy-oracle/run-oracle.sh -i Packages/HFRKit/Tests/HFRParsing
 | `forums` | R01 (anon), R02 (user1, unread MP), R03 (user2) |
 | `topics` | R04, R05a, R05b, R06, R07, R09, R27-list (public lists, anon); R08-1, R08-2, R08-3, P03f (`owntopic` lists, user2) |
 | `favorites` | R10, R11, P03c, P03e (user2); R12 (anon) |
-| `mp` | R13a, R13b, R13c (user2); R13u1, R13u1b (user1) |
+| `mp` | R13a, R13b, R13c (user2); R13u1, R13u1b (user1); R333a, R333b (user1, pages 1 and 2, added 2026-11-10, #767) |
 | `search` | R50a (waiting page, redirect, user2); R50b, R50c (results, anon) |
 
 `errors.json` is empty. The only legacy throw is R12 (data: `exception` set, `result` `null`). Not run: REST answers (R57, LOT-057), smiley search (R53, LOT-025) and `transsearch` (R52).

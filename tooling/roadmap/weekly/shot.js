@@ -1,10 +1,99 @@
-// node shot.js OUTDIR : OUTDIR/slides/slide-N.html -> OUTDIR/swifthfr-semaine-N.jpg, 2880x1620 (1920x1080 at 1.5x)
+// Renders OUTDIR/slides/*.html (from build.py) to OUTDIR/swifthfr-semaine-NN.jpg at 2880x1620, and checks each slide:
+// no overflow of the 1920x1080 page or of an element's own box, no visible text under 20 px at the 1920 base, and
+// never the word « legacy » (the legacy app is « l'app courante »), and no tile text covered by a tile of its pile. A failed check is printed and exits 1.
 // Playwright: pre-installed in the cloud sessions (`require('playwright')` works, Chromium included, do not run
 // `playwright install`). Elsewhere: `npm i playwright && npx playwright install chromium` in a scratch directory.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
+
+const MIN_PX = 20;
+
+function audit(minPx) {
+  const issues = [];
+  const de = document.documentElement;
+  if (de.scrollHeight > 1080 || de.scrollWidth > 1920 || document.body.scrollHeight > 1080) issues.push(`page ${de.scrollWidth}x${de.scrollHeight}`);
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const small = new Map();
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.textContent.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest('style,title')) continue;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    let px = parseFloat(cs.fontSize);
+    if (el instanceof SVGElement && el.ownerSVGElement) {
+      const m = el.getScreenCTM();
+      if (m) px *= Math.hypot(m.a, m.b);
+    }
+    if (px < minPx - 0.25) small.set(n.textContent.trim().slice(0, 30), px.toFixed(1));
+    if (/legacy/i.test(n.textContent)) issues.push(`"legacy" in: ${n.textContent.trim().slice(0, 60)}`);
+    // text cut by its own box: a block whose content is taller than itself (ellipsis on one line is allowed)
+    const r = el.getBoundingClientRect();
+    if (r.bottom > 1080 + 1 || r.right > 1920 + 1) issues.push(`off page: ${n.textContent.trim().slice(0, 40)}`);
+  }
+  for (const el of document.querySelectorAll('.card,.hero,.tile,.body')) {
+    if (el.scrollHeight > el.clientHeight + 2) issues.push(`content taller than its box (${el.className}): +${el.scrollHeight - el.clientHeight}px`);
+    if (el.scrollWidth > el.clientWidth + 2) issues.push(`content wider than its box (${el.className}): +${el.scrollWidth - el.clientWidth}px`);
+    if (el.classList.contains('body')) continue;
+    // a child drawn past its card (a nowrap pill or title runs over the next card); one-line ellipsis stays inside
+    const box = el.getBoundingClientRect();
+    for (const c of el.querySelectorAll('*')) {
+      if (c.closest('svg') && c.tagName !== 'svg') continue;
+      const r = c.getBoundingClientRect();
+      if (r.width && (r.right > box.right + 1 || r.left < box.left - 1 || r.bottom > box.bottom + 1)) {
+        issues.push(`drawn outside its card (${el.className}): ${(c.textContent || c.tagName).trim().slice(0, 40)}`);
+        break;
+      }
+    }
+  }
+  // blocks of the slide body never overlap each other (a grid that grew past its row lands on the next block)
+  const blocks = [...document.querySelectorAll('.body > *')].filter(e => e.tagName !== 'STYLE').map(e => e.getBoundingClientRect());
+  for (let i = 1; i < blocks.length; i++) if (blocks[i].top < blocks[i - 1].bottom - 1) issues.push(`block ${i + 1} overlaps block ${i} by ${Math.round(blocks[i - 1].bottom - blocks[i].top)}px`);
+  // an icon never covers text of its card
+  for (const ic of document.querySelectorAll('.ic')) {
+    const card = ic.closest('.card,.hero,.tile');
+    if (!card) continue;
+    const a = ic.getBoundingClientRect();
+    const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let t = tw.nextNode(); t; t = tw.nextNode()) {
+      if (!t.textContent.trim() || ic.contains(t)) continue;
+      const rg = document.createRange(); rg.selectNodeContents(t);
+      for (const b of rg.getClientRects()) {
+        if (b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top) { issues.push(`icon over text: "${t.textContent.trim().slice(0, 30)}"`); break; }
+      }
+    }
+  }
+  // tiles pile up with a slight overlap (#892): only their edges may be covered, never their text. A tile painted
+  // after another (later in the document, no z-index in the deck) is drawn above it.
+  const tiles = [...document.querySelectorAll('.tile')];
+  for (let i = 0; i < tiles.length; i++) {
+    const tw = document.createTreeWalker(tiles[i], NodeFilter.SHOW_TEXT);
+    let hit = null;
+    for (let t = tw.nextNode(); t && !hit; t = tw.nextNode()) {
+      if (!t.textContent.trim()) continue;
+      const rg = document.createRange(); rg.selectNodeContents(t);
+      // text cut by an ellipsis counts only where it is visible: clip it to its parent's box
+      const pe = t.parentElement, cs = getComputedStyle(pe), clip = cs.overflow !== 'visible' ? pe.getBoundingClientRect() : null;
+      for (const b0 of rg.getClientRects()) {
+        const b = clip ? { left: Math.max(b0.left, clip.left), right: Math.min(b0.right, clip.right), top: Math.max(b0.top, clip.top), bottom: Math.min(b0.bottom, clip.bottom) } : b0;
+        if (b.right <= b.left || b.bottom <= b.top) continue;
+        for (const o of tiles.slice(i + 1)) {
+          if (o.contains(tiles[i]) || tiles[i].contains(o)) continue;
+          const a = o.getBoundingClientRect();
+          if (b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top) { hit = t.textContent.trim().slice(0, 30); break; }
+        }
+        if (hit) break;
+      }
+    }
+    if (hit) issues.push(`tile text under another tile: "${hit}"`);
+    const r = tiles[i].getBoundingClientRect();
+    if (r.right > 1920 - 40 || r.bottom > 1080 || r.left < 40) issues.push(`tile off the page margins: ${tiles[i].textContent.trim().slice(0, 30)}`);
+  }
+  for (const [t, px] of small) issues.push(`text ${px}px < ${minPx}: "${t}"`);
+  return issues;
+}
 
 (async () => {
   const dir = path.resolve(process.argv[2] || '');
@@ -16,10 +105,10 @@ const { pathToFileURL } = require('url');
       try {
         await p.goto(pathToFileURL(path.join(dir, 'slides', f)).href, { waitUntil: 'networkidle' });
         await p.waitForTimeout(600);
-        const ov = await p.evaluate(() => ({ sh: document.body.scrollHeight, sw: document.body.scrollWidth }));
-        const over = ov.sh > 1080 || ov.sw > 1920;
-        console.log(f, JSON.stringify(ov), over ? 'OVERFLOW' : 'ok');
-        if (over) process.exitCode = 1;
+        const issues = await p.evaluate(audit, MIN_PX);
+        console.log(f, issues.length ? 'FAIL' : 'ok');
+        for (const i of issues) console.log('   ', i);
+        if (issues.length) process.exitCode = 1;
         await p.screenshot({ path: path.join(dir, f.replace('slide-', 'swifthfr-semaine-').replace('.html', '.jpg')), type: 'jpeg', quality: 92 });
       } finally {
         await p.close();

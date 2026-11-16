@@ -18,7 +18,7 @@ struct LoginView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ThemedNavigationStack {
             Form {
                 Section {
                     TextField("Pseudo", text: $model.pseudo)
@@ -42,8 +42,7 @@ struct LoginView: View {
 
                 if let message = model.errorMessage {
                     Section {
-                        Label(message, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
+                        StatusLabel(text: message, symbol: "exclamationmark.triangle.fill", tint: .red)
                     }
                 }
 
@@ -54,7 +53,7 @@ struct LoginView: View {
                         HStack {
                             Spacer()
                             if model.isSubmitting {
-                                ProgressView()
+                                ProgressView().accessibilityLabel("Connexion en cours")
                             } else {
                                 Text("Se connecter").bold()
                             }
@@ -77,6 +76,10 @@ struct LoginView: View {
             .onAppear { focusedField = model.canEditPseudo ? .pseudo : .password }
             .onChange(of: model.didSucceed) { _, succeeded in
                 if succeeded { dismiss() }
+            }
+            .onChange(of: model.errorMessage) { _, message in
+                // The message appears below the focused field: VoiceOver would not reach it unprompted.
+                if let message { AccessibilityNotification.Announcement(message).post() }
             }
             .onDisappear { model.cancel() }
         }

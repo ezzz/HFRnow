@@ -1,13 +1,14 @@
 """Doc ledger (#620). Python standard library only.
 
 A feature PR never touches `docs/CHANGELOG-LEGACY.md`, `docs/migration/GAP-LEGACY-VS-SWIFT.md` or their fragment folders.
-It writes its entries in a `### Ledger` section of its body (label `ledger`); after the merge a steward turns them into the docs
-with one docs-only PR on a branch `docs/ledger-<date>`. No entry: no section, no label.
+It writes its entries in a `### Ledger` section of its body; after the merge a steward turns them into the docs
+with one docs-only PR on a branch `docs/ledger-<date>`. No entry: no section. The section alone decides (#826): nobody sets a ledger
+label by hand, and the legacy `ledger` label is inert; only `done` writes labels (`ledger: done`, on a PR the steward folded).
 
-  python3 tooling/docs/ledger.py check-body --pr N [--labels 'a|b'] [--file BODY.md]   # CI: label and section agree, the section parses
+  python3 tooling/docs/ledger.py check-body --pr N [--file BODY.md]   # CI: the section, when there is one, parses
   python3 tooling/docs/ledger.py guard --base REF --head-ref NAME                       # CI: ledger paths only on docs/ledger-*, and nothing else there
   python3 tooling/docs/ledger.py fold [--prs N [N...]] [--apply [--commit]] [--strict] [--from-json F]   # steward (dry run by default)
-  python3 tooling/docs/ledger.py done N [N...] [--apply]                                # steward, after the docs PR merged: `ledger` -> `ledger: done`
+  python3 tooling/docs/ledger.py done N [N...] [--apply]                                # steward, after the docs PR merged: sets `ledger: done` (drops a legacy `ledger`)
 
 Section format: one fenced block per entry, info string = kind.
 
@@ -39,7 +40,7 @@ REPO = 'ezzz/HFRnow'
 BRANCH_PREFIX = 'docs/ledger-'
 LEDGER_FILES = ('docs/CHANGELOG-LEGACY.md', 'docs/migration/GAP-LEGACY-VS-SWIFT.md')
 LEDGER_DIRS = ('docs/changelog-legacy.d/', 'docs/migration/gap.d/')
-LABEL, DONE = 'ledger', 'ledger: done'
+LABEL, DONE = 'ledger', 'ledger: done'  # LABEL is the legacy label (#826): never read to select or check, only dropped by `done`
 KINDS = ('changelog', 'gap-new', 'gap-edit', 'ledger-note')
 GAP_COLUMNS = ('Id', 'Feature', 'Legacy behaviour', 'Legacy ref', 'SwiftHFR final', 'Lot/Feat', 'Gap', 'Source', 'H.1')
 # Spellings the first bodies used (#604); everything else is the column name of the report, case and spaces ignored.
@@ -82,7 +83,7 @@ def parse_body(body):
     if '```' in FENCE.sub('', sec):
         raise LedgerError('an unclosed or malformed fenced block')
     if not entries:
-        raise LedgerError('the Ledger section has no block (no entry: no section, no label)')
+        raise LedgerError('the Ledger section has no block (no entry: no section)')
     return entries
 
 
@@ -156,15 +157,9 @@ def check_body(body, pr=None):
     return len(entries)
 
 
-def check_pr(body, labels, pr=None):
-    """CI check: the label `ledger` and the section agree (no entry: no section, no label), and the section parses. -> message."""
-    labelled = bool({LABEL, DONE} & set(labels))
-    has = section(body) is not None
-    if has and not labelled:
-        raise LedgerError('the body has a `### Ledger` section but the PR lacks the label `ledger`')
-    if labelled and not has:
-        raise LedgerError('the PR is labelled `ledger` but its body has no `### Ledger` section (no entry: no section, no label)')
-    return f'ledger body: {check_body(body, pr)} block(s) ok' if has else 'ledger: no entry'
+def check_pr(body, pr=None):
+    """CI check: a `### Ledger` section, when there is one, parses; no section is no entry. Labels are never read (#826). -> message."""
+    return f'ledger body: {check_body(body, pr)} block(s) ok' if section(body) is not None else 'ledger: no entry'
 
 
 def guard(changed, head_ref):
@@ -341,7 +336,8 @@ def labels_of(issue):
 
 
 def pending(issues, numbers=None):
-    """Merged PRs from REST issue objects. -> [{number, body}]. Without `numbers`: those labelled `ledger` and not `ledger: done`;
+    """Merged PRs from REST issue objects. -> [{number, body}]. Without `numbers`: those whose body has a `### Ledger` section and
+    that are not labelled `ledger: done` (the section decides, the legacy `ledger` label is inert, #826);
     with them: exactly those, whatever their label, and a number that is absent or not merged is an error."""
     if numbers:
         by = {i['number']: i for i in issues}
@@ -350,7 +346,7 @@ def pending(issues, numbers=None):
                 raise LedgerError(f'#{n} is not a merged PR')
         chosen = [by[n] for n in numbers]
     else:
-        chosen = [i for i in issues if merged(i) and LABEL in labels_of(i) and DONE not in labels_of(i)]
+        chosen = [i for i in issues if merged(i) and section(i.get('body')) is not None and DONE not in labels_of(i)]
     return sorted(({'number': i['number'], 'body': i.get('body') or '', 'merged_at': (i.get('pull_request') or {}).get('merged_at')}
                    for i in chosen), key=order)
 
@@ -361,7 +357,7 @@ def fetch_pending(numbers=None):
         return pending([json.loads(gh(f'repos/{REPO}/issues/{n}')) for n in numbers], numbers)
     out, page = [], 1
     while True:
-        batch = json.loads(gh('-X', 'GET', f'repos/{REPO}/issues', '-f', f'labels={LABEL}', '-f', 'state=closed',
+        batch = json.loads(gh('-X', 'GET', f'repos/{REPO}/issues', '-f', 'state=closed',
                               '-f', 'per_page=100', '-f', f'page={page}'))
         out += batch
         if len(batch) < 100:
@@ -421,7 +417,7 @@ def report(res):
 
 
 def relabel(n, apply):
-    """`ledger` -> `ledger: done` on one PR; idempotent. -> message."""
+    """Set `ledger: done` on one folded PR and drop a legacy `ledger`; idempotent. -> message."""
     issue = json.loads(gh(f'repos/{REPO}/issues/{n}'))
     names = labels_of(issue)
     if DONE in names and LABEL not in names:
@@ -448,7 +444,7 @@ def main(argv=None, layout=None):
     c = sub.add_parser('check-body')
     c.add_argument('--file')
     c.add_argument('--pr', type=int)
-    c.add_argument('--labels', help='labels of the PR, `|`-separated: the label and the section must agree')
+    c.add_argument('--labels', help='ignored (#826: the section alone decides); kept so older workflow files still run')
     g = sub.add_parser('guard')
     g.add_argument('--base', required=True)
     g.add_argument('--head-ref', required=True)
@@ -465,7 +461,7 @@ def main(argv=None, layout=None):
     try:
         if a.cmd == 'check-body':
             body = Path(a.file).read_text(encoding='utf-8') if a.file else sys.stdin.read()
-            print(check_pr(body, a.labels.split('|'), a.pr) if a.labels is not None else f'ledger body: {check_body(body, a.pr)} block(s) ok')
+            print(check_pr(body, a.pr))
         elif a.cmd == 'guard':
             names = git('diff', '--no-renames', '--name-only', f'{a.base}...HEAD').split('\n')
             bad = guard([n for n in names if n], a.head_ref)
