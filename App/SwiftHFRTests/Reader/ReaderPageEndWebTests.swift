@@ -97,7 +97,7 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
     /// no reload (the page keeps its length, so the reading position stays), and a document loaded meanwhile comes up hidden.
     @Test func theHintIsHiddenLiveUnderAComposerAndShownAgainAtItsClose() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
-        controller.show(documentOf(height: 300, token: 1))
+        controller.show(documentOf(height: 3000, token: 1))
         #expect(await until { recorder.ready == [1] })
         let script = """
             const hint = document.querySelector(".pull-hint");
@@ -110,7 +110,7 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         let hidden = try #require(try await evaluate(script, in: controller) as? [Any])
         #expect((hidden[1] as? Double) == (shown[1] as? Double), "hidden, not removed: nothing moves")
         #expect((hidden[2] as? Double) == (shown[2] as? Double))
-        controller.show(documentOf(height: 300, token: 2))
+        controller.show(documentOf(height: 3000, token: 2))
         #expect(await until { recorder.ready == [1, 2] })
         #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "hidden" }),
                 "a document loaded under the composer comes up without the hint")

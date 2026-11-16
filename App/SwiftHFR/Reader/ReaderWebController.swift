@@ -29,7 +29,7 @@ final class ReaderWebController: NSObject {
     let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
-    var offersPullHint = true { didSet { applyPullHint() } } // the end-of-page hint shows (#820); see `applyPullHint`
+    var offersPullHint = true { didSet { installUserScripts(); applyPullHint() } } // the end-of-page hint shows (#820); see `applyPullHint`
     /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
     var dismissesKeyboardInteractively = false {
         didSet { webView.scrollView.keyboardDismissMode = dismissesKeyboardInteractively ? .interactive : .none }

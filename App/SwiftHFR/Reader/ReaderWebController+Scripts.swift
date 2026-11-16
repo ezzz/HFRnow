@@ -9,12 +9,12 @@ extension ReaderWebController {
         return try? String(contentsOf: url, encoding: .utf8)
     }()
 
-    /// The scripts that set the text size and the theme colours of a document before it renders, then `reader.js`; all in
+    /// The scripts that set the text size, the theme colours and the pull hint of a document before it renders, then `reader.js`; all in
     /// the reader's world.
     func installUserScripts() {
         let controller = webView.configuration.userContentController
         controller.removeAllUserScripts()
-        for source in [Self.textScaleScript(textScale), theme.readerScript] {
+        for source in [Self.textScaleScript(textScale), theme.readerScript, Self.pullHintScript(offersPullHint)] {
             controller.addUserScript(
                 WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world)
             )
