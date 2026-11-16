@@ -138,6 +138,24 @@ enum PagerVisibility {
         max(strip, hiddenInset.map { max(0, inset - $0) } ?? 0)
     }
 
+    /// What the pager remembers between two scroll geometries.
+    struct State: Equatable {
+        var atEnd = true
+        /// The bottom inset last seen while the bar was really hidden: the baseline its own inset is measured against.
+        var hiddenInset: CGFloat?
+    }
+
+    /// One step: the new state after a scroll geometry (`distance`, bottom `inset`) and the measured `strip` height.
+    static func step(_ state: State, distance: CGFloat, inset: CGFloat, strip: CGFloat) -> State {
+        var next = state
+        // The baseline only while the bar is really hidden, and before the height is computed: on the frame that decides to hide,
+        // the bar is still on screen and its inset would be recorded as the baseline (the bar then shows and hides forever).
+        if !next.atEnd, next.hiddenInset != inset { next.hiddenInset = inset }
+        let height = measuredBarHeight(strip: strip, inset: inset, hiddenInset: next.hiddenInset)
+        next.atEnd = isShown(distanceFromEnd: distance, wasShown: next.atEnd, barHeight: height, voiceOver: false)
+        return next
+    }
+
     /// The short appear/disappear animation; none under Reduce Motion.
     static func animation(reduceMotion: Bool) -> Animation? {
         reduceMotion ? nil : .smooth(duration: 0.25)
@@ -155,14 +173,13 @@ private struct PagerBarModifier: ViewModifier {
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Shown until the first geometry says otherwise (a list not measured yet is not scrolled away from anything).
-    @State private var atEnd = true
-    /// The strip's measured height (tab root), and the bottom inset last seen while the bar was hidden (sidebar bottom bar).
+    @State private var visibility = PagerVisibility.State()
+    /// The strip's measured height (tab root); the sidebar bottom bar is measured by the inset it adds (`PagerVisibility.step`).
     @State private var stripHeight: CGFloat = 0
-    @State private var hiddenInset: CGFloat?
     let pager: PagerToolbar?
     let hidden: Bool
 
-    private var shown: Bool { atEnd || voiceOver }
+    private var shown: Bool { visibility.atEnd || voiceOver }
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -177,11 +194,12 @@ private struct PagerBarModifier: ViewModifier {
                 )
             } action: { _, end in
                 // Only the crossing matters: a state write per scroll frame would redraw the list for nothing.
-                let height = PagerVisibility.measuredBarHeight(strip: stripHeight, inset: end.inset, hiddenInset: hiddenInset)
-                let next = PagerVisibility.isShown(distanceFromEnd: end.distance, wasShown: atEnd, barHeight: height, voiceOver: false)
-                if !next, hiddenInset != end.inset { hiddenInset = end.inset }
-                guard next != atEnd else { return }
-                withAnimation(PagerVisibility.animation(reduceMotion: reduceMotion)) { atEnd = next }
+                let next = PagerVisibility.step(visibility, distance: end.distance, inset: end.inset, strip: stripHeight)
+                guard next != visibility else { return }
+                // The baseline alone changing needs no animation; the bar showing or hiding does.
+                withAnimation(next.atEnd == visibility.atEnd ? nil : PagerVisibility.animation(reduceMotion: reduceMotion)) {
+                    visibility = next
+                }
             }
             .modifier(PagerActions(pager: pager))
         switch PagerPlacement(rootHasTabBar: rootHasTabBar) {

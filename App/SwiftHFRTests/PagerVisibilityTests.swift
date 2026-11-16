@@ -58,6 +58,21 @@ import Testing
         #expect(PagerVisibility.measuredBarHeight(strip: 40, inset: 30, hiddenInset: 52) == 40)
     }
 
+    @Test func theSidebarBottomBarSettlesOnANearlyFittingList() {
+        // .bottomBar, no strip to measure. The list's end is 24 < d <= 24 + 52 away once the bar's 52 pt inset is there; the
+        // bar is on screen at first (initial state), so the first frame decides to hide while the inset still includes it.
+        var state = PagerVisibility.State()
+        state = PagerVisibility.step(state, distance: 60, inset: 52, strip: 0)
+        #expect(!state.atEnd, "d = 60 is not within 24 pt of the end and the bar's height is not known yet")
+        // Hidden: the inset drops to 0 and the end is close, the bar comes back.
+        state = PagerVisibility.step(state, distance: 8, inset: 0, strip: 0)
+        #expect(state.atEnd)
+        // The bar's inset is back (+52, offset unchanged): this must hold, now and on every later identical frame.
+        state = PagerVisibility.step(state, distance: 60, inset: 52, strip: 0)
+        #expect(state.atEnd, "measured against the hidden baseline of 0, not the inset recorded with the bar")
+        for _ in 0..<3 { #expect(PagerVisibility.step(state, distance: 60, inset: 52, strip: 0) == state) }
+    }
+
     @Test func voiceOverAlwaysSeesThePager() {
         #expect(PagerVisibility.isShown(distanceFromEnd: distance(offset: 0), voiceOver: true))
     }
