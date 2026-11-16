@@ -118,6 +118,8 @@ func (v *Validateur) valeur(id string, qu contenu.Question, brut json.RawMessage
 			return nil, invalide("%s : code inconnu", id)
 		}
 		return code, nil
+	case contenu.TypeChoixMult:
+		return validerMultiple(id, qu, brut)
 	case contenu.TypeTexte, contenu.TypePseudo:
 		var s string
 		if json.Unmarshal(brut, &s) != nil {
@@ -135,6 +137,39 @@ func (v *Validateur) valeur(id string, qu contenu.Question, brut json.RawMessage
 		return validerD1(qu, brut)
 	}
 	return nil, invalide("%s : type non pris en charge", id)
+}
+
+// validerMultiple valide une liste de codes : connus, sans doublon, et sans autre code avec le code exclusif.
+// Elle renvoie les codes dans l'ordre de la question, ou nil si la liste est vide.
+func validerMultiple(id string, qu contenu.Question, brut json.RawMessage) (any, error) {
+	var codes []string
+	if json.Unmarshal(brut, &codes) != nil {
+		return nil, invalide("%s : liste de codes attendue", id)
+	}
+	if len(codes) == 0 {
+		return nil, nil
+	}
+	connus := qu.Codes()
+	vus := map[string]bool{}
+	for _, c := range codes {
+		if !slices.Contains(connus, c) {
+			return nil, invalide("%s : code inconnu", id)
+		}
+		if vus[c] {
+			return nil, invalide("%s : code en double", id)
+		}
+		vus[c] = true
+	}
+	if qu.Exclusive != "" && vus[qu.Exclusive] && len(codes) > 1 {
+		return nil, invalide("%s : « %s » exclut les autres réponses", id, qu.Exclusive)
+	}
+	choisis := make([]string, 0, len(codes))
+	for _, c := range connus {
+		if vus[c] {
+			choisis = append(choisis, c)
+		}
+	}
+	return choisis, nil
 }
 
 func validerD1(qu contenu.Question, brut json.RawMessage) (any, error) {

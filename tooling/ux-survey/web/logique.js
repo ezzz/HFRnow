@@ -61,7 +61,7 @@ export function brouillonVide(contenu, maintenant = Date.now(), tirage = tirageC
 /** Enregistre (ou efface, si valeur vide) une réponse, puis efface celles dont la condition n'est plus remplie. */
 export function changerReponse(contenu, brouillon, id, valeur) {
   const reponses = { ...brouillon.reponses };
-  if (valeur === undefined || valeur === null || valeur === '') delete reponses[id];
+  if (valeur === undefined || valeur === null || valeur === '' || (Array.isArray(valeur) && valeur.length === 0)) delete reponses[id];
   else reponses[id] = valeur;
   let d1 = brouillon.d1;
   for (const e of contenu.ecrans) {
@@ -73,6 +73,27 @@ export function changerReponse(contenu, brouillon, id, valeur) {
   }
   const nb = ecransVisibles(contenu, reponses).length;
   return { ...brouillon, reponses, d1, ecran: Math.min(brouillon.ecran, nb - 1) };
+}
+
+// ---- choix multiple (X1) ----
+
+/** Codes cochés d'une question à choix multiple (liste vide si rien n'est coché ou si la valeur est illisible). */
+export function codesCoches(brouillon, id) {
+  const v = brouillon.reponses[id];
+  return Array.isArray(v) ? v : [];
+}
+
+/** Coche ou décoche un code ; le code exclusif décoche les autres et inversement. Renvoie les codes dans l'ordre de la question. */
+export function cocherCode(contenu, id, courants, code, coche) {
+  const q = contenu.questions[id];
+  let choix = new Set(courants);
+  if (!coche) choix.delete(code);
+  else if (code === q.exclusive) choix = new Set([code]);
+  else {
+    choix.delete(q.exclusive);
+    choix.add(code);
+  }
+  return q.reponses.map((r) => r.code).filter((c) => choix.has(c));
 }
 
 // ---- tri D1 ----
@@ -115,6 +136,20 @@ export function d1Deplacer(d1, code, sens) {
   const b = ordre.indexOf(gardees[j]);
   [ordre[a], ordre[b]] = [ordre[b], ordre[a]];
   return { d1: { ...d1, ordre }, position: j + 1, total: gardees.length };
+}
+
+/** Carte d'une section de D1 : chemin servi par le binaire et texte alternatif, ou null si la section n'en a pas. */
+export function d1Carte(section) {
+  const v = section.visuels?.[0];
+  return v ? { src: `/static/visuels/${v.fichier}`, alt: v.alt } : null;
+}
+
+/** Cartes de D1 dans l'ordre d'affichage courant du tri : une par section, avec son code. */
+export function d1Cartes(contenu, d1) {
+  return d1Affichage(d1).map((code) => {
+    const section = contenu.questions.D1.sections.find((s) => s.code === code);
+    return { code, ...d1Carte(section) };
+  });
 }
 
 /** Coche ou décoche « comme aujourd'hui » ; le tri est gardé dans le brouillon. */
@@ -208,7 +243,13 @@ export function comparer(contenu, stats, envoyees = {}) {
       const q = contenu.questions[id];
       const s = stats.questions[id];
       if (!s) continue;
-      if (q.type === 'choix' || q.type === 'reaction') {
+      if (q.type === 'choix-multiple') {
+        const mien = Array.isArray(envoyees[id]) ? envoyees[id] : [];
+        lignes.push({
+          id, libelle: q.libelle, effectif: s.effectif,
+          barres: q.reponses.map((r) => ({ code: r.code, libelle: r.libelle, pct: s.codes[r.code] ?? 0, vous: mien.includes(r.code) })),
+        });
+      } else if (q.type === 'choix' || q.type === 'reaction') {
         lignes.push({
           id, libelle: q.libelle, effectif: s.effectif,
           barres: q.reponses.map((r) => ({ code: r.code, libelle: r.libelle, pct: s.codes[r.code] ?? 0, vous: envoyees[id] === r.code })),

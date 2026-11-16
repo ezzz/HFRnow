@@ -215,10 +215,58 @@ func verifierBloc(t *testing.T, q *Questionnaire, b bloc, qu Question) {
 	default:
 		comparerListe(t, b.id+".réponses", listeCodes(t, rep), qu.Reponses)
 		verifierDetails(t, b, qu)
+		verifierChoixMultiple(t, b, qu)
 	}
 
 	cond, _ := b.champ("Condition")
 	verifierCondition(t, q, b.id, cond)
+}
+
+var reMultiple = regexp.MustCompile("^oui ; `([a-z0-9_]+)` exclut les autres réponses$")
+
+// verifierChoixMultiple : la ligne « Choix multiple » existe si et seulement si le type est choix-multiple,
+// et elle nomme le code exclusif du JSON.
+func verifierChoixMultiple(t *testing.T, b bloc, qu Question) {
+	t.Helper()
+	ligne, ok := b.champ("Choix multiple")
+	if ok != (qu.Type == TypeChoixMult) {
+		t.Errorf("%s : ligne « Choix multiple » %v, type %q dans le JSON", b.id, ok, qu.Type)
+		return
+	}
+	if !ok {
+		if qu.Exclusive != "" {
+			t.Errorf("%s : exclusive %q sans choix multiple", b.id, qu.Exclusive)
+		}
+		return
+	}
+	m := reMultiple.FindStringSubmatch(ligne)
+	if m == nil || m[1] != qu.Exclusive {
+		t.Errorf("%s : « Choix multiple : %s » dans questions.md, exclusive %q dans le JSON", b.id, ligne, qu.Exclusive)
+	}
+}
+
+// X1 (#919) : choix multiple, `aucune` exclusif, écran à lui seul entre D2 et les cartes, sans condition.
+func TestConcordanceX1(t *testing.T) {
+	q := chargerContenu(t)
+	x1, ok := q.Questions["X1"]
+	if !ok || x1.Type != TypeChoixMult || x1.Exclusive != "aucune" {
+		t.Fatalf("X1 : %+v", x1)
+	}
+	want := []string{"composer_moderne", "recherche_barre", "lignes_icones", "stockage_mp_detaille", "choix_images", "aucune"}
+	if !slices.Equal(x1.Codes(), want) {
+		t.Errorf("codes de X1 : %v", x1.Codes())
+	}
+	ordre := []string{}
+	for _, e := range q.Ecrans {
+		ordre = append(ordre, e.ID)
+		if slices.Contains(e.Questions, "X1") && (len(e.Questions) != 1 || len(e.Condition) != 0) {
+			t.Errorf("X1 : écran %+v, attendu seul et sans condition", e)
+		}
+	}
+	i := slices.Index(ordre, "experimental")
+	if i < 1 || ordre[i-1] != "theme2-b" || ordre[i+1] != "cartes" {
+		t.Errorf("X1 doit suivre D2 et précéder les cartes : %v", ordre)
+	}
 }
 
 func verifierDetails(t *testing.T, b bloc, qu Question) {

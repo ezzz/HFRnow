@@ -46,17 +46,17 @@ Fichiers du formulaire : `scenarios/` pour les maquettes, `actuel/` pour les cap
 
 ## Cartes des sections de la barre latérale (`D1`)
 
-Dans `scenarios/D1-cartes/`, une carte par section de `D1` (questions.md), 340 × 76 points @2x, fond transparent, et la planche des neuf cartes. Icônes de la barre latérale actuelle ; `flag` pour Drapeaux et `newspaper` pour À suivre, que la barre n'a pas. Le formulaire présente aujourd'hui les sections en texte : ces cartes servent au test à cinq et à une éventuelle version illustrée du tri.
+Dans `scenarios/D1-cartes/`, une carte par section de `D1` (questions.md), 340 × 76 points @2x, fond transparent, et la planche des neuf cartes. Icônes de la barre latérale actuelle ; `flag` pour Drapeaux et `newspaper` pour À suivre, que la barre n'a pas. Le formulaire les affiche (#919), une par section, à côté de son état, copiées dans `tooling/ux-survey/web/visuels/D1-cartes/` (un test les veut identiques) ; la planche sert au test à cinq. Les noms d'icônes SF Symbols (`star.fill`, `folder.fill`, `envelope`, `flag`, `newspaper`, `bell`, `pin`, `magnifyingglass`, `gearshape`) restent pour qui refait les cartes ; le texte alternatif les dit en français.
 
 | Fichier | Texte alternatif | Question | Appareil |
 |---|---|---|---|
-| `D1-cartes/D1-carte-favoris.png` | Carte « Favoris » : icône `star.fill`, mention « Aujourd'hui : groupe Forum ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-categories.png` | Carte « Catégories » : icône `folder.fill`, mention « Aujourd'hui : groupe Forum ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-mp.png` | Carte « Messages privés » : icône `envelope`, mention « Aujourd'hui : groupe Forum ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-drapeaux.png` | Carte « Drapeaux » : icône `flag`, mention « Aujourd'hui : dans Favoris ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-a_suivre.png` | Carte « À suivre » : icône `newspaper`, mention « Les nouveautés de tous vos sujets suivis », et l'étiquette « Nouveau ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-alertes_qualitay.png` | Carte « Alertes Qualitay » : icône `bell`, mention « Aujourd'hui : groupe Outils ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-bookmarks.png` | Carte « Bookmarks » : icône `pin`, mention « Aujourd'hui : groupe Outils ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-recherche.png` | Carte « Recherche » : icône `magnifyingglass`, mention « Aujourd'hui : groupe Plus ». | `D1` | Aucun (carte seule) |
-| `D1-cartes/D1-carte-reglages.png` | Carte « Réglages » : icône `gearshape`, mention « Aujourd'hui : groupe Plus ». | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-favoris.png` | Carte « Favoris » : étoile, aujourd'hui dans le groupe Forum | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-categories.png` | Carte « Catégories » : dossier, aujourd'hui dans le groupe Forum | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-mp.png` | Carte « Messages privés » : enveloppe, aujourd'hui dans le groupe Forum | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-drapeaux.png` | Carte « Drapeaux » : drapeau, aujourd'hui dans Favoris | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-a_suivre.png` | Carte « À suivre » : journal, les nouveautés de tous vos sujets suivis, avec l'étiquette « Nouveau » | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-alertes_qualitay.png` | Carte « Alertes Qualitay » : cloche, aujourd'hui dans le groupe Outils | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-bookmarks.png` | Carte « Bookmarks » : épingle, aujourd'hui dans le groupe Outils | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-recherche.png` | Carte « Recherche » : loupe, aujourd'hui dans le groupe Plus | `D1` | Aucun (carte seule) |
+| `D1-cartes/D1-carte-reglages.png` | Carte « Réglages » : roue dentée, aujourd'hui dans le groupe Plus | `D1` | Aucun (carte seule) |
 | `D1-cartes/D1-cartes-planche.png` | Les neuf cartes de la barre latérale sur trois colonnes, dans l'ordre de la question. | `D1` | Aucun (planche) |

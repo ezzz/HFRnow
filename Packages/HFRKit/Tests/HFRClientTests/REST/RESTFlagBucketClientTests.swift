@@ -94,7 +94,7 @@ struct RESTFlagBucketClientTests {
         )
         let topic = try #require(try run.result.get().value.sections.first?.topics.first)
         #expect(topic.pageCount == 251)
-        #expect(topic.currentPage == 251)
+        #expect(topic.currentPage == 11)
         #expect(topic.lastPagePath == "/forum2.php?config=hfr.inc&cat=101&post=9800001&page=251")
     }
 
@@ -257,5 +257,59 @@ struct RESTFlagBucketClientTests {
             await #expect(throws: RESTBrowsingError.invalidTarget) { try await client.topics(in: .read, postsPerPage: size) }
         }
         #expect(await probe.requests.isEmpty)
+    }
+}
+
+/// The REST answer to a stale session (`R830t`), an error answer, a redirect at the fallback's URL (#830, #355).
+extension RESTFlagBucketClientTests {
+    @Test("R830t: a stale session gets the `.hop` page instead of JSON: `sessionExpired` at once, no fallback, account untouched")
+    func staleSessionOnTheRESTAnswer() async throws {
+        let account = Self.account()
+        let restURL = try #require(URL(string: try Capture.meta("R830t").url))
+        let stale = try Capture.response("R830t-rest-bucket-participated-stale-session", url: restURL)
+        let run = await Self.run(.participated, [.success(stale)], account: account)
+        #expect(run.result == .failure(.sessionExpired(.credentialsRefused)))
+        #expect(run.requests.map(\.url) == [restURL])
+        #expect(await account.cookies().first { $0.name == "md_passs" }?.value == "somepass")
+    }
+
+    @Test("R830t to cookies the account no longer holds gets no verdict: the favourites page is read instead")
+    func staleRESTAnswerAfterALogin() async throws {
+        let account = Self.account()
+        let restURL = try #require(URL(string: try Capture.meta("R830t").url))
+        let stale = try Capture.response("R830t-rest-bucket-participated-stale-session", url: restURL)
+        let login = [Self.cookie("md_user", "user2"), Self.cookie("md_passs", "loginpass"), Self.cookie("md_id", "900002")]
+        let flags = try Capture.response("R10-favourites-owntopic1", url: Self.flagsURL)
+        let probe = MockTransport { request async throws(NetworkError) -> HTTPResponse in
+            guard request.url == Self.flagsURL else {
+                try? await account.adoptLogin(cookies: login, hashCheck: "newhash", now: Date())
+                return stale
+            }
+            return flags
+        }
+        let client = RESTFlagBucketClient(session: account, makeProbe: { _ in probe })
+        let result = try await client.topics(in: .participated, postsPerPage: 40)
+        #expect(result.source == .html(.response(.malformedDocument)))
+        #expect(result.value == (try FavoritesParser.parse(Capture.page("R10-favourites-owntopic1"))))
+    }
+
+    @Test("An error answer to a bucket (`R57i`'s shape) falls back with its code as the reason")
+    func refusedBucket() async throws {
+        let refused = try RESTCapture.response(RESTCapture.unknownCategory, id: "R57i")
+        let flags = try Capture.response("R10-favourites-owntopic1", url: Self.flagsURL)
+        let run = await Self.run(.participated, [.success(refused), .success(flags)])
+        #expect(try run.result.get().source == .html(.refused(code: 403)))
+    }
+
+    @Test("A redirect at the fallback's own URL is not the list: refused, never followed")
+    func fallbackRedirectInPlace() async throws {
+        let moved = HTTPResponse(statusCode: 302, headers: ["Location": "/forum2.php?config=hfr.inc&cat=13&post=1"], url: Self.flagsURL)
+        let run = await Self.run(.participated, [Self.restFailure(), .success(moved)])
+        guard case .failure(.page(.malformed)) = run.result else {
+            Issue.record("a redirect was read as the list: \(run.result)")
+            return
+        }
+        #expect(run.requests.count == 2)
+        #expect(run.requests.last?.redirectPolicy == .doNotFollow)
     }
 }

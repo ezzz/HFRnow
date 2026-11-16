@@ -38,7 +38,7 @@ func TestContenuCodesCartesEtVisuels(t *testing.T) {
 		t.Fatal(err)
 	}
 	for id, qu := range q.Questions {
-		for _, r := range qu.Reponses {
+		for _, r := range append(append([]Reponse{}, qu.Reponses...), qu.Sections...) {
 			for _, v := range r.Visuels {
 				fichiers := []string{v.Fichier}
 				if v.ImageAttente != "" {
@@ -88,6 +88,22 @@ func TestContenuCodesCartesEtVisuels(t *testing.T) {
 			a[nom] = c
 		}
 	}
+	// les cartes de D1 (#919) sont copiées dans web/visuels/D1-cartes/, une par section, identiques à l'original
+	cartes := liste(filepath.Join(ref, "scenarios/D1-cartes"))
+	copiees := liste(filepath.Join(copie, "D1-cartes"))
+	for _, s := range q.Questions["D1"].Sections {
+		nom := "D1-carte-" + s.Code + ".png"
+		if len(s.Visuels) != 1 || s.Visuels[0].Fichier != "D1-cartes/"+nom {
+			t.Errorf("D1.%s : une carte D1-cartes/%s attendue : %+v", s.Code, nom, s.Visuels)
+		}
+		if len(cartes[nom]) == 0 || !bytes.Equal(cartes[nom], copiees[nom]) {
+			t.Errorf("carte %s absente ou différente dans web/visuels/D1-cartes", nom)
+		}
+		delete(copiees, nom)
+	}
+	if len(copiees) > 0 {
+		t.Errorf("web/visuels/D1-cartes contient des fichiers sans section : %v", len(copiees))
+	}
 	for nom, c := range a {
 		if !bytes.Equal(c, b[nom]) {
 			t.Errorf("visuel %s absent ou différent dans web/visuels", nom)
@@ -120,6 +136,12 @@ func TestChargerRefuse(t *testing.T) {
 		"code en double": func(m map[string]any) {
 			rs := m["questions"].(map[string]any)["P1"].(map[string]any)["reponses"].([]any)
 			rs[1].(map[string]any)["code"] = rs[0].(map[string]any)["code"]
+		},
+		"exclusive inconnue": func(m map[string]any) {
+			m["questions"].(map[string]any)["X1"].(map[string]any)["exclusive"] = "autre"
+		},
+		"exclusive sur un choix simple": func(m map[string]any) {
+			m["questions"].(map[string]any)["P1"].(map[string]any)["exclusive"] = "iphone"
 		},
 		"huit cartes":  func(m map[string]any) { m["cartes"] = m["cartes"].([]any)[1:] },
 		"clé inconnue": func(m map[string]any) { m["inconnue"] = 1 },

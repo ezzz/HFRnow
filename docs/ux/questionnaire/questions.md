@@ -9,8 +9,9 @@ Statut : texte rédigé par Sonnet, relecture Opus, validation du PO à venir. L
 - Les identifiants et les codes de réponse sont stables (cadrage §3.1). Un code est en minuscules ASCII, avec `_` comme séparateur. Changer un identifiant ou un code demande de modifier le cadrage.
 - Le libellé est ce que le répondant lit. Entre `·`, chaque réponse est écrite `` `code` Libellé ``.
 - Toutes les questions sont facultatives. Le formulaire n'en rend aucune obligatoire.
+- Une question à choix multiple porte la ligne « Choix multiple » : le répondant coche zéro, une ou plusieurs réponses. La réponse nommée sur cette ligne exclut les autres : la cocher décoche les autres, et en cocher une autre la décoche. Seule `X1` en a besoin.
 - Le texte entre guillemets à la ligne « Aide » est affiché sous la question. « (aucune) » ou « (facultative) » veut dire que rien n'est affiché.
-- Une réponse « comme aujourd'hui » existe partout où une évolution est proposée : `O1`, `L1`, `D1`, `D2`, `M1`. Les cartes s'en passent : « Inutile pour moi » y remplit ce rôle, et rien n'y change sans réponse.
+- Une réponse « comme aujourd'hui » existe partout où une évolution est proposée : `O1`, `L1`, `D1`, `D2`, `M1`, et `aucune` pour `X1`. Les cartes s'en passent : « Inutile pour moi » y remplit ce rôle, et rien n'y change sans réponse.
 - La carte `C08` (« Images nettes ») est retirée à la demande du PO, la fonction existant déjà. Son identifiant reste réservé : il n'est ni réutilisé ni renuméroté. Neuf cartes restent : `C01` à `C07`, `C09` et `C10`.
 - Les cartes sont présentées dans un ordre tiré au hasard pour chaque répondant (cadrage §2).
 - Propriété des textes du pseudo : ce fichier porte les libellés courts (libellé du champ, aide, libellé du lien), `donnees.md` (#630) porte les faits et le texte long. Les deux disent la même chose.
@@ -99,6 +100,14 @@ Statut : texte rédigé par Sonnet, relecture Opus, validation du PO à venir. L
   - `cote_a_cote` : Le sujet reste visible pendant que vous écrivez · Un aperçu de votre message avant l'envoi · Sur iPad et Duo déplié
 - Aide : « Des visuels et de courtes vidéos montrent chaque disposition si vous n'avez pas l'appareil. »
 - Condition : `P1` vaut `ipad`, `duo` ou `plusieurs`
+
+### X1
+- Section du tri : (nouvelle, options expérimentales, #903)
+- Question : Ces options sont en test dans l'app. Lesquelles voulez-vous par défaut ?
+- Réponses : `composer_moderne` Zone de réponse compacte, collée au clavier · `recherche_barre` Recherche dans la barre du bas · `lignes_icones` Icônes de drapeau devant le titre · `stockage_mp_detaille` Stockage MP réglable par fonction · `choix_images` Choix du chargement des images · `aucune` Aucune, garder l'app comme aujourd'hui
+- Choix multiple : oui ; `aucune` exclut les autres réponses
+- Aide : « Cochez celles que vous aimeriez voir activées pour tous. »
+- Condition : (aucune)
 
 ### Écran Cartes (note, pas un bloc de question)
 
@@ -224,7 +233,7 @@ Ces textes ne sont pas des questions : le formulaire ne les transcrit pas. Ils s
 
 ## Contrôle
 
-- Toutes les questions de la sélection du tri §4 figurent : profil §4.1 (`P1` à `P3`), ouverture §4.2 (`O1`), irritants du quotidien (`G1`, ajout du PO), thème 1 §4.3 (`L1`, `L2`), thème 2 §4.4 (`D1`, `D2`), neuf cartes §4.5 (`C01` à `C07`, `C09`, `C10` ; `C08` retirée), question ouverte (`C11`), messages privés (`M1`), champ libre §4.6 (`F1`), plus `E0`, `I1` et `E1`.
+- Toutes les questions de la sélection du tri §4 figurent : profil §4.1 (`P1` à `P3`), ouverture §4.2 (`O1`), irritants du quotidien (`G1`, ajout du PO), thème 1 §4.3 (`L1`, `L2`), thème 2 §4.4 (`D1`, `D2`), options expérimentales (`X1`, ajout du PO du 15 novembre 2026, #919), neuf cartes §4.5 (`C01` à `C07`, `C09`, `C10` ; `C08` retirée), question ouverte (`C11`), messages privés (`M1`), champ libre §4.6 (`F1`), plus `E0`, `I1` et `E1`.
 - Aucune des dix propositions classées Non (tri §3.5) n'est présente : ni plateau de citations, ni scrubber, ni aperçu serveur (l'aperçu de `D2` est l'aperçu local de LOT-152), ni refus des emoji, suppression du premier post, avis AQ, accent unique, Spotlight, thème selon l'heure, actions rapides d'icône.
 - Aucune carte ne promet une alerte quand on est cité (tri §4.5), et aucune ne nomme un hébergeur ou une technique.
 - `L1` ne présente que des améliorations possibles avec la WebView : ni swipe qui suit le doigt, ni position à la ligne près.

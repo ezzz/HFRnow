@@ -1,7 +1,7 @@
 // Tests de la logique du formulaire : `node --test web/logique.test.mjs` (exécuteur intégré à Node).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import * as L from './logique.js';
 
 const contenu = JSON.parse(readFileSync(new URL('../contenu/questionnaire.json', import.meta.url), 'utf8'));
@@ -140,4 +140,75 @@ test('comparaison vous / la communauté', () => {
   assert.equal(l[1].sections[0].vousEtat, 'deplier');
   assert.equal(l[1].sections[0].rangMedian, 1.5);
   assert.deepEqual(L.comparer(contenu, { disponible: false, seuil: 10 }, {}), []);
+});
+
+// X1 (#919) : choix multiple, `aucune` exclusif.
+test('X1 : écran seul entre D2 et les cartes, visible pour tous les profils', () => {
+  for (const r of [{}, { P1: 'iphone' }, { P1: 'duo' }]) {
+    const e = ids(L.ecransVisibles(contenu, r));
+    assert.equal(e[e.indexOf('experimental') + 1], 'cartes', JSON.stringify(r));
+    assert.ok(e.indexOf('experimental') > e.indexOf('theme1'));
+  }
+  const duo = ids(L.ecransVisibles(contenu, { P1: 'ipad' }));
+  assert.equal(duo[duo.indexOf('theme2-b') + 1], 'experimental');
+});
+
+test('X1 : cocher, décocher, `aucune` exclut les autres et inversement, ordre de questions.md', () => {
+  const c = (courants, code, coche) => L.cocherCode(contenu, 'X1', courants, code, coche);
+  assert.deepEqual(c([], 'choix_images', true), ['choix_images']);
+  assert.deepEqual(c(['choix_images'], 'composer_moderne', true), ['composer_moderne', 'choix_images']);
+  assert.deepEqual(c(['composer_moderne', 'choix_images'], 'composer_moderne', false), ['choix_images']);
+  assert.deepEqual(c(['composer_moderne', 'choix_images'], 'aucune', true), ['aucune']);
+  assert.deepEqual(c(['aucune'], 'lignes_icones', true), ['lignes_icones']);
+  assert.deepEqual(c(['aucune'], 'aucune', false), []);
+});
+
+test('X1 : réponse envoyée en liste de codes, décochée jusqu’au bout elle disparaît', () => {
+  let b = L.changerReponse(contenu, base(), 'X1', ['composer_moderne', 'choix_images']);
+  assert.deepEqual(L.codesCoches(b, 'X1'), ['composer_moderne', 'choix_images']);
+  const e = L.construireEnvoi(contenu, b, 'b'.repeat(32), 1_000_000);
+  assert.deepEqual(e.reponses.X1, ['composer_moderne', 'choix_images']);
+  b = L.changerReponse(contenu, b, 'X1', []);
+  assert.deepEqual(L.codesCoches(b, 'X1'), []);
+  assert.equal(L.construireEnvoi(contenu, b, 'b'.repeat(32), 1_000_000).reponses.X1, undefined);
+  assert.equal(L.aDesReponses(L.construireEnvoi(contenu, b, 'b'.repeat(32), 1_000_000)), false);
+  // une valeur illisible dans un vieux brouillon ne casse rien
+  assert.deepEqual(L.codesCoches({ reponses: { X1: 'choix_images' } }, 'X1'), []);
+});
+
+test('X1 : comparaison, plusieurs réponses du répondant marquées', () => {
+  const stats = { disponible: true, total: 10, seuil: 10, questions: { X1: { effectif: 10, codes: { composer_moderne: 70, choix_images: 40, aucune: 10 } } } };
+  const [x1] = L.comparer(contenu, stats, { X1: ['composer_moderne', 'choix_images'] });
+  assert.deepEqual(x1.barres.filter((b) => b.vous).map((b) => b.code), ['composer_moderne', 'choix_images']);
+  assert.equal(x1.barres.find((b) => b.code === 'lignes_icones').pct, 0);
+  assert.deepEqual(L.comparer(contenu, stats, {})[0].barres.filter((b) => b.vous), []);
+});
+
+// D1 (#919) : une carte par section, servie par le binaire, dans l'ordre d'affichage du tri.
+test('D1 : neuf cartes, une par section, fichiers présents dans web/visuels, même origine', () => {
+  const cartes = L.d1Cartes(contenu, L.d1Vide(contenu));
+  assert.equal(cartes.length, 9);
+  assert.deepEqual(cartes.map((c) => c.code), contenu.questions.D1.sections.map((s) => s.code));
+  for (const c of cartes) {
+    assert.match(c.src, /^\/static\/visuels\/D1-cartes\/D1-carte-[a-z_]+\.png$/);
+    assert.ok(existsSync(new URL(c.src.replace('/static/', './'), import.meta.url)), c.src);
+    assert.ok(c.alt.length > 10 && !/[`.]/.test(c.alt), `${c.code} : texte alternatif lisible, sans nom de symbole`);
+  }
+  assert.equal(new Set(cartes.map((c) => c.src)).size, 9);
+});
+
+test('D1 : les cartes suivent le tri (gardées d’abord, écartées en dernier)', () => {
+  let d1 = L.d1Vide(contenu);
+  d1 = L.d1ChoisirEtat(d1, 'reglages', 'garder');
+  d1 = L.d1ChoisirEtat(d1, 'favoris', 'ecarter');
+  d1 = L.d1ChoisirEtat(d1, 'mp', 'deplier');
+  const codes = L.d1Cartes(contenu, d1).map((c) => c.code);
+  assert.equal(codes.length, 9);
+  assert.deepEqual(codes, L.d1Affichage(d1));
+  assert.deepEqual(codes.slice(0, 2), ['mp', 'reglages']);
+  assert.equal(codes.at(-1), 'favoris');
+  // monter une section déplace sa carte avec elle
+  const res = L.d1Deplacer(d1, 'reglages', -1);
+  assert.deepEqual(L.d1Cartes(contenu, res.d1).map((c) => c.code).slice(0, 2), ['reglages', 'mp']);
+  assert.equal(L.d1Carte({ code: 'x' }), null);
 });

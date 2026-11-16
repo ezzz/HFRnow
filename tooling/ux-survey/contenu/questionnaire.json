@@ -61,6 +61,12 @@
       }
     },
     {
+      "id": "experimental",
+      "questions": [
+        "X1"
+      ]
+    },
+    {
       "id": "cartes",
       "questions": [
         "C01",
@@ -255,39 +261,93 @@
       "sections": [
         {
           "code": "favoris",
-          "libelle": "Favoris"
+          "libelle": "Favoris",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-favoris.png",
+              "alt": "Carte « Favoris » : étoile, aujourd'hui dans le groupe Forum"
+            }
+          ]
         },
         {
           "code": "categories",
-          "libelle": "Catégories"
+          "libelle": "Catégories",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-categories.png",
+              "alt": "Carte « Catégories » : dossier, aujourd'hui dans le groupe Forum"
+            }
+          ]
         },
         {
           "code": "mp",
-          "libelle": "Messages privés"
+          "libelle": "Messages privés",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-mp.png",
+              "alt": "Carte « Messages privés » : enveloppe, aujourd'hui dans le groupe Forum"
+            }
+          ]
         },
         {
           "code": "drapeaux",
-          "libelle": "Drapeaux"
+          "libelle": "Drapeaux",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-drapeaux.png",
+              "alt": "Carte « Drapeaux » : drapeau, aujourd'hui dans Favoris"
+            }
+          ]
         },
         {
           "code": "a_suivre",
-          "libelle": "À suivre (les nouveautés de tous vos sujets suivis)"
+          "libelle": "À suivre (les nouveautés de tous vos sujets suivis)",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-a_suivre.png",
+              "alt": "Carte « À suivre » : journal, les nouveautés de tous vos sujets suivis, avec l'étiquette « Nouveau »"
+            }
+          ]
         },
         {
           "code": "alertes_qualitay",
-          "libelle": "Alertes Qualitay"
+          "libelle": "Alertes Qualitay",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-alertes_qualitay.png",
+              "alt": "Carte « Alertes Qualitay » : cloche, aujourd'hui dans le groupe Outils"
+            }
+          ]
         },
         {
           "code": "bookmarks",
-          "libelle": "Bookmarks"
+          "libelle": "Bookmarks",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-bookmarks.png",
+              "alt": "Carte « Bookmarks » : épingle, aujourd'hui dans le groupe Outils"
+            }
+          ]
         },
         {
           "code": "recherche",
-          "libelle": "Recherche"
+          "libelle": "Recherche",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-recherche.png",
+              "alt": "Carte « Recherche » : loupe, aujourd'hui dans le groupe Plus"
+            }
+          ]
         },
         {
           "code": "reglages",
-          "libelle": "Réglages"
+          "libelle": "Réglages",
+          "visuels": [
+            {
+              "fichier": "D1-cartes/D1-carte-reglages.png",
+              "alt": "Carte « Réglages » : roue dentée, aujourd'hui dans le groupe Plus"
+            }
+          ]
         }
       ],
       "etats": [
@@ -367,6 +427,38 @@
               "alt": "Vidéo de 8 secondes sur iPhone Duo déplié, en paysage : le sujet à gauche, l'éditeur à droite, et l'aperçu sous le texte qui se met à jour pendant la frappe."
             }
           ]
+        }
+      ]
+    },
+    "X1": {
+      "libelle": "Ces options sont en test dans l'app. Lesquelles voulez-vous par défaut ?",
+      "type": "choix-multiple",
+      "aide": "Cochez celles que vous aimeriez voir activées pour tous.",
+      "exclusive": "aucune",
+      "reponses": [
+        {
+          "code": "composer_moderne",
+          "libelle": "Zone de réponse compacte, collée au clavier"
+        },
+        {
+          "code": "recherche_barre",
+          "libelle": "Recherche dans la barre du bas"
+        },
+        {
+          "code": "lignes_icones",
+          "libelle": "Icônes de drapeau devant le titre"
+        },
+        {
+          "code": "stockage_mp_detaille",
+          "libelle": "Stockage MP réglable par fonction"
+        },
+        {
+          "code": "choix_images",
+          "libelle": "Choix du chargement des images"
+        },
+        {
+          "code": "aucune",
+          "libelle": "Aucune, garder l'app comme aujourd'hui"
         }
       ]
     },

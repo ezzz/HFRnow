@@ -86,7 +86,7 @@ Forme (extrait illustratif) :
 }
 ```
 
-Types : `texte-seul` (`E0`, `E1`), `choix` (choix simple), `texte` (texte court), `tri` (`D1`), `reaction` (cartes), `pseudo` (`I1`). Les visuels sont référencés par leur nom de fichier, avec le texte alternatif de `visuels/inventaire.md`.
+Types : `texte-seul` (`E0`, `E1`), `choix` (choix simple), `choix-multiple` (`X1` : cases à cocher ; la réponse stockée est la liste des codes cochés, dans l'ordre de `questions.md` ; le champ `exclusive` de la question nomme le code qui exclut les autres), `texte` (texte court), `tri` (`D1`), `reaction` (cartes), `pseudo` (`I1`). Les visuels sont référencés par leur nom de fichier, avec le texte alternatif de `visuels/inventaire.md`.
 
 **Test de concordance** (contrat §3.2). Un test Go trouve la racine du dépôt en remontant jusqu'au dossier qui contient `.git` (le `go test` s'exécute dans le dossier du paquet), lit `docs/ux/questionnaire/questions.md` et compare avec `questionnaire.json`. Règles de lecture :
 - un bloc commence à un titre `###` dont le texte correspond à `^[A-Z]\d{1,2}$` et va jusqu'au titre suivant ; les autres titres `###` (par exemple « Écran Cartes (note, pas un bloc de question) ») sont ignorés, avec leur contenu ;
