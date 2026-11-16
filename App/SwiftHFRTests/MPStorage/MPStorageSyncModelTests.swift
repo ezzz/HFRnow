@@ -365,6 +365,15 @@ struct MPStorageSyncModelTests {
         #expect(fixture.model.isEnabled(.mpFlags))
     }
 
+    /// Legacy's section has no footer: it shows only with the option on, and never logged out.
+    @Test func theFooterShowsOnlyWithTheOptionOn() async throws {
+        let model = try await Self.make(thread: 7, state: .on).model
+        #expect(MPStorageFunctionInfo.footer(for: model) == MPStorageFunctionInfo.footer)
+        model.experimental?.set(.mpStorageSwitches, isOn: false)
+        #expect(MPStorageFunctionInfo.footer(for: model) == nil)
+        #expect(MPStorageFunctionInfo.footer(for: nil) == nil)
+    }
+
     @Test func theOptionIsListedUnderMessagesAndOffByDefault() {
         #expect(ExperimentalFeature.mpStorageSwitches.isListed)
         #expect(ExperimentalTheme.messages.listedFeatures == [.mpStorageSwitches])

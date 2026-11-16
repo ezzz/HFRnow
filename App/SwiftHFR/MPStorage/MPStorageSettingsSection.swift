@@ -18,7 +18,8 @@ struct MPStorageSettingsSection: View {
         } header: {
             Text("Stockage MP")
         } footer: {
-            if model != nil { Text(MPStorageFunctionInfo.footer) }
+            // EXPERIMENTAL(mpStorageSwitches, #859): legacy's section has no footer.
+            if let footer = MPStorageFunctionInfo.footer(for: model) { Text(footer) }
         }
     }
 }
@@ -81,6 +82,11 @@ struct MPStorageSettingsRows: View {
 enum MPStorageFunctionInfo {
     /// Under the section: what MPStorage is, without any pseudo or MP id.
     static let footer = "Le stockage MP utilise un message privé comme espace de stockage, partagé avec les autres applications HFR+."
+
+    /// The footer under the section: only for a logged-in account with the per-function switches on (#859); legacy has none.
+    @MainActor static func footer(for model: MPStorageSyncModel?) -> String? {
+        model?.perFunctionSwitches == true ? footer : nil
+    }
 
     static func title(_ function: MPStorageFunction) -> String {
         switch function {

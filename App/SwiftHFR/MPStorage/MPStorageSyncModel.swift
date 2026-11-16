@@ -160,6 +160,7 @@ final class MPStorageSyncModel {
     }
 
     /// Réglages › Expérimental, set by the root (nil in a hosted test or preview: the option reads off).
+    // EXPERIMENTAL(mpStorageSwitches, #859): the option's only input.
     var experimental: ExperimentalSettings?
 
     /// Whether Réglages › Stockage MP offers one switch per function (#859). Off, the single switch governs everything, as

@@ -32,7 +32,7 @@ struct RootNavigationView: View {
         }
         .environment(\.rootHasTabBar, Self.rootHasTabBar(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass))
         .task { await model.forums.loadIfNeeded() }
-        // The per-function Stockage MP switches are an experimental option (#859): the account's model reads it from here.
+        // EXPERIMENTAL(mpStorageSwitches, #859): the account's model reads the option from here.
         .onAppear { model.mpStorage?.experimental = experimental }
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
