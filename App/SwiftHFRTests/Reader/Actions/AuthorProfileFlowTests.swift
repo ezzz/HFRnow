@@ -25,9 +25,9 @@ private final class HeldPseudoListPersistence: PseudoListPersistence {
 /// `MessagesView.swift:4387-4412` @ 87fe0d1c), and a quick action closes it before acting (`:4422-4490`).
 @MainActor
 struct AuthorProfileFlowTests {
-    private static let profileLink = url("https://forum.hardware.fr/hfr/profil-910002.htm")
-    private static let mpLink = url("https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&dest=auteur")
-    private static let edit = url("https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numreponse=7")
+    nonisolated private static let profileLink = url("https://forum.hardware.fr/hfr/profil-910002.htm")
+    nonisolated private static let mpLink = url("https://forum.hardware.fr/message.php?config=hfr.inc&cat=prive&dest=auteur")
+    nonisolated private static let edit = url("https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=28563&numreponse=7")
 
     @MainActor
     private struct Fixture {
