@@ -13,7 +13,6 @@ extension ReaderWebController {
     /// Asks the page which message holds the selection and what it says; `reader.js` answers with a `quote` message, or
     /// with nothing when the selection is empty or not inside one message. Without a document the call fails and is ignored.
     func requestSelectionQuote(bold: Bool) {
-        let script = "return window.hfrReader.quoteSelection(bold);"
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["bold": bold], in: nil, contentWorld: Self.world) }
+        run("return window.hfrReader.quoteSelection(bold);", arguments: ["bold": bold])
     }
 }

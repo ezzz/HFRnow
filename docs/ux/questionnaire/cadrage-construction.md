@@ -21,7 +21,7 @@ Rien ne bloque la vague 1. Le sous-domaine ne bloque que la mise en ligne restre
 
 ## 2. Le parcours, écran par écran
 
-Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 6 min 40 s pour un profil iPad et 4 min 40 s pour un profil iPhone, ce qui laisse une marge pour les visuels et les vidéos.
+Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 6 min 55 s pour un profil iPad et 4 min 55 s pour un profil iPhone, ce qui laisse une marge pour les visuels et les vidéos.
 
 | Écran | Identifiants | Contenu | Format | Condition | Visuel | Budget |
 |---|---|---|---|---|---|---|
@@ -32,6 +32,7 @@ Un écran par bloc, une barre de progression, toutes les questions facultatives.
 | Thème 1 | `L1` `L2` | Choix du scénario de lecture, puis « Qu'est-ce qui compte le plus pour vous dans la lecture d'un sujet ? » | Choix simple, texte court | — | Capture actuelle, deux scénarios | 60 s |
 | Thème 2, partie A | `D1` | Sections de la barre latérale : garder, ordonner, dépliable | Tri de cartes | `P1` vaut iPad, Duo ou plusieurs | Cartes des neuf sections | 75 s |
 | Thème 2, partie B | `D2` | Trois dispositions | Choix simple | Même condition | Capture actuelle, deux maquettes, vidéos Duo | 45 s |
+| Options expérimentales | `X1` | Cinq options en test (#903), à activer par défaut ; `aucune` exclut les autres | Choix multiple | — | — | 15 s |
 | Cartes | `C01` à `C10` sauf `C08` | Neuf idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 80 s |
 | Idée | `C11` | « Ces idées vous en inspirent une autre ? » | Texte court | — | — | 15 s |
 | Messages privés | `M1` | Quatre réponses de la question MP | Choix simple | — | — | 15 s |
@@ -44,6 +45,8 @@ Le pseudo est demandé à la fin plutôt qu'au début : le répondant décide ap
 L'ordre des cartes est tiré au hasard pour chaque répondant, afin que la fatigue ne pénalise pas toujours les mêmes idées.
 
 La question `G1` vient avant toute proposition, pour recueillir les irritants du quotidien sans que les pistes du questionnaire orientent les réponses.
+
+La question `X1` (options expérimentales, #919) est ajoutée le 15 novembre 2026, sur son propre écran après `D2` et avant les cartes, sans condition : un profil iPhone la voit aussi.
 
 **Mises à jour du 8 novembre 2026, après la revue de l'aperçu par le PO** (consignées sur #628) : la carte `C08` « Images nettes » est retirée, car la fonction existe déjà ; son identifiant n'est jamais réutilisé. La question `G1` est ajoutée après `O1`. Le seuil des statistiques passe à 10 réponses (D3).
 

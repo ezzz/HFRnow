@@ -127,5 +127,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 761 | UX | La vidéo YouTube se lit dans la feuille du lecteur (l'application s'identifie auprès du lecteur YouTube, et de lui seul) ; une vidéo indisponible (Vimeo refusée, lecteur en erreur) affiche « Vidéo indisponible » et « Ouvrir le lien » au lieu d'une feuille vide. | #752 | aucun lecteur intégré à `87fe0d1c` (`d645f525`) ; erreur 153 constatée sur #499 le 2026-11-10 |
 | 806 | T | La signature n'est plus précédée des 15 tirets de HFR (seuls ceux-là, pas les tirets tapés par un membre). | LOT-034 #755 | `LinkItem.m:74` @ `87fe0d1c`, capture R267a |
 | 828 | T | La création d'une AQ n'affiche plus un code de refus : toute réponse autre que « 1 » est « non confirmée » ; les valeurs que la base refuse (trop longues, hors BMP, numéros hors plage) sont refusées avant l'envoi ; le corps porte `from=SwiftHFR`. | LOT-055 #828 | `MessagesView.swift:340-398` @ `2440d79`, captures T50, T51, T72-T90 |
+| 923 | T | Un aperçu médium img3 (.md.) s'ouvre en pleine taille dans la visionneuse. | #917 | `MessagesView.swift:3298-3312` @ `2440d79` and `87fe0d1c` (aucune règle `.md.`), `Classes/RehostImage.m:328-343, 366-368` @ `87fe0d1c` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

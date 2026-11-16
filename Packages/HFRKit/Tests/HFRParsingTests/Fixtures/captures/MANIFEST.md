@@ -214,11 +214,15 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R57i | `R57i-rest-error-unknown-category.json` | REST error, unknown category (`categories/999/topics/last/`): 200 JSON, `error_code` 403 | R57 | 057 |
 | R57j | `R57j-rest-unknown-topic.json` | REST unknown topic (`categories/13/topics/999999999/`): 200, a topic resource with empty title, null date, closed and sticky, posts count 1 | R57 | 057 |
 | R57k | `R57k-rest-error-unknown-resource.json` | REST error, unknown resource (`forums/hardwarefr/nothing/`): 200 JSON, `error_code` 404 | R57 | 057 |
+| R285a | `R285a-rest-subcategories-cat1.json` | REST sub-categories of cat 1 (Hardware), anonymous (#285): 15, the legacy list of `R01` (home + injection), same order | R57 | 057, 021 |
+| R285b | `R285b-rest-subcategories-cat2.json` | The same for cat 2 (Overclocking…): 7, legacy's 6 plus « Divers » (its injection is keyed on a sub-forum the home does not list) | R57 | 057, 021 |
+| R285c | `R285c-rest-subcategories-cat10.json` | The same for cat 10 (Programmation): 27, against 14 in legacy's list of `R01` (13 in common, « PDA » gone) | R57 | 057, 021 |
 | R335a | `R335a-rest-bucket-participated.json` | REST flag bucket `topics/participated/` (global, grouped by category), logged in (user1): 2 groups of 1 topic, aliased by position so fixtures stay stable and carry no live data (kit README, REST flag buckets) | R57 | 057 |
 | R335b | `R335b-rest-bucket-read.json` | The same for `topics/read/` | R57 | 057 |
 | R335c | `R335c-rest-bucket-favorites.json` | The same for `topics/favorites/` | R57 | 057 |
 | R335d | `R335d-rest-bucket-participated-page2-per-page5.json` | Global `participated` asked with `&page=2&results_per_page=5`: answered like page 1 (`page` 1, the hrefs echo the request); paging is not served | R57 | 057 |
 | R335e | `R335e-rest-bucket-participated-category-page2-per-page5.json` | Flat form `categories/<cat>/topics/participated/&page=2&results_per_page=5` (category aliased `101` in the file and its URL): a `topic` list with no `links`, `page` echoed as 2, every entry returned (2 kept) | R57 | 057 |
+| R830t | `R830t-rest-bucket-participated-stale-session.html` | Global `participated` bucket with user1's `md_user` and `md_id` and a wrong `md_passs` (#830): 200 `text/html`, a `.hop` "Identifiants invalides !", no JSON, no `Set-Cookie` | R57 | 057 |
 | W00 | `W00-login-form-anon.html` | Login page `login.php`: form `form1` fields | W01 (diagnosis) | 043 |
 | W01 | `W01-login-failure.html` | Refused login (user1, stored credentials): `.hop` "Votre mot de passe ou nom d'utilisateur n'est pas valide", refresh to `/`, no cookie | W01 (stands in for W02) | 043 |
 | W03 | `W03-login-success.html` | Login success (user2): "Vérification de votre identification...", refresh to `login_redirection.php`, cookies `md_user`, `md_passs`, `md_id` | W03 | 043, 042, 025 |

@@ -33,7 +33,7 @@ struct MessageRowView: View {
                         BadgeCapsule(text: "non lu", isOutlined: !isUnread)
                             .accessibilityLabel(label)
                     }
-                    Text(thread.summary.title)
+                    Text(thread.summary.displayTitle)
                         .scaledFont(density.titleStyle)
                         .fontWeight(titleTone.weight)
                         .foregroundStyle(titleTone.style)
@@ -55,7 +55,6 @@ struct MessageRowView: View {
         }
         .accessibilityElement(children: .combine)
         .listRowInsets(density.rowInsets)
-        .listRowBackground(MessageRowView.rowTint(isUnread: isUnread, isSelected: isSelected))
     }
 
     /// The capsule's spoken label when the correspondent has not read the thread, else nil (#579).

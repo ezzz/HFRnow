@@ -49,3 +49,4 @@
 - { name: "m4-review: duplicates",     color: "bfd4f2", description: "Found by the end-of-M4 duplicates and refactor review (#836)" }
 - { name: "m4-review: external-audit", color: "bfd4f2", description: "Found by the end-of-M4 audit of outside contributors' lots (#326)" }
 - { name: "m4-review: hig-wwdc",       color: "bfd4f2", description: "Found by the end-of-M4 UI/UX review against the HIG and WWDC24-26 (#866)" }
+- { name: "experimental",             color: "d4c5f9", description: "Option behind Réglages › Expérimental, off by default once ready; foundation in #903" }

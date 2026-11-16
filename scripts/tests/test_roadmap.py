@@ -971,46 +971,35 @@ class WeeklyCounts(unittest.TestCase):
         self.assertNotIn("LOT-110", build.ms_lots()["M5"])
         self.assertEqual(len(build.ms_lots()["M5"]), len(generate.M5) - 1)
 
-    def test_card_pill_counts_live_lots_only(self):
+    def test_tile_status_counts_live_lots_only(self):
         build = self.with_dropped("LOT-110")
-        self.assertIn(f"À faire · {len(build.FEATURES['M5'][0][3]) - 1} lots", build.card_pill(build.FEATURES["M5"][0][3]))
-
-    def test_left_card_lists_and_counts_live_lots_only(self):
-        build = self.with_dropped("LOT-110")
-        out = build.left_card("M5", {"titles": {}})
-        self.assertIn(f"Reste à faire · {len(generate.M5) - 1}<", out)
-        self.assertNotIn("<u>110</u>", out)
-
-    def test_m5_slide_lists_no_dropped_lot_in_a_feature_card(self):
+        self.assertIn("0 / 4 lots", build.tile_status([110, 112, 148, 149, 145]))
         build = self.with_dropped()
-        label = build.lot_label("LOT-110")
-        self.assertIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
-        build = self.with_dropped("LOT-110")
-        self.assertNotIn(f"<li>{build.esc(label)}</li>", build.m5_cards())
+        with mock.patch.object(generate, "done", return_value=True):
+            self.assertIn("✓ 5 lots", build.tile_status([110, 112, 148, 149, 145]))
 
-    def test_m5_feature_cards_keep_the_authored_lot_order_and_skip_an_emptied_feature(self):
+    def test_m5_slide_counts_and_lists_no_dropped_lot(self):
         build = self.with_dropped()
-        out = build.m5_cards()
-        nav = [f"<li>{build.esc(build.lot_label(f'LOT-{x:03d}'))}</li>" for x in build.FEATURES["M5"][0][3]]
-        self.assertEqual([out.index(i) for i in nav], sorted(out.index(i) for i in nav))
-        title = build.FEATURES["M5"][3][1]
-        self.assertIn(f"<b>{title}</b>", out)
-        build = self.with_dropped(*(f"LOT-{x:03d}" for x in build.FEATURES["M5"][3][3]))
-        self.assertNotIn(f"<b>{title}</b>", build.m5_cards())
+        mk = lambda l, **kw: {"number": generate.rows[l]["issue"], "state": "open", "labels": [], "title": f"{l}: Page navigator",
+                              "created_at": "2026-11-01T00:00:00Z", **kw}
+        stack = contextlib.ExitStack()
+        stack.enter_context(mock.patch.object(build, "progress", progress))
+        self.addCleanup(stack.close)
+        live = mk("LOT-110")
+        dropped = mk("LOT-112", state="closed", state_reason="not_planned", closed_at="2026-11-02T00:00:00Z")
+        d = build.gather_892([live, dropped], "2026-11-08T23:59:59Z")
+        self.assertEqual(d["m5"]["total"], 1)
+        self.assertEqual(d["m5"]["cats"], {"navigation": [(build.lot_label("LOT-110"), False)]})
 
-    def test_m5_slide_drops_the_empty_also_card_and_counts_the_rest(self):
-        build = self.with_dropped("LOT-176")
-        self.assertIn("Aussi dans M5 · 1<", build.m5_cards())
-        self.assertNotIn("<u>176</u>", build.m5_cards())
-        build = self.with_dropped("LOT-176", "LOT-183")
-        self.assertNotIn("Aussi dans M5", build.m5_cards())
+    def test_m5_slide_skips_feat_intake_issues_that_their_lot_already_shows(self):
+        mk = lambda n, title, **kw: {"number": n, "state": "open", "labels": [], "title": title, "created_at": "2026-11-01T00:00:00Z", **kw}
+        lot = mk(generate.rows["LOT-177"]["issue"], "LOT-177: Uniform swipe set in every list (FEAT-008) (M5)")
+        feat = mk(9152, "FEAT-008: Uniform swipes", state="closed", state_reason="completed", closed_at="2026-11-02T00:00:00Z")
+        build, d = self.gather([lot, feat])
+        self.assertEqual((d["m5"]["total"], d["m5"]["done"]), (1, 0))  # the lot only; the closed intake issue adds nothing
+        self.assertEqual(sum(d["m5"]["axes"].values()), 1)
+        self.assertEqual(d["outside"]["total"], 0)  # the intake issue still has a milestone (M5): not outside
 
-    def test_a_dropped_lot_does_not_count_in_unblocks(self):
-        build = self.with_dropped()
-        pair = next((d, y) for y, r in generate.rows.items() for d in generate.deps(r))
-        before = build.dependents()[pair[0]]
-        build = self.with_dropped(pair[1])
-        self.assertEqual(build.dependents()[pair[0]], before - 1)
 
     def test_generate_reads_the_state_named_by_roadmap_state(self):
         import tempfile
@@ -1024,10 +1013,173 @@ class WeeklyCounts(unittest.TestCase):
                                env={**__import__("os").environ, "ROADMAP_STATE": str(f)})
             self.assertEqual(r.stdout.split(), ["2026-11-10", "22:00", "UTC", "True", "1"], r.stderr)
 
+    def test_done_counts_agree_in_number(self):
+        import build
+        self.assertEqual([build.faites(n) for n in (0, 1, 2)], ["faite", "faite", "faites"])
+        D = {"m5": {"cats": {"MP": [("MP à plusieurs", True)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 37, "done": 1},
+             "outside": {"open": [], "kinds": {}}}
+        self.assertIn("1 faite sur 37", build.slide_m5(D))
+
+    def test_m5_band_is_hidden_without_an_open_issue_outside_every_milestone(self):
+        import build
+        D = {"m5": {"cats": {"MP": [("MP à plusieurs", False)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 1, "done": 0},
+             "outside": {"open": [], "kinds": {}}}
+        self.assertNotIn("Issues hors jalon", build.slide_m5(D))
+        D["outside"] = {"open": [(907, "Backup restore test")], "kinds": {"chore": 1}}
+        out = build.slide_m5(D)
+        self.assertIn("Issues hors jalon", out)
+        self.assertIn("#907", out)
+
+    def test_the_deck_has_the_six_slides_of_892(self):
+        import build
+        self.assertEqual(build.TOTAL, 6)
+        self.assertEqual(set(build.FEATURES), {"M1", "M2", "M3"})
+        self.assertEqual(tuple(r[0] for r in build.REVIEWS), counts.REVIEW_ISSUES)
+
+    def gather(self, issues):
+        build = self.with_dropped()
+        stack = contextlib.ExitStack()
+        stack.enter_context(mock.patch.object(build, "progress", progress))
+        self.addCleanup(stack.close)
+        return build, build.gather_892(issues, "2026-11-08T23:59:59Z")
+
+    def test_outside_bar_counts_only_issues_outside_every_milestone_now_and_at_the_baseline(self):
+        mk = lambda n, title, state="open", created="2026-11-01T00:00:00Z", closed=None, labels=(): {
+            "number": n, "title": title, "state": state, "state_reason": "completed" if state == "closed" else None,
+            "closed_at": closed, "created_at": created, "labels": [{"name": x} for x in labels]}
+        iss = [mk(9001, "[SwiftHFR] Fixture kit: a chore", "closed", closed="2026-11-05T00:00:00Z"),   # done before the baseline
+               mk(9002, "[SwiftHFR] Backup restore test", "closed", closed="2026-11-12T00:00:00Z"),    # done since
+               mk(9003, "[SwiftHFR] Flaky app test", created="2026-11-10T00:00:00Z", labels=("type: bug",)),  # created since, open
+               mk(9004, "[SwiftHFR] Poll: results (M4)"), mk(9005, "FEAT-021: iPad keyboard shortcuts"),
+               mk(9006, "[SwiftHFR] Tab bar", labels=("beta-test finding",))]
+        build, d = self.gather(iss)
+        o = d["outside"]
+        self.assertEqual((o["done"], o["total"], o["then_done"], o["then_total"]), (2, 3, 1, 2))
+        self.assertEqual(o["open"], [(9003, "Flaky app test")])
+        self.assertEqual(o["kinds"], {"bug": 1})
+
+    def test_slide_5_counts_every_feedback_issue_like_slide_1_dropped_ones_as_set_aside(self):
+        mk = lambda n, title, **kw: {"number": n, "title": title, "state": "open", "created_at": "2026-11-01T00:00:00Z",
+                                     "labels": [{"name": "beta-test finding"}] + [{"name": x} for x in kw.pop("extra", ())], **kw}
+        iss = [mk(1, "[SwiftHFR] Reader: x"), mk(2, "[SwiftHFR] Legacy reference behind", extra=("type: roadmap",)),
+               mk(3, "[SwiftHFR] MP list: y", state="closed", state_reason="not_planned", closed_at="2026-11-02T00:00:00Z")]
+        build, d = self.gather(iss)
+        fb = d["m4"]["fb"]
+        self.assertEqual(fb["total"], counts.open_closed(counts.daily_groups(iss)["feedback"])[0] + 1)
+        self.assertEqual(fb["total"], 3)
+        self.assertEqual(fb["status"], {"ouvert": 2, "écarté": 1})
+
+    def test_slide_3_shows_each_bar_difference_and_the_outside_bar(self):
+        import build
+        ms = {m: {"done": 0, "then": 0, "total": 10} for m in build.MS}
+        ms["M4"] = {"done": 6, "then": 3, "total": 10}
+        z = {"done": 0, "prs": 0, "commits": 0, "tests": 0, "lines": 0, "issues": 0}
+        D = {"now": z, "then": z, "since": "2026-11-08", "ms": ms,
+             "outside": {"done": 104, "total": 205, "then_done": 65, "then_total": 164}}
+        out = build.slide_today(D)
+        self.assertIn("60 % <em", out)
+        self.assertIn("+30 pts", out)
+        self.assertIn("104 / 205", out)
+        self.assertIn("+39 faites", out)
+        self.assertIn("+41 créées", out)
+        self.assertIn("Hors jalon", out)
+
+    def test_slide_3_agrees_with_a_difference_of_one(self):
+        import build
+        ms = {m: {"done": 0, "then": 0, "total": 10} for m in build.MS}
+        z = {"done": 0, "prs": 0, "commits": 0, "tests": 0, "lines": 0, "issues": 0}
+        D = {"now": z, "then": z, "since": "2026-11-08", "ms": ms,
+             "outside": {"done": 5, "total": 9, "then_done": 4, "then_total": 8}}
+        out = build.slide_today(D)
+        self.assertIn("+1 faite</em>", out)
+        self.assertIn("+1 créée", out)
+        self.assertNotIn("+1 créées", out)
+        self.assertEqual([build.accord(n, "fait") for n in (0, 1, 3)], ["fait", "fait", "faits"])
+
+    def test_m5_slide_never_drops_a_category(self):
+        import build
+        cats = {a: [(f"{a} {k}", False) for k in range(8 - j)] for j, a in enumerate(counts.AXES)}
+        D = {"m5": {"cats": cats, "axes": {a: len(v) for a, v in cats.items()}, "total": 36, "done": 0}, "outside": {"open": [], "kinds": {}}}
+        out = build.slide_m5(D)
+        self.assertEqual(out.count('class="tile '), 6)
+        for a in counts.AXES[5:]:
+            self.assertIn(f"{a[0].upper() + a[1:]} · {len(cats[a])}", out)
+        self.assertIn("Et aussi · 6", out)
+
     def test_a_slide_never_shows_the_word_legacy(self):
         import build
         h = build.page(1, "Legacy et legacy", "le legacy", "<p>LEGACY</p>")
         self.assertNotIn("legacy", re.sub(r"<style>.*?</style>", "", h, flags=re.S).lower())
+
+
+class ReportDeck892(unittest.TestCase):
+    """Slides 3, 5 and 6 of the report deck (#892): radar axes, milestone of an issue, feedback status."""
+
+    def test_feedback_titles_map_to_their_radar_axis(self):
+        cases = {
+            "[SwiftHFR] Reader: signatures do not show when « Afficher les signatures » is on": "lecteur",
+            "[SwiftHFR] Topic lists: swipe to add or remove the favourite": "listes",
+            "[SwiftHFR] Composer (iPhone): the page above the open composer no longer scrolls": "composer",
+            "[SwiftHFR] GIF panel: the search field is too transparent over the GIFs": "composer",
+            "[SwiftHFR] MP list: show the correspondent's avatar": "MP",
+            "[SwiftHFR] MP reader: show members' signatures like in topics": "MP",
+            "[SwiftHFR] Tab bar: a fifth item, Recherche, left of Plus": "navigation",
+            "[SwiftHFR] iPad split: Bookmarks open their topics in the detail column": "navigation",
+            "[SwiftHFR] Réglages › Stockage MP: one switch per function": "réglages et thèmes",
+            "[SwiftHFR] App icon « REDFACE 3D Big »: red rim on the Home Screen": "réglages et thèmes",
+            "[SwiftHFR] Changing the text size (100 → 90) stops messages loading, topics and MPs": "réglages et thèmes",
+            "[SwiftHFR] Reader: messages load very slowly or get stuck": "performance",
+            "[SwiftHFR] App instability on device: collect crash and hang reports": "performance",
+            "[SwiftHFR] Legacy reference 2440d79 is 44 commits behind": "autre",
+            "LOT-110: Page navigator": "navigation",
+            "LOT-152: Preview before send": "composer",
+            "[SwiftHFR] MP list: the reader's avatar in each row": "MP",  # the subject decides over later words
+            "[SwiftHFR] M5: Messages split into two tabs, one-to-one MPs and group MPs": "MP",
+        }
+        for title, axis in cases.items():
+            self.assertEqual(counts.axis_of(title), axis, title)
+
+    def test_every_axis_is_reachable_and_counts_cover_every_axis(self):
+        self.assertEqual(len(counts.AXES), 8)
+        self.assertEqual({a for a, _ in counts.AXIS_RULES} | {"performance", "autre"}, set(counts.AXES))
+        c = counts.axis_counts([{"title": "Reader: x"}, {"title": "Reader: y"}, {"title": "nothing here"}])
+        self.assertEqual(list(c), counts.AXES)
+        self.assertEqual((c["lecteur"], c["autre"], sum(c.values())), (2, 1, 3))
+
+    def test_milestone_of_an_issue_follows_the_rules_in_order(self):
+        lot_ms, fu, lots = {10: "M3", 20: "M5"}, {30: ("M2", "x")}, {97: 10}
+        ms = lambda title, n=99, labels=(): counts.issue_milestone({"number": n, "title": title, "labels": [{"name": x} for x in labels]}, lot_ms, fu, lots)
+        self.assertEqual(ms("LOT-097: anything (M4)", n=10), "M3")  # a lot issue keeps its lot's milestone
+        self.assertEqual(ms("anything (M4)", n=30), "M2")
+        self.assertEqual(ms("[SwiftHFR] M4: iPad split view"), "M4")
+        self.assertEqual(ms("[SwiftHFR] Poll: results (M4)"), "M4")
+        self.assertEqual(ms("[SwiftHFR] Account menu: avatar (UXD-03, M2)"), "M2")
+        self.assertEqual(ms("[SwiftHFR] M5 study: native macOS version"), "M5")
+        self.assertEqual(ms("[SwiftHFR] LOT-097 renderer: gaps left"), "M3")
+        self.assertEqual(ms("[SwiftHFR] Report deck focused on M4 detail and M5"), None)  # a milestone named in passing is no tag
+        self.assertEqual(ms("x", labels=("beta-test finding",)), "M4")
+        self.assertEqual(ms("x", labels=("m4-review: performance",)), "M4")
+        self.assertEqual(ms("x", labels=("experimental",)), "M5")
+        self.assertEqual(ms("x", labels=("moust4ki aka bybifok finding",)), None)  # the credit label is not feedback
+        self.assertEqual(ms("FEAT-021: iPad keyboard shortcuts"), "M5")  # docs/ROADMAP.md: the FEAT items are M5
+        self.assertEqual(ms("FEAT-016: iPhone Duo / iPad columns"), "M4")  # … except FEAT-016 (LOT-147, M4)
+        for n in counts.REVIEW_ISSUES:
+            self.assertEqual(ms("[SwiftHFR] End-of-M4 review", n=n), "M4")
+
+    def test_swift_issues_status_and_feedback(self):
+        mk = lambda n, title="[SwiftHFR] x", state="open", labels=(), **kw: {"number": n, "title": title, "state": state,
+                                                                            "labels": [{"name": x} for x in labels], **kw}
+        self.assertFalse(counts.is_swift_issue(mk(1, "[Legacy 4.0.x] Reader")))
+        self.assertTrue(counts.is_swift_issue(mk(2, "[Legacy 4.0.x + SwiftHFR] Reader")))
+        self.assertFalse(counts.is_swift_issue(mk(3, labels=("type: roadmap",))))
+        self.assertFalse(counts.is_swift_issue(mk(4, state="closed", state_reason="not_planned")))
+        self.assertFalse(counts.is_swift_issue({**mk(5), "pull_request": {}}))
+        self.assertEqual(counts.issue_status(mk(6)), "ouvert")
+        self.assertEqual(counts.issue_status(mk(7, labels=("status: claimed",))), "réclamé")
+        self.assertEqual(counts.issue_status(mk(8, state="closed", state_reason="completed")), "fait")
+        self.assertEqual(counts.issue_status(mk(9, state="closed", state_reason="duplicate")), "écarté")
+        fb = counts.feedback([mk(10, labels=("beta-test finding",)), mk(11, labels=("moust4ki aka bybifok finding",))])
+        self.assertEqual([i["number"] for i in fb], [10])
 
 
 if __name__ == "__main__":

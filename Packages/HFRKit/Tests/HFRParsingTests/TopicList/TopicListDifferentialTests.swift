@@ -146,8 +146,8 @@ struct TopicListDifferentialTests {
 
         for (index, (row, legacy)) in zip(page.topics, legacyRows).enumerated() {
             let context = Comment(rawValue: "\(testCase.name) row \(index)")
-            // D4: the title stays raw; legacy's "TU" rewrite applied to it gives the oracle's title.
-            #expect(LegacyTitleRewrite.filterTU(row.title) == legacy.aTitle, context)
+            // D4: the title stays raw; the shipped TopicTitle.displayed (#818) applied to it gives the oracle's title.
+            #expect(TopicTitle.displayed(row.title) == legacy.aTitle, context)
             #expect(row.path == legacy.aURL, context)
             #expect(row.firstPagePath == legacy.aURLOfFirstPage.nonEmpty, context)
             #expect(row.repliesCount == legacy.aRepCount, context)

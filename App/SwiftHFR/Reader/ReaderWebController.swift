@@ -68,9 +68,12 @@ final class ReaderWebController: NSObject {
     var stopped = false
     /// The document `stopLoading()` cut, and whether SwiftUI's last word was `onDisappear` (`ReaderWebController+Presence`).
     var stoppedDocument: ReaderDocument?, disappeared = false
-    /// The reading top (`ReaderScrollGeometry`) a refresh restores; the insets may change before the next document is ready.
+    /// The reading top (`ReaderScrollGeometry`, in the page's own points) a refresh restores;
+    /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
     private var appliedScrollID: Int?
+    /// Holds a new document's landing or restore until WebKit has reset its scroll view (#772).
+    let resetWatch = WebKitResetWatch()
     private var running: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var waiting: [(key: ObjectIdentifier, start: () -> Void)] = []
     /// Third-party image URLs the user tapped in the current document, as `reader.js` reported them. Consent lives here,
@@ -131,6 +134,7 @@ final class ReaderWebController: NSObject {
         }
         ReaderLog.debug("show loads token=\(document.token)")
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
+        resetWatch.stop()
         self.document = document
         readyToken = nil
         reloadedAfterFailure = false
@@ -204,6 +208,7 @@ final class ReaderWebController: NSObject {
             documentIsReady(document, token: document.token)
             return nil
         case .position(let post):
+            resetWatch.pageReportedPosition()
             events.position(post, document.token)
             return nil
         case .quote(let post, let text, let bold):
@@ -234,15 +239,23 @@ final class ReaderWebController: NSObject {
         // A size or a colour changed while this document was loading reached the previous one: set them again.
         applyTextScale()
         applyTheme()
+        let scrollView = webView.scrollView
         if let anchor = document.anchor {
-            scroll(to: anchor, landing: true)
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: anchor, landing: true) }
         } else if let readingTop = savedReadingTop {
-            scroll(toReadingTop: readingTop)
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(toReadingTop: readingTop) }
         }
         savedReadingTop = nil
         readyToken = token
         ReaderLog.debug("ready accepted token=\(token)")
         events.ready(token)
+    }
+
+    /// The shown document's navigation committed: WebKit resets the scroll view to its top at its next layer-tree commit, so
+    /// the watch for that reset starts here (#772). Another navigation's commit changes nothing.
+    func pageNavigationCommitted(_ navigation: WKNavigation?) {
+        guard let document, let navigation, navigation === pageNavigation else { return }
+        resetWatch.start(token: document.token, on: webView.scrollView)
     }
 
     /// The shown document's navigation failed before it was ready: it is loaded once more, then the failure is reported, so

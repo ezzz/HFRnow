@@ -5,6 +5,7 @@ import SwiftUI
 // "starter or interlocutors · replies · relative date of the last post" (replies added, starter instead of the last poster), after the
 // "⚑ cur / max" footer; the unread-pages capsule (kept with the dot for unread rows); the flag colour tints the icon and the row
 // (GAP-026, 027, #584; `TopicRowCues`).
+// Title: `TopicSummary.displayTitle` ports `filterTU` (`Topic.m:90-94` @ 87fe0d1c; #818). The row shows no other rewrite.
 // Density and text size: legacy TopicListRowView (Common.swift:3194-3245 @ 21173e77) and FavoritesListDensity (LOT-169).
 /// One topic row: title, flag, counters and last post. Pure display.
 struct TopicRowView: View {
@@ -18,25 +19,24 @@ struct TopicRowView: View {
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// 1 at the default Dynamic Type size; multiplies the marker size and its offset.
+    /// 1 at the default Dynamic Type size; multiplies the spacing between the marks and the title.
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
     private var isUnread: Bool { topic.readState == .unread && !markedRead }
 
     var body: some View {
         HStack(alignment: .top, spacing: scale.scaled(dynamicType * 8)) {
-            if isUnread {
-                let marker = scale.scaled(dynamicType * density.markerSize)
-                Circle().fill(.tint).frame(width: marker, height: marker)
-                    .padding(.top, scale.scaled(dynamicType * 6)).accessibilityLabel("Non lu")
-            }
+            // EXPERIMENTAL(flagIconRows, #905): replaces the legacy rows of #817 (whole row tinted by flag, no icon before the
+            // title) by the unread dot and the flag icon. #817 adds the switch-off path here; until then these marks show whatever
+            // the switch, which is why Réglages does not list it yet.
+            if isUnread { UnreadDotMark() }
             if isSuperFavorite {
                 Image(systemName: "star.circle.fill").foregroundStyle(.orange)
                     .scaledFont(density.titleStyle).accessibilityLabel("Super favori")
             }
-            if showsFlag { flagIcon.scaledFont(density.titleStyle) }
+            if showsFlag { FlagIconMark(flag: topic.flag).scaledFont(density.titleStyle) }
             VStack(alignment: .leading, spacing: density.lineSpacing) {
-                Text(topic.title)
+                Text(topic.displayTitle)
                     .scaledFont(density.titleStyle)
                     .fontWeight(isUnread ? .semibold : .regular)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
@@ -67,15 +67,5 @@ struct TopicRowView: View {
         parts.append(FrenchPlural.count(topic.repliesCount, "réponse", "réponses"))
         if let date = topic.lastPost?.date { parts.append(date.formatted(.relative(presentation: .named))) }
         return parts.joined(separator: " · ")
-    }
-
-    @ViewBuilder
-    private var flagIcon: some View {
-        switch topic.flag {
-        case .blue: Image(systemName: "flag.fill").foregroundStyle(.blue).accessibilityLabel("Drapeau")
-        case .red: Image(systemName: "flag.fill").foregroundStyle(.red).accessibilityLabel("Lu")
-        case .yellow: Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("Favori")
-        case nil: EmptyView()
-        }
     }
 }

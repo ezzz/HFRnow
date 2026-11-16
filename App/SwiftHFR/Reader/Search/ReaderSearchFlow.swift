@@ -9,24 +9,19 @@ struct ReaderSearchFlow: ViewModifier {
     let model: TopicReaderModel
     /// The current account's services; nil when logged out (the search needs the account's `hash_check`).
     let composer: ComposerServices?
-    @State private var search: TopicSearchModel?
+    /// Opened by the reader's "…" entry (`ReaderOverflowToolbar`, #645), which owns the item so the menu order is one declaration.
+    @Binding var search: TopicSearchModel?
     /// The match found, followed when the sheet has finished closing (a push during the dismissal can be dropped).
     @State private var pendingMatch: ReaderTarget?
 
+    /// Whether the overflow offers the search: an account, a page naming its topic, not a private conversation (not captured),
+    /// and no open composer (#653: the "…" overflow stays shut).
+    static func isOffered(model: TopicReaderModel, composer: ComposerServices?) -> Bool {
+        composer?.topicSearcher != nil && model.page?.topicID != nil && !model.isPrivateConversation && !model.suspendsPageInteractions
+    }
+
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                // Searching a private conversation (`cat=prive`) is not captured: no entry there.
-                // None under an open composer (#653): the "…" overflow stays shut.
-                if let searcher = composer?.topicSearcher, let topic = model.page?.topicID, !model.isPrivateConversation,
-                   !model.suspendsPageInteractions {
-                    ToolbarItem(placement: .secondaryAction) {
-                        Button { search = TopicSearchModel(topic: topic, searcher: searcher) } label: {
-                            Label("Rechercher dans le sujet", systemImage: "magnifyingglass")
-                        }
-                    }
-                }
-            }
             .sheet(item: $search, onDismiss: {
                 guard let target = pendingMatch else { return }
                 pendingMatch = nil
