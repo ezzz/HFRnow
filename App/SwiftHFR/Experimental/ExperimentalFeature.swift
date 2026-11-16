@@ -39,8 +39,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     /// paths look the same until then); the others wait for their own PR.
     var isListed: Bool {
         switch self {
-        case .modernComposer: true
-        case .searchTab, .mpStorageSwitches, .flagIconRows, .imageLoadingChoice: false
+        case .modernComposer, .mpStorageSwitches: true
+        case .searchTab, .flagIconRows, .imageLoadingChoice: false
         }
     }
 

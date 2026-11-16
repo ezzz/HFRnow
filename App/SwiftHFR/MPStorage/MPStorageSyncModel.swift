@@ -22,9 +22,9 @@ final class MPStorageSyncModel {
         case failed(String)
     }
 
-    /// What a bookmark or blacklist write does (LOT-131, LOT-132 call `writeConsent()` before it).
+    /// What a bookmark or blacklist write does (LOT-131, LOT-132 call `writeConsent(for:)` before it).
     enum WriteConsent: Equatable {
-        /// The account syncs: edit through `edit(_:)`.
+        /// The account syncs: edit through `edit(_:_:)`.
         case sync
         /// The list stays on the device (declined, off, unreadable state).
         case deviceOnly
@@ -48,7 +48,8 @@ final class MPStorageSyncModel {
     private(set) var threadMissing = false
     /// True while the creation question waits for an answer.
     var asksCreation = false
-    /// The document shown (local edits included), for the MP list flags; nil before the first read.
+    /// The document shown (local edits included), for the MP list flags; nil before the first read. Ungated: LOT-131 and
+    /// LOT-132 read their section through `document(for:)`, which honours the function's switch (#859).
     private(set) var document: MPStorageDocument?
 
     @ObservationIgnored private let sync: MPStorageSync
@@ -158,20 +159,55 @@ final class MPStorageSyncModel {
         await run { [self] () async throws(MPStorageSyncError) in try await syncOnce() }
     }
 
-    /// What a first bookmark or blacklist write does for this account (ADR 0013 §7).
-    func writeConsent() -> WriteConsent {
+    // EXPERIMENTAL(mpStorageSwitches, #859): the option's only input.
+    /// Réglages › Expérimental, set by the root (nil in a hosted test or preview: the option reads off).
+    var experimental: ExperimentalSettings?
+
+    /// Whether Réglages › Stockage MP offers one switch per function (#859). Off, the single switch governs everything, as
+    /// in legacy, and the stored `disabled` list is ignored, not deleted.
+    var perFunctionSwitches: Bool {
+        // EXPERIMENTAL(mpStorageSwitches, #859): the per-function switches and the `disabled` list they write.
+        ExperimentalSettings.isOn(.mpStorageSwitches, in: experimental)
+    }
+
+    /// Whether `function` is on for the account (#859): every function is on by default, and always while the experimental
+    /// option is off; an unreadable record turns all off.
+    func isEnabled(_ function: MPStorageFunction) -> Bool {
+        guard let record else { return false }
+        // EXPERIMENTAL(mpStorageSwitches, #859): off, the `disabled` list is not read.
+        return !perFunctionSwitches || record.isEnabled(function)
+    }
+
+    /// The functions whose switch Réglages shows: those whose lot has shipped (no dead switch, #859). Blacklist (LOT-131)
+    /// and bookmarks (LOT-132) join when their lots merge.
+    static let shippedFunctions: [MPStorageFunction] = [.mpFlags]
+
+    /// A function switch of Réglages. Never deletes the section on the forum nor any other client's data: the app only
+    /// stops reading and writing that section (#859). An edit queued before the switch-off is still written at the
+    /// next sync.
+    func setFunction(_ function: MPStorageFunction, enabled: Bool) {
+        guard states.setFunction(function, enabled: enabled, for: account) else { return }
+        record = states.record(for: account)
+    }
+
+    /// What a first write of `function` (bookmark, blacklist entry) does for this account (ADR 0013 §7): a function
+    /// switched off stays on the device.
+    func writeConsent(for function: MPStorageFunction) -> WriteConsent {
+        guard isEnabled(function) else { return .deviceOnly }
         switch record?.state {
-        case .on?: .sync
-        case .unasked?: .ask
-        case .declined?, .off?, nil: .deviceOnly
+        case .on?: return .sync
+        case .unasked?: return .ask
+        case .declined?, .off?, nil: return .deviceOnly
         }
     }
 
-    /// Applies a LOT-062 edit locally, then writes it (LOT-131, LOT-132). Only while `on`; returns whether it changed the
-    /// document. A failed write keeps the edit for the next sync.
+    /// Applies a LOT-062 edit of `function`'s section locally, then writes it (LOT-131, LOT-132). Only while `on` and the
+    /// function is on; returns whether it changed the document. A failed write keeps the edit for the next sync.
     @discardableResult
-    func edit(_ change: @escaping @Sendable (inout MPStorageDocument, MPStorageStamp) throws -> Bool) async -> Bool {
-        guard isOn else { return false }
+    func edit(
+        _ function: MPStorageFunction, _ change: @escaping @Sendable (inout MPStorageDocument, MPStorageStamp) throws -> Bool
+    ) async -> Bool {
+        guard isOn, isEnabled(function) else { return false }
         var changed = false
         await run { [self] () async throws(MPStorageSyncError) in
             changed = try await sync.edit(now: clock(), change)
@@ -180,10 +216,16 @@ final class MPStorageSyncModel {
         return changed
     }
 
-    /// The stored read position of a group conversation (`MPListView.swift:354-373` @ 87fe0d1c), only while `on`; nil for a
-    /// one-to-one conversation and for a flag without a page above 0 (legacy's link would hold `(null)`).
+    /// The document for `function`'s reader (LOT-131, LOT-132): nil unless the account is `on` and the function is on.
+    func document(for function: MPStorageFunction) -> MPStorageDocument? {
+        isOn && isEnabled(function) ? document : nil
+    }
+
+    /// The stored read position of a group conversation (`MPListView.swift:354-373` @ 87fe0d1c), only while `on` and the
+    /// "dark topic" function is on; nil for a one-to-one conversation and for a flag
+    /// without a page above 0 (legacy's link would hold `(null)`).
     func flag(for thread: PrivateMessageThread) -> MPStorageMPFlag? {
-        guard isOn, thread.isGroup, let document, let post = thread.summary.topicID?.topic,
+        guard isOn, isEnabled(.mpFlags), thread.isGroup, let document, let post = thread.summary.topicID?.topic,
               let flag = MPStorageSync.flag(forThread: post, in: document), let page = flag.page, page > 0
         else { return nil }
         return flag
