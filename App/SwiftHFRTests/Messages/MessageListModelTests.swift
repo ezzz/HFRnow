@@ -66,23 +66,9 @@ struct MessageListModelTests {
         let model = model(source)
         await model.onAppear()
         #expect(source.requests == [1])
-    }
-
-    // Legacy lists page 1 of `cat=prive` and nothing else (`ObjCMPTopicsLoaderWorker.m:9-15` @ 87fe0d1c): a list whose page
-    // says "a next page exists" still fetches page 1 only, on load, refresh, retry and reappearing, and the content carries
-    // no page number or next-page flag, so nothing can drive a pager (it and "Page N" are gone, #968).
-    @Test func theListFetchesPageOneOnlyAndExposesNoPagingState() async {
-        let source = FakePrivateMessages()
-        let model = model(source)
-        await model.onAppear()
-        #expect(model.loader.value?.threads.count == 2)
-        await model.refresh()
-        await model.onAppear()
-        source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .timedOut }
-        await model.refresh()
-        source.handler = { page in messagePage(page: page) }
-        await model.retry()
-        #expect(source.requests == [1, 1, 1, 1, 1])
+        #expect(model.currentPage == 1)
+        #expect(model.canGoToNext)
+        #expect(!model.canGoToPrevious)
     }
 
     @Test func rowsKeepGroupFlagAndUnreadStateForTheNextLot() async throws {
@@ -111,18 +97,41 @@ struct MessageListModelTests {
         #expect(model.loader.value?.emptyReason == .nothing)
     }
 
-    @Test func aFailedRefreshKeepsTheRowsAndRetryAsksAgain() async {
+    @Test func pagingMovesByOneAndRefreshReloadsThePageOnScreen() async {
         let source = FakePrivateMessages()
         let model = model(source)
         await model.onAppear()
+        await model.goToNextPage()
+        await model.goToNextPage()
+        #expect(!model.canGoToNext)
+        await model.refresh()
+        await model.goToPreviousPage()
+        await model.goToFirstPage()
+        #expect(source.requests == [1, 2, 3, 3, 2, 1])
+    }
+
+    @Test func appearingAgainRefreshesTheCurrentPage() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        await model.goToNextPage()
+        await model.onAppear()
+        #expect(source.requests == [1, 2, 2])
+    }
+
+    @Test func aFailedRefreshKeepsTheRowsAndRetryAsksForTheSamePage() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        await model.goToNextPage()
         source.handler = { _ async throws(ListLoadError) -> PrivateMessageListPage in throw .timedOut }
         await model.refresh()
         #expect(model.loader.error == .timedOut)
-        #expect(model.loader.value?.threads.count == 2)
+        #expect(model.loader.value?.page == 2)
         source.handler = { page in messagePage(page: page) }
         await model.retry()
         #expect(model.loader.error == nil)
-        #expect(source.requests == [1, 1, 1])
+        #expect(source.requests == [1, 2, 2, 2])
     }
 
     @Test func failureWithoutRowsIsReportedNotHidden() async {

@@ -4,7 +4,7 @@ import HFRStorage
 @testable import SwiftHFR
 import Testing
 
-/// "Deux listes" (LOT-171): the switch and the segment counts, on page 1 only (#968).
+/// "Deux listes" (LOT-171): the switch, the segment counts and the bounded search for a segment's rows.
 private func pageOf(_ threads: [PrivateMessageThread], page: Int, last: Int) -> PrivateMessageListPage {
     PrivateMessageListPage(
         threads: threads,
@@ -39,7 +39,7 @@ struct MessageListSplitTests {
         let model = model(source, display: .split)
         await model.onAppear()
         #expect(model.visibleThreads.map(\.isGroup) == [false])
-        model.select(.group)
+        await model.select(.group)
         #expect(model.visibleThreads.map(\.isGroup) == [true])
         #expect(source.requests == [1])
     }
@@ -60,34 +60,140 @@ struct MessageListSplitTests {
         #expect(model.unreadCount(in: .group) == 1)
     }
 
-    @Test func anEmptySegmentShowsEmptyAndNeverFetchesLaterPages() async {
+    @Test func anEmptySegmentLoadsLaterPagesInsteadOfShowingEmpty() async {
         let source = FakePrivateMessages()
-        // The group row sits on page 3: the list never asks for it.
         source.handler = { page in
-            pageOf([messageThread(page)] + (page == 3 ? [messageThread(99, group: true)] : []), page: page, last: 4)
+            pageOf([messageThread(page * 10)] + (page == 3 ? [messageThread(99, group: true)] : []), page: page, last: 4)
         }
         let model = model(source, display: .split)
         await model.onAppear()
-        model.select(.group)
-        #expect(source.requests == [1])
+        await model.select(.group)
+        #expect(source.requests == [1, 2, 3])
+        #expect(model.visibleThreads.map(\.id) == [messageThread(99, group: true).id])
+        #expect(model.currentPage == 3)
+        #expect(!model.isSearchingSegment)
+    }
+
+    @Test func theSearchStopsAtTheLastPage() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(page)], page: page, last: 2) }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        #expect(source.requests == [1, 2])
+        #expect(model.visibleThreads.isEmpty)
+        #expect(!model.canGoToNext)
+    }
+
+    @Test func theSearchIsBounded() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(page)], page: page, last: 50) }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        #expect(source.requests == Array(1...(1 + MessageListModel.maxAutoAdvance)))
+        #expect(model.visibleThreads.isEmpty)
+        #expect(model.canGoToNext)
+    }
+
+    @Test func theSearchStopsOnAFailureAndKeepsTheRows() async {
+        let source = FakePrivateMessages()
+        source.handler = { page async throws(ListLoadError) -> PrivateMessageListPage in
+            if page == 2 { throw ListLoadError.timedOut }
+            return pageOf([messageThread(page)], page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        #expect(source.requests == [1, 2])
+        #expect(model.loader.error == .timedOut)
+        #expect(model.loader.value?.page == 1)
+    }
+
+    @Test func goingBackNeverSearchesForward() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in
+            pageOf([messageThread(page)] + (page == 1 || page == 3 ? [messageThread(90 + page, group: true)] : []), page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        await model.goToNextPage()
+        // Page 2 has no group row: the next-page search moved on to page 3.
+        #expect(model.currentPage == 3)
+        let before = source.requests
+        await model.goToPreviousPage()
+        // The member asked for page 2: shown as it is (empty segment), not searched past.
+        #expect(source.requests == before + [2])
+        #expect(model.currentPage == 2)
         #expect(model.visibleThreads.isEmpty)
     }
 
-    @Test func switchingSegmentKeepsTheRowsAndTheirReadState() async {
+    @Test func switchingSegmentDuringASearchStopsIt() async {
         let source = FakePrivateMessages()
+        let gate = CheckGate()
+        source.handler = { page in
+            if page == 2 { await gate.wait() }
+            return pageOf([messageThread(page)], page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        let search = gate.run { await model.select(.group) }
+        // `entered()` is false, not a hang, if the search never reaches page 2.
+        guard await gate.entered() else { Issue.record("The search never asked for page 2"); return }
+        #expect(model.isSearchingSegment)
+        await model.select(.oneToOne)
+        await gate.open()
+        await search.value
+        // Page 1 holds a one-to-one row: nothing is searched for it, and the search for the group stopped.
+        #expect(source.requests == [1, 2])
+        #expect(model.segment == .oneToOne)
+        #expect(!model.isSearchingSegment)
+        // The cancelled page-2 answer never reaches the screen.
+        #expect(model.currentPage == 1)
+        #expect(model.visibleThreads.map(\.id) == [messageThread(1).id])
+    }
+
+    @Test func aCancelledSearchDoesNotUndoWhatWasReadMeanwhile() async {
+        let source = FakePrivateMessages()
+        let gate = CheckGate()
         let unread = messageThread(1, unread: true)
-        source.handler = { page in pageOf([unread, messageThread(2, group: true)], page: page, last: 1) }
+        source.handler = { page in
+            if page == 2 { await gate.wait() }
+            return pageOf([page == 1 ? unread : messageThread(page)], page: page, last: 4)
+        }
         let model = model(source, display: .split)
         await model.onAppear()
         model.markOpened(unread, page: 1, of: 1)
-        model.select(.group)
-        model.select(.oneToOne)
         #expect(!model.isUnread(unread))
-        #expect(model.visibleThreads.map(\.id) == [unread.id])
+        // The group search is on page 2 when the member switches back.
+        let search = gate.run { await model.select(.group) }
+        guard await gate.entered() else { Issue.record("The search never asked for page 2"); return }
+        await model.select(.oneToOne)
+        await gate.open()
+        await search.value
+        #expect(model.currentPage == 1)
+        #expect(!model.isUnread(unread))
+    }
+
+    @Test func twoQuickSwitchChangesEndOnTheLastOne() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(page)], page: page, last: 3) }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        // The view applies each change at once and starts a search task after it; the tasks run later, in any order.
+        model.chooseSegment(.group)
+        let first = Task { await model.searchForSegment() }
+        model.chooseSegment(.oneToOne)
+        let second = Task { await model.searchForSegment() }
+        await second.value
+        await first.value
+        #expect(model.segment == .oneToOne)
+        #expect(model.visibleThreads.map(\.id) == [messageThread(1).id])
         #expect(source.requests == [1])
     }
 
-    @Test func aSentMessageReloadsPageOneAndShowsItsSegment() async {
+    @Test func aSentMessageReloadsPageOneWithoutSearchingAndShowsItsSegment() async {
         let source = FakePrivateMessages()
         // Page 1 holds only group rows; the sent one-to-one MP "Sujet 5" is on it too.
         source.handler = { page in
@@ -95,7 +201,7 @@ struct MessageListSplitTests {
         }
         let model = model(source, display: .split)
         await model.onAppear()
-        model.select(.group)
+        await model.select(.group)
         let before = source.requests
         await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
         #expect(source.requests == before + [1])
@@ -120,16 +226,16 @@ struct MessageListSplitTests {
         let model = model(FakePrivateMessages(), display: .split)
         await model.onAppear()
         model.selected = messageThread(11, group: true)
-        model.select(.oneToOne)
+        await model.select(.oneToOne)
         #expect(model.selected == nil)
     }
 
-    @Test func singleModeNeverFetchesMoreWhateverTheListHolds() async {
+    @Test func singleModeNeverSearchesWhateverTheListHolds() async {
         let source = FakePrivateMessages()
         source.handler = { page in pageOf([messageThread(page)], page: page, last: 4) }
         let model = model(source, display: .single)
         await model.onAppear()
-        model.select(.group)
+        await model.select(.group)
         #expect(source.requests == [1])
     }
 
