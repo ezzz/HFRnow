@@ -28,7 +28,8 @@ struct PagerToolbar {
         case loading
     }
 
-    /// The enabled page steps as named actions, for the list's accessibility actions (#898): the bar can be hidden, the pages stay reachable.
+    /// The enabled page steps as named actions, for the list's accessibility actions (#898):
+    /// the bar can be hidden, the pages stay reachable.
     var pageActions: [(name: LocalizedStringKey, action: () -> Void)] {
         var actions: [(name: LocalizedStringKey, action: () -> Void)] = []
         if first.enabled { actions.append(("Première page", first.action)) }
