@@ -25,30 +25,25 @@ struct TabSplitWidthTests {
         #expect(RootNavigationView.tabSplitSizeClass(idiom: .phone, horizontal: .regular, vertical: .regular) == .regular)
     }
 
+    /// Whether the detail column is on screen now (not whether it ever was: a split's first layout may show it before it
+    /// collapses).
     private final class Seen {
-        var listWidth: UserInterfaceSizeClass?
-        var detailShown = false
+        var detailOnScreen = false
     }
 
+    /// A split built as the tabs build theirs: a list and a detail, showing the list when collapsed.
     private struct Probe: View {
         let seen: Seen
 
         var body: some View {
-            NavigationSplitView {
-                ListSide(seen: seen)
+            NavigationSplitView(preferredCompactColumn: .constant(.sidebar)) {
+                Text("Liste")
             } detail: {
-                Text("Sujet").onAppear { seen.detailShown = true }
+                Text("Sujet")
+                    .onAppear { seen.detailOnScreen = true }
+                    .onDisappear { seen.detailOnScreen = false }
             }
             .modifier(TabSplitWidth())
-        }
-    }
-
-    private struct ListSide: View {
-        let seen: Seen
-        @Environment(\.horizontalSizeClass) private var width
-
-        var body: some View {
-            Text("Liste").onAppear { seen.listWidth = width }
         }
     }
 
@@ -88,26 +83,25 @@ struct TabSplitWidthTests {
         return splitViews(in: host)
     }
 
-    /// On a phone the split collapses: the list sees a compact width and the detail is not shown beside it. The same window
-    /// with the iPad rule shows both columns, so the window really is regular width.
+    /// On a phone the split collapses and, once settled, its detail column is not on screen beside the list. The same window
+    /// with the iPad rule shows both columns, so the window really is regular width. (The list's own width class tells
+    /// nothing: UIKit hands a split's side column a compact width whatever the split's.)
     @Test(arguments: [UIUserInterfaceIdiom.phone, .pad])
     func theTabSplitCollapsesOnALandscapePhoneOnly(idiom: UIUserInterfaceIdiom) async throws {
         let seen = Seen()
         let (window, host) = try hostInLandscape(Probe(seen: seen), idiom: idiom)
         defer { window.isHidden = true }
-        for _ in 0..<100 where seen.listWidth == nil || (idiom == .pad && !seen.detailShown) {
+        for _ in 0..<100 where idiom == .pad && !seen.detailOnScreen {
             try await Task.sleep(for: .milliseconds(20))
             window.layoutIfNeeded()
         }
         let splits = try await settledSplits(in: host, window: window)
         #expect(!splits.isEmpty)
         if idiom == .phone {
-            #expect(seen.listWidth == .compact)
-            #expect(!seen.detailShown, "the reader's column is shown beside the list")
+            #expect(!seen.detailOnScreen, "the reader's column is on screen beside the list")
             #expect(splits.allSatisfy { $0.isCollapsed }, "collapsed: \(splits.map { $0.isCollapsed })")
         } else {
-            #expect(seen.listWidth == .regular)
-            #expect(seen.detailShown, "the detail column is not shown: the window is not regular width")
+            #expect(seen.detailOnScreen, "the detail column is not on screen: the window is not regular width")
             #expect(splits.allSatisfy { !$0.isCollapsed }, "collapsed: \(splits.map { $0.isCollapsed })")
         }
     }
