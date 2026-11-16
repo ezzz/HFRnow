@@ -93,6 +93,52 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
                 "hint \(found[0])...\(found[1]) out of the visible band \(visibleTop)...\(visibleBottom)")
     }
 
+    /// #820, device feedback of 2026-11-16: the hint is hidden live while a composer is open and shown again at its close, with
+    /// no reload (the page keeps its length, so the reading position stays), and a document loaded meanwhile comes up hidden.
+    @Test func theHintIsHiddenLiveUnderAComposerAndShownAgainAtItsClose() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(documentOf(height: 3000, token: 1))
+        #expect(await until { recorder.ready == [1] })
+        let script = """
+            const hint = document.querySelector(".pull-hint");
+            return [getComputedStyle(hint).visibility, hint.getBoundingClientRect().height, document.documentElement.scrollHeight];
+            """
+        let shown = try #require(try await evaluate(script, in: controller) as? [Any])
+        #expect(shown[0] as? String == "visible")
+        controller.offersPullHint = false
+        #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "hidden" }))
+        let hidden = try #require(try await evaluate(script, in: controller) as? [Any])
+        #expect((hidden[1] as? Double) == (shown[1] as? Double), "hidden, not removed: nothing moves")
+        #expect((hidden[2] as? Double) == (shown[2] as? Double))
+        controller.show(documentOf(height: 3000, token: 2))
+        #expect(await until { recorder.ready == [1, 2] })
+        #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "hidden" }),
+                "a document loaded under the composer comes up without the hint")
+        controller.offersPullHint = true
+        #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "visible" }))
+    }
+
+    /// The next documents start with the hint as the controller wants it (a user script at document start): a reload under a
+    /// composer never paints it. Read from the installed scripts, as `applyPullHint` would otherwise hide it once ready.
+    @Test func theHintIsAlsoSetByAUserScriptAtDocumentStart() {
+        let (controller, _) = makeController(transport: imageTransport())
+        let installed = { () -> [(String, WKUserScriptInjectionTime)] in
+            controller.webView.configuration.userContentController.userScripts.map { ($0.source, $0.injectionTime) }
+        }
+        controller.offersPullHint = false
+        #expect(installed().contains { $0.0 == ReaderWebController.pullHintScript(false) && $0.1 == .atDocumentStart })
+        #expect(!installed().contains { $0.0 == ReaderWebController.pullHintScript(true) })
+        controller.offersPullHint = true
+        #expect(installed().contains { $0.0 == ReaderWebController.pullHintScript(true) && $0.1 == .atDocumentStart })
+        #expect(!installed().contains { $0.0 == ReaderWebController.pullHintScript(false) })
+    }
+
+    /// The script that toggles the hint is a literal the app builds: no page text reaches it.
+    @Test func theHintScriptTogglesTheRootClass() {
+        #expect(ReaderWebController.pullHintScript(false) == "document.documentElement.classList.toggle('no-pull-hint', true);")
+        #expect(ReaderWebController.pullHintScript(true) == "document.documentElement.classList.toggle('no-pull-hint', false);")
+    }
+
     /// A page shorter than the screen shows its end at once: the end-of-page bar is there without a scroll.
     @Test func aShortPageIsAtItsEndFromTheStart() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())

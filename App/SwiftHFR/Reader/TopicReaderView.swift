@@ -289,6 +289,7 @@ struct TopicReaderView: View {
         model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.offersSelectionQuote
         controller.ignoresPageTaps = model.suspendsPageInteractions
+        controller.offersPullHint = model.offersPullHint
         self.controller = controller
     }
 }

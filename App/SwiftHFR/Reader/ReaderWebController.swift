@@ -29,6 +29,7 @@ final class ReaderWebController: NSObject {
     let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
+    var offersPullHint = true { didSet { pullHintChanged(from: oldValue) } } // the end-of-page hint shows (#820); see `applyPullHint`
     /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
     var dismissesKeyboardInteractively = false {
         didSet { webView.scrollView.keyboardDismissMode = dismissesKeyboardInteractively ? .interactive : .none }
@@ -246,8 +247,7 @@ final class ReaderWebController: NSObject {
 
     private func documentIsReady(_ document: ReaderDocument, token: Int) {
         // A size or a colour changed while this document was loading reached the previous one: set them again.
-        applyTextScale()
-        applyTheme()
+        applyDisplayState()
         let scrollView = webView.scrollView
         if let anchor = document.anchor {
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: anchor, landing: true) }
