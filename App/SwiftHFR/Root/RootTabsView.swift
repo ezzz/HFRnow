@@ -17,17 +17,14 @@ struct RootTabsView: View {
             Tab(RootTab.categories.title, systemImage: RootTab.categories.symbol, value: RootTab.categories) {
                 CategoriesTabView(navigation: model.categories, reader: environment.reader, composer: environment.composer)
                     .environment(\.isSelectedRootTab, model.selectedTab == .categories)
-                    .modifier(TabSplitWidth())
             }
             Tab(RootTab.favorites.title, systemImage: RootTab.favorites.symbol, value: RootTab.favorites) {
                 FavoritesTabView(navigation: model.favorites, reader: environment.reader, composer: environment.composer)
                     .environment(\.isSelectedRootTab, model.selectedTab == .favorites)
-                    .modifier(TabSplitWidth())
             }
             Tab(RootTab.messages.title, systemImage: RootTab.messages.symbol, value: RootTab.messages) {
-                MessagesRootView(model: model.messages, environment: environment)
+                MessagesRootView(model: model.messages, reader: environment.reader, composer: environment.composer)
                     .environment(\.isSelectedRootTab, model.selectedTab == .messages)
-                    .modifier(TabSplitWidth())
             }
             .badge(model.unreadPrivateMessages)
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
@@ -59,6 +56,7 @@ struct CategoriesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
+        .modifier(TabSplitWidth())
         .filteredPosts(navigation.filtering, reader: reader)
     }
 }
@@ -78,6 +76,7 @@ struct FavoritesTabView: View {
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
+        .modifier(TabSplitWidth())
         .filteredPosts(navigation.filtering, reader: reader)
     }
 }

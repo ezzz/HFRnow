@@ -11,8 +11,8 @@ import UIKit
 /// Part of the modern composer (#904, Réglages › Expérimental › « Composer moderne », #903): with the option off the reader's
 /// composers stay the sheet they were (#855 builds the legacy full-screen cover there).
 ///
-/// A sheet elsewhere: on an iPad, and on an iPhone in regular width (a foldable's inner screen, the list beside the reader; a
-/// Pro Max in landscape reads at compact width since #431, as legacy's stack), where
+/// A sheet elsewhere: on an iPad, and on an iPhone in regular width (a foldable's inner screen, the list beside the reader; the
+/// Plus tab's readers on a Pro Max in landscape; the other tabs read at compact width there since #431), where
 /// the list column stays live beside a docked bar and choosing another topic there would tear the reader down with the
 /// composer in it, mid-send included; a sheet is modal. The lists' composers (a new topic, a new MP) keep their sheet too:
 /// their page has no guard against its taps.

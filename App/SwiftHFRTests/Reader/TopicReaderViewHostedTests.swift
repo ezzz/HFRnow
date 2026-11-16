@@ -24,13 +24,17 @@ struct TopicReaderViewHostedTests: ReaderWebTesting {
         return nil
     }
 
-    /// `tall`: two 1500-pixel messages (100 and 101), so a landing on 101 has to scroll.
+    /// The page the reader gets: `readerPage`'s two short posts (100, 101), its first post alone, or two 1500-pixel posts so
+    /// that a landing on 101 has to scroll.
+    enum Shape: Sendable { case twoPosts, onePost, tall }
+
     private func host(
-        target: ReaderTarget = ReaderTarget(source: .topic(readerTopic), page: 1), tall: Bool = false
+        target: ReaderTarget = ReaderTarget(source: .topic(readerTopic), page: 1), shape: Shape = .twoPosts
     ) async throws -> Hosted {
         let pageURL = url("https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm")
         let pages = FakeTopicPages { _ in
-            var page = tall ? Self.tallPage() : readerPage(page: 1, maxPage: 1)
+            var page = shape == .tall ? Self.tallPage() : readerPage(page: 1, maxPage: 1)
+            if shape == .onePost { page.messages.removeLast() }
             page.pageURL = pageURL
             return page
         }
@@ -77,14 +81,48 @@ struct TopicReaderViewHostedTests: ReaderWebTesting {
         return ReaderPage(topicID: readerTopic, title: "Sujet", currentPage: 1, maxPage: 1, messages: [message(100), message(101)])
     }
 
-    /// The lower edge of the top bars in window coordinates: the navigation bar's, never above the window's own safe area.
-    private func topBarsEdge(in window: UIWindow) -> CGFloat {
+    /// The lower edge of the top bars in window coordinates: the visible navigation bar's. Nil without one, so a test can never
+    /// fall back to a lower edge (the status bar) and pass with the header under a bar it did not find.
+    private func topBarsEdge(in window: UIWindow) -> CGFloat? {
         func bars(in view: UIView) -> [UINavigationBar] {
             ((view as? UINavigationBar).map { [$0] } ?? []) + view.subviews.flatMap { bars(in: $0) }
         }
         let shown = bars(in: window).filter { !$0.isHidden && $0.alpha > 0 && $0.window != nil }
-        let bottom = shown.map { $0.convert($0.bounds, to: window).maxY }.max() ?? 0
-        return max(bottom, window.safeAreaInsets.top)
+        return shown.map { $0.convert($0.bounds, to: window).maxY }.max()
+    }
+
+    /// The shown document is loaded and its images have finished. The landing or WebKit's reset to the top run two frames after
+    /// the document is ready (`afterFirstFrames`, #642): the caller waits a second more before it measures.
+    private func settled(_ hosted: Hosted) async -> Bool {
+        let script = "return document.readyState === 'complete' && Array.from(document.images).every((i) => i.complete);"
+        let web = hosted.webView
+        return await until(async: {
+            let done = try? await answer(of: "the reader page", within: WaitBudget.cap(.seconds(10))) {
+                try await web.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: ReaderWebController.world)
+            }
+            return (done as? Bool) == true && hosted.reader.hasShownDocument
+        }, timeout: .seconds(60))
+    }
+
+    /// Message `post`'s header lies between the bars' edge and `slack` points below it, and its "+" takes the tap; checked once
+    /// the page has settled, then again a second later, so a late scroll that puts it back under the bar fails the test.
+    private func expectHeaderBelowTheBar(of post: Int, in hosted: Hosted, slack: CGFloat) async throws {
+        #expect(await until({ topBarsEdge(in: hosted.window) != nil }, timeout: .seconds(30)))
+        let edge = try #require(topBarsEdge(in: hosted.window), "no visible navigation bar")
+        var seen: (header: CGRect, plus: CGRect)?
+        let below = await until(async: {
+            seen = await header(of: post, in: hosted)
+            guard let seen else { return false }
+            return seen.header.minY >= edge - 0.5 && seen.header.minY <= edge + slack
+        }, timeout: .seconds(60))
+        #expect(below, "header \(String(describing: seen?.header)), bars' edge \(edge)")
+        #expect(await settled(hosted))
+        try await Task.sleep(for: .seconds(1))
+        let last = try #require(await header(of: post, in: hosted))
+        #expect(last.header.minY >= edge - 0.5 && last.header.minY <= edge + slack, "settled header \(last.header), edge \(edge)")
+        #expect(last.plus.maxY <= hosted.window.bounds.maxY)
+        let hit = hosted.window.hitTest(CGPoint(x: last.plus.midX, y: last.plus.midY), with: nil)
+        #expect(hit?.isDescendant(of: hosted.webView) == true, "the tap at \(last.plus) lands on \(String(describing: hit))")
     }
 
     /// The header and the "+" of message `post` in window coordinates, read in document coordinates (CSS pixels from the
@@ -113,48 +151,24 @@ struct TopicReaderViewHostedTests: ReaderWebTesting {
         return (placed(values[0], values[1], values[2], values[3]), placed(values[4], values[5], values[6], values[7]))
     }
 
-    /// Whether a tap at the centre of `plus` reaches the page, not a bar over it.
-    private func reachesThePage(_ plus: CGRect, in hosted: Hosted) -> Bool {
-        let hit = hosted.window.hitTest(CGPoint(x: plus.midX, y: plus.midY), with: nil)
-        return hit?.isDescendant(of: hosted.webView) == true
-    }
-
     /// Issue #641, as seen on screen: once the page is shown at its top, the first post's header (avatar, pseudo, date, "+") is
-    /// entirely below the top bar, and a tap on its "+" reaches the page. Before #878 the web view got no top inset and the
-    /// header sat at y 5-53 under the status bar and the bar, where a tap opened nothing.
-    @Test func theFirstPostsHeaderOpensBelowTheTopBarAndItsPlusTakesTheTap() async throws {
-        let hosted = try await host()
+    /// entirely below the top bar, at most the post's own padding below it, and a tap on its "+" reaches the page, on a page of
+    /// two posts and on a one-post page (where no other post's menu could stand in). Before #878 the web view got no top inset
+    /// and the header sat at y 5-53 under the status bar and the bar, where a tap opened nothing.
+    @Test(arguments: [Shape.twoPosts, .onePost])
+    func theFirstPostsHeaderOpensBelowTheTopBarAndItsPlusTakesTheTap(shape: Shape) async throws {
+        let hosted = try await host(shape: shape)
         defer { hosted.window.isHidden = true }
-        var seen: (header: CGRect, plus: CGRect)?
-        let below = await until(async: {
-            seen = await header(of: 100, in: hosted)
-            guard let seen else { return false }
-            return seen.header.minY >= topBarsEdge(in: hosted.window) - 0.5
-        }, timeout: .seconds(60))
-        let edge = topBarsEdge(in: hosted.window)
-        #expect(below, "header \(String(describing: seen?.header)), bars' edge \(edge)")
-        let plus = try #require(seen?.plus)
-        #expect(plus.maxY <= hosted.window.bounds.maxY)
-        let hit = hosted.window.hitTest(CGPoint(x: plus.midX, y: plus.midY), with: nil)
-        #expect(reachesThePage(plus, in: hosted), "the tap at \(plus) lands on \(String(describing: hit))")
+        try await expectHeaderBelowTheBar(of: 100, in: hosted, slack: 60)
     }
 
     /// Issue #641 after a landing on a message anchor: the page scrolls so that the message starts at the top bar's edge, its
     /// header just below it (the message's own padding), never under the bar; and its "+" takes the tap. Message 101 starts
     /// 1500 pixels down, below the window, until the landing.
     @Test func aLandedMessagesHeaderIsBelowTheTopBarAndItsPlusTakesTheTap() async throws {
-        let hosted = try await host(target: ReaderTarget(source: .topic(readerTopic), page: 1, anchor: 101), tall: true)
+        let hosted = try await host(target: ReaderTarget(source: .topic(readerTopic), page: 1, anchor: 101), shape: .tall)
         defer { hosted.window.isHidden = true }
-        var seen: (header: CGRect, plus: CGRect)?
-        let below = await until(async: {
-            seen = await header(of: 101, in: hosted)
-            guard let seen else { return false }
-            let edge = topBarsEdge(in: hosted.window)
-            return seen.header.minY >= edge - 0.5 && seen.header.minY <= edge + 60
-        }, timeout: .seconds(60))
-        #expect(below, "header \(String(describing: seen?.header)), bars' edge \(topBarsEdge(in: hosted.window))")
-        let plus = try #require(seen?.plus)
-        #expect(reachesThePage(plus, in: hosted), "the tap at \(plus) does not reach the page")
+        try await expectHeaderBelowTheBar(of: 101, in: hosted, slack: 60)
     }
 
     /// Issue #594: a tap's menu in the model is shown as the callout at the button, and closing it in the model closes it.

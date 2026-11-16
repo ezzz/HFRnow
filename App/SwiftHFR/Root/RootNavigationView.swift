@@ -75,19 +75,22 @@ struct RootNavigationView: View {
     }
 }
 
+extension EnvironmentValues {
+    /// The idiom `TabSplitWidth` decides for; nil is the device's. Tests set it to check both rules on one simulator.
+    @Entry var tabSplitIdiom: UIUserInterfaceIdiom?
+}
+
 /// Gives a tab's split view the width class of `RootNavigationView.tabSplitSizeClass` (#431): on a large iPhone in landscape
-/// the split collapses to a stack and the reader takes the full width, as legacy.
+/// the split collapses to a stack and the reader takes the full width, as legacy. Applied by each tab's own split view
+/// (Catégories, Favoris, Messages); the Plus tab is a stack, whose readers keep the regular width (GAP-008, UXD-02).
 struct TabSplitWidth: ViewModifier {
-    let idiom: UIUserInterfaceIdiom
+    @Environment(\.tabSplitIdiom) private var idiomOverride
     @Environment(\.horizontalSizeClass) private var horizontal
     @Environment(\.verticalSizeClass) private var vertical
 
-    init(idiom: UIUserInterfaceIdiom = UIDevice.current.userInterfaceIdiom) {
-        self.idiom = idiom
-    }
-
     func body(content: Content) -> some View {
-        content.environment(
+        let idiom = idiomOverride ?? UIDevice.current.userInterfaceIdiom
+        return content.environment(
             \.horizontalSizeClass, RootNavigationView.tabSplitSizeClass(idiom: idiom, horizontal: horizontal, vertical: vertical)
         )
     }
