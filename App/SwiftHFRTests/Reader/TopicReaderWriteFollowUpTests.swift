@@ -51,6 +51,8 @@ struct TopicReaderWriteFollowUpTests {
         #expect(fixture.reader.document?.anchor == 201)
         #expect(try #require(fixture.reader.document).html.contains("after-edit"))
         #expect(fixture.reader.replyConfirmation == "Votre message a été édité avec succès !")
+        // The screen resumes its web view once for this reload, as "Actualiser" does (#643).
+        #expect(fixture.reader.writeFollowUps == 1)
     }
 
     /// A confirmed reply that opened a page: the reader ends on that page at the new message. A topic asks past its end
@@ -91,6 +93,7 @@ struct TopicReaderWriteFollowUpTests {
         #expect(fixture.pages.requests.count == 1)
         #expect(fixture.reader.replyConfirmation == nil)
         #expect(fixture.reader.owedFollowUp == nil)
+        #expect(fixture.reader.writeFollowUps == 0)
         await fixture.reader.onAppear(viewer: 1)
         #expect(fixture.pages.requests.count == 1)
     }
@@ -143,6 +146,30 @@ struct TopicReaderWriteFollowUpTests {
         #expect(fixture.reader.page?.currentPage == 4)
         #expect(fixture.reader.document?.anchor == 401)
         #expect(try #require(fixture.reader.document).html.contains("the-reply"))
+        #expect(fixture.reader.owedFollowUp == nil)
+    }
+
+    /// An owed reload never runs under an open composer (#653): it waits, still owed, for an appearance once it closed.
+    @Test(arguments: Kind.allCases)
+    func anOwedReloadWaitsForTheComposerToClose(_ thread: Kind) async {
+        let fixture = await fixture(thread, onPage: 2)
+        let gate = ReaderGate()
+        fixture.pages.handler = { target in
+            await gate.wait()
+            return followUpPage(thread, target.page, text: "after-edit")
+        }
+        let close = Task { await fixture.writes.editorDidClose(.sent(Self.edited), post: 201) }
+        await gate.untilArrived()
+        fixture.reader.viewDidDisappear(viewer: 1)
+        await gate.open()
+        await close.value
+        fixture.reader.composer(.reply, isOpen: true)
+        await fixture.reader.onAppear(viewer: 1)
+        #expect(fixture.pages.requests.count == 2)
+        #expect(fixture.reader.owedFollowUp == .page(message: 201))
+        fixture.reader.composer(.reply, isOpen: false)
+        await fixture.reader.onAppear(viewer: 1)
+        #expect(fixture.pages.requests.count == 3)
         #expect(fixture.reader.owedFollowUp == nil)
     }
 

@@ -72,8 +72,7 @@ final class ReaderWebController: NSObject {
     /// `stopLoading()` ran and the screen has not come back (`resume()`): `show` loads nothing, so a re-render of the hidden
     /// view cannot restart the load just stopped (issue #566).
     var stopped = false
-    /// The document `stopLoading()` cut, or a later one `hold` kept, and whether SwiftUI's last word was `onDisappear`
-    /// (`ReaderWebController+Presence`).
+    /// The document `stopLoading()` cut, and whether SwiftUI's last word was `onDisappear` (`ReaderWebController+Presence`).
     var stoppedDocument: ReaderDocument?, disappeared = false
     /// The reading top (`ReaderScrollGeometry`, in the page's own points) a refresh restores;
     /// the insets may change before the next document is ready.
@@ -133,7 +132,10 @@ final class ReaderWebController: NSObject {
     /// whose load `stopLoading()` cut before it was ready is no longer the one shown, so showing it again loads it (issue #566).
     func show(_ document: ReaderDocument?) {
         guard let document else { return }
-        guard !stopped else { return hold(document) }
+        guard !stopped else {
+            ReaderLog.debug("show skipped token=\(document.token): stopped")
+            return
+        }
         guard document.token != self.document?.token else {
             ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
             return

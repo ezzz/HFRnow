@@ -30,7 +30,7 @@ extension TopicReaderModel {
 /// Applies the suspension to the reader's screen: the web view drops the page's taps, the selection menu loses its quotes, and
 /// the back button is hidden (going back would drop the composer with its text). Under a docked composer (#853) the bottom bar
 /// gives it its place (every control of it is off meanwhile). Also reports the edit composer, whose presenter
-/// (`ReaderEditFlow`) does not hold the reader.
+/// (`ReaderEditFlow`) does not hold the reader, and resumes the web view for the reload a send starts (#908).
 struct ReaderComposerGuard: ViewModifier {
     let model: TopicReaderModel
     let controller: ReaderWebController?
@@ -43,6 +43,11 @@ struct ReaderComposerGuard: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: isEditing) { _, isOpen in model.composer(.edit, isOpen: isOpen) }
+            // A send's reload (#908) shows like a tap on "Actualiser": a web view a lifecycle call stopped on screen resumes (#643).
+            .onChange(of: model.writeFollowUps) {
+                controller?.resume()
+                controller?.show(model.document)
+            }
             .onChange(of: model.suspendsPageInteractions) { _, suspended in
                 controller?.ignoresPageTaps = suspended
                 controller?.offersSelectionQuote = model.offersSelectionQuote
