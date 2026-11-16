@@ -67,6 +67,32 @@ import Testing
     }
 }
 
+/// The key #899 added: the last Messages switch position, seeded once from the retired « Affichage des MP » setting.
+@Suite struct MPListSegmentKeyTests {
+    @Test func absentWithoutTheOldSettingReadsAsAll() {
+        #expect(SettingKey.mpListSegment(from: InMemorySettingsStore()) == .all)
+    }
+
+    @Test(arguments: [("single", MPSegment.all), ("split", .oneToOne), ("two", .all)])
+    func absentSeedsFromTheOldSetting(old: String, expected: MPSegment) {
+        let store = InMemorySettingsStore(["mp_list_display": .string(old)])
+        #expect(SettingKey.mpListSegment(from: store) == expected)
+    }
+
+    @Test func aStoredChoiceWinsOverTheOldSetting() {
+        let store = InMemorySettingsStore(["mp_list_display": .string("split")])
+        store.set(MPSegment.group, for: SettingKey.mpListSegment)
+        #expect(store.rawValue(forKey: "mp_list_segment") == .string("group"))
+        #expect(SettingKey.mpListSegment(from: store) == .group)
+    }
+
+    @Test(arguments: [SettingRawValue.string(""), .string("everything"), .int(1), .bool(true)])
+    func anUnknownStoredValueReadsAsAll(raw: SettingRawValue) {
+        let store = InMemorySettingsStore(["mp_list_display": .string("split"), "mp_list_segment": raw])
+        #expect(SettingKey.mpListSegment(from: store) == .all)
+    }
+}
+
 /// The key LOT-086 added: legacy's raw values, and an unknown one reads as the default like `?? .quick`.
 @Suite struct ReplyButtonBehaviorKeyTests {
     @Test func absentReadsAsQuickAndRoundTripsLegacyValues() {

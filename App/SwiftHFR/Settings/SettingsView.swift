@@ -128,11 +128,6 @@ struct SettingsView: View {
                 }
                 Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
             }
-            Section("Messages") {
-                Picker("Affichage des MP", selection: $general.mpListDisplay) {
-                    ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-            }
             MPStorageSettingsSection(model: mpStorage)
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {

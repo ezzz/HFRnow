@@ -4,18 +4,15 @@ import HFRParsing
 import HFRStorage
 import Observation
 
-/// Which conversations the "Deux listes" switch shows (LOT-171).
-enum MPSegment: String, CaseIterable, Sendable {
-    /// One-to-one conversations ("MP").
-    case oneToOne
-    /// Group conversations ("MP multiples").
-    case group
-
+extension MPSegment {
     /// Switch label.
-    var title: String { self == .oneToOne ? "MP" : "MP multiples" }
-
-    /// Whether `thread` belongs to this segment (`PrivateMessageThread.isGroup`, legacy `MPListView.swift:376-377`).
-    func contains(_ thread: PrivateMessageThread) -> Bool { thread.isGroup == (self == .group) }
+    var title: String {
+        switch self {
+        case .all: "Tous"
+        case .oneToOne: "MP"
+        case .group: "MP multiples"
+        }
+    }
 }
 
 /// A private message list page ready to display.
@@ -57,7 +54,7 @@ struct MessageListContent: Sendable, Equatable {
 
 // Port of HFRswift/Swift/MPListView.swift (MPListViewModel; hasMultipleInterlocutors, :376-377) @ 2440d79.
 // Differences: one page at a time (LOT-023, LOT-045), the group test is `PrivateMessageThread.isGroup`, and the split
-// (setting "Affichage des MP", switch "MP" / "MP multiples") has no legacy counterpart: operator decision
+// (switch "Tous" / "MP" / "MP multiples", the last choice remembered) has no legacy counterpart: operator decision
 // 2026-10-28, see docs/lots/LOT-171-mp-lists.md.
 /// State of the private message list (LOT-126): one page at a time, the conversation opened in the reader.
 ///
@@ -73,10 +70,9 @@ final class MessageListModel {
         didSet { if selected == nil { currentReader = nil } }
     }
 
-    /// "Tout en un" or "Deux listes" (`mp_list_display`); the screen sets it from the settings. Only `.split` filters.
-    var display: MPListDisplay = .single
-    /// The switch position when `display` is `.split`.
-    var segment: MPSegment = .oneToOne
+    /// The switch position: the last choice (`mp_list_segment`, #899), Tous the first time (or the old « Affichage des MP »
+    /// setting's translation, `SettingKey.mpListSegment(from:)`).
+    private(set) var segment: MPSegment = .all
     /// Pages after the first that a segment's search may load by itself, so an empty segment cannot walk a whole mailbox.
     static let maxAutoAdvance = 5
 
@@ -103,7 +99,7 @@ final class MessageListModel {
     private let isLoggedIn: @Sendable () async -> Bool
     private let topicPages: any TopicPageSource
     private let renderOptions: @Sendable () -> ReaderRenderOptions
-    /// Where `mp_list_display` is read each time the list appears (the Réglages screen writes it); nil keeps `display` as set.
+    /// Where the switch position is kept (`mp_list_segment`); nil keeps it in memory only.
     private let settings: (any SettingsStore)?
     /// Threads whose last page was shown, each with the number of the load that was the newest when it was opened. A load
     /// brings HFR's own state back only for the threads opened before it started.
@@ -133,12 +129,16 @@ final class MessageListModel {
         self.isLoggedIn = isLoggedIn
         self.topicPages = topicPages
         self.renderOptions = renderOptions
+        // The first read seeds the new key from the retired setting and stores it, so the old key is never read again.
+        if let settings {
+            segment = SettingKey.mpListSegment(from: settings)
+            settings.set(segment, for: SettingKey.mpListSegment)
+        }
     }
 
     /// The rows of the page on screen for the current display: all of them, or only the segment's.
     var visibleThreads: [PrivateMessageThread] {
-        let threads = loader.value?.threads ?? []
-        return display == .split ? threads.filter(segment.contains) : threads
+        (loader.value?.threads ?? []).filter(segment.contains)
     }
 
     /// Unread rows of `segment` on the page on screen (HFR's state plus what was opened here); page-bounded like
@@ -159,6 +159,7 @@ final class MessageListModel {
     /// `searchForSegment()`, which always reads the latest position, so an older task can never restore an older segment.
     func chooseSegment(_ segment: MPSegment) {
         self.segment = segment
+        settings?.set(segment, for: SettingKey.mpListSegment)
         dropSelectionHiddenBySegment()
         // A search for the previous segment is stopped, not left to walk on for this one.
         // `loadCount` moves too, so the cancelled load's own follow-up (openedThreads, signed-out check) is dropped.
@@ -171,12 +172,12 @@ final class MessageListModel {
     /// Looks for rows of the current segment in later pages when the page on screen has none (bounded).
     func searchForSegment() async { await advanceWhileSegmentEmpty() }
 
-    /// Whether the "MP" / "MP multiples" switch is shown: a split list that has rows (not logged out, not an empty mailbox).
-    var showsSegmentSwitch: Bool { display == .split && loader.value.map { !$0.threads.isEmpty } == true }
+    /// Whether the Tous / MP / MP multiples switch is shown: the list has rows (not logged out, not an empty mailbox).
+    var showsSegmentSwitch: Bool { loader.value.map { !$0.threads.isEmpty } == true }
 
     /// The reader must not keep showing a conversation the list no longer offers (iPad, regular width).
     private func dropSelectionHiddenBySegment() {
-        if display == .split, let selected, !segment.contains(selected) { self.selected = nil }
+        if let selected, !segment.contains(selected) { self.selected = nil }
     }
 
     /// True while that search for the segment's rows runs, so the screen shows progress, not "empty".
@@ -194,7 +195,7 @@ final class MessageListModel {
         isSearchingSegment = true
         // Only the newest search clears the flag: an older one ending late must not hide a running one.
         defer { if token == searchCount { isSearchingSegment = false } }
-        while token == searchCount, display == .split, !loader.isLoading, loader.error == nil, visibleThreads.isEmpty,
+        while token == searchCount, !loader.isLoading, loader.error == nil, visibleThreads.isEmpty,
               loader.value?.hasNext == true, steps < Self.maxAutoAdvance, loadCount == start + steps {
             steps += 1
             await load(page: currentPage + 1, advancing: false)
@@ -209,7 +210,6 @@ final class MessageListModel {
     /// The list became visible: first load, or a refresh, because reading a conversation elsewhere changes its unread state.
     /// Rows stay meanwhile.
     func onAppear() async {
-        if let settings { display = settings.value(for: SettingKey.mpListDisplay) }
         dropSelectionHiddenBySegment()
         guard !loader.isLoading else { return }
         await load(page: loader.value == nil ? 1 : currentPage)
@@ -283,8 +283,8 @@ final class MessageListModel {
             guard loader.error == nil, let threads = loader.value?.threads else { return }
             let matches = threads.filter { $0.summary.title == sent }
             if matches.count == 1, let match = matches.first {
-                // The row must stay visible: show the segment it belongs to.
-                if display == .split { segment = match.isGroup ? .group : .oneToOne }
+                // The row must stay visible: keep Tous, else show the segment it belongs to.
+                if !segment.contains(match) { chooseSegment(match.isGroup ? .group : .oneToOne) }
                 selected = match
             }
         case .checkTopic:

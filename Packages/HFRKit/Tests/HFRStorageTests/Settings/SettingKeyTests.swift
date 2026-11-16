@@ -32,7 +32,7 @@ import Testing
             "embedded_videos", "display_sig", "display_images", "mpstorage_active", "mpstorage_last_rw",
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
-            "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
+            "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "mp_list_segment", "reply_button_behavior",
             "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
             "icon_previous", "icon_revert_asked",
             // LOT-166: the two seasonal toggles, new.
