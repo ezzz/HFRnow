@@ -16,9 +16,11 @@ final class WebKitResetWatch {
     var userScrolls: @MainActor (UIScrollView) -> Bool = { $0.isTracking || $0.isDragging || $0.isDecelerating }
     /// The document whose reset is watched; nil when none is.
     private(set) var token: Int?
+    /// The document whose navigation committed last (`start`), until another one is shown (`stop`); watched or not.
+    private(set) var committedToken: Int?
     /// The document whose reset came.
     private var resetToken: Int?
-    private var action: (@MainActor () -> Void)?
+    private var action: (@MainActor @Sendable () -> Void)?
     /// The action already ran at ready (scroll view at its top): the reset only gives it a second chance.
     private var isSecondChance = false
     private var observation: NSKeyValueObservation?
@@ -27,16 +29,20 @@ final class WebKitResetWatch {
     /// watched while the reader is scrolling.
     func start(token: Int, on scrollView: UIScrollView) {
         stop()
+        committedToken = token
         guard !userScrolls(scrollView) else { return }
         self.token = token
         observation = scrollView.observe(\.contentOffset) { [weak self] scrollView, _ in
-            MainActor.assumeIsolated { self?.moved(scrollView) }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.moved(scrollView)
+            }
         }
     }
 
     /// Runs `action` for document `token` (its landing or restore, at ready) once WebKit's reset has come; at once when the
     /// reset came already or nothing is watched.
-    func perform(token: Int, on scrollView: UIScrollView, _ action: @escaping @MainActor () -> Void) {
+    func perform(token: Int, on scrollView: UIScrollView, _ action: @escaping @MainActor @Sendable () -> Void) {
         guard self.token == token, resetToken != token else { return action() }
         if Self.isAtTop(scrollView) {
             action()
@@ -54,6 +60,7 @@ final class WebKitResetWatch {
     func stop() {
         end()
         resetToken = nil
+        committedToken = nil
     }
 
     /// Ends the watch. The observation is invalidated, not released: this can run inside its own callback.

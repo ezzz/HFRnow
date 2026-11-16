@@ -251,6 +251,13 @@ final class ReaderWebController: NSObject {
         events.ready(token)
     }
 
+    /// The shown document's navigation committed: WebKit resets the scroll view to its top at its next layer-tree commit, so
+    /// the watch for that reset starts here (#772). Another navigation's commit changes nothing.
+    func pageNavigationCommitted(_ navigation: WKNavigation?) {
+        guard let document, let navigation, navigation === pageNavigation else { return }
+        resetWatch.start(token: document.token, on: webView.scrollView)
+    }
+
     /// The shown document's navigation failed before it was ready: it is loaded once more, then the failure is reported, so
     /// the screen never waits for a page that will not come (issue #566). Another navigation's failure (a link the policy
     /// refused, a document replaced or stopped since) changes nothing.
