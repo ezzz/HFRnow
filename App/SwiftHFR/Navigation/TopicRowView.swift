@@ -1,14 +1,40 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/Favorites.swift (TopicRowView) @ 2440d79. Differences: legacy "last-post author - date" becomes
+// DenseTopicRowView: port of HFRswift/Swift/Favorites.swift (TopicRowView) @ 2440d79. Differences: legacy "last-post author - date" becomes
 // "starter or interlocutors · replies · relative date of the last post" (replies added, starter instead of the last poster), after the
 // "⚑ cur / max" footer; the unread-pages capsule (kept with the dot for unread rows); the flag colour tints the icon and the row
 // (GAP-026, 027, #584; `TopicRowCues`).
 // Title: `TopicSummary.displayTitle` ports `filterTU` (`Topic.m:90-94` @ 87fe0d1c; #818). The row shows no other rewrite.
 // Density and text size: legacy TopicListRowView (Common.swift:3194-3245 @ 21173e77) and FavoritesListDensity (LOT-169).
-/// One topic row: title, flag, counters and last post. Pure display.
+/// Which row the lists draw.
+enum TopicRowStyle {
+    /// Legacy's row (default): pin and lock before the title, unread-pages pill, "⚑ lue / total" and "dernier posteur - date".
+    case legacy
+    /// Today's dense row, kept for Réglages › Expérimental › « Lignes avec icônes de drapeau » (#905).
+    case dense
+
+    /// EXPERIMENTAL(denseRows, #905): the switch point; #905 reads the option here. Until then the default is legacy's row.
+    static var current: TopicRowStyle { .legacy }
+}
+
+/// One topic row, in the current style. Pure display.
 struct TopicRowView: View {
+    let topic: TopicSummary
+    var isSuperFavorite = false
+    var markedRead = false
+    var showsFlag = true
+
+    var body: some View {
+        switch TopicRowStyle.current {
+        case .legacy: LegacyTopicRowView(topic: topic, markedRead: markedRead, showsFlag: showsFlag)
+        case .dense: DenseTopicRowView(topic: topic, isSuperFavorite: isSuperFavorite, markedRead: markedRead, showsFlag: showsFlag)
+        }
+    }
+}
+
+/// EXPERIMENTAL(denseRows, #905): today's row, unchanged: title, flag, counters and last post. Pure display.
+struct DenseTopicRowView: View {
     let topic: TopicSummary
     /// A super-favourite of the account (LOT-124): the row carries an orange mark.
     var isSuperFavorite = false
