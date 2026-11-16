@@ -18,6 +18,8 @@
 
 **Injection table checked against the capture.** `SubforumInjection` was legacy's, kept as data (LOT-021). Against `R285a`-`R285c` (categories 1, 2, 10; the table's Hardware, OverclockingCoolingModding and Programmation entries): 18 injected sub-forums (Programmation 16, Bench, Divers of Overclocking), 16 in REST by title; « PDA » and « Biblio Links » are not: HFR no longer has them (LOT-021's table says « PDA gone from the forum », HFR-PROTOCOL §6b), so both are removed from the table. The entries for Photonumérique, Windows & Software, Graphisme and Achats & Ventes are not name-checkable: see Pending capture.
 
+**Limits.** A page link with no REST row is always kept (the page is authoritative): an injected entry that HFR dropped, in a category not captured yet, would stay, and one spelled differently in REST would show twice (slug path and `subcat` path), so such a list can exceed the REST count. That is why the capture below matters. When REST and page orders disagree (C# before C++ in REST), page entries between the two (« Delphi/Pascal », « Flash/ActionScript ») end up between them: the page's order is kept, REST only places the added rows.
+
 ## Fixtures
 `R01` (home, `ForumListParser`), `R285a`-`R285c` (REST sub-categories), `R57i` (error answer): no new capture.
 
@@ -25,7 +27,7 @@
 `ForumListCompletionTests`: each captured category ends with its REST count (15, 7, 27), the page's links and order kept; Programmation 13 page entries + 14 REST ones; the 16 injections of categories 1, 2 and 10 left all in REST by title, none of PDA / Biblio Links; matching by spelling and by multiplicity; placement; the client's captured requests (no cookie, no redirect), a category without id, a failed or refused category kept, cancellation / offline / timeout ending the call. Two mutations, each applied and reverted, each failed a named test: the placement anchor (`anchor += 1`), the once-only match (`!matched`). `ForumListParserTests`: the oracle comparison undoes the table change as a named deviation.
 
 ## Pending capture
-Never hand-built (LESSONS 35-36). The REST sub-categories of the categories 11, 12, 13... that hold the other injected entries are not captured: `Photonumerique/Divers-7`, `WindowsSoftware/Win-9x-me`, `Graphisme/Concours-2`, `Ressources`, `Divers-5`, `AchatsVentes/Divers-4`, `Regles-coutumes` stay in the table unchecked. Their counts agree with `R57a`'s `number_of_subcategories` (HFR-PROTOCOL §6b), which is a count, not a name check. Capture needed: `categories/<cat>/subcategories/` for Photo numérique, Windows & Software, Graphisme and Achats & Ventes (the `cat` ids of `R01`), anonymous, like `R285a`.
+Never hand-built (LESSONS 35-36). The REST sub-categories of the categories 11, 12, 13... that hold the other injected entries are not captured: `Photonumerique/Divers-7`, `WindowsSoftware/Win-9x-me`, `Graphisme/Concours-2`, `Ressources`, `Divers-5`, `AchatsVentes/Divers-4`, `Regles-coutumes` stay in the table unchecked. Their counts agree with `R57a`'s `number_of_subcategories` (HFR-PROTOCOL §6b), which is a count, not a name check. Tracked by [#929](https://github.com/ezzz/HFRnow/issues/929). Capture needed: `categories/<cat>/subcategories/` for Photo numérique, Windows & Software, Graphisme and Achats & Ventes (the `cat` ids of `R01`), anonymous, like `R285a`.
 
 ## Intentional differences from legacy
 1. « PDA » and « Biblio Links » are no longer injected (not in `R285c`).

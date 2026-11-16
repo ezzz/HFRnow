@@ -3,7 +3,8 @@ import HFRModels
 
 /// Completes a home page's sub-forum list with the REST sub-categories (LOT-168).
 ///
-/// The home page lists only some sub-forums of a category (Programmation 14 of 27, HFR-PROTOCOL §6b); the REST list has
+/// The home page lists only some sub-forums of a category (Programmation 13 of 27 with the injection
+/// table, HFR-PROTOCOL §6b); the REST list has
 /// them all (`R285a`-`R285c`). The home page stays the primary source: its links, with their paths and their order
 /// (injected entries included, `SubforumInjection`), are kept as they are. A REST row the page has no link for is added
 /// as the REST link (a `subcat` path), right after the entry of the REST row before it, so the REST order decides only

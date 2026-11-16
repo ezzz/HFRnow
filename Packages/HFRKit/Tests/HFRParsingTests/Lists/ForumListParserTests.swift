@@ -171,7 +171,7 @@ struct ForumListParserTests {
             "C++", "C#/.NET managed", "HTML/CSS", "Java", "Langages fonctionnels", "Perl", "PHP", "Python", "Ruby/Rails",
             "SQL/NoSQL", "Shell/Batch", "VB/VBA/VBS", "XML/XSL"
         ])
-        // Only 6 of those 14 are links of the page: the others come from the table.
+        // Only 6 of those 13 are links of the page: the others come from the table.
         #expect(forum.subforums.filter { html.contains("href=\"\($0.path)\" class=\"Tableau\"") }.count == 6)
     }
 

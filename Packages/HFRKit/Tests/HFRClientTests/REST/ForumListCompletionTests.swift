@@ -98,7 +98,7 @@ struct ForumListCompletionTests {
 
     // MARK: - The injection table against the captures
 
-    @Test("Every injected sub-forum of a captured category is in its REST list; none is of a category not captured yet")
+    @Test("Every injected sub-forum of a captured category is in its REST list, and the table no longer holds PDA or Biblio Links")
     func injectionsAgainstCapture() throws {
         let slugs = [1: "Hardware", 2: "OverclockingCoolingModding", 10: "Programmation"]
         var checked = 0
