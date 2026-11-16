@@ -51,10 +51,9 @@ struct MessageComposerEntryTests {
         let source = FakePrivateMessages()
         let model = listModel(source)
         await model.onAppear()
-        await model.goToNextPage()
         source.handler = { _ in listPage([thread(7, title: "Autre"), thread(8, title: "Rendez-vous")]) }
         await model.newMessageDidClose(.sent(newMessageConfirmed), subject: " Rendez-vous ")
-        #expect(source.requests == [1, 2, 1])
+        #expect(source.requests == [1, 1])
         #expect(model.selected?.summary.topicID?.topic == 8)
         #expect(model.sentConfirmation == "Votre message a été posté avec succès !")
         model.clearSentConfirmation()

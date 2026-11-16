@@ -1,11 +1,11 @@
 import HFRModels
 import SwiftUI
 
-// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
-// in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
-// LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); the switch is a
-// `safeAreaBar` without fill; GAP row pending #545.
-/// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
+// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 87fe0d1c. Differences: no pager and no page number, page 1 only as
+// legacy (#968); the conversation opens in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
+// LOT-185: the switch is a `safeAreaBar` without fill; GAP row pending #545.
+/// The Messages list: the member's conversations (page 1 of the mailbox, no pager), with pull to refresh. A tap selects a row;
+/// the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
 struct MessageListView: View {
     let model: MessageListModel
@@ -52,7 +52,6 @@ struct MessageListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .pagerBar(loader.value.map { $0.page > 1 || $0.hasNext } == true ? MessagePageBar(model: model).pager : nil)
         .toolbar {
             if let composer, let target = model.newMessageTarget {
                 ToolbarItem(placement: .primaryAction) {
@@ -85,9 +84,7 @@ struct MessageListView: View {
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<MessageListContent>) -> some View {
         if let content = loader.value {
-            if model.isSearchingSegment, model.visibleThreads.isEmpty {
-                ProgressView("Recherche des \(model.segment.title)")
-            } else if model.visibleThreads.isEmpty {
+            if model.visibleThreads.isEmpty {
                 EmptyMessagesView(
                     reason: content.emptyReason ?? .nothing, segment: model.display == .split ? model.segment : nil,
                     refresh: model.refresh
@@ -162,29 +159,13 @@ private struct EmptyMessagesView: View {
     }
 }
 
-/// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-@MainActor private struct MessagePageBar {
-    let model: MessageListModel
-
-    var pager: PagerToolbar {
-        PagerToolbar(
-            first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
-            previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
-            next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
-            last: nil,
-            status: model.loader.isLoading ? .loading : .page(model.currentPage)
-        )
-    }
-}
-
 /// The "MP" / "MP multiples" switch of the split list, each segment with its own unread count (page-bounded).
 private struct MessageSegmentSwitch: View {
     let model: MessageListModel
 
     var body: some View {
         Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in
-            model.chooseSegment(segment)
-            Task { await model.searchForSegment() }
+            model.select(segment)
         })) {
             ForEach(MPSegment.allCases, id: \.self) { segment in
                 let unread = model.unreadCount(in: segment)
