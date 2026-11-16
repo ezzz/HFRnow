@@ -2,9 +2,10 @@ import Foundation
 import HFRModels
 
 /// Copies the allowlist, the super-favourites, the app smiley favourites and the reading positions to the iCloud
-/// key-value store and back (LOT-172 part 2, ADR 0013 §3 and Amendment 2). The local stores stay the masters on the
-/// device; each list is one cloud key holding the whole list (`SyncedListEnvelope`), last writer wins on the whole list,
-/// and the reading positions are merged per topic, newest first.
+/// key-value store and back (LOT-172 part 2, ADR 0013 §3 and Amendment 2), and the newest uploads of the rehost history
+/// (#966, Amendment 4). The local stores stay the masters on the device; each list is one cloud key holding the whole
+/// list (`SyncedListEnvelope`), last writer wins on the whole list, the reading positions are merged per topic, newest
+/// first, and the upload history is merged by id with its removals (`RehostHistoryEnvelope`).
 ///
 /// Every event (a cloud change, a saved local change, the account list, a timer) is handled one at a time by `run()`,
 /// so a push never interleaves with an apply. Apple ID rules (Amendment 2): nothing is applied or pushed while no Apple ID
@@ -16,8 +17,12 @@ public actor SyncedListsStore {
     public static let positionsLimit = 200
     /// Apple's limit on the length of a key, in UTF-8 bytes.
     public static let maximumKeyLength = 64
+    /// The number of rehost uploads kept in the cloud (the newest); the whole history stays on the device.
+    public static let rehostHistoryLimit = 100
     /// The cloud key of the allowlist.
     static let allowlistKey = "allowlist"
+    /// The cloud key of the rehost upload history (#966): one key for the device, like the history itself.
+    static let rehostHistoryKey = "rehosthistory"
 
     enum Event: Sendable {
         case cloud(SyncedStoreChange)
@@ -35,10 +40,14 @@ public actor SyncedListsStore {
         case superFavorites = "superfavorites"
         case smileyFavorites = "smileyfavorites"
         case positions
+        case rehostHistory = "rehosthistory"
+
+        /// Whether the store holds one list for the device (its cloud key is its raw value), not one per account.
+        var isGlobal: Bool { self == .allowlist || self == .rehostHistory }
 
         /// Whether `key` is the cloud key of one of this store's lists.
         func owns(_ key: String) -> Bool {
-            self == .allowlist ? key == SyncedListsStore.allowlistKey : key.hasPrefix("\(rawValue).")
+            isGlobal ? key == rawValue : key.hasPrefix("\(rawValue).")
         }
     }
 
@@ -47,6 +56,7 @@ public actor SyncedListsStore {
     let superFavorites: SuperFavoritesStore
     let smileyFavorites: AppSmileyFavoritesStore
     let positions: ReadingPositionStore
+    let rehostHistory: RehostUploadHistoryStore?
     let accounts: @Sendable () async -> [String]
     let clock: @Sendable () -> Date
     let sleep: @Sendable (Duration) async -> Void
@@ -84,14 +94,16 @@ public actor SyncedListsStore {
     /// local lists is unknown, so nothing may be pushed.
     public internal(set) var deviceStateFailure: SmallStoreError?
 
-    /// Creates the sync over the cloud store, the four local stores, the app's accounts (`md_user` as the app stores
-    /// it) and the device-only state file. Nothing happens until `run()`.
+    /// Creates the sync over the cloud store, the local stores, the app's accounts (`md_user` as the app stores it) and
+    /// the device-only state file. `rehostHistory` nil: the upload history stays on the device. Nothing happens until
+    /// `run()`.
     public init(
         cloud: any SyncedKeyValueStore,
         pseudoLists: PseudoListStore,
         superFavorites: SuperFavoritesStore,
         smileyFavorites: AppSmileyFavoritesStore,
         positions: ReadingPositionStore,
+        rehostHistory: RehostUploadHistoryStore? = nil,
         deviceState: any SmallStorePersistence<SyncedListsDeviceState>,
         accounts: @escaping @Sendable () async -> [String],
         clock: @escaping @Sendable () -> Date = { Date() },
@@ -104,6 +116,7 @@ public actor SyncedListsStore {
         self.superFavorites = superFavorites
         self.smileyFavorites = smileyFavorites
         self.positions = positions
+        self.rehostHistory = rehostHistory
         self.accounts = accounts
         self.clock = clock
         self.positionsDelay = positionsDelay
@@ -124,6 +137,7 @@ public actor SyncedListsStore {
         let superFavoriteChanges = await superFavorites.changes()
         let smileyFavoriteChanges = await smileyFavorites.changes()
         let positionChanges = await positions.changes()
+        let rehostChanges = await rehostHistory?.changes()
         await start()
         await withTaskGroup(of: Void.self) { group in
             let sink = sink
@@ -132,6 +146,9 @@ public actor SyncedListsStore {
             group.addTask { for await _ in superFavoriteChanges { sink.yield(.listsChanged) } }
             group.addTask { for await _ in smileyFavoriteChanges { sink.yield(.listsChanged) } }
             group.addTask { for await _ in positionChanges { sink.yield(.positionsChanged) } }
+            if let rehostChanges {
+                group.addTask { for await _ in rehostChanges { sink.yield(.listsChanged) } }
+            }
             isRunning = true
             for await event in events {
                 await handle(event)
@@ -265,7 +282,7 @@ public actor SyncedListsStore {
     private func refused(_ keys: [String]) {
         let lists = keys.filter(Self.isListKey)
         quotaViolations.formUnion(lists)
-        for key in lists where !Self.isPositionsKey(key) { synced[key] = Self.refusedDigest }
+        for key in lists where Self.usesDigest(key) { synced[key] = Self.refusedDigest }
         if !stateUnsaved { saveDeviceState() }
     }
 
