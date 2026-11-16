@@ -5,9 +5,10 @@ import SwiftUI
 // `topicBottomBarButtonStyle` :7372-7386) @ 87fe0d1c. Differences: the "N / M" page bubble of SwiftHFR is kept, but only at the
 // end of the page, with the bottom refresh (operator, #820, 2026-11-15); the top refresh stays and the bottom one is the same
 // button (`ReaderRefreshButton`); VoiceOver keeps the bubble at all times; "Page …" asks in an alert, not a sheet; under a
-// visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the lists' pager (#565). GAP-060.
+// visible tab bar (Pro Max landscape, #649) the controls are a strip above it, as the lists' pager (#565); at the end of a page the
+// bubble is its own pill between ‹ › and refresh + reply (operator, #961). GAP-060.
 /// The reader's bottom bar, topic and private conversation alike (#836): ‹ ›, then at the end of the page the page bubble and
-/// the refresh, and the reply button. Legacy promotes › at the end of a page that is not the last, and the refresh at the end
+/// the refresh, and the reply button; three pills (#961): ‹ ›, the bubble alone, refresh + reply. Legacy promotes › at the end of a page that is not the last, and the refresh at the end
 /// of the last page.
 enum ReaderBottomBar {
     /// What the bar shows for one scroll position.
@@ -27,7 +28,7 @@ enum ReaderBottomBar {
     }
 
     /// One control of the bar.
-    enum Control: Equatable { case previous, next, pageBubble, refresh, reply }
+    enum Control: Hashable { case previous, next, pageBubble, refresh, reply }
 
     /// `atPageEnd`: the page's end is on screen (legacy `isWebContentAtBottom`). VoiceOver users get the bubble everywhere:
     /// hiding it is visual only (#820).
@@ -59,20 +60,23 @@ struct ReaderPageControls: ToolbarContent {
         if placement == .bottomBar, let page = buttons.model.page {
             let state = buttons.state(page)
             ToolbarItemGroup(placement: .bottomBar) {
-                buttons.previous(page)
-                buttons.next(page, prominent: state.promotesNext)
+                ForEach(state.leading, id: \.self) { buttons.view(for: $0, page: page, state: state) }
             }
             .visibilityPriority(.high)
-            // Flexible spacers split the glass into one pill per group (#961): the bubble apart, between two equal gaps.
+            // Flexible spacers split the glass into one pill per group (#961). The system bar centres the bubble between its two
+            // neighbours, not on the screen: it is on the screen's centre only while both side pills are as wide (end of a page,
+            // logged in). The strip below always is.
             ToolbarSpacer(.flexible, placement: .bottomBar)
             if !state.centre.isEmpty {
-                ToolbarItem(placement: .bottomBar) { buttons.bubble(page) }
+                ToolbarItem(placement: .bottomBar) {
+                    ForEach(state.centre, id: \.self) { buttons.view(for: $0, page: page, state: state) }
+                }
                 ToolbarSpacer(.flexible, placement: .bottomBar)
             }
             if !state.trailing.isEmpty {
+                // High priority for the pill as a whole: refresh and reply are the last to be dropped when the bar is short.
                 ToolbarItemGroup(placement: .bottomBar) {
-                    if state.showsRefresh { buttons.refreshButton(prominent: state.promotesRefresh) }
-                    if state.showsReply { buttons.reply() }
+                    ForEach(state.trailing, id: \.self) { buttons.view(for: $0, page: page, state: state) }
                 }
                 .visibilityPriority(.high)
             }
@@ -89,14 +93,12 @@ struct ReaderPageStrip: View {
             let state = buttons.state(page)
             HStack {
                 HStack {
-                    buttons.previous(page)
-                    buttons.next(page, prominent: state.promotesNext)
+                    ForEach(state.leading, id: \.self) { buttons.view(for: $0, page: page, state: state) }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                if !state.centre.isEmpty { buttons.bubble(page) }
+                ForEach(state.centre, id: \.self) { buttons.view(for: $0, page: page, state: state) }
                 HStack {
-                    if state.showsRefresh { buttons.refreshButton(prominent: state.promotesRefresh) }
-                    if state.showsReply { buttons.reply() }
+                    ForEach(state.trailing, id: \.self) { buttons.view(for: $0, page: page, state: state) }
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -127,6 +129,18 @@ struct ReaderPageButtons {
             currentPage: page.currentPage, maxPage: page.maxPage, atPageEnd: atPageEnd, voiceOver: voiceOver,
             showsReply: replySymbol != nil
         )
+    }
+
+    /// One control of the bar: both placements draw their pills from the state's lists (#961).
+    @ViewBuilder
+    func view(for control: ReaderBottomBar.Control, page: ReaderPage, state: ReaderBottomBar.State) -> some View {
+        switch control {
+        case .previous: previous(page)
+        case .next: next(page, prominent: state.promotesNext)
+        case .pageBubble: bubble(page)
+        case .refresh: refreshButton(prominent: state.promotesRefresh)
+        case .reply: reply()
+        }
     }
 
     /// Legacy ‹ opens the previous page at its last message (`navigateToPreviousPageFromBottomButton`, :4960-4964).
