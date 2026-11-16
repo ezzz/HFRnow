@@ -124,9 +124,14 @@ enum PagerVisibility {
         contentHeight + bottomInset - containerHeight - offsetY
     }
 
-    /// VoiceOver keeps the bar so the page actions never depend on a scroll position.
-    static func isShown(distanceFromEnd: CGFloat, voiceOver: Bool) -> Bool {
-        voiceOver || distanceFromEnd <= tolerance
+    /// The bar's own height, about: it adds that much bottom inset without moving the offset, so right after it appears the
+    /// distance from the end is this much larger. Hysteresis on it keeps the bar from hiding itself (flicker at the end).
+    static let barHeight: CGFloat = 64
+
+    /// Whether the bar shows next, given whether it shows now: appears within `tolerance` of the end, hides only beyond
+    /// `tolerance + barHeight`. VoiceOver keeps the bar so the page actions never depend on a scroll position.
+    static func isShown(distanceFromEnd: CGFloat, wasShown: Bool = false, voiceOver: Bool) -> Bool {
+        voiceOver || distanceFromEnd <= tolerance + (wasShown ? barHeight : 0)
     }
 
     /// The short appear/disappear animation; none under Reduce Motion.
@@ -139,12 +144,12 @@ private struct PagerBarModifier: ViewModifier {
     @Environment(\.rootHasTabBar) private var rootHasTabBar
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// True until the first geometry says otherwise: a list that has not been measured yet is not scrolled away from anything.
-    @State private var distanceFromEnd: CGFloat = 0
+    /// Shown until the first geometry says otherwise (a list not measured yet is not scrolled away from anything).
+    @State private var atEnd = true
     let pager: PagerToolbar?
     let hidden: Bool
 
-    private var shown: Bool { PagerVisibility.isShown(distanceFromEnd: distanceFromEnd, voiceOver: voiceOver) }
+    private var shown: Bool { atEnd || voiceOver }
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -156,8 +161,9 @@ private struct PagerBarModifier: ViewModifier {
                 )
             } action: { _, distance in
                 // Only the crossing matters: a state write per scroll frame would redraw the list for nothing.
-                guard (distance <= PagerVisibility.tolerance) != (distanceFromEnd <= PagerVisibility.tolerance) else { return }
-                withAnimation(PagerVisibility.animation(reduceMotion: reduceMotion)) { distanceFromEnd = distance }
+                let next = PagerVisibility.isShown(distanceFromEnd: distance, wasShown: atEnd, voiceOver: false)
+                guard next != atEnd else { return }
+                withAnimation(PagerVisibility.animation(reduceMotion: reduceMotion)) { atEnd = next }
             }
             .modifier(PagerActions(pager: pager))
         switch PagerPlacement(rootHasTabBar: rootHasTabBar) {
@@ -179,22 +185,24 @@ private struct PagerBarModifier: ViewModifier {
     }
 }
 
-/// The page steps as accessibility actions of the list, so hiding the bar is visual only (#898).
+/// The page steps as accessibility actions of the list (#898). One stable modifier whose content varies, never a view type
+/// that changes with the steps: the list's identity (scroll, selection, search focus) must survive a page change.
 private struct PagerActions: ViewModifier {
     let pager: PagerToolbar?
 
     func body(content: Content) -> some View {
-        var view = AnyView(content)
-        for step in pager?.pageActions ?? [] {
-            view = AnyView(view.accessibilityAction(named: Text(step.name), step.action))
+        content.accessibilityActions {
+            ForEach(Array((pager?.pageActions ?? []).enumerated()), id: \.offset) { _, step in
+                Button(step.name, action: step.action)
+            }
         }
-        return view
     }
 }
 
 extension View {
     /// Shows `pager` (nil hides it) in the placement that fits the root; see `PagerPlacement`. `hidden` hides the strip
-    /// (a focused text field: the inset would float over the form above the keyboard).
+    /// (a focused text field: the inset would float over the form above the keyboard). The bar shows only when the list is
+    /// scrolled to its end (#898, `PagerVisibility`).
     func pagerBar(_ pager: PagerToolbar?, hidden: Bool = false) -> some View {
         modifier(PagerBarModifier(pager: pager, hidden: hidden))
     }

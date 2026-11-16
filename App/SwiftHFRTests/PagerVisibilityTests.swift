@@ -31,6 +31,18 @@ import Testing
         #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 50), voiceOver: false))
     }
 
+    @Test func theBarAppearingDoesNotHideItAgain() {
+        // At the end (offset 1200) the bar shows and its inset grows 0 -> 52 without the offset moving: still shown.
+        let before = distance(offset: 1200)
+        #expect(PagerVisibility.isShown(distanceFromEnd: before, wasShown: false, voiceOver: false))
+        let after = distance(offset: 1200, inset: 52)
+        #expect(after > PagerVisibility.tolerance, "the inset alone pushes the distance past the tolerance")
+        #expect(PagerVisibility.isShown(distanceFromEnd: after, wasShown: true, voiceOver: false))
+        // Scrolling really away hides it, and then it takes the tolerance again to come back.
+        #expect(!PagerVisibility.isShown(distanceFromEnd: distance(offset: 1000, inset: 52), wasShown: true, voiceOver: false))
+        #expect(!PagerVisibility.isShown(distanceFromEnd: after, wasShown: false, voiceOver: false))
+    }
+
     @Test func voiceOverAlwaysSeesThePager() {
         #expect(PagerVisibility.isShown(distanceFromEnd: distance(offset: 0), voiceOver: true))
     }
