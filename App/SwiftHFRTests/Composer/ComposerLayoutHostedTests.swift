@@ -87,6 +87,11 @@ struct ComposerLayoutHostedTests {
         #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
         #expect(drafts.maxX < 402 / 2 && send.minX > 402 / 2, "drafts \(drafts), send \(send)")
         #expect(abs(close.midY - send.midY) < 0.5, "one row: close \(close), send \(send)")
+        // Nothing but the row above the card: no strip of its own (a title over or under the buttons would add one).
+        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+        let insets = ComposerChrome.docked.headerInsets(glyph: glyph)
+        guard size == .large else { return }
+        #expect(abs(box.layout.top - (ComposerHeader.hitSize + insets.top + insets.bottom)) < 0.5, "top \(box.layout.top)")
     }
 
     /// The modern composer's margins as laid out (#895): the text card is `FloatingSpacing.gap` from the window's sides, and the
@@ -106,14 +111,15 @@ struct ComposerLayoutHostedTests {
         #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
     }
 
-    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size and weight, measured against the
-    /// same symbol drawn by UIKit at that size (a `.subheadline` bold glyph, the size before #895, is about 4 pt smaller).
+    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size, one weight heavier (#972,
+    /// `FloatingButtonPalette.glyphWeight`), measured against the same symbol drawn by UIKit at that size and weight (a
+    /// `.subheadline` bold glyph, the size before #895, is about 4 pt smaller).
     @Test func theFloatingButtonsGlyphIsTheCardToolsSize() async throws {
         guard isPhone else { return }
         let box = try await host(size: .large, text: "Bonjour")
         let glyph = try #require(box.frames[.closeGlyph])
         let size = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
-        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .medium)
+        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .semibold)
         let expected = try #require(UIImage(systemName: "xmark", withConfiguration: configuration)).size
         #expect(abs(glyph.height - expected.height) < 1, "glyph \(glyph), UIKit \(expected)")
         #expect(abs(glyph.width - expected.width) < 1, "glyph \(glyph), UIKit \(expected)")

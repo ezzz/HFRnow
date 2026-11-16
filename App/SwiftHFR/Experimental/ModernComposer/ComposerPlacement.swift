@@ -59,18 +59,34 @@ struct DockedComposerHeightKey: PreferenceKey {
     }
 }
 
-/// The reader's docked composer bar (#853): opaque down to the screen's bottom edge (under the home indicator, and under the
-/// keyboard as it moves), touches on it never reach the page under it, it reports its height to its presenter, and at full
-/// height ("Plein écran", or an iPhone in landscape) the reader's navigation bar is hidden, so the composer has the screen as
-/// the full-height sheet had. Nothing for a sheet, which has its own.
+/// The reader's docked composer bar (#853): opaque from its text card down to the screen's bottom edge (under the home
+/// indicator, and under the keyboard as it moves), touches on it never reach the page under it, it reports its height to its
+/// presenter, and at full height ("Plein écran", or an iPhone in landscape) the reader's navigation bar is hidden, so the
+/// composer has the screen as the full-height sheet had. Nothing for a sheet, which has its own.
+///
+/// At partial height the floating buttons' row has no fill (#972, operator 2026-11-16: no strip over the page): the page shows
+/// around the buttons, whose capsules carry their own (`FloatingButtonPalette`); a banner or the recipient and subject fields
+/// under the row stay on the fill. A tap between the buttons still stops at the bar, as the page's taps do while writing. At
+/// full height the bar covers the page and is filled from its top.
 struct DockedComposerBar: ViewModifier {
     let isDocked: Bool
     let height: ComposerHeight
+    /// The floating buttons' row as laid out (the composer's top bar), 0 before it is measured.
+    var buttonsHeight: CGFloat = 0
+
+    /// Where the bar's fill starts, from its top: under the buttons' row at partial height, the top at full height.
+    static func fillStart(height: ComposerHeight, buttonsHeight: CGFloat) -> CGFloat {
+        height == .partial ? max(0, buttonsHeight) : 0
+    }
 
     func body(content: Content) -> some View {
         if isDocked {
             content
-                .background { Rectangle().fill(.background).ignoresSafeArea() }
+                .background(alignment: .top) {
+                    Rectangle().fill(.background)
+                        .padding(.top, Self.fillStart(height: height, buttonsHeight: buttonsHeight))
+                        .ignoresSafeArea()
+                }
                 .contentShape(.rect)
                 .preference(key: DockedComposerHeightKey.self, value: height)
                 .toolbar(height == .full ? .hidden : .automatic, for: .navigationBar)

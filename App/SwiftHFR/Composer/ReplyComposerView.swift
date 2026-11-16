@@ -66,6 +66,8 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
+    /// The top bar's height as laid out: where the docked bar's fill starts at partial height (#972, `DockedComposerBar`).
+    @State private var headerHeight: CGFloat = 0
     /// Réglages › Expérimental (#903); nil keeps each option's default (hosted tests, previews).
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
@@ -87,6 +89,7 @@ struct ReplyComposerView: View {
                     floats: chrome.headerFloats,
                     close: { Task { await model.requestClose() } }, send: { Task { await model.send() } }
                 )
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
                 banners
                 if model.hasSubjectField { messageFields }
                 // Inside the measured top, so the docked sheet's height counts it (#895).
@@ -104,7 +107,7 @@ struct ReplyComposerView: View {
         // Docked at partial height the bar is as tall as its card; a sheet, or "Plein écran", fills what it is given.
         .frame(maxHeight: placement == .docked && height == .partial ? nil : .infinity, alignment: .top)
         .appScreenBackground()
-        .modifier(DockedComposerBar(isDocked: placement == .docked, height: height))
+        .modifier(DockedComposerBar(isDocked: placement == .docked, height: height, buttonsHeight: headerHeight))
         .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
         .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
             clipboardButtons(pending)
