@@ -1,15 +1,23 @@
 import Foundation
 import Observation
 
-/// The app's version and build, as the Info.plist states them (legacy `AppSettingsView.appVersion`, `:180-184` @ 87fe0d1c).
+/// The app's version, build and git commit, as the Info.plist states them (legacy `AppSettingsView.appVersion`, `:180-184` @ 87fe0d1c).
 struct AppVersion: Equatable, Sendable {
     let short: String
     let build: String
+    /// Short sha the app was built from (`-dirty` with local changes), `?` when the build did not record it (#970).
+    let commit: String
 
-    /// Reads `CFBundleShortVersionString` and `CFBundleVersion`; a missing or non-text key is `?`, as legacy.
+    /// Reads `CFBundleShortVersionString`, `CFBundleVersion` and `HFRGitCommit`; a missing, empty or non-text key is `?`.
     init(info: [String: Any]?) {
-        short = info?["CFBundleShortVersionString"] as? String ?? "?"
-        build = info?["CFBundleVersion"] as? String ?? "?"
+        short = Self.text(info, "CFBundleShortVersionString")
+        build = Self.text(info, "CFBundleVersion")
+        commit = Self.text(info, "HFRGitCommit")
+    }
+
+    private static func text(_ info: [String: Any]?, _ key: String) -> String {
+        guard let value = info?[key] as? String, !value.isEmpty else { return "?" }
+        return value
     }
 
     /// The version of the running app.
@@ -17,6 +25,9 @@ struct AppVersion: Equatable, Sendable {
 
     /// `1.0 (42)`.
     var display: String { "\(short) (\(build))" }
+
+    /// `1.0 (42) · cd04954`, the commit only when known: the row never shows a lone `?` commit.
+    var rowText: String { commit == "?" ? display : "\(display) · \(commit)" }
 }
 
 /// The app's own topics on the HFR forum, linked from About (operator decision 2026-10-28, issue #211). The URLs are in the

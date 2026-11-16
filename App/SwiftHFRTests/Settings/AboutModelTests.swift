@@ -67,3 +67,32 @@ struct AboutModelTests {
         #expect(pages.requests.map(\.source) == [.topic(TopicID(category: .forum(25), topic: 1711))])
     }
 }
+
+struct BuildReportTests {
+    private let info: [String: Any] = [
+        "CFBundleShortVersionString": "1.0", "CFBundleVersion": "42", "HFRGitCommit": "cd04954-dirty"
+    ]
+
+    @Test func reportHasAStableFormat() {
+        let report = BuildReport(version: AppVersion(info: info), system: "iOS 27.0", model: "iPhone18,2")
+        #expect(report.text == "SwiftHFR 1.0 (42) · cd04954-dirty · iOS 27.0 · iPhone18,2")
+    }
+
+    @Test func missingKeysAndCommitShowAQuestionMark() {
+        let report = BuildReport(version: AppVersion(info: [:]), system: "iOS 27.0", model: "?")
+        #expect(report.text == "SwiftHFR ? (?) · ? · iOS 27.0 · ?")
+        #expect(AppVersion(info: ["HFRGitCommit": ""]).commit == "?")
+        #expect(AppVersion(info: ["HFRGitCommit": 7]).commit == "?")
+    }
+
+    @Test func rowShowsTheCommitOnlyWhenKnown() {
+        #expect(AppVersion(info: info).rowText == "1.0 (42) · cd04954-dirty")
+        #expect(AppVersion(info: ["CFBundleShortVersionString": "1.0", "CFBundleVersion": "42"]).rowText == "1.0 (42)")
+    }
+
+    @Test func simulatorModelWinsOverTheHostMachine() {
+        #expect(BuildReport.deviceModel(machine: "arm64", environment: ["SIMULATOR_MODEL_IDENTIFIER": "iPhone18,2"]) == "iPhone18,2")
+        #expect(BuildReport.deviceModel(machine: "iPhone18,2", environment: [:]) == "iPhone18,2")
+        #expect(BuildReport.deviceModel(machine: "", environment: ["SIMULATOR_MODEL_IDENTIFIER": ""]) == "?")
+    }
+}
