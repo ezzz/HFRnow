@@ -197,8 +197,14 @@ struct ReaderLandingWebTests: ReaderWebTesting {
         #expect(await until { recorder.ready == [1] })
         let top = "return Math.round(document.getElementById('t2').getBoundingClientRect().top);"
         #expect(await until(async: { (try? await self.evaluate(top, in: controller) as? Int) == 0 }))
-        _ = try await evaluate("window.scrollTo(0, 0); return true;", in: controller)
-        #expect(await until { reports.posts.contains(1) }, "reported: \(reports.posts)")
+        // Back to the top until the page and the scroll view are both there (#934: one `scrollTo` can be undone by the scroll
+        // view's older offset, and then message 2 is still the topmost one, already reported).
+        let back = await scrollPage(toScrollY: 0, in: controller)
+        let backState = await back ? "" : scrollState(of: controller)
+        #expect(back, "the page never came back to the top: \(backState)")
+        let reported = await until { reports.posts.contains(1) }
+        let reportedState = await reported ? "" : scrollState(of: controller)
+        #expect(reported, "reported: \(reports.posts), \(reportedState)")
     }
 }
 

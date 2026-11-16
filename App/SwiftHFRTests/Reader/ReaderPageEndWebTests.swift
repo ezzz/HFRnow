@@ -44,7 +44,7 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         // CI job 133090341114 showed the way back sent once and never applied (`window.scrollTo(0, 0)`, the scroll view stayed
         // at its end, offset 4356): the scroll is sent again until the scroll view is there, then the report is checked. A
         // failure of the first wait is a scroll that never happened; of the second, a report `reader.js` did not send.
-        // The same lost-report symptom fails other reader web tests now and then, with WebContent trouble in the log (#934).
+        // The way back goes through `scrollPage(toScrollY:)`, which checks the page's side too (#934).
         let scrollView = controller.webView.scrollView
         let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
         let atEnd = await until(async: {
@@ -55,11 +55,8 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         #expect(await until { ends.reports.last == true }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
         // 20 points before the end is not the end: an end reported early (a viewport that counts the bars) fails here.
         let nearEnd = last() - 20
-        let backed = await until(async: {
-            let scrollY = Double(nearEnd + bars.top) // `scrollY` counts from the bars' edge (`ReaderInsetsWebTests`)
-            _ = try? await evaluate("window.scrollTo(0, \(scrollY)); return true;", in: controller)
-            return abs(scrollView.contentOffset.y - nearEnd) <= 2
-        }, timeout: .seconds(60))
+        // `scrollY` counts from the bars' edge (`ReaderInsetsWebTests`).
+        let backed = await scrollPage(toScrollY: Double(nearEnd + bars.top), in: controller, tolerance: 2)
         #expect(backed, "the page never came back 20 points: offset \(scrollView.contentOffset), target \(nearEnd)")
         #expect(await until { ends.reports.last == false }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
     }

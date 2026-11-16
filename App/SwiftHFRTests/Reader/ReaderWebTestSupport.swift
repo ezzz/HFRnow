@@ -98,6 +98,29 @@ extension ReaderWebTesting {
         }
     }
 
+    /// Scrolls the page itself to `scrollY` (CSS pixels from the bars' edge, the reading top) and returns true once the page
+    /// and the scroll view are both there. One `window.scrollTo` is not enough on a loaded simulator (#934): the page moves at
+    /// once, but the scroll view, in the UI process, applies it a commit later and may first send its older offset back, which
+    /// puts the page where it was. CI job 133090341114 caught it (the way back to the top sent once, the scroll view still at
+    /// the page's end), and jobs 133110414600 and 133160363316 failed on it with the page's WebContent process alive throughout.
+    /// The scroll is sent again until both sides agree, so a test checks what the page reported, not whether one request
+    /// survived. `scrollY` must be reachable (not past the page's end); both sides must be within `tolerance` of it.
+    func scrollPage(
+        toScrollY scrollY: Double, in controller: ReaderWebController, tolerance: Double = 1, timeout: Duration = .seconds(60)
+    ) async -> Bool {
+        await until(async: {
+            let script = "window.scrollTo(0, \(scrollY)); return window.scrollY;"
+            guard let page = (try? await self.evaluate(script, in: controller)) as? NSNumber else { return false }
+            return abs(page.doubleValue - scrollY) <= tolerance && abs(Double(controller.readingTop) - scrollY) <= tolerance
+        }, timeout: timeout)
+    }
+
+    /// Where the page and its scroll view are, for a failure message: which side a lost scroll left behind.
+    func scrollState(of controller: ReaderWebController) async -> String {
+        let page = (try? await evaluate("return window.scrollY;", in: controller, timeout: .seconds(10))) as? NSNumber
+        return "page scrollY \(page.map { "\($0.doubleValue)" } ?? "no answer"), scroll view reading top \(controller.readingTop)"
+    }
+
     /// The document is loaded and every image has finished (loaded or failed): nothing more will be requested by itself.
     func settled(_ controller: ReaderWebController) async -> Bool {
         let script = "return document.readyState === 'complete' && Array.from(document.images).every((i) => i.complete);"
