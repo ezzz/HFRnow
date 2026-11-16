@@ -38,7 +38,8 @@ struct ReaderReplyFlow: ViewModifier {
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
             }
             // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
-            // keyboard with the option on (#853) and shows the same sheet with it off.
+            // keyboard with the option on (#853) and, with it off, shows legacy's full-screen cover on an iPhone (#855), a sheet
+            // on an iPad.
             .modifier(ReaderComposerPresenter(composer: $reply) { _, reason in
                 Task { await model.composerDidClose(reason) }
             })
