@@ -109,7 +109,10 @@ struct PickedRangeTests {
     @Test func aCaretSelectionGivesItsRange() {
         let text = "Salut toi"
         let caret = TextSelection(insertionPoint: text.index(text.startIndex, offsetBy: 5))
-        #expect(ComposerEditorCard.syncedRange(caret, current: NSRange(location: 0, length: 0), in: text) == NSRange(location: 5, length: 0))
+        #expect(
+            ComposerEditorCard.syncedRange(caret, current: NSRange(location: 0, length: 0), in: text)
+                == NSRange(location: 5, length: 0)
+        )
     }
 
     @Test func aMultiSelectionGivesItsFirstRange() {
@@ -117,6 +120,9 @@ struct PickedRangeTests {
         let first = text.index(text.startIndex, offsetBy: 3)..<text.index(text.startIndex, offsetBy: 7)
         let last = text.index(text.endIndex, offsetBy: -5)..<text.endIndex
         let selection = TextSelection(ranges: RangeSet([first, last]))
-        #expect(ComposerEditorCard.syncedRange(selection, current: NSRange(location: 0, length: 0), in: text) == NSRange(location: 3, length: 4))
+        #expect(
+            ComposerEditorCard.syncedRange(selection, current: NSRange(location: 0, length: 0), in: text)
+                == NSRange(location: 3, length: 4)
+        )
     }
 }
