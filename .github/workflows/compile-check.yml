@@ -7,7 +7,9 @@ name: Compile check
 on:
   pull_request:
     # `labeled` starts it when the label is added, `synchronize` re-runs it on each push while the label is on.
-    types: [labeled, synchronize]
+    # `ready_for_review` joins the PR's group and cancels a running check (its job is skipped: the PR is no longer a
+    # draft), so the full app job never runs next to a compile check.
+    types: [labeled, synchronize, ready_for_review]
 
 permissions:
   contents: read
