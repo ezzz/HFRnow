@@ -118,6 +118,21 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "visible" }))
     }
 
+    /// The next documents start with the hint as the controller wants it (a user script at document start): a reload under a
+    /// composer never paints it. Read from the installed scripts, as `applyPullHint` would otherwise hide it once ready.
+    @Test func theHintIsAlsoSetByAUserScriptAtDocumentStart() {
+        let (controller, _) = makeController(transport: imageTransport())
+        let installed = { () -> [(String, WKUserScriptInjectionTime)] in
+            controller.webView.configuration.userContentController.userScripts.map { ($0.source, $0.injectionTime) }
+        }
+        controller.offersPullHint = false
+        #expect(installed().contains { $0.0 == ReaderWebController.pullHintScript(false) && $0.1 == .atDocumentStart })
+        #expect(!installed().contains { $0.0 == ReaderWebController.pullHintScript(true) })
+        controller.offersPullHint = true
+        #expect(installed().contains { $0.0 == ReaderWebController.pullHintScript(true) && $0.1 == .atDocumentStart })
+        #expect(!installed().contains { $0.0 == ReaderWebController.pullHintScript(false) })
+    }
+
     /// The script that toggles the hint is a literal the app builds: no page text reaches it.
     @Test func theHintScriptTogglesTheRootClass() {
         #expect(ReaderWebController.pullHintScript(false) == "document.documentElement.classList.toggle('no-pull-hint', true);")

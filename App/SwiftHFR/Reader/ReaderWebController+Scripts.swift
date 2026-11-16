@@ -51,6 +51,13 @@ extension ReaderWebController {
         applyPullHint()
     }
 
+    /// `offersPullHint` changed: the next documents start with it (the user script), the shown one takes it now.
+    func pullHintChanged(from old: Bool) {
+        guard offersPullHint != old else { return }
+        installUserScripts()
+        applyPullHint()
+    }
+
     /// Shows or hides the end-of-page hint of the shown document (`reader.css` `.no-pull-hint`): off while the pull past the end
     /// does nothing (a composer is open, #820). The hint keeps its room, so the reading position does not move.
     func applyPullHint() {
