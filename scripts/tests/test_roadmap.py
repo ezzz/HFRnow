@@ -1013,6 +1013,13 @@ class WeeklyCounts(unittest.TestCase):
                                env={**__import__("os").environ, "ROADMAP_STATE": str(f)})
             self.assertEqual(r.stdout.split(), ["2026-11-10", "22:00", "UTC", "True", "1"], r.stderr)
 
+    def test_done_counts_agree_in_number(self):
+        import build
+        self.assertEqual([build.faites(n) for n in (0, 1, 2)], ["faite", "faite", "faites"])
+        D = {"m5": {"cats": {"MP": [("MP à plusieurs", True)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 37, "done": 1},
+             "outside": {"open": [], "kinds": {}}}
+        self.assertIn("1 faite sur 37", build.slide_m5(D))
+
     def test_m5_band_is_hidden_without_an_open_issue_outside_every_milestone(self):
         import build
         D = {"m5": {"cats": {"MP": [("MP à plusieurs", False)]}, "axes": {a: 0 for a in counts.AXES} | {"MP": 1}, "total": 1, "done": 0},
