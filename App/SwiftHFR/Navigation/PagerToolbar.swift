@@ -18,10 +18,12 @@ struct PagerToolbar {
     let last: Step?
     /// "Page N", or a spinner while a page loads.
     let status: Status
+    /// Goes to a page chosen in the « page x / y » menu (`Status.pageOf`); nil leaves that pill a plain label.
+    var jump: ((Int) -> Void)?
 
     enum Status {
         case page(Int)
-        /// « page x / y », in its own glass pill (the Messages list, #968).
+        /// « page x / y » in its own glass pill, left of the ‹ › pills; a tap opens `PagerPageMenu` when `jump` is set (#968, #980).
         case pageOf(Int, Int)
         case loading
     }
@@ -48,11 +50,7 @@ struct PagerToolbar {
     private var statusView: some View {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
-        case .pageOf(let number, let total):
-            Text("page \(number) / \(total)").monospacedDigit()
-                .padding(.horizontal, 12).padding(.vertical, 6)
-                .glassEffect(.regular, in: .capsule)
-                .accessibilityLabel("Page \(number) sur \(total)")
+        case .pageOf(let number, let total): PagerPageMenuPill(current: number, total: total, onPage: jump)
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }
@@ -69,7 +67,22 @@ struct PagerToolbar {
         .padding(.horizontal)
     }
 
+    @ViewBuilder
     private func stripRow(full: Bool) -> some View {
+        if case .pageOf = status {
+            // The menu carries first and last: the pill on the left, then the two arrow pills.
+            HStack {
+                statusView
+                Spacer()
+                Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
+                Button("Page suivante", systemImage: "chevron.right", action: next.action).disabled(!next.enabled)
+            }
+        } else {
+            classicRow(full: full)
+        }
+    }
+
+    private func classicRow(full: Bool) -> some View {
         HStack {
             if full { Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled) }
             Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)

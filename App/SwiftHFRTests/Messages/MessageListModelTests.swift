@@ -71,6 +71,38 @@ struct MessageListModelTests {
         #expect(!model.canGoToPrevious)
     }
 
+    // #968: one HFR page per screen, page x of the app = page x of `cat=prive`; y is HFR's last page (`messagePage`: 3 pages).
+    @Test func theMenuTargetsFetchExactlyThatHFRPage() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        #expect(model.pageCount == 3)
+        await model.goToLastPage()
+        #expect(model.currentPage == 3 && !model.canGoToNext)
+        await model.goToPage(2)
+        await model.goToFirstPage()
+        #expect(source.requests == [1, 3, 2, 1])
+        #expect(model.currentPage == 1)
+    }
+
+    @Test func aTypedPageIsClampedAndNeverSearchedPast() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        await model.goToPage(99)
+        await model.goToPage(0)
+        await model.goToPage(1)
+        #expect(source.requests == [1, 3, 1])
+    }
+
+    @Test func goingToThePageOnScreenFetchesNothing() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        await model.goToPage(1)
+        #expect(source.requests == [1])
+    }
+
     @Test func rowsKeepGroupFlagAndUnreadStateForTheNextLot() async throws {
         let model = model(FakePrivateMessages())
         await model.onAppear()

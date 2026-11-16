@@ -18,7 +18,7 @@ enum MPSegment: String, CaseIterable, Sendable {
     func contains(_ thread: PrivateMessageThread) -> Bool { thread.isGroup == (self == .group) }
 }
 
-/// A screen of the private message list (100 conversations, `ScreenedPrivateMessageSource`) ready to display.
+/// A page of the private message list ready to display.
 struct MessageListContent: Sendable, Equatable {
     /// Conversations in page order. Each row keeps its own unread state and group flag, so a later lot can split or count
     /// them without fetching again (LOT-171).
@@ -27,7 +27,7 @@ struct MessageListContent: Sendable, Equatable {
     var page: Int
     /// A next page exists.
     var hasNext: Bool
-    /// Screens in the list (⌈last HFR page / 2⌉, `ScreenedPrivateMessageSource`), at least `page`: « page x / y » of the pager.
+    /// HFR's last page (`navigation.last`, a lower bound when HFR's pager is a window), at least `page`: « page x / y » of the pager.
     var pageCount: Int
     /// Why there is no row, when there is none.
     var emptyReason: EmptyReason?
@@ -53,7 +53,7 @@ struct MessageListContent: Sendable, Equatable {
         threads = list.threads
         page = list.navigation.current
         hasNext = list.navigation.nextPath != nil
-        pageCount = max(list.navigation.last, list.navigation.current)
+        pageCount = max(list.navigation.last, list.navigation.current + (list.navigation.nextPath == nil ? 0 : 1))
         emptyReason = list.threads.isEmpty ? .nothing : nil
         newMessageURL = list.newMessagePath.flatMap { HFRURL.absolute($0) }
     }
@@ -210,7 +210,7 @@ final class MessageListModel {
 
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
-    /// Screens in the list; 1 before the first load.
+    /// Pages in the list; 1 before the first load.
     var pageCount: Int { loader.value?.pageCount ?? 1 }
     var canGoToPrevious: Bool { currentPage > 1 && !loader.isLoading }
     var canGoToNext: Bool { (loader.value?.hasNext ?? false) && !loader.isLoading }
@@ -234,6 +234,15 @@ final class MessageListModel {
     /// Going back never searches forward: the member asked for that page.
     func goToPreviousPage() async { if canGoToPrevious { await load(page: currentPage - 1, advancing: false) } }
     func goToFirstPage() async { if canGoToPrevious { await load(page: 1) } }
+    /// The last page HFR's pager gives; the member asked for it, so nothing is searched past it.
+    func goToLastPage() async { await goToPage(pageCount) }
+
+    /// Page `page` (clamped to 1...`pageCount`) of the list, exactly that one HFR page; nothing is searched past it.
+    func goToPage(_ page: Int) async {
+        let target = min(max(page, 1), pageCount)
+        guard target != currentPage, !loader.isLoading else { return }
+        await load(page: target, advancing: false)
+    }
 
     /// The reader of `thread`: the same model while it stays selected, a new one (a new load) for another conversation.
     /// Nil when the row names no thread page.
