@@ -142,8 +142,11 @@ struct MPStoragePageParserTests {
         let map = try #require(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: [String: Any]])
         let storage = map.filter { $0.value["kind"] as? String == "storage" }.keys
             .map { $0.replacing(".html", with: "").replacing(".json", with: "") }
-        #expect(Set(storage) == ["S-find-R13u1", "S-find-R13u1b", "S-find-R13a", "S-find-R333b", "R60a", "R96b"])
+        #expect(Set(storage) == Self.storageCases)
     }
+
+    /// The storage oracles of `Fixtures/LOT-004` this suite compares: the four `find` cases, `R60a`, `R96b`.
+    static let storageCases: Set = ["S-find-R13u1", "S-find-R13u1b", "S-find-R13a", "S-find-R333b", "R60a", "R96b"]
 
     @Test("RA5, HFR's \"pas destiné\" page, is the notAddressed result")
     func notAddressed() throws {

@@ -24,9 +24,11 @@ Three gates. Each says what was measured, how to measure it again, and its state
 
 ### Gate A — differential roll-up (C18)
 
-**Rule.** Every legacy oracle committed under `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/<set>/<case>.oracle.json` is read by a test that compares the port's output with it (ADR 0004), and every M3 engine lot names the evidence its behaviour is checked against: a legacy oracle, captures, or, for on-device stores, the legacy formats of gate B.
+**Rule.** Every legacy oracle committed under `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/<set>/<case>.oracle.json` is owned by the suite that compares the port's output with it (ADR 0004), or by a test that pins a documented deviation; and every M3 engine lot names the evidence its behaviour is checked against: a legacy oracle, captures, or, for on-device stores, the legacy formats of gate B.
 
-**Measure.** Run the whole package suite under `strace` and list the oracle files no test opened:
+**CI gate.** `OracleOwnershipTests.everyOracleIsOwned` (`Tests/HFRParsingTests/Parity/`) reads every `Fixtures/*/oracle-map.json` of the test bundle and fails when an `*.oracle.json` file has no map entry (or the reverse), when a (folder, kind) pair has no owner or two, or when an owner's case list differs from the map's cases of its pairs. Each owner is the static case list its suite runs (`TopicListDifferentialTests.allCases`, `HopFormOracleTests.composerCases`…), so a case is owned only if the suite's comparison takes it as an argument. A new oracle therefore fails CI until a suite compares it.
+
+**Second measure.** Opening is necessary, not sufficient (`HFRLinkRouteOracleTests` opens every file of `LOT-002` and `LOT-003` to read their URLs), but a file nobody opens is certainly not compared. Run the whole package suite under `strace` and list the oracle files no test opened:
 
 ```sh
 cd Packages/HFRKit && swift build --build-tests
@@ -36,9 +38,9 @@ grep -v ENOENT /tmp/oracles.strace | grep -oE '"[^"]*/Fixtures/[^"]*\.oracle\.js
 (cd Tests/HFRParsingTests/Fixtures && find . -name '*.oracle.json' | sed 's|^\./||' | sort) | comm -23 - /tmp/opened.txt
 ```
 
-An empty last line means every oracle was opened. Opening is necessary, not sufficient: each suite below compares what it opens, and the per-folder "case list covers the map" tests make CI fail when a new oracle lands without a comparison.
+An empty last line means every oracle was opened. Rerun with `--skip HFRLinkRouteOracleTests` to see the files only the link router opens.
 
-**Before this lot** (`038af84`, 2019 tests passing): 178 of 195 oracles opened. The 17 left out, and what reads them now:
+**Before this lot** (`038af84`, 2019 tests passing): 178 of 195 oracles opened, and 19 compared by no suite: the 17 never opened, plus `LOT-002/R70a` and `R72b`, opened only by the link router (Fable, round 1 on #930). What compares them now:
 
 | Oracles | Kind | Now compared by |
 |---|---|---|
@@ -46,11 +48,18 @@ An empty last line means every oracle was opened. Opening is necessary, not suff
 | `M2-writes/R123b`, `R123d`, `R125`, `R129`, `R133`, `R134`, `R140` | group MP thread pages (#336, #507) | `MessageBlockOracleTests.matchesOracle`, `TopicPageMetadataOracleTests`; both coverage tests now include `M2-writes` |
 | `M2-writes/R123g` | empty `owntopic=1` list (#109) | `FavoritesDifferentialTests` (sections, rows, order); its coverage test reads the `M2-writes` map too |
 | `LOT-004/R96b` | another account's storage thread | `MPStoragePageParserTests.otherAccountsThreadFollowsOracle` (legacy "not found", the parser's `notAddressed`); `coversEveryStorageOracle` |
-| `LOT-003-settings/R21-sig-noimg-novid`, `R26-sig`, `R28-noimg-novid` | topic pages, other settings (LOT-003) | `MessageContentOracleTests.signaturesFollowTheSettingsOracle`: with `display_sig=yes` the normalizer's signature text equals legacy's `span.signature`; `settingsCasesCoverTheMap` |
+| `LOT-003-settings/R21-sig-noimg-novid`, `R26-sig` | topic pages, `display_sig=yes` (LOT-003) | `MessageContentOracleTests.signaturesFollowTheSettingsOracle`: the normalizer's signature text equals legacy's `span.signature`; `settingsCasesCoverTheMap` |
+| `LOT-003-settings/R28-noimg-novid` | topic page, images and videos off | opened by the same test, only its block count meets the port: its settings are app policies (below) |
+| `LOT-002/R72b` | home page after `unlog.php` without token | `ForumListParserTests.matchesOracle` (whole result) |
+| `LOT-002/R70a` | stale-session home page | `ForumListParserTests.staleSessionPageThrowsWhereLegacyReturnedNothing`: legacy's empty list, the port's `malformed` (LOT-021 rule 9, LESSONS 44) |
 
-**After** (2024 tests passing): **195 of 195** oracles opened, every new comparison passing. Each new test was shown to fail with its change reverted: `W73` dropped from the case list, `R140` dropped from the M2 topic cases, `R123g` dropped from the favourites cases (each caught by its coverage test), and a signature changed by the normalizer (caught on `R26-sig`).
+**After**: **195 of 195** oracles opened and owned, every new comparison passing. Each new test was shown to fail with its change reverted: `W73` dropped from the case list, `R140` dropped from the M2 topic cases, `R123g` dropped from the favourites cases (each caught by its coverage test), a signature changed by the normalizer (caught on `R26-sig`); and `OracleOwnershipTests` fails on the three probes of round 1 (an `mp` case added to `M2-writes`, a `response` case to `M2-readonly`, an oracle file without a map entry in `LOT-002`).
 
-**Not compared, on purpose** (LESSONS 51): the image and video halves of the `LOT-003-settings` oracles. `display_images=no` and `embedded_videos=no` are rendering policies of the app (LOT-107 image loading setting, LOT-108 video placeholder); the engine's `MessageContent` does not depend on them (ADR 0006). Those two lots compare them against these oracles, or say why not, in their own specs.
+**Owned but not compared field by field**, each pinned where it is owned:
+- `LOT-002/R73b` (favourites, `defaut` theme): `FavoritesDifferentialTests.pendingCases`, #384.
+- `LOT-002/R12`, `R70b` (legacy raised): their own tests in `FavoritesDifferentialTests` check the exception and the port's notice.
+- `LOT-002/R50a` (the search waiting page, a redirect for the list parser): compared as LOT-005 `R50a` by `SmallParsersOracleTests`.
+- `LOT-003-settings/R28-noimg-novid` and the image and video halves of `R21-sig-noimg-novid` (LESSONS 51): `display_images=no` and `embedded_videos=no` are rendering policies of the app (LOT-107 image loading setting, LOT-108 video placeholder; ADR 0006); the engine's `MessageContent` does not depend on them. The two lot specs now name these oracles.
 
 **M3 lots** (the 43 of `tooling/roadmap/milestones.json` "M3"; all closed but LOT-070 itself and LOT-168, which does not gate). Evidence: **O** = differential against a legacy oracle; **C** = captures (no legacy oracle exists: legacy had no such code, or the flow is Swift-only in legacy, LESSONS 52); **S** = on-device store or pure value, no HFR page (its legacy formats are gate B).
 
@@ -111,7 +120,7 @@ The M1 engine lots (LOT-010 to LOT-045, LOT-048) are in M1, not in this table; t
 
 | # | Legacy item | Legacy @ `87fe0d1c` | SwiftHFR | Kept | Tests |
 |---|---|---|---|---|---|
-| B1 | Accounts: generic password `HFR_COMPTES_KEY`, `NSKeyedArchiver` of `[{PSEUDO, PSEUDO_DISPLAY, COOKIES, HASH, AVATAR, MAIN}]` | `Classes/MultisManager.m:37, 44` | LOT-065 `CredentialStore` (Keychain on Darwin) | imported (LOT-067 step 1) | `LegacyImporterTests`, `CredentialStoreTests`; `LegacyAccountArchiveTests` (Darwin only) |
+| B1 | Accounts: generic password `HFR_COMPTES_KEY`, `NSKeyedArchiver` of `[{PSEUDO, PSEUDO_DISPLAY, COOKIES, HASH, AVATAR, MAIN}]` | `Classes/MultisManager.m:44` (read), `:49-86` (write) | LOT-065 `CredentialStore` (Keychain on Darwin) | imported (LOT-067 step 1) | `LegacyImporterTests`, `CredentialStoreTests`; `LegacyAccountArchiveTests` (Darwin only) |
 
 **`Documents/`**
 
@@ -130,7 +139,7 @@ The M1 engine lots (LOT-010 to LOT-045, LOT-048) are in M1, not in this table; t
 | # | Legacy item | Legacy @ `87fe0d1c` | SwiftHFR | Kept | Tests |
 |---|---|---|---|---|---|
 | B9 | Preferences of `AppSettingsView` and `Common.swift` (`vos_sujets` … `rehost_resize_before_upload`, the LOT-060 catalogue) | `HFRswift/Swift/AppSettingsView.swift`, `Common.swift:33-284, 408-556`, `ReplyService.swift:1836-1837` | LOT-060 `SettingKey`, same names | in place | `SettingKeyTests.keysAreUniqueAndKeepTheirLegacyNames`, `UserDefaultsSettingsStoreTests` |
-| B10 | `size_text_topics`, `size_text`, `size_text_reply` (mirrors of `text_size_scale`) | `HFRswift/Swift/AppSettingsView.swift:357-359` | `text_size_scale` / `text_size_percent` | migrated once at launch (`LegacySettingsNormalizer`) | `LegacySettingsNormalizerTests` |
+| B10 | `size_text_topics`, `size_text`, `size_text_reply` (mirrors of `text_size_scale`) | `HFRswift/Swift/AppSettingsView.swift:357-359` | `text_size_scale` / `text_size_percent` | `size_text_topics` migrated once at launch and removed (`LegacySettingsNormalizer`); `size_text` and `size_text_reply` not kept: write-only mirrors, `text_size_scale` (B9) holds the value | `LegacySettingsNormalizerTests` |
 | B11 | `force_manual_theme` and the other deprecated theme keys | `HFRswift/Swift/Common.swift:416, 448` | removed at launch, as legacy did (`SettingKey.deprecatedKeys`) | not kept (legacy removed them) | `LegacySettingsNormalizerTests` |
 | B12 | `SuperFavoritesIds` | `HFRswift/Swift/Favorites.swift:133` | LOT-064 `SuperFavoritesStore` through `LegacyPendingStore` (decision D2) | imported (step 3) | `LegacyFormatsTests`, `LegacyPendingStoreTests` |
 | B13 | `CollapsedFavoriteSectionIDs` | `HFRswift/Swift/Favorites.swift:160` | LOT-064 `FavoritesLayoutStore` | imported (step 4) | `LegacyFormatsTests`, `FavoritesLayoutStoreTests` |
@@ -140,7 +149,7 @@ The M1 engine lots (LOT-010 to LOT-045, LOT-048) are in M1, not in this table; t
 | B17 | `reply_drafts_by_topic_v1` (archived replies) | `HFRswift/Swift/AnswerView.swift:139` | LOT-101 archived replies start empty | **not imported** (operator decision D1, 2026-11-09, #92; GAP row of LOT-067) | — (no SwiftHFR code reads the key) |
 | B18 | `brouillon` | `Classes/AddMessageViewController.m:69` (legacy `SuperHFRplus` target only) | `DraftContext.legacyGlobal` | imported (step 8) | `LegacyImporterTests`, `LegacyListsDraftsSamplesTests` |
 | B19 | `mpstorage_active` | `Classes/BlackList.m:39`, `Classes/MPStorage.m:83` | read once into the import report; LOT-130 makes it each account's record (ADR 0013 §7) | read (step 9) | `LegacyImporterTests` |
-| B20 | `mpstorage_last_rw` | `Classes/MPStorage.m:975` | `SettingKey.mpStorageLastSync`, same name | in place | `SettingKeyTests.keysAreUniqueAndKeepTheirLegacyNames` |
+| B20 | `mpstorage_last_rw` | `Classes/MPStorage.m:975-976`: written with `registerDefaults:`, so never persisted (E §7) | `SettingKey.mpStorageLastSync`, same name, persisted now | nothing to keep: absent from the legacy plist | `SettingKeyTests.keysAreUniqueAndKeepTheirLegacyNames` |
 | B21 | `dicMPStorage_postid` (storage thread id per pseudo) | `Classes/MPStorage.m:84-85` | LOT-052 `MPStorageCopy.postID` | not kept: a cache, found again by the MP list walk (LOT-052) | `MPStorageCopyStoreTests`, `MPStorageListWalkTests` |
 | B22 | `nb_mp`, `nb_mp_failure` | `Classes/HFRplusAppDelegate.m:221-222, 251-255` | LOT-091 `NotificationLedger` per account; the badge is read again from the home page (LOT-047) | not kept: counters, rebuilt by the next poll | `NotificationLedgerTests` |
 | B23 | `nb_aq`, `last_check_aq` | `HFRswift/Swift/AQPlusView.swift:30, 42` | the AQ feed's "new since" (LOT-055 engine; storage in the app, LOT-133, open, M4) | not kept: the count is recomputed from the feed | `AQClientTests` (count) |
@@ -156,15 +165,18 @@ The M1 engine lots (LOT-010 to LOT-045, LOT-048) are in M1, not in this table; t
 |---|---|---|---|---|---|
 | B29 | `cache/avatars/<MD5 of the pseudo>` | `HFRswift/Wrapped/ParseMessagesOperation.m:124`, `HFRswift/Swift/MPListView.swift:929`, pruned at `Classes/HFRplusAppDelegate.m:544` | LOT-066 `AvatarCache` reads legacy names (`LegacyAvatarName`) | in place | `AvatarCacheTests` |
 | B30 | `cache/topic-*.htm` (rendered pages) | `HFRswift/Swift/Common.swift`, `Classes/OfflineStorage.m` (LOT-067 table) | removed (rebuildable) | removed once (step 10) | `LegacyPageCacheTests` |
+| B31 | the bundle's CSS and JS copied into `cache/` at every launch | `Classes/HFRplusAppDelegate.m:84`, `Classes/OfflineStorage.m:439` | none: no SwiftHFR code reads `Caches/cache/` files other than avatars (B29) | not kept: left in `Caches`, which the system may purge; nothing reads them | — |
 
 **System**
 
 | # | Legacy item | SwiftHFR | Kept |
 |---|---|---|---|
-| B31 | `HTTPCookieStorage.shared` | each account's own jar (LOT-042) from its Keychain record (B1) | not kept: the record holds the cookies |
-| B32 | `BGTaskScheduler` id `com.hfrplus.refresh_mp` | app, LOT-140 (open, M4) | identifier to declare again |
+| B32 | `HTTPCookieStorage.shared` | each account's own jar (LOT-042) from its Keychain record (B1) | not kept: the record holds the cookies |
+| B33 | `BGTaskScheduler` id `com.hfrplus.refresh_mp` | app, LOT-140 (open, M4) | identifier to declare again |
+| B34 | alternate app icon (`setAlternateIconName`, `HFRswift/Swift/AppSettingsView.swift:224`) | held by iOS, not by the app; the `icon` key (B9) names it and the app keeps the legacy names (`App/SwiftHFR/Settings/AppIconOption.swift:89-90`) | system state, not migrated: to observe on LOT-158's install-over check (#248) |
+| B35 | notification authorization (`HFRswift/Swift/MPBackgroundService.swift:50`) | held by iOS for the bundle id | system state, not migrated: to observe on LOT-158's install-over check (#248) |
 
-**Open on this gate**: B1's decode of a real legacy archive on a device is the LOT-067 Mac check M1 (pending capture, on LOT-158's install-over test, #248); B23 and B32 belong to open app lots (LOT-133, LOT-140). None is engine work.
+**Open on this gate**: B1's decode of a real legacy archive on a device is the LOT-067 Mac check M1 (pending capture, on LOT-158's install-over test, #248); B23 and B33 belong to open app lots (LOT-133, LOT-140). None is engine work.
 
 **State: 🟢 green for the engine**, with the three app-side rows above tracked on their lots.
 
@@ -172,18 +184,18 @@ The M1 engine lots (LOT-010 to LOT-045, LOT-048) are in M1, not in this table; t
 
 The write chapter of [HFR-PROTOCOL](../HFR-PROTOCOL.md) gets §3.4 "Write gates": one row per state-changing request the engine sends, with the capture of its request, the answer that confirms it, the refusals captured, what is not captured, and the engine lot and tests. Its facts are the §6c and §7 entries it links: nothing new is claimed.
 
-**Rule for a row to be green**: the request body is checked against a captured request (or legacy's body written out), the success answer is captured and confirmed by its own sentence or code, the session refusal is captured, and an answer that matches none of the captured ones is never read as a success (LOT-037's classifier and each flow's own check).
+**Rule for a row to be green**: the request body is checked against a captured request (or legacy's body written out); the success answer is captured and confirmed by its own sentence or code; a missing session is either captured as a refusal or, where HFR answers it like a success or it is not captured, made impossible by a session check before sending (named test); and an answer that matches none of the captured ones is never read as a success (LOT-037's classifier and each flow's own check).
 
 **State: 🟢 green** for every row; each row's "Not captured" cell lists the residual unknowns, none of which can turn into a false success.
 
 ## Edge cases
 
-- A new oracle folder or a new map entry: the coverage test of its kind fails until a comparison reads it. A new kind of oracle with no suite fails nothing in CI: the `strace` measurement above finds it; run it at each gate review.
-- `R73b` (favourites on the `defaut` theme) is opened but not compared (`FavoritesDifferentialTests.pendingCases`, #384): a known deviation, tracked there.
+- A new oracle folder, kind or case, or an oracle file without a map entry: `OracleOwnershipTests` fails until a suite's case list takes it.
+- A suite that lists a case but stops comparing a field: not caught by ownership; the suite's own tests and the review are the guard.
 
 ## Fixtures
 
-None added: every oracle and capture already exists. The new tests read `LOT-003-settings`, `LOT-004`, `M2-misc` and `M2-writes`.
+None added: every oracle and capture already exists. The new tests read `LOT-002`, `LOT-003-settings`, `LOT-004`, `M2-misc` and `M2-writes`.
 
 ## Intentional differences from legacy
 
