@@ -40,10 +40,9 @@ struct MessageRowInfoLine: Equatable {
         if minutes < 120 { return "\(max(minutes, 1)) min" }
         let hours = minutes / 60
         if hours < 24 { return "\(hours) h" }
-        let style = Date.FormatStyle()
+        // The locale and the time zone are arguments of the style: its `timeZone(_:)` modifier prints a zone symbol.
+        let style = Date.FormatStyle(locale: Locale(identifier: "fr_FR"), timeZone: TimeZone(identifier: "Europe/Paris") ?? .gmt)
             .day(.twoDigits).month(.twoDigits).year()
-            .locale(Locale(identifier: "fr_FR"))
-            .timeZone(TimeZone(identifier: "Europe/Paris") ?? .gmt)
         return date.formatted(style)
     }
 
