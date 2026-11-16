@@ -23,18 +23,18 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 | | REDFACE, REDFACE Blue | `redface`, `redface-blue` | legacy designs redrawn as SVG (#623) | all year | shipped |
 | | Blue, White | `blue`, `white` | legacy 1024 px art | all year | shipped |
 | | Classique Yellow, Classique Red | `classic`, `classic-red` | legacy designs redrawn as SVG (#623) | all year | shipped |
-| | Classique Blue | `classic-blue` | legacy `HFRswift/Swift/Assets.xcassets/Classic-Blue.appiconset` @ `87fe0d1c` (primary of the `hfrplus-legacy` target) | all year | LOT-190 |
-| | Orange | `orange` | Blue's layout, white HFR on `orange-hfr` | all year | LOT-190 |
+| | Classique Blue | `classic-blue` | legacy `HFRswift/Swift/Assets.xcassets/Classic-Blue.appiconset` @ `87fe0d1c` (primary of the `hfrplus-legacy` target) | all year | shipped (LOT-190) |
+| | Orange | `orange` | Blue's layout, white HFR on `orange-hfr` | all year | shipped (LOT-190) |
 | Beta | Beta | `beta` | legacy art | all year | shipped |
-| | Beta rouge | `beta-red` | the Beta drawing in black on red, strokes slightly thicker | all year | LOT-190 |
-| X-face | X-face, Fierté, Fierté contour, Dégradé clair, Dégradé sombre, Or, Or sur noir, Or contour, Terminal 5250, Négatif, Négatif inversé, Coucher de soleil | `xface-…` | the redface `:o` with variations: Pride flag with **diagonal** stripes (solid face, or strokes only), light and dark gradients after the Swift theme, gold (gold background, gold drawing on black, black outline on gold), green face (Rétro 5250), white on black and black on white, red-to-yellow gradient; the plain « X-face » and the « Coucher de soleil » names are proposals *(names to confirm)*; drawings: `icons-xface.jpg` | all year | LOT-190 |
+| | Beta rouge | `beta-red` | the Beta drawing in black on red, strokes slightly thicker | all year | shipped (LOT-190) |
+| X-face | X-face, Fierté, Fierté contour, Dégradé clair, Dégradé sombre, Or, Or sur noir, Or contour, Terminal 5250, Négatif, Négatif inversé, Coucher de soleil | `xface-…` | the redface `:o` with variations: Pride flag with **diagonal** stripes (solid face, or strokes only), light and dark gradients after the Swift theme, gold (gold background, gold drawing on black, black outline on gold), green face (Rétro 5250), white on black and black on white, red-to-yellow gradient; the plain « X-face » and the « Coucher de soleil » names are proposals *(names to confirm)*; drawings: `icons-xface.jpg` | all year | shipped (LOT-190) |
 | Saisons | Noël REDFACE | `noel-redface` | redface on white with a Santa hat, a fir tree with gifts in a bottom corner | 01/12–26/12 | shipped (LOT-189) |
 | | Noël HFR | `noel-hfr` | the simple HFR icon (white on `orange-hfr`) on fir green, snow on the letters, a garland at the top, a snowman and a gift at the bottom | 01/12–26/12 | shipped (LOT-189) |
-| | Halloween citrouille | `halloween-jack` | the redface turned orange, mouth changed but centred, pumpkin sides and orange gradient | 01/10–31/10 | LOT-190 |
-| | Halloween HFR | `halloween-hfr` | the simple HFR icon with a spider web, a bat and a tiny witch on a broom | 01/10–31/10 | LOT-190 |
-| | Printemps | `spring` | a cherry tree in bloom partly hidden by the redface, dense background | all year | LOT-190 |
-| | Été | `summer` | blue background, a big sun, a small coconut palm in the opposite corner, the redface with sunglasses | all year | LOT-190 |
-| | Hiver | `winter` | the redface with a scarf as on `icons-season.jpg` (operator 15:40: « la précédente était mieux ») | all year | LOT-190 |
+| | Halloween citrouille | `halloween-jack` | the redface turned orange, mouth changed but centred, pumpkin sides and orange gradient | 01/10–31/10 | shipped (LOT-190) |
+| | Halloween HFR | `halloween-hfr` | the simple HFR icon with a spider web, a bat and a tiny witch on a broom | 01/10–31/10 | shipped (LOT-190) |
+| | Printemps | `spring` | a cherry tree in bloom partly hidden by the redface, dense background | all year | shipped (LOT-190) |
+| | Été | `summer` | blue background, a big sun, a small coconut palm in the opposite corner, the redface with sunglasses | all year | shipped (LOT-190) |
+| | Hiver | `winter` | the redface with a scarf as on `icons-season.jpg` (operator 15:40: « la précédente était mieux ») | all year | shipped (LOT-190) |
 
 **Dated icons** are listed only inside their window. At the end of the window the icon stays (a switch must be the user's): on the first launch after the window the app asks once « Revenir à l'icône précédente ? » (decision Q4, 2026-10-28); the buttons [Oui] [Garder] are a proposal *(to confirm)*.
 

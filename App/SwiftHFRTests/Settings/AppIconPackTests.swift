@@ -114,14 +114,31 @@ struct AppIconPackTests {
         #expect(alternates == optionNames, "unregistered: \(extra), unbuilt: \(missing)")
     }
 
-    /// The sources sit next to the tests in the checkout CI builds from; skipped when the tests run without it.
-    @Test func everyOptionHasItsIconBundleInTheSources() throws {
-        let appDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appending(path: "SwiftHFR")
-        try #require(FileManager.default.fileExists(atPath: appDirectory.appending(path: "Settings").path), "sources not found")
+    /// The sources sit next to the tests in the checkout CI builds from; the tests below are off when they run without it.
+    private static let appSources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().appending(path: "SwiftHFR")
+    private static let hasSources = FileManager.default.fileExists(atPath: appSources.appending(path: "Settings").path)
+
+    @Test(.enabled(if: Self.hasSources)) func everyOptionHasItsIconBundleInTheSources() {
         for option in AppIconOption.allCases {
-            let manifest = appDirectory.appending(path: "\(option.iconBundleName).icon").appending(path: "icon.json")
+            let manifest = Self.appSources.appending(path: "\(option.iconBundleName).icon").appending(path: "icon.json")
             #expect(FileManager.default.fileExists(atPath: manifest.path), "no \(option.iconBundleName).icon")
+        }
+    }
+
+    /// #874: the black rim is the real icon, so no appearance of REDFACE 3D Big may bring the red background fill back.
+    @Test(.enabled(if: Self.hasSources)) func redface3DBigBackgroundIsNearBlackInEveryAppearance() throws {
+        let url = Self.appSources.appending(path: "Icon-RedFace3DBig.icon").appending(path: "icon.json")
+        let json = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let specializations = try #require(json["fill-specializations"] as? [[String: Any]])
+        #expect(Set(specializations.compactMap { $0["appearance"] as? String }) == ["dark", "tinted"])
+        #expect(specializations.count == 3, "default, dark and tinted")
+        for specialization in specializations {
+            let fill = try #require(specialization["value"] as? [String: Any])
+            let color = try #require(fill["automatic-gradient"] as? String ?? fill["solid"] as? String)
+            let components = color.drop { $0 != ":" }.dropFirst().split(separator: ",").compactMap { Double($0) }
+            #expect(components.count == 4)
+            #expect(components.prefix(3).allSatisfy { $0 < 0.1 }, "\(color) is not near-black")
         }
     }
 
