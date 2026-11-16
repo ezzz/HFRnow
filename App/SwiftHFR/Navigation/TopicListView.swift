@@ -49,7 +49,7 @@ struct TopicListView: View {
             }
         }
         .densityListMargins()
-        .navigationTitle(model.source.title)
+        .navigationTitle(model.source.navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }

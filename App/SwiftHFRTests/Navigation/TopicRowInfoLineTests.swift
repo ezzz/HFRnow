@@ -52,3 +52,13 @@ struct TopicRowInfoLineTests {
         #expect(TopicRowStyle.current == .legacy)
     }
 }
+
+struct TopicSourceTitleTests {
+    @Test("The Favoris tab's screen is titled Favoris whichever list it shows; the picker keeps the lists' names (#975)")
+    func favorisTabTitle() {
+        #expect(TopicSource.flagged.navigationTitle == "Favoris")
+        #expect(TopicSource.favorites.navigationTitle == "Favoris")
+        #expect(TopicSource.flagged.title == "Drapeaux")
+        #expect(TopicSource.forum(CategoryID.privateMessages, title: "Jeux Video").navigationTitle == "Jeux Video")
+    }
+}
