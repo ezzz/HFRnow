@@ -87,9 +87,16 @@ inside the card above the text, the two pills just under the editor so they move
   back in portrait the choice made before the rotation holds. On the iPad the presentation is unchanged (a `.large` form sheet, no toggle); its top bar is legacy's too. The device decides, not the size class: inside
   an iPad's form sheet the width is compact too (measured, iPad Pro 13" simulator). The operator asked this layout as the new iPhone default (#653, 2026-11-08), an explicit exception to "defaults keep
   the legacy UX" ([UX principles](../FEATURES.md#ux-principles-operator)).
-- **The page behind the partial sheet (operator, 2026-11-10).** It is not dimmed and it scrolls
-  (`presentationBackgroundInteraction(.enabled(upThrough:))`, partial height only), so the message being answered can be read
-  again; its taps and actions are ignored while the composer is open. The reader keeps a set of open composers (reply, edit, the
+- **The page behind the partial composer (operator, 2026-11-10; #853, 2026-11-13).** It is not dimmed and it scrolls, so the
+  message being answered can be read again. With Réglages › Expérimental › « Composer moderne » on (#904, #903; off, the reader's
+  composers stay the sheet they were), in the reader on an iPhone in compact width the composer is not a sheet but a bar
+  docked at the bottom of the page, on the keyboard (`ReaderComposerPresenter`, `ComposerPlacement`; in regular width, a Pro Max
+  in landscape with the list beside the reader, it stays a modal sheet, since the live list could replace the reader): a sheet with
+  `presentationBackgroundInteraction` left the page inert with the keyboard up, because iOS moves a sheet to its largest detent
+  when the keyboard rises (device, 2026-11-13). The page's bottom inset counts the bar and the keyboard, dragging the page down
+  pulls the keyboard down with the finger (`keyboardDismissMode = .interactive`) while the bar stays, the bottom bar is hidden
+  while writing, and "Plein écran" fills the reader with the same composer (navigation bar hidden; the page's insets stay as they
+  were under it). Its taps and actions are ignored while the composer is open. The reader keeps a set of open composers (reply, edit, the
   author menu's MP: `TopicReaderModel.composer(_:isOpen:)`, reported by each presenter from its sheet's state); while one is open
   (`suspendsPageInteractions`) a link, a message menu, a video, a picture, a third-party image placeholder, a selection quote, the
   reply button, a page change, a swipe, "Actualiser" and "Réessayer" (both disabled), "Sondage" (hidden; its sheet could not show
@@ -105,6 +112,16 @@ inside the card above the text, the two pills just under the editor so they move
   (`offersPoll`); "…" overflow "Filtrer les posts", "Rechercher dans le sujet", the offline save entries, "Marquer comme non lu"
   (`offersMarkUnread`) and the page items (all hidden); bottom bar ‹ ›, "N / M", "Répondre" (disabled); the failure banner's
   "Réessayer" (disabled). The model's own actions refuse too (`pollModel`, `markUnread`, `refresh`, `retry`, …).
+- **Margins and icons of the modern composer (#895, operator 2026-11-14; reference: the Claude iOS app).** One shared gap,
+  `FloatingSpacing.gap` (8 pt, operator decision of 2026-11-16 on #820 and #895; #820's end-of-page hint reuses it): between the
+  floating buttons' capsules and the screen's sides, the page above and the text card, at the card's sides and under it down to
+  the keyboard. A capsule's 44 pt hit area is wider than the capsule: its slack counts toward the gap
+  (`ComposerChrome.headerInsets`), so the hit area stays 44 pt; under a 16 pt glyph (the compact density at a text size under
+  100 %) the slack is wider than the gap and is kept. After a banner or the recipient and subject fields, the gap is above the
+  card too (`ComposerChrome.gapAboveCard`). The floating buttons' glyphs take the card tools' size and weight
+  (`ComposerBarMetrics.glyphSize`), and the card's tools and its "Aa" bar keep 44 pt cells at the compact density. Variant D (each tool in a round
+  chip, `ComposerToolStyle`) is the one the build shows until the operator chooses on the device. Legacy's chrome (an iPad, or the
+  option off) keeps its paddings.
 - **Image chips.** An image the panel uploaded and inserted shows as a 56 pt thumbnail (the host's mini rendition, as the panel's
   history) at the top of the card, with an ✕ ("Retirer l'image"). The snippet stays in the text where legacy puts it (at the caret,
   `AnswerView.swift:646-676` @ 2440d79), so what is posted and the draft do not change; the chip shows while its snippet is in the

@@ -5,6 +5,8 @@ import SwiftUI
 struct ComposerLayoutProbe {
     enum Part: Hashable {
         case title, close, drafts, send, card, editor, controls
+        /// The recipient and subject fields; the close button's glyph as drawn (#895).
+        case fields, closeGlyph
     }
 
     let frame: @MainActor (Part, CGRect) -> Void

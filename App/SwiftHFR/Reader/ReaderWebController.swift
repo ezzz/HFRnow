@@ -29,6 +29,10 @@ final class ReaderWebController: NSObject {
     let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
+    /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
+    var dismissesKeyboardInteractively = false {
+        didSet { webView.scrollView.keyboardDismissMode = dismissesKeyboardInteractively ? .interactive : .none }
+    }
     /// What the link menu does outside the web view (`ReaderWebController+LinkMenu`); tests replace it.
     var linkMenuEnvironment = ReaderLinkMenu.Environment.live
     /// The in-app text size: applied to the shown document at once (no reload) and to every next one from its start (LOT-169).
@@ -215,9 +219,7 @@ final class ReaderWebController: NSObject {
             resetWatch.pageReportedPosition()
             events.position(post, document.token)
             return nil
-        case .edge(let atBottom):
-            events.pageEnd(atBottom, document.token)
-            return nil
+        case .edge(let atBottom): return pageEndReported(atBottom, token: document.token)
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil

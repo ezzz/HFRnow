@@ -29,9 +29,9 @@ enum ReaderTabBar {
     }
 }
 
-/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
-/// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
-/// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
+/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the composers
+/// (`ReaderComposerPresenter`). A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its
+/// host wraps it in a `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
 struct TopicReaderView: View {
     let model: TopicReaderModel
     let services: ReaderServices
@@ -49,6 +49,9 @@ struct TopicReaderView: View {
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
     @State private var search: TopicSearchModel?
+    /// The sign-in prompt of the search entry while logged out (#821), and the accounts screen it leads to.
+    @State private var askingSignIn = false
+    @State private var showsAccounts = false
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109); a fresh model per tap.
@@ -98,8 +101,11 @@ struct TopicReaderView: View {
                 LoadFailureBanner(error: error, retry: retry).disabled(model.suspendsPageInteractions)
             }
         }
+        // Inside the composers: above a docked bar, never over it (#853).
+        .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer, search: $search))
@@ -115,6 +121,13 @@ struct TopicReaderView: View {
         .safeAreaBar(edge: .bottom) {
             if bottomPlacement == .inset { ReaderPageStrip(buttons: pageButtons) }
         }
+        .alert("Connexion requise", isPresented: $askingSignIn) {
+            Button("Annuler", role: .cancel) {}
+            Button("Se connecter") { showsAccounts = true }
+        } message: {
+            Text("Connectez-vous pour rechercher dans un sujet.")
+        }
+        .sheet(isPresented: $showsAccounts) { AccountsView() }
         .alert("Aller à la page", isPresented: $askingPage) {
             TextField("Page", text: $pageText).keyboardType(.numberPad)
             Button("Annuler", role: .cancel) {}
@@ -127,12 +140,10 @@ struct TopicReaderView: View {
         .overlay { ReaderMessageMenuAnchor(model: model) }
         .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
         .onChange(of: model.document?.token) { atPageEnd = false }
-        .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
         .sheet(item: $profile, onDismiss: model.applyDisplaySettings, content: { UserProfileView(model: $0, services: services) })
-        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -172,13 +183,15 @@ struct TopicReaderView: View {
         let offered = !model.suspendsPageInteractions
         ReaderOverflowToolbar(
             entries: ReaderOverflow.entries(
-                search: ReaderSearchFlow.isOffered(model: model, composer: composer),
+                search: ReaderSearchFlow.isOffered(model: model, composer: composer, services: services),
                 offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
                 filter: onFilterPosts != nil && offered,
                 pages: pages && offered),
             search: {
-                if let topic = model.page?.topicID, let searcher = composer?.topicSearcher {
-                    search = TopicSearchModel(topic: topic, searcher: searcher)
+                switch ReaderSearchFlow.tap(topic: model.page?.topicID, searcher: composer?.topicSearcher) {
+                case .search(let topic, let searcher): search = TopicSearchModel(topic: topic, searcher: searcher)
+                case .signIn: askingSignIn = true
+                case nil: break
                 }
             },
             offline: AnyView(Group {

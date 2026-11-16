@@ -84,6 +84,7 @@ private struct OfflineReaderScreen: View {
     init(topic: OfflineTopic, model: OfflineTopicsModel, services: ReaderServices) {
         var offlineServices = services
         offlineServices.offline = nil
+        offlineServices.isSavedCopy = true
         offlineServices.positions = nil
         // No write from a saved copy, as no reply (`composer: nil`): "Favoris" is hidden (LOT-125).
         offlineServices.flagActions = nil

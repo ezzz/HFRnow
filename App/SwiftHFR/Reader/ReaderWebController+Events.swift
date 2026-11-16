@@ -32,6 +32,12 @@ extension ReaderWebController {
         var pulled: @MainActor (_ token: Int) -> Void = { _ in }
     }
 
+    /// `reader.js` says whether the page's end is on screen (#820); the page gets no answer.
+    func pageEndReported(_ atEnd: Bool, token: Int) -> Any? {
+        events.pageEnd(atEnd, token)
+        return nil
+    }
+
     /// The pull watcher saw a pull past the end: reported for the document on screen, never under an open composer (#653).
     func pulledPastEnd() {
         guard let document, !ignoresPageTaps else { return }
