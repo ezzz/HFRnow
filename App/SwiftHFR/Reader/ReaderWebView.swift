@@ -53,10 +53,10 @@ struct ReaderUnderBars<Content: View>: View {
         .ignoresSafeArea(Self.ignored(docked: docked))
     }
 
-    /// Bars and banners only, unless a docked composer sits on the keyboard: another keyboard (the "Aller à la page" prompt, a
-    /// composer sheet) must not move the page's insets.
     // EXPERIMENTAL(modernComposer, #904): replaces the keyboard-free insets by ones that count the docked composer's keyboard;
     // `docked` is nil with the option off (`ReaderComposerPresenter`), so nothing changes there.
+    /// Bars and banners only, unless a docked composer sits on the keyboard: another keyboard (the "Aller à la page" prompt, a
+    /// composer sheet) must not move the page's insets.
     static func ignored(docked: DockedComposer?) -> SafeAreaRegions {
         docked == .partial ? [] : .keyboard
     }
