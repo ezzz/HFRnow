@@ -36,6 +36,22 @@ struct ReaderBottomBarTests {
         #expect(!state.showsRefresh && !state.promotesNext)
     }
 
+    /// Issue #961: the "N / M" bubble is its own pill between ‹ › (left) and refresh + reply (right).
+    @Test func thePageBubbleIsItsOwnCentredPill() {
+        let end = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: true, voiceOver: false)
+        #expect(end.leading == [.previous, .next])
+        #expect(end.centre == [.pageBubble])
+        #expect(end.trailing == [.refresh, .reply])
+        #expect(!end.trailing.contains(.pageBubble) && !end.leading.contains(.pageBubble))
+        // VoiceOver mid-page: the same layout, the bubble still apart, with the reply alone on the right.
+        let voiceOver = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: true)
+        #expect(voiceOver.centre == [.pageBubble])
+        #expect(voiceOver.trailing == [.reply])
+        // Mid-page without VoiceOver and without a reply button: arrows only.
+        let mid = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: false, showsReply: false)
+        #expect(mid.centre.isEmpty && mid.trailing.isEmpty)
+    }
+
     /// Issue #649: a Pro Max in landscape is regular width with the tab bar shown: the system bottom bar would sit under it.
     @Test func besideAVisibleTabBarTheControlsAreAStripAboveIt() {
         func placement(root tabBar: Bool, _ sizeClass: UserInterfaceSizeClass, selected: Bool = true) -> ReaderBottomBar.Placement {

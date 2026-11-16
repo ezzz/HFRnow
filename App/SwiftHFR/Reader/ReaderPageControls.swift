@@ -16,15 +16,27 @@ enum ReaderBottomBar {
         var showsRefresh: Bool
         var promotesNext: Bool
         var promotesRefresh: Bool
+        /// The reply button is drawn (setting, login and answer form allow it).
+        var showsReply = true
+
+        /// The three pills, left to right (#961): ‹ › on the left, the "N / M" bubble alone and centred, refresh and reply on
+        /// the right. An empty pill is not drawn, and the bubble keeps its own pill with or without the others.
+        var leading: [Control] { [.previous, .next] }
+        var centre: [Control] { showsPageBubble ? [.pageBubble] : [] }
+        var trailing: [Control] { (showsRefresh ? [.refresh] : []) + (showsReply ? [.reply] : []) }
     }
+
+    /// One control of the bar.
+    enum Control: Equatable { case previous, next, pageBubble, refresh, reply }
 
     /// `atPageEnd`: the page's end is on screen (legacy `isWebContentAtBottom`). VoiceOver users get the bubble everywhere:
     /// hiding it is visual only (#820).
-    static func state(currentPage: Int, maxPage: Int, atPageEnd: Bool, voiceOver: Bool) -> State {
+    static func state(currentPage: Int, maxPage: Int, atPageEnd: Bool, voiceOver: Bool, showsReply: Bool = true) -> State {
         let isLastPage = currentPage >= maxPage
         return State(
             showsPageBubble: atPageEnd || voiceOver, showsRefresh: atPageEnd,
-            promotesNext: atPageEnd && !isLastPage, promotesRefresh: atPageEnd && isLastPage
+            promotesNext: atPageEnd && !isLastPage, promotesRefresh: atPageEnd && isLastPage,
+            showsReply: showsReply
         )
     }
 
@@ -51,16 +63,18 @@ struct ReaderPageControls: ToolbarContent {
                 buttons.next(page, prominent: state.promotesNext)
             }
             .visibilityPriority(.high)
+            // Flexible spacers split the glass into one pill per group (#961): the bubble apart, between two equal gaps.
             ToolbarSpacer(.flexible, placement: .bottomBar)
-            if state.showsPageBubble {
+            if !state.centre.isEmpty {
                 ToolbarItem(placement: .bottomBar) { buttons.bubble(page) }
+                ToolbarSpacer(.flexible, placement: .bottomBar)
             }
-            if state.showsRefresh {
-                ToolbarItem(placement: .bottomBar) { buttons.refreshButton(prominent: state.promotesRefresh) }
-            }
-            if buttons.replySymbol != nil {
-                ToolbarItem(placement: .bottomBar) { buttons.reply() }
-                    .visibilityPriority(.high)
+            if !state.trailing.isEmpty {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    if state.showsRefresh { buttons.refreshButton(prominent: state.promotesRefresh) }
+                    if state.showsReply { buttons.reply() }
+                }
+                .visibilityPriority(.high)
             }
         }
     }
@@ -74,12 +88,17 @@ struct ReaderPageStrip: View {
         if let page = buttons.model.page {
             let state = buttons.state(page)
             HStack {
-                buttons.previous(page)
-                buttons.next(page, prominent: state.promotesNext)
-                Spacer()
-                if state.showsPageBubble { buttons.bubble(page) }
-                if state.showsRefresh { buttons.refreshButton(prominent: state.promotesRefresh) }
-                if buttons.replySymbol != nil { buttons.reply() }
+                HStack {
+                    buttons.previous(page)
+                    buttons.next(page, prominent: state.promotesNext)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if !state.centre.isEmpty { buttons.bubble(page) }
+                HStack {
+                    if state.showsRefresh { buttons.refreshButton(prominent: state.promotesRefresh) }
+                    if state.showsReply { buttons.reply() }
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.glass)
@@ -104,7 +123,10 @@ struct ReaderPageButtons {
     let refresh: @MainActor () async -> Void
 
     func state(_ page: ReaderPage) -> ReaderBottomBar.State {
-        ReaderBottomBar.state(currentPage: page.currentPage, maxPage: page.maxPage, atPageEnd: atPageEnd, voiceOver: voiceOver)
+        ReaderBottomBar.state(
+            currentPage: page.currentPage, maxPage: page.maxPage, atPageEnd: atPageEnd, voiceOver: voiceOver,
+            showsReply: replySymbol != nil
+        )
     }
 
     /// Legacy ‹ opens the previous page at its last message (`navigateToPreviousPageFromBottomButton`, :4960-4964).
