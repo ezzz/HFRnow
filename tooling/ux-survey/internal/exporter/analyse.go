@@ -65,6 +65,14 @@ func LignesAnalyse(q *contenu.Questionnaire, lignes []reponse.Ligne) ([]string, 
 				}
 				continue
 			}
+			if qu.Type == contenu.TypeChoixMult {
+				var codes []string
+				if err := json.Unmarshal(brut, &codes); err != nil {
+					return nil, nil, err
+				}
+				valeurs[id] = strings.Join(codes, " ")
+				continue
+			}
 			var s string
 			if err := json.Unmarshal(brut, &s); err != nil {
 				return nil, nil, err

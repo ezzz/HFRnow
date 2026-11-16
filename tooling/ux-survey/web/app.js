@@ -14,6 +14,7 @@ const TITRES = {
   theme1: "La lecture d'un sujet",
   'theme2-a': 'iPad et iPhone Duo',
   'theme2-b': 'iPad et iPhone Duo',
+  experimental: 'Options en test',
   cartes: 'Quelques idées',
   idee: 'Une idée ?',
   mp: 'Messages privés',
@@ -164,6 +165,8 @@ function champ(id) {
     case 'texte':
     case 'pseudo':
       return champTexte(id, q);
+    case 'choix-multiple':
+      return champMultiple(id, q);
     case 'tri':
       return champTri(id, q);
     default:
@@ -225,6 +228,38 @@ function champChoix(id, q) {
   return fs;
 }
 
+// ---- choix multiple (X1) : cases à cocher, le code exclusif décoche les autres ----
+function champMultiple(id, q) {
+  const fs = h('fieldset', { class: 'question' }, h('legend', {}, q.libelle));
+  if (q.aide) fs.append(h('p', { class: 'aide', id: `${id}-aide` }, q.aide));
+  const groupe = h('div', { class: 'reponses' });
+  const cases = new Map();
+  const efface = boutonEffacer(L.codesCoches(brouillon, id).length > 0, () => {
+    appliquer([]);
+    efface.hidden = true;
+  });
+  function appliquer(codes) {
+    brouillon = L.changerReponse(contenu, brouillon, id, codes);
+    for (const [code, input] of cases) input.checked = codes.includes(code);
+    sauver();
+    majProgression();
+  }
+  const coches = L.codesCoches(brouillon, id);
+  for (const r of q.reponses) {
+    const rid = `${id}-${r.code}`;
+    const input = h('input', { type: 'checkbox', id: rid, value: r.code });
+    input.checked = coches.includes(r.code);
+    input.addEventListener('change', () => {
+      appliquer(L.cocherCode(contenu, id, L.codesCoches(brouillon, id), r.code, input.checked));
+      efface.hidden = L.codesCoches(brouillon, id).length === 0;
+    });
+    cases.set(r.code, input);
+    groupe.append(h('div', { class: 'option' }, h('div', { class: 'choix' }, input, h('label', { for: rid }, r.libelle))));
+  }
+  fs.append(groupe, efface);
+  return fs;
+}
+
 // ---- textes ----
 function champTexte(id, q) {
   const unique = q.type === 'pseudo';
@@ -262,6 +297,15 @@ function champTexte(id, q) {
 }
 
 // ---- tri de la barre latérale (D1) ----
+/** Image d'une carte de L.d1Cartes, servie par le binaire (même origine que les autres visuels) ; null si la section n'en a pas. */
+function vignetteSection(cache, carte) {
+  if (!carte.src) return null;
+  if (!cache.has(carte.code)) {
+    cache.set(carte.code, h('img', { class: 'vignette', src: carte.src, alt: carte.alt, width: 340, height: 76, loading: 'lazy' }));
+  }
+  return cache.get(carte.code);
+}
+
 function champTri(id, q) {
   const fs = h('fieldset', { class: 'question tri' }, h('legend', {}, q.libelle));
   if (q.aide) fs.append(h('p', { class: 'aide' }, q.aide));
@@ -270,6 +314,7 @@ function champTri(id, q) {
   const liste = h('ol', { class: 'sections' });
   const zone = h('fieldset', { class: 'zone-tri' }, h('legend', { class: 'sr-only' }, 'Sections de la barre latérale'), liste);
   const annonce = h('p', { class: 'sr-only', 'aria-live': 'polite' });
+  const vignettes = new Map(); // une image par section, déplacée et non recréée quand l'ordre change
   const efface = boutonEffacer(false, () => {
     brouillon = { ...brouillon, d1: L.d1Vide(contenu) };
     comme.checked = false;
@@ -289,12 +334,18 @@ function champTri(id, q) {
     zone.disabled = d1.comme;
     efface.hidden = !L.d1Repondu(d1);
     liste.replaceChildren();
-    for (const code of L.d1Affichage(d1)) {
+    for (const carte of L.d1Cartes(contenu, d1)) {
+      const code = carte.code;
       const s = q.sections.find((x) => x.code === code);
       const etatActuel = d1.etats[code];
       const li = h('li', { class: 'section' });
       const nom = h('span', { class: 'nom' }, s.libelle);
       li.append(nom);
+      const corps = h('div', { class: 'section-corps' });
+      const vignette = vignetteSection(vignettes, carte);
+      if (vignette) corps.append(vignette);
+      const actions = h('div', { class: 'section-actions' });
+      li.append(corps);
       const groupeEtat = h('div', { class: 'etats', role: 'radiogroup', 'aria-label': `État de ${s.libelle}` });
       for (const e of q.etats) {
         const rid = `D1-${code}-${e.code}`;
@@ -303,7 +354,7 @@ function champTri(id, q) {
         r.addEventListener('change', () => mettre(L.d1ChoisirEtat(brouillon.d1, code, e.code), rid));
         groupeEtat.append(h('div', { class: 'option' }, r, h('label', { for: rid }, e.libelle)));
       }
-      li.append(groupeEtat);
+      actions.append(groupeEtat);
       if (etatActuel === 'garder' || etatActuel === 'deplier') {
         nom.append(t(` (position ${L.d1Rang(d1, code)})`));
         const bouger = (sens, bid) => () => {
@@ -317,8 +368,9 @@ function champTri(id, q) {
         const descendre = h('button', { type: 'button', id: did, class: 'secondaire' }, 'Descendre', h('span', { class: 'sr-only' }, ` ${s.libelle}`));
         monter.addEventListener('click', bouger(-1, mid));
         descendre.addEventListener('click', bouger(1, did));
-        li.append(h('div', { class: 'deplacer' }, monter, descendre));
+        actions.append(h('div', { class: 'deplacer' }, monter, descendre));
       }
+      corps.append(actions);
       liste.append(li);
     }
   }

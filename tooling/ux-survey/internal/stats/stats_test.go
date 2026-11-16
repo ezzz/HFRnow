@@ -38,6 +38,19 @@ func agreger(t *testing.T, reps []map[string]any) stats.Agregats {
 	return stats.Calculer(testutil.Questionnaire(t), lignes(t, reps...))
 }
 
+// X1 : chaque code est compté sur les répondants de la question, donc la somme dépasse 100.
+func TestStatsChoixMultiple(t *testing.T) {
+	var reps []map[string]any
+	reps = append(reps, repetees(3, map[string]any{"X1": []string{"composer_moderne", "choix_images"}})...)
+	reps = append(reps, repetees(1, map[string]any{"X1": []string{"composer_moderne"}})...)
+	reps = append(reps, repetees(1, map[string]any{"X1": []string{"aucune"}})...)
+	reps = append(reps, repetees(5, map[string]any{"P1": "iphone"})...) // sans X1 : hors effectif
+	x := agreger(t, reps).Questions["X1"]
+	if x.Effectif != 5 || x.Codes["composer_moderne"] != 80 || x.Codes["choix_images"] != 60 || x.Codes["aucune"] != 20 || x.Codes["lignes_icones"] != 0 {
+		t.Errorf("X1 : %+v", x)
+	}
+}
+
 // Test 14 : statistiques.
 func TestSeuilGlobal(t *testing.T) {
 	neuf := agreger(t, repetees(9, map[string]any{"P1": "iphone"}))

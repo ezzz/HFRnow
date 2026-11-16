@@ -60,6 +60,10 @@ func Calculer(q *contenu.Questionnaire, lignes []reponse.Ligne) Agregats {
 			if r, ok := calculerChoix(id, qu, lignes); ok {
 				a.Questions[id] = r
 			}
+		case contenu.TypeChoixMult:
+			if r, ok := calculerMultiple(id, qu, lignes); ok {
+				a.Questions[id] = r
+			}
 		case contenu.TypeTri:
 			if r, ok := calculerD1(id, qu, lignes); ok {
 				a.Questions[id] = r
@@ -77,6 +81,33 @@ func calculerChoix(id string, qu contenu.Question, lignes []reponse.Ligne) (Ques
 		if brut, ok := l.Donnees[id]; ok && json.Unmarshal(brut, &code) == nil && slices.Contains(qu.Codes(), code) {
 			comptes[code]++
 			eff++
+		}
+	}
+	if eff == 0 {
+		return Question{}, false
+	}
+	r := Question{Effectif: eff, Codes: map[string]int{}}
+	for _, c := range qu.Codes() {
+		r.Codes[c] = pct(comptes[c], eff)
+	}
+	return r, true
+}
+
+// calculerMultiple compte chaque code sur les répondants de la question : les parts ne s'additionnent pas à 100.
+func calculerMultiple(id string, qu contenu.Question, lignes []reponse.Ligne) (Question, bool) {
+	comptes := map[string]int{}
+	eff := 0
+	for _, l := range lignes {
+		var codes []string
+		brut, ok := l.Donnees[id]
+		if !ok || json.Unmarshal(brut, &codes) != nil || len(codes) == 0 {
+			continue
+		}
+		eff++
+		for _, c := range qu.Codes() {
+			if slices.Contains(codes, c) {
+				comptes[c]++
+			}
 		}
 	}
 	if eff == 0 {

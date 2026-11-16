@@ -92,6 +92,10 @@ label { font-weight: 600; }
 .sections { list-style: none; margin: 0; padding: 0; counter-reset: rang; }
 .section { background: var(--surface); border: 1px solid var(--trait); border-radius: 0.6rem; padding: 0.75rem; margin: 0.6rem 0; }
 .section .nom { font-weight: 700; }
+/* Carte de la section à côté de son état dès que la place le permet, au-dessus sinon. */
+.section-corps { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; margin-top: 0.4rem; }
+.vignette { display: block; width: 21.25rem; max-width: 100%; height: auto; border-radius: 0.5rem; }
+.section-actions { flex: 1 1 14rem; min-width: 0; }
 .etats { margin-top: 0.4rem; }
 .deplacer { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
 

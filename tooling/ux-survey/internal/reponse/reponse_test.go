@@ -103,6 +103,52 @@ func TestValidationRefus(t *testing.T) {
 	}
 }
 
+// X1 : choix multiple, `aucune` exclusif.
+func TestChoixMultipleX1(t *testing.T) {
+	for nom, v := range map[string]any{
+		"aucune avec une autre": []string{"aucune", "choix_images"},
+		"code inconnu":          []string{"composer_moderne", "autre"},
+		"code en double":        []string{"choix_images", "choix_images"},
+		"un seul code (texte)":  "choix_images",
+		"pas des textes":        []int{1},
+	} {
+		_, err := valider(t, map[string]any{"X1": v})
+		var inv *reponse.ErrInvalide
+		if !errors.As(err, &inv) {
+			t.Errorf("X1 %s : doit être refusé, obtenu %v", nom, err)
+		}
+	}
+	lire := func(m map[string]any) []string {
+		n, err := valider(t, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var codes []string
+		_ = json.Unmarshal(n.Donnees["X1"], &codes)
+		return codes
+	}
+	// stockés dans l'ordre de questions.md, quel que soit l'ordre reçu
+	if got := lire(map[string]any{"X1": []string{"choix_images", "composer_moderne"}}); strings.Join(got, ",") != "composer_moderne,choix_images" {
+		t.Errorf("ordre : %v", got)
+	}
+	if got := lire(map[string]any{"X1": []string{"aucune"}}); strings.Join(got, ",") != "aucune" {
+		t.Errorf("aucune seule : %v", got)
+	}
+	// X1 sans condition : gardée quel que soit le profil ; liste vide : absente
+	if got := lire(map[string]any{"P1": "iphone", "X1": []string{"lignes_icones"}}); len(got) != 1 {
+		t.Errorf("iphone : %v", got)
+	}
+	n, err := valider(t, map[string]any{"G1": "x", "X1": []string{}})
+	if err != nil || present(n, "X1") {
+		t.Errorf("liste vide : X1 doit être absente (%v)", err)
+	}
+	// correction d'un répondant (R7) : même validation
+	v := &reponse.Validateur{Q: testutil.Questionnaire(t)}
+	if _, err := v.ValiderUne("X1", json.RawMessage(`["aucune","choix_images"]`)); err == nil {
+		t.Error("ValiderUne : aucune + autre accepté")
+	}
+}
+
 func TestNormalisation(t *testing.T) {
 	n, err := valider(t, map[string]any{
 		"G1":  "  Bonjour\u0000\u0007 tout\r\nle monde\ttab \u202e\u200e\u200f\u061c\u2066",
