@@ -2,7 +2,7 @@ import Foundation
 @testable import SwiftHFR
 import Testing
 
-/// The typed bridge: eight known names, exact shapes, everything else rejected (LOT-087, audit C14).
+/// The typed bridge: nine known names, exact shapes, everything else rejected (LOT-087, audit C14).
 struct ReaderBridgeMessageTests {
     private func decode(_ body: Any) -> Result<ReaderBridgeMessage.Decoded, ReaderBridgeMessage.Failure> {
         do throws(ReaderBridgeMessage.Failure) { return .success(try ReaderBridgeMessage.decode(body)) } catch { return .failure(error) }
@@ -26,6 +26,18 @@ struct ReaderBridgeMessageTests {
             == .success(.init(token: 3, message: .quote(post: 42, text: "tout le monde", bold: false))))
         #expect(decode(["type": "quote", "token": 3, "post": 42, "text": "a\nb", "bold": true])
             == .success(.init(token: 3, message: .quote(post: 42, text: "a\nb", bold: true))))
+        #expect(decode(["type": "edge", "token": 3, "bottom": true])
+            == .success(.init(token: 3, message: .edge(atBottom: true))))
+        #expect(decode(["type": "edge", "token": 3, "bottom": false])
+            == .success(.init(token: 3, message: .edge(atBottom: false))))
+    }
+
+    /// Issue #820: the end of the page is a real boolean, nothing else; it is no tap, so an open composer lets it through.
+    @Test func thePageEndNeedsARealBooleanAndIsNoTap() {
+        #expect(decode(["type": "edge", "token": 3]) == .failure(.invalidPayload))
+        #expect(decode(["type": "edge", "token": 3, "bottom": NSNumber(value: 1)]) == .failure(.invalidPayload))
+        #expect(decode(["type": "edge", "token": 3, "bottom": "true"]) == .failure(.invalidPayload))
+        #expect(!ReaderBridgeMessage.edge(atBottom: true).isTapAction)
     }
 
     @Test func aQuoteNeedsAMessageANonBlankTextOfBoundedSizeAndARealBoolean() {

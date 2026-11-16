@@ -22,8 +22,8 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 
 ## Behaviour
 
-- **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes eight names (`images`, `tap`, `ready`, `video`, `menu`, `position` since LOT-111, `quote` since LOT-086
-  and `image` since LOT-109) into
+- **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes nine names (`images`, `tap`, `ready`, `video`, `menu`, `position` since LOT-111, `quote` since LOT-086,
+  `image` since LOT-109 and `edge` since #820) into
   `ReaderBridgeMessage`; an unknown name, a body that is not an object, a non-integer or boolean number, a missing field, a post
   below 1 or an unknown `source` is rejected whole (nothing is partly read). The page never supplies code or a selector.
 - **Menu button.** Each non-continuation message draws a `+` button (`data-menu="message"`) when an action of the message menu has
@@ -90,7 +90,7 @@ Known cost: `LiveTopicPageSource.parse` reads the page once more for `MessageAct
 point returning blocks and actions from one document); an engine change is out of this lot. If the counts of blocks and action sets
 ever differ, no message offers an action.
 
-Known limits left open (review round 3, minor): when a page has no usable final URL, the `⋯` buttons are drawn but Link (the only
+Known limits left open (review round 3, minor): when a page has no usable final URL, the `+` buttons are drawn but Link (the only
 handler) has nothing to copy and the tap opens nothing; the bridge caps images at 5 000 like `ReaderWebController.maximumImages`
 (two constants); the leak test copies the view's wiring.
 

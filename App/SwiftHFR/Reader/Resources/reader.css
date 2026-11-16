@@ -58,9 +58,11 @@
 /* -apple-system-body follows the user's Dynamic Type size inside WKWebView; --text-scale is the in-app text size (LOT-169),
    set on <html> by the app (ReaderWebController.textScale), live. Everything below sizes in em, so it all follows. */
 html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
+/* The page ends `FloatingSpacing.gap` above the floating bottom bar (operator, #820, 2026-11-16: one gap with the composer's,
+   #895), set on <html> by the builder. */
 body {
   font-size: calc(var(--text-scale, 1) * 1rem);
-  margin: 0; padding: 0 0 2em; color: var(--text); background: var(--background); overflow-wrap: anywhere;
+  margin: 0; padding: 0 0 var(--floating-gap, 8px); color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
 a { color: var(--action); }
 /* Full Keyboard Access and switch users (LOT-163): the page had no focus ring. Shown for keyboard focus only. */
@@ -151,6 +153,9 @@ button.image-tap, button.video {
 .videos { margin-top: 0.5em; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
 
+/* The pull-to-refresh hint of the reader's pages (#820): `FloatingSpacing.gap` under the last message, small and almost tone on
+   tone, in the flow, so at rest it shows above the floating bar, never under it (operator decision of 2026-11-16 on #932). */
+.pull-hint { margin: var(--floating-gap, 8px) 0 0; padding: 0 16px; text-align: center; font-size: 0.75em; line-height: 1.2; color: var(--secondary); opacity: 0.75; }
 /* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }

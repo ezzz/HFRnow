@@ -35,6 +35,9 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var style = ThemeStyle.modern
     /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
     var visibility = VisibilityPolicy.none
+    /// End the page with the pull-to-refresh hint (#820): only the topic and MP reader refreshes on a pull
+    /// (`TopicReaderModel.currentRenderOptions`); "Filtrer les posts" builds its pages without it.
+    var offersPullToRefresh = false
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -71,7 +74,7 @@ enum TopicHTMLBuilder {
         if page.topicID?.category == .privateMessages { options.visibility = options.visibility.withoutOwnHighlights() }
         var html = """
         <!DOCTYPE html>
-        <html lang="fr" data-token="\(token)">
+        <html lang="fr" data-token="\(token)" style="--floating-gap: \(Int(FloatingSpacing.gap))px">
         <head>
         <meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy" content="\(contentSecurityPolicy)">
@@ -92,7 +95,12 @@ enum TopicHTMLBuilder {
                 html += "<div class=\"separator1\"></div>\n"
             }
         }
-        html += "</main>\n</body>\n</html>\n"
+        html += "</main>\n"
+        if options.offersPullToRefresh {
+            // Under the last message, tone on tone, visible at rest (#820, #932). VoiceOver has the "Actualiser" buttons.
+            html += "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>\n"
+        }
+        html += "</body>\n</html>\n"
         return html
     }
 

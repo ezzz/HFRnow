@@ -75,7 +75,7 @@ struct ReaderTextScaleTests: ReaderWebTesting {
         _ = try await evaluate("document.documentElement.style.setProperty('--text-scale', '3'); return true;", in: controller)
         let large = try #require(try await evaluate(measure, in: controller) as? [Double])
         #expect(large[1] <= 2, "author lines at 300 %: \(large)")
-        // The "⋯" button stays a plain tap target (44 pt and up, not a block filling the header), and the default is unchanged.
+        // The "+" button stays a plain tap target (44 pt and up, not a block filling the header), and the default is unchanged.
         #expect(large[2] >= 44 && large[3] >= 44 && large[3] <= 80, "button at 300 %: \(large)")
     }
 

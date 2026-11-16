@@ -152,6 +152,21 @@ struct TopicHTMLBuilderTests {
         #expect(menus.contains("aria-haspopup=\"menu\">auteur</button></span>"))
     }
 
+    /// Issue #820: the page carries the app's one floating gap (8 points), which the stylesheet puts under the last message.
+    @Test func thePageCarriesTheSharedFloatingGap() {
+        #expect(FloatingSpacing.gap == 8)
+        let html = TopicHTMLBuilder.document(for: page([message()]), token: 1)
+        #expect(html.contains("<html lang=\"fr\" data-token=\"1\" style=\"--floating-gap: 8px\">"))
+    }
+
+    /// Issue #820: the pull hint ends a page only when its reader refreshes on a pull ("Filtrer les posts" does not).
+    @Test func thePullHintIsWrittenOnlyWhenAsked() {
+        let hint = "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>"
+        #expect(!TopicHTMLBuilder.document(for: page([message()]), token: 1).contains("pull-hint"))
+        let asked = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(offersPullToRefresh: true))
+        #expect(asked.contains("</main>\n" + hint))
+    }
+
     @Test func theMessageMenuButtonAnnouncesAMenu() {
         let html = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
         #expect(html.contains("aria-haspopup=\"menu\" aria-label=\"Actions du message de auteur\">+</button>"))

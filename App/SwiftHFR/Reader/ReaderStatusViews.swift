@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Moved out of TopicReaderView.swift, which reached SwiftLint's `file_length` with the end-of-page bar (#820).
+// Moved out of TopicReaderView.swift, which reached SwiftLint's `file_length` with the reader chrome of group R (#924).
 /// What the reader shows over its web view while no page is on screen: the first load, its failure, an empty page.
 struct ReaderStateOverlay: View {
     let model: TopicReaderModel
