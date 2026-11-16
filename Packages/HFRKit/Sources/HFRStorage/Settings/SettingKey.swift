@@ -196,6 +196,22 @@ public enum SettingKey {
         key: "season.noel.activeYear", defaultValue: nil, decode: { SettingCoercion.int($0) }, encode: { $0.map { .int($0) } }
     )
 
+    // MARK: Experimental (#903)
+
+    /// `experimental.modernComposer` (new, #903/#904): the compact composer docked on the keyboard on an iPhone. On by default
+    /// until #855 delivers the legacy full-screen composer and flips it, so the app always has a composer. Device-only.
+    public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: true)
+    /// `experimental.searchTab` (new, #903/#896): a fifth tab, Recherche. Device-only.
+    public static let experimentalSearchTab = Setting.bool("experimental.searchTab", default: false)
+    /// `experimental.mpStorageSwitches` (new, #903/#859): one MPStorage switch per function instead of legacy's single one.
+    /// Device-only.
+    public static let experimentalMPStorageSwitches = Setting.bool("experimental.mpStorageSwitches", default: false)
+    /// `experimental.flagIconRows` (new, #903/#905): topic rows with the unread dot and flag icons before the title. Device-only.
+    public static let experimentalFlagIconRows = Setting.bool("experimental.flagIconRows", default: false)
+    /// `experimental.imageLoadingChoice` (new, #903/#902): the Jamais / Wi-Fi uniquement / Toujours choice of image loading.
+    /// Device-only.
+    public static let experimentalImageLoadingChoice = Setting.bool("experimental.imageLoadingChoice", default: false)
+
     // MARK: Legacy keys
 
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
@@ -213,7 +229,8 @@ public enum SettingKey {
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
-        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear
+        seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
+        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

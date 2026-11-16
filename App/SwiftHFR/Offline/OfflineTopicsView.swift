@@ -4,6 +4,7 @@ import SwiftUI
 
 // Port of none @ 2440d79: legacy has no offline list (`OfflineStorage` archives a set no screen shows, `PageViewController.m:154` is
 // the only caller). Entry point and list are LOT-139's choice for GAP-180; the operator confirms the place in the PR.
+// DISABLED(offline, #822): kept for a later design (#846), not reachable
 /// The saved topics: open one to read it without network, swipe to delete, "Tout supprimer", and the size they take.
 struct OfflineTopicsView: View {
     let services: ReaderServices

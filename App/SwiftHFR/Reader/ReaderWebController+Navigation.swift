@@ -30,6 +30,11 @@ extension ReaderWebController: WKNavigationDelegate, WKUIDelegate {
         events.link(url)
     }
 
+    /// The shown document's navigation committed: WebKit resets the scroll view to its top at the next layer-tree commit (#772).
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation?) {
+        pageNavigationCommitted(navigation)
+    }
+
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         contentProcessTerminated()
     }

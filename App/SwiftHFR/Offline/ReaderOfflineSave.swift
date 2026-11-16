@@ -21,7 +21,24 @@ struct ReaderOfflineSave: ViewModifier {
 
     /// Whether the overflow offers it: none under an open composer (#653: the "…" overflow stays shut).
     static func isOffered(model: TopicReaderModel, saver: OfflineSaveModel?) -> Bool {
-        saver != nil && !model.isPrivateConversation && model.page != nil && !model.suspendsPageInteractions
+        isOffered(
+            hasSaver: saver != nil, isPrivate: model.isPrivateConversation, hasPage: model.page != nil,
+            suspended: model.suspendsPageInteractions
+        )
+    }
+
+    /// The reader's saver for `offline`; nil without offline services.
+    static func saver(_ offline: OfflineServices?) -> OfflineSaveModel? {
+        // DISABLED(offline, #822): kept for a later design (#846), not reachable. No saver, so no progress banner either.
+        guard OfflineSaveAvailability.isReachable, let offline else { return nil }
+        return OfflineSaveModel(store: offline.store, fetcher: offline.fetcher)
+    }
+
+    /// The rule of `isOffered(model:saver:)` on its inputs.
+    static func isOffered(hasSaver: Bool, isPrivate: Bool, hasPage: Bool, suspended: Bool) -> Bool {
+        // DISABLED(offline, #822): kept for a later design (#846), not reachable
+        guard OfflineSaveAvailability.isReachable else { return false }
+        return hasSaver && !isPrivate && hasPage && !suspended
     }
 }
 
@@ -32,6 +49,7 @@ extension View {
     }
 }
 
+// DISABLED(offline, #822): kept for a later design (#846), not reachable
 /// The offline save items of the "…" overflow. A view of its own, so `saver.isSaving` is read here and a saved page does not
 /// re-run the reader's body.
 struct ReaderOfflineMenuItems: View {

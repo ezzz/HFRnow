@@ -36,7 +36,10 @@ import Testing
             "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
             "icon_previous", "icon_revert_asked",
             // LOT-166: the two seasonal toggles, new.
-            "season.automatic", "season.animations", "season.noel.activeYear"
+            "season.automatic", "season.animations", "season.noel.activeYear",
+            // #903: the Réglages › Expérimental switches, new.
+            "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
+            "experimental.flagIconRows", "experimental.imageLoadingChoice"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -79,6 +82,12 @@ import Testing
         #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
         #expect(store.value(for: SettingKey.seasonalAnimations))
         #expect(store.value(for: SettingKey.noelActiveYear) == nil)
+        // #903: every experimental switch is off, except the modern composer until #855 delivers the legacy one.
+        #expect(store.value(for: SettingKey.experimentalModernComposer))
+        #expect(!store.value(for: SettingKey.experimentalSearchTab))
+        #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
+        #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
+        #expect(!store.value(for: SettingKey.experimentalImageLoadingChoice))
     }
 
     /// LOT-166: one set of Noël keys per season, named after its year (THEMES.md §5), all empty at first.

@@ -8,8 +8,7 @@ extension ReaderWebController {
     /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
     /// document only jumps there. The page scrolls two frames later, past WebKit's reset to the top (`reader.js`, #642).
     func scroll(to anchor: Int, landing: Bool = false) {
-        let script = "return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);"
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["n": anchor], in: nil, contentWorld: Self.world) }
+        run("return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);", arguments: ["n": anchor])
     }
 
     /// Applies `obscuredInsets`, keeping the content at the bars' edge in place: a banner shown above the page does not hide
@@ -36,8 +35,6 @@ extension ReaderWebController {
     /// reading top, `ReaderInsetsWebTests`), and a native `setContentOffset` at DOMContentLoaded is undone by the new
     /// document's first layout. The page scrolls two frames later, past WebKit's reset to the top (issue #642).
     func scroll(toReadingTop readingTop: CGFloat) {
-        let script = "return window.hfrReader.restoreScroll(y);"
-        let top = Double(max(0, readingTop))
-        Task { _ = try? await webView.callAsyncJavaScript(script, arguments: ["y": top], in: nil, contentWorld: Self.world) }
+        run("return window.hfrReader.restoreScroll(y);", arguments: ["y": Double(max(0, readingTop))])
     }
 }

@@ -154,7 +154,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
         // Issue #642: the scroll view still shows the old document's offset, already 900 under the 100-point bar, when the
         // new one is ready; its reset to the top and the restore come after. Only the new document's own `scrollY`, which
-        // starts at 0, tells that the restore happened.
+        // starts at 0, tells that the restore happened. The restore waits for that reset (#772): sent before it, it was undone
+        // now and then on a loaded runner (restored, then `scrollY` 0 below).
         #expect(await until(async: { abs((await scrollY() ?? -1) - 1000) <= 1 }, timeout: .seconds(30)), "restored scrollY")
         // Still there once the document has finished loading (a late layout must not undo the restore).
         #expect(await settled(controller))
@@ -201,7 +202,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
     /// `documentIsReady`) goes out only once the page says it is hidden, with a probe that waits for two frames sent first. A
     /// load started while already hidden made the test depend on WebKit running a hidden page's load to the end, which a busy
     /// CI simulator did not always do (issue #801); hiding at `ready` raced WebKit's deferred visibility change (Fable on
-    /// #841). Now the restore always reaches a page that draws no frames, and the probe answering would say otherwise.
+    /// #841). Now the restore always reaches a page that draws no frames, and the probe answering would say otherwise. The
+    /// controller's own calls into the page wait for no answer (#772): one pending on the hidden page held the controller.
     @Test func aRestoreWhileHiddenDoesNotKeepTheControllerAlive() async throws {
         weak var weakController: ReaderWebController?
         // Kept outside the controller's scope, so the probe's call stays pending while the controller is released.
