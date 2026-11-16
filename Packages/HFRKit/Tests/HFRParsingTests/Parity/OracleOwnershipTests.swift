@@ -119,12 +119,10 @@ struct OracleOwnershipTests {
         let mapped = try Self.mappedCases()
         // Every `<case>.oracle.json` on disk is a map entry of its folder, and the reverse: no oracle escapes the maps.
         let root = try Self.fixturesRoot()
-        var files = Set<String>()
-        for folder in try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false)) {
-            guard let names = try? FileManager.default.contentsOfDirectory(atPath: root.appending(path: folder).path(percentEncoded: false))
-            else { continue }
-            files.formUnion(names.filter { $0.hasSuffix(".oracle.json") }.map { "\(folder)/\($0.dropLast(".oracle.json".count))" })
-        }
+        // Walked recursively, so an oracle in a nested folder (never read by any map) fails too.
+        let walker = try #require(FileManager.default.enumerator(atPath: root.path(percentEncoded: false)))
+        let suffix = ".oracle.json"
+        let files = Set(walker.compactMap { $0 as? String }.filter { $0.hasSuffix(suffix) }.map { String($0.dropLast(suffix.count)) })
         #expect(files == Set(mapped.map { "\($0.folder)/\($0.id)" }))
         #expect(!mapped.isEmpty)
         for owner in Self.owners {

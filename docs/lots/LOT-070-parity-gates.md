@@ -26,7 +26,7 @@ Three gates. Each says what was measured, how to measure it again, and its state
 
 **Rule.** Every legacy oracle committed under `Packages/HFRKit/Tests/HFRParsingTests/Fixtures/<set>/<case>.oracle.json` is owned by the suite that compares the port's output with it (ADR 0004), or by a test that pins a documented deviation; and every M3 engine lot names the evidence its behaviour is checked against: a legacy oracle, captures, or, for on-device stores, the legacy formats of gate B.
 
-**CI gate.** `OracleOwnershipTests.everyOracleIsOwned` (`Tests/HFRParsingTests/Parity/`) reads every `Fixtures/*/oracle-map.json` of the test bundle and fails when an `*.oracle.json` file has no map entry (or the reverse), when a (folder, kind) pair has no owner or two, or when an owner's case list differs from the map's cases of its pairs. Each owner is the static case list its suite runs (`TopicListDifferentialTests.allCases`, `HopFormOracleTests.composerCases`…), so a case is owned only if the suite's comparison takes it as an argument. A new oracle therefore fails CI until a suite compares it.
+**CI gate.** `OracleOwnershipTests.everyOracleIsOwned` (`Tests/HFRParsingTests/Parity/`) reads every `Fixtures/*/oracle-map.json` of the test bundle and fails when an `*.oracle.json` file has no map entry (or the reverse), when a (folder, kind) pair has no owner or two, or when an owner's case list differs from the map's cases of its pairs. Each owner is the static case list its suite runs (`TopicListDifferentialTests.allCases`, `HopFormOracleTests.composerCases`…), so a case is owned only if the suite's comparison takes it as an argument, except six literals tied to a test of their own: `LOT-002/R50a`, `R12`, `R70b`, `LOT-004/R46`, `W17b`, `LOT-028/T01`. Adding such a literal is visible in review, not blocked by CI. A new oracle therefore fails CI until a suite compares it.
 
 **Second measure.** Opening is necessary, not sufficient (`HFRLinkRouteOracleTests` opens every file of `LOT-002` and `LOT-003` to read their URLs), but a file nobody opens is certainly not compared. Run the whole package suite under `strace` and list the oracle files no test opened:
 
@@ -176,9 +176,9 @@ The M1 engine lots (LOT-010 to LOT-045, LOT-048) are in M1, not in this table; t
 | B34 | alternate app icon (`setAlternateIconName`, `HFRswift/Swift/AppSettingsView.swift:224`) | held by iOS, not by the app; the `icon` key (B9) names it and the app keeps the legacy names (`App/SwiftHFR/Settings/AppIconOption.swift:89-90`) | system state, not migrated: to observe on LOT-158's install-over check (#248) |
 | B35 | notification authorization (`HFRswift/Swift/MPBackgroundService.swift:50`) | held by iOS for the bundle id | system state, not migrated: to observe on LOT-158's install-over check (#248) |
 
-**Open on this gate**: B1's decode of a real legacy archive on a device is the LOT-067 Mac check M1 (pending capture, on LOT-158's install-over test, #248); B23 and B33 belong to open app lots (LOT-133, LOT-140). None is engine work.
+**Open on this gate**: B1's decode of a real legacy archive on a device is the LOT-067 Mac check M1 (pending capture, on LOT-158's install-over test, #248); B23 and B33 belong to open app lots (LOT-133, LOT-140); B34 and B35 are to observe on the same install-over check (#248). None is engine work.
 
-**State: 🟢 green for the engine**, with the three app-side rows above tracked on their lots.
+**State: 🟢 green for the engine**, with the five app or system rows above (B1's Mac check, B23, B33, B34, B35) tracked on their lots.
 
 ### Gate C — write gates (D13)
 
@@ -192,6 +192,7 @@ The write chapter of [HFR-PROTOCOL](../HFR-PROTOCOL.md) gets §3.4 "Write gates"
 
 - A new oracle folder, kind or case, or an oracle file without a map entry: `OracleOwnershipTests` fails until a suite's case list takes it.
 - A suite that lists a case but stops comparing a field: not caught by ownership; the suite's own tests and the review are the guard.
+- `TopicPageFlagOracleTests` compares the flag links of `LOT-003`, `LOT-003-flag`, `M2-readonly` and `M2-misc` topic pages, not of the seven `M2-writes` group threads (their blocks and metadata are compared): not claimed by this gate.
 
 ## Fixtures
 
