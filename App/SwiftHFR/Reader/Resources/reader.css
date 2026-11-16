@@ -42,7 +42,6 @@
     --background: var(--app-dark-background, #000000);
     --separator: var(--app-dark-separator, #38383a);
     --quote-border: #636366;
-    --quote-background: #1c1c1e;
     --action: var(--app-action-dark, #0a84ff);
     --placeholder: var(--app-dark-placeholder, #2c2c2e);
     --love: #4d0831;
@@ -119,7 +118,7 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .style-classic .message .content { padding-top: 8px; }
 /* The legacy body (#819): smaller text, tight blocks. `* { margin: 0 }` of the legacy stylesheet (`style-liste.css:39-47`) leaves
    paragraphs without margin (legacy's `.content br` block rule, `style-liste-light.css:514-519`, is not ported: it did not tighten a blank
-   line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`, which also pads 10 px on the right: the message's own 1em right padding stands for it); lists keep 1em and 2em (`:343-347`). */
+   line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`, which also pads 10 px on the right: the message's own 1em right padding stands for it, about 7 px wider than legacy's 10 px, on purpose: the operator asked for wider margins); lists keep 1em and 2em (`:343-347`). */
 .message .content { font-size: var(--content-em); padding-bottom: 10px; }
 .content p { margin: 0; }
 .content ul, .content ol { margin: 1em 0; padding-left: 2em; }
@@ -133,7 +132,7 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .content img:not(.hfrplusimg), .signature img:not(.hfrplusimg) { vertical-align: middle; }
 
 /* Quotes: div.container > table.citation | table.oldcitation | table.quote. */
-/* Legacy (`style-liste.css:329-334`, `:19-24`, `style-liste-light.css:104-111`): a 2 px left border, no fill, 4 px before the text, 5 px below.
+/* Legacy (`style-liste.css:329-334`, `style-liste-light.css:104-111`): a 2 px left border, no fill, 4 px before the text, 5 px below.
    A gallery theme brings its own quote surface back (last block of this file). */
 table.citation, table.oldcitation, table.quote, table.code, table.fixed {
   width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0 0 5px;

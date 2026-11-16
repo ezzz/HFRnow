@@ -104,7 +104,7 @@ private struct DarkStylePreview: View {
             Text("Une citation").font(.callout)
                 .foregroundStyle(Color(uiColor: appearance.nightAccent.uiColor))
                 .padding(quotePadding).frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .leading) { Rectangle().fill(Color(uiColor: ThemeAppearance.darkSecondaryText.uiColor)).frame(width: 2) }
+                .overlay(alignment: .leading) { Rectangle().fill(Color(uiColor: ThemeColor(hex: 0x636366).uiColor)).frame(width: 2) }
             Rectangle().fill(Color(uiColor: separator.uiColor)).frame(height: 1)
         }
         .padding(padding)
