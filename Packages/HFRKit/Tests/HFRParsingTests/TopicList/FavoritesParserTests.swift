@@ -7,17 +7,21 @@ import Testing
 /// Deliberate deviations are listed in `docs/lots/LOT-024-favourites-parser.md`.
 @Suite("Favourites parser, differential against the LOT-002 oracle")
 struct FavoritesDifferentialTests {
-    /// Every `favorites` case of `Fixtures/LOT-002/oracle-map.json` that legacy parsed (R12 and the stale-session R70b raised).
-    static let cases = ["R10", "R11", "P03c", "P03e", "P03g", "P03i", "P03k", "R73a"]
+    /// Every `favorites` case of the LOT-002 and M2-writes oracle maps that legacy parsed (R12 and the stale-session R70b raised);
+    /// R123g is the empty `owntopic=1` list of #109 (LOT-070 gate A).
+    static let cases = ["R10", "R11", "P03c", "P03e", "P03g", "P03i", "P03k", "R73a", "R123g"]
     /// Parsed by legacy, not yet compared: on the `defaut` theme legacy misses the 27 poll icons (R73b), see ezzz/HFRnow#384.
     static let pendingCases = ["R73b"]
 
     @Test("The case list covers every favourites oracle of the map")
     func coversEveryFavouritesOracle() throws {
-        let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/LOT-002")
-        let map = try JSONDecoder().decode([String: MapEntry].self, from: Data(json.utf8))
-        let names = map.filter { $0.value.kind == "favorites" }.map { String($0.key.dropLast(".html".count)) }
-        #expect(Set(Self.cases + Self.pendingCases + ["R12", "R70b"]) == Set(names))
+        var names = Set<String>()
+        for folder in ["LOT-002", "M2-writes"] {
+            let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)")
+            let map = try JSONDecoder().decode([String: MapEntry].self, from: Data(json.utf8))
+            names.formUnion(map.filter { $0.value.kind == "favorites" }.map { String($0.key.dropLast(".html".count)) })
+        }
+        #expect(Set(Self.cases + Self.pendingCases + ["R12", "R70b"]) == names)
     }
 
     @Test("Page facts and sections match the oracle", arguments: cases)

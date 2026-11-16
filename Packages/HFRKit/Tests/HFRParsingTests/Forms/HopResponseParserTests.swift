@@ -9,15 +9,22 @@ struct HopResponseParserTests {
     static let oracleCases = [
         "W10", "W11", "W11x", "W12", "W13b", "W13c", "W13cx", "W14", "W14x", "W15",
         "W16a", "W16b", "W17a", "W17c", "W19", "W20a", "W20b", "W30", "W31", "W32", "W33",
-        "W34", "W35"
+        "W34", "W35", "W61", "W62", "W63"
     ]
 
-    /// The group roster answers (#507), whose oracles are in `M2-writes/`.
-    static let rosterCases = ["W71", "W72", "W74", "W75", "W76", "W77", "W78"]
+    /// The group answers (#336, #507), whose oracles are in `M2-writes/`.
+    static let rosterCases = ["W71", "W72", "W73", "W74", "W75", "W76", "W77", "W78"]
 
-    @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases + rosterCases)
+    /// The leading-newline create (#557), whose oracle is in `M2-misc/`.
+    static let miscCases = ["W130"]
+
+    /// Response oracles read by their own test: `W17b` (plain text, `badTokenIsRejected`).
+    static let ownTestCases = ["W17b"]
+
+    @Test("Differential: kind, message and anchor follow the legacy oracle", arguments: oracleCases + rosterCases + miscCases)
     func followsOracle(id: String) throws {
-        let folder = Self.rosterCases.contains(id) ? "Fixtures/M2-writes" : "Fixtures/LOT-004"
+        let folder = Self.rosterCases.contains(id) ? "Fixtures/M2-writes"
+            : Self.miscCases.contains(id) ? "Fixtures/M2-misc" : "Fixtures/LOT-004"
         let oracle = try HopResponseOracle.load(id, subdirectory: folder)
         let response = try HopResponseParser.classify(html: oracle.html)
         let legacyKind = try #require(oracle.legacy["classification"] as? String)
@@ -303,5 +310,22 @@ struct HopResponseParserTests {
     func emptyHop() throws {
         let response = try HopResponseParser.classify(html: page(head: refresh, hop: ""))
         #expect(response == HopResponse(kind: .unrecognized))
+    }
+}
+
+/// LOT-070 gate A: no write-answer oracle lands without a comparison.
+@Suite("Hop response oracle coverage")
+struct HopResponseOracleCoverageTests {
+    @Test("The case lists cover every response oracle of the maps (LOT-070 gate A)")
+    func casesCoverEveryResponseOracle() throws {
+        var mapped = Set<String>()
+        for folder in ["LOT-004", "M2-writes", "M2-misc"] {
+            // LOT-004's `find` entries have no `path`, so the map is read untyped.
+            let json = try Fixture.text("oracle-map", extension: "json", subdirectory: "Fixtures/\(folder)")
+            let map = try #require(try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: [String: Any]])
+            mapped.formUnion(map.filter { $0.value["kind"] as? String == "response" }.keys.map { $0.replacing(".html", with: "") })
+        }
+        #expect(mapped == Set(HopResponseParserTests.oracleCases + HopResponseParserTests.rosterCases + HopResponseParserTests.miscCases
+            + HopResponseParserTests.ownTestCases))
     }
 }

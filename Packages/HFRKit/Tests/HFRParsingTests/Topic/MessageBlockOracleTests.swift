@@ -17,8 +17,13 @@ struct MessageBlockOracleTests {
     static let allCases = cases + m2Folders.keys.sorted()
 
     /// The M2 topic captures (#475) and the `Fixtures` folder of their oracle: R122a locked topic, logged in; R122c and R122d
-    /// topic pages reached from a search (filter checked, filter off); R130a MP thread whose first message starts with a newline.
-    static let m2Folders = ["R122a": "M2-readonly", "R122c": "M2-readonly", "R122d": "M2-readonly", "R130a": "M2-misc"]
+    /// topic pages reached from a search (filter checked, filter off); R130a MP thread whose first message starts with a newline;
+    /// the group MP threads of #336 and #507 (owner and member views, the "Modération" posts after a roster change; LOT-070 gate A).
+    static let m2Folders = [
+        "R122a": "M2-readonly", "R122c": "M2-readonly", "R122d": "M2-readonly", "R130a": "M2-misc",
+        "R123b": "M2-writes", "R123d": "M2-writes", "R125": "M2-writes", "R129": "M2-writes", "R133": "M2-writes",
+        "R134": "M2-writes", "R140": "M2-writes"
+    ]
 
     /// Filtered search pages (`filter=1`): legacy's `dicoHTML` starts with the link back to the unfiltered topic (difference 8).
     static let filteredSearchCases: Set = ["R122c"]
@@ -26,7 +31,7 @@ struct MessageBlockOracleTests {
     @Test("The case list matches the oracle map")
     func coversEveryOracle() throws {
         var mapped = Set<String>()
-        for folder in [nil, "M2-readonly", "M2-misc"] {
+        for folder in [nil, "M2-readonly", "M2-misc", "M2-writes"] {
             let map = try TopicOracle.loadMap(folder: folder)
             mapped.formUnion(map.filter { $0.value.kind == "topic" }.keys)
         }
