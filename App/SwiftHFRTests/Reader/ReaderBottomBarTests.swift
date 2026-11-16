@@ -74,6 +74,46 @@ struct ReaderBottomBarTests {
         #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
     }
 
+    /// A pan gesture already let go: what UIKit hands the watcher at the end of a drag.
+    private final class ReleasedPan: UIPanGestureRecognizer {
+        override var state: UIGestureRecognizer.State {
+            get { .ended }
+            set {}
+        }
+    }
+
+    @MainActor
+    private final class Pulls {
+        var times = 0
+    }
+
+    /// The watcher's gesture action: a release beyond the threshold reports a pull, a shorter one or a drag still under way does not.
+    @Test func theWatcherReportsAPullOnlyWhenTheDragEndsBeyondTheThreshold() {
+        let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.contentSize = CGSize(width: 390, height: 1000)
+        let pulls = Pulls()
+        let watcher = ReaderPullWatcher()
+        watcher.track(scrollView) { pulls.times += 1 }
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold - 1)
+        watcher.panned(ReleasedPan())
+        #expect(pulls.times == 0)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold)
+        watcher.panned(UIPanGestureRecognizer())
+        #expect(pulls.times == 0, "a drag that has not ended does not refresh")
+        watcher.panned(ReleasedPan())
+        #expect(pulls.times == 1)
+    }
+
+    /// Only the topic and MP reader refreshes on a pull: its pages carry the hint, "Filtrer les posts" builds without it.
+    @Test func onlyTheReadersPagesOfferThePull() async {
+        #expect(!ReaderRenderOptions().offersPullToRefresh)
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), source: FakeTopicPages())
+        #expect(reader.currentRenderOptions().offersPullToRefresh)
+        await reader.onAppear()
+        #expect(reader.document?.html.contains("class=\"pull-hint\"") == true)
+    }
+
     @MainActor
     private final class Box {
         var atPageEnd = false

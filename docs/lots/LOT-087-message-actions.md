@@ -25,9 +25,9 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`.
 - **Bridge.** `reader.js` posts `{type, token, …}`. The app decodes six names (`images`, `tap`, `ready`, `video`, `menu`, and `position` since LOT-111) into
   `ReaderBridgeMessage`; an unknown name, a body that is not an object, a non-integer or boolean number, a missing field, a post
   below 1 or an unknown `source` is rejected whole (nothing is partly read). The page never supplies code or a selector.
-- **Menu button.** Each non-continuation message draws a `⋯` button (`data-menu="message"`) when an action of the message menu has
+- **Menu button.** Each non-continuation message draws a `+` button (`data-menu="message"`) when an action of the message menu has
   a handler, and its author becomes a button (`data-menu="avatar"`, legacy: the avatar tap) when an action of the author menu
-  (profile, MP, BL, WL) has one; a menu that could never open draws nothing. The `⋯` instead of the legacy "+" is GAP-051's UX change. The page sends `menu` with the number and one of those
+  (profile, MP, BL, WL) has one; a menu that could never open draws nothing. The button is legacy's "+" (`templatev2.htm:6` @ 87fe0d1c) in the accent colour again: the `⋯` of GAP-051 is withdrawn (operator, #594, 2026-11-15). The page sends `menu` with the number and one of those
   two names; the model checks the document token and that the page holds the message, then asks the registry.
 - **Policy** (pure, `MessageMenuPolicy`): ported from legacy, same order and titles (`Link` stays `Link`). `isOwnMessage`,
   `canBeFavorite` and `canDelete` are derived from `MessageActions` as LOT-031 decides (edit link ⇒ own; flag link ⇒ favourite; edit
@@ -69,9 +69,12 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    picture, or whose picture was refused, shows the monogram of the MP list, so the avatar is always there to tap (issue #595).
    Entries: Profil and MP; Blacklist and Whitelist wait for LOT-118 (#209), which registers their two handlers in
    `TopicReaderView.installMenuActions`. Legacy jumped to the profile screen when a profile link existed (`MessagesView.swift:3610-3616`).
-6. The menu is a popover anchored at the tapped `⋯` (issue #594), titled "Post de <pseudo>"; legacy used a `UIEditMenuInteraction`
-   at the tapped point (`MessagesView.swift:1521-1595`). It is no longer a `confirmationDialog` of the whole reader, which iOS 26
-   and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the
+6. The message menu is the system's horizontal edit-menu callout (`UIEditMenuInteraction` on the web view,
+   `ReaderMessageEditMenu`), anchored at the tapped "+", paging with "›", as legacy (`MessagesView.swift:1249-1251, 2011-2081,
+   2799-2827` @ 87fe0d1c; operator decision of 2026-11-15 on #594). It opens above the button, below it within 40 points of the bars
+   (legacy `popupAnchor`); without a usable anchor it falls back to the right edge under the bars, never the top left. The author
+   menu stays a popover anchored at the author (`ReaderMessageMenuAnchor`; legacy opened a sheet). Neither is a `confirmationDialog`
+   of the whole reader, which iOS 26 and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the
    `menu` message; the decoder keeps it only as finite real numbers (never booleans), within 100 000 points and with no negative
    size, otherwise the menu opens unanchored (middle of the reader), never at a forged place. `reader.js` brings the rectangle to what the user sees
    after a pinch zoom (`visualViewport` offset and scale); the controller adds the top bar

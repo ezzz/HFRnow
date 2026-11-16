@@ -156,9 +156,10 @@ button.image-tap, button.video {
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
 /* The legacy "+" in the accent colour (templatev2.htm:6 @ 87fe0d1c; operator, #594, 2026-11-15). */
 .message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--action); font: inherit; font-size: min(1.4em, 32px); font-weight: 600; line-height: 1; flex: none; }
-/* Below the last message (#820): the system's standard 8-point gap above the bottom bar, no more (the old 2em read as unused
-   space), and the pull-to-refresh hint, almost tone on tone. */
-.pull-hint { margin: 0; padding: 12px 16px 8px; text-align: center; font-size: 0.8em; color: var(--secondary); opacity: 0.75; }
+/* Below the last message (#820): the old 2em bottom padding is gone. The reader's pages end with the pull-to-refresh hint,
+   almost tone on tone, one small line with 4 points above and 8 below (about 26 points in all at the standard size); other
+   pages (the post filter) end flush. The hint stays in the flow: drawing it only in the overscroll area is not done (#924). */
+.pull-hint { margin: 0; padding: 4px 16px 8px; text-align: center; font-size: 0.75em; line-height: 1.2; color: var(--secondary); opacity: 0.75; }
 
 /* Visibility (LOT-117). Legacy style-liste-light.css:177-199, 314-325, 359-390, 606-619 and MessagesView.swift:2397-2410: own
    messages and whitelisted authors get a 2 px bar on the header and on the content, a tint, and a coloured avatar ring; the

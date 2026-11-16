@@ -56,12 +56,13 @@ struct ReaderUnderBarsTests {
         window.isHidden = false
         defer { window.isHidden = true }
         host.view.layoutIfNeeded()
-        for _ in 0..<100 where (seen.insets?.top ?? 0) < 44 || (seen.insets?.bottom ?? 0) < 44 {
+        let statusBar = window.safeAreaInsets.top
+        for _ in 0..<100 where (seen.insets?.top ?? 0) < statusBar + 44 || (seen.insets?.bottom ?? 0) < 44 {
             try await Task.sleep(for: .milliseconds(20))
         }
         let insets = try #require(seen.insets)
-        // At least a bar each (44 points), on top of whatever the window's own safe area adds.
-        #expect(insets.top >= 44, "top: \(insets.top)")
+        // At least a bar each (44 points), on top of what the window's own safe area adds (status bar, Dynamic Island).
+        #expect(insets.top >= window.safeAreaInsets.top + 44, "top: \(insets.top), window: \(window.safeAreaInsets)")
         #expect(insets.bottom >= 44, "bottom: \(insets.bottom)")
     }
 }

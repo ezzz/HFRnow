@@ -22,7 +22,8 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
             editNote: nil, quotedByCount: nil, content: MessageContent(html: "<div style=\"height:\(height)px\">m</div>")
         )
         let page = ReaderPage(topicID: readerTopic, title: "T", currentPage: 1, maxPage: 1, messages: [message])
-        let html = TopicHTMLBuilder.document(for: page, token: token, options: ReaderRenderOptions(showsMessageMenus: true))
+        let options = ReaderRenderOptions(showsMessageMenus: true, offersPullToRefresh: true)
+        let html = TopicHTMLBuilder.document(for: page, token: token, options: options)
         return ReaderDocument(token: token, html: html, anchor: nil, keepsScrollPosition: false)
     }
 

@@ -143,7 +143,8 @@ final class ReaderPullWatcher: NSObject {
         ) >= threshold
     }
 
-    @objc private func panned(_ recognizer: UIPanGestureRecognizer) {
+    /// The pan gesture's action. Internal so a test can hand it a released gesture.
+    @objc func panned(_ recognizer: UIPanGestureRecognizer) {
         // At `.ended` the offset is still the pulled one: the bounce back starts after.
         guard recognizer.state == .ended, let scrollView, Self.isPulledPastEnd(scrollView) else { return }
         pulled()
