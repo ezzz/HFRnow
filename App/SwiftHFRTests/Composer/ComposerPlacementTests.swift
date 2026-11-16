@@ -18,10 +18,12 @@ struct ComposerPlacementTests: ReaderWebTesting {
         #expect(ComposerPlacement.reader(isPhone: isPhone, horizontalSizeClass: width, modernComposer: true) == expected)
     }
 
-    /// The docked bar is the modern composer's (#904): with « Composer moderne » off every reader composer is the sheet it was.
+    /// The docked bar is the modern composer's (#904): with « Composer moderne » off an iPhone's reader composers are legacy's
+    /// full-screen cover (#855, `MessagesView.swift:5429-5443` @ 87fe0d1c) at any width; an iPad keeps its sheet.
     @Test(arguments: [true, false], [UserInterfaceSizeClass.compact, .regular])
-    func withTheModernComposerOffTheReaderKeepsItsSheet(isPhone: Bool, width: UserInterfaceSizeClass) {
-        #expect(ComposerPlacement.reader(isPhone: isPhone, horizontalSizeClass: width, modernComposer: false) == .sheet)
+    func withTheModernComposerOffAnIPhonesReaderShowsLegacysCover(isPhone: Bool, width: UserInterfaceSizeClass) {
+        let expected: ComposerPlacement = isPhone ? .cover : .sheet
+        #expect(ComposerPlacement.reader(isPhone: isPhone, horizontalSizeClass: width, modernComposer: false) == expected)
     }
 
     /// The app's placement reads the switch from `ExperimentalSettings`; without one, the option's default.
@@ -29,11 +31,11 @@ struct ComposerPlacementTests: ReaderWebTesting {
         let isPhone = UIDevice.current.userInterfaceIdiom == .phone
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
         settings.set(.modernComposer, isOn: false)
-        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: settings) == .sheet)
+        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: settings) == (isPhone ? .cover : .sheet))
         settings.set(.modernComposer, isOn: true)
         #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: settings) == (isPhone ? .docked : .sheet))
-        let byDefault = SettingKey.experimentalModernComposer.defaultValue
-        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: nil) == (isPhone && byDefault ? .docked : .sheet))
+        // The default is legacy's (#855): the cover on an iPhone.
+        #expect(ComposerPlacement.reader(horizontalSizeClass: .compact, experimental: nil) == (isPhone ? .cover : .sheet))
     }
 
     @Test func thePageSeesAComposerOnlyWhileItIsDockedAndOpenAtItsHeight() {
@@ -49,6 +51,7 @@ struct ComposerPlacementTests: ReaderWebTesting {
         #expect(ReaderComposerGuard.hidesBottomBar(placement: .docked, composerIsOpen: true))
         #expect(!ReaderComposerGuard.hidesBottomBar(placement: .docked, composerIsOpen: false))
         #expect(!ReaderComposerGuard.hidesBottomBar(placement: .sheet, composerIsOpen: true))
+        #expect(!ReaderComposerGuard.hidesBottomBar(placement: .cover, composerIsOpen: true))
     }
 
     /// The page's web view reads the docked composer from its environment: a drag down on it pulls the keyboard down.
@@ -339,19 +342,42 @@ extension ComposerPlacementTests {
         #expect(host.presentedViewController == nil)
     }
 
+    /// Legacy's cover (#855): the presenter shows the composer full screen (`modalPresentationStyle == .fullScreen`, legacy's
+    /// `coverVerticalFullScreen`), watches its close once and dismisses it.
+    @Test func aCoverComposerIsFullScreenAndClosesOnceThroughItsPresenter() async throws {
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]))
+        let state = PresentedComposer(composer)
+        state.placement = .cover
+        let host = UIHostingController(rootView: DockHost(state: state, seen: SeenInsets()))
+        let window = try #require(Self.window(host))
+        defer { window.isHidden = true }
+        await Self.waitUntil { host.presentedViewController.map { Self.textView(in: $0.view) != nil } ?? false }
+        let presented = try #require(host.presentedViewController)
+        #expect(presented.modalPresentationStyle == .fullScreen)
+        #expect(Self.textView(in: host.view) == nil, "no docked bar")
+        await composer.start()
+        await composer.requestClose()
+        await Self.waitUntil { state.composer == nil && host.presentedViewController == nil }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(state.closes.count == 1, "\(state.closes)")
+        #expect(host.presentedViewController == nil)
+    }
+
     private static func textViews(in view: UIView) -> Int {
         (view is UITextView ? 1 : 0) + view.subviews.reduce(0) { $0 + textViews(in: $1) }
     }
 }
 
-/// The presenter left to the app's rule (no forced placement) with « Composer moderne » off (#904): the reader's composer is the
-/// sheet it was before #853, never the docked bar, on any device.
+/// The presenter left to the app's rule (no forced placement) with « Composer moderne » off (#904), as by default (#855): the
+/// reader's composer is presented, never the docked bar; full screen on an iPhone (legacy's cover), a sheet on an iPad.
 @MainActor
 @Suite(.serialized)
 struct ComposerPlacementSwitchHostedTests {
-    @Test func withTheModernComposerOffTheReaderShowsASheet() async throws {
+    /// `explicit`: the switch set off in the settings, or left at its default.
+    @Test(arguments: [true, false])
+    func withTheModernComposerOffTheReaderShowsLegacysPresentation(explicit: Bool) async throws {
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
-        settings.set(.modernComposer, isOn: false)
+        if explicit { settings.set(.modernComposer, isOn: false) }
         let state = SwitchState(ComposerFixture.model(poster: ScriptedPoster([])))
         let host = UIHostingController(rootView: SwitchHost(state: state).environment(settings))
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
@@ -361,7 +387,9 @@ struct ComposerPlacementSwitchHostedTests {
         window.isHidden = false
         defer { window.isHidden = true }
         for _ in 0..<100 where host.presentedViewController == nil { try await Task.sleep(for: .milliseconds(20)) }
-        #expect(host.presentedViewController != nil, "a sheet")
+        let presented = try #require(host.presentedViewController, "presented")
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        #expect((presented.modalPresentationStyle == .fullScreen) == isPhone, "\(presented.modalPresentationStyle.rawValue)")
         #expect(state.docked == nil, "the page sees no docked composer")
     }
 }

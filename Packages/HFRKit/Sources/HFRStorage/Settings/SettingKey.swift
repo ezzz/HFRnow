@@ -198,9 +198,9 @@ public enum SettingKey {
 
     // MARK: Experimental (#903)
 
-    /// `experimental.modernComposer` (new, #903/#904): the compact composer docked on the keyboard on an iPhone. On by default
-    /// until #855 delivers the legacy full-screen composer and flips it, so the app always has a composer. Device-only.
-    public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: true)
+    /// `experimental.modernComposer` (new, #903/#904): the compact composer docked on the keyboard on an iPhone. Off by default
+    /// since #855 (operator, 2026-11-14): the default is legacy's full-screen composer. Device-only.
+    public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: false)
     /// `experimental.searchTab` (new, #903/#896): a fifth tab, Recherche. Device-only.
     public static let experimentalSearchTab = Setting.bool("experimental.searchTab", default: false)
     /// `experimental.mpStorageSwitches` (new, #903/#859): one MPStorage switch per function instead of legacy's single one.

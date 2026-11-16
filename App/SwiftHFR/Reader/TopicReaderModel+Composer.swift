@@ -54,7 +54,7 @@ struct ReaderComposerGuard: ViewModifier {
             }
             .navigationBarBackButtonHidden(model.suspendsPageInteractions)
             // EXPERIMENTAL(modernComposer, #904): replaces the bottom bar by the docked composer while it is open (#853); with
-            // the option off the placement is a sheet and the bar stays, as before.
+            // the option off the placement is a sheet or legacy's cover and the bar stays, as before.
             .toolbar(hidesBottomBar ? .hidden : .automatic, for: .bottomBar)
     }
 

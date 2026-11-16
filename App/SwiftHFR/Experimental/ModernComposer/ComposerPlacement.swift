@@ -8,23 +8,30 @@ import UIKit
 /// that: iOS moves a sheet to its largest detent when the keyboard rises, and with one detent left the page under it inert
 /// (device, 2026-11-13). The bar's "Plein écran" fills the reader instead (`ComposerHeight.full`).
 ///
-/// Part of the modern composer (#904, Réglages › Expérimental › « Composer moderne », #903): with the option off the reader's
-/// composers stay the sheet they were (#855 builds the legacy full-screen cover there).
+/// Part of the modern composer (#904, Réglages › Expérimental › « Composer moderne », #903). With the option off (the default
+/// since #855) an iPhone's reader composers are legacy's full-screen cover (`MessagesView.swift:5429-5443`,
+/// `coverVerticalFullScreen` @ 87fe0d1c), at any width.
 ///
-/// A sheet elsewhere: on an iPad, and on an iPhone in regular width (a Pro Max in landscape, the list beside the reader), where
-/// the list column stays live beside a docked bar and choosing another topic there would tear the reader down with the
-/// composer in it, mid-send included; a sheet is modal. The lists' composers (a new topic, a new MP) keep their sheet too:
-/// their page has no guard against its taps.
+/// A sheet elsewhere: on an iPad, and, with the option on, on an iPhone in regular width (a Pro Max in landscape, the list beside
+/// the reader), where the list column stays live beside a docked bar and choosing another topic there would tear the reader
+/// down with the composer in it, mid-send included; a sheet is modal. The lists' composers (a new topic, a new MP) keep their
+/// sheet too, as legacy's new topic (`MainWindow.swift:905-921` @ 87fe0d1c): their page has no guard against its taps.
 enum ComposerPlacement: Equatable {
     /// A bar at the bottom of the reader, on the keyboard.
     case docked
     /// A sheet over the reader.
     case sheet
+    /// Legacy's full-screen cover over the reader (#855).
+    case cover
 
     /// The reader's composers: docked on an iPhone whose reader is alone in compact width with the modern composer on
-    /// (`modernComposer`, the switch's value), a sheet otherwise.
+    /// (`modernComposer`, the switch's value); with it off, legacy's cover on an iPhone; a sheet otherwise.
     static func reader(isPhone: Bool, horizontalSizeClass: UserInterfaceSizeClass?, modernComposer: Bool) -> ComposerPlacement {
-        ModernComposer.isActive(isPhone: isPhone, isOn: modernComposer) && horizontalSizeClass == .compact ? .docked : .sheet
+        // EXPERIMENTAL(modernComposer, #904): replaces legacy's full-screen cover (an iPhone) by the docked bar.
+        if ModernComposer.isActive(isPhone: isPhone, isOn: modernComposer) {
+            return horizontalSizeClass == .compact ? .docked : .sheet
+        }
+        return isPhone ? .cover : .sheet
     }
 
     /// The reader's placement on this device at this width, with the switch of `experimental` (its default without one).

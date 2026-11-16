@@ -71,7 +71,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .modernComposer:
             "Sur iPhone, le composer s’ouvre en carte compacte posée sur le clavier, la page restant visible au-dessus, avec des "
-                + "boutons flottants. Désactivé : le composer s’ouvre en pleine hauteur, avec la barre et les boutons classiques."
+                + "boutons flottants. Désactivé : le composer s’ouvre en plein écran, comme l’app historique."
         case .searchTab:
             "Ajoute un onglet Recherche à gauche de Plus (cinq onglets). Désactivé : la barre à quatre onglets de l’app historique."
         case .mpStorageSwitches:

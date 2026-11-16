@@ -82,8 +82,8 @@ import Testing
         #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
         #expect(store.value(for: SettingKey.seasonalAnimations))
         #expect(store.value(for: SettingKey.noelActiveYear) == nil)
-        // #903: every experimental switch is off, except the modern composer until #855 delivers the legacy one.
-        #expect(store.value(for: SettingKey.experimentalModernComposer))
+        // #903: every experimental switch is off; the modern composer too since #855 delivered legacy's.
+        #expect(!store.value(for: SettingKey.experimentalModernComposer))
         #expect(!store.value(for: SettingKey.experimentalSearchTab))
         #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
         #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
