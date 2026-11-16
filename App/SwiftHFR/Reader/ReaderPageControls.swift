@@ -96,7 +96,7 @@ struct ReaderPageButtons {
     /// The page's end is on screen (`reader.js` reports it).
     let atPageEnd: Bool
     let voiceOver: Bool
-    /// Opens the "Aller à la page" prompt.
+    /// Opens the "Page numéro" sheet.
     let askPage: () -> Void
     /// The reply button's symbol (`reply_button_behavior`); nil draws no button (hidden setting, logged out, no answer form).
     let replySymbol: String?
@@ -170,7 +170,7 @@ extension View {
 struct ReaderPageMenuItems: View {
     let model: TopicReaderModel
     let maxPage: Int
-    /// Opens the "Aller à la page" prompt.
+    /// Opens the "Page numéro" sheet.
     let askPage: () -> Void
 
     var body: some View {
