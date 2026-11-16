@@ -7,6 +7,20 @@ import UIKit
 struct AppIconPackTests {
     private let calendar = IconTestCalendar.calendar
 
+    private struct Expected {
+        let raw: String
+        let name: String
+        let pack: AppIconPack
+        let dated: Bool
+
+        init(_ raw: String, _ name: String, _ pack: AppIconPack, _ dated: Bool) {
+            self.raw = raw
+            self.name = name
+            self.pack = pack
+            self.dated = dated
+        }
+    }
+
     private func model(
         _ store: InMemorySettingsStore = InMemorySettingsStore(), current: String? = nil, on date: Date
     ) -> AppIconSettingsModel {
@@ -52,26 +66,34 @@ struct AppIconPackTests {
     }
 
     @Test func theLot190IconsHaveTheirRawValueNamePackAndWindow() {
-        let expected: [(String, String, AppIconPack, Bool)] = [
-            ("classic-blue", "Icon-CLASSIC-BLUE", .legacy, false), ("orange", "Icon-ORANGE", .legacy, false),
-            ("beta-red", "Icon-BETA-RED", .beta, false), ("xface", "Icon-XFACE", .xface, false),
-            ("xface-pride", "Icon-XFACE-PRIDE", .xface, false), ("xface-pride-outline", "Icon-XFACE-PRIDE-OUTLINE", .xface, false),
-            ("xface-gradient-light", "Icon-XFACE-GRADIENT-LIGHT", .xface, false),
-            ("xface-gradient-dark", "Icon-XFACE-GRADIENT-DARK", .xface, false), ("xface-gold", "Icon-XFACE-GOLD", .xface, false),
-            ("xface-gold-on-black", "Icon-XFACE-GOLD-ON-BLACK", .xface, false),
-            ("xface-gold-outline", "Icon-XFACE-GOLD-OUTLINE", .xface, false), ("xface-5250", "Icon-XFACE-5250", .xface, false),
-            ("xface-negative", "Icon-XFACE-NEGATIVE", .xface, false),
-            ("xface-negative-inverted", "Icon-XFACE-NEGATIVE-INVERTED", .xface, false),
-            ("xface-sunset", "Icon-XFACE-SUNSET", .xface, false),
-            ("halloween-jack", "Icon-HALLOWEEN-JACK", .season, true), ("halloween-hfr", "Icon-HALLOWEEN-HFR", .season, true),
-            ("spring", "Icon-SPRING", .season, false), ("summer", "Icon-SUMMER", .season, false), ("winter", "Icon-WINTER", .season, false)
+        let expected: [Expected] = [
+            Expected("classic-blue", "Icon-CLASSIC-BLUE", .legacy, false),
+            Expected("orange", "Icon-ORANGE", .legacy, false),
+            Expected("beta-red", "Icon-BETA-RED", .beta, false),
+            Expected("xface", "Icon-XFACE", .xface, false),
+            Expected("xface-pride", "Icon-XFACE-PRIDE", .xface, false),
+            Expected("xface-pride-outline", "Icon-XFACE-PRIDE-OUTLINE", .xface, false),
+            Expected("xface-gradient-light", "Icon-XFACE-GRADIENT-LIGHT", .xface, false),
+            Expected("xface-gradient-dark", "Icon-XFACE-GRADIENT-DARK", .xface, false),
+            Expected("xface-gold", "Icon-XFACE-GOLD", .xface, false),
+            Expected("xface-gold-on-black", "Icon-XFACE-GOLD-ON-BLACK", .xface, false),
+            Expected("xface-gold-outline", "Icon-XFACE-GOLD-OUTLINE", .xface, false),
+            Expected("xface-5250", "Icon-XFACE-5250", .xface, false),
+            Expected("xface-negative", "Icon-XFACE-NEGATIVE", .xface, false),
+            Expected("xface-negative-inverted", "Icon-XFACE-NEGATIVE-INVERTED", .xface, false),
+            Expected("xface-sunset", "Icon-XFACE-SUNSET", .xface, false),
+            Expected("halloween-jack", "Icon-HALLOWEEN-JACK", .season, true),
+            Expected("halloween-hfr", "Icon-HALLOWEEN-HFR", .season, true),
+            Expected("spring", "Icon-SPRING", .season, false),
+            Expected("summer", "Icon-SUMMER", .season, false),
+            Expected("winter", "Icon-WINTER", .season, false)
         ]
         #expect(expected.count == 20)
-        for (raw, name, pack, dated) in expected {
-            let option = AppIconOption(rawValue: raw)
-            #expect(option?.alternateIconName == name, "\(raw)")
-            #expect(option?.pack == pack, "\(raw)")
-            #expect((option?.window != nil) == dated, "\(raw)")
+        for row in expected {
+            let option = AppIconOption(rawValue: row.raw)
+            #expect(option?.alternateIconName == row.name, "\(row.raw)")
+            #expect(option?.pack == row.pack, "\(row.raw)")
+            #expect((option?.window != nil) == row.dated, "\(row.raw)")
         }
     }
 
