@@ -15,3 +15,4 @@ enum EngineInfo {
         HFRClient.moduleName
     ]
 }
+let throwawayCompileError: Int = "not an int" // #956 proof, reverted next commit
