@@ -238,7 +238,7 @@ struct AppIconPackTests {
 
     // MARK: Grid layout
 
-    @Test(arguments: [(393.0, 4), (390.0, 4), (402.0, 5), (430.0, 5), (375.0, 4), (320.0, 3), (820.0, 10)])
+    @Test(arguments: [(393.0, 4), (390.0, 4), (402.0, 4), (430.0, 5), (375.0, 4), (320.0, 3), (820.0, 10)])
     func theGridFitsFourColumnsOnA61InchPhone(width: Double, columns: Int) {
         #expect(AppIconGridLayout.columnCount(screenWidth: CGFloat(width)) == columns)
     }
@@ -246,6 +246,7 @@ struct AppIconPackTests {
     @Test func aThumbnailIsTheHomeScreenSizeAndTheCellKeepsA44ptTarget() {
         #expect(AppIconGridLayout.iconSide == 60)
         #expect(AppIconGridLayout.minimumCell >= 44)
-        #expect(AppIconGridLayout.iconSide <= AppIconGridLayout.minimumCell)
+        // The cell is the thumbnail plus its 4 pt padding on each side (the selection ring).
+        #expect(AppIconGridLayout.iconSide + 8 <= AppIconGridLayout.minimumCell)
     }
 }

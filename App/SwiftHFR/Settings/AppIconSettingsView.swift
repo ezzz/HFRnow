@@ -4,27 +4,6 @@ import SwiftUI
 // Port of HFRswift/Swift/AppSettingsView.swift (icon Picker, lines 360-365, `applyIconSelection` 213-224) @ 87fe0d1c. Differences:
 // a screen behind the "Icône" row (LOT-119 shell) instead of an inline picker; the checked icon follows the system's current icon;
 // a grid by pack with a preview of every icon (GAP-148, LOT-189).
-/// The picker grid's metrics (operator 2026-11-16: thumbnails at the Home Screen size, 4 per row on a 6.1" iPhone).
-enum AppIconGridLayout {
-    /// The preview's side: the Home Screen icon size.
-    static let iconSide: CGFloat = 60
-    static let minimumCell: CGFloat = 64
-    static let maximumCell: CGFloat = 84
-    static let columnSpacing: CGFloat = 12
-    /// The screen's side padding (`AppIconSettingsView`).
-    static let sidePadding: CGFloat = 16
-
-    /// How many columns SwiftUI's adaptive grid fits in a content `width`.
-    static func columnCount(contentWidth width: CGFloat) -> Int {
-        max(1, Int(((width + columnSpacing) / (minimumCell + columnSpacing)).rounded(.down)))
-    }
-
-    /// The columns for a screen of `screenWidth` points.
-    static func columnCount(screenWidth: CGFloat) -> Int {
-        columnCount(contentWidth: screenWidth - 2 * sidePadding)
-    }
-}
-
 /// The "Icône" settings screen (LOT-123, packs and previews LOT-189).
 struct AppIconSettingsView: View {
     @State private var model: AppIconSettingsModel
@@ -114,4 +93,26 @@ private struct AppIconCell: View {
 
 #Preview("Icône") {
     NavigationStack { AppIconSettingsView(store: InMemorySettingsStore()) }
+}
+
+/// The picker grid's metrics (operator 2026-11-16: thumbnails at the Home Screen size, 4 per row on a 6.1" iPhone).
+enum AppIconGridLayout {
+    /// The preview's side: the Home Screen icon size.
+    static let iconSide: CGFloat = 60
+    /// The thumbnail with its 4 pt padding (the selection ring) plus nothing else: `iconSide + 8`.
+    static let minimumCell: CGFloat = 68
+    static let maximumCell: CGFloat = 84
+    static let columnSpacing: CGFloat = 12
+    /// The screen's side padding (`AppIconSettingsView`).
+    static let sidePadding: CGFloat = 16
+
+    /// How many columns SwiftUI's adaptive grid fits in a content `width`.
+    static func columnCount(contentWidth width: CGFloat) -> Int {
+        max(1, Int(((width + columnSpacing) / (minimumCell + columnSpacing)).rounded(.down)))
+    }
+
+    /// The columns for a screen of `screenWidth` points.
+    static func columnCount(screenWidth: CGFloat) -> Int {
+        columnCount(contentWidth: screenWidth - 2 * sidePadding)
+    }
 }
