@@ -100,6 +100,7 @@ struct TopicHTMLBuilderTests {
         #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("quoted-bubble"))
         quiet.quotedByCount = nil
         #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("quoted-bubble"))
+        #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("<footer class=\"trailer\">"))
     }
 
     /// Port of `LinkItem.m:237-238` @ 87fe0d1c without its link: where `quote_only=1` leads is not captured (#126), so the

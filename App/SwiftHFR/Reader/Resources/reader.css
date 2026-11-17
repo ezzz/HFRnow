@@ -132,7 +132,7 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
    @ 87fe0d1c), drawn in CSS instead of the `08-chat.png` image so it follows every theme. Not a tap target: the page it led to is not captured. */
 .trailer { display: flex; align-items: flex-end; }
 .quoted-bubble {
-  margin-left: auto; min-width: 1.6em; box-sizing: border-box; padding: 0.15em 0.5em; border-radius: 0.9em 0.9em 0.9em 0.2em;
+  margin: 0.25em 0 0 auto; min-width: 1.6em; box-sizing: border-box; padding: 0.15em 0.5em; border-radius: 0.9em 0.9em 0.9em 0.2em;
   background: var(--secondary); color: var(--background); font-weight: 600; font-size: 0.9em; line-height: 1.3; text-align: center;
 }
 
