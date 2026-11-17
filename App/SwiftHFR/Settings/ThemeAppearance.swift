@@ -23,6 +23,9 @@ struct ThemeAppearance: Equatable, Sendable {
     var themeVariants: ThemeDefinition.Variants?
     /// The theme's text design (LOT-188); `.default` for Legacy.
     var themeFontDesign = ThemeDefinition.FontDesign.default
+    /// The theme's decorations id (`decorations` of its file), drawn behind every screen; nil for none. Only Noël abusé's
+    /// `noel-full` is drawn (LOT-166 PR 4).
+    var themeDecorations: String?
 
     /// Legacy default accent hue, 190° (`AppSettingsView.swift:16`).
     static let defaultHue = 190.0 / 360.0

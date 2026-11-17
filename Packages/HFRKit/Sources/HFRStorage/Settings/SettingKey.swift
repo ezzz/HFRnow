@@ -159,7 +159,8 @@ public enum SettingKey {
     ).synced
     /// `display_images`. Legacy forced `yes` at every launch with no UI; here `yes` is the default, so images always load (#902).
     /// The key is read only behind Réglages › Expérimental › « Chargement des images » (`experimentalImageLoadingChoice`),
-    /// whose picker writes it; a value an earlier build stored stays in place and is ignored while that option is off.
+    /// whose picker writes it; a value an earlier build stored is ignored while that option is off, and replaced by `yes` at
+    /// its first activation (#1003, `experimentalImageLoadingChoiceStarted`).
     public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.always)
 
     // MARK: Private messages storage
@@ -214,6 +215,10 @@ public enum SettingKey {
     /// `experimental.imageLoadingChoice` (new, #903/#902): the Jamais / Wi-Fi uniquement / Toujours choice of image loading.
     /// Device-only.
     public static let experimentalImageLoadingChoice = Setting.bool("experimental.imageLoadingChoice", default: false)
+    /// `experimental.imageLoadingChoice.started` (new, #1003): « Chargement des images » was turned on once since #1003, so
+    /// its first activation has reset the choice to « Toujours » and later ones keep the member's. Absent or unreadable reads
+    /// as false: the next activation is a first one. Device-only.
+    public static let experimentalImageLoadingChoiceStarted = Setting.bool("experimental.imageLoadingChoice.started", default: false)
 
     // MARK: Legacy keys
 
@@ -233,7 +238,7 @@ public enum SettingKey {
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
-        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice
+        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

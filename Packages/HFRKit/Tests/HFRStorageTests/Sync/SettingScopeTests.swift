@@ -33,6 +33,8 @@ import Testing
         // #903: the Expérimental switches try a presentation on this device.
         "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpStorageSwitches": .device,
         "experimental.flagIconRows": .device, "experimental.imageLoadingChoice": .device,
+        // #1003: the first activation of « Chargement des images » happened on this device.
+        "experimental.imageLoadingChoice.started": .device,
         // LOT-140: the background check runs on this device.
         "mp_check_interval": .device
     ]
@@ -50,7 +52,7 @@ import Testing
         let keys = SettingKey.noelSeason(year: 2026)
         #expect(keys.map(\.key) == [
             "season.noel.2026.arrivalShown", "season.noel.2026.arrivalPending", "season.noel.2026.optedOut",
-            "season.noel.2026.previousThemeID", "season.noel.2026.packingShown"
+            "season.noel.2026.previousThemeID", "season.noel.2026.packingShown", "season.noel.2026.themeID"
         ])
         #expect(keys.allSatisfy { $0.scope == .device })
         #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))

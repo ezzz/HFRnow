@@ -74,14 +74,14 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    legacy's quick actions (`userProfileQuickActions`, `:4387-4412`): MP when not the user's own post, with a private-message link
    and a composer; Blacklist and Whitelist when not the user's own post and the author's pseudo is not empty. "MP" and a toggle close
    the profile first, then open the composer or show the result as a toast, and the page is rebuilt with the lists (`:4422-4490`;
-   legacy reloaded the page). The author menu opens only for a message without a profile link (legacy's fallback sheet, here a
-   popover at the author), so its entries there are MP, Blacklist and Whitelist; only that author button announces a menu
+   legacy reloaded the page). The author menu opens only for a message without a profile link (legacy's fallback sheet, here the
+   edit-menu callout at the author), so its entries there are MP, Blacklist and Whitelist; only that author button announces a menu
    (`aria-haspopup`).
 6. The message menu is the system's horizontal edit-menu callout (`UIEditMenuInteraction` on the web view,
    `ReaderMessageEditMenu`), anchored at the tapped "+", paging with "›", as legacy (`MessagesView.swift:1249-1251, 2011-2081,
    2799-2827` @ 87fe0d1c; operator decision of 2026-11-15 on #594). It opens above the button, below it within 40 points of the bars
    (legacy `popupAnchor`); without a usable anchor it falls back to the right edge under the bars, never the top left. The author
-   menu stays a popover anchored at the author (`ReaderMessageMenuAnchor`; legacy opened a sheet). Neither is a `confirmationDialog`
+   menu is the same callout, anchored at the tapped avatar or pseudo (#969: the popover on a clear anchor view, `ReaderMessageMenuAnchor`, opened in the top left and is gone; legacy opened a sheet). Neither is a `confirmationDialog`
    of the whole reader, which iOS 26 and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the
    `menu` message; the decoder keeps it only as finite real numbers (never booleans), within 100 000 points and with no negative
    size, otherwise the menu opens unanchored (middle of the reader), never at a forged place. `reader.js` brings the rectangle to what the user sees

@@ -26,8 +26,8 @@ private struct SeasonalDecorationsModifier: ViewModifier {
                         NoelSnowLayer(falls: model.snowFalls && !reduceMotion)
                         NoelBottomDrifts()
                     }
-                    .opacity(model.packing.isPlaying ? 0 : 1)
-                    .animation(.easeIn(duration: NoelPackingModel.duration * 0.6), value: model.packing.isPlaying)
+                    .opacity(model.packing.hidesDecorations ? 0 : 1)
+                    .animation(.easeIn(duration: NoelPackingModel.duration * 0.6), value: model.packing.hidesDecorations)
                 }
             }
             // The sleigh crosses on any theme (25–26/12, automatic themes off); the small objects in Noël soft only.

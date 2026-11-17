@@ -40,6 +40,8 @@ import Testing
             // #903: the Réglages › Expérimental switches, new.
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
             "experimental.flagIconRows", "experimental.imageLoadingChoice",
+            // #1003: the first activation of « Chargement des images », new.
+            "experimental.imageLoadingChoice.started",
             // LOT-140: the background MP check interval, new.
             "mp_check_interval"
         ]
@@ -90,6 +92,7 @@ import Testing
         #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
         #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
         #expect(!store.value(for: SettingKey.experimentalImageLoadingChoice))
+        #expect(!store.value(for: SettingKey.experimentalImageLoadingChoiceStarted), "#1003: no activation yet")
     }
 
     /// LOT-166: one set of Noël keys per season, named after its year (THEMES.md §5), all empty at first.
@@ -99,11 +102,13 @@ import Testing
         #expect(SettingKey.noelArrivalPending(year: 2026).key == noelKey(2026, "arrivalPending"))
         #expect(SettingKey.noelPreviousThemeID(year: 2026).key == noelKey(2026, "previousThemeID"))
         #expect(SettingKey.noelPackingShown(year: 2027).key == noelKey(2027, "packingShown"))
+        #expect(SettingKey.noelThemeID(year: 2026).key == noelKey(2026, "themeID"))
         let store = InMemorySettingsStore()
         #expect(!store.value(for: SettingKey.noelArrivalShown(year: 2026)))
         #expect(!store.value(for: SettingKey.noelOptedOut(year: 2026)))
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == nil)
         #expect(!store.value(for: SettingKey.noelPackingShown(year: 2026)))
+        #expect(store.value(for: SettingKey.noelThemeID(year: 2026)) == nil)
         store.set("legacy", for: SettingKey.noelPreviousThemeID(year: 2026))
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2026)) == "legacy")
         #expect(store.value(for: SettingKey.noelPreviousThemeID(year: 2027)) == nil)
