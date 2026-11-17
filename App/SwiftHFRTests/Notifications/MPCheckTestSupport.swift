@@ -27,10 +27,19 @@ actor FakeMPDelivery: MPNotificationDelivering {
     private(set) var delivered: [MPNotificationContent] = []
     private(set) var badges: [Int] = []
     private(set) var withdrawn: [String] = []
+    /// What `setBadge` answers: false while iOS would not show the badge (no permission yet).
+    private(set) var badgeAllowed: Bool
+
+    init(badgeAllowed: Bool = true) { self.badgeAllowed = badgeAllowed }
 
     func deliver(_ content: MPNotificationContent) { delivered.append(content) }
     func withdraw(_ identifier: String) { withdrawn.append(identifier) }
-    func setBadge(_ count: Int) { badges.append(count) }
+    func setBadge(_ count: Int) -> Bool {
+        badges.append(count)
+        return badgeAllowed
+    }
+
+    func allowBadge() { badgeAllowed = true }
 }
 
 /// An MP list page 1 with the given unread and read conversations (numbers), one-to-one unless listed in `groups`.
