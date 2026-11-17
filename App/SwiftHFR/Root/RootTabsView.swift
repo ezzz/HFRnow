@@ -47,6 +47,9 @@ struct RootTabsView: View {
             }
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
+        // EXPERIMENTAL(searchTab, #896): the selection follows the option and the Plus search entry.
+        .onChange(of: model.selectedDestination, initial: true) { model.settleSearchTab(isOn: hasSearchTab) }
+        .onChange(of: hasSearchTab) { model.settleSearchTab(isOn: hasSearchTab) }
     }
 }
 

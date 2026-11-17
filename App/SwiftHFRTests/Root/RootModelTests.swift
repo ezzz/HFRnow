@@ -215,6 +215,24 @@ struct RootModelTests {
         #expect(root.selectedTab == .more)
     }
 
+    /// EXPERIMENTAL(searchTab, #896): one live search screen: with the tab, the Plus search entry is the tab; without it, the tab is Plus.
+    @Test func theSearchTabAndThePlusSearchEntryAreNeverBothLive() async {
+        let root = await model()
+        root.selectedDestination = .plus(.search)
+        root.settleSearchTab(isOn: false)
+        #expect(root.selectedDestination == .plus(.search))
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.search))
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.search))
+        root.settleSearchTab(isOn: false)
+        #expect(root.selectedDestination == .tab(.more))
+        #expect(root.selectedTab == .more)
+        root.plusEntry = .credits
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .plus(.credits))
+    }
+
     @Test func aPlusEntryOpenInTheSidebarStaysOpenInThePlusTab() async {
         let root = await model()
         root.selectedDestination = .plus(.settings)

@@ -77,6 +77,16 @@ final class RootModel {
         }
     }
 
+    /// EXPERIMENTAL(searchTab, #896): keeps the selection coherent with the tab bar. With the Recherche tab, the Plus search entry
+    /// is that tab (one live search screen on the shared model, not two); without it, a selected Recherche tab is Plus.
+    func settleSearchTab(isOn: Bool) {
+        if isOn, selectedDestination == .plus(.search) {
+            selectedDestination = .tab(.search)
+        } else if !isOn, selectedDestination == .tab(.search) {
+            selectedDestination = .tab(.more)
+        }
+    }
+
     /// Whether the Messages badge is shown (`mp_badge_enabled`, legacy default on); refreshed by `reloadSettings()`.
     private(set) var privateMessageBadgeEnabled: Bool
     /// Whether the tab bar shrinks while a list scrolls (`tabbar_minimize_on_scroll`, legacy default on); refreshed by
