@@ -28,6 +28,8 @@ struct ServerReply: Sendable {
     var dripInterval = 0.0
     /// With a dripped body: sends the first piece, then goes silent, to exercise an idle limit.
     var stallsAfterFirstChunk = false
+    /// How long a stalled answer stays silent, in seconds.
+    var stallSeconds = 5.0
 }
 
 /// Minimal HTTP/1.1 server on 127.0.0.1 (no external network), because swift-corelibs-foundation
@@ -152,7 +154,7 @@ final class LoopbackServer: @unchecked Sendable {
             let start = min(index * size, reply.body.count)
             write(client, reply.body[start..<min(start + size, reply.body.count)])
             if reply.stallsAfterFirstChunk {
-                Thread.sleep(forTimeInterval: 5)
+                Thread.sleep(forTimeInterval: reply.stallSeconds)
                 return
             }
             Thread.sleep(forTimeInterval: reply.dripInterval)

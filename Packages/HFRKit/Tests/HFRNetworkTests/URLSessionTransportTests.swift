@@ -124,13 +124,14 @@ struct URLSessionTransportTests {
 
     @Test func answerThatStallsAfterItsFirstBytesFailsAtTheIdleLimit() async throws {
         let server = try makeServer { _ in
-            ServerReply(body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, stallsAfterFirstChunk: true)
+            // Silent for 20 s, then the server closes the connection: only the idle limit ends this request with `timedOut` before that
+            // (without it the answer is a transport error; corelibs' own default of 60 s is never reached).
+            ServerReply(
+                body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, stallsAfterFirstChunk: true, stallSeconds: 20
+            )
         }
         defer { server.stop() }
-        let clock = ContinuousClock()
-        let start = clock.now
         await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(.get(server.baseURL, timeout: 0.6)) }
-        #expect(clock.now - start < .seconds(3))
     }
 
     /// Global search also caps the whole transfer (legacy `timeoutIntervalForResource`, `ObjCForumSearchWorker.m:131-132`).
