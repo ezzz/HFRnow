@@ -104,9 +104,7 @@ struct SettingsView: View {
                 }
             }
             Section("Filtrer les posts") {
-                Picker("Minimum de citations", selection: $general.filterMinimumQuotes) {
-                    ForEach(general.filterMinimumQuoteOptions, id: \.self) { Text("\($0)").tag($0) }
-                }
+                FilterMinimumQuotesRow(general: general)
                 Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
             }
             Section("Messages") {
