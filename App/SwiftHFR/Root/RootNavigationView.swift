@@ -7,6 +7,8 @@ import SwiftUI
 /// `usesSidebarRoot`). A compact-width iPad (Slide Over, Split View) gets the tab bar, as legacy.
 struct RootNavigationView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// This window's phase (read inside the scene, not in the `App`): only a window on screen opens a notification's target.
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var model: RootModel
     /// Taps on MP notifications, taken once the root is built (LOT-140).
@@ -44,10 +46,10 @@ struct RootNavigationView: View {
         }
         .onChange(of: model.selectedDestination, initial: true) { _, destination in lastDestination = destination }
         // A tap on an MP notification, including the one that launched the app (LOT-140, GAP-011).
-        .onChange(of: notificationRouter.pending, initial: true) {
-            guard let destination = notificationRouter.consume() else { return }
-            Task { await model.open(destination) }
-        }
+        // With several windows (LOT-146) only one takes it, and not one in the background: the tap waits in the router until a
+        // window is active, whether it arrived before the root was built or while the window was away.
+        .onChange(of: notificationRouter.pending, initial: true) { takeNotification() }
+        .onChange(of: scenePhase) { takeNotification() }
         // The app icon badge follows the Messages badge (legacy `MainWindow.swift:1779-1784`, GAP-192).
         .onChange(of: model.appIconBadge, initial: true) { _, badge in
             guard let badge else { return }
@@ -58,6 +60,17 @@ struct RootNavigationView: View {
             model.categories.filtering.cancel()
             model.favorites.filtering.cancel()
         }
+    }
+
+    private func takeNotification() {
+        guard Self.mayOpenNotification(phase: scenePhase), let destination = notificationRouter.consume() else { return }
+        Task { await model.open(destination) }
+    }
+
+    /// Whether a window in `phase` opens the target of an MP notification: every window's root watches the one router, and
+    /// the first to see a tap used to take it, even one hidden behind the others. Only a window that is on screen does.
+    static func mayOpenNotification(phase: ScenePhase) -> Bool {
+        phase == .active
     }
 
     private var usesSidebarRoot: Bool {

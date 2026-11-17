@@ -1,7 +1,11 @@
 import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/HFRswiftApp.swift (HFRswiftApp) @ 2440d79. Differences: no ObjC app delegate; HFRKit is the engine.
+// Port of HFRswift/Swift/HFRswiftApp.swift (HFRswiftApp) @ 87fe0d1c (`:12-37`; the manifest `Info.plist:204-208` @ 2fe43da3).
+// Differences: no ObjC app delegate; HFRKit is the engine. Several windows (iPad, `UIApplicationSupportsMultipleScenes`, as legacy
+// since `afec5433`): every window starts a fresh root, and the models below are created once here, so all windows share them;
+// what the content closures run once per process or per change goes through `AppWideEvents`, as legacy's launch work ran once in
+// the app delegate (LOT-146, GAP-219).
 // The background MP check (LOT-140) is SwiftUI's `.backgroundTask(.appRefresh)` instead of `BGTaskScheduler.register` (87fe0d1c
 // `HFRswiftApp.swift:21`, `MPBackgroundService.swift:21-31`).
 /// Entry point of the SwiftHFR iOS app; the composition root for every screen.
@@ -27,6 +31,10 @@ struct SwiftHFRApp: App {
     @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
     /// The Réglages › Expérimental switches (#903), read by the screens whose modern path they gate.
     @State private var experimental = ExperimentalSettings(store: UserDefaultsSettingsStore())
+    /// What runs once for the whole app, not once per window (LOT-146).
+    @State private var events = AppWideEvents()
+    /// The Messages badge count of the current session, one for every window (LOT-146).
+    @State private var messageCounts = SharedPrivateMessageCounts()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -53,6 +61,7 @@ struct SwiftHFRApp: App {
                 .environment(seasonal)
                 .environment(experimental)
                 .environment(\.avatarRefresh, avatarRefresh)
+                .environment(\.sharedPrivateMessageCounts, messageCounts)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme, seasonal: seasonal.drawnTheme)
@@ -72,15 +81,22 @@ struct SwiftHFRApp: App {
                 // An account became current (restore, login, switch): the import goes on with it until complete (LOT-067 D3),
                 // and the account list is read again when it took accounts over.
                 .onChange(of: accounts.current?.id) { _, account in
+                    // Every window sees the change; the import runs once for it.
+                    guard events.isNew(account, for: "currentAccount") else { return }
                     Task {
                         if await legacyImport.accountDidChange(to: account) { await accounts.readStoreAgain() }
                     }
                 }
                 // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).
-                .task(priority: .utility) { await LiveOfflineStore().evict() }
+                // Once per launch, not per window.
+                .task(priority: .utility) {
+                    guard events.firstTime("offlineEviction") else { return }
+                    await LiveOfflineStore().evict()
+                }
                 // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
+                // The phase the App reads is the aggregate of every window: each window's closure sees the same change.
                 .onChange(of: scenePhase) { _, phase in
-                    guard phase == .active else { return }
+                    guard events.isNew(phase, for: "recheck"), phase == .active else { return }
                     Task {
                         // What another device changed first, so the re-check sees the current accounts (LOT-173).
                         accounts.reconcileAccountSync()
@@ -91,10 +107,12 @@ struct SwiftHFRApp: App {
                 .task { await MPNotificationCenter().prepare() }
                 // The next background MP check is scheduled when the app leaves the screen (`HFRswiftApp.swift:31-35`).
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .background { Task { await MPBackgroundScheduler.schedule() } }
+                    if events.isNew(phase, for: "schedule"), phase == .background { Task { await MPBackgroundScheduler.schedule() } }
                 }
                 // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
                 .onChange(of: scenePhase, initial: true) { _, phase in
+                    // A window opened while the app is active sees the active phase again: not a new activation.
+                    guard events.isNew(phase, for: "lockAndSeason") else { return }
                     if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                     // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
                     if phase == .active { seasonal.sceneDidBecomeActive() }
