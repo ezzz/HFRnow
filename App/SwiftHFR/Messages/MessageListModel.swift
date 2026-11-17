@@ -98,6 +98,9 @@ final class MessageListModel {
     /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
     /// do not need it.
     private let privateMessageCount: PrivateMessageCount?
+    /// Hands every page 1 this list loads to the notification ledger (LOT-140), so a conversation seen unread here is not
+    /// notified by the next background check; nil in tests that do not need it.
+    private let pageOneSeen: (@Sendable (PrivateMessageListPage) async -> Void)?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -124,8 +127,10 @@ final class MessageListModel {
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         settings: (any SettingsStore)? = nil,
         mpStorage: MPStorageSyncModel? = nil,
-        privateMessageCount: PrivateMessageCount? = nil
+        privateMessageCount: PrivateMessageCount? = nil,
+        pageOneSeen: (@Sendable (PrivateMessageListPage) async -> Void)? = nil
     ) {
+        self.pageOneSeen = pageOneSeen
         self.mpStorage = mpStorage
         self.privateMessageCount = privateMessageCount
         self.settings = settings
@@ -217,6 +222,19 @@ final class MessageListModel {
 
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
+
+    /// A tap on a conversation's notification (LOT-140, GAP-011): page 1 is loaded again, then the conversation is opened
+    /// when that page lists it, on its segment in the split display. Otherwise the list stays shown (another account's
+    /// conversation, or one no longer on page 1). Legacy opened the list and reloaded it (`MainWindow.swift:1656-1665`).
+    func open(topic: Int) async {
+        if let settings { display = settings.value(for: SettingKey.mpListDisplay) }
+        selected = nil
+        await load(page: 1, advancing: false)
+        guard loader.error == nil,
+              let thread = loader.value?.threads.first(where: { $0.summary.topicID?.topic == topic }) else { return }
+        if display == .split, !segment.contains(thread) { segment = thread.isGroup ? .group : .oneToOne }
+        selected = thread
+    }
 
     /// Asks again for the last page that was asked for (after a failure).
     func retry() async { await load(page: requestedPage) }
@@ -354,9 +372,12 @@ final class MessageListModel {
         let mine = loadCount
         let source = source
         let isLoggedIn = isLoggedIn
+        let pageOneSeen = pageOneSeen
         await loader.load { () async throws(ListLoadError) -> MessageListContent in
             guard await isLoggedIn() else { return .signedOut }
-            return MessageListContent(page: try await source.privateMessages(page: page))
+            let listPage = try await source.privateMessages(page: page)
+            if page == 1, let pageOneSeen { await pageOneSeen(listPage) }
+            return MessageListContent(page: listPage)
         }
         // Only the newest load applied the content on screen; a superseded one returning late must not reset the state.
         guard mine == loadCount else { return }

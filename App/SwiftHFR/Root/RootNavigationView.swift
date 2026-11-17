@@ -9,6 +9,8 @@ struct RootNavigationView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var model: RootModel
+    /// Taps on MP notifications, taken once the root is built (LOT-140).
+    @State private var notificationRouter = MPNotificationRouter.shared
     private let environment: AppEnvironment
     /// The last destination, kept by `RootView` across session generations (the root is rebuilt on each).
     @Binding private var lastDestination: SidebarDestination?
@@ -41,6 +43,16 @@ struct RootNavigationView: View {
             }
         }
         .onChange(of: model.selectedDestination, initial: true) { _, destination in lastDestination = destination }
+        // A tap on an MP notification, including the one that launched the app (LOT-140, GAP-011).
+        .onChange(of: notificationRouter.pending, initial: true) {
+            guard let destination = notificationRouter.consume() else { return }
+            Task { await model.open(destination) }
+        }
+        // The app icon badge follows the Messages badge (legacy `MainWindow.swift:1779-1784`, GAP-192).
+        .onChange(of: model.appIconBadge, initial: true) { _, badge in
+            guard let badge else { return }
+            Task { await MPNotificationCenter().setBadge(badge) }
+        }
         // A new session rebuilds the root: a filter run of the discarded one would keep reading pages with no control.
         .onDisappear {
             model.categories.filtering.cancel()
