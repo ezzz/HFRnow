@@ -226,8 +226,8 @@ public enum SettingKey {
     /// `experimental.mpStorageSwitches` (new, #903/#859): one MPStorage switch per function instead of legacy's single one.
     /// Device-only.
     public static let experimentalMPStorageSwitches = Setting.bool("experimental.mpStorageSwitches", default: false)
-    /// `experimental.flagIconRows` (new, #903/#905): topic rows with the unread dot and flag icons before the title. Device-only.
-    public static let experimentalFlagIconRows = Setting.bool("experimental.flagIconRows", default: false)
+    /// `experimental.denseRows` (new, #903/#905): the dense topic and MP rows (#905, #973). Device-only.
+    public static let experimentalDenseRows = Setting.bool("experimental.denseRows", default: false)
     /// `experimental.imageLoadingChoice` (new, #903/#902): the Jamais / Wi-Fi uniquement / Toujours choice of image loading.
     /// Device-only.
     public static let experimentalImageLoadingChoice = Setting.bool("experimental.imageLoadingChoice", default: false)
@@ -254,7 +254,7 @@ public enum SettingKey {
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
-        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
+        experimentalMPStorageSwitches, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

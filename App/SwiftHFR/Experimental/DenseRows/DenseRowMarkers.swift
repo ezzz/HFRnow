@@ -2,10 +2,10 @@ import HFRModels
 import SwiftUI
 
 // Moved from App/SwiftHFR/Navigation/TopicRowView.swift (#903) unchanged; port pointer of the row: `TopicRowView` (GAP-026, 027).
-/// Today's leading marks of a topic row (#905, behind Réglages › Expérimental › « Lignes avec icônes de drapeau », #903): the
-/// unread dot and the flag icon before the title. The legacy rows (the whole row tinted by flag type, no icon before the title)
-/// are the default, `LegacyTopicRowView` (#817); this folder keeps these marks for the switch-on path.
-enum FlagIconRows {
+/// Today's leading marks of a topic row (#905, behind Réglages › Expérimental › « Lignes denses », #903): the unread dot and the
+/// flag icon before the title. The legacy rows (the whole row tinted by flag type, no icon before the title) are the default,
+/// `LegacyTopicRowView` (#817); the dense rows of `DenseTopicRowView` use these marks.
+enum DenseRowMarks {
     /// The flag icon of a row: its symbol, colour and VoiceOver label.
     struct FlagMark: Equatable {
         let symbol: String
@@ -43,7 +43,7 @@ struct FlagIconMark: View {
     let flag: TopicFlag?
 
     var body: some View {
-        if let mark = FlagIconRows.flagMark(flag) {
+        if let mark = DenseRowMarks.flagMark(flag) {
             Image(systemName: mark.symbol).foregroundStyle(mark.color).accessibilityLabel(mark.label)
         }
     }

@@ -37,7 +37,10 @@ struct MPStorageSettingsRows: View {
         }
         .disabled(model.status == .working)
         .task { await model.start() }
-        .alert("Stockage MP", isPresented: Binding(get: { model.asksCreation }, set: { if !$0 { model.asksCreation = false } })) {
+        // A first blocklist write asks from the root (LOT-131, `BlocklistSyncQuestions`).
+        .alert("Stockage MP", isPresented: Binding(
+            get: { model.asksCreation && model.creationPrompt == .settings }, set: { if !$0 { model.asksCreation = false } }
+        )) {
             Button("Créer") { Task { await model.answerCreation(true) } }
             Button("Annuler", role: .cancel) { Task { await model.answerCreation(false) } }
         } message: {

@@ -47,14 +47,14 @@ struct TopicRowInfoLineTests {
     }
 
     @Test("The default row shows neither a reply count nor the starter nor a star")
-    func noRepliesNoStar() {
+    @MainActor func noRepliesNoStar() {
         let post = LastPost(author: "last", path: "/m", date: now.addingTimeInterval(-60))
         let row = topic(pages: 4, starter: "starter", last: post)
         let line = TopicRowInfoLine.leading(row) + " " + (TopicRowInfoLine.trailing(row, now: now) ?? "")
         #expect(!line.contains("réponse"))
         #expect(!line.contains("40"))
         #expect(!line.contains("starter"))
-        #expect(TopicRowStyle.current == .legacy)
+        #expect(TopicRowStyle.current(nil) == .legacy)
     }
 }
 

@@ -26,6 +26,8 @@ final class RootModel {
     let search: ForumSearchModel
     /// MPStorage sync of the current account (LOT-130), shared by the Messages list (flags) and Réglages; nil logged out.
     let mpStorage: MPStorageSyncModel?
+    /// The current account's blocklist kept in step with its MPStorage document (LOT-131); nil logged out.
+    let blocklistSync: BlocklistSyncModel?
     /// The unread private messages count the list pages of this session announced, newest first (#762).
     let privateMessageCount: PrivateMessageCount
     /// The Alertes Qualitay list and its "new since" count (LOT-133), shared by the Plus badge, the Plus row and the screen.
@@ -108,9 +110,10 @@ final class RootModel {
         search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
         mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount(),
-        qualityAlerts: QualityAlertsModel? = nil
+        blocklistSync: BlocklistSyncModel? = nil, qualityAlerts: QualityAlertsModel? = nil
     ) {
         self.mpStorage = mpStorage
+        self.blocklistSync = blocklistSync
         self.privateMessageCount = privateMessageCount
         // A root built without one (tests) has no AQ address: no request, an empty badge.
         self.qualityAlerts = qualityAlerts ?? QualityAlertsModel(
@@ -199,11 +202,21 @@ final class RootModel {
                 renderOptions: environment.reader.settings.renderOptions, store: store
             ),
             store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage, privateMessageCount: count,
+            blocklistSync: Self.blocklistSync(environment, mpStorage: mpStorage),
             qualityAlerts: QualityAlertsModel(
                 source: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:]),
                 visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
                 store: store
             )
+        )
+    }
+
+    /// The blocklist sync of the session's account (LOT-131): over the app's one list store, refreshing the reader's copy.
+    private static func blocklistSync(_ environment: AppEnvironment, mpStorage: MPStorageSyncModel?) -> BlocklistSyncModel? {
+        guard let mpStorage, let changes = environment.blocklistChanges else { return nil }
+        let snapshot = environment.pseudoListsSnapshot
+        return BlocklistSyncModel(
+            mpStorage: mpStorage, store: PseudoListsSnapshot.liveStore, changes: changes, refreshLists: { await snapshot.refresh() }
         )
     }
 

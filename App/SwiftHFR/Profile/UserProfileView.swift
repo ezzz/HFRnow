@@ -27,6 +27,8 @@ struct UserProfileView: View {
                     }
                 }
                 .task { await model.onAppear() }
+                // A blocklist toggle here can be an account's first one (LOT-131): the sheet covers the root's questions.
+                .blocklistSyncQuestions()
                 .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         }
     }

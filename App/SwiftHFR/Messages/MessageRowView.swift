@@ -3,7 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPRowView) @ 87fe0d1c (earlier pointer: @ 2440d79). Differences: one info line under
 // the title (`MessageRowInfoLine`, #900; legacy `MPListView.swift:775-793`, laid out by `TopicRowView`'s bottom row); the former
-// three-line meta block is kept as the experimental dense row (#905); unread from the member's icon state
+// three-line meta block became the experimental dense row, one line (`DenseRowFormat`, #905, #973); unread from the member's icon state
 // (GAP-111); accent tint on unread rows (GAP-227); a stronger secondary colour for read titles in light (#651, GAP-227);
 // "non lu" capsule for the correspondent's state (GAP-111); capsule at 4.5:1, outlined at half strength (LOT-162, #646).
 /// One conversation row: avatar, subject, interlocutor(s), last message. Pure display.
@@ -18,6 +18,7 @@ struct MessageRowView: View {
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     /// 1 at the default Dynamic Type size; multiplies the avatar and marker sizes.
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
@@ -41,9 +42,8 @@ struct MessageRowView: View {
                         .foregroundStyle(titleTone.style)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : density.titleLineLimit)
                 }
-                // EXPERIMENTAL(denseRows, #905): the default is legacy's one info line; the dense rows (today's meta lines, taller)
-                // replace it once #905 adds the switch. Until then `usesDenseRows` is false and Réglages lists nothing.
-                if usesDenseRows { denseMeta } else { infoLine }
+                // EXPERIMENTAL(denseRows, #905, #973): replaces legacy's two-sided info line by one dense line (`DenseRowFormat`).
+                if usesDenseRows { denseInfo } else { infoLine }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if isUnread {
@@ -55,8 +55,8 @@ struct MessageRowView: View {
         .listRowInsets(density.rowInsets)
     }
 
-    /// The default is legacy's one info line; #905 flips this for the dense rows.
-    private var usesDenseRows: Bool { false }
+    /// The default is legacy's one info line; Réglages › Expérimental › « Lignes denses » flips this.
+    private var usesDenseRows: Bool { DenseRowFormat.isOn(experimental) }
 
     /// Legacy's bottom row: interlocutor or group flag on the left, « last poster - time » on the right (`MPListView.swift:840-841`).
     @ViewBuilder private var infoLine: some View {
@@ -77,14 +77,11 @@ struct MessageRowView: View {
         }
     }
 
-    /// Today's meta lines (the experimental dense rows, #905): who, then the last post, merged on one line when compact.
-    @ViewBuilder private var denseMeta: some View {
-        if density.mergesMetaLines {
-            Text(MessageRowView.metaLine(who: who, lastPost: lastPost))
-                .scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit)
-        } else {
-            Text(who).scaledFont(.subheadline).foregroundStyle(.secondary).lineLimit(metaLineLimit)
-            if let last = lastPost { Text(last).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(metaLineLimit) }
+    /// The dense row's single info line (#905, #973): interlocutor or « ⚑ page / pages », last poster, age; never wraps.
+    @ViewBuilder private var denseInfo: some View {
+        if let line = DenseRowFormat.messageInfo(thread: thread, flagLabel: flagLabel) {
+            Text(line).scaledFont(.caption).foregroundStyle(.secondary)
+                .denseInfoLine(isAccessibilitySize: dynamicTypeSize.isAccessibilitySize)
         }
     }
 
@@ -118,36 +115,4 @@ struct MessageRowView: View {
 
     /// Capped, so an accessibility size leaves the text its room.
     private var avatarSide: CGFloat { min(scale.scaled(dynamicType * density.avatarSize), 64) }
-
-    /// One line per meta line, except at accessibility sizes, where nothing truncates.
-    private var metaLineLimit: Int? { dynamicTypeSize.isAccessibilitySize ? nil : 1 }
-
-    /// The compact row's single meta line: who, then the last post when there is one; a last post by `who` names them once.
-    static func metaLine(who: String, lastPost: String?) -> String {
-        guard let lastPost, !lastPost.isEmpty else { return who }
-        if lastPost == who || lastPost.hasPrefix("\(who) · ") { return lastPost }
-        return "\(who) · \(lastPost)"
-    }
-
-    /// The interlocutor of a one-to-one thread, "Interlocuteurs multiples" for a group (legacy `MPListView.swift:777`), or
-    /// the group's MPStorage position instead, as legacy shows it (`MPListView.swift:775-786` @ 87fe0d1c).
-    private var who: String {
-        guard thread.isGroup else { return thread.summary.starterOrInterlocutors }
-        if let flagLabel { return flagLabel }
-        return ["Interlocuteurs multiples", counts].compactMap { $0 }.joined(separator: " · ")
-    }
-
-    /// Group rows read like topic rows (LOT-171): replies and pages, when the list row carries them.
-    private var counts: String? {
-        guard thread.isGroup, thread.summary.repliesCount > 0 else { return nil }
-        let pages = thread.summary.pageCount
-        let replies = FrenchPlural.count(thread.summary.repliesCount, "réponse", "réponses")
-        return pages > 1 ? "\(replies) · \(pages) pages" : replies
-    }
-
-    private var lastPost: String? {
-        guard let post = thread.summary.lastPost else { return nil }
-        guard let date = post.date else { return post.author }
-        return "\(post.author) · \(date.formatted(.relative(presentation: .named)))"
-    }
 }

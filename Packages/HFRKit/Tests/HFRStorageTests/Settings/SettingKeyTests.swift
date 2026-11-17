@@ -39,7 +39,7 @@ import Testing
             "season.automatic", "season.animations", "season.noel.activeYear",
             // #903: the Réglages › Expérimental switches, new.
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
-            "experimental.flagIconRows", "experimental.imageLoadingChoice",
+            "experimental.denseRows", "experimental.imageLoadingChoice",
             // #1003: the first activation of « Chargement des images », new.
             "experimental.imageLoadingChoice.started",
             // LOT-140: the background MP check interval, new.
@@ -92,7 +92,7 @@ import Testing
         #expect(!store.value(for: SettingKey.experimentalModernComposer))
         #expect(!store.value(for: SettingKey.experimentalSearchTab))
         #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
-        #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
+        #expect(!store.value(for: SettingKey.experimentalDenseRows))
         #expect(!store.value(for: SettingKey.experimentalImageLoadingChoice))
         #expect(!store.value(for: SettingKey.experimentalImageLoadingChoiceStarted), "#1003: no activation yet")
     }

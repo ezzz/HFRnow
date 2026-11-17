@@ -17,7 +17,7 @@ struct ExperimentalSettingsTests {
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
         for feature in ExperimentalFeature.allCases { #expect(!settings.isOn(feature), "\(feature)") }
         #expect(!ExperimentalSettings.isOn(.modernComposer, in: nil))
-        #expect(!ExperimentalSettings.isOn(.flagIconRows, in: nil))
+        #expect(!ExperimentalSettings.isOn(.denseRows, in: nil))
     }
 
     @Test func creatingTheModelWritesNothing() {
@@ -35,20 +35,13 @@ struct ExperimentalSettingsTests {
         #expect(ExperimentalSettings(store: store).isOn(.modernComposer))
     }
 
-    /// An option whose path is not built yet is not listed, cannot be switched, and reads its default whatever the store holds.
-    @Test func aHiddenOptionIsNeitherListedNorEffective() {
-        let hidden: [ExperimentalFeature] = [.flagIconRows]
-        let store = InMemorySettingsStore(Dictionary(uniqueKeysWithValues: hidden.map { ($0.setting.key, SettingRawValue.bool(true)) }))
-        let settings = ExperimentalSettings(store: store)
-        for feature in hidden {
-            #expect(!feature.isListed)
-            #expect(!settings.isOn(feature), "\(feature)")
-            settings.set(feature, isOn: true)
-            #expect(!settings.isOn(feature), "\(feature)")
-        }
+    /// Every option is listed once built, section by section (#905 built the last hidden one); the enum is declared in that order.
+    @Test func everyOptionIsListed() {
+        #expect(ExperimentalFeature.allCases.allSatisfy { $0.isListed })
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
-        #expect(listed == [.modernComposer, .searchTab, .mpStorageSwitches, .imageLoadingChoice])
-        #expect(ExperimentalTheme.listed == [.composer, .navigation, .messages, .imageLoading])
+        #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpStorageSwitches, .imageLoadingChoice])
+        #expect(listed == ExperimentalFeature.allCases.filter(\.isListed))
+        #expect(ExperimentalTheme.listed == [.composer, .navigation, .lists, .messages, .imageLoading])
     }
 
     @Test func everyListedOptionExplainsItself() {
@@ -64,7 +57,8 @@ struct ExperimentalSettingsTests {
 struct ExperimentalPageTests {
     @Test func thePageGroupsEveryListedOptionByTheme() {
         let groups = ExperimentalPageLayout.groups()
-        #expect(groups.map(\.theme) == [.composer, .navigation, .messages, .imageLoading])
+        // The dense rows (#905) are the « Listes » section, between the tab bar and the messages (enum order).
+        #expect(groups.map(\.theme) == [.composer, .navigation, .lists, .messages, .imageLoading])
         #expect(groups == ExperimentalTheme.listed.map { ExperimentalPageLayout.Group(theme: $0, features: $0.listedFeatures) })
         #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(groups.allSatisfy { group in group.features.allSatisfy { $0.theme == group.theme } })
@@ -73,7 +67,9 @@ struct ExperimentalPageTests {
     /// The row shows when the page has a group, so a theme without a listed option is never a group.
     @Test func aThemeWithoutListedOptionIsLeftOut() {
         let themes = ExperimentalPageLayout.groups().map(\.theme)
-        #expect(!themes.contains(.lists))
+        // Whatever is listed: a theme is a group exactly when it has a listed option, so a theme with none is never one.
+        #expect(themes == ExperimentalTheme.allCases.filter { !$0.listedFeatures.isEmpty })
+        #expect(ExperimentalTheme.allCases.filter { $0.listedFeatures.isEmpty }.allSatisfy { !themes.contains($0) })
         #expect(!ExperimentalPageLayout.groups().isEmpty)
         #expect(ExperimentalPageLayout.groups().allSatisfy { !$0.features.isEmpty })
     }

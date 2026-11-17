@@ -42,6 +42,10 @@ struct RootNavigationView: View {
         .task { await model.qualityAlerts.checkAtLaunch() }
         // EXPERIMENTAL(mpStorageSwitches, #859): the account's model reads the option from here.
         .onAppear { model.mpStorage?.experimental = experimental }
+        // The blocklist's MPStorage sync (LOT-131): its changes in order for the session, and its questions.
+        .task { await model.blocklistSync?.run() }
+        .blocklistSyncQuestions()
+        .environment(model.blocklistSync)
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {

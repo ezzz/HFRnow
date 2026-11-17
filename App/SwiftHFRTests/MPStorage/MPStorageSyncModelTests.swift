@@ -13,6 +13,8 @@ actor FakeMPStorageRemote: MPStorageRemote {
     var thread: Int?
     var text: String
     var failure: MPStorageTransportError?
+    /// Whether `save` merges with the forum's copy, as LOT-052's transport does (off: `ours` is written as is).
+    var merges = false
 
     init(thread: Int?, text: String = FakeMPStorageRemote.emptyDocument) {
         self.thread = thread
@@ -45,7 +47,10 @@ actor FakeMPStorageRemote: MPStorageRemote {
         calls.append(.save)
         if let failure { throw failure }
         do {
-            text = try MPStorageCodec.encodeForWriting(ours)
+            // LOT-052 merges with the forum's copy before writing (LOT-131's tests turn it on).
+            let written = try merges
+                ? MPStorageMerge.merge(base: base, ours: ours, theirs: MPStorageCodec.decode(text), stamp: stamp).document : ours
+            text = try MPStorageCodec.encodeForWriting(written)
         } catch {
             throw .invalidDocument
         }
