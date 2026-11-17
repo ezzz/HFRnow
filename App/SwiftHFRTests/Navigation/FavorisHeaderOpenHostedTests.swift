@@ -16,6 +16,7 @@ private final class HangProgress: @unchecked Sendable {
     private let lock = NSLock()
     private var step = "start"
     private var beat = Date()
+    private var stopped = false
 
     func mark(_ name: String) {
         lock.withLock {
@@ -27,13 +28,19 @@ private final class HangProgress: @unchecked Sendable {
 
     func heartbeat() { lock.withLock { beat = Date() } }
 
+    /// Ends the watch with the test: a watchdog that outlives it would end the host process in the middle of another test.
+    func stop() { lock.withLock { stopped = true } }
+
+    private var isStopped: Bool { lock.withLock { stopped } }
+
     var snapshot: (step: String, silence: TimeInterval) { lock.withLock { (step, Date().timeIntervalSince(beat)) } }
 
     /// Ends the run, naming the step, when the main actor stays silent for `limit` seconds.
     func watch(limit: TimeInterval) {
         Thread.detachNewThread { [self] in
-            while true {
+            while !isStopped {
                 Thread.sleep(forTimeInterval: 1)
+                if isStopped { return }
                 let state = snapshot
                 if state.silence > limit {
                     let line = "[#979] HANG: main actor silent \(Int(state.silence)) s after step '\(state.step)'\n"
@@ -55,6 +62,7 @@ struct FavorisHeaderOpenHostedTests {
     func openingACategoryFromTheHeaderPushesIt(density: ListDensity) async throws {
         let progress = HangProgress()
         progress.watch(limit: 45)
+        defer { progress.stop() }
         progress.mark("\(density): setup")
         let data = FakeDataSource()
         data.favoritesHandler = { _ in
