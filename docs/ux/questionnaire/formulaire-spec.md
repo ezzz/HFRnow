@@ -8,7 +8,7 @@ Décisions du PO reprises ici :
 - D1 : une réponse « comme aujourd'hui » au thème 1, et partout où une évolution est proposée (`O1`, `L1`, `D1`, `D2`, `M1`) ;
 - D2 : pseudo `I1` à la fin, juste avant l'envoi ;
 - D3, révisée le 8 novembre 2026 : statistiques de l'écran de fin après **10** réponses ;
-- carte `C08` retirée le 8 novembre 2026 : **neuf cartes**, `C01` à `C07`, `C09`, `C10` ; `C08` n'est jamais réutilisé ;
+- carte `C08` retirée le 8 novembre 2026 : **neuf cartes** puis, le 17 novembre 2026, **dix** avec `C12` : `C01` à `C07`, `C09`, `C10`, `C12` ; `C08` n'est jamais réutilisé ;
 - `L1` : chaque réponse a un titre court et au plus trois points de détail ;
 - conservation : réponses, pseudos, table de correspondance, exports et sauvegardes effacés **deux mois après la fermeture** ; seuls les résultats d'ensemble restent ;
 - question `G1` ajoutée le 8 novembre 2026 : irritants du quotidien, texte libre de 280 caractères, facultatif, sans condition, sur son propre écran juste après `O1` et avant `L1` (cadrage §2, #670) ;
@@ -82,7 +82,7 @@ Forme (extrait illustratif) :
             "reponse_seule": { "code": "comme_aujourdhui", "libelle": "Laisser la barre comme aujourd'hui" } },
     "C01": { "type": "reaction", "libelle": "…", "reponses": [ { "code": "adore", "libelle": "J'adore" } ] }
   },
-  "cartes": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C09", "C10"]
+  "cartes": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C09", "C10", "C12"]
 }
 ```
 
@@ -112,7 +112,7 @@ Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop 
   - les écrans `D1` et `D2` s'affichent seulement si `P1` vaut `ipad`, `duo` ou `plusieurs` ; `P1` sans réponse les masque ; si `P1` change vers une autre valeur, `D1` et `D2` sont effacés du brouillon ;
   - la barre de progression recalcule le nombre d'étapes.
 - **`L1` avec détails** : chaque réponse est un bouton radio dont le libellé est le titre court, suivi d'une liste `<ul>` d'au plus trois points, reliée au bouton par `aria-describedby`. Même rendu pour toute question dont les réponses ont des détails.
-- **Cartes** : les neuf cartes de `cartes` sont mélangées une fois par répondant (Fisher-Yates sur `crypto.getRandomValues`), l'ordre est gardé dans le brouillon et envoyé avec la réponse. La mention « pistes à l'étude, pas des engagements » est en tête de l'écran. Chaque carte est un `<fieldset>` avec sa phrase en `<legend>` et trois boutons radio natifs habillés en boutons.
+- **Cartes** : les dix cartes de `cartes` sont mélangées une fois par répondant (Fisher-Yates sur `crypto.getRandomValues`), l'ordre est gardé dans le brouillon et envoyé avec la réponse. La mention « pistes à l'étude, pas des engagements » est en tête de l'écran. Chaque carte est un `<fieldset>` avec sa phrase en `<legend>` et trois boutons radio natifs habillés en boutons.
 - **Tri `D1`** :
   - en tête, une **case à cocher** « Laisser la barre comme aujourd'hui » (et non un bouton radio, qui ne se décoche pas) ; cochée, elle désactive les cartes. Le bouton « Effacer ma réponse » de `D1` décoche la case et efface le tri ; décocher la case seule ne l'efface pas. Le tri reste dans le brouillon, rendu au décochage, mais la réponse envoyée est alors `{"comme_aujourdhui": true}` seule, sans `sections` ;
   - sinon, une liste ordonnée des neuf sections, dans l'ordre de `questions.md` ; pour chacune, un groupe de trois boutons radio (`garder`, `deplier`, `ecarter`, libellés de `questions.md`) ;
@@ -157,7 +157,7 @@ La logique sans DOM (conditions, mélange, construction de la réponse, calcul �
                           { "code": "reglages", "etat": "ecarter" } ] },
     "D2": "tableau_de_bord",
     "C04": "adore", "C01": "inutile",
-    "ordre_cartes": ["C04", "C01", "C09", "C02", "C10", "C03", "C07", "C05", "C06"],
+    "ordre_cartes": ["C04", "C01", "C09", "C12", "C02", "C10", "C03", "C07", "C05", "C06"],
     "C11": "", "M1": "un_onglet", "F1": "", "I1": "pseudo facultatif"
   }
 }
@@ -177,7 +177,7 @@ Le serveur ne fait pas confiance au front :
   - chaque code de section au plus une fois, état parmi `garder`, `deplier`, `ecarter` ;
   - les rangs ne couvrent que les sections `garder` et `deplier` : uniques et contigus de 1 à leur nombre (pas de 1 à 9) ; une section `ecarter` n'en a pas ;
   - `comme_aujourdhui` faux sans aucune section : `D1` devient absent ;
-- `ordre_cartes` : permutation exacte des neuf cartes, sinon ignoré ;
+- `ordre_cartes` : permutation exacte des dix cartes, sinon ignoré ;
 - **envoi vide** : après normalisation et application des conditions, un envoi sans aucune réponse (ni question, ni pseudo ; l'ordre des cartes et la durée n'en sont pas) est refusé en 400 « aucune réponse à enregistrer ». Rien n'est stocké, pas même le jeton, et il ne compte ni dans le total ni dans le seuil de 10. Le formulaire le dit avant d'envoyer, avec un message clair ;
 - **conditions**, appliquées avant stockage même si le front a envoyé les valeurs :
   - `P1` absent ou différent de `ipad`, `duo`, `plusieurs` : `D1` et `D2` retirés. C'est la seule condition ; `L2` et `G1` n'en ont pas.
@@ -228,7 +228,7 @@ Toute autre route : 404. Pas de route d'export ni d'administration : ces actions
 ## 8. Écran de fin et statistiques
 
 - Les réponses « limitées » (R13) sont exclues de tous les calculs, total compris.
-- Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les neuf cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
+- Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les dix cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
 - Pour chaque question : pourcentage de chaque code parmi ceux qui y ont répondu, entier arrondi au plus proche (la somme peut différer de 100), et effectif.
 - Pour `D1` : part de `comme_aujourdhui` parmi les répondants de `D1` ; puis, pour chaque section, part de chaque état et rang médian des sections gardées ou dépliables, calculés sur les répondants qui ont donné un état **à cette section** (son effectif propre, qui suit la règle de seuil par question ci-dessous).
 - **Seuil (D3)** : rien n'est publié tant que le total est sous `UX_SEUIL_STATS` (10). Ensuite, une question n'est publiée que si son propre effectif atteint aussi le seuil (utile pour le thème 2, vu par moins de monde).
@@ -333,7 +333,7 @@ Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajo
 | `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour les questions fermées, effectifs et pourcentages ; une question dont l'effectif est sous **5** est omise, et pour `D1`, une section à laquelle moins de 5 répondants ont donné un état est omise (effectif propre à la section, pas le nombre de répondants qui ont trié) ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
 | `pseudos` | `identifiant` et pseudo, pour traiter une demande de droits (R7) seulement | Bruno seul, jamais partagé | Supprimé dès la demande traitée |
 
-Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les neuf cartes, `C11`, `M1`, `F1` ; sans `C08`). Il n'y a pas de colonne `D1` : à sa place viennent `D1_comme_aujourdhui` puis, pour chacune des neuf sections dans l'ordre de `questions.md`, `D1_<code>_etat` et `D1_<code>_rang` (19 colonnes). Viennent ensuite `ordre_cartes` et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
+Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les dix cartes, `C11`, `M1`, `F1` ; sans `C08`). Il n'y a pas de colonne `D1` : à sa place viennent `D1_comme_aujourdhui` puis, pour chacune des neuf sections dans l'ordre de `questions.md`, `D1_<code>_etat` et `D1_<code>_rang` (19 colonnes). Viennent ensuite `ordre_cartes` et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
 
 **Relecture des textes libres (R10)** : le PO relit `G1`, `L2`, `C11` et `F1` dans une copie de l'export d'analyse, retire les détails identifiants, et inscrit `oui` dans `textes_relus` pour chaque ligne relue. Seule cette copie relue est partagée. Les réponses sur le serveur ne sont pas modifiées.
 
@@ -381,10 +381,10 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | # | Test | Vérifie |
 |---|---|---|
 | 1 | Concordance | `questionnaire.json` et `questions.md` : identifiants, codes, libellés, détails, aides, conditions, ordre ; bloc `D1` lu par ses quatre lignes ; `C08` absent du JSON ; identifiants du §2 présents hors `C08` |
-| 2 | Contenu | Codes en ASCII minuscules, uniques par question ; neuf cartes ; chaque visuel référencé existe et `web/visuels/` est identique à `docs/ux/questionnaire/visuels/` |
+| 2 | Contenu | Codes en ASCII minuscules, uniques par question ; dix cartes ; chaque visuel référencé existe et `web/visuels/` est identique à `docs/ux/questionnaire/visuels/` |
 | 3 | Conditions serveur | `P1` vaut `ipad`, `duo`, `plusieurs` : `D1` et `D2` gardés ; `iphone` ou absent : retirés ; `G1` et `L2` gardés quels que soient le profil et la réponse à `L1` |
 | 4 | Conditions front (node) | Liste des écrans selon `P1`, avec l'écran `G1` toujours entre `O1` et `L1` ; changement de `P1` qui efface `D1` et `D2` ; `L2` actif sans `L1` |
-| 5 | Mélange et `D1` (node) | L'ordre des cartes est une permutation des neuf cartes et reste stable après rechargement du brouillon ; trier `D1` puis cocher « comme aujourd'hui » produit `{"comme_aujourdhui": true}` seul, et le décocher rend le tri |
+| 5 | Mélange et `D1` (node) | L'ordre des cartes est une permutation des dix cartes et reste stable après rechargement du brouillon ; trier `D1` puis cocher « comme aujourd'hui » produit `{"comme_aujourdhui": true}` seul, et le décocher rend le tri |
 | 6 | Validation | Clé inconnue (dont `C08`), code ou type inconnu, texte trop long (`G1` à 281 caractères compris), corps trop gros ; `D1` avec `comme_aujourdhui` et des sections, rangs en double ou non contigus, rang sur une section écartée : refus, aucune ligne |
 | 7 | Enregistrement | Un envoi valide : une ligne dans `reponses` avec un identifiant aléatoire, le pseudo seulement dans `pseudos`, `recue_le` sans heure |
 | 8 | Doublon par jeton | Deuxième envoi du même jeton : 409 `deja_recu`, toujours une seule ligne |

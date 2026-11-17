@@ -21,7 +21,7 @@ Rien ne bloque la vague 1. Le sous-domaine ne bloque que la mise en ligne restre
 
 ## 2. Le parcours, écran par écran
 
-Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 6 min 55 s pour un profil iPad et 4 min 55 s pour un profil iPhone, ce qui laisse une marge pour les visuels et les vidéos.
+Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 7 min 5 s pour un profil iPad et 5 min 5 s pour un profil iPhone : les deux dépassent leur plafond de 5 secondes depuis l'ajout de la carte `C12` (17 novembre 2026, une carte compte 9 secondes). Aucune coupe n'est faite ici, le PO tranche (voir la PR) ; il ne reste plus de marge pour les visuels et les vidéos.
 
 | Écran | Identifiants | Contenu | Format | Condition | Visuel | Budget |
 |---|---|---|---|---|---|---|
@@ -33,7 +33,7 @@ Un écran par bloc, une barre de progression, toutes les questions facultatives.
 | Thème 2, partie A | `D1` | Sections de la barre latérale : garder, ordonner, dépliable | Tri de cartes | `P1` vaut iPad, Duo ou plusieurs | Cartes des neuf sections | 75 s |
 | Thème 2, partie B | `D2` | Trois dispositions | Choix simple | Même condition | Capture actuelle, deux maquettes, vidéos Duo | 45 s |
 | Options expérimentales | `X1` | Cinq options en test (#903), à activer par défaut ; `aucune` exclut les autres | Choix multiple | — | — | 15 s |
-| Cartes | `C01` à `C10` sauf `C08` | Neuf idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 80 s |
+| Cartes | `C01` `C02` `C03` `C04` `C05` `C06` `C07` `C09` `C10` `C12` | Dix idées, trois réactions chacune | Cartes de réaction | — | Aucun, une phrase par carte | 90 s |
 | Idée | `C11` | « Ces idées vous en inspirent une autre ? » | Texte court | — | — | 15 s |
 | Messages privés | `M1` | Quatre réponses de la question MP | Choix simple | — | — | 15 s |
 | Champ libre | `F1` | 280 caractères | Texte | — | — | 20 s |

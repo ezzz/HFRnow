@@ -13,7 +13,7 @@ import (
 	uxsurvey "github.com/ezzz/hfrnow/tooling/ux-survey"
 )
 
-// Test 2 : codes en ASCII minuscules, uniques ; neuf cartes ; visuels existants et identiques à ceux de #632.
+// Test 2 : codes en ASCII minuscules, uniques ; dix cartes ; visuels existants et identiques à ceux de #632.
 func TestContenuCodesCartesEtVisuels(t *testing.T) {
 	q := chargerContenu(t)
 	reASCII := regexp.MustCompile(`^[a-z0-9_]+$`)
@@ -26,8 +26,8 @@ func TestContenuCodesCartesEtVisuels(t *testing.T) {
 			vus[r.Code] = true
 		}
 	}
-	if len(q.Cartes) != 9 {
-		t.Errorf("neuf cartes attendues : %v", q.Cartes)
+	if len(q.Cartes) != 10 {
+		t.Errorf("dix cartes attendues : %v", q.Cartes)
 	}
 
 	racine := racineDepot(t)

@@ -77,7 +77,8 @@
         "C06",
         "C07",
         "C09",
-        "C10"
+        "C10",
+        "C12"
       ]
     },
     {
@@ -624,6 +625,24 @@
         }
       ]
     },
+    "C12": {
+      "libelle": "Lire hors ligne : garder des sujets ou vos favoris sur l'appareil pour les lire sans réseau, dans le métro ou en avion",
+      "type": "reaction",
+      "reponses": [
+        {
+          "code": "adore",
+          "libelle": "J'adore"
+        },
+        {
+          "code": "pourquoi_pas",
+          "libelle": "Pourquoi pas"
+        },
+        {
+          "code": "inutile",
+          "libelle": "Inutile pour moi"
+        }
+      ]
+    },
     "C11": {
       "libelle": "Ces idées vous en inspirent une autre ?",
       "type": "texte",
@@ -684,6 +703,7 @@
     "C06",
     "C07",
     "C09",
-    "C10"
+    "C10",
+    "C12"
   ]
 }

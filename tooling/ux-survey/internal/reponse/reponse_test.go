@@ -203,10 +203,10 @@ func TestOrdreCartesEtDuree(t *testing.T) {
 	ordre := append([]string{}, q.Cartes...)
 	ordre[0], ordre[1] = ordre[1], ordre[0]
 	n, _ := valider(t, map[string]any{"P1": "iphone", "ordre_cartes": ordre})
-	if len(n.OrdreCartes) != 9 || n.OrdreCartes[0] != ordre[0] {
+	if len(n.OrdreCartes) != len(q.Cartes) || n.OrdreCartes[0] != ordre[0] {
 		t.Errorf("permutation valide gardée : %v", n.OrdreCartes)
 	}
-	for nom, o := range map[string][]string{"doublon": append([]string{q.Cartes[0]}, q.Cartes[0:8]...), "C08": append([]string{"C08"}, q.Cartes[1:]...), "court": q.Cartes[:5]} {
+	for nom, o := range map[string][]string{"doublon": append([]string{q.Cartes[0]}, q.Cartes[0:len(q.Cartes)-1]...), "C08": append([]string{"C08"}, q.Cartes[1:]...), "court": q.Cartes[:5]} {
 		if n, err := valider(t, map[string]any{"P1": "iphone", "ordre_cartes": o}); err != nil || n.OrdreCartes != nil {
 			t.Errorf("%s : ordre ignoré, sans erreur (%v, %v)", nom, n.OrdreCartes, err)
 		}
