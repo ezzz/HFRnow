@@ -171,6 +171,7 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         #expect(title == page.title)
     }
 
+    /// The page's own forum images (avatar) always load: only the rendition's host tells what these tests are about.
     private func renditionPage() -> ReaderDocument {
         document(token: 1, content: "<p><img class=\"hfrplusimg\" src=\"\(rehostMedium)\" alt=\"capture\"></p>")
     }
@@ -180,8 +181,8 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         let (controller, recorder) = makeController(transport: transport, autoLoad: true)
         controller.show(renditionPage())
         #expect(await until { recorder.ready == [1] })
-        #expect(await until(async: { await transport.requests.count >= 1 }))
-        #expect(await transport.requests.map(\.url.absoluteString) == [rehostFull])
+        #expect(await until(async: { await transport.rehostRequests().count >= 1 }))
+        #expect(await transport.rehostRequests() == [rehostFull])
     }
 
     @Test func aFailingFullSizeFetchLoadsThePostedAddressInstead() async throws {
@@ -192,8 +193,8 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         let (controller, recorder) = makeController(transport: transport, autoLoad: true)
         controller.show(renditionPage())
         #expect(await until { recorder.ready == [1] })
-        #expect(await until(async: { await transport.requests.count >= 2 }))
-        #expect(await transport.requests.map(\.url.absoluteString) == [rehostFull, rehostMedium])
+        #expect(await until(async: { await transport.rehostRequests().count >= 2 }))
+        #expect(await transport.rehostRequests() == [rehostFull, rehostMedium])
     }
 
     @Test func withoutATapNothingIsFetchedForARendition() async throws {
@@ -202,7 +203,7 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         controller.show(renditionPage())
         #expect(await until { recorder.ready == [1] })
         try await Task.sleep(for: .milliseconds(500))
-        #expect(await transport.requests.isEmpty)
+        #expect(await transport.rehostRequests().isEmpty)
     }
 }
 
@@ -247,6 +248,13 @@ struct ReaderLandingWebTests: ReaderWebTesting {
         let reported = await until { reports.posts.contains(1) }
         let reportedState = await reported ? "" : scrollState(of: controller)
         #expect(reported, "reported: \(reports.posts), \(reportedState)")
+    }
+}
+
+private extension MockTransport {
+    /// The `img3.super-h.fr` addresses requested so far, in order.
+    func rehostRequests() async -> [String] {
+        await requests.filter { $0.url.host() == "img3.super-h.fr" }.map(\.url.absoluteString)
     }
 }
 
