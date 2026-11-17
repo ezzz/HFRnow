@@ -19,7 +19,7 @@ enum MPBackgroundScheduler {
     }
 
     /// Submits the next check per the setting, replacing a pending one; cancels it for Jamais.
-    static func schedule(settings: any SettingsStore = UserDefaultsSettingsStore(), now: Date = .now) {
+    static func schedule(settings: any SettingsStore = UserDefaultsSettingsStore(), now: Date = .now) async {
         guard let date = earliestBeginDate(for: settings.value(for: SettingKey.mpCheckInterval), now: now) else {
             BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
             return
@@ -27,7 +27,7 @@ enum MPBackgroundScheduler {
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
         request.earliestBeginDate = date
         do {
-            try BGTaskScheduler.shared.submit(request)
+            try await BGTaskScheduler.shared.submitTaskRequest(request)
         } catch {
             // The simulator, or background refresh turned off for the app: nothing to tell the member here.
             log.error("Background MP check not scheduled")

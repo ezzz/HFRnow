@@ -91,7 +91,7 @@ struct SwiftHFRApp: App {
                 .task { await MPNotificationCenter().prepare() }
                 // The next background MP check is scheduled when the app leaves the screen (`HFRswiftApp.swift:31-35`).
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .background { MPBackgroundScheduler.schedule() }
+                    if phase == .background { Task { await MPBackgroundScheduler.schedule() } }
                 }
                 // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
                 .onChange(of: scenePhase, initial: true) { _, phase in
@@ -104,7 +104,7 @@ struct SwiftHFRApp: App {
         }
         // The background MP check (LOT-140): the next one is scheduled first, as legacy (`MPBackgroundService.swift:71`).
         .backgroundTask(.appRefresh(MPBackgroundScheduler.taskIdentifier)) {
-            MPBackgroundScheduler.schedule()
+            await MPBackgroundScheduler.schedule()
             await MPBackgroundCheck.live.run()
         }
     }

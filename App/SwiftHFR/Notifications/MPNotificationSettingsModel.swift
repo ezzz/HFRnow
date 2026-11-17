@@ -33,7 +33,7 @@ final class MPNotificationSettingsModel {
     /// Reads the values from `store`; nothing is written until one changes.
     init(
         store: any SettingsStore, ledger: NotificationLedgerStore = MPNotificationLedger.live,
-        reschedule: @escaping @MainActor () -> Void = { MPBackgroundScheduler.schedule() }
+        reschedule: @escaping @MainActor () -> Void = { Task { await MPBackgroundScheduler.schedule() } }
     ) {
         self.store = store
         self.ledger = ledger
