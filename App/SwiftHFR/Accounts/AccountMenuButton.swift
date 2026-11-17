@@ -7,7 +7,7 @@ import SwiftUI
 /// Toolbar entry to the accounts, as legacy's account menu (`HFRswift/Swift/MainWindow.swift:267-290`): switch account,
 /// add one, manage them. Logged out, it offers to log in.
 struct AccountMenuButton: View {
-    /// Top left, as legacy (`MainToolbar.swift:59-65` @ 87fe0d1c) and on every main root (#1057).
+    /// Top left, as legacy (`MainToolbar.swift:60-66` @ 87fe0d1c) and on every main root (#1057).
     static let placement = ToolbarItemPlacement.topBarLeading
 
     @Environment(AccountsModel.self) private var accounts

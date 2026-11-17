@@ -1,3 +1,6 @@
+import HFRModels
+import HFRNetwork
+import HFRStorage
 @testable import SwiftHFR
 import SwiftUI
 import Testing
@@ -23,30 +26,77 @@ struct AccountMenuPlacementTests {
         #expect(AccountMenuLabelContent.content(hasAvatar: false, status: .expired) == badge)
     }
 
-    /// Hosts a root in a navigation controller, as the tabs do, and reads the UIKit bar items SwiftUI builds from its toolbar.
-    @Test func modifierPutsTheItemOnTheLeftOfTheBarOnly() async throws {
+    /// Hosts `root` in a window as a tab does and returns the UIKit bar items SwiftUI built from the toolbars on screen.
+    private func barItems(of root: some View) async throws -> (left: Int, right: Int) {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
-        let root = Text("Racine").accountMenuToolbarItem().environment(AccountsModel.preview())
-        let host = UIHostingController(rootView: NavigationStack { root })
+        let host = UIHostingController(rootView: root.environment(AccountsModel.preview()))
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true }
-        var bar: UINavigationBar?
+        var left = 0
+        var right = 0
         for _ in 0..<100 {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            bar = Self.navigationBar(in: host.view)
-            if let items = bar?.topItem, !(items.leftBarButtonItems ?? []).isEmpty { break }
+            let items = Self.navigationBars(in: host.view).compactMap(\.topItem)
+            left = items.map { ($0.leftBarButtonItems ?? []).count }.reduce(0, +)
+            right = items.map { ($0.rightBarButtonItems ?? []).count }.reduce(0, +)
+            if left > 0 { break }
         }
-        let item = try #require(bar?.topItem)
-        #expect(!(item.leftBarButtonItems ?? []).isEmpty)
-        #expect((item.rightBarButtonItems ?? []).isEmpty)
+        return (left, right)
     }
 
-    private static func navigationBar(in view: UIView) -> UINavigationBar? {
-        if let bar = view as? UINavigationBar { return bar }
-        return view.subviews.lazy.compactMap { navigationBar(in: $0) }.first
+    private func services() -> ReaderServices {
+        ReaderServices(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            settings: ReaderSettings(
+                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            ),
+            profiles: FakeUserProfiles([])
+        )
+    }
+
+    /// The modifier itself: a left item, no right one.
+    @Test func modifierPutsTheItemOnTheLeftOfTheBarOnly() async throws {
+        let items = try await barItems(of: NavigationStack { Text("Racine").accountMenuToolbarItem() })
+        #expect(items.left > 0)
+        #expect(items.right == 0)
+    }
+
+    /// The real roots as `RootTabsView` builds them: removing the modifier from one of them fails here. Not covered: Recherche
+    /// (experimental tab) and the iPad sidebar, left to the device check of #893.
+    @Test(arguments: ["categories", "favorites", "messages", "plus"])
+    func eachMainRootHasTheAccountButtonOnTheLeft(root: String) async throws {
+        let reader = services()
+        let view: AnyView
+        switch root {
+        case "categories":
+            view = AnyView(CategoriesTabView(navigation: NavigationModel(dataSource: FakeDataSource()), reader: reader, composer: nil))
+        case "favorites":
+            view = AnyView(FavoritesTabView(
+                navigation: NavigationModel(dataSource: FakeDataSource(), startupSource: .favorites), reader: reader, composer: nil
+            ))
+        case "messages":
+            view = AnyView(MessagesRootView(model: MessageListModel(source: FakePrivateMessages()), reader: reader, composer: nil))
+        default:
+            let data = FakeDataSource()
+            let forums = ForumListModel(dataSource: data)
+            let model = RootModel(
+                forums: forums,
+                categories: NavigationModel(dataSource: data, forums: forums, startupSource: RootModel.categoriesStartupSource),
+                favorites: NavigationModel(dataSource: data, forums: forums, startupSource: RootModel.favoritesStartupSource),
+                messages: MessageListModel(source: FakePrivateMessages()),
+                store: InMemorySettingsStore(), initial: nil, privateMessageCount: PrivateMessageCount()
+            )
+            view = AnyView(NavigationStack { PlusView(model: model) })
+        }
+        let items = try await barItems(of: view)
+        #expect(items.left > 0, "\(root): no item on the left of the bar")
+    }
+
+    private static func navigationBars(in view: UIView) -> [UINavigationBar] {
+        (view as? UINavigationBar).map { [$0] } ?? view.subviews.flatMap { navigationBars(in: $0) }
     }
 }

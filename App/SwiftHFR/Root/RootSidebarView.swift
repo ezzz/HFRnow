@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView.iPadSidebarRoot) @ 2440d79. Differences: sectioned sidebar taken from master, not
-// 2440d79 (four plain tabs there; GAP-211, 218; UXD); the account button stays leading (`MainToolbar.swift:59-65` @ 87fe0d1c, #1057).
+// 2440d79 (four plain tabs there; GAP-211, 218; UXD); the account button stays leading (`MainToolbar.swift:60-66` @ 87fe0d1c, #1057).
 /// The regular-width iPad root: the legacy sidebar (lists, tools, Plus entries), with the topic list and the reader beside it.
 struct RootSidebarView: View {
     @Bindable var model: RootModel
