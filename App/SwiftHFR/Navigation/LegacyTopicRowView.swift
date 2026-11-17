@@ -21,7 +21,8 @@ struct LegacyTopicRowView: View {
     /// What the dense row's marks said and this row shows by weight or tint only (colour is never the only cue).
     private var spokenState: String {
         [
-            isUnread ? "Non lu" : nil, isSuperFavorite ? "Super favori" : nil, flagIsTinted && showsFlag ? TopicRowCues.flagLabel(topic.flag) : nil
+            isUnread ? "Non lu" : nil, isSuperFavorite ? "Super favori" : nil,
+            flagIsTinted && showsFlag ? TopicRowCues.flagLabel(topic.flag) : nil
         ].compactMap { $0 }.joined(separator: ", ")
     }
 
