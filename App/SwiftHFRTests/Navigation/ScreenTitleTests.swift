@@ -19,6 +19,26 @@ struct ScreenTitleTests {
         #expect(ScreenTitleStyle.topicList(isFavoritesRoot: false) == .pill)
     }
 
+    /// #1012: the bar's centre slot must never be empty, or the system drops it and the pill never appears on the device.
+    @Test func theCentreSlotIsNeverEmptyWhateverTheModeAndTheLargeTitle() {
+        for style in [ScreenTitleStyle.largeThenPill, .pill] {
+            for headerVisible in [true, false] {
+                let presentation = style.pillPresentation(headerVisible: headerVisible)
+                #expect(presentation == (style.showsPill(headerVisible: headerVisible) ? .shown : .reserved))
+            }
+        }
+        #expect(ScreenTitleStyle.largeThenPill.pillPresentation(headerVisible: true) == .reserved)
+        #expect(ScreenTitleStyle.pill.pillPresentation(headerVisible: true) == .shown)
+    }
+
+    /// A main screen starts on its large title, so the pill is only reserved until the first crossing.
+    @MainActor @Test func aMainScreenStartsWithItsLargeTitleOnScreen() {
+        let visibility = TitleVisibility()
+        #expect(ScreenTitleStyle.largeThenPill.pillPresentation(headerVisible: visibility.isHeaderVisible) == .reserved)
+        visibility.isHeaderVisible = false
+        #expect(ScreenTitleStyle.largeThenPill.pillPresentation(headerVisible: visibility.isHeaderVisible) == .shown)
+    }
+
     @Test func aTapShowsTheFullTitleAndTheNextTapOrTheDelayFoldsIt() {
         var state = TitlePillState()
         #expect(!state.isExpanded)

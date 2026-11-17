@@ -28,9 +28,15 @@ struct AppEnvironment {
     let flagActions: TopicFlagActions?
     /// Avatars of the MP rows' correspondents the cache lacks (#714), looked up without cookies; nil when logged out.
     let memberAvatars: MemberAvatarPrefetcher?
+    /// The unread private messages count behind the Messages badge: shared by every window of the app (LOT-146).
+    /// Nil in a root built alone, which then counts for itself.
+    let privateMessageCount: PrivateMessageCount?
 
     /// The environment for `session`.
-    static func make(session: HFRSession, accountName: String?, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
+    static func make(
+        session: HFRSession, accountName: String?, avatarRefresh: AvatarRefresh? = nil,
+        privateMessageCount: PrivateMessageCount? = nil
+    ) -> AppEnvironment {
         let fetcher = PageFetcher(session: session)
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
@@ -73,14 +79,20 @@ struct AppEnvironment {
             favoriteStores: .live(account: accountName),
             flagActions: flagActions,
             // Only the MP list asks, and it needs an account; the lookups themselves never carry the session.
-            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars)
+            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars),
+            privateMessageCount: privateMessageCount
         )
     }
 
     /// The environment of the current account, or of the logged-out session when there is none.
     @MainActor
-    static func current(of accounts: AccountsModel, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
-        make(session: accounts.forumSession, accountName: accounts.current?.id, avatarRefresh: avatarRefresh)
+    static func current(
+        of accounts: AccountsModel, avatarRefresh: AvatarRefresh? = nil, privateMessageCount: PrivateMessageCount? = nil
+    ) -> AppEnvironment {
+        make(
+            session: accounts.forumSession, accountName: accounts.current?.id, avatarRefresh: avatarRefresh,
+            privateMessageCount: privateMessageCount
+        )
     }
 
     /// Pseudo of the current account for the Q-7 rule, nil when logged out. Read from the account list, not from the

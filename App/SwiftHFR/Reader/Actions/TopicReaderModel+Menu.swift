@@ -83,7 +83,7 @@ extension TopicReaderModel {
     func requestMenu(post: Int, source: MessageMenuSource, anchor: CGRect? = nil, token: Int) -> MessageMenu? {
         guard token == document?.token, let context = menuContext(post: post) else { return nil }
         let entries = registry.entries(for: context, source: source)
-        // A request that offers nothing leaves an open menu alone, like a refused one (the popover keeps the page tappable).
+        // A request that offers nothing leaves an open menu alone, like a refused one (the callout keeps the page as it was).
         guard !entries.isEmpty else { return nil }
         let menu = MessageMenu(post: post, source: source, context: context, entries: entries, anchor: anchor)
         if source == .avatar, entries.contains(.profile) { return menu }
