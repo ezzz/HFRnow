@@ -1,8 +1,8 @@
 import Observation
 
-/// The creation question as a choice (#1014): « Oui » is preselected, and « Non » is only recorded after a confirmation that says
-/// what is lost. Pure state, so the rule is tested without a view; nothing here creates anything: the caller creates the
-/// storage message only for `.create`, which only « Oui » yields.
+/// The creation question as a choice (#1014): « Oui » is preselected, and deselecting it raises a confirmation that says what
+/// is lost; « Non » is only recorded once that is confirmed. Pure state, so the rule is tested without a view; nothing here
+/// creates anything: the caller creates the storage message only for `.create`, which only « Oui » yields.
 @MainActor
 @Observable
 final class MPStorageCreationChoice {
@@ -25,12 +25,17 @@ final class MPStorageCreationChoice {
         case decline
     }
 
-    /// The selected answer: « Oui » at first.
-    var answer = Answer.oui
+    /// The selected answer: « Oui » at first. Selecting « Non » raises the confirmation at once.
+    var answer = Answer.oui {
+        didSet {
+            if answer == .non, oldValue != .non { asksRefusalConfirmation = true }
+        }
+    }
     /// True while the confirmation of a « Non » waits for its answer (« Confirmer » or « Revenir »).
     var asksRefusalConfirmation = false
 
-    /// « Valider »: « Oui » decides now; « Non » asks to confirm first and decides nothing yet.
+    /// « Valider »: « Oui » decides now; « Non » (reachable only with the confirmation closed by other means) asks again and
+    /// decides nothing.
     func validate() -> Decision? {
         switch answer {
         case .oui: return .create
@@ -46,8 +51,9 @@ final class MPStorageCreationChoice {
         return .decline
     }
 
-    /// « Revenir » in the confirmation: back to the question, the selection kept.
+    /// « Revenir » in the confirmation: back to the question, « Oui » selected again.
     func goBack() {
         asksRefusalConfirmation = false
+        answer = .oui
     }
 }

@@ -13,6 +13,8 @@ struct DescribedFeatureRow: View {
                 get: { settings.isOn(feature) },
                 set: { settings.set(feature, isOn: $0) }
             ))
+            // On the switch itself, which VoiceOver focuses, as `ExperimentalFeatureRow` does.
+            .accessibilityHint(feature.explanation)
             Text(feature.explanation)
                 .scaledFont(.footnote)
                 .foregroundStyle(.secondary)
@@ -20,7 +22,5 @@ struct DescribedFeatureRow: View {
                 // The switch's hint already reads it.
                 .accessibilityHidden(true)
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityHint(feature.explanation)
     }
 }

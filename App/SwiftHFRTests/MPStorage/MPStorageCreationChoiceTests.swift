@@ -21,10 +21,11 @@ struct MPStorageCreationChoiceTests {
         #expect(!choice.asksRefusalConfirmation)
     }
 
-    /// Deselecting « Oui » decides nothing: the popup asks first.
-    @Test func nonAsksForAConfirmationAndDecidesNothing() {
+    /// Deselecting « Oui » raises the popup at once and decides nothing.
+    @Test func deselectingOuiAsksForAConfirmationAndDecidesNothing() {
         let choice = MPStorageCreationChoice()
         choice.answer = .non
+        #expect(choice.asksRefusalConfirmation)
         #expect(choice.validate() == nil)
         #expect(choice.asksRefusalConfirmation)
     }
@@ -32,20 +33,20 @@ struct MPStorageCreationChoiceTests {
     @Test func confirmingTheRefusalDeclines() {
         let choice = MPStorageCreationChoice()
         choice.answer = .non
-        _ = choice.validate()
         #expect(choice.confirmRefusal() == .decline)
         #expect(!choice.asksRefusalConfirmation)
     }
 
-    @Test func goingBackKeepsTheQuestionAndTheSelection() {
+    /// « Revenir » puts « Oui » back, and a new deselection asks again.
+    @Test func goingBackRestoresOuiAndADeselectionAsksAgain() {
         let choice = MPStorageCreationChoice()
         choice.answer = .non
-        _ = choice.validate()
         choice.goBack()
         #expect(!choice.asksRefusalConfirmation)
-        #expect(choice.answer == .non)
-        choice.answer = .oui
+        #expect(choice.answer == .oui)
         #expect(choice.validate() == .create)
+        choice.answer = .non
+        #expect(choice.asksRefusalConfirmation)
     }
 
     /// No write without « Oui »: neither the question left open, nor « Non », nor going back creates the storage message.
@@ -56,10 +57,10 @@ struct MPStorageCreationChoiceTests {
         #expect(await fixture.remote.calls == [.find]) // asked, nothing written
         let choice = MPStorageCreationChoice()
         choice.answer = .non
-        #expect(choice.validate() == nil)
+        #expect(choice.asksRefusalConfirmation)
         choice.goBack()
         #expect(await fixture.remote.calls == [.find])
-        _ = choice.validate()
+        choice.answer = .non
         let decision = choice.confirmRefusal()
         await fixture.model.answerCreation(decision == .create)
         #expect(fixture.model.record?.state == .declined)

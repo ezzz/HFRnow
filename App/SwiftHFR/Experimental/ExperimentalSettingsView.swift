@@ -42,7 +42,8 @@ struct ExperimentalSettingsSection: View {
     }
 }
 
-/// The "Expérimental" page: one section per theme with each option's switch and ⓘ, and the footer on the last section.
+/// The "Expérimental" page: one section per theme with each option's switch and ⓘ (a description under the switch instead for
+/// `showsExplanationUnderSwitch` options), and the footer on the last section.
 struct ExperimentalPageView: View {
     let groups: [ExperimentalPageLayout.Group]
     let settings: ExperimentalSettings
