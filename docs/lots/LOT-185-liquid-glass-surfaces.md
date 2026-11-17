@@ -50,7 +50,7 @@ HIG: [Materials](https://developer.apple.com/design/human-interface-guidelines/m
 | `TopicListView` top strip (store problem) | converted: `safeAreaBar(edge: .top)`, fill dropped. The sent and failure banners moved to a separate `safeAreaInset(edge: .top)`, like `MessageListView` | Layout |
 | `ReaderOfflineSave` top strip | converted, same | Layout |
 | `FilteredPostsView` top banner (`bar` in rounded rect) | `safeAreaBar(edge: .top)` + `glassEffect(in: .rect(cornerRadius: 10))` | floats over the reader |
-| `MessageListView` segment switch | converted: `safeAreaBar(edge: .top)`, fill dropped | Layout |
+| `MessageListView` segment switch | converted: `safeAreaBar(edge: .top)`, fill dropped; superseded by #1013: a clear list row under the large title that scrolls away | Layout |
 | `SmileyPickerView` search bar | converted: `safeAreaBar(edge: .bottom)`, fill dropped (a bottom bar, not a top strip as #548 says) | Layout |
 | `SmileyPickerView` notice capsule | converted: `glassEffect(in: .capsule)` | floats over the grid |
 | Notice cards `LoadFailureView:36`, `TopicSentBanner`, `MessageSentBanner`, `LoadFailureBanner` | **kept** `regularMaterial` | content layer: they push the list down |
