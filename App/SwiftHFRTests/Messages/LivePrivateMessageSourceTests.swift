@@ -47,7 +47,7 @@ struct LivePrivateMessageSourceTests {
     }
 
     /// Every path that turns the list into rows or counts reads the live source (#1075 map): the Messages model in both
-    /// display modes and segments, the ledger's seen set and the notification plan.
+    /// display modes and segments (`recordReadState` reads the same page), the background check's seen set and the notification plan.
     @MainActor
     @Test func theStorageThreadIsHiddenOnEveryPathThatReadsTheList() async throws {
         let body = try LiveTopicPageSourceTests.capture("R13u1-mp-list-recipient-unread.html")
@@ -69,7 +69,13 @@ struct LivePrivateMessageSourceTests {
                 #expect(!model.visibleThreads.contains { $0.summary.topicID?.topic == storageTopic })
             }
         }
-        #expect(MPNotificationLedger.seenSummary(of: page).unreadThreads?.contains(storageTopic) != true)
+        // R13u1's storage row is read for the member, so the seen set is checked on a page where it is unread: the
+        // background check's ledger input (`MPBackgroundCheck`) would hold it without the filter.
+        var unreadStorage = all
+        let index = try #require(unreadStorage.threads.firstIndex { $0.id == storage.id })
+        unreadStorage.threads[index].summary.readState = .unread
+        #expect(MPNotificationLedger.seenSummary(of: unreadStorage).unreadThreads?.contains(storageTopic) == true)
+        #expect(MPNotificationLedger.seenSummary(of: unreadStorage.hidingStorageThread()).unreadThreads?.contains(storageTopic) != true)
         #expect(MPNotificationPlan.make(newThreads: [storageTopic], in: page).isEmpty)
     }
 
