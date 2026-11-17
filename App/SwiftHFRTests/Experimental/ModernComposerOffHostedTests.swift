@@ -7,9 +7,10 @@ import UIKit
 @MainActor
 private final class OffProbeBox {
     var frames: [ComposerLayoutProbe.Part: CGRect] = [:]
+    var layout = ComposerCardLayout()
 
     var probe: ComposerLayoutProbe {
-        ComposerLayoutProbe(frame: { [weak self] part, frame in self?.frames[part] = frame }, layout: { _ in })
+        ComposerLayoutProbe(frame: { [weak self] part, frame in self?.frames[part] = frame }, layout: { [weak self] in self?.layout = $0 })
     }
 }
 
@@ -39,15 +40,31 @@ private struct OffPage: View {
     }
 }
 
-/// #904's acceptance: with Réglages › Expérimental › « Composer moderne » off, nothing the option's folder brings runs, on
-/// every composer entry point. The parts only `App/SwiftHFR/Experimental/ModernComposer/` draws report through
-/// `ComposerLayoutProbe`:
-/// - the floating close, drafts and send buttons and the close glyph (`FloatingComposerButtons`);
-/// - the docked bar's fill (`DockedComposerBar`).
+/// #904's acceptance: with Réglages › Expérimental › « Composer moderne » off, no modern-only behaviour runs, on every composer
+/// entry point.
 ///
-/// Its other parts are checked by their effect: the controls inside the card (`ComposerChrome`), the partial height
-/// (`ComposerHeight`), the docked placement (`ComposerPlacement`). `ComposerPlacement.reader` itself runs on both paths: it is
-/// the split. The switch on is the control twin: on an iPhone the probes see each part, so the off case cannot pass because a
+/// Drawn only by `App/SwiftHFR/Experimental/ModernComposer/`, and so never reported with the switch off (`ComposerLayoutProbe`):
+/// - the floating close, drafts and send buttons and the close glyph (`FloatingComposerButtons`);
+/// - the reader's docked bar fill (`DockedComposerBar`);
+/// - the editor's height toggle (`ComposerEditorCard`, only where `ComposerHeight.offersToggle`).
+///
+/// Checked by their effect:
+/// - the controls inside the card (`ComposerChrome.controlsInCard`), which also gates the round tool chips and the in-card "Aa"
+///   bar's hairline;
+/// - the partial height: the editor capped at `ComposerCardLayout.editorHeight` (`ComposerHeight`), read from the layout, so
+///   the check does not depend on a software keyboard;
+/// - the docked placement (`ComposerPlacement`): the page sees no docked composer, and the reader shows legacy's cover.
+///
+/// Shared by both paths, so it runs with the switch off too (the split, not modern behaviour): `ComposerPlacement.reader`,
+/// `ComposerHeight.shown`, `ComposerChrome.sheet`'s insets, `ComposerSheetSettings`, `DockedComposerBar`'s pass-through,
+/// `ComposerCardLayout`.
+///
+/// Not observed here, covered elsewhere:
+/// - `ReaderComposerGuard` (the reader's bottom bar), by `ComposerPlacementTests.theBottomBarMakesWayOnlyForAnOpenDockedComposer`;
+/// - `ComposerSheetSettings`'s detent and opaque background, inert for a view hosted as a window's root. Both derive from
+///   `usesModernComposer` and the height asserted here.
+///
+/// The switch on is the control twin: on an iPhone every one of these parts is seen, so the off case cannot pass because a
 /// probe went blind. An iPad never runs the modern composer.
 @MainActor
 @Suite(.serialized)
@@ -57,8 +74,8 @@ struct ModernComposerOffHostedTests {
         case listSheet, newMessageSheet, reader
     }
 
-    /// Drawn only by the option's folder.
-    private static let modernOnlyParts: Set<ComposerLayoutProbe.Part> = [.close, .drafts, .send, .closeGlyph, .fill]
+    /// Drawn only by the option's folder (or, for the toggle, only where the modern composer offers it).
+    private static let modernOnlyParts: Set<ComposerLayoutProbe.Part> = [.close, .drafts, .send, .closeGlyph, .fill, .heightToggle]
     /// Drawn by the floating buttons of every modern composer (drafts only where a topic archives drafts).
     private static let floatingParts: Set<ComposerLayoutProbe.Part> = [.close, .send, .closeGlyph]
     /// A window of an iPhone 18 Pro's size.
@@ -101,6 +118,8 @@ struct ModernComposerOffHostedTests {
             rootView: root
                 .environment(settings)
                 .environment(\.composerLayoutProbe, box.probe)
+                // An accessibility size opens the modern composer at full height (#749): pinned so the twin sees the card.
+                .environment(\.dynamicTypeSize, .large)
                 .appTypography(TextScale(percent: 100), density: .regular)
         )
         let window = UIWindow(windowScene: scene)
@@ -127,13 +146,17 @@ struct ModernComposerOffHostedTests {
         let frames = hosted.box.frames
         let card = try #require(frames[.card], "the composer is laid out")
         let controls = try #require(frames[.controls])
+        let editor = try #require(frames[.editor])
+        let cap = hosted.box.layout.editorHeight
         let drawn = Set(frames.keys)
         if modern {
             // The control twin: the probes see the folder's parts.
             #expect(Self.floatingParts.isSubset(of: drawn), "\(entry): \(drawn)")
             #expect(card.insetBy(dx: -0.5, dy: -0.5).contains(controls), "\(entry): controls in the card")
             #expect(frames[.title] == nil, "\(entry): no title strip (#972)")
-            #expect(card.height < Self.window.height / 2, "\(entry): partial height, card \(card)")
+            #expect(abs(editor.height - cap) < 1, "\(entry): partial height, the editor at its cap \(cap): \(editor)")
+            #expect(frames[.heightToggle] != nil, "\(entry): the height toggle")
+            if entry != .newMessageSheet { #expect(frames[.drafts] != nil, "\(entry): a topic reply archives drafts") }
             if entry == .reader {
                 #expect(frames[.fill] != nil, "the docked bar")
                 #expect(hosted.docked == .partial)
@@ -143,7 +166,7 @@ struct ModernComposerOffHostedTests {
             #expect(drawn.isDisjoint(with: Self.modernOnlyParts), "\(entry): \(drawn.intersection(Self.modernOnlyParts))")
             #expect(frames[.title] != nil, "\(entry): legacy's bar and its title")
             #expect(controls.minY >= card.maxY - 0.5, "\(entry): the row under the card, card \(card), controls \(controls)")
-            #expect(card.height >= Self.window.height / 2, "\(entry): full height, card \(card)")
+            #expect(editor.height > cap + 1, "\(entry): full height, the editor past the partial cap \(cap): \(editor)")
             if entry == .reader {
                 #expect(hosted.docked == nil, "the page sees no docked composer")
                 let presentation = try #require(hosted.presentation, "presented")
