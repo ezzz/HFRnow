@@ -109,7 +109,7 @@ public final class URLSessionTransport: HTTPTransport {
         for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession
     ) async throws -> (Data, URLResponse) {
         #if canImport(FoundationNetworking)
-        let delegate = IdleWatchDelegate(follows: follows)
+        let delegate = IdleWatchDelegate(follows: follows, owner: session)
         // Same configuration, so the same cookie storage as the account's session.
         let watcher = URLSession(configuration: session.configuration, delegate: delegate, delegateQueue: nil)
         defer { watcher.finishTasksAndInvalidate() }
@@ -175,6 +175,8 @@ public final class URLSessionTransport: HTTPTransport {
 private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let lock = NSLock()
     private let follows: Bool
+    /// The session the request was made for: its delegate (an account session's host policy, LESSONS 30) still decides redirects.
+    private let owner: URLSession
     private var task: URLSessionDataTask?
     private var cancelled = false
     private var body = Data()
@@ -182,7 +184,10 @@ private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchec
     private var continuation: CheckedContinuation<(Data, URLResponse), any Error>?
     private var lastActivity = ContinuousClock.now
 
-    init(follows: Bool) { self.follows = follows }
+    init(follows: Bool, owner: URLSession) {
+        self.follows = follows
+        self.owner = owner
+    }
 
     func start(_ task: URLSessionDataTask, _ continuation: CheckedContinuation<(Data, URLResponse), any Error>) {
         lock.lock()
@@ -231,7 +236,14 @@ private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchec
         _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
         newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
     ) {
-        completionHandler(follows ? request : nil)
+        guard follows else { return completionHandler(nil) }
+        if let inner = owner.delegate as? any URLSessionTaskDelegate {
+            inner.urlSession(
+                owner, task: task, willPerformHTTPRedirection: response, newRequest: request, completionHandler: completionHandler
+            )
+        } else {
+            completionHandler(request)
+        }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
