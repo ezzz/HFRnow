@@ -16,7 +16,7 @@ struct NoelPackingLayer: View {
 
     var body: some View {
         GeometryReader { proxy in
-            if let current = packing.current, current.scene == scene {
+            if packing.isPlaying(in: scene) {
                 NoelElves(area: proxy.size, windowHeight: window.window?.bounds.height ?? proxy.size.height) {
                     packing.finish()
                 }
@@ -54,14 +54,16 @@ struct NoelPackingLayer: View {
                 try? await Task.sleep(for: .milliseconds(500))
                 continue
             }
-            // The overlay is hidden from VoiceOver (rule 6): its words are announced instead.
-            AccessibilityNotification.Announcement("Allez on remballe").post()
+            // The overlay is hidden from VoiceOver (rule 6): its words are announced instead, once per packing, not per replay.
+            if packing.shouldAnnounce() { AccessibilityNotification.Announcement("Allez on remballe").post() }
             let end = Date().addingTimeInterval(NoelPackingModel.duration)
-            while !Task.isCancelled, packing.current?.scene == scene, Date() < end {
+            while !Task.isCancelled, packing.isPlaying(in: scene), Date() < end {
                 try? await Task.sleep(for: .milliseconds(250))
                 packing.screenChanged(for: scene, screen: screen)
             }
-            if packing.current?.scene == scene { packing.finish() }
+            // Played to the end on a clear screen: done. Cut, it waits to replay or is held; the loop asks again, and a held
+            // theme goes once this screen is clear.
+            if packing.isPlaying(in: scene) { packing.finish() }
         }
     }
 }

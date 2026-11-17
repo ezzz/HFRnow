@@ -169,16 +169,30 @@ struct NoelCrossingModelTests {
         let crossings = model([0])
         let other = UUID()
         crossings.sceneChanged(scene, active: true)
+        spend(10)
+        // A second window opening does not restart the count.
         crossings.sceneChanged(other, active: true)
         spend(10)
         crossings.sceneChanged(other, active: false)
-        spend(15)
+        spend(5)
         #expect(abs(crossings.foregroundTime - 25 * 60) < 0.001)
         #expect(ask(crossings, scene: other) == nil)
         let crossing = try #require(ask(crossings))
         crossings.sceneChanged(other, active: true)
         crossings.sceneChanged(other, active: false)
         #expect(crossings.current == crossing)
+    }
+
+    /// A scene that went away no longer counts as active: it gets no crossing, and the count stops once it was the last one.
+    @Test func aReleasedSceneNoLongerCounts() {
+        let crossings = model([0])
+        crossings.sceneChanged(scene, active: true)
+        spend(30)
+        crossings.release(scene: scene)
+        let counted = crossings.foregroundTime
+        spend(10)
+        #expect(crossings.foregroundTime == counted)
+        #expect(ask(crossings) == nil)
     }
 
     @Test func leavingTheForegroundStopsACrossing() {

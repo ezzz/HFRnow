@@ -52,7 +52,7 @@ import Testing
         let keys = SettingKey.noelSeason(year: 2026)
         #expect(keys.map(\.key) == [
             "season.noel.2026.arrivalShown", "season.noel.2026.arrivalPending", "season.noel.2026.optedOut",
-            "season.noel.2026.previousThemeID", "season.noel.2026.packingShown"
+            "season.noel.2026.previousThemeID", "season.noel.2026.packingShown", "season.noel.2026.themeID"
         ])
         #expect(keys.allSatisfy { $0.scope == .device })
         #expect(SettingKey.syncedKeys.isDisjoint(with: keys.map(\.key)))
