@@ -10,18 +10,23 @@ struct SecuritySettingsSections: View {
     var body: some View {
         @Bindable var lock = lock
         Section {
-            Toggle(AccountSyncMessages.title, isOn: Binding(
-                get: { accounts.isAccountSyncOn },
-                set: { accounts.setAccountSync($0) }
-            ))
+            HStack {
+                Toggle(AccountSyncMessages.title, isOn: Binding(
+                    get: { accounts.isAccountSyncOn },
+                    set: { accounts.setAccountSync($0) }
+                ))
+                InfoBubbleButton(label: AccountSyncMessages.infoLabel) {
+                    Text(AccountSyncMessages.explanation)
+                        .padding()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             if let notice = accounts.accountSyncNotice {
                 Text(notice)
                     .scaledFont(.footnote)
             }
         } header: {
             Text("Comptes")
-        } footer: {
-            Text(AccountSyncMessages.explanation)
         }
         Section {
             Toggle("Verrouiller l’app (Face ID / code)", isOn: Binding(
