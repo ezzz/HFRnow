@@ -39,7 +39,7 @@ import Testing
             "season.automatic", "season.animations", "season.noel.activeYear",
             // #903: the Réglages › Expérimental switches, new.
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
-            "experimental.flagIconRows", "experimental.imageLoadingChoice"
+            "experimental.denseRows", "experimental.imageLoadingChoice"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -86,7 +86,7 @@ import Testing
         #expect(!store.value(for: SettingKey.experimentalModernComposer))
         #expect(!store.value(for: SettingKey.experimentalSearchTab))
         #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
-        #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
+        #expect(!store.value(for: SettingKey.experimentalDenseRows))
         #expect(!store.value(for: SettingKey.experimentalImageLoadingChoice))
     }
 

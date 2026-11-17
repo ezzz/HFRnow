@@ -17,7 +17,7 @@ struct ExperimentalSettingsTests {
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
         for feature in ExperimentalFeature.allCases { #expect(!settings.isOn(feature), "\(feature)") }
         #expect(!ExperimentalSettings.isOn(.modernComposer, in: nil))
-        #expect(!ExperimentalSettings.isOn(.flagIconRows, in: nil))
+        #expect(!ExperimentalSettings.isOn(.denseRows, in: nil))
     }
 
     @Test func creatingTheModelWritesNothing() {
@@ -35,20 +35,12 @@ struct ExperimentalSettingsTests {
         #expect(ExperimentalSettings(store: store).isOn(.modernComposer))
     }
 
-    /// An option whose path is not built yet is not listed, cannot be switched, and reads its default whatever the store holds.
-    @Test func aHiddenOptionIsNeitherListedNorEffective() {
-        let hidden: [ExperimentalFeature] = [.flagIconRows]
-        let store = InMemorySettingsStore(Dictionary(uniqueKeysWithValues: hidden.map { ($0.setting.key, SettingRawValue.bool(true)) }))
-        let settings = ExperimentalSettings(store: store)
-        for feature in hidden {
-            #expect(!feature.isListed)
-            #expect(!settings.isOn(feature), "\(feature)")
-            settings.set(feature, isOn: true)
-            #expect(!settings.isOn(feature), "\(feature)")
-        }
+    /// Every option is listed once built, in its section, in enum order (#905 built the last hidden one).
+    @Test func everyOptionIsListed() {
+        #expect(ExperimentalFeature.allCases.allSatisfy(\.isListed))
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
-        #expect(listed == [.modernComposer, .searchTab, .mpStorageSwitches, .imageLoadingChoice])
-        #expect(ExperimentalTheme.listed == [.composer, .navigation, .messages, .imageLoading])
+        #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpStorageSwitches, .imageLoadingChoice])
+        #expect(ExperimentalTheme.listed == [.composer, .navigation, .lists, .messages, .imageLoading])
     }
 
     @Test func everyListedOptionExplainsItself() {

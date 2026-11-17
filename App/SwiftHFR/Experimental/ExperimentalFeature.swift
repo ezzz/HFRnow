@@ -7,7 +7,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     case modernComposer
     case searchTab
     case mpStorageSwitches
-    case flagIconRows
+    case denseRows
     case imageLoadingChoice
 
     var id: Self { self }
@@ -18,7 +18,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         case .modernComposer: SettingKey.experimentalModernComposer
         case .searchTab: SettingKey.experimentalSearchTab
         case .mpStorageSwitches: SettingKey.experimentalMPStorageSwitches
-        case .flagIconRows: SettingKey.experimentalFlagIconRows
+        case .denseRows: SettingKey.experimentalDenseRows
         case .imageLoadingChoice: SettingKey.experimentalImageLoadingChoice
         }
     }
@@ -29,20 +29,14 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         case .modernComposer: 904
         case .searchTab: 896
         case .mpStorageSwitches: 859
-        case .flagIconRows: 905
+        case .denseRows: 905
         case .imageLoadingChoice: 902
         }
     }
 
     /// Listed in Réglages only once its switch changes something: an option whose path is not built yet is hidden, so there is
-    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #905 to read it at
-    /// `TopicRowStyle.current` (#817 built the legacy rows it switches off); the others wait for their own PR.
-    var isListed: Bool {
-        switch self {
-        case .modernComposer, .mpStorageSwitches, .searchTab, .imageLoadingChoice: true
-        case .flagIconRows: false
-        }
-    }
+    /// no dead switch, and reads as its default whatever the store holds. Every option is built now (`denseRows` by #905).
+    var isListed: Bool { true }
 
     /// The section that lists it.
     var theme: ExperimentalTheme {
@@ -50,7 +44,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         case .modernComposer: .composer
         case .searchTab: .navigation
         case .mpStorageSwitches: .messages
-        case .flagIconRows: .lists
+        case .denseRows: .lists
         case .imageLoadingChoice: .imageLoading
         }
     }
@@ -61,7 +55,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         case .modernComposer: "Composer moderne"
         case .searchTab: "Recherche dans la barre"
         case .mpStorageSwitches: "Stockage MP détaillé"
-        case .flagIconRows: "Lignes avec icônes de drapeau"
+        case .denseRows: "Lignes denses"
         case .imageLoadingChoice: "Chargement des images"
         }
     }
@@ -77,9 +71,10 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         case .mpStorageSwitches:
             "Un interrupteur par fonction du stockage MP : liste noire partagée, favoris de messages, MP multiples. Désactivé : "
                 + "un seul interrupteur « Activer le stockage MP »."
-        case .flagIconRows:
-            "Un point devant les sujets non lus et une icône de drapeau devant le titre. Désactivé : la ligne entière teintée "
-                + "selon le drapeau, comme l’app historique."
+        case .denseRows:
+            "Sujets et MP sur des lignes denses : point et icône de drapeau devant le titre, dernier posteur, ligne d’infos sur "
+                + "une seule ligne, sans « il y a » ni nombre de réponses, titres de section en gras. Désactivé : la ligne entière "
+                + "teintée selon le drapeau, comme l’app historique."
         case .imageLoadingChoice:
             "Ajoute un choix du moment où charger les images : Toujours, Wi-Fi uniquement ou Jamais (au toucher). Désactivé : "
                 + "les images se chargent toujours, comme l’app historique."
