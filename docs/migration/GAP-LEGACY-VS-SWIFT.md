@@ -290,7 +290,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 4. **Reader message header.** The grey band with a "+" button becomes a one-line header with a menu; decide whether the legacy band stays the default and the new one an option (GAP-051, 064).
 5. **Reader chrome.** Legacy hides the tab bar in three paths (GAP-008) and has ‹ › Actualiser New; the final reader hides the tab bar while a topic is open (UXD-02), adds a page bar, a scrubber and a quick-reply bar. Decide what is default and what is opt-in (GAP-008, 060, 062, 073).
 6. **Swipes and "Lu".** One uniform swipe set, a local "Lu" turned into one with "Annuler"; the legacy context-menu page jumps are not named (GAP-028, 029, 034).
-7. **Images and videos.** Images always load by default, as in legacy (#902, operator 2026-11-16); image policy C (Wi-Fi auto, cellular on tap) is an option behind Réglages › Expérimental › « Chargement des images ». Tap-to-play videos replace "always load" (GAP-056, 058).
+7. **Images and videos.** Images always load by default, as in legacy (#902, operator 2026-11-14). Only policy C's when-to-load modes (Wi-Fi uniquement, Jamais au toucher) sit behind Réglages › Expérimental › « Chargement des images »; its cookie-less client and private-host block always apply. Tap-to-play videos replace "always load" (GAP-056, 058).
 8. **Text size and Dynamic Type.** A 4-step picker becomes a slider on Dynamic Type; map the legacy values (GAP-053, 200).
 9. **Composer behaviour.** Per-topic drafts that block swipe-down, emoji refused at send rather than at typing, first-post delete, a quote tray (GAP-083, 092, 095, 097).
 10. **Duo and wide layouts.** The Duo inner screen follows legacy at `2fe43da3` (GAP-215, 217); the rail and the pinned sidebar are FEAT-016 additions in M4, opt-in and off by default (operator 2026-11-09, #237), designed in the LOT-147 spec and approved by the operator before code (GAP-655). GAP-212, 214 and 216 are unchanged.
@@ -344,13 +344,13 @@ The (b) rows include the ones the merged code already ships: 009, 020, 022, 051,
   - Decided 2026-11-02 (recommendation of each UXD row, table below): LOT-081, 082, 083, 084, 087, 106, 119, 170 (UXD-01 to 10, 15, 21, 24), and LOT-157 (UXD-21: the legacy mail composer stays unless App Review asks).
 - **Mixed lots with a (b) part in M5:** LOT-085, 088, 109, 111, 120, 122, 125, 127, 128, 134 (splits in [LOTS.md](../LOTS.md#m5--ux-evolutions), new lots 174 to 183).
 - **(b) lots that stay:**
-  - needed: LOT-107 (the setting that gates policy C), LOT-108 (players on tap, LOT-071 D-071-2);
+  - needed: LOT-107 (the setting that gates policy C; since #902 an Expérimental option, off by default), LOT-108 (players on tap, LOT-071 D-071-2);
   - decided by the operator: LOT-173.
 - **(b) lots in M5:** LOT-110, 112, 138, 141, 142, 143, 144, 145, 148, 149, 150, 151 (UXD-16 picked A), 152, 153, 154 ([#379](https://github.com/ezzz/HFRnow/issues/379)).
 - **Features:**
   - All FEAT items are (b) by origin.
   - FEAT-003 (honest paging) is (b) needed.
-  - FEAT-011 is the policy C setting.
+  - FEAT-011 is the policy C setting (since #902, behind Réglages › Expérimental, off by default).
   - FEAT-010 is themes (a-compatible) plus a single accent, live preview and a one-line header (b).
   - FEAT-019 is a local history (a) plus a confirmed removal that says the image stays online (b, LOT-103); no app-side delete is evidenced for a guest upload (`HFR-PROTOCOL` §7b B12).
 - **"legacy parity" labels with no source at `2440d79`:**
@@ -388,7 +388,7 @@ Operator decisions on [#379](https://github.com/ezzz/HFRnow/issues/379): **every
 | 09 | A by default; B as a value of "Style des messages" | LOT-106 (#197), LOT-087 (#179); LOT-083 spec |
 | 10 | A layout keeping "follow HFR's served page" (M4, absorbed by LOT-186: operator decision of 2026-11-07 on #545); the navigator goes to M5 | [#428](https://github.com/ezzz/HFRnow/issues/428); LOT-186 (#549); LOT-110 (#201) in M5 |
 | 11 | A in M2; the "Nouveau" banner goes to M5 | LOT-178 ([#418](https://github.com/ezzz/HFRnow/issues/418)); LOT-111 (#202) |
-| 12 | B: policy C, decided 2026-10-27 (default Wi-Fi) | LOT-083 spec "Decisions taken here" |
+| 12 | B: policy C, decided 2026-10-27 (default Wi-Fi); superseded by #902 (operator 2026-11-14): images always load by default, the Wi-Fi/tap modes are an Expérimental option | LOT-083 spec "Decisions taken here"; #902 |
 | 13 | B: slider; 100 / 110 / 120 / 130 % map to the same percentages | LOT-169 spec |
 | 14 | A; deleting the first post goes to M5 | LOT-175 ([#415](https://github.com/ezzz/HFRnow/issues/415)); LOT-088 (#180) |
 | 15 | Per-topic drafts kept (exception); A for swipe-down: dismiss saves the draft (M2) | [#429](https://github.com/ezzz/HFRnow/issues/429); LOT-084 spec |
