@@ -105,10 +105,10 @@ Operator decision (2026-11-06, ADR 0013 Amendment 2): **the lists stay on the de
 - Each store gets `changes()` (`run()` listens before the launch work, so a change saved meanwhile is seen), yielded after a successful save (the account, or the allowlist); the blocklist (MPStorage's, not iCloud's) yields nothing. The app's screens can use the same streams to refresh after an apply (#447).
 
 ### Budget
-Measured, not estimated (`SyncedBudgetTests`): the worst case of the ADR 0013 appendix, encoded as the stores write it with long pseudos, smiley codes and URLs and fractional-second dates, is about 293 KiB in 46 keys for 5 accounts (positions are the largest list): under Apple's 1 MB and 1024 keys, but above the appendix's "< 200 KiB" (its 40 B per position was about a third of the real size). The test checks < 320 KiB and ≤ 60 keys (ADR 0013 Amendment 2).
+Measured, not estimated (`SyncedBudgetTests`): the worst case of the ADR 0013 appendix, encoded as the stores write it with long pseudos, smiley codes and URLs and fractional-second dates, is about 293 KiB in 46 keys for 5 accounts (positions are the largest list; with the rehost upload history key of #966, about 341 KiB in 47 keys, bound < 360 KiB, ADR 0013 Amendment 4): under Apple's 1 MB and 1024 keys, but above the appendix's "< 200 KiB" (its 40 B per position was about a third of the real size). The test checks < 320 KiB and ≤ 60 keys (ADR 0013 Amendment 2), now < 360 KiB with the history key (Amendment 4).
 
 ### Not in this lot
-The app wiring (building `SyncedListsStore`, starting `run()`, `flushPositions()` on background, a notice after an account change) is #447, with the settings mirror. The MPStorage sync-state record of §7 belongs to LOT-130.
+The rehost upload history (#966, ADR 0013 Amendment 4) is a fifth slot, `rehosthistory`, merged by id with its removals instead of last writer wins; `SyncedListsStore(rehostHistory:)` takes the app's single history store (`ImageUploadServices.liveHistory`), nil keeping it device-only. The app wiring (building `SyncedListsStore` with that store, starting `run()`, `flushPositions()` on background, a notice after an account change) is #447, with the settings mirror. The MPStorage sync-state record of §7 belongs to LOT-130.
 
 ## Edge cases
 - A synced key the cloud holds as `data` (a newer format) is not a setting value: the mirror keeps its own value.

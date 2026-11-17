@@ -5,7 +5,8 @@ import Testing
 
 /// The worst case of ADR 0013's budget, measured as the stores encode it (LOT-172, ADR 0013 Amendment 2): five
 /// accounts, 100 allowlist entries, per account 200 super-favourites, 100 smiley favourites and 200 positions, the
-/// synced settings, the schema version and one MPStorage sync-state key per account.
+/// synced settings, the schema version and one MPStorage sync-state key per account; and the rehost upload history
+/// (#966, Amendment 4): 100 uploads with their three renditions and 100 removals.
 @Suite struct SyncedBudgetTests {
     static let accounts = (1...5).map { "pseudo-numero-\($0)" }
     /// Fractional seconds, as `Date()` gives: the longest date encoding.
@@ -47,9 +48,25 @@ import Testing
             values["positions.\(account)"] = Self.size(SyncedListEnvelope(items: positions).value)
         }
 
+        // Chevereto's file names (LOT-056), the longest dates and sizes.
+        let uploads = (1...SyncedListsStore.rehostHistoryLimit).map { index in
+            let base = "https://img3.super-h.fr/images/2026/11/16/0123456789abcdef0123456789abc\(index)"
+            return RehostedImage(
+                fullURL: URL(string: "\(base).jpg") ?? URL(filePath: "/"),
+                mediumURL: URL(string: "\(base).md.jpg"),
+                miniURL: URL(string: "\(base).th.jpg"),
+                width: 4_032,
+                height: 3_024,
+                uploadedAt: Self.date(index)
+            )
+        }
+        let removals = uploads.map { RehostUploadRemoval(id: $0.id, removedAt: $0.uploadedAt.addingTimeInterval(0.5)) }
+        let history = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: uploads, removals: removals), limit: 100)
+        values[SyncedListsStore.rehostHistoryKey] = Self.size(history.value)
+
         let total = values.reduce(0) { $0 + $1.key.utf8.count + $1.value }
         #expect(values.count <= 60, "\(values.count) keys")
-        #expect(total < 320 * 1024, "\(total) bytes")
+        #expect(total < 360 * 1024, "\(total) bytes")
         // Apple's limits, for the record: 1024 keys, 1 MB in all.
         #expect(total < 1024 * 1024)
     }

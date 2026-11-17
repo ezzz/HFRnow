@@ -57,12 +57,13 @@ extension SyncedListsStore {
         case .superFavorites: await superFavorites.accountKeys()
         case .smileyFavorites: await smileyFavorites.accountKeys()
         case .positions: await positions.accounts()
+        case .rehostHistory: rehostHistory == nil ? [] : [""]
         }
     }
 
     /// The quarantine key of one list: the cloud key's form, with the stored account for positions.
     func slotKey(_ slot: Slot, name: String) -> String {
-        slot == .allowlist ? Self.allowlistKey : "\(slot.rawValue).\(name)"
+        slot.isGlobal ? slot.rawValue : "\(slot.rawValue).\(name)"
     }
 
     /// One local list as an envelope, nil when it is empty.
@@ -72,6 +73,13 @@ extension SyncedListsStore {
         case .superFavorites: Self.nonEmpty(await superFavorites.favorites(for: name))
         case .smileyFavorites: Self.nonEmpty(await smileyFavorites.favorites(for: name))
         case .positions: Self.nonEmpty(await positions.records(for: name))
+        case .rehostHistory:
+            // The whole history, not only the uploads the cloud holds.
+            if let document = await rehostHistory?.document(), !document.images.isEmpty || !document.removals.isEmpty {
+                RehostHistoryEnvelope(document).value
+            } else {
+                nil
+            }
         }
     }
 
@@ -87,6 +95,7 @@ extension SyncedListsStore {
             case .superFavorites: _ = try await superFavorites.replace([], account: name)
             case .smileyFavorites: _ = try await smileyFavorites.replace([], account: name)
             case .positions: _ = try await positions.removeAccount(name)
+            case .rehostHistory: _ = try await rehostHistory?.replace(with: .empty)
             }
             return true
         } catch {
@@ -100,6 +109,7 @@ extension SyncedListsStore {
         case .superFavorites: await superFavorites.loadFailure() == nil
         case .smileyFavorites: await smileyFavorites.loadFailure() == nil
         case .positions: await positions.loadFailure() == nil
+        case .rehostHistory: await rehostHistory?.loadFailure() == nil
         }
     }
 
@@ -229,7 +239,7 @@ extension SyncedListsStore {
         case .allowlist: return await allowlistItems()?.isEmpty == true
         case .superFavorites: return await superFavoriteItems(name)?.isEmpty == true
         case .smileyFavorites: return await smileyFavoriteItems(name)?.isEmpty == true
-        case .positions: return false
+        case .positions, .rehostHistory: return false
         }
     }
 
@@ -253,11 +263,22 @@ extension SyncedListsStore {
                 guard let items = SyncedListEnvelope<ReadingPositionRecord>(value)?.items,
                       await positionRecords(name)?.isEmpty == true else { return false }
                 _ = try await positions.merge(items, account: name)
+            case .rehostHistory:
+                return try await restoreRehostHistory(value)
             }
             return true
         } catch {
             return false
         }
+    }
+
+    /// Brings back a whole upload history set aside, only into an empty one.
+    private func restoreRehostHistory(_ value: SyncedValue) async throws -> Bool {
+        guard let rehostHistory, let document = RehostHistoryEnvelope(value)?.document,
+              let local = await rehostHistory.document(), local.images.isEmpty, local.removals.isEmpty,
+              stale[Slot.rehostHistory.rawValue] == nil else { return false }
+        _ = try await rehostHistory.replace(with: document)
+        return true
     }
 
     /// Sets `values` aside for `holder` in the device file; returns false when the file could not be saved (they are

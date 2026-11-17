@@ -11,6 +11,7 @@ extension SyncedListsStore {
         await reconcile(key: Self.allowlistKey, read: { await self.allowlistItems() }, replace: { items in
             _ = try await self.pseudoLists.replaceAllowlist(with: items)
         })
+        await mergeRehostHistory()
         for account in await accounts() {
             if let key = cloudKey(.superFavorites, account: account) {
                 await reconcile(key: key, read: { await self.superFavoriteItems(account) }, replace: { items in
@@ -64,6 +65,10 @@ extension SyncedListsStore {
     /// A server change of one list key: the cloud's list replaces the local one, positions merge.
     func apply(_ key: String) async {
         guard isActive, cloud.value(forKey: key) != nil else { return }
+        if key == Self.rehostHistoryKey {
+            await mergeRehostHistory()
+            return
+        }
         if key == Self.allowlistKey {
             await applyCloudList(key: key, read: { await self.allowlistItems() }, replace: { items in
                 _ = try await self.pseudoLists.replaceAllowlist(with: items)
@@ -106,6 +111,7 @@ extension SyncedListsStore {
         await pushIfChanged(key: Self.allowlistKey, read: { await self.allowlistItems() }, replace: { items in
             _ = try await self.pseudoLists.replaceAllowlist(with: items)
         })
+        await mergeRehostHistory()
         for account in await accounts() {
             if let key = cloudKey(.superFavorites, account: account) {
                 await pushIfChanged(key: key, read: { await self.superFavoriteItems(account) }, replace: { items in
@@ -170,14 +176,45 @@ extension SyncedListsStore {
     }
 
     func push<Item: Codable & Hashable & Sendable>(_ items: [Item], forKey key: String) {
-        // The Apple ID may have switched since the caller checked `isActive`: never write a list into another one's store.
-        guard ownerIsSignedIn, cloudSchemaIsReadable else { return }
         let value = SyncedListEnvelope(items: items).value
-        cloud.set(value, forKey: key)
+        guard write(value, forKey: key) else { return }
         record(value, forKey: key)
+    }
+
+    /// Writes one value with the schema version; false when it may not be written.
+    func write(_ value: SyncedValue, forKey key: String) -> Bool {
+        // The Apple ID may have switched since the caller checked `isActive`: never write a list into another one's store.
+        guard ownerIsSignedIn, cloudSchemaIsReadable else { return false }
+        cloud.set(value, forKey: key)
         if cloud.value(forKey: SyncedSettingsStore.schemaVersionKey) != .int(SyncedSettingsStore.schemaVersion) {
             cloud.set(.int(SyncedSettingsStore.schemaVersion), forKey: SyncedSettingsStore.schemaVersionKey)
         }
+        return true
+    }
+
+    /// The upload history's rule for every event (#966, Amendment 4): the cloud's uploads and removals are merged into
+    /// the device's history by id, then the `rehostHistoryLimit` newest and the removals are pushed when they differ from
+    /// the cloud's. Adds made on two devices both survive; a removal on one removes the upload on the others. Nothing is
+    /// pushed when the merge could not be saved, nor over a cloud value this build cannot read.
+    func mergeRehostHistory() async {
+        guard isActive, let rehostHistory, stale[Slot.rehostHistory.rawValue] == nil,
+              await rehostHistory.loadFailure() == nil, ownerIsSignedIn else { return }
+        let cloudValue = cloud.value(forKey: Self.rehostHistoryKey)
+        let cloudEnvelope = cloudValue.flatMap(RehostHistoryEnvelope.init)
+        if cloudValue != nil, cloudEnvelope == nil { return }
+        let merged: RehostUploadHistoryDocument
+        do {
+            merged = try await rehostHistory.merge(images: cloudEnvelope?.items ?? [], removals: cloudEnvelope?.removals ?? [])
+        } catch {
+            return
+        }
+        // A cloud change that came during the merge is merged by its own event: never write over it unmerged.
+        guard cloud.value(forKey: Self.rehostHistoryKey) == cloudValue else { return }
+        let next = RehostHistoryEnvelope(merged, limit: Self.rehostHistoryLimit)
+        guard next.signature != cloudEnvelope?.signature else { return }
+        // An empty history the cloud lacks is not worth a key.
+        if cloudEnvelope == nil, next.items.isEmpty, next.removals.isEmpty { return }
+        _ = write(next.value, forKey: Self.rehostHistoryKey)
     }
 
     /// Keeps the digest of the list last synced under `key`, on the device: a later difference is a change made here.
