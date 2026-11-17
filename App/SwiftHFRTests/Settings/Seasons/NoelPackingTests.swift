@@ -128,6 +128,30 @@ struct NoelPackingTests {
         #expect(model.drawnTheme == nil)
     }
 
+    /// A scene that went away never plays the elves afterwards.
+    @Test func aReleasedSceneNeverPlaysTheElves() {
+        let (_, model) = packingLaunch()
+        model.packing.release(scene: scene)
+        #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) == nil)
+        #expect(model.packing.current != nil)
+    }
+
+    /// Each packing has its own replays: the cuts of an earlier one do not use them up.
+    @Test func eachPackingHasItsOwnReplays() {
+        let (clock, model) = packingLaunch()
+        let alert = SeasonalThemeModel.ScreenState(isPresenting: true)
+        for _ in 1...NoelPackingModel.maxReplays {
+            _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+            model.packing.screenChanged(for: scene, screen: alert)
+        }
+        model.packing.finish()
+        model.packing.queue(year: 2027, theme: .noelSoft)
+        _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+        clock.now += 0.5
+        model.packing.screenChanged(for: scene, screen: alert)
+        #expect(model.packing.current?.year == 2027)
+    }
+
     /// A Noël theme found on again after its packing ran (another device's store, a clock set back) is restored without elves.
     @Test func aThemeOnAgainAfterThePackingRanIsRestoredWithoutElves() {
         let store = InMemorySettingsStore()

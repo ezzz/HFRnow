@@ -49,13 +49,17 @@ struct NoelPackingLayer: View {
     /// Asks until the packing starts here (or another scene, or nothing, takes it), plays it to its end, and asks again if it
     /// was cut in its first second and waits to replay.
     private func watch() async {
+        var announced = false
         while !Task.isCancelled, packing.current != nil {
             guard packing.start(for: scene, screen: screen, animationsAllowed: seasonal.animationsAllowed) != nil else {
                 try? await Task.sleep(for: .milliseconds(500))
                 continue
             }
-            // The overlay is hidden from VoiceOver (rule 6): its words are announced instead.
-            AccessibilityNotification.Announcement("Allez on remballe").post()
+            // The overlay is hidden from VoiceOver (rule 6): its words are announced instead, once, not at each replay.
+            if !announced {
+                AccessibilityNotification.Announcement("Allez on remballe").post()
+                announced = true
+            }
             let end = Date().addingTimeInterval(NoelPackingModel.duration)
             while !Task.isCancelled, packing.current?.scene == scene, Date() < end {
                 try? await Task.sleep(for: .milliseconds(250))

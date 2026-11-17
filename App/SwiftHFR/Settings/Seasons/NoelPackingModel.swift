@@ -98,6 +98,5 @@ final class NoelPackingModel {
         } else {
             current = nil
         }
-        startedAt = nil
     }
 }
