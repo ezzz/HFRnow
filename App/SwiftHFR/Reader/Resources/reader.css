@@ -137,8 +137,9 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .trailer p { margin: 0.25em 0 0; }
 
 .content img, .signature img { max-width: 100%; height: auto; }
-/* Smileys (every image that is not a posted picture) sit on the text line. */
-.content img:not(.hfrplusimg), .signature img:not(.hfrplusimg) { vertical-align: middle; }
+/* Smileys and inline images rest on the text baseline (#1049): the legacy sheets set no `vertical-align` on message images
+   (`git grep vertical-align 87fe0d1c -- 'SuperHFRplus/Assets/HTML/style-liste*.css'` finds nothing), so they keep the CSS default, `baseline`. */
+.content img:not(.hfrplusimg), .signature img:not(.hfrplusimg) { vertical-align: baseline; }
 
 /* Quotes: div.container > table.citation | table.oldcitation | table.quote. */
 /* Legacy (`style-liste.css:329-334`, `style-liste-light.css:104-111`): a 2 px left border, no fill, 4 px before the text, 5 px below.
