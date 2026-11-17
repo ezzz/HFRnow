@@ -110,20 +110,26 @@ struct NoelSleighArrivalTests {
     }
 
     /// A rotation or a resize restarts the layer's watch during the sleigh: the arrival is due again and still plays before
-    /// the alert, at most twice more (constant resizes cannot loop it forever); then the alert comes alone.
-    @Test func anInterruptedArrivalStaysDueAndStillPlaysBeforeTheAlert() throws {
-        let model = launch(SeasonTestClock(25, 12, 2026))
-        let first = try #require(sleigh(model))
-        model.crossings.interrupt(first.id)
-        #expect(model.crossings.current == nil)
-        #expect(model.crossings.arrivalPending)
-        #expect(model.alert(for: scene, screen: Self.clear) == nil)
-        let second = try #require(sleigh(model))
-        #expect(second.isArrival)
-        model.crossings.interrupt(second.id)
-        let third = try #require(sleigh(model))
-        #expect(third.isArrival)
-        model.crossings.interrupt(third.id)
+    /// the alert, however many times it is cut within `arrivalReplayWindow` of its first start (one divider drag sends many
+    /// sizes, #840 round 3); once that time has passed, a cut sleigh is not queued again and the alert comes alone.
+    @Test func anInterruptedArrivalStaysDueWithinItsReplayWindowThenTheAlertComesAlone() throws {
+        let clock = SeasonTestClock(25, 12, 2026)
+        let model = launch(clock)
+        let start = clock.now
+        for cut in 1...5 {
+            let sleigh = try #require(sleigh(model))
+            #expect(sleigh.isArrival)
+            clock.now = start.addingTimeInterval(Double(cut) * 2)
+            model.crossings.interrupt(sleigh.id)
+            #expect(model.crossings.current == nil)
+            #expect(model.crossings.arrivalPending)
+            #expect(model.alert(for: scene, screen: Self.clear) == nil)
+        }
+        // A replay started late still counts from the first start.
+        let late = try #require(sleigh(model))
+        #expect(late.isArrival)
+        clock.now = start.addingTimeInterval(NoelCrossingModel.arrivalReplayWindow)
+        model.crossings.interrupt(late.id)
         #expect(!model.crossings.arrivalPending)
         #expect(sleigh(model) == nil)
         #expect(model.alert(for: scene, screen: Self.clear) == .noelArrival(year: 2026))

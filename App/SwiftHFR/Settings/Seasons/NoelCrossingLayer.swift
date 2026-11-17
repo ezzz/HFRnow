@@ -32,6 +32,10 @@ struct NoelCrossingLayer: View {
             // Started again when the band is laid out or resized (rotation, split view), so a path fits the area it crosses.
             .task(id: WatchKey(isWatching: isWatching, area: proxy.size)) {
                 guard isWatching, proxy.size.width > 0, proxy.size.height > 0 else { return }
+                // A divider drag or a Stage Manager resize sends many sizes: ask only once one has held for a moment, so the
+                // sleigh is not started and cut again at every size (#840 round 3).
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
                 await watch(area: proxy.size)
             }
         }
@@ -78,7 +82,8 @@ struct NoelCrossingLayer: View {
                     try? await Task.sleep(for: .milliseconds(250))
                     crossings.screenChanged(for: scene, screen: screen)
                 }
-                // Cancelled (the band was resized, the scene went away): the arrival is queued again, not lost.
+                // Cancelled because the band was resized: the arrival is queued again, not lost. (A scene that goes away has
+                // already stopped its crossing in `release(scene:)`, so `interrupt` finds nothing to queue.)
                 if Task.isCancelled {
                     crossings.interrupt(crossing.id)
                 } else {
