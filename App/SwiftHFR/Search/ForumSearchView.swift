@@ -23,8 +23,7 @@ struct ForumSearchView: View {
             resultsSection
         }
         .densityListMargins()
-        .navigationTitle("Recherche")
-        .navigationBarTitleDisplayMode(.inline)
+        .screenTitle("Recherche", style: .pill)
         .pagerBar(pager, hidden: fieldFocused)
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
