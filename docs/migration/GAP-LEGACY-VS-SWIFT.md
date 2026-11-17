@@ -319,7 +319,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | b·operator | 011, 013, 016, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 29 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229 | 37 |
 
-The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
+The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
 
 - The Source column says where a behaviour comes from; H.1 says whether the user sees a difference. So a row can be `b` with source `port: ezzz Swift layer`: GAP-060 and GAP-085 port the feature but change its controls.
 - Rows that are `a` although their source says "new UX" are invisible or robustness changes:
