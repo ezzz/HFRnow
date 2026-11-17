@@ -43,10 +43,10 @@ struct TopicReaderModelWaitTests {
         #expect(reader.hasShownDocument)
     }
 
-    /// The limit is HFRNetwork's own for a topic page request.
-    @Test func theWaitLimitIsTheTopicPageRequestTimeout() {
-        #expect(TopicReaderModel.waitLimit == .seconds(RequestTimeout.standard))
+    /// The limit covers the fetch and the web view (#750): it stays at 30 s when the request's idle limit is 10 s (#683).
+    @Test func theWaitLimitIsIndependentOfTheRequestTimeout() {
         #expect(TopicReaderModel.waitLimit == .seconds(30))
+        #expect(TopicReaderModel.waitLimit > .seconds(RequestTimeout.standard))
     }
 
     /// A fetch that never answers: on the limit, the load stops and the screen offers "Réessayer".

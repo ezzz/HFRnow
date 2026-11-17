@@ -22,6 +22,12 @@ struct ServerReply: Sendable {
     var hangs = false
     /// Sends no `Content-Length`: the body ends when the connection closes (a streamed answer of unknown size).
     var omitsContentLength = false
+    /// Sends the body in `dripChunks` pieces, `dripInterval` seconds apart: a slow answer that keeps flowing.
+    var dripChunks = 1
+    /// Seconds between two pieces of a dripped body.
+    var dripInterval = 0.0
+    /// With a dripped body: sends the first piece, then goes silent, to exercise an idle limit.
+    var stallsAfterFirstChunk = false
 }
 
 /// Minimal HTTP/1.1 server on 127.0.0.1 (no external network), because swift-corelibs-foundation
@@ -135,7 +141,22 @@ final class LoopbackServer: @unchecked Sendable {
         let length = reply.omitsContentLength ? "" : "Content-Length: \(reply.body.count)\r\n"
         var head = "HTTP/1.1 \(reply.status) X\r\n\(length)Connection: close\r\n"
         for (name, value) in reply.headers { head += "\(name): \(value)\r\n" }
-        write(client, Data(head.utf8) + Data("\r\n".utf8) + reply.body)
+        let headData = Data(head.utf8) + Data("\r\n".utf8)
+        guard reply.dripChunks > 1 else {
+            write(client, headData + reply.body)
+            return
+        }
+        write(client, headData)
+        let size = (reply.body.count + reply.dripChunks - 1) / reply.dripChunks
+        for index in 0..<reply.dripChunks {
+            let start = min(index * size, reply.body.count)
+            write(client, reply.body[start..<min(start + size, reply.body.count)])
+            if reply.stallsAfterFirstChunk {
+                Thread.sleep(forTimeInterval: 5)
+                return
+            }
+            Thread.sleep(forTimeInterval: reply.dripInterval)
+        }
     }
 
     private func readRequest(_ client: Int32) -> ReceivedRequest? {
@@ -171,10 +192,18 @@ final class LoopbackServer: @unchecked Sendable {
     }
 
     private func write(_ client: Int32, _ data: Data) {
+        #if canImport(Darwin)
+        // A client that timed out has closed its end: a write must fail with EPIPE, not kill the test process.
+        var noSigPipe: Int32 = 1
+        setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size))
+        let flags: Int32 = 0
+        #else
+        let flags = Int32(MSG_NOSIGNAL)
+        #endif
         data.withUnsafeBytes { raw in
             var offset = 0
             while offset < raw.count {
-                let sent = send(client, raw.baseAddress.map { $0 + offset }, raw.count - offset, 0)
+                let sent = send(client, raw.baseAddress.map { $0 + offset }, raw.count - offset, flags)
                 if sent <= 0 { return }
                 offset += sent
             }

@@ -37,7 +37,8 @@ extension HFREndpoint {
         return try .post(
             url(path: "/search.php", query: [("config", searchConfig)]),
             form: form,
-            timeout: RequestTimeout.globalSearch
+            timeout: RequestTimeout.globalSearch,
+            totalTimeout: RequestTimeout.globalSearchTotal
         )
     }
 

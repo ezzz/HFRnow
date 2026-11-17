@@ -28,7 +28,8 @@ public final class URLSessionTransport: HTTPTransport {
         return URLSession(configuration: configuration)
     }
 
-    /// Sends the request; `timeout` is also enforced here as a total deadline because corelibs ignores `timeoutInterval`.
+    /// Sends the request. `timeout` is an idle limit: Apple's `URLSession` honours it through `timeoutInterval`, corelibs ignores
+    /// it, so the transport watches the bytes received itself. `totalTimeout`, when set, caps the whole exchange.
     public func perform(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
         guard let scheme = request.url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
             throw .invalidRequest(reason: "URL scheme must be http or https")
@@ -36,11 +37,11 @@ public final class URLSessionTransport: HTTPTransport {
         let urlRequest = Self.makeURLRequest(request)
         do {
             let chosen = request.redirectPolicy == .doNotFollow ? noFollowSession : session
-            let fallbackURL = request.url
-            let limit = request.maximumBodyBytes
-            return try await withDeadline(seconds: request.timeout) {
-                try await Self.exchange(urlRequest, fallbackURL: fallbackURL, limit: limit, on: chosen)
+            let exchange: @Sendable () async throws -> HTTPResponse = {
+                try await Self.exchange(request, urlRequest, on: chosen)
             }
+            guard let total = request.totalTimeout else { return try await exchange() }
+            return try await withDeadline(seconds: total, exchange)
         } catch {
             throw Self.map(error)
         }
@@ -58,23 +59,28 @@ public final class URLSessionTransport: HTTPTransport {
 
     /// One URLSession round trip converted to plain values.
     private static func exchange(
-        _ urlRequest: URLRequest, fallbackURL: URL, limit: Int?, on session: URLSession
+        _ request: HTTPRequest, _ urlRequest: URLRequest, on session: URLSession
     ) async throws -> HTTPResponse {
-        let (data, response) = try await body(of: urlRequest, limit: limit, on: session)
+        let (data, response) = try await body(
+            of: urlRequest, limit: request.maximumBodyBytes, idle: request.timeout,
+            follows: request.redirectPolicy == .follow, on: session
+        )
         guard let http = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
         var headers = HTTPHeaders()
         for (name, value) in http.allHeaderFields {
             if let name = name as? String, let value = value as? String { headers[name] = value }
         }
-        return HTTPResponse(statusCode: http.statusCode, headers: headers, url: http.url ?? fallbackURL, body: data)
+        return HTTPResponse(statusCode: http.statusCode, headers: headers, url: http.url ?? request.url, body: data)
     }
 
     /// The body and response; with a `limit`, read as a stream and abandoned as soon as it is known to exceed it.
-    private static func body(of urlRequest: URLRequest, limit: Int?, on session: URLSession) async throws -> (Data, URLResponse) {
-        guard let limit else { return try await session.data(for: urlRequest) }
+    private static func body(
+        of urlRequest: URLRequest, limit: Int?, idle: Double, follows: Bool, on session: URLSession
+    ) async throws -> (Data, URLResponse) {
+        guard let limit else { return try await dataWithIdleLimit(for: urlRequest, idle: idle, follows: follows, on: session) }
         #if canImport(FoundationNetworking)
         // swift-corelibs-foundation has no byte stream: the limit is checked once the body is in.
-        let (data, response) = try await session.data(for: urlRequest)
+        let (data, response) = try await dataWithIdleLimit(for: urlRequest, idle: idle, follows: follows, on: session)
         guard data.count <= limit else { throw NetworkError.invalidResponse }
         return (data, response)
         #else
@@ -93,6 +99,43 @@ public final class URLSessionTransport: HTTPTransport {
             data.append(byte)
         }
         return (data, response)
+        #endif
+    }
+
+    /// `session.data(for:)` with an idle limit. Apple's `URLSession` already treats `timeoutInterval` as one; swift-corelibs ignores it
+    /// (and does not update `countOfBytesReceived` while a body streams in), so there a session delegate sees every chunk and the
+    /// request fails with `URLError.timedOut` once none has arrived for `idle` seconds, a task that never receives one included.
+    private static func dataWithIdleLimit(
+        for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession
+    ) async throws -> (Data, URLResponse) {
+        #if canImport(FoundationNetworking)
+        let delegate = IdleWatchDelegate(follows: follows)
+        // Same configuration, so the same cookie storage as the account's session.
+        let watcher = URLSession(configuration: session.configuration, delegate: delegate, delegateQueue: nil)
+        defer { watcher.finishTasksAndInvalidate() }
+        return try await withThrowingTaskGroup(of: (Data, URLResponse).self) { group in
+            group.addTask {
+                try await withTaskCancellationHandler {
+                    try await withCheckedThrowingContinuation { continuation in
+                        delegate.start(watcher.dataTask(with: urlRequest), continuation)
+                    }
+                } onCancel: {
+                    delegate.cancel()
+                }
+            }
+            group.addTask {
+                let poll = Duration.seconds(min(max(idle / 4, 0.01), 0.25))
+                while true {
+                    try await Task.sleep(for: poll)
+                    if delegate.secondsSinceActivity >= max(idle, 0.001) { throw URLError(.timedOut) }
+                }
+            }
+            defer { group.cancelAll() }
+            guard let first = try await group.next() else { throw URLError(.timedOut) }
+            return first
+        }
+        #else
+        return try await session.data(for: urlRequest)
         #endif
     }
 
@@ -126,6 +169,88 @@ public final class URLSessionTransport: HTTPTransport {
         }
     }
 }
+
+#if canImport(FoundationNetworking)
+/// Collects one data task's answer and remembers when data last arrived (the idle watcher of `dataWithIdleLimit`).
+private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private let lock = NSLock()
+    private let follows: Bool
+    private var task: URLSessionDataTask?
+    private var cancelled = false
+    private var body = Data()
+    private var response: URLResponse?
+    private var continuation: CheckedContinuation<(Data, URLResponse), any Error>?
+    private var lastActivity = ContinuousClock.now
+
+    init(follows: Bool) { self.follows = follows }
+
+    func start(_ task: URLSessionDataTask, _ continuation: CheckedContinuation<(Data, URLResponse), any Error>) {
+        lock.lock()
+        self.task = task
+        self.continuation = continuation
+        lastActivity = .now
+        let alreadyCancelled = cancelled
+        lock.unlock()
+        if alreadyCancelled { task.cancel() } else { task.resume() }
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let task = task
+        lock.unlock()
+        task?.cancel()
+    }
+
+    var secondsSinceActivity: Double {
+        lock.lock()
+        defer { lock.unlock() }
+        let elapsed = ContinuousClock.now - lastActivity
+        return Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+    }
+
+    func urlSession(
+        _ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+        completionHandler: @escaping @Sendable (URLSession.ResponseDisposition) -> Void
+    ) {
+        lock.lock()
+        self.response = response
+        lastActivity = .now
+        lock.unlock()
+        completionHandler(.allow)
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        lock.lock()
+        body.append(data)
+        lastActivity = .now
+        lock.unlock()
+    }
+
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        completionHandler(follows ? request : nil)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
+        lock.lock()
+        let continuation = continuation
+        self.continuation = nil
+        let result: Result<(Data, URLResponse), any Error>
+        if let error {
+            result = .failure(error)
+        } else if let response {
+            result = .success((body, response))
+        } else {
+            result = .failure(URLError(.badServerResponse))
+        }
+        lock.unlock()
+        continuation?.resume(with: result)
+    }
+}
+#endif
 
 /// Task delegate that refuses every redirect so the 3xx answer is delivered as is.
 private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate, Sendable {
