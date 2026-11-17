@@ -113,7 +113,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
     /// The refresh of document `token` restored `readingTop` after WebKit's reset, on both sides (#995). Until that reset the
     /// scroll view still shows the previous document, at the same reading top: the page's `scrollY` alone can read it before
     /// the reset puts it back to 0, the likely cause of CI job 133772120017 (`scrollY` 1000, then 0 once loaded, while the
-    /// offset was right 30 s later; read from the code, not shown by a log) and of 133770412196 (the pinch-zoomed refresh).
+    /// offset checks after it passed within the same 1 s test; read from the code, not shown by a log) and of 133770412196
+    /// (the pinch-zoomed refresh).
     /// The watch ends at the reset, when the restore is sent; the page and the scroll view agree once the scroll view has
     /// applied the page's scroll: a page sent back for a moment by an older offset of the scroll view (#958) is waited out
     /// here, and a restore that is lost for good still fails.
@@ -136,7 +137,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
-        // A scroll made before WebKit's reset of the new document is undone by it (`showsDocument`, #995).
+        // A scroll made before WebKit's reset of the new document would be undone by it (`showsDocument`, #995): same class
+        // as the refresh below, no failure seen here yet.
         #expect(await showsDocument(controller), "contentSize: \(controller.webView.scrollView.contentSize)")
         // Message 2 starts 10 points above the bar's edge: message 1 ends under the 100-point bar, so message 2 is the first
         // one the reader sees. `scrollY` is the content at the bar's edge (checked on the scroll view).
@@ -154,7 +156,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
-        // A scroll made before WebKit's reset of the new document is undone by it (`showsDocument`, #995).
+        // A scroll made before WebKit's reset of the new document would be undone by it (`showsDocument`, #995): same class
+        // as the refresh below, no failure seen here yet.
         #expect(await showsDocument(controller), "contentSize: \(controller.webView.scrollView.contentSize)")
         let scrollView = controller.webView.scrollView
         // Content 1000 at the bar's edge: offset 900 under the 100-point bar.
@@ -198,7 +201,8 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
-        // A scroll made before WebKit's reset of the new document is undone by it (`showsDocument`, #995).
+        // A scroll made before WebKit's reset of the new document would be undone by it (`showsDocument`, #995): same class
+        // as the refresh below, no failure seen here yet.
         #expect(await showsDocument(controller), "contentSize: \(controller.webView.scrollView.contentSize)")
         let scrollView = controller.webView.scrollView
         #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")

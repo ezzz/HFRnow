@@ -120,13 +120,14 @@ extension ReaderWebTesting {
     /// page's size, the viewport under the bars (650 points in a test window of 800 under bars of 100 and 50): an end computed
     /// from it is the top, which the scroll view is already at (CI jobs 133712438518, 133717388761: target -120, band 0...650),
     /// and a scroll the page makes before that commit is undone by the reset. Only for a page taller than the viewport, whose
-    /// `scrollHeight` cannot be the blank page's.
+    /// `scrollHeight` cannot be the blank page's. Within 2 points, the agreement green runs have shown between the two
+    /// (`ReaderPageEndWebTests`: an end reached within 2 of `contentSize`).
     func showsDocument(_ controller: ReaderWebController) async -> Bool {
         let scrollView = controller.webView.scrollView
         return await until(async: {
             let script = "return document.documentElement.scrollHeight;"
             guard let height = (try? await self.evaluate(script, in: controller)) as? NSNumber else { return false }
-            return abs(scrollView.contentSize.height / scrollView.zoomScale - height.doubleValue) <= 1
+            return abs(scrollView.contentSize.height / scrollView.zoomScale - height.doubleValue) <= 2
         })
     }
 
