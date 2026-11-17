@@ -97,10 +97,11 @@ final class MessageListModel {
     let mpStorage: MPStorageSyncModel?
     /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
     /// do not need it.
-    private let privateMessageCount: PrivateMessageCount?
-    /// Hands every page 1 this list loads to the notification ledger (LOT-140), so a conversation seen unread here is not
-    /// notified by the next background check; nil in tests that do not need it.
-    private let pageOneSeen: (@Sendable (PrivateMessageListPage) async -> Void)?
+    let privateMessageCount: PrivateMessageCount?
+    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when it loads, and again when one
+    /// is read here (with the badge's count), so the next background check neither notifies what the member saw nor misses a
+    /// reply to a conversation read here. Nil in tests that do not need it.
+    let ledgerSeen: (@Sendable (NotificationSummary) async -> Void)?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -128,9 +129,9 @@ final class MessageListModel {
         settings: (any SettingsStore)? = nil,
         mpStorage: MPStorageSyncModel? = nil,
         privateMessageCount: PrivateMessageCount? = nil,
-        pageOneSeen: (@Sendable (PrivateMessageListPage) async -> Void)? = nil
+        ledgerSeen: (@Sendable (NotificationSummary) async -> Void)? = nil
     ) {
-        self.pageOneSeen = pageOneSeen
+        self.ledgerSeen = ledgerSeen
         self.mpStorage = mpStorage
         self.privateMessageCount = privateMessageCount
         self.settings = settings
@@ -223,17 +224,11 @@ final class MessageListModel {
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
 
-    /// A tap on a conversation's notification (LOT-140, GAP-011): page 1 is loaded again, then the conversation is opened
-    /// when that page lists it, on its segment in the split display. Otherwise the list stays shown (another account's
-    /// conversation, or one no longer on page 1). Legacy opened the list and reloaded it (`MainWindow.swift:1656-1665`).
-    func open(topic: Int) async {
+    /// A tap on a summary notification (LOT-140): page 1, where new conversations are, whatever page was on screen.
+    func showFirstPage() async {
         if let settings { display = settings.value(for: SettingKey.mpListDisplay) }
         selected = nil
         await load(page: 1, advancing: false)
-        guard loader.error == nil,
-              let thread = loader.value?.threads.first(where: { $0.summary.topicID?.topic == topic }) else { return }
-        if display == .split, !segment.contains(thread) { segment = thread.isGroup ? .group : .oneToOne }
-        selected = thread
     }
 
     /// Asks again for the last page that was asked for (after a failure).
@@ -354,9 +349,13 @@ final class MessageListModel {
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
         // Legacy takes one off the badge for a row that showed unread (`MPListView.swift:497-502` @ 87fe0d1c): once per read.
-        if isUnread(listed(thread)) { privateMessageCount?.adjust(by: -1) }
+        let wasUnread = isUnread(listed(thread))
+        if wasUnread { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
+        if wasUnread { recordFirstPageReadState() }
+    }
+
     }
 
     /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
@@ -372,11 +371,11 @@ final class MessageListModel {
         let mine = loadCount
         let source = source
         let isLoggedIn = isLoggedIn
-        let pageOneSeen = pageOneSeen
+        let ledgerSeen = ledgerSeen
         await loader.load { () async throws(ListLoadError) -> MessageListContent in
             guard await isLoggedIn() else { return .signedOut }
             let listPage = try await source.privateMessages(page: page)
-            if page == 1, let pageOneSeen { await pageOneSeen(listPage) }
+            if page == 1, let ledgerSeen { await ledgerSeen(MPNotificationLedger.seenSummary(of: listPage)) }
             return MessageListContent(page: listPage)
         }
         // Only the newest load applied the content on screen; a superseded one returning late must not reset the state.

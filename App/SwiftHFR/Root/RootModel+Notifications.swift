@@ -9,13 +9,13 @@ extension RootModel {
         return privateMessageCount.latest.map { max($0, 0) }
     }
 
-    /// Opens what an MP notification leads to (LOT-140): the Messages tab, then the conversation, or the list reloaded as
-    /// legacy did.
+    /// Opens what an MP notification leads to (LOT-140): the Messages tab, then the conversation, or page 1 of the list reloaded
+    /// (legacy reloaded the list).
     func open(_ destination: MPNotificationDestination) async {
         selectedDestination = .tab(.messages)
         switch destination {
         case .thread(let topic): await messages.open(topic: topic)
-        case .list: await messages.refresh()
+        case .list: await messages.showFirstPage()
         }
     }
 }

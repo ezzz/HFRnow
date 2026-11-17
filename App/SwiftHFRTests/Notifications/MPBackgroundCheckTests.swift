@@ -67,13 +67,14 @@ struct MPBackgroundCheckTests {
         #expect(forum.reads.isEmpty)
     }
 
-    @Test("A check sooner than the interval reads nothing; one at the interval does (the ledger's guard)")
+    @Test("A check sooner than the interval less one minute of slack reads nothing; one past it does (the ledger's guard)")
     func interval() async {
         let ready = ready([MPForumReading(count: 0, page: mpPage(unread: [])), MPForumReading(count: 0, page: mpPage(unread: []))])
         #expect(await ready.check.run(now: Self.start) == .checked(notifications: 0))
-        #expect(await ready.check.run(now: Self.start.addingTimeInterval(1799)) == .notDue)
+        #expect(await ready.check.run(now: Self.start.addingTimeInterval(1739)) == .notDue)
         #expect(ready.forum.reads == ["fakeuser"])
-        #expect(await ready.check.run(now: Self.start.addingTimeInterval(1800)) == .checked(notifications: 0))
+        // iOS launching the task right at its earliest date, computed just before the previous check stamped its time.
+        #expect(await ready.check.run(now: Self.start.addingTimeInterval(1740)) == .checked(notifications: 0))
         #expect(ready.forum.reads == ["fakeuser", "fakeuser"])
     }
 
@@ -154,6 +155,28 @@ struct MPBackgroundCheckTests {
         await MPNotificationLedger.recordSeen(seen, account: "fakeuser", store: ready.ledger)
         #expect(await ready.check.run(now: Self.start.addingTimeInterval(1800)) == .checked(notifications: 0))
         #expect(await ready.delivery.delivered.isEmpty)
+    }
+
+    @Test("The count rose and no conversation became unread (a reply to one already unread, #571): the legacy text")
+    func countRoseWithoutNewConversation() async {
+        let ready = ready([
+            MPForumReading(count: 1, page: mpPage(unread: [10])),
+            MPForumReading(count: 2, page: mpPage(unread: [10]))
+        ])
+        #expect(await run(ready, times: 2) == [.checked(notifications: 0), .checked(notifications: 1)])
+        #expect(await ready.delivery.delivered.map(\.body) == [MPBackgroundCheck.legacyText])
+    }
+
+    @Test("A conversation's notification withdraws the legacy text an earlier run sent while the list was unreadable")
+    func conversationReplacesTheLegacyText() async {
+        let ready = ready([
+            MPForumReading(count: 0, page: mpPage(unread: [])),
+            MPForumReading(count: 1, page: nil),
+            MPForumReading(count: 1, page: mpPage(unread: [10]))
+        ])
+        #expect(await run(ready, times: 3) == [.checked(notifications: 0), .checked(notifications: 1), .checked(notifications: 1)])
+        #expect(await ready.delivery.delivered.map(\.identifier) == ["mp-summary", "mp-10"])
+        #expect(await ready.delivery.withdrawn == ["mp-summary"])
     }
 
     @Test("More than five conversations with news collapse into one summary that opens the list")

@@ -99,6 +99,15 @@ struct MPNotificationPlanTests {
         #expect(MPNotificationPlan.make(newThreads: [], in: list).isEmpty)
     }
 
+    @Test("A conversation listed twice (a page that changed while served) gives one notification")
+    func duplicateRow() throws {
+        let list = try page("R610b-mp-list-recipient-after-reply-older-row")
+        let row = try #require(list.threads.first)
+        let number = try #require(row.summary.topicID?.topic)
+        let doubled = PrivateMessageListPage(threads: [row, row])
+        #expect(MPNotificationPlan.make(newThreads: [number], in: doubled).notifications.map(\.identifier) == ["mp-\(number)"])
+    }
+
     @Test("The interlocutor of a one-to-one title loses the zero-width spaces HFR puts in long pseudos")
     func zeroWidthSpaces() {
         let topic = TopicID(category: .privateMessages, topic: 42)

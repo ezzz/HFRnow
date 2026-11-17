@@ -38,6 +38,12 @@ struct MPNotificationCenter: MPNotificationDelivering {
         }
     }
 
+    func withdraw(_ identifier: String) async {
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    }
+
     func setBadge(_ count: Int) async {
         do {
             try await UNUserNotificationCenter.current().setBadgeCount(max(count, 0))

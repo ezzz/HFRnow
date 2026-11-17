@@ -40,11 +40,11 @@ All `b·operator` (operator decisions of 2026-11-07 on #230), rows GAP-011, GAP-
 ### Check (`MPBackgroundCheck.run(now:)`)
 1. **Setting:** "Jamais" → nothing is sent and nothing is scheduled.
 2. **Account:** the current (main) account of the credential store (LOT-065; the Keychain items are `AfterFirstUnlock`, Q-9). None, or an unreadable store → nothing is sent.
-3. **Politeness:** `NotificationLedgerStore.markCheckedIfDue(account:now:minimumInterval:)` with the chosen interval (operator: shared with LOT-141). Not due → stop.
+3. **Politeness:** `NotificationLedgerStore.markCheckedIfDue(account:now:minimumInterval:)` with the chosen interval less one minute (`schedulingSlack`: iOS may launch the task right at its earliest date, computed just before the previous check stamped its own time) (operator: shared with LOT-141). Not due, or the ledger unreadable → stop. A check is stamped whatever it then finds (LOT-091), so « Dernière vérification » also shows a check that got no information.
 4. **Count:** `MPUnreadPoll(session:).unreadCount()` (LOT-047) on a session built from the stored cookies and `hash_check`, used for this run only and never written back to the store or to `AccountsModel` (D3). `nil` (no information), `.sessionExpired` or any error → stop: no notification, no badge change, nothing recorded (#230 acceptance, LOT-047 contract). `SessionRefreshFlow` is not called: the next foreground launch checks the session (`AccountsModel.restore`, #300) and asks for a new login; a background run has no one to ask.
 5. **List:** `PageFetcher.privateMessages(page: 1)` + `PrivateMessageListParser` (LOT-126), never a thread page (E25: a thread page marks it read). A failure here keeps the count (step 6 records it with no thread set).
 6. **News:** `recordNews(NotificationSummary(unreadPrivateMessages: count, unreadThreads: <topic numbers of unread rows of page 1>))`, one actor step (LOT-091).
-7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When the list could not be read and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" that opens the list.
+7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When that gives nothing (the list could not be read, or no conversation became unread: a reply to one already unread, until #571) and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice.
 8. **Badge:** `setBadgeCount(count)` when `mp_badge_enabled`, else 0.
 
 At most 2 requests per run (`GET /`, the MP list page 1), as the operator decided.
@@ -64,11 +64,11 @@ At most 2 requests per run (`GET /`, the MP list page 1), as the operator decide
 At launch, as legacy (`HFRswiftApp.swift:27-29`, operator's comparison of 2026-11-11): `requestAuthorization([.alert, .sound, .badge])`; iOS shows the prompt once. The category is registered at the same time.
 
 ### Tap
-`MPNotificationRouter.shared` holds the pending destination (the conversation's number, or the list). The root selects Messages, and `MessageListModel.open(topic:)` reloads the list and selects that conversation when the reloaded page lists it (the reader then opens at its latest message, LOT-126); else the list stays shown. A tap that cold-launches the app waits for the root to be built.
+`AppDelegate` is the `UNUserNotificationCenter` delegate through a main-actor conformance (the async handler returns on the main actor). `MPNotificationRouter.shared` holds the pending destination (the conversation's number, or the list). The root selects Messages, and `MessageListModel.open(topic:)` reloads page 1 and selects that conversation when it lists it (the reader then opens at its latest message, LOT-126); else the list stays shown. A summary loads page 1, whatever page was on screen. A tap that cold-launches the app waits for the root to be built.
 
 ### Foreground
 - The running app sets the icon badge from the Messages badge count (`RootModel.unreadPrivateMessages`, which already applies `mp_badge_enabled`), as legacy `MainWindow.swift:1779-1784`.
-- What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), and the unread conversations of MP list page 1 when it loads. A conversation seen unread in the app is not notified by the next background run.
+- What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), the unread conversations of MP list page 1 when it loads, and page 1's unread set with the badge's count again when a conversation is read here. A conversation seen unread in the app is not notified by the next background run; one read here leaves the ledger's set, so its next reply is.
 
 ### Settings (Réglages › Notifications MP)
 - "Badge messages non lus" (`mp_badge_enabled`, legacy).
@@ -103,6 +103,7 @@ Captures read in place (no new fixture): `R336`-`R338` (#567, reply in an unread
 | D6 | `UIBackgroundModes` `fetch` and `processing` | `fetch` only | `processing` serves `BGProcessingTask`, which neither app uses |
 | D7 | one global `nb_mp`, `nb_mp_failure` | the per-account ledger (LOT-091 D1-D4) | LOT-091 |
 | D8 | tap opens the Messages tab | the conversation, or the list for a summary | operator 2026-11-07 |
+| D9 | notification triggered 3 s after the check (`UNTimeIntervalNotificationTrigger(timeInterval: 3)`, `MPBackgroundService.swift:148`) | delivered at once (`trigger: nil`) | nothing waits on the delay; a background task should finish quickly |
 
 ## Tests
 - HFRClient `MPNotificationPlanTests` (Linux): texts of a one-to-one and a group row from captures, identifiers, order, the burst limit (5 → five, 6 → summary), an unknown number, an empty news list.

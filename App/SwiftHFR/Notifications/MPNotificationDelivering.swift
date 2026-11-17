@@ -4,6 +4,8 @@ import HFRClient
 protocol MPNotificationDelivering: Sendable {
     /// Shows `content`; one with the same identifier replaces it.
     func deliver(_ content: MPNotificationContent) async
+    /// Removes the notification with `identifier`, shown or pending.
+    func withdraw(_ identifier: String) async
     /// Sets the app icon badge; 0 hides it.
     func setBadge(_ count: Int) async
 }

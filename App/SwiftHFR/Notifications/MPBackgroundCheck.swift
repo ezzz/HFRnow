@@ -12,6 +12,9 @@ import OSLog
 struct MPBackgroundCheck: Sendable {
     /// The legacy text, kept for a count that went up while the list could not be read (`MPBackgroundService.swift:100`).
     static let legacyText = "Vous avez un nouveau message privé"
+    /// Taken off the interval in the due test: iOS may launch the task right at its earliest date, which was computed a moment
+    /// before the previous check stamped its own time, and a whole interval would be lost.
+    static let schedulingSlack: TimeInterval = 60
 
     /// The current (main) account; nil when none is stored. Throws when the store cannot be read.
     let currentAccount: @Sendable () throws -> Account?
@@ -35,7 +38,8 @@ struct MPBackgroundCheck: Sendable {
         guard let interval = settings.value(for: SettingKey.mpCheckInterval).seconds else { return .disabled }
         guard let account = try? currentAccount() else { return .noAccount }
         // The interval guard shared with the App Intent (LOT-141); an unreadable ledger stops here, never loops (LOT-091).
-        guard (try? await ledger.markCheckedIfDue(account: account.pseudo, now: now, minimumInterval: interval)) == true else {
+        let minimum = max(interval - Self.schedulingSlack, 0)
+        guard (try? await ledger.markCheckedIfDue(account: account.pseudo, now: now, minimumInterval: minimum)) == true else {
             return .notDue
         }
         let reading = await forum.read(as: account)
@@ -48,15 +52,21 @@ struct MPBackgroundCheck: Sendable {
             return .noInformation
         }
         let notifications = Self.notifications(news: news, page: reading.page, hadCount: before.unreadPrivateMessages != nil)
+        // A conversation's own notification says more than the legacy text an earlier run sent for it (list unreadable then).
+        if notifications.contains(where: { $0.topic != nil }) { await delivery.withdraw(MPNotificationPlan.summaryIdentifier) }
         for content in notifications { await delivery.deliver(content) }
         await delivery.setBadge(settings.value(for: SettingKey.privateMessageBadge) ? count : 0)
         return .checked(notifications: notifications.count)
     }
 
-    /// The conversations with news, from the list; without the list, the legacy text when the count went up from a count
-    /// already recorded (a first check stays silent, as the ledger's thread baseline does).
+    /// The conversations with news, from the list. Otherwise the legacy text when the count went up from a count already
+    /// recorded (a first check stays silent, as the ledger's thread baseline does): the list could not be read, or no
+    /// conversation became unread (a reply to one already unread, until #571 tells it apart).
     static func notifications(news: NotificationNews, page: PrivateMessageListPage?, hadCount: Bool) -> [MPNotificationContent] {
-        if let page { return MPNotificationPlan.make(newThreads: news.newThreads, in: page).notifications }
+        if let page {
+            let plan = MPNotificationPlan.make(newThreads: news.newThreads, in: page)
+            if !plan.isEmpty { return plan.notifications }
+        }
         guard hadCount, news.newPrivateMessages > 0 else { return [] }
         return [MPNotificationContent(
             identifier: MPNotificationPlan.summaryIdentifier, threadIdentifier: MPNotificationPlan.summaryIdentifier,

@@ -123,9 +123,9 @@ final class RootModel {
             renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
             privateMessageCount: count,
             // What the list shows is not notified by the next background check (LOT-140).
-            pageOneSeen: environment.currentAccountName.map { account in
-                { @Sendable (page: PrivateMessageListPage) async in
-                    await MPNotificationLedger.recordSeen(MPNotificationLedger.seenSummary(of: page), account: account)
+            ledgerSeen: environment.currentAccountName.map { account in
+                { @Sendable (summary: NotificationSummary) async in
+                    await MPNotificationLedger.recordSeen(summary, account: account)
                 }
             }
         )

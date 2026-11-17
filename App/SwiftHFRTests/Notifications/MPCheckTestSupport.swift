@@ -26,8 +26,10 @@ final class FakeMPCheckForum: MPCheckForum, @unchecked Sendable {
 actor FakeMPDelivery: MPNotificationDelivering {
     private(set) var delivered: [MPNotificationContent] = []
     private(set) var badges: [Int] = []
+    private(set) var withdrawn: [String] = []
 
     func deliver(_ content: MPNotificationContent) { delivered.append(content) }
+    func withdraw(_ identifier: String) { withdrawn.append(identifier) }
     func setBadge(_ count: Int) { badges.append(count) }
 }
 
