@@ -65,7 +65,7 @@ struct TopicsSettingsModelTests {
         #expect(TopicsSettingsModel(store: store).hidesBlocklisted)
     }
 
-    /// #1062: one sentence under the « Bouton + » picker per choice; the code gives `quick` and `forum` the same reply
+    /// #1062: one sentence per « Bouton + » choice in the info bubble; the code gives `quick` and `forum` the same reply
     /// (LOT-086), so the texts say the draft and the quotes, and that only the icon differs.
     @Test func everyReplyButtonChoiceHasItsOwnExplanation() {
         let texts = ReplyButtonBehavior.allCases.map(\.explanation)
@@ -77,11 +77,13 @@ struct TopicsSettingsModelTests {
         #expect(ReplyButtonBehavior.hidden.explanation.contains("« Citer »"))
     }
 
-    @Test func theExplanationShownIsTheSelectedChoices() {
-        let model = TopicsSettingsModel(store: InMemorySettingsStore())
-        for behavior in ReplyButtonBehavior.allCases {
-            model.replyButton = behavior
-            #expect(model.replyButtonExplanation == behavior.explanation)
-        }
+    /// The bubble marks the default, and only it: the one a fresh install stores (« Répondre comme le forum », #1016).
+    @Test func theBubbleMarksTheDefaultChoiceAndOnlyIt() {
+        #expect(ReplyButtonBehavior.allCases.filter(\.isDefault) == [.forum])
+        #expect(TopicsSettingsModel(store: InMemorySettingsStore()).replyButton == .forum)
+    }
+
+    @Test func theInfoButtonHasItsAccessibilityLabel() {
+        #expect(ReplyButtonRow.infoLabel == "À propos du bouton +")
     }
 }

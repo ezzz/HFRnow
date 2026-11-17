@@ -35,9 +35,6 @@ final class TopicsSettingsModel {
         didSet { if replyButton != oldValue { store.set(replyButton, for: SettingKey.replyButtonBehavior) } }
     }
 
-    /// The sentence shown under the « Bouton + » picker for the selected choice (#1062).
-    var replyButtonExplanation: String { replyButton.explanation }
-
     @ObservationIgnored private let store: any SettingsStore
 
     /// Reads the current values from `store`; creating it writes nothing.
@@ -61,14 +58,17 @@ extension ReplyButtonBehavior {
         }
     }
 
-    /// One sentence under the picker (#1062, the decision F pattern of #1014: a description, no (i) button). It follows what
-    /// the code does: `quick` and `forum` call the same `requestReply()` (LOT-086, GAP-083), so only the icon differs, and
+    /// Whether this is the choice a fresh install gets (« Répondre comme le forum » since #1016): marked in the info bubble.
+    var isDefault: Bool { self == SettingKey.replyButtonBehavior.defaultValue }
+
+    /// One sentence for the info bubble of the « Bouton + » row (#1062, operator decision of 2026-11-17). It follows what the
+    /// code does: `quick` and `forum` call the same `requestReply()` (LOT-086, GAP-083), so only the icon differs, and
     /// `hidden` leaves the quote entries of the message menu.
     var explanation: String {
         switch self {
-        case .quick: "Bouton « + » : ouvre votre brouillon du sujet, avec les citations sélectionnées ajoutées."
+        case .quick: "Icône « + » : ouvre votre brouillon du sujet, avec les citations sélectionnées ajoutées."
         case .forum:
-            "Bouton crayon : même réponse que « Réponse rapide » (votre brouillon du sujet, avec les citations sélectionnées), "
+            "Icône crayon : même réponse que « Réponse rapide » (votre brouillon du sujet, avec les citations sélectionnées), "
                 + "seule l’icône change."
         case .hidden: "Pas de bouton de réponse : répondez depuis le menu d’un message (« Citer »)."
         }

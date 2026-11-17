@@ -1,21 +1,27 @@
 import HFRModels
 import SwiftUI
 
-/// The « Bouton + » row of Réglages: the picker and, under it, what the selected choice does (#1062). The description is read
-/// with the picker as its hint, so the text below is hidden from VoiceOver instead of being read twice.
+/// The « Bouton + » row of Réglages: the picker and an info button that opens a bubble describing the three choices (#1062,
+/// operator decision of 2026-11-17: a bubble, not a description under the row, for this row only).
 struct ReplyButtonRow: View {
+    /// The info button's accessibility label.
+    static let infoLabel = "À propos du bouton +"
+
     @Bindable var topics: TopicsSettingsModel
+    @State private var showsInfo = false
 
     var body: some View {
-        VStack(alignment: .leading) {
+        HStack {
             Picker("Bouton +", selection: $topics.replyButton) {
                 ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
             }
-            .accessibilityHint(topics.replyButtonExplanation)
-            Text(topics.replyButtonExplanation)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+            Button(Self.infoLabel, systemImage: "info.circle") { showsInfo = true }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .popover(isPresented: $showsInfo) {
+                    ReplyButtonInfoView()
+                        .presentationCompactAdaptation(.popover)
+                }
         }
     }
 }
