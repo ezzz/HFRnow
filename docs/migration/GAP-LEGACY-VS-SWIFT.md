@@ -266,6 +266,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | GAP-225 | Reader "…" page menu | A page menu behind a plain `ellipsis` in the reader. | MessagesView.swift:4722, 4970 | The "…" becomes the system overflow menu or another symbol, because the Duo HIG reserves the ellipsis for overflow (Designing for iPhone Duo). The page controls follow the legacy layout (#428). | LOT-186 (absorbs #428) | UX change | new UX: operator | b·operator |
 | GAP-226 | Glass buttons on floating controls | Glass buttons (`.buttonStyle(.glass)`, `.glassProminent`) through `hfrGlassButton`, 17 call sites; the submit button inside the add-account card (AddAccountView.swift:67). | LiquidGlass.swift:54-68; AddAccountView.swift:67 | Glass buttons on floating controls only (HIG Buttons: one or two prominent buttons per view). The card button loses its glass: a UX change, kept because the HIG wins. This reverses LOT-115:49, which dropped the glass buttons. | LOT-185, LOT-186 (reverses LOT-115) | UX change | port: ezzz Swift layer | b·operator |
 | GAP-227 | Unread MP row emphasis | Semibold title in the primary colour plus a grey "non lu" capsule; a read title is regular in `.secondary`. | MPListView.swift:406-483, Common.swift:3119-3120 @ 2440d79 | Semibold title in the primary colour plus accent dot ("Non lu" label) plus a light accent tint drawn as a rounded pill inside the list's block (`RowTint`, `rowPill`; skipped on the selected iPad row). A read title is regular in the secondary colour, at its Increase Contrast strength in light so it keeps 4.5:1 (#651). The MP list style is explicit `.insetGrouped`. Legacy's MP list has no row tint; the pill is kept by operator decision (2026-11-13, #803). | #570, #572, #651, #803 | UX change | port: ezzz Swift layer | b·operator |
+| GAP-978 | Collapsed title | The system inline navigation title once a large title collapses (`.automatic`); `.inline` on the Duo inner screen and on regular-in-both-dimensions scenes. | Common.swift:377-387 @ 87fe0d1c | A centred Liquid Glass pill in the top bar: on the main screens once their large title has collapsed, on pushed lists from the start; a tap shows the full title, a long press copies it (#978, PR #998). The large title at landing (#977) is parity. | #978 | UX change | new UX: operator | b·operator |
 
 ## Counts
 
@@ -274,11 +275,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 38 |
 | ported with changes | 57 |
 | ported with changes (engine only) | 1 |
-| UX change | 47 |
+| UX change | 48 |
 | new | 28 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **177** |
+| **Total** | **178** |
 
 ## Convergence notes
 
@@ -308,14 +309,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (132)
+### GAP rows of type `ported with changes`, `UX change` or `new` (133)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230, 595 | 52 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903 | 25 |
+| b·operator | 013, 016, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 26 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).
