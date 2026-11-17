@@ -1,0 +1,25 @@
+{
+  "id": "R684b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/hfr/Discussions/Viepratique/sujet_44713_1.htm",
+  "url": "https://forum.hardware.fr/hfr/Discussions/Viepratique/sujet_44713_1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Viepratique/meteo-plaint-temps-sujet_44713_1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 17 Nov 2026 17:49:21 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Viepratique/meteo-plaint-temps-sujet_44713_1.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R684b-topic-poll-after-view-results.html",
+  "private": false
+}
