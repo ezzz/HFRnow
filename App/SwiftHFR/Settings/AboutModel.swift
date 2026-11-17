@@ -59,11 +59,9 @@ enum AboutTopicLink: CaseIterable, Hashable, Sendable {
 
 // Port of HFRswift/Swift/AppSettingsView.swift (aboutSection, appVersion) @ 87fe0d1c. Differences: the topic links and their
 // reader have no legacy counterpart (operator decision 2026-10-28, GAP-151, LOT-120 spec).
-/// Logic of the About screen (LOT-120): the version, the two topic links and the reader a link opens.
+/// Logic of the About screen (LOT-120): the two topic links and the reader a link opens (the version row is `VersionRow`).
 @Observable @MainActor
 final class AboutModel {
-    /// The version row.
-    let version: AppVersion
     /// The topic whose reader is open, nil when none is.
     var selected: AboutTopicLink?
 
@@ -73,10 +71,9 @@ final class AboutModel {
 
     /// An About model over the app's topic page source; `renderOptions` are the reader's display choices.
     init(
-        version: AppVersion = .current, topicPages: any TopicPageSource,
+        topicPages: any TopicPageSource,
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() }
     ) {
-        self.version = version
         self.topicPages = topicPages
         self.renderOptions = renderOptions
     }

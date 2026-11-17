@@ -6,8 +6,8 @@ import Testing
 
 @MainActor
 struct AboutModelTests {
-    private func model(version: AppVersion = AppVersion(info: [:])) -> AboutModel {
-        AboutModel(version: version, topicPages: FakeTopicPages())
+    private func model() -> AboutModel {
+        AboutModel(topicPages: FakeTopicPages())
     }
 
     @Test func versionShowsShortVersionAndBuild() {
@@ -94,5 +94,44 @@ struct BuildReportTests {
         #expect(BuildReport.deviceModel(machine: "arm64", environment: ["SIMULATOR_MODEL_IDENTIFIER": "iPhone18,2"]) == "iPhone18,2")
         #expect(BuildReport.deviceModel(machine: "iPhone18,2", environment: [:]) == "iPhone18,2")
         #expect(BuildReport.deviceModel(machine: "", environment: ["SIMULATOR_MODEL_IDENTIFIER": ""]) == "?")
+    }
+}
+
+@MainActor
+struct VersionCopyModelTests {
+    private final class Sink {
+        var written: [String] = []
+        var announced: [String] = []
+    }
+
+    private func model(_ sink: Sink, confirmation: Duration = .milliseconds(10)) -> VersionCopyModel {
+        VersionCopyModel(
+            report: { "SwiftHFR 1.0 (42) · cd04954 · iOS 27.0 · iPhone18,2" },
+            write: { sink.written.append($0) }, announce: { sink.announced.append($0) }, confirmation: confirmation
+        )
+    }
+
+    @Test func aTapCopiesTheReportAndConfirms() async {
+        let sink = Sink()
+        let model = model(sink)
+        model.copy()
+        #expect(sink.written == ["SwiftHFR 1.0 (42) · cd04954 · iOS 27.0 · iPhone18,2"])
+        #expect(sink.announced == ["Copié"])
+        #expect(model.copied)
+        await model.reset?.value
+        #expect(!model.copied)
+    }
+
+    @Test func aSecondTapGetsTheFullConfirmation() async {
+        let sink = Sink()
+        let model = model(sink)
+        model.copy()
+        let first = model.reset
+        model.copy()
+        await first?.value
+        #expect(model.copied)
+        await model.reset?.value
+        #expect(!model.copied)
+        #expect(sink.written.count == 2)
     }
 }
