@@ -110,6 +110,25 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         return await scrollPage(toScrollY: Double(readingTop), in: controller, timeout: deadline)
     }
 
+    /// The refresh of document `token` restored `readingTop` after WebKit's reset, on both sides (#995). Until that reset the
+    /// scroll view still shows the previous document, at the same reading top: the page's `scrollY` alone can read it before
+    /// the reset puts it back to 0, the likely cause of CI job 133772120017 (`scrollY` 1000, then 0 once loaded, while the
+    /// offset checks after it passed within the same 1 s test; read from the code, not shown by a log) and of 133770412196
+    /// (the pinch-zoomed refresh).
+    /// The watch ends at the reset, when the restore is sent; the page and the scroll view agree once the scroll view has
+    /// applied the page's scroll: a page sent back for a moment by an older offset of the scroll view (#958) is waited out
+    /// here, and a restore that is lost for good still fails.
+    private func restored(
+        _ readingTop: CGFloat, token: Int, in controller: ReaderWebController, timeout: Duration
+    ) async -> Bool {
+        await until(async: {
+            let watch = controller.resetWatch
+            guard watch.committedToken == token, watch.token == nil else { return false }
+            guard let page = (try? await self.evaluate("return window.scrollY;", in: controller)) as? NSNumber else { return false }
+            return abs(page.doubleValue - readingTop) <= 1 && abs(controller.readingTop - readingTop) <= 1
+        }, timeout: timeout)
+    }
+
     @Test func theMessageHiddenUnderTheTopBarIsNotTheReadingPosition() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         let reports = PositionReports()
@@ -118,6 +137,9 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
+        // A scroll made before WebKit's reset of the new document would be undone by it (`showsDocument`, #995): same class
+        // as the refresh below, no failure seen here yet.
+        #expect(await showsDocument(controller), "contentSize: \(controller.webView.scrollView.contentSize)")
         // Message 2 starts 10 points above the bar's edge: message 1 ends under the 100-point bar, so message 2 is the first
         // one the reader sees. `scrollY` is the content at the bar's edge (checked on the scroll view).
         let second = try await top(of: 2, in: controller)
@@ -134,6 +156,9 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
+        // A scroll made before WebKit's reset of the new document would be undone by it (`showsDocument`, #995): same class
+        // as the refresh below, no failure seen here yet.
+        #expect(await showsDocument(controller), "contentSize: \(controller.webView.scrollView.contentSize)")
         let scrollView = controller.webView.scrollView
         // Content 1000 at the bar's edge: offset 900 under the 100-point bar.
         #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
@@ -151,10 +176,12 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.obscuredInsets.top = 100
         #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
         // Issue #642: the scroll view still shows the old document's offset, already 900 under the 100-point bar, when the
-        // new one is ready; its reset to the top and the restore come after. Only the new document's own `scrollY`, which
-        // starts at 0, tells that the restore happened. The restore waits for that reset (#772): sent before it, it was undone
-        // now and then on a loaded runner (restored, then `scrollY` 0 below).
-        #expect(await until(async: { abs((await scrollY() ?? -1) - 1000) <= 1 }, timeout: .seconds(30)), "restored scrollY")
+        // new one is ready; its reset to the top and the restore come after. The restore waits for that reset (#772): sent
+        // before it, it was undone now and then on a loaded runner. The new page's `scrollY` alone does not tell that the
+        // restore happened: before the reset it can be the old offset's (`restored`).
+        let restore = await restored(1000, token: 2, in: controller, timeout: .seconds(30))
+        let restoreState = await restore ? "" : scrollState(of: controller)
+        #expect(restore, "restored: \(restoreState)")
         // Still there once the document has finished loading (a late layout must not undo the restore).
         #expect(await settled(controller))
         let loadedScrollY = await scrollY() ?? -1
@@ -174,6 +201,9 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 1))
         #expect(await until { recorder.ready == [1] })
         #expect(await settled(controller))
+        // A scroll made before WebKit's reset of the new document would be undone by it (`showsDocument`, #995): same class
+        // as the refresh below, no failure seen here yet.
+        #expect(await showsDocument(controller), "contentSize: \(controller.webView.scrollView.contentSize)")
         let scrollView = controller.webView.scrollView
         #expect(try await scrollPage(to: 1000, in: controller, deadline: .seconds(15)), "offset: \(scrollView.contentOffset.y)")
         scrollView.setZoomScale(2, animated: false)
@@ -185,8 +215,10 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         controller.show(tallDocument(token: 2, keepsScrollPosition: true))
         #expect(await until({ recorder.ready == [1, 2] }, timeout: .seconds(90)), "ready: \(recorder.ready)")
         let scrollY = { [self] in ((try? await evaluate("return window.scrollY;", in: controller)) as? NSNumber)?.doubleValue }
-        let restored = await until(async: { abs((await scrollY() ?? -1) - before) <= 1 }, timeout: .seconds(30))
-        #expect(restored, "restored scrollY, before \(before)")
+        // After WebKit's reset, on both sides (`restored`, #995).
+        let restore = await restored(before, token: 2, in: controller, timeout: .seconds(30))
+        let restoreState = await restore ? "" : scrollState(of: controller)
+        #expect(restore, "restored, before \(before): \(restoreState)")
         #expect(await settled(controller))
         let after = await scrollY() ?? -1
         #expect(abs(after - before) <= 1, "scrollY after load: \(after), before \(before)")

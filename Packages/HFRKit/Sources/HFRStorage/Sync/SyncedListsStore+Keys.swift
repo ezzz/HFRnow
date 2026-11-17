@@ -31,7 +31,13 @@ extension SyncedListsStore {
     }
 
     static func isListKey(_ key: String) -> Bool {
-        key == allowlistKey || Slot.allCases.contains { $0 != .allowlist && key.hasPrefix("\($0.rawValue).") }
+        Slot.allCases.contains { $0.owns(key) }
+    }
+
+    /// Whether the list under `key` is last-writer-wins, so its last synced digest is kept: the positions and the
+    /// upload history are merged instead.
+    static func usesDigest(_ key: String) -> Bool {
+        !isPositionsKey(key) && key != rehostHistoryKey
     }
 
     var cloudSchemaIsReadable: Bool {

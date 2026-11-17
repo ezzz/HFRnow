@@ -45,6 +45,7 @@ struct SettingsView: View {
     private let mpStorage: MPStorageSyncModel?
     /// "Maintenance" (LOT-120).
     @State private var maintenance = MaintenanceModel()
+    @State private var titleIsVisible = true
 
     /// Whether the "Hors ligne" section and its saved topics are shown: never while offline save is disabled (#822).
     static var showsOfflineSection: Bool { OfflineSaveAvailability.isReachable }
@@ -67,6 +68,7 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var general = general
         Form {
+            ScreenLargeTitle(title: "Réglages", isVisible: $titleIsVisible)
             Section("Général") {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
                     ForEach(StartupScreen.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -165,8 +167,7 @@ struct SettingsView: View {
         .onAppear { favorites.reloadSettings() }
         // One measure per appearance of the screen (legacy `AppSettingsView.swift:606-607`), not one per row of the section.
         .task { await maintenance.refreshCacheStorage() }
-        .navigationTitle("Réglages")
-        .navigationBarTitleDisplayMode(.inline)
+        .screenTitle("Réglages", style: .largeThenPill, headerVisible: titleIsVisible)
     }
 }
 
