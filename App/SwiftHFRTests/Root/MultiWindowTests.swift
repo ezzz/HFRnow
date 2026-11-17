@@ -109,6 +109,25 @@ struct MultiWindowTests {
         #expect(claims.isPresenting("iconSeason", scene: two))
     }
 
+    // Review round 2: a window that is away does not keep what it presents.
+    @Test func aWindowGoingToTheBackgroundHandsWhatItPresentsToOneOnScreen() {
+        let claims = SceneClaims()
+        let (one, two) = (UUID(), UUID())
+        claims.phaseChanged(.active, scene: one, key: "legacyImportSummary")
+        claims.phaseChanged(.active, scene: two, key: "legacyImportSummary")
+        #expect(claims.isPresenting("legacyImportSummary", scene: one))
+        // An inactive window (a system sheet over it) keeps its claim; a background one gives it up.
+        claims.phaseChanged(.inactive, scene: one, key: "legacyImportSummary")
+        #expect(claims.isPresenting("legacyImportSummary", scene: one))
+        claims.phaseChanged(.background, scene: one, key: "legacyImportSummary")
+        #expect(!claims.isPresenting("legacyImportSummary", scene: one))
+        claims.phaseChanged(.active, scene: two, key: "legacyImportSummary")
+        #expect(claims.isPresenting("legacyImportSummary", scene: two))
+        // Coming back does not take it from the window that presents it.
+        claims.phaseChanged(.active, scene: one, key: "legacyImportSummary")
+        #expect(!claims.isPresenting("legacyImportSummary", scene: one))
+    }
+
     @Test func aNotificationTapWaitsForAWindowOnScreen() {
         #expect(RootNavigationView.mayOpenNotification(phase: .active))
         #expect(!RootNavigationView.mayOpenNotification(phase: .inactive))

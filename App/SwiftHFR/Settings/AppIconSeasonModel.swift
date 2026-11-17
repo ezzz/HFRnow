@@ -104,13 +104,13 @@ private struct AppIconSeasonAlert: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task { model.checkOnceAtLaunch() }
-            .onAppear { gate.claim() }
-            .onChange(of: gate.owner) { gate.claim() }
+            .onChange(of: gate.scenePhase, initial: true) { gate.refresh() }
+            .onChange(of: gate.owner) { gate.refresh() }
             .onDisappear { gate.release() }
             .alert(
                 "Icône",
                 isPresented: Binding(
-                    get: { model.errorMessage != nil && gate.isOpen }, set: { if !$0 { model.errorMessage = nil } }
+                    get: { model.errorMessage != nil && gate.isOpen }, set: { if !$0, gate.isOpen { model.errorMessage = nil } }
                 )
             ) {
                 Button("OK", role: .cancel) {}

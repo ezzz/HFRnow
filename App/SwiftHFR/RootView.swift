@@ -47,11 +47,11 @@ struct RootView: View {
         }
         .onChange(of: buildKey, initial: true) { rebuild() }
         // What the legacy import took over, shown once it did something or failed (LOT-158).
-        .onAppear { summaryGate.claim() }
-        .onChange(of: summaryGate.owner) { summaryGate.claim() }
+        .onChange(of: summaryGate.scenePhase, initial: true) { summaryGate.refresh() }
+        .onChange(of: summaryGate.owner) { summaryGate.refresh() }
         .onDisappear { summaryGate.release() }
         .sheet(item: Binding(
-            get: { summaryGate.isOpen ? legacyImport.summary : nil }, set: { legacyImport.summary = $0 }
+            get: { summaryGate.isOpen ? legacyImport.summary : nil }, set: { if summaryGate.isOpen { legacyImport.summary = $0 } }
         )) { summary in
             LegacyImportSummaryView(opened: summary, model: legacyImport) {
                 Task {

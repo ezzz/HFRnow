@@ -66,6 +66,17 @@ final class SceneClaims {
         owners[key] == scene
     }
 
+    /// The window's own scene phase changed: only a window on screen presents. A window going to the background gives up what it
+    /// presented, so the next one on screen takes it (as the seasonal alerts wait for an active scene); an active window claims
+    /// `key` when nobody holds it.
+    func phaseChanged(_ phase: ScenePhase, scene: UUID, key: String) {
+        switch phase {
+        case .active: claim(key, scene: scene)
+        case .background: release(scene: scene)
+        default: break
+        }
+    }
+
     /// The window is gone: what it presented goes to the next window that claims it.
     func release(scene: UUID) {
         owners = owners.filter { $0.value != scene }
@@ -82,6 +93,7 @@ extension EnvironmentValues {
 struct SceneGate: DynamicProperty {
     let key: String
     @Environment(\.sceneClaims) private var claims
+    @Environment(\.scenePhase) private var phase
     @State private var scene = UUID()
 
     /// True when this window presents `key` (always without claims).
@@ -89,6 +101,11 @@ struct SceneGate: DynamicProperty {
     /// The current owner, for `onChange`: a window re-claims when the owner left.
     var owner: UUID? { claims?.owners[key] }
 
-    func claim() { claims?.claim(key, scene: scene) }
+    /// This window's own phase (read inside the scene), for `onChange`.
+    var scenePhase: ScenePhase { phase }
+
+    /// The window's phase changed, or the owner left: an active window claims, a background one gives up.
+    func refresh() { claims?.phaseChanged(phase, scene: scene, key: key) }
+    /// The window is gone.
     func release() { claims?.release(scene: scene) }
 }
