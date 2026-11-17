@@ -69,6 +69,16 @@ final class BlocklistSyncModel {
     /// account only; the list stays on the device.
     func answerConsent(_ accept: Bool) async {
         asksConsent = false
+        // Another window (LOT-146) may have decided while the question was shown: its choice stands, never overwritten.
+        mpStorage.reloadRecord()
+        guard mpStorage.record?.state == .unasked else {
+            if mpStorage.isOn {
+                await mpStorage.resync()
+            } else {
+                changes.withdraw(changes.pending)
+            }
+            return
+        }
         guard accept else {
             await mpStorage.answerCreation(false)
             changes.withdraw(changes.pending)

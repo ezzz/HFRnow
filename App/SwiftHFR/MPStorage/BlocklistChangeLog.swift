@@ -4,20 +4,25 @@ import Synchronization
 
 /// The held blocklist changes of one account, shared by every window of the app (LOT-146 builds one session environment per
 /// window, each with its own `BlocklistChangeLog`): a removal held in one window must stop another window's merge from
-/// importing the pseudo back.
+/// importing the pseudo back. The registry holds each list weakly: it lives as long as a window's log holds it, so a change
+/// held by windows that are all gone is forgotten with them, as before LOT-146.
 final class HeldBlocklistChanges: Sendable {
     /// The held changes, oldest first.
     let changes = Mutex<[BlocklistChange]>([])
 
-    private static let registry = Mutex<[String: HeldBlocklistChanges]>([:])
+    private struct WeakList {
+        weak var list: HeldBlocklistChanges?
+    }
 
-    /// The app's one list for `account` (by `AccountKey`).
+    private static let registry = Mutex<[String: WeakList]>([:])
+
+    /// The list of `account` (by `AccountKey`) every live window shares; a new one when no window holds it any more.
     static func shared(for account: String) -> HeldBlocklistChanges {
         registry.withLock { lists in
             let key = AccountKey.make(account)
-            if let list = lists[key] { return list }
+            if let list = lists[key]?.list { return list }
             let list = HeldBlocklistChanges()
-            lists[key] = list
+            lists[key] = WeakList(list: list)
             return list
         }
     }

@@ -205,9 +205,15 @@ final class MPStorageSyncModel {
         record = states.record(for: account)
     }
 
+    /// Reads the account's record again: another window of the app (LOT-146) has its own model over the same record.
+    func reloadRecord() {
+        record = states.record(for: account)
+    }
+
     /// What a first write of `function` (bookmark, blacklist entry) does for this account (ADR 0013 §7): a function
-    /// switched off stays on the device.
+    /// switched off stays on the device. The record is read again first: another window may have decided meanwhile.
     func writeConsent(for function: MPStorageFunction) -> WriteConsent {
+        reloadRecord()
         guard isEnabled(function) else { return .deviceOnly }
         switch record?.state {
         case .on?: return .sync

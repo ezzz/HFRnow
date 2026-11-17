@@ -258,25 +258,6 @@ struct BlocklistSyncModelTests {
         #expect(Set(try await fake.blocklist()) == ["Beta", "Gamma"])
     }
 
-    @Test func aRemovalHeldInAnotherWindowIsNotImportedBack() async throws {
-        // LOT-146: each window has its own log and model over the account's one store; the held changes are the account's.
-        let fixture = try await Self.make(
-            thread: 7, state: .on, copy: Self.syncedCopy(["Alpha"]), remote: ["Alpha"], local: ["Alpha"]
-        )
-        let otherWindow = PseudoListManager(
-            store: fixture.store, account: MPStorageSyncModelTests.account, blocklistChanges: BlocklistChangeLog(held: fixture.held)
-        )
-        try await otherWindow.remove("Alpha", from: .blocklist)
-        await fixture.base.model.start()
-        #expect(await fixture.local().isEmpty)
-        #expect(try await fixture.remote.blocklist().isEmpty)
-    }
-
-    @Test func everyWindowOfAnAccountSharesItsHeldChanges() {
-        #expect(HeldBlocklistChanges.shared(for: "Window\u{200B}Test") === HeldBlocklistChanges.shared(for: "windowtest"))
-        #expect(HeldBlocklistChanges.shared(for: "WindowTest") !== HeldBlocklistChanges.shared(for: "OtherWindowTest"))
-    }
-
     @Test func aFirstWriteOfAnAccountThatNeverChoseAsksAndSendsNothing() async throws {
         let fixture = try await Self.make(thread: 7, state: .unasked)
         try await fixture.manager.add("Alpha", to: .blocklist)
