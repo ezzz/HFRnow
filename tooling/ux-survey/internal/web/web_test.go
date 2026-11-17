@@ -521,7 +521,7 @@ func depuis6(ip string) func(*http.Request) {
 	return func(r *http.Request) { r.RemoteAddr = "[" + ip + "]:4000" }
 }
 
-// IPv6 : le compteur d'envois se fait par /64, une adresse IPv4 reste comptée seule.
+// IPv6 : le compteur d'envois se fait par /56 (M1), le débit par /64, une adresse IPv4 reste comptée seule.
 func TestLimiteParPrefixeIPv6(t *testing.T) {
 	b := nouveau(t, nil)
 	for i, ip := range []string{"2001:db8:1:2::1", "2001:db8:1:2:aaaa::2", "2001:db8:1:2:ffff:ffff:ffff:ffff"} {
@@ -532,8 +532,14 @@ func TestLimiteParPrefixeIPv6(t *testing.T) {
 	if rec := b.envoi(t, 4, nil, depuis6("2001:db8:1:2:1234:5678:9abc:def0")); rec.Code != 429 {
 		t.Errorf("quatrième envoi dans le même /64 (adresse de confidentialité tournante) : %d", rec.Code)
 	}
-	if rec := b.envoi(t, 5, nil, depuis6("2001:db8:1:3::1")); rec.Code != 201 {
-		t.Errorf("un autre /64 a son compteur : %d", rec.Code)
+	if rec := b.envoi(t, 5, nil, depuis6("2001:db8:1:3::1")); rec.Code != 429 {
+		t.Errorf("un autre /64 du même /56 partage le compteur : %d", rec.Code)
+	}
+	if rec := b.envoi(t, 5, nil, depuis6("2001:db8:1:ff::1")); rec.Code != 429 {
+		t.Errorf("le dernier /64 du /56 aussi : %d", rec.Code)
+	}
+	if rec := b.envoi(t, 5, nil, depuis6("2001:db8:2:2::1")); rec.Code != 201 {
+		t.Errorf("un autre /56 a son compteur : %d", rec.Code)
 	}
 	// IPv4 : inchangé, une adresse = un compteur
 	for i := 6; i <= 8; i++ {
@@ -614,5 +620,133 @@ func TestEnvoiSimultanePourUnJeton(t *testing.T) {
 	}
 	if ok != 1 || doublon != len(codes)-1 || compte(t, b, "reponses") != 1 {
 		t.Errorf("201 : %d, 409 : %d, lignes : %d", ok, doublon, compte(t, b, "reponses"))
+	}
+}
+
+// M1 : un disjoncteur global limite les envois acceptés par heure, tous clients confondus ; au-delà, 503, une
+// ligne de journal, puis la fenêtre suivante reprend.
+func TestPlafondHoraire(t *testing.T) {
+	b := nouveau(t, map[string]string{"UX_PLAFOND_HORAIRE": "4"})
+	for i := 1; i <= 4; i++ {
+		if rec := b.envoi(t, i, nil, depuis(fmt.Sprintf("198.51.100.%d", i))); rec.Code != 201 {
+			t.Fatalf("envoi %d : %d", i, rec.Code)
+		}
+	}
+	rec := b.envoi(t, 5, nil, depuis("198.51.100.5"))
+	if rec.Code != 503 || rec.Header().Get("Retry-After") == "" {
+		t.Errorf("au-delà du plafond : %d %v", rec.Code, rec.Header())
+	}
+	b.envoi(t, 6, nil, depuis("198.51.100.6"))
+	if n := strings.Count(b.logs.String(), "plafond horaire"); n != 1 {
+		t.Errorf("une ligne de journal par fenêtre, %d trouvée(s)", n)
+	}
+	if !strings.Contains(b.logs.String(), `"refus":"plafond-horaire"`) {
+		t.Error("la raison du refus doit être au journal")
+	}
+	if compte(t, b, "reponses") != 4 {
+		t.Error("rien n'est stocké au-delà du plafond")
+	}
+	b.hor.Set(b.hor.Now().Add(61 * time.Minute))
+	if rec := b.envoi(t, 5, nil, depuis("198.51.100.5")); rec.Code != 201 {
+		t.Errorf("la fenêtre suivante : %d", rec.Code)
+	}
+}
+
+// E1 : un chemin hors des routes connues n'entre jamais tel quel dans le journal.
+func TestJournalCheminInconnu(t *testing.T) {
+	b := nouveau(t, nil)
+	long := "/static/" + strings.Repeat("a", 15000)
+	b.requete(t, "GET", long, nil)
+	b.requete(t, "GET", "/SecretChemin", nil)
+	b.requete(t, "GET", "/static/app.js", nil)
+	l := b.logs.String()
+	if strings.Contains(l, "aaaaaaaa") || strings.Contains(l, "SecretChemin") {
+		t.Error("le chemin d'une route inconnue est dans le journal")
+	}
+	if strings.Count(l, `"chemin":"`+web.LibelleInconnu+`"`) != 2 || !strings.Contains(l, `"chemin":"/static/app.js"`) {
+		t.Errorf("libellé fixe pour l'inconnu, chemin réel pour un fichier connu : %s", l)
+	}
+	if len(l) > 1500 {
+		t.Errorf("journal trop long : %d octets", len(l))
+	}
+}
+
+// E1 : /static/ a un plafond large, et les 404 de /static/ y comptent.
+func TestStatiquesLimites(t *testing.T) {
+	b := nouveau(t, nil)
+	var dernier int
+	for i := 0; i < 601; i++ {
+		dernier = b.requete(t, "GET", fmt.Sprintf("/static/absent-%d", i), nil).Code
+	}
+	if dernier != 429 {
+		t.Errorf("601e requête /static/ de la minute : %d", dernier)
+	}
+	if b.requete(t, "GET", "/static/app.js", nil, depuis("198.51.100.9")).Code != 200 {
+		t.Error("un autre client n'est pas touché")
+	}
+	b.hor.Set(b.hor.Now().Add(2 * time.Minute))
+	if b.requete(t, "GET", "/static/app.js", nil).Code != 200 {
+		t.Error("la fenêtre passe")
+	}
+}
+
+// F3 : les essais de code d'accès sont limités ; passé le plafond, même le bon code est refusé jusqu'à la fin de la fenêtre.
+func TestEchecsCodeAcces(t *testing.T) {
+	b := nouveau(t, map[string]string{"UX_CODE_ACCES": "code-aleatoire-de-test-0123"})
+	auth := func(p string) func(*http.Request) { return func(r *http.Request) { r.SetBasicAuth("test", p) } }
+	for i := 0; i < 10; i++ {
+		if c := b.requete(t, "GET", "/static/app.js", nil, auth("faux")).Code; c != 401 {
+			t.Fatalf("essai %d : %d", i, c)
+		}
+	}
+	rec := b.requete(t, "GET", "/static/app.js", nil, auth("faux"))
+	if rec.Code != 429 || rec.Header().Get("Retry-After") == "" {
+		t.Errorf("11e essai : %d", rec.Code)
+	}
+	if c := b.requete(t, "GET", "/static/app.js", nil, auth("code-aleatoire-de-test-0123")).Code; c != 429 {
+		t.Errorf("le bon code pendant le blocage : %d", c)
+	}
+	if c := b.requete(t, "GET", "/static/app.js", nil, auth("faux"), depuis("198.51.100.9")).Code; c != 401 {
+		t.Errorf("un autre client n'est pas bloqué : %d", c)
+	}
+	b.hor.Set(b.hor.Now().Add(11 * time.Minute))
+	if c := b.requete(t, "GET", "/static/app.js", nil, auth("code-aleatoire-de-test-0123")).Code; c != 200 {
+		t.Errorf("après la fenêtre : %d", c)
+	}
+	// Un navigateur qui n'a pas encore d'identifiants (premier 401) ne consomme pas d'essai.
+	b2 := nouveau(t, map[string]string{"UX_CODE_ACCES": "code-aleatoire-de-test-0123"})
+	for i := 0; i < 12; i++ {
+		b2.requete(t, "GET", "/", nil)
+	}
+	if c := b2.requete(t, "GET", "/", nil, auth("code-aleatoire-de-test-0123")).Code; c != 200 {
+		t.Errorf("les 401 sans identifiant ne bloquent pas : %d", c)
+	}
+}
+
+// F2 : le GET public de /api/stats vient du cache d'une minute et ne bouge pas à chaque envoi ; le 201 montre des chiffres frais.
+func TestStatsCacheEtReponseFraiche(t *testing.T) {
+	b := nouveau(t, nil)
+	for i := 1; i <= 10; i++ {
+		b.envoi(t, i, nil, depuis(fmt.Sprintf("198.51.100.%d", i)))
+	}
+	avant := b.requete(t, "GET", "/api/stats", nil).Body.String()
+	if !strings.Contains(avant, `"total":10`) {
+		t.Fatal(avant)
+	}
+	rec := b.envoi(t, 11, nil, depuis("198.51.100.11"))
+	if !strings.Contains(rec.Body.String(), `"total":11`) {
+		t.Errorf("le 201 montre les chiffres frais : %s", rec.Body)
+	}
+	if got := b.requete(t, "GET", "/api/stats", nil).Body.String(); got != avant {
+		t.Errorf("le GET public change avant la fin de la minute : %s", got)
+	}
+	b.hor.Set(b.hor.Now().Add(61 * time.Second))
+	if got := b.requete(t, "GET", "/api/stats", nil).Body.String(); !strings.Contains(got, `"total":11`) {
+		t.Errorf("après la minute : %s", got)
+	}
+	// un jeton déjà reçu (409) ne sert pas à lire des chiffres frais
+	b.envoi(t, 12, nil, depuis("198.51.100.12"))
+	if got := b.envoi(t, 12, nil, depuis("198.51.100.12")).Body.String(); !strings.Contains(got, `"total":11`) {
+		t.Errorf("le 409 vient du cache : %s", got)
 	}
 }
