@@ -652,6 +652,26 @@ func TestPlafondHoraire(t *testing.T) {
 	}
 }
 
+// N1 : un jeton déjà enregistré reçoit 409 même quand le plafond horaire est atteint ; un jeton nouveau reçoit 503.
+func TestPlafondApresJeton(t *testing.T) {
+	b := nouveau(t, map[string]string{"UX_PLAFOND_HORAIRE": "2"})
+	for i := 1; i <= 2; i++ {
+		if rec := b.envoi(t, i, nil, depuis(fmt.Sprintf("198.51.100.%d", i))); rec.Code != 201 {
+			t.Fatalf("envoi %d : %d", i, rec.Code)
+		}
+	}
+	rec := b.envoi(t, 1, nil, depuis("198.51.100.1"))
+	if rec.Code != 409 || !strings.Contains(rec.Body.String(), `"deja_recu":true`) {
+		t.Errorf("jeton déjà enregistré, plafond atteint : %d %s", rec.Code, rec.Body)
+	}
+	if rec := b.envoi(t, 3, nil, depuis("198.51.100.3")); rec.Code != 503 {
+		t.Errorf("jeton nouveau, plafond atteint : %d", rec.Code)
+	}
+	if compte(t, b, "reponses") != 2 {
+		t.Error("rien de plus n'est stocké")
+	}
+}
+
 // E1 : un chemin hors des routes connues n'entre jamais tel quel dans le journal.
 func TestJournalCheminInconnu(t *testing.T) {
 	b := nouveau(t, nil)
