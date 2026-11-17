@@ -46,12 +46,16 @@ struct PseudoListManager: Sendable {
     /// The current account's key, nil when logged out (then only the allowlist can be edited).
     let account: String?
     private let snapshot: PseudoListsSnapshot?
+    /// Where blocklist changes go for the MPStorage sync (LOT-131); nil in previews and tests that do not need it.
+    private let blocklistChanges: BlocklistChangeLog?
 
-    /// A manager over `store` for `account`; `snapshot` is refreshed after each write.
-    init(store: PseudoListStore, account: String?, snapshot: PseudoListsSnapshot? = nil) {
+    /// A manager over `store` for `account`; `snapshot` is refreshed after each write, and each blocklist change is recorded
+    /// in `blocklistChanges` for the MPStorage sync.
+    init(store: PseudoListStore, account: String?, snapshot: PseudoListsSnapshot? = nil, blocklistChanges: BlocklistChangeLog? = nil) {
         self.store = store
         self.account = account
         self.snapshot = snapshot
+        self.blocklistChanges = blocklistChanges
     }
 
     /// Whether `pseudo` is the current account's own pseudo (never offered for the lists, as legacy's `isOwnMessage`).
@@ -90,7 +94,9 @@ struct PseudoListManager: Sendable {
         switch kind {
         case .blocklist:
             guard let account else { throw PseudoListError.loadFailed(reason: "logged out") }
-            added = try await store.block(pseudo, account: account)
+            added = try await recordingBlocklist(BlocklistChange(pseudo: PseudoNormalizer.cleaned(pseudo), added: true)) {
+                try await store.block(pseudo, account: account)
+            }
         case .allowlist: added = try await store.allow(pseudo)
         }
         if added { await snapshot?.refresh() }
@@ -104,11 +110,27 @@ struct PseudoListManager: Sendable {
         switch kind {
         case .blocklist:
             guard let account else { throw PseudoListError.loadFailed(reason: "logged out") }
-            removed = try await store.unblock(pseudo, account: account)
+            removed = try await recordingBlocklist(BlocklistChange(pseudo: PseudoNormalizer.cleaned(pseudo), added: false)) {
+                try await store.unblock(pseudo, account: account)
+            }
         case .allowlist: removed = try await store.disallow(pseudo)
         }
         if removed { await snapshot?.refresh() }
         return removed
+    }
+
+    /// Runs a blocklist write with `change` held in the MPStorage log before it (a reconciliation running meanwhile must not
+    /// undo it) and released after it: kept when the write changed the list, withdrawn otherwise.
+    private func recordingBlocklist(_ change: BlocklistChange, _ write: () async throws -> Bool) async throws -> Bool {
+        blocklistChanges?.hold(change)
+        do {
+            let changed = try await write()
+            blocklistChanges?.finish(change, changed: changed)
+            return changed
+        } catch {
+            blocklistChanges?.finish(change, changed: false)
+            throw error
+        }
     }
 
     /// The menu / profile action: removes `pseudo` when it is in the list, adds it otherwise, and says what happened in legacy's
