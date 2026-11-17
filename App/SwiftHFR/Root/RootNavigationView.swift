@@ -38,7 +38,7 @@ struct RootNavigationView: View {
         }
         .environment(\.rootHasTabBar, Self.rootHasTabBar(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass))
         .task { await model.forums.loadIfNeeded() }
-        // EXPERIMENTAL(mpStorageSwitches, #859): the account's model reads the option from here.
+        // EXPERIMENTAL(mpDarkTopic, #1014): the account's model reads the option from here.
         .onAppear { model.mpStorage?.experimental = experimental }
         // The blocklist's MPStorage sync (LOT-131): its changes in order for the session, and its questions.
         .task { await model.blocklistSync?.run() }

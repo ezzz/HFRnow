@@ -160,3 +160,34 @@ extension ReaderWebTesting {
         }
     }
 }
+
+/// Every offset the scroll view takes from its creation, timed, for a failure message (#995): when a restore is lost, it says
+/// in which order WebKit's reset, the page's own scrolls and the restore reached the scroll view, which a CI log cannot show.
+@MainActor
+final class OffsetHistory {
+    private let start = ContinuousClock.now
+    private var entries: [String] = []
+    private var observation: NSKeyValueObservation?
+
+    init(of scrollView: UIScrollView) {
+        observation = scrollView.observe(\.contentOffset, options: [.initial, .new]) { [weak self] view, _ in
+            MainActor.assumeIsolated { self?.record(view.contentOffset.y) }
+        }
+    }
+
+    /// The offsets as `+<ms> <y>`, oldest first; the last 200 only.
+    var description: String {
+        entries.joined(separator: ", ")
+    }
+
+    func stop() {
+        observation?.invalidate()
+    }
+
+    private func record(_ offsetY: CGFloat) {
+        let elapsed = (ContinuousClock.now - start).components
+        let milliseconds = elapsed.seconds * 1000 + elapsed.attoseconds / 1_000_000_000_000_000
+        entries.append("+\(milliseconds) \(Int(offsetY.rounded()))")
+        if entries.count > 200 { entries.removeFirst() }
+    }
+}

@@ -60,7 +60,7 @@ None added. Existing captures read in place (`Tests/HFRClientTests/Support/Captu
 | D2 | network errors printed and swallowed | typed `MPUnreadPollError` | the app counts failures and decides |
 | D3 | `URLSession.shared` and the shared cookie jar | a probe seeded from the account's `HFRSession`, never written back | one session per account, no stale write |
 | D5 | the stale-session page: no count found, `nb_mp` kept and `nb_mp_failure` incremented, nothing shown (`MPBackgroundService.swift:72-73, 90-98`) | `.sessionExpired(.credentialsRefused)` | the member learns the stored password no longer works (#383) |
-| D4 | 5 s timeout (`MPBackgroundService.swift:86`) | kept: `HFREndpoint.privateMessageCheck()` (`RequestTimeout.background`), not the 30 s page default | a background task must not hang |
+| D4 | 5 s timeout (`MPBackgroundService.swift:86`) | kept: `HFREndpoint.privateMessageCheck()` (`RequestTimeout.background`), not the 10 s page default (`RequestTimeout.standard`) | a background task must not hang |
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes:

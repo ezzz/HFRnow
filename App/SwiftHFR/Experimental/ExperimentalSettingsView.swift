@@ -42,7 +42,8 @@ struct ExperimentalSettingsSection: View {
     }
 }
 
-/// The "Expérimental" page: one section per theme with each option's switch and ⓘ, and the footer on the last section.
+/// The "Expérimental" page: one section per theme with each option's switch and ⓘ (a description under the switch instead for
+/// `showsExplanationUnderSwitch` options), and the footer on the last section.
 struct ExperimentalPageView: View {
     let groups: [ExperimentalPageLayout.Group]
     let settings: ExperimentalSettings
@@ -52,7 +53,12 @@ struct ExperimentalPageView: View {
             ForEach(groups, id: \.theme) { group in
                 Section {
                     ForEach(group.features) { feature in
-                        ExperimentalFeatureRow(feature: feature, settings: settings)
+                        // EXPERIMENTAL(mpDarkTopic, #1014): a description under the switch, no ⓘ and no popover.
+                        if feature.showsExplanationUnderSwitch {
+                            DescribedFeatureRow(feature: feature, settings: settings)
+                        } else {
+                            ExperimentalFeatureRow(feature: feature, settings: settings)
+                        }
                         // EXPERIMENTAL(imageLoadingChoice, #902): the picker shows once the option is on.
                         if feature == .imageLoadingChoice, settings.isOn(feature) {
                             ImageLoadingChoicePicker(store: settings.store)
@@ -72,7 +78,8 @@ struct ExperimentalPageView: View {
     }
 }
 
-/// A switch and its ⓘ, which shows the explanation under it; VoiceOver reads the explanation as the switch's hint.
+/// A switch and its ⓘ, which shows the explanation under it; VoiceOver reads the explanation as the switch's hint. An option that
+/// shows its explanation under the switch (`showsExplanationUnderSwitch`) uses `DescribedFeatureRow` instead.
 struct ExperimentalFeatureRow: View {
     let feature: ExperimentalFeature
     let settings: ExperimentalSettings

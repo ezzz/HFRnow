@@ -12,7 +12,7 @@ final class ReaderSettingsWatch {
     /// `topic_page_swipe_navigation`: with it off no gesture is attached to the web view, as legacy's `including: .none`.
     private(set) var swipesPages = true
     /// `reply_button_behavior` (LOT-086).
-    private(set) var replyButton = ReplyButtonBehavior.quick
+    private(set) var replyButton = ReplyButtonBehavior.forum
     @ObservationIgnored private var task: Task<Void, Never>?
 
     /// Whether the watch runs.

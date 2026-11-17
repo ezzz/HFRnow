@@ -29,8 +29,9 @@ struct SwiftHFRApp: App {
     @State private var appLock: AppLockModel
     /// The "Revenir à l'icône précédente ?" question once a seasonal icon's dates are over (#730).
     @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
-    /// The Réglages › Expérimental switches (#903), read by the screens whose modern path they gate.
-    @State private var experimental = ExperimentalSettings(store: UserDefaultsSettingsStore())
+    /// The Réglages › Expérimental switches (#903), read by the screens whose modern path they gate. Created in `init`, after the
+    /// launch migration: a property initialiser would read `experimental.mpDarkTopic` before the migration writes it (#1014).
+    @State private var experimental: ExperimentalSettings
     /// What runs once for the whole app, not once per window (LOT-146).
     @State private var lifecycle: AppLifecycle
     /// Which window presents what the shared models raise (the icon question, the import summary), one window each (LOT-146).
@@ -50,6 +51,7 @@ struct SwiftHFRApp: App {
             store: UserDefaultsSettingsStore(), rotationChanged: { OrientationPolicy.refresh() }
         ))
         _theme = State(initialValue: ThemeSettingsModel(store: UserDefaultsSettingsStore()))
+        _experimental = State(initialValue: ExperimentalSettings(store: UserDefaultsSettingsStore()))
         let legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter)
         let seasonal = SeasonalThemeModel(store: UserDefaultsSettingsStore())
         let appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())

@@ -34,20 +34,21 @@ struct TopicsSettingsModelTests {
         #expect(store.rawValue(forKey: "topic_page_swipe_navigation") == .bool(false))
     }
 
-    @Test func theReplyButtonDefaultsToQuickAndIsWrittenUnderLegacysKeyAndValues() {
+    @Test func theReplyButtonDefaultsToForumAndIsWrittenUnderLegacysKeyAndValues() {
         let store = InMemorySettingsStore()
         let model = TopicsSettingsModel(store: store)
-        #expect(model.replyButton == .quick)
+        #expect(model.replyButton == .forum)
         #expect(store.rawValue(forKey: "reply_button_behavior") == nil) // creating writes nothing
-        model.replyButton = .forum
-        #expect(store.rawValue(forKey: "reply_button_behavior") == .string("forum"))
+        model.replyButton = .quick
+        #expect(store.rawValue(forKey: "reply_button_behavior") == .string("quick"))
         model.replyButton = .hidden
         #expect(store.rawValue(forKey: "reply_button_behavior") == .string("hidden"))
     }
 
-    @Test func anImportedReplyButtonValueIsShownAndAnUnknownOneReadsAsQuick() {
+    @Test func anImportedReplyButtonValueIsShownAndAnUnknownOneReadsAsTheDefault() {
         #expect(TopicsSettingsModel(store: InMemorySettingsStore(["reply_button_behavior": .string("hidden")])).replyButton == .hidden)
-        #expect(TopicsSettingsModel(store: InMemorySettingsStore(["reply_button_behavior": .string("floating")])).replyButton == .quick)
+        #expect(TopicsSettingsModel(store: InMemorySettingsStore(["reply_button_behavior": .string("floating")])).replyButton == .forum)
+        #expect(TopicsSettingsModel(store: InMemorySettingsStore(["reply_button_behavior": .string("quick")])).replyButton == .quick)
     }
 
     @Test func theTitlesAreLegacys() {

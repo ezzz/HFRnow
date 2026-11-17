@@ -101,7 +101,7 @@ struct MPStorageSyncModelTests {
 
     static func make(
         thread: Int?, state: MPStorageSyncState? = nil, copy: MPStorageCopy = MPStorageCopy(),
-        text: String = FakeMPStorageRemote.emptyDocument, perFunctionSwitches: Bool = true
+        text: String = FakeMPStorageRemote.emptyDocument, darkTopic: Bool = true
     ) async throws -> Fixture {
         let remote = FakeMPStorageRemote(thread: thread, text: text)
         let settings = InMemorySettingsStore()
@@ -115,9 +115,9 @@ struct MPStorageSyncModelTests {
             sync: MPStorageSync(remote: remote, persistence: MPStorageCopyPersistence(store: copies, account: account)),
             states: states, isLoggedIn: { login.value }, clock: { now }
         )
-        // Réglages › Expérimental › « Stockage MP détaillé » (#859): the function tests below run with it on.
+        // Réglages › Expérimental › « MP multiples → dark topic » (#1014): the flag tests below run with it on.
         let experimental = ExperimentalSettings(store: InMemorySettingsStore())
-        experimental.set(.mpStorageSwitches, isOn: perFunctionSwitches)
+        experimental.set(.mpDarkTopic, isOn: darkTopic)
         model.experimental = experimental
         return Fixture(model: model, remote: remote, settings: settings, copies: copies, login: login)
     }
@@ -343,13 +343,13 @@ struct MPStorageSyncModelTests {
         #expect(fixture.model.flag(for: messageThread(31, group: true)) == nil)
     }
 
-    @Test func flagsAreHiddenWhenTheDarkTopicSwitchIsOff() async throws {
+    @Test func flagsAreHiddenWhenTheDarkTopicOptionIsOff() async throws {
         let text = try Self.flagged([MPStorageMPFlag(topic: 31, pValue: "1", href: "t555", page: 2)])
         let fixture = try await Self.make(thread: 7, state: .on, copy: MPStorageCopy(post: 7, base: text), text: text)
         await fixture.model.start()
-        fixture.model.setFunction(.mpFlags, enabled: false)
+        fixture.model.experimental?.set(.mpDarkTopic, isOn: false)
         #expect(fixture.model.flag(for: messageThread(31, group: true)) == nil)
-        fixture.model.setFunction(.mpFlags, enabled: true)
+        fixture.model.experimental?.set(.mpDarkTopic, isOn: true)
         #expect(fixture.model.flag(for: messageThread(31, group: true))?.href == "t555")
     }
 

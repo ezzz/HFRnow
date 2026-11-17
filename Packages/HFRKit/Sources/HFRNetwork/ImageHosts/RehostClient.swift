@@ -9,7 +9,7 @@ import HFRModels
 /// the JPEG bytes. A POST is never retried and a redirect is not followed: only the host's own confirmation counts as
 /// success, so a lost answer is reported as an error and the user decides whether to upload again.
 public struct RehostClient: Sendable {
-    /// Total time limit of an upload, in seconds (legacy `ReplyService.swift:1992` @ 2440d79).
+    /// Idle limit of an upload, in seconds (legacy `ReplyService.swift:1992` @ 2440d79 sets `timeoutInterval`, an idle limit).
     public static let uploadTimeout: Double = 60
     /// Largest answer read, in bytes: the host's JSON is a few hundred bytes, so a bigger body is not its answer.
     public static let maximumResponseBytes = 65_536
