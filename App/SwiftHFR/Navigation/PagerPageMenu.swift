@@ -42,6 +42,12 @@ struct PagerPageMenu: Equatable {
     var label: String { "page \(current) / \(total)" + (isExact ? "" : "+") }
 }
 
+/// What the page menu asks for. The steps keep each list's own rule for them; a typed page is always exactly that page.
+enum PagerJump: Equatable, Sendable {
+    case first, previous, next, last
+    case page(Int)
+}
+
 /// The « page x / y » pill: a glass capsule that opens the page menu, or a plain capsule when the list cannot jump.
 struct PagerPageMenuPill: View {
     let current: Int
@@ -49,19 +55,19 @@ struct PagerPageMenuPill: View {
     var isExact = true
     /// A spinner replaces the text and the menu is off while a page loads.
     var isLoading = false
-    /// Called with the page chosen in the menu or typed; nil makes the pill a plain label.
-    let onPage: (@MainActor (Int) -> Void)?
+    /// Called with the menu entry chosen or the page typed; nil makes the pill a plain label.
+    let onJump: (@MainActor (PagerJump) -> Void)?
     @State private var isEntering = false
     @State private var entry = ""
 
     var body: some View {
         let menu = PagerPageMenu(current: current, total: total, isExact: isExact)
-        if let onPage {
+        if let onJump {
             Menu {
-                Button("Première page", systemImage: "backward.end") { onPage(menu.firstPage) }.disabled(!menu.canGoFirst)
-                Button("Page précédente", systemImage: "chevron.left") { onPage(menu.previousPage) }.disabled(!menu.canGoPrevious)
-                Button("Page suivante", systemImage: "chevron.right") { onPage(menu.nextPage) }.disabled(!menu.canGoNext)
-                Button("Dernière page", systemImage: "forward.end") { onPage(menu.lastPage) }.disabled(!menu.canGoLast)
+                Button("Première page", systemImage: "backward.end") { onJump(.first) }.disabled(!menu.canGoFirst)
+                Button("Précédente", systemImage: "chevron.left") { onJump(.previous) }.disabled(!menu.canGoPrevious)
+                Button("Suivante", systemImage: "chevron.right") { onJump(.next) }.disabled(!menu.canGoNext)
+                Button("Dernière page", systemImage: "forward.end") { onJump(.last) }.disabled(!menu.canGoLast)
                 Button("Aller à la page…", systemImage: "number") {
                     entry = ""
                     isEntering = true
@@ -76,7 +82,7 @@ struct PagerPageMenuPill: View {
             .alert("Aller à la page", isPresented: $isEntering) {
                 TextField(menu.isExact ? "1 à \(menu.total)" : "Numéro", text: $entry).keyboardType(.numberPad)
                 Button("Annuler", role: .cancel) {}
-                Button("Aller") { if let page = menu.page(fromEntry: entry) { onPage(page) } }
+                Button("Aller") { if let page = menu.page(fromEntry: entry) { onJump(.page(page)) } }
             }
         } else {
             pill(menu)

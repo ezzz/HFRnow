@@ -16,17 +16,16 @@ struct PagerToolbar {
     let previous: Step
     let next: Step
     let last: Step?
-    /// "Page N", or a spinner while a page loads.
+    /// "Page N", « page x / y » with its menu, or a spinner while a page loads.
     let status: Status
     /// Goes to a page chosen in the « page x / y » menu (`Status.pageOf`); nil leaves that pill a plain label.
-    var jump: (@MainActor (Int) -> Void)?
+    var jump: (@MainActor (PagerJump) -> Void)?
     /// A page is loading: the `.pageOf` pill shows a spinner and keeps its place, so the bar does not change shape on each move.
     var isLoading = false
 
     enum Status {
         case page(Int)
         /// « page x / y » in its own glass pill, left of the ‹ › pills; a tap opens `PagerPageMenu` when `jump` is set (#968, #980).
-        /// The system bottom bar of the iPad sidebar root keeps its centred status (the tab-bar strip is the specified layout).
         case pageOf(Int, Int, isExact: Bool = true)
         case loading
     }
@@ -45,19 +44,36 @@ struct PagerToolbar {
     /// The system bottom-bar items, for the iPad sidebar root (no tab bar, nothing to overlap).
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
+        // « page x / y »: the pill on the left, then ‹ and › (first and last are in its menu); any other status keeps the
+        // classic order. Same five items either way, so the content varies, never the structure.
+        let isMenu = usesPageMenu
         ToolbarItemGroup(placement: .bottomBar) {
-            Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled)
-            Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
+            if isMenu {
+                statusView
+            } else {
+                Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled)
+                Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
+            }
         }
         ToolbarSpacer(.flexible, placement: .bottomBar)
-        ToolbarItem(placement: .bottomBar) { statusView }
-        ToolbarSpacer(.flexible, placement: .bottomBar)
+        ToolbarItem(placement: .bottomBar) {
+            if isMenu {
+                Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
+            } else {
+                statusView
+            }
+        }
+        ToolbarSpacer(isMenu ? .fixed : .flexible, placement: .bottomBar)
         ToolbarItemGroup(placement: .bottomBar) {
             Button("Page suivante", systemImage: "chevron.right", action: next.action).disabled(!next.enabled)
-            if let last {
+            if let last, !isMenu {
                 Button("Dernière page", systemImage: "forward.end", action: last.action).disabled(!last.enabled)
             }
         }
+    }
+
+    private var usesPageMenu: Bool {
+        if case .pageOf = status { true } else { false }
     }
 
     @ViewBuilder
@@ -65,7 +81,7 @@ struct PagerToolbar {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
         case .pageOf(let number, let total, let isExact):
-            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onPage: jump)
+            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onJump: jump)
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }
@@ -84,7 +100,7 @@ struct PagerToolbar {
 
     @ViewBuilder
     private func stripRow(full: Bool) -> some View {
-        if case .pageOf = status {
+        if usesPageMenu {
             // The menu carries first and last: the pill on the left, then the two arrow pills.
             HStack {
                 statusView
