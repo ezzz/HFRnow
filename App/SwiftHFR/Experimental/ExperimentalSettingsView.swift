@@ -53,6 +53,10 @@ struct ExperimentalPageView: View {
                 Section {
                     ForEach(group.features) { feature in
                         ExperimentalFeatureRow(feature: feature, settings: settings)
+                        // EXPERIMENTAL(imageLoadingChoice, #902): the picker shows once the option is on.
+                        if feature == .imageLoadingChoice, settings.isOn(feature) {
+                            ImageLoadingChoicePicker(store: settings.store)
+                        }
                     }
                 } header: {
                     Text(group.theme.title)

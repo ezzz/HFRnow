@@ -40,12 +40,15 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         controller.show(documentOf(height: 5000, token: 1))
         #expect(await until { recorder.ready == [1] && !ends.reports.isEmpty })
         #expect(ends.reports.last == false, "reports: \(ends.reports)")
+        // Ready comes from the page before the scroll view has the document (`showsDocument`): the end computed from the blank
+        // page's size is the top, and the way back's target was then out of reach (#995).
+        let scrollView = controller.webView.scrollView
+        #expect(await showsDocument(controller), "the scroll view never took the document: \(scrollView.contentSize)")
         // The page scrolls itself: a native `setContentOffset` can be undone by a late layout (`ReaderInsetsWebTests.scrollPage`).
         // CI job 133090341114 showed the way back sent once and never applied (`window.scrollTo(0, 0)`, the scroll view stayed
         // at its end, offset 4356): the scroll is sent again until the scroll view is there, then the report is checked. A
         // failure of the first wait is a scroll that never happened; of the second, a report `reader.js` did not send.
         // The way back goes through `scrollPage(toScrollY:)`, which checks the page's side too (#934).
-        let scrollView = controller.webView.scrollView
         let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
         let atEnd = await until(async: {
             _ = try? await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); return true;", in: controller)
@@ -69,6 +72,8 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         controller.show(documentOf(height: 3000, token: 1))
         #expect(await until { recorder.ready == [1] })
         let scrollView = controller.webView.scrollView
+        // Not before the scroll view has the document: its blank page's end is the top, reached at once (#995).
+        #expect(await showsDocument(controller), "the scroll view never took the document: \(scrollView.contentSize)")
         let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
         let atEnd = await until(async: {
             _ = try? await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); return true;", in: controller)

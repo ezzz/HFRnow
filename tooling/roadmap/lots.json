@@ -1766,7 +1766,7 @@
 {
 "lot": "LOT-188",
 "star": false,
-"scope": "Theme engine (`theme.json` tokens, contrast test) and the theme gallery in Réglages › Thème; Legacy = today's look, unchanged ([THEMES.md](THEMES.md))",
+"scope": "Theme engine (`<id>.theme.json` tokens, contrast test) and the theme gallery in Réglages › Thème; Legacy = today's look, unchanged ([THEMES.md](THEMES.md), [spec](lots/LOT-188-theme-engine.md))",
 "module": "App",
 "diff": "difficult",
 "model": "Opus → Fable",
