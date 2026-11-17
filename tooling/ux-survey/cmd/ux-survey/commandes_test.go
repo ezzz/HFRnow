@@ -67,7 +67,7 @@ func TestExportAnalyseNomMode0600ExclutLesLimitees(t *testing.T) {
 	if err := lancer("pseudo", []string{"--limiter", ids[1]}); err != nil {
 		t.Fatal(err)
 	}
-	sortie := filepath.Join(t.TempDir(), "analyse")
+	sortie := filepath.Join(dir, "exports", "analyse")
 	if err := lancer("export", []string{"--format", "analyse", "--sortie", sortie}); err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestExportAnalyseNomMode0600ExclutLesLimitees(t *testing.T) {
 	if err := lancer("pseudo", []string{"--lever-limite", ids[1]}); err != nil {
 		t.Fatal(err)
 	}
-	autre := filepath.Join(t.TempDir(), "analyse")
+	autre := filepath.Join(dir, "exports", "autre")
 	if err := lancer("export", []string{"--format", "analyse", "--sortie", autre}); err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestEffacementIdempotentEtAgregatsApres(t *testing.T) {
 		t.Error("l'instantané ne doit jamais être réécrit")
 	}
 	// l'export d'ensemble relit l'instantané, la base ne contient plus de réponses
-	sortie := filepath.Join(t.TempDir(), "agregats")
+	sortie := filepath.Join(dir, "exports", "agregats")
 	if err := lancer("export", []string{"--format", "agregats", "--sortie", sortie}); err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestEffacementIdempotentEtAgregatsApres(t *testing.T) {
 	if err != nil || len(j) == 0 {
 		t.Fatalf("export agregats après effacement : %v", err)
 	}
-	if err := lancer("export", []string{"--format", "analyse", "--sortie", filepath.Join(t.TempDir(), "a")}); err != nil {
+	if err := lancer("export", []string{"--format", "analyse", "--sortie", filepath.Join(dir, "exports", "a")}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -169,8 +169,8 @@ func TestFermetureRepousseeRefuseeParToutesLesCommandes(t *testing.T) {
 	remplir(t, dir, ferm, 1)
 	t.Setenv("UX_FERMETURE", ferm.Add(72*time.Hour).Format(time.RFC3339))
 	commandes := map[string][]string{
-		"export":      {"--format", "pseudos", "--sortie", filepath.Join(t.TempDir(), "p")},
-		"sauvegarder": {filepath.Join(t.TempDir(), "copie.db")},
+		"export":      {"--format", "pseudos", "--sortie", filepath.Join(dir, "exports", "p")},
+		"sauvegarder": {filepath.Join(dir, "sauvegardes", "copie.db")},
 		"fermer":      nil,
 		"effacer":     nil,
 		"pseudo":      {"--chercher", "Alice"},
@@ -192,7 +192,7 @@ func TestSauvegarderEtSansEcraser(t *testing.T) {
 	ferm := time.Now().Add(48 * time.Hour).Truncate(time.Second)
 	dir := preparer(t, ferm)
 	remplir(t, dir, ferm, 1)
-	copie := filepath.Join(t.TempDir(), "copie.db")
+	copie := filepath.Join(dir, "sauvegardes", "copie.db")
 	if err := lancer("sauvegarder", []string{copie}); err != nil {
 		t.Fatal(err)
 	}
@@ -204,5 +204,47 @@ func TestSauvegarderEtSansEcraser(t *testing.T) {
 	}
 	if err := lancer("inconnue", nil); err == nil {
 		t.Error("commande inconnue refusée")
+	}
+}
+
+// N2 : export et sauvegarder refusent un chemin hors de exports/ et sauvegardes/ du dossier de données, que
+// l'effacement ne supprimerait pas ; le dossier d'accueil est créé.
+func TestSortieHorsDossierRefusee(t *testing.T) {
+	ferm := time.Now().Add(48 * time.Hour).Truncate(time.Second)
+	dir := preparer(t, ferm)
+	remplir(t, dir, ferm, 1)
+	hors := t.TempDir()
+	for _, p := range []string{
+		filepath.Join(hors, "copie.db"),
+		filepath.Join(dir, "copie.db"),
+		filepath.Join(dir, "exports", "copie.db"), // bon pour un export, pas pour une sauvegarde
+		filepath.Join(dir, "sauvegardes", "..", "copie.db"),
+		filepath.Join(dir, "sauvegardes"),
+	} {
+		if err := lancer("sauvegarder", []string{p}); err == nil {
+			t.Errorf("sauvegarder %s doit être refusé", p)
+		}
+		if _, err := os.Stat(p); err == nil && !strings.HasSuffix(p, "sauvegardes") {
+			t.Errorf("%s a été écrit", p)
+		}
+	}
+	for _, p := range []string{filepath.Join(hors, "a"), filepath.Join(dir, "a"), filepath.Join(dir, "sauvegardes", "a"),
+		filepath.Join(dir, "exports", "..", "a")} {
+		if err := lancer("export", []string{"--format", "analyse", "--sortie", p}); err == nil {
+			t.Errorf("export --sortie %s doit être refusé", p)
+		}
+	}
+	if err := lancer("sauvegarder", []string{filepath.Join(dir, "sauvegardes", "ok.db")}); err != nil {
+		t.Errorf("chemin permis, dossier absent : %v", err)
+	}
+	// un lien symbolique de exports/ vers l'extérieur ne contourne pas la règle
+	if err := os.MkdirAll(filepath.Join(dir, "exports"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(hors, filepath.Join(dir, "exports", "lien")); err != nil {
+		t.Fatal(err)
+	}
+	if err := lancer("export", []string{"--format", "analyse", "--sortie", filepath.Join(dir, "exports", "lien", "a")}); err == nil {
+		t.Error("un lien symbolique vers l'extérieur doit être refusé")
 	}
 }

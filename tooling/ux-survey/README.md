@@ -41,7 +41,7 @@ Puis ouvrir <http://127.0.0.1:8080/>. Les données vont dans `./donnees` (ignor�
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; moins de 10 est refusé |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par adresse |
 | `UX_CODE_ACCES` | vide | Accès restreint (utilisateur `test`) pour le test à cinq ; aléatoire, 20 caractères au moins ; 10 essais faux par adresse et par dix minutes |
-| `UX_PLAFOND_HORAIRE` | `300` | Envois acceptés par heure, tous clients confondus ; au-delà, 503 |
+| `UX_PLAFOND_HORAIRE` | `300` | Envois acceptés par heure, tous clients confondus ; au-delà, 503 (un jeton déjà reçu reçoit toujours 409). À régler selon l'affluence attendue le jour de l'annonce ; il peut aussi bloquer le formulaire : surveiller les lignes `refus: plafond-horaire` |
 
 Le service refuse de démarrer si une variable obligatoire manque ou si une valeur entre accolades d'une page reste
 après remplacement.
@@ -115,8 +115,9 @@ alternatif de chacun, repris tel quel dans `contenu/questionnaire.json`. Les car
   commandes refusent de démarrer avec un jour plus tardif ; l'heure du même jour n'est pas comparée).
 - Envoi vide : refusé (400), non enregistré, hors du seuil de 10. Adresses IPv6 comptées par /64.
 - Une route inconnue répond 404, sauf `GET /api/reponses` qui répond 405 (la route existe en `POST`).
-- Les dossiers d'export et de sauvegarde (`/donnees/exports`, `/donnees/sauvegardes`) se créent sur l'hôte, propriétaire
-  65532 : l'image distroless n'a pas de shell pour un `mkdir`. `export` n'écrase jamais un fichier existant.
+- `export --sortie` et `sauvegarder` n'écrivent que sous `/donnees/exports` et `/donnees/sauvegardes` (les dossiers sont
+  créés par la commande, en 0700) ; un autre chemin est refusé, car l'effacement ne le supprimerait pas. `export`
+  n'écrase jamais un fichier existant.
 - Réponse « limitée » (R13) : `pseudo --limiter <id>` (et `--lever-limite <id>`) l'exclut des statistiques et de tous les exports.
 - Le glisser-déposer du tri `D1` (facultatif dans la spec) n'est pas fait : boutons « Monter » et « Descendre » seuls.
 - À vérifier à la main pendant le test à cinq : voir le §14 de la spécification.

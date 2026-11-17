@@ -185,6 +185,9 @@ func ecrireAtomique(dossier, nom string, contenu []byte) error {
 
 // Sauvegarder écrit une copie cohérente de la base par VACUUM INTO, en 0600. cle-ip n'y entre jamais.
 func (b *Base) Sauvegarder(ctx context.Context, fichier string) error {
+	if err := b.VerifierSortie(DossierSauvegardes, fichier); err != nil {
+		return err
+	}
 	if _, err := os.Stat(fichier); err == nil {
 		return fmt.Errorf("%s existe déjà", fichier)
 	}
@@ -217,4 +220,32 @@ func viderAntiAbusDansCopie(ctx context.Context, fichier string) error {
 		}
 	}
 	return nil
+}
+
+// ErrSortieHorsDossier signale un chemin de sortie hors de exports/ ou de sauvegardes/ du dossier de données :
+// l'effacement ne supprimerait pas un tel fichier (N2).
+var ErrSortieHorsDossier = errors.New("le fichier de sortie doit être dans exports/ (export) ou sauvegardes/ (sauvegarder) du dossier de données")
+
+// VerifierSortie refuse un chemin qui n'est pas sous <dossier de données>/<sous>/ : chemins relatifs et « .. »
+// ramenés à leur forme absolue, liens symboliques du dossier parent suivis. Le dossier du fichier est créé (0700).
+func (b *Base) VerifierSortie(sous, chemin string) error {
+	racine, err := filepath.Abs(filepath.Join(b.dossier, sous))
+	if err != nil {
+		return err
+	}
+	if r, err := filepath.EvalSymlinks(racine); err == nil {
+		racine = r
+	}
+	cible, err := filepath.Abs(chemin)
+	if err != nil {
+		return err
+	}
+	if r, err := filepath.EvalSymlinks(filepath.Dir(cible)); err == nil {
+		cible = filepath.Join(r, filepath.Base(cible))
+	}
+	rel, err := filepath.Rel(racine, cible)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("%w : %s", ErrSortieHorsDossier, chemin)
+	}
+	return os.MkdirAll(filepath.Dir(cible), 0o700) // l'image n'a pas de shell pour un mkdir
 }

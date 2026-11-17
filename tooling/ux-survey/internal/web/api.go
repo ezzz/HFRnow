@@ -114,6 +114,15 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	// Un jeton déjà enregistré reçoit « déjà reçu » avant le plafond : un nouvel essai après coupure réseau ne doit
+	// pas voir un 503 pour un envoi qui est déjà dans la base.
+	if connu, err := s.Base.JetonConnu(r.Context(), e.Jeton); err != nil {
+		s.erreurInterne(w, "jeton", err)
+		return
+	} else if connu {
+		s.dejaRecu(w, r)
+		return
+	}
 	if atteint, premiere, attente := s.plafond.atteint(); atteint {
 		if premiere {
 			s.Log.Warn("plafond horaire d'envois atteint", "plafond", s.Cfg.PlafondH)
@@ -141,13 +150,7 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 	})
 	switch {
 	case errors.Is(err, stockage.ErrDoublonJeton):
-		refuser(r, "doublon-jeton")
-		c, cerr := s.charge(r)
-		if cerr != nil {
-			s.erreurInterne(w, "stats", cerr)
-			return
-		}
-		ecrireJSON(w, http.StatusConflict, map[string]any{"deja_recu": true, "stats": c})
+		s.dejaRecu(w, r)
 	case errors.Is(err, stockage.ErrLimiteIP):
 		refuser(r, "limite-ip")
 		ecrireJSON(w, http.StatusTooManyRequests, map[string]string{"erreur": "trop d'envois depuis cette adresse"})
@@ -162,6 +165,17 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 		}
 		ecrireJSON(w, http.StatusCreated, map[string]any{"stats": c})
 	}
+}
+
+// dejaRecu répond 409 pour un jeton déjà enregistré, avec les statistiques du cache (jamais de chiffres frais).
+func (s *Serveur) dejaRecu(w http.ResponseWriter, r *http.Request) {
+	refuser(r, "doublon-jeton")
+	c, err := s.charge(r)
+	if err != nil {
+		s.erreurInterne(w, "stats", err)
+		return
+	}
+	ecrireJSON(w, http.StatusConflict, map[string]any{"deja_recu": true, "stats": c})
 }
 
 func decoderStrict(corps []byte, v any) error {

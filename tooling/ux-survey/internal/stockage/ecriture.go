@@ -23,6 +23,14 @@ type Envoi struct {
 	Fermeture   string // jour de UX_FERMETURE (JourFermeture) : mémorisé à la première réponse (R5)
 }
 
+// JetonConnu dit si l'empreinte de ce jeton est déjà enregistrée : un nouvel essai d'un envoi déjà reçu reçoit
+// « déjà reçu » même quand le plafond horaire est atteint.
+func (b *Base) JetonConnu(ctx context.Context, jeton string) (bool, error) {
+	var n int
+	err := b.db.QueryRowContext(ctx, `SELECT count(*) FROM jetons WHERE empreinte = ?`, EmpreinteJeton(jeton)).Scan(&n)
+	return n > 0, err
+}
+
 // Ecrire enregistre réponse, pseudo, jeton et compteur d'adresse dans une seule transaction.
 // Il renvoie ErrDoublonJeton ou ErrLimiteIP sans rien écrire.
 func (b *Base) Ecrire(ctx context.Context, e Envoi) (string, error) {

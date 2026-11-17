@@ -46,7 +46,7 @@ func TestSansRowidPasDOrdreDArrivee(t *testing.T) {
 		t.Errorf("le parcours suit autre chose que l'identifiant : %v", vus)
 	}
 	// Une sauvegarde garde ce rangement.
-	dest := filepath.Join(t.TempDir(), "copie.db")
+	dest := filepath.Join(b.Dossier(), "sauvegardes", "copie.db")
 	if err := b.Sauvegarder(ctx, dest); err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestSauvegardeSansJetonsNiEmpreintes(t *testing.T) {
 	if n, _ := b.Compte(ctx, "jetons"); n != 6 {
 		t.Fatalf("la base vivante garde ses jetons : %d", n)
 	}
-	dest := filepath.Join(t.TempDir(), "copie.db")
+	dest := filepath.Join(b.Dossier(), "sauvegardes", "copie.db")
 	if err := b.Sauvegarder(ctx, dest); err != nil {
 		t.Fatal(err)
 	}
