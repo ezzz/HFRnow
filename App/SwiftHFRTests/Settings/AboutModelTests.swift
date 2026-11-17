@@ -124,7 +124,7 @@ struct VersionCopyModelTests {
 
     @Test func aSecondTapGetsTheFullConfirmation() async {
         let sink = Sink()
-        let model = model(sink)
+        let model = model(sink, confirmation: .milliseconds(500))
         model.copy()
         let first = model.reset
         model.copy()
