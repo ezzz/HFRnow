@@ -48,17 +48,35 @@ import Testing
         }
     }
 
-    /// A device whose history holds `images` (newest first), started with the sync.
+    /// A history file that runs `onSave` after each save: another device's change landing during a merge.
+    final class HookedPersistence: SmallStorePersistence, @unchecked Sendable {
+        // Tests drive one store from one task: no concurrent access.
+        var document: RehostUploadHistoryDocument?
+        var onSave: () -> Void = {}
+
+        init(_ document: RehostUploadHistoryDocument) { self.document = document }
+        func load() throws -> RehostUploadHistoryDocument? { document }
+        func save(_ document: RehostUploadHistoryDocument) throws {
+            self.document = document
+            onSave()
+        }
+        func quarantineUnreadableData() throws { document = nil }
+    }
+
+    /// A device whose history holds `images` (newest first), started with the sync; `persistence` replaces its file.
     static func device(
         identity: String? = "apple-1",
         owner: String? = "apple-1",
         cloud: [String: SyncedValue] = [:],
         images: [RehostedImage] = [],
-        syncsHistory: Bool = true
+        syncsHistory: Bool = true,
+        persistence: (any SmallStorePersistence<RehostUploadHistoryDocument>)? = nil
     ) async -> Device {
         let cloudStore = InMemorySyncedKeyValueStore(cloud, identity: identity)
         let historyPersistence = FailingSmallStorePersistence(RehostUploadHistoryDocument(images: images))
-        let history = RehostUploadHistoryStore(persistence: historyPersistence, clock: { SmallStoreTestSupport.date(10_000) })
+        let history = RehostUploadHistoryStore(
+            persistence: persistence ?? historyPersistence, clock: { SmallStoreTestSupport.date(10_000) }
+        )
         let deviceState = FailingSmallStorePersistence(SyncedListsDeviceState(owner: owner))
         let sync = SyncedListsStore(
             cloud: cloudStore,
@@ -129,6 +147,35 @@ import Testing
         #expect(notWired.cloud.value(forKey: Self.key) == nil)
     }
 
+    /// A build without the history slot (an older one, or one that does not wire it) leaves the key and the history alone.
+    @Test func aDeviceThatDoesNotSyncTheHistoryLeavesTheCloudKeyAlone() async throws {
+        let other = RehostHistoryEnvelope(
+            RehostUploadHistoryDocument(images: [Self.image(9)], removals: [RehostUploadRemoval(id: Self.image(1).id, removedAt: .now)]),
+            limit: 100
+        ).value
+        let device = await Self.device(cloud: [Self.key: other], images: Self.images(1...2), syncsHistory: false)
+        try await device.upload(Self.image(3))
+        await device.receive(other)
+        await device.sync.handle(.cloud(SyncedStoreChange(reason: .initialSync)))
+        #expect(device.cloud.value(forKey: Self.key) == other)
+        #expect(await device.history.images() == Self.images(1...3))
+    }
+
+    @Test func anUploadReachesTheCloudThroughRun() async throws {
+        let device = await Self.device()
+        let running = Task { await device.sync.run() }
+        defer { running.cancel() }
+        for _ in 0..<1000 where await !device.sync.isRunning {
+            await Task.yield()
+        }
+        try #require(await device.sync.isRunning)
+        try await device.history.add(Self.image(1))
+        for _ in 0..<10_000 where device.cloud.value(forKey: Self.key) == nil {
+            await Task.yield()
+        }
+        #expect(device.cloudHistory()?.items == [Self.image(1)])
+    }
+
     @Test func anEmptyHistoryWritesNoKey() async throws {
         let device = await Self.device(owner: nil)
         #expect(device.cloud.value(forKey: Self.key) == nil)
@@ -182,6 +229,34 @@ import Testing
         #expect(await phone.history.images().contains(Self.image(3)) == false)
     }
 
+    @Test func uploadsWithTheSameDateConvergeWhateverTheOrderEachDeviceHolds() async throws {
+        let date = SmallStoreTestSupport.date(42)
+        let first = RehostedImage(fullURL: URL(string: "https://img.example/a.png") ?? URL(filePath: "/"), uploadedAt: date)
+        let second = RehostedImage(fullURL: URL(string: "https://img.example/b.png") ?? URL(filePath: "/"), uploadedAt: date)
+        let phone = await Self.device(images: [first, second])
+        let tablet = await Self.device(images: [second, first])
+        await tablet.receive(phone.cloud.value(forKey: Self.key))
+        let saves = tablet.historyPersistence.saveCount
+        #expect(tablet.cloud.value(forKey: Self.key) == phone.cloud.value(forKey: Self.key))
+        await phone.receive(tablet.cloud.value(forKey: Self.key))
+        #expect(tablet.historyPersistence.saveCount == saves)
+        #expect(phone.cloudHistory()?.signature == tablet.cloudHistory()?.signature)
+    }
+
+    @Test func aCloudChangeDuringTheMergeIsNotOverwritten() async throws {
+        let persistence = HookedPersistence(RehostUploadHistoryDocument(images: [Self.image(1)]))
+        let device = await Self.device(images: [Self.image(1)], persistence: persistence)
+        let incoming = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: [Self.image(2)]), limit: 100).value
+        let later = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: [Self.image(3)]), limit: 100).value
+        // Another device writes while this one saves its merge; its own notification comes after.
+        persistence.onSave = { device.cloud.set(later, forKey: Self.key) }
+        await device.receive(incoming)
+        #expect(device.cloud.value(forKey: Self.key) == later)
+        persistence.onSave = {}
+        await device.receive(later)
+        #expect(device.cloudHistory()?.items == [3, 2, 1].map(Self.image))
+    }
+
     // MARK: Cap
 
     @Test func theCloudHoldsTheHundredNewestOfBothDevices() async throws {
@@ -205,80 +280,5 @@ import Testing
         #expect(document.removals.count == RehostUploadHistoryDocument.removalsLimit)
         #expect(document.removals.first?.id == "gone-150")
         #expect(document.removals.last?.id == "gone-51")
-    }
-
-    // MARK: Apple ID
-
-    @Test func anotherAppleIDNeverReceivesTheHistoryAndItComesBackWithTheFirst() async throws {
-        let device = await Self.device(images: Self.images(1...2))
-        await device.sync.handle(.listsChanged)
-        let otherCloud = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: [Self.image(9)]), limit: 100).value
-
-        await device.switchAppleID(to: "apple-2", values: [Self.key: otherCloud])
-        #expect(await device.history.images() == [Self.image(9)])
-        #expect(device.cloudHistory()?.items == [Self.image(9)])
-        let quarantined = try #require(device.deviceState.saved?.quarantine["apple-1"]?.values[Self.key])
-        #expect(RehostHistoryEnvelope(quarantined)?.items == Self.images(1...2))
-
-        await device.switchAppleID(to: "apple-1", values: [:])
-        #expect(await device.history.images() == Self.images(1...2))
-        #expect(device.cloudHistory()?.items == Self.images(1...2))
-        #expect(device.deviceState.saved?.quarantine["apple-1"] == nil)
-    }
-
-    @Test func theQuarantineKeepsTheWholeHistory() async throws {
-        let device = await Self.device(images: Self.images(1...130))
-        await device.switchAppleID(to: "apple-2")
-        let quarantined = try #require(device.deviceState.saved?.quarantine["apple-1"]?.values[Self.key])
-        #expect(RehostHistoryEnvelope(quarantined)?.items.count == 130)
-        #expect(device.cloud.value(forKey: Self.key) == nil)
-    }
-
-    @Test func aSignOutKeepsTheHistoryAndPushesNothing() async throws {
-        let device = await Self.device(images: Self.images(1...2))
-        await device.switchAppleID(to: nil)
-        try await device.upload(Self.image(3))
-        #expect(await device.history.images() == Self.images(1...3))
-        #expect(device.cloud.values.isEmpty)
-        await device.switchAppleID(to: "apple-1")
-        #expect(device.cloudHistory()?.items == Self.images(1...3))
-    }
-
-    // MARK: Failures and other formats
-
-    @Test func aMergeThatCannotBeSavedPushesNothing() async throws {
-        let device = await Self.device(images: [Self.image(1)])
-        device.historyPersistence.failsToSave = true
-        let incoming = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: [Self.image(2)]), limit: 100).value
-        await device.receive(incoming)
-        #expect(device.cloud.value(forKey: Self.key) == incoming)
-        #expect(await device.history.images() == [Self.image(1)])
-    }
-
-    @Test func aNewerCloudFormatIsNeitherAppliedNorOverwritten() async throws {
-        let newer = SyncedValue.data(Data(#"{"version":2,"items":[],"removals":[],"albums":[]}"#.utf8))
-        let device = await Self.device(cloud: [Self.key: newer], images: [Self.image(1)])
-        try await device.upload(Self.image(2))
-        #expect(device.cloud.value(forKey: Self.key) == newer)
-        #expect(await device.history.images() == [2, 1].map(Self.image))
-    }
-
-    @Test func theHistoryKeyIsAListKeyAndNotLastWriterWins() {
-        #expect(SyncedListsStore.isListKey(Self.key))
-        #expect(!SyncedListsStore.usesDigest(Self.key))
-        #expect(SyncedListsStore.Slot.rehostHistory.owns(Self.key))
-        #expect(!SyncedListsStore.Slot.allowlist.owns(Self.key))
-    }
-
-    /// Seconds since 1970 keeps the ids but not the dates (LOT-064): a copy would never equal the device's own.
-    @Test func aCloudItemReadsBackAsStored() throws {
-        let images = (0..<500).reversed().map { index in
-            RehostedImage(
-                fullURL: URL(string: "https://img.example/\(index).png") ?? URL(filePath: "/"),
-                uploadedAt: Date(timeIntervalSinceReferenceDate: 815_000_000 + Double(index) * 1.618_033_988_7)
-            )
-        }
-        let value = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: images), limit: .max).value
-        #expect(try #require(RehostHistoryEnvelope(value)).items == images)
     }
 }

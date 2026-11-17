@@ -6,7 +6,9 @@ import HFRModels
 public struct RehostUploadHistoryDocument: SmallStoreDocument {
     /// Format version written by this code.
     public static let currentVersion = 1
-    /// The number of removals kept: enough to cover the uploads the iCloud copy holds (`SyncedListsStore`).
+    /// The number of removals kept, the newest: as many as the uploads the iCloud copy holds (`SyncedListsStore`). A
+    /// device that merges only after more removals than this were made elsewhere forgets the oldest ones, and can bring
+    /// those uploads back (ADR 0013 Amendment 4, accepted limit).
     public static let removalsLimit = 100
     /// An empty history.
     public static var empty: Self { Self() }
@@ -47,7 +49,7 @@ public struct RehostUploadHistoryDocument: SmallStoreDocument {
 
     /// The document once another copy's uploads and removals are merged in (#966): the union by `RehostedImage.id`,
     /// every removed id left out, the removals of both sides kept (the newest date of an id), newest first, capped to
-    /// `removalsLimit`. Order: unchanged when nothing comes from `images`, else every upload by date, newest first.
+    /// `removalsLimit`. Order: unchanged when nothing comes from `images`, else `newestFirst`.
     func merging(images incoming: [RehostedImage], removals incomingRemovals: [RehostUploadRemoval]) -> Self {
         var newest: [String: Date] = [:]
         for removal in removals + incomingRemovals {
@@ -64,14 +66,11 @@ public struct RehostUploadHistoryDocument: SmallStoreDocument {
         return merged
     }
 
-    /// Uploads by date, newest first; equal dates keep their order.
+    /// Uploads by date, newest first, equal dates by id: every device orders the same uploads the same way, so their
+    /// cloud copies compare equal.
     static func newestFirst(_ images: [RehostedImage]) -> [RehostedImage] {
-        images.enumerated()
-            .sorted { lhs, rhs in
-                lhs.element.uploadedAt != rhs.element.uploadedAt
-                    ? lhs.element.uploadedAt > rhs.element.uploadedAt
-                    : lhs.offset < rhs.offset
-            }
-            .map(\.element)
+        images.sorted { lhs, rhs in
+            lhs.uploadedAt != rhs.uploadedAt ? lhs.uploadedAt > rhs.uploadedAt : lhs.id < rhs.id
+        }
     }
 }
