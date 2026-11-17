@@ -89,7 +89,9 @@ public struct GlobalSearchFlow: Sendable {
     private func results(at url: URL) async throws(GlobalSearchError) -> GlobalSearchResult {
         // Redirects are not followed, so no host but the checked forum page is contacted (operator decision on #346);
         // HFR serves the results in place (`R50b`, `R50c`: 200, no redirect).
-        let page = try await fetch(.get(url, timeout: RequestTimeout.globalSearch, redirectPolicy: .doNotFollow))
+        let page = try await fetch(.get(
+            url, timeout: RequestTimeout.globalSearch, totalTimeout: RequestTimeout.globalSearchTotal, redirectPolicy: .doNotFollow
+        ))
         guard !(300..<400).contains(page.statusCode) else { throw .page(.malformed("search results redirected")) }
         do {
             return GlobalSearchResult(url: page.finalURL, page: try TopicListParser.parse(page.text, pageURL: page.finalURL.absoluteString))

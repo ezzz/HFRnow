@@ -3,8 +3,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
 // in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
-// LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); the switch is a
-// `safeAreaBar` without fill; GAP row pending #545.
+// LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP row pending #545.
+// #1013: the switch is a row of the list under the large title, so it scrolls away with it.
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
 struct MessageListView: View {
@@ -18,6 +18,8 @@ struct MessageListView: View {
         let loader = model.loader
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
             ScreenLargeTitle(title: "Messages", visibility: titleVisibility)
+            // A row of the list under the large title, like the category list's filter: it scrolls away with the content (#1013).
+            if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
             if loader.value != nil {
                 ForEach(model.visibleThreads) { thread in
                     MessageRowView(
@@ -35,9 +37,6 @@ struct MessageListView: View {
         .screenTitle("Messages", style: .largeThenPill, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
-        .safeAreaBar(edge: .top) {
-            if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
-        }
         .safeAreaInset(edge: .top) {
             // Both can show: a message HFR confirmed stays confirmed when the reload after it fails.
             VStack(spacing: 8) {
@@ -185,17 +184,22 @@ private struct MessageSegmentSwitch: View {
     let model: MessageListModel
 
     var body: some View {
-        Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in
-            model.chooseSegment(segment)
-            Task { await model.searchForSegment() }
-        })) {
-            ForEach(MPSegment.allCases, id: \.self) { segment in
-                let unread = model.unreadCount(in: segment)
-                Text(unread > 0 ? "\(segment.title) (\(unread))" : segment.title).tag(segment)
+        // Its own section, like the large title above it: a loose row would share the implicit section and take the first
+        // conversation's rounded top corners.
+        Section {
+            Picker("Type de MP", selection: Binding(get: { model.segment }, set: { segment in
+                model.chooseSegment(segment)
+                Task { await model.searchForSegment() }
+            })) {
+                ForEach(MPSegment.allCases, id: \.self) { segment in
+                    let unread = model.unreadCount(in: segment)
+                    Text(unread > 0 ? "\(segment.title) (\(unread))" : segment.title).tag(segment)
+                }
             }
+            .pickerStyle(.segmented)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4))
         }
-        .pickerStyle(.segmented)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
     }
 }

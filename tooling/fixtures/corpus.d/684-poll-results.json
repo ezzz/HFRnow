@@ -1,0 +1,5 @@
+{"captures": [
+  {"raw": "R684a", "id": "R684a", "slug": "topic-poll-logged-in-not-voted-before-results", "ext": "html", "private": false},
+  {"raw": "W684", "id": "W684", "slug": "poll-view-results-answer", "ext": "html", "private": false},
+  {"raw": "R684b", "id": "R684b", "slug": "topic-poll-after-view-results", "ext": "html", "private": false}
+]}

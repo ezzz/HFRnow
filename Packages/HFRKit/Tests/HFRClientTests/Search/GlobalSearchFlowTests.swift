@@ -45,6 +45,8 @@ struct GlobalSearchFlowTests {
         #expect(get.url.absoluteString == redirect["absoluteURL"] as? String)
         #expect(get.body == nil)
         #expect(requests.allSatisfy { $0.headers["Cookie"] == nil })
+        // #683: both requests of a global search keep legacy's 10 s idle limit and 10 s cap on the whole transfer.
+        #expect(requests.allSatisfy { $0.timeout == 10 && $0.totalTimeout == 10 })
 
         let legacy = try SearchCapture.oracle("LOT-002", "R50b")
         let rows = try #require(legacy["topics"] as? [[String: Any]])

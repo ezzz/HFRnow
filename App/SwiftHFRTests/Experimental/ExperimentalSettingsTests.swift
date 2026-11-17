@@ -39,7 +39,7 @@ struct ExperimentalSettingsTests {
     @Test func everyOptionIsListed() {
         #expect(ExperimentalFeature.allCases.allSatisfy { $0.isListed })
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
-        #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpStorageSwitches, .imageLoadingChoice])
+        #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpDarkTopic, .imageLoadingChoice])
         #expect(listed == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(ExperimentalTheme.listed == [.composer, .navigation, .lists, .messages, .imageLoading])
     }
@@ -74,11 +74,20 @@ struct ExperimentalPageTests {
         #expect(ExperimentalPageLayout.groups().allSatisfy { !$0.features.isEmpty })
     }
 
+    /// #1014: the launch migration runs before the switches are read, so a member who had #859's option on sees the dark topic on
+    /// at that launch (`SwiftHFRApp.init` creates `ExperimentalSettings` after `LegacySettingsNormalizer.run`).
+    @Test func aMigratedDarkTopicChoiceIsReadAtTheSameLaunch() {
+        let store = InMemorySettingsStore(["experimental.mpStorageSwitches": .bool(true)])
+        #expect(!ExperimentalSettings(store: store).isOn(.mpDarkTopic)) // read before the migration: the bug the order avoids
+        LegacySettingsNormalizer.run(on: store)
+        #expect(ExperimentalSettings(store: store).isOn(.mpDarkTopic))
+    }
+
     /// The move to a page keeps every key: nothing is read or written under another name.
     @Test func switchesKeepTheirStorageKey() {
         let store = InMemorySettingsStore()
         let settings = ExperimentalSettings(store: store)
-        settings.set(.mpStorageSwitches, isOn: true)
-        #expect(store.rawValue(forKey: "experimental.mpStorageSwitches") == .bool(true))
+        settings.set(.mpDarkTopic, isOn: true)
+        #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(true))
     }
 }

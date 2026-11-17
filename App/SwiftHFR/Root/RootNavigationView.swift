@@ -40,7 +40,7 @@ struct RootNavigationView: View {
         .task { await model.forums.loadIfNeeded() }
         // The Plus badge: the AQ feed is read about 3 s after the root appears, logged out too (legacy `MainWindow.swift:1178-1192`).
         .task { await model.qualityAlerts.checkAtLaunch() }
-        // EXPERIMENTAL(mpStorageSwitches, #859): the account's model reads the option from here.
+        // EXPERIMENTAL(mpDarkTopic, #1014): the account's model reads the option from here.
         .onAppear { model.mpStorage?.experimental = experimental }
         // The blocklist's MPStorage sync (LOT-131): its changes in order for the session, and its questions.
         .task { await model.blocklistSync?.run() }

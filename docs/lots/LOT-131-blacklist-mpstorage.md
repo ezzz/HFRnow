@@ -46,7 +46,7 @@
 - The consumer `.task` ends with the root (session change): the new session gets a new log.
 - Several windows (LOT-146): each window builds its own session environment, so its own log, stream and model; the **held** changes are the account's, shared by every window (`HeldBlocklistChanges.shared(for:)`, keyed by `AccountKey`), so a removal held in one window is not imported back by another window's merge. The registry holds each list weakly: it lives while a window's log holds it, so a change held only by windows that are gone is forgotten with them. Each window's `MPStorageSyncModel` reads the account's record again before a write's consent and before applying an answer, so a choice made in another window stands (no second question, a late « Garder sur cet appareil » never overwrites `on`). Each window's `MPStorageSyncModel` has its own sync queue over the one device copy (LOT-130/146 territory, not changed here).
 - Unreadable device list (LOT-061): it reads empty and refuses writes, so the plan pushes nothing from it and its local writes fail without effect.
-- Function « Liste noire partagée » off (#859, while the experimental option is on): neither read nor written; nothing deleted.
+- Function « Liste noire partagée »: no per-function switch since #1014 (it was #859's experimental option); legacy's single « Activer le stockage MP » switch governs it, and a stored `disabled` entry for it is no longer read.
 
 ## Fixtures
 None: no new HFR state. The tests drive LOT-130's scripted `FakeMPStorageRemote` (no `HFRSession` exists: no request can leave the process) with synthetic `0.1` documents; the document shape is LOT-052/062's (HFR-PROTOCOL §3.3). No pending capture.

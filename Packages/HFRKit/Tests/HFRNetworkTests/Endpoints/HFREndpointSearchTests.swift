@@ -16,6 +16,7 @@ struct HFREndpointSearchTests {
         #expect(request.method == .post)
         #expect(request.headers["Content-Type"] == FormBody.contentType)
         #expect(request.timeout == RequestTimeout.globalSearch)
+        #expect(request.totalTimeout == RequestTimeout.globalSearchTotal)
         #expect(request.redirectPolicy == .follow)
         #expect(Self.body(request) ==
             "hash_check=abc123&cat=13&search=carte+graphique&resSearch=200&orderSearch=0"

@@ -136,6 +136,7 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 994 | UX | Le badge de l'icône est aussi mis à jour par la vérification en arrière-plan, pas seulement quand l'app est ouverte. | LOT-140 #230 | `MPBackgroundService.swift:60-66, 70-108`, `MainWindow.swift:1564-1567` @ `87fe0d1c` |
 | 999 | UX | Réglages > Maintenance : « Pages HTML » compte et pèse les pages enregistrées pour la lecture hors ligne ; le pied de page donne leur règle (conservées quel que soit leur âge, limite de 200 Mo). | LOT-179 #999 | `AppSettingsView.swift:547-577` @ `87fe0d1c` |
 | 999 | UX | Réglages > Maintenance : « Pages HTML » affiche « 1 fichier » (et non « 1 fichiers ») pour 0 ou 1 page. | LOT-179 #999 | `AppSettingsView.swift:559` @ `87fe0d1c` |
+| 1018 | UX | Le bouton « + » répond comme le forum par défaut (« Répondre comme le forum »); un choix déjà enregistré est conservé. | #1016 | `Common.swift:261-263` @ `87fe0d1c` (défaut `quick`) |
 | 1020 | T | Liste noire et stockage MP : chaque ajout ou retrait est d'abord enregistré sur l'appareil puis écrit dans le MP de stockage ; à chaque synchro, les pseudos présents seulement sur l'appareil sont ajoutés au MP, et un retrait fait ailleurs n'est appliqué que si la liste du forum n'est pas vide ou porte une trace de suppression. | LOT-131 #221 | `BlackList.m:37-69`, `MPStorage.m:202-225, 230-269, 271-309` @ `87fe0d1c` |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

@@ -100,6 +100,50 @@ struct URLSessionTransportTests {
         await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(.get(server.baseURL, timeout: 0.5)) }
     }
 
+    /// #683: the presets of legacy 4.0.x at `2fe43da3` (`Classes/Constants.h:70-72`, `ObjCForumSearchWorker.m:8`,
+    /// `MPBackgroundService.swift:86`), all idle limits; only global search also caps the whole transfer.
+    @Test func presetsAreLegacyAt2fe43da3() {
+        #expect(RequestTimeout.standard == 10)
+        #expect(RequestTimeout.topicSearch == 10)
+        #expect(RequestTimeout.globalSearch == 10)
+        #expect(RequestTimeout.globalSearchTotal == 10)
+        #expect(RequestTimeout.background == 5)
+        #expect(HTTPRequest.get(URL(fileURLWithPath: "/")).totalTimeout == nil)
+    }
+
+    /// #683: `timeout` is an idle limit (legacy `URLRequest.timeoutInterval`, `Classes/Constants.h:70-72` @ 2fe43da3): an answer that
+    /// keeps flowing is not cut, though it takes longer than the limit.
+    @Test func slowButFlowingAnswerIsNotCutByTheIdleLimit() async throws {
+        let server = try makeServer { _ in
+            ServerReply(body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, dripInterval: 0.25)
+        }
+        defer { server.stop() }
+        let response = try await makeTransport().send(.get(server.baseURL, timeout: 0.8))
+        #expect(response.body.count == 8)
+    }
+
+    @Test func answerThatStallsAfterItsFirstBytesFailsAtTheIdleLimit() async throws {
+        let server = try makeServer { _ in
+            // Silent for 20 s, then the server closes the connection: only the idle limit ends this request with `timedOut` before that
+            // (without it the answer is a transport error; corelibs' own default of 60 s is never reached).
+            ServerReply(
+                body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, stallsAfterFirstChunk: true, stallSeconds: 20
+            )
+        }
+        defer { server.stop() }
+        await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(.get(server.baseURL, timeout: 0.6)) }
+    }
+
+    /// Global search also caps the whole transfer (legacy `timeoutIntervalForResource`, `ObjCForumSearchWorker.m:131-132`).
+    @Test func totalTimeoutCutsAnAnswerThatKeepsFlowing() async throws {
+        let server = try makeServer { _ in
+            ServerReply(body: Data(String(repeating: "x", count: 12).utf8), dripChunks: 12, dripInterval: 0.25)
+        }
+        defer { server.stop() }
+        let request = HTTPRequest(url: server.baseURL, timeout: 0.8, totalTimeout: 1.0)
+        await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(request) }
+    }
+
     @Test func cancellingTheTaskThrowsCancelled() async throws {
         let server = try makeServer { _ in ServerReply(hangs: true) }
         defer { server.stop() }

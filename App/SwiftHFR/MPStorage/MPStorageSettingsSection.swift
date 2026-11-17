@@ -2,8 +2,8 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (mpStorageSection) @ 87fe0d1c. Differences: the current account's state in
-// words, the creation question asked here when switching on (GAP-181, ADR 0013 §7), "Dernier accès" persisted, one switch
-// per function with an info popover each, behind Réglages › Expérimental (#859: legacy has the single `mpstorage_active` switch).
+// words, the creation question asked here when switching on (GAP-181, ADR 0013 §7), "Dernier accès" persisted. The single
+// `mpstorage_active` switch is legacy's; « MP multiples → dark topic » is its own option in Réglages › Expérimental (#1014).
 /// The "Stockage MP" section of Réglages (LOT-130). `model` is the current account's; nil when logged out.
 struct MPStorageSettingsSection: View {
     let model: MPStorageSyncModel?
@@ -17,9 +17,6 @@ struct MPStorageSettingsSection: View {
             }
         } header: {
             Text("Stockage MP")
-        } footer: {
-            // EXPERIMENTAL(mpStorageSwitches, #859): legacy's section has no footer.
-            if let footer = MPStorageFunctionInfo.footer(for: model) { Text(footer) }
         }
     }
 }
@@ -37,25 +34,13 @@ struct MPStorageSettingsRows: View {
         }
         .disabled(model.status == .working)
         .task { await model.start() }
-        // A first blocklist write asks from the root (LOT-131, `BlocklistSyncQuestions`).
-        .alert("Stockage MP", isPresented: Binding(
-            get: { model.asksCreation && model.creationPrompt == .settings }, set: { if !$0 { model.asksCreation = false } }
-        )) {
-            Button("Créer") { Task { await model.answerCreation(true) } }
-            Button("Annuler", role: .cancel) { Task { await model.answerCreation(false) } }
-        } message: {
-            Text(MPStorageSyncModel.creationQuestion)
-        }
+        // The creation question: « Oui » selected, a « Non » confirmed first (#1014). A first blocklist write asks from the root
+        // (LOT-131, `BlocklistSyncQuestions`).
+        .mpStorageCreationQuestion(model, prompt: .settings)
         if model.isOn {
             LabeledContent("Dernier accès", value: Self.lastSyncText(model.lastSync))
             Button("Resynchroniser") { Task { await model.resync() } }
                 .disabled(model.status == .working)
-            // EXPERIMENTAL(mpStorageSwitches, #859): legacy has the single switch above.
-            if model.perFunctionSwitches {
-                ForEach(MPStorageSyncModel.shippedFunctions, id: \.self) { function in
-                    MPStorageFunctionRow(function: function, model: model)
-                }
-            }
         }
         if model.status == .working {
             ProgressView().frame(maxWidth: .infinity)
@@ -81,66 +66,22 @@ struct MPStorageSettingsRows: View {
     }
 }
 
-/// The words of one function: its switch and the popover behind its ⓘ.
+/// The words of the MP storage functions, for what a refusal of the storage loses.
 enum MPStorageFunctionInfo {
-    /// Under the section: what MPStorage is, without any pseudo or MP id.
-    static let footer = "Le stockage MP utilise un message privé comme espace de stockage, partagé avec les autres applications HFR+."
-
-    /// The footer under the section: only for a logged-in account with the per-function switches on (#859); legacy has none.
-    @MainActor static func footer(for model: MPStorageSyncModel?) -> String? {
-        model?.perFunctionSwitches == true ? footer : nil
-    }
-
+    /// A function's name: the one a member knows it by.
     static func title(_ function: MPStorageFunction) -> String {
         switch function {
         case .ignoreList: "Liste noire partagée"
         case .bookmarks: "Favoris de messages"
-        case .mpFlags: "MP multiples → dark topic"
+        case .mpFlags: MPDarkTopic.title
         }
     }
 
-    /// What it does, what it stores in the MP, what turning it off does.
-    static func explanation(_ function: MPStorageFunction) -> String {
-        switch function {
-        case .ignoreList:
-            "Synchronise la liste noire avec vos autres appareils et applications. Elle est stockée dans le MP de stockage. "
-                + "Désactivée, cette application ne lit ni n'écrit la liste noire dans le MP ; rien n'y est supprimé."
-        case .bookmarks:
-            "Synchronise vos favoris de messages avec vos autres appareils et applications. Ils sont stockés dans le MP de stockage. "
-                + "Désactivée, cette application ne lit ni n'écrit les favoris dans le MP ; rien n'y est supprimé."
-        case .mpFlags:
-            "Affiche dans la liste des MP multiples la position de lecture (page) enregistrée par les autres applications HFR+ "
-                + "dans le MP de stockage. Cette application ne l'écrit pas encore. "
-                + "Désactivée, cette application ne lit pas ces positions ; rien n'y est supprimé, "
-                + "ni les positions des autres applications."
-        }
-    }
-
-    static func infoLabel(_ function: MPStorageFunction) -> String { "Plus d'infos sur \(title(function))" }
-}
-
-/// One function's switch with its ⓘ.
-struct MPStorageFunctionRow: View {
-    let function: MPStorageFunction
-    let model: MPStorageSyncModel
-    @State private var showsInfo = false
-
-    var body: some View {
-        HStack {
-            Toggle(MPStorageFunctionInfo.title(function), isOn: Binding(
-                get: { model.isEnabled(function) }, set: { model.setFunction(function, enabled: $0) }
-            ))
-            Button { showsInfo = true } label: {
-                Image(systemName: "info.circle")
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel(MPStorageFunctionInfo.infoLabel(function))
-            .popover(isPresented: $showsInfo) {
-                Text(MPStorageFunctionInfo.explanation(function))
-                    .padding()
-                    .frame(minWidth: 260, maxWidth: 360)
-                    .presentationCompactAdaptation(.popover)
-            }
-        }
+    /// What the confirmation of a « Non » to the creation question says (operator, 2026-11-17, #1014): every function that
+    /// needs the storage message, and that nothing is deleted.
+    static var refusalMessage: String {
+        "Sans le stockage MP, vous perdez :\n"
+            + MPStorageFunction.allCases.map { "• \(title($0))" }.joined(separator: "\n")
+            + "\nRien n'est supprimé du forum. Vous pourrez l'activer plus tard dans Réglages › Stockage MP."
     }
 }

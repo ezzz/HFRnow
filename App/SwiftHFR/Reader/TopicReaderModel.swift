@@ -113,11 +113,11 @@ final class TopicReaderModel {
     /// that document yet (issue #750).
     private var readyViewer: Int?
 
-    /// The longest the reader shows "Chargement des messages" before it offers "Réessayer" (issue #750): HFRNetwork's limit for
-    /// a topic page request (`RequestTimeout.standard`, legacy `kTimeoutMini`), so a wait no request can end turns into an
-    /// error after the time a request itself may take. Legacy's own 10 s (`HFRNetworkTimeout.content`, `MessagesView.swift:
-    /// 3684-3693` @ 87fe0d1c) covers the fetch only, not the web view, where most of a first open goes (#750 measurement).
-    nonisolated static let waitLimit = Duration.seconds(RequestTimeout.standard)
+    /// The longest the reader shows "Chargement des messages" before it offers "Réessayer" (issue #750, operator decision: 30 s).
+    /// It covers the fetch **and** the web view, where most of a first open goes (#750 measurement), so it is its own value, not
+    /// the request's idle limit (`RequestTimeout.standard` is 10 s since #683, as legacy's `HFRNetworkTimeout.content`,
+    /// `MessagesView.swift:3684-3693` @ 87fe0d1c, which covers the fetch only).
+    nonisolated static let waitLimit = Duration.seconds(30)
     /// How the wait is timed; tests replace it with a clock they drive.
     @ObservationIgnored var waitClock: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     @ObservationIgnored private var waitWatch: Task<Void, Never>?

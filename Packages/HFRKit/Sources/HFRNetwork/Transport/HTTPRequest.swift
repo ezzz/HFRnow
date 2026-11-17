@@ -14,14 +14,17 @@ public enum RedirectPolicy: Sendable, Equatable {
     case doNotFollow
 }
 
-/// Per-endpoint time limits, in seconds, ported from the legacy constants.
+/// Per-endpoint time limits, in seconds: legacy 4.0.x at `2fe43da3` (`ae196aa0`, operator decision on #683). Every value is an
+/// idle limit (`HTTPRequest.timeout`); only global search also caps the whole transfer.
 public enum RequestTimeout {
-    /// Lists, topic pages, forums (legacy `kTimeoutMini`).
-    public static let standard: Double = 30
-    /// Intra-topic search (legacy `kTimeoutMaxi`).
-    public static let topicSearch: Double = 60
-    /// Global search.
-    public static let globalSearch: Double = 15
+    /// Lists, topic pages, forums (legacy `kTimeoutMini`, `Classes/Constants.h:71`).
+    public static let standard: Double = 10
+    /// Intra-topic search (legacy `kTimeoutMaxi`, `Classes/Constants.h:72`).
+    public static let topicSearch: Double = 10
+    /// Global search, idle (legacy `TIME_OUT_INTERVAL_SEARCH`, `Classes/ObjCForumSearchWorker.m:8,131`).
+    public static let globalSearch: Double = 10
+    /// Global search, whole transfer (legacy `timeoutIntervalForResource`, `Classes/ObjCForumSearchWorker.m:132`).
+    public static let globalSearchTotal: Double = 10
     /// Background private-message check.
     public static let background: Double = 5
 }
@@ -36,8 +39,11 @@ public struct HTTPRequest: Sendable, Equatable {
     public var headers: HTTPHeaders
     /// Raw body, if any.
     public var body: Data?
-    /// Total time limit in seconds for the whole exchange.
+    /// Idle limit in seconds: the request fails when no data arrives for that long (legacy `URLRequest.timeoutInterval`
+    /// semantics); a slow answer that keeps flowing is not cut.
     public var timeout: Double
+    /// Optional cap in seconds on the whole exchange, whatever flows (legacy `timeoutIntervalForResource`); nil for none.
+    public var totalTimeout: Double?
     /// Redirect handling for this request.
     public var redirectPolicy: RedirectPolicy
     /// Largest body accepted, in bytes; nil for no limit. Past it (or on a larger `Content-Length`) the transport stops
@@ -51,9 +57,11 @@ public struct HTTPRequest: Sendable, Equatable {
         headers: HTTPHeaders = [:],
         body: Data? = nil,
         timeout: Double = RequestTimeout.standard,
+        totalTimeout: Double? = nil,
         redirectPolicy: RedirectPolicy = .follow,
         maximumBodyBytes: Int? = nil
     ) {
+        self.totalTimeout = totalTimeout
         self.maximumBodyBytes = maximumBodyBytes
         self.url = url
         self.method = method
@@ -68,9 +76,10 @@ public struct HTTPRequest: Sendable, Equatable {
         _ url: URL,
         headers: HTTPHeaders = [:],
         timeout: Double = RequestTimeout.standard,
+        totalTimeout: Double? = nil,
         redirectPolicy: RedirectPolicy = .follow
     ) -> HTTPRequest {
-        HTTPRequest(url: url, headers: headers, timeout: timeout, redirectPolicy: redirectPolicy)
+        HTTPRequest(url: url, headers: headers, timeout: timeout, totalTimeout: totalTimeout, redirectPolicy: redirectPolicy)
     }
 
     /// A form POST; sets the content type. POSTs are never retried by the transport.
@@ -79,13 +88,14 @@ public struct HTTPRequest: Sendable, Equatable {
         form: FormBody,
         headers: HTTPHeaders = [:],
         timeout: Double = RequestTimeout.standard,
+        totalTimeout: Double? = nil,
         redirectPolicy: RedirectPolicy = .follow
     ) -> HTTPRequest {
         var headers = headers
         headers["Content-Type"] = FormBody.contentType
         return HTTPRequest(
             url: url, method: .post, headers: headers, body: form.data,
-            timeout: timeout, redirectPolicy: redirectPolicy
+            timeout: timeout, totalTimeout: totalTimeout, redirectPolicy: redirectPolicy
         )
     }
 }

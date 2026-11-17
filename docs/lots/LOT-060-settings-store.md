@@ -50,7 +50,7 @@ Four preferences were added to the legacy app on `origin/master` after the audit
 | `open_links_in_default_browser` | Bool | false | `Common.swift:239-240`, `AppSettingsView.swift:95` | synced (LOT-119) |
 | `mp_list_display` | String enum (`single` / `split`) | `single` | new key, LOT-171 (no legacy counterpart) | synced (LOT-171) |
 | `topic_page_swipe_navigation` | Bool | true | `Common.swift:235-236`, `AppSettingsView.swift:94` | synced |
-| `reply_button_behavior` | String `quick` / `forum` / `hidden` | `quick` | `Common.swift:243-248`, `AppSettingsView.swift:106` | synced |
+| `reply_button_behavior` | String `quick` / `forum` / `hidden` | `forum` (since #1016; legacy `quick`) | `Common.swift:243-248`, `AppSettingsView.swift:106` | synced |
 
 Every key of the catalogue gets a `scope` (`.synced` or `.device`) from the ADR 0013 matrix (LOT-172); the legacy key names stay the `UserDefaults` names on both scopes. `embedded_videos` (`SettingKey.embeddedVideos`) has no reader nor writer on `master` since `d645f52`: the ADR 0013 matrix drops it, so its scope is `.device` and it joins the "not ported" list above when a lot next touches `SettingKey`.
 

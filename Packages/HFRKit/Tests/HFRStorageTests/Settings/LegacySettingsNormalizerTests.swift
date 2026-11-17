@@ -58,4 +58,47 @@ import Testing
         LegacySettingsNormalizer.run(on: store)
         #expect(store.value(for: SettingKey.displayImages) == .never)
     }
+
+    // MARK: #1014: « Stockage MP détaillé » becomes « MP multiples → dark topic »
+
+    /// The member had the #859 option on: their dark-topic choice (on, unless they switched it off per account, which the app
+    /// reads from the account record) moves to the new key, and the stale key goes only after that.
+    @Test func anOptionOnMovesToTheDarkTopicKeyAndTheOldKeyGoes() {
+        let store = InMemorySettingsStore(["experimental.mpStorageSwitches": .bool(true)])
+        #expect(LegacySettingsNormalizer.run(on: store))
+        #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(true))
+        #expect(store.rawValue(forKey: "experimental.mpStorageSwitches") == nil)
+        #expect(store.value(for: SettingKey.experimentalMPDarkTopic))
+    }
+
+    @Test(arguments: [SettingRawValue.bool(false), .string("nonsense"), .int(0)])
+    func anOptionOffOrUnreadableWritesNothingAndTheOldKeyGoes(raw: SettingRawValue) {
+        let store = InMemorySettingsStore(["experimental.mpStorageSwitches": raw])
+        #expect(LegacySettingsNormalizer.run(on: store))
+        #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == nil)
+        #expect(store.rawValue(forKey: "experimental.mpStorageSwitches") == nil)
+        #expect(!store.value(for: SettingKey.experimentalMPDarkTopic))
+    }
+
+    /// A choice already made in the new build is never overwritten by a stale key.
+    @Test func aStoredDarkTopicChoiceIsKept() {
+        let store = InMemorySettingsStore([
+            "experimental.mpStorageSwitches": .bool(true), "experimental.mpDarkTopic": .bool(false)
+        ])
+        #expect(LegacySettingsNormalizer.run(on: store))
+        #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(false))
+        #expect(store.rawValue(forKey: "experimental.mpStorageSwitches") == nil)
+    }
+
+    @Test func theDarkTopicMigrationRunsOnceAndAnAbsentKeyChangesNothing() {
+        #expect(!LegacySettingsNormalizer.run(on: InMemorySettingsStore()))
+        let store = InMemorySettingsStore(["experimental.mpStorageSwitches": .bool(true)])
+        #expect(LegacySettingsNormalizer.run(on: store))
+        #expect(!LegacySettingsNormalizer.run(on: store))
+        #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(true))
+    }
+
+    @Test func theDarkTopicOptionIsOffByDefault() {
+        #expect(!InMemorySettingsStore().value(for: SettingKey.experimentalMPDarkTopic))
+    }
 }

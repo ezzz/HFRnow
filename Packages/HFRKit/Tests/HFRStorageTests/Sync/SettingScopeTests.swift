@@ -31,7 +31,7 @@ import Testing
         // LOT-166: seasonal themes are a presentation of this device, like the dark style (THEMES.md §5).
         "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device,
         // #903: the Expérimental switches try a presentation on this device.
-        "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpStorageSwitches": .device,
+        "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpDarkTopic": .device,
         "experimental.denseRows": .device, "experimental.imageLoadingChoice": .device,
         // #1003: the first activation of « Chargement des images » happened on this device.
         "experimental.imageLoadingChoice.started": .device,

@@ -38,7 +38,7 @@ import Testing
             // LOT-166: the two seasonal toggles, new.
             "season.automatic", "season.animations", "season.noel.activeYear",
             // #903: the Réglages › Expérimental switches, new.
-            "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
+            "experimental.modernComposer", "experimental.searchTab", "experimental.mpDarkTopic",
             "experimental.denseRows", "experimental.imageLoadingChoice",
             // #1003: the first activation of « Chargement des images », new.
             "experimental.imageLoadingChoice.started",
@@ -91,7 +91,7 @@ import Testing
         // #903: every experimental switch is off; the modern composer too since #855 delivered legacy's.
         #expect(!store.value(for: SettingKey.experimentalModernComposer))
         #expect(!store.value(for: SettingKey.experimentalSearchTab))
-        #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
+        #expect(!store.value(for: SettingKey.experimentalMPDarkTopic))
         #expect(!store.value(for: SettingKey.experimentalDenseRows))
         #expect(!store.value(for: SettingKey.experimentalImageLoadingChoice))
         #expect(!store.value(for: SettingKey.experimentalImageLoadingChoiceStarted), "#1003: no activation yet")
