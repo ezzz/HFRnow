@@ -207,9 +207,10 @@ public enum SettingKey {
     public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: false)
     /// `experimental.searchTab` (new, #903/#896): a fifth tab, Recherche. Device-only.
     public static let experimentalSearchTab = Setting.bool("experimental.searchTab", default: false)
-    /// `experimental.mpStorageSwitches` (new, #903/#859): one MPStorage switch per function instead of legacy's single one.
-    /// Device-only.
-    public static let experimentalMPStorageSwitches = Setting.bool("experimental.mpStorageSwitches", default: false)
+    /// `experimental.mpDarkTopic` (new, #1014): « MP multiples → dark topic », the page read in the MP list from the storage
+    /// thread. Off by default; it replaces #859's per-function option, whose key `legacyExperimentalMPStorageSwitchesKey` the
+    /// launch migration moves here. Device-only.
+    public static let experimentalMPDarkTopic = Setting.bool("experimental.mpDarkTopic", default: false)
     /// `experimental.denseRows` (new, #903/#905): the dense topic and MP rows (#905, #973). Device-only.
     public static let experimentalDenseRows = Setting.bool("experimental.denseRows", default: false)
     /// `experimental.imageLoadingChoice` (new, #903/#902): the Jamais / Wi-Fi uniquement / Toujours choice of image loading.
@@ -224,6 +225,8 @@ public enum SettingKey {
 
     /// Keys the legacy app removed at launch and the new app never reads (`removeDeprecatedThemeKeysIfNeeded`).
     public static let deprecatedKeys = ["force_manual_theme", "auto_theme_day_time", "auto_theme_night_time"]
+    /// `experimental.mpStorageSwitches` (#859, retired by #1014): read once by the launch migration, then removed.
+    public static let legacyExperimentalMPStorageSwitchesKey = "experimental.mpStorageSwitches"
     /// Pre-`text_size_scale` topic size, read once by the migration (`AppSettingsView.swift:325-335`).
     public static let legacyTopicTextSizeKey = "size_text_topics"
 
@@ -238,7 +241,7 @@ public enum SettingKey {
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
-        experimentalMPStorageSwitches, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
+        experimentalMPDarkTopic, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.
