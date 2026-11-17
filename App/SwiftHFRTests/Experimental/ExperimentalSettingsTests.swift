@@ -39,7 +39,7 @@ struct ExperimentalSettingsTests {
     @Test func everyOptionIsListed() {
         #expect(ExperimentalFeature.allCases.allSatisfy { $0.isListed })
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
-        #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpStorageSwitches, .imageLoadingChoice])
+        #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpDarkTopic, .imageLoadingChoice])
         #expect(listed == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(ExperimentalTheme.listed == [.composer, .navigation, .lists, .messages, .imageLoading])
     }
@@ -78,7 +78,7 @@ struct ExperimentalPageTests {
     @Test func switchesKeepTheirStorageKey() {
         let store = InMemorySettingsStore()
         let settings = ExperimentalSettings(store: store)
-        settings.set(.mpStorageSwitches, isOn: true)
-        #expect(store.rawValue(forKey: "experimental.mpStorageSwitches") == .bool(true))
+        settings.set(.mpDarkTopic, isOn: true)
+        #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(true))
     }
 }

@@ -62,7 +62,7 @@ final class MPStorageSyncModel {
     /// shown after it. Not called after an edit that changed nothing (nothing was written or read).
     @ObservationIgnored var afterSync: (@MainActor (_ before: MPStorageDocument?, _ after: MPStorageDocument) async -> Void)?
     /// The document shown (local edits included), for the MP list flags; nil before the first read. Ungated: LOT-131 and
-    /// LOT-132 read their section through `document(for:)`, which honours the function's switch (#859).
+    /// LOT-132 read their section through `document(for:)`, which honours the function's switch.
     private(set) var document: MPStorageDocument?
 
     @ObservationIgnored private let sync: MPStorageSync
@@ -174,35 +174,29 @@ final class MPStorageSyncModel {
         await run { [self] () async throws(MPStorageSyncError) in try await syncOnce() }
     }
 
-    // EXPERIMENTAL(mpStorageSwitches, #859): the option's only input.
-    /// Réglages › Expérimental, set by the root (nil in a hosted test or preview: the option reads off).
-    var experimental: ExperimentalSettings?
-
-    /// Whether Réglages › Stockage MP offers one switch per function (#859). Off, the single switch governs everything, as
-    /// in legacy, and the stored `disabled` list is ignored, not deleted.
-    var perFunctionSwitches: Bool {
-        // EXPERIMENTAL(mpStorageSwitches, #859): the per-function switches and the `disabled` list they write.
-        ExperimentalSettings.isOn(.mpStorageSwitches, in: experimental)
+    // EXPERIMENTAL(mpDarkTopic, #1014): the option's only input.
+    /// Réglages › Expérimental, set by the root (nil in a hosted test or preview: the option reads off). Setting it carries
+    /// #859's per-account « dark topic » switch over once.
+    var experimental: ExperimentalSettings? {
+        didSet { carryRetiredDarkTopicSwitch() }
     }
 
-    /// Whether `function` is on for the account (#859): every function is on by default, and always while the experimental
-    /// option is off; an unreadable record turns all off.
+    /// Whether `function` is on for the account: legacy's single switch governs the blacklist and the bookmarks, and
+    /// « MP multiples → dark topic » also needs its option; an unreadable record turns all off. #859's stored `disabled`
+    /// list is no longer read.
     func isEnabled(_ function: MPStorageFunction) -> Bool {
-        guard let record else { return false }
-        // EXPERIMENTAL(mpStorageSwitches, #859): off, the `disabled` list is not read.
-        return !perFunctionSwitches || record.isEnabled(function)
+        guard record != nil else { return false }
+        // EXPERIMENTAL(mpDarkTopic, #1014): replaces #859's per-function switches; off, the positions are not read.
+        return function != .mpFlags || ExperimentalSettings.isOn(.mpDarkTopic, in: experimental)
     }
 
-    /// The functions whose switch Réglages shows: those whose lot has shipped (no dead switch, #859). Blacklist (LOT-131)
-    /// and bookmarks (LOT-132) join when their lots merge.
-    static let shippedFunctions: [MPStorageFunction] = [.mpFlags]
-
-    /// A function switch of Réglages. Never deletes the section on the forum nor any other client's data: the app only
-    /// stops reading and writing that section (#859). An edit queued before the switch-off is still written at the
-    /// next sync.
-    func setFunction(_ function: MPStorageFunction, enabled: Bool) {
-        guard states.setFunction(function, enabled: enabled, for: account) else { return }
-        record = states.record(for: account)
+    /// A member who had switched « dark topic » off for this account under #859 keeps it off: the option, if on, goes off,
+    /// and the retired entry is removed so it never blocks the option again. Nothing is deleted on the forum.
+    private func carryRetiredDarkTopicSwitch() {
+        // EXPERIMENTAL(mpDarkTopic, #1014): the one-time carry-over of #859's per-account switch.
+        guard let experimental, MPDarkTopic.retiredSwitchWasOff(in: record) else { return }
+        if experimental.isOn(.mpDarkTopic) { experimental.set(.mpDarkTopic, isOn: false) }
+        if states.setFunction(.mpFlags, enabled: true, for: account) { record = states.record(for: account) }
     }
 
     /// Reads the account's record again: another window of the app (LOT-146) has its own model over the same record.
@@ -246,7 +240,7 @@ final class MPStorageSyncModel {
     }
 
     /// The stored read position of a group conversation (`MPListView.swift:354-373` @ 87fe0d1c), only while `on` and the
-    /// "dark topic" function is on; nil for a one-to-one conversation and for a flag
+    /// "dark topic" option is on; nil for a one-to-one conversation and for a flag
     /// without a page above 0 (legacy's link would hold `(null)`).
     func flag(for thread: PrivateMessageThread) -> MPStorageMPFlag? {
         guard isOn, isEnabled(.mpFlags), thread.isGroup, let document, let post = thread.summary.topicID?.topic,
