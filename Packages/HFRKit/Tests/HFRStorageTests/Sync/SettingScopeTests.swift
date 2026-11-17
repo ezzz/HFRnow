@@ -32,7 +32,9 @@ import Testing
         "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device,
         // #903: the Expérimental switches try a presentation on this device.
         "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpStorageSwitches": .device,
-        "experimental.flagIconRows": .device, "experimental.imageLoadingChoice": .device
+        "experimental.flagIconRows": .device, "experimental.imageLoadingChoice": .device,
+        // #1003: the first activation of « Chargement des images » happened on this device.
+        "experimental.imageLoadingChoice.started": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {

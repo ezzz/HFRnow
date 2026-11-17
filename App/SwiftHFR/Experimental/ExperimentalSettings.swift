@@ -28,6 +28,8 @@ final class ExperimentalSettings {
         guard feature.isListed, stored[feature] != isOn else { return }
         stored[feature] = isOn
         store.set(isOn, for: feature.setting)
+        // EXPERIMENTAL(imageLoadingChoice, #1003): the option's first activation starts its choice at « Toujours ».
+        if feature == .imageLoadingChoice, isOn { ImageLoadingChoice.didTurnOn(store: store) }
     }
 
     /// `feature` in `settings`, or its default where none is in the environment (previews, hosted tests).
