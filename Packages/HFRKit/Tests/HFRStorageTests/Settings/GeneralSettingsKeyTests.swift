@@ -67,11 +67,11 @@ import Testing
     }
 }
 
-/// The key LOT-086 added: legacy's raw values, and an unknown one reads as the default like `?? .quick`.
+/// The key LOT-086 added: legacy's raw values. The default is `forum` since #1016; only an absent key takes it.
 @Suite struct ReplyButtonBehaviorKeyTests {
-    @Test func absentReadsAsQuickAndRoundTripsLegacyValues() {
+    @Test func absentReadsAsForumAndRoundTripsLegacyValues() {
         let store = InMemorySettingsStore()
-        #expect(store.value(for: SettingKey.replyButtonBehavior) == .quick)
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .forum)
         for (raw, behavior) in [("forum", ReplyButtonBehavior.forum), ("hidden", .hidden), ("quick", .quick)] {
             store.set(behavior, for: SettingKey.replyButtonBehavior)
             #expect(store.rawValue(forKey: "reply_button_behavior") == .string(raw))
@@ -84,6 +84,24 @@ import Testing
         store.setRawValue(.string("forum"), forKey: "reply_button_behavior")
         #expect(store.value(for: SettingKey.replyButtonBehavior) == .forum)
         store.setRawValue(.string("nonsense"), forKey: "reply_button_behavior")
-        #expect(store.value(for: SettingKey.replyButtonBehavior) == .quick)
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == .forum)
+    }
+
+    /// #1016: a member who chose another value keeps it; a stored `quick` is not "never set".
+    @Test(arguments: [("quick", ReplyButtonBehavior.quick), ("hidden", .hidden), ("forum", .forum)])
+    func aStoredValueIsKeptWhateverTheDefault(raw: String, expected: ReplyButtonBehavior) {
+        let store = InMemorySettingsStore(["reply_button_behavior": .string(raw)])
+        #expect(store.value(for: SettingKey.replyButtonBehavior) == expected)
+    }
+
+    /// The normalizer run at launch neither writes nor drops the key, so an absent one stays absent (and reads `forum`).
+    @Test func theLaunchNormalizerLeavesTheKeyAlone() {
+        let absent = InMemorySettingsStore()
+        LegacySettingsNormalizer.run(on: absent)
+        #expect(absent.rawValue(forKey: "reply_button_behavior") == nil)
+        #expect(absent.value(for: SettingKey.replyButtonBehavior) == .forum)
+        let quick = InMemorySettingsStore(["reply_button_behavior": .string("quick")])
+        LegacySettingsNormalizer.run(on: quick)
+        #expect(quick.value(for: SettingKey.replyButtonBehavior) == .quick)
     }
 }

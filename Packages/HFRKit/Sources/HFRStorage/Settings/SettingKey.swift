@@ -91,9 +91,10 @@ public enum SettingKey {
     /// `mp_list_display` (LOT-171, new key): "Tout en un" (`single`, default) or "Deux listes" (`split`). An unknown value
     /// reads as the default.
     public static let mpListDisplay = Setting.stringEnum("mp_list_display", default: MPListDisplay.single).synced
-    /// `reply_button_behavior` (`master` @21173e7 `Common.swift:243-263`, added after 2440d79): `quick` (default), `forum` or
-    /// `hidden`. An unknown value reads as the default, like legacy's `?? .quick`. Added by LOT-086.
-    public static let replyButtonBehavior = Setting.stringEnum("reply_button_behavior", default: ReplyButtonBehavior.quick).synced
+    /// `reply_button_behavior` (`master` @21173e7 `Common.swift:243-263`, added after 2440d79): `forum` (default, #1016),
+    /// `quick` or `hidden`. Only an absent key takes the default (legacy's was `quick`, a deliberate change): a stored
+    /// `quick` is kept. An unknown value reads as the default. Added by LOT-086.
+    public static let replyButtonBehavior = Setting.stringEnum("reply_button_behavior", default: ReplyButtonBehavior.forum).synced
     /// `open_links_in_default_browser` (`Common.swift:239-241`): follow external links in the system browser instead of
     /// the in-app one. Added by LOT-119.
     public static let opensLinksInDefaultBrowser = Setting.bool("open_links_in_default_browser", default: false).synced

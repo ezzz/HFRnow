@@ -40,6 +40,13 @@ struct ReaderSettingsWatchTests {
         return condition()
     }
 
+    /// #1016: before any read, and for a `ReaderSettings` built without a reply source, the « + » button replies like the forum.
+    @Test func theReplyButtonFallbacksAreForum() {
+        #expect(ReaderSettingsWatch().replyButton == .forum)
+        let bare = ReaderSettings(autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { true })
+        #expect(bare.replyButton() == .forum)
+    }
+
     @Test func aStartedWatchReadsNowThenFollowsEveryChangeUntilStopped() async {
         let values = Values()
         values.swipesPages = false

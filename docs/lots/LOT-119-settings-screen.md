@@ -62,7 +62,7 @@ Réglages is an entry of the LOT-170 root navigation: the first row of the Plus 
 | `HFRswiftStartupScreen` | `Common.swift:32-37`, read `MainWindow.swift:1357-1360` | ported here; legacy values (`tab:categories`, `tab:favorites`, `tab:messages`) are read as is, so there is nothing to migrate; unknown or empty = favourites |
 | `open_links_in_default_browser` | `Common.swift:239-241`, `AppSettingsView.swift:95, 402-409`, `HFRplusAppDelegate.m:771` | ported here (key and row); read as is; LOT-137 applies it |
 | `topic_page_swipe_navigation` (default true) | `Common.swift:235-237`, `AppSettingsView.swift:94, 479` | follow-up for LOT-106 (reader swipe pages): add the key to `SettingKey` there |
-| `reply_button_behavior` (`quick` default, `forum`, `hidden`) | `Common.swift:243-263`, `AppSettingsView.swift:106, 481-485` | follow-up for LOT-084 (reply composer): add the key and enum there |
+| `reply_button_behavior` (`forum` default since #1016 (legacy: `quick`), `quick`, `hidden`) | `Common.swift:243-263`, `AppSettingsView.swift:106, 481-485` | follow-up for LOT-084 (reply composer): add the key and enum there |
 
 Where settings live (MPStorage, iCloud or device) is decided by a pending ADR: until then every key here is in the device store (`HFRStorage`, `UserDefaults`), nothing is synced.
 
