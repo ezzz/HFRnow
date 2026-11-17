@@ -30,18 +30,35 @@ struct QualityAlertsRowTests {
         #expect(model.rows.first?.target == nil)
     }
 
-    @Test(arguments: [
-        (0, "il y a 1 h"), (3_600, "il y a 1 h"), (3_601, "il y a 1 h"), (7_199, "il y a 1 h"), (7_200, "il y a 2 h"),
-        (23 * 3_600 + 59, "il y a 23 h"), (24 * 3_600, "il y a 1 j"), (30 * 86_400 + 86_399, "il y a 30 j"),
-        (31 * 86_400, "il y a 1 mois"), (364 * 86_400, "il y a 11 mois"), (372 * 86_400, "il y a 12 mois"),
-        // 12 months of 31 days last until day 403; then the year count (days / 365) starts at 1 and reaches 2 at day 730.
-        (402 * 86_400, "il y a 12 mois"), (403 * 86_400, "il y a 1 an"), (729 * 86_400, "il y a 1 an"),
-        (730 * 86_400, "il y a 2 ans"),
-        (-500, "il y a 1 h")
-    ])
-    func theAgeReadsAsLegacyWordsIt(seconds: Int, expected: String) {
+    /// Seconds since publication and the label legacy gives. Written out in full: a long literal of tuples with arithmetic
+    /// exceeds the type-checker's time limit (LESSONS 53). Months are 31 days, so 12 of them last until day 403.
+    struct AgeCase: Sendable {
+        let seconds: Int
+        let expected: String
+    }
+
+    nonisolated static let ageCases: [AgeCase] = [
+        AgeCase(seconds: 0, expected: "il y a 1 h"),
+        AgeCase(seconds: 3_600, expected: "il y a 1 h"),
+        AgeCase(seconds: 7_199, expected: "il y a 1 h"),
+        AgeCase(seconds: 7_200, expected: "il y a 2 h"),
+        AgeCase(seconds: 82_859, expected: "il y a 23 h"),
+        AgeCase(seconds: 86_400, expected: "il y a 1 j"),
+        AgeCase(seconds: 2_678_399, expected: "il y a 30 j"),
+        AgeCase(seconds: 2_678_400, expected: "il y a 1 mois"),
+        AgeCase(seconds: 31_449_600, expected: "il y a 11 mois"),
+        AgeCase(seconds: 32_140_800, expected: "il y a 12 mois"),
+        AgeCase(seconds: 34_732_800, expected: "il y a 12 mois"),
+        AgeCase(seconds: 34_819_200, expected: "il y a 1 an"),
+        AgeCase(seconds: 62_985_600, expected: "il y a 1 an"),
+        AgeCase(seconds: 63_072_000, expected: "il y a 2 ans"),
+        AgeCase(seconds: -500, expected: "il y a 1 h")
+    ]
+
+    @Test(arguments: ageCases)
+    func theAgeReadsAsLegacyWordsIt(_ ageCase: AgeCase) {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        #expect(QualityAlertAge.label(since: now.addingTimeInterval(-Double(seconds)), now: now) == expected)
+        #expect(QualityAlertAge.label(since: now.addingTimeInterval(-Double(ageCase.seconds)), now: now) == ageCase.expected)
     }
 
     @Test func anUnreadableDateHasNoAgeAndIsNotNew() throws {
