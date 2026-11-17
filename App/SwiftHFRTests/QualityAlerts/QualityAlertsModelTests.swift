@@ -70,6 +70,36 @@ struct QualityAlertsModelTests {
         #expect(model.unreadCount == 0)
     }
 
+    @Test func aCountThatStartsWhileTheListLoadsCannotBringTheBadgeBack() async throws {
+        let items = try Support.capturedItems()
+        let loadEntered = AQGate()
+        let loadRelease = AQGate()
+        let countEntered = AQGate()
+        let countRelease = AQGate()
+        let source = FakeQualityAlertsSource { (call: Int) async throws(AQError) -> [AQFeedItem] in
+            if call == 0 {
+                await loadEntered.open()
+                await loadRelease.wait()
+            } else {
+                await countEntered.open()
+                await countRelease.wait()
+            }
+            return items
+        }
+        let model = Support.model(source: source)
+        let load = Task { await model.load() }
+        await loadEntered.wait()
+        // The launch check fires while the list loads: it reads the last check from before the visit.
+        let count = Task { await model.refreshCount() }
+        await countEntered.wait()
+        await loadRelease.open()
+        await load.value
+        #expect(model.unreadCount == 0)
+        await countRelease.open()
+        await count.value
+        #expect(model.unreadCount == 0)
+    }
+
     @Test func aFailedCountKeepsTheBadgeAndAFailedLoadKeepsTheRowsAndMarksNothing() async throws {
         let items = try Support.capturedItems()
         let store = InMemorySettingsStore()

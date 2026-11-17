@@ -9,6 +9,10 @@ struct QualityAlertsView: View {
     let model: QualityAlertsModel
     let environment: AppEnvironment
     @State private var opened: QualityAlertsModel.Row?
+    /// This screen has asked for its list. Per screen, not on the model: legacy builds a new view model on every push
+    /// (`PlusTab.swift:38`, `AQPlusView.swift:337, 436-441` @ 87fe0d1c), so each visit fetches and marks the list seen, while coming
+    /// back from a message keeps the screen and its list.
+    @State private var hasRequestedList = false
 
     var body: some View {
         List {
@@ -36,8 +40,11 @@ struct QualityAlertsView: View {
             }
         }
         .appScreenBackground()
-        // Legacy loads once, when the screen first appears (`AQPlusView.swift:436-441`); coming back from a message keeps the list.
-        .task { if !model.hasLoaded { await model.load() } }
+        .task {
+            guard !hasRequestedList else { return }
+            hasRequestedList = true
+            await model.load()
+        }
         .refreshable { await model.load() }
     }
 }
@@ -48,7 +55,9 @@ private struct QualityAlertsPlaceholder: View {
 
     var body: some View {
         if model.rows.isEmpty {
-            if let failure = model.failure {
+            if model.isLoading || !model.hasLoaded {
+                ProgressView("Chargement…")
+            } else if let failure = model.failure {
                 ContentUnavailableView {
                     Label(failure.title, systemImage: "bell.slash")
                 } description: {
@@ -59,10 +68,8 @@ private struct QualityAlertsPlaceholder: View {
                             .appProminentButtonStyle()
                     }
                 }
-            } else if model.hasLoaded {
-                ContentUnavailableView("Aucune AQ", systemImage: "bell")
             } else {
-                ProgressView("Chargement…")
+                ContentUnavailableView("Aucune AQ", systemImage: "bell")
             }
         }
     }

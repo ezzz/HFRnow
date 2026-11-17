@@ -13,7 +13,8 @@ import Observation
 ///
 /// The count is the number of items published at or after the last time the list was shown (`last_check_aq`, default 2010-01-01),
 /// after the hidden category is removed, so the badge never counts what the list would not show. Showing the list sets the last
-/// check to now and the count to 0; a count request that started before that cannot bring the badge back (no phantom badge).
+/// check to now and the count to 0; a count request that started before that, or while the list was loading, cannot bring the
+/// badge back (no phantom badge).
 @MainActor
 @Observable
 final class QualityAlertsModel {
@@ -157,6 +158,8 @@ final class QualityAlertsModel {
             rows = visible.map { Row(item: $0, isNew: AQClient.isNew($0, since: lastCheck), target: Self.target(of: $0)) }
             failure = nil
             store.set(now(), for: SettingKey.aqLastCheck)
+            // A count that started while this load ran read the old last check and may land after it: drop it too.
+            countTicket += 1
             unreadCount = 0
         } catch {
             guard ticket == loadTicket else { return }
