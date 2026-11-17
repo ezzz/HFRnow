@@ -145,6 +145,8 @@ final class TopicListModel {
         guard let content = loader.value else { return [] }
         let groups: [TopicGroup]
         if let favorites, let page = content.favoritesPage { groups = favorites.groups(for: page) } else { groups = content.groups }
+        // « Non lus » with nothing unread left (#1058): no row, so no empty header either, whatever the empty-sections setting says.
+        if showsNoUnreadFavorites { return [] }
         guard source.isFavoritesList, !removedFlags.isEmpty else { return groups }
         return groups.map { group in
             var group = group
@@ -164,6 +166,14 @@ final class TopicListModel {
     var hasUnreadFavoriteRows: Bool {
         guard let page = loader.value?.favoritesPage else { return false }
         return page.sections.contains { $0.topics.contains { FavoritesPresentation.isUnread($0) && removedFlags[$0.id] == nil } }
+    }
+
+    /// « Non lus » is on, the page has favourites and none is unread (#1058): the screen says so instead of listing nothing or
+    /// empty headers. An unread row inside a folded section counts as unread, so this is false then.
+    var showsNoUnreadFavorites: Bool {
+        guard favorites?.unreadOnly == true, let content = loader.value else { return false }
+        guard content.favoritesPage != nil, !content.isEmpty else { return false }
+        return !hasUnreadFavoriteRows
     }
 
     /// Whether `topic` is a super-favourite (tinted row).
