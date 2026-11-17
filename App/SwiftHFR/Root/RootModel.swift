@@ -81,6 +81,8 @@ final class RootModel {
     /// is that tab (one live search screen on the shared model, not two); without it, a selected Recherche tab is Plus.
     func settleSearchTab(isOn: Bool) {
         if isOn, selectedDestination == .plus(.search) {
+            // Forget the entry too: Plus would otherwise reopen it and be sent back to Recherche, never showing its menu.
+            lastPlusEntry = nil
             selectedDestination = .tab(.search)
         } else if !isOn, selectedDestination == .tab(.search) {
             selectedDestination = .tab(.more)

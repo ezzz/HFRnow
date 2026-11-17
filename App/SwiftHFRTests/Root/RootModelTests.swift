@@ -233,6 +233,23 @@ struct RootModelTests {
         #expect(root.selectedDestination == .plus(.credits))
     }
 
+    /// With the tab on, tapping Rechercher in Plus lands on the tab, and the Plus tab still opens on its menu afterwards.
+    @Test func thePlusTabStillOpensItsMenuAfterRechercherWentToTheTab() async {
+        let root = await model()
+        root.selectedTab = .more
+        root.plusEntry = .search
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedTab == .search)
+        root.selectedTab = .more
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.more))
+        #expect(root.plusEntry == nil)
+        root.selectedTab = .categories
+        root.selectedTab = .more
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.more))
+    }
+
     @Test func aPlusEntryOpenInTheSidebarStaysOpenInThePlusTab() async {
         let root = await model()
         root.selectedDestination = .plus(.settings)
