@@ -1,3 +1,4 @@
+import HFRStorage
 import SwiftUI
 @testable import SwiftHFR
 import Testing
@@ -29,7 +30,11 @@ struct ComposerLayoutHostedTests {
     ) async throws -> ProbeBox {
         let box = ProbeBox()
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        // The modern composer's layout (#854, #895): its switch is off by default since #855.
+        let settings = ExperimentalSettings(store: InMemorySettingsStore())
+        settings.set(.modernComposer, isOn: true)
         let view = ReplyComposerView(model: model, placement: placement) { _ in }
+            .environment(settings)
             .environment(\.dynamicTypeSize, size)
             .environment(\.composerLayoutProbe, box.probe)
             .appTypography(TextScale(percent: 100), density: .regular)

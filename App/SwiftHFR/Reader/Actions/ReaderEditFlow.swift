@@ -18,7 +18,8 @@ struct ReaderEditFlow: ViewModifier {
             }
             // The reader suspends its page's taps while `editor` is set (`TopicReaderView`, #653).
             // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
-            // keyboard with the option on (#853) and shows the same sheet with it off.
+            // keyboard with the option on (#853) and, with it off, shows legacy's full-screen cover on an iPhone (#855), a sheet
+            // on an iPad.
             .modifier(ReaderComposerPresenter(composer: editor) { composer, reason in
                 guard case .edit(let target) = composer.target else { return }
                 Task { await writes?.editorDidClose(reason, post: target.post) }

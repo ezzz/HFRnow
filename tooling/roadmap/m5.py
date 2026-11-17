@@ -1,11 +1,12 @@
 """M5 · UX evolutions membership (operator decisions 2026-11-02, #379): the lots moved whole out of M2 and M4.
 
 The (b) halves of the splits are the lots of the `## M5 · UX evolutions` section of docs/LOTS.md (sec starts with 'M5').
+LOT-190 (app icon art) moved to M5 on 2026-11-16 (operator, #731): a deliberate evolution.
 LOT-100, 101, 146 and 147 came back to M4 on 2026-11-09 (operator, #655): the legacy reference `2fe43da3` has them,
 so they are backports of legacy evolution, not evolutions. LOT-179 (cache sizes) left the M5 section for the same
 reason; cache clearing, which legacy cannot reach, is LOT-187 there.
 """
-MOVED = [110, 112, 138, 141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 153, 154]
+MOVED = [110, 112, 138, 141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 153, 154, 190]
 
 
 def moved_ids():

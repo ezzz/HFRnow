@@ -16,7 +16,7 @@ A tap on a posted picture opens it full screen, in its full-size version, and a 
 - Light/dark: the viewer is always dark over black; Dynamic Type XL: toolbar and banner are system text.
 
 ## Which pictures are in the gallery
-The page reports the pictures it shows; the app **re-decides** (policy C, LOT-071 D-071-1): a forum image, or a third-party image the user already allowed (tap on its placeholder, or the "Images externes" setting loads them). The consent given to a thumbnail covers its host-table full-size URL on the **same host** (a rewrite that changes the host is ignored). A picture inside a closed spoiler is not in the gallery. A neighbour that is still a placeholder is **not** in the gallery, so a swipe never fetches an image the reader would not have loaded. A blocked address is never in it.
+The page reports the pictures it shows; the app **re-decides** (policy C, LOT-071 D-071-1): a forum image, or a third-party image the user already allowed (tap on its placeholder, or the image-loading choice (Réglages › Expérimental, #902) loads them). The consent given to a thumbnail covers its host-table full-size URL on the **same host** (a rewrite that changes the host is ignored). A picture inside a closed spoiler is not in the gallery. A neighbour that is still a placeholder is **not** in the gallery, so a swipe never fetches an image the reader would not have loaded. A blocked address is never in it.
 
 ## Requests (D-071-1, LOT-056)
 - Every download goes through `ReaderImageFetcher` (cookie-less `AnonymousTransport`, never the account session), redirect by redirect through the policy.

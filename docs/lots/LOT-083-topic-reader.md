@@ -77,7 +77,7 @@ sanitized `color:` of user colours and code highlighting there; `<style>` elemen
   their URL (a link the user may open, T8; plain text inside an existing link).
 - **Forum images** (smileys, avatars, `forum-images.hardware.fr`): loaded.
 - **Third-party images:** loaded when the image mode allows it, else a "toucher pour charger" placeholder; nothing is requested before
-  the tap. Mode: `display_images` (`always`; `wifiOnly` = unmetered Wi-Fi or Ethernet, `NWPathMonitor` started at launch;
+  the tap. Mode (superseded by #902: images always load unless Réglages › Expérimental › « Chargement des images » is on; default `yes`): `display_images` (`always`; `wifiOnly` = unmetered Wi-Fi or Ethernet, `NWPathMonitor` started at launch;
   `never` = tap), default `wifiOnly`. FEAT-011 adds the settings screen.
 
 **Consent lives in the app.** A tap on a placeholder makes `reader.js` post `{type: "tap", token, url}`; the controller records

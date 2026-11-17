@@ -35,12 +35,12 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Listed in Réglages only once its switch changes something: an option whose path is not built yet is hidden, so there is
-    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #817's legacy rows (its two
-    /// paths look the same until then); the others wait for their own PR.
+    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #905 to read it at
+    /// `TopicRowStyle.current` (#817 built the legacy rows it switches off); the others wait for their own PR.
     var isListed: Bool {
         switch self {
-        case .modernComposer, .mpStorageSwitches, .searchTab: true
-        case .flagIconRows, .imageLoadingChoice: false
+        case .modernComposer, .mpStorageSwitches, .searchTab, .imageLoadingChoice: true
+        case .flagIconRows: false
         }
     }
 
@@ -71,7 +71,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .modernComposer:
             "Sur iPhone, le composer s’ouvre en carte compacte posée sur le clavier, la page restant visible au-dessus, avec des "
-                + "boutons flottants. Désactivé : le composer s’ouvre en pleine hauteur, avec la barre et les boutons classiques."
+                + "boutons flottants. Désactivé : le composer s’ouvre en plein écran, comme l’app historique."
         case .searchTab:
             "Ajoute un onglet Recherche à gauche de Plus (cinq onglets). Désactivé : la barre à quatre onglets de l’app historique."
         case .mpStorageSwitches:
@@ -81,8 +81,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
             "Un point devant les sujets non lus et une icône de drapeau devant le titre. Désactivé : la ligne entière teintée "
                 + "selon le drapeau, comme l’app historique."
         case .imageLoadingChoice:
-            "Choisir quand charger les images : Jamais, Wi-Fi uniquement ou Toujours. Désactivé : les images se chargent "
-                + "toujours, comme l’app historique."
+            "Ajoute un choix du moment où charger les images : Toujours, Wi-Fi uniquement ou Jamais (au toucher). Désactivé : "
+                + "les images se chargent toujours, comme l’app historique."
         }
     }
 }

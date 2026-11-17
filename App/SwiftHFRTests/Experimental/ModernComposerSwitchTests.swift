@@ -40,7 +40,7 @@ private final class SwitchProbeBox {
 }
 
 /// The real reply composer hosted in an iPhone-sized window with the switch on and off, its parts read through
-/// `ComposerLayoutProbe` (as `ComposerLayoutHostedTests`, which runs with no settings, so with the default).
+/// `ComposerLayoutProbe` (as `ComposerLayoutHostedTests`, which runs with the switch on).
 @MainActor
 @Suite(.serialized)
 struct ModernComposerSwitchHostedTests {

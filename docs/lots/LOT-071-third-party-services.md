@@ -142,7 +142,7 @@ What C means, for LOT-083 (which applies it) and FEAT-011:
    what catches a single-number host such as `3232235777`) and `.local` names; and `*.hardware.fr` URLs that are not an image path (the
    `forum-images.hardware.fr` smiley and avatar paths are images). The image shows as a link, which the user may still open in the browser
    (T8). The block happens before any request, in the reader, not in the parser.
-2. **Third-party images** load on tap, unless the image-loading setting (`display_images`, `ImageDisplayMode`, FEAT-011) allows
+2. **Third-party images** (*amended by #902: they always load, unless Réglages › Expérimental › « Chargement des images » is on*) load on tap, unless the image-loading setting (`display_images`, `ImageDisplayMode`, FEAT-011) allows
    automatic loading (`always`, or `wifiOnly` on Wi-Fi). Legacy's "never" mode becomes the tap-to-load placeholder. The setting's
    default for SwiftHFR is FEAT-011's decision; until FEAT-011 ships, the reader behaves as tap-to-load.
 3. **HFR images** (smileys, avatars, `forum-images.hardware.fr` paths) are first-party and load normally.

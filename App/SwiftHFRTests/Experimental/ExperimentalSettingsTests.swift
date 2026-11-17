@@ -12,12 +12,11 @@ struct ExperimentalSettingsTests {
         #expect(Set(keys).isSubset(of: Set(SettingKey.allKeys)))
     }
 
-    /// Off by default, except the modern composer until #855 delivers the legacy one (the app always has a composer).
-    @Test func everyOptionIsOffByDefaultButTheModernComposer() {
+    /// Every option is off by default; the modern composer too since #855 (operator, 2026-11-14: legacy's composer is the default).
+    @Test func everyOptionIsOffByDefault() {
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
-        #expect(settings.isOn(.modernComposer))
-        for feature in ExperimentalFeature.allCases where feature != .modernComposer { #expect(!settings.isOn(feature), "\(feature)") }
-        #expect(ExperimentalSettings.isOn(.modernComposer, in: nil))
+        for feature in ExperimentalFeature.allCases { #expect(!settings.isOn(feature), "\(feature)") }
+        #expect(!ExperimentalSettings.isOn(.modernComposer, in: nil))
         #expect(!ExperimentalSettings.isOn(.flagIconRows, in: nil))
     }
 
@@ -30,15 +29,15 @@ struct ExperimentalSettingsTests {
     @Test func aSwitchIsWrittenToItsKeyAndReadBack() {
         let store = InMemorySettingsStore()
         let settings = ExperimentalSettings(store: store)
-        settings.set(.modernComposer, isOn: false)
-        #expect(!settings.isOn(.modernComposer))
-        #expect(store.rawValue(forKey: "experimental.modernComposer") == .bool(false))
-        #expect(!ExperimentalSettings(store: store).isOn(.modernComposer))
+        settings.set(.modernComposer, isOn: true)
+        #expect(settings.isOn(.modernComposer))
+        #expect(store.rawValue(forKey: "experimental.modernComposer") == .bool(true))
+        #expect(ExperimentalSettings(store: store).isOn(.modernComposer))
     }
 
     /// An option whose path is not built yet is not listed, cannot be switched, and reads its default whatever the store holds.
     @Test func aHiddenOptionIsNeitherListedNorEffective() {
-        let hidden: [ExperimentalFeature] = [.flagIconRows, .imageLoadingChoice]
+        let hidden: [ExperimentalFeature] = [.flagIconRows]
         let store = InMemorySettingsStore(Dictionary(uniqueKeysWithValues: hidden.map { ($0.setting.key, SettingRawValue.bool(true)) }))
         let settings = ExperimentalSettings(store: store)
         for feature in hidden {
@@ -48,8 +47,8 @@ struct ExperimentalSettingsTests {
             #expect(!settings.isOn(feature), "\(feature)")
         }
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
-        #expect(listed == [.modernComposer, .searchTab, .mpStorageSwitches])
-        #expect(ExperimentalTheme.listed == [.composer, .navigation, .messages])
+        #expect(listed == [.modernComposer, .searchTab, .mpStorageSwitches, .imageLoadingChoice])
+        #expect(ExperimentalTheme.listed == [.composer, .navigation, .messages, .imageLoading])
     }
 
     @Test func everyListedOptionExplainsItself() {
@@ -65,7 +64,7 @@ struct ExperimentalSettingsTests {
 struct ExperimentalPageTests {
     @Test func thePageGroupsEveryListedOptionByTheme() {
         let groups = ExperimentalPageLayout.groups()
-        #expect(groups.map(\.theme) == [.composer, .navigation, .messages])
+        #expect(groups.map(\.theme) == [.composer, .navigation, .messages, .imageLoading])
         #expect(groups == ExperimentalTheme.listed.map { ExperimentalPageLayout.Group(theme: $0, features: $0.listedFeatures) })
         #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(groups.allSatisfy { group in group.features.allSatisfy { $0.theme == group.theme } })
@@ -74,7 +73,6 @@ struct ExperimentalPageTests {
     /// The row shows when the page has a group, so a theme without a listed option is never a group.
     @Test func aThemeWithoutListedOptionIsLeftOut() {
         let themes = ExperimentalPageLayout.groups().map(\.theme)
-        #expect(!themes.contains(.imageLoading))
         #expect(!themes.contains(.lists))
         #expect(!ExperimentalPageLayout.groups().isEmpty)
         #expect(ExperimentalPageLayout.groups().allSatisfy { !$0.features.isEmpty })

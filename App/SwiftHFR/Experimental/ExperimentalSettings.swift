@@ -7,7 +7,8 @@ import Observation
 @MainActor
 @Observable
 final class ExperimentalSettings {
-    private let store: any SettingsStore
+    /// The store the switches live in, for the pickers of options that have one (`ImageLoadingChoice`).
+    let store: any SettingsStore
     private var stored: [ExperimentalFeature: Bool]
 
     /// Reads every switch from `store`.
