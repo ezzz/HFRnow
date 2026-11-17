@@ -32,6 +32,13 @@ final class MPStorageSyncModel {
         case ask
     }
 
+    /// Who asked to switch on, so the creation question shows where the member is: Réglages, or the root for a first write
+    /// (LOT-131: the blocklist can be written from the reader, a profile or the editor).
+    enum CreationPrompt: Equatable {
+        case settings
+        case write
+    }
+
     /// The legacy question (`MPStorage.m:91`), asked before the thread is created.
     static let creationQuestion = "Le MP de stockage n'a pas été trouvé. Voulez-vous qu'il soit créé ?"
     /// How long a search that found no thread is trusted before `start()` searches again: the search walks the MP list.
@@ -48,6 +55,11 @@ final class MPStorageSyncModel {
     private(set) var threadMissing = false
     /// True while the creation question waits for an answer.
     var asksCreation = false
+    /// Where the creation question shows (the last `setEnabled(true, from:)`).
+    private(set) var creationPrompt = CreationPrompt.settings
+    /// Called after every successful call that leaves the account `on` with a document: the document shown before the call
+    /// (nil when none was read) and the one shown after it. LOT-131 merges the blocklist there.
+    @ObservationIgnored var afterSync: (@MainActor (_ before: MPStorageDocument?, _ after: MPStorageDocument) async -> Void)?
     /// The document shown (local edits included), for the MP list flags; nil before the first read. Ungated: LOT-131 and
     /// LOT-132 read their section through `document(for:)`, which honours the function's switch (#859).
     private(set) var document: MPStorageDocument?
@@ -116,8 +128,9 @@ final class MPStorageSyncModel {
     }
 
     /// The Réglages toggle. Off: `off`, nothing deleted on the forum or the device. On: the account's thread (cached, else
-    /// searched) is read and the account turns `on`; with none, the creation question is asked (`asksCreation`).
-    func setEnabled(_ enabled: Bool) async {
+    /// searched) is read and the account turns `on`; with none, the creation question is asked (`asksCreation`) where
+    /// `prompt` says.
+    func setEnabled(_ enabled: Bool, from prompt: CreationPrompt = .settings) async {
         guard enabled else {
             decide(.off)
             return
@@ -128,6 +141,7 @@ final class MPStorageSyncModel {
         }
         await run { [self] () async throws(MPStorageSyncError) in
             guard try await sync.detect(now: clock()) == .found else {
+                creationPrompt = prompt
                 asksCreation = true
                 return
             }
@@ -244,16 +258,20 @@ final class MPStorageSyncModel {
 
     /// Runs one call: `working` while it runs, then the copy is shown again and the status says how it went.
     private func run(_ work: () async throws(MPStorageSyncError) -> Void) async {
+        let before = document
         status = .working
         lastFailureWasNetwork = false
+        var succeeded = false
         do {
             try await work()
             status = threadMissing ? .failed("Le MP de stockage est introuvable.") : .idle
+            succeeded = !threadMissing
         } catch {
             status = .failed(Self.message(for: error))
             if case .transport(.network) = error { lastFailureWasNetwork = true }
         }
         _ = await loadCopy()
+        if succeeded, isOn, let document, let afterSync { await afterSync(before, document) }
     }
 
     /// Shows the device copy: last sync and document. A copy that cannot be read is said, and nil returned.

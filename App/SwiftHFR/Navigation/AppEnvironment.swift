@@ -28,6 +28,10 @@ struct AppEnvironment {
     let flagActions: TopicFlagActions?
     /// Avatars of the MP rows' correspondents the cache lacks (#714), looked up without cookies; nil when logged out.
     let memberAvatars: MemberAvatarPrefetcher?
+    /// The reader's copy of the pseudo lists (LOT-117), refreshed after the MPStorage sync changes the blocklist (LOT-131).
+    let pseudoListsSnapshot: PseudoListsSnapshot
+    /// The current account's blocklist changes for its MPStorage sync (LOT-131); nil when logged out.
+    let blocklistChanges: BlocklistChangeLog?
 
     /// The environment for `session`.
     static func make(session: HFRSession, accountName: String?, avatarRefresh: AvatarRefresh? = nil) -> AppEnvironment {
@@ -35,6 +39,7 @@ struct AppEnvironment {
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
         let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
+        let blocklistChanges = accountName == nil ? nil : BlocklistChangeLog()
         // Every page read hands its authors' avatars to the cache (GAP-230); each write refreshes the MP rows.
         let avatars = AvatarStore.live(refresh: avatarRefresh)
         let pages = AvatarFillingTopicPageSource(
@@ -55,7 +60,9 @@ struct AppEnvironment {
             // DISABLED(offline, #822): kept for a later design (#846), not reachable. No offline services, so no screen can offer it.
             offline: OfflineSaveAvailability.isReachable ? .live(fetcher: fetcher) : nil,
             flagActions: flagActions,
-            pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists),
+            pseudoLists: PseudoListManager(
+                store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists, blocklistChanges: blocklistChanges
+            ),
             moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
             moderatorAlertMail: ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:])
         )
@@ -73,7 +80,8 @@ struct AppEnvironment {
             favoriteStores: .live(account: accountName),
             flagActions: flagActions,
             // Only the MP list asks, and it needs an account; the lookups themselves never carry the session.
-            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars)
+            memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars),
+            pseudoListsSnapshot: lists, blocklistChanges: blocklistChanges
         )
     }
 
