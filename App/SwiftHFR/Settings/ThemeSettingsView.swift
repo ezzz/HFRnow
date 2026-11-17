@@ -84,7 +84,8 @@ extension DarkStyle {
 }
 
 /// A sample of the chosen dark surfaces whatever the current theme: a message on the screen background with its separator, a
-/// quote and the accent, drawn from the surfaces the reader receives (`ThemeAppearance.readerSurfaces`: same brightness, same cap).
+/// border-only quote (as the reader draws it, #819) and the accent, drawn from the surfaces the reader receives
+/// (`ThemeAppearance.readerSurfaces`: same brightness, same cap).
 private struct DarkStylePreview: View {
     let appearance: ThemeAppearance
     // Dynamic Type scales the sample's insets with its text.
@@ -97,7 +98,6 @@ private struct DarkStylePreview: View {
         let surfaces = Dictionary(uniqueKeysWithValues: appearance.readerSurfaces.map { ($0.variable, $0.color) })
         let black = ThemeColor(hex: 0)
         let background = surfaces["--app-dark-background"] ?? black
-        let quote = surfaces["--app-dark-quote-background"] ?? black
         let separator = surfaces["--app-dark-separator"] ?? black
         VStack(alignment: .leading, spacing: spacing) {
             Text("Aperçu du thème sombre").font(.caption).foregroundStyle(Color(uiColor: ThemeAppearance.darkSecondaryText.uiColor))
@@ -105,7 +105,7 @@ private struct DarkStylePreview: View {
             Text("Une citation").font(.callout)
                 .foregroundStyle(Color(uiColor: appearance.nightAccent.uiColor))
                 .padding(quotePadding).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(uiColor: quote.uiColor))
+                .overlay(alignment: .leading) { Rectangle().fill(Color(uiColor: ThemeColor(hex: 0x636366).uiColor)).frame(width: 2) }
             Rectangle().fill(Color(uiColor: separator.uiColor)).frame(height: 1)
         }
         .padding(padding)

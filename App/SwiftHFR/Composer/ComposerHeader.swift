@@ -2,12 +2,11 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
-// GAP-653); on an iPhone the buttons are small floating glass capsules in 44 pt hit areas, beside a light, truncating title
-// (#854, GAP-653), their glyphs at the card tools' size, `FloatingSpacing.gap` from the sides and the card (#895); the drafts
+// GAP-653); with the modern composer the buttons float with no title (`FloatingComposerButtons`, #854, #895, #972); the drafts
 // button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type.
 /// The composer's top bar, as legacy's (#653, operator reference of 2026-11-10): close `xmark` and the drafts `tray` on the left,
 /// the title in the middle, send `arrow.up` on the right, greyed while there is nothing to send and a spinner while sending.
-/// On an iPhone (`floats`) the same buttons, smaller and lighter, float above the text card (#854).
+/// On an iPhone with the modern composer (`floats`) the same buttons, smaller, float above the text card with no title (#972).
 struct ComposerHeader: View {
     let title: String
     let isSending: Bool
@@ -76,7 +75,14 @@ struct ComposerHeader: View {
     }
 
     var body: some View {
-        if floats { floatingBar } else { legacyBar }
+        // EXPERIMENTAL(modernComposer, #904): replaces legacy's bar by the floating buttons, with no title strip (#972).
+        if floats {
+            FloatingComposerButtons(
+                title: title, isSending: isSending, canSend: canSend, drafts: drafts, glyph: floatingGlyph, close: close, send: send
+            )
+        } else {
+            legacyBar
+        }
     }
 
     /// The chrome this bar is drawn for.
@@ -91,6 +97,7 @@ struct ComposerHeader: View {
                 .truncationMode(.tail)
                 .padding(.horizontal, 96)
                 .accessibilityAddTraits(.isHeader)
+                .composerProbe(.title)
             HStack(spacing: 8) {
                 closeButton
                 if let drafts {
@@ -102,85 +109,6 @@ struct ComposerHeader: View {
         }
         .frame(minHeight: 44)
         .padding(chrome.headerInsets(glyph: floatingGlyph))
-    }
-
-    /// An iPhone (#854): the buttons and the title side by side, so the title truncates instead of sitting under a button at
-    /// any text size.
-    private var floatingBar: some View {
-        HStack(spacing: 0) {
-            floatingButton(prominent: false, enabled: Self.closeIsEnabled(isSending: isSending), action: close) {
-                floatingSymbol("xmark", probe: .closeGlyph)
-            }
-            .keyboardShortcut(.cancelAction)
-            .accessibilityLabel("Fermer")
-            .composerProbe(.close)
-            if let drafts {
-                floatingButton(
-                    prominent: drafts.hasDrafts, enabled: Self.draftsAreEnabled(drafts, isSending: isSending), action: drafts.open
-                ) {
-                    floatingSymbol("tray")
-                }
-                .accessibilityLabel("Brouillons")
-                .composerProbe(.drafts)
-            }
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .accessibilityAddTraits(.isHeader)
-                .composerProbe(.title)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 4)
-            floatingSendButton
-                .composerProbe(.send)
-        }
-        .frame(minHeight: Self.hitSize)
-        // The capsules sit `FloatingSpacing.gap` from the sides, the page and the card: their hit areas' slack counts (#895).
-        .padding(chrome.headerInsets(glyph: floatingGlyph))
-    }
-
-    private var floatingSendButton: some View {
-        let state = SendState(isSending: isSending, canSend: canSend)
-        return floatingButton(prominent: state.isProminent, enabled: state.isEnabled, action: send) {
-            if state.showsSpinner {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(width: floatingGlyph, height: floatingGlyph)
-                    .accessibilityLabel(state.label)
-            } else {
-                floatingSymbol("arrow.up")
-            }
-        }
-        .accessibilityLabel(state.label)
-    }
-
-    /// A small glass capsule (the system's `glassEffect`, interactive as a glass button's) inside a 44 pt hit area. `.plain`
-    /// draws no disabled state: dimmed as the control row's buttons.
-    private func floatingButton<Label: View>(
-        prominent: Bool, enabled: Bool, action: @escaping () -> Void, @ViewBuilder label: () -> Label
-    ) -> some View {
-        Button(action: action) {
-            label()
-                .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-                .padding(.horizontal, Self.capsulePadding.width)
-                .padding(.vertical, Self.capsulePadding.height)
-                .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
-                .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.4)
-    }
-
-    /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895).
-    private func floatingSymbol(_ name: String, probe part: ComposerLayoutProbe.Part? = nil) -> some View {
-        let image = Image(systemName: name).font(.system(size: floatingGlyph, weight: .medium))
-        return Group {
-            if let part { image.composerProbe(part) } else { image }
-        }
-        .frame(width: floatingGlyph, height: floatingGlyph)
     }
 
     private var closeButton: some View {
