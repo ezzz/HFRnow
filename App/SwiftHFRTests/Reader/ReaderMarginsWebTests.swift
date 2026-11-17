@@ -18,14 +18,14 @@ struct ReaderMarginsWebTests: ReaderWebTesting {
             content: MessageContent(
                 html: """
                     <div class="container"><table class="citation"><tr class="none">
-                    <td><b class="s1">cite :</b><p>cité</p></td></tr></table></div>
+                    <td><b class="s1">cite :</b><hr size="1" /><p>cité</p><hr size="1" /></td></tr></table></div>
                     <p>un texte assez long pour passer à la ligne dans la fenêtre de test, et vérifier la marge de droite du texte</p>
                     """,
                 signatureHTML: "<br />ma signature"
             )
         )
         let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
-        let options = ReaderRenderOptions(style: style, showsSignatures: true)
+        let options = ReaderRenderOptions(showsSignatures: true, style: style)
         return ReaderDocument(
             token: token, html: TopicHTMLBuilder.document(for: page, token: token, options: options), anchor: nil,
             keepsScrollPosition: false
@@ -33,7 +33,8 @@ struct ReaderMarginsWebTests: ReaderWebTesting {
     }
 
     /// [signature text left minus message text left, signature rule left minus article left, content padding-right,
-    ///  signature right padding minus content right padding, quote and container and cell top/bottom border widths (sum),
+    ///  signature text right edge minus message text right edge, quote and container and cell top/bottom border widths (sum)
+    ///  plus the number of visible `hr` (HFR writes two in a quote),
     ///  signature rule right minus article right].
     private let probe = """
         const article = document.querySelector('article.message').getBoundingClientRect();
@@ -44,8 +45,11 @@ struct ReaderMarginsWebTests: ReaderWebTesting {
         const widths = (el) => { const s = getComputedStyle(el); return parseFloat(s.borderTopWidth) + parseFloat(s.borderBottomWidth); };
         const framing = widths(document.querySelector('div.container')) + widths(document.querySelector('table.citation'))
             + widths(document.querySelector('table.citation tr')) + widths(document.querySelector('table.citation td'));
+        const shown = (h) => { const x = getComputedStyle(h); return x.visibility !== 'hidden' && x.display !== 'none'; };
+        const rules = [...document.querySelectorAll('hr')].filter(shown).length;
+        const textRight = content.getBoundingClientRect().right - parseFloat(cs.paddingRight);
         return JSON.stringify([sigLeft - textLeft, box.left - article.left, parseFloat(cs.paddingRight),
-                               parseFloat(ss.paddingRight) - parseFloat(cs.paddingRight), framing, box.right - article.right]);
+                               (box.right - parseFloat(ss.paddingRight)) - textRight, framing + rules, box.right - article.right]);
         """
 
     private func measure(style: ThemeStyle, dark: Bool, token: Int) async -> [Double] {

@@ -120,7 +120,7 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .style-classic .message .content { padding-top: 8px; }
 /* The legacy body (#819): smaller text, tight blocks. `* { margin: 0 }` of the legacy stylesheet (`style-liste.css:39-47`) leaves
    paragraphs without margin (legacy's `.content br` block rule, `style-liste-light.css:514-519`, is not ported: it did not tighten a blank
-   line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`, which also pads 10 px on the right: the message's own 1em right padding stands for it, about 7 px wider than legacy's 10 px, on purpose: the operator asked for wider margins); lists keep 1em and 2em (`:343-347`). */
+   line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`; its 10 px right padding is `--text-right` below, added to the message's own 1em: wider than legacy's 10 px in total, on purpose: the operator asked for wider margins earlier, #1038 to be confirmed on #893); lists keep 1em and 2em (`:343-347`). */
 .message .content { font-size: var(--content-em); padding-bottom: 10px; padding-right: var(--text-right); }
 .content p { margin: 0; }
 .content ul, .content ol { margin: 1em 0; padding-left: 2em; }
@@ -147,6 +147,10 @@ table.citation, table.oldcitation, table.quote, table.code, table.fixed {
   width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0 0 5px;
   border: none; border-left: 2px solid var(--quote-border); background: transparent;
 }
+/* HFR writes `<hr size="1" />` after a quote's header and after its text; the browser draws it as an inset rule. Legacy hides it, keeping
+   its 12 px of space, and drops a last one (`style-liste-light.css:393-400`, `style-liste-dark.css:302-309`, `style-liste-oled.css:298-305` @ 87fe0d1c). */
+hr { visibility: hidden; height: 12px; }
+hr:last-child { display: none; }
 /* No rule above or below a quote (#1038): legacy draws the left bar only (`style-liste-dark.css:296-300` @ 87fe0d1c). */
 div.container, table.citation tr, table.oldcitation tr, table.quote tr { border-top: 0; border-bottom: 0; }
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
@@ -178,7 +182,9 @@ table.spoiler.open div.masque { visibility: visible; }
   border-top: 1px dashed var(--separator); font-size: calc(0.85 * var(--content-em)); color: var(--secondary);
 }
 /* A blocklisted post's children carry their own 1em margins (below), so the signature only needs the text inset. */
-.message.blocked .blocked-post > .signature { padding-left: var(--text-inset); padding-right: var(--text-right); }
+.message.blocked .blocked-post > .signature:not(summary) {
+  margin-left: var(--edge); margin-right: var(--edge); padding-left: var(--text-inset); padding-right: var(--text-right);
+}
 .signature > br:first-child, .content span.signature { display: none; }
 
 /* Images and videos that wait for a tap, and refused images shown as their URL (LOT-071 D-071-1, D-071-2). */
