@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRParsing
 import HFRStorage
 @testable import SwiftHFR
 import Testing
