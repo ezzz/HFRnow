@@ -125,7 +125,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-099 | Poll creation | None in the Swift layer at `2440d79`; only the `have_sondage` flag passes. At `2fe43da3` (`c7693a88`): "Ajouter un sondage" in the new-topic and first-post-edit composers when the forum's form offers it (question, 2 to 10 answers, choices, visitors, closing date), sent with the message. | AddMessageViewController.m:521 @ `2440d79`; `AnswerView.swift:873-906`, `MainWindow.swift:892`, `MessagesView.swift:5363`, `TopicPollDraft.swift:4-144` @ `2fe43da3` | Poll creation in the new-topic composer and in the first-post edit, as legacy at `2fe43da3` (LOT-100, M4). | LOT-100 | new | port: legacy evolution (2fe43da3) | a·master |
 | GAP-100 | Send errors | Toast with the error text ("Hooray" / "Ooops"); text kept. | AnswerView.swift:704, 719-726 | Each failure says whether something may have been posted; never auto-resent. | LOT-084, LOT-048 | UX change | new UX: spec | a |
 | GAP-101 | Session expiry while composing | Toast "Session expirée"; text kept. | ReplyService.swift:12, 22 | Expiry sheet; resent after re-login only when HFR confirmed nothing was posted. | LOT-142, FEAT-009 | UX change | new UX: Bybifok (FEAT-009) | b |
-| GAP-102 | "+" button modes | At `2440d79` no modes, "+" means new topic. At `2fe43da3` (`08a63c8e`) a "Bouton +" setting (Réponse rapide, default; Répondre comme le forum; Pas d'icône; key `reply_button_behavior`) drives a floating reply button on topic pages, and "Répondre" is in the "…" menu. | MainWindow.swift:748-752; Common.swift:261-280, AppSettingsView.swift:481-485 @ 2fe43da3 | Floating reply button with its "Bouton +" setting, same values (#654, M4). | #654 | same | port: ezzz Swift layer | a·master |
+| GAP-102 | "+" button modes | At `2440d79` no modes, "+" means new topic. At `2fe43da3` (`08a63c8e`) a "Bouton +" setting (Réponse rapide, default; Répondre comme le forum; Pas d'icône; key `reply_button_behavior`) drives a floating reply button on topic pages, and "Répondre" is in the "…" menu. | MainWindow.swift:748-752; Common.swift:261-280, AppSettingsView.swift:481-485 @ 2fe43da3 | Floating reply button with its "Bouton +" setting, same values; the default is « Répondre comme le forum » (`forum`) since #1016, a stored value is kept. | #654, #1016 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-703 | Archived drafts on the update | Kept per topic, 3 archived per topic, in `reply_drafts_by_topic_v1`, beside the active draft of each topic. | AnswerView.swift:137-272 @ 2fe43da3 | Not imported by the update: they stay in the legacy `UserDefaults`, never deleted; the active draft of each topic is imported and becomes the topic's reply draft when it opens (LOT-067, decision D1). | LOT-067 | UX change | new UX: operator | b·operator |
 | GAP-653 | Composer height and controls (iPhone) | Full-screen cover; nothing of the topic is visible while writing. | MessagesView.swift:5429-5443 @ 87fe0d1c | Legacy's full-screen composer by default (#855, operator 2026-11-14): on an iPhone the reader's composers (reply, edit, the author menu's MP) open as legacy's full-screen cover, the lists' new topic and new MP as a full-height sheet (legacy's new topic is a sheet), both with legacy's top bar and the control row under the card; an iPad keeps the sheet (a difference: legacy's cover is full screen on iPad too). Behind Réglages › Expérimental › « Composer moderne » (#903, #904, off by default): every composer opens on an iPhone as a card docked on the keyboard, growing with the text up to six lines, with a full-height toggle and inserted images as thumbnails; the control row sits inside the text card's bottom edge, and close, drafts and send are small floating capsules, each in a 44 pt hit area, with no title (#854; operator 2026-11-13: drawn small as the Claude app's; #972: no strip, the page shows around the buttons, whose capsules carry a near-opaque fill, send keeping the accent); over the reader the page stays visible and scrollable, its taps ignored while writing; full height in landscape and on iPad, where the composer keeps legacy's top bar and the control row under the card. | LOT-174, #653, #854, #855, #903, #972 | UX change | operator 2026-11-08 (#653), 2026-11-12 and 2026-11-13 (#854), 2026-11-14 (#855), 2026-11-16 (#972) | b·operator |
 
@@ -272,10 +272,10 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 38 |
+| same | 37 |
 | ported with changes | 59 |
 | ported with changes (engine only) | 1 |
-| UX change | 47 |
+| UX change | 48 |
 | new | 27 |
 | dropped | 3 |
 | not planned | 3 |
@@ -309,14 +309,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (133)
+### GAP rows of type `ported with changes`, `UX change` or `new` (134)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595 | 49 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
-| b·operator | 011, 013, 016, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 29 |
+| b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 30 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229 | 37 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
