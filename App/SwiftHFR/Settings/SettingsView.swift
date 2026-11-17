@@ -165,6 +165,8 @@ struct SettingsView: View {
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
         // The Favoris tab's menu writes the same settings: show them as they are now (the Plus tab stays alive under the tab bar).
         .onAppear { favorites.reloadSettings() }
+        // One measure per appearance of the screen (legacy `AppSettingsView.swift:606-607`), not one per row of the section.
+        .task { await maintenance.refreshCacheStorage() }
         .screenTitle("Réglages", style: .largeThenPill, headerVisible: titleIsVisible)
     }
 }
