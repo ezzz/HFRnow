@@ -160,6 +160,12 @@ final class TopicListModel {
         return displayedGroups.isEmpty
     }
 
+    /// A row of the favourites page shows unread pages and still has its flag (#1058): « Non lus » can have something to show.
+    var hasUnreadFavoriteRows: Bool {
+        guard let page = loader.value?.favoritesPage else { return false }
+        return page.sections.contains { $0.topics.contains { FavoritesPresentation.isUnread($0) && removedFlags[$0.id] == nil } }
+    }
+
     /// Whether `topic` is a super-favourite (tinted row).
     func isSuperFavorite(_ topic: TopicSummary) -> Bool {
         guard let favorites else { return false }

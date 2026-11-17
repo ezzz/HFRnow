@@ -274,7 +274,8 @@ struct TopicListView: View {
             if content.isEmpty, let reason = content.emptyReason {
                 EmptyListView(reason: reason, refresh: model.refresh)
             } else if model.allSectionsHidden, let favorites = model.favorites {
-                if favorites.unreadOnly {
+                // Nothing unread only when no row is: an unread row inside a folded section is hidden, not absent.
+                if favorites.unreadOnly, !model.hasUnreadFavoriteRows {
                     NoUnreadTopicsView(options: favorites)
                 } else {
                     AllSectionsCollapsedView(options: favorites)

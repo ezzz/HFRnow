@@ -2,7 +2,9 @@ import Foundation
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
+import SwiftUI
 import Testing
+import UIKit
 
 /// The Favoris « Non lus / Tous » filter (#1058): the unread rule, the presentation under it, its setting and its button.
 @MainActor
@@ -115,5 +117,61 @@ struct FavoritesUnreadFilterTests {
         #expect(unread.title == "Non lus")
         #expect(unread.symbol == "line.3.horizontal.decrease.circle.fill")
         #expect(unread.accessibilityLabel == "Afficher : non lus")
+    }
+
+    @Test func underUnreadOnlyFoldAllTouchesOnlyTheSectionsTheListShows() {
+        #expect(FavoritesPresentation.collapsibleSectionIDs(of: page(), superFavorites: []) == ["cat:1", "cat:2", "cat:3"])
+        #expect(FavoritesPresentation.collapsibleSectionIDs(of: page(), superFavorites: [], unreadOnly: true) == ["cat:1", "cat:3"])
+        let options = FavoritesOptionsModel(settings: InMemorySettingsStore())
+        options.unreadOnly = true
+        #expect(options.hasCollapsibleSections(in: page()))
+        let none = FavoritesPage(sections: [favoriteSection(1, [favorite(2, category: 1, behind: 0, day: 1)])])
+        #expect(!options.hasCollapsibleSections(in: none), "nothing unread: no section to fold")
+        #expect(!options.canCollapseMore(in: none))
+    }
+
+    @Test func theToggleFlipsTheChoiceBothWays() {
+        let options = FavoritesOptionsModel(settings: InMemorySettingsStore())
+        options.toggleUnreadOnly()
+        #expect(options.unreadOnly)
+        options.toggleUnreadOnly()
+        #expect(!options.unreadOnly)
+    }
+
+    /// The button is drawn in a top bar, on its trailing side, and a tap on it flips the choice. Reads the shown controls of the
+    /// bar (SwiftUI's toolbar does not fill `rightBarButtonItems` reliably: see `AccountMenuPlacementTests`) and reports them.
+    @Test func theButtonIsInTheBarAndATapTogglesTheChoice() async throws {
+        let options = FavoritesOptionsModel(settings: InMemorySettingsStore())
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let root = NavigationStack {
+            Text("Racine").toolbar { ToolbarItem(placement: .topBarTrailing) { FavoritesUnreadFilterButton(options: options) } }
+        }
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+        window.rootViewController = UIHostingController(rootView: root)
+        window.isHidden = false
+        defer { window.isHidden = true }
+        var control: UIControl?
+        var seen = ""
+        for _ in 0..<100 {
+            try? await Task.sleep(for: .milliseconds(50))
+            window.layoutIfNeeded()
+            let bars = Self.views(in: window).compactMap { $0 as? UINavigationBar }
+            let controls = bars.flatMap { bar in
+                Self.views(in: bar).compactMap { $0 as? UIControl }.filter { !$0.isHidden && $0.alpha > 0.01 && !$0.bounds.isEmpty }
+                    .filter { bar.convert($0.bounds, from: $0).midX > bar.bounds.midX }
+            }
+            seen = "\(bars.count) bar(s), right controls: \(controls.map { String(describing: type(of: $0)) })"
+            control = controls.first
+            if control != nil { break }
+        }
+        print("FavoritesUnreadFilterTests button: \(seen)")
+        let button = try #require(control, "no control on the right of the bar: \(seen)")
+        button.sendActions(for: .primaryActionTriggered)
+        #expect(options.unreadOnly, "a tap did not flip the choice: \(seen)")
+    }
+
+    private static func views(in view: UIView) -> [UIView] {
+        [view] + view.subviews.flatMap { views(in: $0) }
     }
 }

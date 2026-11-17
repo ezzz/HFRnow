@@ -9,7 +9,7 @@ struct FavoritesUnreadFilterButton: View {
     var body: some View {
         let content = Content.make(unreadOnly: options.unreadOnly)
         Button {
-            options.unreadOnly.toggle()
+            options.toggleUnreadOnly()
         } label: {
             Label(content.title, systemImage: content.symbol)
         }

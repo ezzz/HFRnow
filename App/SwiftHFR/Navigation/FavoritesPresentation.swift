@@ -51,9 +51,14 @@ enum FavoritesPresentation {
         return result
     }
 
-    /// Sections the user can fold: those holding a topic once super-favourites are taken out (legacy `collapsibleSectionIDs`).
-    static func collapsibleSectionIDs(of page: FavoritesPage, superFavorites: Set<TopicID>) -> Set<String> {
-        Set(page.sections.filter { $0.topics.contains { !isSuper($0, in: superFavorites) } }.map(\.id))
+    /// Sections the user can fold: those holding a topic once super-favourites are taken out (legacy `collapsibleSectionIDs`);
+    /// under « Non lus » (#1058), those with an unread one, so "Tout replier" never folds a section the list does not show.
+    static func collapsibleSectionIDs(
+        of page: FavoritesPage, superFavorites: Set<TopicID>, unreadOnly: Bool = false
+    ) -> Set<String> {
+        Set(page.sections.filter {
+            $0.topics.contains { !isSuper($0, in: superFavorites) && (!unreadOnly || isUnread($0)) }
+        }.map(\.id))
     }
 
     /// Whether a favourites row shows as unread: its flag is pages behind the end of the topic, which is the badge the row draws
