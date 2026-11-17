@@ -23,7 +23,9 @@ struct ThemeSettingsView: View {
                     legacyColors
                 }
             } footer: {
-                if theme.theme.isLegacy {
+                if seasonal.drawnTheme == .noelAbuse {
+                    Text("Noël abusé est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
+                } else if theme.theme.isLegacy {
                     Text(
                         "Le style s’applique au thème sombre : fonds des écrans et du sujet ouvert. "
                             + "La luminosité s’applique aux fonds sombres du sujet ouvert."

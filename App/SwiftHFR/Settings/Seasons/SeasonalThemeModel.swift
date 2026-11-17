@@ -142,7 +142,7 @@ final class SeasonalThemeModel {
         store.set(true, for: SettingKey.noelArrivalShown(year: year))
         store.set(true, for: SettingKey.noelArrivalPending(year: year))
         let switched = switching && isAutomatic && !store.value(for: SettingKey.noelOptedOut(year: year)) && !isOn(year: year)
-        if switched { switchOn(year: year) }
+        if switched { switchOn(year: year, theme: .noelSoft) }
         if animationsAllowed { crossings.queueArrival() }
         return .arrival(year: year, switchedOn: switched, sleigh: animationsAllowed)
     }
@@ -175,14 +175,20 @@ final class SeasonalThemeModel {
         if alertScene == scene { alertScene = nil }
     }
 
-    /// A pick in Réglages › Thème: a seasonal theme inside its window, or nil for the user's own theme.
+    /// A pick in Réglages › Thème: a seasonal theme inside its window, or nil for the user's own theme. Moving from one Noël
+    /// theme to the other keeps the theme saved when the first was switched on.
     func select(_ theme: SeasonalTheme?) {
         let date = now()
         let year = NoelCalendar.seasonYear(of: date, in: calendar)
-        if theme == nil {
-            if isOn(year: year) { restore(year: year) }
-        } else if NoelCalendar.phase(of: date, in: calendar).isSelectable, !isOn(year: year) {
-            switchOn(year: year)
+        if let theme {
+            guard NoelCalendar.phase(of: date, in: calendar).isSelectable else { return }
+            if isOn(year: year) {
+                store.set(theme.rawValue, for: SettingKey.noelThemeID(year: year))
+            } else {
+                switchOn(year: year, theme: theme)
+            }
+        } else if isOn(year: year) {
+            restore(year: year)
         }
         refresh()
     }
@@ -199,15 +205,23 @@ final class SeasonalThemeModel {
     /// writes `theme_id` either, so a theme picked during the season stays (operator decision (a), 2026-11-12).
     private func restore(year: Int) {
         store.reset(SettingKey.noelPreviousThemeID(year: year))
+        store.reset(SettingKey.noelThemeID(year: year))
         if store.value(for: SettingKey.noelActiveYear) == year { store.reset(SettingKey.noelActiveYear) }
     }
 
-    /// Saves the current theme (LOT-188's stored `theme_id`, Legacy when none) and points at the season, so any later activation
-    /// can find and restore it. Restoring drops the saved id: the overlay never writes `theme_id`, so the user's theme is back
-    /// as it was; a saved "legacy" from the first build reads the same.
-    private func switchOn(year: Int) {
+    /// Saves the current theme (LOT-188's stored `theme_id`, Legacy when none), names the Noël theme now on and points at the
+    /// season, so any later activation can find and restore it. Restoring drops the saved id: the overlay never writes
+    /// `theme_id`, so the user's theme is back as it was; a saved "legacy" from the first build reads the same.
+    private func switchOn(year: Int, theme: SeasonalTheme) {
         store.set(store.value(for: SettingKey.themeID) ?? ThemeDefinition.legacyID, for: SettingKey.noelPreviousThemeID(year: year))
+        store.set(theme.rawValue, for: SettingKey.noelThemeID(year: year))
         store.set(year, for: SettingKey.noelActiveYear)
+    }
+
+    /// The Noël theme of `year` that is on: the stored one; none stored (every build before PR 4) or an id this build does not
+    /// know reads as Noël soft.
+    private func onTheme(year: Int) -> SeasonalTheme {
+        store.value(for: SettingKey.noelThemeID(year: year)).flatMap(SeasonalTheme.init(rawValue:)) ?? .noelSoft
     }
 
     private func refresh() {
@@ -217,6 +231,6 @@ final class SeasonalThemeModel {
         isSelectable = phase.isSelectable
         pendingAlert = phase.isSelectable && store.value(for: SettingKey.noelArrivalPending(year: year)) ? .noelArrival(year: year) : nil
         // Outside the window a theme left on is about to be restored: never draw it, even for the first frame.
-        activeTheme = phase != .outside && isOn(year: year) ? .noelSoft : nil
+        activeTheme = phase != .outside && isOn(year: year) ? onTheme(year: year) : nil
     }
 }

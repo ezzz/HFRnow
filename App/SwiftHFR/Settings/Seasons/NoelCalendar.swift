@@ -45,10 +45,12 @@ enum NoelCalendar {
     }
 }
 
-/// A seasonal theme (THEMES.md §2). Noël abusé joins with the theme engine (LOT-188, PR 4 of LOT-166).
+/// A seasonal theme (THEMES.md §2); its raw value is its id (`season.noel.<year>.themeID`, and Noël abusé's theme file).
 enum SeasonalTheme: String, CaseIterable, Identifiable, Sendable {
     /// The current look with light snow, and legacy's red accent over Legacy (a gallery theme keeps its accent).
     case noelSoft = "noel-soft"
+    /// A theme of the engine (LOT-188, `Themes/noel-abuse/`): fir green, one variant, its art behind the content.
+    case noelAbuse = "noel-abuse"
 
     var id: String { rawValue }
 
@@ -56,6 +58,7 @@ enum SeasonalTheme: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .noelSoft: "Noël soft"
+        case .noelAbuse: "Noël abusé"
         }
     }
 }

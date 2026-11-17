@@ -7,6 +7,9 @@ extension SettingKey {
     public static func noelOptedOut(year: Int) -> Setting<Bool> { .bool(noelKey(year, "optedOut"), default: false) }
     /// `season.noel.<year>.previousThemeID`: the theme a Noël theme replaced; present while a Noël theme of that season is on.
     public static func noelPreviousThemeID(year: Int) -> Setting<String?> { .optionalString(noelKey(year, "previousThemeID")) }
+    /// `season.noel.<year>.themeID`: which Noël theme of that season is on (`noel-soft`, `noel-abuse`, LOT-166 PR 4), while
+    /// `previousThemeID` is present; absent reads as Noël soft, which every earlier build switched on.
+    public static func noelThemeID(year: Int) -> Setting<String?> { .optionalString(noelKey(year, "themeID")) }
     /// `season.noel.<year>.packingShown`: the packing of that season ran.
     public static func noelPackingShown(year: Int) -> Setting<Bool> { .bool(noelKey(year, "packingShown"), default: false) }
 
@@ -14,7 +17,7 @@ extension SettingKey {
     public static func noelSeason(year: Int) -> [any CatalogueSetting] {
         [
             noelArrivalShown(year: year), noelArrivalPending(year: year), noelOptedOut(year: year), noelPreviousThemeID(year: year),
-            noelPackingShown(year: year)
+            noelPackingShown(year: year), noelThemeID(year: year)
         ]
     }
 

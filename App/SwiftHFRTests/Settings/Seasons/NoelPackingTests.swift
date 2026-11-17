@@ -110,7 +110,8 @@ struct NoelPackingTests {
     }
 
     /// Cut in their first second (an alert of the same launch, a window resized away), the elves wait and play again, at most
-    /// twice; the decorations stay meanwhile. Cut later, they are done.
+    /// twice; the decorations stay meanwhile. Cut once the replays are spent, they are done and the theme is held until the
+    /// screen is clear.
     @Test func elvesCutInTheirFirstSecondPlayAgainAtMostTwice() {
         let (clock, model) = packingLaunch()
         let alert = SeasonalThemeModel.ScreenState(isPresenting: true)
@@ -124,8 +125,54 @@ struct NoelPackingTests {
         }
         #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) != nil)
         model.packing.screenChanged(for: scene, screen: alert)
-        #expect(model.packing.current == nil)
+        #expect(model.packing.current?.held == true)
+        #expect(!model.packing.isPlaying)
+        #expect(model.drawnTheme == .noelSoft)
+        #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) == nil)
         #expect(model.drawnTheme == nil)
+    }
+
+    /// « Allez on remballe » is spoken once per packing, whichever window plays it and however often it is replayed.
+    @Test func theSentenceIsAnnouncedOncePerPacking() {
+        let (clock, model) = packingLaunch()
+        let other = UUID()
+        model.packing.sceneChanged(other, active: true)
+        _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+        #expect(model.packing.shouldAnnounce())
+        clock.now += 0.5
+        model.packing.sceneChanged(scene, active: false)
+        #expect(model.packing.start(for: other, screen: Self.clear, animationsAllowed: true)?.scene == other)
+        #expect(!model.packing.shouldAnnounce())
+        model.packing.finish()
+        model.packing.queue(year: 2027, theme: .noelSoft)
+        _ = model.packing.start(for: other, screen: Self.clear, animationsAllowed: true)
+        #expect(model.packing.shouldAnnounce())
+    }
+
+    /// A scene that went away never plays the elves afterwards.
+    @Test func aReleasedSceneNeverPlaysTheElves() {
+        let (_, model) = packingLaunch()
+        model.packing.release(scene: scene)
+        #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) == nil)
+        #expect(model.packing.current != nil)
+    }
+
+    /// Each packing has its own replays: the cuts of an earlier one do not use them up.
+    @Test func eachPackingHasItsOwnReplays() {
+        let (clock, model) = packingLaunch()
+        let alert = SeasonalThemeModel.ScreenState(isPresenting: true)
+        for _ in 1...NoelPackingModel.maxReplays {
+            _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+            model.packing.screenChanged(for: scene, screen: alert)
+        }
+        model.packing.finish()
+        model.packing.queue(year: 2027, theme: .noelSoft)
+        _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+        clock.now += 0.5
+        model.packing.screenChanged(for: scene, screen: alert)
+        // Replayed, not held: the new packing's replays were not spent by the old one.
+        #expect(model.packing.current?.year == 2027)
+        #expect(model.packing.current?.held == false)
     }
 
     /// A Noël theme found on again after its packing ran (another device's store, a clock set back) is restored without elves.
@@ -142,14 +189,39 @@ struct NoelPackingTests {
         #expect(later.drawnTheme == nil)
     }
 
-    @Test func aSheetOrTheKeyboardStopsTheElves() {
+    /// The keyboard, a sheet or an alert stops the elves; past their first second the theme they packed stays drawn (the
+    /// decorations hidden) until the screen is clear again, so the screens it wraps are never rebuilt while input comes up
+    /// (Noël abusé over Legacy changes the fill's structure); then it goes.
+    @Test(arguments: [SeasonalTheme.noelSoft, .noelAbuse])
+    func aSheetOrTheKeyboardStopsTheElvesAndHoldsTheThemeUntilTheScreenIsClear(theme: SeasonalTheme) {
+        let (clock, model) = packingLaunch()
+        model.packing.finish()
+        model.packing.queue(year: 2026, theme: theme)
+        _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+        clock.now += 2
+        let keyboard = SeasonalThemeModel.ScreenState(isKeyboardVisible: true)
+        model.packing.screenChanged(for: UUID(), screen: keyboard)
+        #expect(model.packing.isPlaying)
+        model.packing.screenChanged(for: scene, screen: keyboard)
+        #expect(!model.packing.isPlaying)
+        #expect(model.packing.hidesDecorations)
+        #expect(model.drawnTheme == theme)
+        // Still up: still held; another window's clear screen does not drop it either.
+        #expect(model.packing.start(for: scene, screen: keyboard, animationsAllowed: true) == nil)
+        #expect(model.packing.start(for: UUID(), screen: Self.clear, animationsAllowed: true) == nil)
+        #expect(model.drawnTheme == theme)
+        #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) == nil)
+        #expect(model.drawnTheme == nil)
+    }
+
+    /// A held theme goes when its scene leaves: the rebuild happens off screen.
+    @Test func aHeldThemeGoesWhenItsSceneLeaves() {
         let (clock, model) = packingLaunch()
         _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
         clock.now += 2
-        model.packing.screenChanged(for: UUID(), screen: .init(isKeyboardVisible: true))
-        #expect(model.packing.isPlaying)
-        model.packing.screenChanged(for: scene, screen: .init(isKeyboardVisible: true))
-        #expect(model.packing.current == nil)
+        model.packing.screenChanged(for: scene, screen: .init(isPresenting: true))
+        #expect(model.packing.current?.held == true)
+        model.packing.sceneChanged(scene, active: false)
         #expect(model.drawnTheme == nil)
     }
 

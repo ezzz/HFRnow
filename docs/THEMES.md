@@ -69,7 +69,7 @@ Optional, drawn in two layers: behind the content and in front of it. Rules, enf
 
 1. **Reduce Motion** on: no animation and no haptic; static decorations may stay; arrival = the alert alone; packing and 14 July skipped.
 2. **« Animations de saison »** off: same as Reduce Motion.
-3. **Overlays** (arrival, packing, 14 July) last at most 5 s (14 July: 3–5 s), close on a tap, play once.
+3. **Overlays** (arrival, packing, 14 July) last at most 5 s (14 July: 3–5 s), close on a tap, play once; one cut before it was seen (a resize during the arrival sleigh, the packing cut in its first second by an alert or its window leaving) plays again, a bounded number of times (LOT-166).
 4. **Crossing objects** (operator, 2026-10-28): at most one every 20–90 min of foreground time, never sooner than 20 min; enter by one edge and leave by the opposite one along a straight line at a random angle and direction; face the direction of travel; cross in ≤ 3 s, about a quarter of the screen for arrivals (operator 2026-10-28: 1/5, then « légèrement plus gros »; board `events.jpg`); a light haptic while crossing through `HapticFeedback.live` (the haptics setting applies, LOT-123). **Lightning** is the exception: 5 flashes of about 0.3 s at random places within 3 s.
 5. **Never over input**: nothing appears while the keyboard is up, the composer, a sheet or an alert is shown.
 6. **VoiceOver-silent**: decorations are hidden from accessibility; the arrival popup is a normal, spoken alert.
