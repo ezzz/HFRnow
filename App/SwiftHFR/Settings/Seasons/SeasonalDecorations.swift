@@ -20,13 +20,19 @@ private struct SeasonalDecorationsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .overlay {
-                if model.activeTheme == .noelSoft {
-                    NoelSnowLayer(falls: model.snowFalls && !reduceMotion)
-                    NoelBottomDrifts()
+                // Drawn until the packing elves have taken it down (PR 3); they fade while the elves play.
+                if model.drawnTheme == .noelSoft {
+                    ZStack {
+                        NoelSnowLayer(falls: model.snowFalls && !reduceMotion)
+                        NoelBottomDrifts()
+                    }
+                    .opacity(model.packing.hidesDecorations ? 0 : 1)
+                    .animation(.easeIn(duration: NoelPackingModel.duration * 0.6), value: model.packing.hidesDecorations)
                 }
             }
             // The sleigh crosses on any theme (25–26/12, automatic themes off); the small objects in Noël soft only.
             .overlay { NoelBand { NoelCrossingLayer(seasonal: model, isCovered: isCovered) } }
+            .overlay { NoelBand { NoelPackingLayer(seasonal: model, isCovered: isCovered) } }
     }
 }
 

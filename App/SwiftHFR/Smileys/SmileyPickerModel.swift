@@ -1,15 +1,17 @@
 import Foundation
 import HFRModels
+import HFRParsing
 import HFRStorage
 import Observation
 
-/// The sections of the picker, in display order. "Mes smileys" (the member's own created smileys) is not here: its page is
-/// not captured yet (#601, *pending capture*).
+/// The sections of the picker, in display order.
 enum PickerSectionKind: String, CaseIterable, Sendable {
     /// The editor palette of the catalogue.
     case basic
     /// The favourites of the HFR account (`#dynamic_smilies`).
     case forum
+    /// The smileys the member created, « Smilies persos » (#414; the page is `R601a`).
+    case own
     /// The favourites of the app (LOT-064).
     case appFavorites
 
@@ -18,6 +20,7 @@ enum PickerSectionKind: String, CaseIterable, Sendable {
         switch self {
         case .basic: "Smileys de base"
         case .forum: "Smileys du forum"
+        case .own: "Mes smileys"
         case .appFavorites: "Favoris de l’app"
         }
     }
@@ -53,7 +56,7 @@ struct PickerSmiley: Identifiable, Hashable, Sendable {
 
 // Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView state, updateFavoriteSmiley) @ 2440d79. Differences: search in
 // SmileySearchModel (LOT-105, GAP-088), favourites from LOT-064's store, the forum section is read from the composer's form (#600,
-// GAP-087); "Mes smileys" waits for the capture #601.
+// GAP-087); "Mes smileys" (the member's own created smileys) is new (#414, GAP row pending).
 /// State of the smiley picker (LOT-104): the editor's catalogue, the account's app favourites, and what the user chose.
 ///
 /// Port of `CombinedSmileyPickerView` (`HFRswift/Swift/AnswerView.swift:1051-1470` @ 2440d79); the search is
@@ -74,6 +77,10 @@ final class SmileyPickerModel: Identifiable {
     private(set) var forum: [PickerSmiley]?
     /// Whether reading the forum favourites failed (the section then says so and nothing is invented).
     private(set) var forumFailed = false
+    /// The member's own created smileys, read from the profile edit page; `nil` until read, `[]` when there are none.
+    private(set) var own: [PickerSmiley]?
+    /// Whether reading the own smileys failed (the section then says so and nothing is invented).
+    private(set) var ownFailed = false
     /// The smiley whose detail is open.
     var presented: PickerSmiley?
     /// A short French message after a favourite change or a store failure; nil when nothing to say.
@@ -87,15 +94,17 @@ final class SmileyPickerModel: Identifiable {
     private let store: AppSmileyFavoritesStore
     private let account: String
     private let forumLoader: (@Sendable () async -> [ForumSmiley]?)?
+    private let ownLoader: (@Sendable () async -> [OwnSmiley]?)?
 
     /// A picker over `catalogue` for `account`; call `loadFavorites()` when the sheet opens.
     /// `forumLoader` reads the account's forum favourites (nil result: could not be read); nil without a form to read them from.
     init(
         catalogue: [CommonSmiley], store: AppSmileyFavoritesStore, account: String, search: SmileySearchModel? = nil,
-        forumLoader: (@Sendable () async -> [ForumSmiley]?)? = nil
+        forumLoader: (@Sendable () async -> [ForumSmiley]?)? = nil, ownLoader: (@Sendable () async -> [OwnSmiley]?)? = nil
     ) {
         self.search = search
         self.forumLoader = forumLoader
+        self.ownLoader = ownLoader
         basic = catalogue.filter(\.isEditorSmiley).map { PickerSmiley(code: $0.code, imageURL: $0.url) }
         self.store = store
         self.account = account
@@ -121,6 +130,7 @@ final class SmileyPickerModel: Identifiable {
                 ? PickerSection(kind: .basic, smileys: [], state: .failed("Catalogue de smileys indisponible."))
                 : PickerSection(kind: .basic, smileys: basic, state: .smileys),
             forumSection,
+            ownSection,
             favorites.isEmpty
                 ? PickerSection(kind: .appFavorites, smileys: [], state: .empty(Self.noFavoritesText))
                 : PickerSection(kind: .appFavorites, smileys: favorites, state: .smileys)
@@ -140,6 +150,42 @@ final class SmileyPickerModel: Identifiable {
         }
         let state: PickerSectionState = forumLoader == nil ? .empty("Smileys du forum indisponibles ici.") : .loading
         return PickerSection(kind: .forum, smileys: [], state: state)
+    }
+
+    /// How to create one, shown while the list is empty.
+    static let noOwnSmileysText = "Vous n’avez créé aucun smiley. Le forum permet d’en créer jusqu’à 11 (profil › Smilies persos)."
+
+    private var ownSection: PickerSection {
+        if let own, !own.isEmpty { return PickerSection(kind: .own, smileys: own, state: .smileys) }
+        if own != nil { return PickerSection(kind: .own, smileys: [], state: .empty(Self.noOwnSmileysText)) }
+        if ownFailed {
+            return PickerSection(kind: .own, smileys: [], state: .failed("Vos smileys sont indisponibles pour le moment."))
+        }
+        let state: PickerSectionState = ownLoader == nil ? .empty("Vos smileys sont indisponibles ici.") : .loading
+        return PickerSection(kind: .own, smileys: [], state: state)
+    }
+
+    /// Reads the member's own smileys from the forum; a failure is shown, never replaced by an empty list.
+    func loadOwn() async {
+        guard let ownLoader, own == nil else { return }
+        if let loaded = await ownLoader() {
+            own = loaded.map { PickerSmiley(code: $0.code, imageURL: $0.imageURL) }
+            ownFailed = false
+        } else {
+            ownFailed = true
+        }
+    }
+
+    /// Reads the own smileys again after a failure (the failed section's "Réessayer"); shows the loading state meanwhile.
+    func retryOwn() async {
+        guard ownFailed else { return }
+        ownFailed = false
+        await loadOwn()
+    }
+
+    /// A tap on one of the member's own smileys inserts it, like a basic one: it is theirs, no detail to read first.
+    func tap(own smiley: PickerSmiley) {
+        chosen = smiley
     }
 
     /// Reads the forum favourites from the composer's form; a failure is shown, never replaced by an empty list.

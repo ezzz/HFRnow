@@ -12,10 +12,11 @@ import UIKit
 /// since #855) an iPhone's reader composers are legacy's full-screen cover (`MessagesView.swift:5429-5443`,
 /// `coverVerticalFullScreen` @ 87fe0d1c), at any width.
 ///
-/// A sheet elsewhere: on an iPad, and, with the option on, on an iPhone in regular width (a Pro Max in landscape, the list beside
-/// the reader), where the list column stays live beside a docked bar and choosing another topic there would tear the reader
-/// down with the composer in it, mid-send included; a sheet is modal. The lists' composers (a new topic, a new MP) keep their
-/// sheet too, as legacy's new topic (`MainWindow.swift:905-921` @ 87fe0d1c): their page has no guard against its taps.
+/// A sheet elsewhere: on an iPad, and, with the option on, on an iPhone in regular width (a foldable's inner screen, the list
+/// beside the reader; the Plus tab's readers on a Pro Max in landscape; the other tabs read at compact width there since #431),
+/// where the list column stays live beside a docked bar and choosing another topic there would tear the reader down with the
+/// composer in it, mid-send included; a sheet is modal. The lists' composers (a new topic, a new MP) keep their sheet too, as
+/// legacy's new topic (`MainWindow.swift:905-921` @ 87fe0d1c): their page has no guard against its taps.
 enum ComposerPlacement: Equatable {
     /// A bar at the bottom of the reader, on the keyboard.
     case docked

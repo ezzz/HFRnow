@@ -76,6 +76,9 @@ public enum SettingKey {
     public static let appIconRevertAsked = Setting.optionalString("icon_revert_asked")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
+    /// `mp_check_interval` (LOT-140, new key): the minimum delay between two background MP checks, in minutes, `0` for none.
+    /// An unknown value reads as the default, 30 minutes. A property of the device: never synced.
+    public static let mpCheckInterval = Setting.integerEnum("mp_check_interval", default: MPCheckInterval.thirtyMinutes)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
     /// never synced.
     public static let appLockEnabled = Setting.bool("app_lock_enabled", default: false)
@@ -156,7 +159,8 @@ public enum SettingKey {
     ).synced
     /// `display_images`. Legacy forced `yes` at every launch with no UI; here `yes` is the default, so images always load (#902).
     /// The key is read only behind Réglages › Expérimental › « Chargement des images » (`experimentalImageLoadingChoice`),
-    /// whose picker writes it; a value an earlier build stored stays in place and is ignored while that option is off.
+    /// whose picker writes it; a value an earlier build stored is ignored while that option is off, and replaced by `yes` at
+    /// its first activation (#1003, `experimentalImageLoadingChoiceStarted`).
     public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.always)
 
     // MARK: Private messages storage
@@ -227,6 +231,10 @@ public enum SettingKey {
     /// `experimental.imageLoadingChoice` (new, #903/#902): the Jamais / Wi-Fi uniquement / Toujours choice of image loading.
     /// Device-only.
     public static let experimentalImageLoadingChoice = Setting.bool("experimental.imageLoadingChoice", default: false)
+    /// `experimental.imageLoadingChoice.started` (new, #1003): « Chargement des images » was turned on once since #1003, so
+    /// its first activation has reset the choice to « Toujours » and later ones keep the member's. Absent or unreadable reads
+    /// as false: the next activation is a first one. Device-only.
+    public static let experimentalImageLoadingChoiceStarted = Setting.bool("experimental.imageLoadingChoice.started", default: false)
 
     // MARK: Legacy keys
 
@@ -240,13 +248,13 @@ public enum SettingKey {
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
-        privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
+        privateMessageBadge, mpCheckInterval, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
-        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice
+        experimentalMPStorageSwitches, experimentalFlagIconRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
 
     /// Every key of the catalogue, for tests and diagnostics.

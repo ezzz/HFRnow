@@ -12,12 +12,12 @@ struct MessageListView: View {
     /// The current account's composer; nil when logged out, which hides "Nouveau message".
     let composer: ComposerServices?
     @State private var newMessage: ReplyComposerModel?
-    @State private var titleIsVisible = true
+    @State private var titleVisibility = TitleVisibility()
 
     var body: some View {
         let loader = model.loader
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
-            ScreenLargeTitle(title: "Messages", isVisible: $titleIsVisible)
+            ScreenLargeTitle(title: "Messages", visibility: titleVisibility)
             if loader.value != nil {
                 ForEach(model.visibleThreads) { thread in
                     MessageRowView(
@@ -32,7 +32,7 @@ struct MessageListView: View {
         }
         .listStyle(.insetGrouped) // explicit: legacy's rounded block (#803)
         .densityListMargins()
-        .screenTitle("Messages", style: .largeThenPill, headerVisible: titleIsVisible)
+        .screenTitle("Messages", style: .largeThenPill, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
@@ -163,7 +163,7 @@ private struct EmptyMessagesView: View {
     }
 }
 
-/// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
+/// The list's pager: « page x / y » (y+ when HFR's pager does not give the real last page) with its menu, and the ‹ › pills.
 @MainActor private struct MessagePageBar {
     let model: MessageListModel
 
@@ -172,8 +172,10 @@ private struct EmptyMessagesView: View {
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
             next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
-            last: nil,
-            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+            last: .init(enabled: model.canGoToLast) { Task { await model.goToLastPage() } },
+            status: .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
+            jump: { jump in Task { await model.perform(jump) } },
+            isLoading: model.loader.isLoading
         )
     }
 }

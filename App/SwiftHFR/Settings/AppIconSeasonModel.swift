@@ -22,6 +22,7 @@ final class AppIconSeasonModel {
     @ObservationIgnored private let switcher: any AlternateIconSwitching
     @ObservationIgnored private let calendar: Calendar
     @ObservationIgnored private let now: () -> Date
+    @ObservationIgnored private var hasChecked = false
 
     init(
         store: any SettingsStore,
@@ -33,6 +34,14 @@ final class AppIconSeasonModel {
         self.switcher = switcher
         self.calendar = calendar
         self.now = now
+    }
+
+    /// The launch check of the app, once: every window's content asks, and a window opened later must not clear the question
+    /// another window is showing (`checkAtLaunch()` starts by clearing it), LOT-146.
+    func checkOnceAtLaunch() {
+        guard !hasChecked else { return }
+        hasChecked = true
+        checkAtLaunch()
     }
 
     /// At launch: sets `question` when a dated icon is active after its window and this window was not answered yet.
@@ -89,13 +98,20 @@ extension View {
 
 private struct AppIconSeasonAlert: ViewModifier {
     let model: AppIconSeasonModel
+    /// Only one window presents the question and the error (LOT-146).
+    private let gate = SceneGate(key: "iconSeason")
 
     func body(content: Content) -> some View {
         content
-            .task { model.checkAtLaunch() }
+            .task { model.checkOnceAtLaunch() }
+            .onChange(of: gate.scenePhase, initial: true) { gate.refresh() }
+            .onChange(of: gate.owner) { gate.refresh() }
+            .onDisappear { gate.release() }
             .alert(
                 "Icône",
-                isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+                isPresented: Binding(
+                    get: { model.errorMessage != nil && gate.isOpen }, set: { if !$0, gate.isOpen { model.errorMessage = nil } }
+                )
             ) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -103,7 +119,7 @@ private struct AppIconSeasonAlert: ViewModifier {
             }
             .alert(
                 "Revenir à l’icône précédente ?",
-                isPresented: Binding(get: { model.question != nil }, set: { _ in }),
+                isPresented: Binding(get: { model.question != nil && gate.isOpen }, set: { _ in }),
                 presenting: model.question
             ) { _ in
                 Button("Oui") { Task { await model.revert() } }
