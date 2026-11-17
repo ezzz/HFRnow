@@ -8,20 +8,13 @@ struct ReplyButtonRow: View {
     static let infoLabel = "À propos du bouton +"
 
     @Bindable var topics: TopicsSettingsModel
-    @State private var showsInfo = false
 
     var body: some View {
         HStack {
             Picker("Bouton +", selection: $topics.replyButton) {
                 ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
             }
-            Button(Self.infoLabel, systemImage: "info.circle") { showsInfo = true }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .popover(isPresented: $showsInfo) {
-                    ReplyButtonInfoView()
-                        .presentationCompactAdaptation(.popover)
-                }
+            InfoBubbleButton(label: Self.infoLabel) { ReplyButtonInfoView() }
         }
     }
 }
