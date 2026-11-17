@@ -62,14 +62,12 @@ struct FavorisScrollHostedTests {
         return false
     }
 
-    @Test("Scrolling Favoris across its large title rebuilds neither the list, nor a section header, nor a row on screen")
-    func scrollLeavesTheListAlone() async throws {
-        let navigation = await favorites()
-        let key = ObjectIdentifier(navigation.topicList(for: .favorites))
+    /// The app's Favoris tab under a tab bar that minimises on scroll, in a shown window; the other tabs and the root's environment
+    /// are left out. Returns the window (hide it when done), its hosting controller and the list once it shows rows.
+    private func hostFavoris(_ navigation: NavigationModel) async throws -> (UIWindow, UIViewController, UICollectionView) {
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
-        // The app's Favoris tab under a tab bar that minimises on scroll; the other tabs and the root's environment are left out.
         let host = UIHostingController(rootView: TabView(selection: .constant(0)) {
             Tab("Favoris", systemImage: "star", value: 0) {
                 FavoritesTabView(navigation: navigation, reader: reader(), composer: nil)
@@ -79,7 +77,6 @@ struct FavorisScrollHostedTests {
         .tabBarMinimizeBehavior(.onScrollDown))
         window.rootViewController = host
         window.isHidden = false
-        defer { window.isHidden = true }
         var found: UICollectionView?
         for _ in 0..<100 {
             await Self.settle()
@@ -87,16 +84,35 @@ struct FavorisScrollHostedTests {
             found = Self.collectionView(in: window)
             if let found, found.visibleCells.count > 5 { break }
         }
-        let list = try #require(found)
         try? await Task.sleep(for: .milliseconds(300))
-        let baseline = TopicListView.renders[key] ?? [:]
-        let visibility = try #require(TopicListView.titleVisibilities[key])
-        // The rows on screen at landing (section 0 is the large title; rows built ahead of the screen are built again on entry).
-        let groups = navigation.topicList(for: .favorites).displayedGroups
-        let landedRows = Set(list.indexPathsForVisibleItems.compactMap { path -> Part? in
+        return (window, host, try #require(found))
+    }
+
+    /// The rows on screen: section 0 is the large title. Rows built ahead of the screen are built again when they enter it.
+    private static func rowsOnScreen(_ list: UICollectionView, groups: [TopicGroup]) -> Set<Part> {
+        Set(list.indexPathsForVisibleItems.compactMap { path -> Part? in
             guard path.section > 0, path.section <= groups.count, path.item < groups[path.section - 1].topics.count else { return nil }
             return .row(groups[path.section - 1].topics[path.item].id)
         })
+    }
+
+    /// Scrolls `list` to `top` plus 5 pt per step, one frame per step.
+    private static func scroll(_ list: UICollectionView, from top: CGFloat, through steps: some Sequence<Int>) async {
+        for step in steps {
+            list.setContentOffset(CGPoint(x: 0, y: top + CGFloat(step) * 5), animated: false)
+            await settle()
+        }
+    }
+
+    @Test("Scrolling Favoris across its large title rebuilds neither the list, nor a section header, nor a row on screen")
+    func scrollLeavesTheListAlone() async throws {
+        let navigation = await favorites()
+        let key = ObjectIdentifier(navigation.topicList(for: .favorites))
+        let (window, host, list) = try await hostFavoris(navigation)
+        defer { window.isHidden = true }
+        let baseline = TopicListView.renders[key] ?? [:]
+        let visibility = try #require(TopicListView.titleVisibilities[key])
+        let landedRows = Self.rowsOnScreen(list, groups: navigation.topicList(for: .favorites).displayedGroups)
         #expect((baseline[.body] ?? 0) > 0, "the seam counts this list")
         #expect(baseline.keys.contains(where: Self.isHeader), "the seam counts its headers")
         #expect(!landedRows.isEmpty && landedRows.allSatisfy { baseline[$0] != nil }, "the seam counts the rows on screen")
@@ -104,10 +120,7 @@ struct FavorisScrollHostedTests {
 
         // Down past the large title, one frame at a time. The rows on screen at landing only leave it: none is built again.
         let top = list.contentOffset.y
-        for step in 1...60 {
-            list.setContentOffset(CGPoint(x: 0, y: top + CGFloat(step) * 5), animated: false)
-            await Self.settle()
-        }
+        await Self.scroll(list, from: top, through: 1...60)
         let down = Self.builds(of: key, since: baseline)
         #expect(!visibility.isHeaderVisible && visibility.reports >= 1, "the large title has left (reports \(visibility.reports))")
         #expect(down[.body] == nil, "list body runs: \(down[.body] ?? 0)")
@@ -123,10 +136,7 @@ struct FavorisScrollHostedTests {
         #expect(Self.builds(of: key, since: beforeBars).isEmpty, "builds: \(Self.builds(of: key, since: beforeBars))")
 
         // Back up until the large title shows again. Rows coming back on screen are built; the list and the headers are not.
-        for step in stride(from: 59, through: 0, by: -1) {
-            list.setContentOffset(CGPoint(x: 0, y: top + CGFloat(step) * 5), animated: false)
-            await Self.settle()
-        }
+        await Self.scroll(list, from: top, through: stride(from: 59, through: 0, by: -1))
         let round = Self.builds(of: key, since: baseline)
         #expect(visibility.isHeaderVisible && visibility.reports >= 2, "the large title is back (reports \(visibility.reports))")
         #expect(round[.body] == nil, "list body runs: \(round[.body] ?? 0)")
