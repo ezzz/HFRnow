@@ -64,4 +64,24 @@ struct TopicsSettingsModelTests {
         #expect(store.rawValue(forKey: "blacklist_hide_pseudo") == .bool(true))
         #expect(TopicsSettingsModel(store: store).hidesBlocklisted)
     }
+
+    /// #1062: one sentence under the « Bouton + » picker per choice; the code gives `quick` and `forum` the same reply
+    /// (LOT-086), so the texts say the draft and the quotes, and that only the icon differs.
+    @Test func everyReplyButtonChoiceHasItsOwnExplanation() {
+        let texts = ReplyButtonBehavior.allCases.map(\.explanation)
+        #expect(texts.allSatisfy { !$0.isEmpty })
+        #expect(Set(texts).count == texts.count)
+        #expect(ReplyButtonBehavior.quick.explanation.contains("brouillon"))
+        #expect(ReplyButtonBehavior.quick.explanation.contains("citations"))
+        #expect(ReplyButtonBehavior.forum.explanation.contains("seule l’icône change"))
+        #expect(ReplyButtonBehavior.hidden.explanation.contains("« Citer »"))
+    }
+
+    @Test func theExplanationShownIsTheSelectedChoices() {
+        let model = TopicsSettingsModel(store: InMemorySettingsStore())
+        for behavior in ReplyButtonBehavior.allCases {
+            model.replyButton = behavior
+            #expect(model.replyButtonExplanation == behavior.explanation)
+        }
+    }
 }

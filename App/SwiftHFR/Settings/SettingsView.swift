@@ -151,9 +151,7 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Swipe changement de page", isOn: $topics.swipesPages)
-                Picker("Bouton +", selection: $topics.replyButton) {
-                    ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
+                ReplyButtonRow(topics: topics)
             }
             SecuritySettingsSections()
             MaintenanceSection(model: maintenance)
