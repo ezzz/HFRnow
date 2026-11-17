@@ -40,8 +40,10 @@ final class NoelCrossingModel {
     @ObservationIgnored private let haptics: HapticFeedback
     /// Foreground time counted before the current active stretch, since the last crossing (or the launch).
     @ObservationIgnored private var foregroundBefore: TimeInterval = 0
-    /// When the app came to the foreground, nil while it is not there.
+    /// When the app came to the foreground (its first scene became active), nil while no scene is active.
     @ObservationIgnored private var activeSince: Date?
+    /// The scenes active now: foreground time runs while any is, and a scene gets a crossing only while it is.
+    @ObservationIgnored private var activeScenes: Set<UUID> = []
     /// The foreground time the next crossing waits for.
     @ObservationIgnored private(set) var nextGap: TimeInterval
     @ObservationIgnored private var lastID = 0
@@ -61,14 +63,22 @@ final class NoelCrossingModel {
         foregroundBefore + (activeSince.map { max(0, now().timeIntervalSince($0)) } ?? 0)
     }
 
-    /// The app came to the foreground (`true`) or left it; a crossing on screen stops when it leaves.
-    func foregroundChanged(active: Bool) {
+    /// `scene` became active (`true`) or left: each scene reports its own phase, so another window going to the background
+    /// (iPad) neither stops this scene's crossing nor the foreground count while one scene is still active. A crossing stops
+    /// when its own scene leaves.
+    func sceneChanged(_ scene: UUID, active: Bool) {
+        let wasForeground = !activeScenes.isEmpty
         if active {
-            if activeSince == nil { activeSince = now() }
+            activeScenes.insert(scene)
         } else {
+            activeScenes.remove(scene)
+            if current?.scene == scene { current = nil }
+        }
+        if !activeScenes.isEmpty, !wasForeground {
+            activeSince = now()
+        } else if activeScenes.isEmpty, wasForeground {
             foregroundBefore = foregroundTime
             activeSince = nil
-            current = nil
         }
     }
 
@@ -106,7 +116,7 @@ final class NoelCrossingModel {
             arrivalPending = false
             return nil
         }
-        guard screen.allowsAlert, activeSince != nil else { return nil }
+        guard screen.allowsAlert, activeScenes.contains(scene) else { return nil }
         if arrivalPending {
             let size = NoelCrossingItem.sleigh.size(height: Self.arrivalHeight(window: stage.windowHeight))
             // Kept pending until it starts: a layer not laid out yet (empty area) must not lose it.
@@ -142,9 +152,9 @@ final class NoelCrossingModel {
         }
     }
 
-    /// `scene` went away: its crossing stops.
+    /// `scene` went away: its crossing stops, and it no longer counts as active.
     func release(scene: UUID) {
-        if current?.scene == scene { current = nil }
+        sceneChanged(scene, active: false)
     }
 
     /// Starts `item` across `area`; the arrival is the sleigh at full length (`CrossingPath.maxDuration`).

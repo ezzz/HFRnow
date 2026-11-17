@@ -90,9 +90,6 @@ struct SwiftHFRApp: App {
                     if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                     // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
                     if phase == .active { seasonal.sceneDidBecomeActive() }
-                    // Crossing objects wait for foreground time only (THEMES.md §4 rule 4).
-                    seasonal.crossings.foregroundChanged(active: phase == .active)
-                    seasonal.packing.foregroundChanged(active: phase == .active)
                 }
         }
     }

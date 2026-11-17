@@ -10,6 +10,7 @@ struct NoelPackingLayer: View {
     @State private var scene = UUID()
     @State private var keyboardVisible = false
     @State private var window = WindowReference()
+    @Environment(\.scenePhase) private var scenePhase
 
     private var packing: NoelPackingModel { seasonal.packing }
 
@@ -36,6 +37,8 @@ struct NoelPackingLayer: View {
                 keyboardVisible = false
             }
         }
+        // Each scene reports its own phase: only an active scene plays the elves, and another window leaving never ends them.
+        .onChange(of: scenePhase, initial: true) { _, phase in packing.sceneChanged(scene, active: phase == .active) }
         .onDisappear { packing.release(scene: scene) }
     }
 
@@ -43,7 +46,8 @@ struct NoelPackingLayer: View {
         SeasonalThemeModel.ScreenState(isCovered: isCovered(), isPresenting: window.isPresenting, isKeyboardVisible: keyboardVisible)
     }
 
-    /// Asks until the packing starts here (or another scene, or nothing, takes it), then plays it to its end.
+    /// Asks until the packing starts here (or another scene, or nothing, takes it), plays it to its end, and asks again if it
+    /// was cut in its first second and waits to replay.
     private func watch() async {
         while !Task.isCancelled, packing.current != nil {
             guard packing.start(for: scene, screen: screen, animationsAllowed: seasonal.animationsAllowed) != nil else {
@@ -58,7 +62,6 @@ struct NoelPackingLayer: View {
                 packing.screenChanged(for: scene, screen: screen)
             }
             if packing.current?.scene == scene { packing.finish() }
-            return
         }
     }
 }

@@ -85,10 +85,10 @@ final class SeasonalThemeModel {
         timeZone: @escaping @MainActor () -> TimeZone = { .autoupdatingCurrent },
         reduceMotion: @escaping @MainActor () -> Bool = { UIAccessibility.isReduceMotionEnabled },
         crossings: NoelCrossingModel? = nil,
-        packing: NoelPackingModel = NoelPackingModel()
+        packing: NoelPackingModel? = nil
     ) {
         self.crossings = crossings ?? NoelCrossingModel(now: now, random: SystemSeasonalRandom())
-        self.packing = packing
+        self.packing = packing ?? NoelPackingModel(now: now)
         self.store = store
         self.now = now
         self.timeZone = timeZone

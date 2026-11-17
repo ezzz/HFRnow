@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import HFRModels
 import HFRStorage
 @testable import SwiftHFR
 import Testing
@@ -23,7 +24,7 @@ struct NoelPackingTests {
         clock.reduceMotion = reduceMotion
         let model = clock.model(store: store)
         model.sceneDidBecomeActive()
-        model.packing.foregroundChanged(active: true)
+        model.packing.sceneChanged(scene, active: true)
         return (clock, model)
     }
 
@@ -79,22 +80,72 @@ struct NoelPackingTests {
         #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) != nil)
     }
 
-    @Test func theElvesWaitForTheForegroundAndAWaitingPackingSurvivesTheBackground() {
-        let (_, model) = packingLaunch()
-        model.packing.foregroundChanged(active: false)
+    @Test func theElvesWaitForTheirSceneToBeActiveAndAWaitingPackingSurvivesTheBackground() {
+        let (clock, model) = packingLaunch()
+        model.packing.sceneChanged(scene, active: false)
         #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) == nil)
         #expect(model.drawnTheme == .noelSoft)
-        model.packing.foregroundChanged(active: true)
+        model.packing.sceneChanged(scene, active: true)
         #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) != nil)
         // Leaving while they play ends them: the decorations go with them.
-        model.packing.foregroundChanged(active: false)
+        clock.now += 2
+        model.packing.sceneChanged(scene, active: false)
         #expect(model.packing.current == nil)
         #expect(model.drawnTheme == nil)
     }
 
+    /// iPad, two windows: each scene reports its own phase. Another window leaving neither ends the elves nor stops a scene
+    /// that is still active from playing them; a scene that is not active never plays them.
+    @Test func anotherWindowsPhaseNeverEndsOrBlocksTheElves() {
+        let (clock, model) = packingLaunch()
+        let other = UUID()
+        model.packing.sceneChanged(other, active: true)
+        model.packing.sceneChanged(other, active: false)
+        #expect(model.packing.start(for: other, screen: Self.clear, animationsAllowed: true) == nil)
+        #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)?.scene == scene)
+        clock.now += 2
+        model.packing.sceneChanged(other, active: false)
+        model.packing.release(scene: other)
+        #expect(model.packing.isPlaying)
+    }
+
+    /// Cut in their first second (an alert of the same launch, a window resized away), the elves wait and play again, at most
+    /// twice; the decorations stay meanwhile. Cut later, they are done.
+    @Test func elvesCutInTheirFirstSecondPlayAgainAtMostTwice() {
+        let (clock, model) = packingLaunch()
+        let alert = SeasonalThemeModel.ScreenState(isPresenting: true)
+        for _ in 1...NoelPackingModel.maxReplays {
+            #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) != nil)
+            clock.now += 0.5
+            model.packing.screenChanged(for: scene, screen: alert)
+            #expect(model.packing.current != nil)
+            #expect(!model.packing.isPlaying)
+            #expect(model.drawnTheme == .noelSoft)
+        }
+        #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) != nil)
+        model.packing.screenChanged(for: scene, screen: alert)
+        #expect(model.packing.current == nil)
+        #expect(model.drawnTheme == nil)
+    }
+
+    /// A Noël theme found on again after its packing ran (another device's store, a clock set back) is restored without elves.
+    @Test func aThemeOnAgainAfterThePackingRanIsRestoredWithoutElves() {
+        let store = InMemorySettingsStore()
+        let (clock, model) = packingLaunch(store: store)
+        model.packing.finish()
+        store.set(ThemeDefinition.legacyID, for: SettingKey.noelPreviousThemeID(year: 2026))
+        store.set(2026, for: SettingKey.noelActiveYear)
+        clock.move(to: 28, 12, 2026)
+        let later = clock.model(store: store)
+        #expect(later.sceneDidBecomeActive() == [.restoredSilently(year: 2026)])
+        #expect(later.packing.current == nil)
+        #expect(later.drawnTheme == nil)
+    }
+
     @Test func aSheetOrTheKeyboardStopsTheElves() {
-        let (_, model) = packingLaunch()
+        let (clock, model) = packingLaunch()
         _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+        clock.now += 2
         model.packing.screenChanged(for: UUID(), screen: .init(isKeyboardVisible: true))
         #expect(model.packing.isPlaying)
         model.packing.screenChanged(for: scene, screen: .init(isKeyboardVisible: true))
@@ -104,9 +155,11 @@ struct NoelPackingTests {
 
     /// iPad with two windows: one scene plays the elves; the other draws the decorations until they are done.
     @Test func oneSceneOnlyPlaysTheElves() {
-        let (_, model) = packingLaunch()
+        let (clock, model) = packingLaunch()
         let other = UUID()
+        model.packing.sceneChanged(other, active: true)
         #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true) != nil)
+        clock.now += 2
         #expect(model.packing.start(for: other, screen: Self.clear, animationsAllowed: true) == nil)
         #expect(model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)?.scene == scene)
         model.packing.release(scene: other)
@@ -196,6 +249,39 @@ struct NoelPackingLayoutTests {
     @Test func anEmptyBandHasNoElves() {
         #expect(NoelPackingLayout.frames(in: .zero, windowHeight: 874, progress: 0.5).isEmpty)
         #expect(NoelPackingLayout.frames(in: CGSize(width: 40, height: 400), windowHeight: 874, progress: 0.5).isEmpty)
+    }
+
+    /// An elf as tall as a short band (landscape iPhone, a small window) still never leaves it while it hops.
+    @Test func anElfAsTallAsItsBandStaysInsideWhileItHops() {
+        let area = CGSize(width: 874, height: 90)
+        for step in 0...80 {
+            let frames = NoelPackingLayout.frames(in: area, windowHeight: 874, progress: Double(step) / 80)
+            #expect(!frames.isEmpty)
+            for frame in frames {
+                #expect(frame.height == area.height)
+                #expect(frame.minY >= 0)
+            }
+        }
+    }
+
+    /// At least a quarter of an elf between two elves (iPhone portrait: two elves, not three squeezed together).
+    @Test func elvesKeepAQuarterOfAnElfBetweenThem() throws {
+        let frames = NoelPackingLayout.frames(in: CGSize(width: 402, height: 610), windowHeight: 874, progress: 0.5)
+        #expect(frames.count == 2)
+        let width = try #require(frames.first).width
+        for (left, right) in zip(frames, frames.dropFirst()) { #expect(right.minX - left.maxX >= width / 4) }
+    }
+
+    /// No jump when the rise ends or the descent starts: the hop eases in and out.
+    @Test func theHopEasesInAndOut() {
+        let area = CGSize(width: 402, height: 610)
+        for edge in [NoelPackingLayout.riseShare, 1 - NoelPackingLayout.riseShare] {
+            let before = NoelPackingLayout.frames(in: area, windowHeight: 874, progress: edge - 0.001)
+            let after = NoelPackingLayout.frames(in: area, windowHeight: 874, progress: edge + 0.001)
+            for (one, two) in zip(before, after) { #expect(abs(one.minY - two.minY) < 1) }
+        }
+        #expect(NoelPackingLayout.hopEnvelope(at: 0.5) == 1)
+        #expect(NoelPackingLayout.hopEnvelope(at: NoelPackingLayout.riseShare) == 0)
     }
 
     @Test func theRiseGoesUpThenDown() {

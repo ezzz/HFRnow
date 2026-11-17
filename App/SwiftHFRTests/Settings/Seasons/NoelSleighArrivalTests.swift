@@ -19,7 +19,7 @@ struct NoelSleighArrivalTests {
             crossings: crossings
         )
         model.sceneDidBecomeActive()
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         return model
     }
 
@@ -117,10 +117,10 @@ struct NoelSleighArrivalTests {
         let model = launch(clock)
         let start = clock.now
         for cut in 1...5 {
-            let sleigh = try #require(sleigh(model))
-            #expect(sleigh.isArrival)
+            let replay = try #require(sleigh(model))
+            #expect(replay.isArrival)
             clock.now = start.addingTimeInterval(Double(cut) * 2)
-            model.crossings.interrupt(sleigh.id)
+            model.crossings.interrupt(replay.id)
             #expect(model.crossings.current == nil)
             #expect(model.crossings.arrivalPending)
             #expect(model.alert(for: scene, screen: Self.clear) == nil)
@@ -145,6 +145,19 @@ struct NoelSleighArrivalTests {
         #expect(model.crossings.arrivalPending)
         #expect(model.alert(for: scene, screen: Self.clear) == nil)
         #expect(sleigh(model)?.isArrival == true)
+    }
+
+    /// Each arrival counts its replay window from its own first start: the sleigh of a later season (or a later launch) is not
+    /// held to an earlier one's.
+    @Test func eachArrivalCountsItsOwnReplayWindow() throws {
+        let clock = SeasonTestClock(1, 12, 2026)
+        let model = launch(clock)
+        model.crossings.finish(try #require(sleigh(model)).id)
+        clock.move(to: 1, 12, 2027)
+        model.crossings.queueArrival()
+        let next = try #require(sleigh(model))
+        model.crossings.interrupt(next.id)
+        #expect(model.crossings.arrivalPending)
     }
 
     @Test func noSleighOnALaterLaunchOfTheSeason() {

@@ -5,7 +5,8 @@ import Foundation
 /// the band's width, rising from its bottom edge, hopping while they pack, and going back down before the end. Pure, so the
 /// limits are tested.
 nonisolated enum NoelPackingLayout {
-    /// Width over height of the elf (the operator's `noel_elf` render, trimmed by `tooling/art/noel-crossings/derive.swift`).
+    /// Width over height of the elf: the operator's `noel_elf` render trimmed to its alpha > 8 box, 364 × 780 (the trim of
+    /// `tooling/art/noel-crossings/derive.swift`; this PNG was cut and scaled the same way with PIL, see the lot spec).
     static let elfAspectRatio: Double = 364.0 / 780
     /// The tallest elf, in points.
     static let maxElfHeight: CGFloat = 180
@@ -29,6 +30,13 @@ nonisolated enum NoelPackingLayout {
         return min(rising, falling)
     }
 
+    /// The hop's amplitude while the elves are fully up: 0 when the rise ends and when the descent starts, 1 halfway.
+    static func hopEnvelope(at progress: Double) -> Double {
+        let span = 1 - 2 * riseShare
+        let within = (min(max(progress, 0), 1) - riseShare) / span
+        return within <= 0 || within >= 1 ? 0 : sin(within * .pi)
+    }
+
     /// The elves' frames in a band of `area` at `progress`, in a window `windowHeight` high: as many as fit at even fractions of
     /// the width with at least a quarter of an elf between them and the edges (none in a band too narrow for one).
     static func frames(in area: CGSize, windowHeight: CGFloat, progress: Double) -> [CGRect] {
@@ -41,8 +49,9 @@ nonisolated enum NoelPackingLayout {
         let lift = rise(at: progress)
         return (0..<count).map { index in
             let centre = area.width * CGFloat(index + 1) / CGFloat(count + 1)
-            // Each elf hops on its own beat while fully up; never above the band's top.
-            let hop = lift < 1 ? 0 : height * hopShare * abs(sin(progress * .pi * 8 + Double(index) * 1.3))
+            // Each elf hops on its own beat while fully up, its amplitude easing in and out so nothing jumps when the rise
+            // ends or the descent starts; never above the band's top.
+            let hop = lift < 1 ? 0 : height * hopShare * hopEnvelope(at: progress) * abs(sin(progress * .pi * 8 + Double(index) * 1.3))
             let top = area.height - height * lift - hop
             return CGRect(x: centre - width / 2, y: max(top, 0), width: width, height: height)
         }

@@ -10,6 +10,7 @@ struct NoelCrossingLayer: View {
     @State private var scene = UUID()
     @State private var keyboardVisible = false
     @State private var window = WindowReference()
+    @Environment(\.scenePhase) private var scenePhase
 
     private var crossings: NoelCrossingModel { seasonal.crossings }
 
@@ -52,6 +53,8 @@ struct NoelCrossingLayer: View {
                 keyboardVisible = false
             }
         }
+        // Each scene reports its own phase: one window leaving never stops another's crossing (iPad).
+        .onChange(of: scenePhase, initial: true) { _, phase in crossings.sceneChanged(scene, active: phase == .active) }
         .onDisappear { crossings.release(scene: scene) }
     }
 
