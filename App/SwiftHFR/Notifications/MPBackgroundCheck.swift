@@ -12,6 +12,8 @@ import OSLog
 struct MPBackgroundCheck: Sendable {
     /// The legacy text, kept for a count that went up while the list could not be read (`MPBackgroundService.swift:100`).
     static let legacyText = "Vous avez un nouveau message privé"
+    /// Its own identifier, apart from the burst summary's, so withdrawing it never removes a summary.
+    static let legacyIdentifier = "mp-legacy"
     /// Taken off the interval in the due test: iOS may launch the task right at its earliest date, which was computed a moment
     /// before the previous check stamped its own time, and a whole interval would be lost.
     static let schedulingSlack: TimeInterval = 60
@@ -53,7 +55,7 @@ struct MPBackgroundCheck: Sendable {
         }
         let notifications = Self.notifications(news: news, page: reading.page, hadCount: before.unreadPrivateMessages != nil)
         // A conversation's own notification says more than the legacy text an earlier run sent for it (list unreadable then).
-        if notifications.contains(where: { $0.topic != nil }) { await delivery.withdraw(MPNotificationPlan.summaryIdentifier) }
+        if notifications.contains(where: { $0.topic != nil }) { await delivery.withdraw(Self.legacyIdentifier) }
         for content in notifications { await delivery.deliver(content) }
         await delivery.setBadge(settings.value(for: SettingKey.privateMessageBadge) ? count : 0)
         return .checked(notifications: notifications.count)
@@ -69,8 +71,7 @@ struct MPBackgroundCheck: Sendable {
         }
         guard hadCount, news.newPrivateMessages > 0 else { return [] }
         return [MPNotificationContent(
-            identifier: MPNotificationPlan.summaryIdentifier, threadIdentifier: MPNotificationPlan.summaryIdentifier,
-            title: "", body: legacyText, topic: nil
+            identifier: legacyIdentifier, threadIdentifier: legacyIdentifier, title: "", body: legacyText, topic: nil
         )]
     }
 }

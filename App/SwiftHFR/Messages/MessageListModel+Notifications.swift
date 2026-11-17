@@ -13,14 +13,17 @@ extension MessageListModel {
         selected = thread
     }
 
-    /// Page 1's unread conversations as shown now, and the badge's count, to the ledger (LOT-140): a conversation read here
-    /// leaves the ledger's unread set, so its next reply is news again. Other pages say nothing about page 1.
-    func recordFirstPageReadState() {
-        guard let ledgerSeen, let content = loader.value, content.page == 1 else { return }
-        var summary = NotificationSummary(
-            unreadThreads: Set(content.threads.filter(isUnread).compactMap { $0.summary.topicID?.topic })
-        )
-        summary.unreadPrivateMessages = privateMessageCount?.latest
-        Task { await ledgerSeen(summary) }
+    /// What the list shows now, to the ledger (LOT-140): the badge's count, and on page 1 its unread conversations as shown
+    /// (HFR's state, less what was read here). Called after the newest load applied, a read, or a mark unread, so a
+    /// conversation read here leaves the ledger's set (its next reply is news) and the member's own actions are not news.
+    /// Other pages say nothing about page 1's set.
+    func recordReadState() async {
+        guard let ledgerSeen, let content = loader.value else { return }
+        var summary = NotificationSummary(unreadPrivateMessages: privateMessageCount?.latest)
+        if content.page == 1 {
+            summary.unreadThreads = Set(content.threads.filter(isUnread).compactMap { $0.summary.topicID?.topic })
+        }
+        guard summary.unreadPrivateMessages != nil || summary.unreadThreads != nil else { return }
+        await ledgerSeen(summary)
     }
 }

@@ -338,6 +338,8 @@ final class MessageListModel {
             if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
+            // The badge's +1 reaches the ledger whatever the page: the member's own action is not news (LOT-140).
+            await recordReadState()
             await refresh()
         }
     }
@@ -353,9 +355,7 @@ final class MessageListModel {
         if wasUnread { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
-        if wasUnread { recordFirstPageReadState() }
-    }
-
+        if wasUnread { Task { await recordReadState() } }
     }
 
     /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
@@ -371,12 +371,9 @@ final class MessageListModel {
         let mine = loadCount
         let source = source
         let isLoggedIn = isLoggedIn
-        let ledgerSeen = ledgerSeen
         await loader.load { () async throws(ListLoadError) -> MessageListContent in
             guard await isLoggedIn() else { return .signedOut }
-            let listPage = try await source.privateMessages(page: page)
-            if page == 1, let ledgerSeen { await ledgerSeen(MPNotificationLedger.seenSummary(of: listPage)) }
-            return MessageListContent(page: listPage)
+            return MessageListContent(page: try await source.privateMessages(page: page))
         }
         // Only the newest load applied the content on screen; a superseded one returning late must not reset the state.
         guard mine == loadCount else { return }
@@ -392,7 +389,7 @@ final class MessageListModel {
         openedThreads = openedThreads.filter { $0.value >= mine || !answered.contains($0.key) }
         markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
-        if loader.value == .signedOut { selected = nil }
+        if loader.value == .signedOut { selected = nil } else { await recordReadState() }
         if advancing { await advanceWhileSegmentEmpty() }
     }
 }

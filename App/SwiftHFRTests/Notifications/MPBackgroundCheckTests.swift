@@ -175,8 +175,8 @@ struct MPBackgroundCheckTests {
             MPForumReading(count: 1, page: mpPage(unread: [10]))
         ])
         #expect(await run(ready, times: 3) == [.checked(notifications: 0), .checked(notifications: 1), .checked(notifications: 1)])
-        #expect(await ready.delivery.delivered.map(\.identifier) == ["mp-summary", "mp-10"])
-        #expect(await ready.delivery.withdrawn == ["mp-summary"])
+        #expect(await ready.delivery.delivered.map(\.identifier) == ["mp-legacy", "mp-10"])
+        #expect(await ready.delivery.withdrawn == ["mp-legacy"])
     }
 
     @Test("More than five conversations with news collapse into one summary that opens the list")

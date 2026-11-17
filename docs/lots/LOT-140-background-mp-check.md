@@ -44,7 +44,7 @@ All `b·operator` (operator decisions of 2026-11-07 on #230), rows GAP-011, GAP-
 4. **Count:** `MPUnreadPoll(session:).unreadCount()` (LOT-047) on a session built from the stored cookies and `hash_check`, used for this run only and never written back to the store or to `AccountsModel` (D3). `nil` (no information), `.sessionExpired` or any error → stop: no notification, no badge change, nothing recorded (#230 acceptance, LOT-047 contract). `SessionRefreshFlow` is not called: the next foreground launch checks the session (`AccountsModel.restore`, #300) and asks for a new login; a background run has no one to ask.
 5. **List:** `PageFetcher.privateMessages(page: 1)` + `PrivateMessageListParser` (LOT-126), never a thread page (E25: a thread page marks it read). A failure here keeps the count (step 6 records it with no thread set).
 6. **News:** `recordNews(NotificationSummary(unreadPrivateMessages: count, unreadThreads: <topic numbers of unread rows of page 1>))`, one actor step (LOT-091).
-7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When that gives nothing (the list could not be read, or no conversation became unread: a reply to one already unread, until #571) and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice.
+7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When that gives nothing (the list could not be read, or no conversation became unread: a reply to one already unread, until #571) and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-legacy`, apart from the burst summary's `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice.
 8. **Badge:** `setBadgeCount(count)` when `mp_badge_enabled`, else 0.
 
 At most 2 requests per run (`GET /`, the MP list page 1), as the operator decided.
@@ -68,7 +68,7 @@ At launch, as legacy (`HFRswiftApp.swift:27-29`, operator's comparison of 2026-1
 
 ### Foreground
 - The running app sets the icon badge from the Messages badge count (`RootModel.unreadPrivateMessages`, which already applies `mp_badge_enabled`), as legacy `MainWindow.swift:1779-1784`.
-- What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), the unread conversations of MP list page 1 when it loads, and page 1's unread set with the badge's count again when a conversation is read here. A conversation seen unread in the app is not notified by the next background run; one read here leaves the ledger's set, so its next reply is.
+- What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), and, after the newest list load applied, a read or a mark unread here, the badge's count with page 1's unread set as shown. A superseded load records nothing. The member's own "Marquer comme non lu" is therefore not news. A conversation seen unread in the app is not notified by the next background run; one read here leaves the ledger's set, so its next reply is.
 
 ### Settings (Réglages › Notifications MP)
 - "Badge messages non lus" (`mp_badge_enabled`, legacy).
@@ -108,7 +108,7 @@ Captures read in place (no new fixture): `R336`-`R338` (#567, reply in an unread
 ## Tests
 - HFRClient `MPNotificationPlanTests` (Linux): texts of a one-to-one and a group row from captures, identifiers, order, the burst limit (5 → five, 6 → summary), an unknown number, an empty news list.
 - HFRStorage `MPCheckIntervalTests`: values, default, an unknown stored value.
-- App `MPBackgroundCheckTests`: Jamais sends nothing; not due sends nothing; `nil` / expired / network error → no notification, no badge, nothing recorded; a list failure keeps the count; two identical runs → one notification; badge off → 0; first run silent. App `MPNotificationRouterTests` and `MessageListModel` open-from-notification test.
+- App `MPBackgroundCheckTests`: Jamais sends nothing; not due sends nothing; `nil` / expired / network error → no notification, no badge, nothing recorded; a list failure keeps the count; two identical runs → one notification; badge off → 0; first run silent. App `MPNotificationRoutingTests` and `MessageListModel` open-from-notification test.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
