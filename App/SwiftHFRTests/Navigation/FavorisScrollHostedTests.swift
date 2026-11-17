@@ -1,14 +1,22 @@
 import HFRModels
+import HFRNetwork
 import SwiftUI
 @testable import SwiftHFR
 import Testing
 import UIKit
 
-/// The first scroll of Favoris (#1015): the large title leaving and coming back, and the bars moving, must not run the list's body.
-/// Each run re-applies the modifiers of every realised row and every section header, a cost that grows with the sections and rows.
+/// The first scroll of Favoris (#1015): the large title leaving and coming back must not rebuild the list, its section headers or
+/// its rows. Each rebuild re-applies the modifiers of every realised row and header, a cost that grows with the sections and rows.
+///
+/// Covered: the large-title crossings, down and back up, driven frame by frame, and a stand-in for the bars moving (the hosting
+/// controller's safe area stepped at the top and bottom). Not covered: the real Liquid Glass tab-bar minimise. A programmatic
+/// scroll does not trigger it, and the stand-in is not shown to be what the minimise does to the content; that part is the
+/// operator's device check.
 @MainActor
 @Suite(.serialized)
 struct FavorisScrollHostedTests {
+    private typealias Part = TopicListView.RenderPart
+
     /// Favoris with ten categories of eight topics, loaded.
     private func favorites() async -> NavigationModel {
         let data = FakeDataSource()
@@ -22,36 +30,49 @@ struct FavorisScrollHostedTests {
         return navigation
     }
 
+    private func reader() -> ReaderServices {
+        ReaderServices(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            settings: ReaderSettings(
+                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            ),
+            profiles: FakeUserProfiles([]), offline: nil
+        )
+    }
+
     private static func collectionView(in view: UIView) -> UICollectionView? {
         if let collection = view as? UICollectionView { return collection }
         return view.subviews.lazy.compactMap { collectionView(in: $0) }.first
-    }
-
-    /// The large title is the only row of the list's first section.
-    private static func showsLargeTitle(_ list: UICollectionView) -> Bool {
-        list.indexPathsForVisibleItems.contains(IndexPath(item: 0, section: 0))
     }
 
     private static func settle() async {
         try? await Task.sleep(for: .milliseconds(17))
     }
 
-    @Test("Scrolling Favoris across its large title, and the bars moving, never run the list's body")
+    /// The parts built since `baseline`, with how many builds each.
+    private static func builds(of key: ObjectIdentifier, since baseline: [Part: Int]) -> [Part: Int] {
+        (TopicListView.renders[key] ?? [:]).reduce(into: [:]) { result, entry in
+            let delta = entry.value - (baseline[entry.key] ?? 0)
+            if delta > 0 { result[entry.key] = delta }
+        }
+    }
+
+    private static func isHeader(_ part: Part) -> Bool {
+        if case .header = part { return true }
+        return false
+    }
+
+    @Test("Scrolling Favoris across its large title rebuilds neither the list, nor a section header, nor a row on screen")
     func scrollLeavesTheListAlone() async throws {
         let navigation = await favorites()
-        let model = navigation.topicList(for: .favorites)
-        let key = ObjectIdentifier(model)
+        let key = ObjectIdentifier(navigation.topicList(for: .favorites))
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
-        // The Favoris tab as `FavoritesTabView` builds it, under a tab bar that minimises on scroll.
+        // The app's Favoris tab under a tab bar that minimises on scroll; the other tabs and the root's environment are left out.
         let host = UIHostingController(rootView: TabView(selection: .constant(0)) {
             Tab("Favoris", systemImage: "star", value: 0) {
-                NavigationSplitView {
-                    TopicsColumn(navigation: navigation, composer: nil).appScreenBackground()
-                } detail: {
-                    Text("Lecteur")
-                }
+                FavoritesTabView(navigation: navigation, reader: reader(), composer: nil)
             }
             Tab("Messages", systemImage: "envelope", value: 1) { Text("Messages") }
         }
@@ -68,26 +89,47 @@ struct FavorisScrollHostedTests {
         }
         let list = try #require(found)
         try? await Task.sleep(for: .milliseconds(300))
-        let landed = TopicListView.bodyRuns[key] ?? 0
-        #expect(landed > 0, "the seam counts this list")
-        #expect(Self.showsLargeTitle(list))
+        let baseline = TopicListView.renders[key] ?? [:]
+        let visibility = try #require(TopicListView.titleVisibilities[key])
+        // The rows on screen at landing (section 0 is the large title; rows built ahead of the screen are built again on entry).
+        let groups = navigation.topicList(for: .favorites).displayedGroups
+        let landedRows = Set(list.indexPathsForVisibleItems.compactMap { path -> Part? in
+            guard path.section > 0, path.section <= groups.count, path.item < groups[path.section - 1].topics.count else { return nil }
+            return .row(groups[path.section - 1].topics[path.item].id)
+        })
+        #expect((baseline[.body] ?? 0) > 0, "the seam counts this list")
+        #expect(baseline.keys.contains(where: Self.isHeader), "the seam counts its headers")
+        #expect(!landedRows.isEmpty && landedRows.allSatisfy { baseline[$0] != nil }, "the seam counts the rows on screen")
+        #expect(visibility.isHeaderVisible)
 
-        // Down past the large title, one frame at a time, then the bars moving, then back to the top.
+        // Down past the large title, one frame at a time. The rows on screen at landing only leave it: none is built again.
         let top = list.contentOffset.y
         for step in 1...60 {
             list.setContentOffset(CGPoint(x: 0, y: top + CGFloat(step) * 5), animated: false)
             await Self.settle()
         }
-        #expect(!Self.showsLargeTitle(list), "the large title has left the screen")
+        let down = Self.builds(of: key, since: baseline)
+        #expect(!visibility.isHeaderVisible && visibility.reports >= 1, "the large title has left (reports \(visibility.reports))")
+        #expect(down[.body] == nil, "list body runs: \(down[.body] ?? 0)")
+        #expect(!down.keys.contains(where: Self.isHeader), "header builds: \(down.filter { Self.isHeader($0.key) })")
+        #expect(landedRows.allSatisfy { down[$0] == nil }, "rows built again: \(down.filter { landedRows.contains($0.key) })")
+
+        // The stand-in for the bars moving: nothing in the list is built.
+        let beforeBars = TopicListView.renders[key] ?? [:]
         for step in [8, 16, 24, 32, 24, 16, 8, 0] {
             host.additionalSafeAreaInsets = UIEdgeInsets(top: CGFloat(step) / 2, left: 0, bottom: CGFloat(step), right: 0)
             await Self.settle()
         }
+        #expect(Self.builds(of: key, since: beforeBars).isEmpty, "builds: \(Self.builds(of: key, since: beforeBars))")
+
+        // Back up until the large title shows again. Rows coming back on screen are built; the list and the headers are not.
         for step in stride(from: 59, through: 0, by: -1) {
             list.setContentOffset(CGPoint(x: 0, y: top + CGFloat(step) * 5), animated: false)
             await Self.settle()
         }
-        #expect(Self.showsLargeTitle(list), "the large title is back")
-        #expect((TopicListView.bodyRuns[key] ?? 0) == landed, "body runs during the scroll: \((TopicListView.bodyRuns[key] ?? 0) - landed)")
+        let round = Self.builds(of: key, since: baseline)
+        #expect(visibility.isHeaderVisible && visibility.reports >= 2, "the large title is back (reports \(visibility.reports))")
+        #expect(round[.body] == nil, "list body runs: \(round[.body] ?? 0)")
+        #expect(!round.keys.contains(where: Self.isHeader), "header builds: \(round.filter { Self.isHeader($0.key) })")
     }
 }
