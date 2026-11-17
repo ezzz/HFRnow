@@ -43,7 +43,7 @@ struct ReaderPlusButtonWebTests: ReaderWebTesting {
                                centred ? 1 : 0]);
         """
 
-    private func measure(withMenu: Bool, token: Int, scale: Int? = nil) async -> [Double] {
+    private func measure(withMenu: Bool, token: Int, scale: Double? = nil) async -> [Double] {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.show(document(token: token, withMenu: withMenu))
         guard await until({ recorder.ready == [token] }) else { return [] }
@@ -65,6 +65,15 @@ struct ReaderPlusButtonWebTests: ReaderWebTesting {
         #expect(seen[5] == 2, "stroke: \(seen[5])")
         #expect(seen[6] == 1, "the cross is not drawn in the action colour")
         #expect(seen[7] == 1, "the cross is not centred in its box")
+    }
+
+    /// The smallest reader text size (70 %): the avatar is at its smallest, the button's margin box must still be under it.
+    @Test func theHeaderKeepsItsHeightAtTheSmallestTextSize() async {
+        let without = await measure(withMenu: false, token: 4, scale: 0.7)
+        let seen = await measure(withMenu: true, token: 5, scale: 0.7)
+        #expect(without.count == 1 && seen.count == 8, "without: \(without), seen: \(seen)")
+        guard without.count == 1, seen.count == 8 else { return }
+        #expect(abs(seen[0] - without[0]) <= 1, "the header is \(seen[0]) px with the button, \(without[0]) without, at 70 %")
     }
 
     @Test func theCrossIgnoresTheReaderTextSize() async {
