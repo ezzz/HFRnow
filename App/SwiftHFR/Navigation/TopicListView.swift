@@ -34,7 +34,16 @@ struct TopicListView: View {
     @State private var pagePrompt: TopicSummary?
     @State private var pageText = ""
 
+    #if DEBUG
+    /// Test seam (#1015): how many times the body ran, per model. Every run re-applies the modifiers of every realised row and
+    /// header, so a hosted test checks that a scroll (the large title leaving, the bars moving) never runs it.
+    private(set) static var bodyRuns: [ObjectIdentifier: Int] = [:]
+    #endif
+
     var body: some View {
+        #if DEBUG
+        let _ = Self.bodyRuns[ObjectIdentifier(model), default: 0] += 1
+        #endif
         let loader = model.loader
         List(selection: $selection) {
             if titleStyle == .largeThenPill {
