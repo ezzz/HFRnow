@@ -38,7 +38,7 @@ struct ExperimentalSettingsTests {
 
     /// An option whose path is not built yet is not listed, cannot be switched, and reads its default whatever the store holds.
     @Test func aHiddenOptionIsNeitherListedNorEffective() {
-        let hidden: [ExperimentalFeature] = [.searchTab, .flagIconRows, .imageLoadingChoice]
+        let hidden: [ExperimentalFeature] = [.flagIconRows, .imageLoadingChoice]
         let store = InMemorySettingsStore(Dictionary(uniqueKeysWithValues: hidden.map { ($0.setting.key, SettingRawValue.bool(true)) }))
         let settings = ExperimentalSettings(store: store)
         for feature in hidden {
@@ -48,8 +48,8 @@ struct ExperimentalSettingsTests {
             #expect(!settings.isOn(feature), "\(feature)")
         }
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
-        #expect(listed == [.modernComposer, .mpStorageSwitches])
-        #expect(ExperimentalTheme.listed == [.composer, .messages])
+        #expect(listed == [.modernComposer, .searchTab, .mpStorageSwitches])
+        #expect(ExperimentalTheme.listed == [.composer, .navigation, .messages])
     }
 
     @Test func everyListedOptionExplainsItself() {
@@ -65,7 +65,7 @@ struct ExperimentalSettingsTests {
 struct ExperimentalPageTests {
     @Test func thePageGroupsEveryListedOptionByTheme() {
         let groups = ExperimentalPageLayout.groups()
-        #expect(groups.map(\.theme) == [.composer, .messages])
+        #expect(groups.map(\.theme) == [.composer, .navigation, .messages])
         #expect(groups == ExperimentalTheme.listed.map { ExperimentalPageLayout.Group(theme: $0, features: $0.listedFeatures) })
         #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(groups.allSatisfy { group in group.features.allSatisfy { $0.theme == group.theme } })

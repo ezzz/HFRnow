@@ -63,8 +63,10 @@ struct RootModelTests {
     }
 
     @Test func tabsKeepTheLegacyOrderTitlesAndIcons() {
-        #expect(RootTab.allCases.map(\.title) == ["Catégories", "Favoris", "Messages", "Plus"])
-        #expect(RootTab.allCases.map(\.symbol) == ["folder.fill", "star.fill", "envelope", "ellipsis"])
+        // The experimental Recherche (#896) comes after legacy's four.
+        #expect(RootTab.allCases.prefix(4).map(\.title) == ["Catégories", "Favoris", "Messages", "Plus"])
+        #expect(RootTab.allCases.prefix(4).map(\.symbol) == ["folder.fill", "star.fill", "envelope", "ellipsis"])
+        #expect(RootTab.allCases.dropFirst(4).map(\.title) == ["Recherche"])
     }
 
     @Test func startScreenPicksTheTabAndFavouritesIsTheDefault() async {
@@ -200,6 +202,17 @@ struct RootModelTests {
         #expect(root.sidebarDestination == .plus(.search))
         root.selectedDestination = .tab(.messages)
         #expect(root.sidebarDestination == .tab(.messages))
+    }
+
+    /// EXPERIMENTAL(searchTab, #896): the sidebar has no fifth tab, it shows the Plus search entry; the bar keeps the tab.
+    @Test func theSearchTabShowsThePlusSearchEntryInTheSidebar() async {
+        let root = await model()
+        root.selectedTab = .search
+        #expect(root.selectedTab == .search)
+        #expect(root.selectedDestination == .tab(.search))
+        #expect(root.sidebarDestination == .plus(.search))
+        root.selectedTab = .more
+        #expect(root.selectedTab == .more)
     }
 
     @Test func aPlusEntryOpenInTheSidebarStaysOpenInThePlusTab() async {

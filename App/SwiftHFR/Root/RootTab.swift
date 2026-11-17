@@ -2,12 +2,15 @@ import HFRModels
 
 // Port of HFRswift/Swift/Common.swift (RootTabIdentifier) and HFRswift/Swift/PlusTab.swift (PlusHomeView rows) @ 2440d79. Differences:
 // none in the order; `init(startup:)` and the start-screen setting come from master (GAP-002).
-/// The four root tabs of the iPhone tab bar, in legacy order (`RootTabIdentifier`, `Common.swift:25-30`).
+/// The root tabs of the iPhone tab bar: legacy's four, in legacy order (`RootTabIdentifier`, `Common.swift:25-30`), and the
+/// experimental Recherche.
 enum RootTab: Int, CaseIterable, Hashable, Sendable {
     case categories
     case favorites
     case messages
     case more
+    // EXPERIMENTAL(searchTab, #896): the fifth tab, in the bar only while the option is on; the sidebar shows Plus › Rechercher.
+    case search
 
     /// Tab title (legacy `MainWindow.swift:1698-1725`).
     var title: String {
@@ -16,6 +19,7 @@ enum RootTab: Int, CaseIterable, Hashable, Sendable {
         case .favorites: "Favoris"
         case .messages: "Messages"
         case .more: "Plus"
+        case .search: "Recherche"
         }
     }
 
@@ -26,6 +30,7 @@ enum RootTab: Int, CaseIterable, Hashable, Sendable {
         case .favorites: "star.fill"
         case .messages: "envelope"
         case .more: "ellipsis"
+        case .search: "magnifyingglass"
         }
     }
 
