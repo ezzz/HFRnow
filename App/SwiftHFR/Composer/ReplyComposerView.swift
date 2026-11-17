@@ -46,7 +46,6 @@ struct ReplyComposerView: View {
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
-    @State private var rangeForSmiley: Range<String.Index>?
 
     private typealias Field = ComposerField
 
@@ -56,8 +55,6 @@ struct ReplyComposerView: View {
     @State private var isShowingImages = false
     /// A snippet was inserted by the closed panel: focus goes back to the editor.
     @State private var imageInserted = false
-    /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
-    @State private var rangeImage = NSRange(location: 0, length: 0)
     /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
     @State private var gifRequested = false
     /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
@@ -179,25 +176,19 @@ struct ReplyComposerView: View {
         )
     }
 
-    /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
-    private var selectedRange: Range<String.Index>? {
-        guard case .selection(let range)? = selection?.indices else { return nil }
-        return range
-    }
-
     private func openSmileys() {
         let services = model.smileyServices
         smileySearch = smileySearch ?? services.search
-        rangeForSmiley = selectedRange
+        formatting.beginPick()
         smileyInserted = false
         let catalogue = SmileyPickerModel.bundledCatalogue()
         picker = services.picker(catalogue: catalogue, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
-        guard let caret = model.insert(smiley: code, replacing: rangeForSmiley) else { return }
+        // The formatting model places the caret after the smiley (`cursorRevision`), as for images and GIFs.
+        guard formatting.insert(smiley: code) else { return }
         smileyInserted = true
-        selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
     }
 
     private var editorCard: some View {
@@ -368,14 +359,13 @@ extension ReplyComposerView {
 
     fileprivate func openImages() {
         imageInserted = false
-        rangeImage = formatting.selectedRange
+        formatting.beginPick()
         isShowingImages = true
     }
 
-    /// The panel's snippet at the caret it had; an upload of the panel also gets its chip in the card (#653).
+    /// The panel's snippet at the caret `beginPick()` saved; an upload of the panel also gets its chip in the card (#653).
     fileprivate func insertImage(_ snippet: String) {
-        formatting.selectedRange = rangeImage
-        formatting.insert(snippet)
+        formatting.insertPicked(snippet)
         imageInserted = true
         if let image = imageUpload.uploadedImage(writing: snippet) {
             model.imageChips.append(ComposerImageChip(snippet: snippet, thumbnail: image.miniURL ?? image.mediumURL ?? image.fullURL))

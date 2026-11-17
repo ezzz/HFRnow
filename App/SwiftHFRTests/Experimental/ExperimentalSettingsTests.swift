@@ -59,3 +59,32 @@ struct ExperimentalSettingsTests {
         }
     }
 }
+
+/// Réglages › Expérimental is one row that opens a page grouped by theme (#971).
+@MainActor
+struct ExperimentalPageTests {
+    @Test func thePageGroupsEveryListedOptionByTheme() {
+        let groups = ExperimentalPageLayout.groups()
+        #expect(groups.map(\.theme) == [.composer, .messages])
+        #expect(groups == ExperimentalTheme.listed.map { ExperimentalPageLayout.Group(theme: $0, features: $0.listedFeatures) })
+        #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases.filter(\.isListed))
+        #expect(groups.allSatisfy { group in group.features.allSatisfy { $0.theme == group.theme } })
+    }
+
+    /// The row shows when the page has a group, so a theme without a listed option is never a group.
+    @Test func aThemeWithoutListedOptionIsLeftOut() {
+        let themes = ExperimentalPageLayout.groups().map(\.theme)
+        #expect(!themes.contains(.imageLoading))
+        #expect(!themes.contains(.lists))
+        #expect(!ExperimentalPageLayout.groups().isEmpty)
+        #expect(ExperimentalPageLayout.groups().allSatisfy { !$0.features.isEmpty })
+    }
+
+    /// The move to a page keeps every key: nothing is read or written under another name.
+    @Test func switchesKeepTheirStorageKey() {
+        let store = InMemorySettingsStore()
+        let settings = ExperimentalSettings(store: store)
+        settings.set(.mpStorageSwitches, isOn: true)
+        #expect(store.rawValue(forKey: "experimental.mpStorageSwitches") == .bool(true))
+    }
+}

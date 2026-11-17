@@ -65,7 +65,7 @@ A capture PR is merge-ready when CI is green, CodeRabbit has reviewed the head a
 While captures wait (CI, review, delay budget), run up to 2 Mac lots in parallel, each in its own git worktree and its own sub-agent (model: opus for a medium or difficult lot, sonnet for an easy or trivial one). Order:
 1. #366 (flaky ForumSessionCheckTests on the simulator CI): it slows every app PR;
 2. LOT-161 #251 (TestFlight pipeline; #344 must pass first, see the mac/verify-merges prompt), LOT-137 #227, LOT-169 #295, then #322;
-3. the M2 lots with `status: ready` and `host: mac`, by priority.
+3. the issues with `status: ready` and `host: mac`, then those with `host: mac-helps` (the cloud can do them, a Mac session spares macOS CI runs), by priority.
 Each sub-agent claims its issue (`/claim mac/lot-<NNN>`), works per AGENTS.md, and gets an adversarial review from another model: a Fable sub-agent for a risky flow (session, cookies, posting, deletion), Sonnet otherwise. Each one opens one PR, handles the review rounds once and completely (REVIEW-ROUNDS), and merges when the merge criteria of AGENTS.md §8 are met (an adversarial APPROVE naming the current head, green CI, no open thread), except a risky flow, which it leaves for the orchestrator. App code that ports a legacy view cites the legacy file and symbol it comes from, in a short comment (ezzz's code is the reference; see #368 H.2).
 
 ## 6. Watchdog and housekeeping
@@ -100,7 +100,7 @@ Goal: quickly prove that what cloud sessions merged without a Mac check is not f
 
 ## 1. Find the checks owed
 1. `git fetch origin dev-swift && git switch dev-swift && git pull --ff-only`.
-2. List the open issues with the label `host: mac` whose title contains "hand check", "Mac check", "Post-capture review" or "checks on the Mac" (today #344 first, because it blocks TestFlight LOT-161; then #322, #330, #329 and #328). Also search the merged PRs of the last 14 days for "Mac check" or "hand check" in their body or comments, in case a check has no issue yet. If so, open an issue for it with `host: mac`.
+2. List the open issues with the label `host: mac` whose title contains "hand check", "Mac check", "Post-capture review" or "checks on the Mac" (today #344 first, because it blocks TestFlight LOT-161; then #322, #330, #329 and #328). Also search the merged PRs of the last 14 days for "Mac check" or "hand check" in their body or comments, in case a check has no issue yet. If so, add it to the general-review list on #893 instead of opening an issue (since 2026-11-16 a check owed by a merge goes to the operator's general review, AGENTS.md §7).
 3. Claim each one (`/claim mac/verify-merges` + label `status: claimed`).
 
 ## 2. Run the checks (the app on the iOS 27 simulator, then a device if one is connected)

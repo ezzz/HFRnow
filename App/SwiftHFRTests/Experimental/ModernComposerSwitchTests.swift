@@ -85,4 +85,18 @@ struct ModernComposerSwitchHostedTests {
             #expect(controls.minY >= card.maxY - 0.5, "card \(card), controls \(controls)")
         }
     }
+
+    /// The title strip follows the switch (#972): the modern composer draws none, the option off keeps legacy's bar and its
+    /// « Répondre » title, unchanged; an iPad keeps it either way.
+    @Test(arguments: [true, false])
+    func theTitleFollowsTheSwitch(modernComposer: Bool) async throws {
+        let box = try await host(modernComposer: modernComposer)
+        if isPhone && modernComposer {
+            #expect(box.frames[.title] == nil)
+        } else {
+            let title = try #require(box.frames[.title])
+            let card = try #require(box.frames[.card])
+            #expect(title.width > 0 && title.maxY <= card.minY + 0.5, "title \(title), card \(card)")
+        }
+    }
 }

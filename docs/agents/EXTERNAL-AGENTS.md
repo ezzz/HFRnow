@@ -57,7 +57,7 @@ Cite legacy code at the reference of AGENTS.md §2, `legacy/duo-inner-cover` @ `
    and it is not the author model (§8).
 2. **Issues labelled `external: ready`** and `status: ready`, without `status: claimed` and without an active `/claim`
    comment. Order: `priority: high` → `low`, then lower issue number. Match `difficulty` to the tier of your model (§8).
-3. Nothing else: no `host: mac`, no issue without `external: ready`, no lot claimed by anyone else, nothing in `App/`
+3. Nothing else: no `host: mac` (`host: mac-helps` is open to you), no issue without `external: ready`, no lot claimed by anyone else, nothing in `App/`
    unless the issue says so.
 
 Have you spotted something worth doing that is not in these queues? Comment on the related issue (or open a `[SwiftHFR] …` issue
