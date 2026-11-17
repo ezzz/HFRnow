@@ -156,7 +156,8 @@ public enum SettingKey {
     ).synced
     /// `display_images`. Legacy forced `yes` at every launch with no UI; here `yes` is the default, so images always load (#902).
     /// The key is read only behind Réglages › Expérimental › « Chargement des images » (`experimentalImageLoadingChoice`),
-    /// whose picker writes it; a value an earlier build stored stays in place and is ignored while that option is off.
+    /// whose picker writes it; a value an earlier build stored is ignored while that option is off, and replaced by `yes` at
+    /// its first activation (#1003, `experimentalImageLoadingChoiceStarted`).
     public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.always)
 
     // MARK: Private messages storage
