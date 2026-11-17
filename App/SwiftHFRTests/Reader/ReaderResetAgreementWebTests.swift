@@ -114,6 +114,39 @@ struct ReaderResetAgreementWebTests: ReaderWebTesting {
         #expect(scrollY <= 1, "the restore ran after the member took the page: scrollY \(scrollY)")
     }
 
+    /// Fable on #1044, round 2: a touch in the same millisecond as the ask still cancels it (counted, not timed).
+    @Test func aTouchInTheSameTurnAsTheAskCancelsTheRestore() async throws {
+        let controller = try await pageAway()
+        let script = Self.frames + """
+            window.hfrReader.restoreScroll(1000, 0);
+            window.dispatchEvent(new Event('touchstart'));
+            window.scrollTo(0, 0);
+            await frames(40);
+            return window.scrollY;
+            """
+        let scrollY = (try await evaluate(script, in: controller) as? NSNumber)?.doubleValue ?? -1
+        #expect(scrollY <= 1, "the restore ran after a touch in the same turn: scrollY \(scrollY)")
+    }
+
+    /// While the member moves the scroll view (`WebKitResetWatch.userScrolls`), the page gets no `from`: their reading top
+    /// is a moving value it would never match, so it scrolls after its two frames, as before #995.
+    @Test func noAgreementIsAskedWhileTheMemberScrolls() async throws {
+        let controller = try await pageAway()
+        controller.resetWatch.userScrolls = { _ in true }
+        let recorder = """
+            window.hfrReader.restoreScroll = (y, from) => { window.recordedFrom = from; return true; };
+            return true;
+            """
+        _ = try await evaluate(recorder, in: controller)
+        controller.scroll(toReadingTop: 1000)
+        let read = """
+            return window.recordedFrom === undefined ? 'none' : (window.recordedFrom === null ? 'null' : String(window.recordedFrom));
+            """
+        let seen = await until(async: { ((try? await self.evaluate(read, in: controller)) as? String) != "none" }, timeout: .seconds(30))
+        let from = (try? await evaluate(read, in: controller)) as? String
+        #expect(seen && from == "null", "from: \(from ?? "no answer")")
+    }
+
     /// The native side hands the page the scroll view's reading top in CSS pixels, plain and pinch-zoomed (#587).
     @Test(arguments: [1.0, 2.0])
     func theRestoreAndTheLandingGetTheScrollViewsReadingTop(zoom: Double) async throws {

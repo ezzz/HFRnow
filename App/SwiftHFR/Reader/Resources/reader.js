@@ -211,14 +211,15 @@
   // sends no event (VoiceOver, a status-bar tap) during the wait cannot be told from the reset by the page: the app's scroll
   // still runs after it, as it did after the two frames before #995, now up to half a second later.
   const agreementFrames = 30;
-  let userTouchedAt = 0;
+  // Counted, not timed: WebKit coarsens `performance.now()` to a millisecond, which a touch and an ask can share.
+  let touches = 0;
   ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
-    window.addEventListener(name, () => { userTouchedAt = performance.now(); }, { passive: true, capture: true }));
+    window.addEventListener(name, () => { touches += 1; }, { passive: true, capture: true }));
   const afterAgreement = (from, scroll) => {
-    const askedAt = performance.now();
+    const touchesWhenAsked = touches;
     let frames = 0;
     const step = () => {
-      if (userTouchedAt > askedAt) { return; }
+      if (touches !== touchesWhenAsked) { return; }
       if (typeof from !== "number" || Math.abs(window.scrollY - from) <= 1 || frames >= agreementFrames) {
         scroll();
         return;

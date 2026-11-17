@@ -36,11 +36,11 @@ extension ReaderWebController {
     }
 
     /// What the page must show before an app scroll runs (`afterAgreement` in `reader.js`, #995): the reading top now, or
-    /// `NSNull` while the member moves the scroll view, whose reading top is then a moving value the page would never match
-    /// (the page then scrolls after its two frames, as before #995).
+    /// `NSNull` while the member moves the scroll view (`WebKitResetWatch.userScrolls`, the one predicate and test seam), whose
+    /// reading top is then a moving value the page would never match (the page then scrolls after its two frames, as before
+    /// #995).
     var agreementTop: Any {
-        let scrollView = webView.scrollView
-        return scrollView.isTracking || scrollView.isDragging || scrollView.isDecelerating ? NSNull() : Double(readingTop)
+        resetWatch.userScrolls(webView.scrollView) ? NSNull() : Double(readingTop)
     }
 
     /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore). The
