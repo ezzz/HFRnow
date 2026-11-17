@@ -23,7 +23,7 @@ struct ThemeSettingsView: View {
                     legacyColors
                 }
             } footer: {
-                if seasonal.activeTheme == .noelAbuse {
+                if seasonal.drawnTheme == .noelAbuse {
                     Text("Noël abusé est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
                 } else if theme.theme.isLegacy {
                     Text(

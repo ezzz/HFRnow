@@ -153,9 +153,12 @@ struct NoelAbuseTests {
         let catalog = try catalogWithNoelAbuse()
         let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
         model.mode = .light
-        #expect(model.colorScheme(drawing: model.appearance.applying(.noelAbuse, catalog: catalog)) == .dark)
-        #expect(model.colorScheme(drawing: model.appearance.applying(.noelSoft, catalog: catalog)) == .light)
-        #expect(model.colorScheme(drawing: model.appearance) == .light)
+        // What `appTheme` draws: the model's appearance with the seasonal theme, from the model's own catalog.
+        let abuse = model.appearance(drawing: .noelAbuse)
+        #expect(abuse.themeDecorations == SeasonalTheme.noelAbuseDecorations)
+        #expect(model.colorScheme(drawing: abuse) == .dark)
+        #expect(model.colorScheme(drawing: model.appearance(drawing: .noelSoft)) == .light)
+        #expect(model.colorScheme(drawing: model.appearance(drawing: nil)) == .light)
         model.mode = .system
         #expect(model.colorScheme(drawing: model.appearance) == nil)
     }

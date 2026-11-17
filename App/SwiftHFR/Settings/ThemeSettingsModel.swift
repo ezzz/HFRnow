@@ -102,6 +102,11 @@ final class ThemeSettingsModel {
         case .dark: .dark
         }
     }
+    /// The appearance the app root draws: the user's, with `seasonal` (LOT-166) drawn over it from this model's catalog.
+    func appearance(drawing seasonal: SeasonalTheme?) -> ThemeAppearance {
+        appearance.applying(seasonal, catalog: catalog)
+    }
+
     /// The scheme the window takes while `appearance` is drawn: the one a single-variant theme imposes (the gallery's, or a
     /// seasonal one such as Noël abusé drawn over it, LOT-166), else `preferredColorScheme`.
     func colorScheme(drawing appearance: ThemeAppearance) -> ColorScheme? {
@@ -153,7 +158,7 @@ extension View {
     /// A `seasonal` theme (LOT-166) is drawn over the user's colours without changing them; Noël abusé, a single-variant theme
     /// of the engine, imposes its appearance like a gallery one.
     func appTheme(_ theme: ThemeSettingsModel, seasonal: SeasonalTheme? = nil) -> some View {
-        let appearance = theme.appearance.applying(seasonal, catalog: theme.catalog)
+        let appearance = theme.appearance(drawing: seasonal)
         let scheme = theme.colorScheme(drawing: appearance)
         return environment(theme)
             .environment(\.themeAppearance, appearance)
