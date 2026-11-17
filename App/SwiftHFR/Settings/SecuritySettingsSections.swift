@@ -44,8 +44,6 @@ struct SecuritySettingsSections: View {
             }
         } header: {
             Text("Sécurité")
-        } footer: {
-            Text("L’app se verrouille au lancement et au retour après le délai choisi ; le code de l’appareil remplace Face ID.")
         }
     }
 }
