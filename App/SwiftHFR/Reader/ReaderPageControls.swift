@@ -79,8 +79,8 @@ struct ReaderPageControls: ToolbarContent {
                 .visibilityPriority(.high)
             }
             // Flexible spacers split the glass into one pill per group (#961). The system bar centres the bubble between its two
-            // neighbours, not on the screen: it is on the screen's centre only while both side pills are as wide (end of a page,
-            // logged in). The strip below always is.
+            // neighbours, not on the screen, and at the end of a page the left side is two pills against one on the right: expect
+            // it off-centre (device check, #961). The strip below is exact.
             ToolbarSpacer(.flexible, placement: .bottomBar)
             if !state.centre.isEmpty {
                 ToolbarItem(placement: .bottomBar) {
