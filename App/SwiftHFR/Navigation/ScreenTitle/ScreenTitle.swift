@@ -18,8 +18,8 @@ enum ScreenTitleStyle: Equatable, Sendable {
         }
     }
 
-    /// What the top bar's centre slot holds. The slot is never left empty (#1012): an empty or removed title slot is dropped by the
-    /// bar and not rebuilt when the pill becomes due, so on the device no pill appeared at all.
+    /// What the top bar's centre slot holds. The slot is never left empty (#1012). Hypothesis, to confirm on the device (#893): the
+    /// `toolbar(removing: .title)` of the first version took the pill's slot with it, so no pill appeared at all.
     func pillPresentation(headerVisible: Bool) -> PillPresentation {
         showsPill(headerVisible: headerVisible) ? .shown : .reserved
     }
@@ -76,7 +76,7 @@ private struct ScreenTitleModifier: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     let presentation = style.pillPresentation(headerVisible: headerVisible)
-                    TitlePill(title: title)
+                    TitlePill(title: title, isActive: presentation == .shown)
                         .opacity(presentation == .shown ? 1 : 0)
                         .allowsHitTesting(presentation == .shown)
                         .accessibilityHidden(presentation == .reserved)
@@ -113,6 +113,8 @@ struct ScreenLargeTitle: View {
 /// The collapsed title: a Liquid Glass capsule, one line cut with « … », in the free space between the bar's buttons.
 struct TitlePill: View {
     let title: String
+    /// False while the pill is only holding its slot: an open full title folds then, instead of hanging on an invisible pill.
+    var isActive = true
     @State private var state = TitlePillState()
     @State private var justCopied = false
 
@@ -133,6 +135,9 @@ struct TitlePill: View {
                     .scaledFont(.headline)
                     .padding()
                     .presentationCompactAdaptation(.popover)
+            }
+            .onChange(of: isActive) { _, active in
+                if !active { state.fold() }
             }
             .task(id: state.isExpanded) {
                 guard state.isExpanded else { return }
