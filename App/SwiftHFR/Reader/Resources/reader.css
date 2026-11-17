@@ -147,12 +147,11 @@ table.citation, table.oldcitation, table.quote, table.code, table.fixed {
   width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0 0 5px;
   border: none; border-left: 2px solid var(--quote-border); background: transparent;
 }
-/* HFR writes `<hr size="1" />` after a quote's header and after its text; the browser draws it as an inset rule. Legacy hides it, keeping
-   its 12 px of space, and drops a last one (`style-liste-light.css:393-400`, `style-liste-dark.css:302-309`, `style-liste-oled.css:298-305` @ 87fe0d1c). */
-hr { visibility: hidden; height: 12px; }
+/* HFR writes `<hr size="1" />` after the header and the text of an `oldcitation` / `oldquote` (captures R33b, R47u1, R95f, R443l); the browser draws it
+   as an inset rule. Legacy hides it and keeps 12 px of space (its `* { margin: 0 }`, `style-liste.css:39-46`, leaves the browser's margins out), and drops a last one (`style-liste-light.css:393-400`, `style-liste-dark.css:302-309`, `style-liste-oled.css:298-305` @ 87fe0d1c). */
+hr { visibility: hidden; height: 12px; margin: 0; }
 hr:last-child { display: none; }
 /* No rule above or below a quote (#1038): legacy draws the left bar only (`style-liste-dark.css:296-300` @ 87fe0d1c). */
-div.container, table.citation tr, table.oldcitation tr, table.quote tr { border-top: 0; border-bottom: 0; }
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
 /* Without a fill a quote shows the message's own surface, even messages included: --secondary on the 5 % tint is 4.55:1 or more
    (see --alt-strength above). */
@@ -183,7 +182,7 @@ table.spoiler.open div.masque { visibility: visible; }
 }
 /* A blocklisted post's children carry their own 1em margins (below), so the signature only needs the text inset. */
 .message.blocked .blocked-post > .signature:not(summary) {
-  margin-left: var(--edge); margin-right: var(--edge); padding-left: var(--text-inset); padding-right: var(--text-right);
+  margin-left: var(--content-em); margin-right: var(--content-em); padding-left: var(--text-inset); padding-right: var(--text-right);
 }
 .signature > br:first-child, .content span.signature { display: none; }
 

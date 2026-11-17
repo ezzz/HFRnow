@@ -17,7 +17,7 @@ struct ReaderMarginsWebTests: ReaderWebTesting {
             dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil,
             content: MessageContent(
                 html: """
-                    <div class="container"><table class="citation"><tr class="none">
+                    <div class="container"><table class="oldcitation"><tr class="none">
                     <td><b class="s1">cite :</b><hr size="1" /><p>cité</p><hr size="1" /></td></tr></table></div>
                     <p>un texte assez long pour passer à la ligne dans la fenêtre de test, et vérifier la marge de droite du texte</p>
                     """,
@@ -43,8 +43,8 @@ struct ReaderMarginsWebTests: ReaderWebTesting {
         const sig = document.querySelector('.signature'), ss = getComputedStyle(sig), box = sig.getBoundingClientRect();
         const sigLeft = box.left + parseFloat(ss.borderLeftWidth) + parseFloat(ss.paddingLeft);
         const widths = (el) => { const s = getComputedStyle(el); return parseFloat(s.borderTopWidth) + parseFloat(s.borderBottomWidth); };
-        const framing = widths(document.querySelector('div.container')) + widths(document.querySelector('table.citation'))
-            + widths(document.querySelector('table.citation tr')) + widths(document.querySelector('table.citation td'));
+        const framing = widths(document.querySelector('div.container')) + widths(document.querySelector('table.oldcitation'))
+            + widths(document.querySelector('table.oldcitation tr')) + widths(document.querySelector('table.oldcitation td'));
         const shown = (h) => { const x = getComputedStyle(h); return x.visibility !== 'hidden' && x.display !== 'none'; };
         const rules = [...document.querySelectorAll('hr')].filter(shown).length;
         const textRight = content.getBoundingClientRect().right - parseFloat(cs.paddingRight);
