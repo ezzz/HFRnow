@@ -3,9 +3,31 @@ import HFRStorage
 import Testing
 import UIKit
 
+/// The sources sit next to the tests in the checkout CI builds from; the tests that read them are off when they run without it.
+/// Not main-actor isolated: a test trait's closure is `Sendable`.
+private enum IconSources {
+    static let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().appending(path: "SwiftHFR")
+    static let exist = FileManager.default.fileExists(atPath: app.appending(path: "Settings").path)
+}
+
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct AppIconPackTests {
     private let calendar = IconTestCalendar.calendar
+
+    private struct Expected {
+        let raw: String
+        let name: String
+        let pack: AppIconPack
+        let dated: Bool
+
+        init(_ raw: String, _ name: String, _ pack: AppIconPack, _ dated: Bool) {
+            self.raw = raw
+            self.name = name
+            self.pack = pack
+            self.dated = dated
+        }
+    }
 
     private func model(
         _ store: InMemorySettingsStore = InMemorySettingsStore(), current: String? = nil, on date: Date
@@ -51,15 +73,90 @@ struct AppIconPackTests {
         #expect(AppIconOption.noelHfr.pack == .season)
     }
 
-    @Test func sectionsFollowThePackOrderAndOmitEmptyPacks() {
-        let packs = model(on: IconTestCalendar.date(2026, 12, 10)).sections.map(\.pack)
-        #expect(packs == [.legacy, .beta, .season])
-        #expect(model(on: IconTestCalendar.date(2026, 6, 10)).sections.map(\.pack) == [.legacy, .beta])
+    @Test func theLot190IconsHaveTheirRawValueNamePackAndWindow() {
+        let expected: [Expected] = [
+            Expected("classic-blue", "Icon-CLASSIC-BLUE", .legacy, false),
+            Expected("orange", "Icon-ORANGE", .legacy, false),
+            Expected("beta-red", "Icon-BETA-RED", .beta, false),
+            Expected("xface", "Icon-XFACE", .xface, false),
+            Expected("xface-pride", "Icon-XFACE-PRIDE", .xface, false),
+            Expected("xface-pride-outline", "Icon-XFACE-PRIDE-OUTLINE", .xface, false),
+            Expected("xface-gradient-light", "Icon-XFACE-GRADIENT-LIGHT", .xface, false),
+            Expected("xface-gradient-dark", "Icon-XFACE-GRADIENT-DARK", .xface, false),
+            Expected("xface-gold", "Icon-XFACE-GOLD", .xface, false),
+            Expected("xface-gold-on-black", "Icon-XFACE-GOLD-ON-BLACK", .xface, false),
+            Expected("xface-gold-outline", "Icon-XFACE-GOLD-OUTLINE", .xface, false),
+            Expected("xface-5250", "Icon-XFACE-5250", .xface, false),
+            Expected("xface-negative", "Icon-XFACE-NEGATIVE", .xface, false),
+            Expected("xface-negative-inverted", "Icon-XFACE-NEGATIVE-INVERTED", .xface, false),
+            Expected("xface-sunset", "Icon-XFACE-SUNSET", .xface, false),
+            Expected("halloween-jack", "Icon-HALLOWEEN-JACK", .season, true),
+            Expected("halloween-hfr", "Icon-HALLOWEEN-HFR", .season, true),
+            Expected("spring", "Icon-SPRING", .season, false),
+            Expected("summer", "Icon-SUMMER", .season, false),
+            Expected("winter", "Icon-WINTER", .season, false)
+        ]
+        #expect(expected.count == 20)
+        for row in expected {
+            let option = AppIconOption(rawValue: row.raw)
+            #expect(option?.alternateIconName == row.name, "\(row.raw)")
+            #expect(option?.pack == row.pack, "\(row.raw)")
+            #expect((option?.window != nil) == row.dated, "\(row.raw)")
+        }
     }
 
-    @Test func everyOptionBelongsToExactlyOneSectionWhenAllAreOffered() {
+    @Test func halloweenIconsAreOfferedOnlyInOctober() {
+        #expect(offered(on: IconTestCalendar.date(2026, 9, 30)).isDisjoint(with: [.halloweenJack, .halloweenHfr]))
+        #expect(offered(on: IconTestCalendar.date(2026, 10, 1)).isSuperset(of: [.halloweenJack, .halloweenHfr]))
+        #expect(offered(on: IconTestCalendar.date(2026, 10, 31)).isSuperset(of: [.halloweenJack, .halloweenHfr]))
+        #expect(offered(on: IconTestCalendar.date(2026, 11, 1)).isDisjoint(with: [.halloweenJack, .halloweenHfr]))
+    }
+
+    @Test func everyAlternateIconOfTheBuildHasAnOptionWithAPack() {
+        let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any]
+        let alternates = Set((icons?["CFBundleAlternateIcons"] as? [String: Any])?.keys.map { $0 } ?? [])
+        let optionNames = Set(AppIconOption.allCases.compactMap(\.alternateIconName))
+        #expect(!alternates.isEmpty)
+        let extra = alternates.subtracting(optionNames)
+        let missing = optionNames.subtracting(alternates)
+        #expect(alternates == optionNames, "unregistered: \(extra), unbuilt: \(missing)")
+    }
+
+    @Test(.enabled(if: IconSources.exist)) func everyOptionHasItsIconBundleInTheSources() {
+        for option in AppIconOption.allCases {
+            let manifest = IconSources.app.appending(path: "\(option.iconBundleName).icon").appending(path: "icon.json")
+            #expect(FileManager.default.fileExists(atPath: manifest.path), "no \(option.iconBundleName).icon")
+        }
+    }
+
+    /// #874: the black rim is the real icon, so no appearance of REDFACE 3D Big may bring the red background fill back.
+    @Test(.enabled(if: IconSources.exist)) func redface3DBigBackgroundIsNearBlackInEveryAppearance() throws {
+        let url = IconSources.app.appending(path: "Icon-RedFace3DBig.icon").appending(path: "icon.json")
+        let json = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let specializations = try #require(json["fill-specializations"] as? [[String: Any]])
+        #expect(Set(specializations.compactMap { $0["appearance"] as? String }) == ["dark", "tinted"])
+        #expect(specializations.count == 3, "default, dark and tinted")
+        for specialization in specializations {
+            let fill = try #require(specialization["value"] as? [String: Any])
+            let color = try #require(fill["automatic-gradient"] as? String ?? fill["solid"] as? String)
+            let components = color.drop { $0 != ":" }.dropFirst().split(separator: ",").compactMap { Double($0) }
+            #expect(components.count == 4)
+            #expect(components.prefix(3).allSatisfy { $0 < 0.1 }, "\(color) is not near-black")
+        }
+    }
+
+    @Test func sectionsFollowThePackOrderAndOmitEmptyPacks() {
+        let packs = model(on: IconTestCalendar.date(2026, 12, 10)).sections.map(\.pack)
+        #expect(packs == [.legacy, .beta, .xface, .season])
+        #expect(model(on: IconTestCalendar.date(2026, 6, 10)).sections.map(\.pack) == [.legacy, .beta, .xface, .season])
+    }
+
+    @Test func everyOptionBelongsToExactlyOneSectionWhenItsWindowIsOpen() {
         let sections = model(on: IconTestCalendar.date(2026, 12, 10)).sections
-        #expect(sections.flatMap(\.options).count == AppIconOption.allCases.count)
+        let day = IconTestCalendar.date(2026, 12, 10)
+        let closed = AppIconOption.allCases.filter { !$0.isOffered(on: day, calendar: calendar) }
+        #expect(sections.flatMap(\.options).count == AppIconOption.allCases.count - closed.count)
+        #expect(Set(sections.flatMap(\.options)).count == sections.flatMap(\.options).count)
     }
 
     // MARK: Windows (Noël, 01/12 to 26/12 inclusive)
@@ -140,5 +237,19 @@ struct AppIconPackTests {
         #expect(AppIconOption.superblue.previewImageName == "IconPreview-Icon-RedFace3D")
         #expect(AppIconOption.noelHfr.previewImageName == "IconPreview-Icon-NOEL-HFR")
         #expect(AppIconOption.classicRed.previewImageName == "IconPreview-Icon-CLASSIC-RED")
+    }
+
+    // MARK: Grid layout
+
+    @Test(arguments: [(393.0, 4), (390.0, 4), (402.0, 4), (430.0, 5), (375.0, 4), (320.0, 3), (820.0, 10)])
+    func theGridFitsFourColumnsOnA61InchPhone(width: Double, columns: Int) {
+        #expect(AppIconGridLayout.columnCount(screenWidth: CGFloat(width)) == columns)
+    }
+
+    @Test func aThumbnailIsTheHomeScreenSizeAndTheCellKeepsA44ptTarget() {
+        #expect(AppIconGridLayout.iconSide == 60)
+        #expect(AppIconGridLayout.minimumCell >= 44)
+        // The cell is the thumbnail plus its 4 pt padding on each side (the selection ring).
+        #expect(AppIconGridLayout.iconSide + 8 <= AppIconGridLayout.minimumCell)
     }
 }
