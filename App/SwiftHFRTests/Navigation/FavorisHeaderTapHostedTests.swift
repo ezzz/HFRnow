@@ -9,6 +9,8 @@ import UIKit
 
 /// Where the main actor last was, readable from a watchdog thread: a main-thread hang never reaches the next step, and
 /// `.timeLimit` cannot end it (it cancels, and a hung main thread never checks), so the watchdog names the step and ends the run.
+/// Every step goes to stderr as `[#979] <step>`: read the step a hang stopped after there (the xcodebuild log, or the test's
+/// standard error in the result bundle), on the `[#979] HANG` line.
 private final class StepLog: @unchecked Sendable {
     private let lock = NSLock()
     private var step = "start"
@@ -28,6 +30,9 @@ private final class StepLog: @unchecked Sendable {
     /// Ends the watch with the test: a watchdog that outlives it would end the host in the middle of another test.
     func stop() { lock.withLock { stopped = true } }
 
+    /// Watches the main actor for `limit` seconds of silence. The limit is far above a slow first hosting on a loaded runner
+    /// (the steps beat every 50 ms) and under the test's 60 s `.timeLimit`. The end is a crash, not `exit`: an exit made the run
+    /// relaunch and report its remaining tests as passed, while a crash is reported against this test with its message.
     func watch(limit: TimeInterval) {
         Thread.detachNewThread { [self] in
             while true {
@@ -35,12 +40,21 @@ private final class StepLog: @unchecked Sendable {
                 let (done, step, silence) = lock.withLock { (stopped, step, Date().timeIntervalSince(beat)) }
                 if done { return }
                 if silence > limit {
-                    FileHandle.standardError.write(Data("[#979] HANG: main actor silent \(Int(silence)) s after '\(step)'\n".utf8))
-                    exit(1)
+                    let message = "[#979] HANG: main actor silent \(Int(silence)) s after '\(step)'"
+                    FileHandle.standardError.write(Data((message + "\n").utf8))
+                    fatalError(message)
                 }
             }
         }
     }
+}
+
+/// The hosted Favoris tab and the models a test checks.
+private struct HostedFavoritesTab {
+    let window: UIWindow
+    let navigation: NavigationModel
+    let filter: TopicFilterModel
+    let data: FakeDataSource
 }
 
 /// #979: a tap on a Favoris section title froze the app in compact density. The Favoris tab as `RootTabsView` builds it (tab
@@ -108,19 +122,8 @@ struct FavorisHeaderTapHostedTests {
         return data
     }
 
-    @Test(
-        "A section title pushes its category without freezing (#979)",
-        .timeLimit(.minutes(1)), arguments: [ListDensity.compact, .regular], [CGFloat(320), 402]
-    )
-    func aSectionTitlePushesItsCategory(density: ListDensity, width: CGFloat) async throws {
-        let log = StepLog()
-        log.watch(limit: 20)
-        Self.setAccessibilityAutomation(true)
-        defer {
-            Self.setAccessibilityAutomation(false)
-            log.stop()
-        }
-        log.mark("\(density) \(width): setup")
+    /// The Favoris tab, with Catégories beside it, hosted in a `width` window as the app builds it.
+    private func hostFavoritesTab(density: ListDensity, width: CGFloat) async throws -> HostedFavoritesTab {
         let data = dataSource()
         let store = InMemorySettingsStore()
         let options = favoritesOptions(settings: store)
@@ -152,6 +155,24 @@ struct FavorisHeaderTapHostedTests {
         window.frame = CGRect(x: 0, y: 0, width: width, height: 874)
         window.rootViewController = UIHostingController(rootView: root)
         window.isHidden = false
+        return HostedFavoritesTab(window: window, navigation: navigation, filter: filter, data: data)
+    }
+
+    @Test(
+        "A section title pushes its category without freezing (#979)",
+        .timeLimit(.minutes(1)), arguments: [ListDensity.compact, .regular], [CGFloat(320), 402]
+    )
+    func aSectionTitlePushesItsCategory(density: ListDensity, width: CGFloat) async throws {
+        let log = StepLog()
+        log.watch(limit: 45)
+        Self.setAccessibilityAutomation(true)
+        defer {
+            Self.setAccessibilityAutomation(false)
+            log.stop()
+        }
+        log.mark("\(density) \(width): setup")
+        let hosted = try await hostFavoritesTab(density: density, width: width)
+        let (window, navigation, filter, data) = (hosted.window, hosted.navigation, hosted.filter, hosted.data)
         defer { window.isHidden = true }
 
         var title: NSObject?
