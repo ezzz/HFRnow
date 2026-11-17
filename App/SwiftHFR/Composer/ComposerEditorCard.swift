@@ -64,6 +64,7 @@ struct ComposerEditorCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(expands ? "Plein écran" : "Réduire")
+            .composerProbe(.heightToggle)
         }
     }
 
