@@ -3,14 +3,19 @@ import HFRModels
 import Testing
 @testable import HFRParsing
 
-/// LOT-054 (#395): the poll vote answers `W42`-`W45` under `Context.pollVote`, and the vote sentence nowhere else.
+/// LOT-054 (#395): the poll vote answers `W42`-`W45` under `Context.pollVote`, and the vote sentence nowhere else; since #684
+/// also `W684`, HFR's answer to « Voir les résultats », which is the vote's own.
 @Suite("Hop response classifier: poll vote")
 struct HopResponsePollVoteTests {
-    /// Every capture whose classification is success under `.pollVote`: the vote confirmation (`W42`) and the same
-    /// sentence answering a POST sent without cookies (`W45`), which the shape alone cannot tell apart.
-    static let pollVoteConfirmations: Set<String> = ["W42-poll-vote-success", "W45-poll-vote-logged-out"]
+    /// Every capture whose classification is success under `.pollVote`: the vote confirmation (`W42`), the same sentence
+    /// answering a POST sent without cookies (`W45`), which the shape alone cannot tell apart, and the answer to
+    /// `sondage_submit=Voir les résultats` (`W684`, #684): HFR confirms it with the vote's sentence, so a client knows which of
+    /// the two it sent, not the answer.
+    static let pollVoteConfirmations: Set<String> = [
+        "W42-poll-vote-success", "W45-poll-vote-logged-out", "W684-poll-view-results-answer"
+    ]
 
-    @Test("Sweep: across the whole capture corpus only the two vote confirmations classify as success under .pollVote")
+    @Test("Sweep: across the whole capture corpus only the vote confirmations classify as success under .pollVote")
     func pollVoteCorpusSweep() throws {
         var successes: Set<String> = []
         for name in try Self.corpus() where try HopResponseParser.classify(
