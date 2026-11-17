@@ -52,7 +52,8 @@ struct AppEnvironment {
             ),
             profiles: LiveUserProfileSource(fetcher: fetcher),
             positions: LiveReaderPositionRecorder.live(account: accountName),
-            offline: .live(fetcher: fetcher),
+            // DISABLED(offline, #822): kept for a later design (#846), not reachable. No offline services, so no screen can offer it.
+            offline: OfflineSaveAvailability.isReachable ? .live(fetcher: fetcher) : nil,
             flagActions: flagActions,
             pseudoLists: PseudoListManager(store: PseudoListsSnapshot.liveStore, account: accountName, snapshot: lists),
             moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
@@ -60,7 +61,8 @@ struct AppEnvironment {
         )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
-            topicPages: pages, reader: reader, privateMessages: LivePrivateMessageSource(fetcher: fetcher),
+            topicPages: pages, reader: reader,
+            privateMessages: LivePrivateMessageSource(fetcher: fetcher),
             composer: .live(session: session, account: accountName),
             // The same lists as the reader's, refreshed at the start of each run (a run can start from a topic list, with no reader
             // load before it).

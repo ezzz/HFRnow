@@ -5,6 +5,7 @@ import SwiftUI
 // Port of HFRswift/Swift/ForumSearchView.swift (ForumSearchView, ForumSearchViewModel) @ 2440d79.
 // Differences: GAP-130..134. A banned word is refused with a warning instead of a silent substitution (Q-7,
 // CHANGELOG-LEGACY 45); the result row is the app's `TopicRowView` with the excerpt; the pager follows LOT-046's paths.
+// #1012 (GAP-978): a large title at landing, then the title pill, as the other main screens.
 // LOT-185: the pager (legacy `:395-432`) is the system bottom bar (`PagerToolbar`) instead of a glass capsule; GAP row pending #545.
 
 /// "Rechercher sur le forum" (Plus tab): the form, the results of the page on screen and a pager.
@@ -16,16 +17,17 @@ struct ForumSearchView: View {
     @FocusState private var fieldFocused: Bool
     /// "Annuler" ended the load: no result to announce (the loader keeps the previous value).
     @State private var cancelledLoad = false
+    @State private var titleVisibility = TitleVisibility()
 
     var body: some View {
         List {
+            ScreenLargeTitle(title: "Recherche", visibility: titleVisibility)
             formSection
             resultsSection
         }
         .densityListMargins()
-        .navigationTitle("Recherche")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { pagerToolbar }
+        .screenTitle("Recherche", style: .largeThenPill, visibility: titleVisibility)
+        .pagerBar(pager, hidden: fieldFocused)
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
                 TopicReaderView(model: readerModel, services: reader, composer: composer)
@@ -118,10 +120,9 @@ struct ForumSearchView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var pagerToolbar: some ToolbarContent {
+    private var pager: PagerToolbar? {
         if let content = model.loader.value, content.previousPath != nil || content.nextPath != nil {
-            PagerToolbar(
+            return PagerToolbar(
                 first: .init(enabled: model.canGoToPrevious && content.firstPath != nil) {
                     Task { await model.goToFirstPage() }
                 },
@@ -133,6 +134,7 @@ struct ForumSearchView: View {
                 status: .page(content.page)
             )
         }
+        return nil
     }
 
     private func summary(_ content: SearchContent) -> String {

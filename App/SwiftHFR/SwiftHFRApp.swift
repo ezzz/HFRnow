@@ -2,6 +2,8 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/HFRswiftApp.swift (HFRswiftApp) @ 2440d79. Differences: no ObjC app delegate; HFRKit is the engine.
+// The background MP check (LOT-140) is SwiftUI's `.backgroundTask(.appRefresh)` instead of `BGTaskScheduler.register` (87fe0d1c
+// `HFRswiftApp.swift:21`, `MPBackgroundService.swift:21-31`).
 /// Entry point of the SwiftHFR iOS app; the composition root for every screen.
 @main
 struct SwiftHFRApp: App {
@@ -23,6 +25,8 @@ struct SwiftHFRApp: App {
     @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
     /// The "Revenir à l'icône précédente ?" question once a seasonal icon's dates are over (#730).
     @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
+    /// The Réglages › Expérimental switches (#903), read by the screens whose modern path they gate.
+    @State private var experimental = ExperimentalSettings(store: UserDefaultsSettingsStore())
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -47,10 +51,11 @@ struct SwiftHFRApp: App {
                 .environment(general)
                 .environment(appLock)
                 .environment(seasonal)
+                .environment(experimental)
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
-                .appTheme(theme, seasonal: seasonal.activeTheme)
+                .appTheme(theme, seasonal: seasonal.drawnTheme)
                 // Snow over the screens, under the lock; the arrival alert waits until nothing covers them (LOT-166).
                 .seasonalDecorations(seasonal, isCovered: { appLock.isCovered })
                 // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
@@ -82,14 +87,23 @@ struct SwiftHFRApp: App {
                         await accounts.recheckUnconfirmedSessions()
                     }
                 }
+                // Notification permission at launch, as legacy (`HFRswiftApp.swift:27-29` @ 87fe0d1c, LOT-140); iOS asks once.
+                .task { await MPNotificationCenter().prepare() }
+                // The next background MP check is scheduled when the app leaves the screen (`HFRswiftApp.swift:31-35`).
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .background { Task { await MPBackgroundScheduler.schedule() } }
+                }
                 // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
                 .onChange(of: scenePhase, initial: true) { _, phase in
                     if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                     // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
                     if phase == .active { seasonal.sceneDidBecomeActive() }
-                    // Crossing objects wait for foreground time only (THEMES.md §4 rule 4).
-                    seasonal.crossings.foregroundChanged(active: phase == .active)
                 }
+        }
+        // The background MP check (LOT-140): the next one is scheduled first, as legacy (`MPBackgroundService.swift:71`).
+        .backgroundTask(.appRefresh(MPBackgroundScheduler.taskIdentifier)) {
+            await MPBackgroundScheduler.schedule()
+            await MPBackgroundCheck.live.run()
         }
     }
 }

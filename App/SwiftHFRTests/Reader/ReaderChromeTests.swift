@@ -34,7 +34,7 @@ struct ReaderChromeTests {
         #expect(ReaderPageMenu.finalTargets(maxPage: 1200) == [1198, 1199, 1200])
     }
 
-    /// Legacy `pageChoiceMenuFinalTargets` (`MessagesView.swift:4206-4213` @ 2440d79), restated literally as the oracle.
+    /// Legacy `pageChoiceMenuFinalTargets` (`MessagesView.swift:5019-5026` @ 87fe0d1c), restated literally as the oracle.
     private func legacyFinalTargets(_ maxPage: Int) -> [Int] {
         guard maxPage > 1 else { return [] }
         var seen: Set<Int> = [1]
@@ -44,28 +44,54 @@ struct ReaderChromeTests {
         }
     }
 
-    @Test func thePageMenuItemsFollowLegacyOrderAndAppearOnlyPastOnePage() {
+    /// Issue #821: legacy's `pageChoiceMenuItems` (`MessagesView.swift:5029-5046` @ 87fe0d1c), numbers and not "Première page"
+    /// / "Dernière page", whose "Dernière page" next to "Dernier post" read as the same thing.
+    @Test func thePageMenuItemsAreLegacysNumberedPagesInLegacysOrder() {
         #expect(ReaderPageMenu.items(maxPage: 1).isEmpty)
-        for maxPage in [2, 40] {
-            // "Dernière page" replaces legacy's last "Page N", which is the only target dropped.
-            let expected: [ReaderPageMenu.Item] =
-                [.first, .ask] + legacyFinalTargets(maxPage).dropLast().map(ReaderPageMenu.Item.page) + [.last, .lastPost]
+        for maxPage in [2, 3, 40, 1126] {
+            let expected: [ReaderPageMenu.Item] = [.page(1), .ask] + legacyFinalTargets(maxPage).map(ReaderPageMenu.Item.page) + [.lastPost]
             #expect(ReaderPageMenu.items(maxPage: maxPage) == expected)
         }
-        #expect(ReaderPageMenu.items(maxPage: 2).map(\.title)
-            == ["Première page", "Aller à la page…", "Dernière page", "Dernier post"])
-        #expect(ReaderPageMenu.items(maxPage: 40).map(\.title)
-            == ["Première page", "Aller à la page…", "Page 38", "Page 39", "Dernière page", "Dernier post"])
+        #expect(ReaderPageMenu.items(maxPage: 2).map(\.title) == ["Page 1", "Page …", "Page 2", "Dernier post"])
+        #expect(ReaderPageMenu.items(maxPage: 1126).map(\.title)
+            == ["Page 1", "Page …", "Page 1124", "Page 1125", "Page 1126", "Dernier post"])
+    }
+
+    /// Issue #823: the "Page numéro" sheet's rules (`Common.swift:3063-3190` @ 87fe0d1c).
+    @Test func theSheetStepsAndClampsAsLegacyDoes() {
+        func step(_ input: String, _ kind: ReaderPagePicker.Step) -> String { ReaderPagePicker.stepped(input, by: kind, maxPage: 1126) }
+        #expect(step("5", .minusTen) == "1")
+        #expect(step("1", .minusOne) == "1")
+        #expect(step("12", .minusTen) == "2")
+        #expect(step("1125", .plusOne) == "1126")
+        #expect(step("1126", .plusOne) == "1126")
+        #expect(step("1120", .plusTen) == "1126")
+        #expect(step("600", .plusTen) == "610")
+        // Text that is no page reads as page 1; a page past the end is held at the last one before stepping.
+        #expect(step("", .plusOne) == "2")
+        #expect(step("abc", .minusOne) == "1")
+        #expect(step("5000", .minusOne) == "1125")
+        #expect(ReaderPagePicker.Step.allCases.map(\.title) == ["-10", "-1", "+1", "+10"])
+    }
+
+    @Test func theSheetOpensOnlyAPageOfTheTopic() {
+        #expect(ReaderPagePicker.target("1126", maxPage: 1126) == 1126)
+        #expect(ReaderPagePicker.target(" 7 ", maxPage: 1126) == 7)
+        #expect(ReaderPagePicker.target("0", maxPage: 1126) == nil)
+        #expect(ReaderPagePicker.target("1127", maxPage: 1126) == nil)
+        #expect(ReaderPagePicker.target("", maxPage: 1126) == nil)
+        #expect(ReaderPagePicker.resolved("99999", maxPage: 1126) == 1126)
+        #expect(ReaderPagePicker.clamped(-3, maxPage: 40) == 1)
     }
 
     @Test func theMenuActionsOpenTheRightPageAndAnchor() {
         func go(_ item: ReaderPageMenu.Item) -> [Int]? {
             ReaderPageMenu.destination(of: item, maxPage: 40).map { [$0.page, $0.atLastMessage ? 1 : 0] }
         }
-        #expect(go(.first) == [1, 0])
+        #expect(go(.page(1)) == [1, 0])
         #expect(go(.ask) == nil)
         #expect(go(.page(39)) == [39, 0])
-        #expect(go(.last) == [40, 0])
+        #expect(go(.page(40)) == [40, 0])
         #expect(go(.lastPost) == [40, 1])
     }
 

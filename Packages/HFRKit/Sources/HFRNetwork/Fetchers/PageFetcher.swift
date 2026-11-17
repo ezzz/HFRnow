@@ -24,9 +24,10 @@ public struct PageFetcher: Sendable {
 
     /// R2: the topic list of a forum.
     public func topicList(
-        category: CategoryID, filter: TopicListFilter = .all, page: Int = 1, as identity: FetchIdentity = .authenticated
+        category: CategoryID, subcategory: Int? = nil, filter: TopicListFilter = .all, page: Int = 1,
+        as identity: FetchIdentity = .authenticated
     ) async throws(NetworkError) -> RawPage {
-        try await fetch({ try HFREndpoint.topicList(category: category, filter: filter, page: page) }, identity)
+        try await fetch({ try HFREndpoint.topicList(category: category, subcategory: subcategory, filter: filter, page: page) }, identity)
     }
 
     /// R3: favourites across forums.
@@ -68,6 +69,12 @@ public struct PageFetcher: Sendable {
         _ text: String, requireAll: Bool = false, as identity: FetchIdentity = .authenticated
     ) async throws(NetworkError) -> RawPage {
         try await fetch({ try HFREndpoint.smileySearch(text, requireAll: requireAll) }, identity)
+    }
+
+    /// A page of the member's profile edit form (`/user/editprofil.php`); page 5 lists the member's own created smileys
+    /// (`R601a`). Needs the account's cookies, and HFR sets them again on this page: send it from a probe session.
+    public func profileEdit(page: EditProfilePage, as identity: FetchIdentity = .authenticated) async throws(NetworkError) -> RawPage {
+        try await fetch({ try HFREndpoint.editProfile(page: page) }, identity)
     }
 
     /// R54: the wiki entry of a smiley. Anonymous by default: HFR serves it logged out (`R54`).

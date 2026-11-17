@@ -8,10 +8,10 @@ import WebKit
 @MainActor
 @Suite(.serialized)
 struct ReaderTextScaleTests: ReaderWebTesting {
-    /// Body text size over the root's (`-apple-system-body`, Dynamic Type): the in-app factor.
+    /// Body text size over the root's (`-apple-system-body`, Dynamic Type), over the legacy 15/17 (#819): the in-app factor.
     private let ratio = """
         const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        return parseFloat(getComputedStyle(document.querySelector('.content')).fontSize) / root;
+        return parseFloat(getComputedStyle(document.querySelector('.content')).fontSize) / root / (15 / 17);
         """
 
     private func factor(in controller: ReaderWebController) async -> Double {
@@ -75,7 +75,7 @@ struct ReaderTextScaleTests: ReaderWebTesting {
         _ = try await evaluate("document.documentElement.style.setProperty('--text-scale', '3'); return true;", in: controller)
         let large = try #require(try await evaluate(measure, in: controller) as? [Double])
         #expect(large[1] <= 2, "author lines at 300 %: \(large)")
-        // The "⋯" button stays a plain tap target (44 pt and up, not a block filling the header), and the default is unchanged.
+        // The "+" button stays a plain tap target (44 pt and up, not a block filling the header), and the default is unchanged.
         #expect(large[2] >= 44 && large[3] >= 44 && large[3] <= 80, "button at 300 %: \(large)")
     }
 

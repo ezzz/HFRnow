@@ -1,0 +1,10 @@
+/// The modern composer (#904, behind Réglages › Expérimental › « Composer moderne », #903): on an iPhone, the compact card
+/// docked on the keyboard that grows with its text (#653, `ComposerHeight`, `ComposerCardLayout`), the controls inside the card
+/// and small floating buttons (#888, `ComposerChrome`). Off (the default since #855), the composer shows at full height with
+/// legacy's bar and row, as on an iPad, and the reader's composers are legacy's full-screen cover (`ComposerPlacement.cover`).
+///
+/// This folder holds the option's own code; `ReplyComposerView` picks it at its marker comment for this option.
+enum ModernComposer {
+    /// Whether the composer is the modern one: an iPhone with the option on. An iPad never is.
+    static func isActive(isPhone: Bool, isOn: Bool) -> Bool { isPhone && isOn }
+}

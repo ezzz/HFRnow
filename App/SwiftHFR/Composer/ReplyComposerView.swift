@@ -8,26 +8,33 @@ import SwiftUI
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 // Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
-// "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone the composer is a card docked on the keyboard that
-// grows with the text up to a cap, the page visible and scrollable above it, its taps ignored (`ComposerHeight`,
-// `ComposerCardLayout`, GAP-653, b·operator); the full-screen toggle in the editor's corner; inserted images as chips in the card.
-/// The composer sheet: a plain text editor, close and Send; a new topic adds its subject and sub-category (LOT-089); a new
-/// private message adds its recipient and subject
-/// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
-/// `ReplyComposerModel`.
+// "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone with Réglages › Expérimental › « Composer moderne » on
+// (#903, off by default since #855; `ModernComposer`), the composer is a card docked on the keyboard that grows with the text up to a
+// cap (`ComposerHeight`, `ComposerCardLayout`, GAP-653, b·operator); in the reader that card is a bar docked at the bottom of the
+// page, the page scrollable above it with the keyboard up, its taps ignored (#853, `ComposerPlacement`), elsewhere a sheet; the
+// full-screen toggle in the editor's corner, the control row inside the card and close, drafts and send as small floating
+// buttons (#854, `ComposerChrome`); with it off, and on an iPad, legacy's bar and the row under the card, in a full-height sheet
+// or, in an iPhone's reader, legacy's full-screen cover (#855). Inserted images show as chips in the card.
+/// The composer, a sheet, a full-screen cover or the reader's docked bar: a plain text editor, close and Send; a new topic adds
+/// its subject and sub-category (LOT-089); a new private message adds its recipient and subject (LOT-128, legacy "À :" field,
+/// `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in `ReplyComposerModel`.
 ///
 /// The editor is SwiftUI's own `TextEditor` with the system keyboard type, so third-party keyboards work (legacy backlog
-/// HFR-001) and the text is never rewritten under the cursor; the sheet's keyboard safe area keeps the caret visible.
+/// HFR-001) and the text is never rewritten under the cursor; the keyboard safe area (the sheet's, or the reader's under the
+/// docked bar) keeps the caret visible.
 struct ReplyComposerView: View {
     let model: ReplyComposerModel
-    /// The presenter ignores its page's taps while this sheet is open: at partial height the page above stays scrollable (#653).
-    let pageScrolls: Bool
-    /// Called once with the reason, right before the sheet goes away.
-    let onClose: (ReplyComposerModel.CloseReason) -> Void
+    /// A sheet, or the reader's bar docked on the keyboard (#853).
+    let placement: ComposerPlacement
+    /// Called once with the reason, right before the sheet goes away; nil when the presenter watches the close itself
+    /// (`ReaderComposerPresenter`, whose composer can move between the bar and a sheet: one observer, never two).
+    let onClose: ((ReplyComposerModel.CloseReason) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scenePhase) private var scenePhase
+    /// Hosted layout tests only (#854); nil in the app.
+    @Environment(\.composerLayoutProbe) private var probe
     @FocusState private var focused: Field?
     @State private var selection: TextSelection?
     /// The first focus (once the draft is read) happened: later `canEdit` flips (a send) never steal it.
@@ -38,7 +45,6 @@ struct ReplyComposerView: View {
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
-    @State private var rangeForSmiley: Range<String.Index>?
 
     private typealias Field = ComposerField
 
@@ -48,8 +54,6 @@ struct ReplyComposerView: View {
     @State private var isShowingImages = false
     /// A snippet was inserted by the closed panel: focus goes back to the editor.
     @State private var imageInserted = false
-    /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
-    @State private var rangeImage = NSRange(location: 0, length: 0)
     /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
     @State private var gifRequested = false
     /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
@@ -58,10 +62,14 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
+    /// Réglages › Expérimental (#903); nil keeps each option's default (hosted tests, previews).
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
-    init(model: ReplyComposerModel, pageScrolls: Bool = false, onClose: @escaping (ReplyComposerModel.CloseReason) -> Void) {
+    init(
+        model: ReplyComposerModel, placement: ComposerPlacement = .sheet, onClose: ((ReplyComposerModel.CloseReason) -> Void)? = nil
+    ) {
         self.model = model
-        self.pageScrolls = pageScrolls
+        self.placement = placement
         self.onClose = onClose
         _formatting = State(initialValue: ComposerFormattingModel(composer: model, clipboard: SystemClipboard()))
         _imageUpload = State(initialValue: ImageUploadModel(services: model.imageUploadServices))
@@ -72,25 +80,27 @@ struct ReplyComposerView: View {
             VStack(spacing: 0) {
                 ComposerHeader(
                     title: title, isSending: model.isSending, canSend: model.canSend, drafts: drafts,
+                    floats: chrome.headerFloats,
                     close: { Task { await model.requestClose() } }, send: { Task { await model.send() } }
                 )
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 6)
                 banners
                 if model.hasSubjectField { messageFields }
+                // Inside the measured top, so the docked sheet's height counts it (#895).
+                Color.clear.frame(height: chrome.gapAboveCard(hasPartsUnderHeader: model.hasPartsUnderHeader))
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.top = $0 }
             editorCard
-                .padding(.horizontal, 16)
-                .padding(.vertical, ComposerCardLayout.gap)
+                .padding(chrome.cardInsets)
             // Just under the editor, so it moves with the card and the keyboard (#653); one view kept across focus changes,
             // after the fields, so moving between them never moves it (#599). Not `.keyboard` placement: that is an input
             // accessory rebuilt for each focused field (recipient, subject, text), and gone without an on-screen keyboard.
-            controls.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+            // On an iPhone it is inside the card instead, on its bottom edge (#854).
+            if !chrome.controlsInCard { measuredControls }
         }
-        .frame(maxHeight: .infinity, alignment: .top)
+        // Docked at partial height the bar is as tall as its card; a sheet, or "Plein écran", fills what it is given.
+        .frame(maxHeight: placement == .docked && height == .partial ? nil : .infinity, alignment: .top)
         .appScreenBackground()
+        .modifier(DockedComposerBar(isDocked: placement == .docked, height: height))
         .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
         .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
             clipboardButtons(pending)
@@ -112,8 +122,10 @@ struct ReplyComposerView: View {
             onDismiss: { if imageInserted { focused = .text } },
             onInsert: { insertImage($0) }
         )
-        .presentationDetents([detent])
-        .modifier(PartialComposerSheet(isEnabled: isPhone, height: height, detent: detent, pageScrolls: pageScrolls))
+        .modifier(ComposerSheetSettings(
+            isSheet: placement == .sheet, isModern: usesModernComposer, detent: detent,
+            dismissDisabled: model.closeNeedsChoice || model.isSending
+        ))
         .sheet(isPresented: $isShowingArchive, onDismiss: { focused = .text }, content: {
             ArchivedDraftsView(model: model) {
                 isShowingArchive = false
@@ -122,8 +134,6 @@ struct ReplyComposerView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         })
-        // Swiping down would close without the choice: blocked while there is text or a send runs.
-        .interactiveDismissDisabled(model.closeNeedsChoice || model.isSending)
         .task {
             await model.start()
             formatting.placeCaretAtEnd()
@@ -136,6 +146,7 @@ struct ReplyComposerView: View {
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
+        .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
@@ -143,7 +154,7 @@ struct ReplyComposerView: View {
             if phase != .active { Task { await model.flushDraft() } }
         }
         .onChange(of: model.closeReason) { _, reason in
-            guard let reason else { return }
+            guard let reason, let onClose else { return }
             onClose(reason)
             dismiss()
         }
@@ -164,25 +175,19 @@ struct ReplyComposerView: View {
         )
     }
 
-    /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
-    private var selectedRange: Range<String.Index>? {
-        guard case .selection(let range)? = selection?.indices else { return nil }
-        return range
-    }
-
     private func openSmileys() {
         let services = model.smileyServices
         smileySearch = smileySearch ?? services.search
-        rangeForSmiley = selectedRange
+        formatting.beginPick()
         smileyInserted = false
         let catalogue = SmileyPickerModel.bundledCatalogue()
         picker = services.picker(catalogue: catalogue, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
-        guard let caret = model.insert(smiley: code, replacing: rangeForSmiley) else { return }
+        // The formatting model places the caret after the smiley (`cursorRevision`), as for images and GIFs.
+        guard formatting.insert(smiley: code) else { return }
         smileyInserted = true
-        selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
     }
 
     private var editorCard: some View {
@@ -190,7 +195,8 @@ struct ReplyComposerView: View {
             model: model, formatting: formatting, selection: $selection, focused: $focused, chips: model.shownImageChips,
             editorHeight: height == .partial ? measured.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
             onToggle: { chosenHeight = height.toggled }, removeChip: removeImage,
-            measure: { text, line in measured.text = text; measured.line = line }
+            measure: { text, line in measured.text = text; measured.line = line },
+            controls: chrome.controlsInCard ? AnyView(measuredControls) : nil
         )
     }
 
@@ -241,6 +247,7 @@ struct ReplyComposerView: View {
         .scaledFont(.body)
         .disabled(!model.canEdit)
         .padding(.horizontal, 16)
+        .composerProbe(.fields)
     }
 }
 
@@ -260,14 +267,31 @@ extension ReplyComposerView {
 
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
+    // EXPERIMENTAL(modernComposer, #904): replaces the full-height composer with legacy's bar and row (the iPad's, and legacy's
+    // full-screen cover in the reader, #855) by the compact card docked on the keyboard, on an iPhone (`ModernComposer`).
+    private var usesModernComposer: Bool {
+        ModernComposer.isActive(isPhone: isPhone, isOn: ExperimentalSettings.isOn(.modernComposer, in: experimental))
+    }
+
+    /// The modern composer's lighter chrome: the controls in the card, floating buttons (#854).
+    private var chrome: ComposerChrome { ComposerChrome(isPhone: usesModernComposer) }
+
+    /// The controls, their height measured for the docked card (`ComposerCardLayout.controls`).
+    private var measuredControls: some View {
+        controls
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { measured.controls = $0 }
+            .composerProbe(.controls)
+    }
+
     /// An iPhone in regular height: partial height first, and the toggle (#653).
     private var offersHeightToggle: Bool {
-        ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass)
+        ComposerHeight.offersToggle(isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass)
     }
 
     private var height: ComposerHeight {
         ComposerHeight.shown(
-            chosen: chosenHeight, isPhone: isPhone, verticalSizeClass: verticalSizeClass, largeText: dynamicTypeSize.isAccessibilitySize
+            chosen: chosenHeight, isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass,
+            largeText: dynamicTypeSize.isAccessibilitySize
         )
     }
 
@@ -285,7 +309,7 @@ extension ReplyComposerView {
             ComposerControlRow(
                 model: model, formatting: formatting, offersGif: model.gifServices.isAvailable,
                 openSmileys: openSmileys, openGif: { gifRequested = true }, openImages: openImages,
-                refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+                refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }, inCard: chrome.controlsInCard
             )
         }
         .animation(.easeInOut(duration: 0.2), value: formatting.isBarShown)
@@ -295,7 +319,9 @@ extension ReplyComposerView {
     private var formattingBar: some View {
         let allowsBar = ComposerBarFocus.allowsBar(focused: focused)
         // `.plain` buttons draw no disabled state: the bar dims itself, as `FormattingToolbar` does for `isEnabled`.
-        return FormattingToolbar(model: formatting) { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }
+        return FormattingToolbar(
+            model: formatting, refocus: { focused = ComposerBarFocus.focus(afterBarActionFrom: focused) }, inCard: chrome.controlsInCard
+        )
             .disabled(!allowsBar)
             .opacity(allowsBar ? 1 : 0.4)
     }
@@ -332,14 +358,13 @@ extension ReplyComposerView {
 
     fileprivate func openImages() {
         imageInserted = false
-        rangeImage = formatting.selectedRange
+        formatting.beginPick()
         isShowingImages = true
     }
 
-    /// The panel's snippet at the caret it had; an upload of the panel also gets its chip in the card (#653).
+    /// The panel's snippet at the caret `beginPick()` saved; an upload of the panel also gets its chip in the card (#653).
     fileprivate func insertImage(_ snippet: String) {
-        formatting.selectedRange = rangeImage
-        formatting.insert(snippet)
+        formatting.insertPicked(snippet)
         imageInserted = true
         if let image = imageUpload.uploadedImage(writing: snippet) {
             model.imageChips.append(ComposerImageChip(snippet: snippet, thumbnail: image.miniURL ?? image.mediumURL ?? image.fullURL))

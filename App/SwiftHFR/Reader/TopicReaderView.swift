@@ -2,13 +2,14 @@ import HFRModels
 import SwiftUI
 import WebKit
 
-// Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79. Differences:
-// the page controls are the legacy ‹ › with a "N / M" page menu, the same page items also sit in the "…" overflow, with new labels
-// (`ReaderPageControls`, LOT-186, #582); the page
+// Port of HFRswift/Swift/MessagesView.swift (MessagesView: bottom page toolbar, Safari view, composer sheet) @ 2440d79, and its
+// end-of-page bar and edit-menu callout @ 87fe0d1c (`ReaderPageControls`, `ReaderMessageEditMenu`). Differences: the "N / M" page
+// bubble and a second "Actualiser" show at the end of the page only, a pull past the end refreshes (#820); the page
 // runs under the glass bars; videos on tap (GAP-058, 060; UXD-10). The tab bar is hidden while a topic is open, as legacy does
 // (`.toolbar(.hidden, for: .tabBar)`, Favorites.swift:807, MessagesView.swift:3256; GAP-008, UXD-02), but only in compact width (the
-// split collapsed) and only when the reader's tab is the selected one: list and reader side by side (Pro Max landscape, iPad) keep the
-// bar, the only way to switch tabs there. The full-screen Plus search and offline readers keep it in regular width too (see GAP-008).
+// split collapsed, also on a Pro Max in landscape, #431) and only when the reader's tab is the selected one: list and reader side
+// by side (iPad, a foldable's inner screen) keep the bar, the only way to switch tabs there. The full-screen Plus search and
+// offline readers keep it in regular width too (see GAP-008).
 /// Whether the reader's root tab is the selected one; `RootTabsView` sets it per tab (default true outside the tab bar).
 private struct IsSelectedRootTabKey: EnvironmentKey {
     static let defaultValue = true
@@ -29,9 +30,9 @@ enum ReaderTabBar {
     }
 }
 
-/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the reply
-/// sheet. A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its host wraps it in a
-/// `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
+/// The detail column: one topic page in a web view, page navigation, refresh, links, video players on tap and the composers
+/// (`ReaderComposerPresenter`). A followed forum link pushes another reader (legacy `MessagesView.openInternalTopic`); its
+/// host wraps it in a `NavigationStack` (`ReaderColumn`, `MessageReaderColumn`).
 struct TopicReaderView: View {
     let model: TopicReaderModel
     let services: ReaderServices
@@ -48,15 +49,19 @@ struct TopicReaderView: View {
     @State private var viewerID = ReaderViewerID.next()
     /// The offline save of this topic (LOT-139); nil without offline services (the offline reader, previews).
     @State private var saver: OfflineSaveModel?
+    @State private var search: TopicSearchModel?
+    /// The sign-in prompt of the search entry while logged out (#821), and the accounts screen it leads to.
+    @State private var askingSignIn = false
+    @State private var showsAccounts = false
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109); a fresh model per tap.
     @State private var viewer: ImageViewerModel?
-    @State private var profile: UserProfileModel?
-    /// The author menu's MP composer and handlers (issue #595).
+    /// The profile sheet, the author menu's MP composer and their handlers (issues #595, #652).
     @State private var authorMenu = AuthorMenuFlow()
     @State private var askingPage = false
-    @State private var pageText = ""
+    /// The page's end is on screen (`reader.js`): the end-of-page bar (#820).
+    @State private var atPageEnd = false
     /// The swipe and reply button settings, and the display settings, followed while the reader is on screen (#750).
     @State private var settings = ReaderSettingsWatch()
     /// "Editer" and "Supprimer" of the message menu (LOT-088); nil until the menu is installed, and logged out.
@@ -66,24 +71,25 @@ struct TopicReaderView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.isSelectedRootTab) private var isSelectedTab
+    @Environment(\.rootHasTabBar) private var rootHasTabBar
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
 
     var body: some View {
         ZStack {
             if let controller {
                 // The page runs under the bars and banners (HIG Layout: extend content under the bars, LOT-186); what they cover
                 // is the safe area this full-height reader ignores, handed to the web view.
-                GeometryReader { proxy in
+                ReaderUnderBars { obscured in
                     ReaderWebView(
                         controller: controller, document: model.document, scrollRequest: model.scrollRequest,
-                        obscured: proxy.safeAreaInsets
+                        obscured: obscured
                     )
                 }
-                .ignoresSafeArea(edges: .vertical)
                 .opacity(model.hasShownDocument ? 1 : 0)
                 .accessibilityHidden(!model.hasShownDocument)
                 .simultaneousGesture(pageSwipe, including: settings.swipesPages ? .all : .none)
             }
-            overlay
+            ReaderStateOverlay(model: model, retry: retry, refresh: refresh)
         }
         .navigationTitle(model.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -94,53 +100,49 @@ struct TopicReaderView: View {
                 LoadFailureBanner(error: error, retry: retry).disabled(model.suspendsPageInteractions)
             }
         }
+        // Inside the composers: above a docked bar, never over it (#853).
+        .overlay(alignment: .bottom) { ReaderMenuFeedbackBanner(model: model) }
         .modifier(ReaderReplyFlow(model: model, composer: composer))
         .modifier(ReaderEditFlow(writes: writes))
+        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
-        .modifier(ReaderSearchFlow(model: model, composer: composer))
+        .modifier(ReaderSearchFlow(model: model, composer: composer, search: $search))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
         .offlineSave(model: model, saver: saver)
         .toolbar {
-            ReaderPageControls(model: model, askPage: askForPage, replySymbol: replySymbol)
-            ToolbarItem(placement: .primaryAction) {
-                Button { Task { await refresh() } } label: { Label("Actualiser", systemImage: "arrow.clockwise") }
-                    .disabled(model.isLoading || model.suspendsPageInteractions)
-            }
-            // No "…" entry under an open composer (#653): a disabled one would still open the overflow.
-            if let onFilterPosts, !model.suspendsPageInteractions {
-                ToolbarItem(placement: .secondaryAction) {
-                    Button(action: onFilterPosts) {
-                        Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease")
-                    }
-                    .disabled(filterIsBusy)
-                }
-            }
-            // The system "…" overflow: legacy `pageChoiceMenuItems` after the other actions, only past one page (#582).
-            if let page = model.page, page.maxPage > 1, !model.suspendsPageInteractions {
-                ToolbarItemGroup(placement: .secondaryAction) {
-                    // A Section, so the separator before the page items is explicit (legacy `Divider()`, :4718-4720).
-                    Section { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
-                }
-            }
+            ReaderPageControls(buttons: pageButtons, placement: bottomPlacement)
+            ToolbarItem(placement: .primaryAction) { ReaderRefreshButton(model: model, refresh: refresh) }
+            overflowToolbar
         }
-        .alert("Aller à la page", isPresented: $askingPage) {
-            TextField("Page", text: $pageText).keyboardType(.numberPad)
+        // Always attached (empty under the system bottom bar), so the page's identity never changes with the placement (#565).
+        .safeAreaBar(edge: .bottom) {
+            if bottomPlacement == .inset { ReaderPageStrip(buttons: pageButtons) }
+        }
+        .alert("Connexion requise", isPresented: $askingSignIn) {
             Button("Annuler", role: .cancel) {}
-            Button("Aller") {
-                if let number = Int(pageText) { Task { await model.goToPage(number) } }
-            }
+            Button("Se connecter") { showsAccounts = true }
         } message: {
-            if let page = model.page { Text("Entre 1 et \(page.maxPage)") }
+            Text("Connectez-vous pour rechercher dans un sujet.")
         }
-        .overlay { ReaderMessageMenuAnchor(model: model) }
-        .overlay(alignment: .bottom) { menuFeedbackBanner }
+        .sheet(isPresented: $showsAccounts) { AccountsView() }
+        .sheet(isPresented: $askingPage) {
+            if let page = model.page {
+                ReaderPageSheet(currentPage: page.currentPage, maxPage: page.maxPage) { number in
+                    Task { await model.goToPage(number) }
+                }
+            }
+        }
+        .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
+        .onChange(of: model.document?.token) { atPageEnd = false }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
-        .sheet(item: $profile, onDismiss: model.applyDisplaySettings, content: { UserProfileView(model: $0, services: services) })
-        .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
+        .sheet(item: $authorMenu.profile, onDismiss: { [model, authorMenu] in
+            model.applyDisplaySettings()
+            authorMenu.profileDidClose() // the MP composer or the toast a quick action asked for (#652)
+        }, content: { UserProfileView(model: $0, services: services) })
         .navigationDestination(item: linkedReader) { linked in
             // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
             TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
@@ -152,7 +154,7 @@ struct TopicReaderView: View {
             controller?.show(model.document)
         }
         .onAppear {
-            if saver == nil, let offline = services.offline { saver = OfflineSaveModel(store: offline.store, fetcher: offline.fetcher) }
+            if saver == nil { saver = ReaderOfflineSave.saver(services.offline) } // DISABLED(offline, #822): nil, see there
         }
         // The selection menu offers its quotes once the page has an answer form (and not at all logged out).
         .onChange(of: model.canQuote) { controller?.offersSelectionQuote = model.offersSelectionQuote }
@@ -172,49 +174,33 @@ struct TopicReaderView: View {
         }
     }
 
-    @ViewBuilder
-    private var overlay: some View {
-        if model.page == nil {
-            if let error = model.error {
-                LoadFailureView(error: error, retry: retry)
-            } else {
-                ProgressView("Chargement des messages")
-            }
-        } else if let page = model.page, page.messages.isEmpty {
-            ContentUnavailableView {
-                Label("Aucun message", systemImage: "text.bubble")
-            } description: {
-                Text(page.notice ?? "Cette page ne contient aucun message.")
-            } actions: {
-                Button("Actualiser") { Task { await refresh() } }
-            }
-        } else if !model.hasShownDocument {
-            // The web view could not show the page (issue #566): a retry, never an endless spinner.
-            if let error = model.error {
-                LoadFailureView(error: error, retry: retry)
-            } else {
-                ProgressView("Chargement des messages")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var menuFeedbackBanner: some View {
-        if let feedback = model.menuFeedback {
-            Text(feedback)
-                .font(.callout)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .glassEffect(.regular, in: .capsule)
-                .padding(.bottom, 8)
-                .task(id: model.menuFeedbackSerial) { [serial = model.menuFeedbackSerial] in
-                    // A cancelled sleep (a newer confirmation, the view going away) must not clear anything.
-                    do {
-                        try await Task.sleep(for: .seconds(2))
-                        model.clearMenuFeedback(serial: serial)
-                    } catch {}
+    /// The "…" overflow, in legacy's order (#645): see `ReaderOverflowToolbar`. None under an open composer (#653).
+    @ToolbarContentBuilder
+    private var overflowToolbar: some ToolbarContent {
+        let page = model.page
+        let pages = page.map { $0.maxPage > 1 } ?? false
+        let offered = !model.suspendsPageInteractions
+        ReaderOverflowToolbar(
+            entries: ReaderOverflow.entries(
+                search: ReaderSearchFlow.isOffered(model: model, composer: composer, services: services),
+                offline: ReaderOfflineSave.isOffered(model: model, saver: saver),
+                filter: onFilterPosts != nil && offered,
+                pages: pages && offered),
+            search: {
+                switch ReaderSearchFlow.tap(topic: model.page?.topicID, searcher: composer?.topicSearcher) {
+                case .search(let topic, let searcher): search = TopicSearchModel(topic: topic, searcher: searcher)
+                case .signIn: askingSignIn = true
+                case nil: break
                 }
-        }
+            },
+            offline: AnyView(Group {
+                if let saver, let page { ReaderOfflineMenuItems(saver: saver, model: model, page: page) }
+            }),
+            filter: { onFilterPosts?() },
+            filterIsBusy: filterIsBusy,
+            pages: AnyView(Group {
+                if let page { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
+            }))
     }
 
     /// The legacy horizontal drag that changes the page, when the setting is on (read at the end of each drag).
@@ -245,7 +231,6 @@ struct TopicReaderView: View {
     }
 
     private func askForPage() {
-        pageText = ""
         askingPage = true
     }
 
@@ -261,7 +246,8 @@ struct TopicReaderView: View {
                 switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
                 case .reader(let target): model.follow(target)
                 // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
-                case .profile(let memberID): profile = services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook)
+                case .profile(let memberID):
+                    authorMenu.show(services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook))
                 case .inAppBrowser(let url): external = ExternalLink(url: url)
                 case .defaultBrowser(let url): openURL(url)
                 case .ignored: break
@@ -298,9 +284,11 @@ struct TopicReaderView: View {
                 Task { await model.onAppear(viewer: viewerID) }
             }
         )
+        ReaderRefresh.wirePageEnd(of: controller, model: model, atPageEnd: $atPageEnd)
         model.adopt(services, composer: composer)
         controller.offersSelectionQuote = model.offersSelectionQuote
         controller.ignoresPageTaps = model.suspendsPageInteractions
+        controller.offersPullHint = model.offersPullHint
         self.controller = controller
     }
 }
@@ -315,8 +303,21 @@ extension TopicReaderView {
     }
 
     private func refresh() async {
-        controller?.resume()
-        await model.refresh()
+        await ReaderRefresh.run(model: model, controller: controller)
+    }
+
+    /// The bottom bar's buttons, for both placements.
+    private var pageButtons: ReaderPageButtons {
+        ReaderPageButtons(
+            model: model, atPageEnd: atPageEnd, voiceOver: voiceOver, askPage: askForPage, replySymbol: replySymbol,
+            refresh: refresh
+        )
+    }
+
+    private var bottomPlacement: ReaderBottomBar.Placement {
+        ReaderBottomBar.placement(
+            rootHasTabBar: rootHasTabBar, tabBar: ReaderTabBar.visibility(sizeClass: sizeClass, isSelectedTab: isSelectedTab)
+        )
     }
 
     /// The reader left the screen: its load, its offline save and its web view stop.
@@ -350,12 +351,12 @@ extension TopicReaderView {
             LinkActionHandler(copy: { UIPasteboard.general.string = $0.absoluteString }, confirm: confirm)
         ]
         handlers += model.quoteHandlers(confirm: confirm)
-        // Capture the binding and the source, not the view: the view holds the model, which stores this registry (a cycle).
-        let showProfile = $profile
+        // Capture the source, not the view: the view holds the model, which stores this registry (a cycle).
         let services = self.services
-        handlers += authorMenu.handlers(reader: model, composer: composer) { id in
-            showProfile.wrappedValue = services.profileModel(memberID: id, listsChanged: rebuild)
-        }
+        handlers += authorMenu.handlers(
+            reader: model, composer: composer, makeProfile: { services.profileModel(memberID: $0, listsChanged: rebuild) },
+            confirm: confirm
+        )
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
         handlers += services.pseudoLists.map {
             PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)

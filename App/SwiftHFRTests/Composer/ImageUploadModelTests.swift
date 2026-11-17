@@ -298,7 +298,8 @@ struct ImageUploadModelTests {
         let formatting = ComposerFormattingModel(composer: composer, clipboard: IdleClipboard())
         formatting.selectedRange = NSRange(location: 6, length: 0)
         let (model, _) = make(uploader: nil)
-        formatting.insert(model.snippet(for: hosted("a"), variant: .full))
+        formatting.beginPick()
+        formatting.insertPicked(model.snippet(for: hosted("a"), variant: .full))
         #expect(composer.text == "avant [url=https://img.example/images/a.jpg][img]https://img.example/images/a.jpg[/img][/url]\naprès")
     }
 

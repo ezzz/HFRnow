@@ -12,6 +12,8 @@ public struct TopicSummary: Sendable, Hashable, Identifiable, Codable {
     public var topicID: TopicID?
     /// Title as HFR serves it; display rewrites (such as the legacy "TU" normalisation) are a presentation concern.
     public var title: String
+    /// Title to show: the "TU" abbreviation of `TopicTitle` applied to `title`.
+    public var displayTitle: String { TopicTitle.displayed(title) }
     /// Primary topic path relative to the forum base URL: the title link on lists, or the resume link (flag link, else
     /// last post) on favourites rows, where `firstPagePath` holds the title link.
     public var path: String

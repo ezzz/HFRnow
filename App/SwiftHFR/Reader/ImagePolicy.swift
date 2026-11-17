@@ -128,7 +128,8 @@ enum ImagePolicy {
     }
 }
 
-/// When third-party images load by themselves: policy C, point 2, from the `display_images` setting (FEAT-011).
+/// When third-party images load by themselves: policy C, point 2. Always, unless Réglages › Expérimental › « Chargement des
+/// images » (#902) asks for another mode (`ImageLoadingChoice`).
 enum ImageAutoLoad: Equatable, Sendable {
     /// Third-party images wait for a tap.
     case onTap
@@ -137,13 +138,13 @@ enum ImageAutoLoad: Equatable, Sendable {
     /// Third-party images load by themselves.
     case always
 
-    /// The mode for a stored setting value; nil (no value stored yet) gives the reader's default, Wi-Fi only.
+    /// The mode for a stored setting value; nil (no value stored yet) gives the default, always.
     /// Legacy's "never" becomes the tap-to-load placeholder.
     init(setting: ImageDisplayMode?) {
         switch setting {
-        case .always: self = .always
+        case .always, nil: self = .always
         case .never: self = .onTap
-        case .wifiOnly, nil: self = .onWiFi
+        case .wifiOnly: self = .onWiFi
         }
     }
 

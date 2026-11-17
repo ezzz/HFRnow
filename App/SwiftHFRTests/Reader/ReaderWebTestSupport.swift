@@ -98,6 +98,47 @@ extension ReaderWebTesting {
         }
     }
 
+    /// Scrolls the page itself to `scrollY` (CSS pixels from the bars' edge, the reading top) and returns true once the page
+    /// and the scroll view are both there. One `window.scrollTo` was not always enough on a loaded simulator: CI job
+    /// 133090341114 saw the way back to the top sent once and never applied (the scroll view stayed at the page's end), so the
+    /// scroll is sent again until both sides agree, and a test checks what the page reported, not whether one request went
+    /// through. Why that scroll was lost is not established (#934). `scrollY` must be reachable (not past the page's end); both
+    /// sides must be within `tolerance` of it.
+    func scrollPage(
+        toScrollY scrollY: Double, in controller: ReaderWebController, tolerance: Double = 1, timeout: Duration = .seconds(60)
+    ) async -> Bool {
+        await until(async: {
+            let script = "window.scrollTo(0, \(scrollY)); return window.scrollY;"
+            guard let page = (try? await self.evaluate(script, in: controller)) as? NSNumber else { return false }
+            return abs(page.doubleValue - scrollY) <= tolerance && abs(Double(controller.readingTop) - scrollY) <= tolerance
+        }, timeout: timeout)
+    }
+
+    /// The scroll view shows the shown document (#995): its content height is the page's own `scrollHeight`. The page reports
+    /// ready from its own process, before the UI process applies the document's first layer-tree commit, which sets the scroll
+    /// view's content size and resets it to the document's top (`WebKitResetWatch`). Until then the scroll view keeps the blank
+    /// page's size, the viewport under the bars (650 points in a test window of 800 under bars of 100 and 50): an end computed
+    /// from it is the top, which the scroll view is already at (CI jobs 133712438518, 133717388761: target -120, band 0...650),
+    /// and a scroll the page makes before that commit is undone by the reset. Only for a page taller than the viewport, whose
+    /// `scrollHeight` cannot be the blank page's. Within 2 points, the agreement green runs have shown between the two
+    /// (`ReaderPageEndWebTests`: an end reached within 2 of `contentSize`).
+    func showsDocument(_ controller: ReaderWebController) async -> Bool {
+        let scrollView = controller.webView.scrollView
+        return await until(async: {
+            let script = "return document.documentElement.scrollHeight;"
+            guard let height = (try? await self.evaluate(script, in: controller)) as? NSNumber else { return false }
+            return abs(scrollView.contentSize.height / scrollView.zoomScale - height.doubleValue) <= 2
+        })
+    }
+
+    /// Where the page and its scroll view are, and whether a landing's reset is still watched, for a failure message.
+    func scrollState(of controller: ReaderWebController) async -> String {
+        let page = (try? await evaluate("return window.scrollY;", in: controller, timeout: .seconds(10))) as? NSNumber
+        let watched = controller.resetWatch.token.map { "\($0)" } ?? "none"
+        return "page scrollY \(page.map { "\($0.doubleValue)" } ?? "no answer"), scroll view reading top \(controller.readingTop), "
+            + "reset watched for \(watched)"
+    }
+
     /// The document is loaded and every image has finished (loaded or failed): nothing more will be requested by itself.
     func settled(_ controller: ReaderWebController) async -> Bool {
         let script = "return document.readyState === 'complete' && Array.from(document.images).every((i) => i.complete);"

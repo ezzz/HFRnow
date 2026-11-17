@@ -3,7 +3,8 @@ import HFRStorage
 import Observation
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView: selectedTab, mp_badge_enabled, tabbar_minimize_on_scroll) @ 2440d79.
-// Differences: the MP badge comes from the home-page count (GAP-004); the start tab is a setting taken from master (GAP-002, UXD).
+// Differences: the MP badge comes from `PrivateMessageCount` (GAP-004, #762); the start tab is a setting
+// taken from master (GAP-002, UXD).
 /// State shared by the root navigation, whether it is the iPhone tab bar or the iPad sidebar: the selected tab or
 /// destination, the unread private-message badge and the tab-bar setting (LOT-170).
 @MainActor
@@ -24,6 +25,8 @@ final class RootModel {
     let search: ForumSearchModel
     /// MPStorage sync of the current account (LOT-130), shared by the Messages list (flags) and Réglages; nil logged out.
     let mpStorage: MPStorageSyncModel?
+    /// The unread private messages count the list pages of this session announced, newest first (#762).
+    let privateMessageCount: PrivateMessageCount
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -66,7 +69,24 @@ final class RootModel {
     /// The destination the iPad sidebar shows: the Plus tab has no list there, it opens Réglages (legacy
     /// `defaultIPadDestination`, `MainWindow.swift:1365-1376`).
     var sidebarDestination: SidebarDestination {
-        selectedDestination == .tab(.more) ? .plus(.settings) : selectedDestination
+        switch selectedDestination {
+        case .tab(.more): .plus(.settings)
+        // EXPERIMENTAL(searchTab, #896): the sidebar has no fifth tab; its search entry is the Plus one.
+        case .tab(.search): .plus(.search)
+        default: selectedDestination
+        }
+    }
+
+    /// EXPERIMENTAL(searchTab, #896): keeps the selection coherent with the tab bar. With the Recherche tab, the Plus search entry
+    /// is that tab (one live search screen on the shared model, not two); without it, a selected Recherche tab is Plus.
+    func settleSearchTab(isOn: Bool) {
+        if isOn, selectedDestination == .plus(.search) {
+            // Forget the entry too: Plus would otherwise reopen it and be sent back to Recherche, never showing its menu.
+            lastPlusEntry = nil
+            selectedDestination = .tab(.search)
+        } else if !isOn, selectedDestination == .tab(.search) {
+            selectedDestination = .tab(.more)
+        }
     }
 
     /// Whether the Messages badge is shown (`mp_badge_enabled`, legacy default on); refreshed by `reloadSettings()`.
@@ -84,9 +104,10 @@ final class RootModel {
         forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
         search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
-        mpStorage: MPStorageSyncModel? = nil
+        mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount()
     ) {
         self.mpStorage = mpStorage
+        self.privateMessageCount = privateMessageCount
         self.favoriteOptions = favoriteOptions
         self.forums = forums
         self.categories = categories
@@ -112,18 +133,35 @@ final class RootModel {
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
     private static func messageList(
-        _ environment: AppEnvironment, store: any SettingsStore, mpStorage: MPStorageSyncModel?
+        _ environment: AppEnvironment, store: any SettingsStore, mpStorage: MPStorageSyncModel?, count: PrivateMessageCount
     ) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage
+            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
+            privateMessageCount: count,
+            // What the list shows is not notified by the next background check (LOT-140).
+            ledgerSeen: environment.currentAccountName.map { account in
+                { @Sendable (summary: NotificationSummary) async in
+                    await MPNotificationLedger.recordSeen(summary, account: account)
+                }
+            }
         )
     }
 
     /// Builds the models over the engine objects of one session.
     convenience init(environment: AppEnvironment, store: any SettingsStore, initial: SidebarDestination? = nil) {
+        // Every list the tabs load goes through this source, so the badge takes HFR's count from whichever page came last.
+        let count = PrivateMessageCount()
+        let dataSource = PrivateMessageCountingSource(
+            base: environment.dataSource, count: count,
+            countSeen: environment.currentAccountName.map { account in
+                { @Sendable (seen: Int) async in
+                    await MPNotificationLedger.recordSeen(NotificationSummary(unreadPrivateMessages: seen), account: account)
+                }
+            }
+        )
         let forums = ForumListModel(
-            dataSource: environment.dataSource, visibility: environment.visibility, accountName: environment.accountName
+            dataSource: dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
         let options = FavoritesOptionsModel(settings: store, stores: environment.favoriteStores)
         // One choice for both tabs: a category opened from a Favoris heading sets it, the Catégories lists read it.
@@ -136,7 +174,7 @@ final class RootModel {
             startup: TopicSource?, favorites: FavoritesOptionsModel? = nil, topicFilter: TopicFilterModel? = nil
         ) -> NavigationModel {
             NavigationModel(
-                dataSource: environment.dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
+                dataSource: dataSource, forums: forums, sessionIsLoggedIn: environment.isLoggedIn,
                 topicPages: environment.topicPages, renderOptions: environment.reader.settings.renderOptions,
                 filteredPosts: environment.filteredPosts, startupSource: startup, favorites: favorites,
                 flagActions: environment.flagActions, topicFilter: topicFilter
@@ -146,20 +184,21 @@ final class RootModel {
         self.init(
             forums: forums, categories: navigation(startup: Self.categoriesStartupSource, topicFilter: topicFilter),
             favorites: navigation(startup: TopicSource(mode: options.mode), favorites: options, topicFilter: topicFilter),
-            messages: Self.messageList(environment, store: store, mpStorage: mpStorage),
+            messages: Self.messageList(environment, store: store, mpStorage: mpStorage, count: count),
             search: ForumSearchModel(
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
                 renderOptions: environment.reader.settings.renderOptions, store: store
             ),
-            store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage
+            store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage, privateMessageCount: count
         )
     }
 
     /// Unread private messages for the Messages badge: 0 hides it, and so does the badge setting (`mp_badge_enabled`, legacy
-    /// `MainWindow.swift:1349`). Logged out, the home page gives no count.
+    /// `MainWindow.swift:1349`). The count is the newest one a list page announced, not only the launch's home page (#762);
+    /// logged out, no page gives one.
     var unreadPrivateMessages: Int {
         guard privateMessageBadgeEnabled else { return 0 }
-        return max(forums.loader.value?.unreadPrivateMessages ?? 0, 0)
+        return max(privateMessageCount.latest ?? 0, 0)
     }
 
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
@@ -172,8 +211,8 @@ final class RootModel {
         selectedDestination = .tab(.categories)
     }
 
-    /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The legacy app-icon
-    /// badge (`MainWindow.swift:1509-1512`) is out of scope.
+    /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge
+    /// follows `appIconBadge` (LOT-140).
     func reloadSettings() {
         let badge = store.value(for: SettingKey.privateMessageBadge)
         let minimize = store.value(for: SettingKey.tabBarMinimizesOnScroll)

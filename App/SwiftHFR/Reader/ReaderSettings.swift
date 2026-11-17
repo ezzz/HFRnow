@@ -2,8 +2,8 @@ import Foundation
 import HFRModels
 import HFRStorage
 
-/// The settings the reader reads, each time it needs them (the image mode is set in Réglages by
-/// `GeneralSettingsModel.imageLoading`, LOT-107; the layout, signatures and swipe by `TopicsSettingsModel`, LOT-106; a value
+/// The settings the reader reads, each time it needs them (the image mode is always « always » unless the experimental
+/// choice of #902 is on; the layout, signatures and swipe by `TopicsSettingsModel`, LOT-106; a value
 /// stored there, or migrated from legacy, is honoured).
 struct ReaderSettings: Sendable {
     /// Whether third-party images load without a tap right now.
@@ -48,8 +48,8 @@ struct ReaderSettings: Sendable {
         )
     }
 
-    /// The image mode from `display_images` (default `wifi`, policy C).
+    /// The image mode: always, unless the experimental choice is on (#902, `ImageLoadingChoice`).
     static func autoLoad(store: any SettingsStore) -> ImageAutoLoad {
-        ImageAutoLoad(setting: store.value(for: SettingKey.displayImages))
+        ImageLoadingChoice.autoLoad(store: store)
     }
 }

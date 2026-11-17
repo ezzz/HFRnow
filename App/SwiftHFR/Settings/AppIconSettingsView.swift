@@ -13,7 +13,10 @@ struct AppIconSettingsView: View {
         _model = State(initialValue: AppIconSettingsModel(store: store, switcher: switcher))
     }
 
-    private let columns = [GridItem(.adaptive(minimum: 92, maximum: 120), spacing: 16, alignment: .top)]
+    private let columns = [
+        GridItem(.adaptive(minimum: AppIconGridLayout.minimumCell, maximum: AppIconGridLayout.maximumCell),
+                 spacing: AppIconGridLayout.columnSpacing, alignment: .top)
+    ]
 
     var body: some View {
         ScrollView {
@@ -23,7 +26,7 @@ struct AppIconSettingsView: View {
                         Text(section.pack.title)
                             .font(.headline)
                             .accessibilityAddTraits(.isHeader)
-                        LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: AppIconGridLayout.columnSpacing) {
                             ForEach(section.options) { option in
                                 AppIconCell(option: option, isSelected: option == model.selection) {
                                     Task { await model.select(option) }
@@ -38,7 +41,7 @@ struct AppIconSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppIconGridLayout.sidePadding)
             .padding(.vertical, 12)
             .disabled(!model.isAvailable || model.isSwitching)
         }
@@ -59,7 +62,7 @@ private struct AppIconCell: View {
     let isSelected: Bool
     let action: () -> Void
 
-    private let side: CGFloat = 76
+    private let side = AppIconGridLayout.iconSide
 
     var body: some View {
         Button(action: action) {
@@ -90,4 +93,26 @@ private struct AppIconCell: View {
 
 #Preview("Icône") {
     NavigationStack { AppIconSettingsView(store: InMemorySettingsStore()) }
+}
+
+/// The picker grid's metrics (operator 2026-11-16: thumbnails at the Home Screen size, 4 per row on a 6.1" iPhone).
+enum AppIconGridLayout {
+    /// The preview's side: the Home Screen icon size.
+    static let iconSide: CGFloat = 60
+    /// The thumbnail with its 4 pt padding (the selection ring) plus nothing else: `iconSide + 8`.
+    static let minimumCell: CGFloat = 68
+    static let maximumCell: CGFloat = 84
+    static let columnSpacing: CGFloat = 12
+    /// The screen's side padding (`AppIconSettingsView`).
+    static let sidePadding: CGFloat = 16
+
+    /// How many columns SwiftUI's adaptive grid fits in a content `width`.
+    static func columnCount(contentWidth width: CGFloat) -> Int {
+        max(1, Int(((width + columnSpacing) / (minimumCell + columnSpacing)).rounded(.down)))
+    }
+
+    /// The columns for a screen of `screenWidth` points.
+    static func columnCount(screenWidth: CGFloat) -> Int {
+        columnCount(contentWidth: screenWidth - 2 * sidePadding)
+    }
 }

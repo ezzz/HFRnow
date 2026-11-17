@@ -22,7 +22,7 @@ struct TopicPageFlagOracleTests {
     static let unreadLinkOnly = ["RA1", "RA2", "RA3", "RA4", "RU1", "RU2", "R130a"]
 
     /// The folder of each case: `LOT-003-flag` holds the logged-in captures with the link that `LOT-003` lacked.
-    private static let folders = ["R33b": "LOT-003-flag", "R61d": "LOT-003-flag", "R61e": "LOT-003-flag",
+    static let folders = ["R33b": "LOT-003-flag", "R61d": "LOT-003-flag", "R61e": "LOT-003-flag",
                                   "R63a": "LOT-003-flag", "R63e": "LOT-003-flag",
                                   // M2 captures (#475): a locked topic and the two in-topic search pages, an MP thread.
                                   "R122a": "M2-readonly", "R122c": "M2-readonly", "R122d": "M2-readonly", "R130a": "M2-misc"]

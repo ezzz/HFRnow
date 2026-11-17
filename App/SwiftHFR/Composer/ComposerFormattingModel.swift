@@ -132,10 +132,27 @@ final class ComposerFormattingModel {
     /// Whether the buttons act (the composer can edit).
     var isEnabled: Bool { composer.canEdit }
 
-    /// Inserts `snippet` (a smiley code) at the caret.
-    func insert(_ snippet: String) {
+    /// The range a sheet (smiley picker, GIF panel, image upload) inserts at: saved when it opens, because the sheet takes
+    /// focus and the live caret is then not trusted (#910).
+    private var pickedRange = NSRange(location: 0, length: 0)
+
+    /// A sheet is about to open: remembers the caret or selection it will insert at.
+    func beginPick() { pickedRange = selectedRange }
+
+    /// Inserts `snippet` (an image or GIF code) over the range saved by `beginPick()`.
+    func insertPicked(_ snippet: String) {
         guard composer.canEdit else { return }
-        commit(ReplyTextInsertionEngine.insert(snippet, into: composer.text, selectedUTF16Range: selectedRange))
+        selectedRange = pickedRange
+        commit(ReplyTextInsertionEngine.insert(snippet, into: composer.text, selectedUTF16Range: pickedRange))
+    }
+
+    /// Inserts the smiley `code` between two spaces over the range saved by `beginPick()`, the caret right after it (#910,
+    /// LOT-104). False, nothing changed, when the editor does not accept typing.
+    @discardableResult
+    func insert(smiley code: String) -> Bool {
+        guard composer.canEdit else { return false }
+        insertPicked(SmileyInsertion.snippet(for: code))
+        return true
     }
 
     /// Splits the quote around the caret; false when the caret is not inside one.

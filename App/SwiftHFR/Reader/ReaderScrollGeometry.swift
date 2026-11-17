@@ -21,4 +21,19 @@ enum ReaderScrollGeometry {
     static func offsetY(keeping offsetY: CGFloat, from old: CGFloat, to new: CGFloat) -> CGFloat {
         Self.offsetY(readingTop: readingTop(offsetY: offsetY, obscuredTop: old), obscuredTop: new)
     }
+
+    /// The page position, in the page's own layout points (what `window.scrollTo` takes), of a `readingTop` measured in the
+    /// scroll view's points: the scroll view counts them `zoomScale` times larger after a pinch zoom (issue #587).
+    static func layoutY(readingTop: CGFloat, zoomScale: CGFloat) -> CGFloat {
+        guard zoomScale.isFinite, zoomScale > 0 else { return readingTop }
+        return readingTop / zoomScale
+    }
+
+    /// How far, in points, a scroll view at `offsetY` is pulled past the end of its content (zero or less when it is not): the
+    /// last offset is the content's end above `insetBottom` points of bars, never above the top (a page shorter than the screen).
+    static func pastEnd(
+        offsetY: CGFloat, viewportHeight: CGFloat, contentHeight: CGFloat, insetTop: CGFloat, insetBottom: CGFloat
+    ) -> CGFloat {
+        offsetY - max(contentHeight + insetBottom - viewportHeight, -insetTop)
+    }
 }

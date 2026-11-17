@@ -199,8 +199,6 @@ private struct GifPanel: ViewModifier {
     @State private var picker: GifPickerModel?
     /// A GIF was inserted by the open panel.
     @State private var inserted = false
-    /// The caret when "GIF" was tapped: the sheet takes focus, so the live selection is not trusted (as for images and smileys).
-    @State private var caret = NSRange(location: 0, length: 0)
 
     func body(content: Content) -> some View {
         content
@@ -209,13 +207,12 @@ private struct GifPanel: ViewModifier {
                 request = false
                 guard services.isAvailable, picker == nil else { return }
                 inserted = false
-                caret = formatting.selectedRange
+                formatting.beginPick()
                 picker = GifPickerModel(services: services)
             }
             .sheet(item: $picker, onDismiss: { if inserted { onClosed() } }, content: { picker in
                 GifPickerView(model: picker) { snippet in
-                    formatting.selectedRange = caret
-                    formatting.insert(snippet)
+                    formatting.insertPicked(snippet)
                     inserted = true
                 }
             })

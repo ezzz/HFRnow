@@ -12,24 +12,27 @@ struct MessageListView: View {
     /// The current account's composer; nil when logged out, which hides "Nouveau message".
     let composer: ComposerServices?
     @State private var newMessage: ReplyComposerModel?
+    @State private var titleVisibility = TitleVisibility()
 
     var body: some View {
         let loader = model.loader
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
+            ScreenLargeTitle(title: "Messages", visibility: titleVisibility)
             if loader.value != nil {
                 ForEach(model.visibleThreads) { thread in
                     MessageRowView(
                         thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
                         flagLabel: model.flagLabel(for: thread)
                     )
+                    // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
+                    .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
                     .tag(thread)
                 }
             }
         }
-        .listStyle(.insetGrouped) // explicit: the row tint's base colour is the grouped one (#570)
+        .listStyle(.insetGrouped) // explicit: legacy's rounded block (#803)
         .densityListMargins()
-        .navigationTitle("Messages")
-        .navigationBarTitleDisplayMode(.inline)
+        .screenTitle("Messages", style: .largeThenPill, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
@@ -50,14 +53,8 @@ struct MessageListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .task(id: model.sentConfirmation) {
-            guard model.sentConfirmation != nil else { return }
-            // Long enough to read, like the reply banner (LOT-084); cancelled when another confirmation replaces it.
-            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
-            model.clearSentConfirmation()
-        }
+        .pagerBar(loader.value.map { $0.page > 1 || $0.hasNext } == true ? MessagePageBar(model: model).pager : nil)
         .toolbar {
-            if let content = loader.value, content.page > 1 || content.hasNext { MessagePageBar(model: model) }
             if let composer, let target = model.newMessageTarget {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -166,17 +163,19 @@ private struct EmptyMessagesView: View {
     }
 }
 
-/// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
-private struct MessagePageBar: ToolbarContent {
+/// The list's pager: « page x / y » (y+ when HFR's pager does not give the real last page) with its menu, and the ‹ › pills.
+@MainActor private struct MessagePageBar {
     let model: MessageListModel
 
-    var body: some ToolbarContent {
+    var pager: PagerToolbar {
         PagerToolbar(
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
             next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
-            last: nil,
-            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+            last: .init(enabled: model.canGoToLast) { Task { await model.goToLastPage() } },
+            status: .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
+            jump: { jump in Task { await model.perform(jump) } },
+            isLoading: model.loader.isLoading
         )
     }
 }

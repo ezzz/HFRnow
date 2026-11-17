@@ -9,7 +9,7 @@ import SwiftUI
 ///
 /// Differences: the search field, history and keywords are LOT-105 (the field is `.searchable` since #600);
 /// section collapse states keep legacy's `@AppStorage` keys; detail is a sheet instead of an overlay card (decision of the
-/// lot, same actions). "Mes smileys" (the member's own created smileys) waits for the capture #601.
+/// lot, same actions). "Mes smileys" (the member's own created smileys) is new (#414).
 struct SmileyPickerView: View {
     @Bindable var model: SmileyPickerModel
     /// Called with the code to insert, right before the panel closes.
@@ -17,6 +17,7 @@ struct SmileyPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("AnswerView.smileys.basic.expanded") private var basicExpanded = true
     @AppStorage("AnswerView.smileys.forumFavorites.expanded") private var forumExpanded = true
+    @AppStorage("AnswerView.smileys.own.expanded") private var ownExpanded = true
     @AppStorage("AnswerView.smileys.appFavorites.expanded") private var favoritesExpanded = true
     @AppStorage("AnswerView.smileys.search.allKeywords") private var requireAll = false
     @State private var searchPresented = false
@@ -68,6 +69,7 @@ struct SmileyPickerView: View {
         }
         .task { await model.loadFavorites() }
         .task { await model.loadForum() }
+        .task { await model.loadOwn() }
         .task { await model.search?.refreshSuggestions() }
         .onChange(of: model.search?.text) { _, text in
             // An emptied field is no search any more.
@@ -161,6 +163,7 @@ struct SmileyPickerView: View {
         switch kind {
         case .basic: $basicExpanded
         case .forum: $forumExpanded
+        case .own: $ownExpanded
         case .appFavorites: $favoritesExpanded
         }
     }
@@ -172,6 +175,7 @@ struct SmileyPickerView: View {
             switch section.kind {
             case .basic: grid(section.smileys, columns: basicColumns, compact: true) { model.tap(basic: $0) }
             case .forum: grid(section.smileys, columns: favoriteColumns, compact: false) { model.tap(forum: $0) }
+            case .own: grid(section.smileys, columns: favoriteColumns, compact: false) { model.tap(own: $0) }
             case .appFavorites: grid(section.smileys, columns: favoriteColumns, compact: false) { model.tap(favorite: $0) }
             }
         case .loading:
@@ -182,6 +186,7 @@ struct SmileyPickerView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(text).font(.subheadline).foregroundStyle(.secondary)
                 if section.kind == .forum { Button("Réessayer") { Task { await model.retryForum() } }.font(.subheadline) }
+                if section.kind == .own { Button("Réessayer") { Task { await model.retryOwn() } }.font(.subheadline) }
             }
             .padding(.horizontal, 4)
         }

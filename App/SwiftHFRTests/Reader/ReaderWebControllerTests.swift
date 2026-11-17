@@ -197,8 +197,19 @@ struct ReaderLandingWebTests: ReaderWebTesting {
         #expect(await until { recorder.ready == [1] })
         let top = "return Math.round(document.getElementById('t2').getBoundingClientRect().top);"
         #expect(await until(async: { (try? await self.evaluate(top, in: controller) as? Int) == 0 }))
-        _ = try await evaluate("window.scrollTo(0, 0); return true;", in: controller)
-        #expect(await until { reports.posts.contains(1) }, "reported: \(reports.posts)")
+        // Scrolling stops on message 2: it is reported, which also ends the landing's second chance (`WebKitResetWatch`). Going
+        // back before that report lets the scroll view's arrival at its top be taken for WebKit's late reset: the landing runs
+        // again and only 2 is reported, the likely cause of jobs 133110414600 and 133160363316 (#934, read from the code; a
+        // failure message says whether the watch still runs).
+        let landed = await until { reports.posts == [2] }
+        #expect(landed, "reported: \(reports.posts)")
+        // Back to the top until the page and the scroll view are both there.
+        let back = await scrollPage(toScrollY: 0, in: controller)
+        let backState = await back ? "" : scrollState(of: controller)
+        #expect(back, "the page never came back to the top: \(backState)")
+        let reported = await until { reports.posts.contains(1) }
+        let reportedState = await reported ? "" : scrollState(of: controller)
+        #expect(reported, "reported: \(reports.posts), \(reportedState)")
     }
 }
 

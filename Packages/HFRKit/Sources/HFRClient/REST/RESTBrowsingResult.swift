@@ -29,4 +29,7 @@ public enum RESTFallbackReason: Sendable, Equatable {
     case network(NetworkError)
     /// The answer is not the JSON expected; the payload names the field.
     case response(ParsingError)
+    /// HFR's error answer, 200 with the code in the body (`R57i`: 403 for an unknown category, `R57k`: 404 for an unknown
+    /// resource).
+    case refused(code: Int)
 }

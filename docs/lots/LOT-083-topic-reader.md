@@ -77,7 +77,7 @@ sanitized `color:` of user colours and code highlighting there; `<style>` elemen
   their URL (a link the user may open, T8; plain text inside an existing link).
 - **Forum images** (smileys, avatars, `forum-images.hardware.fr`): loaded.
 - **Third-party images:** loaded when the image mode allows it, else a "toucher pour charger" placeholder; nothing is requested before
-  the tap. Mode: `display_images` (`always`; `wifiOnly` = unmetered Wi-Fi or Ethernet, `NWPathMonitor` started at launch;
+  the tap. Mode (superseded by #902: images always load unless Réglages › Expérimental › « Chargement des images » is on; default `yes`): `display_images` (`always`; `wifiOnly` = unmetered Wi-Fi or Ethernet, `NWPathMonitor` started at launch;
   `never` = tap), default `wifiOnly`. FEAT-011 adds the settings screen.
 
 **Consent lives in the app.** A tap on a placeholder makes `reader.js` post `{type: "tap", token, url}`; the controller records
@@ -113,7 +113,8 @@ Confirmed by the orchestrator on 2026-10-28, consistent with the operator's deci
 
 ## Edge cases
 
-- The view appears again (rotation, column change, reselecting the same row): same model, no refetch.
+- The view appears again (rotation, column change, reselecting the same row): same model, no refetch, except the reload a
+  confirmed or unconfirmed send started and a disappearance stopped: it runs once on return, never under an open composer (#908).
 - A page beyond the last: HFR serves the last page; the reader shows it and its number.
 - An anchor not on the page served: the document opens at the top.
 - A huge page: one document per page (≈40 messages); the web content process can be killed under memory pressure, then the same
@@ -150,7 +151,7 @@ real page (`R28`) requests only forum images before a tap.
 Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS-SWIFT.md](../migration/GAP-LEGACY-VS-SWIFT.md#convergence-classification-h1). The decision of each UXD row (2026-11-02) is in [the decisions table](../migration/GAP-LEGACY-VS-SWIFT.md#ux-decisions-of-2026-11-02). The code names its legacy counterparts in `// Port of …` comments (AGENTS.md §4), added by [#378](https://github.com/ezzz/HFRnow/pull/378).
 - GAP-056 policy C, GAP-058 videos on tap: `b·needed` (operator 2026-10-27, LOT-071), **UXD-12** only confirms the image-setting default.
 - GAP-051 one-line message header instead of the grey band with "+": `b`, shipped, decided 2026-11-02, **UXD-09** (recommendation: legacy band by default, the new one as a "Style des messages" value).
-- GAP-008 tab bar in the reader: `b`, decided 2026-11-02, **UXD-02**: hidden as legacy in compact width, while the reader's tab is selected; side by side (Pro Max landscape, iPad) keeps it (#424, #559; it shipped visible).
+- GAP-008 tab bar in the reader: `b`, decided 2026-11-02, **UXD-02**: hidden as legacy in compact width, while the reader's tab is selected; side by side (iPad, a foldable's inner screen) keeps it (#424, #559; it shipped visible). Since #431 a Pro Max in landscape reads its Catégories, Favoris and Messages topics full width with the bar hidden, as legacy; only the Plus tab's readers keep it there.
 - GAP-060 page bar instead of ‹ › and the "…" menu: `b`, shipped, decided 2026-11-02, **UXD-10**.
 - GAP-053 body on `-apple-system-body`: `b·operator` (LOT-169, **UXD-13**). GAP-050, 055, 064: `a`.
 

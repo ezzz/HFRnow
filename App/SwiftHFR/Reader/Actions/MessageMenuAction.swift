@@ -2,7 +2,7 @@ import Foundation
 import HFRModels
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagePopupMenuActionKind, MessagePopupMenuPolicy) @ 2440d79.
-// Differences: GAP-064 (and GAP-051 for the header: a "⋯" button instead of the legacy "+", a UX change to confirm);
+// Differences: GAP-064 (the header's button is the legacy "+" again, operator decision of 2026-11-15 on #594);
 // the legacy `TopicPageMessageActions` flags that LOT-031 does not port (`isOwnMessage`, `canBeFavorite`, `canDelete`)
 // are derived in `MessageMenuContext`; `canQualityAlert` and `canBookmark` are offered by the handler of their own lot
 // (docs/lots/LOT-087-message-actions.md).

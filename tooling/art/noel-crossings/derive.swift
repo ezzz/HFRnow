@@ -17,7 +17,8 @@ let jobs: [(String, String, Int)] = [
     ("noel_gift_gold", "NoelGiftGold", 256),
     ("noel_ornament", "NoelOrnament", 256),
     ("noel_snowflake", "NoelSnowflake", 256),
-    ("noel_snowpile", "NoelSnowPile", 660) // the bottom drifts: up to 220 pt wide
+    ("noel_snowpile", "NoelSnowPile", 660), // the bottom drifts: up to 220 pt wide
+    ("noel_elf", "NoelElf", 540) // the packing elves: up to 180 pt high
 ]
 
 func trimmedBounds(_ image: CGImage) -> CGRect {

@@ -36,7 +36,14 @@ import Testing
             "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
             "icon_previous", "icon_revert_asked",
             // LOT-166: the two seasonal toggles, new.
-            "season.automatic", "season.animations", "season.noel.activeYear"
+            "season.automatic", "season.animations", "season.noel.activeYear",
+            // #903: the Réglages › Expérimental switches, new.
+            "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
+            "experimental.flagIconRows", "experimental.imageLoadingChoice",
+            // #1003: the first activation of « Chargement des images », new.
+            "experimental.imageLoadingChoice.started",
+            // LOT-140: the background MP check interval, new.
+            "mp_check_interval"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -70,7 +77,7 @@ import Testing
         #expect(store.value(for: SettingKey.doubleSizeSmileys))
         #expect(store.value(for: SettingKey.embeddedVideos) == .inlinePlayer)
         #expect(!store.value(for: SettingKey.displaySignatures))
-        #expect(store.value(for: SettingKey.displayImages) == .wifiOnly)
+        #expect(store.value(for: SettingKey.displayImages) == .always)
         #expect(!store.value(for: SettingKey.mpStorageActive))
         #expect(store.value(for: SettingKey.mpStorageLastSync) == nil)
         #expect(store.value(for: SettingKey.searchCategory) == .forum(13))
@@ -79,6 +86,13 @@ import Testing
         #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
         #expect(store.value(for: SettingKey.seasonalAnimations))
         #expect(store.value(for: SettingKey.noelActiveYear) == nil)
+        // #903: every experimental switch is off; the modern composer too since #855 delivered legacy's.
+        #expect(!store.value(for: SettingKey.experimentalModernComposer))
+        #expect(!store.value(for: SettingKey.experimentalSearchTab))
+        #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
+        #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
+        #expect(!store.value(for: SettingKey.experimentalImageLoadingChoice))
+        #expect(!store.value(for: SettingKey.experimentalImageLoadingChoiceStarted), "#1003: no activation yet")
     }
 
     /// LOT-166: one set of Noël keys per season, named after its year (THEMES.md §5), all empty at first.
@@ -202,7 +216,7 @@ import Testing
     @Test func unknownEnumStringFallsBackToTheDefault() {
         let store = InMemorySettingsStore(["embedded_videos": .string("sometimes"), "display_images": .int(4)])
         #expect(store.value(for: SettingKey.embeddedVideos) == .inlinePlayer)
-        #expect(store.value(for: SettingKey.displayImages) == .wifiOnly)
+        #expect(store.value(for: SettingKey.displayImages) == .always)
     }
 
     @Test func searchCategoryAcceptsNumbersAndRejectsGarbage() {

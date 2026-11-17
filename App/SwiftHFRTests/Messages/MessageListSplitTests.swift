@@ -129,6 +129,27 @@ struct MessageListSplitTests {
         #expect(model.visibleThreads.isEmpty)
     }
 
+    @Test func theMenuStepsFollowTheArrowsAndAPageChosenIsExact() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in
+            pageOf([messageThread(page)] + (page == 1 || page == 3 ? [messageThread(90 + page, group: true)] : []), page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        #expect(source.requests == [1])
+        // A typed page, even the next one, is shown as it is: page 2 has no group row.
+        await model.perform(.page(2))
+        #expect(model.currentPage == 2 && model.visibleThreads.isEmpty)
+        // « Première page » is exact too.
+        await model.perform(.first)
+        #expect(model.currentPage == 1)
+        // The « Suivante » step is the › arrow: it searches on to page 3, which has a group row.
+        await model.perform(.next)
+        #expect(model.currentPage == 3)
+        #expect(source.requests == [1, 2, 1, 2, 3])
+    }
+
     @Test func switchingSegmentDuringASearchStopsIt() async {
         let source = FakePrivateMessages()
         let gate = CheckGate()

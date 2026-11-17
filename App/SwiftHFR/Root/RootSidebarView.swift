@@ -72,8 +72,9 @@ struct RootSidebarView: View {
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: model.favorites) } }
         case .tab(.messages):
             MessagesListColumn(model: model.messages, composer: environment.composer)
-        case .tab(.more), .plus:
-            // Unreachable: `sidebarDestination` maps Plus to Réglages, and a Plus entry takes the two-column split above.
+        case .tab(.more), .tab(.search), .plus:
+            // Unreachable: `sidebarDestination` maps Plus to Réglages and Recherche to its Plus entry (#896), and a Plus entry
+            // takes the two-column split above.
             EmptyView()
         }
     }
@@ -100,7 +101,7 @@ private struct CategoriesSidebarColumn: View {
                 .navigationDestination(item: $navigation.selectedSource) { source in
                     TopicListView(
                         model: navigation.topicList(for: source), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                        composer: composer, open: { navigation.open($0, at: $1) }, tintBase: .clear, scope: navigation.scope(for: source)
+                        composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source)
                     )
                     .appScreenBackground()
                 }

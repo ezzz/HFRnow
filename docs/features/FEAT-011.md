@@ -3,6 +3,8 @@
 - **Issue:** [#155](https://github.com/ezzz/HFRnow/issues/155) · **Proposed by:** Bybifok (credit kept, see [CREDITS.md](../../CREDITS.md))
 - **Lots:** [LOT-083](../lots/LOT-083-topic-reader.md) (policy C, `ImageAutoLoad`, `NetworkMonitor`), [LOT-107](../lots/LOT-107-image-loading-setting.md) (the setting screen; last lot)
 
+> Amendment 2026-11-16 (#902, operator 2026-11-14): there is no « Images externes » setting in Réglages any more and images always load, as legacy; the choice below lives behind Réglages › Expérimental › « Chargement des images » (`ImageLoadingChoice`, off by default, picker default Toujours; `display_images` defaults to `yes`).
+
 ## What and why
 The reader chooses when third-party images load: always, on Wi-Fi only, or never by itself. Readers on mobile data control data use and privacy (≈20 user complaints "options removed in 3.0").
 

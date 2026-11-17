@@ -4,57 +4,6 @@ import HFRParsing
 import HFRStorage
 import Observation
 
-/// Which conversations the "Deux listes" switch shows (LOT-171).
-enum MPSegment: String, CaseIterable, Sendable {
-    /// One-to-one conversations ("MP").
-    case oneToOne
-    /// Group conversations ("MP multiples").
-    case group
-
-    /// Switch label.
-    var title: String { self == .oneToOne ? "MP" : "MP multiples" }
-
-    /// Whether `thread` belongs to this segment (`PrivateMessageThread.isGroup`, legacy `MPListView.swift:376-377`).
-    func contains(_ thread: PrivateMessageThread) -> Bool { thread.isGroup == (self == .group) }
-}
-
-/// A private message list page ready to display.
-struct MessageListContent: Sendable, Equatable {
-    /// Conversations in page order. Each row keeps its own unread state and group flag, so a later lot can split or count
-    /// them without fetching again (LOT-171).
-    var threads: [PrivateMessageThread]
-    /// Page shown (1-based).
-    var page: Int
-    /// A next page exists. The pager is a window, so only "there is a next page" is known, never a total.
-    var hasNext: Bool
-    /// Why there is no row, when there is none.
-    var emptyReason: EmptyReason?
-    /// The page's "new private message" link (`md_btn_new_topic`, `R13a`), resolved on the forum; nil when absent.
-    var newMessageURL: URL?
-
-    /// Conversations of this page the member has not read; the mailbox total is the badge's (home page), not this.
-    var unreadCount: Int { threads.filter(\.isUnread).count }
-
-    init(threads: [PrivateMessageThread], page: Int, hasNext: Bool, emptyReason: EmptyReason?, newMessageURL: URL? = nil) {
-        self.threads = threads
-        self.page = page
-        self.hasNext = hasNext
-        self.emptyReason = emptyReason
-        self.newMessageURL = newMessageURL
-    }
-
-    init(page list: PrivateMessageListPage) {
-        threads = list.threads
-        page = list.navigation.current
-        hasNext = list.navigation.nextPath != nil
-        emptyReason = list.threads.isEmpty ? .nothing : nil
-        newMessageURL = list.newMessagePath.flatMap { HFRURL.absolute($0) }
-    }
-
-    /// What a logged-out visitor sees: no request is made, the list asks for a login.
-    static let signedOut = MessageListContent(threads: [], page: 1, hasNext: false, emptyReason: .signInRequired(nil))
-}
-
 // Port of HFRswift/Swift/MPListView.swift (MPListViewModel; hasMultipleInterlocutors, :376-377) @ 2440d79.
 // Differences: one page at a time (LOT-023, LOT-045), the group test is `PrivateMessageThread.isGroup`, and the split
 // (setting "Affichage des MP", switch "MP" / "MP multiples") has no legacy counterpart: operator decision
@@ -84,12 +33,24 @@ final class MessageListModel {
     private(set) var requestedPage = 1
     /// HFR's confirmation of the private message just sent (LOT-128) or of a conversation marked unread (LOT-127), shown
     /// until dismissed.
-    private(set) var sentConfirmation: String?
+    private(set) var sentConfirmation: String? {
+        didSet { confirmationDidChange() }
+    }
+
+    /// Clears a success confirmation by itself after `ConfirmationAutoDismiss.delay` (#864).
+    let confirmationTimer = ConfirmationAutoDismiss()
     /// Why a "Marquer comme non lu" failed once its reader was gone; a reader on screen says it itself.
     var actionFailure: String?
 
     /// MPStorage sync of the current account (LOT-130), for the group rows' flags; nil when logged out.
     let mpStorage: MPStorageSyncModel?
+    /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
+    /// do not need it.
+    let privateMessageCount: PrivateMessageCount?
+    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when it loads, and again when one
+    /// is read here (with the badge's count), so the next background check neither notifies what the member saw nor misses a
+    /// reply to a conversation read here. Nil in tests that do not need it.
+    let ledgerSeen: (@Sendable (NotificationSummary) async -> Void)?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -115,9 +76,13 @@ final class MessageListModel {
         topicPages: any TopicPageSource = UnavailableTopicPages(),
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         settings: (any SettingsStore)? = nil,
-        mpStorage: MPStorageSyncModel? = nil
+        mpStorage: MPStorageSyncModel? = nil,
+        privateMessageCount: PrivateMessageCount? = nil,
+        ledgerSeen: (@Sendable (NotificationSummary) async -> Void)? = nil
     ) {
+        self.ledgerSeen = ledgerSeen
         self.mpStorage = mpStorage
+        self.privateMessageCount = privateMessageCount
         self.settings = settings
         self.source = source
         self.isLoggedIn = isLoggedIn
@@ -193,8 +158,12 @@ final class MessageListModel {
 
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
+    /// Pages in the list and whether that is the real last page (`MessageListContent`); 1 and true before the first load.
+    var pageCount: Int { loader.value?.pageCount ?? 1 }
+    var pageCountIsExact: Bool { loader.value?.pageCountIsExact ?? true }
     var canGoToPrevious: Bool { currentPage > 1 && !loader.isLoading }
     var canGoToNext: Bool { (loader.value?.hasNext ?? false) && !loader.isLoading }
+    var canGoToLast: Bool { canGoToNext && pageCountIsExact }
 
     /// The list became visible: first load, or a refresh, because reading a conversation elsewhere changes its unread state.
     /// Rows stay meanwhile.
@@ -208,13 +177,27 @@ final class MessageListModel {
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
 
+    /// A tap on a summary notification (LOT-140): page 1, where new conversations are, whatever page was on screen.
+    func showFirstPage() async {
+        if let settings { display = settings.value(for: SettingKey.mpListDisplay) }
+        selected = nil
+        await load(page: 1, advancing: false)
+    }
+
     /// Asks again for the last page that was asked for (after a failure).
     func retry() async { await load(page: requestedPage) }
 
     func goToNextPage() async { if canGoToNext { await load(page: currentPage + 1) } }
     /// Going back never searches forward: the member asked for that page.
     func goToPreviousPage() async { if canGoToPrevious { await load(page: currentPage - 1, advancing: false) } }
-    func goToFirstPage() async { if canGoToPrevious { await load(page: 1) } }
+    func goToFirstPage() async { await goToPage(1) }
+    func goToLastPage() async { if canGoToLast { await goToPage(pageCount) } }
+    /// Exactly HFR page `page`, nothing searched past it; clamped to 1...`pageCount` unless that is only a lower bound.
+    func goToPage(_ page: Int) async {
+        let target = pageCountIsExact ? min(max(page, 1), pageCount) : max(page, 1)
+        guard target != currentPage, !loader.isLoading else { return }
+        await load(page: target, advancing: false)
+    }
 
     /// The reader of `thread`: the same model while it stays selected, a new one (a new load) for another conversation.
     /// Nil when the row names no thread page.
@@ -289,6 +272,12 @@ final class MessageListModel {
         sentConfirmation = nil
     }
 
+    /// A shown confirmation is a success HFR confirmed: it goes by itself; the cross is the other way (#864).
+    private func confirmationDidChange() {
+        guard sentConfirmation != nil else { return confirmationTimer.cancel() }
+        confirmationTimer.arm { [weak self] in self?.clearSentConfirmation() }
+    }
+
     /// Whether the row shows as unread: HFR's state, until the member has seen the conversation's last page; or marked
     /// unread here, until a later load says what HFR holds.
     func isUnread(_ thread: PrivateMessageThread) -> Bool {
@@ -305,8 +294,12 @@ final class MessageListModel {
             if currentReader?.model !== reader { actionFailure = reason }
         case .done(let message):
             sentConfirmation = message
+            // Legacy adds one for a row that showed read (`MPListView.swift:536-540` @ 87fe0d1c).
+            if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
+            // Recorded before the reload, which may fail: the member's own action is not news (LOT-140).
+            await recordReadState()
             await refresh()
         }
     }
@@ -317,8 +310,19 @@ final class MessageListModel {
     /// is a local display state only; the next load brings HFR's own state back.
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
+        // Legacy takes one off the badge for a row that showed unread (`MPListView.swift:497-502` @ 87fe0d1c): once per read.
+        let wasUnread = isUnread(listed(thread))
+        if wasUnread { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
+        if wasUnread { Task { await recordReadState() } }
+    }
+
+    /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
+    /// later load may have made stale (a row since read must not take a second one off the badge, #762). Off the page, the
+    /// thread's "opened here" mark is kept by `load`, so the fallback still reads as read.
+    private func listed(_ thread: PrivateMessageThread) -> PrivateMessageThread {
+        loader.value?.threads.first { $0.id == thread.id } ?? thread
     }
 
     private func load(page: Int, advancing: Bool = true) async {
@@ -338,11 +342,14 @@ final class MessageListModel {
             if case .notAuthenticated = error { selected = nil }
             return
         }
-        // Threads opened while this load was running were not in its answer: they stay read until the next load.
-        openedThreads = openedThreads.filter { $0.value >= mine }
+        // Threads opened while this load was running were not in its answer: they stay read until the next load. A thread the
+        // answer does not list (another page, deleted) stays read too: its reader may still be open on the tap's value, and the
+        // badge's -1 / +1 must not take that stale value for the row (#762).
+        let answered = Set(loader.value?.threads.map(\.id) ?? [])
+        openedThreads = openedThreads.filter { $0.value >= mine || !answered.contains($0.key) }
         markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
-        if loader.value == .signedOut { selected = nil }
+        if loader.value == .signedOut { selected = nil } else { await recordReadState() }
         if advancing { await advanceWhileSegmentEmpty() }
     }
 }

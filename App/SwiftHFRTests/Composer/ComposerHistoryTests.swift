@@ -57,8 +57,10 @@ struct ComposerHistoryTests {
 
     @Test func aSmileyAndAFormattingTagAreOneStepEach() async {
         let composer = await started("salut")
-        _ = composer.insert(smiley: ":)", replacing: nil)
         let formatting = ComposerFormattingModel(composer: composer, clipboard: EmptyClipboard())
+        formatting.selectedRange = NSRange(location: 5, length: 0)
+        formatting.beginPick()
+        _ = formatting.insert(smiley: ":)")
         formatting.selectedRange = NSRange(location: 0, length: 5)
         formatting.tap(.bbCode(.bold))
         #expect(composer.text.hasPrefix("[b]salut[/b]"))

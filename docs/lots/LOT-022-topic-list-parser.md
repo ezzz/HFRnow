@@ -12,7 +12,7 @@ Legacy repository <https://github.com/ezzz/HFRnow>, commit `2440d79`.
 | `Classes/ObjCTopicListParser.m:59-470` (`-parseData:currentURL:`): status `:67-81`, MP block `:83-92`, page number `:94-114`, category `:116-131`, new-topic link `:133-135`, tabs `:139-168`, pager `:172-252`, rows `:254-467` | `TopicListParser`, `TopicListPager`, `TopicListRowParser` |
 | `Classes/ObjCTopicListParser.m:9-38` (`HFRTopicPageNumberFromURLString`) | `HFRURL.page(in:)` (LOT-020) |
 | `SuperHFRplus/Helpers/RangeOfCharacters.m:116-138` (`decodeSpanUrlFromString2`) | `ObfuscatedURL.decode(classAttribute:)` (LOT-020) |
-| `SuperHFRplus/Helpers/RangeOfCharacters.m:330-343` (`filterTU`, via `Topic.m:90-94`) | not ported (presentation; a test-only copy feeds the differential tests) |
+| `SuperHFRplus/Helpers/RangeOfCharacters.m:330-343` (`filterTU`, via `Topic.m:90-94`) | not in the parser (presentation, D4): `TopicTitle.displayed` (`HFRModels`, #818); the differential tests apply that shipped function to the parsed title |
 | Callers: `ObjCForumTopicsLoaderWorker.m:163`, `ObjCMPTopicsLoaderWorker.m:9`, `ObjCForumSearchWorker.m:242-257` | the app / `HFRClient` call `TopicListParser.parse` |
 
 ## Behaviour
