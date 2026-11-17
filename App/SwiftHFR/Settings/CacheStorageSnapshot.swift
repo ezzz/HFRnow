@@ -17,15 +17,13 @@ struct CacheStorageSnapshot: Equatable, Sendable {
     /// The figures of `Library/Caches` and of the `offline` area of the standard cache folder.
     static func measureStandard() -> CacheStorageSnapshot {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first ?? URL.temporaryDirectory
-        let cache = CacheDirectory(root: caches.appending(path: "cache", directoryHint: .isDirectory))
-        // An area that is a link or leaves the cache is not read (the store refuses it too): zero pages.
-        return measure(cachesDirectory: caches, offlineDirectory: try? cache.safeURL(for: .offlineTopics))
+        return measure(cachesDirectory: caches, cache: .standard)
     }
 
-    /// Measures `cachesDirectory` (hidden files and folders skipped, as legacy) and the saved pages of `offlineDirectory`.
-    /// A missing or unreadable folder counts as empty.
-    static func measure(cachesDirectory: URL, offlineDirectory: URL?) -> CacheStorageSnapshot {
-        let pages = offlineDirectory.map(savedPageSizes(in:)) ?? []
+    /// Measures `cachesDirectory` (hidden files and folders skipped, as legacy) and the pages `cache` holds in its `offline` area,
+    /// the folder `OfflineTopicStore` writes. A missing, unreadable or unsafe (linked) folder counts as empty.
+    static func measure(cachesDirectory: URL, cache: CacheDirectory) -> CacheStorageSnapshot {
+        let pages = (try? cache.safeURL(for: .offlineTopics)).map(savedPageSizes(in:)) ?? []
         return CacheStorageSnapshot(
             totalBytes: allocatedSize(under: cachesDirectory),
             htmlBytes: pages.reduce(0, +),
@@ -51,21 +49,31 @@ struct CacheStorageSnapshot: Equatable, Sendable {
         return total
     }
 
-    /// Sizes of the `<n>.json` files directly inside each topic folder of the offline area, as `OfflineTopicStore` reads them
-    /// (links, stray files, deeper folders and hidden entries are not pages).
+    /// Sizes of the pages of the offline area, with the names `OfflineTopicStore` gives them: `<category>-<topic>/<n>.json`,
+    /// numbers in decimal without sign or leading zero, regular files only (links, strays, deeper folders and hidden entries
+    /// are not pages).
     private static func savedPageSizes(in area: URL) -> [Int64] {
         folders(in: area).flatMap { folder in
             visibleEntries(of: folder).compactMap { file in
-                file.pathExtension == "json" ? allocatedSize(of: file) : nil
+                guard file.pathExtension == "json", isPositiveNumber(file.deletingPathExtension().lastPathComponent) else {
+                    return nil
+                }
+                return allocatedSize(of: file)
             }
         }
     }
 
     private static func folders(in area: URL) -> [URL] {
         visibleEntries(of: area).filter { url in
+            let parts = url.lastPathComponent.split(separator: "-", omittingEmptySubsequences: false)
+            guard parts.count == 2, parts.allSatisfy(isPositiveNumber) else { return false }
             let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             return values?.isDirectory == true && values?.isSymbolicLink != true
         }
+    }
+
+    private static func isPositiveNumber(_ text: some StringProtocol) -> Bool {
+        !text.isEmpty && text.utf8.allSatisfy { (48...57).contains($0) } && text.first != "0"
     }
 
     private static func visibleEntries(of directory: URL) -> [URL] {

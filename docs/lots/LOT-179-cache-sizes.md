@@ -43,7 +43,7 @@ On top of the merged LOT-120, in Réglages > Maintenance, above "Ouvrir les rég
 None: no HFR request.
 
 ## Intentional differences from legacy
-- The footer states SwiftHFR's own rule for the pages the row counts: saved pages are kept whatever their age and bounded to 200 MB (`offlineTopics`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:26-28`, LOT-068), where legacy's footer said 7 days and 50 MB for its `topic-*.htm` files (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`). Its changelog row is in the `### Ledger` section of #690, the PR that moved this lot to M4.
+- The footer states SwiftHFR's own rule for the pages the row counts: saved pages are kept whatever their age and bounded to 200 MB (`offlineTopics`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:26-28`, LOT-068), where legacy's footer said 7 days and 50 MB for its `topic-*.htm` files (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`). Row 690 of `docs/CHANGELOG-LEGACY.md` (written by #690, the PR that moved this lot to M4) announced that the footer "donnera la règle de SwiftHFR" for topic pages (1 day, 20 MB); the footer now gives the saved pages' rule, so LOT-179's PR drops that clause (`ledger-note`) and adds its own row.
 - "Pages HTML" counts the saved offline pages (`Caches/cache/offline`, one `<n>.json` per page, LOT-068), where legacy read `topic-*.htm` directly under `Caches/cache`: SwiftHFR no longer writes those (LOT-066's `pages` area has no writer), and legacy-era files stay in the total only (operator, 2026-11-17).
 - "fichier" is singular for 0 and 1 (legacy wrote "1 fichiers").
 
