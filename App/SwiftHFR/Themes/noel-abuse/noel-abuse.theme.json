@@ -1,0 +1,32 @@
+{
+  "id": "noel-abuse",
+  "name": "Noël abusé",
+  "family": "Noël",
+  "fontDesign": "rounded",
+  "decorations": "noel-full",
+  "variants": {
+    "any": {
+      "background": "#0F4D2E",
+      "surface": "#0B3A22",
+      "surfaceRaised": "#8E0E24",
+      "title": "#FFF8EC",
+      "textPrimary": "#FFF8EC",
+      "textSecondary": "#E9D9BF",
+      "sectionHeader": "#FFE7A3",
+      "accent": "#B3122E",
+      "accentText": "#FFD25E",
+      "onAccent": "#FFFFFF",
+      "separator": "#2E6B48",
+      "link": "#FFD25E",
+      "quoteBackground": "#145C37",
+      "quoteBorder": "#E3B341",
+      "codeBackground": "#082A18",
+      "codeText": "#FFF8EC",
+      "unread": "#E3B341",
+      "onUnread": "#1B1410",
+      "spoilerBackground": "#8E0E24",
+      "spoilerText": "#FFF8EC",
+      "selection": "#3A1A22"
+    }
+  }
+}

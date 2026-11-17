@@ -107,7 +107,7 @@ final class ThemeSettingsModel {
         let selected = self.theme
         return ThemeAppearance(
             dayAccent: dayAccent, nightAccent: nightAccent, darkBrightness: darkBrightness, darkStyle: darkStyle,
-            themeVariants: selected.variants, themeFontDesign: selected.fontDesign
+            themeVariants: selected.variants, themeFontDesign: selected.fontDesign, themeDecorations: selected.decorations
         )
     }
 
@@ -144,15 +144,17 @@ extension View {
     /// One appearance and one accent for every screen, sheets and the reader included (LOT-121). The scheme is set on the
     /// window, as legacy did (`HFRplusAppDelegate.m:392`), so presented sheets and the reader's `WKWebView`
     /// (`prefers-color-scheme`) read the same trait, and nil hands it back to iOS at once. The app root applies it once.
-    /// A `seasonal` theme (LOT-166) is drawn over the user's colours without changing them.
+    /// A `seasonal` theme (LOT-166) is drawn over the user's colours without changing them; Noël abusé, a single-variant theme
+    /// of the engine, imposes its appearance like a gallery one.
     func appTheme(_ theme: ThemeSettingsModel, seasonal: SeasonalTheme? = nil) -> some View {
-        let appearance = theme.appearance.applying(seasonal)
+        let appearance = theme.appearance.applying(seasonal, catalog: theme.catalog)
+        let scheme = appearance.forcedColorScheme ?? theme.preferredColorScheme
         return environment(theme)
             .environment(\.themeAppearance, appearance)
             .tint(appearance.accentColor)
             // nil for Legacy: no design set, as before (LOT-188); a value change only, never a new structure.
             .fontDesign(appearance.fontDesign)
-            .background(WindowStyle(scheme: theme.preferredColorScheme, tint: appearance.accentUIColor))
+            .background(WindowStyle(scheme: scheme, tint: appearance.accentUIColor))
     }
 }
 
@@ -224,10 +226,12 @@ private struct AppScreenBackground: ViewModifier {
         switch appearance.screenFill {
         case let .theme(light, dark):
             let fill = Color(uiColor: ThemeAppearance.dynamic(light: light, dark: dark))
+            // A theme's art sits on its background, behind the content (LOT-166: Noël abusé); each column draws its own.
+            let decorations = appearance.themeDecorations
             content
                 .scrollContentBackground(.hidden)
-                .containerBackground(for: .navigation) { fill }
-                .containerBackground(for: .navigationSplitView) { fill }
+                .containerBackground(for: .navigation) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
+                .containerBackground(for: .navigationSplitView) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
         case let .darkOnly(color):
             let fill = Color(uiColor: color.uiColor)
             let dark = scheme == .dark
