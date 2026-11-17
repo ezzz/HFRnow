@@ -109,4 +109,32 @@ extension SyncedListsStoreRehostTests {
         let value = RehostHistoryEnvelope(RehostUploadHistoryDocument(images: images), limit: .max).value
         #expect(try #require(RehostHistoryEnvelope(value)).items == images)
     }
+
+    // MARK: Removals and the Apple ID
+
+    @Test func removalsFollowTheirAppleIDAndNeverReachAnother() async throws {
+        let device = await Self.device(images: Self.images(1...2))
+        try await device.remove(Self.image(1))
+        try await device.remove(Self.image(2))
+        await device.switchAppleID(to: "apple-2")
+        #expect(await device.history.document()?.removals.isEmpty == true)
+        #expect(device.cloud.value(forKey: Self.key) == nil)
+        let setAside = try #require(device.deviceState.saved?.quarantine["apple-1"]?.values[Self.key])
+        #expect(RehostHistoryEnvelope(setAside)?.removals.count == 2)
+
+        await device.switchAppleID(to: "apple-1")
+        #expect(await device.history.document()?.removals.map(\.id).sorted() == [Self.image(1).id, Self.image(2).id].sorted())
+    }
+
+    @Test func aHistoryHoldingOnlyRemovalsBlocksTheRestore() async throws {
+        let device = await Self.device(images: Self.images(1...2))
+        await device.switchAppleID(to: "apple-2")
+        try await device.upload(Self.image(7))
+        try await device.remove(Self.image(7))
+        let setAside = device.deviceState.saved?.quarantine["apple-1"]?.values[Self.key]
+        device.cloud.receive(SyncedStoreChange(reason: .accountChange), identity: .some("apple-1"))
+        await device.sync.restore(for: "apple-1")
+        #expect(await device.history.images().isEmpty)
+        #expect(device.deviceState.saved?.quarantine["apple-1"]?.values[Self.key] == setAside)
+    }
 }

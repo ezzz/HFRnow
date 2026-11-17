@@ -99,6 +99,14 @@ import Testing
         #expect(await store.images() == [incoming, kept])
     }
 
+    @Test func aRemovalBeyondTheKeptOnesStillDropsItsUploadInTheMergeThatSeesIt() throws {
+        let images = try (1...150).map { try Self.image("n\($0)", at: Double($0)) }
+        let removals = images.map { RehostUploadRemoval(id: $0.id, removedAt: $0.uploadedAt.addingTimeInterval(1_000)) }
+        let merged = RehostUploadHistoryDocument(images: images).merging(images: [], removals: removals)
+        #expect(merged.images.isEmpty)
+        #expect(merged.removals.count == RehostUploadHistoryDocument.removalsLimit)
+    }
+
     @Test func aMergeThatChangesNothingSavesNothingAndKeepsTheOrder() async throws {
         let older = try Self.image("older", at: 1)
         let newer = try Self.image("newer", at: 2)
