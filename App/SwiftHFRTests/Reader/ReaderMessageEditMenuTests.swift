@@ -4,8 +4,8 @@ import Testing
 import UIKit
 
 /// Issue #594 (operator decision of 2026-11-15): the post's "+" opens legacy's horizontal edit-menu callout right at the button
-/// (`presentPopupMenu`, `popupAnchor`, `MessagesView.swift:2011-2081` @ 87fe0d1c), never away from it; the author menu keeps
-/// its popover.
+/// (`presentPopupMenu`, `popupAnchor`, `MessagesView.swift:2011-2081` @ 87fe0d1c), never away from it; since #969 the author
+/// menu (avatar or pseudo) is the same callout at the tapped spot, no longer a popover that opened in the top left.
 @MainActor
 @Suite(.serialized)
 struct ReaderMessageEditMenuTests: ReaderWebTesting {
@@ -61,8 +61,8 @@ struct ReaderMessageEditMenuTests: ReaderWebTesting {
         #expect(actions.dropLast().allSatisfy { !$0.attributes.contains(.destructive) })
     }
 
-    /// The model's message menu goes to the callout, its author menu does not, and a menu the model dropped closes.
-    @Test func theControllerShowsOnlyTheMessageMenuAsACallout() async {
+    /// Both the message menu and the author menu go to the callout, and a menu the model dropped closes.
+    @Test func theControllerShowsBothMenusAsACallout() async {
         let (controller, _) = makeController(transport: imageTransport())
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), source: FakeTopicPages())
         let shown = menu(anchor: CGRect(x: 350, y: 480, width: 30, height: 30))
@@ -70,7 +70,19 @@ struct ReaderMessageEditMenuTests: ReaderWebTesting {
         #expect(controller.messageMenu.shownMenu == shown)
         controller.showMessageMenu(nil, of: reader)
         #expect(controller.messageMenu.shownMenu == nil)
-        controller.showMessageMenu(menu(.avatar), of: reader)
+        let author = menu(.avatar, anchor: CGRect(x: 20, y: 400, width: 120, height: 24), entries: [.privateMessage, .blocklist, .allowlist])
+        controller.showMessageMenu(author, of: reader)
+        #expect(controller.messageMenu.shownMenu == author)
+        controller.showMessageMenu(nil, of: reader)
         #expect(controller.messageMenu.shownMenu == nil)
+    }
+
+    /// The author menu points at the tapped pseudo, from the coordinates the bridge reported, not at a corner.
+    @Test func theAuthorMenuIsAnchoredOnTheTappedPseudo() {
+        let pseudo = CGRect(x: 60, y: 400, width: 110, height: 22)
+        let placement = ReaderMessageEditMenu.placement(of: menu(.avatar, anchor: pseudo).anchor, topInset: 115, in: bounds)
+        #expect(placement.target == pseudo)
+        #expect(placement.point == CGPoint(x: pseudo.midX, y: pseudo.minY))
+        #expect(placement.arrow == .down)
     }
 }

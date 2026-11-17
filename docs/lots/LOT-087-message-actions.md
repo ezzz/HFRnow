@@ -81,7 +81,7 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    `ReaderMessageEditMenu`), anchored at the tapped "+", paging with "›", as legacy (`MessagesView.swift:1249-1251, 2011-2081,
    2799-2827` @ 87fe0d1c; operator decision of 2026-11-15 on #594). It opens above the button, below it within 40 points of the bars
    (legacy `popupAnchor`); without a usable anchor it falls back to the right edge under the bars, never the top left. The author
-   menu stays a popover anchored at the author (`ReaderMessageMenuAnchor`; legacy opened a sheet). Neither is a `confirmationDialog`
+   menu is the same callout, anchored at the tapped avatar or pseudo (#969: the popover on a clear anchor view, `ReaderMessageMenuAnchor`, opened in the top left and is gone; legacy opened a sheet). Neither is a `confirmationDialog`
    of the whole reader, which iOS 26 and later opens at the top centre. `reader.js` adds the button's `getBoundingClientRect()` (`x`, `y`, `width`, `height`) to the
    `menu` message; the decoder keeps it only as finite real numbers (never booleans), within 100 000 points and with no negative
    size, otherwise the menu opens unanchored (middle of the reader), never at a forged place. `reader.js` brings the rectangle to what the user sees
