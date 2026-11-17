@@ -125,8 +125,12 @@ public final class URLSessionTransport: HTTPTransport {
             }
             group.addTask {
                 let poll = Duration.seconds(min(max(idle / 4, 0.01), 0.25))
+                let clock = ContinuousClock()
                 while true {
-                    try await Task.sleep(for: poll)
+                    let slept = try await clock.measure { try await Task.sleep(for: poll) }
+                    // A sleep as long as the whole limit means this process was stalled (suspended app, starved machine), not the
+                    // network: the chunks it could not receive meanwhile are no evidence of an idle connection.
+                    if slept >= .seconds(max(idle, 0.001)) { delegate.noteActivity() }
                     if delegate.secondsSinceActivity >= max(idle, 0.001) { throw URLError(.timedOut) }
                 }
             }
@@ -205,6 +209,12 @@ private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchec
         let task = task
         lock.unlock()
         task?.cancel()
+    }
+
+    func noteActivity() {
+        lock.lock()
+        lastActivity = .now
+        lock.unlock()
     }
 
     var secondsSinceActivity: Double {
