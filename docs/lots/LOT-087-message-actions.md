@@ -74,8 +74,8 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    legacy's quick actions (`userProfileQuickActions`, `:4387-4412`): MP when not the user's own post, with a private-message link
    and a composer; Blacklist and Whitelist when not the user's own post and the author's pseudo is not empty. "MP" and a toggle close
    the profile first, then open the composer or show the result as a toast, and the page is rebuilt with the lists (`:4422-4490`;
-   legacy reloaded the page). The author menu opens only for a message without a profile link (legacy's fallback sheet, here a
-   popover at the author), so its entries there are MP, Blacklist and Whitelist; only that author button announces a menu
+   legacy reloaded the page). The author menu opens only for a message without a profile link (legacy's fallback sheet, here the
+   edit-menu callout at the author), so its entries there are MP, Blacklist and Whitelist; only that author button announces a menu
    (`aria-haspopup`).
 6. The message menu is the system's horizontal edit-menu callout (`UIEditMenuInteraction` on the web view,
    `ReaderMessageEditMenu`), anchored at the tapped "+", paging with "›", as legacy (`MessagesView.swift:1249-1251, 2011-2081,

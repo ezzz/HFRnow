@@ -74,16 +74,9 @@ struct ReaderMessageEditMenuTests: ReaderWebTesting {
         let author = menu(.avatar, anchor: pseudo, entries: [.privateMessage, .blocklist, .allowlist])
         controller.showMessageMenu(author, of: reader)
         #expect(controller.messageMenu.shownMenu == author)
+        // The callout points at the tapped pseudo: the rectangle the bridge reported, not a corner (#969).
+        #expect(controller.messageMenu.shownTarget == pseudo)
         controller.showMessageMenu(nil, of: reader)
         #expect(controller.messageMenu.shownMenu == nil)
-    }
-
-    /// The author menu points at the tapped pseudo, from the coordinates the bridge reported, not at a corner.
-    @Test func theAuthorMenuIsAnchoredOnTheTappedPseudo() {
-        let pseudo = CGRect(x: 60, y: 400, width: 110, height: 22)
-        let placement = ReaderMessageEditMenu.placement(of: menu(.avatar, anchor: pseudo).anchor, topInset: 115, in: bounds)
-        #expect(placement.target == pseudo)
-        #expect(placement.point == CGPoint(x: pseudo.midX, y: pseudo.minY))
-        #expect(placement.arrow == .down)
     }
 }

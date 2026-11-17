@@ -3,7 +3,8 @@ import UIKit
 // Port of HFRswift/Swift/MessagesView.swift (`presentPopupMenu` :2011-2058, `popupAnchor` :2062-2081, the edit menu delegate
 // `editMenuInteraction(_:menuFor:suggestedActions:)` :2799-2827 and its `UIEditMenuInteraction` on the web view :1249-1251)
 // @ 87fe0d1c. Differences: the anchor is the tapped "+" button's rectangle (its target rect), not a point; a menu shown while
-// another is open replaces it. GAP-064.
+// another is open replaces it. The author menu (avatar or pseudo tap) is the same callout (#969): legacy opens the author's
+// actions as a sheet (`onPopupAvatarSheetRequest`, `MessagesView.swift:2016-2027` @ 87fe0d1c). GAP-064.
 // The SDK's `UIEditMenuInteractionDelegate` is not main-actor isolated: the conformance is (SE-0470), as UIKit calls it on
 // the main thread only.
 /// The menus of the reader: the system's horizontal edit-menu callout, anchored at the tapped "+" or at the tapped avatar or
@@ -34,6 +35,9 @@ final class ReaderMessageEditMenu: NSObject, @MainActor UIEditMenuInteractionDel
 
     /// The menu currently shown, nil once it closed (tests read it).
     var shownMenu: MessageMenu? { shown?.menu }
+
+    /// The rectangle the callout on screen points at, in the web view's coordinates (tests read it).
+    var shownTarget: CGRect? { shown?.target }
 
     /// Installs the interaction on the web view (legacy adds it to its `WKWebView`).
     func attach(to view: UIView) {
