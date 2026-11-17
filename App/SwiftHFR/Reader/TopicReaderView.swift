@@ -133,7 +133,6 @@ struct TopicReaderView: View {
                 }
             }
         }
-        .overlay { ReaderMessageMenuAnchor(model: model) }
         .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
         .onChange(of: model.document?.token) { atPageEnd = false }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
