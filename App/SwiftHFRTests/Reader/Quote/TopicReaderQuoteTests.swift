@@ -209,8 +209,10 @@ struct TopicReaderQuoteTests {
         #expect(model.pendingReply?.quote == ReplyQuote(text: "blocs", release: QuoteRelease(token: quoteToken(100), numbers: [101, 100])))
     }
 
-    /// #1062: the sentence under « Bouton + » says the reply button opens the topic's draft with the selected quotes added,
-    /// whatever the choice (`quick` and `forum` call this same method): the reader's request, then the composer it opens.
+    /// #1062: the sentences of the « Bouton + » bubble say the reply button opens the topic's draft with the selected quotes
+    /// added, whatever the choice (`quick` and `forum` call this same method): the reader's request, then the composer it opens.
+    /// It joins two behaviours that are tested apart (`requestReply` here, the merge in `ReplyComposerQuoteTests`), so it passes
+    /// without the #1062 change by design: it backs the sentences, it does not test the bubble.
     @Test func theReplyButtonAddsItsQuotesToTheKeptDraft() async throws {
         let quoter = ScriptedQuoter(selected: [100])
         quoter.scriptSelection(.success(prefill))

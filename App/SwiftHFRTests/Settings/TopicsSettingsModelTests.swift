@@ -52,7 +52,7 @@ struct TopicsSettingsModelTests {
     }
 
     @Test func theTitlesAreLegacys() {
-        #expect(ReplyButtonBehavior.allCases.map(\.title) == ["Réponse rapide", "Répondre comme le forum", "Pas d'icône"])
+        #expect(ReplyButtonBehavior.allCases.map(\.title) == ["Réponse rapide", "Répondre comme le forum", "Pas d’icône"])
     }
 
     /// LOT-118: "Masquer les pseudos blacklistés" reads and writes the legacy key.
@@ -83,7 +83,9 @@ struct TopicsSettingsModelTests {
         #expect(TopicsSettingsModel(store: InMemorySettingsStore()).replyButton == .forum)
     }
 
-    @Test func theInfoButtonHasItsAccessibilityLabel() {
+    /// Pins the wording of the button's accessibility label (the operator's text). It does not prove that the row draws the
+    /// button: that needs the device check (no view-inspection tool, and a hosted test could not be run without a Mac).
+    @Test func theInfoButtonLabelIsThePinnedWording() {
         #expect(ReplyButtonRow.infoLabel == "À propos du bouton +")
     }
 }

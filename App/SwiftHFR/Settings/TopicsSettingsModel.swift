@@ -54,7 +54,7 @@ extension ReplyButtonBehavior {
         switch self {
         case .quick: "Réponse rapide"
         case .forum: "Répondre comme le forum"
-        case .hidden: "Pas d'icône"
+        case .hidden: "Pas d’icône"
         }
     }
 
