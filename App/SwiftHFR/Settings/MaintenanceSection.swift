@@ -47,6 +47,7 @@ final class MaintenanceModel {
 }
 
 /// The "Maintenance" section of Réglages: the cache sizes (a spinner until measured), the shortcut and the purge rule.
+/// The screen starts the measure once (`SettingsView`, as legacy's screen `.task`): a `.task` on a `Section` would run per row.
 struct MaintenanceSection: View {
     let model: MaintenanceModel
 
@@ -59,7 +60,6 @@ struct MaintenanceSection: View {
         } footer: {
             Text(CacheStorageText.purgeRule())
         }
-        .task { await model.refreshCacheStorage() }
     }
 }
 

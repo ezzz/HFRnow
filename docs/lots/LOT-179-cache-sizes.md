@@ -11,7 +11,7 @@ Absent at `2440d79` (GAP-152: the "Vider le cache" row of `AppSettingsView.swift
 
 | Legacy @ `2fe43da3` | Behaviour |
 |---|---|
-| `HFRswift/Swift/AppSettingsView.swift:547-577` (`maintenanceSection`) | section "Maintenance": "Caches de l'app" (total), "Pages HTML" (size, "N fichiers" below), a spinner until measured, "Ouvrir les réglages système"; footer "Les pages HTML de plus de 7 jours sont supprimées automatiquement. Leur cache est limité à 50 Mo." |
+| `HFRswift/Swift/AppSettingsView.swift:547-577` (`maintenanceSection`) | section "Maintenance": "Caches de l’app" (total), "Pages HTML" (size, "N fichiers" below), a spinner until measured, "Ouvrir les réglages système"; footer "Les pages HTML de plus de 7 jours sont supprimées automatiquement. Leur cache est limité à 50 Mo." |
 | `AppSettingsView.swift:288-297` (`refreshCacheStorage`, `formattedStorageSize`) | measured off the main thread; sizes as `.byteCount(style: .file)` |
 | `HFRswift/Swift/HTMLPageCacheManager.swift:39-55` (`storageSnapshot`), `:108-146` (`cachedHTMLFiles`), `:148-177` (`directoryAllocatedSize`) | total = allocated size of every non-hidden regular file under `Caches`, recursively (hidden files and folders skipped); "Pages HTML" = only the non-hidden regular files directly under `Caches/cache` named `topic-*` with an `htm` extension (case-insensitive) |
 
@@ -26,9 +26,9 @@ None planned: same UX as legacy at `2fe43da3`.
 ## Behaviour
 On top of the merged LOT-120, in Réglages > Maintenance, above "Ouvrir les réglages système":
 
-- **"Caches de l'app"**: allocated size of every non-hidden regular file under `Library/Caches`, recursively, so the whole folder as legacy (`HTMLPageCacheManager.swift:40-46`), not only LOT-066's areas (WebKit and URL caches count too).
-- **"Pages HTML"**: allocated size of the non-hidden regular `topic-*.htm` files (extension case-insensitive) directly in LOT-066's `pages` area (`Caches/cache/pages`, the folder `CacheEvictionPolicy.topicPages` purges), with "N fichiers" below.
-- A spinner replaces the rows until the first measure ends; the measure runs off the main actor, on each appearance of the section. Overlapping measures: the last one started wins.
+- **"Caches de l’app"**: allocated size of every non-hidden regular file under `Library/Caches`, recursively, so the whole folder as legacy (`HTMLPageCacheManager.swift:40-46`), not only LOT-066's areas (WebKit and URL caches count too).
+- **"Pages HTML"**: allocated size of the non-hidden regular `topic-*.htm` files (extension case-insensitive) directly in LOT-066's `pages` area (`Caches/cache/pages`, the folder `CacheEvictionPolicy.topicPages` purges), with "N fichiers" below ("fichier" for 0 and 1).
+- A spinner replaces the rows until the first measure ends; the measure runs off the main actor, once per appearance of the Réglages screen (`SettingsView`'s `.task`, as legacy `AppSettingsView.swift:606-607`; never a `.task` on the `Section`, which a `List` applies per row). Overlapping measures: the last one started wins.
 - Sizes use `.byteCount(style: .file)`.
 - The footer is derived from `CacheEvictionPolicy.topicPages`: "Les pages HTML de plus d’un jour sont supprimées automatiquement. Leur cache est limité à 20 Mo." (a megabyte is 1 000 000 bytes, as legacy).
 
@@ -46,6 +46,7 @@ None: no HFR request.
 - The footer states SwiftHFR's own rule for topic pages: LOT-066's topic-page preset is one day and 20 MB (`topicPages`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:23-24`), tighter than legacy's 7 days and 50 MB (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`; LOT-066 spec, "Legacy at `2fe43da3`"). Its changelog row is in the `### Ledger` section of #690, the PR that moved this lot to M4.
 
 - "Pages HTML" reads `Caches/cache/pages` (LOT-066's area), where legacy read `topic-*.htm` directly under `Caches/cache`; legacy-era files there are in the total only.
+- **Open question for the operator:** nothing in the app writes to LOT-066's `pages` area today (`TemporaryFileCache` has no caller; the reader renders through the `hfrreader:` scheme), so "Pages HTML" shows 0 and the footer describes the purge of an empty folder. It is kept for parity and for when the area is used; drop the row, or measure another area (the `offline` area, 200 MB, #822/#846), on the operator's call.
 - "fichier" is singular for 0 and 1 (legacy wrote "1 fichiers").
 
 ## Learnings

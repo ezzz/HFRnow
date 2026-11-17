@@ -28,25 +28,45 @@ struct MaintenanceModelTests {
         #expect(model.cacheStorage == expected)
     }
 
-    @Test func aNewMeasureReplacesTheOldOne() async {
-        let counter = Counter()
-        let model = MaintenanceModel(openSettings: {}, measureCaches: {
-            CacheStorageSnapshot(totalBytes: Int64(counter.next()), htmlBytes: 0, htmlFileCount: 0)
-        })
+    @Test func theMeasureStartedLastWinsWhateverTheOrderOfTheEnds() async {
+        let gate = SlowFirstMeasure()
+        let model = MaintenanceModel(openSettings: {}, measureCaches: { gate.measure() })
+        let first = Task { await model.refreshCacheStorage() }
+        while !gate.firstHasStarted { await Task.yield() }
+        // The second measure ends while the first is still held: the first then ends last, with an older result.
         await model.refreshCacheStorage()
-        await model.refreshCacheStorage()
+        #expect(model.cacheStorage?.totalBytes == 2)
+        gate.releaseFirst()
+        await first.value
         #expect(model.cacheStorage?.totalBytes == 2)
     }
 }
 
-private final class Counter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value = 0
+/// A measure whose first call waits to be released, so the first of two refreshes ends after the second.
+private final class SlowFirstMeasure: @unchecked Sendable {
+    private let condition = NSCondition()
+    private var calls = 0
+    private var released = false
 
-    func next() -> Int {
-        lock.withLock {
-            value += 1
-            return value
+    var firstHasStarted: Bool {
+        condition.withLock { calls >= 1 }
+    }
+
+    func releaseFirst() {
+        condition.withLock {
+            released = true
+            condition.broadcast()
         }
+    }
+
+    func measure() -> CacheStorageSnapshot {
+        condition.lock()
+        calls += 1
+        let call = calls
+        if call == 1 {
+            while !released { condition.wait() }
+        }
+        condition.unlock()
+        return CacheStorageSnapshot(totalBytes: Int64(call), htmlBytes: 0, htmlFileCount: 0)
     }
 }
