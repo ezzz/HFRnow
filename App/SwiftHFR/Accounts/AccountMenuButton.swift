@@ -1,11 +1,15 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/MainWindow.swift (CategoriesListView.accountMenuItems) and HFRswift/Swift/AccountMenuViews.swift
-// (AccountMenuRow) @ 2440d79. Differences: shown in the Plus and Catégories toolbars only, plus a "manage accounts" entry (GAP-009,
-// GAP-162).
+// Port of HFRswift/Swift/MainToolbar.swift (MainToolbarContent, `:60-66`; ToolbarProfileImage) @ 87fe0d1c, of
+// HFRswift/Swift/MainWindow.swift (CategoriesListView.accountMenuItems) and HFRswift/Swift/AccountMenuViews.swift (AccountMenuRow)
+// @ 2440d79. Differences: a "manage accounts" entry (GAP-009, GAP-162); a pushed screen has none (its back button is leading, as in
+// legacy where only the root toolbars carry it); an expired session shows the badge symbol instead of the avatar.
 /// Toolbar entry to the accounts, as legacy's account menu (`HFRswift/Swift/MainWindow.swift:267-290`): switch account,
 /// add one, manage them. Logged out, it offers to log in.
 struct AccountMenuButton: View {
+    /// Top left, as legacy (`MainToolbar.swift:60-66` @ 87fe0d1c) and on every main root (#1057).
+    static let placement = ToolbarItemPlacement.topBarLeading
+
     @Environment(AccountsModel.self) private var accounts
     @State private var showsAccounts = false
     @State private var loginTarget: LoginTarget?
@@ -45,8 +49,10 @@ struct AccountMenuButton: View {
                     Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }
                     Button("Gérer les comptes…", systemImage: "person.2") { showsAccounts = true }
                 } label: {
-                    Label(accounts.current?.displayName ?? "Comptes", systemImage: menuSymbol)
+                    menuLabel
                 }
+                .accessibilityLabel(accounts.current?.displayName ?? "Comptes")
+                .accessibilityValue(accounts.current?.status == .expired ? "Session expirée" : "")
             }
         }
         .sheet(isPresented: $showsAccounts) {
@@ -62,8 +68,15 @@ struct AccountMenuButton: View {
         }
     }
 
-    private var menuSymbol: String {
-        accounts.current?.status == .expired ? "person.crop.circle.badge.exclamationmark" : "person.crop.circle.fill"
+    /// The current account's avatar (legacy's `ToolbarProfileImage`), or the person symbol.
+    @ViewBuilder
+    private var menuLabel: some View {
+        switch AccountMenuLabelContent.content(hasAvatar: accounts.current?.avatar != nil, status: accounts.current?.status) {
+        case .avatar:
+            AccountAvatarView(image: accounts.current?.avatar, scales: false)
+        case .symbol(let name):
+            Image(systemName: name)
+        }
     }
 
     private var errorBinding: Binding<Bool> {
@@ -76,5 +89,26 @@ struct AccountMenuButton: View {
         } catch {
             actionError = AccountMessages.message(for: error)
         }
+    }
+}
+
+/// What the account menu's label shows.
+enum AccountMenuLabelContent: Equatable {
+    /// The current account's avatar.
+    case avatar
+    /// An SF Symbol.
+    case symbol(String)
+
+    /// The avatar when the account has one, the person symbol otherwise; an expired session always shows the badge.
+    static func content(hasAvatar: Bool, status: AccountSessionStatus?) -> AccountMenuLabelContent {
+        if status == .expired { return .symbol("person.crop.circle.badge.exclamationmark") }
+        return hasAvatar ? .avatar : .symbol("person.crop.circle.fill")
+    }
+}
+
+extension View {
+    /// Puts the account button at the top left of this main root's bar (#1057).
+    func accountMenuToolbarItem() -> some View {
+        toolbar { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
     }
 }
