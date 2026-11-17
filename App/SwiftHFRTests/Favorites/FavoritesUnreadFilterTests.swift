@@ -153,7 +153,8 @@ struct FavoritesUnreadFilterTests {
     }
 
     @Test func anUnreadRowInAFoldedSectionIsNotNothingUnread() async {
-        let options = FavoritesOptionsModel(settings: InMemorySettingsStore())
+        // With in-memory stores: folding is a no-op on a model without them.
+        let options = favoritesOptions()
         options.unreadOnly = true
         let model = await listModel(options: options, page: page())
         await options.toggleCollapsed("cat:1")
