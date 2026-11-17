@@ -1,0 +1,28 @@
+{
+  "id": "W684",
+  "account": "user2",
+  "method": "POST",
+  "url_template": "/user/vote.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/user/vote.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/user/vote.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Tue, 17 Nov 2026 17:49:05 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "request_fields": [
+    "hash_check",
+    "cat",
+    "p",
+    "page",
+    "sondage",
+    "owntopic",
+    "subcat",
+    "numeropost",
+    "hash_check",
+    "sondage_submit"
+  ],
+  "request_body": "hash_check=REDACTED&cat=13&p=1&page=1&sondage=1&owntopic=0&subcat=432&numeropost=44713&hash_check=REDACTED&sondage_submit=Voir+les+r%C3%A9sultats",
+  "file": "W684-poll-view-results-answer.html",
+  "private": false
+}
