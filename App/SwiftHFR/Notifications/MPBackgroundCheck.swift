@@ -61,14 +61,11 @@ struct MPBackgroundCheck: Sendable {
         return .checked(notifications: notifications.count)
     }
 
-    /// The conversations with news, from the list. Otherwise the legacy text when the count went up from a count already
-    /// recorded (a first check stays silent, as the ledger's thread baseline does): the list could not be read, or no
-    /// conversation became unread (a reply to one already unread, until #571 tells it apart).
+    /// The conversations with news, from the list. Without the list, the legacy text when the count went up from a count
+    /// already recorded (a first check stays silent, as the ledger's thread baseline does). A list that was read and shows
+    /// no new conversation sends nothing: the count alone can rise from a count the app recorded earlier (review r3).
     static func notifications(news: NotificationNews, page: PrivateMessageListPage?, hadCount: Bool) -> [MPNotificationContent] {
-        if let page {
-            let plan = MPNotificationPlan.make(newThreads: news.newThreads, in: page)
-            if !plan.isEmpty { return plan.notifications }
-        }
+        if let page { return MPNotificationPlan.make(newThreads: news.newThreads, in: page).notifications }
         guard hadCount, news.newPrivateMessages > 0 else { return [] }
         return [MPNotificationContent(
             identifier: legacyIdentifier, threadIdentifier: legacyIdentifier, title: "", body: legacyText, topic: nil

@@ -44,7 +44,7 @@ All `b·operator` (operator decisions of 2026-11-07 on #230), rows GAP-011, GAP-
 4. **Count:** `MPUnreadPoll(session:).unreadCount()` (LOT-047) on a session built from the stored cookies and `hash_check`, used for this run only and never written back to the store or to `AccountsModel` (D3). `nil` (no information), `.sessionExpired` or any error → stop: no notification, no badge change, nothing recorded (#230 acceptance, LOT-047 contract). `SessionRefreshFlow` is not called: the next foreground launch checks the session (`AccountsModel.restore`, #300) and asks for a new login; a background run has no one to ask.
 5. **List:** `PageFetcher.privateMessages(page: 1)` + `PrivateMessageListParser` (LOT-126), never a thread page (E25: a thread page marks it read). A failure here keeps the count (step 6 records it with no thread set).
 6. **News:** `recordNews(NotificationSummary(unreadPrivateMessages: count, unreadThreads: <topic numbers of unread rows of page 1>))`, one actor step (LOT-091).
-7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When that gives nothing (the list could not be read, or no conversation became unread: a reply to one already unread, until #571) and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-legacy`, apart from the burst summary's `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice.
+7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When the list could not be read and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-legacy`, apart from the burst summary's `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice.
 8. **Badge:** `setBadgeCount(count)` when `mp_badge_enabled`, else 0.
 
 At most 2 requests per run (`GET /`, the MP list page 1), as the operator decided.
@@ -68,7 +68,7 @@ At launch, as legacy (`HFRswiftApp.swift:27-29`, operator's comparison of 2026-1
 
 ### Foreground
 - The running app sets the icon badge from the Messages badge count (`RootModel.unreadPrivateMessages`, which already applies `mp_badge_enabled`), as legacy `MainWindow.swift:1779-1784`.
-- What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), and, after the newest list load applied, a read or a mark unread here, the badge's count with page 1's unread set as shown. A superseded load records nothing. The member's own "Marquer comme non lu" is therefore not news. A conversation seen unread in the app is not notified by the next background run; one read here leaves the ledger's set, so its next reply is.
+- What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), and, after the newest list load applied, a read or a mark unread here (before its reload, which may fail), page 1's unread set as shown, never on the signed-out content. The list records no count: it carries none, and the badge's can be stale. A superseded load records nothing. The member's own "Marquer comme non lu" is therefore not news. A conversation seen unread in the app is not notified by the next background run; one read here leaves the ledger's set, so its next reply is.
 
 ### Settings (Réglages › Notifications MP)
 - "Badge messages non lus" (`mp_badge_enabled`, legacy).
@@ -85,6 +85,8 @@ No pseudo, no subject, no count in logs (operator): only the outcome kind.
 - Two runs with no change: no news (ledger), no notification.
 - An unknown or expired answer: nothing recorded, nothing notified, badge kept.
 - Account switched between a run and a tap: the tap opens the current account's list; a conversation it does not list is not selected.
+- A list read with no conversation newly unread sends nothing, even when the count rose (a reply to a conversation already unread waits on #571; the count alone can rise from an older count the app recorded).
+- A member who never opened Messages and whose list was never read by a check has no thread baseline: the first check that reads the list records it silently, so a conversation new at that moment is not notified (once per account; LOT-091 baseline).
 - The ledger file unreadable: `markCheckedIfDue` throws → the run stops (no notification loop, LOT-091).
 
 ## Fixtures

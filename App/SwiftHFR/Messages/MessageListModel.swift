@@ -338,7 +338,7 @@ final class MessageListModel {
             if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
-            // The badge's +1 reaches the ledger whatever the page: the member's own action is not news (LOT-140).
+            // Recorded before the reload, which may fail: the member's own action is not news (LOT-140).
             await recordReadState()
             await refresh()
         }

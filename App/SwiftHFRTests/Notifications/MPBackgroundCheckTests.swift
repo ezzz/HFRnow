@@ -157,14 +157,14 @@ struct MPBackgroundCheckTests {
         #expect(await ready.delivery.delivered.isEmpty)
     }
 
-    @Test("The count rose and no conversation became unread (a reply to one already unread, #571): the legacy text")
+    @Test("The list was read and no conversation became unread: nothing, even when the count rose (review r3 #1)")
     func countRoseWithoutNewConversation() async {
         let ready = ready([
             MPForumReading(count: 1, page: mpPage(unread: [10])),
             MPForumReading(count: 2, page: mpPage(unread: [10]))
         ])
-        #expect(await run(ready, times: 2) == [.checked(notifications: 0), .checked(notifications: 1)])
-        #expect(await ready.delivery.delivered.map(\.body) == [MPBackgroundCheck.legacyText])
+        #expect(await run(ready, times: 2) == [.checked(notifications: 0), .checked(notifications: 0)])
+        #expect(await ready.delivery.delivered.isEmpty)
     }
 
     @Test("A conversation's notification withdraws the legacy text an earlier run sent while the list was unreadable")
