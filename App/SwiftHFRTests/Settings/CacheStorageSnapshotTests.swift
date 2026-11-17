@@ -76,7 +76,7 @@ struct CacheStorageSnapshotTests {
             try write(1_000, to: offline.appending(path: "013-1/1.json"))
             try write(1_000, to: offline.appending(path: "13-1/abc.json"))
             try write(1_000, to: offline.appending(path: "13-1/01.json"))
-            try write(1_000, to: offline.appending(path: "13-1/1.JSON"))
+            try write(1_000, to: offline.appending(path: "13-1/7.JSON"))
             #expect(CacheStorageSnapshot.measure(cachesDirectory: caches, cache: cache).htmlFileCount == 1)
         }
     }
