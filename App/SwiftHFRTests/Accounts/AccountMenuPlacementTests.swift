@@ -26,18 +26,22 @@ struct AccountMenuPlacementTests {
         #expect(AccountMenuLabelContent.content(hasAvatar: false, status: .expired) == badge)
     }
 
-    /// Where the account button was drawn, the window's bounds and every accessibility label seen (for a failure message).
+    /// What the window's top bars show on their left, and everything seen, for a failure message.
     private struct Found {
-        let frame: CGRect
-        let window: CGRect
-        let seen: [String]
+        /// Items SwiftUI handed the bar on its left (`leftBarButtonItems` and leading item groups).
+        var leftItems = 0
+        /// Visible controls drawn in the left half of a bar.
+        var leftControls = 0
+        /// Bars, item counts and control classes seen, whatever the outcome.
+        var diagnostics = ""
+        var isOnTheLeft: Bool { leftItems > 0 || leftControls > 0 }
     }
 
-    /// Hosts `root` in a window as a tab does and returns where the account button is drawn, in window coordinates, once SwiftUI
-    /// has laid its bar out; nil when no view of the window carries the button's label. It reads the rendered button, not the
-    /// UIKit bar items: SwiftUI's toolbar does not expose its items there on every iOS version (the first version of this
-    /// test read `leftBarButtonItems` and failed on the Mac runner even for the plain modifier).
-    private func accountButtonFrame(of root: some View) async throws -> Found? {
+    /// Hosts `root` in a window as a tab does and reads its top bars: the items SwiftUI gave the navigation item on the left
+    /// and the controls drawn in the left half of a bar (SwiftUI may fill leading item groups instead of `leftBarButtonItems`,
+    /// and its bar buttons are controls whose accessibility label a unit-test run does not reliably expose, so neither source
+    /// is trusted alone). The roots have no back button and no other leading item, so without the modifier both stay empty.
+    private func readBars(of root: some View) async throws -> Found {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let host = UIHostingController(rootView: root.environment(AccountsModel.preview()))
         let window = UIWindow(windowScene: scene)
@@ -45,28 +49,36 @@ struct AccountMenuPlacementTests {
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true }
-        var seen: [String] = []
+        var found = Found()
         for _ in 0..<100 {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            let labelled = Self.views(in: window).filter { $0.window != nil && !$0.isHidden }
-            seen = labelled.compactMap { $0.accessibilityLabel }
-            // The preview model has not restored its store: the button is the disabled "Comptes" one.
-            if let button = labelled.first(where: { $0.accessibilityLabel == "Comptes" }) {
-                return Found(frame: button.convert(button.bounds, to: window), window: window.bounds, seen: seen)
-            }
+            found = Self.read(window)
+            if found.isOnTheLeft { break }
         }
-        return nil
+        return found
     }
 
-    private func expectOnTheLeft(_ found: Found?, _ name: String) {
-        guard let found else {
-            Issue.record("\(name): no view labelled \"Comptes\" in the window")
-            return
+    private static func read(_ window: UIWindow) -> Found {
+        var found = Found()
+        let bars = views(in: window).compactMap { $0 as? UINavigationBar }.filter { !$0.isHidden && $0.alpha > 0 }
+        found.diagnostics = "\(bars.count) bar(s)"
+        for bar in bars {
+            let item = bar.topItem
+            let left = (item?.leftBarButtonItems ?? []).count + (item?.leadingItemGroups ?? []).flatMap(\.barButtonItems).count
+            let right = (item?.rightBarButtonItems ?? []).count + (item?.trailingItemGroups ?? []).flatMap(\.barButtonItems).count
+            let controls = views(in: bar).compactMap { $0 as? UIControl }.filter { !$0.isHidden && !$0.bounds.isEmpty }
+            let onTheLeft = controls.filter { bar.convert($0.bounds, from: $0).midX < bar.bounds.midX }
+            found.leftItems += left
+            found.leftControls += onTheLeft.count
+            found.diagnostics += "; bar \(bar.bounds.size): items left \(left) right \(right), controls "
+                + controls.map { "\(type(of: $0))@\(Int(bar.convert($0.bounds, from: $0).midX))" }.joined(separator: ",")
         }
-        #expect(found.frame.midX < found.window.midX, "\(name): button at \(found.frame), window \(found.window), labels \(found.seen)")
-        // In the top bar, not in the content: above the first third of the window.
-        #expect(found.frame.maxY < found.window.height / 3, "\(name): button at \(found.frame)")
+        return found
+    }
+
+    private func expectOnTheLeft(_ found: Found, _ name: String) {
+        #expect(found.isOnTheLeft, "\(name): nothing on the left of the bar: \(found.diagnostics)")
     }
 
     private func services() -> ReaderServices {
@@ -81,7 +93,7 @@ struct AccountMenuPlacementTests {
 
     /// The modifier itself: the button is drawn on the left half, in the top bar.
     @Test func modifierDrawsTheButtonOnTheLeftOfTheBar() async throws {
-        expectOnTheLeft(try await accountButtonFrame(of: NavigationStack { Text("Racine").accountMenuToolbarItem() }), "modifier")
+        expectOnTheLeft(try await readBars(of: NavigationStack { Text("Racine").accountMenuToolbarItem() }), "modifier")
     }
 
     /// The real roots as `RootTabsView` builds them: removing the modifier from one of them fails here. Not covered: Recherche
@@ -111,7 +123,7 @@ struct AccountMenuPlacementTests {
             )
             view = AnyView(NavigationStack { PlusView(model: model) })
         }
-        expectOnTheLeft(try await accountButtonFrame(of: view), root)
+        expectOnTheLeft(try await readBars(of: view), root)
     }
 
     private static func views(in view: UIView) -> [UIView] {
