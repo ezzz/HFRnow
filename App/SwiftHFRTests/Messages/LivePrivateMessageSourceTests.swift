@@ -37,10 +37,22 @@ struct LivePrivateMessageSourceTests {
         #expect(await rig.anonymous.requests.isEmpty)
         let listURL = "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2"
         let oracle = try PrivateMessageListParser.parse(try #require(String(data: body, encoding: .utf8)), pageURL: listURL)
-        #expect(page.threads.count == oracle.threads.count)
+        // R13u1 holds the MPStorage row, which the source hides (#1074): every other row is there, in order.
+        #expect(page.threads == oracle.hidingStorageThread().threads)
+        #expect(page.threads.count == oracle.threads.count - 1)
         #expect(page.threads.contains { $0.isGroup })
         #expect(page.threads.contains { $0.isUnread })
         #expect(page.threads.allSatisfy { ReaderTarget(opening: $0.summary) != nil })
+    }
+
+    @Test func theStorageThreadIsHiddenFromTheListAndItsCounts() async throws {
+        let body = try LiveTopicPageSourceTests.capture("R13u1-mp-list-recipient-unread.html")
+        let html = try #require(String(data: body, encoding: .utf8))
+        let all = try PrivateMessageListParser.parse(html, pageURL: "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
+        #expect(all.threads.contains { MPStoragePageParser.isStorageSubject($0.summary.title) })
+        let page = try await rig(replying: body).source.privateMessages(page: 1)
+        #expect(!page.threads.contains { MPStoragePageParser.isStorageSubject($0.summary.title) })
+        #expect(MessageListContent(page: page).threads == page.threads)
     }
 
     /// The 457-page thread of `R13u1` (new post at `page=457…#bas`): the row opens the reader on its last page, and only
