@@ -16,6 +16,16 @@ enum DenseRowFormat {
     /// The weight of the section titles of the topic lists (#905 F): the default section header does not read as bold.
     static let sectionTitleWeight: Font.Weight = .bold
 
+    /// Whether the lists draw the dense rows: the option, off where no settings are in the environment (previews, hosted tests).
+    @MainActor static func isOn(_ experimental: ExperimentalSettings?) -> Bool {
+        ExperimentalSettings.isOn(.denseRows, in: experimental)
+    }
+
+    /// The section titles' weight: bold with the option on, nil (the list's own weight, untouched) with it off.
+    @MainActor static func titleWeight(_ experimental: ExperimentalSettings?) -> Font.Weight? {
+        isOn(experimental) ? sectionTitleWeight : nil
+    }
+
     /// The info line of a dense topic row: « ⚑ lue / total » when the flag page is known, the last poster, then the age of the
     /// last post. No reply count, no starter, no « il y a ». Nil when nothing is known.
     static func topicInfo(_ topic: TopicSummary, showsFlag: Bool = true, now: Date = .now) -> String? {
@@ -52,7 +62,8 @@ enum DenseRowFormat {
         }
     }
 
-    /// One line, ended by « … » when it does not fit; an accessibility text size lifts the limit so nothing is cut off.
+    /// One line, ended by « … » when it does not fit. An accessibility text size lifts the limit so nothing is cut off: a deliberate
+    /// departure from « never wraps » (#905 E), because a line cut at that size cannot be read at all.
     static func lineLimit(isAccessibilitySize: Bool) -> Int? { isAccessibilitySize ? nil : 1 }
 
     /// The last poster, then the age; the poster is left out when `skipping` already says it (a one-to-one thread's interlocutor).
@@ -70,5 +81,12 @@ extension View {
     /// EXPERIMENTAL(denseRows, #905): the dense info line never wraps; SwiftUI ends it with « … » when it does not fit.
     func denseInfoLine(isAccessibilitySize: Bool) -> some View {
         lineLimit(DenseRowFormat.lineLimit(isAccessibilitySize: isAccessibilitySize)).truncationMode(.tail)
+    }
+}
+
+extension View {
+    /// EXPERIMENTAL(denseRows, #905 F): applies `weight` only when there is one, so the off path adds no modifier.
+    @ViewBuilder func sectionTitleWeight(_ weight: Font.Weight?) -> some View {
+        if let weight { fontWeight(weight) } else { self }
     }
 }

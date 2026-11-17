@@ -56,7 +56,7 @@ struct MessageRowView: View {
     }
 
     /// The default is legacy's one info line; Réglages › Expérimental › « Lignes denses » flips this.
-    private var usesDenseRows: Bool { ExperimentalSettings.isOn(.denseRows, in: experimental) }
+    private var usesDenseRows: Bool { DenseRowFormat.isOn(experimental) }
 
     /// Legacy's bottom row: interlocutor or group flag on the left, « last poster - time » on the right (`MPListView.swift:840-841`).
     @ViewBuilder private var infoLine: some View {

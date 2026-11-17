@@ -102,11 +102,29 @@ struct DenseRowsTests {
 
     // MARK: One line, bold sections (#905 E, F)
 
-    @Test("E: one line, lifted only at accessibility sizes; F: section titles are bold")
-    func lineAndSections() {
+    @Test("E: one line, lifted only at accessibility sizes")
+    func lineLimit() {
         #expect(DenseRowFormat.lineLimit(isAccessibilitySize: false) == 1)
         #expect(DenseRowFormat.lineLimit(isAccessibilitySize: true) == nil)
-        #expect(DenseRowFormat.sectionTitleWeight == .bold)
+    }
+
+    @Test("F: section titles are bold with the option on, and carry no weight at all with it off")
+    func sectionTitleWeight() {
+        let settings = ExperimentalSettings(store: InMemorySettingsStore())
+        #expect(DenseRowFormat.titleWeight(settings) == nil)
+        #expect(DenseRowFormat.titleWeight(nil) == nil)
+        settings.set(.denseRows, isOn: true)
+        #expect(DenseRowFormat.titleWeight(settings) == .bold)
+    }
+
+    @Test("The MP rows and the topic rows read the same switch")
+    func oneSwitchForBothLists() {
+        let settings = ExperimentalSettings(store: InMemorySettingsStore())
+        #expect(!DenseRowFormat.isOn(settings) && !DenseRowFormat.isOn(nil))
+        #expect(TopicRowStyle.current(settings) == .legacy)
+        settings.set(.denseRows, isOn: true)
+        #expect(DenseRowFormat.isOn(settings))
+        #expect(TopicRowStyle.current(settings) == .dense)
     }
 
     // MARK: Markers kept from #903

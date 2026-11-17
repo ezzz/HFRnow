@@ -73,8 +73,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
                 + "un seul interrupteur « Activer le stockage MP »."
         case .denseRows:
             "Sujets et MP sur des lignes denses : point et icône de drapeau devant le titre, dernier posteur, ligne d’infos sur "
-                + "une seule ligne, sans « il y a » ni nombre de réponses, titres de section en gras. Désactivé : la ligne entière "
-                + "teintée selon le drapeau, comme l’app historique."
+                + "une seule ligne, sans « il y a » ni nombre de réponses, titres de section en gras. Désactivé : les lignes de l’app "
+                + "historique (pas de point ni d’icône devant le titre)."
         case .imageLoadingChoice:
             "Ajoute un choix du moment où charger les images : Toujours, Wi-Fi uniquement ou Jamais (au toucher). Désactivé : "
                 + "les images se chargent toujours, comme l’app historique."
