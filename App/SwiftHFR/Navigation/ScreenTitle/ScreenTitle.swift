@@ -18,11 +18,25 @@ enum ScreenTitleStyle: Equatable, Sendable {
         }
     }
 
+    /// What the top bar's centre slot holds. The slot is never left empty (#1012): an empty or removed title slot is dropped by the
+    /// bar and not rebuilt when the pill becomes due, so on the device no pill appeared at all.
+    func pillPresentation(headerVisible: Bool) -> PillPresentation {
+        showsPill(headerVisible: headerVisible) ? .shown : .reserved
+    }
+
     /// The title style of a topic list column: Favoris (the column with the favourites options) is a main screen, every other list
     /// is pushed from a forum row (#977, #978).
     static func topicList(isFavoritesRoot: Bool) -> ScreenTitleStyle {
         isFavoritesRoot ? .largeThenPill : .pill
     }
+}
+
+/// The state of the pill in the bar's centre slot.
+enum PillPresentation: Equatable, Sendable {
+    /// Drawn and tappable.
+    case shown
+    /// In the slot but invisible, inert and hidden from VoiceOver: the large title is still on screen.
+    case reserved
 }
 
 /// What a tap on the pill does (#978): it shows the full title, which folds back on the next tap, a tap outside (the popover's own
@@ -59,10 +73,13 @@ private struct ScreenTitleModifier: ViewModifier {
         content
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(removing: .title)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    if style.showsPill(headerVisible: headerVisible) { TitlePill(title: title) }
+                    let presentation = style.pillPresentation(headerVisible: headerVisible)
+                    TitlePill(title: title)
+                        .opacity(presentation == .shown ? 1 : 0)
+                        .allowsHitTesting(presentation == .shown)
+                        .accessibilityHidden(presentation == .reserved)
                 }
                 // The pill draws its own glass: the bar must not put a second capsule behind it.
                 .sharedBackgroundVisibility(.hidden)
