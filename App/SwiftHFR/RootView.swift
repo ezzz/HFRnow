@@ -10,6 +10,8 @@ struct RootView: View {
     @Environment(LegacyImportModel.self) private var legacyImport
     @Environment(\.avatarRefresh) private var avatarRefresh
     @Environment(\.sharedPrivateMessageCounts) private var messageCounts
+    /// Only one window presents the import summary (LOT-146).
+    private let summaryGate = SceneGate(key: "legacyImportSummary")
     @State private var built: (generation: Int, environment: AppEnvironment)?
     /// Where the user was: a new session generation rebuilds the navigation but keeps the tab or destination (legacy keeps it,
     /// `MainWindow.swift:1276-1278`). Nil until the first creation, which applies the start-screen setting.
@@ -45,7 +47,12 @@ struct RootView: View {
         }
         .onChange(of: buildKey, initial: true) { rebuild() }
         // What the legacy import took over, shown once it did something or failed (LOT-158).
-        .sheet(item: Bindable(legacyImport).summary) { summary in
+        .onAppear { summaryGate.claim() }
+        .onChange(of: summaryGate.owner) { summaryGate.claim() }
+        .onDisappear { summaryGate.release() }
+        .sheet(item: Binding(
+            get: { summaryGate.isOpen ? legacyImport.summary : nil }, set: { legacyImport.summary = $0 }
+        )) { summary in
             LegacyImportSummaryView(opened: summary, model: legacyImport) {
                 Task {
                     if await legacyImport.retry(currentAccount: accounts.current?.id) { await accounts.readStoreAgain() }

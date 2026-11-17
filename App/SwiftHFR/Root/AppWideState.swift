@@ -1,9 +1,8 @@
 import Observation
 import SwiftUI
 
-// Port of HFRswift/Swift/HFRswiftApp.swift (HFRswiftApp: the shared singletons behind every `WindowGroup` window) @ 87fe0d1c.
-// Differences: legacy's singletons are the app delegate's; here the shared models live in `SwiftHFRApp` and these two small
-// holders keep what runs once per process or per change from running once per window (LOT-146, GAP-219).
+// Port: none @ 87fe0d1c. Legacy runs its launch work once in the app delegate; these holders give the SwiftUI scene content
+// that guarantee back when several windows exist (LOT-146, GAP-219).
 /// Remembers what the app already did, so a handler attached to every window's content (SwiftUI runs it once per window) acts
 /// once. The scene phase the `App` reads is the aggregate of all windows: two windows see the same change, and the second
 /// must not repeat it.
@@ -47,4 +46,49 @@ final class SharedPrivateMessageCounts {
 extension EnvironmentValues {
     /// The per-process count holder, injected by the app; nil in previews and tests (each root then has its own count).
     @Entry var sharedPrivateMessageCounts: SharedPrivateMessageCounts?
+}
+
+/// Which window presents what a shared model raises (the dated-icon question, the import summary): one window each, as the
+/// seasonal arrival alert does (`SeasonalThemeModel.alert(for:)`). Without it every window would show the same alert.
+@MainActor
+@Observable
+final class SceneClaims {
+    /// The window presenting each thing, by key.
+    private(set) var owners: [String: UUID] = [:]
+
+    /// `scene` presents `key` unless another window already does.
+    func claim(_ key: String, scene: UUID) {
+        if owners[key] == nil { owners[key] = scene }
+    }
+
+    /// Whether `scene` is the window presenting `key`.
+    func isPresenting(_ key: String, scene: UUID) -> Bool {
+        owners[key] == scene
+    }
+
+    /// The window is gone: what it presented goes to the next window that claims it.
+    func release(scene: UUID) {
+        owners = owners.filter { $0.value != scene }
+    }
+}
+
+extension EnvironmentValues {
+    /// The window claims, injected by the app; nil in previews and tests (the window then presents everything).
+    @Entry var sceneClaims: SceneClaims?
+}
+
+/// One window's claim on one thing a shared model presents. A view reads `isOpen` to know whether it may present it.
+@MainActor
+struct SceneGate: DynamicProperty {
+    let key: String
+    @Environment(\.sceneClaims) private var claims
+    @State private var scene = UUID()
+
+    /// True when this window presents `key` (always without claims).
+    var isOpen: Bool { claims?.isPresenting(key, scene: scene) ?? true }
+    /// The current owner, for `onChange`: a window re-claims when the owner left.
+    var owner: UUID? { claims?.owners[key] }
+
+    func claim() { claims?.claim(key, scene: scene) }
+    func release() { claims?.release(scene: scene) }
 }

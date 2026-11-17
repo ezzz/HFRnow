@@ -98,13 +98,20 @@ extension View {
 
 private struct AppIconSeasonAlert: ViewModifier {
     let model: AppIconSeasonModel
+    /// Only one window presents the question and the error (LOT-146).
+    private let gate = SceneGate(key: "iconSeason")
 
     func body(content: Content) -> some View {
         content
             .task { model.checkOnceAtLaunch() }
+            .onAppear { gate.claim() }
+            .onChange(of: gate.owner) { gate.claim() }
+            .onDisappear { gate.release() }
             .alert(
                 "Icône",
-                isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+                isPresented: Binding(
+                    get: { model.errorMessage != nil && gate.isOpen }, set: { if !$0 { model.errorMessage = nil } }
+                )
             ) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -112,7 +119,7 @@ private struct AppIconSeasonAlert: ViewModifier {
             }
             .alert(
                 "Revenir à l’icône précédente ?",
-                isPresented: Binding(get: { model.question != nil }, set: { _ in }),
+                isPresented: Binding(get: { model.question != nil && gate.isOpen }, set: { _ in }),
                 presenting: model.question
             ) { _ in
                 Button("Oui") { Task { await model.revert() } }

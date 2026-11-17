@@ -19,7 +19,7 @@ At `2fe43da3`:
 
 ## Legacy counterpart (app lots)
 - `App/SwiftHFR/SwiftHFRApp.swift` (`SwiftHFRApp`) ports `HFRswift/Swift/HFRswiftApp.swift` (`HFRswiftApp`, `:12-37`) @ `87fe0d1c`; the manifest is `HFRswift/Info.plist:204-208` @ `2fe43da3`.
-- `App/SwiftHFR/Root/AppWideState.swift` (`AppWideEvents`, `SharedPrivateMessageCounts`): none @ `87fe0d1c`; legacy runs its launch work once in the app delegate, which is what these two give the SwiftUI scene content back.
+- `App/SwiftHFR/Root/AppWideState.swift` (`AppWideEvents`, `SharedPrivateMessageCounts`, `SceneClaims`) and `Root/AppLifecycle.swift` (`AppLifecycle`): none @ `87fe0d1c`; legacy runs its launch work once in the app delegate (the scene phase handler is on the `WindowGroup` scene, `HFRswiftApp.swift:30-34`), which is what these give the SwiftUI window content back.
 
 ## UX evolutions (app lots)
 None: same UX as legacy at `2fe43da3` (GAP-219: each window starts a fresh root; no per-window restoration, no "open in a new window" action). "Open in a new window", a dragged topic and per-window restoration are not in legacy: they stay with LOT-145 (M5).
@@ -44,14 +44,16 @@ None: same UX as legacy at `2fe43da3` (GAP-219: each window starts a fresh root;
 
 **Per window**: the selected destination and tab, every `NavigationModel` (selected forum, topic, reader), the Messages list model and its open conversation, the search form, the filter runs, the MPStorage sync model, the reader's web views, a composer sheet. Two windows may show the same topic: each has its own reader and scroll position.
 
-**What runs once, not once per window.** The content closures of `WindowGroup` run in every window, and the scene phase the `App` reads is the aggregate of all windows, so each window sees each change. `AppWideEvents` (`isNew(_:for:)`, `firstTime(_:)`) lets the first window act: the account-change import, the foreground re-check and the next background check, the app lock and season handler, the offline eviction. `AppIconSeasonModel.checkOnceAtLaunch()` runs the dated-icon check once, so a window opened later does not clear a question another window shows. Already once-only and kept: `LegacyImportModel.runAtLaunch`, `AccountsModel.restore`, `NetworkMonitor.start`, the seasonal arrival alert (`SeasonalThemeModel.alert(for:)`: one scene presents it).
+**What runs once, not once per window.** The content closures of `WindowGroup` run in every window, and the scene phase the `App` reads is the aggregate of all windows, so each window sees each change. They call `AppLifecycle`, whose functions act once: the launch sequence (legacy import, then iCloud reconcile, then restore) is one shared `Task` that every window awaits, so a second window never reads the accounts before the import wrote them (LOT-158 order); the account-change import, the foreground re-check, the next background check, the app lock and season handler, the offline eviction. `AppIconSeasonModel.checkOnceAtLaunch()` runs the dated-icon check once, so a window opened later does not clear a question another window shows. Also once-only: `NetworkMonitor.start`, and the seasonal arrival alert (`SeasonalThemeModel.alert(for:)`: one scene presents it).
+
+**What one window presents.** The dated-icon question, the icon error alert and the import summary sheet are bound to shared models: `SceneClaims` / `SceneGate` give each to the first window that claims it (as `alertScene` does for the arrival alert); when that window closes the next one claims it. Which window that is on a device is a device-check point.
 
 **An MP notification tap.** `MPNotificationRouter` holds the tap until a root takes it. With several windows every root watches it, so the first to see it opened the Messages tab, even one hidden behind the others. A root takes it only while its own scene is `.active` (`RootNavigationView.mayOpenNotification`): the tap waits in the router until then, whether it arrived before the root was built (cold launch) or while the windows were away. Of several windows on screen, the first to see the tap takes it (not verified on a device which one that is).
 
 **Single-scene assumptions checked.** `connectedScenes` loops: `OrientationPolicy.refresh` walks every scene (iPhone only); `AppLockAnchorView` finds its own scene. `UIApplication.shared.open`, `alternateIconName` are application-wide by nature. No `keyWindow` or `UIApplication.shared.windows` in the app. No `UISceneDelegate`: the SwiftUI lifecycle owns the scenes. `@UIApplicationDelegateAdaptor` is one delegate for all scenes: `supportedInterfaceOrientationsFor` takes no window.
 
 ## Edge cases
-- **Two windows on one topic.** Each has its own reader. A reply composer opened in both shares the topic's draft (one `DraftStore` per process, keyed by topic and account): autosaves overwrite each other, the last one wins, and a reply sent in one window deletes the draft while the other window's open composer can write its text back at its next autosave. Not fixed here (a per-window draft, or a notice, is a product decision); listed in the report of the lot for the operator.
+- **Two windows on one topic.** Each has its own reader. A reply composer opened in both shares the topic's draft (one `DraftStore` per process, keyed by topic and account): autosaves overwrite each other, the last one wins, and a reply sent in one window deletes the draft while the other window's open composer can write its text back at its next autosave. Not fixed here: [#1028](https://github.com/ezzz/HFRnow/issues/1028) (`status: needs-decision`).
 - **Logging out (or switching account) in one window.** The shared `AccountsModel` bumps `currentSessionGeneration`: every window rebuilds its root on the new session (`RootView.buildKey`), keeps its destination, and the Messages count restarts (`SharedPrivateMessageCounts`). A window's open reader goes with the old root.
 - **An MP notification with two windows open.** Above: one window, an active one, opens the Messages tab, the conversation or the first page of the list.
 - **Theme change.** One `ThemeSettingsModel`: each window re-applies the colours and its own `WindowStyle` anchor sets that window's `overrideUserInterfaceStyle` and tint.
@@ -64,11 +66,11 @@ None: same UX as legacy at `2fe43da3` (GAP-219: each window starts a fresh root;
 None: no HFR request.
 
 ## Intentional differences from legacy
-- The Messages count is one for the process per session, not per window (legacy has one `nb_mp`, `HFRplusAppDelegate.m:704-706`).
+- The Messages count is one for the process per session, not per window (legacy has one `nb_mp`, `Classes/HFRplusAppDelegate.m:704-706` @ `87fe0d1c`).
 - The notification tap is taken by a window on screen. Legacy consumes the pending request from whichever `RootTabView` reads it (`Common.swift`, `MessagesNotificationNavigation.consumePendingOpenMessagesRequest` @ `87fe0d1c`).
 - Legacy's alert and tab-bar lookups use the first key window of any scene (`Common.swift:153`, `MainWindow.swift:1272` @ `87fe0d1c`); SwiftHFR presents from the view that asks, so an alert opens in its own window.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
-- A handler on the content of a `WindowGroup` runs once per window, and the `App`'s `scenePhase` is the aggregate: anything that must run once goes through `AppWideEvents`.
+- A handler on the content of a `WindowGroup` runs once per window, and the `App`'s `scenePhase` is the aggregate: anything that must run once goes through `AppLifecycle` (`AppWideEvents` underneath). A thing a shared model presents (alert, sheet) goes through `SceneClaims`.
 - `INFOPLIST_KEY_UIApplicationSupportsMultipleScenes` and a manifest in `Info-Keys.plist` do not change the generated scene manifest (Xcode 27.2).

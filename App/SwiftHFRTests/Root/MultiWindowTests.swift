@@ -45,6 +45,70 @@ struct MultiWindowTests {
         #expect(events.isNew(nil as String?, for: "currentAccount"))
     }
 
+    // Findings of review round 1: the guards are tested where the app uses them, through `AppLifecycle` and the router.
+    @Test func twoWindowsLaunchingAtOnceRunTheSequenceOnceAndBothWaitForIt() async {
+        let log = Log()
+        let lifecycle = AppLifecycle(steps: log.steps(importYields: 20))
+        let first = Task { await lifecycle.launch() }
+        let second = Task {
+            await lifecycle.launch()
+            log.add("second-returned")
+        }
+        await first.value
+        await second.value
+        // The second window did not return, and did not read the accounts, before the import had written them.
+        #expect(log.entries == ["import-start", "import-end", "reconcile", "restore", "second-returned"])
+    }
+
+    @Test func aWindowOpenedAfterTheLaunchDoesNotRunItAgain() async {
+        let log = Log()
+        let lifecycle = AppLifecycle(steps: log.steps())
+        await lifecycle.launch()
+        await lifecycle.launch()
+        #expect(log.entries.filter { $0 == "restore" }.count == 1)
+    }
+
+    @Test func everyWindowSeeingAChangeRunsItsReactionOnce() async {
+        let log = Log()
+        let lifecycle = AppLifecycle(steps: log.steps())
+        for _ in 0..<2 { await lifecycle.currentAccountChanged(to: "a") }
+        for _ in 0..<2 { await lifecycle.scenePhaseChanged(to: .active) }
+        for _ in 0..<2 { await lifecycle.scenePhaseChanged(to: .background) }
+        await lifecycle.scenePhaseChanged(to: .active)
+        for _ in 0..<2 { await lifecycle.evictOfflineOnce() }
+        for _ in 0..<2 { lifecycle.lockAndSeasonsFollow(.active) }
+        #expect(log.entries.filter { $0 == "importForAccount" }.count == 1)
+        #expect(log.entries.filter { $0 == "recheck" }.count == 2)
+        #expect(log.entries.filter { $0 == "schedule" }.count == 1)
+        #expect(log.entries.filter { $0 == "evict" }.count == 1)
+        #expect(log.entries.filter { $0 == "lock" }.count == 1)
+    }
+
+    @Test func aTapStaysInTheRouterUntilAWindowIsActive() {
+        let router = MPNotificationRouter()
+        router.receive(.thread(7))
+        #expect(RootNavigationView.takeNotification(phase: .background, from: router) == nil)
+        #expect(RootNavigationView.takeNotification(phase: .inactive, from: router) == nil)
+        #expect(router.pending == .thread(7))
+        #expect(RootNavigationView.takeNotification(phase: .active, from: router) == .thread(7))
+        #expect(RootNavigationView.takeNotification(phase: .active, from: router) == nil)
+    }
+
+    @Test func onlyTheFirstWindowPresentsWhatASharedModelRaisesAndTheNextOneTakesOverWhenItCloses() {
+        let claims = SceneClaims()
+        let (one, two) = (UUID(), UUID())
+        claims.claim("iconSeason", scene: one)
+        claims.claim("iconSeason", scene: two)
+        #expect(claims.isPresenting("iconSeason", scene: one))
+        #expect(!claims.isPresenting("iconSeason", scene: two))
+        // Another thing is claimed on its own.
+        claims.claim("legacyImportSummary", scene: two)
+        #expect(claims.isPresenting("legacyImportSummary", scene: two))
+        claims.release(scene: one)
+        claims.claim("iconSeason", scene: two)
+        #expect(claims.isPresenting("iconSeason", scene: two))
+    }
+
     @Test func aNotificationTapWaitsForAWindowOnScreen() {
         #expect(RootNavigationView.mayOpenNotification(phase: .active))
         #expect(!RootNavigationView.mayOpenNotification(phase: .inactive))
@@ -117,4 +181,29 @@ private final class Touched: @unchecked Sendable {
     var value: Bool { lock.withLock { flag } }
 
     func set() { lock.withLock { flag = true } }
+}
+
+/// Records the steps of an `AppLifecycle`.
+@MainActor
+private final class Log {
+    private(set) var entries: [String] = []
+
+    func add(_ entry: String) { entries.append(entry) }
+
+    func steps(importYields: Int = 0) -> AppLifecycle.Steps {
+        AppLifecycle.Steps(
+            importLegacy: {
+                self.add("import-start")
+                for _ in 0..<importYields { await Task.yield() }
+                self.add("import-end")
+            },
+            reconcileAccounts: { self.add("reconcile") },
+            restoreAccounts: { self.add("restore") },
+            importForAccount: { _ in self.add("importForAccount") },
+            recheckSessions: { self.add("recheck") },
+            scheduleBackgroundCheck: { self.add("schedule") },
+            evictOffline: { self.add("evict") },
+            lockAndSeasons: { _ in self.add("lock") }
+        )
+    }
 }

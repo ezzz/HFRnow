@@ -16,7 +16,7 @@ struct SwiftHFRApp: App {
     /// The deletion screen's wipe (LOT-157), app-wide: erasing the current account rebuilds the root navigation.
     @State private var deletion: AccountDeletionModel
     /// The legacy import (LOT-158): at launch before the accounts are read, then at each change of the current account.
-    @State private var legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter)
+    @State private var legacyImport: LegacyImportModel
     /// Bumped when the avatar cache gets a file, so MP rows read it again (GAP-227).
     @State private var avatarRefresh = AvatarRefresh()
     /// The "Général" settings, shared by the settings screen and every screen that reads the type scale and density.
@@ -24,15 +24,17 @@ struct SwiftHFRApp: App {
     /// The "Thème" settings: appearance and colours of every screen and of the reader (LOT-121).
     @State private var theme: ThemeSettingsModel
     /// The seasonal themes (LOT-166): Noël soft over the "Thème" settings, its window and its arrival.
-    @State private var seasonal = SeasonalThemeModel(store: UserDefaultsSettingsStore())
+    @State private var seasonal: SeasonalThemeModel
     /// The optional Face ID / code lock, one for every scene (LOT-173).
-    @State private var appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
+    @State private var appLock: AppLockModel
     /// The "Revenir à l'icône précédente ?" question once a seasonal icon's dates are over (#730).
     @State private var iconSeason = AppIconSeasonModel(store: UserDefaultsSettingsStore())
     /// The Réglages › Expérimental switches (#903), read by the screens whose modern path they gate.
     @State private var experimental = ExperimentalSettings(store: UserDefaultsSettingsStore())
     /// What runs once for the whole app, not once per window (LOT-146).
-    @State private var events = AppWideEvents()
+    @State private var lifecycle: AppLifecycle
+    /// Which window presents what the shared models raise (the icon question, the import summary), one window each (LOT-146).
+    @State private var sceneClaims = SceneClaims()
     /// The Messages badge count of the current session, one for every window (LOT-146).
     @State private var messageCounts = SharedPrivateMessageCounts()
     @Environment(\.scenePhase) private var scenePhase
@@ -48,6 +50,15 @@ struct SwiftHFRApp: App {
             store: UserDefaultsSettingsStore(), rotationChanged: { OrientationPolicy.refresh() }
         ))
         _theme = State(initialValue: ThemeSettingsModel(store: UserDefaultsSettingsStore()))
+        let legacyImport = LegacyImportModel(importer: LegacyImportServices.liveImporter)
+        let seasonal = SeasonalThemeModel(store: UserDefaultsSettingsStore())
+        let appLock = AppLockModel(store: UserDefaultsSettingsStore(), authenticator: LocalAuthenticationAuthenticator())
+        _legacyImport = State(initialValue: legacyImport)
+        _seasonal = State(initialValue: seasonal)
+        _appLock = State(initialValue: appLock)
+        _lifecycle = State(initialValue: AppLifecycle.live(
+            accounts: accounts, legacyImport: legacyImport, appLock: appLock, seasonal: seasonal
+        ))
     }
 
     var body: some Scene {
@@ -62,6 +73,7 @@ struct SwiftHFRApp: App {
                 .environment(experimental)
                 .environment(\.avatarRefresh, avatarRefresh)
                 .environment(\.sharedPrivateMessageCounts, messageCounts)
+                .environment(\.sceneClaims, sceneClaims)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
                 .appTheme(theme, seasonal: seasonal.drawnTheme)
@@ -72,51 +84,25 @@ struct SwiftHFRApp: App {
                 .appIconSeasonAlert(iconSeason)
                 // The legacy import first (LOT-158), so the accounts it takes over are in the store; then what iCloud Keychain
                 // brought (LOT-173: a new device imports its accounts there); then the stored accounts and their sessions, once
-                // per launch (LOT-081).
-                .task {
-                    await legacyImport.runAtLaunch()
-                    accounts.reconcileAccountSync()
-                    await accounts.restore()
-                }
+                // per launch (LOT-081): every window asks, the sequence runs once and all of them wait for it (`AppLifecycle`).
+                .task { await lifecycle.launch() }
                 // An account became current (restore, login, switch): the import goes on with it until complete (LOT-067 D3),
                 // and the account list is read again when it took accounts over.
                 .onChange(of: accounts.current?.id) { _, account in
-                    // Every window sees the change; the import runs once for it.
-                    guard events.isNew(account, for: "currentAccount") else { return }
-                    Task {
-                        if await legacyImport.accountDidChange(to: account) { await accounts.readStoreAgain() }
-                    }
+                    Task { await lifecycle.currentAccountChanged(to: account) }
                 }
                 // The LOT-066 eviction policies, which nothing else runs: the offline pages' 200 MB budget (LOT-139).
-                // Once per launch, not per window.
-                .task(priority: .utility) {
-                    guard events.firstTime("offlineEviction") else { return }
-                    await LiveOfflineStore().evict()
-                }
-                // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300).
-                // The phase the App reads is the aggregate of every window: each window's closure sees the same change.
+                .task(priority: .utility) { await lifecycle.evictOfflineOnce() }
+                // Back in the foreground: sessions the forum did not confirm are checked again, quietly (#300); the next background
+                // MP check is scheduled when the app leaves the screen (`HFRswiftApp.swift:31-35`). The phase the App reads is the
+                // aggregate of every window.
                 .onChange(of: scenePhase) { _, phase in
-                    guard events.isNew(phase, for: "recheck"), phase == .active else { return }
-                    Task {
-                        // What another device changed first, so the re-check sees the current accounts (LOT-173).
-                        accounts.reconcileAccountSync()
-                        await accounts.recheckUnconfirmedSessions()
-                    }
+                    Task { await lifecycle.scenePhaseChanged(to: phase) }
                 }
                 // Notification permission at launch, as legacy (`HFRswiftApp.swift:27-29` @ 87fe0d1c, LOT-140); iOS asks once.
                 .task { await MPNotificationCenter().prepare() }
-                // The next background MP check is scheduled when the app leaves the screen (`HFRswiftApp.swift:31-35`).
-                .onChange(of: scenePhase) { _, phase in
-                    if events.isNew(phase, for: "schedule"), phase == .background { Task { await MPBackgroundScheduler.schedule() } }
-                }
                 // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
-                .onChange(of: scenePhase, initial: true) { _, phase in
-                    // A window opened while the app is active sees the active phase again: not a new activation.
-                    guard events.isNew(phase, for: "lockAndSeason") else { return }
-                    if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
-                    // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
-                    if phase == .active { seasonal.sceneDidBecomeActive() }
-                }
+                .onChange(of: scenePhase, initial: true) { _, phase in lifecycle.lockAndSeasonsFollow(phase) }
         }
         // The background MP check (LOT-140): the next one is scheduled first, as legacy (`MPBackgroundService.swift:71`).
         .backgroundTask(.appRefresh(MPBackgroundScheduler.taskIdentifier)) {

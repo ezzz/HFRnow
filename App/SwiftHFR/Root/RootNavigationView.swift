@@ -63,7 +63,7 @@ struct RootNavigationView: View {
     }
 
     private func takeNotification() {
-        guard Self.mayOpenNotification(phase: scenePhase), let destination = notificationRouter.consume() else { return }
+        guard let destination = Self.takeNotification(phase: scenePhase, from: notificationRouter) else { return }
         Task { await model.open(destination) }
     }
 
@@ -71,6 +71,11 @@ struct RootNavigationView: View {
     /// the first to see a tap used to take it, even one hidden behind the others. Only a window that is on screen does.
     static func mayOpenNotification(phase: ScenePhase) -> Bool {
         phase == .active
+    }
+
+    /// The target of the pending tap when a window in `phase` may open it; the tap stays in `router` otherwise.
+    static func takeNotification(phase: ScenePhase, from router: MPNotificationRouter) -> MPNotificationDestination? {
+        mayOpenNotification(phase: phase) ? router.consume() : nil
     }
 
     private var usesSidebarRoot: Bool {
