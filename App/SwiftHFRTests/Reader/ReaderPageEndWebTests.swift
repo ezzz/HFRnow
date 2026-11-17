@@ -40,12 +40,15 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         controller.show(documentOf(height: 5000, token: 1))
         #expect(await until { recorder.ready == [1] && !ends.reports.isEmpty })
         #expect(ends.reports.last == false, "reports: \(ends.reports)")
+        // Ready comes from the page before the scroll view has the document (`showsDocument`): the end computed from the blank
+        // page's size is the top, and the way back's target was then out of reach (#995).
+        let scrollView = controller.webView.scrollView
+        #expect(await showsDocument(controller), "the scroll view never took the document: \(scrollView.contentSize)")
         // The page scrolls itself: a native `setContentOffset` can be undone by a late layout (`ReaderInsetsWebTests.scrollPage`).
         // CI job 133090341114 showed the way back sent once and never applied (`window.scrollTo(0, 0)`, the scroll view stayed
         // at its end, offset 4356): the scroll is sent again until the scroll view is there, then the report is checked. A
         // failure of the first wait is a scroll that never happened; of the second, a report `reader.js` did not send.
-        // The same lost-report symptom fails other reader web tests now and then, with WebContent trouble in the log (#934).
-        let scrollView = controller.webView.scrollView
+        // The way back goes through `scrollPage(toScrollY:)`, which checks the page's side too (#934).
         let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
         let atEnd = await until(async: {
             _ = try? await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); return true;", in: controller)
@@ -55,11 +58,8 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         #expect(await until { ends.reports.last == true }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
         // 20 points before the end is not the end: an end reported early (a viewport that counts the bars) fails here.
         let nearEnd = last() - 20
-        let backed = await until(async: {
-            let scrollY = Double(nearEnd + bars.top) // `scrollY` counts from the bars' edge (`ReaderInsetsWebTests`)
-            _ = try? await evaluate("window.scrollTo(0, \(scrollY)); return true;", in: controller)
-            return abs(scrollView.contentOffset.y - nearEnd) <= 2
-        }, timeout: .seconds(60))
+        // `scrollY` counts from the bars' edge (`ReaderInsetsWebTests`).
+        let backed = await scrollPage(toScrollY: Double(nearEnd + bars.top), in: controller, tolerance: 2)
         #expect(backed, "the page never came back 20 points: offset \(scrollView.contentOffset), target \(nearEnd)")
         #expect(await until { ends.reports.last == false }, "reports: \(ends.reports), offset \(scrollView.contentOffset)")
     }
@@ -72,6 +72,8 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         controller.show(documentOf(height: 3000, token: 1))
         #expect(await until { recorder.ready == [1] })
         let scrollView = controller.webView.scrollView
+        // Not before the scroll view has the document: its blank page's end is the top, reached at once (#995).
+        #expect(await showsDocument(controller), "the scroll view never took the document: \(scrollView.contentSize)")
         let last = { scrollView.contentSize.height + bars.bottom - scrollView.bounds.height }
         let atEnd = await until(async: {
             _ = try? await evaluate("window.scrollTo(0, document.documentElement.scrollHeight); return true;", in: controller)
@@ -91,6 +93,52 @@ struct ReaderPageEndWebTests: ReaderWebTesting {
         #expect(abs(found[2] - Double(FloatingSpacing.gap)) <= 0.5, "gap under the last message: \(found[2])")
         #expect(found[0] >= visibleTop - 0.5 && found[1] <= visibleBottom + 0.5,
                 "hint \(found[0])...\(found[1]) out of the visible band \(visibleTop)...\(visibleBottom)")
+    }
+
+    /// #820, device feedback of 2026-11-16: the hint is hidden live while a composer is open and shown again at its close, with
+    /// no reload (the page keeps its length, so the reading position stays), and a document loaded meanwhile comes up hidden.
+    @Test func theHintIsHiddenLiveUnderAComposerAndShownAgainAtItsClose() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(documentOf(height: 3000, token: 1))
+        #expect(await until { recorder.ready == [1] })
+        let script = """
+            const hint = document.querySelector(".pull-hint");
+            return [getComputedStyle(hint).visibility, hint.getBoundingClientRect().height, document.documentElement.scrollHeight];
+            """
+        let shown = try #require(try await evaluate(script, in: controller) as? [Any])
+        #expect(shown[0] as? String == "visible")
+        controller.offersPullHint = false
+        #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "hidden" }))
+        let hidden = try #require(try await evaluate(script, in: controller) as? [Any])
+        #expect((hidden[1] as? Double) == (shown[1] as? Double), "hidden, not removed: nothing moves")
+        #expect((hidden[2] as? Double) == (shown[2] as? Double))
+        controller.show(documentOf(height: 3000, token: 2))
+        #expect(await until { recorder.ready == [1, 2] })
+        #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "hidden" }),
+                "a document loaded under the composer comes up without the hint")
+        controller.offersPullHint = true
+        #expect(await until(async: { (try? await evaluate(script, in: controller) as? [Any])?.first as? String == "visible" }))
+    }
+
+    /// The next documents start with the hint as the controller wants it (a user script at document start): a reload under a
+    /// composer never paints it. Read from the installed scripts, as `applyPullHint` would otherwise hide it once ready.
+    @Test func theHintIsAlsoSetByAUserScriptAtDocumentStart() {
+        let (controller, _) = makeController(transport: imageTransport())
+        let installed = { () -> [(String, WKUserScriptInjectionTime)] in
+            controller.webView.configuration.userContentController.userScripts.map { ($0.source, $0.injectionTime) }
+        }
+        controller.offersPullHint = false
+        #expect(installed().contains { $0.0 == ReaderWebController.pullHintScript(false) && $0.1 == .atDocumentStart })
+        #expect(!installed().contains { $0.0 == ReaderWebController.pullHintScript(true) })
+        controller.offersPullHint = true
+        #expect(installed().contains { $0.0 == ReaderWebController.pullHintScript(true) && $0.1 == .atDocumentStart })
+        #expect(!installed().contains { $0.0 == ReaderWebController.pullHintScript(false) })
+    }
+
+    /// The script that toggles the hint is a literal the app builds: no page text reaches it.
+    @Test func theHintScriptTogglesTheRootClass() {
+        #expect(ReaderWebController.pullHintScript(false) == "document.documentElement.classList.toggle('no-pull-hint', true);")
+        #expect(ReaderWebController.pullHintScript(true) == "document.documentElement.classList.toggle('no-pull-hint', false);")
     }
 
     /// A page shorter than the screen shows its end at once: the end-of-page bar is there without a scroll.

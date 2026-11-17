@@ -21,7 +21,7 @@ struct AboutView: View {
         @Bindable var model = model
         List {
             Section("Version") {
-                LabeledContent("Version", value: model.version.display)
+                VersionRow()
             }
             Section {
                 ForEach(AboutTopicLink.allCases, id: \.self) { link in

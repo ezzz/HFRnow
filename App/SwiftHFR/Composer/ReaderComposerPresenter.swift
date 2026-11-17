@@ -2,10 +2,11 @@ import SwiftUI
 
 /// Presents one of the reader's composers (a reply, an edit, the author menu's MP) at its `ComposerPlacement`. Docked (the
 /// modern composer only, #904), the composer is a bottom bar of the reader (`safeAreaInset`, so it rides on the keyboard and
-/// the page's safe area ends above it) until it closes, whatever the keyboard does; as a sheet, the system's. Both are always
-/// attached and the content is never wrapped in a branch: a change of width while writing (a rotation) moves the composer
-/// between them without rebuilding the page. The presenter alone watches the composer's close (once, whichever view shows it,
-/// `initial` for a close that landed before), and clears the binding, which removes the bar or dismisses the sheet. The page
+/// the page's safe area ends above it) until it closes, whatever the keyboard does; as a sheet, the system's; as legacy's
+/// full-screen cover (an iPhone with the option off, #855), the system's `fullScreenCover`. All three are always attached and
+/// the content is never wrapped in a branch: a change of width while writing (a rotation) moves the composer between the bar
+/// and a sheet without rebuilding the page. The presenter alone watches the composer's close (once, whichever view shows it,
+/// `initial` for a close that landed before), and clears the binding, which removes the bar or dismisses the sheet or cover. The page
 /// learns about the bar through `dockedComposer`, set only while this presenter's composer is docked. A move between the bar
 /// and a sheet rebuilds the composer's view: its text, draft and history are the model's and stay; the "Aa" bar, the chosen
 /// height and an image upload in flight are the view's and start over.
@@ -41,7 +42,9 @@ struct ReaderComposerPresenter: ViewModifier {
             .onPreferenceChange(DockedComposerHeightKey.self) { [height = $dockedHeight] in height.wrappedValue = $0 }
             // The bar's slide only: a sheet animates itself, and the reader under it must not animate what changes with it.
             .animation(isDocked ? .snappy : nil, value: composer?.id)
-            .sheet(item: sheetComposer) { model in ReplyComposerView(model: model) }
+            .sheet(item: presented(.sheet)) { model in ReplyComposerView(model: model) }
+            // Legacy's composer (`MessagesView.swift:5429-5443`, `coverVerticalFullScreen` @ 87fe0d1c, #855).
+            .fullScreenCover(item: presented(.cover)) { model in ReplyComposerView(model: model, placement: .cover) }
             .onChange(of: composer?.closeReason, initial: true) { _, reason in
                 guard let reason, let model = composer else { return }
                 onClose(model, reason)
@@ -55,21 +58,27 @@ struct ReaderComposerPresenter: ViewModifier {
         return height == .full ? .full : .partial
     }
 
-    private var isDocked: Bool {
-        (placement ?? .reader(horizontalSizeClass: horizontalSizeClass, experimental: experimental)) == .docked
+    private var current: ComposerPlacement {
+        placement ?? .reader(horizontalSizeClass: horizontalSizeClass, experimental: experimental)
     }
 
-    /// The composer while it is a sheet. A sheet dismissed because the composer became docked (a rotation) keeps it: SwiftUI
-    /// calls the setter of the binding it was presented with, whose own `isDocked` is from before the rotation, so it reads the
-    /// placement of the latest update.
-    private var sheetComposer: Binding<ReplyComposerModel?> {
-        live.isDocked = isDocked // every update builds this binding: the latest placement
-        return Binding(get: { isDocked ? nil : composer }, set: { [live] in if $0 == nil, !live.isDocked { composer = nil } })
+    private var isDocked: Bool { current == .docked }
+
+    /// The composer while it is shown as `presentation` (a sheet or the cover). One dismissed because the composer moved
+    /// elsewhere (a rotation) keeps it: SwiftUI calls the setter of the binding it was presented with, whose own placement is
+    /// from before the move, so it reads the placement of the latest update.
+    private func presented(_ presentation: ComposerPlacement) -> Binding<ReplyComposerModel?> {
+        let current = current
+        live.placement = current // every update builds this binding: the latest placement
+        return Binding(
+            get: { current == presentation ? composer : nil },
+            set: { [live] in if $0 == nil, live.placement == presentation { composer = nil } }
+        )
     }
 
     /// The placement of the presenter's latest update, for a setter SwiftUI calls on an older binding.
     @MainActor
     private final class LivePlacement {
-        var isDocked = false
+        var placement = ComposerPlacement.sheet
     }
 }

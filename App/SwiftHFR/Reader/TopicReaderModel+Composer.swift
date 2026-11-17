@@ -17,6 +17,10 @@ extension TopicReaderModel {
     /// A composer is open over this reader: the page's taps and actions do nothing until it closes.
     var suspendsPageInteractions: Bool { !openComposers.isEmpty }
 
+    /// The end-of-page hint « Tirer vers le haut pour actualiser » is shown: the refresh it names is offered, so not while a
+    /// composer is open (#820). The page toggles it live (`ReaderWebController.offersPullHint`); no reload.
+    var offersPullHint: Bool { !suspendsPageInteractions }
+
     /// "Citer extrait" and "Citer gras" in the selection menu: the page can quote and no composer is open over it.
     var offersSelectionQuote: Bool { canQuote && !suspendsPageInteractions }
 
@@ -45,11 +49,12 @@ struct ReaderComposerGuard: ViewModifier {
             .onChange(of: isEditing) { _, isOpen in model.composer(.edit, isOpen: isOpen) }
             .onChange(of: model.suspendsPageInteractions) { _, suspended in
                 controller?.ignoresPageTaps = suspended
+                controller?.offersPullHint = model.offersPullHint
                 controller?.offersSelectionQuote = model.offersSelectionQuote
             }
             .navigationBarBackButtonHidden(model.suspendsPageInteractions)
             // EXPERIMENTAL(modernComposer, #904): replaces the bottom bar by the docked composer while it is open (#853); with
-            // the option off the placement is a sheet and the bar stays, as before.
+            // the option off the placement is a sheet or legacy's cover and the bar stays, as before.
             .toolbar(hidesBottomBar ? .hidden : .automatic, for: .bottomBar)
     }
 

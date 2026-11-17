@@ -63,8 +63,10 @@ struct RootModelTests {
     }
 
     @Test func tabsKeepTheLegacyOrderTitlesAndIcons() {
-        #expect(RootTab.allCases.map(\.title) == ["Catégories", "Favoris", "Messages", "Plus"])
-        #expect(RootTab.allCases.map(\.symbol) == ["folder.fill", "star.fill", "envelope", "ellipsis"])
+        // The experimental Recherche (#896) comes after legacy's four.
+        #expect(RootTab.allCases.prefix(4).map(\.title) == ["Catégories", "Favoris", "Messages", "Plus"])
+        #expect(RootTab.allCases.prefix(4).map(\.symbol) == ["folder.fill", "star.fill", "envelope", "ellipsis"])
+        #expect(RootTab.allCases.dropFirst(4).map(\.title) == ["Recherche"])
     }
 
     @Test func startScreenPicksTheTabAndFavouritesIsTheDefault() async {
@@ -200,6 +202,52 @@ struct RootModelTests {
         #expect(root.sidebarDestination == .plus(.search))
         root.selectedDestination = .tab(.messages)
         #expect(root.sidebarDestination == .tab(.messages))
+    }
+
+    /// EXPERIMENTAL(searchTab, #896): the sidebar has no fifth tab, it shows the Plus search entry; the bar keeps the tab.
+    @Test func theSearchTabShowsThePlusSearchEntryInTheSidebar() async {
+        let root = await model()
+        root.selectedTab = .search
+        #expect(root.selectedTab == .search)
+        #expect(root.selectedDestination == .tab(.search))
+        #expect(root.sidebarDestination == .plus(.search))
+        root.selectedTab = .more
+        #expect(root.selectedTab == .more)
+    }
+
+    /// EXPERIMENTAL(searchTab, #896): one live search screen: with the tab, the Plus search entry is the tab; without it, the tab is Plus.
+    @Test func theSearchTabAndThePlusSearchEntryAreNeverBothLive() async {
+        let root = await model()
+        root.selectedDestination = .plus(.search)
+        root.settleSearchTab(isOn: false)
+        #expect(root.selectedDestination == .plus(.search))
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.search))
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.search))
+        root.settleSearchTab(isOn: false)
+        #expect(root.selectedDestination == .tab(.more))
+        #expect(root.selectedTab == .more)
+        root.plusEntry = .credits
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .plus(.credits))
+    }
+
+    /// With the tab on, tapping Rechercher in Plus lands on the tab, and the Plus tab still opens on its menu afterwards.
+    @Test func thePlusTabStillOpensItsMenuAfterRechercherWentToTheTab() async {
+        let root = await model()
+        root.selectedTab = .more
+        root.plusEntry = .search
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedTab == .search)
+        root.selectedTab = .more
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.more))
+        #expect(root.plusEntry == nil)
+        root.selectedTab = .categories
+        root.selectedTab = .more
+        root.settleSearchTab(isOn: true)
+        #expect(root.selectedDestination == .tab(.more))
     }
 
     @Test func aPlusEntryOpenInTheSidebarStaysOpenInThePlusTab() async {

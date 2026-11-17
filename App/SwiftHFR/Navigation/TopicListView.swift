@@ -25,6 +25,9 @@ struct TopicListView: View {
     var scope: ForumScope?
     /// Favoris: opens the category a section title names (legacy `headerTitleView`, `Favorites.swift:344-372` @ 87fe0d1c).
     var openCategory: ((TopicSource) -> Void)?
+    /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
+    var titleStyle: ScreenTitleStyle = .pill
+    @State private var titleIsVisible = true
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
     @State private var pagePrompt: TopicSummary?
@@ -33,6 +36,9 @@ struct TopicListView: View {
     var body: some View {
         let loader = model.loader
         List(selection: $selection) {
+            if titleStyle == .largeThenPill {
+                ScreenLargeTitle(title: model.source.navigationTitle, isVisible: $titleIsVisible)
+            }
             if let scope { ForumScopeBar(model: model, scope: scope) }
             if loader.value != nil {
                 ForEach(model.displayedGroups) { group in
@@ -49,8 +55,7 @@ struct TopicListView: View {
             }
         }
         .densityListMargins()
-        .navigationTitle(model.source.title)
-        .navigationBarTitleDisplayMode(.inline)
+        .screenTitle(model.source.navigationTitle, style: titleStyle, headerVisible: titleIsVisible)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
@@ -126,7 +131,7 @@ struct TopicListView: View {
 
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
     /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
-    /// @ 87fe0d1c); the flag's colour stays on its icon.
+    /// @ 87fe0d1c); the default row shows no flag colour there.
     static func rowTint(
         topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
     ) -> RowTint? {
@@ -140,7 +145,10 @@ struct TopicListView: View {
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             let isSuper = model.isSuperFavorite(topic)
-            TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
+            TopicRowView(
+                topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
+                flagIsTinted: TopicListView.flagPills(for: model.source)
+            )
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(

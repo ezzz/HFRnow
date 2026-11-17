@@ -52,6 +52,9 @@ final class PrivateMessageCount {
 struct PrivateMessageCountingSource: ForumDataSource {
     let base: any ForumDataSource
     let count: PrivateMessageCount
+    /// Hands every count a page announces to the notification ledger (LOT-140, legacy `HFRplusAppDelegate.m:706`), so a
+    /// count seen here is not notified by the next background check; nil when logged out and in tests that do not need it.
+    var countSeen: (@Sendable (Int) async -> Void)?
 
     /// A logged-out home page has no private messages entry: 0, so a session that expired in place clears the badge.
     func forumList() async throws(ListLoadError) -> ForumListPage {
@@ -74,13 +77,15 @@ struct PrivateMessageCountingSource: ForumDataSource {
         try await counted(\.unreadPrivateMessages) { () async throws(ListLoadError) in try await base.favorites(filter: filter) }
     }
 
-    private func counted<Page>(
+    private func counted<Page: AnnouncesPrivateMessages>(
         _ unread: KeyPath<Page, Int?>, _ load: () async throws(ListLoadError) -> Page
     ) async throws(ListLoadError) -> Page {
         let ticket = await count.ticket()
         let page = try await load()
         let announced = page[keyPath: unread]
         await count.record(announced, ticket: ticket)
+        // HFR's own count only: the 0 a logged-out home gives the badge says nothing about the account (LOT-047 contract).
+        if let countSeen, let seen = page.announcedUnreadPrivateMessages { await countSeen(seen) }
         return page
     }
 }

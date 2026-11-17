@@ -174,16 +174,25 @@ struct ReaderImageFetcherTests {
         #expect(await transport.requests.map(\.url.absoluteString) == ["https://www.hostingpics.net/a.png"])
     }
 
-    @Test func theImageModeIsTheStoredSettingElseWiFiOnly() {
+    /// Images always load (#902), cellular included, whatever an earlier build stored; only the experimental choice reads it.
+    @Test func theImageModeIsAlwaysUnlessTheExperimentalChoiceIsOn() {
         let store = InMemorySettingsStore()
-        #expect(ReaderSettings.autoLoad(store: store) == .onWiFi)
+        #expect(ReaderSettings.autoLoad(store: store) == .always)
         store.set(.never, for: SettingKey.displayImages)
-        #expect(ReaderSettings.autoLoad(store: store) == .onTap)
-        store.set(.always, for: SettingKey.displayImages)
+        #expect(ReaderSettings.autoLoad(store: store) == .always)
         let settings = ReaderSettings.live(store: store, isOnWiFi: { false })
         #expect(settings.autoLoadsThirdPartyImages())
+        store.set(true, for: SettingKey.experimentalImageLoadingChoice)
+        #expect(ReaderSettings.autoLoad(store: store) == .onTap)
+        #expect(!settings.autoLoadsThirdPartyImages())
         store.set(.wifiOnly, for: SettingKey.displayImages)
         #expect(!settings.autoLoadsThirdPartyImages())
+        #expect(ReaderSettings.live(store: store, isOnWiFi: { true }).autoLoadsThirdPartyImages())
+        store.set(.always, for: SettingKey.displayImages)
+        #expect(settings.autoLoadsThirdPartyImages())
+        store.set(false, for: SettingKey.experimentalImageLoadingChoice)
+        store.set(.never, for: SettingKey.displayImages)
+        #expect(settings.autoLoadsThirdPartyImages())
         #expect(!settings.renderOptions().showsSignatures)
         store.set(true, for: SettingKey.displaySignatures)
         #expect(settings.renderOptions().showsSignatures)

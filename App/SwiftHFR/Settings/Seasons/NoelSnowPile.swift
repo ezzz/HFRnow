@@ -51,7 +51,7 @@ struct SeasonalSnowCapSection<Rows: View>: View {
     @ViewBuilder let rows: Rows
 
     var body: some View {
-        if seasonal?.activeTheme == .noelSoft {
+        if seasonal?.drawnTheme == .noelSoft {
             Section {
                 rows
             } header: {

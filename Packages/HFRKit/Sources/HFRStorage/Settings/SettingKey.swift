@@ -76,6 +76,9 @@ public enum SettingKey {
     public static let appIconRevertAsked = Setting.optionalString("icon_revert_asked")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
+    /// `mp_check_interval` (LOT-140, new key): the minimum delay between two background MP checks, in minutes, `0` for none.
+    /// An unknown value reads as the default, 30 minutes. A property of the device: never synced.
+    public static let mpCheckInterval = Setting.integerEnum("mp_check_interval", default: MPCheckInterval.thirtyMinutes)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
     /// never synced.
     public static let appLockEnabled = Setting.bool("app_lock_enabled", default: false)
@@ -154,10 +157,10 @@ public enum SettingKey {
         decode: { SettingCoercion.string($0).map { $0 == "yes" } },
         encode: { .string($0 ? "yes" : "no") }
     ).synced
-    /// `display_images`. Legacy forced `yes` at every launch with no UI; here it is an ordinary setting whose default is
-    /// `wifi` (operator decision for policy C, LOT-071 D-071-1 and LOT-083): third-party images load by themselves on Wi-Fi
-    /// only. A value stored by the user or imported from legacy is kept.
-    public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.wifiOnly)
+    /// `display_images`. Legacy forced `yes` at every launch with no UI; here `yes` is the default, so images always load (#902).
+    /// The key is read only behind Réglages › Expérimental › « Chargement des images » (`experimentalImageLoadingChoice`),
+    /// whose picker writes it; a value an earlier build stored stays in place and is ignored while that option is off.
+    public static let displayImages = Setting.stringEnum("display_images", default: ImageDisplayMode.always)
 
     // MARK: Private messages storage
 
@@ -198,9 +201,9 @@ public enum SettingKey {
 
     // MARK: Experimental (#903)
 
-    /// `experimental.modernComposer` (new, #903/#904): the compact composer docked on the keyboard on an iPhone. On by default
-    /// until #855 delivers the legacy full-screen composer and flips it, so the app always has a composer. Device-only.
-    public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: true)
+    /// `experimental.modernComposer` (new, #903/#904): the compact composer docked on the keyboard on an iPhone. Off by default
+    /// since #855 (operator, 2026-11-14): the default is legacy's full-screen composer. Device-only.
+    public static let experimentalModernComposer = Setting.bool("experimental.modernComposer", default: false)
     /// `experimental.searchTab` (new, #903/#896): a fifth tab, Recherche. Device-only.
     public static let experimentalSearchTab = Setting.bool("experimental.searchTab", default: false)
     /// `experimental.mpStorageSwitches` (new, #903/#859): one MPStorage switch per function instead of legacy's single one.
@@ -224,7 +227,7 @@ public enum SettingKey {
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
-        privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
+        privateMessageBadge, mpCheckInterval, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,

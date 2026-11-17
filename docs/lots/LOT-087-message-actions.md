@@ -68,8 +68,15 @@ session check of LOT-044 and `TopicFlagFlow`; no handler yet, so hidden).
    `MessageActions`, not from the legacy builder's flags.
 5. The author menu opens from the avatar and from the pseudo, as legacy's two tap targets (`templatev2.htm:4-5`); a member without a
    picture, or whose picture was refused, shows the monogram of the MP list, so the avatar is always there to tap (issue #595).
-   Entries: Profil and MP; Blacklist and Whitelist wait for LOT-118 (#209), which registers their two handlers in
-   `TopicReaderView.installMenuActions`. Legacy jumped to the profile screen when a profile link existed (`MessagesView.swift:3610-3616`).
+   Handlers: Profil, MP, Blacklist and Whitelist (LOT-118's two, registered in `TopicReaderView.installMenuActions`).
+   As legacy, a tap on the author of a message with a profile link opens the profile directly (`presentAvatarActionSheet`,
+   `MessagesView.swift:4415-4420` @ 87fe0d1c; operator decision of 2026-11-16 on #652, which reverses #595's menu-first choice), with
+   legacy's quick actions (`userProfileQuickActions`, `:4387-4412`): MP when not the user's own post, with a private-message link
+   and a composer; Blacklist and Whitelist when not the user's own post and the author's pseudo is not empty. "MP" and a toggle close
+   the profile first, then open the composer or show the result as a toast, and the page is rebuilt with the lists (`:4422-4490`;
+   legacy reloaded the page). The author menu opens only for a message without a profile link (legacy's fallback sheet, here a
+   popover at the author), so its entries there are MP, Blacklist and Whitelist; only that author button announces a menu
+   (`aria-haspopup`).
 6. The message menu is the system's horizontal edit-menu callout (`UIEditMenuInteraction` on the web view,
    `ReaderMessageEditMenu`), anchored at the tapped "+", paging with "›", as legacy (`MessagesView.swift:1249-1251, 2011-2081,
    2799-2827` @ 87fe0d1c; operator decision of 2026-11-15 on #594). It opens above the button, below it within 40 points of the bars

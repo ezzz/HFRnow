@@ -2,8 +2,9 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (MessagesView: reply action, composer sheet) and HFRswift/Swift/AnswerView.swift
-// (AnswerView, "Répondre" title) @ 2440d79. Differences: HFR's own confirmation shown above the page; on an iPhone the composer is
-// a bar docked at the bottom of the page instead of a full-screen cover (#853, `ComposerPlacement`, GAP-653).
+// (AnswerView, "Répondre" title) @ 2440d79. Differences: HFR's own confirmation shown above the page; on an iPhone with « Composer
+// moderne » on, the composer is a bar docked at the bottom of the page instead of legacy's full-screen cover, which the option off
+// keeps (#853, #855, `ComposerPlacement`, GAP-653).
 /// The reader's reply entry (LOT-084): the composer (`ReaderComposerPresenter`), and HFR's confirmation above the page once a reply
 /// is confirmed.
 /// The "Répondre" button is in the reader's bottom bar (`ReaderPageControls`, LOT-186), as legacy's was.
@@ -37,7 +38,8 @@ struct ReaderReplyFlow: ViewModifier {
                 reply = ReplyComposerModel(target: target, services: composer, quote: taken.quote)
             }
             // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
-            // keyboard with the option on (#853) and shows the same sheet with it off.
+            // keyboard with the option on (#853) and, with it off, shows legacy's full-screen cover on an iPhone (#855), a sheet
+            // on an iPad.
             .modifier(ReaderComposerPresenter(composer: $reply) { _, reason in
                 Task { await model.composerDidClose(reason) }
             })

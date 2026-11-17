@@ -152,6 +152,15 @@ struct TopicHTMLBuilderTests {
         #expect(menus.contains("aria-haspopup=\"menu\">auteur</button></span>"))
     }
 
+    /// #652: an author whose message links to the profile opens it, not a menu, so the button announces no menu.
+    @Test func anAuthorWithAProfileLinkAnnouncesNoMenu() {
+        var linked = message()
+        linked.actions = MessageActions(profileURL: url("https://forum.hardware.fr/hfr/profil-1234.htm"))
+        let html = TopicHTMLBuilder.document(for: page([linked]), token: 1, options: ReaderRenderOptions(showsAuthorMenus: true))
+        #expect(html.contains("data-menu=\"avatar\" data-post=\"42\">auteur</button></span>"))
+        #expect(!html.contains("aria-haspopup=\"menu\">auteur</button>"))
+    }
+
     /// Issue #820: the page carries the app's one floating gap (8 points), which the stylesheet puts under the last message.
     @Test func thePageCarriesTheSharedFloatingGap() {
         #expect(FloatingSpacing.gap == 8)
