@@ -67,17 +67,36 @@ struct AccountMenuPlacementTests {
             let item = bar.topItem
             let left = (item?.leftBarButtonItems ?? []).count + (item?.leadingItemGroups ?? []).flatMap(\.barButtonItems).count
             let right = (item?.rightBarButtonItems ?? []).count + (item?.trailingItemGroups ?? []).flatMap(\.barButtonItems).count
-            let controls = views(in: bar).compactMap { $0 as? UIControl }.filter { !$0.isHidden && !$0.bounds.isEmpty }
+            // Shown: in the window, with no hidden or transparent view between it and the bar (UIKit keeps unused back buttons and
+            // transition copies around with alpha 0). Disabled controls count: the preview "Comptes" button is disabled.
+            let controls = views(in: bar).compactMap { $0 as? UIControl }.filter { isShown($0, below: bar) && !$0.bounds.isEmpty }
             let onTheLeft = controls.filter { bar.convert($0.bounds, from: $0).midX < bar.bounds.midX }
             found.leftItems += left
             found.leftControls += onTheLeft.count
-            found.diagnostics += "; bar \(bar.bounds.size): items left \(left) right \(right), controls "
+            let leftTitles = ((item?.leftBarButtonItems ?? []) + (item?.leadingItemGroups ?? []).flatMap(\.barButtonItems))
+                .map { (entry: UIBarButtonItem) -> String in
+                    if let title = entry.title ?? entry.accessibilityLabel { return title }
+                    return entry.customView.map { String(describing: type(of: $0)) } ?? "item"
+                }
+            found.diagnostics += "; left items \(leftTitles); bar \(bar.bounds.size): items left \(left) right \(right), controls "
                 + controls.map { "\(type(of: $0))@\(Int(bar.convert($0.bounds, from: $0).midX))" }.joined(separator: ",")
         }
         return found
     }
 
+    private static func isShown(_ view: UIView, below bar: UIView) -> Bool {
+        guard view.window != nil else { return false }
+        var current: UIView? = view
+        while let node = current, node !== bar {
+            if node.isHidden || node.alpha <= 0.01 { return false }
+            current = node.superview
+        }
+        return current === bar
+    }
+
     private func expectOnTheLeft(_ found: Found, _ name: String) {
+        // Always recorded: a pass, trivial or real, then shows what satisfied it.
+        print("AccountMenuPlacementTests \(name): \(found.diagnostics)")
         #expect(found.isOnTheLeft, "\(name): nothing on the left of the bar: \(found.diagnostics)")
     }
 
@@ -94,6 +113,19 @@ struct AccountMenuPlacementTests {
     /// The modifier itself: the button is drawn on the left half, in the top bar.
     @Test func modifierDrawsTheButtonOnTheLeftOfTheBar() async throws {
         expectOnTheLeft(try await readBars(of: NavigationStack { Text("Racine").accountMenuToolbarItem() }), "modifier")
+    }
+
+    /// Negative controls: the probe tells the cases apart. The pre-fix placement (`.primaryAction`, trailing on an iPhone) and a
+    /// root with no account button both read as nothing on the left, so a pass above cannot come from a stray bar item.
+    @Test func probeSeesNothingOnTheLeftForTheOldPlacementAndForNoButton() async throws {
+        let oldPlacement = try await readBars(of: NavigationStack {
+            Text("Racine").toolbar { ToolbarItem(placement: .primaryAction) { AccountMenuButton() } }
+        })
+        print("AccountMenuPlacementTests old placement: \(oldPlacement.diagnostics)")
+        #expect(!oldPlacement.isOnTheLeft, "old placement read as left: \(oldPlacement.diagnostics)")
+        let noButton = try await readBars(of: NavigationStack { Text("Racine").navigationTitle("Racine") })
+        print("AccountMenuPlacementTests no button: \(noButton.diagnostics)")
+        #expect(!noButton.isOnTheLeft, "no button read as left: \(noButton.diagnostics)")
     }
 
     /// The real roots as `RootTabsView` builds them: removing the modifier from one of them fails here. Not covered: Recherche
