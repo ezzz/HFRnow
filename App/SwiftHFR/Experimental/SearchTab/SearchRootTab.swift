@@ -16,7 +16,8 @@ struct SearchRootTab: View {
     }
 }
 
-/// The rules of the fifth tab that do not need a view.
+/// The rules of the fifth tab that do not need a view (main actor: `ExperimentalSettings` is).
+@MainActor
 enum SearchTabOption {
     /// Whether the bar has the Recherche item.
     static func isOn(_ experimental: ExperimentalSettings?) -> Bool {
