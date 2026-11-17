@@ -38,7 +38,7 @@ None that changes what legacy shows. Behaviour notes (no GAP row beyond GAP-005,
   [LOT-070](LOT-070-parity-gates.md)): legacy ran it once per process, so a login kept the logged-out count.
 
 ## Behaviour
-- **Source**: `AQClient.feed()` (LOT-055: cookie-less, 20 s, no redirect, typed errors). The base URL is `AQBaseURL` of the Info.plist
+- **Source**: `AQClient.feed()` (LOT-055: cookie-less, 10 s as legacy's `HFRNetworkTimeout.content`, no redirect, typed errors). The base URL is `AQBaseURL` of the Info.plist
   (`AQ_BASE_URL` in `App/Config/Shared.xcconfig`, ADR 0007; the public host legacy hard-codes, committed so a build without
   `Secrets.xcconfig` shows the badge: **to confirm by the operator**). An empty, unexpanded or refused value (`AQConfiguration`:
   https only, never `hardware.fr`) means no source: the list says "indisponible", no request is made.
