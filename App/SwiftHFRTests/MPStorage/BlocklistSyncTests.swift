@@ -239,6 +239,44 @@ struct BlocklistSyncModelTests {
         #expect(merges == 1)
     }
 
+    @Test func aNoOpEditDuringASyncKeepsThatSyncsMerge() async throws {
+        // Another client removed Alpha and added Gamma; the device unblocks Delta, which the document never listed, while the
+        // start's read is in flight: that edit changes nothing, and must not cancel the start's merge.
+        let account = MPStorageSyncModelTests.account
+        let fake = FakeMPStorageRemote(thread: 7, text: blocklistDocumentText(["Beta", "Gamma"]))
+        await fake.mergeOnSave()
+        let gate = ReadGate()
+        let states = MPStorageSyncStateStore(settings: InMemorySettingsStore())
+        states.set(.on, for: account, at: MPStorageSyncModelTests.now.addingTimeInterval(-60))
+        let copies = MPStorageCopyStore(persistence: InMemorySmallStorePersistence<MPStorageCopyDocument>())
+        try await copies.save(Self.syncedCopy(["Alpha", "Beta"]), for: account)
+        let model = MPStorageSyncModel(
+            account: account,
+            sync: MPStorageSync(
+                remote: GatedMPStorageRemote(inner: fake, gate: gate),
+                persistence: MPStorageCopyPersistence(store: copies, account: account)
+            ),
+            states: states, isLoggedIn: { true }, clock: { MPStorageSyncModelTests.now }
+        )
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
+        for pseudo in ["Alpha", "Beta", "Delta"] { try await store.block(pseudo, account: account) }
+        let changes = BlocklistChangeLog()
+        let sync = BlocklistSyncModel(mpStorage: model, store: store, changes: changes, refreshLists: {})
+        let manager = PseudoListManager(store: store, account: account, blocklistChanges: changes)
+
+        let starting = Task { await model.start() }
+        while await gate.waiting == 0 { try await Task.sleep(for: .milliseconds(5)) }
+        try await manager.remove("Delta", from: .blocklist)
+        let handling = Task { await sync.handle(BlocklistChange(pseudo: "Delta", added: false)) }
+        // Lets the edit queue behind the read before the read answers.
+        try await Task.sleep(for: .milliseconds(50))
+        await gate.release()
+        await starting.value
+        await handling.value
+        #expect(Set(await store.blocklist(for: account).map(\.pseudo)) == ["Beta", "Gamma"])
+        #expect(Set(try await fake.blocklist()) == ["Beta", "Gamma"])
+    }
+
     @Test func aFirstWriteOfAnAccountThatNeverChoseAsksAndSendsNothing() async throws {
         let fixture = try await Self.make(thread: 7, state: .unasked)
         try await fixture.manager.add("Alpha", to: .blocklist)
@@ -299,4 +337,45 @@ struct BlocklistSyncModelTests {
         #expect(await fixture.local() == ["Alpha"])
         #expect(try await fixture.remote.blocklist() == ["Gamma"])
     }
+}
+
+/// Holds every read until released (a sync in flight).
+actor ReadGate {
+    private var open = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    /// Reads waiting for the release.
+    private(set) var waiting = 0
+
+    func wait() async {
+        if open { return }
+        waiting += 1
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        open = true
+        waiters.forEach { $0.resume() }
+        waiters = []
+    }
+}
+
+/// The scripted forum with its reads held by a gate.
+struct GatedMPStorageRemote: MPStorageRemote {
+    let inner: FakeMPStorageRemote
+    let gate: ReadGate
+
+    func findThread() async throws(MPStorageTransportError) -> Int? { try await inner.findThread() }
+
+    func read(post: Int) async throws(MPStorageTransportError) -> MPStorageSnapshot {
+        await gate.wait()
+        return try await inner.read(post: post)
+    }
+
+    func save(
+        _ ours: MPStorageDocument, base: MPStorageDocument?, at location: MPStorageLocation, stamp: MPStorageStamp
+    ) async throws(MPStorageTransportError) -> MPStorageSaveResult {
+        try await inner.save(ours, base: base, at: location, stamp: stamp)
+    }
+
+    func create(stamp: MPStorageStamp) async throws(MPStorageTransportError) -> MPStorageCreation { try await inner.create(stamp: stamp) }
 }

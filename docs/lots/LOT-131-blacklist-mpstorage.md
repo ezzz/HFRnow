@@ -34,7 +34,8 @@
   - remote additions (in the document read now, not on the device) are blocked on the device, except a pseudo the device holds a removal of;
   - remote removals (in the document shown before the call, gone now) are unblocked on the device **only when the document read now still lists someone, or carries a tombstone for that pseudo**: an emptied list is never "remove everything" (audit E-2, the legacy wipe); a held addition of the same pseudo wins;
   - device entries the document lacks (and not just removed remotely) are written to it, and so are held removals the document still lists; one `edit` for all; a pseudo the forum cannot store (outside the BMP, LOT-062) is skipped and stays on the device.
-  - The reader's copy (`PseudoListsSnapshot`) is refreshed after a local change. The reconciliation's own write triggers a sync, which does not start a second reconciliation inside the first.
+  - The reader's copy (`PseudoListsSnapshot`) is refreshed after a local change. The reconciliation's own write triggers a sync, which reconciles again inside it with its own diff (no diff is dropped); it ends because an edit that changes nothing triggers no sync and no merge (decided per call, never by model state: calls overlap).
+- **Release of held changes**: per pseudo, on its **last** held change only, once the document shown carries it; an un-block then re-block keeps both until the re-block is in the document.
 - No HFR request of its own: every forum access is LOT-130's `MPStorageSync` over LOT-052's transport.
 
 ## Edge cases

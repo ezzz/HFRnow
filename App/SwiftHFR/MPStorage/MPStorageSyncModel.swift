@@ -72,8 +72,6 @@ final class MPStorageSyncModel {
     @ObservationIgnored private var started = false
     /// Whether the last failure was the network's: only then does `start()` run again at the next appearance.
     @ObservationIgnored private var lastFailureWasNetwork = false
-    /// Set by an edit that changed nothing: its call neither read nor wrote, so `afterSync` is not called.
-    @ObservationIgnored private var callChangedNothing = false
 
     /// Creates the model; nothing is read or fetched before `start()`.
     init(
@@ -228,7 +226,10 @@ final class MPStorageSyncModel {
         var changed = false
         await run { [self] () async throws(MPStorageSyncError) in
             changed = try await sync.edit(now: clock(), change)
-            if changed { try await syncOnce() } else { callChangedNothing = true }
+            if changed { try await syncOnce() }
+        } merges: {
+            // An edit that changed nothing neither read nor wrote: no merge. Per call, never model state (calls overlap).
+            changed
         }
         return changed
     }
@@ -259,14 +260,14 @@ final class MPStorageSyncModel {
         record = states.record(for: account)
     }
 
-    /// Runs one call: `working` while it runs, then the copy is shown again and the status says how it went.
-    private func run(_ work: () async throws(MPStorageSyncError) -> Void) async {
+    /// Runs one call: `working` while it runs, then the copy is shown again and the status says how it went; `afterSync`
+    /// follows a success that found the thread, unless `merges` (read once the call is done) says the call read nothing.
+    private func run(_ work: () async throws(MPStorageSyncError) -> Void, merges: () -> Bool = { true }) async {
         // A write can come before `start()` (the reader, a profile): the copy is the "before" of the merge, never nothing.
         if document == nil { _ = await loadCopy() }
         let before = document
         status = .working
         lastFailureWasNetwork = false
-        callChangedNothing = false
         var succeeded = false
         do {
             try await work()
@@ -277,7 +278,7 @@ final class MPStorageSyncModel {
             if case .transport(.network) = error { lastFailureWasNetwork = true }
         }
         _ = await loadCopy()
-        if succeeded, !callChangedNothing, let document, let afterSync { await afterSync(before, document) }
+        if succeeded, merges(), let document, let afterSync { await afterSync(before, document) }
     }
 
     /// Shows the device copy: last sync and document. A copy that cannot be read is said, and nil returned.
