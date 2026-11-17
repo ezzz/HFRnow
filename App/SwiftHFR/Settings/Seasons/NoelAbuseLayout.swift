@@ -2,12 +2,14 @@ import CoreGraphics
 import Foundation
 
 /// Where Noël abusé's art sits on a screen's background, behind the content (THEMES.md §2, §4 rule 7; board `theme-noel.jpg`):
-/// a garland along the top, a pattern of small stars, the tree in the bottom trailing corner and gifts in the leading one. Each
-/// column of a split view lays out its own. Everything is drawn at `artOpacity`, so text drawn on the background keeps
-/// 4.5:1 even over the art's brightest pixel. Pure, so the limits are tested.
+/// a garland along the top with an ornament hanging from each piece, a pattern of small stars, the tree in the bottom trailing
+/// corner and gifts in the leading one. Each column of a split view lays out its own. Everything is drawn at `artOpacity`, so
+/// the text native screens draw on the background (the system label and secondary label of the dark appearance, the tint)
+/// keeps 4.5:1 even over a white pixel of the art. Pure, so the limits are tested.
 nonisolated enum NoelAbuseLayout {
-    /// The art's opacity over the background: white at this opacity still leaves every text token on `background` ≥ 4.5:1.
-    static let artOpacity = 0.15
+    /// The art's opacity over the background: white at this opacity still leaves the system secondary label (60 % white, the
+    /// section headers and footers of native lists) ≥ 4.5:1 on Noël abusé's `background`, the tightest text it carries.
+    static let artOpacity = 0.08
     /// Distance between two stars of the pattern, and a star's side.
     static let starSpacing: CGFloat = 64
     static let starSide: CGFloat = 14
@@ -42,15 +44,36 @@ nonisolated enum NoelAbuseLayout {
         return (0..<count).map { CGRect(x: CGFloat($0) * width, y: topInset, width: width, height: garlandHeight) }
     }
 
-    /// The tree's height: 30 % of the screen, at most `maxTreeHeight`.
-    static func treeHeight(in size: CGSize) -> CGFloat { min(max(size.height, 0) * 0.3, maxTreeHeight) }
+    /// An ornament's height; one hangs below the middle of each garland piece.
+    static let ornamentHeight: CGFloat = 24
+    static let ornamentAspectRatio: Double = 564.0 / 738
 
-    /// The tree, standing on `bottomInset` (the home indicator) in the trailing corner; nil when the screen is too narrow for
-    /// the tree and the gifts side by side.
+    /// The ornaments, one below the middle of each garland piece, cut to the screen (none without a garland, or where the
+    /// screen ends before one).
+    static func ornaments(in size: CGSize, topInset: CGFloat) -> [CGRect] {
+        let width = ornamentHeight * ornamentAspectRatio
+        return garland(in: size, topInset: topInset).compactMap { piece in
+            let frame = CGRect(x: piece.midX - width / 2, y: piece.maxY, width: width, height: ornamentHeight)
+            return frame.maxX <= size.width && frame.maxY <= size.height ? frame : nil
+        }
+    }
+
+    /// The shortest tree drawn: below it, a screen has neither tree nor gifts.
+    static let minTreeHeight: CGFloat = 40
+
+    /// The tree's height: 30 % of the screen, at most `maxTreeHeight`, and small enough for the tree and the gifts to share
+    /// 90 % of the width (an iPhone in portrait, a narrow split column).
+    static func treeHeight(in size: CGSize) -> CGFloat {
+        let fitting = max(size.width, 0) * 0.9 / (treeAspectRatio + giftsWidth(treeHeight: 1))
+        return min(max(size.height, 0) * 0.3, maxTreeHeight, fitting)
+    }
+
+    /// The tree, standing on `bottomInset` (the home indicator) in the trailing corner; nil when it would be shorter than
+    /// `minTreeHeight` or taller than the room above the inset.
     static func tree(in size: CGSize, bottomInset: CGFloat) -> CGRect? {
         let height = treeHeight(in: size)
         let width = height * treeAspectRatio
-        guard height > 0, size.width >= width + giftsWidth(treeHeight: height), size.height >= height + bottomInset else { return nil }
+        guard height >= minTreeHeight, size.height >= height + bottomInset else { return nil }
         return CGRect(x: size.width - width, y: size.height - bottomInset - height, width: width, height: height)
     }
 

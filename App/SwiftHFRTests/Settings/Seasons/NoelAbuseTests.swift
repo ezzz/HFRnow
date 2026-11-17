@@ -147,6 +147,19 @@ struct NoelAbuseTests {
         #expect(model.appearance.applying(nil, catalog: catalog) == model.appearance)
     }
 
+    /// The window takes the scheme the drawn theme imposes: Noël abusé is dark even for a « Clair » user, whose own scheme comes
+    /// back with Noël soft or no seasonal theme (`appTheme` reads `colorScheme(drawing:)`).
+    @Test func noelAbuseImposesTheDarkSchemeOverTheUsersChoice() throws {
+        let catalog = try catalogWithNoelAbuse()
+        let model = ThemeSettingsModel(store: InMemorySettingsStore(), catalog: catalog)
+        model.mode = .light
+        #expect(model.colorScheme(drawing: model.appearance.applying(.noelAbuse, catalog: catalog)) == .dark)
+        #expect(model.colorScheme(drawing: model.appearance.applying(.noelSoft, catalog: catalog)) == .light)
+        #expect(model.colorScheme(drawing: model.appearance) == .light)
+        model.mode = .system
+        #expect(model.colorScheme(drawing: model.appearance) == nil)
+    }
+
     /// A build whose bundle lacks the file draws the user's theme unchanged rather than a half theme.
     @Test func withoutItsFileTheUsersThemeIsDrawn() throws {
         let catalog = try ThemeFixtures.catalog()
@@ -154,7 +167,9 @@ struct NoelAbuseTests {
         #expect(model.appearance.applying(.noelAbuse, catalog: catalog) == model.appearance)
     }
 
-    /// The art is drawn at `artOpacity`: even a white pixel there keeps every text drawn on the background ≥ 4.5:1 (rule 7).
+    /// The art is drawn at `artOpacity`: even a white pixel there keeps the text native screens draw on the background ≥ 4.5:1
+    /// (rule 7): the system label and secondary label of the dark appearance Noël abusé imposes (section headers and footers
+    /// are the secondary label, 60 % of #EBEBF5), and the tint.
     @Test func theArtKeepsTheTextOnTheBackgroundReadable() throws {
         guard case let .single(tokens)? = try noelAbuse().variants else {
             Issue.record("Noël abusé is single-variant")
@@ -162,8 +177,8 @@ struct NoelAbuseTests {
         }
         let white = ThemeRGB(red: 255, green: 255, blue: 255)
         let underArt = tokens.background.mixed(with: white, amount: NoelAbuseLayout.artOpacity)
-        // The system label of the dark appearance, the navigation title, the section headers and the tint.
-        for text in [white, tokens.title, tokens.sectionHeader, tokens.accentText] {
+        let secondaryLabel = underArt.mixed(with: ThemeRGB(red: 235, green: 235, blue: 245), amount: 0.6)
+        for text in [white, secondaryLabel, tokens.accentText] {
             #expect(underArt.contrast(with: text) >= 4.5, "\(text)")
         }
     }
@@ -183,6 +198,13 @@ struct NoelAbuseLayoutTests {
         #expect(screen.contains(tree))
         #expect(tree.maxY == size.height - 34)
         #expect(tree.height <= NoelAbuseLayout.maxTreeHeight)
+        #expect(tree.height >= NoelAbuseLayout.minTreeHeight)
+        let ornaments = NoelAbuseLayout.ornaments(in: size, topInset: 59)
+        #expect(!ornaments.isEmpty)
+        for ornament in ornaments {
+            #expect(screen.contains(ornament))
+            #expect(ornament.minY == 59 + NoelAbuseLayout.garlandHeight)
+        }
         let gifts = NoelAbuseLayout.gifts(in: size, bottomInset: 34)
         #expect(gifts.count == 3)
         for gift in gifts {
@@ -195,8 +217,9 @@ struct NoelAbuseLayoutTests {
     @Test func anEmptyOrNarrowScreenHasNoArt() {
         #expect(NoelAbuseLayout.stars(in: .zero).isEmpty)
         #expect(NoelAbuseLayout.garland(in: .zero, topInset: 0).isEmpty)
-        #expect(NoelAbuseLayout.tree(in: CGSize(width: 100, height: 874), bottomInset: 0) == nil)
-        #expect(NoelAbuseLayout.gifts(in: CGSize(width: 100, height: 874), bottomInset: 0).isEmpty)
+        #expect(NoelAbuseLayout.ornaments(in: .zero, topInset: 0).isEmpty)
+        #expect(NoelAbuseLayout.tree(in: CGSize(width: 50, height: 874), bottomInset: 0) == nil)
+        #expect(NoelAbuseLayout.gifts(in: CGSize(width: 50, height: 874), bottomInset: 0).isEmpty)
     }
 
     /// Static art, drawn once per size: the star pattern stays small on the largest iPad.

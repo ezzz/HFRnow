@@ -41,6 +41,9 @@ private struct NoelAbuseBackdrop: View {
                 ForEach(NoelAbuseLayout.garland(in: size, topInset: top).enumerated(), id: \.offset) { piece in
                     ArtImage(name: "NoelGarland", frame: piece.element)
                 }
+                ForEach(NoelAbuseLayout.ornaments(in: size, topInset: top).enumerated(), id: \.offset) { ornament in
+                    ArtImage(name: "NoelOrnament", frame: ornament.element)
+                }
                 if let tree = NoelAbuseLayout.tree(in: size, bottomInset: bottom) {
                     ArtImage(name: "NoelTree", frame: tree)
                 }
@@ -54,6 +57,8 @@ private struct NoelAbuseBackdrop: View {
             .opacity(NoelAbuseLayout.artOpacity)
             .offset(x: -proxy.safeAreaInsets.leading, y: -top)
         }
+        // The keyboard never moves the art: the tree and gifts stay on the home indicator's inset behind the composer.
+        .ignoresSafeArea(.keyboard)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }

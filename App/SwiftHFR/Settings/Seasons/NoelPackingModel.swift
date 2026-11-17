@@ -16,6 +16,8 @@ final class NoelPackingModel {
         let theme: SeasonalTheme
         /// The scene playing it; nil while it waits.
         var scene: UUID?
+        /// « Allez on remballe » was announced to VoiceOver, by whichever scene played it.
+        var announced = false
     }
 
     /// How long the elves play: within the 5 s of an overlay (THEMES.md §4 rule 3).
@@ -76,6 +78,14 @@ final class NoelPackingModel {
     /// `scene`'s screen changed: the elves stop as soon as the keyboard, a sheet, an alert or the lock comes up (rule 5).
     func screenChanged(for scene: UUID, screen: SeasonalThemeModel.ScreenState) {
         if !screen.allowsAlert { cut(in: scene) }
+    }
+
+    /// The packing's words are to be announced now: true once per packing, whichever scene plays it and however many times
+    /// it is replayed (rule 6: the overlay is hidden, its sentence is spoken once).
+    func shouldAnnounce() -> Bool {
+        guard let current, !current.announced else { return false }
+        self.current?.announced = true
+        return true
     }
 
     /// The elves are done, or were tapped away (THEMES.md §4 rule 3): the user's theme shows.

@@ -102,6 +102,12 @@ final class ThemeSettingsModel {
         case .dark: .dark
         }
     }
+    /// The scheme the window takes while `appearance` is drawn: the one a single-variant theme imposes (the gallery's, or a
+    /// seasonal one such as Noël abusé drawn over it, LOT-166), else `preferredColorScheme`.
+    func colorScheme(drawing appearance: ThemeAppearance) -> ColorScheme? {
+        appearance.forcedColorScheme ?? preferredColorScheme
+    }
+
     /// The colours every screen and the reader use.
     var appearance: ThemeAppearance {
         let selected = self.theme
@@ -148,7 +154,7 @@ extension View {
     /// of the engine, imposes its appearance like a gallery one.
     func appTheme(_ theme: ThemeSettingsModel, seasonal: SeasonalTheme? = nil) -> some View {
         let appearance = theme.appearance.applying(seasonal, catalog: theme.catalog)
-        let scheme = appearance.forcedColorScheme ?? theme.preferredColorScheme
+        let scheme = theme.colorScheme(drawing: appearance)
         return environment(theme)
             .environment(\.themeAppearance, appearance)
             .tint(appearance.accentColor)
@@ -221,7 +227,9 @@ private struct AppScreenBackground: ViewModifier {
     /// their own fill (the iPad sidebar's material, the sheet's shade) there, which no empty or fallback form avoids.
     ///
     /// A theme (LOT-188) paints its `background` in both appearances with one dynamic colour, so a flip changes a value, not
-    /// the structure; a change between Legacy and a theme, or between Legacy's styles, rebuilds, which the user asked for.
+    /// the structure; a change between Legacy and a theme, or between Legacy's styles, rebuilds, which the user asked for. One
+    /// change is not the user's: Noël abusé (LOT-166) drawn over Legacy is a theme too, so its packing, once a year at the
+    /// first launch from 27/12, rebuilds the screens it wraps when the elves are done.
     @ViewBuilder func body(content: Content) -> some View {
         switch appearance.screenFill {
         case let .theme(light, dark):

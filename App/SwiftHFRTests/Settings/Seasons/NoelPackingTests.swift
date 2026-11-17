@@ -128,6 +128,23 @@ struct NoelPackingTests {
         #expect(model.drawnTheme == nil)
     }
 
+    /// « Allez on remballe » is spoken once per packing, whichever window plays it and however often it is replayed.
+    @Test func theSentenceIsAnnouncedOncePerPacking() {
+        let (clock, model) = packingLaunch()
+        let other = UUID()
+        model.packing.sceneChanged(other, active: true)
+        _ = model.packing.start(for: scene, screen: Self.clear, animationsAllowed: true)
+        #expect(model.packing.shouldAnnounce())
+        clock.now += 0.5
+        model.packing.sceneChanged(scene, active: false)
+        #expect(model.packing.start(for: other, screen: Self.clear, animationsAllowed: true)?.scene == other)
+        #expect(!model.packing.shouldAnnounce())
+        model.packing.finish()
+        model.packing.queue(year: 2027, theme: .noelSoft)
+        _ = model.packing.start(for: other, screen: Self.clear, animationsAllowed: true)
+        #expect(model.packing.shouldAnnounce())
+    }
+
     /// A scene that went away never plays the elves afterwards.
     @Test func aReleasedSceneNeverPlaysTheElves() {
         let (_, model) = packingLaunch()
