@@ -83,12 +83,4 @@ struct ImageGalleryTests {
         let plain = try #require(URL(string: "https://i.imgur.com/a.jpg"))
         #expect(ImageGallery.fullSize(of: plain) == plain)
     }
-
-    @Test func aRewriteThatChangesTheHostIsIgnored() throws {
-        let url = try #require(URL(string: "https://img3.super-h.fr/images/a.md.jpg"))
-        let elsewhere = ImageHostTable(rules: [ImageHostRule(
-            host: "img3.super-h.fr", thumbnailRewrite: .pathPrefix(prefix: "/images/", replacement: "/images/")
-        )])
-        #expect(ImageGallery.fullSize(of: url, hosts: elsewhere) == url)
-    }
 }

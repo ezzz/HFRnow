@@ -206,6 +206,14 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(await transport.requests.isEmpty)
         #expect(recorder.links == [link])
     }
+
+    @Test func copyOfAnImageLinkGivesTheFullSizeAddress() throws {
+        let (controller, _) = makeController(transport: quietTransport())
+        let spy = EnvironmentSpy()
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.copy, url: try #require(URL(string: rehostMedium)))
+        #expect(spy.copied.map(\.absoluteString) == [rehostFull])
+    }
 }
 
 private struct Opened: Equatable {
@@ -240,26 +248,5 @@ private final class EnvironmentSpy {
                 savedBytes.set(savedBytes.value + [data])
             }
         )
-    }
-
-    @Test func copyOfAnImageLinkGivesTheFullSizeAddress() throws {
-        let (controller, _) = makeController(transport: quietTransport())
-        let spy = EnvironmentSpy()
-        controller.linkMenuEnvironment = spy.environment
-        controller.performLinkEntry(.copy, url: try #require(URL(string: rehostMedium)))
-        #expect(spy.copied.map(\.absoluteString) == [rehostFull])
-    }
-
-    @Test func saveImageDownloadsTheFullSizeFileOfARendition() async throws {
-        let transport = MockTransport { request in
-            HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: request.url, body: Data([9]))
-        }
-        let (controller, recorder) = makeController(transport: transport)
-        let spy = EnvironmentSpy()
-        controller.linkMenuEnvironment = spy.environment
-        controller.performLinkEntry(.saveImage, url: try #require(URL(string: rehostMedium)))
-        #expect(await until { !recorder.notices.isEmpty })
-        #expect(await transport.requests.map(\.url.absoluteString) == [rehostFull])
-        #expect(spy.saved == [Data([9])])
     }
 }

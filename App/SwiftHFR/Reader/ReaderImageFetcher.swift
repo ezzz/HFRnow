@@ -74,7 +74,10 @@ struct ReaderImageFetcher: Sendable {
     func imagePreferringFullSize(
         at url: URL, allowsThirdParty: Bool, hostTable: ImageHostTable? = nil
     ) async throws(Failure) -> (data: Data, mimeType: String) {
-        let full = ImageGallery.fullSize(of: url)
+        var full = ImageGallery.fullSize(of: url)
+        // A page image carries no `Referer` (R3) and `reho.st` answers 403 without one (T30-T33): its full size could not load
+        // here, so the second request would only waste a round trip. The viewer and save pass the host table and do rewrite it.
+        if hostTable == nil, ImageHostTable.standard.rule(for: url)?.referer != nil { full = url }
         guard full != url else { return try await image(at: url, allowsThirdParty: allowsThirdParty, hostTable: hostTable) }
         if let result = try? await image(at: full, allowsThirdParty: allowsThirdParty, hostTable: hostTable) { return result }
         // A cancelled load must not start the second request.

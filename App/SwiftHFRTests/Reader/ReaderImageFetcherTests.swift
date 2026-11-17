@@ -255,4 +255,11 @@ struct ReaderImageFetcherTests {
         _ = try await fetcher.imagePreferringFullSize(at: url("https://i.imgur.com/a.png"), allowsThirdParty: true)
         #expect(await transport.requests.count == 1)
     }
+
+    @Test func aPageImageOfAHostThatNeedsARefererKeepsItsPostedAddress() async throws {
+        let transport = MockTransport { request in self.image(request.url) }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.imagePreferringFullSize(at: url("https://reho.st/thumb/ab/cd.png"), allowsThirdParty: true)
+        #expect(await transport.requests.map(\.url.absoluteString) == ["https://reho.st/thumb/ab/cd.png"])
+    }
 }

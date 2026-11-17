@@ -131,3 +131,5 @@ tests use the payload shapes legacy reads; `ImageHostTableTests.thumbnailsMapToF
 - A Swift Testing struct with a throwing `init` keeps `try` out of helpers; with typed throws, a `do/catch` whose body also calls an untyped
   throwing helper turns `error` into `any Error`, so keep helpers non-throwing.
 - Loopback tests prove "no cookie" and "redirect not followed" against a real socket; a mock only proves what the client put on the request.
+
+**Inline full size (#1035, operator 2026-11-17).** The reader's own images (`hfrreader:` handler, `ReaderImageFetcher.imagePreferringFullSize`) ask for `fullSizeURL(for:)` first and fall back to the posted address when that fetch fails, like the viewer and the long-press save and copy. Same policy C, cookie-less client and limits for both requests; the display size is unchanged. A page image sends no `Referer` (LOT-071 R3), so a host whose rule has one (`reho.st`, 403 without it, `T30`-`T33`) keeps the posted address inline. Deliberate gap with legacy, ledger row GAP-1035.
