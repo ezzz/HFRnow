@@ -21,11 +21,12 @@ struct SmileyPickerModelTests {
     private func picker(
         store: AppSmileyFavoritesStore = AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence()),
         account: String = "user1",
-        forumLoader: (@Sendable () async -> [ForumSmiley]?)? = nil
+        forumLoader: (@Sendable () async -> [ForumSmiley]?)? = nil,
+        ownLoader: (@Sendable () async -> [OwnSmiley]?)? = nil
     ) -> SmileyPickerModel {
         SmileyPickerModel(
             catalogue: [entry(":)", editor: true), entry(":hidden:", editor: false), entry(":o", editor: true)],
-            store: store, account: account, forumLoader: forumLoader
+            store: store, account: account, forumLoader: forumLoader, ownLoader: ownLoader
         )
     }
 
@@ -113,13 +114,62 @@ struct SmileyPickerModelTests {
 
     // MARK: Sections and favourites (#600)
 
-    @Test func sectionsComeInTheOperatorsOrderWithoutMySmileys() async {
+    @Test func sectionsComeInTheOperatorsOrder() async {
         let listed = [forumSmiley("[:forum]")]
         let model = picker(forumLoader: { listed })
         await model.loadForum()
-        #expect(model.sections.map(\.kind) == [.basic, .forum, .appFavorites])
-        #expect(model.sections.map(\.title) == ["Smileys de base", "Smileys du forum", "Favoris de l’app"])
+        #expect(model.sections.map(\.kind) == [.basic, .forum, .own, .appFavorites])
+        #expect(model.sections.map(\.title) == ["Smileys de base", "Smileys du forum", "Mes smileys", "Favoris de l’app"])
         #expect(model.sections[1].smileys.map(\.code) == ["[:forum]"])
+    }
+
+    // MARK: Mes smileys (#414)
+
+    private func ownSmiley(_ code: String) -> OwnSmiley {
+        OwnSmiley(code: code, imageURL: url(Self.base + "own.gif"))
+    }
+
+    @Test func theOwnSectionIsLoadingThenListsTheMembersSmileys() async {
+        let model = picker(ownLoader: { [self.ownSmiley("[:me]"), self.ownSmiley("[:me:1]")] })
+        #expect(model.sections[2].state == .loading)
+        await model.loadOwn()
+        #expect(model.sections[2].state == .smileys)
+        #expect(model.sections[2].smileys.map(\.code) == ["[:me]", "[:me:1]"])
+    }
+
+    @Test func aMemberWithoutSmileysSeesHowToCreateOneNotAFailure() async {
+        let model = picker(ownLoader: { [] })
+        await model.loadOwn()
+        #expect(model.sections[2].state == .empty(SmileyPickerModel.noOwnSmileysText))
+    }
+
+    @Test func aFailedReadIsShownAndRetriedNeverShownAsEmpty() async {
+        let calls = LoadCounter()
+        let model = picker(ownLoader: { [self] in await calls.next() == 1 ? nil : [self.ownSmiley("[:me]")] })
+        await model.loadOwn()
+        #expect(model.sections[2].state == .failed("Vos smileys sont indisponibles pour le moment."))
+        await model.retryOwn()
+        #expect(model.sections[2].smileys.map(\.code) == ["[:me]"])
+        #expect(await calls.count == 2)
+    }
+
+    @Test func withoutALoaderTheOwnSectionSaysSoAndALoadedListIsNotReadTwice() async {
+        let none = picker()
+        await none.loadOwn()
+        #expect(none.sections[2].state == .empty("Vos smileys sont indisponibles ici."))
+        let calls = LoadCounter()
+        let model = picker(ownLoader: { [self] in _ = await calls.next(); return [self.ownSmiley("[:me]")] })
+        await model.loadOwn()
+        await model.loadOwn()
+        #expect(await calls.count == 1)
+    }
+
+    @Test func aTapOnOneOfTheMembersSmileysInsertsItAtOnce() async {
+        let model = picker(ownLoader: { [self.ownSmiley("[:me]")] })
+        await model.loadOwn()
+        guard let smiley = model.sections[2].smileys.first else { return }
+        model.tap(own: smiley)
+        #expect(model.chosen?.code == "[:me]")
     }
 
     @Test func theForumSectionIsLoadingThenListsTheAccountFavourites() async {
@@ -201,4 +251,10 @@ private final class LockedAnswers: @unchecked Sendable {
         defer { lock.unlock() }
         return answers.isEmpty ? nil : answers.removeFirst()
     }
+}
+
+/// Counts the reads of a scripted loader.
+private actor LoadCounter {
+    private(set) var count = 0
+    func next() -> Int { count += 1; return count }
 }
