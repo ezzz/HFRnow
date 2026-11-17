@@ -98,14 +98,7 @@ struct SettingsView: View {
                 }
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle("Retours haptiques", isOn: $general.hapticsEnabled)
-                Toggle(isOn: $general.opensLinksInDefaultBrowser) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Navigateur par défaut")
-                        Text("Désactivé : navigateur intégré")
-                            .scaledFont(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                DefaultBrowserRow(general: general)
                 NavigationLink { SettingsDestinationView(destination: .icon, store: store) } label: {
                     Text(SettingsDestination.icon.title)
                 }
