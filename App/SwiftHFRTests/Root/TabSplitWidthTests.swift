@@ -37,26 +37,40 @@ struct TabSplitWidthTests {
 
         func makeUIView(context: Context) -> DetailMarker {
             let view = DetailMarker()
-            found.marker = view
+            found.add(view)
             return view
         }
 
         func updateUIView(_ uiView: DetailMarker, context: Context) {}
     }
 
-    /// The marker, once SwiftUI has made it.
+    /// Every marker SwiftUI made, held weakly: a detail made again must not hide an earlier one still drawn.
+    @MainActor
     private final class Found {
-        weak var marker: DetailMarker?
+        private final class Weak {
+            weak var marker: DetailMarker?
 
-        /// Whether the detail column is drawn in `window` now: its view is in that window, not hidden, and inside its bounds.
+            init(_ marker: DetailMarker) { self.marker = marker }
+        }
+
+        private var markers: [Weak] = []
+
+        func add(_ marker: DetailMarker) {
+            markers.append(Weak(marker))
+        }
+
+        /// Whether the detail column is drawn in `window` now: one of its markers is in that window, with no hidden or
+        /// transparent ancestor, and overlaps the window's bounds.
         func detailOnScreen(in window: UIWindow) -> Bool {
-            guard let marker, marker.window === window else { return false }
-            var view: UIView? = marker
-            while let current = view {
-                if current.isHidden || current.alpha == 0 { return false }
-                view = current.superview
+            markers.contains { entry in
+                guard let marker = entry.marker, marker.window === window else { return false }
+                var view: UIView? = marker
+                while let current = view {
+                    if current.isHidden || current.alpha == 0 { return false }
+                    view = current.superview
+                }
+                return marker.convert(marker.bounds, to: nil).intersects(window.bounds)
             }
-            return marker.convert(marker.bounds, to: nil).intersects(window.bounds)
         }
     }
 
