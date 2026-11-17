@@ -138,7 +138,13 @@ final class RootModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
             renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
-            privateMessageCount: count
+            privateMessageCount: count,
+            // What the list shows is not notified by the next background check (LOT-140).
+            ledgerSeen: environment.currentAccountName.map { account in
+                { @Sendable (summary: NotificationSummary) async in
+                    await MPNotificationLedger.recordSeen(summary, account: account)
+                }
+            }
         )
     }
 
@@ -146,7 +152,14 @@ final class RootModel {
     convenience init(environment: AppEnvironment, store: any SettingsStore, initial: SidebarDestination? = nil) {
         // Every list the tabs load goes through this source, so the badge takes HFR's count from whichever page came last.
         let count = PrivateMessageCount()
-        let dataSource = PrivateMessageCountingSource(base: environment.dataSource, count: count)
+        let dataSource = PrivateMessageCountingSource(
+            base: environment.dataSource, count: count,
+            countSeen: environment.currentAccountName.map { account in
+                { @Sendable (seen: Int) async in
+                    await MPNotificationLedger.recordSeen(NotificationSummary(unreadPrivateMessages: seen), account: account)
+                }
+            }
+        )
         let forums = ForumListModel(
             dataSource: dataSource, visibility: environment.visibility, accountName: environment.accountName
         )
@@ -198,8 +211,8 @@ final class RootModel {
         selectedDestination = .tab(.categories)
     }
 
-    /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The legacy app-icon
-    /// badge (`MainWindow.swift:1509-1512`) is out of scope.
+    /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge
+    /// follows `appIconBadge` (LOT-140).
     func reloadSettings() {
         let badge = store.value(for: SettingKey.privateMessageBadge)
         let minimize = store.value(for: SettingKey.tabBarMinimizesOnScroll)

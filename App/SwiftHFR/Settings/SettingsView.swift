@@ -121,6 +121,7 @@ struct SettingsView: View {
                     ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
+            MPNotificationSettingsSection(store: store)
             MPStorageSettingsSection(model: mpStorage)
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
