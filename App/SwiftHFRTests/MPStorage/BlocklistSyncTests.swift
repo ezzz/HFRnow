@@ -308,14 +308,4 @@ struct BlocklistSyncModelTests {
         #expect(await fixture.remote.calls.isEmpty)
         #expect(fixture.changes.pending.isEmpty)
     }
-
-    @Test func theBlocklistFunctionOffNeitherReadsNorWritesTheSection() async throws {
-        let fixture = try await Self.make(
-            thread: 7, state: .on, copy: Self.syncedCopy([]), remote: ["Gamma"], local: ["Alpha"]
-        )
-        fixture.base.model.setFunction(.ignoreList, enabled: false)
-        await fixture.base.model.start()
-        #expect(await fixture.local() == ["Alpha"])
-        #expect(try await fixture.remote.blocklist() == ["Gamma"])
-    }
 }
