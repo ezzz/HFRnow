@@ -12,12 +12,11 @@ struct ExperimentalSettingsTests {
         #expect(Set(keys).isSubset(of: Set(SettingKey.allKeys)))
     }
 
-    /// Off by default, except the modern composer until #855 delivers the legacy one (the app always has a composer).
-    @Test func everyOptionIsOffByDefaultButTheModernComposer() {
+    /// Every option is off by default; the modern composer too since #855 (operator, 2026-11-14: legacy's composer is the default).
+    @Test func everyOptionIsOffByDefault() {
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
-        #expect(settings.isOn(.modernComposer))
-        for feature in ExperimentalFeature.allCases where feature != .modernComposer { #expect(!settings.isOn(feature), "\(feature)") }
-        #expect(ExperimentalSettings.isOn(.modernComposer, in: nil))
+        for feature in ExperimentalFeature.allCases { #expect(!settings.isOn(feature), "\(feature)") }
+        #expect(!ExperimentalSettings.isOn(.modernComposer, in: nil))
         #expect(!ExperimentalSettings.isOn(.flagIconRows, in: nil))
     }
 
@@ -30,10 +29,10 @@ struct ExperimentalSettingsTests {
     @Test func aSwitchIsWrittenToItsKeyAndReadBack() {
         let store = InMemorySettingsStore()
         let settings = ExperimentalSettings(store: store)
-        settings.set(.modernComposer, isOn: false)
-        #expect(!settings.isOn(.modernComposer))
-        #expect(store.rawValue(forKey: "experimental.modernComposer") == .bool(false))
-        #expect(!ExperimentalSettings(store: store).isOn(.modernComposer))
+        settings.set(.modernComposer, isOn: true)
+        #expect(settings.isOn(.modernComposer))
+        #expect(store.rawValue(forKey: "experimental.modernComposer") == .bool(true))
+        #expect(ExperimentalSettings(store: store).isOn(.modernComposer))
     }
 
     /// An option whose path is not built yet is not listed, cannot be switched, and reads its default whatever the store holds.

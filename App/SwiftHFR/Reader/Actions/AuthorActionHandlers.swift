@@ -172,7 +172,8 @@ struct ReaderAuthorMenuSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         // EXPERIMENTAL(modernComposer, #904): replaces the composer sheet by `ReaderComposerPresenter`, which docks it on the
-        // keyboard with the option on (#853) and shows the same sheet with it off.
+        // keyboard with the option on (#853) and, with it off, shows legacy's full-screen cover on an iPhone (#855), a sheet
+        // on an iPad.
         content.modifier(ReaderComposerPresenter(composer: $flow.newMessage) { _, reason in
             guard let text = PrivateMessageFeedback.text(for: reason) else { return }
             model.showMenuFeedback(text) // the toast announces itself

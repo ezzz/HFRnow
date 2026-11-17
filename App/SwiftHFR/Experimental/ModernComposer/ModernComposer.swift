@@ -1,7 +1,7 @@
 /// The modern composer (#904, behind Réglages › Expérimental › « Composer moderne », #903): on an iPhone, the compact card
 /// docked on the keyboard that grows with its text (#653, `ComposerHeight`, `ComposerCardLayout`), the controls inside the card
-/// and small floating buttons (#888, `ComposerChrome`). Off, the composer shows at full height with legacy's bar and row, as
-/// on an iPad; #855 builds the legacy full-screen cover on that side and flips the switch's default.
+/// and small floating buttons (#888, `ComposerChrome`). Off (the default since #855), the composer shows at full height with
+/// legacy's bar and row, as on an iPad, and the reader's composers are legacy's full-screen cover (`ComposerPlacement.cover`).
 ///
 /// This folder holds the option's own code; `ReplyComposerView` picks it at its marker comment for this option.
 enum ModernComposer {
