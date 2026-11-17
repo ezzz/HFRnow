@@ -27,26 +27,24 @@ None beyond the intentional differences below: same UX as legacy at `2fe43da3`.
 On top of the merged LOT-120, in Réglages > Maintenance, above "Ouvrir les réglages système":
 
 - **"Caches de l’app"**: allocated size of every non-hidden regular file under `Library/Caches`, recursively, so the whole folder as legacy (`HTMLPageCacheManager.swift:40-46`), not only LOT-066's areas (WebKit and URL caches count too).
-- **"Pages HTML"**: allocated size of the non-hidden regular `topic-*.htm` files (extension case-insensitive) directly in LOT-066's `pages` area (`Caches/cache/pages`, the folder `CacheEvictionPolicy.topicPages` purges), with "N fichiers" below ("fichier" for 0 and 1).
+- **"Pages HTML"**: allocated size and count of the pages saved for offline reading (LOT-068): the regular `<n>.json` files directly inside each topic folder of the `offline` area (`Caches/cache/offline/<category>-<topic>/<page>.json`, as `OfflineTopicStore` reads them), with "N fichiers" below ("fichier" for 0 and 1). Operator decision of 2026-11-17: LOT-066's `pages` area is written by nothing, so it is not the source; the row stays.
 - A spinner replaces the rows until the first measure ends; the measure runs off the main actor, once per appearance of the Réglages screen (`SettingsView`'s `.task`, as legacy `AppSettingsView.swift:606-607`; never a `.task` on the `Section`, which a `List` applies per row). Overlapping measures: the last one started wins.
 - Sizes use `.byteCount(style: .file)`.
-- The footer is derived from `CacheEvictionPolicy.topicPages`: "Les pages HTML de plus d’un jour sont supprimées automatiquement. Leur cache est limité à 20 Mo." (a megabyte is 1 000 000 bytes, as legacy).
+- The footer is derived from `CacheEvictionPolicy.offlineTopics` (saved pages are kept whatever their age, 200 MB bound; a megabyte is 1 000 000 bytes, as legacy): "Les pages HTML enregistrées sont conservées quel que soit leur âge. Leur cache est limité à 200 Mo."
 
 ## Edge cases
 - Missing or unreadable folder: counts as empty (0, "0 fichier"), never an error row.
 - Hidden files and folders (leading dot) are skipped in both figures.
-- Symbolic links are not followed or counted, in either figure; a `pages` area that is a link or leaves the cache (`CacheDirectory.safeURL`) reads as empty.
-- Directories named like pages (`topic-x.htm/`), other prefixes or extensions (`.html`), and files in sub-folders of `pages` are not pages.
+- Symbolic links are not followed or counted, in either figure (a linked page file or topic folder is not a page); an `offline` area that is a link or leaves the cache (`CacheDirectory.safeURL`) reads as empty.
+- Stray files (`notes.txt`, `stray.json` in the area itself), other extensions, hidden entries, directories named `<n>.json`, and files deeper than a topic folder are not pages. The old `topic-*.htm` files, in `cache/pages` or directly in `cache`, are in the total only.
 - Size is the allocated size (`totalFileAllocatedSize`, then `fileAllocatedSize`, then `fileSize`), so a small page shows a whole block, as legacy.
 
 ## Fixtures
 None: no HFR request.
 
 ## Intentional differences from legacy
-- The footer states SwiftHFR's own rule for topic pages: LOT-066's topic-page preset is one day and 20 MB (`topicPages`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:23-24`), tighter than legacy's 7 days and 50 MB (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`; LOT-066 spec, "Legacy at `2fe43da3`"). Its changelog row is in the `### Ledger` section of #690, the PR that moved this lot to M4.
-
-- "Pages HTML" reads `Caches/cache/pages` (LOT-066's area), where legacy read `topic-*.htm` directly under `Caches/cache`; legacy-era files there are in the total only.
-- **Open question for the operator:** nothing in the app writes to LOT-066's `pages` area today (`TemporaryFileCache` has no caller; the reader renders through the `hfrreader:` scheme), so "Pages HTML" shows 0 and the footer describes the purge of an empty folder. It is kept for parity and for when the area is used; drop the row, or measure another area (the `offline` area, 200 MB, #822/#846), on the operator's call.
+- The footer states SwiftHFR's own rule for the pages the row counts: saved pages are kept whatever their age and bounded to 200 MB (`offlineTopics`, `Packages/HFRKit/Sources/HFRStorage/Caches/CacheEvictionPolicy.swift:26-28`, LOT-068), where legacy's footer said 7 days and 50 MB for its `topic-*.htm` files (`HTMLPageCacheManager.swift:21-22` @ `2fe43da3`). Its changelog row is in the `### Ledger` section of #690, the PR that moved this lot to M4.
+- "Pages HTML" counts the saved offline pages (`Caches/cache/offline`, one `<n>.json` per page, LOT-068), where legacy read `topic-*.htm` directly under `Caches/cache`: SwiftHFR no longer writes those (LOT-066's `pages` area has no writer), and legacy-era files stay in the total only (operator, 2026-11-17).
 - "fichier" is singular for 0 and 1 (legacy wrote "1 fichiers").
 
 ## Learnings

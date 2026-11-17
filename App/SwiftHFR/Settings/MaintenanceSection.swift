@@ -2,8 +2,8 @@ import Observation
 import SwiftUI
 
 // Port of HFRswift/Swift/AppSettingsView.swift (maintenanceSection, refreshCacheStorage, openSystemSettings) @ 87fe0d1c.
-// Differences: the footer states SwiftHFR's own purge rule (1 jour, 20 Mo, LOT-066); "fichier" is singular below two;
-// cache clearing is LOT-187 (GAP-152, LOT-120 and LOT-179 specs).
+// Differences: "Pages HTML" counts the saved offline pages and the footer states their rule (200 Mo, LOT-068);
+// "fichier" is singular below two; cache clearing is LOT-187 (GAP-152, LOT-120 and LOT-179 specs).
 /// Logic of Réglages > Maintenance: the shortcut to the system settings of the app (LOT-120) and the cache sizes (LOT-179).
 @Observable @MainActor
 final class MaintenanceModel {
