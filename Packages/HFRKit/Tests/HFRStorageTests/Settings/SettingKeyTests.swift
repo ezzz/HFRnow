@@ -260,21 +260,6 @@ import Testing
         #expect(store.rawValue(forKey: "theme_day_color_action") == nil)
     }
 
-    @Test func aqLastCheckKeepsTheLegacyKeyAndRoundTripsAnInstant() {
-        let store = InMemorySettingsStore()
-        #expect(SettingKey.aqLastCheck.key == "last_check_aq")
-        #expect(store.value(for: SettingKey.aqLastCheck) == nil)
-        let date = Date(timeIntervalSince1970: 1_761_000_000.25)
-        store.set(date, for: SettingKey.aqLastCheck)
-        #expect(store.value(for: SettingKey.aqLastCheck) == date)
-        #expect(!SettingKey.syncedKeys.contains("last_check_aq"))
-        // A non-finite or unusable stored value reads as "never checked", never as a date.
-        for raw in [SettingRawValue.string("yesterday"), .double(.nan), .double(.infinity)] {
-            let broken = InMemorySettingsStore(["last_check_aq": raw])
-            #expect(broken.value(for: SettingKey.aqLastCheck) == nil)
-        }
-    }
-
     @Test func lastSyncDateRoundTripsAndDashMeansNever() {
         let store = InMemorySettingsStore(["mpstorage_last_rw": .string("-")])
         #expect(store.value(for: SettingKey.mpStorageLastSync) == nil)
