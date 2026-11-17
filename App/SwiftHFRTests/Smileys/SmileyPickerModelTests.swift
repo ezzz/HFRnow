@@ -130,6 +130,11 @@ struct SmileyPickerModelTests {
         OwnSmiley(code: code, imageURL: url(Self.base + "own.gif"))
     }
 
+    /// The app favourites section, whatever its place among the others.
+    private func appFavorites(of model: SmileyPickerModel) -> PickerSection {
+        model.sections.first { $0.kind == .appFavorites } ?? PickerSection(kind: .appFavorites, smileys: [], state: .loading)
+    }
+
     private func ownSmileys(_ codes: String...) -> [OwnSmiley] { codes.map(ownSmiley) }
 
     @Test func theOwnSectionIsLoadingThenListsTheMembersSmileys() async {
@@ -212,7 +217,7 @@ struct SmileyPickerModelTests {
     }
 
     @Test func theEmptyAppFavouritesExplainHowToAddOne() {
-        let section = picker().sections[2]
+        let section = appFavorites(of: picker())
         #expect(section.state == .empty(SmileyPickerModel.noFavoritesText))
         #expect(SmileyPickerModel.noFavoritesText.contains("Ajouter aux favoris"))
     }
@@ -222,10 +227,10 @@ struct SmileyPickerModelTests {
         let basic = model.basic[0]
         await model.toggleFavorite(basic)
         #expect(model.isFavorite(basic))
-        #expect(model.sections[2].smileys == [basic])
+        #expect(appFavorites(of: model).smileys == [basic])
         await model.toggleFavorite(basic)
         #expect(!model.isFavorite(basic))
-        #expect(model.sections[2].state == .empty(SmileyPickerModel.noFavoritesText))
+        #expect(appFavorites(of: model).state == .empty(SmileyPickerModel.noFavoritesText))
     }
 
     @Test func tappingAForumFavouriteOpensItsDetail() async {
