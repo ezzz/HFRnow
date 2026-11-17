@@ -14,7 +14,7 @@ import UIKit
 @MainActor
 @Observable
 final class SeasonalThemeModel {
-    /// What an activation did, for the animations of later PRs (sleigh, elves) and for tests.
+    /// What an activation did, for the animations (sleigh, elves) and for tests.
     enum Event: Equatable {
         /// First launch of the window: `switchedOn` when Noël soft was turned on; `sleigh` when the sleigh may cross.
         case arrival(year: Int, switchedOn: Bool, sleigh: Bool)
@@ -62,11 +62,15 @@ final class SeasonalThemeModel {
 
     /// Animations may play: the setting is on and Reduce Motion is off (THEMES.md §4 rules 1–2).
     var animationsAllowed: Bool { animationsEnabled && !reduceMotion() }
-    /// Snow falls: Noël soft is on and animations are allowed (static snow stays otherwise).
-    var snowFalls: Bool { activeTheme == .noelSoft && animationsAllowed }
+    /// The seasonal theme drawn: the active one, or the one the elves are still packing (PR 3), already restored in the store.
+    var drawnTheme: SeasonalTheme? { activeTheme ?? packing.current?.theme }
+    /// Snow falls: Noël soft is drawn and animations are allowed (static snow stays otherwise).
+    var snowFalls: Bool { drawnTheme == .noelSoft && animationsAllowed }
 
     /// The arrival sleigh and the objects crossing Noël soft (PR 2).
     @ObservationIgnored let crossings: NoelCrossingModel
+    /// The elves of the packing (PR 3).
+    @ObservationIgnored let packing: NoelPackingModel
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let timeZone: @MainActor () -> TimeZone
@@ -80,9 +84,11 @@ final class SeasonalThemeModel {
         now: @escaping @MainActor () -> Date = { Date() },
         timeZone: @escaping @MainActor () -> TimeZone = { .autoupdatingCurrent },
         reduceMotion: @escaping @MainActor () -> Bool = { UIAccessibility.isReduceMotionEnabled },
-        crossings: NoelCrossingModel? = nil
+        crossings: NoelCrossingModel? = nil,
+        packing: NoelPackingModel? = nil
     ) {
         self.crossings = crossings ?? NoelCrossingModel(now: now, random: SystemSeasonalRandom())
+        self.packing = packing ?? NoelPackingModel(now: now)
         self.store = store
         self.now = now
         self.timeZone = timeZone
@@ -105,6 +111,8 @@ final class SeasonalThemeModel {
             events.append(.restoredSilently(year: active))
         }
         let phase = NoelCalendar.phase(of: date, in: calendar)
+        // Elves still waiting for a clear screen when the packing days are over: the theme they would take down goes now.
+        if phase != .packing, !packing.isPlaying { packing.finish() }
         // An arrival nobody answered before its window closed is dropped.
         if !phase.isSelectable { store.reset(SettingKey.noelArrivalPending(year: year)) }
         switch phase {
@@ -113,6 +121,8 @@ final class SeasonalThemeModel {
         case .packing where isOn(year: year):
             let first = !store.value(for: SettingKey.noelPackingShown(year: year))
             store.set(true, for: SettingKey.noelPackingShown(year: year))
+            // The store is restored now; the theme stays drawn until the elves have taken it down.
+            if first, animationsAllowed { packing.queue(year: year, theme: activeTheme ?? .noelSoft) }
             restore(year: year)
             events.append(first ? .packed(year: year, animated: animationsAllowed) : .restoredSilently(year: year))
         case .outside where isOn(year: year):
