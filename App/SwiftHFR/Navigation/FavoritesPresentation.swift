@@ -8,6 +8,8 @@ struct FavoritesLayoutOptions: Equatable, Sendable {
     var showsCollapsedSections: Bool
     /// Categories without any topic stay listed.
     var showsEmptySections: Bool
+    /// « Non lus »: only the rows the list shows with unread pages (#1058, new in SwiftHFR); « Tous » (false) is the legacy view.
+    var unreadOnly = false
 }
 
 // Port of HFRswift/Swift/Favorites.swift (FavoritesListView display rules, FavoritesTopicListOrdering) @ 2440d79.
@@ -25,17 +27,19 @@ enum FavoritesPresentation {
     static func groups(
         of page: FavoritesPage, options: FavoritesLayoutOptions, collapsed: Set<String>, superFavorites: Set<TopicID>
     ) -> [TopicGroup] {
+        // « Non lus » (#1058) keeps the rows that carry the unread-pages badge; a section it empties follows the empty-sections rule.
+        func shown(_ topics: [TopicSummary]) -> [TopicSummary] { options.unreadOnly ? topics.filter(isUnread) : topics }
         guard options.groupedByCategory else {
-            let topics = page.topicsByLastPost
+            let topics = shown(page.topicsByLastPost)
             return topics.isEmpty ? [] : [TopicGroup(id: "topics", title: nil, topics: topics)]
         }
         var result: [TopicGroup] = []
-        let supers = page.sections.flatMap(\.topics).filter { isSuper($0, in: superFavorites) }
+        let supers = shown(page.sections.flatMap(\.topics).filter { isSuper($0, in: superFavorites) })
         if !supers.isEmpty {
             result.append(TopicGroup(id: superFavoritesSectionID, title: "Super favoris", topics: supers))
         }
         for section in page.sections {
-            let topics = section.topics.filter { !isSuper($0, in: superFavorites) }
+            let topics = shown(section.topics.filter { !isSuper($0, in: superFavorites) })
             let isCollapsed = collapsed.contains(section.id) && !topics.isEmpty
             if collapsed.contains(section.id), !options.showsCollapsedSections { continue }
             guard !topics.isEmpty || options.showsEmptySections else { continue }
@@ -50,6 +54,13 @@ enum FavoritesPresentation {
     /// Sections the user can fold: those holding a topic once super-favourites are taken out (legacy `collapsibleSectionIDs`).
     static func collapsibleSectionIDs(of page: FavoritesPage, superFavorites: Set<TopicID>) -> Set<String> {
         Set(page.sections.filter { $0.topics.contains { !isSuper($0, in: superFavorites) } }.map(\.id))
+    }
+
+    /// Whether a favourites row shows as unread: its flag is pages behind the end of the topic, which is the badge the row draws
+    /// (`TopicRowCues.unreadPages`, legacy `unreadCount` = `maxTopicPage - curTopicPage`, `Favorites.swift:1096-1100` @ 87fe0d1c, badge
+    /// only above 0, `:1130-1131`). Favourites rows carry no `sujetCase1` marker (`readState` is `.unknown`), so that is the state to use.
+    static func isUnread(_ topic: TopicSummary) -> Bool {
+        TopicRowCues.unreadPages(topic) != nil
     }
 
     /// Whether `topic` is a super-favourite; a row without a topic identity never is.

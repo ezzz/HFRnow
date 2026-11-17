@@ -83,6 +83,8 @@ struct TopicListView: View {
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
             ToolbarItemGroup(placement: .topBarTrailing) {
+                // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
+                if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
                 if let composer, let target = model.newTopicTarget {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
                         Label("Nouveau sujet", systemImage: "plus")
@@ -272,12 +274,31 @@ struct TopicListView: View {
             if content.isEmpty, let reason = content.emptyReason {
                 EmptyListView(reason: reason, refresh: model.refresh)
             } else if model.allSectionsHidden, let favorites = model.favorites {
-                AllSectionsCollapsedView(options: favorites)
+                if favorites.unreadOnly {
+                    NoUnreadTopicsView(options: favorites)
+                } else {
+                    AllSectionsCollapsedView(options: favorites)
+                }
             }
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
             ProgressView("Chargement des sujets")
+        }
+    }
+}
+
+/// « Non lus » is on and no favourite has unread pages (#1058): say so, and offer « Tous ».
+private struct NoUnreadTopicsView: View {
+    let options: FavoritesOptionsModel
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Aucun sujet non lu", systemImage: "checkmark.circle")
+        } description: {
+            Text("Tous vos sujets sont lus.")
+        } actions: {
+            Button("Afficher tous les sujets") { options.unreadOnly = false }
         }
     }
 }

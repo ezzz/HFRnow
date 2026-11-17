@@ -19,7 +19,7 @@ import Testing
         "text_size_percent": .device, "haptics": .device, "landscape_mode": .device, "icon": .device,
         "theme_dark_style": .device, "theme_id": .device, "mp_badge_enabled": .device, "display_images": .device,
         "recherche_categorie": .device,
-        "FavoritesShowCollapsedSections": .device, "HFRswiftGlobalTopicListFlag": .device,
+        "FavoritesShowCollapsedSections": .device, "favorites_unread_only": .device, "HFRswiftGlobalTopicListFlag": .device,
         // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `embedded_videos` was removed from
         // legacy by `d645f52`, `mpstorage_active` becomes the per-account record of §7, `mpstorage_last_rw` is this
         // device's last sync.

@@ -63,6 +63,11 @@ final class FavoritesOptionsModel {
         }
     }
 
+    /// « Non lus » instead of « Tous » (`favorites_unread_only`, new in SwiftHFR, #1058; device-only, default « Tous »).
+    var unreadOnly: Bool {
+        didSet { if unreadOnly != oldValue { settings.set(unreadOnly, for: SettingKey.favoritesUnreadOnly) } }
+    }
+
     /// Folded sections (device-wide).
     private(set) var collapsedSections: Set<String> = []
     /// Super-favourites of the current account.
@@ -88,6 +93,7 @@ final class FavoritesOptionsModel {
         groupedByCategory = settings.value(for: SettingKey.favoritesGroupedByCategory)
         autoRefresh = settings.value(for: SettingKey.favoritesAutoRefresh)
         showsCollapsedSections = settings.value(for: SettingKey.favoritesShowsCollapsedSections)
+        unreadOnly = settings.value(for: SettingKey.favoritesUnreadOnly)
     }
 
     /// Whether the account can mark super-favourites (logged in, stores available).
@@ -100,7 +106,8 @@ final class FavoritesOptionsModel {
     /// The layout the settings ask for.
     var layout: FavoritesLayoutOptions {
         FavoritesLayoutOptions(
-            groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections, showsEmptySections: showsEmptySections
+            groupedByCategory: groupedByCategory, showsCollapsedSections: showsCollapsedSections, showsEmptySections: showsEmptySections,
+            unreadOnly: unreadOnly
         )
     }
 
@@ -126,6 +133,7 @@ final class FavoritesOptionsModel {
         groupedByCategory = settings.value(for: SettingKey.favoritesGroupedByCategory)
         autoRefresh = settings.value(for: SettingKey.favoritesAutoRefresh)
         showsCollapsedSections = settings.value(for: SettingKey.favoritesShowsCollapsedSections)
+        unreadOnly = settings.value(for: SettingKey.favoritesUnreadOnly)
     }
 
     /// Reads the folded sections and the super-favourites again; the list calls it each time it shows (legacy `onAppear`).
