@@ -157,7 +157,7 @@ struct SettingsView: View {
             SecuritySettingsSections()
             MaintenanceSection(model: maintenance)
             Section("À propos") {
-                LabeledContent("Version", value: AppVersion.current.display)
+                VersionRow()
             }
             if let experimental { ExperimentalSettingsSection(settings: experimental) }
         }
