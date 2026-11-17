@@ -62,9 +62,15 @@ struct FavorisScrollHostedTests {
         return false
     }
 
-    /// The app's Favoris tab under a tab bar that minimises on scroll, in a shown window; the other tabs and the root's environment
-    /// are left out. Returns the window (hide it when done), its hosting controller and the list once it shows rows.
-    private func hostFavoris(_ navigation: NavigationModel) async throws -> (UIWindow, UIViewController, UICollectionView) {
+    /// A shown window (hide it when done), its hosting controller and the list once it shows rows.
+    private struct Hosted {
+        let window: UIWindow
+        let host: UIViewController
+        let list: UICollectionView
+    }
+
+    /// The app's Favoris tab under a tab bar that minimises on scroll; the other tabs and the root's environment are left out.
+    private func hostFavoris(_ navigation: NavigationModel) async throws -> Hosted {
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
@@ -85,7 +91,7 @@ struct FavorisScrollHostedTests {
             if let found, found.visibleCells.count > 5 { break }
         }
         try? await Task.sleep(for: .milliseconds(300))
-        return (window, host, try #require(found))
+        return Hosted(window: window, host: host, list: try #require(found))
     }
 
     /// The rows on screen: section 0 is the large title. Rows built ahead of the screen are built again when they enter it.
@@ -108,8 +114,9 @@ struct FavorisScrollHostedTests {
     func scrollLeavesTheListAlone() async throws {
         let navigation = await favorites()
         let key = ObjectIdentifier(navigation.topicList(for: .favorites))
-        let (window, host, list) = try await hostFavoris(navigation)
-        defer { window.isHidden = true }
+        let hosted = try await hostFavoris(navigation)
+        defer { hosted.window.isHidden = true }
+        let list = hosted.list
         let baseline = TopicListView.renders[key] ?? [:]
         let visibility = try #require(TopicListView.titleVisibilities[key])
         let landedRows = Self.rowsOnScreen(list, groups: navigation.topicList(for: .favorites).displayedGroups)
@@ -130,7 +137,7 @@ struct FavorisScrollHostedTests {
         // The stand-in for the bars moving: nothing in the list is built.
         let beforeBars = TopicListView.renders[key] ?? [:]
         for step in [8, 16, 24, 32, 24, 16, 8, 0] {
-            host.additionalSafeAreaInsets = UIEdgeInsets(top: CGFloat(step) / 2, left: 0, bottom: CGFloat(step), right: 0)
+            hosted.host.additionalSafeAreaInsets = UIEdgeInsets(top: CGFloat(step) / 2, left: 0, bottom: CGFloat(step), right: 0)
             await Self.settle()
         }
         #expect(Self.builds(of: key, since: beforeBars).isEmpty, "builds: \(Self.builds(of: key, since: beforeBars))")
