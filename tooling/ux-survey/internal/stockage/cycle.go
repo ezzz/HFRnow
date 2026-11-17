@@ -2,10 +2,13 @@ package stockage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/reponse"
@@ -24,6 +27,10 @@ var (
 func (b *Base) Fermeture(ctx context.Context, fermeture, maintenant time.Time) error {
 	if maintenant.Before(fermeture) {
 		return ErrAvantFermeture
+	}
+	// L'indicateur d'abord : une fermeture interrompue reste une fermeture, et rien ne la rouvre (F1).
+	if err := b.noterFermetureFaite(ctx, fermeture); err != nil {
+		return err
 	}
 	if err := os.Remove(filepath.Join(b.dossier, FichierCleIP)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -78,6 +85,9 @@ func (b *Base) Effacement(ctx context.Context, fermeture, maintenant time.Time, 
 	if maintenant.Before(fermeture) {
 		return ErrAvantFermeture
 	}
+	if err := b.noterFermetureFaite(ctx, fermeture); err != nil {
+		return err
+	}
 	chemin := filepath.Join(b.dossier, FichierAgregats)
 	if _, err := os.Stat(chemin); errors.Is(err, os.ErrNotExist) {
 		lignes, err := b.Reponses(ctx)
@@ -102,7 +112,43 @@ func (b *Base) Effacement(ctx context.Context, fermeture, maintenant time.Time, 
 	if err := os.Remove(filepath.Join(b.dossier, FichierCleIP)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	// Exports et sauvegardes contiennent des pseudos et des textes libres : ils ne survivent pas à l'effacement (M2).
+	if err := b.supprimerCopies(); err != nil {
+		return err
+	}
 	return b.compacter(ctx)
+}
+
+// Dossiers d'exports et de sauvegardes dans le dossier de données, et préfixe des exports qui survivent.
+const (
+	DossierExports       = "exports"
+	DossierSauvegardes   = "sauvegardes"
+	prefixeAgregatsGarde = "agregats-"
+)
+
+// supprimerCopies supprime sauvegardes/ et tout ce qui est dans exports/ sauf les fichiers agregats-* (le seul
+// jeu gardé après l'effacement). Sans effet si les dossiers n'existent pas ; idempotent.
+func (b *Base) supprimerCopies() error {
+	if err := os.RemoveAll(filepath.Join(b.dossier, DossierSauvegardes)); err != nil {
+		return err
+	}
+	exports := filepath.Join(b.dossier, DossierExports)
+	entrees, err := os.ReadDir(exports)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, e := range entrees {
+		if !e.IsDir() && strings.HasPrefix(e.Name(), prefixeAgregatsGarde) {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(exports, e.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // EcrireAtomique écrit un fichier de données : .tmp, fsync, renommage, fsync du dossier.
@@ -145,5 +191,30 @@ func (b *Base) Sauvegarder(ctx context.Context, fichier string) error {
 	if _, err := b.db.ExecContext(ctx, `VACUUM INTO ?`, fichier); err != nil {
 		return err
 	}
+	if err := viderAntiAbusDansCopie(ctx, fichier); err != nil {
+		os.Remove(fichier) // pas de copie à moitié nettoyée
+		return err
+	}
 	return os.Chmod(fichier, 0o600)
+}
+
+// viderAntiAbusDansCopie retire de la copie les jetons et les empreintes d'IP (R4, M3), puis compacte pour que
+// leurs pages ne restent pas dans le fichier.
+func viderAntiAbusDansCopie(ctx context.Context, fichier string) error {
+	chemin, err := filepath.Abs(fichier)
+	if err != nil {
+		return err
+	}
+	db, err := sql.Open("sqlite", (&url.URL{Scheme: "file", Path: chemin}).String())
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+	for _, q := range []string{`DELETE FROM empreintes_ip`, `DELETE FROM jetons`, `VACUUM`} {
+		if _, err := db.ExecContext(ctx, q); err != nil {
+			return err
+		}
+	}
+	return nil
 }

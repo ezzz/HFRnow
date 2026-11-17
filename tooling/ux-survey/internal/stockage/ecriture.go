@@ -275,15 +275,44 @@ func (b *Base) Limiter(ctx context.Context, id string, limitee bool) error {
 // ErrFermetureRepoussee signale une UX_FERMETURE plus tardive que celle déjà annoncée (R5).
 var ErrFermetureRepoussee = errors.New("UX_FERMETURE ne peut pas être repoussée après la première réponse reçue : la date déjà annoncée reste la limite")
 
+// ErrReouverture signale une UX_FERMETURE postérieure à la fermeture déjà exécutée : un questionnaire fermé ne rouvre pas (F1).
+var ErrReouverture = errors.New("la fermeture a déjà été exécutée : UX_FERMETURE ne peut plus être repoussée, quel que soit son décalage horaire")
+
+const cleFermetureFaite = "fermeture_faite"
+
 // JourFermeture est la forme mémorisée de la date de fermeture : le jour (AAAA-MM-JJ) dans le décalage de
 // UX_FERMETURE. R5 compare des jours : l'heure et les fractions de seconde ne comptent pas.
 func JourFermeture(fermeture time.Time) string { return fermeture.Format(time.DateOnly) }
 
+// noterFermetureFaite mémorise l'instant (UTC) de la fermeture exécutée ; il ne change plus ensuite.
+func (b *Base) noterFermetureFaite(ctx context.Context, fermeture time.Time) error {
+	_, err := b.db.ExecContext(ctx, `INSERT INTO meta (cle, valeur) VALUES (?, ?) ON CONFLICT DO NOTHING`,
+		cleFermetureFaite, fermeture.UTC().Format(time.RFC3339))
+	return err
+}
+
 // VerifierFermeture applique R5 : une fois une réponse reçue, la date de fermeture peut être avancée, jamais
 // repoussée. Un jour plus tardif que celui mémorisé est refusé ; un jour plus proche le remplace.
+// Une fois la fermeture exécutée, la comparaison se fait sur l'instant en UTC et plus sur le jour : une valeur
+// plus tardive que la fermeture exécutée est refusée, même avec un décalage horaire qui garde le même jour (F1).
 func (b *Base) VerifierFermeture(ctx context.Context, fermeture time.Time) error {
+	var fait string
+	err := b.db.QueryRowContext(ctx, `SELECT valeur FROM meta WHERE cle = ?`, cleFermetureFaite).Scan(&fait)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	if err == nil {
+		t, perr := time.Parse(time.RFC3339, fait)
+		if perr != nil {
+			return perr
+		}
+		if fermeture.After(t) {
+			return fmt.Errorf("%w (exécutée : %s)", ErrReouverture, fait)
+		}
+		return nil
+	}
 	var v string
-	err := b.db.QueryRowContext(ctx, `SELECT valeur FROM meta WHERE cle = 'fermeture'`).Scan(&v)
+	err = b.db.QueryRowContext(ctx, `SELECT valeur FROM meta WHERE cle = 'fermeture'`).Scan(&v)
 	if err == sql.ErrNoRows {
 		return nil
 	}

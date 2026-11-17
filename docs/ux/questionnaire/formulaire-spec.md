@@ -201,10 +201,12 @@ Mode WAL, `busy_timeout` de 5 s, une seule connexion d'écriture. L'écriture d'
 ## 6. Anti-doublon, limitation de débit, champ piège
 
 - **Jeton** : un jeton déjà présent dans `jetons` donne 409 `{"deja_recu": true, "stats": …}` ; le front affiche alors l'écran de fin normalement. Cela couvre aussi la double soumission et le nouvel essai après coupure réseau.
-- **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. Une adresse IPv6 est ramenée à son préfixe /64 (celui d'une ligne ou d'un foyer, dans lequel un téléphone change d'adresse à volonté) avant l'empreinte et pour le limiteur de débit ; une adresse IPv4 est comptée telle quelle. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
-- **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, autres routes hors `/static/` 120 par minute, `/static/` non limité (fichiers embarqués, servis depuis la mémoire) ; au-delà, 429 avec `Retry-After`. Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
+- **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. Une adresse IPv6 est ramenée à son préfixe **/56** (celui d'un foyer : une box française en reçoit un, soit 256 /64) avant l'empreinte qui compte les envois en base, et à son préfixe **/64** (une ligne, dans laquelle un téléphone change d'adresse à volonté) pour le limiteur de débit ; une adresse IPv4 est comptée telle quelle. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
+- **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, `/static/` 600 par minute (404 compris : tout `/static/` compte ensemble), autres routes 120 par minute ; au-delà, 429 avec `Retry-After`. `/healthz` n'est pas limité.
+- **Plafond global** : `UX_PLAFOND_HORAIRE` (300 par défaut) envois acceptés par heure, tous clients confondus. Au-delà : 503 avec `Retry-After`, `refus: plafond-horaire` dans la ligne de requête et une ligne d'avertissement par fenêtre d'une heure ; la fenêtre suivante reprend. Il borne ce que peut stocker un attaquant qui dispose de nombreux préfixes. Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
 - **IP du client** : `UX_PROXY_DE_CONFIANCE` est **obligatoire**. Si la connexion vient de cette adresse ou de ce CIDR, l'IP du client est la **dernière** adresse de `X-Forwarded-For` (celle que le proxy a ajoutée) ; sinon, l'adresse de la connexion. La valeur `aucun` (service exposé sans proxy, ou développement local) fait ignorer l'en-tête. Sans cette variable, le service refuse de démarrer : derrière un proxy, tous les répondants auraient l'adresse du proxy, et le quatrième recevrait 429.
 - **Champ piège** : `site_web` non vide donne la même réponse 201 qu'un envoi accepté, sans rien stocker, pour ne pas renseigner le robot.
+- **Code d'accès** (`UX_CODE_ACCES`) : les essais avec des identifiants faux sont comptés par adresse ; au dixième échec en dix minutes, toute requête de cette adresse reçoit 429 (le bon code aussi) jusqu'à la fin de la fenêtre. Une visite sans identifiant n'est pas un essai. Le code doit être aléatoire, d'au moins 20 caractères.
 - **Origine** : un `POST` dont l'en-tête `Origin` diffère de `UX_ORIGINE` est refusé (403). Avec l'absence de cookie et le `Content-Type` JSON exigé, cela suffit contre les envois intersites.
 
 ## 7. API
@@ -270,7 +272,7 @@ Cache-Control: no-store            (routes /api/ et /donnees)
 
 **Aucune mesure d'audience** (R12) : pas d'outil d'analyse, pas de pixel, pas de bouton de réseau social, ni côté client ni à partir des journaux.
 
-**Journaux** (`log/slog`, JSON sur la sortie standard) : méthode, chemin sans paramètres, statut, durée, taille, et pour un refus sa raison (`honeypot`, `doublon-jeton`, `limite-ip`, `debit`, `origine`). Jamais : IP, empreinte d'IP, jeton, `User-Agent`, `Referer`, corps de requête, pseudo, texte libre. Le proxy inverse suit la même règle pour ce sous-domaine (R1) : journal d'accès coupé, ou sans IP, agent utilisateur ni référent. C'est une condition du déploiement (§13), vérifiée par #635 ; il n'y a pas de repli qui garde l'IP.
+**Journaux** (`log/slog`, JSON sur la sortie standard) : méthode, chemin sans paramètres (un chemin qui n'est ni une route ni un fichier embarqué est journalisé sous le libellé fixe `(inconnu)`, pour qu'un client n'écrive pas son texte dans le journal), statut, durée, taille, et pour un refus sa raison (`honeypot`, `doublon-jeton`, `limite-ip`, `debit`, `origine`, `plafond-horaire`, `echecs-acces`). Jamais : IP, empreinte d'IP, jeton, `User-Agent`, `Referer`, corps de requête, pseudo, texte libre. **Rotation** : `compose.yaml` borne les journaux du conteneur (`json-file`, 3 fichiers de 10 Mo) ; ils disparaissent avec le conteneur. Le proxy inverse suit la même règle pour ce sous-domaine (R1) : journal d'accès coupé, ou sans IP, agent utilisateur ni référent. C'est une condition du déploiement (§13), vérifiée par #635 ; il n'y a pas de repli qui garde l'IP.
 
 ## 10. Configuration
 
@@ -282,11 +284,12 @@ Variables d'environnement, aucun secret dans le dépôt :
 | `UX_DONNEES` | `./donnees` | Dossier de la base, de `cle-ip` et de `agregats.json` ; `/donnees` dans le conteneur, monté depuis le dossier de données propre au projet Compose |
 | `UX_ORIGINE` | — (obligatoire) | Origine publique, par exemple `https://sondage.exemple.fr` |
 | `UX_PROXY_DE_CONFIANCE` | — (obligatoire) | IP ou CIDR du proxy inverse, ou `aucun` (§6) |
-| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, le **jour** de fermeture (`AAAA-MM-JJ`, dans le décalage de la variable) est mémorisé (table `meta`) ; ensuite il peut être **avancé, jamais repoussé** : R5 compare des jours, pas des secondes. Au démarrage, un jour plus tardif que le jour mémorisé fait refuser le démarrage (de même pour toute commande `ux-survey`), un jour plus proche le remplace (R5) |
+| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, le **jour** de fermeture (`AAAA-MM-JJ`, dans le décalage de la variable) est mémorisé (table `meta`) ; ensuite il peut être **avancé, jamais repoussé** : R5 compare des jours, pas des secondes. **Une fois la fermeture exécutée**, l'instant de fermeture est mémorisé en UTC (`fermeture_faite`) et toute valeur plus tardive est refusée au démarrage, quel que soit son décalage horaire : un questionnaire fermé ne rouvre pas Au démarrage, un jour plus tardif que le jour mémorisé fait refuser le démarrage (de même pour toute commande `ux-survey`), un jour plus proche le remplace (R5) |
 | `UX_MENTION_MAJ` | — (obligatoire) | Date de dernière mise à jour de la mention |
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; une valeur sous 10 est refusée |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par empreinte d'IP |
-| `UX_CODE_ACCES` | vide | Mot de passe de l'accès restreint, vide en public |
+| `UX_CODE_ACCES` | vide | Mot de passe de l'accès restreint, vide en public ; aléatoire, 20 caractères au moins (§6) |
+| `UX_PLAFOND_HORAIRE` | `300` | Envois acceptés par heure, tous clients confondus ; au-delà, 503 (§6) |
 
 La **date d'effacement** n'est pas une variable : elle vaut toujours `UX_FERMETURE` + 2 mois (même jour du mois, ou dernier jour du mois s'il n'existe pas), comme le dit la mention. `ux-survey effacer` permet d'effacer plus tôt à la main (§12).
 
@@ -300,7 +303,9 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 
 **Hôte** : Ubuntu 24.04 LTS, Docker Engine et Docker Compose. Une autre application tourne déjà sur le même hôte : le questionnaire est un **projet Compose à part** (son propre nom de projet, son propre réseau, son propre dossier de données), sans rien partager avec elle. Aucune variante sans conteneur n'est prévue.
 
-**Conteneur** : `deploy/Dockerfile` en deux étapes, compilation `CGO_ENABLED=0` pour l'architecture de l'hôte, image finale `gcr.io/distroless/static` en utilisateur non root, volume `/donnees` (dossier de l'hôte en 0700, propriété de l'utilisateur du conteneur), système de fichiers en lecture seule, `cap_drop: [ALL]`, `no-new-privileges`. `deploy/compose.yaml` :
+**Conteneur** : `deploy/Dockerfile` en deux étapes, compilation `CGO_ENABLED=0` pour l'architecture de l'hôte, image finale `gcr.io/distroless/static` en utilisateur non root, volume `/donnees` (dossier de l'hôte en 0700, propriété de l'utilisateur du conteneur), système de fichiers en lecture seule, `cap_drop: [ALL]`, `no-new-privileges`, images de base épinglées par condensat. `deploy/compose.yaml` :
+- borne les ressources (`mem_limit: 256m`, `pids_limit: 128`, `cpus: 1.0`) et les journaux du conteneur (`json-file`, 3 fichiers de 10 Mo) : le VPS est partagé avec une autre application ;
+- exige `UX_DOSSIER_DONNEES` (dossier de données hors du dépôt, sans valeur par défaut) ; le contexte de construction est une liste d'autorisation (`.dockerignore`), pour qu'aucune base ni fichier d'environnement n'entre dans le cache de construction ;
 - fixe `UX_ADRESSE=0.0.0.0:8080` dans le conteneur et publie le port **seulement sur `127.0.0.1`**, sur un port libre de l'hôte choisi au déploiement (`127.0.0.1:<port>:8080`), jamais sur une interface publique ;
 - déclare un réseau à sous-réseau fixe (par exemple `172.31.250.0/24`, à choisir pour ne pas chevaucher celui de l'autre application) ;
 - fixe `UX_PROXY_DE_CONFIANCE` à l'adresse de la passerelle de ce réseau : un client de l'hôte qui se connecte à `127.0.0.1:<port>` arrive dans le conteneur depuis cette passerelle, quel que soit ce client (Tailscale Funnel ou Caddy, ci-dessous).
@@ -311,6 +316,8 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 |---|---|---|---|---|---|
 | (a) **Tailscale Funnel**, retenue | Funnel devant `127.0.0.1:<port>`, aucun port à ouvrir | Terminé sur le VPS par `tailscaled` | Publique en `*.ts.net`, pas de sous-domaine | L'URL Funnel | Transmise par Funnel dans un en-tête, **à vérifier** (§13) |
 | (b) Proxy inverse, par exemple Caddy, en secours | Ports 80 et 443 ouverts | Caddy (Let's Encrypt) | Sous-domaine | `https://<sous-domaine>` | `X-Forwarded-For` ajouté par Caddy |
+
+**Mode du relais et usurpation de l'adresse** : tout ce qui arrive par `127.0.0.1:<port>` est « de confiance » pour l'en-tête `X-Forwarded-For` (la connexion vient de la passerelle). La sûreté repose donc sur le relais, qui doit **poser lui-même** l'en-tête et retirer celui du client. Funnel doit être en **mode proxy HTTP** (`tailscale funnel status` montre `proxy http://127.0.0.1:<port>`), jamais en mode TCP (`--tcp`, `--tls-terminated-tcp`), où l'en-tête du client passerait tel quel : un client pourrait alors inventer une adresse par requête et contourner la limite par adresse et le limiteur de débit. L'essai anti-usurpation du §13 est une condition d'ouverture. Un autre processus de l'hôte qui joint le port peut aussi forger l'en-tête : l'autre application de l'hôte ne doit pas relayer de requêtes vers la boucle locale.
 
 Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajouté, corps limité à 32 Ko et journal d'accès coupé. Pour (a), le README donne la commande Funnel vers `127.0.0.1:<port>` et rappelle la vérification du §13. Dans les deux cas, le service ne lit que la dernière adresse de `X-Forwarded-For` (§6) ; si la vérification montre que Funnel transmet l'adresse du client dans un autre en-tête, #634 ajoute une variable `UX_EN_TETE_CLIENT` (nom de l'en-tête, lu seulement depuis le proxy de confiance) plutôt que de deviner.
 
@@ -323,7 +330,7 @@ Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajo
 
 ## 12. Exports, fermeture et effacement
 
-**Sauvegarde** : `ux-survey sauvegarder <fichier>` écrit une copie cohérente de la base par `VACUUM INTO`, en 0600. C'est la seule sauvegarde prise en charge ; `cle-ip` n'y entre jamais. Si le VPS a ses propres sauvegardes, elles excluent **toujours** `cle-ip` ; si cette exclusion d'un seul fichier n'est pas possible, elles excluent tout le dossier de données. Les sauvegardes du VPS qui contiennent la base sont purgées à la date d'effacement (§13).
+**Sauvegarde** : `ux-survey sauvegarder <fichier>` écrit une copie cohérente de la base par `VACUUM INTO`, en 0600, puis **vide les tables `jetons` et `empreintes_ip` de la copie et la compacte** (R4 : aucune empreinte dans une sauvegarde). C'est la seule sauvegarde prise en charge ; `cle-ip` n'y entre jamais. Si le VPS a ses propres sauvegardes, elles excluent **toujours** `cle-ip` ; si cette exclusion d'un seul fichier n'est pas possible, elles excluent tout le dossier de données. Les sauvegardes du VPS qui contiennent la base sont purgées à la date d'effacement (§13).
 
 **Exports**, lancés sur le serveur par `ux-survey export --format <format> --sortie <fichier>` :
 
@@ -351,14 +358,15 @@ L'identité du demandeur est vérifiée par MP sur son compte HFR (`donnees.md`)
 **À la fermeture**, automatiquement, au premier passage de la tâche horaire après `UX_FERMETURE` (le refus 410 est, lui, immédiat, §7) : le service supprime `cle-ip`, vide `empreintes_ip` et `jetons`, puis lance `VACUUM` et `PRAGMA wal_checkpoint(TRUNCATE)`. Si le point de contrôle répond « occupé », la fermeture n'est pas annoncée comme faite et la tâche horaire la reprend (étapes sans effet si déjà faites) jusqu'à un point de contrôle réussi avec un `-wal` vide. `ux-survey fermer` fait la même chose à la main et sort en erreur dans ce cas. La page affiche « Questionnaire fermé » et les statistiques finales.
 
 **À la date d'effacement** (R6), fermeture + 2 mois, automatiquement par la tâche horaire, ou plus tôt par `ux-survey effacer`, qui **refuse** de s'exécuter avant `UX_FERMETURE` : après cette date, le 410 garantit qu'aucune réponse n'arrive après l'instantané. La procédure est **idempotente** : on peut la relancer après n'importe quelle interruption.
+0. l'indicateur de fermeture exécutée est posé (comme à `fermer`) ;
 1. si `agregats.json` n'existe pas : écrire l'instantané (même contenu que l'export `agregats`) dans `agregats.json.tmp`, `fsync` du fichier, renommer en `agregats.json`, puis `fsync` du dossier de données, avant l'étape 2 ; s'il existe déjà, ne pas le réécrire (une reprise ne doit jamais le remplacer par des agrégats vides) ;
-2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus (sans effet si elles sont déjà vides) ;
+2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus (sans effet si elles sont déjà vides), puis supprimer `sauvegardes/` et tout `exports/` **sauf** les fichiers `agregats-*` (ces copies contiennent des pseudos et des textes libres : leur survie contredirait la mention) ;
 3. `VACUUM`, puis `PRAGMA wal_checkpoint(TRUNCATE)` ; si le point de contrôle répond « occupé », la commande sort en erreur sans annoncer l'effacement, et la tâche horaire reprend à cette étape (les étapes 1 et 2 sont déjà acquises ou sans effet) ;
 4. afficher « effacement terminé » seulement quand le point de contrôle a réussi et que le fichier `-wal` est vide.
 
 Liste à cocher du PO le même jour, notée sur #628 avec la date :
 - données du serveur effacées (sortie de `effacer`) ;
-- fichiers produits par `sauvegarder` supprimés, et sauvegardes du VPS qui contiennent le dossier de données purgées ;
+- `exports/` (hors agrégats) et `sauvegardes/` absents du dossier de données (l'effacement les supprime), et sauvegardes du VPS qui contiennent le dossier de données purgées ;
 - exports d'analyse et copies relues supprimés sur la machine du PO ;
 - exports partagés avec l'équipe et confiés à l'assistant d'analyse supprimés, confirmation demandée aux destinataires ;
 - seul l'export `agregats` reste.
@@ -369,6 +377,7 @@ Liste à cocher du PO le même jour, notée sur #628 avec la date :
 
 D4 est tranchée (§11). Reste, avant le déploiement (#635), pas avant la réalisation :
 - **exposition** : Tailscale Funnel, retenue le 9 novembre 2026 ;
+- **mode de Funnel et anti-usurpation** (§11) : mode proxy HTTP seulement ; essai avec un `X-Forwarded-For` forgé qui doit finir en 429 (liste du PO dans `verification-image.md`). Aucun 429 : l'en-tête forgé est cru, ne pas ouvrir ;
 - pour Funnel : **vérifier sur l'hôte**, avant l'ouverture, quel en-tête Funnel transmet avec l'adresse publique du client, et que l'étape 3 du §11 voit des adresses distinctes. Si Funnel ne transmet pas l'adresse du client, le PO choisit entre (b) et un anti-doublon sans limite par adresse (jeton et limitation de débit seulement), à noter sur #628. Vérifier aussi ce que `tailscaled` journalise des connexions Funnel (R1) ; la mention sur les données (#669) dit déjà que les connexions transitent par les relais de Tailscale ;
 - seulement si l'on bascule en secours sur (b) : sous-domaine et accès DNS ;
 - journal d'accès de l'option retenue pour ce questionnaire coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;

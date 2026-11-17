@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"mime"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/reponse"
@@ -47,6 +49,16 @@ func (s *Serveur) stats(w http.ResponseWriter, r *http.Request) {
 func (s *Serveur) erreurInterne(w http.ResponseWriter, ou string, err error) {
 	s.Log.Error("erreur interne", "ou", ou, "erreur", err.Error())
 	ecrireJSON(w, http.StatusInternalServerError, map[string]string{"erreur": "erreur interne"})
+}
+
+// frais calcule les statistiques sur la base, sans passer par le cache : réservé à la réponse 201, qui ne
+// montre que le résultat du répondant qui vient d'envoyer (F2). Le GET public reste servi par le cache d'une minute.
+func (s *Serveur) frais(r *http.Request) (any, error) {
+	a, err := s.sourceAgregats(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	return a.Publier(s.Cfg.SeuilStats), nil
 }
 
 // recevoir traite POST /api/reponses : origine, fermeture, corps, champ piège, validation, doublons, écriture.
@@ -102,6 +114,15 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if atteint, premiere, attente := s.plafond.atteint(); atteint {
+		if premiere {
+			s.Log.Warn("plafond horaire d'envois atteint", "plafond", s.Cfg.PlafondH)
+		}
+		refuser(r, "plafond-horaire")
+		w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(attente.Seconds()))))
+		ecrireJSON(w, http.StatusServiceUnavailable, map[string]string{"erreur": "service très sollicité, réessayez plus tard"})
+		return
+	}
 	s.mu.RLock()
 	cle := s.cleIP
 	s.mu.RUnlock()
@@ -113,7 +134,7 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 		Normalisee:  *norm,
 		Version:     s.Q.Version,
 		Jeton:       e.Jeton,
-		EmpreinteIP: stockage.EmpreinteIP(cle, s.IPClient(r)),
+		EmpreinteIP: stockage.EmpreinteIP(cle, s.IPCompteur(r)),
 		MaxParIP:    s.Cfg.MaxParIP,
 		Fermeture:   stockage.JourFermeture(s.Cfg.Fermeture),
 		RecueLe:     s.Horloge().In(s.Cfg.Fermeture.Location()).Format(time.DateOnly),
@@ -133,8 +154,8 @@ func (s *Serveur) recevoir(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.erreurInterne(w, "ecriture", err)
 	default:
-		s.cache.Invalider()
-		c, cerr := s.charge(r)
+		s.plafond.compter()
+		c, cerr := s.frais(r)
 		if cerr != nil {
 			s.erreurInterne(w, "stats", cerr)
 			return
