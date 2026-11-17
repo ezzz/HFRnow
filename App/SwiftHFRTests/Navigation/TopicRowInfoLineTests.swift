@@ -67,3 +67,13 @@ struct TopicSourceTitleTests {
         #expect(TopicSource.forum(CategoryID.privateMessages, title: "Jeux Video").navigationTitle == "Jeux Video")
     }
 }
+
+struct TopicFlagSpeechTests {
+    @Test("A flag shown only as a tint is spoken: the dense row's icon labels")
+    func flagLabels() {
+        #expect(TopicRowCues.flagLabel(.yellow) == "Favori")
+        #expect(TopicRowCues.flagLabel(.blue) == "Drapeau")
+        #expect(TopicRowCues.flagLabel(.red) == "Lu")
+        #expect(TopicRowCues.flagLabel(nil) == nil)
+    }
+}

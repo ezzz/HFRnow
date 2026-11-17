@@ -24,11 +24,15 @@ struct TopicRowView: View {
     var isSuperFavorite = false
     var markedRead = false
     var showsFlag = true
+    /// The flag colour is drawn as a row tint (`TopicListView.rowTint`).
+    var flagIsTinted = false
 
     var body: some View {
         switch TopicRowStyle.current {
         case .legacy:
-            LegacyTopicRowView(topic: topic, isSuperFavorite: isSuperFavorite, markedRead: markedRead, showsFlag: showsFlag)
+            LegacyTopicRowView(
+                topic: topic, isSuperFavorite: isSuperFavorite, flagIsTinted: flagIsTinted, markedRead: markedRead, showsFlag: showsFlag
+            )
         case .dense: DenseTopicRowView(topic: topic, isSuperFavorite: isSuperFavorite, markedRead: markedRead, showsFlag: showsFlag)
         }
     }

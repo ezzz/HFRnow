@@ -9,6 +9,8 @@ struct LegacyTopicRowView: View {
     let topic: TopicSummary
     /// A super favourite of the account: its tint is drawn around the row; VoiceOver says it.
     var isSuperFavorite = false
+    /// The row's flag colour is drawn as a tint around it (`TopicListView.rowTint`): VoiceOver says the flag.
+    var flagIsTinted = false
     var markedRead = false
     var showsFlag = true
     @Environment(\.listDensity) private var density
@@ -18,7 +20,9 @@ struct LegacyTopicRowView: View {
 
     /// What the dense row's marks said and this row shows by weight or tint only (colour is never the only cue).
     private var spokenState: String {
-        [isUnread ? "Non lu" : nil, isSuperFavorite ? "Super favori" : nil].compactMap { $0 }.joined(separator: ", ")
+        [
+            isUnread ? "Non lu" : nil, isSuperFavorite ? "Super favori" : nil, flagIsTinted && showsFlag ? TopicRowCues.flagLabel(topic.flag) : nil
+        ].compactMap { $0 }.joined(separator: ", ")
     }
 
     var body: some View {

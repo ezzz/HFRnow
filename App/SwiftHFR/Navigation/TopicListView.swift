@@ -140,7 +140,10 @@ struct TopicListView: View {
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             let isSuper = model.isSuperFavorite(topic)
-            TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
+            TopicRowView(
+                topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
+                flagIsTinted: TopicListView.flagPills(for: model.source)
+            )
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(
