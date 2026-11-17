@@ -4,10 +4,11 @@ import HFRStorage
 /// behaviour. Removing an option means deleting its case, its folder `Experimental/<Option>/` and the marker comments that
 /// name it (AGENTS.md §7: `git grep` lists every one).
 enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
+    // Declared in the order of the page's sections (`ExperimentalTheme`): the page lists them by theme, and a test checks this order.
     case modernComposer
     case searchTab
-    case mpStorageSwitches
     case denseRows
+    case mpStorageSwitches
     case imageLoadingChoice
 
     var id: Self { self }
