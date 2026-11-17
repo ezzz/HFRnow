@@ -39,7 +39,9 @@ import Testing
             "season.automatic", "season.animations", "season.noel.activeYear",
             // #903: the Réglages › Expérimental switches, new.
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
-            "experimental.flagIconRows", "experimental.imageLoadingChoice"
+            "experimental.flagIconRows", "experimental.imageLoadingChoice",
+            // LOT-140: the background MP check interval, new.
+            "mp_check_interval"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }

@@ -108,7 +108,11 @@ final class MessageListModel {
     let mpStorage: MPStorageSyncModel?
     /// The Messages badge's count, moved by one when a conversation is read or marked unread here (#762); nil in tests that
     /// do not need it.
-    private let privateMessageCount: PrivateMessageCount?
+    let privateMessageCount: PrivateMessageCount?
+    /// Hands what page 1 shows to the notification ledger (LOT-140): its unread conversations when it loads, and again when one
+    /// is read here (with the badge's count), so the next background check neither notifies what the member saw nor misses a
+    /// reply to a conversation read here. Nil in tests that do not need it.
+    let ledgerSeen: (@Sendable (NotificationSummary) async -> Void)?
 
     private let source: any PrivateMessageSource
     private let isLoggedIn: @Sendable () async -> Bool
@@ -135,8 +139,10 @@ final class MessageListModel {
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() },
         settings: (any SettingsStore)? = nil,
         mpStorage: MPStorageSyncModel? = nil,
-        privateMessageCount: PrivateMessageCount? = nil
+        privateMessageCount: PrivateMessageCount? = nil,
+        ledgerSeen: (@Sendable (NotificationSummary) async -> Void)? = nil
     ) {
+        self.ledgerSeen = ledgerSeen
         self.mpStorage = mpStorage
         self.privateMessageCount = privateMessageCount
         self.settings = settings
@@ -232,6 +238,13 @@ final class MessageListModel {
 
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
+
+    /// A tap on a summary notification (LOT-140): page 1, where new conversations are, whatever page was on screen.
+    func showFirstPage() async {
+        if let settings { display = settings.value(for: SettingKey.mpListDisplay) }
+        selected = nil
+        await load(page: 1, advancing: false)
+    }
 
     /// Asks again for the last page that was asked for (after a failure).
     func retry() async { await load(page: requestedPage) }
@@ -347,6 +360,8 @@ final class MessageListModel {
             if !isUnread(listed(thread)) { privateMessageCount?.adjust(by: 1) }
             markedUnread.insert(thread.id)
             if selected?.id == thread.id { selected = nil }
+            // Recorded before the reload, which may fail: the member's own action is not news (LOT-140).
+            await recordReadState()
             await refresh()
         }
     }
@@ -358,9 +373,11 @@ final class MessageListModel {
     func markOpened(_ thread: PrivateMessageThread, page: Int, of pageCount: Int) {
         guard page >= pageCount, openingTarget(of: thread) != nil else { return }
         // Legacy takes one off the badge for a row that showed unread (`MPListView.swift:497-502` @ 87fe0d1c): once per read.
-        if isUnread(listed(thread)) { privateMessageCount?.adjust(by: -1) }
+        let wasUnread = isUnread(listed(thread))
+        if wasUnread { privateMessageCount?.adjust(by: -1) }
         openedThreads[thread.id] = loadCount
         markedUnread.remove(thread.id)
+        if wasUnread { Task { await recordReadState() } }
     }
 
     /// The row the list holds now for `thread`'s conversation, else `thread`: the reader keeps the value of the tap, which a
@@ -394,7 +411,7 @@ final class MessageListModel {
         openedThreads = openedThreads.filter { $0.value >= mine || !answered.contains($0.key) }
         markedUnread.removeAll()
         // A session that expired while a conversation was open: the list asks for a login, the reader must not keep showing it.
-        if loader.value == .signedOut { selected = nil }
+        if loader.value == .signedOut { selected = nil } else { await recordReadState() }
         if advancing { await advanceWhileSegmentEmpty() }
     }
 }
