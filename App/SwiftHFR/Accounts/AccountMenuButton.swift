@@ -52,6 +52,7 @@ struct AccountMenuButton: View {
                     menuLabel
                 }
                 .accessibilityLabel(accounts.current?.displayName ?? "Comptes")
+                .accessibilityValue(accounts.current?.status == .expired ? "Session expirée" : "")
             }
         }
         .sheet(isPresented: $showsAccounts) {
@@ -72,7 +73,7 @@ struct AccountMenuButton: View {
     private var menuLabel: some View {
         switch AccountMenuLabelContent.content(hasAvatar: accounts.current?.avatar != nil, status: accounts.current?.status) {
         case .avatar:
-            AccountAvatarView(image: accounts.current?.avatar)
+            AccountAvatarView(image: accounts.current?.avatar, scales: false)
         case .symbol(let name):
             Image(systemName: name)
         }

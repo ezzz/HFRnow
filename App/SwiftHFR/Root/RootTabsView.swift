@@ -63,7 +63,7 @@ struct CategoriesTabView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            ForumListView(navigation: navigation).appScreenBackground()
+            ForumListView(navigation: navigation).accountMenuToolbarItem().appScreenBackground()
         } content: {
             TopicsColumn(navigation: navigation, composer: composer).appScreenBackground()
         } detail: {

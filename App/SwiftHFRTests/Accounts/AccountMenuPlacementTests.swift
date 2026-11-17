@@ -23,10 +23,6 @@ struct AccountMenuPlacementTests {
         #expect(AccountMenuLabelContent.content(hasAvatar: false, status: .expired) == badge)
     }
 
-    @Test func placementIsLeading() {
-        #expect(AccountMenuButton.placement == .topBarLeading)
-    }
-
     /// Hosts a root in a navigation controller, as the tabs do, and reads the UIKit bar items SwiftUI builds from its toolbar.
     @Test func modifierPutsTheItemOnTheLeftOfTheBarOnly() async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
