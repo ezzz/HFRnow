@@ -21,7 +21,7 @@ Rien ne bloque la vague 1. Le sous-domaine ne bloque que la mise en ligne restre
 
 ## 2. Le parcours, écran par écran
 
-Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 7 min 5 s pour un profil iPad et 5 min 5 s pour un profil iPhone : les deux dépassent leur plafond de 5 secondes depuis l'ajout de la carte `C12` (17 novembre 2026, une carte compte 9 secondes). Aucune coupe n'est faite ici, le PO tranche (voir la PR) ; il ne reste plus de marge pour les visuels et les vidéos.
+Un écran par bloc, une barre de progression, toutes les questions facultatives. Budget : 7 minutes au plus pour un profil iPad, 5 minutes pour un profil iPhone qui ne voit pas le thème 2. Les budgets du tableau totalisent 7 min 5 s pour un profil iPad et 5 min 5 s pour un profil iPhone : les deux dépassent leur plafond de 5 secondes depuis l'ajout de la carte `C12` (une carte compte 9 secondes). Le 17 novembre 2026, le PO accepte ce dépassement de 5 secondes, sans rien couper ; le test à cinq (UX-12) mesurera le temps réel. Il ne reste plus de marge pour les visuels et les vidéos.
 
 | Écran | Identifiants | Contenu | Format | Condition | Visuel | Budget |
 |---|---|---|---|---|---|---|
