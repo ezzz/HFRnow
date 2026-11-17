@@ -12,28 +12,59 @@ struct ReaderBottomBarTests {
     private typealias State = ReaderBottomBar.State
 
     @Test func midPageTheBarShowsOnlyTheArrows() {
-        let none = State(showsPageBubble: false, showsRefresh: false, promotesNext: false, promotesRefresh: false)
-        #expect(ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: false) == none)
-        #expect(ReaderBottomBar.state(currentPage: 5, maxPage: 5, atPageEnd: false, voiceOver: false) == none)
+        let mid = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: false)
+        #expect(mid == State(showsPageBubble: false, showsRefresh: false, canGoPrevious: true, canGoNext: true))
+        #expect(mid.centre.isEmpty && mid.trailing == [.reply])
     }
 
-    @Test func atTheEndOfAPageThatIsNotTheLastTheNextArrowIsPromoted() {
+    @Test func atTheEndOfAPageTheBubbleAndTheRefreshAppear() {
         #expect(ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: true, voiceOver: false)
-            == State(showsPageBubble: true, showsRefresh: true, promotesNext: true, promotesRefresh: false))
+            == State(showsPageBubble: true, showsRefresh: true, canGoPrevious: true, canGoNext: true))
     }
 
-    @Test func atTheEndOfTheLastPageTheRefreshIsPromoted() {
-        #expect(ReaderBottomBar.state(currentPage: 5, maxPage: 5, atPageEnd: true, voiceOver: false)
-            == State(showsPageBubble: true, showsRefresh: true, promotesNext: false, promotesRefresh: true))
-        // A one-page topic or conversation is its own last page.
-        #expect(ReaderBottomBar.state(currentPage: 1, maxPage: 1, atPageEnd: true, voiceOver: false).promotesRefresh)
+    /// Issue #965: ‹ is greyed and disabled on the first page, › on the last, mid-page and at the end of the page alike; elsewhere
+    /// both carry the accent. No pill is filled with the accent any more (no "promoted" state exists).
+    @Test(arguments: [false, true])
+    func theArrowsAreGreyedAtTheFirstAndLastPage(atPageEnd: Bool) {
+        func state(_ page: Int, of max: Int) -> State {
+            ReaderBottomBar.state(currentPage: page, maxPage: max, atPageEnd: atPageEnd, voiceOver: false)
+        }
+        let first = state(1, of: 5)
+        #expect(!first.canGoPrevious && first.canGoNext)
+        #expect(first.previousTint == .grey && first.nextTint == .accent)
+        let middle = state(3, of: 5)
+        #expect(middle.canGoPrevious && middle.canGoNext)
+        #expect(middle.previousTint == .accent && middle.nextTint == .accent)
+        let last = state(5, of: 5)
+        #expect(last.canGoPrevious && !last.canGoNext)
+        #expect(last.previousTint == .accent && last.nextTint == .grey)
+        // A one-page topic has nowhere to go.
+        let only = state(1, of: 1)
+        #expect(only.previousTint == .grey && only.nextTint == .grey)
     }
 
     /// Hiding the bubble is visual only: VoiceOver keeps the page menu anywhere on the page.
     @Test func voiceOverKeepsThePageBubbleMidPage() {
         let state = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: true)
         #expect(state.showsPageBubble)
-        #expect(!state.showsRefresh && !state.promotesNext)
+        #expect(!state.showsRefresh)
+    }
+
+    /// Issue #961: the "N / M" bubble is its own pill between ‹ › (left) and refresh + reply (right).
+    @Test func thePageBubbleIsItsOwnCentredPill() {
+        let end = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: true, voiceOver: false)
+        #expect(end.leading == [.previous, .next] && end.separatesArrows, "‹ and › are two pills at the end of the page (#965)")
+        #expect(!ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: true).separatesArrows)
+        #expect(end.centre == [.pageBubble])
+        #expect(end.trailing == [.refresh, .reply])
+        #expect(!end.trailing.contains(.pageBubble) && !end.leading.contains(.pageBubble))
+        // VoiceOver mid-page: the same layout, the bubble still apart, with the reply alone on the right.
+        let voiceOver = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: true)
+        #expect(voiceOver.centre == [.pageBubble])
+        #expect(voiceOver.trailing == [.reply])
+        // Mid-page without VoiceOver and without a reply button: arrows only.
+        let mid = ReaderBottomBar.state(currentPage: 3, maxPage: 5, atPageEnd: false, voiceOver: false, showsReply: false)
+        #expect(mid.centre.isEmpty && mid.trailing.isEmpty)
     }
 
     /// Issue #649: a Pro Max in landscape is regular width with the tab bar shown: the system bottom bar would sit under it.
