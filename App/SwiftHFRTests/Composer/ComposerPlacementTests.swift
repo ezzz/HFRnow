@@ -348,7 +348,7 @@ extension ComposerPlacementTests {
         #expect(host.presentedViewController == nil)
     }
 
-    /// Legacy's cover (#855): the presenter shows the composer full screen (`modalPresentationStyle == .fullScreen`, legacy's
+    /// Legacy's cover (#855): the presenter shows the composer full screen (`coversTheScreen`, as legacy's
     /// `coverVerticalFullScreen`), watches its close once and dismisses it.
     @Test func aCoverComposerIsFullScreenAndClosesOnceThroughItsPresenter() async throws {
         let composer = ComposerFixture.model(poster: ScriptedPoster([]))
@@ -360,7 +360,7 @@ extension ComposerPlacementTests {
         defer { window.isHidden = true }
         await Self.waitUntil { host.presentedViewController.map { Self.textView(in: $0.view) != nil } ?? false }
         let presented = try #require(host.presentedViewController)
-        #expect(presented.modalPresentationStyle == .fullScreen)
+        #expect(presented.modalPresentationStyle.coversTheScreen, "\(presented.modalPresentationStyle.rawValue)")
         #expect(Self.textView(in: host.view) == nil, "no docked bar")
         await composer.start()
         await composer.requestClose()

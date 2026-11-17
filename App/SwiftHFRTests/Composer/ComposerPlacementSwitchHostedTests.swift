@@ -25,7 +25,7 @@ struct ComposerPlacementSwitchHostedTests {
         for _ in 0..<100 where host.presentedViewController == nil { try await Task.sleep(for: .milliseconds(20)) }
         let presented = try #require(host.presentedViewController, "presented")
         let isPhone = UIDevice.current.userInterfaceIdiom == .phone
-        #expect((presented.modalPresentationStyle == .fullScreen) == isPhone, "\(presented.modalPresentationStyle.rawValue)")
+        #expect(presented.modalPresentationStyle.coversTheScreen == isPhone, "\(presented.modalPresentationStyle.rawValue)")
         #expect(state.docked == nil, "the page sees no docked composer")
     }
 }
@@ -54,4 +54,11 @@ private struct DockedReader: View {
     var body: some View {
         Color.gray.onChange(of: docked, initial: true) { _, value in state.docked = value }
     }
+}
+
+extension UIModalPresentationStyle {
+    /// A full-screen cover: UIKit's `.fullScreen` (legacy's `coverVerticalFullScreen`, `MessagesView.swift:6019-6120` @ 87fe0d1c)
+    /// or `.overFullScreen`, which SwiftUI's `fullScreenCover` uses (measured on the iOS 27.0 simulator, CI run of #985). Either
+    /// one covers the whole screen; a sheet (`.pageSheet`, `.formSheet`) does not.
+    var coversTheScreen: Bool { self == .fullScreen || self == .overFullScreen }
 }
