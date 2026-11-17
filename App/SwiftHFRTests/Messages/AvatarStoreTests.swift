@@ -95,7 +95,7 @@ struct AvatarStoreTests {
     }
 
     @Test func settingDoesNotGateForumAvatars() async throws {
-        // First-party avatars load whatever "Images externes" says (LOT-071 D-071-1 point 3): the store has no such gate.
+        // First-party avatars load whatever the image-loading choice (#902) says (LOT-071 D-071-1 point 3): the store has no such gate.
         let rig = rig()
         await rig.store.offer(pseudo: "user1", url: Self.url)
         #expect(await rig.transport.requests.count == 1)
