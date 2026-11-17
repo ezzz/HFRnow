@@ -10,7 +10,7 @@ extension ReaderWebController {
     /// landing also waits for the page to show what the scroll view shows now (`from`, #995).
     func scroll(to anchor: Int, landing: Bool = false) {
         if landing {
-            run("return window.hfrReader.landOnPost(n, from);", arguments: ["n": anchor, "from": Double(readingTop)])
+            run("return window.hfrReader.landOnPost(n, from);", arguments: ["n": anchor, "from": agreementTop])
         } else {
             run("return window.hfrReader.scrollToPost(n);", arguments: ["n": anchor])
         }
@@ -35,6 +35,14 @@ extension ReaderWebController {
         return ReaderScrollGeometry.layoutY(readingTop: top, zoomScale: webView.scrollView.zoomScale)
     }
 
+    /// What the page must show before an app scroll runs (`afterAgreement` in `reader.js`, #995): the reading top now, or
+    /// `NSNull` while the member moves the scroll view, whose reading top is then a moving value the page would never match
+    /// (the page then scrolls after its two frames, as before #995).
+    var agreementTop: Any {
+        let scrollView = webView.scrollView
+        return scrollView.isTracking || scrollView.isDragging || scrollView.isDecelerating ? NSNull() : Double(readingTop)
+    }
+
     /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore). The
     /// page scrolls itself: WebKit counts `scrollY` from the bars' edge once `obscuredContentInsets` is set (`scrollY` is the
     /// reading top, `ReaderInsetsWebTests`), and a native `setContentOffset` at DOMContentLoaded is undone by the new
@@ -43,7 +51,7 @@ extension ReaderWebController {
     func scroll(toReadingTop readingTop: CGFloat) {
         run(
             "return window.hfrReader.restoreScroll(y, from);",
-            arguments: ["y": Double(max(0, readingTop)), "from": Double(self.readingTop)]
+            arguments: ["y": Double(max(0, readingTop)), "from": agreementTop]
         )
     }
 }

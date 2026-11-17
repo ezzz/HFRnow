@@ -206,11 +206,19 @@
   // top while the page still holds the previous document's offset, or the page's own position pushed back after the scroll
   // view's reset. A reset still on its way to the page undid a restore made before it (`scrollY` 1000, then 0). So a scroll the
   // app asks for also waits until the page shows what the scroll view showed when it was asked (`from`, its reading top in CSS
-  // pixels), for at most `agreementFrames` frames, after which it scrolls anyway.
+  // pixels), for at most `agreementFrames` frames, after which it scrolls anyway. The member touching the page meanwhile
+  // (`touchstart`, `wheel`, `keydown`, `mousedown`) cancels it: the page is theirs, as for the landing's pin. A scroll that
+  // sends no event (VoiceOver, a status-bar tap) during the wait cannot be told from the reset by the page: the app's scroll
+  // still runs after it, as it did after the two frames before #995, now up to half a second later.
   const agreementFrames = 30;
+  let userTouchedAt = 0;
+  ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
+    window.addEventListener(name, () => { userTouchedAt = performance.now(); }, { passive: true, capture: true }));
   const afterAgreement = (from, scroll) => {
+    const askedAt = performance.now();
     let frames = 0;
     const step = () => {
+      if (userTouchedAt > askedAt) { return; }
       if (typeof from !== "number" || Math.abs(window.scrollY - from) <= 1 || frames >= agreementFrames) {
         scroll();
         return;

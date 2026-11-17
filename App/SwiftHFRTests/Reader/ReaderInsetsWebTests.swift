@@ -113,7 +113,7 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
     /// The refresh of document `token` restored `readingTop` after WebKit's reset, on both sides (#995). Until that reset the
     /// scroll view still shows the previous document, at the same reading top: the page's `scrollY` alone can read it before
     /// the reset puts it back to 0, the likely cause of CI job 133772120017 (`scrollY` 1000, then 0 once loaded, while the
-    /// offset checks after it passed within the same 1 s test; read from the code, not shown by a log) and of 133770412196
+    /// offset checks after it passed within the same 1 s test; #995's Mac traces show the two sides of the reset apart) and of 133770412196
     /// (the pinch-zoomed refresh).
     /// The watch ends at the reset, when the restore is sent; the page and the scroll view agree once the scroll view has
     /// applied the page's scroll: a page sent back for a moment by an older offset of the scroll view (#958) is waited out
