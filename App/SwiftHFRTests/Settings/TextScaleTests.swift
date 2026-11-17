@@ -71,14 +71,5 @@ struct TextScaleTests {
         #expect(compact.avatarSize < regular.avatarSize)
         #expect(TextScale.standard.pointSize(compact.titleStyle, at: .large)
             < TextScale.standard.pointSize(regular.titleStyle, at: .large))
-        #expect(compact.mergesMetaLines && !regular.mergesMetaLines)
-    }
-
-    @Test func theCompactConversationRowHasOneMetaLine() {
-        #expect(MessageRowView.metaLine(who: "membre", lastPost: "autre · hier") == "membre · autre · hier")
-        #expect(MessageRowView.metaLine(who: "membre", lastPost: "membre · hier") == "membre · hier")
-        #expect(MessageRowView.metaLine(who: "membre", lastPost: "membre") == "membre")
-        #expect(MessageRowView.metaLine(who: "Interlocuteurs multiples", lastPost: nil) == "Interlocuteurs multiples")
-        #expect(MessageRowView.metaLine(who: "membre", lastPost: "") == "membre")
     }
 }

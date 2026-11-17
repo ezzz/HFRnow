@@ -27,6 +27,7 @@ struct TopicListView: View {
     var openCategory: ((TopicSource) -> Void)?
     /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
     var titleStyle: ScreenTitleStyle = .pill
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
@@ -230,18 +231,21 @@ struct TopicListView: View {
         }
     }
 
+    /// EXPERIMENTAL(denseRows, #905 F): bold section titles in the dense view; nil keeps the default weight.
+    private var titleWeight: Font.Weight? { DenseRowFormat.titleWeight(experimental) }
+
     /// A category header with its topic count and, when the section has topics, the fold chevron (legacy `sectionHeader`).
     private func header(_ group: TopicGroup, title: String) -> some View {
         HStack {
             if let source = group.opens, let openCategory {
                 let speech = TopicRowCues.sectionTitleSpeech(title)
-                Button { openCategory(source) } label: { Text(title).foregroundStyle(.primary) }
+                Button { openCategory(source) } label: { Text(title).foregroundStyle(.primary).sectionTitleWeight(titleWeight) }
                     .buttonStyle(.plain)
                     .accessibilityLabel(speech.label)
                     .accessibilityHint(speech.hint)
                     .accessibilityAddTraits(.isButton)
             } else {
-                Text(title)
+                Text(title).sectionTitleWeight(titleWeight)
             }
             Spacer()
             Text("\(group.topics.count)").font(.footnote.monospacedDigit()).foregroundStyle(.secondary)

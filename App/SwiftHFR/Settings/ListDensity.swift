@@ -91,9 +91,6 @@ enum ListDensity: Sendable {
         case .compact: 28
         }
     }
-
-    /// One meta line (who · last post) instead of two in a conversation row.
-    var mergesMetaLines: Bool { self == .compact }
 }
 
 extension EnvironmentValues {
