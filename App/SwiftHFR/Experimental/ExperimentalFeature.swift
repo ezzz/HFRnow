@@ -39,8 +39,8 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     /// `TopicRowStyle.current` (#817 built the legacy rows it switches off); the others wait for their own PR.
     var isListed: Bool {
         switch self {
-        case .modernComposer, .mpStorageSwitches, .imageLoadingChoice: true
-        case .searchTab, .flagIconRows: false
+        case .modernComposer, .mpStorageSwitches, .searchTab, .imageLoadingChoice: true
+        case .flagIconRows: false
         }
     }
 

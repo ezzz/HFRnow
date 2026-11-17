@@ -69,7 +69,24 @@ final class RootModel {
     /// The destination the iPad sidebar shows: the Plus tab has no list there, it opens Réglages (legacy
     /// `defaultIPadDestination`, `MainWindow.swift:1365-1376`).
     var sidebarDestination: SidebarDestination {
-        selectedDestination == .tab(.more) ? .plus(.settings) : selectedDestination
+        switch selectedDestination {
+        case .tab(.more): .plus(.settings)
+        // EXPERIMENTAL(searchTab, #896): the sidebar has no fifth tab; its search entry is the Plus one.
+        case .tab(.search): .plus(.search)
+        default: selectedDestination
+        }
+    }
+
+    /// EXPERIMENTAL(searchTab, #896): keeps the selection coherent with the tab bar. With the Recherche tab, the Plus search entry
+    /// is that tab (one live search screen on the shared model, not two); without it, a selected Recherche tab is Plus.
+    func settleSearchTab(isOn: Bool) {
+        if isOn, selectedDestination == .plus(.search) {
+            // Forget the entry too: Plus would otherwise reopen it and be sent back to Recherche, never showing its menu.
+            lastPlusEntry = nil
+            selectedDestination = .tab(.search)
+        } else if !isOn, selectedDestination == .tab(.search) {
+            selectedDestination = .tab(.more)
+        }
     }
 
     /// Whether the Messages badge is shown (`mp_badge_enabled`, legacy default on); refreshed by `reloadSettings()`.
