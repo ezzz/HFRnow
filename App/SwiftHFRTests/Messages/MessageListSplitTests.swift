@@ -129,6 +129,23 @@ struct MessageListSplitTests {
         #expect(model.visibleThreads.isEmpty)
     }
 
+    @Test func theMenuStepToTheNextPageSearchesLikeTheArrowAndAnyOtherPageIsExact() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in
+            pageOf([messageThread(page)] + (page == 1 || page == 3 ? [messageThread(90 + page, group: true)] : []), page: page, last: 4)
+        }
+        let model = model(source, display: .split)
+        await model.onAppear()
+        await model.select(.group)
+        #expect(source.requests == [1])
+        await model.goToPage(2)
+        // The step to the next page behaves as the arrow: page 2 has no group row, the search moved on to page 3.
+        #expect(model.currentPage == 3)
+        await model.goToPage(2)
+        // Any other page is the member's choice: shown as it is, empty segment included.
+        #expect(model.currentPage == 2 && model.visibleThreads.isEmpty)
+    }
+
     @Test func switchingSegmentDuringASearchStopsIt() async {
         let source = FakePrivateMessages()
         let gate = CheckGate()

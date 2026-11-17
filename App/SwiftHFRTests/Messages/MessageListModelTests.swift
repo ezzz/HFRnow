@@ -51,7 +51,9 @@ func messageThread(_ number: Int, unread: Bool = false, group: Bool = false, pag
 func messagePage(page: Int) -> PrivateMessageListPage {
     PrivateMessageListPage(
         threads: [messageThread(page * 10, unread: true), messageThread(page * 10 + 1, group: true)],
-        navigation: PageNavigation(current: page, last: 3, nextPath: page < 3 ? "/next" : nil, previousPath: page > 1 ? "/prev" : nil)
+        navigation: PageNavigation(
+            current: page, last: 3, isExact: true, nextPath: page < 3 ? "/next" : nil, previousPath: page > 1 ? "/prev" : nil
+        )
     )
 }
 

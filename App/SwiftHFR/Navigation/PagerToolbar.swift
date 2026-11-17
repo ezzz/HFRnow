@@ -20,10 +20,13 @@ struct PagerToolbar {
     let status: Status
     /// Goes to a page chosen in the « page x / y » menu (`Status.pageOf`); nil leaves that pill a plain label.
     var jump: (@MainActor (Int) -> Void)?
+    /// A page is loading: the `.pageOf` pill shows a spinner and keeps its place, so the bar does not change shape on each move.
+    var isLoading = false
 
     enum Status {
         case page(Int)
         /// « page x / y » in its own glass pill, left of the ‹ › pills; a tap opens `PagerPageMenu` when `jump` is set (#968, #980).
+        /// The system bottom bar of the iPad sidebar root keeps its centred status (the tab-bar strip is the specified layout).
         case pageOf(Int, Int, isExact: Bool = true)
         case loading
     }
@@ -62,7 +65,7 @@ struct PagerToolbar {
         switch status {
         case .page(let number): Text("Page \(number)").monospacedDigit()
         case .pageOf(let number, let total, let isExact):
-            PagerPageMenuPill(current: number, total: total, isExact: isExact, onPage: jump)
+            PagerPageMenuPill(current: number, total: total, isExact: isExact, isLoading: isLoading, onPage: jump)
         case .loading: ProgressView().accessibilityLabel("Chargement")
         }
     }

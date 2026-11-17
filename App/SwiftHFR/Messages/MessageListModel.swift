@@ -241,11 +241,11 @@ final class MessageListModel {
     func goToPreviousPage() async { if canGoToPrevious { await load(page: currentPage - 1, advancing: false) } }
     func goToFirstPage() async { if canGoToPrevious { await load(page: 1) } }
     func goToLastPage() async { if canGoToLast { await goToPage(pageCount) } }
-    /// Exactly HFR page `page`, nothing searched past it; clamped to 1...`pageCount` unless that is only a lower bound.
+    /// HFR page `page`, clamped to 1...`pageCount` unless that is a lower bound; only the step to the next page searches on, as ›.
     func goToPage(_ page: Int) async {
         let target = pageCountIsExact ? min(max(page, 1), pageCount) : max(page, 1)
         guard target != currentPage, !loader.isLoading else { return }
-        await load(page: target, advancing: false)
+        await load(page: target, advancing: target == currentPage + 1)
     }
 
     /// The reader of `thread`: the same model while it stays selected, a new one (a new load) for another conversation.

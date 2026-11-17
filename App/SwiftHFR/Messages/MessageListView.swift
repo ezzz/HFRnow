@@ -172,8 +172,9 @@ private struct EmptyMessagesView: View {
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
             next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
             last: .init(enabled: model.canGoToLast) { Task { await model.goToLastPage() } },
-            status: model.loader.isLoading ? .loading : .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
-            jump: { page in Task { await model.goToPage(page) } }
+            status: .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
+            jump: { page in Task { await model.goToPage(page) } },
+            isLoading: model.loader.isLoading
         )
     }
 }

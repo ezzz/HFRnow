@@ -47,6 +47,8 @@ struct PagerPageMenuPill: View {
     let current: Int
     let total: Int
     var isExact = true
+    /// A spinner replaces the text and the menu is off while a page loads.
+    var isLoading = false
     /// Called with the page chosen in the menu or typed; nil makes the pill a plain label.
     let onPage: (@MainActor (Int) -> Void)?
     @State private var isEntering = false
@@ -69,6 +71,7 @@ struct PagerPageMenuPill: View {
                 pill(menu)
             }
             .buttonStyle(.plain)
+            .disabled(isLoading)
             .accessibilityHint("Ouvre le menu des pages")
             .alert("Aller à la page", isPresented: $isEntering) {
                 TextField(menu.isExact ? "1 à \(menu.total)" : "Numéro", text: $entry).keyboardType(.numberPad)
@@ -81,11 +84,14 @@ struct PagerPageMenuPill: View {
     }
 
     private func pill(_ menu: PagerPageMenu) -> some View {
-        Text(menu.label).monospacedDigit()
-            .padding(.horizontal, 12).padding(.vertical, 6)
-            .glassEffect(.regular, in: .capsule)
-            .accessibilityLabel(
-                menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
-            )
+        Group {
+            if isLoading { ProgressView().accessibilityLabel("Chargement") } else { Text(menu.label).monospacedDigit() }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .glassEffect(.regular, in: .capsule)
+        .accessibilityLabel(
+            isLoading ? "Chargement"
+                : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
+        )
     }
 }
