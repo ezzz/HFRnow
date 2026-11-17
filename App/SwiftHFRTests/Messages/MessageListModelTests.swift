@@ -51,7 +51,9 @@ func messageThread(_ number: Int, unread: Bool = false, group: Bool = false, pag
 func messagePage(page: Int) -> PrivateMessageListPage {
     PrivateMessageListPage(
         threads: [messageThread(page * 10, unread: true), messageThread(page * 10 + 1, group: true)],
-        navigation: PageNavigation(current: page, last: 3, nextPath: page < 3 ? "/next" : nil, previousPath: page > 1 ? "/prev" : nil)
+        navigation: PageNavigation(
+            current: page, last: 3, isExact: true, nextPath: page < 3 ? "/next" : nil, previousPath: page > 1 ? "/prev" : nil
+        )
     )
 }
 
@@ -69,6 +71,55 @@ struct MessageListModelTests {
         #expect(model.currentPage == 1)
         #expect(model.canGoToNext)
         #expect(!model.canGoToPrevious)
+    }
+
+    // #968: one HFR page per screen, page x of the app = page x of `cat=prive`; y is HFR's last page (`messagePage`: 3 pages).
+    @Test func theMenuTargetsFetchExactlyThatHFRPage() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        #expect(model.pageCount == 3)
+        await model.goToLastPage()
+        #expect(model.currentPage == 3 && !model.canGoToNext)
+        await model.goToPage(2)
+        await model.goToFirstPage()
+        #expect(source.requests == [1, 3, 2, 1])
+        #expect(model.currentPage == 1)
+    }
+
+    @Test func aTypedPageIsClampedAndNeverSearchedPast() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        await model.goToPage(99)
+        await model.goToPage(0)
+        await model.goToPage(1)
+        #expect(source.requests == [1, 3, 1])
+    }
+
+    @Test func aLowerBoundLastPageIsNotOfferedAndALaterPageCanBeTyped() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in
+            PrivateMessageListPage(
+                threads: [messageThread(page)],
+                navigation: PageNavigation(current: page, last: 10, isExact: false, nextPath: "/next", previousPath: nil)
+            )
+        }
+        let model = model(source)
+        await model.onAppear()
+        #expect(model.pageCount == 10 && !model.pageCountIsExact && model.canGoToNext && !model.canGoToLast)
+        await model.goToLastPage()
+        #expect(source.requests == [1])
+        await model.goToPage(15)
+        #expect(source.requests == [1, 15])
+    }
+
+    @Test func goingToThePageOnScreenFetchesNothing() async {
+        let source = FakePrivateMessages()
+        let model = model(source)
+        await model.onAppear()
+        await model.goToPage(1)
+        #expect(source.requests == [1])
     }
 
     @Test func rowsKeepGroupFlagAndUnreadStateForTheNextLot() async throws {

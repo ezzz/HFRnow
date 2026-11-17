@@ -45,6 +45,7 @@ struct SettingsView: View {
     private let mpStorage: MPStorageSyncModel?
     /// "Maintenance" (LOT-120).
     @State private var maintenance = MaintenanceModel()
+    @State private var titleIsVisible = true
 
     /// Whether the "Hors ligne" section and its saved topics are shown: never while offline save is disabled (#822).
     static var showsOfflineSection: Bool { OfflineSaveAvailability.isReachable }
@@ -67,6 +68,7 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var general = general
         Form {
+            ScreenLargeTitle(title: "Réglages", isVisible: $titleIsVisible)
             Section("Général") {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
                     ForEach(StartupScreen.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -119,6 +121,7 @@ struct SettingsView: View {
                     ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
+            MPNotificationSettingsSection(store: store)
             MPStorageSettingsSection(model: mpStorage)
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
@@ -155,7 +158,7 @@ struct SettingsView: View {
             SecuritySettingsSections()
             MaintenanceSection(model: maintenance)
             Section("À propos") {
-                LabeledContent("Version", value: AppVersion.current.display)
+                VersionRow()
             }
             if let experimental { ExperimentalSettingsSection(settings: experimental) }
         }
@@ -163,8 +166,9 @@ struct SettingsView: View {
         .listSectionSpacing(general.compactMode ? .custom(8) : .default)
         // The Favoris tab's menu writes the same settings: show them as they are now (the Plus tab stays alive under the tab bar).
         .onAppear { favorites.reloadSettings() }
-        .navigationTitle("Réglages")
-        .navigationBarTitleDisplayMode(.inline)
+        // One measure per appearance of the screen (legacy `AppSettingsView.swift:606-607`), not one per row of the section.
+        .task { await maintenance.refreshCacheStorage() }
+        .screenTitle("Réglages", style: .largeThenPill, headerVisible: titleIsVisible)
     }
 }
 

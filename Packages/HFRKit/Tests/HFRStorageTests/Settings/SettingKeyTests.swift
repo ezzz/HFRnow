@@ -41,7 +41,9 @@ import Testing
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
             "experimental.flagIconRows", "experimental.imageLoadingChoice",
             // #1003: the first activation of « Chargement des images », new.
-            "experimental.imageLoadingChoice.started"
+            "experimental.imageLoadingChoice.started",
+            // LOT-140: the background MP check interval, new.
+            "mp_check_interval"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }

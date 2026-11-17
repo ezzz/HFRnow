@@ -71,6 +71,12 @@ public struct PageFetcher: Sendable {
         try await fetch({ try HFREndpoint.smileySearch(text, requireAll: requireAll) }, identity)
     }
 
+    /// A page of the member's profile edit form (`/user/editprofil.php`); page 5 lists the member's own created smileys
+    /// (`R601a`). Needs the account's cookies, and HFR sets them again on this page: send it from a probe session.
+    public func profileEdit(page: EditProfilePage, as identity: FetchIdentity = .authenticated) async throws(NetworkError) -> RawPage {
+        try await fetch({ try HFREndpoint.editProfile(page: page) }, identity)
+    }
+
     /// R54: the wiki entry of a smiley. Anonymous by default: HFR serves it logged out (`R54`).
     public func smileyWiki(code: String, as identity: FetchIdentity = .anonymous) async throws(NetworkError) -> RawPage {
         try await fetch({ try HFREndpoint.smileyWiki(code: code) }, identity)

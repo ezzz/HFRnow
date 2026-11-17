@@ -143,6 +143,8 @@ inside the card above the text, the two pills just under the editor so they move
 7. Accessibility text sizes open at full height, with "Réduire"; the lists behind a new topic / new MP stay dimmed and inert
    (the author's two choices of round 2, confirmed by the operator on 2026-11-11).
 
+- **« Mes smileys »** (#414, after #653; operator 2026-11-07: every section visible): the picker lists the smileys the member created, between the forum favourites and the app favourites. They are read from the profile edit page 5, row « Smilies persos » (`GET /user/editprofil.php?config=hfr.inc&page=5`, fixture `R601a`, HFR-PROTOCOL §6c « Smiley page and filtered lists »), by `OwnSmileysParser` and `OwnSmileysFlow` (one read-only GET in a probe session seeded with the account's cookies, nothing written back, since that page sets cookies again). A page without the row (login wall, other page) is a failure, shown with « Réessayer », never « no smileys » (LESSONS 44); a member with none sees how to create one. A tap inserts the smiley at once (it is theirs, no wiki detail); the context menu adds it to the app favourites like any other. Legacy never listed them in the picker (`AnswerView.swift:1357-1385` @ 2440d79, still absent at 87fe0d1c). The section is on by default: the operator asked for every section to be visible (#600, #592, decision of 2026-11-07), so it is not an optional evolution.
+
 ## Edge cases
 - The `[url=…]` form is typed, not validated: the clipboard text goes in as is (as legacy). The clipboard is offered once per change count.
 

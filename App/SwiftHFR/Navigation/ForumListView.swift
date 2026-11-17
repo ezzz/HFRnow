@@ -6,10 +6,12 @@ import SwiftUI
 /// The Catégories list: one flat row per forum with its icon and sub-forum count (flags and favourites have their own tab, LOT-170).
 struct ForumListView: View {
     @Bindable var navigation: NavigationModel
+    @State private var titleIsVisible = true
 
     var body: some View {
         let loader = navigation.forums.loader
         List(selection: $navigation.selectedSource) {
+            ScreenLargeTitle(title: "Catégories", isVisible: $titleIsVisible)
             if let content = loader.value {
                 // Noël soft piles a little snow on the card's top edge, in the section header above it (LOT-166).
                 SeasonalSnowCapSection {
@@ -22,7 +24,7 @@ struct ForumListView: View {
         .listStyle(.insetGrouped)
         .densityListMargins()
         .seasonalScrollTracking()
-        .navigationTitle("Catégories")
+        .screenTitle("Catégories", style: .largeThenPill, headerVisible: titleIsVisible)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 AccountMenuButton()

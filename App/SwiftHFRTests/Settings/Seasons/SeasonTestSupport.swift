@@ -46,9 +46,10 @@ final class SeasonTestClock {
 extension SeasonalThemeModel {
     /// Plays the arrival sleigh to its end, as a scene's layer does, so the alert may come.
     func playArrivalSleigh() {
-        crossings.foregroundChanged(active: true)
+        let scene = UUID()
+        crossings.sceneChanged(scene, active: true)
         if let sleigh = crossings.crossing(
-            for: UUID(), on: .init(area: CGSize(width: 402, height: 650), windowHeight: 874), screen: ScreenState(),
+            for: scene, on: .init(area: CGSize(width: 402, height: 650), windowHeight: 874), screen: ScreenState(),
             animationsAllowed: animationsAllowed, crossingsOn: false
         ) {
             crossings.finish(sleigh.id)

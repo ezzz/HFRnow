@@ -80,7 +80,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-057 | Image viewer | Full-screen zoom of one image; save, copy link. | Common.swift:2161; MessagesView.swift:1255-1275 | Viewer plus HD gallery with swipe between images. | LOT-109, FEAT-014 | UX change | new UX: Bybifok (FEAT-014) | b |
 | GAP-058 | Videos | At `2440d79` embeds become auto-loaded iframes. At `2fe43da3` no embeds: a video link stays a plain link and the "Afficher les vidéos" setting is gone (`d645f525`). | Wrapped/LinkItem.m:148-155 @ 2440d79 (removed by `d645f525`) | Placeholder per embed, player opens on tap; the YouTube player alone gets a `Referer` that names the app (LOT-071 R3 exception, #752); an unavailable video shows "Vidéo indisponible" and "Ouvrir le lien". | LOT-108, LOT-035, #752 | UX change | new UX: spec | b·needed |
 | GAP-059 | Polls | Toolbar button when a poll exists; sheet with results and "Voter". | MessagesView.swift:4675-4680; PollView.swift:82-106 | Poll display and vote. | LOT-136 | same | port: ezzz Swift layer | a |
-| GAP-060 | Page controls | Bottom bar ‹ ›, "…" menu with page 1, last pages, "Page…". | MessagesView.swift:4184-4235, 4756-4760 | Bottom bar ‹ › and reply; at the end of a page the "N / M" page bubble and the top bar's "Actualiser" also show, › prominent at the end of a page that is not the last, the refresh at the end of the last page (#820); a pull past the end refreshes, with a small hint under the last message. The page menus (bubble and top "…") use legacy's labels: Page 1, Page …, last pages, Dernier post (#821). Above the tab bar when it shows (#649). | LOT-083, LOT-167 | ported with changes | port: ezzz Swift layer | b |
+| GAP-060 | Page controls | Bottom bar ‹ ›, "…" menu with page 1, last pages, "Page…". | MessagesView.swift:4184-4235, 4756-4760 | Bottom bar ‹ › and reply; at the end of a page the "N / M" page bubble (its own pill, #961) and the top bar's "Actualiser" also show; ‹ › are two pills at the end of the page and one mid-page, with no accent fill; ‹ is grey and disabled on the first page, › on the last (#965); a pull past the end refreshes, with a small hint under the last message. The page menus (bubble and top "…") use legacy's labels: Page 1, Page …, last pages, Dernier post (#821). Above the tab bar when it shows (#649). | LOT-083, LOT-167 | ported with changes | port: ezzz Swift layer | b |
 | GAP-061 | Page navigator | "Page…" asks for a number in a sheet. | MessagesView.swift:4143-4146 | Navigator from the page number in the title: go to, first/last, ±5, blocks of 50. | LOT-110, FEAT-002 | UX change | new UX: Bybifok (FEAT-002) | b |
 | GAP-062 | Page scrubber | None. | — | Right-edge scrubber, "p. N" bubble, first-unread snap, haptics. | LOT-112, FEAT-004 | new | new UX: Bybifok (FEAT-004) | b |
 | GAP-063 | First unread | Separator inserted after the flag message (dashed in the base stylesheet). | ObjCTopicMessageContentBuilder.m:25-33; HTML/style-liste.css:124-125 | "Nouveau" banner, position stable while images load. | LOT-111, FEAT-007 | UX change | new UX: Bybifok (FEAT-007) | b |
@@ -114,7 +114,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-088 | Smiley search | HFR search, "all keywords" toggle, recent and top chips. | AnswerView.swift:1280-1317; SmileySearchService.swift:88-135 | Search, history and wiki keywords. | LOT-105, LOT-053 | same | port: ezzz Swift layer | a |
 | GAP-089 | GIFs | Giphy panel, rating R, recents. | AnswerView.swift:2294-2340 | Giphy client (injected key) and our own GIF grid (trending, search, confirmation); notice N1 before the first request; no recents; GIFs off Giphy's CDN are never shown or posted. | LOT-098, LOT-155 | ported with changes | port: ezzz Swift layer | b·needed |
 | GAP-090 | Image upload | Rehost with resize cap and three BBCode modes. | ReplyService.swift:1735-1810 | Rehost client with a host table, upload and insertion panel. | LOT-056, LOT-102 | ported with changes | port: ezzz Swift layer | a |
-| GAP-091 | Upload history | Local history, re-insert in four sizes; "Supprimer" removes an entry silently, which suggests the image is deleted. | ReplyService.swift:1812-1918; AnswerView.swift:1909 | Local upload history; removal asks first and says the image stays online on the host. | LOT-103, FEAT-019 | UX change | new UX: Bybifok (FEAT-019) | b·operator |
+| GAP-091 | Upload history | Local history, re-insert in four sizes; "Supprimer" removes an entry silently, which suggests the image is deleted. | ReplyService.swift:1812-1918; AnswerView.swift:1909 | Local upload history; with iCloud on, the 100 newest uploads follow the Apple ID, merged by id with removals (ADR 0013 Amendment 4); removal asks first and says the image stays online on the host. | LOT-103, FEAT-019, #966 | UX change | new UX: Bybifok (FEAT-019) | b·operator |
 | GAP-092 | Drafts | One global draft (`composerDraftText`) for replies, saved on dismiss. | MessagesView.swift:2668; AnswerView.swift:30-37 | Draft per topic and account, autosaved, 30-day expiry; swipe-down blocked with text. | LOT-084, LOT-063 | UX change | new UX: spec | b |
 | GAP-093 | Archived drafts | None at `2440d79`. At `2fe43da3` (`196620d2`): drafts are kept per topic, up to 3 archived drafts per topic, a "Brouillons" button and a picker (use, delete, "Vider", "Mettre de côté et vider", the latter came with `08a63c8e`); a replaced draft is archived first. | — @ `2440d79`; `AnswerView.swift:103-272, 783-796, 1855-2001` @ `87fe0d1c` | Archived drafts per topic (≤ 3 per account, kept 30 days like drafts) and their picker; a quote merges into the draft so it archives nothing (LOT-101). | LOT-101 | ported with changes | port: legacy evolution (2fe43da3) | a·master |
 | GAP-094 | Preview before send | None. | — | Exact BBCode rendering before send. | LOT-152, LOT-097, FEAT-013 | new | new UX: Bybifok (FEAT-013) | b |
@@ -266,6 +266,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | GAP-225 | Reader "…" page menu | A page menu behind a plain `ellipsis` in the reader. | MessagesView.swift:4722, 4970 | The "…" becomes the system overflow menu or another symbol, because the Duo HIG reserves the ellipsis for overflow (Designing for iPhone Duo). The page controls follow the legacy layout (#428). | LOT-186 (absorbs #428) | UX change | new UX: operator | b·operator |
 | GAP-226 | Glass buttons on floating controls | Glass buttons (`.buttonStyle(.glass)`, `.glassProminent`) through `hfrGlassButton`, 17 call sites; the submit button inside the add-account card (AddAccountView.swift:67). | LiquidGlass.swift:54-68; AddAccountView.swift:67 | Glass buttons on floating controls only (HIG Buttons: one or two prominent buttons per view). The card button loses its glass: a UX change, kept because the HIG wins. This reverses LOT-115:49, which dropped the glass buttons. | LOT-185, LOT-186 (reverses LOT-115) | UX change | port: ezzz Swift layer | b·operator |
 | GAP-227 | Unread MP row emphasis | Semibold title in the primary colour plus a grey "non lu" capsule; a read title is regular in `.secondary`. | MPListView.swift:406-483, Common.swift:3119-3120 @ 2440d79 | Semibold title in the primary colour plus accent dot ("Non lu" label) plus a light accent tint drawn as a rounded pill inside the list's block (`RowTint`, `rowPill`; skipped on the selected iPad row). A read title is regular in the secondary colour, at its Increase Contrast strength in light so it keeps 4.5:1 (#651). The MP list style is explicit `.insetGrouped`. Legacy's MP list has no row tint; the pill is kept by operator decision (2026-11-13, #803). | #570, #572, #651, #803 | UX change | port: ezzz Swift layer | b·operator |
+| GAP-978 | Collapsed title | The system navigation title: `.automatic` (a large title that collapses into the inline title) on every root list and on pushed topic lists; `.inline` only on a phone, on either Duo display or in a regular/regular scene (an iPad gets `.automatic`). | Common.swift:377-387; PhoneDisplayPolicy.swift:80-83; MainWindow.swift:802 @ 87fe0d1c | A centred Liquid Glass pill in the top bar: on the main screens once their large title has collapsed (large title at landing, `.largeThenPill`), on pushed lists and Recherche from the start (`.pill`); a tap shows the full title, a long press copies it (#978, PR #998). Two further differences: SwiftHFR applies no Duo or regular/regular rule (legacy shows no large title there), and a pushed topic list starts on the pill where legacy starts on a large title. | #978 | UX change | new UX: operator | b·operator |
 
 ## Counts
 
@@ -274,11 +275,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 38 |
 | ported with changes | 57 |
 | ported with changes (engine only) | 1 |
-| UX change | 47 |
+| UX change | 48 |
 | new | 28 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **177** |
+| **Total** | **178** |
 
 ## Convergence notes
 
@@ -308,14 +309,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (132)
+### GAP rows of type `ported with changes`, `UX change` or `new` (133)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 011, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 190, 191, 201, 216, 220, 221, 230, 595 | 52 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181 | 7 |
-| b·operator | 013, 016, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903 | 25 |
+| b·operator | 013, 016, 065, 091, 112, 141, 147, 148, 168, 169, 184, 185, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 26 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 214, 229 | 38 |
 
 The (b) rows include the ones the merged code already ships: 009, 020, 022, 051, 060, 092, 163, 212, 214 (008 joins once #540 merges). The `same` rows are (a).

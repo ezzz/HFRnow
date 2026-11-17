@@ -76,6 +76,9 @@ public enum SettingKey {
     public static let appIconRevertAsked = Setting.optionalString("icon_revert_asked")
     /// `mp_badge_enabled`.
     public static let privateMessageBadge = Setting.bool("mp_badge_enabled", default: true)
+    /// `mp_check_interval` (LOT-140, new key): the minimum delay between two background MP checks, in minutes, `0` for none.
+    /// An unknown value reads as the default, 30 minutes. A property of the device: never synced.
+    public static let mpCheckInterval = Setting.integerEnum("mp_check_interval", default: MPCheckInterval.thirtyMinutes)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
     /// never synced.
     public static let appLockEnabled = Setting.bool("app_lock_enabled", default: false)
@@ -229,7 +232,7 @@ public enum SettingKey {
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
-        privateMessageBadge, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
+        privateMessageBadge, mpCheckInterval, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,

@@ -218,10 +218,14 @@ struct SmileyPanelServices {
     let search: SmileySearchModel?
     /// Reads the account's forum favourites from the composer's form (nil result: could not be read); nil without a form.
     var forumFavorites: (@Sendable () async -> [ForumSmiley]?)?
+    /// Reads the member's own created smileys (« Smilies persos », #414); nil result: could not be read; nil without an account.
+    var ownSmileys: (@Sendable () async -> [OwnSmiley]?)?
 
     /// The picker over these services.
     @MainActor func picker(catalogue: [CommonSmiley], search: SmileySearchModel?) -> SmileyPickerModel {
-        SmileyPickerModel(catalogue: catalogue, store: store, account: account, search: search, forumLoader: forumFavorites)
+        SmileyPickerModel(
+            catalogue: catalogue, store: store, account: account, search: search, forumLoader: forumFavorites, ownLoader: ownSmileys
+        )
     }
 }
 
@@ -258,7 +262,8 @@ struct ComposerServices: Sendable {
         SmileyPanelServices(
             store: smileyFavorites, account: account,
             search: smileyLookups.map { SmileySearchModel(lookups: $0, history: smileySearchHistory) },
-            forumFavorites: forumFavoritesLoader(formURL: formURL)
+            forumFavorites: forumFavoritesLoader(formURL: formURL),
+            ownSmileys: ownSmileysLoader()
         )
     }
 
@@ -270,6 +275,19 @@ struct ComposerServices: Sendable {
         let load: @Sendable () async -> [ForumSmiley]? = {
             do throws(PostingError) {
                 return try await poster.forumSmileys(formURL: formURL)
+            } catch {
+                return nil
+            }
+        }
+        return load
+    }
+
+    /// Reads the member's own smileys through the forum lookups; a failure is `nil`, shown as such and never as an empty list.
+    private func ownSmileysLoader() -> (@Sendable () async -> [OwnSmiley]?)? {
+        guard let lookups = smileyLookups else { return nil }
+        let load: @Sendable () async -> [OwnSmiley]? = {
+            do throws(SmileyLookupError) {
+                return try await lookups.ownSmileys()
             } catch {
                 return nil
             }
