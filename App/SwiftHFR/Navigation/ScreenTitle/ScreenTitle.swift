@@ -56,18 +56,19 @@ struct TitlePillState: Equatable {
 }
 
 extension View {
-    /// Gives the screen its title under the shared rule (#977, #978, #865). `headerVisible` is whether the `ScreenLargeTitle` row
-    /// is on screen; a `.pill` screen has none. The title stays the navigation title (back button, VoiceOver), but the system's own
-    /// inline title is replaced by the pill, so no strip of the screen is kept for it and the content scrolls under the bar.
-    func screenTitle(_ title: String, style: ScreenTitleStyle, headerVisible: Bool = false) -> some View {
-        modifier(ScreenTitleModifier(title: title, style: style, headerVisible: headerVisible))
+    /// Gives the screen its title under the shared rule (#977, #978, #865). `visibility` tracks whether the `ScreenLargeTitle` row
+    /// is on screen; a `.pill` screen has none and passes nil. The title stays the navigation title (back button,
+    /// VoiceOver), but the system's own inline title is replaced by the pill, so no strip of the screen is kept for it and the content
+    /// scrolls under the bar.
+    func screenTitle(_ title: String, style: ScreenTitleStyle, visibility: TitleVisibility? = nil) -> some View {
+        modifier(ScreenTitleModifier(title: title, style: style, visibility: visibility))
     }
 }
 
 private struct ScreenTitleModifier: ViewModifier {
     let title: String
     let style: ScreenTitleStyle
-    let headerVisible: Bool
+    let visibility: TitleVisibility?
 
     func body(content: Content) -> some View {
         content
@@ -75,11 +76,7 @@ private struct ScreenTitleModifier: ViewModifier {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    let presentation = style.pillPresentation(headerVisible: headerVisible)
-                    TitlePill(title: title, isActive: presentation == .shown)
-                        .opacity(presentation == .shown ? 1 : 0)
-                        .allowsHitTesting(presentation == .shown)
-                        .accessibilityHidden(presentation == .reserved)
+                    PillSlot(title: title, style: style, visibility: visibility)
                 }
                 // The pill draws its own glass: the bar must not put a second capsule behind it.
                 .sharedBackgroundVisibility(.hidden)
@@ -87,11 +84,36 @@ private struct ScreenTitleModifier: ViewModifier {
     }
 }
 
+/// Whether a main screen's large title is on screen. A class of its own, read only by `PillSlot`: if the list held this as `@State`
+/// and read it in its `body`, every crossing of the large title would rebuild the whole list (#1015, suspect 1).
+@MainActor @Observable
+final class TitleVisibility {
+    /// True at landing, while the large title is the first row on screen.
+    var isHeaderVisible = true
+}
+
+/// The bar's centre slot: the pill, or its invisible placeholder (see `ScreenTitleStyle.pillPresentation`). It is the only reader of
+/// `TitleVisibility`, so a crossing redraws this view and nothing else.
+private struct PillSlot: View {
+    let title: String
+    let style: ScreenTitleStyle
+    let visibility: TitleVisibility?
+
+    var body: some View {
+        // A `.pill` screen has no large title: nil reads as "gone".
+        let presentation = style.pillPresentation(headerVisible: visibility?.isHeaderVisible ?? false)
+        TitlePill(title: title, isActive: presentation == .shown)
+            .opacity(presentation == .shown ? 1 : 0)
+            .allowsHitTesting(presentation == .shown)
+            .accessibilityHidden(presentation == .reserved)
+    }
+}
+
 /// The large title of a main screen: the first row of its list or form, which scrolls with the content. It reports whether it is
 /// on screen, so the pill takes over once it is gone.
 struct ScreenLargeTitle: View {
     let title: String
-    @Binding var isVisible: Bool
+    let visibility: TitleVisibility
 
     var body: some View {
         // Its own section: in an inset-grouped list, a row outside any section shares the implicit one, and this clear row would
@@ -105,7 +127,7 @@ struct ScreenLargeTitle: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                 .accessibilityAddTraits(.isHeader)
-                .onScrollVisibilityChange { isVisible = $0 }
+                .onScrollVisibilityChange { visibility.isHeaderVisible = $0 }
         }
     }
 }

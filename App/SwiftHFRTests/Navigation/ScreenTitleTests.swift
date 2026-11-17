@@ -31,6 +31,14 @@ struct ScreenTitleTests {
         #expect(ScreenTitleStyle.pill.pillPresentation(headerVisible: true) == .shown)
     }
 
+    /// A main screen starts on its large title, so the pill is only reserved until the first crossing.
+    @MainActor @Test func aMainScreenStartsWithItsLargeTitleOnScreen() {
+        let visibility = TitleVisibility()
+        #expect(ScreenTitleStyle.largeThenPill.pillPresentation(headerVisible: visibility.isHeaderVisible) == .reserved)
+        visibility.isHeaderVisible = false
+        #expect(ScreenTitleStyle.largeThenPill.pillPresentation(headerVisible: visibility.isHeaderVisible) == .shown)
+    }
+
     @Test func aTapShowsTheFullTitleAndTheNextTapOrTheDelayFoldsIt() {
         var state = TitlePillState()
         #expect(!state.isExpanded)

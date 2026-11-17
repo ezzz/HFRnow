@@ -17,16 +17,16 @@ struct ForumSearchView: View {
     @FocusState private var fieldFocused: Bool
     /// "Annuler" ended the load: no result to announce (the loader keeps the previous value).
     @State private var cancelledLoad = false
-    @State private var titleIsVisible = true
+    @State private var titleVisibility = TitleVisibility()
 
     var body: some View {
         List {
-            ScreenLargeTitle(title: "Recherche", isVisible: $titleIsVisible)
+            ScreenLargeTitle(title: "Recherche", visibility: titleVisibility)
             formSection
             resultsSection
         }
         .densityListMargins()
-        .screenTitle("Recherche", style: .largeThenPill, headerVisible: titleIsVisible)
+        .screenTitle("Recherche", style: .largeThenPill, visibility: titleVisibility)
         .pagerBar(pager, hidden: fieldFocused)
         .navigationDestination(item: $model.selected) { topic in
             if let readerModel = model.reader(for: topic) {
