@@ -150,7 +150,7 @@ struct TopicsColumn: View {
                 composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source),
                 openCategory: navigation.favorites == nil ? nil : (openCategory ?? { navigation.openCategory($0) }),
                 // Favoris is a main screen with its large title; the lists a forum row pushes get the pill (#977, #978).
-                titleStyle: navigation.favorites == nil ? .pill : .largeThenPill
+                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil)
             )
             .id(source)
             .navigationDestination(item: $navigation.openedCategory) { category in

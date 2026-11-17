@@ -17,10 +17,16 @@ enum ScreenTitleStyle: Equatable, Sendable {
         case .largeThenPill: !headerVisible
         }
     }
+
+    /// The title style of a topic list column: Favoris (the column with the favourites options) is a main screen, every other list
+    /// is pushed from a forum row (#977, #978).
+    static func topicList(isFavoritesRoot: Bool) -> ScreenTitleStyle {
+        isFavoritesRoot ? .largeThenPill : .pill
+    }
 }
 
-/// What a tap and a long press on the pill do (#978): a tap shows the full title, which folds back on the next tap, on a scroll
-/// of the screen or after `foldDelay`; a long press copies the title.
+/// What a tap on the pill does (#978): it shows the full title, which folds back on the next tap, a tap outside (the popover's own
+/// dismissal) or after `foldDelay`.
 struct TitlePillState: Equatable {
     /// Whether the full title is shown.
     var isExpanded = false
@@ -31,7 +37,7 @@ struct TitlePillState: Equatable {
 
     /// A tap on the pill.
     mutating func tap() { isExpanded.toggle() }
-    /// The end of the delay, or a scroll.
+    /// The end of the delay.
     mutating func fold() { isExpanded = false }
 }
 
@@ -71,15 +77,19 @@ struct ScreenLargeTitle: View {
     @Binding var isVisible: Bool
 
     var body: some View {
-        Text(title)
-            .scaledFont(.largeTitle)
-            .fontWeight(.bold)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 4, trailing: 4))
-            .accessibilityAddTraits(.isHeader)
-            .onScrollVisibilityChange { isVisible = $0 }
+        // Its own section: in an inset-grouped list, a row outside any section shares the implicit one, and this clear row would
+        // take the first real row's rounded top corners.
+        Section {
+            Text(title)
+                .scaledFont(.largeTitle)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+                .accessibilityAddTraits(.isHeader)
+                .onScrollVisibilityChange { isVisible = $0 }
+        }
     }
 }
 

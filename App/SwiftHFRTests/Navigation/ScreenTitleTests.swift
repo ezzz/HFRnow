@@ -13,7 +13,13 @@ struct ScreenTitleTests {
         #expect(ScreenTitleStyle.pill.showsPill(headerVisible: false))
     }
 
-    @Test func aTapShowsTheFullTitleAndTheNextTapOrAScrollFoldsIt() {
+    /// Favoris is a main screen; the category lists a forum row pushes get the pill from the start.
+    @Test func onlyTheFavoritesListIsAMainScreenAmongTheTopicLists() {
+        #expect(ScreenTitleStyle.topicList(isFavoritesRoot: true) == .largeThenPill)
+        #expect(ScreenTitleStyle.topicList(isFavoritesRoot: false) == .pill)
+    }
+
+    @Test func aTapShowsTheFullTitleAndTheNextTapOrTheDelayFoldsIt() {
         var state = TitlePillState()
         #expect(!state.isExpanded)
         state.tap()
@@ -25,10 +31,5 @@ struct ScreenTitleTests {
         #expect(!state.isExpanded)
         state.fold()
         #expect(!state.isExpanded)
-    }
-
-    @Test func theFullTitleFoldsBackAfterAboutFourSeconds() {
-        #expect(TitlePillState.foldDelay == .seconds(4))
-        #expect(TitlePillState.copiedAnnouncement == "Titre copié")
     }
 }
