@@ -130,8 +130,11 @@ struct SmileyPickerModelTests {
         OwnSmiley(code: code, imageURL: url(Self.base + "own.gif"))
     }
 
+    private func ownSmileys(_ codes: String...) -> [OwnSmiley] { codes.map(ownSmiley) }
+
     @Test func theOwnSectionIsLoadingThenListsTheMembersSmileys() async {
-        let model = picker(ownLoader: { [self.ownSmiley("[:me]"), self.ownSmiley("[:me:1]")] })
+        let listed = ownSmileys("[:me]", "[:me:1]")
+        let model = picker(ownLoader: { listed })
         #expect(model.sections[2].state == .loading)
         await model.loadOwn()
         #expect(model.sections[2].state == .smileys)
@@ -146,7 +149,8 @@ struct SmileyPickerModelTests {
 
     @Test func aFailedReadIsShownAndRetriedNeverShownAsEmpty() async {
         let calls = LoadCounter()
-        let model = picker(ownLoader: { [self] in await calls.next() == 1 ? nil : [self.ownSmiley("[:me]")] })
+        let listed = ownSmileys("[:me]")
+        let model = picker(ownLoader: { await calls.next() == 1 ? nil : listed })
         await model.loadOwn()
         #expect(model.sections[2].state == .failed("Vos smileys sont indisponibles pour le moment."))
         await model.retryOwn()
@@ -159,16 +163,18 @@ struct SmileyPickerModelTests {
         await none.loadOwn()
         #expect(none.sections[2].state == .empty("Vos smileys sont indisponibles ici."))
         let calls = LoadCounter()
-        let model = picker(ownLoader: { [self] in _ = await calls.next(); return [self.ownSmiley("[:me]")] })
+        let listed = ownSmileys("[:me]")
+        let model = picker(ownLoader: { _ = await calls.next(); return listed })
         await model.loadOwn()
         await model.loadOwn()
         #expect(await calls.count == 1)
     }
 
-    @Test func aTapOnOneOfTheMembersSmileysInsertsItAtOnce() async {
-        let model = picker(ownLoader: { [self.ownSmiley("[:me]")] })
+    @Test func aTapOnOneOfTheMembersSmileysInsertsItAtOnce() async throws {
+        let listed = ownSmileys("[:me]")
+        let model = picker(ownLoader: { listed })
         await model.loadOwn()
-        guard let smiley = model.sections[2].smileys.first else { return }
+        let smiley = try #require(model.sections[2].smileys.first)
         model.tap(own: smiley)
         #expect(model.chosen?.code == "[:me]")
     }
