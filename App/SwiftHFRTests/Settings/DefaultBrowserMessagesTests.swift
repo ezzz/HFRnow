@@ -12,8 +12,8 @@ struct DefaultBrowserMessagesTests {
         let lines = DefaultBrowserMessages.explanation
         #expect(lines.count == 3)
         #expect(lines.allSatisfy { !$0.isEmpty })
-        #expect(lines[0].hasPrefix("Désactivé") && lines[0].contains("Safari"))
-        #expect(lines[1].hasPrefix("Activé") && lines[1].contains("navigateur par défaut"))
+        #expect(lines[0].hasPrefix("Activé") && lines[0].contains("hors de l’app"))
+        #expect(lines[1].hasPrefix("Désactivé") && lines[1].contains("à l’intérieur de l’app"))
         #expect(lines[2].contains("lecteur") && lines[2].contains("profils"))
     }
 

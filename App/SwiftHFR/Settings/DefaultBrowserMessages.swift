@@ -13,10 +13,12 @@ enum DefaultBrowserMessages {
     /// The accessibility label of the (i) button that opens `explanation` in a bubble.
     static let infoLabel = "À propos du navigateur par défaut"
 
-    /// What each position does, one short sentence each; the last says what the switch never changes.
+    /// What each position does, in the operator's words (issue #1071, 2026-11-17), then what the switch never changes. The last
+    /// line is the operator's « Les liens du forum (sujets, MP, profils) restent toujours dans l'app » limited to the reader,
+    /// the only screen where that holds (see above).
     static let explanation = [
-        "Désactivé : les autres liens s’ouvrent dans Safari, intégré à l’app.",
-        "Activé : ils s’ouvrent dans le navigateur par défaut de l’iPhone ; l’app passe en arrière-plan.",
-        "Dans le lecteur, les sujets, les MP et les profils du forum restent dans l’app, quel que soit le réglage."
+        "Activé : les liens s’ouvrent dans une nouvelle fenêtre de votre navigateur (hors de l’app).",
+        "Désactivé : les liens s’ouvrent dans une fenêtre à l’intérieur de l’app.",
+        "Dans le lecteur, les liens du forum (sujets, MP, profils) restent toujours dans l’app."
     ]
 }
