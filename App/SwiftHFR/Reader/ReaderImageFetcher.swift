@@ -69,6 +69,19 @@ struct ReaderImageFetcher: Sendable {
         throw .unavailable
     }
 
+    /// The full-size file of `url` (`ImageGallery.fullSize`, #1035), or `url` itself when that fetch fails (a 404 or a non-image
+    /// for the rewritten address), so no image disappears. Same policy, same limits and same hop checks for both requests.
+    func imagePreferringFullSize(
+        at url: URL, allowsThirdParty: Bool, hostTable: ImageHostTable? = nil
+    ) async throws(Failure) -> (data: Data, mimeType: String) {
+        let full = ImageGallery.fullSize(of: url)
+        guard full != url else { return try await image(at: url, allowsThirdParty: allowsThirdParty, hostTable: hostTable) }
+        if let result = try? await image(at: full, allowsThirdParty: allowsThirdParty, hostTable: hostTable) { return result }
+        // A cancelled load must not start the second request.
+        guard !Task.isCancelled else { throw .unavailable }
+        return try await image(at: url, allowsThirdParty: allowsThirdParty, hostTable: hostTable)
+    }
+
     /// Refuses `url` unless the host filter (when set) and policy C allow it.
     private static func check(_ url: URL, allowsThirdParty: Bool, hostFilter: (@Sendable (URL) -> Bool)?) throws(Failure) {
         if let hostFilter, !hostFilter(url) { throw .refused }

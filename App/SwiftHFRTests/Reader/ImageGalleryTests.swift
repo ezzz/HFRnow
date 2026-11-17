@@ -2,6 +2,9 @@ import Foundation
 @testable import SwiftHFR
 import Testing
 
+private let rehostMedium = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.md.jpg"
+private let rehostFull = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.jpg"
+
 /// Which images of a page the viewer may hold (LOT-109): the page's list is a claim, policy C decides.
 struct ImageGalleryTests {
     private func build(
@@ -73,5 +76,19 @@ struct ImageGalleryTests {
         #expect(gallery?.images.count == ImageGallery.maximumImages)
         #expect(gallery.map { $0.images[$0.index].shown.absoluteString } == sources[late])
         #expect(build(sources, selected: sources.count) == nil)
+    }
+
+    @Test func theFullSizeResolverRewritesARenditionAndLeavesOtherURLsAlone() throws {
+        #expect(ImageGallery.fullSize(of: try #require(URL(string: rehostMedium))).absoluteString == rehostFull)
+        let plain = try #require(URL(string: "https://i.imgur.com/a.jpg"))
+        #expect(ImageGallery.fullSize(of: plain) == plain)
+    }
+
+    @Test func aRewriteThatChangesTheHostIsIgnored() throws {
+        let url = try #require(URL(string: "https://img3.super-h.fr/images/a.md.jpg"))
+        let elsewhere = ImageHostTable(rules: [ImageHostRule(
+            host: "img3.super-h.fr", thumbnailRewrite: .pathPrefix(prefix: "/images/", replacement: "/images/")
+        )])
+        #expect(ImageGallery.fullSize(of: url, hosts: elsewhere) == url)
     }
 }

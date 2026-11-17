@@ -3,6 +3,9 @@ import HFRNetwork
 @testable import SwiftHFR
 import Testing
 
+private let rehostMedium = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.md.jpg"
+private let rehostFull = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.jpg"
+
 /// The long-press menu of a link (#596): which entries, what "Ouvrir" does, and that nothing is ever requested.
 @MainActor
 @Suite(.serialized)
@@ -237,5 +240,26 @@ private final class EnvironmentSpy {
                 savedBytes.set(savedBytes.value + [data])
             }
         )
+    }
+
+    @Test func copyOfAnImageLinkGivesTheFullSizeAddress() throws {
+        let (controller, _) = makeController(transport: quietTransport())
+        let spy = EnvironmentSpy()
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.copy, url: try #require(URL(string: rehostMedium)))
+        #expect(spy.copied.map(\.absoluteString) == [rehostFull])
+    }
+
+    @Test func saveImageDownloadsTheFullSizeFileOfARendition() async throws {
+        let transport = MockTransport { request in
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/jpeg"], url: request.url, body: Data([9]))
+        }
+        let (controller, recorder) = makeController(transport: transport)
+        let spy = EnvironmentSpy()
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.saveImage, url: try #require(URL(string: rehostMedium)))
+        #expect(await until { !recorder.notices.isEmpty })
+        #expect(await transport.requests.map(\.url.absoluteString) == [rehostFull])
+        #expect(spy.saved == [Data([9])])
     }
 }
