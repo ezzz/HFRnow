@@ -26,8 +26,18 @@ struct AccountMenuPlacementTests {
         #expect(AccountMenuLabelContent.content(hasAvatar: false, status: .expired) == badge)
     }
 
-    /// Hosts `root` in a window as a tab does and returns the UIKit bar items SwiftUI built from the toolbars on screen.
-    private func barItems(of root: some View) async throws -> (left: Int, right: Int) {
+    /// Where the account button was drawn, the window's bounds and every accessibility label seen (for a failure message).
+    private struct Found {
+        let frame: CGRect
+        let window: CGRect
+        let seen: [String]
+    }
+
+    /// Hosts `root` in a window as a tab does and returns where the account button is drawn, in window coordinates, once SwiftUI
+    /// has laid its bar out; nil when no view of the window carries the button's label. It reads the rendered button, not the
+    /// UIKit bar items: SwiftUI's toolbar does not expose its items there on every iOS version (the first version of this
+    /// test read `leftBarButtonItems` and failed on the Mac runner even for the plain modifier).
+    private func accountButtonFrame(of root: some View) async throws -> Found? {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let host = UIHostingController(rootView: root.environment(AccountsModel.preview()))
         let window = UIWindow(windowScene: scene)
@@ -35,17 +45,28 @@ struct AccountMenuPlacementTests {
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true }
-        var left = 0
-        var right = 0
+        var seen: [String] = []
         for _ in 0..<100 {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            let items = Self.navigationBars(in: host.view).compactMap(\.topItem)
-            left = items.map { ($0.leftBarButtonItems ?? []).count }.reduce(0, +)
-            right = items.map { ($0.rightBarButtonItems ?? []).count }.reduce(0, +)
-            if left > 0 { break }
+            let labelled = Self.views(in: window).filter { $0.window != nil && !$0.isHidden }
+            seen = labelled.compactMap { $0.accessibilityLabel }
+            // The preview model has not restored its store: the button is the disabled "Comptes" one.
+            if let button = labelled.first(where: { $0.accessibilityLabel == "Comptes" }) {
+                return Found(frame: button.convert(button.bounds, to: window), window: window.bounds, seen: seen)
+            }
         }
-        return (left, right)
+        return nil
+    }
+
+    private func expectOnTheLeft(_ found: Found?, _ name: String) {
+        guard let found else {
+            Issue.record("\(name): no view labelled \"Comptes\" in the window")
+            return
+        }
+        #expect(found.frame.midX < found.window.midX, "\(name): button at \(found.frame), window \(found.window), labels \(found.seen)")
+        // In the top bar, not in the content: above the first third of the window.
+        #expect(found.frame.maxY < found.window.height / 3, "\(name): button at \(found.frame)")
     }
 
     private func services() -> ReaderServices {
@@ -58,11 +79,9 @@ struct AccountMenuPlacementTests {
         )
     }
 
-    /// The modifier itself: a left item, no right one.
-    @Test func modifierPutsTheItemOnTheLeftOfTheBarOnly() async throws {
-        let items = try await barItems(of: NavigationStack { Text("Racine").accountMenuToolbarItem() })
-        #expect(items.left > 0)
-        #expect(items.right == 0)
+    /// The modifier itself: the button is drawn on the left half, in the top bar.
+    @Test func modifierDrawsTheButtonOnTheLeftOfTheBar() async throws {
+        expectOnTheLeft(try await accountButtonFrame(of: NavigationStack { Text("Racine").accountMenuToolbarItem() }), "modifier")
     }
 
     /// The real roots as `RootTabsView` builds them: removing the modifier from one of them fails here. Not covered: Recherche
@@ -92,11 +111,10 @@ struct AccountMenuPlacementTests {
             )
             view = AnyView(NavigationStack { PlusView(model: model) })
         }
-        let items = try await barItems(of: view)
-        #expect(items.left > 0, "\(root): no item on the left of the bar")
+        expectOnTheLeft(try await accountButtonFrame(of: view), root)
     }
 
-    private static func navigationBars(in view: UIView) -> [UINavigationBar] {
-        (view as? UINavigationBar).map { [$0] } ?? view.subviews.flatMap { navigationBars(in: $0) }
+    private static func views(in view: UIView) -> [UIView] {
+        [view] + view.subviews.flatMap { views(in: $0) }
     }
 }
