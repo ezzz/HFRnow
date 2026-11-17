@@ -84,6 +84,7 @@ struct FavoritesTabView: View {
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
             TopicsColumn(navigation: navigation, composer: composer)
+                .accountMenuToolbarItem()
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: navigation) } }
                 .appScreenBackground()
         } detail: {

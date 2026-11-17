@@ -25,11 +25,7 @@ struct ForumListView: View {
         .densityListMargins()
         .seasonalScrollTracking()
         .screenTitle("Catégories", style: .largeThenPill, visibility: titleVisibility)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                AccountMenuButton()
-            }
-        }
+        .accountMenuToolbarItem()
         .overlay { overlay(loader) }
         .safeAreaInset(edge: .top) {
             if let error = loader.error, loader.value != nil {
