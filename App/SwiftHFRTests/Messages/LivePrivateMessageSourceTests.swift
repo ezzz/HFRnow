@@ -1,4 +1,5 @@
 import Foundation
+import HFRClient
 import HFRModels
 import HFRNetwork
 import HFRParsing
@@ -45,14 +46,31 @@ struct LivePrivateMessageSourceTests {
         #expect(page.threads.allSatisfy { ReaderTarget(opening: $0.summary) != nil })
     }
 
-    @Test func theStorageThreadIsHiddenFromTheListAndItsCounts() async throws {
+    /// Every path that turns the list into rows or counts reads the live source (#1075 map): the Messages model in both
+    /// display modes and segments, the ledger's seen set and the notification plan.
+    @MainActor
+    @Test func theStorageThreadIsHiddenOnEveryPathThatReadsTheList() async throws {
         let body = try LiveTopicPageSourceTests.capture("R13u1-mp-list-recipient-unread.html")
         let html = try #require(String(data: body, encoding: .utf8))
         let all = try PrivateMessageListParser.parse(html, pageURL: "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
-        #expect(all.threads.contains { MPStoragePageParser.isStorageSubject($0.summary.title) })
+        let storage = try #require(all.threads.first { MPStoragePageParser.isStorageSubject($0.summary.title) })
+        let storageTopic = try #require(storage.summary.topicID?.topic)
         let page = try await rig(replying: body).source.privateMessages(page: 1)
         #expect(!page.threads.contains { MPStoragePageParser.isStorageSubject($0.summary.title) })
-        #expect(MessageListContent(page: page).threads == page.threads)
+
+        let source = FakePrivateMessages()
+        source.handler = { _ in page }
+        for display in [MPListDisplay.single, .split] {
+            for segment in MPSegment.allCases {
+                let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages())
+                model.display = display
+                model.segment = segment
+                await model.onAppear()
+                #expect(!model.visibleThreads.contains { $0.summary.topicID?.topic == storageTopic })
+            }
+        }
+        #expect(MPNotificationLedger.seenSummary(of: page).unreadThreads?.contains(storageTopic) != true)
+        #expect(MPNotificationPlan.make(newThreads: [storageTopic], in: page).isEmpty)
     }
 
     /// The 457-page thread of `R13u1` (new post at `page=457…#bas`): the row opens the reader on its last page, and only

@@ -31,8 +31,8 @@ struct MPStorageThreadHidingTests {
         #expect(page.hidingStorageThread().threads.count == page.threads.count - 2)
     }
 
-    @Test("A storage thread unread by the member is not counted; other unread threads still are")
-    func unreadCountLeavesStorageOut() {
+    @Test("A page without its storage thread counts only the other unread threads")
+    func filteredPageCountsOtherUnreadThreads() {
         let page = PrivateMessageListPage(threads: [
             Self.thread(MPStorageDocument.subject, readState: .unread),
             Self.thread("Private subject", readState: .unread),
