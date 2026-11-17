@@ -47,23 +47,17 @@ struct TabSplitWidthTests {
     /// Every marker SwiftUI made, held weakly: a detail made again must not hide an earlier one still drawn.
     @MainActor
     private final class Found {
-        private final class Weak {
-            weak var marker: DetailMarker?
-
-            init(_ marker: DetailMarker) { self.marker = marker }
-        }
-
-        private var markers: [Weak] = []
+        private let markers = NSHashTable<DetailMarker>.weakObjects()
 
         func add(_ marker: DetailMarker) {
-            markers.append(Weak(marker))
+            markers.add(marker)
         }
 
         /// Whether the detail column is drawn in `window` now: one of its markers is in that window, with no hidden or
         /// transparent ancestor, and overlaps the window's bounds.
         func detailOnScreen(in window: UIWindow) -> Bool {
-            markers.contains { entry in
-                guard let marker = entry.marker, marker.window === window else { return false }
+            markers.allObjects.contains { marker in
+                guard marker.window === window else { return false }
                 var view: UIView? = marker
                 while let current = view {
                     if current.isHidden || current.alpha == 0 { return false }
