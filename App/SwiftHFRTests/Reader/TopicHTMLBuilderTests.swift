@@ -178,7 +178,7 @@ struct TopicHTMLBuilderTests {
 
     @Test func theMessageMenuButtonAnnouncesAMenu() {
         let html = TopicHTMLBuilder.document(for: page([message()]), token: 1, options: ReaderRenderOptions(showsMessageMenus: true))
-        #expect(html.contains("aria-haspopup=\"menu\" aria-label=\"Actions du message de auteur\">+</button>"))
+        #expect(html.contains("aria-haspopup=\"menu\" aria-label=\"Actions du message de auteur\"><svg class=\"plus\""))
     }
 
     @Test func theAvatarIsTheAuthorMenuButtonWithOrWithoutPicture() {

@@ -203,8 +203,15 @@ button.image-tap, button.video {
 /* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
 .message button.menu-author { background: none; border: 0; padding: 0.7em 0.4em; margin: -0.7em -0.4em; color: inherit; font: inherit; font-weight: 600; text-align: start; }
-/* The legacy "+" in the accent colour (templatev2.htm:6 @ 87fe0d1c; operator, #594, 2026-11-15). */
-.message button.menu-button { background: none; border: 0; min-width: 2.2em; padding: 0.5em 0.4em; margin: -0.5em 0; color: var(--action); font: inherit; font-size: min(1.4em, 32px); font-weight: 600; line-height: 1; flex: none; }
+/* The legacy "+" in the accent colour (templatev2.htm:6 @ 87fe0d1c; operator, #594, 2026-11-15), drawn at legacy's size (#1068): a 16 px cross with 2 px
+   strokes (`plus-tinted@2x.png`, measured; `style-liste-dark.css:590-595`: a 32 pt box) in a 44 px tap box, in px so neither the font nor the
+   reader's text size changes it, as in legacy. The negative margins give the box's extra height back so the header keeps its height; the right one puts
+   the cross about where legacy's 32 pt box had it. */
+.message button.menu-button {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; flex: none;
+  width: 44px; height: 44px; margin: -8px -6px -8px 0; padding: 0; border: 0; background: none; color: var(--action);
+}
+.message button.menu-button svg { display: block; width: 16px; height: 16px; }
 
 /* Visibility (LOT-117). Legacy style-liste-light.css:177-199, 314-325, 359-390, 606-619 and MessagesView.swift:2397-2410: own
    messages and whitelisted authors get a 2 px bar on the header and on the content, a tint, and a coloured avatar ring; the

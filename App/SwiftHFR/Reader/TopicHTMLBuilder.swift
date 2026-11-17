@@ -139,6 +139,14 @@ enum TopicHTMLBuilder {
         return html
     }
 
+    /// The "+" of the message button (#1068): a 16 pt cross with 2 pt strokes, drawn rather than typeset so that its size depends on
+    /// neither the font nor Dynamic Type (legacy `plus-tinted@2x.png`: 64 px, an opaque 16 pt cross with 4 px strokes;
+    /// `style-liste-dark.css:590-595` @ 87fe0d1c). It takes the button's text colour.
+    private static let plusIcon = """
+        <svg class="plus" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">\
+        <path d="M8 0V16M0 8H16" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        """
+
     /// The message header: avatar, author (a button when the author menu is on), date and the `+` button (legacy
     /// `templatev2.htm:6` @ 87fe0d1c, operator decision of 2026-11-15 on #594: "+" again instead of "⋯").
     private static func header(of message: ReaderMessage, author: String, date: String, options: ReaderRenderOptions) -> String {
@@ -161,7 +169,7 @@ enum TopicHTMLBuilder {
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
         if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">+</button>"
+            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">\(plusIcon)</button>"
         }
         html += "</header>\n"
         return html
