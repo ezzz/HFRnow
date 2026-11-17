@@ -7,7 +7,7 @@ import UIKit
 import WebKit
 
 /// #755 in the real web view, on the captured page `R267a` (#267): HFR's dashes before a signature are gone and one thin
-/// dashed line (legacy's), as wide as the message, sets the signature apart.
+/// dashed line (legacy's), from edge to edge of the message, sets the signature apart.
 @MainActor
 @Suite(.serialized)
 struct SignatureLineWebTests: ReaderWebTesting {
@@ -34,7 +34,7 @@ struct SignatureLineWebTests: ReaderWebTesting {
             const sig = document.querySelector('.signature');
             const style = getComputedStyle(sig);
             return [sig.textContent, style.borderTopStyle, style.borderTopWidth, sig.getBoundingClientRect().width,
-                    document.querySelector(".content").getBoundingClientRect().width];
+                    document.querySelector('article.message').getBoundingClientRect().width];
             """
         let values = try #require(try await evaluate(script, in: controller) as? [Any])
         let text = try #require(values[0] as? String)
@@ -43,7 +43,7 @@ struct SignatureLineWebTests: ReaderWebTesting {
         #expect(values[2] as? String == "1px")
         let width = try #require((values[3] as? NSNumber)?.doubleValue)
         let container = try #require((values[4] as? NSNumber)?.doubleValue)
-        #expect(width > 0 && abs(width - container) < 1, "the line is as wide as the message text")
+        #expect(width > 0 && abs(width - container) < 1, "the line is as wide as the message (it starts at the edge, #1038)")
     }
 
     @Test(arguments: [UIUserInterfaceStyle.light, .dark])
