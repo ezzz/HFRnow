@@ -21,7 +21,7 @@ Clearing is not in this lot: the "Vider le cache ?" alert (`AppSettingsView.swif
 `App/SwiftHFR/Settings/MaintenanceSection.swift` (`MaintenanceModel`, `MaintenanceSection`) and `CacheStorageSnapshot.swift` start with `// Port of HFRswift/Swift/AppSettingsView.swift (maintenanceSection, refreshCacheStorage) @ 87fe0d1c` and `HTMLPageCacheManager.swift (storageSnapshot, …) @ 87fe0d1c`, naming their differences (GAP-152). Both legacy files are identical at `2fe43da3` and `87fe0d1c`.
 
 ## UX evolutions (app lots)
-None planned: same UX as legacy at `2fe43da3`.
+None beyond the intentional differences below: same UX as legacy at `2fe43da3`.
 
 ## Behaviour
 On top of the merged LOT-120, in Réglages > Maintenance, above "Ouvrir les réglages système":
