@@ -25,23 +25,50 @@ struct TabSplitWidthTests {
         #expect(RootNavigationView.tabSplitSizeClass(idiom: .phone, horizontal: .regular, vertical: .regular) == .regular)
     }
 
-    /// Whether the detail column is on screen now (not whether it ever was: a split's first layout may show it before it
-    /// collapses).
-    private final class Seen {
-        var detailOnScreen = false
+    /// The detail column's own UIKit view, to ask the window whether that column is drawn. SwiftUI's `onAppear` does not
+    /// tell: in the collapsed split it fires for a detail whose view is never created (measured on the Mac, iOS 27.0
+    /// simulator, #431: phone rule, one view controller in the split, the marker never in the window; iPad rule, the marker in
+    /// the window at (601, 231)).
+    private final class DetailMarker: UIView {}
+
+    /// Puts a `DetailMarker` in the detail column and hands it to `found`.
+    private struct Marker: UIViewRepresentable {
+        let found: Found
+
+        func makeUIView(context: Context) -> DetailMarker {
+            let view = DetailMarker()
+            found.marker = view
+            return view
+        }
+
+        func updateUIView(_ uiView: DetailMarker, context: Context) {}
+    }
+
+    /// The marker, once SwiftUI has made it.
+    private final class Found {
+        weak var marker: DetailMarker?
+
+        /// Whether the detail column is drawn in `window` now: its view is in that window, not hidden, and inside its bounds.
+        func detailOnScreen(in window: UIWindow) -> Bool {
+            guard let marker, marker.window === window else { return false }
+            var view: UIView? = marker
+            while let current = view {
+                if current.isHidden || current.alpha == 0 { return false }
+                view = current.superview
+            }
+            return marker.convert(marker.bounds, to: nil).intersects(window.bounds)
+        }
     }
 
     /// A split built as the tabs build theirs: a list and a detail, showing the list when collapsed.
     private struct Probe: View {
-        let seen: Seen
+        let found: Found
 
         var body: some View {
             NavigationSplitView(preferredCompactColumn: .constant(.sidebar)) {
                 Text("Liste")
             } detail: {
-                Text("Sujet")
-                    .onAppear { seen.detailOnScreen = true }
-                    .onDisappear { seen.detailOnScreen = false }
+                Marker(found: found).frame(width: 50, height: 50)
             }
             .modifier(TabSplitWidth())
         }
@@ -88,20 +115,20 @@ struct TabSplitWidthTests {
     /// nothing: UIKit hands a split's side column a compact width whatever the split's.)
     @Test(arguments: [UIUserInterfaceIdiom.phone, .pad])
     func theTabSplitCollapsesOnALandscapePhoneOnly(idiom: UIUserInterfaceIdiom) async throws {
-        let seen = Seen()
-        let (window, host) = try hostInLandscape(Probe(seen: seen), idiom: idiom)
+        let found = Found()
+        let (window, host) = try hostInLandscape(Probe(found: found), idiom: idiom)
         defer { window.isHidden = true }
-        for _ in 0..<100 where idiom == .pad && !seen.detailOnScreen {
+        for _ in 0..<100 where idiom == .pad && !found.detailOnScreen(in: window) {
             try await Task.sleep(for: .milliseconds(20))
             window.layoutIfNeeded()
         }
         let splits = try await settledSplits(in: host, window: window)
         #expect(!splits.isEmpty)
         if idiom == .phone {
-            #expect(!seen.detailOnScreen, "the reader's column is on screen beside the list")
+            #expect(!found.detailOnScreen(in: window), "the reader's column is on screen beside the list")
             #expect(splits.allSatisfy { $0.isCollapsed }, "collapsed: \(splits.map { $0.isCollapsed })")
         } else {
-            #expect(seen.detailOnScreen, "the detail column is not on screen: the window is not regular width")
+            #expect(found.detailOnScreen(in: window), "the detail column is not on screen: the window is not regular width")
             #expect(splits.allSatisfy { !$0.isCollapsed }, "collapsed: \(splits.map { $0.isCollapsed })")
         }
     }
