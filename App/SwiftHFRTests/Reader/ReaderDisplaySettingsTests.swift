@@ -36,9 +36,11 @@ struct ReaderDisplaySettingsTests {
         #expect(!settings.swipesPages())
     }
 
-    @Test func theReplyButtonFollowsTheStoreAndDefaultsToQuick() {
+    @Test func theReplyButtonFollowsTheStoreAndDefaultsToForum() {
         let store = InMemorySettingsStore()
         let settings = ReaderSettings.live(store: store, isOnWiFi: { true })
+        #expect(settings.replyButton() == .forum)
+        store.set(.quick, for: SettingKey.replyButtonBehavior)
         #expect(settings.replyButton() == .quick)
         store.set(.hidden, for: SettingKey.replyButtonBehavior)
         #expect(settings.replyButton() == .hidden)
