@@ -6,9 +6,14 @@ import UIKit
 /// opaque fills.
 extension ReaderWebController {
     /// `landing` keeps the message at the top while late images load (a document's own anchor); a request inside the shown
-    /// document only jumps there. The page scrolls two frames later, past WebKit's reset to the top (`reader.js`, #642).
+    /// document only jumps there. The page scrolls two frames later, past WebKit's reset to the top (`reader.js`, #642); a
+    /// landing also waits for the page to show what the scroll view shows now (`from`, #995).
     func scroll(to anchor: Int, landing: Bool = false) {
-        run("return window.hfrReader.\(landing ? "landOnPost" : "scrollToPost")(n);", arguments: ["n": anchor])
+        if landing {
+            run("return window.hfrReader.landOnPost(n, from);", arguments: ["n": anchor, "from": Double(readingTop)])
+        } else {
+            run("return window.hfrReader.scrollToPost(n);", arguments: ["n": anchor])
+        }
     }
 
     /// Applies `obscuredInsets`, keeping the content at the bars' edge in place: a banner shown above the page does not hide
@@ -33,8 +38,12 @@ extension ReaderWebController {
     /// Scrolls so that `readingTop` is at the lower edge of the top bars, whatever they cover now (a refresh's restore). The
     /// page scrolls itself: WebKit counts `scrollY` from the bars' edge once `obscuredContentInsets` is set (`scrollY` is the
     /// reading top, `ReaderInsetsWebTests`), and a native `setContentOffset` at DOMContentLoaded is undone by the new
-    /// document's first layout. The page scrolls two frames later, past WebKit's reset to the top (issue #642).
+    /// document's first layout. The page scrolls two frames later, past WebKit's reset to the top (issue #642), and once it shows
+    /// what the scroll view shows now (`from`): a reset that reached the scroll view first is on its way to the page (#995).
     func scroll(toReadingTop readingTop: CGFloat) {
-        run("return window.hfrReader.restoreScroll(y);", arguments: ["y": Double(max(0, readingTop))])
+        run(
+            "return window.hfrReader.restoreScroll(y, from);",
+            arguments: ["y": Double(max(0, readingTop)), "from": Double(self.readingTop)]
+        )
     }
 }
