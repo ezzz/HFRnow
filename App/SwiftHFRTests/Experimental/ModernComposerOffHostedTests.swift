@@ -147,7 +147,8 @@ struct ModernComposerOffHostedTests {
             if entry == .reader {
                 #expect(hosted.docked == nil, "the page sees no docked composer")
                 let presentation = try #require(hosted.presentation, "presented")
-                if isPhone { #expect(presentation == .fullScreen, "legacy's cover") }
+                // `coversTheScreen` (ComposerPlacementSwitchHostedTests.swift): SwiftUI's cover is `.overFullScreen`.
+                #expect(presentation.coversTheScreen == isPhone, "legacy's cover on an iPhone, a sheet on an iPad")
             }
         }
     }
