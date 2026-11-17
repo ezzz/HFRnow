@@ -15,6 +15,17 @@ enum ImageLoadingChoice {
         guard store.value(for: SettingKey.experimentalImageLoadingChoice) else { return .always }
         return ImageAutoLoad(setting: store.value(for: SettingKey.displayImages))
     }
+
+    // EXPERIMENTAL(imageLoadingChoice, #1003): replaces restoring the stored `display_images` at the option's first activation.
+    /// The option is being turned on (`ExperimentalSettings.set`, before it writes the switch). The first time on this device
+    /// since #1003 (operator, 2026-11-17: « forcer toujours »), the choice starts at « Toujours », whatever an earlier build
+    /// stored, a choice made while the option was on in a build before #1003 included (#1003's persistence point); later
+    /// activations keep what the member chose while it was on.
+    static func willTurnOn(store: any SettingsStore) {
+        guard !store.value(for: SettingKey.experimentalImageLoadingChoiceStarted) else { return }
+        store.set(ImageDisplayMode.always, for: SettingKey.displayImages)
+        store.set(true, for: SettingKey.experimentalImageLoadingChoiceStarted)
+    }
 }
 
 extension ImageDisplayMode {

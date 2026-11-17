@@ -27,6 +27,9 @@ final class ExperimentalSettings {
     func set(_ feature: ExperimentalFeature, isOn: Bool) {
         guard feature.isListed, stored[feature] != isOn else { return }
         stored[feature] = isOn
+        // EXPERIMENTAL(imageLoadingChoice, #1003): the option's first activation starts its choice at « Toujours ». Before the
+        // switch is written: the reader reads both off the main actor and must never see the option on with a stale choice.
+        if feature == .imageLoadingChoice, isOn { ImageLoadingChoice.willTurnOn(store: store) }
         store.set(isOn, for: feature.setting)
     }
 
