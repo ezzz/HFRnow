@@ -32,7 +32,9 @@ import Testing
         "season.automatic": .device, "season.animations": .device, "season.noel.activeYear": .device,
         // #903: the Expérimental switches try a presentation on this device.
         "experimental.modernComposer": .device, "experimental.searchTab": .device, "experimental.mpStorageSwitches": .device,
-        "experimental.flagIconRows": .device, "experimental.imageLoadingChoice": .device
+        "experimental.flagIconRows": .device, "experimental.imageLoadingChoice": .device,
+        // LOT-133: the last time this device showed the Alertes Qualitay list (ADR 0013 appendix E: "AQ counter and last check", No).
+        "last_check_aq": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {

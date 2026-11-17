@@ -39,7 +39,9 @@ import Testing
             "season.automatic", "season.animations", "season.noel.activeYear",
             // #903: the Réglages › Expérimental switches, new.
             "experimental.modernComposer", "experimental.searchTab", "experimental.mpStorageSwitches",
-            "experimental.flagIconRows", "experimental.imageLoadingChoice"
+            "experimental.flagIconRows", "experimental.imageLoadingChoice",
+            // LOT-133: the Alertes Qualitay last check (legacy name, new encoding).
+            "last_check_aq"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -249,6 +251,21 @@ import Testing
         #expect(store.rawValue(forKey: "theme_day_color_action") == .string("{1.000, 0.000, 0.500, 1.000}"))
         store.set(nil, for: SettingKey.dayActionColor)
         #expect(store.rawValue(forKey: "theme_day_color_action") == nil)
+    }
+
+    @Test func aqLastCheckKeepsTheLegacyKeyAndRoundTripsAnInstant() {
+        let store = InMemorySettingsStore()
+        #expect(SettingKey.aqLastCheck.key == "last_check_aq")
+        #expect(store.value(for: SettingKey.aqLastCheck) == nil)
+        let date = Date(timeIntervalSince1970: 1_761_000_000.25)
+        store.set(date, for: SettingKey.aqLastCheck)
+        #expect(store.value(for: SettingKey.aqLastCheck) == date)
+        #expect(!SettingKey.syncedKeys.contains("last_check_aq"))
+        // A non-finite or unusable stored value reads as "never checked", never as a date.
+        for raw in [SettingRawValue.string("yesterday"), .double(.nan), .double(.infinity)] {
+            let broken = InMemorySettingsStore(["last_check_aq": raw])
+            #expect(broken.value(for: SettingKey.aqLastCheck) == nil)
+        }
     }
 
     @Test func lastSyncDateRoundTripsAndDashMeansNever() {

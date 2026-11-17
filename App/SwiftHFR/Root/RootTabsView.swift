@@ -45,6 +45,7 @@ struct RootTabsView: View {
                 }
                 .environment(\.isSelectedRootTab, model.selectedTab == .more)
             }
+            .badge(model.plusBadge)
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
         // EXPERIMENTAL(searchTab, #896): the selection follows the option and the Plus search entry.

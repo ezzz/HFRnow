@@ -32,6 +32,8 @@ struct RootNavigationView: View {
         }
         .environment(\.rootHasTabBar, Self.rootHasTabBar(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass))
         .task { await model.forums.loadIfNeeded() }
+        // The Plus badge: the AQ feed is read about 3 s after the root appears, logged out too (legacy `MainWindow.swift:1178-1192`).
+        .task { await model.qualityAlerts.checkAtLaunch() }
         // EXPERIMENTAL(mpStorageSwitches, #859): the account's model reads the option from here.
         .onAppear { model.mpStorage?.experimental = experimental }
         .task {

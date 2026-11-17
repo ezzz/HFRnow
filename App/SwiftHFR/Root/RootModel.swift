@@ -27,6 +27,8 @@ final class RootModel {
     let mpStorage: MPStorageSyncModel?
     /// The unread private messages count the list pages of this session announced, newest first (#762).
     let privateMessageCount: PrivateMessageCount
+    /// The Alertes Qualitay list and its "new since" count (LOT-133), shared by the Plus badge, the Plus row and the screen.
+    let qualityAlerts: QualityAlertsModel
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -104,10 +106,15 @@ final class RootModel {
         forums: ForumListModel, categories: NavigationModel, favorites: NavigationModel, messages: MessageListModel,
         search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
-        mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount()
+        mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount(),
+        qualityAlerts: QualityAlertsModel? = nil
     ) {
         self.mpStorage = mpStorage
         self.privateMessageCount = privateMessageCount
+        // A root built without one (tests) has no AQ address: no request, an empty badge.
+        self.qualityAlerts = qualityAlerts ?? QualityAlertsModel(
+            source: nil, isLoggedIn: { false }, accountName: { nil }, store: store
+        )
         self.favoriteOptions = favoriteOptions
         self.forums = forums
         self.categories = categories
@@ -176,7 +183,12 @@ final class RootModel {
                 source: LiveForumSearchSource(session: environment.session), topicPages: environment.topicPages,
                 renderOptions: environment.reader.settings.renderOptions, store: store
             ),
-            store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage, privateMessageCount: count
+            store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage, privateMessageCount: count,
+            qualityAlerts: QualityAlertsModel(
+                source: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:]),
+                visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
+                store: store
+            )
         )
     }
 
@@ -187,6 +199,15 @@ final class RootModel {
         guard privateMessageBadgeEnabled else { return 0 }
         return max(privateMessageCount.latest ?? 0, 0)
     }
+
+    /// The "new since" count shown on a Plus entry and on the Plus tab: Alertes Qualitay only (legacy `MainWindow.swift:1297`
+    /// @ 2440d79, GAP-005), 0 hides it.
+    func badge(for entry: PlusEntry) -> Int {
+        entry == .qualityAlerts ? qualityAlerts.unreadCount : 0
+    }
+
+    /// The badge of the Plus tab: what its entries announce.
+    var plusBadge: Int { badge(for: .qualityAlerts) }
 
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
     /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).

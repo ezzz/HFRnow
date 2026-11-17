@@ -40,6 +40,15 @@ struct RootSidebarView: View {
         }
     }
 
+    /// The count a sidebar row announces: unread private messages, or the new Alertes Qualitay.
+    private func badge(of destination: SidebarDestination) -> Int {
+        switch destination {
+        case .tab(.messages): model.unreadPrivateMessages
+        case .plus(let entry): model.badge(for: entry)
+        default: 0
+        }
+    }
+
     private var sidebar: some View {
         List(selection: selection) {
             ForEach(Array(SidebarDestination.sections.enumerated()), id: \.offset) { _, section in
@@ -47,7 +56,7 @@ struct RootSidebarView: View {
                     ForEach(section, id: \.self) { destination in
                         Label(destination.title, systemImage: destination.symbol)
                             .foregroundStyle(destination == .plus(.deleteAccount) ? Color.red : Color.primary)
-                            .badge(destination == .tab(.messages) ? model.unreadPrivateMessages : 0)
+                            .badge(badge(of: destination))
                             .tag(destination)
                     }
                 }

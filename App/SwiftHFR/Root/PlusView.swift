@@ -16,6 +16,7 @@ struct PlusView: View {
                     Label(entry.title, systemImage: entry.symbol)
                         .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : Color.primary)
                     Spacer()
+                    PlusBadgeCount(value: model.badge(for: entry))
                     Image(systemName: "chevron.forward")
                         .scaledFont(.footnote).fontWeight(.semibold)
                         .foregroundStyle(.tertiary)
@@ -49,7 +50,9 @@ struct PlusEntryView: View {
             StaticPageView(page: .charter)
         case .deleteAccount:
             AccountDeletionView()
-        case .bookmarks, .qualityAlerts:
+        case .qualityAlerts:
+            QualityAlertsView(model: model.qualityAlerts, environment: environment)
+        case .bookmarks:
             placeholder
         }
     }
@@ -61,5 +64,21 @@ struct PlusEntryView: View {
         )
         .navigationTitle(entry.title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// The count a Plus row announces, as legacy's red tab badge does; nothing at 0.
+private struct PlusBadgeCount: View {
+    let value: Int
+
+    var body: some View {
+        if value > 0 {
+            Text(value, format: .number)
+                .scaledFont(.footnote).bold()
+                .foregroundStyle(.white)
+                .padding(.horizontal, 7).padding(.vertical, 2)
+                .background(.red, in: .capsule)
+                .accessibilityLabel("\(value) nouvelles")
+        }
     }
 }

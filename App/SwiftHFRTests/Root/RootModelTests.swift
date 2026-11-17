@@ -133,7 +133,7 @@ struct RootModelTests {
 
     @Test func settingsSearchCreditsCharterAndDeletionAreBuiltAndTheOthersNameTheirLot() {
         let expected: [(PlusEntry, String?)] = [
-            (.settings, nil), (.search, nil), (.bookmarks, "LOT-132"), (.qualityAlerts, "LOT-133"),
+            (.settings, nil), (.search, nil), (.bookmarks, "LOT-132"), (.qualityAlerts, nil),
             (.credits, nil), (.charter, nil), (.deleteAccount, nil)
         ]
         #expect(expected.map(\.0) == PlusEntry.allCases)
