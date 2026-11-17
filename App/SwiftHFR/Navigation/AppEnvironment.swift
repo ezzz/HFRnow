@@ -45,7 +45,8 @@ struct AppEnvironment {
         let source = LiveForumDataSource(fetcher: fetcher, transport: session)
         NetworkMonitor.start()
         let lists = PseudoListsSnapshot(store: PseudoListsSnapshot.liveStore, account: accountName)
-        let blocklistChanges = accountName == nil ? nil : BlocklistChangeLog()
+        // One held list per account for every window (LOT-146), one stream per window.
+        let blocklistChanges = accountName.map { BlocklistChangeLog(held: .shared(for: $0)) }
         // Every page read hands its authors' avatars to the cache (GAP-230); each write refreshes the MP rows.
         let avatars = AvatarStore.live(refresh: avatarRefresh)
         let pages = AvatarFillingTopicPageSource(
