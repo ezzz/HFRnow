@@ -114,6 +114,22 @@ extension ReaderWebTesting {
         }, timeout: timeout)
     }
 
+    /// The scroll view shows the shown document (#995): its content height is the page's own `scrollHeight`. The page reports
+    /// ready from its own process, before the UI process applies the document's first layer-tree commit, which sets the scroll
+    /// view's content size and resets it to the document's top (`WebKitResetWatch`). Until then the scroll view keeps the blank
+    /// page's size, the viewport under the bars (650 points in a test window of 800 under bars of 100 and 50): an end computed
+    /// from it is the top, which the scroll view is already at (CI jobs 133712438518, 133717388761: target -120, band 0...650),
+    /// and a scroll the page makes before that commit is undone by the reset. Only for a page taller than the viewport, whose
+    /// `scrollHeight` cannot be the blank page's.
+    func showsDocument(_ controller: ReaderWebController) async -> Bool {
+        let scrollView = controller.webView.scrollView
+        return await until(async: {
+            let script = "return document.documentElement.scrollHeight;"
+            guard let height = (try? await self.evaluate(script, in: controller)) as? NSNumber else { return false }
+            return abs(scrollView.contentSize.height / scrollView.zoomScale - height.doubleValue) <= 1
+        })
+    }
+
     /// Where the page and its scroll view are, and whether a landing's reset is still watched, for a failure message.
     func scrollState(of controller: ReaderWebController) async -> String {
         let page = (try? await evaluate("return window.scrollY;", in: controller, timeout: .seconds(10))) as? NSNumber
