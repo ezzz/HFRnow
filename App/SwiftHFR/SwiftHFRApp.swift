@@ -55,7 +55,7 @@ struct SwiftHFRApp: App {
                 .environment(\.avatarRefresh, avatarRefresh)
                 // One type scale and one list density for every screen, live (LOT-169).
                 .appTypography(general.textScale, density: general.listDensity)
-                .appTheme(theme, seasonal: seasonal.activeTheme)
+                .appTheme(theme, seasonal: seasonal.drawnTheme)
                 // Snow over the screens, under the lock; the arrival alert waits until nothing covers them (LOT-166).
                 .seasonalDecorations(seasonal, isCovered: { appLock.isCovered })
                 // Over everything the scene shows, sheets included, while locked or in the app switcher (LOT-173).
@@ -98,8 +98,6 @@ struct SwiftHFRApp: App {
                     if appLock.scenePhaseChanged(to: phase) { Task { await appLock.unlock() } }
                     // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
                     if phase == .active { seasonal.sceneDidBecomeActive() }
-                    // Crossing objects wait for foreground time only (THEMES.md §4 rule 4).
-                    seasonal.crossings.foregroundChanged(active: phase == .active)
                 }
         }
         // The background MP check (LOT-140): the next one is scheduled first, as legacy (`MPBackgroundService.swift:71`).

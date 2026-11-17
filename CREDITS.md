@@ -36,7 +36,7 @@ The construction worker shown while the first-launch import runs (#754, `App/Swi
 
 ### Seasonal art
 
-The Noël soft images (LOT-166, `App/SwiftHFR/Assets.xcassets/Noel/`): the sleigh with its reindeer, the star, the gifts, the ornament, the snowflake and the snow pile. Original procedural renders made for SwiftHFR on 2026-10-28 from the operator's requests and validated by him on 2026-11-10 ([`docs/assets/themes/`](docs/assets/themes/README.md); no downloaded mesh, texture or image), under this repository's licence; the app's copies are those renders trimmed and scaled by `tooling/art/noel-crossings/derive.swift`, no pixel redrawn.
+The Noël soft images (LOT-166, `App/SwiftHFR/Assets.xcassets/Noel/`): the sleigh with its reindeer, the star, the gifts, the ornament, the snowflake, the snow pile and the packing elf. Original procedural renders made for SwiftHFR on 2026-10-28 from the operator's requests and validated by him on 2026-11-10 ([`docs/assets/themes/`](docs/assets/themes/README.md); no downloaded mesh, texture or image), under this repository's licence; the app's copies are those renders trimmed and scaled by `tooling/art/noel-crossings/derive.swift`, no pixel redrawn (the elf, made in a session without a Mac, was trimmed and scaled the same way with PIL; a later run of the script rewrites it).
 
 ## Contributors
 

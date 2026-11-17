@@ -40,13 +40,15 @@ final class NoelCrossingModel {
     @ObservationIgnored private let haptics: HapticFeedback
     /// Foreground time counted before the current active stretch, since the last crossing (or the launch).
     @ObservationIgnored private var foregroundBefore: TimeInterval = 0
-    /// When the app came to the foreground, nil while it is not there.
+    /// When the app came to the foreground (its first scene became active), nil while no scene is active.
     @ObservationIgnored private var activeSince: Date?
+    /// The scenes active now: foreground time runs while any is, and a scene gets a crossing only while it is.
+    @ObservationIgnored private var activeScenes: Set<UUID> = []
     /// The foreground time the next crossing waits for.
     @ObservationIgnored private(set) var nextGap: TimeInterval
     @ObservationIgnored private var lastID = 0
-    /// Times the current arrival was cut and queued again.
-    @ObservationIgnored private var arrivalReplays = 0
+    /// When the current arrival sleigh first started; it is queued again when cut only within `arrivalReplayWindow` of it.
+    @ObservationIgnored private var arrivalFirstStart: Date?
 
     /// Draws the first gap: nothing crosses in the first 20 minutes of foreground time.
     init(now: @escaping @MainActor () -> Date, random: any SeasonalRandom, haptics: HapticFeedback = .live) {
@@ -61,25 +63,35 @@ final class NoelCrossingModel {
         foregroundBefore + (activeSince.map { max(0, now().timeIntervalSince($0)) } ?? 0)
     }
 
-    /// The app came to the foreground (`true`) or left it; a crossing on screen stops when it leaves.
-    func foregroundChanged(active: Bool) {
+    /// `scene` became active (`true`) or left: each scene reports its own phase, so another window going to the background
+    /// (iPad) neither stops this scene's crossing nor the foreground count while one scene is still active. A crossing stops
+    /// when its own scene leaves.
+    func sceneChanged(_ scene: UUID, active: Bool) {
+        let wasForeground = !activeScenes.isEmpty
         if active {
-            if activeSince == nil { activeSince = now() }
+            activeScenes.insert(scene)
         } else {
+            activeScenes.remove(scene)
+            if current?.scene == scene { current = nil }
+        }
+        if !activeScenes.isEmpty, !wasForeground {
+            activeSince = now()
+        } else if activeScenes.isEmpty, wasForeground {
             foregroundBefore = foregroundTime
             activeSince = nil
-            current = nil
         }
     }
 
     /// The first launch of a window with animations allowed: the sleigh crosses before the alert.
     func queueArrival() {
         arrivalPending = true
-        arrivalReplays = 0
+        arrivalFirstStart = nil
     }
 
-    /// How many times a cut arrival sleigh is played again.
-    static let maxArrivalReplays = 2
+    /// How long after its first start a cut arrival sleigh is played again: a bound in time, not a count, so the many sizes of
+    /// one split-view divider drag or Stage Manager resize cannot use it up at once (#840 round 3), and constant resizes still
+    /// cannot hold the alert back for ever.
+    static let arrivalReplayWindow: TimeInterval = 15
 
     /// `scene`'s layer watches for crossings: Noël soft is on, the sleigh is due, or `scene`'s crossing is playing. The last
     /// one keeps the arrival sleigh going on 25–26/12 (or with automatic themes off), when nothing else is on once it started.
@@ -104,7 +116,7 @@ final class NoelCrossingModel {
             arrivalPending = false
             return nil
         }
-        guard screen.allowsAlert, activeSince != nil else { return nil }
+        guard screen.allowsAlert, activeScenes.contains(scene) else { return nil }
         if arrivalPending {
             let size = NoelCrossingItem.sleigh.size(height: Self.arrivalHeight(window: stage.windowHeight))
             // Kept pending until it starts: a layer not laid out yet (empty area) must not lose it.
@@ -130,20 +142,19 @@ final class NoelCrossingModel {
     }
 
     /// The crossing `id` was cut before its end by its layer (a rotation, a split view or Stage Manager resize restarts the
-    /// watch): the arrival sleigh is due again, so it still plays before the alert, at most `maxArrivalReplays` times, so
-    /// constant resizes cannot hold the alert back for ever; an ordinary object just ends.
+    /// watch): the arrival sleigh is due again, so it still plays before the alert, while less than `arrivalReplayWindow` has
+    /// passed since it first started; after that the alert comes alone. An ordinary object just ends.
     func interrupt(_ id: Int) {
         guard let current, current.id == id else { return }
         self.current = nil
-        if current.isArrival, arrivalReplays < Self.maxArrivalReplays {
-            arrivalReplays += 1
+        if current.isArrival, let first = arrivalFirstStart, now().timeIntervalSince(first) < Self.arrivalReplayWindow {
             arrivalPending = true
         }
     }
 
-    /// `scene` went away: its crossing stops.
+    /// `scene` went away: its crossing stops, and it no longer counts as active.
     func release(scene: UUID) {
-        if current?.scene == scene { current = nil }
+        sceneChanged(scene, active: false)
     }
 
     /// Starts `item` across `area`; the arrival is the sleigh at full length (`CrossingPath.maxDuration`).
@@ -160,6 +171,7 @@ final class NoelCrossingModel {
         activeSince = date
         nextGap = Self.minGap + random.unit() * (Self.maxGap - Self.minGap)
         lastID += 1
+        if arrival, arrivalFirstStart == nil { arrivalFirstStart = date }
         let crossing = Crossing(id: lastID, item: item, size: size, path: path, isArrival: arrival, scene: scene)
         current = crossing
         haptics.impact(.light)
