@@ -252,6 +252,62 @@ struct TopicRowActionsTests {
         #expect(TopicFlagActions.reason(for: .rejected(message: "Non")) == "HFR a refusé : Non")
         #expect(TopicFlagActions.reason(for: .rejected(message: nil)) == "HFR a refusé l'action.")
     }
+
+    /// #1056: « Reconnectez-vous » only when HFR proved the session logged out; an unconfirmed check says which check failed
+    /// and offers to try again. Every case says nothing left.
+    @Test func theSessionMessagesTellAnExpiredSessionFromAnUnconfirmedCheck() {
+        let expired: [SessionHealth] = [.expired(.noIdentityCookie), .expired(.credentialsRefused)]
+        let unconfirmed: [SessionHealth] = [
+            .unconfirmed(.unrecognizedPage), .unconfirmed(.identityNotConfirmed), .unconfirmed(.sessionChanged)
+        ]
+        for health in expired + unconfirmed {
+            #expect(TopicFlagActions.session(health).contains("rien n'a été envoyé"), "\(health)")
+        }
+        for health in expired { #expect(TopicFlagActions.session(health).contains("Reconnectez-vous"), "\(health)") }
+        for health in unconfirmed {
+            #expect(!TopicFlagActions.session(health).contains("Reconnectez"), "\(health)")
+            #expect(TopicFlagActions.session(health).contains("Réessayez"), "\(health)")
+        }
+        // Each case reads differently, so a screenshot from a device names the check that failed.
+        #expect(Set((expired + unconfirmed).map(TopicFlagActions.session)).count == expired.count + unconfirmed.count)
+    }
+
+    /// #1056: a removal refused by an unconfirmed session check (nothing sent) offers « Réessayer », and the retry sends it.
+    @Test func anUnconfirmedSessionCheckOffersARetryThatSendsAgain() async {
+        let writer = FakeFlagWriter()
+        let attempts = AttemptCounter()
+        writer.removeHandler = { (topic) async throws(TopicFlagError) -> TopicFlagResult in
+            if await attempts.next() == 1 { throw .sessionNotConfirmed(.unconfirmed(.identityNotConfirmed)) }
+            return confirmed(.removeFavoriteFromList, topic, "Drapeaux effacés avec succès")
+        }
+        let topic = flaggedTopic(1)
+        let (model, _) = await favoritesList([topic], writer: writer)
+        await model.removeFlag(topic)
+        #expect(model.retryableRemoval == topic)
+        #expect(model.actionFailure == TopicFlagActions.session(.unconfirmed(.identityNotConfirmed)))
+        await model.removeFlag(topic)
+        #expect(titles(model).isEmpty)
+        #expect(writer.removed.count == 2)
+        model.clearActionFailure()
+        #expect(model.retryableRemoval == nil)
+    }
+
+    /// A write that may have left, an expired session or HFR's refusal is never offered again from the alert (#1056).
+    @Test(arguments: [
+        TopicFlagError.unconfirmed(.unrecognizedAnswer(message: nil)),
+        TopicFlagError.sessionNotConfirmed(.expired(.credentialsRefused)),
+        TopicFlagError.rejected(message: "Refusé"),
+        TopicFlagError.missingToken
+    ])
+    func onlyANothingSentFailureThatMayPassOffersARetry(error: TopicFlagError) async {
+        let writer = FakeFlagWriter()
+        writer.removeHandler = { (_) async throws(TopicFlagError) -> TopicFlagResult in throw error }
+        let topic = flaggedTopic(1)
+        let (model, _) = await favoritesList([topic], writer: writer)
+        await model.removeFlag(topic)
+        #expect(model.actionFailure != nil)
+        #expect(model.retryableRemoval == nil)
+    }
 }
 
 /// Holds a scripted answer until the test opens it.
@@ -275,6 +331,17 @@ actor AsyncGate {
 actor CallCounter {
     private(set) var count = 0
 
+    func next() -> Int {
+        count += 1
+        return count
+    }
+}
+
+/// Counts a fake's calls across tasks.
+actor AttemptCounter {
+    private var count = 0
+
+    /// The 1-based number of this call.
     func next() -> Int {
         count += 1
         return count
