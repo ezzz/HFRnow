@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/MainToolbar.swift (MainToolbarContent, `:59-65`; ToolbarProfileImage) @ 87fe0d1c, of
+// Port of HFRswift/Swift/MainToolbar.swift (MainToolbarContent, `:60-66`; ToolbarProfileImage) @ 87fe0d1c, of
 // HFRswift/Swift/MainWindow.swift (CategoriesListView.accountMenuItems) and HFRswift/Swift/AccountMenuViews.swift (AccountMenuRow)
 // @ 2440d79. Differences: a "manage accounts" entry (GAP-009, GAP-162); a pushed screen has none (its back button is leading, as in
 // legacy where only the root toolbars carry it); an expired session shows the badge symbol instead of the avatar.
