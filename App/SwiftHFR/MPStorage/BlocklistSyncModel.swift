@@ -25,8 +25,6 @@ final class BlocklistSyncModel {
     @ObservationIgnored private let store: PseudoListStore
     @ObservationIgnored private let changes: BlocklistChangeLog
     @ObservationIgnored private let refreshLists: @Sendable () async -> Void
-    /// True while a reconciliation runs: the sync its own write triggers does not start a second one inside it.
-    @ObservationIgnored private var reconciling = false
 
     /// The model of `mpStorage`'s account over the device's lists; `refreshLists` refreshes the reader's copy after a change.
     init(
@@ -80,13 +78,11 @@ final class BlocklistSyncModel {
     }
 
     /// Merges the document read by a successful sync into the device's list, then writes to the document what only the
-    /// device has (`BlocklistSyncPlan`). Nothing happens while the function is off, or while the device's list cannot be read
-    /// (an unreadable list reads empty: E-2).
+    /// device has (`BlocklistSyncPlan`). Nothing happens unless the account syncs the function. The sync its own write
+    /// triggers reconciles again inside it, with its own diff (none is dropped); it ends because an edit that changes nothing
+    /// triggers no sync. An unreadable device list reads empty and refuses writes (LOT-061): nothing is pushed from it.
     func reconcile(before: MPStorageDocument?, after: MPStorageDocument) async {
-        guard !reconciling, mpStorage.document(for: .ignoreList) != nil else { return }
-        guard await store.loadFailure() == nil else { return }
-        reconciling = true
-        defer { reconciling = false }
+        guard mpStorage.document(for: .ignoreList) != nil else { return }
         let local = await store.blocklist(for: mpStorage.account).map(\.pseudo)
         let plan = BlocklistSyncPlan.make(local: local, before: before, after: after, held: changes.pending)
         guard !plan.isEmpty else {
@@ -110,11 +106,16 @@ final class BlocklistSyncModel {
         releaseCarried()
     }
 
-    /// Forgets the held changes the document shown now carries (pending local edits included: they are written at the next
-    /// sync whatever happens, LOT-130).
+    /// Forgets the held changes of every pseudo whose **last** held change the document shown now carries (pending local edits
+    /// included: they are written at the next sync whatever happens, LOT-130). An earlier change of a pseudo is never released
+    /// alone: an un-block then re-block keeps both until the re-block is in the document.
     private func releaseCarried() {
         guard let document = mpStorage.document(for: .ignoreList) else { return }
-        changes.withdraw(changes.pending.filter { BlocklistSyncPlan.carries($0, in: document) })
+        let pending = changes.pending
+        var last: [String: BlocklistChange] = [:]
+        for change in pending { last[change.key] = change }
+        let carried = Set(last.values.filter { BlocklistSyncPlan.carries($0, in: document) }.map(\.key))
+        changes.withdraw(pending.filter { carried.contains($0.key) })
     }
 
     /// Every username of `document` that is `change`'s pseudo, as the document writes it (case variants included).

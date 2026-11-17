@@ -9,6 +9,9 @@ extension FakeMPStorageRemote {
     /// Another client wrote the document.
     func replaceText(_ newText: String) { text = newText }
 
+    /// Saves merge with the forum's copy, as LOT-052's transport does.
+    func mergeOnSave() { merges = true }
+
     /// The usernames of the forum document as it stands.
     func blocklist() throws -> [String] {
         BlocklistSyncPlan.usernames(in: try MPStorageCodec.decode(text))
@@ -111,12 +114,13 @@ struct BlocklistSyncModelTests {
 
     static func make(
         thread: Int?, state: MPStorageSyncState? = nil, copy: MPStorageCopy = MPStorageCopy(),
-        remote: [String] = [], local: [String] = [], storePersistence: (any PseudoListPersistence)? = nil
+        remote: [String] = [], local: [String] = []
     ) async throws -> Fixture {
         let base = try await MPStorageSyncModelTests.make(
             thread: thread, state: state, copy: copy, text: blocklistDocumentText(remote)
         )
-        let store = PseudoListStore(persistence: storePersistence ?? InMemoryPseudoListPersistence())
+        await base.remote.mergeOnSave()
+        let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
         for pseudo in local { try await store.block(pseudo, account: MPStorageSyncModelTests.account) }
         let changes = BlocklistChangeLog()
         let sync = BlocklistSyncModel(mpStorage: base.model, store: store, changes: changes, refreshLists: {})
@@ -166,15 +170,18 @@ struct BlocklistSyncModelTests {
         #expect(fixture.changes.pending.isEmpty)
     }
 
-    @Test func aLocalRemovalRemovesEveryCaseVariantFromTheDocument() async throws {
+    @Test func aLocalRemovalRemovesEveryVariantFromTheDocument() async throws {
+        let variants = ["ALPHA", "Alpha\u{200B}", "Beta"]
         let fixture = try await Self.make(
-            thread: 7, state: .on, copy: Self.syncedCopy(["ALPHA", "Beta"]), remote: ["ALPHA", "Beta"], local: ["Alpha", "Beta"]
+            thread: 7, state: .on, copy: Self.syncedCopy(variants), remote: variants, local: ["Alpha", "Beta"]
         )
         await fixture.base.model.start()
         try await fixture.manager.remove("Alpha", from: .blocklist)
         await fixture.sync.handle(BlocklistChange(pseudo: "Alpha", added: false))
         #expect(try await fixture.remote.blocklist() == ["Beta"])
         #expect(await fixture.local() == ["Beta"])
+        // One write for every variant, not one per variant left to the next merge.
+        #expect(await fixture.remote.calls.filter { $0 == .save }.count == 1)
     }
 
     @Test func aRemovalNotYetWrittenIsNotImportedBackByASync() async throws {
@@ -186,6 +193,50 @@ struct BlocklistSyncModelTests {
         await fixture.base.model.start()
         #expect(await fixture.local().isEmpty)
         #expect(try await fixture.remote.blocklist().isEmpty)
+    }
+
+    @Test func aWriteBeforeAnyStartMergesFromTheStoredCopy() async throws {
+        // Another client removed Alpha; the reader blocks Gamma before the Messages tab or Réglages ever started the sync.
+        let fixture = try await Self.make(
+            thread: 7, state: .on, copy: Self.syncedCopy(["Alpha", "Beta"]), remote: ["Beta"], local: ["Alpha", "Beta"]
+        )
+        try await fixture.manager.add("Gamma", to: .blocklist)
+        await fixture.sync.handle(BlocklistChange(pseudo: "Gamma", added: true))
+        #expect(Set(await fixture.local()) == ["Beta", "Gamma"])
+        #expect(Set(try await fixture.remote.blocklist()) == ["Beta", "Gamma"])
+    }
+
+    @Test func anUnblockThenReblockLeavesThePseudoBlockedOnBothSides() async throws {
+        let fixture = try await Self.make(
+            thread: 7, state: .on, copy: Self.syncedCopy(["Alpha", "Beta"]), remote: ["Alpha", "Beta"], local: ["Alpha", "Beta"]
+        )
+        await fixture.base.model.start()
+        try await fixture.manager.remove("Alpha", from: .blocklist)
+        try await fixture.manager.add("Alpha", to: .blocklist)
+        await fixture.sync.handle(BlocklistChange(pseudo: "Alpha", added: false))
+        await fixture.sync.handle(BlocklistChange(pseudo: "Alpha", added: true))
+        #expect(Set(try await fixture.remote.blocklist()) == ["Alpha", "Beta"])
+        #expect(Set(await fixture.local()) == ["Alpha", "Beta"])
+        #expect(fixture.changes.pending.isEmpty)
+    }
+
+    @Test func aMissingThreadMergesNothingFromTheStoredCopy() async throws {
+        let fixture = try await Self.make(thread: nil, state: .on, copy: Self.syncedCopy(["Gamma"]), local: ["Alpha"])
+        await fixture.base.model.start()
+        #expect(fixture.base.model.threadMissing)
+        #expect(await fixture.local() == ["Alpha"])
+    }
+
+    @Test func anEditThatChangesNothingStartsNoMerge() async throws {
+        // Else a pseudo the forum cannot store (skipped by every merge write) would merge and write again forever.
+        let fixture = try await Self.make(thread: 7, state: .on, copy: Self.syncedCopy([]))
+        await fixture.base.model.start()
+        var merges = 0
+        fixture.base.model.afterSync = { _, _ in merges += 1 }
+        await fixture.base.model.edit(.ignoreList) { _, _ in false }
+        #expect(merges == 0)
+        await fixture.base.model.resync()
+        #expect(merges == 1)
     }
 
     @Test func aFirstWriteOfAnAccountThatNeverChoseAsksAndSendsNothing() async throws {
