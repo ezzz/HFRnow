@@ -27,7 +27,7 @@ struct TopicListView: View {
     var openCategory: ((TopicSource) -> Void)?
     /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
     var titleStyle: ScreenTitleStyle = .pill
-    @State private var titleIsVisible = true
+    @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
     @State private var pagePrompt: TopicSummary?
@@ -37,7 +37,7 @@ struct TopicListView: View {
         let loader = model.loader
         List(selection: $selection) {
             if titleStyle == .largeThenPill {
-                ScreenLargeTitle(title: model.source.navigationTitle, isVisible: $titleIsVisible)
+                ScreenLargeTitle(title: model.source.navigationTitle, visibility: titleVisibility)
             }
             if let scope { ForumScopeBar(model: model, scope: scope) }
             if loader.value != nil {
@@ -55,7 +55,7 @@ struct TopicListView: View {
             }
         }
         .densityListMargins()
-        .screenTitle(model.source.navigationTitle, style: titleStyle, headerVisible: titleIsVisible)
+        .screenTitle(model.source.navigationTitle, style: titleStyle, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {

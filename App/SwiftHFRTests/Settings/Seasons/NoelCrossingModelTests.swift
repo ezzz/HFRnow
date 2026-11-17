@@ -40,7 +40,7 @@ struct NoelCrossingModelTests {
 
     @Test func nothingCrossesBeforeTwentyMinutesOfForegroundTime() {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(19.9)
         #expect(ask(crossings) == nil)
         spend(0.2)
@@ -53,15 +53,15 @@ struct NoelCrossingModelTests {
     /// Hours in the background count for nothing: only active time does, across any number of returns.
     @Test func onlyForegroundTimeCounts() {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(10)
-        crossings.foregroundChanged(active: false)
+        crossings.sceneChanged(scene, active: false)
         spend(180)
         #expect(ask(crossings) == nil)
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(5)
-        crossings.foregroundChanged(active: false)
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: false)
+        crossings.sceneChanged(scene, active: true)
         spend(4.9)
         #expect(abs(crossings.foregroundTime - 19.9 * 60) < 0.001)
         #expect(ask(crossings) == nil)
@@ -71,7 +71,7 @@ struct NoelCrossingModelTests {
 
     @Test func theNextCrossingWaitsTwentyMinutesAgain() throws {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(25)
         let first = try #require(ask(crossings))
         crossings.finish(first.id)
@@ -89,7 +89,7 @@ struct NoelCrossingModelTests {
     ])
     func nothingCrossesOverTheLockASheetAnAlertOrTheKeyboard(blocked: SeasonalThemeModel.ScreenState) throws {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(30)
         #expect(ask(crossings, screen: blocked) == nil)
         #expect(haptics.played.isEmpty)
@@ -103,7 +103,7 @@ struct NoelCrossingModelTests {
 
     @Test func aCrossingStartsWithOneLightHaptic() {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(20)
         _ = ask(crossings)
         #expect(haptics.played == [.impact(.light)])
@@ -114,7 +114,7 @@ struct NoelCrossingModelTests {
 
     @Test func noHapticWithTheHapticsSettingOff() {
         let crossings = model([0], store: InMemorySettingsStore(["haptics": .bool(false)]))
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(20)
         #expect(ask(crossings) != nil)
         #expect(haptics.played.isEmpty)
@@ -123,7 +123,7 @@ struct NoelCrossingModelTests {
     /// Reduce Motion or « Animations de saison » off: nothing crosses and nothing buzzes (THEMES.md §4 rules 1–2).
     @Test func nothingWithoutAnimations() {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(120)
         #expect(ask(crossings, animations: false) == nil)
         #expect(haptics.played.isEmpty)
@@ -131,16 +131,16 @@ struct NoelCrossingModelTests {
 
     @Test func nothingOutsideNoelSoftOrInTheBackground() {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(30)
         #expect(ask(crossings, crossingsOn: false) == nil)
-        crossings.foregroundChanged(active: false)
+        crossings.sceneChanged(scene, active: false)
         #expect(ask(crossings) == nil)
     }
 
     @Test func oneSceneAtATime() throws {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(30)
         let crossing = try #require(ask(crossings))
         let other = UUID()
@@ -154,7 +154,7 @@ struct NoelCrossingModelTests {
     /// An ordinary object cut by a resize just ends: it is not due again.
     @Test func anInterruptedObjectIsNotReplayed() throws {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(30)
         let crossing = try #require(ask(crossings))
         crossings.interrupt(crossing.id)
@@ -163,12 +163,30 @@ struct NoelCrossingModelTests {
         #expect(ask(crossings) == nil)
     }
 
+    /// iPad, two windows: each reports its own phase. Foreground time runs while either is active; the other window leaving
+    /// neither stops this scene's crossing nor the count; a scene that is not active gets nothing.
+    @Test func anotherWindowsPhaseNeverStopsThisScenesCrossing() throws {
+        let crossings = model([0])
+        let other = UUID()
+        crossings.sceneChanged(scene, active: true)
+        crossings.sceneChanged(other, active: true)
+        spend(10)
+        crossings.sceneChanged(other, active: false)
+        spend(15)
+        #expect(abs(crossings.foregroundTime - 25 * 60) < 0.001)
+        #expect(ask(crossings, scene: other) == nil)
+        let crossing = try #require(ask(crossings))
+        crossings.sceneChanged(other, active: true)
+        crossings.sceneChanged(other, active: false)
+        #expect(crossings.current == crossing)
+    }
+
     @Test func leavingTheForegroundStopsACrossing() {
         let crossings = model([0])
-        crossings.foregroundChanged(active: true)
+        crossings.sceneChanged(scene, active: true)
         spend(30)
         _ = ask(crossings)
-        crossings.foregroundChanged(active: false)
+        crossings.sceneChanged(scene, active: false)
         #expect(crossings.current == nil)
     }
 }

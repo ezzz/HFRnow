@@ -154,8 +154,9 @@ final class RootModel {
 
     /// Builds the models over the engine objects of one session.
     convenience init(environment: AppEnvironment, store: any SettingsStore, initial: SidebarDestination? = nil) {
-        // Every list the tabs load goes through this source, so the badge takes HFR's count from whichever page came last.
-        let count = PrivateMessageCount()
+        // Every list the tabs load goes through this source, so the badge takes HFR's count from whichever page came last. The
+        // count is the session's, shared by every window (LOT-146).
+        let count = environment.privateMessageCount ?? PrivateMessageCount()
         let dataSource = PrivateMessageCountingSource(
             base: environment.dataSource, count: count,
             countSeen: environment.currentAccountName.map { account in
