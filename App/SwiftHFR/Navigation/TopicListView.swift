@@ -10,7 +10,8 @@ import UIKit
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
 // `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
 // Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
-// `MainWindow` (GAP-027, GAP-227).
+// `MainWindow` (GAP-027, GAP-227). #1073: the inset-grouped style is explicit, as Catégories and Messages: legacy leaves it automatic,
+// which is that block on an iPhone but a plain list in an iPad column, so Favoris there looked unlike the other two (GAP-1073).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -55,6 +56,7 @@ struct TopicListView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped) // explicit: the automatic style is a plain list in an iPad column (#1073)
         .densityListMargins()
         .screenTitle(model.source.navigationTitle, style: titleStyle, visibility: titleVisibility)
         .seasonalScrollTracking()
