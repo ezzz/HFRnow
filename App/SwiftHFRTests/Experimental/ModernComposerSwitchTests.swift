@@ -40,7 +40,7 @@ private final class SwitchProbeBox {
 }
 
 /// The real reply composer hosted in an iPhone-sized window with the switch on and off, its parts read through
-/// `ComposerLayoutProbe` (as `ComposerLayoutHostedTests`, which runs with no settings, so with the default).
+/// `ComposerLayoutProbe` (as `ComposerLayoutHostedTests`, which runs with the switch on).
 @MainActor
 @Suite(.serialized)
 struct ModernComposerSwitchHostedTests {
@@ -83,6 +83,20 @@ struct ModernComposerSwitchHostedTests {
             #expect(card.insetBy(dx: -0.5, dy: -0.5).contains(controls), "card \(card), controls \(controls)")
         } else {
             #expect(controls.minY >= card.maxY - 0.5, "card \(card), controls \(controls)")
+        }
+    }
+
+    /// The title strip follows the switch (#972): the modern composer draws none, the option off keeps legacy's bar and its
+    /// « Répondre » title, unchanged; an iPad keeps it either way.
+    @Test(arguments: [true, false])
+    func theTitleFollowsTheSwitch(modernComposer: Bool) async throws {
+        let box = try await host(modernComposer: modernComposer)
+        if isPhone && modernComposer {
+            #expect(box.frames[.title] == nil)
+        } else {
+            let title = try #require(box.frames[.title])
+            let card = try #require(box.frames[.card])
+            #expect(title.width > 0 && title.maxY <= card.minY + 0.5, "title \(title), card \(card)")
         }
     }
 }

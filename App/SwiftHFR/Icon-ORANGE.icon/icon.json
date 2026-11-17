@@ -1,0 +1,77 @@
+{
+  "groups": [
+    {
+      "layers": [
+        {
+          "fill": "none",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "value": true
+            },
+            {
+              "appearance": "dark",
+              "value": true
+            },
+            {
+              "appearance": "tinted",
+              "value": false
+            }
+          ],
+          "image-name": "Icon-ORANGE_1024_tinted.png",
+          "name": "tinted"
+        },
+        {
+          "fill": "none",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "value": true
+            },
+            {
+              "appearance": "dark",
+              "value": false
+            },
+            {
+              "appearance": "tinted",
+              "value": true
+            }
+          ],
+          "image-name": "Icon-ORANGE_1024_dark.png",
+          "name": "dark"
+        },
+        {
+          "fill": "none",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "value": false
+            },
+            {
+              "appearance": "dark",
+              "value": true
+            },
+            {
+              "appearance": "tinted",
+              "value": true
+            }
+          ],
+          "image-name": "Icon-ORANGE_1024.png",
+          "name": "default"
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.5
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

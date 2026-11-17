@@ -1,3 +1,4 @@
+import HFRStorage
 import SwiftUI
 @testable import SwiftHFR
 import Testing
@@ -24,11 +25,16 @@ struct ComposerLayoutHostedTests {
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
     private func host(
-        size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([]))
+        size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([])),
+        placement: ComposerPlacement = .sheet
     ) async throws -> ProbeBox {
         let box = ProbeBox()
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
-        let view = ReplyComposerView(model: model) { _ in }
+        // The modern composer's layout (#854, #895): its switch is off by default since #855.
+        let settings = ExperimentalSettings(store: InMemorySettingsStore())
+        settings.set(.modernComposer, isOn: true)
+        let view = ReplyComposerView(model: model, placement: placement) { _ in }
+            .environment(settings)
             .environment(\.dynamicTypeSize, size)
             .environment(\.composerLayoutProbe, box.probe)
             .appTypography(TextScale(percent: 100), density: .regular)
@@ -69,19 +75,43 @@ struct ComposerLayoutHostedTests {
         #expect(abs(card.height - layout.textCardHeight) < 1, "card \(card.height), textCardHeight \(layout.textCardHeight)")
     }
 
-    /// The title never sits under a floating button, at the default size or an accessibility one, and each button keeps a
-    /// 44 pt hit area although its capsule is drawn smaller (operator, 2026-11-13).
+    /// No title strip (#972): close and drafts on the left, send on the right, in one row directly above the card, each keeping
+    /// a 44 pt hit area although its capsule is drawn smaller (operator, 2026-11-13), at the default size and an accessibility one.
     @Test(arguments: [DynamicTypeSize.large, .accessibility3])
-    func theTitleNeverSitsUnderAFloatingButton(size: DynamicTypeSize) async throws {
+    func theFloatingButtonsSitAboveTheCardWithNoTitle(size: DynamicTypeSize) async throws {
         guard isPhone else { return }
         let box = try await host(size: size, text: "Bonjour")
-        let title = try #require(box.frames[.title])
-        #expect(title.width > 0)
-        for part in [ComposerLayoutProbe.Part.close, .drafts, .send] {
-            let button = try #require(box.frames[part], "\(part) is shown")
-            #expect(!button.intersects(title), "\(part) \(button), title \(title)")
+        #expect(box.frames[.title] == nil, "no title is drawn")
+        let card = try #require(box.frames[.card])
+        let close = try #require(box.frames[.close])
+        let drafts = try #require(box.frames[.drafts])
+        let send = try #require(box.frames[.send])
+        for (part, button) in [("close", close), ("drafts", drafts), ("send", send)] {
             #expect(button.width >= ComposerHeader.hitSize - 0.5 && button.height >= ComposerHeader.hitSize - 0.5, "\(part) \(button)")
+            #expect(button.maxY <= card.minY + 0.5, "\(part) \(button), card \(card)")
         }
+        #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
+        #expect(drafts.maxX < 402 / 2 && send.minX > 402 / 2, "drafts \(drafts), send \(send)")
+        #expect(abs(close.midY - send.midY) < 0.5, "one row: close \(close), send \(send)")
+        // Nothing but the row above the card: no strip of its own (a title over or under the buttons would add one).
+        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+        let insets = ComposerChrome.docked.headerInsets(glyph: glyph)
+        guard size == .large else { return }
+        #expect(abs(box.layout.top - (ComposerHeader.hitSize + insets.top + insets.bottom)) < 0.5, "top \(box.layout.top)")
+    }
+
+    /// The reader's docked bar leaves the buttons' row unfilled (#972): its opaque fill starts at the row's bottom edge, so the
+    /// page shows around the buttons, and covers the card.
+    @Test func theDockedBarsFillStartsUnderTheButtonsRow() async throws {
+        guard isPhone else { return }
+        let box = try await host(size: .large, text: "Bonjour", placement: .docked)
+        let fill = try #require(box.frames[.fill])
+        let close = try #require(box.frames[.close])
+        let card = try #require(box.frames[.card])
+        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+        let rowBottom = close.maxY + ComposerChrome.docked.headerInsets(glyph: glyph).bottom
+        #expect(abs(fill.minY - rowBottom) < 0.5, "fill \(fill), close \(close)")
+        #expect(fill.minY <= card.minY + 0.5 && fill.maxY >= card.maxY - 0.5, "fill \(fill), card \(card)")
     }
 
     /// The modern composer's margins as laid out (#895): the text card is `FloatingSpacing.gap` from the window's sides, and the
@@ -101,14 +131,15 @@ struct ComposerLayoutHostedTests {
         #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
     }
 
-    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size and weight, measured against the
-    /// same symbol drawn by UIKit at that size (a `.subheadline` bold glyph, the size before #895, is about 4 pt smaller).
+    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size, one weight heavier (#972,
+    /// `FloatingButtonPalette.glyphWeight`), measured against the same symbol drawn by UIKit at that size and weight (a
+    /// `.subheadline` bold glyph, the size before #895, is about 4 pt smaller).
     @Test func theFloatingButtonsGlyphIsTheCardToolsSize() async throws {
         guard isPhone else { return }
         let box = try await host(size: .large, text: "Bonjour")
         let glyph = try #require(box.frames[.closeGlyph])
         let size = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
-        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .medium)
+        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .semibold)
         let expected = try #require(UIImage(systemName: "xmark", withConfiguration: configuration)).size
         #expect(abs(glyph.height - expected.height) < 1, "glyph \(glyph), UIKit \(expected)")
         #expect(abs(glyph.width - expected.width) < 1, "glyph \(glyph), UIKit \(expected)")

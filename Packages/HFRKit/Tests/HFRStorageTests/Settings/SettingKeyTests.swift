@@ -73,7 +73,7 @@ import Testing
         #expect(store.value(for: SettingKey.doubleSizeSmileys))
         #expect(store.value(for: SettingKey.embeddedVideos) == .inlinePlayer)
         #expect(!store.value(for: SettingKey.displaySignatures))
-        #expect(store.value(for: SettingKey.displayImages) == .wifiOnly)
+        #expect(store.value(for: SettingKey.displayImages) == .always)
         #expect(!store.value(for: SettingKey.mpStorageActive))
         #expect(store.value(for: SettingKey.mpStorageLastSync) == nil)
         #expect(store.value(for: SettingKey.searchCategory) == .forum(13))
@@ -82,8 +82,8 @@ import Testing
         #expect(store.value(for: SettingKey.seasonalThemesAutomatic))
         #expect(store.value(for: SettingKey.seasonalAnimations))
         #expect(store.value(for: SettingKey.noelActiveYear) == nil)
-        // #903: every experimental switch is off, except the modern composer until #855 delivers the legacy one.
-        #expect(store.value(for: SettingKey.experimentalModernComposer))
+        // #903: every experimental switch is off; the modern composer too since #855 delivered legacy's.
+        #expect(!store.value(for: SettingKey.experimentalModernComposer))
         #expect(!store.value(for: SettingKey.experimentalSearchTab))
         #expect(!store.value(for: SettingKey.experimentalMPStorageSwitches))
         #expect(!store.value(for: SettingKey.experimentalFlagIconRows))
@@ -211,7 +211,7 @@ import Testing
     @Test func unknownEnumStringFallsBackToTheDefault() {
         let store = InMemorySettingsStore(["embedded_videos": .string("sometimes"), "display_images": .int(4)])
         #expect(store.value(for: SettingKey.embeddedVideos) == .inlinePlayer)
-        #expect(store.value(for: SettingKey.displayImages) == .wifiOnly)
+        #expect(store.value(for: SettingKey.displayImages) == .always)
     }
 
     @Test func searchCategoryAcceptsNumbersAndRejectsGarbage() {

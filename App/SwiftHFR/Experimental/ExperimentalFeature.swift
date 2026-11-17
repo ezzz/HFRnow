@@ -35,16 +35,16 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Listed in Réglages only once its switch changes something: an option whose path is not built yet is hidden, so there is
-    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #817's legacy rows (its two
-    /// paths look the same until then); the others wait for their own PR.
+    /// no dead switch, and reads as its default whatever the store holds. `flagIconRows` waits for #905 to read it at
+    /// `TopicRowStyle.current` (#817 built the legacy rows it switches off); the others wait for their own PR.
     var isListed: Bool {
         switch self {
-        case .modernComposer, .mpStorageSwitches: true
-        case .searchTab, .flagIconRows, .imageLoadingChoice: false
+        case .modernComposer, .mpStorageSwitches, .searchTab, .imageLoadingChoice: true
+        case .flagIconRows: false
         }
     }
 
-    /// The sub-menu that lists it.
+    /// The section that lists it.
     var theme: ExperimentalTheme {
         switch self {
         case .modernComposer: .composer
@@ -71,7 +71,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .modernComposer:
             "Sur iPhone, le composer s’ouvre en carte compacte posée sur le clavier, la page restant visible au-dessus, avec des "
-                + "boutons flottants. Désactivé : le composer s’ouvre en pleine hauteur, avec la barre et les boutons classiques."
+                + "boutons flottants. Désactivé : le composer s’ouvre en plein écran, comme l’app historique."
         case .searchTab:
             "Ajoute un onglet Recherche à gauche de Plus (cinq onglets). Désactivé : la barre à quatre onglets de l’app historique."
         case .mpStorageSwitches:
@@ -81,13 +81,13 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
             "Un point devant les sujets non lus et une icône de drapeau devant le titre. Désactivé : la ligne entière teintée "
                 + "selon le drapeau, comme l’app historique."
         case .imageLoadingChoice:
-            "Choisir quand charger les images : Jamais, Wi-Fi uniquement ou Toujours. Désactivé : les images se chargent "
-                + "toujours, comme l’app historique."
+            "Ajoute un choix du moment où charger les images : Toujours, Wi-Fi uniquement ou Jamais (au toucher). Désactivé : "
+                + "les images se chargent toujours, comme l’app historique."
         }
     }
 }
 
-/// A sub-menu of Réglages › Expérimental, in display order.
+/// A section of the Réglages › Expérimental page, in display order.
 enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
     case composer
     case navigation
@@ -97,7 +97,7 @@ enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
 
     var id: Self { self }
 
-    /// The sub-menu's row label.
+    /// The section's header.
     var title: String {
         switch self {
         case .composer: "Composer"
@@ -108,22 +108,11 @@ enum ExperimentalTheme: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The row's symbol.
-    var symbol: String {
-        switch self {
-        case .composer: "square.and.pencil"
-        case .navigation: "dock.rectangle"
-        case .lists: "list.bullet"
-        case .messages: "envelope"
-        case .imageLoading: "photo"
-        }
-    }
-
-    /// The listed options of this sub-menu, in enum order.
+    /// The listed options of this section, in enum order.
     var listedFeatures: [ExperimentalFeature] {
         ExperimentalFeature.allCases.filter { $0.theme == self && $0.isListed }
     }
 
-    /// The sub-menus that list at least one option: an empty one is not shown.
+    /// The sections that list at least one option: an empty one is not shown.
     static var listed: [ExperimentalTheme] { allCases.filter { !$0.listedFeatures.isEmpty } }
 }

@@ -34,6 +34,16 @@ enum TopicRowCues {
         return "⚑\(topic.isPoll ? " \u{2263}" : "") \(current) / \(topic.pageCount)"
     }
 
+    /// Spoken name of a flag colour, for the row that shows it only as a tint (the dense row's icon said the same words).
+    static func flagLabel(_ flag: TopicFlag?) -> String? {
+        switch flag {
+        case .yellow: "Favori"
+        case .blue: "Drapeau"
+        case .red: "Lu"
+        case nil: nil
+        }
+    }
+
     /// Spoken form of the capsule.
     static func unreadPagesLabel(_ pages: Int) -> String {
         FrenchPlural.count(pages, "page non lue", "pages non lues")

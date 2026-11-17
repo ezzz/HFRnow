@@ -1,41 +1,73 @@
 import SwiftUI
 
 // New in SwiftHFR (#903, operator 2026-11-14): legacy has no experimental options. No GAP row: nothing of legacy changes.
-/// The "Expérimental" section at the end of Réglages: one row per sub-menu that lists an option, and the footer. Nothing when
-/// no option is listed.
+/// What Réglages › Expérimental lists: the options grouped by theme, in display order, empty themes left out (#971).
+enum ExperimentalPageLayout {
+    /// One theme and its options on the page.
+    struct Group: Equatable {
+        let theme: ExperimentalTheme
+        let features: [ExperimentalFeature]
+    }
+
+    /// The groups of the listed options (every theme with at least one), in display order; empty when none is listed, which
+    /// hides the Réglages row. Built from `ExperimentalTheme.listed`, the one source of what is listed.
+    static func groups() -> [Group] {
+        ExperimentalTheme.listed.map { Group(theme: $0, features: $0.listedFeatures) }
+    }
+}
+
+/// The single "Expérimental" row at the end of Réglages (#971): a monochrome warning symbol and a link to the page of options.
+/// Nothing when no option is listed.
 struct ExperimentalSettingsSection: View {
     let settings: ExperimentalSettings
 
     var body: some View {
-        let themes = ExperimentalTheme.listed
-        if !themes.isEmpty {
+        let groups = ExperimentalPageLayout.groups()
+        if !groups.isEmpty {
             Section {
-                ForEach(themes) { theme in
-                    NavigationLink { ExperimentalThemeView(theme: theme, settings: settings).appScreenBackground() } label: {
-                        Label(theme.title, systemImage: theme.symbol)
+                NavigationLink {
+                    ExperimentalPageView(groups: groups, settings: settings).appScreenBackground()
+                } label: {
+                    Label {
+                        Text("Expérimental")
+                    } icon: {
+                        // Text colour, not tinted; decorative, so VoiceOver reads the row's title only.
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(Color.primary)
+                            .accessibilityHidden(true)
                     }
                 }
-            } header: {
-                Text("Expérimental")
-            } footer: {
-                Text("Options en cours de mise au point, désactivées par défaut.")
             }
         }
     }
 }
 
-/// One sub-menu: the switch of each listed option of `theme`, each with its ⓘ.
-struct ExperimentalThemeView: View {
-    let theme: ExperimentalTheme
+/// The "Expérimental" page: one section per theme with each option's switch and ⓘ, and the footer on the last section.
+struct ExperimentalPageView: View {
+    let groups: [ExperimentalPageLayout.Group]
     let settings: ExperimentalSettings
 
     var body: some View {
         Form {
-            ForEach(theme.listedFeatures) { feature in
-                ExperimentalFeatureRow(feature: feature, settings: settings)
+            ForEach(groups, id: \.theme) { group in
+                Section {
+                    ForEach(group.features) { feature in
+                        ExperimentalFeatureRow(feature: feature, settings: settings)
+                        // EXPERIMENTAL(imageLoadingChoice, #902): the picker shows once the option is on.
+                        if feature == .imageLoadingChoice, settings.isOn(feature) {
+                            ImageLoadingChoicePicker(store: settings.store)
+                        }
+                    }
+                } header: {
+                    Text(group.theme.title)
+                } footer: {
+                    if group.theme == groups.last?.theme {
+                        Text("Options en cours de mise au point, désactivées par défaut.")
+                    }
+                }
             }
         }
-        .navigationTitle(theme.title)
+        .navigationTitle("Expérimental")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

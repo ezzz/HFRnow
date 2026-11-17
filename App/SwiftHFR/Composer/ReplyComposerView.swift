@@ -9,16 +9,15 @@ import SwiftUI
 // Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
 // "Aa" bar under it (#653, `ComposerControlRow`). Differences: on an iPhone with Réglages › Expérimental › « Composer moderne » on
-// (#903, the default until #855; `ModernComposer`), the composer is a card docked on the keyboard that grows with the text up to a
+// (#903, off by default since #855; `ModernComposer`), the composer is a card docked on the keyboard that grows with the text up to a
 // cap (`ComposerHeight`, `ComposerCardLayout`, GAP-653, b·operator); in the reader that card is a bar docked at the bottom of the
 // page, the page scrollable above it with the keyboard up, its taps ignored (#853, `ComposerPlacement`), elsewhere a sheet; the
 // full-screen toggle in the editor's corner, the control row inside the card and close, drafts and send as small floating
-// buttons (#854, `ComposerChrome`); with it off, and on an iPad, the full-height sheet with legacy's bar and the row under the
-// card. Inserted images show as chips in the card.
-/// The composer, a sheet or the reader's docked bar: a plain text editor, close and Send; a new topic adds its subject and
-/// sub-category (LOT-089); a new private message adds its recipient and subject
-/// (LOT-128, legacy "À :" field, `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in
-/// `ReplyComposerModel`.
+// buttons (#854, `ComposerChrome`); with it off, and on an iPad, legacy's bar and the row under the card, in a full-height sheet
+// or, in an iPhone's reader, legacy's full-screen cover (#855). Inserted images show as chips in the card.
+/// The composer, a sheet, a full-screen cover or the reader's docked bar: a plain text editor, close and Send; a new topic adds
+/// its subject and sub-category (LOT-089); a new private message adds its recipient and subject (LOT-128, legacy "À :" field,
+/// `QuoteMessageViewController.m:306-330` @ 21173e77). Thin: every rule is in `ReplyComposerModel`.
 ///
 /// The editor is SwiftUI's own `TextEditor` with the system keyboard type, so third-party keyboards work (legacy backlog
 /// HFR-001) and the text is never rewritten under the cursor; the keyboard safe area (the sheet's, or the reader's under the
@@ -46,7 +45,6 @@ struct ReplyComposerView: View {
     /// A smiley was inserted by the open picker: focus goes back to the editor when it closes, not after a plain "Fermer".
     @State private var smileyInserted = false
     /// The editor's selection when the picker opened: the sheet takes focus, so the live binding is not trusted.
-    @State private var rangeForSmiley: Range<String.Index>?
 
     private typealias Field = ComposerField
 
@@ -56,8 +54,6 @@ struct ReplyComposerView: View {
     @State private var isShowingImages = false
     /// A snippet was inserted by the closed panel: focus goes back to the editor.
     @State private var imageInserted = false
-    /// The caret when "Image" was tapped: the sheet takes focus, so the live selection is not trusted (as for smileys).
-    @State private var rangeImage = NSRange(location: 0, length: 0)
     /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
     @State private var gifRequested = false
     /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
@@ -179,25 +175,19 @@ struct ReplyComposerView: View {
         )
     }
 
-    /// The selected range of the editor, nil without a selection or with several (multi-selection is not used here).
-    private var selectedRange: Range<String.Index>? {
-        guard case .selection(let range)? = selection?.indices else { return nil }
-        return range
-    }
-
     private func openSmileys() {
         let services = model.smileyServices
         smileySearch = smileySearch ?? services.search
-        rangeForSmiley = selectedRange
+        formatting.beginPick()
         smileyInserted = false
         let catalogue = SmileyPickerModel.bundledCatalogue()
         picker = services.picker(catalogue: catalogue, search: smileySearch)
     }
 
     private func insertSmiley(_ code: String) {
-        guard let caret = model.insert(smiley: code, replacing: rangeForSmiley) else { return }
+        // The formatting model places the caret after the smiley (`cursorRevision`), as for images and GIFs.
+        guard formatting.insert(smiley: code) else { return }
         smileyInserted = true
-        selection = TextSelection(insertionPoint: String.Index(utf16Offset: caret, in: model.text))
     }
 
     private var editorCard: some View {
@@ -277,8 +267,8 @@ extension ReplyComposerView {
 
     private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
 
-    // EXPERIMENTAL(modernComposer, #904): replaces the full-height composer with legacy's bar and row (the iPad's; #855 puts
-    // the legacy full-screen cover here) by the compact card docked on the keyboard, on an iPhone (`ModernComposer`).
+    // EXPERIMENTAL(modernComposer, #904): replaces the full-height composer with legacy's bar and row (the iPad's, and legacy's
+    // full-screen cover in the reader, #855) by the compact card docked on the keyboard, on an iPhone (`ModernComposer`).
     private var usesModernComposer: Bool {
         ModernComposer.isActive(isPhone: isPhone, isOn: ExperimentalSettings.isOn(.modernComposer, in: experimental))
     }
@@ -368,14 +358,13 @@ extension ReplyComposerView {
 
     fileprivate func openImages() {
         imageInserted = false
-        rangeImage = formatting.selectedRange
+        formatting.beginPick()
         isShowingImages = true
     }
 
-    /// The panel's snippet at the caret it had; an upload of the panel also gets its chip in the card (#653).
+    /// The panel's snippet at the caret `beginPick()` saved; an upload of the panel also gets its chip in the card (#653).
     fileprivate func insertImage(_ snippet: String) {
-        formatting.selectedRange = rangeImage
-        formatting.insert(snippet)
+        formatting.insertPicked(snippet)
         imageInserted = true
         if let image = imageUpload.uploadedImage(writing: snippet) {
             model.imageChips.append(ComposerImageChip(snippet: snippet, thumbnail: image.miniURL ?? image.mediumURL ?? image.fullURL))

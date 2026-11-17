@@ -5,14 +5,18 @@ import SwiftUI
 // a Favoris / Drapeaux source menu (GAP-032; UXD). The reader hides the tab bar only while the split is collapsed
 // (GAP-008, UXD-02, see `TopicReaderView`).
 // LOT-185: the options menu symbol is `ellipsis`, not `ellipsis.circle`; GAP row pending #545.
-/// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus. Each tab keeps its own navigation, and the reader
-/// opens inside the tab (a collapsed split view is a stack).
+/// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus, with Recherche before Plus behind an experimental option.
+/// Each tab keeps its own navigation, and the reader opens inside the tab (a collapsed split view is a stack).
 struct RootTabsView: View {
     @Bindable var model: RootModel
     let environment: AppEnvironment
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     var body: some View {
-        TabView(selection: $model.selectedTab) {
+        let hasSearchTab = SearchTabOption.isOn(experimental)
+        TabView(selection: Binding(
+            get: { SearchTabOption.visibleTab(model.selectedTab, isOn: hasSearchTab) }, set: { model.selectedTab = $0 }
+        )) {
             Tab(RootTab.categories.title, systemImage: RootTab.categories.symbol, value: RootTab.categories) {
                 CategoriesTabView(navigation: model.categories, reader: environment.reader, composer: environment.composer)
                     .environment(\.isSelectedRootTab, model.selectedTab == .categories)
@@ -26,6 +30,12 @@ struct RootTabsView: View {
                     .environment(\.isSelectedRootTab, model.selectedTab == .messages)
             }
             .badge(model.unreadPrivateMessages)
+            // EXPERIMENTAL(searchTab, #896): the fifth item, left of Plus.
+            if hasSearchTab {
+                Tab(RootTab.search.title, systemImage: RootTab.search.symbol, value: RootTab.search) {
+                    SearchRootTab(model: model, environment: environment)
+                }
+            }
             Tab(RootTab.more.title, systemImage: RootTab.more.symbol, value: RootTab.more) {
                 ThemedNavigationStack {
                     PlusView(model: model)
@@ -37,6 +47,9 @@ struct RootTabsView: View {
             }
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
+        // EXPERIMENTAL(searchTab, #896): the selection follows the option and the Plus search entry.
+        .onChange(of: model.selectedDestination, initial: true) { model.settleSearchTab(isOn: hasSearchTab) }
+        .onChange(of: hasSearchTab) { model.settleSearchTab(isOn: hasSearchTab) }
     }
 }
 

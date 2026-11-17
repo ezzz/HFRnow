@@ -49,7 +49,7 @@ struct TopicListView: View {
             }
         }
         .densityListMargins()
-        .navigationTitle(model.source.title)
+        .navigationTitle(model.source.navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
@@ -126,7 +126,7 @@ struct TopicListView: View {
 
     /// The tint of a row: the super favourite's orange or the flag's colour, nil on the selected row so the iPad selection shows.
     /// `flagPills` false (Favoris) leaves only the super favourite a pill: legacy tints no other row there (`Favorites.swift:1134`
-    /// @ 87fe0d1c); the flag's colour stays on its icon.
+    /// @ 87fe0d1c); the default row shows no flag colour there.
     static func rowTint(
         topic: TopicSummary, showsFlag: Bool = true, isSuperFavorite: Bool, isSelected: Bool, flagPills: Bool = true
     ) -> RowTint? {
@@ -140,7 +140,10 @@ struct TopicListView: View {
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
             let isSuper = model.isSuperFavorite(topic)
-            TopicRowView(topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic))
+            TopicRowView(
+                topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
+                flagIsTinted: TopicListView.flagPills(for: model.source)
+            )
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(
