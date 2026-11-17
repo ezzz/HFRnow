@@ -254,7 +254,7 @@ struct ReaderLandingWebTests: ReaderWebTesting {
 private extension MockTransport {
     /// The `img3.super-h.fr` addresses requested so far, in order.
     func rehostRequests() async -> [String] {
-        await requests.filter { $0.url.host() == "img3.super-h.fr" }.map(\.url.absoluteString)
+        requests.filter { $0.url.host() == "img3.super-h.fr" }.map(\.url.absoluteString)
     }
 }
 
