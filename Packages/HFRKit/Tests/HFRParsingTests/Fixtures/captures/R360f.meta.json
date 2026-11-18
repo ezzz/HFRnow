@@ -1,0 +1,16 @@
+{
+  "id": "R360f",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/message-smi-mp-aj.php?config=hfr.inc&findsmilies=chat",
+  "url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=chat",
+  "final_url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=chat",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:15:59 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Smiley search one word, no cookie",
+  "file": "R360f-smiley-search-one-word-anon.html",
+  "private": false
+}

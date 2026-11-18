@@ -1,0 +1,15 @@
+{
+  "id": "T560b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/v1/gifs/search?q=hello&limit=3&offset=0&rating=r&api_key=REDACTED",
+  "url": "https://api.giphy.com/v1/gifs/search?q=hello&limit=3&offset=0&rating=r&api_key=REDACTED",
+  "final_url": "https://api.giphy.com/v1/gifs/search?q=hello&limit=3&offset=0&rating=r&api_key=REDACTED",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Wed, 18 Nov 2026 17:18:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Giphy REST search as LOT-155 sends it, without lang (T40 used lang=en), key stripped",
+  "private": false
+}
