@@ -44,8 +44,7 @@ struct ExperimentalSettingsSection: View {
     }
 }
 
-/// The "Expérimental" page: one section per theme with each option's switch and ⓘ (a description under the switch instead for
-/// `showsExplanationUnderSwitch` options), and the footer on the last section.
+/// The "Expérimental" page: one section per theme with each option's switch and ⓘ, and the footer on the last section.
 struct ExperimentalPageView: View {
     let groups: [ExperimentalPageLayout.Group]
     let settings: ExperimentalSettings
@@ -56,12 +55,7 @@ struct ExperimentalPageView: View {
                 Section {
                     Group {
                         ForEach(group.features) { feature in
-                            // EXPERIMENTAL(mpDarkTopic, #1014): a description under the switch, no ⓘ and no popover.
-                            if feature.showsExplanationUnderSwitch {
-                                DescribedFeatureRow(feature: feature, settings: settings)
-                            } else {
-                                ExperimentalFeatureRow(feature: feature, settings: settings)
-                            }
+                            ExperimentalFeatureRow(feature: feature, settings: settings)
                             // EXPERIMENTAL(imageLoadingChoice, #902): the picker shows once the option is on.
                             if feature == .imageLoadingChoice, settings.isOn(feature) {
                                 ImageLoadingChoicePicker(store: settings.store)
@@ -84,15 +78,17 @@ struct ExperimentalPageView: View {
     }
 }
 
-/// A switch and its ⓘ, which shows the explanation under it; VoiceOver reads the explanation as the switch's hint. An option that
-/// shows its explanation under the switch (`showsExplanationUnderSwitch`) uses `DescribedFeatureRow` instead.
+/// A switch and its ⓘ, which shows the explanation under it; VoiceOver reads the explanation as the switch's hint.
 struct ExperimentalFeatureRow: View {
+    /// Between the switch and the explanation (`SettingsRowSpacing`, #1128).
+    static let descriptionSpacing = SettingsRowSpacing.titleToDescription
+
     let feature: ExperimentalFeature
     let settings: ExperimentalSettings
     @State private var isExplained = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Self.descriptionSpacing) {
             HStack(spacing: 12) {
                 Toggle(feature.title, isOn: Binding(
                     get: { settings.isOn(feature) },

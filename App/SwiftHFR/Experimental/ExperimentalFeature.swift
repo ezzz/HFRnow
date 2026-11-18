@@ -61,10 +61,7 @@ enum ExperimentalFeature: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Whether the explanation is always shown under the switch, with no ⓘ (operator, 2026-11-17, #1014), instead of behind it.
-    var showsExplanationUnderSwitch: Bool { self == .mpDarkTopic }
-
-    /// What the switch changes, shown under the ⓘ (or under the switch, `showsExplanationUnderSwitch`) and read by VoiceOver.
+    /// What the switch changes, shown under the ⓘ and read by VoiceOver.
     var explanation: String {
         switch self {
         case .modernComposer:

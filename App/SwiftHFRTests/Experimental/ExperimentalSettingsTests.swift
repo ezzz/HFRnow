@@ -91,3 +91,19 @@ struct ExperimentalPageTests {
         #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(true))
     }
 }
+
+/// #1128: one spacing between a switch's title and its description, read by every Réglages row that shows a description under
+/// its control (it was 2 pt on two rows and 6 pt on another).
+struct SettingsRowSpacingTests {
+    /// The system `Form` sets a footnote under a row about one line-height of the footnote font from the title; 8 pt is clearly
+    /// more than the 2 and 6 pt it replaces without growing the row past what Settings.app does.
+    @Test func theSpacingIsClearlyLargerThanTheOldTwoAndSixPoints() {
+        #expect(SettingsRowSpacing.titleToDescription == 8)
+        #expect(SettingsRowSpacing.titleToDescription > 6)
+    }
+
+    @Test func everyRowWithADescriptionUnderItsControlReadsTheConstant() {
+        #expect(ExperimentalFeatureRow.descriptionSpacing == SettingsRowSpacing.titleToDescription)
+        #expect(MPStorageSettingsRows.descriptionSpacing == SettingsRowSpacing.titleToDescription)
+    }
+}
