@@ -98,22 +98,13 @@ struct SettingsView: View {
                 }
                 Toggle("Rotation d’écran", isOn: $general.allowsRotation)
                 Toggle("Retours haptiques", isOn: $general.hapticsEnabled)
-                Toggle(isOn: $general.opensLinksInDefaultBrowser) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Navigateur par défaut")
-                        Text("Désactivé : navigateur intégré")
-                            .scaledFont(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                DefaultBrowserRow(general: general)
                 NavigationLink { SettingsDestinationView(destination: .icon, store: store) } label: {
                     Text(SettingsDestination.icon.title)
                 }
             }
             Section("Filtrer les posts") {
-                Picker("Minimum de citations", selection: $general.filterMinimumQuotes) {
-                    ForEach(general.filterMinimumQuoteOptions, id: \.self) { Text("\($0)").tag($0) }
-                }
+                FilterMinimumQuotesRow(general: general)
                 Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
             }
             Section("Messages") {
@@ -151,9 +142,7 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Swipe changement de page", isOn: $topics.swipesPages)
-                Picker("Bouton +", selection: $topics.replyButton) {
-                    ForEach(ReplyButtonBehavior.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
+                ReplyButtonRow(topics: topics)
             }
             SecuritySettingsSections()
             MaintenanceSection(model: maintenance)
