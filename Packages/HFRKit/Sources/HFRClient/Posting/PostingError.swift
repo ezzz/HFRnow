@@ -41,6 +41,10 @@ public enum PostingError: Error, Sendable, Equatable {
     case deleteNotOffered
     /// Deleting this message deletes the whole thread; the caller must confirm it explicitly.
     case wholeTopicDeletionNotConfirmed
+    /// A poll was given to a form that cannot add one (not a public first post, or its topic already has a poll): nothing was posted.
+    case pollNotOffered
+    /// The poll cannot be sent as written (`PollDraft.problem(now:)`): nothing was posted.
+    case invalidPoll(PollProblem)
     /// HFR refused the write (flood, empty text, bad token…) with this sentence: nothing was posted.
     case rejected(message: String?)
     /// The write may have been posted, but HFR's confirmation was not read. Never retried automatically.

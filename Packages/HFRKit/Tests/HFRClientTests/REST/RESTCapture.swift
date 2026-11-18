@@ -1,8 +1,8 @@
 import Foundation
 import HFRNetwork
 
-/// The REST captures `R57a`-`R57k`, the sub-categories `R285a`-`R285c` and the flag buckets `R335a`-`R335e`, `R603f`, `R830t`
-/// (LOT-057), read in place like every client capture.
+/// The REST captures `R57a`-`R57k`, the sub-categories `R285a`-`R285c`, `R929a`-`R929d`
+/// and the flag buckets `R335a`-`R335e`, `R603f`, `R830t` (LOT-057), read in place like every client capture.
 enum RESTCapture {
     static let categories = "R57a-rest-categories"
     static let lastTopics = "R57b-rest-category-topics-last"
@@ -20,6 +20,10 @@ enum RESTCapture {
     static let subcategories1 = "R285a-rest-subcategories-cat1"
     static let subcategories2 = "R285b-rest-subcategories-cat2"
     static let subcategories10 = "R285c-rest-subcategories-cat10"
+    static let subcategories14 = "R929a-rest-subcategories-cat14"
+    static let subcategories4 = "R929b-rest-subcategories-cat4"
+    static let subcategories12 = "R929c-rest-subcategories-cat12"
+    static let subcategories6 = "R929d-rest-subcategories-cat6"
     /// The logged-in flag buckets (#335): global `participated`, `read`, `favorites`, the global `participated` asked for a
     /// page 2 of 5, and the flat forms of one category (`R335e`, `R603f`).
     static let participated = "R335a-rest-bucket-participated"

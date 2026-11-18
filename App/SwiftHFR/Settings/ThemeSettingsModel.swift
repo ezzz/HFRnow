@@ -243,6 +243,7 @@ private struct AppScreenBackground: ViewModifier {
             let decorations = appearance.themeDecorations
             content
                 .scrollContentBackground(.hidden)
+                .environment(\.screenPaintsLists, true)
                 .containerBackground(for: .navigation) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
                 .containerBackground(for: .navigationSplitView) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
         case let .darkOnly(color):
@@ -250,6 +251,7 @@ private struct AppScreenBackground: ViewModifier {
             let dark = scheme == .dark
             content
                 .scrollContentBackground(dark ? .hidden : .automatic)
+                .environment(\.screenPaintsLists, dark)
                 .containerBackground(for: .navigation) { if dark { fill } else { Rectangle().fill(.background) } }
                 // A column of a split view (iPad sidebar, content, detail) has its own container, set the same way.
                 .containerBackground(for: .navigationSplitView) { if dark { fill } }

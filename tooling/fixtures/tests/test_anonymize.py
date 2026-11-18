@@ -1005,6 +1005,30 @@ class PositionTests(unittest.TestCase):
         out = self.check_page(html, "55512")
         self.assertIn("find_smilies_timer('hfr.inc',910001)", out)
 
+    def test_setperso_member_themes(self):
+        # Live R1096a (#1096): the colour page lists members' themes, each a link `util=<pseudo>` whose text is the
+        # pseudo, and a preview function `initexemple<N>()` whose number is treated as a member id.
+        html = ('<th class="cBackTab2"><a href="setperso.php?page=1&amp;util=Papa Quebec&amp;config=hfr.inc" '
+                'class="cCatTopic s2">Papa Quebec</a>\n<a href="javascript:initexemple555301()"><img src="/y.gif" '
+                'alt="" /></a><script language="javascript"><!--\nfunction initexemple555301() {\n'
+                'modifcolor2("background","#ECEEF4");\n}\n//--></script></th>'
+                '<th class="cBackTab1"><a href="setperso.php?page=1&amp;util=Kilo-Lima&amp;config=hfr.inc" '
+                'class="cCatTopic s2">Kilo-Lima</a></th>'
+                '<th class="cBackTab2"><a href="setperso.php?page=1&amp;util=+%20+&amp;config=hfr.inc" '
+                'class="cCatTopic s2">+ +</a></th>')
+        out = self.check_page(html, "Papa Quebec", "Kilo-Lima", r"\+ \+", "555301")
+        self.assertIn('util=user5&amp;config=hfr.inc" class="cCatTopic s2">user5</a>', out)
+        self.assertIn('util=user3&amp;config=hfr.inc" class="cCatTopic s2">user3</a>', out)
+        self.assertIn('util=user4&amp;config=hfr.inc" class="cCatTopic s2">user4</a>', out)
+        self.assertIn("initexemple910001()", out)
+        self.assertIn("function initexemple910001() {", out)
+        # Each position is reported on its own by the independent verifier.
+        for page in ('<a href="setperso.php?page=1&amp;util=Papa Quebec&amp;config=hfr.inc">x</a>',
+                     '<a href="setperso.php?page=1&amp;util=user3&amp;config=hfr.inc" class="cCatTopic s2">Papa Quebec</a>',
+                     '<a href="setperso.php?page=1&amp;util=+%20+&amp;config=hfr.inc">x</a>',
+                     '<script>function initexemple555301() {}</script>'):
+            self.assertTrue(A.verify_structure(page), page)
+
     def test_rest_api_authors(self):
         doc = ('{"resource":{"resources":[{"title":"Topic of X-ray","links":{"last_author":{"type":"link",'
                '"href":null,"title":"X-ray Yankee","tns3":"mesdiscussions-555200.jpg"},"author":{"type":"link",'

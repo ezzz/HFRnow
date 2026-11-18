@@ -6,6 +6,9 @@ import Testing
 import UIKit
 import WebKit
 
+private let rehostMedium = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.md.jpg"
+private let rehostFull = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.jpg"
+
 /// The real web view, driven end to end: what the page may run, request and navigate to.
 ///
 /// Serialized, with long deadlines: a cold CI simulator starts WebKit's processes slowly, and parallel web views compete.
@@ -167,6 +170,41 @@ struct ReaderWebControllerTests: ReaderWebTesting {
         let title = try await evaluate("return document.title;", in: controller) as? String
         #expect(title == page.title)
     }
+
+    /// The page's own forum images (avatar) always load: only the rendition's host tells what these tests are about.
+    private func renditionPage() -> ReaderDocument {
+        document(token: 1, content: "<p><img class=\"hfrplusimg\" src=\"\(rehostMedium)\" alt=\"capture\"></p>")
+    }
+
+    @Test func aPageImageIsLoadedAtItsFullSizeAddress() async throws {
+        let transport = imageTransport()
+        let (controller, recorder) = makeController(transport: transport, autoLoad: true)
+        controller.show(renditionPage())
+        #expect(await until { recorder.ready == [1] })
+        #expect(await until(async: { await transport.rehostRequests().count >= 1 }))
+        #expect(await transport.rehostRequests() == [rehostFull])
+    }
+
+    @Test func aFailingFullSizeFetchLoadsThePostedAddressInstead() async throws {
+        let transport = MockTransport { request in
+            if request.url.absoluteString == rehostFull { return HTTPResponse(statusCode: 404, headers: [:], url: request.url) }
+            return HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: readerTestPixel)
+        }
+        let (controller, recorder) = makeController(transport: transport, autoLoad: true)
+        controller.show(renditionPage())
+        #expect(await until { recorder.ready == [1] })
+        #expect(await until(async: { await transport.rehostRequests().count >= 2 }))
+        #expect(await transport.rehostRequests() == [rehostFull, rehostMedium])
+    }
+
+    @Test func withoutATapNothingIsFetchedForARendition() async throws {
+        let transport = imageTransport()
+        let (controller, recorder) = makeController(transport: transport, autoLoad: false)
+        controller.show(renditionPage())
+        #expect(await until { recorder.ready == [1] })
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(await transport.rehostRequests().isEmpty)
+    }
 }
 
 /// LOT-111: landing on a message and reporting the topmost one, in the real web view.
@@ -210,6 +248,13 @@ struct ReaderLandingWebTests: ReaderWebTesting {
         let reported = await until { reports.posts.contains(1) }
         let reportedState = await reported ? "" : scrollState(of: controller)
         #expect(reported, "reported: \(reports.posts), \(reportedState)")
+    }
+}
+
+private extension MockTransport {
+    /// The `img3.super-h.fr` addresses requested so far, in order.
+    func rehostRequests() async -> [String] {
+        requests.filter { $0.url.host() == "img3.super-h.fr" }.map(\.url.absoluteString)
     }
 }
 

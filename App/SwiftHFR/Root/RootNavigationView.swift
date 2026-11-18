@@ -2,13 +2,13 @@ import Foundation
 import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/MainWindow.swift (RootTabView.usesSidebarRoot) @ 2440d79, and its tab root on a landscape Pro Max
-// (`compactTabRoot`, #431) @ 87fe0d1c. Differences: none in the condition; the foldable inner screen (regular in both
-// dimensions) keeps the tab bar (GAP-215).
-/// The root navigation: the legacy bottom tab bar, or the legacy sidebar on a regular-width iPad (`MainWindow.swift:1132-1134` @ 2440d79,
-/// `usesSidebarRoot`). A compact-width iPad (Slide Over, Split View) gets the tab bar, as legacy.
+// Port of HFRswift/Swift/MainWindow.swift (RootTabView.usesSidebarRoot) @ 87fe0d1c (`:1380-1388`, the same at 2fe43da3
+// `:1357-1365`), and its tab root on a landscape Pro Max (`compactTabRoot`, #431) @ 87fe0d1c. Differences: none in the
+// condition (GAP-210, GAP-215, LOT-147); the fold handoff is the shared `RootModel` (GAP-217, see `RootModel.rootSwapped`).
+/// The root navigation: the legacy bottom tab bar, or the legacy sidebar on a regular-width iPad and on a phone regular in both
+/// dimensions (the iPhone Duo unfolded). A compact-width iPad (Slide Over, Split View), the Duo's cover screen and a
+/// landscape Pro Max get the tab bar, as legacy.
 struct RootNavigationView: View {
-    @Environment(\.horizontalSizeClass) private var sizeClass
     /// This window's phase (read inside the scene, not in the `App`): only a window on screen opens a notification's target.
     @Environment(\.scenePhase) private var scenePhase
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
@@ -36,14 +36,7 @@ struct RootNavigationView: View {
     }
 
     var body: some View {
-        Group {
-            if usesSidebarRoot {
-                RootSidebarView(model: model, environment: environment)
-            } else {
-                RootTabsView(model: model, environment: environment)
-            }
-        }
-        .environment(\.rootHasTabBar, Self.rootHasTabBar(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass))
+        RootLayout(model: model, environment: environment)
         .task { await model.forums.loadIfNeeded() }
         // EXPERIMENTAL(mpDarkTopic, #1014): the account's model reads the option from here.
         .onAppear { model.mpStorage?.experimental = experimental }
@@ -51,6 +44,8 @@ struct RootNavigationView: View {
         .task { await model.blocklistSync?.run() }
         .blocklistSyncQuestions()
         .environment(model.blocklistSync)
+        // The readers' « Bookmark » writes the session's document (LOT-132).
+        .environment(model.mpStorage)
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {
@@ -105,19 +100,23 @@ struct RootNavigationView: View {
         mayOpenNotification(phase: phase) ? router.consume() : nil
     }
 
-    private var usesSidebarRoot: Bool {
-        Self.usesSidebarRoot(idiom: UIDevice.current.userInterfaceIdiom, sizeClass: sizeClass)
-    }
-
     /// What the lists read (`\.rootHasTabBar`, #565): the one decision between the sidebar and the tab bar root, so the pager's
     /// placement can never disagree with the root that was built.
-    static func rootHasTabBar(idiom: UIUserInterfaceIdiom, sizeClass: UserInterfaceSizeClass?) -> Bool {
-        !usesSidebarRoot(idiom: idiom, sizeClass: sizeClass)
+    static func rootHasTabBar(
+        idiom: UIUserInterfaceIdiom, horizontal: UserInterfaceSizeClass?, vertical: UserInterfaceSizeClass?
+    ) -> Bool {
+        !usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
     }
 
-    /// Only an iPad at regular width: a Plus or Pro Max iPhone in landscape is regular width and keeps the tab bar.
-    static func usesSidebarRoot(idiom: UIUserInterfaceIdiom, sizeClass: UserInterfaceSizeClass?) -> Bool {
-        idiom == .pad && sizeClass == .regular
+    /// The split root whenever the scene is regular in both dimensions (an iPad, the iPhone Duo's inner screen, a `.phone`
+    /// reporting regular/regular in portrait and in landscape), and on an iPad at regular width whatever its height
+    /// (`MainWindow.swift:1380-1388` @ 87fe0d1c). A Plus or Pro Max iPhone in landscape (regular width, compact height) and the
+    /// Duo's cover screen (compact width) keep the tab bar.
+    static func usesSidebarRoot(
+        idiom: UIUserInterfaceIdiom, horizontal: UserInterfaceSizeClass?, vertical: UserInterfaceSizeClass?
+    ) -> Bool {
+        guard horizontal == .regular else { return false }
+        return vertical == .regular || idiom == .pad
     }
 
     /// The width class the tab bar root's split views are given (UXD-24, #431). A Plus or Pro Max iPhone in landscape is
@@ -136,6 +135,45 @@ struct RootNavigationView: View {
 extension EnvironmentValues {
     /// The idiom `TabSplitWidth` decides for; nil is the device's. Tests set it to check both rules on one simulator.
     @Entry var tabSplitIdiom: UIUserInterfaceIdiom?
+    /// The idiom `RootLayout` and `RootSidebarView` decide for; nil is the device's. Tests set it to check the iPhone Duo rules on
+    /// any simulator.
+    @Entry var rootLayoutIdiom: UIUserInterfaceIdiom?
+}
+
+/// The sidebar root or the tab bar root over one `RootModel`, and the swap between them (`RootTabView.rootContainer`,
+/// `MainWindow.swift:1792-1799` @ 87fe0d1c).
+struct RootLayout: View {
+    let model: RootModel
+    let environment: AppEnvironment
+    @Environment(\.horizontalSizeClass) private var horizontal
+    @Environment(\.verticalSizeClass) private var vertical
+    @Environment(\.rootLayoutIdiom) private var idiomOverride
+    /// Kept here, not in the split root, so an unfold builds the split already knowing the orientation (legacy `isPortraitLayout`,
+    /// `MainWindow.swift:1361`, `:1672-1676` @ 87fe0d1c).
+    @State private var isPortrait = false
+
+    var body: some View {
+        let idiom = idiomOverride ?? UIDevice.current.userInterfaceIdiom
+        let usesSidebarRoot = RootNavigationView.usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
+        Group {
+            if usesSidebarRoot {
+                RootSidebarView(
+                    model: model, environment: environment,
+                    detailOnlyTopic: DuoSplitColumns.prefersDetailOnlyTopic(idiom: idiom, isPortrait: isPortrait)
+                )
+            } else {
+                RootTabsView(model: model, environment: environment)
+            }
+        }
+        .environment(\.rootHasTabBar, !usesSidebarRoot)
+        .onGeometryChange(for: Bool.self) { $0.size.height > $0.size.width } action: { isPortrait = $0 }
+        // A fold or an unfold of the iPhone Duo (or an iPad window crossing regular width) swaps the roots (legacy
+        // `handleRootSwap`, `MainWindow.swift:1747-1749` @ 87fe0d1c).
+        .onChange(of: usesSidebarRoot) { model.rootSwapped() }
+        // A fold or an unfold flips only the height class: the rotation lock applies again once folded (`MainWindow.swift:1729-1746`
+        // @ 87fe0d1c, `HFRSwiftOrientationPolicy.refreshSupportedOrientations`).
+        .onChange(of: vertical) { OrientationPolicy.refresh() }
+    }
 }
 
 /// Gives a tab's split view the width class of `RootNavigationView.tabSplitSizeClass` (#431): on a large iPhone in landscape

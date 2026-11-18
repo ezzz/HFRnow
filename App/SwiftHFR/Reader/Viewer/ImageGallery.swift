@@ -22,6 +22,15 @@ enum ImageGallery {
     /// Most images one viewer holds.
     static let maximumImages = 500
 
+    /// The full-size address of `url` (#1035): the host table's rewrite of a thumbnail or medium rendition, `url` itself for a host
+    /// without a rule. The consent the user gave covers the picture's own host: a rewrite that changes the host or the origin is
+    /// ignored. The one place that decides it, for the viewer, the long-press menu and the page's own images.
+    static func fullSize(of url: URL, hosts: ImageHostTable = .standard) -> URL {
+        let full = hosts.fullSizeURL(for: url)
+        let sameHost = full.host()?.lowercased() == url.host()?.lowercased()
+        return ImagePolicy.classify(full) == ImagePolicy.classify(url) && sameHost ? full : url
+    }
+
     /// The viewable images among `sources` and the position of `selected` among them.
     ///
     /// The page's list is a claim, not an authority: an entry is kept only when the policy would let the reader load it
@@ -47,11 +56,9 @@ enum ImageGallery {
             case .thirdParty where !(autoLoadsThirdParty || consented.contains(text)): continue
             case .forum, .thirdParty: break
             }
-            let full = hosts.fullSizeURL(for: url)
-            // The consent the user gave covers the picture's own host: a rewrite that changes the host or the origin is ignored.
-            let usable = ImagePolicy.classify(full) == origin && full.host()?.lowercased() == url.host()?.lowercased() ? full : url
             if isSelected { index = images.count }
-            images.append(GalleryImage(shown: url, full: usable, allowsThirdParty: origin == .thirdParty || autoLoadsThirdParty))
+            let allowsThirdParty = origin == .thirdParty || autoLoadsThirdParty
+            images.append(GalleryImage(shown: url, full: fullSize(of: url, hosts: hosts), allowsThirdParty: allowsThirdParty))
         }
         guard let index else { return nil }
         return (images, index)

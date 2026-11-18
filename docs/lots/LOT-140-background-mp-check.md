@@ -34,6 +34,7 @@ All `b·operator` (operator decisions of 2026-11-07 on #230), rows GAP-011, GAP-
 - Tap opens the conversation (a summary opens the list) (GAP-011).
 - Réglages › Notifications MP gains "Vérifier les messages" (15 min to 4 h, Jamais; default 30 min), its footer, « Dernière vérification » and a button to iOS's notification settings (GAP-190).
 - The background run sets the app icon badge too (GAP-192): legacy only set it from the running app, so the icon kept the last count the app saw.
+- Réglages › Notifications MP gains a « Notifications » switch (default on) and an alert when a switch disagrees with iOS's settings (GAP-190, `b·operator`, operator decision of 2026-11-18 on #1060, D10).
 
 ## Behaviour
 
@@ -44,7 +45,7 @@ All `b·operator` (operator decisions of 2026-11-07 on #230), rows GAP-011, GAP-
 4. **Count:** `MPUnreadPoll(session:).unreadCount()` (LOT-047) on a session built from the stored cookies and `hash_check`, used for this run only and never written back to the store or to `AccountsModel` (D3). `nil` (no information), `.sessionExpired` or any error → stop: no notification, no badge change, nothing recorded (#230 acceptance, LOT-047 contract). `SessionRefreshFlow` is not called: the next foreground launch checks the session (`AccountsModel.restore`, #300) and asks for a new login; a background run has no one to ask.
 5. **List:** `PageFetcher.privateMessages(page: 1)` + `PrivateMessageListParser` (LOT-126), never a thread page (E25: a thread page marks it read). A failure here keeps the count (step 6 records it with no thread set).
 6. **News:** `recordNews(NotificationSummary(unreadPrivateMessages: count, unreadThreads: <topic numbers of unread rows of page 1>))`, one actor step (LOT-091).
-7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When the list could not be read and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-legacy`, apart from the burst summary's `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice.
+7. **Notifications:** `MPNotificationPlan.make(newThreads:in:)` (below) on the news' `newThreads` and the page's rows. When the list could not be read and the count went up from a recorded count (not the first check), one legacy notification "Vous avez un nouveau message privé" (identifier `mp-legacy`, apart from the burst summary's `mp-summary`) that opens the list. A conversation's own notification withdraws that legacy one, so a conversation first announced while the list was unreadable is not announced twice. None of these is shown (nor withdrawn) while « Notifications » is off (`mp_notifications_enabled`, #1060); the news is recorded all the same, so turning it on never shows it late.
 8. **Badge:** `setBadgeCount(count)` when `mp_badge_enabled`, else 0.
 
 At most 2 requests per run (`GET /`, the MP list page 1), as the operator decided.
@@ -71,10 +72,12 @@ At launch, as legacy (`HFRswiftApp.swift:27-29`, operator's comparison of 2026-1
 - What the app shows is recorded in the ledger (LOT-091 rule, legacy `HFRplusAppDelegate.m:706`): every count a page announces (`record(unreadPrivateMessages:)`), and, after the newest list load applied, a read or a mark unread here (before its reload, which may fail), page 1's unread set as shown, never on the signed-out content. The list records no count: it carries none, and the badge's can be stale. A superseded load records nothing. The member's own "Marquer comme non lu" is therefore not news. A conversation seen unread in the app is not notified by the next background run; one read here leaves the ledger's set, so its next reply is.
 
 ### Settings (Réglages › Notifications MP)
+- « Notifications » (`mp_notifications_enabled`, new, default on, so an absent key keeps notifications on; never synced; operator, 2026-11-18, #1060): off, the check shows no notification (step 7); the badge keeps following "Badge messages non lus".
 - "Badge messages non lus" (`mp_badge_enabled`, legacy).
 - "Vérifier les messages": 15 min, 30 min, 1 h, 2 h, 4 h, Jamais (`mp_check_interval`, minutes, `0` = Jamais, default 30; an unknown stored value reads as 30). Footer « Au plus souvent toutes les <durée>. iOS décide du moment réel ; ce délai est un minimum, pas une garantie. » (« Aucune vérification en arrière-plan. » for Jamais).
 - « Dernière vérification : <heure> » from the ledger of the current account (absent before the first one).
 - « Réglages des notifications » opens iOS's notification settings of the app (`UIApplication.openNotificationSettingsURLString`).
+- When a switch disagrees with iOS's settings (`notificationSettings()`, #1060): « Notifications » on while iOS refuses notifications, or "Badge messages non lus" on while iOS shows no badge (and iOS has been asked), an alert « Notifications désactivées dans iOS » / « Autorisez SwiftHFR dans Réglages › Notifications pour recevoir les messages privés. » (badge: « …pour voir la pastille sur l’icône. »), buttons « Ouvrir les réglages » and « Annuler ». iOS is read each time Réglages appears (back from a sub-screen too) and each time the app is active again; each kind of alert is shown at most once per opening of Réglages (the life of its `SettingsView`: a pop back from Thème is not a new opening), and never over another alert. Refused notifications take the badge with them: with « Notifications » on, their alert alone is shown, never a badge alert after it. Turning a switch on checks it again, even after its alert this opening. « Notifications » turned on while iOS never asked shows the system prompt, no alert. The checks and the alert hang on the Réglages `Form` (`mpNotificationPermissionChecks`), not on a row of the lazy list, so they run with the section out of sight.
 - No Do Not Disturb option: the app cannot read Focus, and iOS filters per Focus (operator).
 
 ### Logs
@@ -106,11 +109,14 @@ Captures read in place (no new fixture): `R336`-`R338` (#567, reply in an unread
 | D7 | one global `nb_mp`, `nb_mp_failure` | the per-account ledger (LOT-091 D1-D4) | LOT-091 |
 | D8 | tap opens the Messages tab | the conversation, or the list for a summary | operator 2026-11-07 |
 | D9 | notification triggered 3 s after the check (`UNTimeIntervalNotificationTrigger(timeInterval: 3)`, `MPBackgroundService.swift:148`) | delivered at once (`trigger: nil`) | nothing waits on the delay; a background task should finish quickly |
+| D10 | Notifications MP has the badge switch only (`AppSettingsView.swift:527-531` @ 87fe0d1c); the app never reads iOS's notification settings | a « Notifications » switch (`mp_notifications_enabled`, default on: off, no notification, the badge kept) and an alert when a switch disagrees with iOS's settings | operator 2026-11-18 (#1060): a member who turned notifications off in iOS, or never allowed them, was not told |
 
 ## Tests
 - HFRClient `MPNotificationPlanTests` (Linux): texts of a one-to-one and a group row from captures, identifiers, order, the burst limit (5 → five, 6 → summary), an unknown number, an empty news list.
 - HFRStorage `MPCheckIntervalTests`: values, default, an unknown stored value.
 - App `MPBackgroundCheckTests`: Jamais sends nothing; not due sends nothing; `nil` / expired / network error → no notification, no badge, nothing recorded; a list failure keeps the count; two identical runs → one notification; badge off → 0; first run silent. App `MPNotificationRoutingTests` and `MessageListModel` open-from-notification test.
+- App `MPBackgroundCheckTests/notificationsOff` (#1060): « Notifications » off → nothing delivered or withdrawn, news recorded, badge kept.
+- App `MPNotificationPermissionTests` (#1060, fake `NotificationPermissionReading`): the stored switch (absent = on), the alert for each iOS state, once per kind per opening with iOS read on every return, the badge alert after the notifications one, one alert at a time, the prompt when iOS never asked, the French texts. `MPNotificationChecksHostedTests`: the real Réglages screen, the section out of sight, shows the alert on opening and reads iOS again on coming back.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
