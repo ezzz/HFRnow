@@ -29,7 +29,7 @@ enum DenseListLook {
 }
 
 /// EXPERIMENTAL(denseRows, #1107): the large-title row in the dense look: no band behind it, the title on the list's background.
-/// The classic look keeps today's row as it is (nil adds nothing over the row's own background).
+/// The classic look keeps today's row as it is: nil leaves the system's card behind the title.
 private struct DenseTitleRow: ViewModifier {
     @Environment(\.listLook) private var look
 

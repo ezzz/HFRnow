@@ -168,7 +168,7 @@ struct ListLookHostedTests {
         return Measure(frame: frame, inside: inside, beside: beside)
     }
 
-    /// The four lists of the root, each by a plain (untinted) row: Catégories, a category's topics, Favoris, Messages.
+    /// The lists of the root, each by a plain (untinted) row: Catégories, a category's topics, Favoris, Messages, Plus.
     private func measureEveryList(dense: Bool, dark: Bool = false) async throws -> [String: Measure] {
         let hosted = try await host(dense: dense, dark: dark)
         defer { hosted.window.isHidden = true }
@@ -183,6 +183,8 @@ struct ListLookHostedTests {
         found["Favoris"] = try await measure("Sujet deux", in: hosted.window)
         hosted.model.selectedDestination = .tab(.messages)
         found["Messages"] = try await measure("Sujet 13", in: hosted.window)
+        hosted.model.selectedDestination = .tab(.more)
+        found["Plus"] = try await measure("Crédits", in: hosted.window)
         return found
     }
 
