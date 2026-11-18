@@ -36,7 +36,9 @@ import Testing
         // #1003: the first activation of « Chargement des images » happened on this device.
         "experimental.imageLoadingChoice.started": .device,
         // LOT-140: the background check runs on this device.
-        "mp_check_interval": .device
+        "mp_check_interval": .device,
+        // #1060: notifications follow this device's iOS permission, like the badge.
+        "mp_notifications_enabled": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {
