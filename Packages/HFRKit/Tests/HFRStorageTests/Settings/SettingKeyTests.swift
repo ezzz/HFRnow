@@ -43,7 +43,9 @@ import Testing
             // #1003: the first activation of « Chargement des images », new.
             "experimental.imageLoadingChoice.started",
             // LOT-140: the background MP check interval, new.
-            "mp_check_interval"
+            "mp_check_interval",
+            // #1060: the « Notifications » switch of Réglages › Notifications MP, new.
+            "mp_notifications_enabled"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -63,6 +65,8 @@ import Testing
         #expect(store.value(for: SettingKey.appIconPrevious) == nil)
         #expect(store.value(for: SettingKey.appIconRevertAsked) == nil)
         #expect(store.value(for: SettingKey.privateMessageBadge))
+        // #1060: absent for every member who ran an earlier version, so notifications stay on.
+        #expect(store.value(for: SettingKey.mpNotificationsEnabled))
         #expect(store.value(for: SettingKey.autoTheme) == .system)
         #expect(store.value(for: SettingKey.manualTheme) == .light)
         #expect(store.value(for: SettingKey.themeStyle) == .modern)

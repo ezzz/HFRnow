@@ -79,6 +79,9 @@ public enum SettingKey {
     /// `mp_check_interval` (LOT-140, new key): the minimum delay between two background MP checks, in minutes, `0` for none.
     /// An unknown value reads as the default, 30 minutes. A property of the device: never synced.
     public static let mpCheckInterval = Setting.integerEnum("mp_check_interval", default: MPCheckInterval.thirtyMinutes)
+    /// `mp_notifications_enabled` (#1060, new key): « Notifications » of Réglages › Notifications MP; off, the background
+    /// check shows no notification (the badge follows `mp_badge_enabled`). Absent before #1060: reads as on. Never synced.
+    public static let mpNotificationsEnabled = Setting.bool("mp_notifications_enabled", default: true)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
     /// never synced.
     public static let appLockEnabled = Setting.bool("app_lock_enabled", default: false)
@@ -236,7 +239,8 @@ public enum SettingKey {
         favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
-        privateMessageBadge, mpCheckInterval, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
+        privateMessageBadge, mpCheckInterval, mpNotificationsEnabled, startupScreen, mpListDisplay, replyButtonBehavior,
+        opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,

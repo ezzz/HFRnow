@@ -121,6 +121,23 @@ struct MPBackgroundCheckTests {
         #expect(await ready.delivery.badges == [0])
     }
 
+    @Test("Notifications off (#1060): news is recorded but nothing is shown or withdrawn; the badge still follows the count")
+    func notificationsOff() async {
+        let settings = InMemorySettingsStore()
+        settings.set(false, for: SettingKey.mpNotificationsEnabled)
+        let ready = ready([
+            MPForumReading(count: 1, page: mpPage(unread: [10], read: [11])),
+            MPForumReading(count: 2, page: mpPage(unread: [11, 10])),
+            MPForumReading(count: 3, page: nil)
+        ], settings: settings)
+        #expect(await run(ready, times: 3) == [.checked(notifications: 0), .checked(notifications: 0), .checked(notifications: 0)])
+        #expect(await ready.delivery.delivered.isEmpty)
+        #expect(await ready.delivery.withdrawn.isEmpty)
+        #expect(await ready.delivery.badges == [1, 2, 3])
+        // Recorded as seen: turning notifications on again never shows this news late.
+        #expect(await ready.ledger.ledger(for: "fakeuser").unreadPrivateMessages == 3)
+    }
+
     @Test("The list could not be read: the count is recorded; a rise from a recorded count shows the legacy text, opening the list")
     func listUnreadable() async {
         let ready = ready([
