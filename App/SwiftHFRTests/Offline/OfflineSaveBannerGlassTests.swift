@@ -53,16 +53,17 @@ struct OfflineSaveBannerGlassTests {
     /// bare banner leaves them identical, glass moves each channel by a few levels (7 to 9 in dark over red, 87 to 108 inside
     /// the light fill). `minLevel` above the glass shadow (4 to 25 levels outside the card) separates the fill from the halo.
     private func differsFromPage(_ image: UIImage, columns: Range<Int> = 280..<340, minLevel: Int = 3) throws -> Bool {
-        let cg = try #require(image.cgImage)
-        #expect(cg.bitsPerPixel == 32 && image.scale == 1)
-        let data = try #require(cg.dataProvider?.data)
+        let cgImage = try #require(image.cgImage)
+        #expect(cgImage.bitsPerPixel == 32 && image.scale == 1)
+        let data = try #require(cgImage.dataProvider?.data)
         let bytes = try #require(CFDataGetBytePtr(data))
-        func pixel(_ x: Int, _ y: Int) -> [Int] { (0..<3).map { Int(bytes[y * cg.bytesPerRow + x * 4 + $0]) } }
+        func pixel(_ x: Int, _ y: Int) -> [Int] { (0..<3).map { Int(bytes[y * cgImage.bytesPerRow + x * 4 + $0]) } }
         let page = pixel(2, 290)
+        func differs(_ x: Int, _ y: Int) -> Bool { zip(pixel(x, y), page).contains { abs($0 - $1) > minLevel } }
         var differing = 0
         for y in stride(from: 70, to: 90, by: 2) {
-            for x in stride(from: columns.lowerBound, to: columns.upperBound, by: 2) {
-                if zip(pixel(x, y), page).contains(where: { abs($0 - $1) > minLevel }) { differing += 1 }
+            for x in stride(from: columns.lowerBound, to: columns.upperBound, by: 2) where differs(x, y) {
+                differing += 1
             }
         }
         return differing > columns.count * 3
