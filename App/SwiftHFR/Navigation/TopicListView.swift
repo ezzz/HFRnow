@@ -87,6 +87,8 @@ struct TopicListView: View {
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
             ToolbarItemGroup(placement: .topBarTrailing) {
+                // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
+                if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
                 if let composer, let target = model.newTopicTarget {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
                         Label("Nouveau sujet", systemImage: "plus")
@@ -281,6 +283,9 @@ struct TopicListView: View {
         if let content = loader.value {
             if content.isEmpty, let reason = content.emptyReason {
                 EmptyListView(reason: reason, refresh: model.refresh)
+            } else if model.showsNoUnreadFavorites, let favorites = model.favorites {
+                // Nothing unread only when no row is: an unread row inside a folded section is hidden, not absent.
+                NoUnreadTopicsView(options: favorites)
             } else if model.allSectionsHidden, let favorites = model.favorites {
                 AllSectionsCollapsedView(options: favorites)
             }
