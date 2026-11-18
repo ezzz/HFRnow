@@ -293,21 +293,6 @@ struct TopicListView: View {
     }
 }
 
-/// « Non lus » is on and no favourite has unread pages (#1058): say so, and offer « Tous ».
-private struct NoUnreadTopicsView: View {
-    let options: FavoritesOptionsModel
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Aucun sujet non lu", systemImage: "checkmark.circle")
-        } description: {
-            Text("Tous vos sujets sont lus.")
-        } actions: {
-            Button("Afficher tous les sujets") { options.unreadOnly = false }
-        }
-    }
-}
-
 /// Every section is folded and the options hide folded sections (legacy `allSectionsCollapsedState`).
 private struct AllSectionsCollapsedView: View {
     let options: FavoritesOptionsModel
