@@ -18,7 +18,8 @@ struct ServerReply: Sendable {
     var status = 200
     var headers: [String: String] = [:]
     var body = Data()
-    /// Never answers, to exercise timeouts and cancellation.
+    /// Never answers, to exercise timeouts and cancellation. The connection stays open until the **client** closes it (a
+    /// silent server that closes first races the client's own timeout whenever the test process is slow, #1087).
     var hangs = false
     /// Sends no `Content-Length`: the body ends when the connection closes (a streamed answer of unknown size).
     var omitsContentLength = false
@@ -26,10 +27,9 @@ struct ServerReply: Sendable {
     var dripChunks = 1
     /// Seconds between two pieces of a dripped body.
     var dripInterval = 0.0
-    /// With a dripped body: sends the first piece, then goes silent, to exercise an idle limit.
+    /// With a dripped body: sends the first piece, then goes silent until the client closes the connection, to exercise an
+    /// idle limit.
     var stallsAfterFirstChunk = false
-    /// How long a stalled answer stays silent, in seconds.
-    var stallSeconds = 5.0
 }
 
 /// Minimal HTTP/1.1 server on 127.0.0.1 (no external network), because swift-corelibs-foundation
@@ -137,7 +137,7 @@ final class LoopbackServer: @unchecked Sendable {
         lock.unlock()
         let reply = route(request)
         if reply.hangs {
-            Thread.sleep(forTimeInterval: 5)
+            holdOpen(client)
             return
         }
         let length = reply.omitsContentLength ? "" : "Content-Length: \(reply.body.count)\r\n"
@@ -154,11 +154,20 @@ final class LoopbackServer: @unchecked Sendable {
             let start = min(index * size, reply.body.count)
             write(client, reply.body[start..<min(start + size, reply.body.count)])
             if reply.stallsAfterFirstChunk {
-                Thread.sleep(forTimeInterval: reply.stallSeconds)
+                holdOpen(client)
                 return
             }
             Thread.sleep(forTimeInterval: reply.dripInterval)
         }
+    }
+
+    /// Keeps `client` open and silent until it closes its end (`recv` returns 0 or an error). The safety timeout only stops a
+    /// serve thread whose client never closes; it is far longer than any stall of a loaded CI machine (60 s seen).
+    private func holdOpen(_ client: Int32) {
+        var timeout = timeval(tv_sec: 300, tv_usec: 0)
+        setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        var byte = [UInt8](repeating: 0, count: 64)
+        while recv(client, &byte, byte.count, 0) > 0 {}
     }
 
     private func readRequest(_ client: Int32) -> ReceivedRequest? {
@@ -211,4 +220,13 @@ final class LoopbackServer: @unchecked Sendable {
             }
         }
     }
+}
+
+/// A port of 127.0.0.1 that refuses connections and that no other test can be given: port 1 is privileged, so the system never
+/// hands it out as an ephemeral port (a port freed by `LoopbackServer.stop()` is: the next parallel test's server gets it and
+/// the « refused » request reaches that server, #1087). A bound-but-not-listening socket is not an option either: macOS drops
+/// the SYN instead of resetting it, and the client times out.
+enum RefusingPort {
+    /// `http://127.0.0.1:1`.
+    static var baseURL: URL { URL(string: "http://127.0.0.1:1")! }
 }

@@ -12,7 +12,7 @@ final class NavigationModel {
             guard selectedSource != oldValue else { return }
             // Another source starts from a fresh reader: a cached one could still hold a followed link's reader (CodeRabbit, #389).
             selectedTopic = nil
-            currentReader = nil
+            dropReader()
             requestedOpening = nil
             // Picking the flags or the favourites is the favourites mode (`vos_sujets`), so it is what the tab opens on next time.
             if let mode = selectedSource?.favoritesMode { favorites?.mode = mode }
@@ -25,8 +25,13 @@ final class NavigationModel {
     /// Favoris: the category a section title pushed on the favourites list (legacy pushed `ForumTopicsListView` in the Favoris
     /// stack); the selection stays on the favourites.
     var openedCategory: TopicSource?
-    /// Topic chosen in the middle column, shown by the reader in the detail column.
-    var selectedTopic: TopicSummary?
+    /// Topic chosen in the middle column, shown by the reader in the detail column. Another topic, or none, drops the reader:
+    /// the topic reopens fresh, not under a page its links had pushed (#512, #1089).
+    var selectedTopic: TopicSummary? {
+        didSet {
+            if selectedTopic?.id != currentReader?.id { dropReader() }
+        }
+    }
     /// Changes each time a row's menu opens a page (LOT-125), so the detail column builds a new reader for it even when the
     /// topic was already selected.
     private(set) var readerGeneration = 0
@@ -115,6 +120,8 @@ final class NavigationModel {
     /// Nil when the row names no topic page.
     func reader(for topic: TopicSummary) -> TopicReaderModel? {
         if let currentReader, currentReader.id == topic.id { return currentReader.model }
+        // The selection already dropped it (`selectedTopic`); kept for a caller that asks for another topic directly.
+        dropReader()
         let opening = requestedOpening?.id == topic.id ? requestedOpening?.opening : ReaderTarget(opening: topic).map {
             TopicOpening(target: $0)
         }
@@ -128,11 +135,20 @@ final class NavigationModel {
         return model
     }
 
+    /// Forgets the reader on screen and closes the readers its links opened. The detail column replaces its stack then, and SwiftUI
+    /// keeps on it what a link pushed when only the stack's identity changes; a covered reader's view also skips its leave and stop
+    /// path (`TopicReaderView` `onDisappear`), so the closing lets it run (#512, #1089).
+    private func dropReader() {
+        currentReader?.model.closeLinkedReaders()
+        currentReader = nil
+    }
+
     /// Opens `topic` at `opening` (a row menu's "Première page", "Dernière page"…, LOT-125): a new reader, even for the topic
     /// on screen.
     func open(_ topic: TopicSummary, at opening: TopicOpening) {
         requestedOpening = (topic.id, opening)
-        currentReader = nil
+        // The selection may stay the same topic: only the stack's identity changes then, which leaves a link's reader on top.
+        dropReader()
         readerGeneration += 1
         selectedTopic = topic
     }

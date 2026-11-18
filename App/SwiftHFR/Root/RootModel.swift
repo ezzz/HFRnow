@@ -29,6 +29,10 @@ final class RootModel {
     let blocklistSync: BlocklistSyncModel?
     /// The unread private messages count the list pages of this session announced, newest first (#762).
     let privateMessageCount: PrivateMessageCount
+    /// Bookmarks and Alertes Qualitay on the regular-width iPad: the reader of the topic a row opened, shown in the detail column
+    /// beside the list, one per entry so each keeps its own (legacy `bookmarksTopicTarget`, `qualityAlertsTopicTarget`,
+    /// `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
+    private(set) var detailReaders: [PlusEntry: TopicReaderModel] = [:]
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -216,12 +220,21 @@ final class RootModel {
         return max(privateMessageCount.latest ?? 0, 0)
     }
 
+    /// Regular-width iPad: shows `reader` in the detail column of `entry`, a topic-list Plus entry, in place of what it showed (a
+    /// new stack: what a link had pushed there goes). Another entry is ignored: it has no detail column for a topic.
+    func openInDetail(_ reader: TopicReaderModel, for entry: PlusEntry) {
+        guard entry.usesTopicList else { return }
+        detailReaders[entry]?.closeLinkedReaders()
+        detailReaders[entry] = reader
+    }
+
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
     /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).
     func showCategoryFromFavorites(_ category: TopicSource) {
         categories.topicFilter?.flag = .favorites
         categories.selectedSource = category
-        // Legacy clears the selected topic too: the detail column must not keep the previous reader.
+        // Legacy clears the selected topic too. Dropping the selection drops the reader and what its links pushed, even when the
+        // category was already open (`NavigationModel.selectedTopic`).
         categories.selectedTopic = nil
         selectedDestination = .tab(.categories)
     }

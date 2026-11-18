@@ -90,6 +90,18 @@ private struct ScreenTitleModifier: ViewModifier {
 final class TitleVisibility {
     /// True at landing, while the large title is the first row on screen.
     var isHeaderVisible = true
+    #if DEBUG
+    /// Test seam (#1015): how many times the large title reported leaving or coming back.
+    @ObservationIgnored private(set) var reports = 0
+    #endif
+
+    /// The large title's report: it is on screen or not.
+    func report(_ visible: Bool) {
+        isHeaderVisible = visible
+        #if DEBUG
+        reports += 1
+        #endif
+    }
 }
 
 /// The bar's centre slot: the pill, or its invisible placeholder (see `ScreenTitleStyle.pillPresentation`). It is the only reader of
@@ -127,7 +139,7 @@ struct ScreenLargeTitle: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                 .accessibilityAddTraits(.isHeader)
-                .onScrollVisibilityChange { visibility.isHeaderVisible = $0 }
+                .onScrollVisibilityChange { visibility.report($0) }
         }
     }
 }

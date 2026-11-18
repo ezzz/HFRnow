@@ -81,9 +81,23 @@ public enum MPStoragePageParser {
     /// Word of HFR's "Ce message ne vous est pas destiné, désolé" notice (`RA5`), the one legacy looks for.
     static let notAddressedWord = "destiné"
 
+    /// Whether a list row is the MPStorage thread (also used to hide it, #1074).
+    ///
     /// Legacy compares the whole title cell with the subject, with or without the `[non lu] ` prefix (`:713`);
     /// `PrivateMessageListParser` already removes the prefix when HFR prints it as its marker.
-    static func isStorageSubject(_ title: String) -> Bool {
+    public static func isStorageSubject(_ title: String) -> Bool {
         title == MPStorageDocument.subject || title == "[non lu] \(MPStorageDocument.subject)"
+    }
+}
+
+extension PrivateMessageListPage {
+    /// The page as the member should see it: without the MPStorage thread, a technical store and not a conversation (#1074).
+    ///
+    /// Display and unread counts use this; the storage flows (`findThread`, `MPStorageTransport`) parse the list themselves and
+    /// never see the filtered page. Matching is `MPStoragePageParser.isStorageSubject`, as legacy's finder (`MPStorage.m:713`).
+    public func hidingStorageThread() -> PrivateMessageListPage {
+        var page = self
+        page.threads.removeAll { MPStoragePageParser.isStorageSubject($0.summary.title) }
+        return page
     }
 }

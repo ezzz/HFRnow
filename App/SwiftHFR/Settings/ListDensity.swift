@@ -23,7 +23,8 @@ enum ListDensity: Sendable {
         }
     }
 
-    /// Outer side margin (screen edge to card) of an inset-grouped list: nil keeps the system's (about 20 pt), compact halves it.
+    /// Outer side margin of an inset-grouped list: the distance from the safe-area edge to the card. Nil keeps the system's
+    /// (about 20 pt), compact halves it.
     var outerMargin: CGFloat? {
         switch self {
         case .regular: nil
@@ -103,17 +104,24 @@ extension EnvironmentValues {
 /// Sets the outer side margin of a list from the density; a nil margin is the system layout, so the list keeps its identity
 /// (scroll position, row state) when the density changes. Also tells the headers where the cards start, in window coordinates:
 /// a section header is hosted apart from the list, so a coordinate space named on the list never reaches it (measured, #979).
+///
+/// #832: a scroll content margin replaces the system's side inset, safe area included, so in landscape the card slid under
+/// the notch while its rows kept the safe area inside it. The margins add the safe inset back; the list's frame already starts
+/// past it (measured: x = 62 under a 62 pt left inset), so the card edge is the frame's x plus the margin, nothing more.
 private struct DensityListMargins: ViewModifier {
     @Environment(\.listDensity) private var density
     @State private var safeLeading: CGFloat = 0
+    @State private var safeTrailing: CGFloat = 0
     @State private var originX: CGFloat = 0
 
     func body(content: Content) -> some View {
         content
-            .contentMargins(.horizontal, density.outerMargin, for: .scrollContent)
+            .contentMargins(.leading, density.outerMargin.map { $0 + safeLeading }, for: .scrollContent)
+            .contentMargins(.trailing, density.outerMargin.map { $0 + safeTrailing }, for: .scrollContent)
             .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.leading } action: { safeLeading = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.trailing } action: { safeTrailing = $0 }
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { originX = $0 }
-            .environment(\.densityCardEdge, originX + (density.outerMargin ?? 0) + safeLeading)
+            .environment(\.densityCardEdge, originX + (density.outerMargin ?? 0))
     }
 }
 
