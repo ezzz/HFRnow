@@ -119,7 +119,7 @@ struct PollCreationTests {
         #expect(Self.value("textreponse10", in: outcome) == "")
         #expect(Self.value("allowvisitor", in: outcome) == "1")
         #expect(Self.value("max_votes", in: outcome) == "3")
-        let parts = PollDraft.closingCalendar.dateComponents([.day, .month, .year, .hour, .minute], from: closing)
+        let parts = PollDraft.closingCalendar().dateComponents([.day, .month, .year, .hour, .minute], from: closing)
         #expect(Self.value("annee", in: outcome) == String(try #require(parts.year)))
         #expect(Self.value("jour", in: outcome)?.count == 2)
         #expect(Self.value("jour", in: outcome).flatMap { Int($0) } == parts.day)
@@ -180,8 +180,12 @@ struct PollCreationTests {
         #expect(fields["heure"] == "07")
         #expect(fields["minute"] == "09")
         #expect(PollDraft(question: "Q", answers: ["A", "B"]).fields(calendar: calendar)["jour"] == "")
-        // The device may use another calendar; the year HFR gets is the Gregorian one.
-        #expect(PollDraft.closingCalendar.identifier == .gregorian)
+        // A device on the Buddhist calendar: the year HFR gets is still the Gregorian one, in that device's time zone.
+        var buddhist = Calendar(identifier: .buddhist)
+        buddhist.timeZone = calendar.timeZone
+        let onDevice = poll.fields(calendar: PollDraft.closingCalendar(device: buddhist))
+        #expect(onDevice["annee"] == "2030")
+        #expect(onDevice["heure"] == "07")
     }
 
     @Test("Legacy's limits: a 255-unit question and ten answers pass; the default draft is not sendable")

@@ -75,11 +75,11 @@ public struct PollDraft: Sendable, Hashable {
         return fields
     }
 
-    /// The calendar the closing date is written in: Gregorian whatever the device's (a Buddhist one would send 2573 for 2030),
-    /// in the device's time zone, as legacy (`TopicPollDraft.swift:38`).
-    static var closingCalendar: Calendar {
+    /// The calendar the closing date is written in: Gregorian whatever `device`'s is (a Buddhist one would send 2573 for 2030;
+    /// legacy used `Calendar.current`, `TopicPollDraft.swift:33`), in `device`'s time zone, as legacy.
+    static func closingCalendar(device: Calendar = .current) -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
+        calendar.timeZone = device.timeZone
         return calendar
     }
 

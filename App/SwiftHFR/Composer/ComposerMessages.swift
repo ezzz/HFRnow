@@ -187,6 +187,10 @@ enum ComposerMessages {
     static let pollNotOffered = "Ce formulaire ne permet plus de créer un sondage sur ce sujet. Rien n’a été envoyé : retirez le sondage, "
         + "ou créez-le en modifiant le premier message du sujet."
 
+    /// The form fetched at send does not serve a poll field as expected: every retry would fail the same way while the poll is set.
+    static let pollUnsupportedForm = "Le formulaire du forum ne prend pas en charge ce sondage : rien n’a été envoyé. "
+        + "Retirez le sondage pour envoyer la modification."
+
     /// What stops a poll from being sent: legacy's sentences (`TopicPollDraft.swift:16-30` @ 87fe0d1c), plus the one-line and
     /// character rules of the other fields.
     static func poll(_ problem: PollProblem) -> String {

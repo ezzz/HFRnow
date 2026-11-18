@@ -214,11 +214,11 @@ public struct PostingFlow: Sendable {
 
     /// The inputs `poll` fills, after checking that the form offers a poll and holds each of them as HFR served it in `R63b`:
     /// a text input within its `maxlength`, `max_votes` a select with that option, `allowvisitor` a box when visitors may vote.
-    /// The closing date is written in the Gregorian calendar and the device's time zone (`PollDraft.closingCalendar`).
+    /// The closing date is written in the Gregorian calendar and the device's time zone (`PollDraft.closingCalendar(device:)`).
     private func pollFields(_ poll: PollDraft, in form: PostingForm) throws(PostingError) -> [String: String] {
         guard form.form.offersPollCreation else { throw .pollNotOffered }
         if let problem = poll.problem(now: Date()) { throw .invalidPoll(problem) }
-        let fields = poll.fields(calendar: PollDraft.closingCalendar)
+        let fields = poll.fields(calendar: PollDraft.closingCalendar())
         for (name, value) in fields {
             if let select = form.form.select(named: name) {
                 guard select.options.contains(where: { $0.value == value }) else { throw .unsupportedForm(reason: "poll field \(name)") }

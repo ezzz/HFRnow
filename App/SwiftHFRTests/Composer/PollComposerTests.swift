@@ -141,6 +141,16 @@ struct PollComposerTests {
         #expect(model.canSend)
     }
 
+    /// The form fetched at send lacks a poll field: the message says to remove the poll, not to retry as is.
+    @Test func aFormThatCannotTakeThePollSaysToRemoveIt() async throws {
+        let poster = ScriptedPoster([.failure(.unsupportedForm(reason: "poll field max_votes"))])
+        let model = try await editComposer(EditCapture.firstPostForm, poster: poster)
+        model.set(poll: Self.poll)
+        await model.send()
+        #expect(model.errorMessage == ComposerMessages.pollUnsupportedForm)
+        #expect(!model.mayHavePosted)
+    }
+
     /// An invalid poll the engine refused names its problem and says nothing was sent.
     @Test func anInvalidPollMessageNamesTheProblem() {
         let message = ComposerMessages.message(for: .invalidPoll(.closingDateNotInFuture), edit: true)

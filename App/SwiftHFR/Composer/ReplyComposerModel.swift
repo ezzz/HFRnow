@@ -239,6 +239,7 @@ final class ReplyComposerModel: Identifiable {
         } catch {
             isSending = false
             errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage, newTopic: isNewTopic, edit: isEdit)
+            if case .unsupportedForm = error, poll.draft != nil { errorMessage = ComposerMessages.pollUnsupportedForm }
             if case .unconfirmed = error { mayHavePosted = true }
             // The form no longer adds a poll: the draft stays on screen, to remove, and Send waits for that.
             if case .pollNotOffered = error { poll.apply(offers: false) }
