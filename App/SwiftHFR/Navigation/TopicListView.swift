@@ -35,7 +35,7 @@ struct TopicListView: View {
     @State private var pageText = ""
 
     var body: some View {
-        let loader = model.loader
+        let loader = counting(.body, model.loader, title: titleVisibility)
         List(selection: $selection) {
             if titleStyle == .largeThenPill {
                 ScreenLargeTitle(title: model.source.navigationTitle, visibility: titleVisibility)
@@ -145,7 +145,7 @@ struct TopicListView: View {
 
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
-            let isSuper = model.isSuperFavorite(topic)
+            let isSuper = counting(.row(topic.id), model.isSuperFavorite(topic))
             TopicRowView(
                 topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
                 flagIsTinted: TopicListView.flagPills(for: model.source)
@@ -236,7 +236,7 @@ struct TopicListView: View {
 
     /// A category header with its topic count and, when the section has topics, the fold chevron (legacy `sectionHeader`).
     private func header(_ group: TopicGroup, title: String) -> some View {
-        HStack {
+        counting(.header(group.id), HStack {
             if let source = group.opens, let openCategory {
                 let speech = TopicRowCues.sectionTitleSpeech(title)
                 Button { openCategory(source) } label: { Text(title).foregroundStyle(.primary).sectionTitleWeight(titleWeight) }
@@ -263,7 +263,7 @@ struct TopicListView: View {
                 .accessibilityLabel(group.isCollapsed ? "Déplier \(title)" : "Plier \(title)")
             }
         }
-        .densityHeaderMargin()
+        .densityHeaderMargin())
     }
 
     @ViewBuilder

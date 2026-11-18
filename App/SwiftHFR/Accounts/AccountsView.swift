@@ -165,7 +165,10 @@ struct AccountRowView: View {
 /// An account's avatar (decoded by `AccountsModel`), or a placeholder; scales with Dynamic Type.
 struct AccountAvatarView: View {
     let image: UIImage?
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 32
+    /// False in a bar, where legacy's avatar is a fixed 32 pt (`MainToolbar.swift:70-77` @ 87fe0d1c) and a larger one would outgrow it.
+    var scales = true
+    @ScaledMetric(relativeTo: .body) private var scaledSize: CGFloat = 32
+    private var size: CGFloat { scales ? scaledSize : 32 }
 
     var body: some View {
         Group {

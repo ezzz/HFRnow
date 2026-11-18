@@ -10,6 +10,8 @@ struct SearchRootTab: View {
     var body: some View {
         ThemedNavigationStack {
             ForumSearchView(model: model.search, forums: model.forums, reader: environment.reader, composer: environment.composer)
+                // EXPERIMENTAL(searchTab, #896): the fifth root carries the account button like the four of legacy (#1057).
+                .accountMenuToolbarItem()
                 .appScreenBackground()
         }
         .environment(\.isSelectedRootTab, model.selectedTab == .search)

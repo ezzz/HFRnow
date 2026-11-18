@@ -1,6 +1,7 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: an entry shows a placeholder until its lot lands.
+// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: an entry shows a placeholder until its lot lands;
+// the account button is top left, as `MainToolbar.swift:60-66` @ 87fe0d1c (#1057).
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
     let model: RootModel
@@ -28,9 +29,7 @@ struct PlusView: View {
             }
         }
         .screenTitle("Plus", style: .largeThenPill, visibility: titleVisibility)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) { AccountMenuButton() }
-        }
+        .accountMenuToolbarItem()
     }
 }
 
