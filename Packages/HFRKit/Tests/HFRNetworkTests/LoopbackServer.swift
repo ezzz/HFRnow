@@ -21,9 +21,6 @@ struct ServerReply: Sendable {
     /// Never answers, to exercise timeouts and cancellation. The connection stays open until the **client** closes it (a
     /// silent server that closes first races the client's own timeout whenever the test process is slow, #1087).
     var hangs = false
-    /// Goes silent, then closes the connection itself after this many seconds (after the first piece of a stalled body, if
-    /// there is one): a server that drops a quiet connection.
-    var dropsAfter: Double?
     /// Sends no `Content-Length`: the body ends when the connection closes (a streamed answer of unknown size).
     var omitsContentLength = false
     /// Sends the body in `dripChunks` pieces, `dripInterval` seconds apart: a slow answer that keeps flowing.
@@ -143,11 +140,6 @@ final class LoopbackServer: @unchecked Sendable {
             holdOpen(client)
             return
         }
-        // A stalled body drops after its first piece (below), not before the headers.
-        if let delay = reply.dropsAfter, !(reply.dripChunks > 1 && reply.stallsAfterFirstChunk) {
-            Thread.sleep(forTimeInterval: delay)
-            return
-        }
         let length = reply.omitsContentLength ? "" : "Content-Length: \(reply.body.count)\r\n"
         var head = "HTTP/1.1 \(reply.status) X\r\n\(length)Connection: close\r\n"
         for (name, value) in reply.headers { head += "\(name): \(value)\r\n" }
@@ -162,7 +154,7 @@ final class LoopbackServer: @unchecked Sendable {
             let start = min(index * size, reply.body.count)
             write(client, reply.body[start..<min(start + size, reply.body.count)])
             if reply.stallsAfterFirstChunk {
-                if let delay = reply.dropsAfter { Thread.sleep(forTimeInterval: delay) } else { holdOpen(client) }
+                holdOpen(client)
                 return
             }
             Thread.sleep(forTimeInterval: reply.dripInterval)
