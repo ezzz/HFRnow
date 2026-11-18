@@ -39,19 +39,6 @@ struct ReaderComposerSuspensionTests: ReaderWebTesting {
         #expect(!model.suspendsPageInteractions)
     }
 
-    /// Operator's device feedback of 2026-11-16 on #820: the pull is off under a composer, so its hint is too; it is back at close.
-    @Test func theEndOfPageHintFollowsTheComposer() async {
-        let model = await reader()
-        #expect(model.offersPullHint)
-        model.composer(.reply, isOpen: true)
-        #expect(!model.offersPullHint, "docked or sheet, the pull does nothing")
-        model.composer(.edit, isOpen: true)
-        model.composer(.reply, isOpen: false)
-        #expect(!model.offersPullHint, "the edit composer is still open")
-        model.composer(.edit, isOpen: false)
-        #expect(model.offersPullHint)
-    }
-
     @Test func underAnOpenComposerNoLinkNavigatesAndNoPageLoads() async {
         let pages = FakeTopicPages { target in readerPage(page: target.page) }
         let model = await reader(pages)

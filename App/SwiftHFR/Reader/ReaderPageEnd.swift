@@ -2,40 +2,54 @@ import SwiftUI
 import UIKit
 
 // Port of HFRswift/Swift/MessagesView.swift (`refreshCurrentPagePreservingScroll` :5051-5058 and `AppHaptics.refreshStarted`,
-// Common.swift:108-110) @ 87fe0d1c. Differences: legacy refreshed from its bottom button only; the pull past the end and its hint
-// are SwiftHFR's (operator, #820, 2026-11-15).
-/// A pull past the end of the page, let go beyond `threshold`: a refresh. The scroll view's pan gesture is followed without
-/// taking its delegate, which belongs to WebKit (as `SeasonalScrollActivity` does). The hint « Tirer vers le haut pour
-/// actualiser » is in the page, `FloatingSpacing.gap` under the last message and above the floating bar
-/// (`ReaderRenderOptions.offersPullToRefresh`; operator decision of 2026-11-16 on #932: visible at rest).
+// Common.swift:108-110) @ 87fe0d1c. Differences: legacy refreshed from its bottom button only; the pull past the end is SwiftHFR's
+// (operator, #820, 2026-11-15), and since #1207 it grows an icon and refreshes when the icon is full, not on release.
+/// A pull past the end of the page: the distance feeds `PullRefreshRule` (the same rule as the lists), so the icon grows with the
+/// pull and the refresh fires once, when it reaches full size (`threshold`). Only a finger pulls: a fling that overshoots the end
+/// is not a refresh. The scroll view's offset is observed without taking its delegate, which belongs to WebKit (as
+/// `SeasonalScrollActivity` does).
 @MainActor
 final class ReaderPullWatcher: NSObject {
-    /// How far past the end, in points, a release refreshes. Shorter pulls do nothing.
-    static let threshold: CGFloat = 72
+    /// How far past the end, in points, the icon is full and the refresh fires: the one threshold of `PullRefreshRule`.
+    static let threshold: CGFloat = PullRefreshRule.threshold
+
+    /// Only a finger on the page starts a refresh; tests turn this off to move the offset without one.
+    var requiresFinger = true
 
     private weak var scrollView: UIScrollView?
+    private var observation: NSKeyValueObservation?
+    private var rule = PullRefreshRule()
+    private var progress: @MainActor (CGFloat) -> Void = { _ in }
     private var pulled: @MainActor () -> Void = {}
 
-    func track(_ scrollView: UIScrollView, pulled: @escaping @MainActor () -> Void) {
+    /// Follows `scrollView`: `progress` gets the icon's scale (0 to 1) at each move, `pulled` is called once per pull.
+    func track(
+        _ scrollView: UIScrollView, progress: @escaping @MainActor (CGFloat) -> Void = { _ in },
+        pulled: @escaping @MainActor () -> Void
+    ) {
         self.scrollView = scrollView
+        self.progress = progress
         self.pulled = pulled
-        scrollView.panGestureRecognizer.addTarget(self, action: #selector(panned(_:)))
+        observation = scrollView.observe(\.contentOffset, options: []) { [weak self] scrollView, _ in
+            MainActor.assumeIsolated { self?.offsetChanged(of: scrollView) }
+        }
     }
 
-    /// Whether letting go of `scrollView` now refreshes. Internal so tests can check it without a finger.
-    static func isPulledPastEnd(_ scrollView: UIScrollView) -> Bool {
+    /// How far past the end `scrollView` is pulled, in points (zero or less when it is not).
+    static func pull(of scrollView: UIScrollView) -> CGFloat {
         ReaderScrollGeometry.pastEnd(
             offsetY: scrollView.contentOffset.y, viewportHeight: scrollView.bounds.height,
             contentHeight: scrollView.contentSize.height, insetTop: scrollView.adjustedContentInset.top,
             insetBottom: scrollView.adjustedContentInset.bottom
-        ) >= threshold
+        )
     }
 
-    /// The pan gesture's action. Internal so a test can hand it a released gesture.
-    @objc func panned(_ recognizer: UIPanGestureRecognizer) {
-        // At `.ended` the offset is still the pulled one: the bounce back starts after.
-        guard recognizer.state == .ended, let scrollView, Self.isPulledPastEnd(scrollView) else { return }
-        pulled()
+    /// The scroll view moved. Internal so a test can drive it without a finger (`requiresFinger = false`).
+    func offsetChanged(of scrollView: UIScrollView) {
+        let held = !requiresFinger || scrollView.isTracking || scrollView.isDragging
+        let pull = held ? Self.pull(of: scrollView) : 0
+        progress(PullRefreshRule.scale(forPull: pull))
+        if rule.update(pull: pull) { pulled() }
     }
 }
 
@@ -58,6 +72,10 @@ enum ReaderRefresh {
             guard let model, token == model.document?.token else { return }
             // Legacy animates the bar's change (`.animation(.easeOut(duration: 0.22))`, MessagesView.swift:5789 @ 87fe0d1c).
             withAnimation(.easeOut(duration: 0.22)) { atPageEnd.wrappedValue = atEnd }
+        }
+        controller.events.pullProgress = { [weak model] scale, token in
+            guard let model, token == model.document?.token else { return }
+            model.pullProgress = scale
         }
         controller.events.pulled = { [weak controller, weak model] token in
             guard let model, token == model.document?.token, !model.isLoading else { return }

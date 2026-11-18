@@ -91,58 +91,88 @@ struct ReaderBottomBarTests {
         #expect(ReaderScrollGeometry.pastEnd(offsetY: -28, viewportHeight: 800, contentHeight: 300, insetTop: 100, insetBottom: 50) == 72)
     }
 
-    @Test func onlyAPullBeyondTheThresholdRefreshes() {
+    @Test func onlyAPullBeyondTheThresholdIsFullSize() {
         let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentInset = UIEdgeInsets(top: 100, left: 0, bottom: 50, right: 0)
         scrollView.contentSize = CGSize(width: 390, height: 1000)
         scrollView.contentOffset = CGPoint(x: 0, y: 250 + ReaderPullWatcher.threshold - 1)
-        #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
+        #expect(ReaderPullWatcher.pull(of: scrollView) < ReaderPullWatcher.threshold)
         scrollView.contentOffset = CGPoint(x: 0, y: 250 + ReaderPullWatcher.threshold)
-        #expect(ReaderPullWatcher.isPulledPastEnd(scrollView))
+        #expect(ReaderPullWatcher.pull(of: scrollView) >= ReaderPullWatcher.threshold)
         // At the end of the page, but not pulled: nothing.
         scrollView.contentOffset = CGPoint(x: 0, y: 250)
-        #expect(!ReaderPullWatcher.isPulledPastEnd(scrollView))
-    }
-
-    /// A pan gesture already let go: what UIKit hands the watcher at the end of a drag.
-    private final class ReleasedPan: UIPanGestureRecognizer {
-        override var state: UIGestureRecognizer.State {
-            get { .ended }
-            set {}
-        }
+        #expect(ReaderPullWatcher.pull(of: scrollView) <= 0)
     }
 
     @MainActor
     private final class Pulls {
         var times = 0
+        var scales: [CGFloat] = []
     }
 
-    /// The watcher's gesture action: a release beyond the threshold reports a pull, a shorter one or a drag still under way does not.
-    @Test func theWatcherReportsAPullOnlyWhenTheDragEndsBeyondTheThreshold() {
+    private func pullScrollView() -> UIScrollView {
         let scrollView = UIScrollView(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentSize = CGSize(width: 390, height: 1000)
-        let pulls = Pulls()
-        let watcher = ReaderPullWatcher()
-        watcher.track(scrollView) { pulls.times += 1 }
-        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold - 1)
-        watcher.panned(ReleasedPan())
-        #expect(pulls.times == 0)
-        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold)
-        watcher.panned(UIPanGestureRecognizer())
-        #expect(pulls.times == 0, "a drag that has not ended does not refresh")
-        watcher.panned(ReleasedPan())
-        #expect(pulls.times == 1)
+        return scrollView
     }
 
-    /// Only the topic and MP reader refreshes on a pull: its pages carry the hint, "Filtrer les posts" builds without it.
-    @Test func onlyTheReadersPagesOfferThePull() async {
-        #expect(!ReaderRenderOptions().offersPullToRefresh)
+    /// #1207: the icon grows with the pull and the refresh fires once, when it is full, without waiting for the release; a new pull,
+    /// after the page came back to its end, refreshes again.
+    @Test func theWatcherFiresOnceWhenTheIconIsFullAndAgainForANewPull() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = ReaderPullWatcher()
+        watcher.requiresFinger = false
+        watcher.track(scrollView, progress: { pulls.scales.append($0) }, pulled: { pulls.times += 1 })
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold / 2)
+        #expect(pulls.times == 0)
+        #expect(pulls.scales.last == 0.5)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold - 1)
+        #expect(pulls.times == 0, "short of full size: nothing")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold)
+        #expect(pulls.times == 1)
+        #expect(pulls.scales.last == 1)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold + 30)
+        #expect(pulls.times == 1, "held past the threshold: still one refresh")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200)
+        #expect(pulls.scales.last == 0, "back at the end: the icon is gone")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold)
+        #expect(pulls.times == 2)
+    }
+
+    /// Letting go before the icon is full does nothing: no refresh, and the icon goes with the pull.
+    @Test func aPullLetGoBeforeFullSizeRefreshesNothing() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = ReaderPullWatcher()
+        watcher.requiresFinger = false
+        watcher.track(scrollView, progress: { pulls.scales.append($0) }, pulled: { pulls.times += 1 })
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold - 1)
+        scrollView.contentOffset = CGPoint(x: 0, y: 200)
+        #expect(pulls.times == 0)
+        #expect(pulls.scales.last == 0)
+    }
+
+    /// A fling that overshoots the end is not a pull: with no finger on the page, nothing grows and nothing refreshes.
+    @Test func anOvershootWithoutAFingerIsNotAPull() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = ReaderPullWatcher()
+        watcher.track(scrollView, progress: { pulls.scales.append($0) }, pulled: { pulls.times += 1 })
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + ReaderPullWatcher.threshold * 2)
+        #expect(pulls.times == 0)
+        #expect(pulls.scales.allSatisfy { $0 == 0 })
+    }
+
+    /// #1207 (operator, 2026-11-18): the end-of-page hint « Tirer vers le haut pour actualiser » is gone; the growing icon is the cue.
+    @Test func theReadersPageHasNoPullHint() async {
         let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic), page: 1), source: FakeTopicPages())
-        #expect(reader.currentRenderOptions().offersPullToRefresh)
         await reader.onAppear()
-        #expect(reader.document?.html.contains("class=\"pull-hint\"") == true)
+        let html = reader.document?.html ?? ""
+        #expect(!html.isEmpty)
+        #expect(!html.contains("pull-hint") && !html.contains("Tirer vers le haut"))
     }
 
     @MainActor

@@ -30,6 +30,8 @@ extension ReaderWebController {
         var pageEnd: @MainActor (_ atEnd: Bool, _ token: Int) -> Void = { _, _ in }
         /// The user pulled past the end of document `token` and let go beyond the threshold: a refresh (#820).
         var pulled: @MainActor (_ token: Int) -> Void = { _ in }
+        /// How far, as the icon's scale (0 to 1), the page is pulled past its end (#1207); 0 at rest and under an open composer.
+        var pullProgress: @MainActor (_ scale: CGFloat, _ token: Int) -> Void = { _, _ in }
     }
 
     /// `reader.js` says whether the page's end is on screen (#820); the page gets no answer.
@@ -42,5 +44,11 @@ extension ReaderWebController {
     func pulledPastEnd() {
         guard let document, !ignoresPageTaps else { return }
         events.pulled(document.token)
+    }
+
+    /// The pull past the end grew or shrank: the icon's scale for the document on screen; none under an open composer (#653).
+    func pullProgressChanged(_ scale: CGFloat) {
+        guard let document else { return }
+        events.pullProgress(ignoresPageTaps ? 0 : scale, document.token)
     }
 }

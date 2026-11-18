@@ -25,6 +25,8 @@ final class TopicReaderModel {
     private(set) var page: ReaderPage?
     /// A load is running.
     private(set) var isLoading = false
+    /// The page is pulled past its end: the refresh icon's scale, 0 to 1 (#1207).
+    var pullProgress: CGFloat = 0
     /// Failure of the latest load; cleared by the next success.
     private(set) var error: ListLoadError?
     /// The document for the web view; replaced by every successful load.
