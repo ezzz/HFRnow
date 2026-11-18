@@ -35,7 +35,7 @@ struct AccountRow: Sendable, Equatable, Identifiable {
 
 extension AccountRow {
     /// The login cookies whose expiry ends the session: `md_user` and `md_passs`, each set for 30 days by the login and again by
-    /// every logged-in page (HFR-PROTOCOL §6b, `W03`; doubled `Set-Cookie`, `R74`).
+    /// the logged-in home page, followed list and profile page (HFR-PROTOCOL §6b, `W03`; doubled `Set-Cookie`, `R74`).
     static let loginCookieNames: Set<String> = [HFRSession.identityCookieName, "md_passs"]
 
     /// The earliest expiry of the login cookies in `cookies`, ignoring the `deleted` marker; nil when none carries a date.
