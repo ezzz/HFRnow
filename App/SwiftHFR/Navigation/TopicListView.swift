@@ -4,9 +4,9 @@ import UIKit
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) @ 87fe0d1c and HFRswift/Swift/Favorites.swift
 // (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: « page x / y »
-// (« y+ » while HFR's pager gives only a lower bound, and no « last » then; GAP-024, #980); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
-// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when
-// the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
+// (« y+ » while HFR's pager gives only a lower bound, and no « last » then; GAP-024, #980); the sub-forum menu and the filter are
+// `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a
+// `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
 // `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
 // Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
@@ -82,7 +82,7 @@ struct TopicListView: View {
                 }
             }
         }
-        .pagerBar(model.source.isPaged && loader.value.map({ $0.page > 1 || $0.hasNext }) == true ? PageBar(model: model).pager : nil)
+        .pagerBar(showsPager(loader.value) ? PageBar(model: model).pager : nil)
         .toolbar {
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
@@ -153,6 +153,12 @@ struct TopicListView: View {
             return nil
         }
         return RowTint(tint: accent.color, weight: accent.weight)
+    }
+
+    /// The pager shows on a paged list with more than one page (legacy `shouldShowPagination`, `MainWindow.swift:407-409` @ 87fe0d1c).
+    private func showsPager(_ content: TopicListContent?) -> Bool {
+        guard model.source.isPaged, let content else { return false }
+        return content.page > 1 || content.hasNext
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {

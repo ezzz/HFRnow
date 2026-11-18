@@ -6,7 +6,8 @@ import SwiftUI
 /// The page controls of a list: system bottom-bar items under the iPad sidebar root (Liquid Glass), a glass strip above the tab bar
 /// under the tab bar root (`PagerPlacement`), instead of a hand-built strip with an opaque fill.
 struct PagerToolbar {
-    /// The first / previous / next / last page actions; a nil action hides its button; a list whose last page is only a lower bound disables "last" (#980).
+    /// The first / previous / next / last page actions; a nil action hides its button. A list whose last page is only a lower bound
+    /// disables "last" (#980).
     struct Step {
         let enabled: Bool
         let action: () -> Void
