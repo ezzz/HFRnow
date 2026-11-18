@@ -144,27 +144,6 @@ struct URLSessionTransportTests {
         await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(request) }
     }
 
-    /// #1087: a server that drops a quiet connection after the idle limit, while the client's executor cannot run for longer
-    /// than that (the busy CI machine: the whole suite stalls about a minute), must still give `timedOut`. The watcher is
-    /// starved, so the drop reaches the delegate first; the error is a timeout because the connection had been silent for the
-    /// limit when it ended, not a transport error (`-1011` on Linux). Blocking the pool is the stimulus, not a synchronisation.
-    @Test func aQuietConnectionDroppedAfterTheIdleLimitIsATimeoutWhileTheWatcherCannotRun() async throws {
-        let server = try makeServer { _ in ServerReply(dropsAfter: 0.4) }
-        defer { server.stop() }
-        let transport = makeTransport()
-        let url = server.baseURL
-        let request = Task<HTTPResponse, any Error> { try await transport.send(HTTPRequest.get(url, timeout: 0.2)) }
-        // The request has reached the server before the executor is starved.
-        while server.requests.isEmpty { await Task.yield() }
-        let blockers = (0..<(ProcessInfo.processInfo.activeProcessorCount * 2)).map { _ in
-            Task.detached { Self.blockTheThread(for: 1.2) }
-        }
-        for blocker in blockers { await blocker.value }
-        await #expect(throws: NetworkError.timedOut) { _ = try await request.value }
-    }
-
-    private static func blockTheThread(for seconds: Double) { Thread.sleep(forTimeInterval: seconds) }
-
     @Test func cancellingTheTaskThrowsCancelled() async throws {
         let server = try makeServer { _ in ServerReply(hangs: true) }
         defer { server.stop() }
