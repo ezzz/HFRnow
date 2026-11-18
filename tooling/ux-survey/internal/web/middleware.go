@@ -101,7 +101,7 @@ func (s *Serveur) journal(next http.Handler) http.Handler {
 		e := &enregistreur{ResponseWriter: w}
 		next.ServeHTTP(e, r.WithContext(context.WithValue(r.Context(), cleRaison{}, &raison)))
 		attrs := []any{
-			slog.String("methode", r.Method), slog.String("chemin", r.URL.Path), slog.Int("statut", e.statut),
+			slog.String("methode", r.Method), slog.String("chemin", s.cheminJournal(r.URL.Path)), slog.Int("statut", e.statut),
 			slog.Int64("duree_ms", s.Horloge().Sub(debut).Milliseconds()), slog.Int("taille", e.taille),
 		}
 		if raison != "" {
@@ -111,16 +111,32 @@ func (s *Serveur) journal(next http.Handler) http.Handler {
 	})
 }
 
-// limiter applique la limitation de débit (§6) ; /static/ et /healthz ne sont pas limités.
+// routesConnues sont les chemins fixes du service ; tout autre chemin (hors fichiers statiques embarqués) est
+// journalisé sous un libellé fixe, pour qu'un client ne puisse pas écrire son texte dans le journal (E1).
+var routesConnues = map[string]bool{"/": true, "/donnees": true, "/api/etat": true, "/api/stats": true, "/api/reponses": true}
+
+// LibelleInconnu remplace dans le journal le chemin d'une route inconnue.
+const LibelleInconnu = "(inconnu)"
+
+func (s *Serveur) cheminJournal(p string) string {
+	if routesConnues[p] || s.statiques[p] != nil {
+		return p
+	}
+	return LibelleInconnu
+}
+
+// limiter applique la limitation de débit (§6) ; /healthz n'est pas limité, /static/ a un plafond large (E1).
 func (s *Serveur) limiter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
-		if p == "/healthz" || strings.HasPrefix(p, "/static/") {
+		if p == "/healthz" {
 			next.ServeHTTP(w, r)
 			return
 		}
 		cat, reg := "autres", regleAutres
 		switch {
+		case strings.HasPrefix(p, "/static/"):
+			cat, reg = "statiques", regleStatiques
 		case p == "/api/reponses" && r.Method == http.MethodPost:
 			cat, reg = "post", reglePost
 		case p == "/api/stats":
@@ -148,10 +164,20 @@ func (s *Serveur) acces(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		ip := s.IPClient(r)
+		if epuise, attente := s.Lim.Epuise("echecs", ip, regleEchecs); epuise {
+			refuser(r, "echecs-acces")
+			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(attente.Seconds()))))
+			ecrireJSON(w, http.StatusTooManyRequests, map[string]string{"erreur": "trop d'essais, réessayez plus tard"})
+			return
+		}
 		u, mdp, ok := r.BasicAuth()
 		hu, hm := sha256.Sum256([]byte(u)), sha256.Sum256([]byte(mdp))
 		bon := subtle.ConstantTimeCompare(hu[:], utilisateur[:]) & subtle.ConstantTimeCompare(hm[:], attendu[:])
 		if !ok || bon != 1 {
+			if ok { // seul un identifiant essayé compte : la première visite sans identifiant n'en est pas un
+				s.Lim.Autoriser("echecs", ip, regleEchecs)
+			}
 			w.Header().Set("WWW-Authenticate", `Basic realm="Questionnaire", charset="UTF-8"`)
 			http.Error(w, "authentification requise", http.StatusUnauthorized)
 			return

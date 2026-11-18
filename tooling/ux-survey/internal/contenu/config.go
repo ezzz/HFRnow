@@ -12,6 +12,9 @@ import (
 // SeuilMinimal est le plus petit UX_SEUIL_STATS accepté (décision D3).
 const SeuilMinimal = 10
 
+// DefautPlafondHoraire est le plafond global d'envois acceptés par heure (UX_PLAFOND_HORAIRE).
+const DefautPlafondHoraire = 300
+
 // Config est la configuration lue dans l'environnement (§10). Aucun secret n'est dans le dépôt.
 type Config struct {
 	Adresse    string
@@ -22,6 +25,7 @@ type Config struct {
 	MentionMaj time.Time // date seule, à minuit UTC
 	SeuilStats int
 	MaxParIP   int
+	PlafondH   int // envois acceptés par heure, tous clients confondus (M1) ; au-delà, 503
 	CodeAcces  string
 }
 
@@ -34,6 +38,7 @@ func ChargerConfig(get func(string) string) (*Config, error) {
 		Origine:    strings.TrimRight(get("UX_ORIGINE"), "/"),
 		SeuilStats: SeuilMinimal,
 		MaxParIP:   3,
+		PlafondH:   DefautPlafondHoraire,
 		CodeAcces:  get("UX_CODE_ACCES"),
 	}
 	if c.Origine == "" {
@@ -83,6 +88,13 @@ func ChargerConfig(get func(string) string) (*Config, error) {
 			return nil, fmt.Errorf("UX_MAX_PAR_IP doit être un entier positif")
 		}
 		c.MaxParIP = n
+	}
+	if v := get("UX_PLAFOND_HORAIRE"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			return nil, fmt.Errorf("UX_PLAFOND_HORAIRE doit être un entier positif")
+		}
+		c.PlafondH = n
 	}
 	return c, nil
 }

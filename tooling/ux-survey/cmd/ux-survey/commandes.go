@@ -11,6 +11,7 @@ import (
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/exporter"
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/reponse"
 	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/stats"
+	"github.com/ezzz/hfrnow/tooling/ux-survey/internal/stockage"
 )
 
 func commandeExport(args []string) error {
@@ -28,6 +29,9 @@ func commandeExport(args []string) error {
 		return err
 	}
 	defer e.base.Fermer()
+	if err := e.base.VerifierSortie(stockage.DossierExports, *sortie); err != nil {
+		return err
+	}
 	ctx := context.Background()
 	date := time.Now().In(e.cfg.Fermeture.Location()).Format(time.DateOnly)
 	ecrire := func(ext string, contenu []byte, err error) error {

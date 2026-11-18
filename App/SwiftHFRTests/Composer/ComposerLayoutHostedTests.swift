@@ -56,14 +56,18 @@ struct ComposerLayoutHostedTests {
         model.update(text: text)
         // Then until the frames stop moving (four equal reads in a row): the state the tests measure, not a fixed delay.
         var last: [ComposerLayoutProbe.Part: CGRect] = [:]
+        var lastLayout = ComposerCardLayout()
         var steady = 0
         for _ in 0..<150 where steady < 4 {
             try await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
             let ready = box.layout.text > 0 && box.frames[.controls] != nil && box.frames[.card] != nil
-            steady = ready && box.frames == last ? steady + 1 : 0
+            steady = ready && box.frames == last && box.layout == lastLayout ? steady + 1 : 0
             last = box.frames
+            lastLayout = box.layout
         }
+        // The loop also ends when its 150 reads run out: without this the tests would measure a frame still moving (#1119).
+        try #require(steady >= 4, "frames never settled: \(box.frames), layout \(box.layout)")
         return box
     }
 
