@@ -2,8 +2,8 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/AQPlusView.swift (AQPlusView) and Classes/AQTableViewController.m @ 87fe0d1c (GAP-005). Differences: rows
-// are `Button`s opening the reader at the message's page and anchor (issues #105, #106) in the Plus stack, or in the detail column
-// of the iPad split (`openTopicInDetail`, #685), not the legacy topic
+// follow the list look of every Plus list (#1107, #842) and are `Button`s opening the reader at the message's page and anchor
+// (issues #105, #106) in the Plus stack, or in the detail column of the iPad split (`openTopicInDetail`, #685), not the legacy topic
 // row view; a failed load keeps the rows and shows a retry; the list is a plain `List`, not the topic row styles (no flag cues).
 /// The Alertes Qualitay list: one row per report, bold while new, opening the reported message.
 struct QualityAlertsView: View {
@@ -20,19 +20,24 @@ struct QualityAlertsView: View {
 
     var body: some View {
         List {
-            if let failure = model.failure, !model.rows.isEmpty {
-                Label(failure.title, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-            }
-            ForEach(model.rows) { row in
-                QualityAlertRow(row: row, now: .now) {
-                    if let openTopicInDetail, let target = row.target {
-                        openTopicInDetail(target, title: row.title)
-                    } else {
-                        opened = row
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                if let failure = model.failure, !model.rows.isEmpty {
+                    Label(failure.title, systemImage: "exclamationmark.triangle").foregroundStyle(.themedError)
+                }
+                ForEach(model.rows) { row in
+                    QualityAlertRow(row: row, now: .now) {
+                        if let openTopicInDetail, let target = row.target {
+                            openTopicInDetail(target, title: row.title)
+                        } else {
+                            opened = row
+                        }
                     }
                 }
             }
+            .listLookRows()
         }
+        .listLook()
         .overlay {
             QualityAlertsPlaceholder(model: model)
         }
@@ -106,7 +111,7 @@ private struct QualityAlertRow: View {
             Text(row.title)
                 .scaledFont(.headline)
                 .bold(row.isNew)
-                .foregroundStyle(row.isNew ? Color.primary : Color.secondary)
+                .foregroundStyle(row.isNew ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             HStack {
                 Text("par \(row.item.initiator)")
                 Spacer()
@@ -116,6 +121,8 @@ private struct QualityAlertRow: View {
             Text(row.item.comment.isEmpty ? row.item.title : "\(row.item.title)\n\(row.item.comment)")
                 .scaledFont(.footnote).foregroundStyle(.secondary)
         }
+        // #842: the row's text under a gallery theme (`textPrimary`, `textSecondary`); the row itself is `listLookRows()`'s.
+        .themedRowText()
         .accessibilityElement(children: .combine)
     }
 }
