@@ -4,7 +4,7 @@ import SwiftUI
 // Port of HFRswift/Swift/UserProfileView.swift (GAP-167: UserProfileView, UserProfileHeaderView, UserProfileQuickActionsView,
 // UserProfileSectionView, UserProfileFieldRow, UserProfileSmiliesView, UserProfileActionsView) @ 2440d79. Differences: images
 // through the reader's cookie-less fetcher and image policy, not `AsyncImage`; no smiley favourite toggle (LOT-104); a
-// list instead of cards (LOT-116 spec).
+// list instead of cards (LOT-116 spec); the list look of every list (`listLook`, #1107).
 /// A member's public profile in a sheet (LOT-116): header (avatar, pseudo, status, figures), the page's sections, personal
 /// smileys and the page's link rows. Every text the member wrote is shown verbatim, never read as Markdown or HTML.
 struct UserProfileView: View {
@@ -36,34 +36,36 @@ struct UserProfileView: View {
     @ViewBuilder private var content: some View {
         if let profile = model.profile {
             List {
-                if let error = model.error {
-                    LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-                }
-                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin()
-                ForEach(profile.sections) { section in
-                    Section {
-                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }.themedListRow()
-                    } header: {
-                        Text(section.title).densityHeaderMargin().themedSectionHeader()
+                // #1107: every row of the list takes its look, once for the whole content.
+                Group {
+                    if let error = model.error {
+                        LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    }
+                    ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin()
+                    ForEach(profile.sections) { section in
+                        Section {
+                            ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }
+                        } header: {
+                            Text(section.title).densityHeaderMargin().themedSectionHeader()
+                        }
+                    }
+                    if !profile.personalSmilies.isEmpty {
+                        ProfileSmileysSection(
+                            smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
+                        )
+                        .densityRowMargin()
+                    }
+                    if !profile.actions.isEmpty {
+                        Section {
+                            ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
+                        } header: {
+                            Text("Liens").densityHeaderMargin().themedSectionHeader()
+                        }
                     }
                 }
-                if !profile.personalSmilies.isEmpty {
-                    ProfileSmileysSection(
-                        smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
-                    )
-                    .densityRowMargin()
-                }
-                if !profile.actions.isEmpty {
-                    Section {
-                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
-                            .themedListRow()
-                    } header: {
-                        Text("Liens").densityHeaderMargin().themedSectionHeader()
-                    }
-                }
+                .listLookRows()
             }
-            .listStyle(.insetGrouped)
-            .densityListMargins()
+            .listLook()
             .refreshable { await model.reload() }
         } else if let error = model.error {
             LoadFailureView(error: error, retry: model.reload)
@@ -94,53 +96,51 @@ private struct ProfileHeaderSection: View {
 
     var body: some View {
         Section {
-            Group {
-                HStack(spacing: 16) {
-                    ProfileImage(
-                        url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration
-                    )
-                        .frame(width: 98, height: 70)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(verbatim: profile.pseudo).scaledFont(.title2).bold().textSelection(.enabled)
-                        if let status = profile.status {
-                            Label { Text(verbatim: status) } icon: { Image(systemName: "person.text.rectangle") }
-                                .scaledFont(.subheadline).foregroundStyle(.secondary)
-                        }
+            HStack(spacing: 16) {
+                ProfileImage(
+                    url: profile.avatarURL, fetcher: fetcher, placeholder: "person.crop.circle.fill", generation: model.loadGeneration
+                )
+                    .frame(width: 98, height: 70)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: profile.pseudo).scaledFont(.title2).bold().textSelection(.enabled)
+                    if let status = profile.status {
+                        Label { Text(verbatim: status) } icon: { Image(systemName: "person.text.rectangle") }
+                            .scaledFont(.subheadline).foregroundStyle(.secondary)
                     }
                 }
-                // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast. On the header row
-                // (always there, once): the feedback `Text` appears already holding the first sentence, which no change reports.
-                .onChange(of: model.listFeedbackCount) {
-                    if let text = model.listFeedback { AccessibilityNotification.Announcement(text).post() }
+            }
+            // The buttons flip their label; VoiceOver hears the result as it does from the message menu's toast. On the header row
+            // (always there, once): the feedback `Text` appears already holding the first sentence, which no change reports.
+            .onChange(of: model.listFeedbackCount) {
+                if let text = model.listFeedback { AccessibilityNotification.Announcement(text).post() }
+            }
+            ForEach(profile.summary) { item in
+                LabeledContent {
+                    Text(verbatim: item.value).textSelection(.enabled)
+                } label: {
+                    Label(item.kind.shortTitle, systemImage: item.kind.symbol)
                 }
-                ForEach(profile.summary) { item in
-                    LabeledContent {
-                        Text(verbatim: item.value).textSelection(.enabled)
-                    } label: {
-                        Label(item.kind.shortTitle, systemImage: item.kind.symbol)
-                    }
-                    .scaledFont(.body)
+                .scaledFont(.body)
+            }
+            if let recipient = model.privateMessageRecipient {
+                Button { model.writePrivateMessage() } label: { Label("Écrire un MP", systemImage: "message") }
+                    .accessibilityHint("Message privé à \(recipient)")
+            }
+            if model.offers(.blocklist) {
+                Button { Task { await model.toggle(.blocklist) } } label: {
+                    Label(model.isBlocked ? "Retirer de la liste noire" : "Ajouter à la liste noire", systemImage: "hand.raised")
                 }
-                if let recipient = model.privateMessageRecipient {
-                    Button { model.writePrivateMessage() } label: { Label("Écrire un MP", systemImage: "message") }
-                        .accessibilityHint("Message privé à \(recipient)")
+            }
+            if model.offers(.allowlist) {
+                Button { Task { await model.toggle(.allowlist) } } label: {
+                    Label(model.isAllowed ? "Retirer de la love list" : "Ajouter à la love list", systemImage: "heart")
                 }
-                if model.offers(.blocklist) {
-                    Button { Task { await model.toggle(.blocklist) } } label: {
-                        Label(model.isBlocked ? "Retirer de la liste noire" : "Ajouter à la liste noire", systemImage: "hand.raised")
-                    }
-                }
-                if model.offers(.allowlist) {
-                    Button { Task { await model.toggle(.allowlist) } } label: {
-                        Label(model.isAllowed ? "Retirer de la love list" : "Ajouter à la love list", systemImage: "heart")
-                    }
-                }
-                if let feedback = model.listFeedback {
-                    Text(feedback).scaledFont(.footnote).foregroundStyle(.secondary)
-                }
-            }.themedListRow()
+            }
+            if let feedback = model.listFeedback {
+                Text(feedback).scaledFont(.footnote).foregroundStyle(.secondary)
+            }
         }
     }
 }
@@ -192,22 +192,20 @@ private struct ProfileSmileysSection: View {
 
     var body: some View {
         Section {
-            Group {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 10)], spacing: 10) {
-                    ForEach(smileys) { smiley in
-                        VStack(spacing: 8) {
-                            ProfileImage(url: smiley.imageURL, fetcher: fetcher, placeholder: "photo", generation: generation)
-                                .frame(height: 42)
-                                .accessibilityHidden(true)
-                            Text(verbatim: smiley.code)
-                                .scaledFont(.caption2).monospaced().multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 10)], spacing: 10) {
+                ForEach(smileys) { smiley in
+                    VStack(spacing: 8) {
+                        ProfileImage(url: smiley.imageURL, fetcher: fetcher, placeholder: "photo", generation: generation)
+                            .frame(height: 42)
+                            .accessibilityHidden(true)
+                        Text(verbatim: smiley.code)
+                            .scaledFont(.caption2).monospaced().multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
                 }
-            }.themedListRow()
+            }
         } header: {
             Text("Smilies persos (\(smileys.count))").themedSectionHeader()
         }

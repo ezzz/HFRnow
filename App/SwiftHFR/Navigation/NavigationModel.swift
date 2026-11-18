@@ -135,6 +135,12 @@ final class NavigationModel {
         return model
     }
 
+    /// Closes the readers the selected topic's links opened, keeping that topic's reader and its page: a fold or an unfold of the
+    /// iPhone Duo carries the root reader only (`RootModel.rootSwapped`).
+    func closeLinkedReaders() {
+        currentReader?.model.closeLinkedReaders()
+    }
+
     /// Forgets the reader on screen and closes the readers its links opened. The detail column replaces its stack then, and SwiftUI
     /// keeps on it what a link pushed when only the stack's identity changes; a covered reader's view also skips its leave and stop
     /// path (`TopicReaderView` `onDisappear`), so the closing lets it run (#512, #1089).

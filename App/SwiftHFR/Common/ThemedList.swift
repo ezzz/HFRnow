@@ -42,15 +42,14 @@ extension ThemeAppearance {
 }
 
 extension View {
-    /// A native list row (or every row of a `Section` or `ForEach` it wraps) under the theme (#842): background and separators.
-    /// Its text is `themedRowText()`'s, applied where the row's content is drawn, so a `Button` row keeps its tint (the
-    /// accent, `accentText`): a foreground style set on the row would replace it. `isSelected` paints the theme's `selection`
-    /// instead of the row colour: a row background replaces the system's own selection fill. Not for a row that sets its own
-    /// background (a clear banner, the large title): which of two row backgrounds wins is not something to rely on. Legacy:
-    /// nothing, or, with `legacySelection`, that colour behind a selected row, as the call site drew it before (Bookmarks).
-    func themedListRow(isSelected: Bool = false, legacySelection: Color? = nil) -> some View {
-        modifier(ThemedListRow(isSelected: isSelected, legacySelection: legacySelection))
-    }
+    /// A native list row (or every row of a `Section`, `ForEach` or `Group` it wraps) under the theme (#842): background and
+    /// separators. Its text is `themedRowText()`'s, applied where the row's content is drawn, so a `Button` row keeps its tint (the
+    /// accent, `accentText`): a foreground style set on the row would replace it. The background follows the list look (#1107):
+    /// `surface` in the classic look, none in the dense one (the rows on the theme's background), and `selection` for a selected
+    /// row in both, since a row background replaces the system's own selection fill. A row's own `listRowBackground` set inside
+    /// it wins (`listLookRows()`). `listLookRows()` and `listLookRow(isSelected:)` hand their rows to it under a theme. Legacy:
+    /// nothing.
+    func themedListRow(isSelected: Bool = false) -> some View { modifier(ThemedListRow(isSelected: isSelected)) }
 
     /// A row's text under the theme (#842): `textPrimary` as the primary style and `textSecondary` as the secondary one, so
     /// `.primary` and `.secondary` text follow. For a row's own content (a topic, a conversation, a forum, a field), never
@@ -72,8 +71,8 @@ extension View {
 
 private struct ThemedListRow: ViewModifier {
     let isSelected: Bool
-    let legacySelection: Color?
     @Environment(\.themeAppearance) private var appearance
+    @Environment(\.listLook) private var look
 
     /// Legacy keeps `content` as is; only a change between Legacy and a theme changes the structure, which the user asked for
     /// (as `appScreenBackground()`), never a flip of appearance (the colours are dynamic).
@@ -81,14 +80,18 @@ private struct ThemedListRow: ViewModifier {
         if let colors = appearance.listColors {
             let separator = Color(uiColor: colors.separator)
             content
-                .listRowBackground(Color(uiColor: isSelected ? colors.selectedRow : colors.row))
+                .listRowBackground(Self.background(colors, isSelected: isSelected, look: look))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
-        } else if let legacySelection {
-            content.listRowBackground(isSelected ? legacySelection : nil)
         } else {
             content
         }
+    }
+
+    /// A themed row's background: `selection` when selected, else `surface` in the classic look and none in the dense one.
+    static func background(_ colors: ThemedListColors, isSelected: Bool, look: ListLook) -> Color {
+        if isSelected { return Color(uiColor: colors.selectedRow) }
+        return look == .dense ? DenseListLook.rowBackground : Color(uiColor: colors.row)
     }
 }
 

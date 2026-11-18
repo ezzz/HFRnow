@@ -298,6 +298,9 @@ extension ThemeColor {
 extension EnvironmentValues {
     /// The theme colours; the app root sets them from the "Thème" settings, the reader reads them.
     @Entry var themeAppearance = ThemeAppearance.standard
+    /// The screen's fill shows through the lists below (`AppScreenBackground` hid their background): a list look that changes
+    /// the list's background keeps it hidden (#1107).
+    @Entry var screenPaintsLists = false
 }
 
 extension View {

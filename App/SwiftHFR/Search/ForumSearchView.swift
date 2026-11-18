@@ -7,6 +7,7 @@ import SwiftUI
 // CHANGELOG-LEGACY 45); the result row is the app's `TopicRowView` with the excerpt; the pager follows LOT-046's paths.
 // #1012 (GAP-978): a large title at landing, then the title pill, as the other main screens.
 // LOT-185: the pager (legacy `:395-432`) is the system bottom bar (`PagerToolbar`) instead of a glass capsule; GAP row pending #545.
+// #1107: the list look of every list (`listLook`): the Favoris card, or the dense look behind « Lignes denses ».
 
 /// "Rechercher sur le forum" (Plus tab): the form, the results of the page on screen and a pager.
 struct ForumSearchView: View {
@@ -21,11 +22,15 @@ struct ForumSearchView: View {
 
     var body: some View {
         List {
-            ScreenLargeTitle(title: "Recherche", visibility: titleVisibility)
-            formSection
-            resultsSection
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                ScreenLargeTitle(title: "Recherche", visibility: titleVisibility)
+                formSection
+                resultsSection
+            }
+            .listLookRows()
         }
-        .densityListMargins()
+        .listLook()
         .screenTitle("Recherche", style: .largeThenPill, visibility: titleVisibility)
         .pagerBar(pager, hidden: fieldFocused)
         .navigationDestination(item: $model.selected) { topic in

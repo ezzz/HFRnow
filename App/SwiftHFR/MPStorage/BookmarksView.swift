@@ -3,7 +3,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/BookmarksPlusView.swift (BookmarksPlusView) @ 87fe0d1c. Differences: the rows are the app's own
 // (title, author, date, as legacy's `TopicListRowView` call); « Connectez-vous » when no account is current (legacy
-// « MPStorage indisponible »); the error is LOT-130's sentence in the status colour. GAP-040.
+// « MPStorage indisponible »); the error is LOT-130's sentence in the status colour. GAP-040. #1107: the list look of every list
+// (`listLook`); the selected row keeps its accent background in both looks.
 /// Plus › Bookmarks (LOT-132): the account's bookmarks, newest first. A row opens its message beside the list on the
 /// regular-width iPad (#1089), or on the Plus stack; a swipe deletes it.
 struct BookmarksView: View {
@@ -12,6 +13,7 @@ struct BookmarksView: View {
     @Environment(\.openTopicInDetail) private var openInDetail
     /// The reader a row pushed on the Plus stack (no detail column).
     @State private var pushed: TopicReaderModel?
+    @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     init(mpStorage: MPStorageSyncModel?, selection: BookmarkSelection, environment: AppEnvironment) {
         _model = State(initialValue: BookmarksModel(mpStorage: mpStorage, selection: selection))
@@ -20,20 +22,24 @@ struct BookmarksView: View {
 
     var body: some View {
         List {
-            switch model.state {
-            case .signedOut:
-                Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary).themedListRow()
-            case .notSyncing:
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
-                    Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
-                        .scaledFont(.footnote).foregroundStyle(.secondary)
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                switch model.state {
+                case .signedOut:
+                    Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary)
+                case .notSyncing:
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
+                        Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
+                            .scaledFont(.footnote).foregroundStyle(.secondary)
+                    }
+                case .syncing:
+                    listContent
                 }
-                .themedListRow()
-            case .syncing:
-                listContent
             }
+            .listLookRows()
         }
+        .listLook()
         .navigationTitle("Bookmarks")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -61,15 +67,20 @@ struct BookmarksView: View {
     private var listContent: some View {
         if let error = model.errorMessage {
             StatusLabel(text: "Erreur : \(error)", symbol: "exclamationmark.triangle.fill", tint: AccessibleColors.errorText)
-                .themedListRow()
         }
         let bookmarks = model.bookmarks
         if bookmarks.isEmpty {
-            Text("Aucun bookmark").foregroundStyle(.secondary).themedListRow()
+            Text("Aucun bookmark").foregroundStyle(.secondary)
         } else {
             ForEach(bookmarks) { bookmark in
                 Button { open(bookmark) } label: { BookmarkRow(bookmark: bookmark) }
-                    .themedListRow(isSelected: isSelected(bookmark), legacySelection: Color.accentColor.opacity(0.15))
+                    // #842: under a theme its `surface` or `selection`, inside the Legacy background below (a row's own wins).
+                    .themedListRow(isSelected: isSelected(bookmark))
+                    // EXPERIMENTAL(denseRows, #1107): the dense look's clear row replaces the card's.
+                    .listRowBackground(
+                        isSelected(bookmark) ? Color.accentColor.opacity(0.15)
+                            : ListLook.current(experimental) == .dense ? DenseListLook.rowBackground : nil
+                    )
                     .accessibilityAddTraits(isSelected(bookmark) ? .isSelected : [])
             }
             .onDelete { offsets in
