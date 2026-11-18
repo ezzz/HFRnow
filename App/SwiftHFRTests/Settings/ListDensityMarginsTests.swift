@@ -179,7 +179,11 @@ struct ListDensityMarginsTests {
         }
         // In window coordinates, as the reported x: the list may not start at the window's edge.
         let card = Self.collectionView(in: window)?.visibleCells.map { $0.convert($0.bounds, to: nil).minX }.min() ?? 0
-        return box.minXs.mapValues { $0 - card }
+        var found = box.minXs.mapValues { $0 - card }
+        // Space between the card's right edge and the window's: the card must stay out of a right-side inset too (#832).
+        let cardMaxX = Self.collectionView(in: window)?.visibleCells.map { $0.convert($0.bounds, to: nil).maxX }.max() ?? 0
+        found["rightGap"] = size.width - cardMaxX
+        return found
     }
 
     @Test("In compact, headers and rows sit 7 pt from the card, in both size classes", arguments: [false, true])
@@ -201,19 +205,21 @@ struct ListDensityMarginsTests {
     /// #832: a phone in landscape, notch on the left or on the right (the insets of a Pro: about 62 pt on the notch side, 0 or a
     /// small one on the other), set as `additionalSafeAreaInsets` of the host. Regular width (Pro Max) and compact width.
     @Test(
-        "In compact, in landscape, headers and rows sit 7 pt from the card whichever side the notch is",
+        "In compact, in landscape, headers and rows sit 7 pt from the card, which stays 10 pt out of the notch on both sides",
         arguments: [
             (CGSize(width: 932, height: 430), true, UIEdgeInsets(top: 0, left: 62, bottom: 21, right: 0)),
             (CGSize(width: 932, height: 430), true, UIEdgeInsets(top: 0, left: 0, bottom: 21, right: 62)),
             (CGSize(width: 874, height: 402), false, UIEdgeInsets(top: 0, left: 62, bottom: 21, right: 0)),
             (CGSize(width: 874, height: 402), false, UIEdgeInsets(top: 0, left: 0, bottom: 21, right: 62)),
-            (CGSize(width: 874, height: 402), false, UIEdgeInsets(top: 0, left: 62, bottom: 21, right: 62))
+            (CGSize(width: 874, height: 402), false, UIEdgeInsets(top: 0, left: 62, bottom: 21, right: 62)),
+            (CGSize(width: 874, height: 402), false, UIEdgeInsets(top: 0, left: 0, bottom: 21, right: 84))
         ]
     )
     func compactHeadersAlignInLandscape(size: CGSize, regularClass: Bool, safeArea: UIEdgeInsets) async {
         let found = await offsets(.compact, regularClass: regularClass, size: size, safeArea: safeArea)
         #expect(found["header"] == 7, "\(size) \(safeArea): \(found)")
         #expect(found["row"] == 7, "\(size) \(safeArea): \(found)")
+        #expect(found["rightGap"] == 10 + safeArea.right, "\(size) \(safeArea): \(found)")
     }
 
     @Test("In regular, headers and rows keep the system layout, aligned with each other", arguments: [false, true])

@@ -23,7 +23,8 @@ enum ListDensity: Sendable {
         }
     }
 
-    /// Outer side margin (screen edge to card) of an inset-grouped list: nil keeps the system's (about 20 pt), compact halves it.
+    /// Outer side margin of an inset-grouped list: the distance from the safe-area edge to the card. Nil keeps the system's
+    /// (about 20 pt), compact halves it.
     var outerMargin: CGFloat? {
         switch self {
         case .regular: nil
