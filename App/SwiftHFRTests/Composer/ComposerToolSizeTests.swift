@@ -16,7 +16,7 @@ struct ComposerToolSizeTests {
     @Test(arguments: metricsCases, [ComposerToolStyle.plain, .pills])
     func theHeaderAndTheControlRowShareOneSize(metrics: ComposerBarMetrics, style: ComposerToolStyle) {
         let shared = ComposerToolSize(metrics: metrics, style: style)
-        #expect(ComposerHeader.buttonSize(metrics: metrics, style: style) == shared)
+        #expect(ComposerHeader.buttonSize(metrics: metrics, inCard: true, style: style) == shared)
         #expect(ComposerControlRow.toolSize(metrics: metrics, inCard: true, style: style) == shared)
     }
 

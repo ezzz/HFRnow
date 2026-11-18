@@ -17,7 +17,7 @@ private let composerSizes: [ComposerSize] = [ListDensity.regular, .compact].flat
 @MainActor
 struct ModernComposerInsetsTests {
     /// The card tools' glyph at the default text size and density (`ComposerBarMetrics`), which the floating buttons now use.
-    private static let defaultGlyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
+    private static let defaultDiameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
 
     @Test func theSharedGapIsTheReferencesEightPoints() {
         #expect(FloatingSpacing.gap == 8)
@@ -37,8 +37,8 @@ struct ModernComposerInsetsTests {
     @Test(arguments: composerSizes)
     func eachFloatingCapsuleIsTheGapFromTheSidesThePageAndTheCard(size: ComposerSize) {
         let metrics = size.metrics
-        let slack = ComposerHeader.hitSlack(glyph: metrics.glyphSize)
-        let insets = ComposerChrome.docked.headerInsets(glyph: metrics.glyphSize)
+        let slack = ComposerHeader.hitSlack(diameter: ComposerToolSize(metrics: metrics).diameter)
+        let insets = ComposerChrome.docked.headerInsets(diameter: ComposerToolSize(metrics: metrics).diameter)
         let horizontal = max(FloatingSpacing.gap, slack.width)
         let vertical = max(FloatingSpacing.gap, slack.height)
         #expect(abs(insets.leading + slack.width - horizontal) < 0.001)
@@ -57,15 +57,15 @@ struct ModernComposerInsetsTests {
 
     /// A capsule larger than its hit area (an accessibility size) has no slack: the bar's inset is the whole gap.
     @Test func aCapsuleThatOutgrowsItsHitAreaKeepsTheWholeGap() {
-        let glyph: CGFloat = 40
-        #expect(ComposerHeader.hitSlack(glyph: glyph) == .zero)
-        let insets = ComposerChrome.docked.headerInsets(glyph: glyph)
+        let diameter: CGFloat = 48
+        #expect(ComposerHeader.hitSlack(diameter: diameter) == .zero)
+        let insets = ComposerChrome.docked.headerInsets(diameter: diameter)
         #expect(insets == EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
     }
 
     @Test func legacysChromeKeepsItsPaddings() {
         #expect(ComposerChrome.sheet.cardInsets == EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        let header = ComposerChrome.sheet.headerInsets(glyph: Self.defaultGlyph)
+        let header = ComposerChrome.sheet.headerInsets(diameter: Self.defaultDiameter)
         #expect(header == EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16))
     }
 
@@ -80,9 +80,9 @@ struct ModernComposerInsetsTests {
 
     /// A floating button's hit area is 44 pt whatever its glyph; its capsule is drawn around the card tools' glyph.
     @Test func theFloatingCapsuleIsDrawnAroundTheCardToolsGlyph() {
-        let capsule = ComposerHeader.capsuleSize(glyph: Self.defaultGlyph)
-        #expect(capsule.width == Self.defaultGlyph + 20)
-        #expect(capsule.height == Self.defaultGlyph + 12)
+        let capsule = ComposerHeader.capsuleSize(diameter: Self.defaultDiameter)
+        #expect(capsule.width == Self.defaultDiameter)
+        #expect(capsule.height == Self.defaultDiameter)
         #expect(capsule.width <= ComposerHeader.hitSize && capsule.height <= ComposerHeader.hitSize)
     }
 

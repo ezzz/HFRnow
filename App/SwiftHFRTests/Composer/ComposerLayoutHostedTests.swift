@@ -94,8 +94,8 @@ struct ComposerLayoutHostedTests {
         #expect(drafts.maxX < 402 / 2 && send.minX > 402 / 2, "drafts \(drafts), send \(send)")
         #expect(abs(close.midY - send.midY) < 0.5, "one row: close \(close), send \(send)")
         // Nothing but the row above the card: no strip of its own (a title over or under the buttons would add one).
-        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
-        let insets = ComposerChrome.docked.headerInsets(glyph: glyph)
+        let diameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
+        let insets = ComposerChrome.docked.headerInsets(diameter: diameter)
         guard size == .large else { return }
         #expect(abs(box.layout.top - (ComposerHeader.hitSize + insets.top + insets.bottom)) < 0.5, "top \(box.layout.top)")
     }
@@ -108,8 +108,8 @@ struct ComposerLayoutHostedTests {
         let fill = try #require(box.frames[.fill])
         let close = try #require(box.frames[.close])
         let card = try #require(box.frames[.card])
-        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
-        let rowBottom = close.maxY + ComposerChrome.docked.headerInsets(glyph: glyph).bottom
+        let diameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
+        let rowBottom = close.maxY + ComposerChrome.docked.headerInsets(diameter: diameter).bottom
         #expect(abs(fill.minY - rowBottom) < 0.5, "fill \(fill), close \(close)")
         #expect(fill.minY <= card.minY + 0.5 && fill.maxY >= card.maxY - 0.5, "fill \(fill), card \(card)")
     }
@@ -125,24 +125,35 @@ struct ComposerLayoutHostedTests {
         #expect(abs(card.minX - gap) < 0.5, "card \(card)")
         #expect(abs(402 - card.maxX - gap) < 0.5, "card \(card)")
         #expect(close.width >= ComposerHeader.hitSize - 0.5 && close.height >= ComposerHeader.hitSize - 0.5, "close \(close)")
-        let glyph = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
-        let capsule = ComposerHeader.capsuleSize(glyph: glyph)
+        let capsule = ComposerHeader.capsuleSize(diameter: ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter)
         #expect(abs(close.midX - capsule.width / 2 - gap) < 0.5, "close \(close)")
         #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
     }
 
-    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size, one weight heavier (#972,
-    /// `FloatingButtonPalette.glyphWeight`), measured against the same symbol drawn by UIKit at that size and weight (a
+    /// One icon size (#895): the close button's glyph is drawn at the card tools' point size and weight (#1126,
+    /// `ComposerToolSize.glyphWeight`), measured against the same symbol drawn by UIKit at that size and weight (a
     /// `.subheadline` bold glyph, the size before #895, is about 4 pt smaller).
     @Test func theFloatingButtonsGlyphIsTheCardToolsSize() async throws {
         guard isPhone else { return }
         let box = try await host(size: .large, text: "Bonjour")
         let glyph = try #require(box.frames[.closeGlyph])
         let size = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)).glyphSize
-        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .semibold)
+        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .medium)
         let expected = try #require(UIImage(systemName: "xmark", withConfiguration: configuration)).size
         #expect(abs(glyph.height - expected.height) < 1, "glyph \(glyph), UIKit \(expected)")
         #expect(abs(glyph.width - expected.width) < 1, "glyph \(glyph), UIKit \(expected)")
+    }
+
+    /// #1126: the close button is the card tools' circle (a chip's diameter), not a larger or smaller capsule.
+    @Test func theFloatingButtonIsTheCardToolsDiameter() async throws {
+        guard isPhone else { return }
+        let box = try await host(size: .large, text: "Bonjour")
+        let close = try #require(box.frames[.close])
+        let diameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
+        // The hit area is 44 pt; the circle is its middle `diameter` points: the gap to the glyph's frame is the same on each side.
+        let glyph = try #require(box.frames[.closeGlyph])
+        #expect(glyph.width < diameter && glyph.height < diameter, "glyph \(glyph) inside a \(diameter) pt circle")
+        #expect(close.width >= max(diameter, ComposerHeader.hitSize) - 0.5, "close \(close)")
     }
 
     /// A new private message has its recipient and subject between the floating buttons and the card: the card keeps the

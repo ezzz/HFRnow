@@ -21,18 +21,18 @@ struct ComposerHeader: View {
     @Environment(\.textScale) private var scale
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
 
-    /// The floating buttons' glyph: the text card's tools' size, one icon size for the whole composer (#895).
-    private var floatingGlyph: CGFloat {
-        ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType).glyphSize
-    }
-
     /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows.
-    static func buttonSize(metrics: ComposerBarMetrics, style: ComposerToolStyle = .current) -> ComposerToolSize {
-        ComposerToolSize(metrics: metrics, inCard: true, style: style)
+    /// `inCard` is the chrome's `controlsInCard`: the bar then agrees with the row it sits over.
+    static func buttonSize(
+        metrics: ComposerBarMetrics, inCard: Bool, style: ComposerToolStyle = .current
+    ) -> ComposerToolSize {
+        ComposerToolSize(metrics: metrics, inCard: inCard, style: style)
     }
 
     private var toolSize: ComposerToolSize {
-        Self.buttonSize(metrics: ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType))
+        Self.buttonSize(
+            metrics: ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType), inCard: chrome.controlsInCard
+        )
     }
 
     /// The drafts button's state and action.
@@ -69,17 +69,12 @@ struct ComposerHeader: View {
     /// target keeps the 44 pt of the HIG.
     static let hitSize: CGFloat = 44
 
-    /// A floating capsule's padding around its glyph.
-    static let capsulePadding = CGSize(width: 10, height: 6)
-
-    /// A floating capsule's size around a glyph of `glyph` points.
-    static func capsuleSize(glyph: CGFloat) -> CGSize {
-        CGSize(width: glyph + 2 * capsulePadding.width, height: glyph + 2 * capsulePadding.height)
-    }
+    /// A floating button's size: a circle of the card tools' diameter (#1126).
+    static func capsuleSize(diameter: CGFloat) -> CGSize { CGSize(width: diameter, height: diameter) }
 
     /// The space between a capsule and the edge of its 44 pt hit area, on each side (none once the capsule outgrows it).
-    static func hitSlack(glyph: CGFloat) -> CGSize {
-        let capsule = capsuleSize(glyph: glyph)
+    static func hitSlack(diameter: CGFloat) -> CGSize {
+        let capsule = capsuleSize(diameter: diameter)
         return CGSize(width: max(0, (hitSize - capsule.width) / 2), height: max(0, (hitSize - capsule.height) / 2))
     }
 
@@ -87,7 +82,7 @@ struct ComposerHeader: View {
         // EXPERIMENTAL(modernComposer, #904): replaces legacy's bar by the floating buttons, with no title strip (#972).
         if floats {
             FloatingComposerButtons(
-                title: title, isSending: isSending, canSend: canSend, drafts: drafts, glyph: floatingGlyph, close: close, send: send
+                title: title, isSending: isSending, canSend: canSend, drafts: drafts, size: toolSize, close: close, send: send
             )
         } else {
             legacyBar
@@ -117,7 +112,7 @@ struct ComposerHeader: View {
             }
         }
         .frame(minHeight: 44)
-        .padding(chrome.headerInsets(glyph: floatingGlyph))
+        .padding(chrome.headerInsets(diameter: toolSize.diameter))
     }
 
     private var closeButton: some View {

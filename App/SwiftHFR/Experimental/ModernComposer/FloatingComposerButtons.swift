@@ -13,8 +13,8 @@ struct FloatingComposerButtons: View {
     let isSending: Bool
     let canSend: Bool
     let drafts: ComposerHeader.Drafts?
-    /// The glyph's point size: the card tools' (`ComposerBarMetrics.glyphSize`, #895).
-    let glyph: CGFloat
+    /// The card tools' size (#895, #1126): the circle's diameter, the glyph's point size and weight.
+    let size: ComposerToolSize
     let close: () -> Void
     let send: () -> Void
     @Environment(\.colorScheme) private var scheme
@@ -45,7 +45,7 @@ struct FloatingComposerButtons: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(title)
         // The capsules sit `FloatingSpacing.gap` from the sides, the page and the card: their hit areas' slack counts (#895).
-        .padding(ComposerChrome.docked.headerInsets(glyph: glyph))
+        .padding(ComposerChrome.docked.headerInsets(diameter: size.diameter))
         // Where the docked bar's fill starts (#972, `DockedComposerBar`).
         .background {
             GeometryReader { Color.clear.preference(key: ComposerButtonsHeightKey.self, value: $0.size.height) }
@@ -58,7 +58,7 @@ struct FloatingComposerButtons: View {
             if state.showsSpinner {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: glyph, height: glyph)
+                    .frame(width: size.glyph, height: size.glyph)
                     .accessibilityLabel(state.label)
             } else {
                 symbol("arrow.up")
@@ -67,7 +67,7 @@ struct FloatingComposerButtons: View {
         .accessibilityLabel(state.label)
     }
 
-    /// A small capsule inside a 44 pt hit area: the palette's fill under the system's interactive glass, so the glyph keeps its
+    /// A circle of the card tools' diameter inside a 44 pt hit area: the palette's fill under the system's interactive glass, so the glyph keeps its
     /// contrast whatever page runs under it (#972); a prominent one is the accent, as before. `.plain` draws no disabled state:
     /// only the glyph dims, the capsule stays readable as a button.
     private func button<Label: View>(
@@ -78,18 +78,17 @@ struct FloatingComposerButtons: View {
             label()
                 .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(palette.glyph.color))
                 .opacity(enabled ? 1 : FloatingButtonPalette.disabledGlyphOpacity)
-                .padding(.horizontal, ComposerHeader.capsulePadding.width)
-                .padding(.vertical, ComposerHeader.capsulePadding.height)
+                .frame(width: size.diameter, height: size.diameter)
                 .background {
                     if !prominent {
-                        Capsule()
+                        Circle()
                             .fill(palette.fill.color)
                             .overlay {
-                                Capsule().strokeBorder(palette.glyph.color.opacity(FloatingButtonPalette.strokeOpacity), lineWidth: 0.5)
+                                Circle().strokeBorder(palette.glyph.color.opacity(FloatingButtonPalette.strokeOpacity), lineWidth: 0.5)
                             }
                     }
                 }
-                .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
+                .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .circle)
                 .frame(minWidth: ComposerHeader.hitSize, minHeight: ComposerHeader.hitSize)
                 .contentShape(.rect)
         }
@@ -97,14 +96,13 @@ struct FloatingComposerButtons: View {
         .disabled(!enabled)
     }
 
-    /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895); semibold
-    /// rather than medium, a little heavier over the page (#972).
+    /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895, #1126).
     private func symbol(_ name: String, probe part: ComposerLayoutProbe.Part? = nil) -> some View {
-        let image = Image(systemName: name).font(.system(size: glyph, weight: FloatingButtonPalette.glyphWeight))
+        let image = Image(systemName: name).font(.system(size: size.glyph, weight: ComposerToolSize.glyphWeight))
         return Group {
             if let part { image.composerProbe(part) } else { image }
         }
-        .frame(width: glyph, height: glyph)
+        .frame(width: size.glyph, height: size.glyph)
     }
 }
 
@@ -117,8 +115,6 @@ struct FloatingButtonPalette: Equatable {
     /// The capsule's fill, its alpha the share of the page it hides.
     let fill: ThemeColor
 
-    /// The glyph's weight: the card tools' size, one step heavier.
-    static let glyphWeight: Font.Weight = .semibold
     /// A disabled glyph (send with nothing to send, close during a send): dimmed, the capsule kept.
     static let disabledGlyphOpacity: Double = 0.4
     /// The hairline around the capsule, in the glyph's colour, so a capsule over a page of its own colour keeps an edge.

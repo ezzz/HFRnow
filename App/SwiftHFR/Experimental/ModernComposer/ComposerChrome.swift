@@ -44,15 +44,15 @@ extension ComposerChrome {
         self == .docked && hasPartsUnderHeader ? FloatingSpacing.gap : 0
     }
 
-    /// Around the composer's top bar, for a glyph of `glyph` points (`ComposerBarMetrics.glyphSize`): floating, each capsule is
-    /// the gap away from the sides, from the page above and from the card below. A glyph under 16 pt (the compact density at a
-    /// text size under 100 %) leaves more slack than the gap: the hit area stays 44 pt, so the capsule is that slack away
-    /// instead (at most 10.4 pt, at 70 %). On the main actor, as `ComposerHeader`'s rules it reads.
+    /// Around the composer's top bar, for circles of `diameter` points (`ComposerToolSize.diameter`): floating, each circle is
+    /// the gap away from the sides, from the page above and from the card below. A circle under 28 pt would leave more slack
+    /// than the gap: the hit area stays 44 pt, so the circle is that slack away instead. On the main actor, as
+    /// `ComposerHeader`'s rules it reads.
     @MainActor
-    func headerInsets(glyph: CGFloat) -> EdgeInsets {
+    func headerInsets(diameter: CGFloat) -> EdgeInsets {
         switch self {
         case .docked:
-            let slack = ComposerHeader.hitSlack(glyph: glyph)
+            let slack = ComposerHeader.hitSlack(diameter: diameter)
             let vertical = max(0, FloatingSpacing.gap - slack.height)
             let horizontal = max(0, FloatingSpacing.gap - slack.width)
             return EdgeInsets(top: vertical, leading: horizontal, bottom: vertical, trailing: horizontal)
@@ -99,6 +99,7 @@ struct ComposerToolSize: Equatable {
     /// The symbol's weight.
     static let glyphWeight: Font.Weight = .medium
 
+    @MainActor
     init(metrics: ComposerBarMetrics, inCard: Bool = true, style: ComposerToolStyle = .current) {
         cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard)
         diameter = style == .pills && inCard ? ComposerToolStyle.chipDiameter(cell: cell) : cell
