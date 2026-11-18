@@ -16,6 +16,14 @@ extension ReaderWebController {
         }
     }
 
+    /// The scroll view's insets and top edge, set once when the controller is made.
+    func configureScrollEdges() {
+        // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        // #1120: a UIKit scroll view does not read SwiftUI's `scrollEdgeEffectStyle`: the reader's top bar gets the same soft edge.
+        webView.scrollView.topEdgeEffect.style = .soft
+    }
+
     /// Applies `obscuredInsets`, keeping the content at the bars' edge in place: a banner shown above the page does not hide
     /// the message the reader was on.
     func applyObscuredInsets(from old: UIEdgeInsets) {

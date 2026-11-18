@@ -121,10 +121,7 @@ final class ReaderWebController: NSObject {
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
         trackUnderPageBackground()
-        // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        // #1120: a UIKit scroll view does not read SwiftUI's `scrollEdgeEffectStyle`: the reader's top bar gets the same soft edge.
-        webView.scrollView.topEdgeEffect.style = .soft
+        configureScrollEdges()
         // Falling snow pauses while the page scrolls (LOT-166).
         SeasonalScrollActivity.shared.track(webView.scrollView)
         messageMenu.attach(to: webView)
