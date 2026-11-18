@@ -82,7 +82,7 @@ struct TopicListView: View {
                 }
             }
         }
-        .pagerBar(model.source.isPaged && loader.value != nil ? PageBar(model: model).pager : nil)
+        .pagerBar(model.source.isPaged && loader.value.map({ $0.page > 1 || $0.hasNext }) == true ? PageBar(model: model).pager : nil)
         .toolbar {
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
@@ -344,7 +344,7 @@ private struct EmptyListView: View {
     }
 }
 
-/// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
+/// « page x / y » (y+ when HFR's pager does not give the real last page) with its menu, and the ‹ › pills (#980, as the MP list's).
 @MainActor private struct PageBar {
     let model: TopicListModel
 
@@ -353,8 +353,10 @@ private struct EmptyListView: View {
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
             next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
-            last: nil,
-            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+            last: .init(enabled: model.canGoToLast) { Task { await model.goToLastPage() } },
+            status: .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
+            jump: { jump in Task { await model.perform(jump) } },
+            isLoading: model.loader.isLoading
         )
     }
 }
