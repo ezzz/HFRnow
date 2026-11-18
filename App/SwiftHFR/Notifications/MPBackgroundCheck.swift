@@ -7,7 +7,8 @@ import OSLog
 // Port of HFRswift/Swift/MPBackgroundService.swift (MPBackgroundService.performBackgroundCheck) @ 87fe0d1c. Differences: the
 // current account's stored session instead of the shared jar, the per-account ledger (LOT-091) instead of `nb_mp`, one
 // notification per conversation with news from MP list page 1, the icon badge set here too, nothing on an unknown or expired
-// answer (GAP-190, GAP-191, GAP-192; operator decisions of 2026-11-07 on #230; docs/lots/LOT-140-background-mp-check.md).
+// answer (GAP-190, GAP-191, GAP-192; operator decisions of 2026-11-07 on #230; docs/lots/LOT-140-background-mp-check.md); no
+// notification while « Notifications » is off, the badge kept (operator, 2026-11-18, #1060).
 /// One background MP check (LOT-140): due check, the forum's count and list, the ledger's news, notifications and badge.
 struct MPBackgroundCheck: Sendable {
     /// The legacy text, kept for a count that went up while the list could not be read (`MPBackgroundService.swift:100`).
@@ -28,7 +29,7 @@ struct MPBackgroundCheck: Sendable {
     private static let log = Logger(subsystem: "SwiftHFR", category: "MPBackgroundCheck")
 
     /// Runs one check at `now`. Sends at most two requests; sends none when the check is off, no account is stored or the
-    /// last check is too recent.
+    /// last check is too recent. Shows no notification while « Notifications » is off (`mp_notifications_enabled`).
     @discardableResult
     func run(now: Date = .now) async -> MPCheckOutcome {
         let outcome = await check(now: now)
@@ -53,7 +54,9 @@ struct MPBackgroundCheck: Sendable {
             // Not recorded: notifying now would notify the same news again at the next run.
             return .noInformation
         }
-        let notifications = Self.notifications(news: news, page: reading.page, hadCount: before.unreadPrivateMessages != nil)
+        // « Notifications » off (#1060): the news is recorded as seen all the same, so turning it on never shows it late.
+        let notifications = settings.value(for: SettingKey.mpNotificationsEnabled)
+            ? Self.notifications(news: news, page: reading.page, hadCount: before.unreadPrivateMessages != nil) : []
         // A conversation's own notification says more than the legacy text an earlier run sent for it (list unreadable then).
         if notifications.contains(where: { $0.topic != nil }) { await delivery.withdraw(Self.legacyIdentifier) }
         for content in notifications { await delivery.deliver(content) }

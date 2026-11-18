@@ -43,6 +43,8 @@ struct SettingsView: View {
     private let store: any SettingsStore
     /// The current account's MPStorage sync (LOT-130); nil when logged out.
     private let mpStorage: MPStorageSyncModel?
+    /// Réglages › Notifications MP (LOT-140, #1060): owned here, so the checks against iOS hang on the `Form`, not on a lazy row.
+    @State private var notifications: MPNotificationSettingsModel
     /// "Maintenance" (LOT-120).
     @State private var maintenance = MaintenanceModel()
     @State private var titleVisibility = TitleVisibility()
@@ -56,11 +58,15 @@ struct SettingsView: View {
         return offline
     }
 
-    /// Reads the "Sujets" values from `store`.
-    init(store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil, mpStorage: MPStorageSyncModel? = nil) {
+    /// Reads the "Sujets" values from `store`; `notifications` replaces the Notifications MP model built from it (tests).
+    init(
+        store: any SettingsStore = UserDefaultsSettingsStore(), reader: ReaderServices? = nil, mpStorage: MPStorageSyncModel? = nil,
+        notifications: MPNotificationSettingsModel? = nil
+    ) {
         self.reader = reader
         self.mpStorage = mpStorage
         self.store = store
+        _notifications = State(initialValue: notifications ?? MPNotificationSettingsModel(store: store))
         _topics = State(initialValue: TopicsSettingsModel(store: store))
         _favorites = State(initialValue: FavoritesOptionsModel(settings: store))
     }
@@ -112,7 +118,7 @@ struct SettingsView: View {
                     ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
-            MPNotificationSettingsSection(store: store)
+            MPNotificationSettingsSection(model: notifications)
             MPStorageSettingsSection(model: mpStorage)
             Section("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
@@ -157,6 +163,7 @@ struct SettingsView: View {
         .onAppear { favorites.reloadSettings() }
         // One measure per appearance of the screen (legacy `AppSettingsView.swift:606-607`), not one per row of the section.
         .task { await maintenance.refreshCacheStorage() }
+        .mpNotificationPermissionChecks(notifications)
         .screenTitle("Réglages", style: .largeThenPill, visibility: titleVisibility)
     }
 }
