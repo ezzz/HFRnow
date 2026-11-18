@@ -151,6 +151,14 @@ uncommitted list reads of the run; the committed `R95k`, of 2026-11-02, has it a
 published (`W10`, `R13` shapes). Clean-up with `W64`'s body (answers not published): user1 deleted the five threads; the two user1
 had sent and user2 had never opened left user2's list with it (as `W131`); user2 deleted the other three.
 
+Run 22 (2026-11-18, `mac/M1` sub-agent `mac/M1-c922-opus`, ezzz/HFRnow#922, operator go that day for exactly one image-host
+upload, no HFR request): one upload to `img3.super-h.fr` of a **generated** 2400×1600 JPEG test pattern (colour bars, a grey
+ramp and the text "SwiftHFR test pattern", no EXIF), legacy multipart layout and legacy key (`U03`), then six cookie-less
+GETs of the three URLs its answer names, each without and with `Referer: https://forum.hardware.fr/` (`U03a`-`U03f`).
+The key, `delete_hash`, delete token and image id are redacted, the random file number is `1234567890`, as in `U01`. Image
+bodies are not published (meta only: dimensions and byte count in the note); the bytes with and without `Referer` were
+identical. The test image is left on the host.
+
 | Id | File | Covers | Row | Lots |
 |---|---|---|---|---|
 | R01 | `R01-home-anon.html` | Home, logged out: 19 categories (incl. `apple`, `ia`), moderator MP links, empty `hash_check` in `#fastsearch` | R01 | 021, 045 |
@@ -353,6 +361,10 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R92 | `R92-topic-after-first-post-delete-404.html` | The topic URL afterwards: **404**, `.hop` "Désolé, ce sujet n'existe pas" + back link | R20 | 030, 048 |
 | U01 | `U01-rehost-upload-success.json` | `img3.super-h.fr` upload, legacy key: 200 JSON "file uploaded", `image.url`, `image.thumb.url` (`.th.`), `image.medium` all `null`, numbers as numbers; delete fields redacted | — | 056 |
 | U02 | `U02-rehost-upload-wrong-key.json` | Same upload with a wrong key: 400 JSON "Invalid API key." code 100 | — | 056 |
+| U03 | `U03-rehost-upload-large-medium.json` | `img3.super-h.fr` upload of a 2400×1600 JPEG, legacy key: 200 JSON "file uploaded"; the host stored it at **1200×800** (`image.width`/`height`, `size` 24603), `image.medium.url` `<name>.md.jpg`, `image.thumb.url` `<name>.th.jpg` (thumb `width`/`height` as strings `"120"`), `display_url` the medium, `display_width` a string; new key `sizes` `["image","medium","thumb"]`; delete fields and image id redacted | — | 056 |
+| U03a, U03b | meta only | `U03`'s `.md.` URL, cookie-less: 200 `image/jpeg`, 400×267, 9449 bytes (= `medium.size`), without and with `Referer` | — | 056, 109 |
+| U03c, U03d | meta only | `U03`'s full URL (`U03a` without `.md.`): 200 `image/jpeg`, 1200×800, 24603 bytes (= `image.size`), without and with `Referer` | — | 056, 109 |
+| U03e, U03f | meta only | `U03`'s `.th.` URL: 200 `image/jpeg`, 120×120, 3075 bytes, `Content-Language: th`, without and with `Referer` | — | 056, 109 |
 | W61 | `W61-mp-create-bbcode-success.html` | New MP `fixture-test-2` (user2 → user1) whose first post holds b, i, u, strike, spoiler, quote, url (both forms), img, fixed, code, cpp, color, list, nested and unclosed tags, and raw `<b>`/`&`/`"`: "Votre message a été posté avec succès !", refresh to the MP list | W10 | 048, 097 |
 | R95c | `R95c-mp-edit-form-bbcode-source.html` | Edit form of `W61` (owner): `content_form` = the CRLF source sent, byte for byte; the "Vue Rapide" review below holds the rendered post, `[img]` written as a link there | R43 | 097, 036 |
 | R95d | `R95d-apercu-bbcode-preview.html` | `POST /apercu.php` (`hash_check`, `apercu_contenu` = the `W61` source, `apercu_smiley=0`, `config`): 200, the rendered BBCode in `body.reponse`, line breaks written `\r<br />` (the CR kept) | — | 097, 152 |

@@ -44,6 +44,23 @@ struct RehostClientCaptureTests {
         #expect(image.availableVariants == [.full, .mini])
     }
 
+    /// `U03` (#922, 2026-11-18): a 2400×1600 upload, stored at 1200×800 with a 400×267 medium; the `.md.` and `.th.`
+    /// URLs it names lead back to its full URL, and all three were served cookie-less (`U03a`-`U03f`).
+    @Test func theCapturedLargeUploadGivesAMediumThatLeadsBackToTheFullImage() async throws {
+        let image = try await client(answering: "U03", file: "U03-rehost-upload-large-medium.json").upload(jpeg: Self.jpeg)
+        let base = "https://img3.super-h.fr/images/2026/11/18/snapshot_1234567890"
+        #expect(image.fullURL.absoluteString == base + ".jpg")
+        #expect(image.mediumURL?.absoluteString == base + ".md.jpg")
+        #expect(image.miniURL?.absoluteString == base + ".th.jpg")
+        #expect(image.width == 1200)  // what the host stored, not the 2400 sent
+        #expect(image.height == 800)
+        #expect(image.availableVariants == [.full, .medium, .mini])
+        let medium = try #require(image.mediumURL)
+        let mini = try #require(image.miniURL)
+        #expect(ImageHostTable.standard.fullSizeURL(for: medium) == image.fullURL)
+        #expect(ImageHostTable.standard.fullSizeURL(for: mini) == image.fullURL)
+    }
+
     @Test func theCapturedWrongKeyAnswerSurfacesTheHostMessage() async throws {
         let client = try client(answering: "U02", file: "U02-rehost-upload-wrong-key.json")
         await #expect(throws: RehostError.http(statusCode: 400, message: "Invalid API key.")) {

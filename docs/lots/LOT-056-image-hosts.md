@@ -78,7 +78,7 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 - Blocking private/LAN hosts and non-image `*.hardware.fr` paths (D-071-1 point 1) is **not** here: it belongs to the reader (LOT-083),
   before any request.
 
-**Medium rendition (#917).** `.md.` is removed like `.th.`. Source (**code**, not verified): `Classes/RehostImage.m:328-343` @ `87fe0d1c` (example Chevereto answer with `"medium": {"filename": "example.md.png", …}`), read at `:366-368`; the legacy upload-history sample holding `….md.jpg` is synthetic, not a capture. Capture wanted: #922. No other host has a sourced medium rendition (`reho.st`, `rehost.diberie.com`, the http-only hosts): not sourced, no rule. If the full-size fetch fails the viewer shows the medium it was given (`ImageViewerModel.download`).
+**Medium rendition (#917).** `.md.` is removed like `.th.`. **Verified** (#922, 2026-11-18): a large upload's answer names `image.medium.url` `<name>.md.jpg` next to `image.url` `<name>.jpg` (`U03`), and both URLs serve the image cookie-less, with or without a `Referer` (`U03a`-`U03d`; HFR-PROTOCOL §6c LOT-056). First sourced from legacy code: `Classes/RehostImage.m:328-343` @ `87fe0d1c` (example Chevereto answer with `"medium": {"filename": "example.md.png", …}`), read at `:366-368`; the legacy upload-history sample holding `….md.jpg` is synthetic, not a capture. No other host has a sourced medium rendition (`reho.st`, `rehost.diberie.com`, the http-only hosts): not sourced, no rule. If the full-size fetch fails the viewer shows the medium it was given (`ImageViewerModel.download`).
 
 ## Edge cases
 
