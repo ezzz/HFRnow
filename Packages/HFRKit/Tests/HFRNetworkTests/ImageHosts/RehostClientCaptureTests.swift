@@ -3,7 +3,8 @@ import HFRModels
 import Testing
 @testable import HFRNetwork
 
-/// The client on the host's real answers, `U01` (success) and `U02` (wrong key), captured 2026-11-02 (#394).
+/// The client on the host's real answers, `U01` (success) and `U02` (wrong key), captured 2026-11-02 (#394), and `U03` (a large upload
+/// with a medium rendition, 2026-11-18, #922).
 /// The files are read in place: a test bundle cannot read another one's resources (same as `HFRClientTests`).
 struct RehostClientCaptureTests {
     private static let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])

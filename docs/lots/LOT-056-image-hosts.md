@@ -99,8 +99,9 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 
 ## Fixtures
 
-None. No capture of an upload answer exists and the real host is never contacted: tests use `MockTransport` and an in-process loopback
-server (`LoopbackServer`, 127.0.0.1). The wire shape comes from the legacy code only.
+`U01`/`U02` (upload answer, 2026-11-02, #394), `U03` and `U03a`-`U03f` (large upload with a medium rendition and the GETs of its three
+renditions, #922, 2026-11-18). Tests never contact the host: they use `MockTransport` and an in-process loopback server (`LoopbackServer`,
+127.0.0.1).
 
 Differential: `MultipartBodyTests.matchesTheLegacyUploadLayout` writes legacy's `makeMultipartBody` byte for byte and compares; the response
 tests use the payload shapes legacy reads; `ImageHostTableTests.thumbnailsMapToFullImages` reproduces the three legacy rewrites.
