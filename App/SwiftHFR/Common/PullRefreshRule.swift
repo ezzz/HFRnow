@@ -35,3 +35,33 @@ struct PullRefreshRule: Equatable, Sendable {
         return true
     }
 }
+
+/// The two ends of a scrolling list (#1207): each has its own `PullRefreshRule`, and only a finger on the list pulls, so a fling
+/// that overshoots an end grows no icon and refreshes nothing.
+struct PullEdgesTracker: Equatable, Sendable {
+    /// What one move of the list changes: both icons' scales (0 to 1), and whether the refresh fires now, from the top or the bottom.
+    struct Step: Equatable, Sendable {
+        var top: CGFloat
+        var bottom: CGFloat
+        var fires: Bool
+        var firesAtTop: Bool
+    }
+
+    private var topRule = PullRefreshRule()
+    private var bottomRule = PullRefreshRule()
+
+    /// Creates a tracker at rest.
+    init() {}
+
+    /// Feeds the pulls past the top and the bottom, in points, and whether a finger is on the list.
+    mutating func update(topPull: CGFloat, bottomPull: CGFloat, fingerDown: Bool) -> Step {
+        let top = fingerDown ? topPull : 0
+        let bottom = fingerDown ? bottomPull : 0
+        let firesTop = topRule.update(pull: top)
+        let firesBottom = bottomRule.update(pull: bottom)
+        return Step(
+            top: PullRefreshRule.scale(forPull: top), bottom: PullRefreshRule.scale(forPull: bottom),
+            fires: firesTop || firesBottom, firesAtTop: firesTop
+        )
+    }
+}

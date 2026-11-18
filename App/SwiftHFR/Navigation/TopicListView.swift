@@ -117,7 +117,7 @@ struct TopicListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .refreshable { await model.refresh() }
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
