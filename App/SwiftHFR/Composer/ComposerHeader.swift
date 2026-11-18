@@ -100,11 +100,20 @@ struct ComposerHeader: View {
                 legacyBar
             }
         }
+        // The width the bar is offered, not its content's: a flexible frame takes exactly the proposal, so a title padded wider than
+        // the bar (or buttons the bound has not shrunk yet) never feeds back into the bound (#1126, delta review).
+        .frame(minWidth: 0, maxWidth: .infinity)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     /// The chrome this bar is drawn for.
     private var chrome: ComposerChrome { floats ? .docked : .sheet }
+
+    /// The title's room on each side: the close and drafts buttons (and legacy's spacing), never more than half the bar.
+    private var titleInset: CGFloat {
+        let inset = 2 * toolSize.diameter + 28
+        return width > 0 ? min(inset, width / 2) : inset
+    }
 
     /// An iPad: legacy's bar, the title centred over the row.
     private var legacyBar: some View {
@@ -114,7 +123,7 @@ struct ComposerHeader: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 // Room for the close and drafts buttons on each side, whatever the metrics make them (#1126).
-                .padding(.horizontal, 2 * toolSize.diameter + 28)
+                .padding(.horizontal, titleInset)
                 .accessibilityAddTraits(.isHeader)
                 .composerProbe(.title)
             HStack(spacing: 8) {
