@@ -98,14 +98,18 @@ struct RootSidebarView: View {
 
     /// What a row of `entry`'s list calls to open a topic in the detail column: a new reader over this session's pages.
     static func detailOpener(model: RootModel, environment: AppEnvironment, entry: PlusEntry) -> OpenTopicInDetail {
-        OpenTopicInDetail { target, title in
-            model.openInDetail(
-                TopicReaderModel(
-                    target: target, title: title, source: environment.topicPages, renderOptions: environment.reader.settings.renderOptions
-                ),
-                for: entry
-            )
-        }
+        OpenTopicInDetail(
+            open: { target, title in
+                model.openInDetail(
+                    TopicReaderModel(
+                        target: target, title: title, source: environment.topicPages,
+                        renderOptions: environment.reader.settings.renderOptions
+                    ),
+                    for: entry
+                )
+            },
+            close: { model.closeDetail(for: entry) }
+        )
     }
 }
 
@@ -113,6 +117,8 @@ struct RootSidebarView: View {
 /// Qualitay (#685), nil elsewhere, where a list pushes the topic on its own stack (the Plus tab of the tab bar).
 struct OpenTopicInDetail {
     let open: @MainActor (ReaderTarget, String) -> Void
+    /// Empties the detail column (a deleted bookmark it showed, LOT-132).
+    var close: @MainActor () -> Void = {}
 
     @MainActor
     func callAsFunction(_ target: ReaderTarget, title: String) { open(target, title) }

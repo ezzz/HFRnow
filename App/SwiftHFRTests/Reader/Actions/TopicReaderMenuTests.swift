@@ -47,6 +47,20 @@ struct TopicReaderMenuTests {
             == "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_1.htm#t101")
     }
 
+    // LOT-132: a bookmark records the topic of the page, or of the target shown when the page does not name it.
+    @Test func theContextNamesTheTopicOfThePage() async throws {
+        let reader = await loaded()
+        #expect(reader.menuContext(post: 101)?.topic == readerTopic)
+
+        let other = TopicID(category: .forum(5), topic: 42)
+        let pages = FakeTopicPages { _ in
+            ReaderPage(topicID: nil, title: "Sujet", currentPage: 1, maxPage: 1, messages: [message(101)], pageURL: Self.canonical)
+        }
+        let unnamed = TopicReaderModel(target: ReaderTarget(source: .topic(other)), source: pages)
+        await unnamed.onAppear()
+        #expect(unnamed.menuContext(post: 101)?.topic == other)
+    }
+
     @Test func theMenuKeepsItsAnchorAndIsTitledWithTheAuthor() async throws {
         let reader = await loaded()
         let token = try #require(reader.document?.token)

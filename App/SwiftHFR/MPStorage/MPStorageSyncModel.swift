@@ -199,6 +199,11 @@ final class MPStorageSyncModel {
         if states.setFunction(.mpFlags, enabled: true, for: account) { record = states.record(for: account) }
     }
 
+    /// Shows the device copy when none is shown yet (a write from the reader before `start()`, LOT-132); no forum request.
+    func loadCopyIfNeeded() async {
+        if document == nil { _ = await loadCopy() }
+    }
+
     /// Reads the account's record again: another window of the app (LOT-146) has its own model over the same record.
     func reloadRecord() {
         record = states.record(for: account)

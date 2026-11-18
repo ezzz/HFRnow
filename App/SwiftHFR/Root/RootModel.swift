@@ -228,6 +228,12 @@ final class RootModel {
         detailReaders[entry] = reader
     }
 
+    /// Empties `entry`'s detail column: legacy's placeholder shows again (a deleted bookmark, `MainWindow.swift:2266-2271`).
+    func closeDetail(for entry: PlusEntry) {
+        detailReaders[entry]?.closeLinkedReaders()
+        detailReaders[entry] = nil
+    }
+
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
     /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).
     func showCategoryFromFavorites(_ category: TopicSource) {
