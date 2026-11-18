@@ -61,10 +61,16 @@ private struct ListLookModifier: ViewModifier {
 /// The background of the rows: the card's (nil, the system's) in the classic look.
 private struct ListLookRows: ViewModifier {
     @Environment(\.listLook) private var look
+    @Environment(\.themeAppearance) private var appearance
 
-    func body(content: Content) -> some View {
-        // EXPERIMENTAL(denseRows, #1107): the dense look's clear row replaces the card's background.
-        content.listRowBackground(look == .dense ? DenseListLook.rowBackground : nil)
+    @ViewBuilder func body(content: Content) -> some View {
+        if appearance.listColors != nil {
+            // #842: a gallery theme's rows, in this look (`themedListRow`).
+            content.themedListRow()
+        } else {
+            // EXPERIMENTAL(denseRows, #1107): the dense look's clear row replaces the card's background.
+            content.listRowBackground(look == .dense ? DenseListLook.rowBackground : nil)
+        }
     }
 }
 
@@ -72,12 +78,18 @@ private struct ListLookRows: ViewModifier {
 private struct ListLookRow: ViewModifier {
     let isSelected: Bool
     @Environment(\.listLook) private var look
+    @Environment(\.themeAppearance) private var appearance
 
-    func body(content: Content) -> some View {
-        // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
-        content.listRowBackground(
-            look == .dense ? (isSelected ? DenseListLook.selectedRowBackground : DenseListLook.rowBackground) : nil
-        )
+    @ViewBuilder func body(content: Content) -> some View {
+        if appearance.listColors != nil {
+            // #842: a gallery theme's row and selection, in this look (`themedListRow`).
+            content.themedListRow(isSelected: isSelected)
+        } else {
+            // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
+            content.listRowBackground(
+                look == .dense ? (isSelected ? DenseListLook.selectedRowBackground : DenseListLook.rowBackground) : nil
+            )
+        }
     }
 }
 

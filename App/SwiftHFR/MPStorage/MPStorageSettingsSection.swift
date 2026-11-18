@@ -10,13 +10,15 @@ struct MPStorageSettingsSection: View {
 
     var body: some View {
         Section {
-            if let model {
-                MPStorageSettingsRows(model: model)
-            } else {
-                Text("Connectez-vous pour utiliser le stockage MP.").foregroundStyle(.secondary)
-            }
+            Group {
+                if let model {
+                    MPStorageSettingsRows(model: model)
+                } else {
+                    Text("Connectez-vous pour utiliser le stockage MP.").foregroundStyle(.secondary)
+                }
+            }.themedListRow()
         } header: {
-            Text("Stockage MP")
+            Text("Stockage MP").themedSectionHeader()
         }
     }
 }
@@ -45,7 +47,7 @@ struct MPStorageSettingsRows: View {
         if model.status == .working {
             ProgressView().frame(maxWidth: .infinity)
         } else if case .failed(let message) = model.status {
-            Text(message).scaledFont(.footnote).foregroundStyle(.red)
+            Text(message).scaledFont(.footnote).foregroundStyle(.themedError)
         }
     }
 
