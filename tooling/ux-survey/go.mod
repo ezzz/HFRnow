@@ -1,9 +1,9 @@
 module github.com/ezzz/hfrnow/tooling/ux-survey
 
-go 1.27.3
+go 1.27.4
 
 require (
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.39.0
 	modernc.org/sqlite v1.62.0
 )
 

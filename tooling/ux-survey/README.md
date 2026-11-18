@@ -40,7 +40,8 @@ Puis ouvrir <http://127.0.0.1:8080/>. Les données vont dans `./donnees` (ignor�
 | `UX_MENTION_MAJ` | obligatoire | `AAAA-MM-JJ`, date de mise à jour de la mention |
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; moins de 10 est refusé |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par adresse |
-| `UX_CODE_ACCES` | vide | Accès restreint (utilisateur `test`) pour le test à cinq |
+| `UX_CODE_ACCES` | vide | Accès restreint (utilisateur `test`) pour le test à cinq ; aléatoire, 20 caractères au moins ; 10 essais faux par adresse et par dix minutes |
+| `UX_PLAFOND_HORAIRE` | `300` | Envois acceptés par heure, tous clients confondus ; au-delà, 503 (un jeton déjà reçu reçoit toujours 409). À régler selon l'affluence attendue le jour de l'annonce ; il peut aussi bloquer le formulaire : surveiller les lignes `refus: plafond-horaire` |
 
 Le service refuse de démarrer si une variable obligatoire manque ou si une valeur entre accolades d'une page reste
 après remplacement.
@@ -52,7 +53,7 @@ Voir la section 11 de la spécification. Le questionnaire est un projet Compose 
 ```bash
 cd tooling/ux-survey/deploy
 cp ux-survey.env.exemple ux-survey.env   # puis adapter ; jamais versionné
-install -d -m 0700 -o 65532 -g 65532 /srv/ux-survey/donnees
+install -d -m 0700 -o 65532 -g 65532 /srv/ux-survey/donnees   # = UX_DOSSIER_DONNEES, obligatoire
 docker compose --env-file ux-survey.env up -d --build
 ss -ltn | grep 18080                      # doit n'écouter que sur 127.0.0.1
 curl -I http://127.0.0.1:18080/healthz
@@ -65,7 +66,7 @@ docker compose ps                         # STATUS « healthy » : sonde `ux-sur
 tailscale funnel --bg 18080
 ```
 
-`UX_ORIGINE` est alors l'URL `*.ts.net` donnée par Funnel. À vérifier sur l'hôte avant l'ouverture (spec §13) : quel
+Funnel doit être en **mode proxy HTTP** (`tailscale funnel status` : `proxy http://127.0.0.1:18080`), jamais en mode TCP, où l'en-tête du client passerait tel quel. `UX_ORIGINE` est alors l'URL `*.ts.net` donnée par Funnel. À vérifier sur l'hôte avant l'ouverture (spec §13) : quel
 en-tête Funnel transmet avec l'adresse du client, et que deux clients aux IP différentes ont deux compteurs
 (étape 3 du §11). Le service ne lit que la dernière adresse de `X-Forwarded-For` ; si Funnel utilise un autre en-tête, il
 faudra ajouter `UX_EN_TETE_CLIENT`. `deploy/Caddyfile.exemple` ne sert qu'en secours.
@@ -95,8 +96,8 @@ docker compose exec ux-survey /ux-survey effacer
   à `UX_FERMETURE` + 2 mois. `effacer` est idempotent et ne réécrit jamais `agregats.json`.
 - Droits d'un répondant (R7, R13) : `pseudo --chercher <pseudo>`, `--afficher <id>`, `--limiter <id>`, `--lever-limite <id>`, `--corriger <id> --question L2
   --valeur-json '"texte"'`, `--effacer-question <id> --question L2`, `--effacer-pseudo <id>`, `--effacer <id>`.
-- Les exports et sauvegardes écrits dans le dossier de données restent à supprimer à la main à la date d'effacement
-  (liste à cocher du §12).
+- `exports/` (hors `agregats-*`) et `sauvegardes/` sont supprimés par l'effacement ; les copies faites ailleurs (machine
+  du PO, destinataires, sauvegardes du VPS) restent à supprimer à la main (liste à cocher du §12).
 
 ## Visuels (#631, #632)
 
@@ -114,8 +115,9 @@ alternatif de chacun, repris tel quel dans `contenu/questionnaire.json`. Les car
   commandes refusent de démarrer avec un jour plus tardif ; l'heure du même jour n'est pas comparée).
 - Envoi vide : refusé (400), non enregistré, hors du seuil de 10. Adresses IPv6 comptées par /64.
 - Une route inconnue répond 404, sauf `GET /api/reponses` qui répond 405 (la route existe en `POST`).
-- Les dossiers d'export et de sauvegarde (`/donnees/exports`, `/donnees/sauvegardes`) se créent sur l'hôte, propriétaire
-  65532 : l'image distroless n'a pas de shell pour un `mkdir`. `export` n'écrase jamais un fichier existant.
+- `export --sortie` et `sauvegarder` n'écrivent que sous `/donnees/exports` et `/donnees/sauvegardes` (les dossiers sont
+  créés par la commande, en 0700) ; un autre chemin est refusé, car l'effacement ne le supprimerait pas. `export`
+  n'écrase jamais un fichier existant.
 - Réponse « limitée » (R13) : `pseudo --limiter <id>` (et `--lever-limite <id>`) l'exclut des statistiques et de tous les exports.
 - Le glisser-déposer du tri `D1` (facultatif dans la spec) n'est pas fait : boutons « Monter » et « Descendre » seuls.
 - À vérifier à la main pendant le test à cinq : voir le §14 de la spécification.

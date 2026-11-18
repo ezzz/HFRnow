@@ -243,3 +243,21 @@ func TestRemplacerEtDates(t *testing.T) {
 		t.Error("une valeur inconnue doit être refusée")
 	}
 }
+
+// UX_PLAFOND_HORAIRE : 300 par défaut, entier positif sinon (M1).
+func TestPlafondHoraireConfig(t *testing.T) {
+	m := envValide()
+	if c, err := ChargerConfig(env(m)); err != nil || c.PlafondH != DefautPlafondHoraire {
+		t.Errorf("défaut : %v %v", c, err)
+	}
+	m["UX_PLAFOND_HORAIRE"] = "50"
+	if c, err := ChargerConfig(env(m)); err != nil || c.PlafondH != 50 {
+		t.Errorf("50 : %v", err)
+	}
+	for _, v := range []string{"0", "-3", "beaucoup"} {
+		m["UX_PLAFOND_HORAIRE"] = v
+		if _, err := ChargerConfig(env(m)); err == nil {
+			t.Errorf("UX_PLAFOND_HORAIRE=%q doit être refusé", v)
+		}
+	}
+}

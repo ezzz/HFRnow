@@ -1,5 +1,6 @@
 # Projet Compose à part : son nom, son réseau, son dossier de données (rien de partagé avec l'autre application).
 # Lancer depuis tooling/ux-survey/deploy :  docker compose --env-file ux-survey.env up -d --build
+# UX_DOSSIER_DONNEES est obligatoire : sans lui, les données iraient dans le dépôt.
 name: ux-survey
 
 services:
@@ -10,6 +11,16 @@ services:
     image: ux-survey:local
     restart: unless-stopped
     read_only: true
+    # Bornes de ressources : le VPS est partagé avec une autre application (F5). Mesuré : 53 Mio avec 2 000 connexions.
+    mem_limit: 256m
+    pids_limit: 128
+    cpus: 1.0
+    # Journaux du conteneur bornés (E1) : 3 fichiers de 10 Mo au plus ; rien d'autre n'est conservé.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     user: "65532:65532"
@@ -23,13 +34,14 @@ services:
       UX_MENTION_MAJ: ${UX_MENTION_MAJ:?renseigner UX_MENTION_MAJ}
       UX_SEUIL_STATS: ${UX_SEUIL_STATS:-10}
       UX_MAX_PAR_IP: ${UX_MAX_PAR_IP:-3}
+      UX_PLAFOND_HORAIRE: ${UX_PLAFOND_HORAIRE:-300}
       UX_CODE_ACCES: ${UX_CODE_ACCES:-}
     ports:
       # Jamais sur une interface publique : seulement la boucle locale de l'hôte, sur un port libre choisi au déploiement.
       - "127.0.0.1:${UX_PORT_HOTE:-18080}:8080"
     volumes:
       # Dossier de l'hôte en 0700, propriété de l'utilisateur 65532.
-      - ${UX_DOSSIER_DONNEES:-./donnees}:/donnees
+      - ${UX_DOSSIER_DONNEES:?renseigner UX_DOSSIER_DONNEES (dossier de données hors du dépôt)}:/donnees
     healthcheck:
       test: ["CMD", "/ux-survey", "sante"]
       interval: 30s

@@ -350,7 +350,7 @@ func TestSauvegarde(t *testing.T) {
 	if _, err := ChargerCleIP(b.Dossier(), true); err != nil {
 		t.Fatal(err)
 	}
-	dest := filepath.Join(t.TempDir(), "copie.db")
+	dest := filepath.Join(b.Dossier(), "sauvegardes", "copie.db")
 	if err := b.Sauvegarder(ctx, dest); err != nil {
 		t.Fatal(err)
 	}
