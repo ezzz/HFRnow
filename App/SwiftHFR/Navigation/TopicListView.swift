@@ -27,6 +27,9 @@ struct TopicListView: View {
     var openCategory: ((TopicSource) -> Void)?
     /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
     var titleStyle: ScreenTitleStyle = .pill
+    /// A pushed list carries the account button after its back button, as legacy (`MainWindow.swift:803-818` @ 87fe0d1c, #425). The
+    /// Favoris root gets it from its tab instead, so this stays off there.
+    var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
@@ -80,6 +83,7 @@ struct TopicListView: View {
         }
         .pagerBar(model.source.isPaged && loader.value != nil ? PageBar(model: model).pager : nil)
         .toolbar {
+            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
             ToolbarItemGroup(placement: .topBarTrailing) {

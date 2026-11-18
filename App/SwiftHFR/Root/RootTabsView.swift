@@ -65,7 +65,7 @@ struct CategoriesTabView: View {
         NavigationSplitView(preferredCompactColumn: $column) {
             ForumListView(navigation: navigation).accountMenuToolbarItem().appScreenBackground()
         } content: {
-            TopicsColumn(navigation: navigation, composer: composer).appScreenBackground()
+            TopicsColumn(navigation: navigation, composer: composer, showsAccountMenu: true).appScreenBackground()
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
@@ -146,6 +146,8 @@ struct TopicsColumn: View {
     /// Favoris: what a section title does. Nil pushes the category on this column's stack (compact width, as legacy's
     /// `NavigationLink`); the regular-width iPad sidebar passes the switch to Catégories (`onOpenForum`, `MainWindow.swift:2221-2232`).
     var openCategory: ((TopicSource) -> Void)?
+    /// A column that is a pushed screen (a category's topics) shows the account button after its back button (#425).
+    var showsAccountMenu = false
 
     var body: some View {
         if let source = navigation.selectedSource {
@@ -154,13 +156,14 @@ struct TopicsColumn: View {
                 composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source),
                 openCategory: navigation.favorites == nil ? nil : (openCategory ?? { navigation.openCategory($0) }),
                 // Favoris is a main screen with its large title; the lists a forum row pushes get the pill (#977, #978).
-                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil)
+                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil), showsAccountMenu: showsAccountMenu
             )
             .id(source)
             .navigationDestination(item: $navigation.openedCategory) { category in
                 TopicListView(
                     model: navigation.topicList(for: category), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                    composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category)
+                    composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category),
+                    showsAccountMenu: true
                 )
                 .appScreenBackground()
             }

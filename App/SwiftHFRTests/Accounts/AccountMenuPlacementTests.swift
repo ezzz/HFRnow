@@ -158,6 +158,23 @@ struct AccountMenuPlacementTests {
         expectOnTheLeft(try await readBars(of: view), root)
     }
 
+    /// A category's topic list is a pushed screen: legacy puts the account button after its back button (`MainWindow.swift:803-818`
+    /// @ 87fe0d1c, #425). The back button is no bar item, so a leading item on the pushed screen is the account button; without the
+    /// flag the pushed screen has none (negative control, so a pass cannot come from the probe).
+    @Test(arguments: [true, false])
+    func aPushedCategoryTopicListHasTheAccountButtonOnlyWhenAsked(shows: Bool) async throws {
+        let navigation = NavigationModel(dataSource: FakeDataSource())
+        let model = navigation.topicList(for: .forum(.forum(13), title: "Matériel"))
+        let view = NavigationStack {
+            Text("Catégories").navigationDestination(isPresented: .constant(true)) {
+                TopicListView(model: model, selection: .constant(nil), showsAccountMenu: shows)
+            }
+        }
+        let found = try await readBars(of: view)
+        print("AccountMenuPlacementTests pushed list (\(shows)): \(found.diagnostics)")
+        #expect((found.leftItems > 0) == shows, "pushed list, button \(shows): \(found.diagnostics)")
+    }
+
     private static func views(in view: UIView) -> [UIView] {
         [view] + view.subviews.flatMap { views(in: $0) }
     }
