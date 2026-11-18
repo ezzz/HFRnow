@@ -119,6 +119,21 @@ struct GlassLeftoversTests {
         return rgba.prefix(3).map(Int.init)
     }
 
+    /// The frame, in window coordinates, of the first view whose class name contains `name`.
+    private func frame(ofViewNamed name: String, in window: UIWindow) -> CGRect? {
+        func find(_ view: UIView) -> UIView? {
+            if String(describing: type(of: view)).contains(name) { return view }
+            return view.subviews.lazy.compactMap(find).first
+        }
+        guard let view = find(window) else { return nil }
+        return view.convert(view.bounds, to: window)
+    }
+
+    /// RGB at window point `point` (see `pixel(_:_:_:)`).
+    private func pixel(_ window: UIWindow, at point: CGPoint) -> [Int] {
+        pixel(window, point.x / window.bounds.width, point.y / window.bounds.height)
+    }
+
     private func count(_ name: String, in names: [String]) -> Int { names.filter { $0 == name }.count }
 
     // The class names below are private UIKit/SwiftUI internals, so these tests are coupled to the OS: a rename makes them
@@ -127,7 +142,8 @@ struct GlassLeftoversTests {
     private static let backdrop = "CABackdropLayer"
 
     /// The panel adds one glass view to the sheet (a material adds none: the buttons of the bar are the only other glass), and
-    /// nothing else under it: a material kept under the glass adds backdrop layers (11 with glass alone, 13 with both).
+    /// nothing else under it: a material kept under the glass adds backdrop layers (11 with glass alone, 13 with both). The exact
+    /// count is OS-coupled like the class names: an OS update that changes it fails here, and is re-captured then.
     @Test(arguments: [ColorScheme.light, .dark])
     func theTopicSearchProgressPanelIsGlass(scheme: ColorScheme) async throws {
         let idleScreen = try topicSheet(scheme: scheme, searching: false)
@@ -146,7 +162,7 @@ struct GlassLeftoversTests {
         record(screen.window, name: "topicsearch", scheme: scheme)
         let searching = classes(of: screen.window)
         #expect(count(Self.glass, in: searching) == count(Self.glass, in: idle) + 1)
-        #expect(count(Self.backdrop, in: searching) - count(Self.backdrop, in: idle) <= 11)
+        #expect(count(Self.backdrop, in: searching) - count(Self.backdrop, in: idle) == 11)
     }
 
     /// The options strip is a system bottom bar (a scroll-edge pocket bar) with no fill: the row between its label and its
@@ -160,11 +176,22 @@ struct GlassLeftoversTests {
         }
         #expect(found)
         record(screen.window, name: "smiley", scheme: scheme)
+        #expect((screen.model as? SmileyPickerModel)?.search?.isSearching == true)
+        let bar = try #require(frame(ofViewNamed: "ScrollPocketBarInteraction", in: screen.window))
         let page = pixel(screen.window, 0.5, 0.7)
         #expect(!page.isEmpty)
-        for fy in [0.94, 0.96, 0.98] {
-            let strip = pixel(screen.window, 0.5, fy)
-            #expect(zip(strip, page).allSatisfy { abs($0 - $1) <= 1 }, "y \(fy): \(strip) against the page \(page)")
+        // The switch's track (its right end; the knob is white) is drawn there, a frame after the bar (polled): a blank render
+        // or a hidden strip would show the page and time out red.
+        let point = CGPoint(x: screen.window.bounds.width * 0.95, y: bar.midY)
+        let drawn = try await eventually(screen.window) {
+            !zip(pixel(screen.window, at: point), page).allSatisfy { abs($0 - $1) <= 1 }
+        }
+        #expect(drawn, "switch \(pixel(screen.window, at: point)) against the page \(page), bar \(bar)")
+        // Rows inside the bar (the label and the switch sit on its middle), the column between them, and the switch itself.
+        let rows = [0.25, 0.5, 0.75].map { bar.minY + bar.height * $0 }
+        for y in rows {
+            let strip = pixel(screen.window, at: CGPoint(x: screen.window.bounds.midX, y: y))
+            #expect(zip(strip, page).allSatisfy { abs($0 - $1) <= 1 }, "y \(y): \(strip) against the page \(page)")
         }
     }
 }
