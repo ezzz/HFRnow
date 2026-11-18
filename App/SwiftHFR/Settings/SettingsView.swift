@@ -137,6 +137,7 @@ struct SettingsView: View {
                 Picker("Style des messages", selection: $topics.messageStyle) {
                     ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+                StylePreview(style: topics.messageStyle)
                 Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
                 Toggle("Masquer les pseudos blacklistés", isOn: $topics.hidesBlocklisted)
                 if let lists = reader?.pseudoLists {
