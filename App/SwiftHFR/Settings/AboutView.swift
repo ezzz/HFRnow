@@ -76,7 +76,7 @@ struct ChangelogView: View {
         List {
             if let changelog {
                 if changelog.entries.isEmpty {
-                    ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles")
+                    ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles").themedListRow()
                 }
                 ForEach(changelog.sections, id: \.self) { section in
                     ThemedSection(verbatim: section.title) {

@@ -22,6 +22,7 @@ struct MPStorageCreationQuestionView: View {
                     }.themedListRow()
                 }
             }
+            .themedListScreen()
             .navigationTitle("Stockage MP")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

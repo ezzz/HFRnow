@@ -59,6 +59,7 @@ private struct BookmarkTitleSheet: View {
                     }.themedSectionHeader()
                 }
             }
+            .themedListScreen()
             .navigationTitle("Bookmark")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

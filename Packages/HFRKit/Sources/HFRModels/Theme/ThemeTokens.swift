@@ -119,6 +119,9 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
 
     private static let black = ThemeRGB(red: 0, green: 0, blue: 0)
     private static let white = ThemeRGB(red: 255, green: 255, blue: 255)
+    /// The app's `AccessibleColors.errorText` in light and dark (#646), which a themed row draws errors in (#842).
+    private static let lightError = ThemeRGB(red: 176, green: 0, blue: 32)
+    private static let darkError = ThemeRGB(red: 255, green: 130, blue: 122)
 
     /// Whether the variant reads as light: black text contrasts more with its background than white does. A single-variant
     /// theme shows in this appearance whatever the "Thème" picker says, so the system's own text and chrome match it.
@@ -137,10 +140,12 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
     }
 
     /// Every rule a variant must meet (WCAG 2.x, 4.5:1, no large-text exception): THEMES.md §3, then every other pair the app
-    /// draws (LOT-188 spec). Three names are derived, not tokens: `systemText` (the system label of the appearance the variant
-    /// shows in, black in light, white in dark: native text keeps it), `systemCard` (the system's list card in that appearance,
-    /// #FFFFFF or #1C1C1E: native rows keep it, and the tint draws on it) and `readerAlternate` (the reader's even message,
-    /// `textPrimary` mixed into `surface` at its strongest, Increase Contrast, strength: 7 % in light, 16 % in dark, `reader.css`).
+    /// draws (LOT-188 spec, #842). Four names are derived, not tokens: `systemText` (the system label of the appearance the
+    /// variant shows in, black in light, white in dark: native text outside a themed row's own content keeps it, on `surface`
+    /// since #842), `systemCard` (the system's list card in that appearance, #FFFFFF or #1C1C1E, where views no themed list
+    /// covers still draw the tint), `errorText` (the app's `AccessibleColors.errorText` of that appearance, written on themed
+    /// rows) and `readerAlternate` (the reader's even message, `textPrimary` mixed into `surface` at its strongest, Increase
+    /// Contrast, strength: 7 % in light, 16 % in dark, `reader.css`).
     public static let contrastRules: [ContrastRule] = [
         // THEMES.md §3.
         ("title", "background"), ("sectionHeader", "background"),
@@ -153,7 +158,7 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         // (toolbar and plain buttons, empty-state actions).
         ("systemText", "background"), ("systemText", "surface"), ("accentText", "systemCard"), ("accentText", "background"),
         // Themed native lists (#842): a selected row's text, secondary text and tint glyphs on `selection`.
-        ("textPrimary", "selection"), ("textSecondary", "selection"), ("accentText", "selection"),
+        ("textPrimary", "selection"), ("textSecondary", "selection"), ("accentText", "selection"), ("errorText", "surface"),
         // The reader: links and accents in quotes, spoilers and code, and every text of an even message.
         ("link", "quoteBackground"), ("link", "spoilerBackground"), ("link", "codeBackground"),
         ("textSecondary", "codeBackground"), ("accentText", "codeBackground"), ("accentText", "quoteBackground"),
@@ -195,6 +200,7 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         switch name {
         case "systemText": inLight ? Self.black : Self.white
         case "systemCard": inLight ? Self.white : ThemeRGB(red: 0x1C, green: 0x1C, blue: 0x1E)
+        case "errorText": inLight ? Self.lightError : Self.darkError
         case "readerAlternate": surface.mixed(with: textPrimary, amount: inLight ? 0.07 : 0.16)
         default: Self.tokensByName[name].map { self[keyPath: $0] }
         }

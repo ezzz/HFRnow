@@ -62,6 +62,7 @@ struct PollCreationSheet: View {
                     }
                 }
             }
+            .themedListScreen()
             .navigationTitle("Créer un sondage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

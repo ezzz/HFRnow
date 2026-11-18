@@ -47,6 +47,7 @@ struct LegacyImportSummaryView: View {
                     }
                 }
             }
+            .themedListScreen()
             .navigationTitle("Import de HFR+")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

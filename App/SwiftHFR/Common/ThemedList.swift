@@ -6,8 +6,11 @@ import UIKit
 // selection, section headers, the large title) through these modifiers, the only place that rule lives; #836 later merges the list
 // copies and their call sites, and the modifiers come along. Legacy applies none of them (pixel-identical, LOT-188).
 /// The colours a native list draws under a gallery theme (THEMES.md §3): a row and its text on `surface`, the selected row on
-/// `selection`, `separator`, and on `background` the section headers and the large title. Each is dynamic (light and dark).
+/// `selection`, `separator`, and on `background` the screen of a sheet, the section headers and the large title. Each is
+/// dynamic (light and dark).
 struct ThemedListColors {
+    /// The screen behind a list that no `appScreenBackground()` paints (a sheet on a plain stack): `background`.
+    let screen: UIColor
     /// A row or card (`surface`, THEMES.md §3 "rows and cards").
     let row: UIColor
     /// The selected row (`selection`).
@@ -27,25 +30,37 @@ struct ThemedListColors {
 extension ThemeAppearance {
     /// The colours of a themed native list, or nil for Legacy: the system's, untouched (no modifier is applied at all).
     var listColors: ThemedListColors? {
-        guard let row = themeColor(\.surface), let selectedRow = themeColor(\.selection), let separator = themeColor(\.separator),
+        guard let screen = themeColor(\.background), let row = themeColor(\.surface), let selectedRow = themeColor(\.selection),
+              let separator = themeColor(\.separator),
               let text = themeColor(\.textPrimary), let secondaryText = themeColor(\.textSecondary),
               let sectionHeader = themeColor(\.sectionHeader), let title = themeColor(\.title) else { return nil }
         return ThemedListColors(
-            row: row, selectedRow: selectedRow, separator: separator, text: text, secondaryText: secondaryText,
+            screen: screen, row: row, selectedRow: selectedRow, separator: separator, text: text, secondaryText: secondaryText,
             sectionHeader: sectionHeader, title: title
         )
     }
 }
 
 extension View {
-    /// A native list row (or every row of a `Section` or `ForEach` it wraps) under the theme (#842): background, separators, and
-    /// the primary and secondary text styles. `isSelected` paints the theme's `selection` instead of the row colour: a row
-    /// background replaces the system's own selection fill. Not for a row that sets its own background (a clear banner, the
-    /// large title): which of two row backgrounds wins is not something to rely on. Legacy: nothing, or, with `legacySelection`,
-    /// that colour behind a selected row, as the call site drew it before (Bookmarks).
+    /// A native list row (or every row of a `Section` or `ForEach` it wraps) under the theme (#842): background and separators.
+    /// Its text is `themedRowText()`'s, applied where the row's content is drawn, so a `Button` row keeps its tint (the
+    /// accent, `accentText`): a foreground style set on the row would replace it. `isSelected` paints the theme's `selection`
+    /// instead of the row colour: a row background replaces the system's own selection fill. Not for a row that sets its own
+    /// background (a clear banner, the large title): which of two row backgrounds wins is not something to rely on. Legacy:
+    /// nothing, or, with `legacySelection`, that colour behind a selected row, as the call site drew it before (Bookmarks).
     func themedListRow(isSelected: Bool = false, legacySelection: Color? = nil) -> some View {
         modifier(ThemedListRow(isSelected: isSelected, legacySelection: legacySelection))
     }
+
+    /// A row's text under the theme (#842): `textPrimary` as the primary style and `textSecondary` as the secondary one, so
+    /// `.primary` and `.secondary` text follow. For a row's own content (a topic, a conversation, a forum, a field), never
+    /// around a `Button` whose label should keep the tint. Native text elsewhere keeps the system label of the appearance the
+    /// theme shows in, which its contrast test checks on `surface`. Legacy: nothing.
+    func themedRowText() -> some View { modifier(ThemedListText(role: .rowText)) }
+
+    /// A list or form shown in a sheet on a plain `NavigationStack` (no `appScreenBackground()`): the theme's `background`
+    /// behind it, under its themed headers and rows (#842). Legacy: nothing.
+    func themedListScreen() -> some View { modifier(ThemedListScreen()) }
 
     /// A section header or footer under the theme (#842): its text in `sectionHeader`, which holds 4.5:1 on `background`.
     /// Legacy: nothing.
@@ -66,7 +81,6 @@ private struct ThemedListRow: ViewModifier {
         if let colors = appearance.listColors {
             let separator = Color(uiColor: colors.separator)
             content
-                .foregroundStyle(Color(uiColor: colors.text), Color(uiColor: colors.secondaryText))
                 .listRowBackground(Color(uiColor: isSelected ? colors.selectedRow : colors.row))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
@@ -79,15 +93,38 @@ private struct ThemedListRow: ViewModifier {
 }
 
 private struct ThemedListText: ViewModifier {
-    enum Role { case sectionHeader, title }
+    enum Role { case rowText, sectionHeader, title }
     let role: Role
     @Environment(\.themeAppearance) private var appearance
 
     @ViewBuilder func body(content: Content) -> some View {
         if let colors = appearance.listColors {
-            let color = Color(uiColor: role == .title ? colors.title : colors.sectionHeader)
-            // Both levels: a header's own `.secondary` text (a count) must stay on the token, not fade below its contrast.
-            content.foregroundStyle(color, color)
+            let (primary, secondary) = Self.colors(role, colors)
+            content.foregroundStyle(Color(uiColor: primary), Color(uiColor: secondary))
+        } else {
+            content
+        }
+    }
+
+    /// The primary and secondary style of `role`. A header and the title use their token at both levels: a header's own
+    /// `.secondary` text (a count) must stay on the token, not fade below its contrast.
+    static func colors(_ role: Role, _ colors: ThemedListColors) -> (UIColor, UIColor) {
+        switch role {
+        case .rowText: (colors.text, colors.secondaryText)
+        case .sectionHeader: (colors.sectionHeader, colors.sectionHeader)
+        case .title: (colors.title, colors.title)
+        }
+    }
+}
+
+private struct ThemedListScreen: ViewModifier {
+    @Environment(\.themeAppearance) private var appearance
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let colors = appearance.listColors {
+            content
+                .scrollContentBackground(.hidden)
+                .background { Color(uiColor: colors.screen).ignoresSafeArea() }
         } else {
             content
         }

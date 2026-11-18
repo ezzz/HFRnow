@@ -162,6 +162,7 @@ struct TopicListView: View {
                 topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
                 flagIsTinted: TopicListView.flagPills(for: model.source)
             )
+                .themedRowText()
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(

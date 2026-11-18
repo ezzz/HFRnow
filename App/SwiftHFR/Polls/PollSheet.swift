@@ -40,8 +40,12 @@ struct PollSheet: View {
                 case .votable(let options, _): votingSection(options)
                 case .results(let lines): resultsSection(lines)
                 }
-                if let notice = model.poll.notice { Section { Text(notice).font(.footnote).foregroundStyle(.secondary) } }
-                if let footer = model.poll.footer { Section { Text(footer).font(.footnote).foregroundStyle(.secondary) } }
+                if let notice = model.poll.notice {
+                    Section { Text(notice).font(.footnote).foregroundStyle(.secondary).themedListRow() }
+                }
+                if let footer = model.poll.footer {
+                    Section { Text(footer).font(.footnote).foregroundStyle(.secondary).themedListRow() }
+                }
                 if let message = model.message {
                     Section { Label(message, systemImage: icon).foregroundStyle(color).themedListRow() }
                         .accessibilityElement(children: .combine)

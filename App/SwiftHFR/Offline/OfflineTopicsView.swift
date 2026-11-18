@@ -33,7 +33,7 @@ struct OfflineTopicsView: View {
                 .listRowBackground(Color.clear)
             }
             ForEach(model.topics, id: \.topic) { topic in
-                Button { opened = OfflineReaderTarget(topic: topic) } label: { OfflineTopicRow(topic: topic) }
+                Button { opened = OfflineReaderTarget(topic: topic) } label: { OfflineTopicRow(topic: topic).themedRowText() }
                     .buttonStyle(.plain)
                     .swipeActions {
                         Button("Supprimer", role: .destructive) { Task { await model.remove(topic) } }

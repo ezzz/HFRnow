@@ -51,7 +51,7 @@ struct ArchivedDraftsView: View {
                         Text("Aucun brouillon archivé").foregroundStyle(.secondary).densityRowMargin()
                     } else {
                         ForEach(model.archivedDrafts) { draft in
-                            Button { Task { await model.use(draft); onDone() } } label: { row(draft) }
+                            Button { Task { await model.use(draft); onDone() } } label: { row(draft).themedRowText() }
                                 .buttonStyle(.plain)
                                 .densityRowMargin()
                                 .disabled(model.isMovingDrafts)

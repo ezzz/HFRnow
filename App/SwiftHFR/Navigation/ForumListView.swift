@@ -17,6 +17,7 @@ struct ForumListView: View {
                 SeasonalSnowCapSection {
                     ForEach(content.sections) { section in
                         row(section).densityRowMargin().tag(section.source)
+                            .themedRowText()
                             .themedListRow(isSelected: navigation.selectedSource == section.source)
                     }
                 }

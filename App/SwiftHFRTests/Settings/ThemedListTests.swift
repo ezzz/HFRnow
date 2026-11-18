@@ -58,11 +58,17 @@ struct ThemedListTests {
         let model: ThemeSettingsModel
         var themed = true
         var selected = false
+        /// The rows in a `ThemedSection` instead of each carrying `themedListRow`.
+        var sectioned = false
         var body: some View {
             List {
-                ForEach(0..<4, id: \.self) { index in
-                    Text("").frame(height: 200)
-                        .modifier(Row(themed: themed, isSelected: selected && index == 0))
+                if sectioned {
+                    ThemedSection("Section") { ForEach(0..<4, id: \.self) { _ in Text("").frame(height: 200) } }
+                } else {
+                    ForEach(0..<4, id: \.self) { index in
+                        Text("").frame(height: 200)
+                            .modifier(Row(themed: themed, isSelected: selected && index == 0))
+                    }
                 }
             }
             .listStyle(.insetGrouped)
@@ -144,6 +150,14 @@ struct ThemedListTests {
         #expect(card, "row \(pixel(of: window, x: thirdRow.x, y: thirdRow.y))")
     }
 
+    /// `ThemedSection` themes its rows: the third row of a section paints `surface`.
+    @Test func aThemedSectionPaintsItsRows() async throws {
+        let window = try show(ListRoot(model: try themedModel(), sectioned: true))
+        defer { window.isHidden = true }
+        let painted = await until { near(pixel(of: window, x: thirdRow.x, y: thirdRow.y), hex(0x1A2430)) }
+        #expect(painted, "row \(pixel(of: window, x: thirdRow.x, y: thirdRow.y))")
+    }
+
     /// Legacy: the modifier is there, but the row is the system card, as without it.
     @Test func underLegacyTheModifierChangesNoPixel() async throws {
         let model = ThemeSettingsModel(store: InMemorySettingsStore(["auto_theme": .int(0), "theme": .int(1)]))
@@ -154,4 +168,97 @@ struct ThemedListTests {
         }
         #expect(card, "row \(pixel(of: window, x: thirdRow.x, y: thirdRow.y))")
     }
+
+    // MARK: The text styles, rendered
+
+    /// The test theme with distinct dark text tokens, so a swatch tells each one from the system's white: title #C03030,
+    /// section header #30C030, row text #3030C0, secondary text #C0C030.
+    private func swatchAppearance() throws -> ThemeAppearance {
+        var json = try #require(try JSONSerialization.jsonObject(with: ThemeFixtures.data("test-theme")) as? [String: Any])
+        var variants = try #require(json["variants"] as? [String: Any])
+        var dark = try #require(variants["dark"] as? [String: Any])
+        dark["title"] = "#C03030"
+        dark["sectionHeader"] = "#30C030"
+        dark["textPrimary"] = "#3030C0"
+        dark["textSecondary"] = "#C0C030"
+        variants["dark"] = dark
+        json["variants"] = variants
+        let theme = try JSONDecoder().decode(ThemeDefinition.self, from: JSONSerialization.data(withJSONObject: json))
+        var appearance = ThemeAppearance.standard
+        appearance.themeVariants = theme.variants
+        return appearance
+    }
+
+    /// `content` filling a dark window, under `appearance`.
+    private func showSwatch(_ content: some View, appearance: ThemeAppearance) throws -> UIWindow {
+        let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 300, height: 700)
+        window.overrideUserInterfaceStyle = .dark
+        window.rootViewController = UIHostingController(rootView: content.environment(\.themeAppearance, appearance).ignoresSafeArea())
+        window.isHidden = false
+        return window
+    }
+
+    /// The primary and secondary styles of `role`'s modifier, as two halves of the window.
+    private struct Halves: View {
+        let role: SwatchRole
+        var body: some View {
+            let halves = HStack(spacing: 0) { Rectangle().fill(.primary); Rectangle().fill(.secondary) }
+            switch role {
+            case .header: halves.themedSectionHeader()
+            case .title: halves.themedTitle()
+            case .rowText: halves.themedRowText()
+            }
+        }
+    }
+
+    private func halvesShow(_ role: SwatchRole, appearance: ThemeAppearance, _ left: Int, _ right: Int) async throws -> Bool {
+        let window = try showSwatch(Halves(role: role), appearance: appearance)
+        defer { window.isHidden = true }
+        return await until {
+            near(pixel(of: window, x: 75, y: 350), hex(left)) && near(pixel(of: window, x: 225, y: 350), hex(right))
+        }
+    }
+
+    /// Each text modifier draws its tokens at both levels (a header and the title keep their token for `.secondary` too);
+    /// without the modifier both halves would be the system's white and grey.
+    @Test func theTextModifiersDrawTheirTokens() async throws {
+        let appearance = try swatchAppearance()
+        #expect(try await halvesShow(.header, appearance: appearance, 0x30C030, 0x30C030), "section header")
+        #expect(try await halvesShow(.title, appearance: appearance, 0xC03030, 0xC03030), "title")
+        #expect(try await halvesShow(.rowText, appearance: appearance, 0x3030C0, 0xC0C030), "row text")
+    }
+
+    /// Legacy: the same modifiers leave the system's primary, white in dark.
+    @Test func underLegacyTheTextModifiersKeepTheSystemText() async throws {
+        let window = try showSwatch(Halves(role: .header), appearance: .standard)
+        defer { window.isHidden = true }
+        let white = await until { near(pixel(of: window, x: 75, y: 350), hex(0xFFFFFF)) }
+        #expect(white, "\(pixel(of: window, x: 75, y: 350))")
+    }
+
+    /// #651's read MP title takes the theme's `textSecondary`; Legacy keeps its own grey, never the theme's.
+    @Test func aReadMPTitleTakesTheThemesSecondaryText() async throws {
+        let appearance = try swatchAppearance()
+        let themed = try showSwatch(Rectangle().fill(ReadTitleStyle()), appearance: appearance)
+        defer { themed.isHidden = true }
+        #expect(await until { near(pixel(of: themed, x: 150, y: 350), hex(0xC0C030)) }, "\(pixel(of: themed, x: 150, y: 350))")
+        let legacy = try showSwatch(Rectangle().fill(ReadTitleStyle()), appearance: .standard)
+        defer { legacy.isHidden = true }
+        let grey = rgb(ReadTitleStyle.color(for: UITraitCollection(userInterfaceStyle: .dark)), dark: true)
+        #expect(await until { near(pixel(of: legacy, x: 150, y: 350), grey) }, "\(pixel(of: legacy, x: 150, y: 350))")
+    }
+
+    /// The `errorText` of the contrast rules is the app's error colour, so the rule checks what a themed row draws.
+    @Test func theErrorTextRuleIsTheAppsErrorColour() throws {
+        let tokens = try #require(try ThemeFixtures.testTheme().variants?.light)
+        for dark in [false, true] {
+            let app = AccessibleColors.rgb(.errorText, dark: dark)
+            #expect(tokens.color(named: "errorText", inLight: !dark) == ThemeRGB(red: app.red, green: app.green, blue: app.blue))
+        }
+    }
 }
+
+/// Which text modifier a swatch of `ThemedListTests` carries.
+private enum SwatchRole { case header, title, rowText }
