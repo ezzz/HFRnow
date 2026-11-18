@@ -157,7 +157,8 @@ struct TopicsColumn: View {
     /// A column that is a pushed screen (a category's topics) shows the account button after its back button (#425).
     var showsAccountMenu = false
     /// `TabSplitWidth` keeps `.regular` on a foldable's inner screen: all three columns show and the category list already has the
-    /// button, so a second one beside it would double it (legacy has one there, `MainWindow.swift:1880-1902` @ 87fe0d1c).
+    /// button, so a second one beside it would double it (legacy carries it on its list column only, `MainWindow.swift:1932-1938`
+    /// @ 87fe0d1c). Not tested at that width: the foldable check is on #893.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {

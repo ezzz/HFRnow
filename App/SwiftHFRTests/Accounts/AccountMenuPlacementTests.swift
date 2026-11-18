@@ -32,6 +32,8 @@ struct AccountMenuPlacementTests {
         var leftItems = 0
         /// Visible controls drawn in the left half of a bar.
         var leftControls = 0
+        /// Left items of bars with a bar below them in the stack (a pushed screen): the root's own account button is not one.
+        var pushedLeftItems = 0
         /// Bars, item counts and control classes seen, whatever the outcome.
         var diagnostics = ""
         var isOnTheLeft: Bool { leftItems > 0 || leftControls > 0 }
@@ -72,6 +74,7 @@ struct AccountMenuPlacementTests {
             let controls = views(in: bar).compactMap { $0 as? UIControl }.filter { isShown($0, below: bar) && !$0.bounds.isEmpty }
             let onTheLeft = controls.filter { bar.convert($0.bounds, from: $0).midX < bar.bounds.midX }
             found.leftItems += left
+            if bar.backItem != nil { found.pushedLeftItems += left }
             found.leftControls += onTheLeft.count
             let leftTitles = ((item?.leftBarButtonItems ?? []) + (item?.leadingItemGroups ?? []).flatMap(\.barButtonItems))
                 .map { (entry: UIBarButtonItem) -> String in
@@ -170,9 +173,9 @@ struct AccountMenuPlacementTests {
                 TopicListView(model: model, selection: .constant(nil), showsAccountMenu: shows)
             }
         }
-        let found = try await readBars(of: view, until: { $0.leftItems > 0 })
+        let found = try await readBars(of: view, until: { $0.pushedLeftItems > 0 })
         print("AccountMenuPlacementTests pushed list (\(shows)): \(found.diagnostics)")
-        #expect((found.leftItems > 0) == shows, "pushed list, button \(shows): \(found.diagnostics)")
+        #expect((found.pushedLeftItems > 0) == shows, "pushed list, button \(shows): \(found.diagnostics)")
     }
 
     /// The real call sites, compact width (402 pt): the Catégories topic column and the category a Favoris section title opens each
@@ -190,9 +193,10 @@ struct AccountMenuPlacementTests {
             navigation.openedCategory = source
             view = AnyView(FavoritesTabView(navigation: navigation, reader: services(), composer: nil))
         }
-        let found = try await readBars(of: view, until: { $0.leftItems > 0 })
+        // Only the pushed bar counts: the root's own button (Catégories list, Favoris root) must not satisfy the test.
+        let found = try await readBars(of: view, until: { $0.pushedLeftItems > 0 })
         print("AccountMenuPlacementTests \(tab) topic list: \(found.diagnostics)")
-        #expect(found.leftItems == 1, "\(tab): one account button expected: \(found.diagnostics)")
+        #expect(found.pushedLeftItems == 1, "\(tab): one account button expected: \(found.diagnostics)")
     }
 
     private static func views(in view: UIView) -> [UIView] {
