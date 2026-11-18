@@ -8,14 +8,19 @@ import UIKit
 private final class ProbeBox {
     var frames: [ComposerLayoutProbe.Part: CGRect] = [:]
     var layout = ComposerCardLayout()
+    /// The hosting window's usable horizontal range: the screen's width less its side safe-area insets (the iPhone Duo cover
+    /// screen keeps 84 pt on its trailing side for the system bars), whatever the device (#1084).
+    var leadingEdge: CGFloat = 0
+    var trailingEdge: CGFloat = 0
+    var midX: CGFloat { (leadingEdge + trailingEdge) / 2 }
 
     var probe: ComposerLayoutProbe {
         ComposerLayoutProbe(frame: { [weak self] part, frame in self?.frames[part] = frame }, layout: { [weak self] in self?.layout = $0 })
     }
 }
 
-/// The real reply composer hosted in a 402 × 874 pt window (an iPhone 18 Pro screen), its parts' frames read through
-/// `ComposerLayoutProbe` (#854).
+/// The real reply composer hosted in a window the size of the screen (402 × 874 pt on an iPhone 18 Pro), its parts' frames
+/// read through `ComposerLayoutProbe` (#854).
 @MainActor
 @Suite(.serialized)
 struct ComposerLayoutHostedTests {
@@ -39,19 +44,26 @@ struct ComposerLayoutHostedTests {
             .environment(\.composerLayoutProbe, box.probe)
             .appTypography(TextScale(percent: 100), density: .regular)
         let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+        window.frame = scene.effectiveGeometry.coordinateSpace.bounds
         window.rootViewController = UIHostingController(rootView: view)
         window.isHidden = false
         defer { window.isHidden = true }
+        window.layoutIfNeeded()
+        box.leadingEdge = window.safeAreaInsets.left
+        box.trailingEdge = window.bounds.width - window.safeAreaInsets.right
         // Polls until the draft is read, then until the text is laid out (a cold simulator can take a while).
         for _ in 0..<100 where !model.canEdit { try await Task.sleep(for: .milliseconds(50)) }
         model.update(text: text)
-        for _ in 0..<100 {
+        // Then until the frames stop moving (four equal reads in a row): the state the tests measure, not a fixed delay.
+        var last: [ComposerLayoutProbe.Part: CGRect] = [:]
+        var steady = 0
+        for _ in 0..<150 where steady < 4 {
             try await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            if box.layout.text > 0, box.frames[.controls] != nil, box.frames[.card] != nil { break }
+            let ready = box.layout.text > 0 && box.frames[.controls] != nil && box.frames[.card] != nil
+            steady = ready && box.frames == last ? steady + 1 : 0
+            last = box.frames
         }
-        try await Task.sleep(for: .milliseconds(300))
         return box
     }
 
@@ -91,7 +103,7 @@ struct ComposerLayoutHostedTests {
             #expect(button.maxY <= card.minY + 0.5, "\(part) \(button), card \(card)")
         }
         #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
-        #expect(drafts.maxX < 402 / 2 && send.minX > 402 / 2, "drafts \(drafts), send \(send)")
+        #expect(drafts.maxX < box.midX && send.minX > box.midX, "drafts \(drafts), send \(send)")
         #expect(abs(close.midY - send.midY) < 0.5, "one row: close \(close), send \(send)")
         // Nothing but the row above the card: no strip of its own (a title over or under the buttons would add one).
         let diameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
@@ -122,12 +134,12 @@ struct ComposerLayoutHostedTests {
         let card = try #require(box.frames[.card])
         let close = try #require(box.frames[.close])
         let gap = FloatingSpacing.gap
-        #expect(abs(card.minX - gap) < 0.5, "card \(card)")
-        #expect(abs(402 - card.maxX - gap) < 0.5, "card \(card)")
+        #expect(abs(card.minX - box.leadingEdge - gap) < 0.5, "card \(card)")
+        #expect(abs(box.trailingEdge - card.maxX - gap) < 0.5, "card \(card)")
         #expect(close.width >= ComposerHeader.hitSize - 0.5 && close.height >= ComposerHeader.hitSize - 0.5, "close \(close)")
         let tool = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)))
         let capsule = ComposerHeader.capsuleSize(diameter: tool.diameter)
-        #expect(abs(close.midX - capsule.width / 2 - gap) < 0.5, "close \(close)")
+        #expect(abs(close.midX - capsule.width / 2 - box.leadingEdge - gap) < 0.5, "close \(close)")
         #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
     }
 

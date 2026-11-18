@@ -100,6 +100,8 @@ struct MessageMenuContext: Equatable, Sendable {
     var actions: MessageActions
     /// Link to the message on its page (`<page URL>#t<numreponse>`); nil when the page URL is unknown.
     var permalinkURL: URL?
+    /// The topic of the page (legacy `topicID`, `topicCategory`): what a bookmark records (LOT-132); nil when unknown.
+    var topic: TopicID?
     /// The topic's first message: legacy never offers its deletion, and on HFR it deletes the whole topic (HFR-PROTOCOL §3.1).
     var isFirstPostOfTopic = false
     /// Multi-quote state of the message (legacy cookie `quotes…`): LOT-086 owns it, false until then.

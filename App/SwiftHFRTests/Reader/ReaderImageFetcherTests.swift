@@ -5,6 +5,9 @@ import HFRStorage
 @testable import SwiftHFR
 import Testing
 
+private let rehostMedium = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.md.jpg"
+private let rehostFull = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.jpg"
+
 /// Images go through the cookie-less client, with the policy applied to every redirect hop (LOT-071 R1, R3, edge cases).
 struct ReaderImageFetcherTests {
     private func image(_ url: URL, type: String = "image/png", body: Data = Data([1, 2, 3])) -> HTTPResponse {
@@ -205,5 +208,58 @@ struct ReaderImageFetcherTests {
         #expect(!settings.opensLinksInDefaultBrowser())
         store.set(true, for: SettingKey.opensLinksInDefaultBrowser)
         #expect(settings.opensLinksInDefaultBrowser())
+    }
+
+    // MARK: Full size first (#1035)
+
+    @Test func aRenditionIsFetchedAtItsFullSizeAddress() async throws {
+        let transport = MockTransport { request in self.image(request.url) }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.imagePreferringFullSize(at: url(rehostMedium), allowsThirdParty: true)
+        #expect(await transport.requests.map(\.url.absoluteString) == [rehostFull])
+    }
+
+    @Test func aFailingFullSizeFetchFallsBackToThePostedAddress() async throws {
+        let transport = MockTransport { request in
+            if request.url.absoluteString == rehostFull { return HTTPResponse(statusCode: 404, headers: [:], url: request.url) }
+            return self.image(request.url)
+        }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        let result = try await fetcher.imagePreferringFullSize(at: url(rehostMedium), allowsThirdParty: true)
+        #expect(result.data == Data([1, 2, 3]))
+        #expect(await transport.requests.map(\.url.absoluteString) == [rehostFull, rehostMedium])
+    }
+
+    @Test func aNonImageAnswerForTheFullSizeAddressAlsoFallsBack() async throws {
+        let transport = MockTransport { request in
+            request.url.absoluteString == rehostFull ? self.image(request.url, type: "text/html") : self.image(request.url)
+        }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.imagePreferringFullSize(at: url(rehostMedium), allowsThirdParty: true)
+        #expect(await transport.requests.count == 2)
+    }
+
+    @Test func theFullSizeFetchObeysThePolicyLikeAnyReaderImage() async {
+        let transport = MockTransport { request in self.image(request.url) }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        // Third parties not allowed yet ("Jamais (au toucher)"): nothing is requested, for either address.
+        await #expect(throws: ReaderImageFetcher.Failure.refused) {
+            _ = try await fetcher.imagePreferringFullSize(at: url(rehostMedium), allowsThirdParty: false)
+        }
+        #expect(await transport.requests.isEmpty)
+    }
+
+    @Test func aHostWithoutRuleIsFetchedOnce() async throws {
+        let transport = MockTransport { request in self.image(request.url) }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.imagePreferringFullSize(at: url("https://i.imgur.com/a.png"), allowsThirdParty: true)
+        #expect(await transport.requests.count == 1)
+    }
+
+    @Test func aPageImageOfAHostThatNeedsARefererKeepsItsPostedAddress() async throws {
+        let transport = MockTransport { request in self.image(request.url) }
+        let fetcher = ReaderImageFetcher(transport: transport)
+        _ = try await fetcher.imagePreferringFullSize(at: url("https://reho.st/thumb/ab/cd.png"), allowsThirdParty: true)
+        #expect(await transport.requests.map(\.url.absoluteString) == ["https://reho.st/thumb/ab/cd.png"])
     }
 }

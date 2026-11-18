@@ -84,7 +84,7 @@ struct ImageUploadView: View {
     private var canUseCamera: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
 
     private var uploadSection: some View {
-        Section("Envoyer") {
+        ThemedSection("Envoyer") {
             if model.canUpload {
                 HStack {
                     PhotosPicker(selection: $photo, matching: .images) {
@@ -116,7 +116,7 @@ struct ImageUploadView: View {
     }
 
     private var historySection: some View {
-        Section("Images envoyées") {
+        ThemedSection("Images envoyées") {
             Picker("Type de BBCode", selection: Binding(get: { model.linkMode }, set: { model.linkMode = $0 })) {
                 Text("Image et lien").tag(RehostLinkMode.imageWithLink)
                 Text("Image sans lien").tag(RehostLinkMode.imageNoLink)
@@ -139,7 +139,7 @@ struct ImageUploadView: View {
     }
 
     private var manualSection: some View {
-        Section("Lien manuel") {
+        ThemedSection("Lien manuel") {
             TextField("https://…", text: $manualURL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()

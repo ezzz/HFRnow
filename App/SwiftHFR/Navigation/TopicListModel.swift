@@ -112,6 +112,8 @@ final class TopicListModel {
     var removingFlags: Set<TopicSummary.ID> = []
     /// Why the last row action did not end as asked, in French; the row stays as it was.
     var actionFailure: String?
+    /// The row whose removal failed with nothing sent and may work if sent again: the failure offers « Réessayer » (#1056).
+    var retryableRemoval: TopicSummary?
 
     /// The Tous / Favoris / Suivis / Lus choice shared by the lists that offer it; nil where there is none.
     let topicFilter: TopicFilterModel?
@@ -145,6 +147,8 @@ final class TopicListModel {
         guard let content = loader.value else { return [] }
         let groups: [TopicGroup]
         if let favorites, let page = content.favoritesPage { groups = favorites.groups(for: page) } else { groups = content.groups }
+        // « Non lus » with nothing unread left (#1058): no row, so no empty header either, whatever the empty-sections setting says.
+        if showsNoUnreadFavorites { return [] }
         guard source.isFavoritesList, !removedFlags.isEmpty else { return groups }
         return groups.map { group in
             var group = group
@@ -158,6 +162,20 @@ final class TopicListModel {
     var allSectionsHidden: Bool {
         guard let content = loader.value, content.favoritesPage != nil, !content.isEmpty else { return false }
         return displayedGroups.isEmpty
+    }
+
+    /// A row of the favourites page shows unread pages and still has its flag (#1058): « Non lus » can have something to show.
+    var hasUnreadFavoriteRows: Bool {
+        guard let page = loader.value?.favoritesPage else { return false }
+        return page.sections.contains { $0.topics.contains { FavoritesPresentation.isUnread($0) && removedFlags[$0.id] == nil } }
+    }
+
+    /// « Non lus » is on, the page has favourites and none is unread (#1058): the screen says so instead of listing nothing or
+    /// empty headers. An unread row inside a folded section counts as unread, so this is false then.
+    var showsNoUnreadFavorites: Bool {
+        guard favorites?.unreadOnly == true, let content = loader.value else { return false }
+        guard content.favoritesPage != nil, !content.isEmpty else { return false }
+        return !hasUnreadFavoriteRows
     }
 
     /// Whether `topic` is a super-favourite (tinted row).

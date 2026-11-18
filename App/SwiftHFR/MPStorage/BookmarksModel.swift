@@ -1,0 +1,90 @@
+import Foundation
+import HFRModels
+import Observation
+
+// Port of HFRswift/Swift/BookmarksPlusView.swift (BookmarksPlusViewModel) and Classes/MPStorage.m (parseBookmarks,
+// removeBookmarkSynchronous:) @ 87fe0d1c. Differences: the list is the device copy of the document (readable offline, pending
+// edits included) instead of a fresh forum read; a removal is written locally first and sent by LOT-130's sync (GAP-183);
+// it removes that category, topic and message (legacy removed the last entry with the same message number). GAP-040.
+/// Plus › Bookmarks (LOT-132): the bookmarks of the current account's MPStorage document, refreshed, opened and deleted.
+@MainActor
+@Observable
+final class BookmarksModel {
+    /// What the screen shows instead of, or above, the list.
+    enum State: Equatable {
+        /// No account: no MPStorage.
+        case signedOut
+        /// The account does not sync its bookmarks (legacy « Stockage MP désactivé »).
+        case notSyncing
+        /// The account syncs: the list (possibly empty).
+        case syncing
+    }
+
+    @ObservationIgnored private let mpStorage: MPStorageSyncModel?
+    @ObservationIgnored private let selection: BookmarkSelection
+
+    /// The bookmarks of `mpStorage`'s account (nil logged out); `selection` is the window's, kept by the root beside the
+    /// detail column so it outlives this screen.
+    init(mpStorage: MPStorageSyncModel?, selection: BookmarkSelection = BookmarkSelection()) {
+        self.mpStorage = mpStorage
+        self.selection = selection
+    }
+
+    /// The bookmark last opened, selected in the list while it shows beside it (legacy `bookmarksTopicTarget`).
+    var selectedID: String? { selection.id }
+
+    /// The screen's state.
+    var state: State {
+        guard let mpStorage else { return .signedOut }
+        return mpStorage.isOn && mpStorage.isEnabled(.bookmarks) ? .syncing : .notSyncing
+    }
+
+    /// The list, newest first; empty unless the account syncs its bookmarks.
+    var bookmarks: [MPStorageBookmark] { BookmarkList.bookmarks(in: mpStorage?.document(for: .bookmarks)) }
+
+    /// A call of the account's sync is running.
+    var isRefreshing: Bool { mpStorage?.status == .working }
+
+    /// LOT-130's sentence for the last failed call, nil when the last call succeeded (no pseudo, no document text).
+    var errorMessage: String? {
+        guard state == .syncing, case .failed(let message)? = mpStorage?.status else { return nil }
+        return message
+    }
+
+    /// Appearance: shows the device copy and syncs it, once per session model (the Messages tab's `start`).
+    func load() async {
+        await mpStorage?.start()
+    }
+
+    /// « Actualiser » and pull to refresh: reads the forum and writes the pending edits (only while the account syncs).
+    func refresh() async {
+        await mpStorage?.resync()
+    }
+
+    /// Records the row the user opened.
+    func didOpen(_ bookmark: MPStorageBookmark) {
+        selection.id = bookmark.id
+    }
+
+    /// Removes `bookmark` from the document; returns whether it was removed and was the one open beside the list (the
+    /// caller closes it). The record is read again first: another window may have switched the account off (LOT-146).
+    @discardableResult
+    func delete(_ bookmark: MPStorageBookmark) async -> Bool {
+        guard let mpStorage, mpStorage.writeConsent(for: .bookmarks) == .sync else { return false }
+        let id = bookmark.id
+        let removed = await mpStorage.edit(.bookmarks) { document, stamp in try document.removeBookmark(id: id, stamp: stamp) }
+        guard removed, selectedID == id else { return false }
+        selection.id = nil
+        return true
+    }
+}
+
+/// The bookmark open in a window's detail column (legacy `bookmarksTopicTarget`, `MainWindow.swift:1372`), held by the root
+/// next to `RootModel.detailReaders`: the list screen is rebuilt when the sidebar leaves Bookmarks and comes back, the
+/// detail column is not.
+@MainActor
+@Observable
+final class BookmarkSelection {
+    /// `MPStorageBookmark.id` of the bookmark opened beside the list; nil when none.
+    var id: String?
+}

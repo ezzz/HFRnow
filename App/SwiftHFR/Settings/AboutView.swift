@@ -20,35 +20,39 @@ struct AboutView: View {
     var body: some View {
         @Bindable var model = model
         List {
-            Section("Version") {
+            ThemedSection("Version") {
                 VersionRow()
             }
             Section {
-                ForEach(AboutTopicLink.allCases, id: \.self) { link in
-                    Button { model.selected = link } label: {
-                        HStack {
-                            Label(link.title, systemImage: "bubble.left.and.text.bubble.right")
-                                .foregroundStyle(Color.primary)
-                            Spacer()
-                            Image(systemName: "chevron.forward")
-                                .scaledFont(.footnote).fontWeight(.semibold)
-                                .foregroundStyle(.tertiary)
-                                .accessibilityHidden(true)
+                Group {
+                    ForEach(AboutTopicLink.allCases, id: \.self) { link in
+                        Button { model.selected = link } label: {
+                            HStack {
+                                Label(link.title, systemImage: "bubble.left.and.text.bubble.right")
+                                    .foregroundStyle(Color.primary)
+                                Spacer()
+                                Image(systemName: "chevron.forward")
+                                    .scaledFont(.footnote).fontWeight(.semibold)
+                                    .foregroundStyle(.tertiary)
+                                    .accessibilityHidden(true)
+                            }
                         }
                     }
-                }
+                }.themedListRow()
             } header: {
-                Text("Sujets HFR+")
+                Text("Sujets HFR+").themedSectionHeader()
             } footer: {
-                Text("Les sujets de l'app sur le forum, ouverts dans l'app.")
+                Text("Les sujets de l'app sur le forum, ouverts dans l'app.").themedSectionHeader()
             }
             Section {
-                NavigationLink { ChangelogView().appScreenBackground() } label: {
-                    Label("Nouveautés", systemImage: "sparkles")
-                }
-                NavigationLink { StaticPageView(page: .credits).appScreenBackground() } label: {
-                    Label(StaticPage.credits.title, systemImage: "info.circle")
-                }
+                Group {
+                    NavigationLink { ChangelogView().appScreenBackground() } label: {
+                        Label("Nouveautés", systemImage: "sparkles")
+                    }
+                    NavigationLink { StaticPageView(page: .credits).appScreenBackground() } label: {
+                        Label(StaticPage.credits.title, systemImage: "info.circle")
+                    }
+                }.themedListRow()
             }
         }
         .navigationTitle(StaticPage.credits.title)
@@ -72,10 +76,10 @@ struct ChangelogView: View {
         List {
             if let changelog {
                 if changelog.entries.isEmpty {
-                    ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles")
+                    ContentUnavailableView("Aucune nouveauté", systemImage: "sparkles").themedListRow()
                 }
                 ForEach(changelog.sections, id: \.self) { section in
-                    Section(section.title) {
+                    ThemedSection(verbatim: section.title) {
                         ForEach(Array(changelog.entries(in: section).enumerated()), id: \.offset) { _, entry in
                             Text(entry.summary).scaledFont(.body)
                         }

@@ -19,7 +19,7 @@ struct FavoriteActionHandler: MessageActionHandler {
     func perform(with context: MessageMenuContext) async {
         guard let link = context.actions.favoriteURL else { return }
         switch await actions.addFavorite(link: link) {
-        case .done(let message), .failed(let message): confirm(message)
+        case .done(let message), .failed(let message), .retryable(let message): confirm(message)
         }
     }
 }

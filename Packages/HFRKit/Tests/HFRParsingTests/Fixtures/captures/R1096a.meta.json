@@ -1,0 +1,16 @@
+{
+  "id": "R1096a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/setperso.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/setperso.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/setperso.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 07:43:08 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "#1096 colour page, anonymous",
+  "file": "R1096a-setperso-colour-page-anonymous.html",
+  "private": false
+}

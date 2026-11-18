@@ -359,7 +359,7 @@ extension ReaderWebController {
             self.running[key] = Task { [weak self] in
                 let result: Result<(data: Data, mimeType: String), ReaderImageFetcher.Failure>
                 do throws(ReaderImageFetcher.Failure) {
-                    result = .success(try await fetcher.image(at: imageURL, allowsThirdParty: allowsThirdParty))
+                    result = .success(try await fetcher.imagePreferringFullSize(at: imageURL, allowsThirdParty: allowsThirdParty))
                 } catch {
                     result = .failure(error)
                 }

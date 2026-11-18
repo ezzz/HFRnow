@@ -1,3 +1,5 @@
+import Foundation
+import HFRModels
 import HFRNetwork
 import UIKit
 
@@ -27,6 +29,22 @@ struct AccountRow: Sendable, Equatable, Identifiable {
     let avatar: UIImage?
     /// Session state.
     let status: AccountSessionStatus
+    /// When the stored login cookies lapse unless the forum renews them (LOT-156); nil when they carry no date.
+    var sessionExpiry: Date?
+}
+
+extension AccountRow {
+    /// The login cookies whose expiry ends the session: `md_user` and `md_passs`, each set for 30 days by the login and again by
+    /// the logged-in home page, followed list and profile page (HFR-PROTOCOL §6b, `W03`; doubled `Set-Cookie`, `R74`).
+    static let loginCookieNames: Set<String> = [HFRSession.identityCookieName, "md_passs"]
+
+    /// The earliest expiry of the login cookies in `cookies`, ignoring the `deleted` marker; nil when none carries a date.
+    static func sessionExpiry(in cookies: [StoredCookie]) -> Date? {
+        cookies
+            .filter { loginCookieNames.contains($0.name) && $0.value != HFRSession.loggedOutMarker }
+            .compactMap(\.expiresDate)
+            .min()
+    }
 }
 
 /// Which account a login is for.

@@ -74,8 +74,9 @@ struct ReaderOfflineMenuItems: View {
     }
 }
 
-/// One line on the state of a save.
-private struct OfflineSaveBanner: View {
+/// One line on the state of a save. A glass card like the reader's other floating confirmations
+/// (`ReaderMenuFeedbackBanner`, #545): the bare text let the first message lines ghost through it (#588).
+struct OfflineSaveBanner: View {
     let saver: OfflineSaveModel
 
     var body: some View {
@@ -86,6 +87,8 @@ private struct OfflineSaveBanner: View {
             if !saver.isSaving { Button("Fermer", systemImage: "xmark") { saver.dismiss() }.labelStyle(.iconOnly) }
         }
         .padding(.horizontal).padding(.vertical, 8)
+        .glassEffect(.regular, in: .rect(cornerRadius: 10)) // as `FilteredPostsBanner`: wrapped text keeps its corners
+        .padding(.horizontal).padding(.bottom, 4)
         .accessibilityElement(children: .combine)
     }
 }

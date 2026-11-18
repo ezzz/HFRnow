@@ -52,11 +52,15 @@ extension TopicListModel {
             removedFlags[topic.id] = rowActionSerial
         case .failed(let reason):
             actionFailure = reason
+        case .retryable(let reason):
+            retryableRemoval = topic
+            actionFailure = reason
         }
     }
 
     /// Hides the failure once read.
     func clearActionFailure() {
         actionFailure = nil
+        retryableRemoval = nil
     }
 }
