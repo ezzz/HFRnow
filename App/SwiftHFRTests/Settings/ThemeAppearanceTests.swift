@@ -52,8 +52,9 @@ struct ThemeAppearanceTests {
         let variables = Dictionary(uniqueKeysWithValues: appearance.readerVariables.map { ($0.name, $0.value) })
         #expect(variables["--app-action-light"] == "rgb(89, 227, 255)")
         #expect(variables["--app-action-dark"] == "rgb(73, 214, 242)")
-        // The standard style's surfaces (#1210) scaled by the slider: 150 % of the legacy grey and of its quote surface.
-        #expect(variables["--app-dark-background"] == appearance.adjustedDark(ThemeColor(hex: 0x2E2F33)).cssRGB)
+        // The standard style (#1210): the legacy grey page is capped at 100 % (no headroom for secondary text), its quote surface
+        // is scaled by the slider.
+        #expect(variables["--app-dark-background"] == "rgb(46, 47, 51)")
         #expect(variables["--app-dark-quote-background"] == appearance.adjustedDark(ThemeColor(hex: 0x26282F)).cssRGB)
         #expect(variables.count == 6)
     }
@@ -122,9 +123,10 @@ struct ThemeAppearanceTests {
 
     /// Acceptance criterion of #213: text, secondary text and the default night accent are at least 4.5:1 on every surface of the
     /// dark styles as the reader shows them (`readerSurfaces`), at 100 % and, for darker and OLED, at every brightness up to 150 %.
-    /// Standard above 100 % is LOT-121's slider (the legacy surfaces scaled up), not claimed here.
+    /// No style lifts its page or placeholder above 100 % (`readerSurface`): the standard style's legacy grey (#1210) has no headroom.
     @Test(arguments: [
-        (DarkStyle.standard, 1.0), (.darker, 1.0), (.darker, 1.25), (.darker, 1.5), (.oled, 1.0), (.oled, 1.25), (.oled, 1.5)
+        (DarkStyle.standard, 1.0), (.standard, 1.25), (.standard, 1.5), (.darker, 1.0), (.darker, 1.25), (.darker, 1.5),
+        (.oled, 1.0), (.oled, 1.25), (.oled, 1.5)
     ])
     func textHasAtLeast4_5ToOneOnEveryDarkSurface(style: DarkStyle, brightness: Double) {
         var appearance = ThemeAppearance.standard
@@ -184,9 +186,10 @@ struct ThemeAppearanceTests {
         func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
         let accent = [appearance.nightAccent.red, appearance.nightAccent.green, appearance.nightAccent.blue].map { $0 * 255 }
         let header = mix(channels, accent, 0.03)
-        // Opacity 0.75 blends the header and the text toward the page behind them.
+        // Opacity 0.75 blends the header and the text toward the page behind them. The date is the page text colour in dark since
+        // #1210 (`.message.continuation .date`): secondary text at 75 % measured 3.45:1 on the legacy grey.
         let shownHeader = mix(channels, header, 0.75)
-        let shownText = mix(channels, [161, 161, 166], 0.75)
+        let shownText = mix(channels, [242, 242, 247], 0.75)
         #expect(colour(shownText).contrast(with: colour(shownHeader)) >= 4.5, "\(style) at \(brightness): \(channels)")
     }
 
@@ -204,5 +207,10 @@ struct ThemeAppearanceTests {
         func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
         let placeholder = try channels("--app-dark-placeholder")
         #expect(ThemeAppearance.darkSecondaryText.contrast(with: colour(placeholder)) >= 4.5, "\(style) at \(brightness): quote surface")
+        // The folded quote's header is secondary text on 3 % of the text colour over the page (`--blocked-tint` in dark, `reader.css`):
+        // 5 % measured 4.4999:1 on the legacy grey.
+        let page = try channels("--app-dark-background")
+        let folded = zip(page, [242.0, 242, 247]).map { $0 * 0.97 + $1 * 0.03 }
+        #expect(ThemeAppearance.darkSecondaryText.contrast(with: colour(folded)) >= 4.5, "\(style) at \(brightness): folded quote")
     }
 }

@@ -66,9 +66,10 @@ struct ThemeAppearance: Equatable, Sendable {
     }
 
     /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is legacy's grey (#1210): the page is
-    /// `rgba(46, 47, 51)` (`style-liste-dark.css:263-266, 563-564` @ 87fe0d1c) and the quote surface its dark list row
-    /// `rgba(38, 40, 47)` (`:330`); the placeholder (secondary text keeps 4.5:1 on it) and the quiet separator are lifted to stay
-    /// apart from that grey. « Plus sombre » and OLED stay near black. These feed `reader.css`'s tokens: its message rule derives
+    /// `rgba(46, 47, 51)` (`style-liste-dark.css:263-266, 563-564` @ 87fe0d1c) and the quote surface another legacy dark surface,
+    /// `rgba(38, 40, 47)` (`#actualiserbtn` `:330`, `#toolbarpage` `:602`); the placeholder (secondary text keeps 4.5:1 on it) and the
+    /// quiet separator are lifted to stay apart from that grey. « Plus sombre » and OLED stay near black. These feed `reader.css`'s
+    /// tokens: its message rule derives
     /// from the text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background`
     /// is still sent but not read by the reader (a border-only quote, #819: legacy `style-liste.css:329-334`); it is kept for the
     /// settings tests.
@@ -189,11 +190,14 @@ struct ThemeAppearance: Equatable, Sendable {
     static let darkText = ThemeColor(hex: 0xF2F2F7)
     static let darkSecondaryText = ThemeColor(hex: 0xA1A1A6)
 
-    /// A reader surface at `darkBrightness`. The darker and OLED styles never lift the page background above their own value:
-    /// at 150 % the darker background (#0B0B0C) would put a continuation date (secondary text at 75 % opacity on the tinted
-    /// header) under 4.5:1 (CodeRabbit on #589); the slider still darkens it, and still scales the other surfaces.
+    /// A reader surface at `darkBrightness`. No style lifts the page background above its own value: at 150 % the darker background
+    /// (#0B0B0C) would put a continuation date (secondary text on the tinted header) under 4.5:1 (CodeRabbit on #589), and the
+    /// standard style's legacy grey (#2E2F33, #1210) has no headroom either (secondary text is 5.2:1 on it, 3.6:1 at 150 %). The
+    /// standard placeholder, which also carries secondary text, is capped the same way. The slider still darkens them, and still
+    /// scales the other surfaces.
     private func readerSurface(_ variable: String, _ color: ThemeColor) -> ThemeColor {
-        guard darkStyle != .standard, variable == "--app-dark-background", darkBrightness > 1 else { return adjustedDark(color) }
+        let cappedVariables = darkStyle == .standard ? ["--app-dark-background", "--app-dark-placeholder"] : ["--app-dark-background"]
+        guard cappedVariables.contains(variable), darkBrightness > 1 else { return adjustedDark(color) }
         var capped = self
         capped.darkBrightness = 1
         return capped.adjustedDark(color)
