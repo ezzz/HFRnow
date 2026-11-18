@@ -156,11 +156,10 @@ struct URLSessionTransportTests {
     }
 
     @Test func refusedConnectionIsATransportError() async throws {
-        let server = try makeServer { _ in ServerReply() }
-        let url = server.baseURL
-        server.stop()
+        let port = try RefusingPort()
+        defer { withExtendedLifetime(port) {} }
         do {
-            _ = try await makeTransport().send(.get(url))
+            _ = try await makeTransport().send(.get(port.baseURL))
             Issue.record("expected a failure")
         } catch {
             if case .transport = error { return }
