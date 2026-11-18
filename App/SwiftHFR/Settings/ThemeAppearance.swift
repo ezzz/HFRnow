@@ -65,14 +65,16 @@ struct ThemeAppearance: Equatable, Sendable {
         return ThemeColor(hue: hsb.hue, saturation: hsb.saturation, brightness: adjusted, alpha: color.alpha)
     }
 
-    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is the `reader.css` dark palette (LOT-083), so the
-    /// default is unchanged. These feed `reader.css`'s tokens: its message rule and alternate surface (#568) derive from the
-    /// text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background` is still sent but
-    /// not read by the reader (a border-only quote, #819: legacy
-    /// `style-liste.css:329-334`); it is kept for the settings tests.
+    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is legacy's grey (#1210): the page is
+    /// `rgba(46, 47, 51)` (`style-liste-dark.css:263-266, 563-564` @ 87fe0d1c) and the quote surface its dark list row
+    /// `rgba(38, 40, 47)` (`:330`); the placeholder (secondary text keeps 4.5:1 on it) and the quiet separator are lifted to stay
+    /// apart from that grey. « Plus sombre » and OLED stay near black. These feed `reader.css`'s tokens: its message rule derives
+    /// from the text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background`
+    /// is still sent but not read by the reader (a border-only quote, #819: legacy `style-liste.css:329-334`); it is kept for the
+    /// settings tests.
     static func readerDarkSurfaces(_ style: DarkStyle) -> [(variable: String, color: ThemeColor)] {
         let palette: [Int] = switch style {
-        case .standard: [0x000000, 0x1C1C1E, 0x2C2C2E, 0x38383A]
+        case .standard: [0x2E2F33, 0x26282F, 0x35363B, 0x4A4B50]
         case .darker: [0x0B0B0C, 0x17181A, 0x232326, 0x2E2E31]
         case .oled: [0x000000, 0x111113, 0x1C1C1E, 0x38383A]
         }

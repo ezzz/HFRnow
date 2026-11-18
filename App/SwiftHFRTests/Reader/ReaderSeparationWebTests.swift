@@ -4,118 +4,121 @@ import HFRModels
 import Testing
 import UIKit
 
-/// Message separation in the real reader (#568): the even message sits on a tint of the text colour, the rule below a message is
-/// stronger than the quiet separator, in light and in dark, and what sits inside a tinted message (the folded
-/// `quote-blocked` tint, the classic header band) is composed over `--background` so its small text keeps 4.5:1.
+/// Message separation in the real reader: no message has a background of its own, so neighbours never differ (#1210 removed the
+/// alternating tint of #568; legacy's dark CSS has none), and the rule below a message is still stronger than the quiet separator,
+/// in light and in dark, modern and classic.
 @MainActor
 @Suite(.serialized)
 struct ReaderSeparationWebTests: ReaderWebTesting {
-    /// Two messages, the second quoting someone, so the quote sits on an even (tinted) article.
     private func twoMessages(token: Int, style: ThemeStyle) -> ReaderDocument {
-        let plain = ReaderMessage(
-            numreponse: 1, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
-            dateText: "27-10-2026 10:00:00", editNote: nil, quotedByCount: nil, content: MessageContent(html: "<p>un</p>")
-        )
-        let quoted = ReaderMessage(
-            numreponse: 2, author: "autre", isDeleted: false, isContinuation: false, avatarURL: nil,
-            dateText: "27-10-2026 10:01:00", editNote: nil, quotedByCount: nil,
-            content: MessageContent(html: """
-                <table class="quote"><tr><td><p>cité</p></td></tr></table>
-                <table class="quote quote-blocked"><tr><td><b class="s1">masqué</b></td></tr></table><p>deux</p>
-                """)
-        )
-        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [plain, quoted])
+        func message(_ number: Int, _ text: String) -> ReaderMessage {
+            ReaderMessage(
+                numreponse: number, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil,
+                dateText: "27-10-2026 10:0\(number):00", editNote: nil, quotedByCount: nil, content: MessageContent(html: "<p>\(text)</p>")
+            )
+        }
+        let messages = [message(1, "un"), message(2, "deux"), message(3, "trois")]
+        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: messages)
         let html = TopicHTMLBuilder.document(for: page, token: token, options: ReaderRenderOptions(style: style))
         return ReaderDocument(token: token, html: html, anchor: nil, keepsScrollPosition: false)
     }
 
-    /// Rounded channels of: article 1 and 2 backgrounds, article 1's bottom rule, the quiet `--separator` (as a border colour, since the
-    /// app supplies it as rgb()), the plain quote's background, the folded quote's background colour, the classic header's background
-    /// colour (empty in modern); then [rule width, folded quote has a tint layer, header has a tint layer].
+    /// [alpha of each article's background (three of them), the first article's bottom rule width, its colour channels, the quiet
+    ///  `--separator` as a border colour (the app supplies it as rgb()), whether `--surface-alt` is still defined (1) or not (0)].
     private let probe = """
         // color-mix() computes to color(srgb 0.95 …) in some engines and rgb() in others: both become rounded 0-255 channels.
         const channels = (c) => {
             const m = c.match(/[\\d.]+/g).map(Number);
-            return c.startsWith('color(') ? m.slice(0, 3).map((v) => Math.round(v * 255)) : m;
+            return c.startsWith('color(') ? m.slice(0, 3).map((v) => Math.round(v * 255)) : m.slice(0, 3);
         };
-        const articles = document.querySelectorAll('article.message');
-        const first = getComputedStyle(articles[0]), second = getComputedStyle(articles[1]);
-        const quote = getComputedStyle(articles[1].querySelector('table.quote'));
-        const blocked = getComputedStyle(articles[1].querySelector('table.quote-blocked'));
-        const header = getComputedStyle(articles[1].querySelector('.header'));
-        const classic = document.body.classList.contains('style-classic');
+        const alpha = (c) => {
+            if (c === 'transparent') { return 0; }
+            const m = c.match(/[\\d.]+/g).map(Number);
+            return m.length > 3 ? m[3] : 1;
+        };
+        const articles = [...document.querySelectorAll('article.message')];
+        const first = getComputedStyle(articles[0]);
         const quiet = document.createElement('div');
         quiet.style.cssText = 'border-top: 1px solid var(--separator)';
         document.body.appendChild(quiet);
         const separator = getComputedStyle(quiet).borderTopColor;
         quiet.remove();
-        return JSON.stringify([channels(first.backgroundColor), channels(second.backgroundColor), channels(first.borderBottomColor),
-                               channels(separator), channels(quote.backgroundColor), channels(blocked.backgroundColor),
-                               classic ? channels(header.backgroundColor) : [],
-                               [parseFloat(first.borderBottomWidth), blocked.backgroundImage === 'none' ? 0 : 1,
-                                header.backgroundImage === 'none' ? 0 : 1]]);
+        const alt = getComputedStyle(document.documentElement).getPropertyValue('--surface-alt').trim();
+        return JSON.stringify([articles.map((a) => alpha(getComputedStyle(a).backgroundColor)),
+                               parseFloat(first.borderBottomWidth), channels(first.borderBottomColor), channels(separator),
+                               alt === '' ? 0 : 1]);
         """
 
-    /// RGB channels may differ by 1 (engines round a colour mix differently); alpha and the border width must be exact, so a
-    /// 0 px rule cannot pass for a 1 px one.
-    private func matches(_ seen: String?, _ expected: [[Double]]) -> Bool {
-        guard let data = seen?.data(using: .utf8), let values = try? JSONDecoder().decode([[Double]].self, from: data),
-              values.count == expected.count else { return false }
-        return zip(values, expected).enumerated().allSatisfy { index, pair in
-            let (got, want) = pair
-            let isWidth = index == expected.count - 1
-            return got.count == want.count && zip(got, want).enumerated().allSatisfy { channel, values in
-                abs(values.0 - values.1) <= (isWidth || channel == 3 ? 0 : 1)
-            }
+    private struct Seen: Decodable {
+        let alphas: [Double]
+        let width: Double
+        let rule: [Double]
+        let quiet: [Double]
+        let altDefined: Double
+
+        init(from decoder: any Decoder) throws {
+            var container = try decoder.unkeyedContainer()
+            alphas = try container.decode([Double].self)
+            width = try container.decode(Double.self)
+            rule = try container.decode([Double].self)
+            quiet = try container.decode([Double].self)
+            altDefined = try container.decode(Double.self)
         }
     }
 
-    private func read(
-        style: UIUserInterfaceStyle, theme: ThemeStyle = .modern, token: Int, expected: [[Double]]
-    ) async -> (Bool, String) {
+    private func read(style: UIUserInterfaceStyle, theme: ThemeStyle, token: Int) async -> Seen? {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = style
         controller.show(twoMessages(token: token, style: theme))
-        guard await until({ recorder.ready == [token] }) else { return (false, "not ready: \(recorder.ready)") }
-        let matched = await until(async: { self.matches(try? await self.evaluate(self.probe, in: controller) as? String, expected) })
-        return (matched, ((try? await evaluate(probe, in: controller)) as? String) ?? "")
+        guard await until({ recorder.ready == [token] }) else { return nil }
+        let json = (try? await evaluate(probe, in: controller)) as? String ?? ""
+        return try? JSONDecoder().decode(Seen.self, from: Data(json.utf8))
     }
 
-    // 0x1C1C1E at 5 % over white: 244; rule at 25 %: 198,198,199 (the quiet separator is #d1d1d6: lighter);
-    // the plain quote has no fill (#819): it shows the tinted message, where --secondary stays above 4.5:1 (5 % tint: 4.8:1).
-    @Test func inLightTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
-        let (matched, seen) = await read(
-            style: .light, token: 1,
-            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [0, 0, 0, 0], [255, 255, 255], [], [1, 1, 0]]
-        )
-        #expect(matched, "seen: \(seen)")
+    private func check(style: UIUserInterfaceStyle, theme: ThemeStyle, token: Int, rule: [Double], quiet: [Double]) async {
+        guard let seen = await read(style: style, theme: theme, token: token) else {
+            Issue.record("the reader did not answer")
+            return
+        }
+        #expect(seen.alphas == [0, 0, 0], "no message has a background of its own: \(seen.alphas)")
+        #expect(seen.altDefined == 0, "--surface-alt no longer exists")
+        #expect(seen.width == 1, "the message rule is still there: \(seen.width)")
+        // RGB channels may differ by 1 (engines round a colour mix differently).
+        #expect(zip(seen.rule, rule).allSatisfy { abs($0 - $1) <= 1 }, "rule: \(seen.rule)")
+        #expect(zip(seen.quiet, quiet).allSatisfy { abs($0 - $1) <= 1 }, "quiet separator: \(seen.quiet)")
+        #expect(seen.rule != seen.quiet, "the message rule is stronger than the quiet separator")
     }
 
-    // 0xF2F2F7 at 9 % over black: 22; rule at 35 %: 85,85,86, against the app's quiet separator rgb(56, 56, 58);
-    // the plain quote has no fill (#819): it shows the tinted message (8 : 1 or more for its --secondary header).
-    @Test func inDarkTheSecondMessageIsTintedAndTheRuleIsStrongerThanTheQuietSeparator() async {
-        let (matched, seen) = await read(
-            style: .dark, token: 2,
-            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0, 0], [0, 0, 0], [], [1, 1, 0]]
-        )
-        #expect(matched, "seen: \(seen)")
+    // Rule at 25 % of 0x1C1C1E over white: 198,198,199, against the quiet separator #d1d1d6.
+    @Test func inLightNoMessageHasATintAndTheRuleIsStrongerThanTheQuietSeparator() async {
+        await check(style: .light, theme: .modern, token: 1, rule: [198, 198, 199], quiet: [209, 209, 214])
     }
 
-    // Classic: the 15 % accent band of an even header is a tint layer over --background (date at 4.5:1 or more).
-    @Test func inClassicLightTheEvenHeaderBandSitsOverTheBackground() async {
-        let (matched, seen) = await read(
-            style: .light, theme: .classic, token: 3,
-            expected: [[0, 0, 0, 0], [244, 244, 244], [198, 198, 199], [209, 209, 214], [0, 0, 0, 0], [255, 255, 255],
-                       [255, 255, 255], [1, 1, 1]]
-        )
-        #expect(matched, "seen: \(seen)")
+    // Rule at 35 % of 0xF2F2F7 over the legacy grey #2E2F33 (#1210): the page is no longer black, so the rule is lighter than the
+    // 85,85,86 of the black page; the quiet separator is the standard style's `--app-dark-separator` when the app sets it, else
+    // the CSS fallback #38383a. Only the relations are pinned here, the exact values belong to `ThemeAppearanceTests`.
+    @Test func inDarkNoMessageHasATintAndTheRuleIsStrongerThanTheQuietSeparator() async {
+        guard let seen = await read(style: .dark, theme: .modern, token: 2) else {
+            Issue.record("the reader did not answer")
+            return
+        }
+        #expect(seen.alphas == [0, 0, 0], "no message has a background of its own: \(seen.alphas)")
+        #expect(seen.altDefined == 0, "--surface-alt no longer exists")
+        #expect(seen.width == 1, "the message rule is still there: \(seen.width)")
+        #expect(seen.rule != seen.quiet)
+        #expect(zip(seen.rule, seen.quiet).allSatisfy { $0 > $1 }, "the rule is lighter than the separator: \(seen.rule) / \(seen.quiet)")
     }
 
-    @Test func inClassicDarkTheEvenHeaderBandSitsOverTheBackground() async {
-        let (matched, seen) = await read(
-            style: .dark, theme: .classic, token: 4,
-            expected: [[0, 0, 0, 0], [22, 22, 22], [85, 85, 86], [56, 56, 58], [0, 0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 1, 1]]
-        )
-        #expect(matched, "seen: \(seen)")
+    @Test func inClassicLightNoMessageHasATint() async {
+        await check(style: .light, theme: .classic, token: 3, rule: [198, 198, 199], quiet: [209, 209, 214])
+    }
+
+    @Test func inClassicDarkNoMessageHasATint() async {
+        guard let seen = await read(style: .dark, theme: .classic, token: 4) else {
+            Issue.record("the reader did not answer")
+            return
+        }
+        #expect(seen.alphas == [0, 0, 0], "no message has a background of its own: \(seen.alphas)")
+        #expect(seen.width == 1)
     }
 }

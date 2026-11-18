@@ -61,7 +61,7 @@ The quote rule is `textPrimary` and `textSecondary` (a quote's header) on `quote
 
 Optional tokens for table-like themes fall back to the tokens above, so a theme that omits them is unchanged (LOT-193): `headerBand` → `surfaceRaised`, `alternateCell` → `surface`, `meta` → `textSecondary`, `pageBar` → `surfaceRaised`, `counter` → `textSecondary`. Any other name is an error.
 
-The reader receives tokens through CSS variables on the LOT-121/122 path (LOT-188 adds `--app-theme-light-*`, `--app-theme-dark-*` and `--app-theme-font`, read only while `<html>` carries `data-app-theme`; the page is `surface`); #568's derived tokens (`--surface-alt`, `--separator-strong`) stay derived. User colours of the reader (`theme_*_color_love`, `_superfavori`) remain user settings, not tokens.
+The reader receives tokens through CSS variables on the LOT-121/122 path (LOT-188 adds `--app-theme-light-*`, `--app-theme-dark-*` and `--app-theme-font`, read only while `<html>` carries `data-app-theme`; the page is `surface`); #568's derived `--separator-strong` stays derived (its alternating `--surface-alt` is gone, #1210). User colours of the reader (`theme_*_color_love`, `_superfavori`) remain user settings, not tokens.
 
 ## 4. Decorations
 

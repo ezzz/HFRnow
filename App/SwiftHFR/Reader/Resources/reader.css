@@ -16,14 +16,13 @@
   --love: #ffe6f5;
   --love-border: #ff0099;
   --modo: #ffeeee;
-  /* Message separation (#568): the even messages sit on a tint of the text colour over the background, so the surface follows
-     light, dark, the dark brightness slider and the classic style. The rule is a tint too, stronger than --separator: the app sets
-     --app-dark-separator on every reader, so the rule cannot reuse it (--separator stays for the quiet dashed lines inside a
-     message). Legacy drew a near-black 1 px rule above each message (style-liste-light.css:153-160). */
-  --alt-strength: 5%;
+  /* Message separation (#568, without its alternating tint since #1210: legacy has none): a 1 px rule below each message, a tint of
+     the text colour over the background, so it follows light, dark, the dark brightness slider and the classic style. It is
+     stronger than --separator: the app sets --app-dark-separator on every reader, so the rule cannot reuse it (--separator
+     stays for the quiet dashed lines inside a message). Legacy drew a near-black 1 px rule above each message
+     (style-liste-light.css:153-160). */
   --rule-strength: 25%;
   --separator-strong: color-mix(in srgb, var(--text) var(--rule-strength), var(--background));
-  --surface-alt: color-mix(in srgb, var(--text) var(--alt-strength), var(--background));
   /* Legacy message body (#819, legacy @ 87fe0d1c). Text: legacy passes 15 pt times the picker factor through `UIFontMetrics(.body)` (`MessagesView.swift:3376-3381`,
      `Common.swift:314-322`) and injects it (`:669-684`), i.e. 15/17 of the user's Dynamic Type body, times the in-app scale (LOT-169). Indent of the body text in the modern style: it starts
      under the pseudo, which sits one avatar (2.2em) and one gap (0.5em) after the header's edge (legacy 52 px next to a 30 px avatar,
@@ -39,27 +38,22 @@
   :root {
     --text: #f2f2f7;
     --secondary: #a1a1a6;
-    --background: var(--app-dark-background, #000000);
+    --background: var(--app-dark-background, #2e2f33);
     --separator: var(--app-dark-separator, #38383a);
     --quote-border: #636366;
     --action: var(--app-action-dark, #0a84ff);
     --placeholder: var(--app-dark-placeholder, #2c2c2e);
     --love: #4d0831;
     --modo: #4a2e3c;
-    --alt-strength: 9%;
     --rule-strength: 35%;
     --silhouette: #636366;
     --silhouette-background: #2c2c2e;
   }
 }
 
-/* Increase Contrast: a stronger tint and rule (HIG, Accessibility: colours must hold in light, dark and increased contrast).
-   Light stops at 7 %, not 10 %: --secondary on a 10 % surface is 4.27:1, under 4.5:1 (7 %: 4.55:1). */
+/* Increase Contrast: a stronger rule (HIG, Accessibility: colours must hold in light, dark and increased contrast). */
 @media (prefers-contrast: more) {
-  :root { --alt-strength: 7%; --rule-strength: 50%; }
-}
-@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  :root { --alt-strength: 16%; --rule-strength: 50%; }
+  :root { --rule-strength: 50%; }
 }
 
 /* --app-* are the "Thème" settings (LOT-121): both accents and the dark surfaces at the chosen brightness, set on <html> by the
@@ -100,8 +94,6 @@ a { color: var(--action); }
   font-size: 0.7em; font-weight: 600; line-height: 1.3; white-space: nowrap;
 }
 .message { padding: 0.6em 1em 0; border-bottom: 1px solid var(--separator-strong); }
-/* `nth-of-type` counts articles only, so the dashed `div.separator1` between pages does not shift the alternation. */
-article.message:nth-of-type(even) { background: var(--surface-alt); }
 .message .header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.25em; }
 .message .avatar { width: 2.2em; height: 2.2em; border-radius: 50%; object-fit: cover; flex: none; }
 /* The avatar and its silhouette share one box (issues #595, #819): the picture covers the silhouette, which shows alone when the member
@@ -177,8 +169,6 @@ hr { visibility: hidden; height: 12px; margin: 0; }
 hr:last-child { display: none; }
 /* No rule above or below a quote (#1038): legacy draws the left bar only (`style-liste-dark.css:296-300` @ 87fe0d1c). */
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
-/* Without a fill a quote shows the message's own surface, even messages included: --secondary on the 5 % tint is 4.55:1 or more
-   (see --alt-strength above). */
 b.s1 { font-size: 0.85em; color: var(--secondary); }
 b.s1 a { color: var(--text); font-weight: 700; }
 
@@ -258,13 +248,6 @@ a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top
 .style-modern .message.me .content, .style-modern .message.whitelist .content { padding-left: calc(var(--indent) + 0.5em); }
 .message.whitelist .header { background: color-mix(in srgb, var(--love) 40%, transparent); border-left-color: var(--love-border); }
 .style-classic .message.whitelist .header { background: var(--love); }
-/* Classic header on an even message: the 15 % accent band over --background, so the date (--secondary) keeps 4.5:1 (it measured 4.48:1
-   light, 4.32:1 with Increase Contrast, over --surface-alt). Equal specificity to the classic rules above, which it follows. */
-.style-classic .message:where(:nth-of-type(even)) .header,
-.style-classic .message.me:where(:nth-of-type(even)) .header {
-  --tint: color-mix(in srgb, var(--action) 15%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
 .message.whitelist .avatar { box-sizing: border-box; border: 2px solid var(--love-border); }
 .message.whitelist .content { background: color-mix(in srgb, var(--love) 40%, transparent); border-left: 2px solid var(--love-border); padding-left: 0.6em; }
 .style-classic .message.whitelist .content { background: var(--love); }
@@ -272,22 +255,6 @@ a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top
 table.quote-me { background: color-mix(in srgb, var(--action) 3%, transparent); border-left: 2px solid var(--action); }
 table.quote-allowed { background: color-mix(in srgb, var(--love) 30%, transparent); border-left: 2px solid var(--love-border); }
 table.quote-blocked { background: color-mix(in srgb, var(--text) 5%, transparent); }
-/* On an even message the three tints sit over --background, not over --surface-alt: the folded quote header (--secondary, 0.85rem)
-   measured 4.30:1 on tinted-over-tinted in light (4.13:1 with Increase Contrast), under 4.5:1. The same tint is a gradient layer over
-   the page colour; :where() keeps the specificity of the rules above, and these come after them. */
-:where(article.message:nth-of-type(even)) table.quote-me {
-  --tint: color-mix(in srgb, var(--action) 3%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
-:where(article.message:nth-of-type(even)) table.quote-allowed {
-  --tint: color-mix(in srgb, var(--love) 30%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
-:where(article.message:nth-of-type(even)) table.quote-blocked {
-  --tint: color-mix(in srgb, var(--text) 5%, transparent);
-  background: linear-gradient(var(--tint), var(--tint)), var(--background);
-}
-
 /* A blocklisted author's message is a one-line summary until opened (native <details>, no script). */
 .message.blocked { padding: 0; }
 .message.blocked .blocked-post > :not(summary) { margin-left: 1em; margin-right: 1em; }
@@ -317,7 +284,7 @@ table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { 
 
 /* A gallery theme (LOT-188, THEMES.md §3): the app sets --app-theme-{light,dark}-* and data-app-theme on <html>
    (ThemeAppearance.readerScript); Legacy removes the attribute, so none of the rules below applies and its page is the one above.
-   The page is the theme's surface; #568's --surface-alt and --separator-strong stay derived from --text and --background. */
+   The page is the theme's surface; #568's --separator-strong stays derived from --text and --background. */
 :root[data-app-theme] {
   --text: var(--app-theme-light-text);
   --secondary: var(--app-theme-light-secondary);
@@ -351,7 +318,7 @@ table.quote-blocked.quote-hide-author:not(.open) > * > tr > td > b.s1::before { 
   }
 }
 /* :where() keeps these at the specificity of the rules they extend, and they come last: `b.s1 a` (a quote's author) keeps
-   --text, a [code] block keeps its own background on an even message instead of stepping back to the page, and a quote inside a
+   --text, a [code] block keeps its own background instead of stepping back to the page, and a quote inside a
    spoiler writes --text on its own background, not the spoiler's text. --app-theme-font is the theme's design (unset: the
    declaration is invalid and the body keeps the system family it inherits). */
 :where(:root[data-app-theme]) body { font-family: var(--app-theme-font); }
