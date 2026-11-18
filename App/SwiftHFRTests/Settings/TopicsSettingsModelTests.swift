@@ -52,7 +52,7 @@ struct TopicsSettingsModelTests {
     }
 
     @Test func theTitlesAreLegacys() {
-        #expect(ReplyButtonBehavior.allCases.map(\.title) == ["Réponse rapide", "Répondre comme le forum", "Pas d'icône"])
+        #expect(ReplyButtonBehavior.allCases.map(\.title) == ["Réponse rapide", "Répondre comme le forum", "Pas d’icône"])
     }
 
     /// LOT-118: "Masquer les pseudos blacklistés" reads and writes the legacy key.
@@ -63,5 +63,29 @@ struct TopicsSettingsModelTests {
         model.hidesBlocklisted = true
         #expect(store.rawValue(forKey: "blacklist_hide_pseudo") == .bool(true))
         #expect(TopicsSettingsModel(store: store).hidesBlocklisted)
+    }
+
+    /// #1062: one sentence per « Bouton + » choice in the info bubble; the code gives `quick` and `forum` the same reply
+    /// (LOT-086), so the texts say the draft and the quotes, and that only the icon differs.
+    @Test func everyReplyButtonChoiceHasItsOwnExplanation() {
+        let texts = ReplyButtonBehavior.allCases.map(\.explanation)
+        #expect(texts.allSatisfy { !$0.isEmpty })
+        #expect(Set(texts).count == texts.count)
+        #expect(ReplyButtonBehavior.quick.explanation.contains("brouillon"))
+        #expect(ReplyButtonBehavior.quick.explanation.contains("citations"))
+        #expect(ReplyButtonBehavior.forum.explanation.contains("seule l’icône change"))
+        #expect(ReplyButtonBehavior.hidden.explanation.contains("« Citer »"))
+    }
+
+    /// The bubble marks the default, and only it: the one a fresh install stores (« Répondre comme le forum », #1016).
+    @Test func theBubbleMarksTheDefaultChoiceAndOnlyIt() {
+        #expect(ReplyButtonBehavior.allCases.filter(\.isDefault) == [.forum])
+        #expect(TopicsSettingsModel(store: InMemorySettingsStore()).replyButton == .forum)
+    }
+
+    /// Pins the wording of the button's accessibility label (the operator's text). It does not prove that the row draws the
+    /// button: that needs the device check (no view-inspection tool, and a hosted test could not be run without a Mac).
+    @Test func theInfoButtonLabelIsThePinnedWording() {
+        #expect(ReplyButtonRow.infoLabel == "À propos du bouton +")
     }
 }

@@ -293,6 +293,17 @@ final class TopicReaderModel {
         linkedReader = nil
     }
 
+    /// Closes every reader links opened above this one. A detail column that replaces this reader calls it first: SwiftUI keeps
+    /// what was pushed on the column's stack when only the stack's identity changes, so the new reader would open under the
+    /// old pushed one (#512, `SidebarDetailHostedTests`).
+    func closeLinkedReaders() {
+        var covered: TopicReaderModel? = self
+        while let shown = covered {
+            covered = shown.linkedReader
+            shown.closeLinkedReader()
+        }
+    }
+
     /// What the reply composer needs from the page on screen; nil when the page offers no answer form (logged out, locked
     /// topic: `#repondre_form` is absent, LOT-033), names no topic (the draft is kept per topic), or its answer link names
     /// another topic.

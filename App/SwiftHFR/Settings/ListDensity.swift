@@ -23,7 +23,8 @@ enum ListDensity: Sendable {
         }
     }
 
-    /// Outer side margin (screen edge to card) of an inset-grouped list: nil keeps the system's (about 20 pt), compact halves it.
+    /// Outer side margin of an inset-grouped list: the distance from the safe-area edge to the card. Nil keeps the system's
+    /// (about 20 pt), compact halves it.
     var outerMargin: CGFloat? {
         switch self {
         case .regular: nil
@@ -96,22 +97,31 @@ enum ListDensity: Sendable {
 extension EnvironmentValues {
     /// The density of every list; the app root sets it from the "Mode compact" setting.
     @Entry var listDensity = ListDensity.regular
-    /// Left edge of the cards of the enclosing list, in its `densityList` coordinate space (set by `densityListMargins`).
+    /// Window x of the left edge of the cards of the enclosing list (set by `densityListMargins`).
     @Entry var densityCardEdge: CGFloat = 0
 }
 
 /// Sets the outer side margin of a list from the density; a nil margin is the system layout, so the list keeps its identity
-/// (scroll position, row state) when the density changes. Also tells the headers where the cards start.
+/// (scroll position, row state) when the density changes. Also tells the headers where the cards start, in window coordinates:
+/// a section header is hosted apart from the list, so a coordinate space named on the list never reaches it (measured, #979).
+///
+/// #832: a scroll content margin replaces the system's side inset, safe area included, so in landscape the card slid under
+/// the notch while its rows kept the safe area inside it. The margins add the safe inset back; the list's frame already starts
+/// past it (measured: x = 62 under a 62 pt left inset), so the card edge is the frame's x plus the margin, nothing more.
 private struct DensityListMargins: ViewModifier {
     @Environment(\.listDensity) private var density
     @State private var safeLeading: CGFloat = 0
+    @State private var safeTrailing: CGFloat = 0
+    @State private var originX: CGFloat = 0
 
     func body(content: Content) -> some View {
         content
-            .contentMargins(.horizontal, density.outerMargin, for: .scrollContent)
-            .coordinateSpace(.named("densityList"))
+            .contentMargins(.leading, density.outerMargin.map { $0 + safeLeading }, for: .scrollContent)
+            .contentMargins(.trailing, density.outerMargin.map { $0 + safeTrailing }, for: .scrollContent)
             .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.leading } action: { safeLeading = $0 }
-            .environment(\.densityCardEdge, (density.outerMargin ?? 0) + safeLeading)
+            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.trailing } action: { safeTrailing = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { originX = $0 }
+            .environment(\.densityCardEdge, originX + (density.outerMargin ?? 0))
     }
 }
 
@@ -126,16 +136,28 @@ private struct DensityRowMargin: ViewModifier {
 
 /// Moves a section header's content onto the density's inner margin. A header takes the system's inset, whatever it is
 /// (16 pt, 20 pt in wide columns): the modifier measures where the header starts and moves it from there.
+///
+/// #979: both ends are window x, so a list moved as a whole (the parallax of a pushed screen) keeps its shift. The shift is also
+/// capped: it measures the view it pads, so a shift that squeezed the header past its content would move what it measures, and
+/// the header would chase itself forever on the main thread (the Favoris freeze, compact density, list under a pushed screen).
 private struct DensityHeaderMargin: ViewModifier {
     @Environment(\.listDensity) private var density
     @Environment(\.densityCardEdge) private var cardEdge
     @State private var systemX: CGFloat?
 
+    /// The most a header moves: the system's header inset (16 or 20 pt) is the whole distance to the card's inner margin.
+    static let maximumShift: CGFloat = 20
+
+    /// The move from the header's measured start `systemX` to `target`, within `maximumShift`.
+    static func shift(from systemX: CGFloat, to target: CGFloat) -> CGFloat {
+        min(max(target - systemX, -maximumShift), maximumShift)
+    }
+
     func body(content: Content) -> some View {
-        let shift = systemX.flatMap { x in density.rowSideInset.map { cardEdge + $0 - x } } ?? 0
+        let shift = systemX.flatMap { x in density.rowSideInset.map { Self.shift(from: x, to: cardEdge + $0) } } ?? 0
         content
             .padding(.horizontal, shift)
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("densityList")).minX } action: { systemX = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { systemX = $0 }
     }
 }
 

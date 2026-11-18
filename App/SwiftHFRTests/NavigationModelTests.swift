@@ -41,6 +41,55 @@ struct NavigationModelTests {
         #expect(model.reader(for: topic) === opened)
     }
 
+    /// #512: a row menu's page of the topic on screen keeps the selection, so the detail stack only changes identity, which leaves
+    /// what a link pushed on top (`SidebarDetailHostedTests`): opening it closes every reader the links had opened.
+    @Test func openingARowAtAPageClosesTheReadersLinksOpened() throws {
+        let model = NavigationModel(dataSource: FakeDataSource())
+        model.selectedSource = .favorites
+        let topic = topicSummary(1)
+        model.selectedTopic = topic
+        let first = try #require(model.reader(for: topic))
+        let topicID = TopicID(category: .forum(13), topic: 1)
+        first.follow(ReaderTarget(source: .topic(topicID), page: 4))
+        let linked = try #require(first.linkedReader)
+        linked.follow(ReaderTarget(source: .topic(topicID), page: 5))
+        #expect(linked.linkedReader != nil)
+        model.open(topic, at: TopicOpening(target: ReaderTarget(source: .topic(topicID), page: 2)))
+        #expect(first.linkedReader == nil)
+        #expect(linked.linkedReader == nil)
+    }
+
+    /// #1089 review finding 1: whatever drops or changes the selection drops the reader with what its links pushed, so the old
+    /// root view leaves (its `onDisappear` skips a reader that still covers itself) and the topic reopens fresh.
+    @Test(arguments: ["nil", "another", "source"])
+    func droppingTheSelectionDropsTheReaderAndItsLinkedReaders(change: String) throws {
+        let model = NavigationModel(dataSource: FakeDataSource())
+        model.selectedSource = .favorites
+        let topic = topicSummary(1)
+        model.selectedTopic = topic
+        let first = try #require(model.reader(for: topic))
+        first.follow(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 1)), page: 4))
+        switch change {
+        case "nil": model.selectedTopic = nil
+        case "another": model.selectedTopic = topicSummary(2)
+        default: model.selectedSource = .flagged
+        }
+        #expect(first.linkedReader == nil)
+        #expect(model.reader(for: topic) !== first)
+    }
+
+    /// The same topic selected again (a list reload hands a new summary of it) keeps its reader and the page a link pushed.
+    @Test func reselectingTheSameTopicKeepsTheReader() throws {
+        let model = NavigationModel(dataSource: FakeDataSource())
+        model.selectedSource = .favorites
+        model.selectedTopic = topicSummary(1)
+        let first = try #require(model.reader(for: topicSummary(1)))
+        first.follow(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 1)), page: 4))
+        model.selectedTopic = topicSummary(1, title: "Titre mis à jour")
+        #expect(model.reader(for: topicSummary(1)) === first)
+        #expect(first.linkedReader != nil)
+    }
+
     @Test func aPageAskedForOneTopicIsNotUsedForAnother() throws {
         let model = NavigationModel(dataSource: FakeDataSource())
         model.selectedSource = .favorites

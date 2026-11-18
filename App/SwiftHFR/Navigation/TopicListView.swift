@@ -10,7 +10,10 @@ import UIKit
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
 // `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
 // Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
-// `MainWindow` (GAP-027, GAP-227).
+// `MainWindow` (GAP-027, GAP-227). #1073: the inset-grouped style is explicit, as Catégories and Messages. Legacy sets no style
+// (`Favorites.swift:666`, `MainWindow.swift:663` @ 87fe0d1c) and paints its palette behind the list (`.scrollContentBackground(.hidden)`,
+// `Favorites.swift:744-745`, `MainWindow.swift:789-790`); its iPad look is not measured (87fe0d1c does not build). Here the automatic
+// style was a plain list in an iPad column (measured), unlike Catégories and Messages; the iPad choice waits on #648 (GAP-1073).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -35,7 +38,7 @@ struct TopicListView: View {
     @State private var pageText = ""
 
     var body: some View {
-        let loader = model.loader
+        let loader = counting(.body, model.loader, title: titleVisibility)
         List(selection: $selection) {
             if titleStyle == .largeThenPill {
                 ScreenLargeTitle(title: model.source.navigationTitle, visibility: titleVisibility)
@@ -55,6 +58,7 @@ struct TopicListView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped) // explicit: the automatic style is a plain list in an iPad column (#1073)
         .densityListMargins()
         .screenTitle(model.source.navigationTitle, style: titleStyle, visibility: titleVisibility)
         .seasonalScrollTracking()
@@ -83,6 +87,8 @@ struct TopicListView: View {
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
             ToolbarItemGroup(placement: .topBarTrailing) {
+                // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
+                if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
                 if let composer, let target = model.newTopicTarget {
                     Button { newTopic = ReplyComposerModel(composing: .newTopic(target), services: composer) } label: {
                         Label("Nouveau sujet", systemImage: "plus")
@@ -108,7 +114,13 @@ struct TopicListView: View {
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
-            Button("OK", role: .cancel) {}
+            // The row is captured here: the alert clears the model's state before a button's action runs (LOT-087).
+            if let topic = model.retryableRemoval {
+                Button("Réessayer") { Task { await model.removeFlag(topic) } }
+                Button("Annuler", role: .cancel) {}
+            } else {
+                Button("OK", role: .cancel) {}
+            }
         } message: {
             Text(model.actionFailure ?? "")
         }
@@ -145,7 +157,7 @@ struct TopicListView: View {
 
     private func rows(_ topics: [TopicSummary]) -> some View {
         ForEach(topics) { topic in
-            let isSuper = model.isSuperFavorite(topic)
+            let isSuper = counting(.row(topic.id), model.isSuperFavorite(topic))
             TopicRowView(
                 topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
                 flagIsTinted: TopicListView.flagPills(for: model.source)
@@ -236,7 +248,7 @@ struct TopicListView: View {
 
     /// A category header with its topic count and, when the section has topics, the fold chevron (legacy `sectionHeader`).
     private func header(_ group: TopicGroup, title: String) -> some View {
-        HStack {
+        counting(.header(group.id), HStack {
             if let source = group.opens, let openCategory {
                 let speech = TopicRowCues.sectionTitleSpeech(title)
                 Button { openCategory(source) } label: { Text(title).foregroundStyle(.primary).sectionTitleWeight(titleWeight) }
@@ -263,7 +275,7 @@ struct TopicListView: View {
                 .accessibilityLabel(group.isCollapsed ? "Déplier \(title)" : "Plier \(title)")
             }
         }
-        .densityHeaderMargin()
+        .densityHeaderMargin())
     }
 
     @ViewBuilder
@@ -271,6 +283,9 @@ struct TopicListView: View {
         if let content = loader.value {
             if content.isEmpty, let reason = content.emptyReason {
                 EmptyListView(reason: reason, refresh: model.refresh)
+            } else if model.showsNoUnreadFavorites, let favorites = model.favorites {
+                // Nothing unread only when no row is: an unread row inside a folded section is hidden, not absent.
+                NoUnreadTopicsView(options: favorites)
             } else if model.allSectionsHidden, let favorites = model.favorites {
                 AllSectionsCollapsedView(options: favorites)
             }

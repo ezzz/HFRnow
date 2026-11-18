@@ -1,4 +1,5 @@
 import Foundation
+import HFRClient
 import HFRModels
 import HFRNetwork
 import HFRParsing
@@ -37,10 +38,45 @@ struct LivePrivateMessageSourceTests {
         #expect(await rig.anonymous.requests.isEmpty)
         let listURL = "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2"
         let oracle = try PrivateMessageListParser.parse(try #require(String(data: body, encoding: .utf8)), pageURL: listURL)
-        #expect(page.threads.count == oracle.threads.count)
+        // R13u1 holds the MPStorage row, which the source hides (#1074): every other row is there, in order.
+        #expect(page.threads == oracle.hidingStorageThread().threads)
+        #expect(page.threads.count == oracle.threads.count - 1)
         #expect(page.threads.contains { $0.isGroup })
         #expect(page.threads.contains { $0.isUnread })
         #expect(page.threads.allSatisfy { ReaderTarget(opening: $0.summary) != nil })
+    }
+
+    /// Every path that turns the list into rows or counts reads the live source (#1075 map): the Messages model in both
+    /// display modes and segments (`recordReadState` reads the same page), the background check's seen set and the notification plan.
+    @MainActor
+    @Test func theStorageThreadIsHiddenOnEveryPathThatReadsTheList() async throws {
+        let body = try LiveTopicPageSourceTests.capture("R13u1-mp-list-recipient-unread.html")
+        let html = try #require(String(data: body, encoding: .utf8))
+        let all = try PrivateMessageListParser.parse(html, pageURL: "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
+        let storage = try #require(all.threads.first { MPStoragePageParser.isStorageSubject($0.summary.title) })
+        let storageTopic = try #require(storage.summary.topicID?.topic)
+        let page = try await rig(replying: body).source.privateMessages(page: 1)
+        #expect(!page.threads.contains { MPStoragePageParser.isStorageSubject($0.summary.title) })
+
+        let source = FakePrivateMessages()
+        source.handler = { _ in page }
+        for display in [MPListDisplay.single, .split] {
+            for segment in MPSegment.allCases {
+                let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages())
+                model.display = display
+                model.segment = segment
+                await model.onAppear()
+                #expect(!model.visibleThreads.contains { $0.summary.topicID?.topic == storageTopic })
+            }
+        }
+        // R13u1's storage row is read for the member, so the seen set is checked on a page where it is unread: the
+        // background check's ledger input (`MPBackgroundCheck`) would hold it without the filter.
+        var unreadStorage = all
+        let index = try #require(unreadStorage.threads.firstIndex { $0.id == storage.id })
+        unreadStorage.threads[index].summary.readState = .unread
+        #expect(MPNotificationLedger.seenSummary(of: unreadStorage).unreadThreads?.contains(storageTopic) == true)
+        #expect(MPNotificationLedger.seenSummary(of: unreadStorage.hidingStorageThread()).unreadThreads?.contains(storageTopic) != true)
+        #expect(MPNotificationPlan.make(newThreads: [storageTopic], in: page).isEmpty)
     }
 
     /// The 457-page thread of `R13u1` (new post at `page=457…#bas`): the row opens the reader on its last page, and only

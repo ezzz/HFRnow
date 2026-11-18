@@ -229,9 +229,14 @@ enum TopicHTMLBuilder {
     private static func trailer(of message: ReaderMessage) -> String {
         var lines: [String] = []
         if let note = message.editNote, !note.isEmpty { lines.append("Message édité par \(HTMLEscaping.text(note))") }
-        if let count = message.quotedByCount, count > 0 { lines.append("Message cité \(count) fois") }
-        guard !lines.isEmpty else { return "" }
-        return "<footer class=\"trailer\">" + lines.map { "<p>\($0)</p>" }.joined() + "</footer>\n"
+        // Legacy's count bubble (`LinkItem.m:237-238`, `.quotedhfrlink` of `style-liste.css:419-431` @ 87fe0d1c), at the right of the
+        // footer. Legacy made it a link to HFR's `quote_only=1` page; that page is not captured (#126), so it is inert here.
+        var bubble = ""
+        if let count = message.quotedByCount, count > 0 {
+            bubble = "<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité \(count) fois\">\(count)</span>"
+        }
+        guard !lines.isEmpty || !bubble.isEmpty else { return "" }
+        return "<footer class=\"trailer\">" + lines.map { "<p>\($0)</p>" }.joined() + bubble + "</footer>\n"
     }
 
     /// Display name of a video provider.

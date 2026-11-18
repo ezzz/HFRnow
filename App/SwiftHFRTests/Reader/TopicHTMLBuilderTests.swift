@@ -88,8 +88,29 @@ struct TopicHTMLBuilderTests {
         trailed.avatarURL = url("https://forum-images.hardware.fr/a.png")
         let html = TopicHTMLBuilder.document(for: page([trailed]), token: 1)
         #expect(html.contains("Message édité par auteur le 27-10-2026"))
-        #expect(html.contains("Message cité 3 fois"))
+        #expect(html.contains("<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité 3 fois\">3</span>"))
+        // The count is a bubble now (#1039): the text line of before is gone.
+        #expect(!html.contains("<p>Message cité"))
         #expect(html.contains("<img class=\"avatar\" src=\"https://forum-images.hardware.fr/a.png\" alt=\"\">"))
+    }
+
+    @Test func aMessageNeverQuotedHasNoBubble() {
+        var quiet = message()
+        quiet.quotedByCount = 0
+        #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("quoted-bubble"))
+        quiet.quotedByCount = nil
+        #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("quoted-bubble"))
+        #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("<footer class=\"trailer\">"))
+    }
+
+    /// Port of `LinkItem.m:237-238` @ 87fe0d1c without its link: where `quote_only=1` leads is not captured (#126), so the
+    /// bubble is inert text, never an anchor the reader would route to the in-app browser.
+    @Test func theBubbleIsNotALink() {
+        var cited = message()
+        cited.quotedByCount = 1
+        let html = TopicHTMLBuilder.document(for: page([cited]), token: 1)
+        #expect(html.contains("aria-label=\"Message cité 1 fois\">1</span>"))
+        #expect(!html.contains("quote_only"))
     }
 
     @Test func aVideoIsAPlaceholderThatNamesNoProviderURL() {

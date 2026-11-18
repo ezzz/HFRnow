@@ -1,6 +1,7 @@
 import Foundation
 import HFRClient
 import HFRModels
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
@@ -206,6 +207,26 @@ struct TopicReaderQuoteTests {
         await model.requestReply()
         #expect(quoter.selectionLinks == [replyFormURL])
         #expect(model.pendingReply?.quote == ReplyQuote(text: "blocs", release: QuoteRelease(token: quoteToken(100), numbers: [101, 100])))
+    }
+
+    /// #1062: the sentences of the « Bouton + » bubble say the reply button opens the topic's draft with the selected quotes
+    /// added, whatever the choice (`quick` and `forum` call this same method): the reader's request, then the composer it opens.
+    /// It joins two behaviours that are tested apart (`requestReply` here, the merge in `ReplyComposerQuoteTests`), so it passes
+    /// without the #1062 change by design: it backs the sentences, it does not test the bubble.
+    @Test func theReplyButtonAddsItsQuotesToTheKeptDraft() async throws {
+        let quoter = ScriptedQuoter(selected: [100])
+        quoter.scriptSelection(.success(prefill))
+        let model = await reader(quoter: quoter)
+        await model.requestReply()
+        let drafts = DraftStore(persistence: InMemoryDraftPersistence())
+        try await drafts.save("Mon brouillon", subject: nil, for: replyTarget.draftContext, account: ComposerFixture.account)
+        var services = ComposerFixture.services(poster: ScriptedPoster([]), drafts: drafts)
+        services.quoting = quoter
+        let composer = ReplyComposerModel(
+            composing: .reply(replyTarget), services: services, autosaveDelay: .seconds(60), quote: model.pendingReply?.quote
+        )
+        await composer.start()
+        #expect(composer.text == "Mon brouillon\n\n" + prefill)
     }
 
     @Test func aFailedMultiQuoteStillOpensTheComposerAndKeepsTheSelection() async {

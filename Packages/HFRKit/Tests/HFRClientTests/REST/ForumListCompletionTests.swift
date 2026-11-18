@@ -5,7 +5,7 @@ import Testing
 @testable import HFRClient
 @testable import HFRParsing
 
-/// LOT-168: every sub-forum HFR has, the home page first, the REST sub-categories (`R285a`-`R285c`) completing it; the
+/// LOT-168: every sub-forum HFR has, the home page first, the REST sub-categories (`R285a`-`R285c`, `R929a`-`R929d`) completing it; the
 /// injection table checked against those captures.
 @Suite("Forum list completeness (LOT-168)")
 struct ForumListCompletionTests {
@@ -13,7 +13,11 @@ struct ForumListCompletionTests {
     static let captured: [Captured] = [
         Captured(category: 1, file: RESTCapture.subcategories1, id: "R285a"),
         Captured(category: 2, file: RESTCapture.subcategories2, id: "R285b"),
-        Captured(category: 10, file: RESTCapture.subcategories10, id: "R285c")
+        Captured(category: 10, file: RESTCapture.subcategories10, id: "R285c"),
+        Captured(category: 14, file: RESTCapture.subcategories14, id: "R929a"),
+        Captured(category: 4, file: RESTCapture.subcategories4, id: "R929b"),
+        Captured(category: 12, file: RESTCapture.subcategories12, id: "R929c"),
+        Captured(category: 6, file: RESTCapture.subcategories6, id: "R929d")
     ]
 
     struct Captured {
@@ -78,6 +82,32 @@ struct ForumListCompletionTests {
         #expect(completed.map(\.title) == cooling.map(\.title) + ["Divers"])
     }
 
+    @Test("Categories 14, 4, 12, 6 (#929): the page, injections included, already lists every REST row; nothing is added")
+    func injectedCategories() throws {
+        let forums = try Self.home()
+        // cat → (REST count, injected titles of the table in that category).
+        let expected: [Int: (count: Int, injected: [String])] = [
+            14: (10, ["Divers"]), 4: (12, ["Win 9x/Me"]),
+            12: (10, ["Concours", "Ressources", "Divers"]), 6: (11, ["Divers", "Règles et coutumes"])
+        ]
+        for (category, want) in expected {
+            let home = try #require(forums.first { $0.categoryID == .forum(category) }).subforums
+            let file = try #require(Self.captured.first { $0.category == category }).file
+            let rows = try Self.rest(file, category: category)
+            let completed = ForumListCompletion.complete(home, with: rows)
+            #expect(rows.count == want.count, "cat \(category)")
+            #expect(completed.count == rows.count, "cat \(category)")
+            let pageKeys = Set(home.map { ForumListCompletion.key($0.title) })
+            #expect(want.injected.allSatisfy { pageKeys.contains(ForumListCompletion.key($0)) }, "cat \(category)")
+            #expect(completed.filter { home.contains($0) } == home, "cat \(category)")
+            // The page already holds every REST row: the completion adds nothing and changes no order.
+            #expect(completed == home, "cat \(category)")
+            // The injected entries are REST rows by title, not only page entries.
+            let restKeys = Set(rows.map { ForumListCompletion.key($0.title) })
+            #expect(want.injected.allSatisfy { restKeys.contains(ForumListCompletion.key($0)) }, "cat \(category)")
+        }
+    }
+
     @Test("Titles match across spellings; a REST title seen twice needs two page links; an empty REST list changes nothing")
     func matching() {
         let home = [Self.link("ADA"), Self.link("Divers"), Self.link("Mémoire")]
@@ -100,7 +130,10 @@ struct ForumListCompletionTests {
 
     @Test("Every injected sub-forum of a captured category is in its REST list, and the table no longer holds PDA or Biblio Links")
     func injectionsAgainstCapture() throws {
-        let slugs = [1: "Hardware", 2: "OverclockingCoolingModding", 10: "Programmation"]
+        let slugs = [
+            1: "Hardware", 2: "OverclockingCoolingModding", 10: "Programmation",
+            14: "Photonumerique", 4: "WindowsSoftware", 12: "Graphisme", 6: "AchatsVentes"
+        ]
         var checked = 0
         for entry in Self.captured {
             let (category, file) = (entry.category, entry.file)
@@ -113,8 +146,10 @@ struct ForumListCompletionTests {
                 }
             }
         }
-        // Hardware 1, Overclocking 1, Programmation 14 (PDA and Biblio Links removed).
-        #expect(checked == 16)
+        // Hardware 1, Overclocking 1, Programmation 14 (PDA and Biblio Links removed), Photo 1, Windows 1, Graphisme 3,
+        // Achats & Ventes 2: the whole table, 23 entries.
+        #expect(checked == 23)
+        #expect(checked == SubforumInjection.all.reduce(0) { $0 + $1.before.count + $1.after.count })
         #expect(!SubforumInjection.all.flatMap { $0.before + $0.after }.contains { ["PDA", "Biblio Links"].contains($0.title) })
     }
 
@@ -137,13 +172,13 @@ struct ForumListCompletionTests {
     @Test("completingSubforums: one captured GET per category with an id, no cookie; a category without id is left as is")
     func client() async throws {
         let forums = try Self.home()
-        let chosen = try [1, 2, 10].map { cat in try #require(forums.first { $0.categoryID == .forum(cat) }) }
+        let chosen = try Self.captured.map { entry in try #require(forums.first { $0.categoryID == .forum(entry.category) }) }
         let unknown = ForumCategory(categoryID: nil, title: "Nouveau", path: "/hfr/Nouveau/liste_sujet-1.htm", subforums: [Self.link("X")])
         let replies = try Self.captured.map { Result<HTTPResponse, NetworkError>.success(try RESTCapture.response($0.file, id: $0.id)) }
-        let run = await Self.run(replies, forums: [chosen[0], unknown, chosen[1], chosen[2]])
+        let run = await Self.run(replies, forums: [chosen[0], unknown] + chosen.dropFirst())
         let result = try run.result.get()
-        #expect(result.map(\.title) == [chosen[0].title, "Nouveau", chosen[1].title, chosen[2].title])
-        #expect(result.map(\.subforums.count) == [15, 1, 7, 27])
+        #expect(result.map(\.title) == [chosen[0].title, "Nouveau"] + chosen.dropFirst().map(\.title))
+        #expect(result.map(\.subforums.count) == [15, 1, 7, 27, 10, 12, 10, 11])
         #expect(result[0].path == chosen[0].path && result[3].categoryID == .forum(10))
         #expect(run.requests.map(\.url.absoluteString) == (try Self.captured.map { try Capture.meta($0.id).url }))
         #expect(run.requests.allSatisfy { $0.headers["Cookie"] == nil && $0.redirectPolicy == .doNotFollow })

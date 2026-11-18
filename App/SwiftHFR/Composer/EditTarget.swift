@@ -1,4 +1,5 @@
 import Foundation
+import HFRClient
 import HFRModels
 import HFRParsing
 import HFRStorage
@@ -39,6 +40,8 @@ struct EditPrefill: Equatable, Sendable {
     /// The `subcat` select of a public first post (`R63b`), its option marked `selected` preselected; nil when the form has none
     /// (a later post sends its hidden `subcat`, `R62a`, a private thread has neither, `R43a`).
     let subcategories: NewTopicOptions?
+    /// The form can add a poll to the topic: a public first post whose topic has none (`R63b`, LOT-100).
+    let offersPoll: Bool
 }
 
 extension EditPrefill {
@@ -48,5 +51,6 @@ extension EditPrefill {
         subject = form.isSubjectEditable ? form.field(named: "sujet")?.value ?? "" : nil
         let select = form.select(named: "subcat")
         subcategories = select.map { NewTopicOptions(subcategories: form.subcategories, preselected: $0.effectiveValue) }
+        offersPoll = form.offersPollCreation
     }
 }

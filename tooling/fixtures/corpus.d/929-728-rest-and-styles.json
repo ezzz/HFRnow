@@ -1,0 +1,8 @@
+{"captures": [
+  {"raw": "R929c14", "id": "R929a", "slug": "rest-subcategories-cat14", "ext": "json", "private": false},
+  {"raw": "R929c4", "id": "R929b", "slug": "rest-subcategories-cat4", "ext": "json", "private": false},
+  {"raw": "R929c12", "id": "R929c", "slug": "rest-subcategories-cat12", "ext": "json", "private": false},
+  {"raw": "R929c6", "id": "R929d", "slug": "rest-subcategories-cat6", "ext": "json", "private": false},
+  {"raw": "R728s", "id": "R728a", "slug": "stylesheet-default-skin", "ext": "css", "private": false},
+  {"raw": "R728c", "id": "R728b", "slug": "stylesheet-static-the-style", "ext": "css", "private": false}
+]}

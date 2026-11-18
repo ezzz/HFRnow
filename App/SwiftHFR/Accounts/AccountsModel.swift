@@ -436,7 +436,8 @@ extension AccountsModel {
         rows = book.accounts.map { account in
             AccountRow(
                 id: account.pseudo, displayName: account.displayName, isMain: account.isMain,
-                avatar: avatar(for: account), status: statuses[account.pseudo] ?? .restored
+                avatar: avatar(for: account), status: statuses[account.pseudo] ?? .restored,
+                sessionExpiry: AccountRow.sessionExpiry(in: account.cookies)
             )
         }
         noteCurrentSession()

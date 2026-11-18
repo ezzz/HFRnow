@@ -29,6 +29,15 @@ final class RootModel {
     let blocklistSync: BlocklistSyncModel?
     /// The unread private messages count the list pages of this session announced, newest first (#762).
     let privateMessageCount: PrivateMessageCount
+    /// The app icon badge reads 0, not "leave it", until a page gives this root's count (LOT-156): true for a root built
+    /// logged out or after the account changed, where the icon still shows another account's count.
+    let clearsIconBadgeBeforeCount: Bool
+    /// Bookmarks and Alertes Qualitay on the regular-width iPad: the reader of the topic a row opened, shown in the detail column
+    /// beside the list, one per entry so each keeps its own (legacy `bookmarksTopicTarget`, `qualityAlertsTopicTarget`,
+    /// `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
+    private(set) var detailReaders: [PlusEntry: TopicReaderModel] = [:]
+    /// The bookmark open in the Bookmarks detail column (LOT-132): kept here, as the reader is, so the list finds it again.
+    let bookmarkSelection = BookmarkSelection()
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -107,8 +116,9 @@ final class RootModel {
         search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
         mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount(),
-        blocklistSync: BlocklistSyncModel? = nil
+        blocklistSync: BlocklistSyncModel? = nil, clearsIconBadgeBeforeCount: Bool = false
     ) {
+        self.clearsIconBadgeBeforeCount = clearsIconBadgeBeforeCount
         self.mpStorage = mpStorage
         self.blocklistSync = blocklistSync
         self.privateMessageCount = privateMessageCount
@@ -195,8 +205,19 @@ final class RootModel {
                 renderOptions: environment.reader.settings.renderOptions, store: store
             ),
             store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage, privateMessageCount: count,
-            blocklistSync: Self.blocklistSync(environment, mpStorage: mpStorage)
+            blocklistSync: Self.blocklistSync(environment, mpStorage: mpStorage),
+            clearsIconBadgeBeforeCount: Self.clearsIconBadgeBeforeCount(accountName: environment.currentAccountName, initial: initial)
         )
+    }
+
+    /// Whether a root clears the icon badge until a page gives its count (LOT-156), as legacy's account switch and logout reset
+    /// `nb_mp` to 0 (`MultisManager.m:107-123`, `:155-166`; `HFRplusAppDelegate.m:704-706`, `:788-793` @ 87fe0d1c). Logged
+    /// out, no page ever gives one, and the icon would keep the last account's count. A root rebuilt on a new session (`initial`
+    /// set: a switch, a login, a logout) is another account's, or the same one logged in again, whose count the next page gives.
+    /// Only the first root of a window, with an account, leaves the icon alone: the background check set it for that account
+    /// (GAP-192).
+    static func clearsIconBadgeBeforeCount(accountName: String?, initial: SidebarDestination?) -> Bool {
+        accountName == nil || initial != nil
     }
 
     /// The blocklist sync of the session's account (LOT-131): over the app's one list store, refreshing the reader's copy.
@@ -216,12 +237,27 @@ final class RootModel {
         return max(privateMessageCount.latest ?? 0, 0)
     }
 
+    /// Regular-width iPad: shows `reader` in the detail column of `entry`, a topic-list Plus entry, in place of what it showed (a
+    /// new stack: what a link had pushed there goes). Another entry is ignored: it has no detail column for a topic.
+    func openInDetail(_ reader: TopicReaderModel, for entry: PlusEntry) {
+        guard entry.usesTopicList else { return }
+        detailReaders[entry]?.closeLinkedReaders()
+        detailReaders[entry] = reader
+    }
+
+    /// Empties `entry`'s detail column: legacy's placeholder shows again (a deleted bookmark, `MainWindow.swift:2266-2271`).
+    func closeDetail(for entry: PlusEntry) {
+        detailReaders[entry]?.closeLinkedReaders()
+        detailReaders[entry] = nil
+    }
+
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
     /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).
     func showCategoryFromFavorites(_ category: TopicSource) {
         categories.topicFilter?.flag = .favorites
         categories.selectedSource = category
-        // Legacy clears the selected topic too: the detail column must not keep the previous reader.
+        // Legacy clears the selected topic too. Dropping the selection drops the reader and what its links pushed, even when the
+        // category was already open (`NavigationModel.selectedTopic`).
         categories.selectedTopic = nil
         selectedDestination = .tab(.categories)
     }
