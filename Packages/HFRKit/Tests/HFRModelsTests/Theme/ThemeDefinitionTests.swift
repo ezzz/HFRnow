@@ -133,7 +133,7 @@ import Testing
         for pair in [
             "link/quoteBackground", "link/codeBackground", "link/readerAlternate", "textSecondary/codeBackground",
             "accentText/codeBackground", "accentText/systemCard", "accentText/background", "meta/surface", "counter/surface",
-            "textSecondary/readerAlternate", "errorText/surface", "badgeOutline/surface"
+            "textSecondary/readerAlternate", "errorText/surface", "errorText/selection", "badgeOutline/surface"
         ] {
             #expect(names.contains(pair), "\(pair)")
         }
@@ -155,13 +155,15 @@ import Testing
         var json = try #require(try JSONSerialization.jsonObject(with: Self.fixture("test-theme")) as? [String: Any])
         var variants = try #require(json["variants"] as? [String: Any])
         var light = try #require(variants["light"] as? [String: Any])
-        // #303036 under #1C1C1E text, #5A5A60 secondary text and #0057B8 glyphs: all three under 4.5:1.
+        // #303036 under #1C1C1E text, #5A5A60 secondary text, #0057B8 glyphs and the #B00020 error text: all under 4.5:1.
         light["selection"] = "#303036"
         variants["light"] = light
         json["variants"] = variants
         let theme = try JSONDecoder().decode(ThemeDefinition.self, from: JSONSerialization.data(withJSONObject: json))
         let failures = Set(theme.contrastViolations.map { "\($0.variant) \($0.violation.rule.foreground)/\($0.violation.rule.background)" })
-        #expect(failures == ["light textPrimary/selection", "light textSecondary/selection", "light accentText/selection"])
+        #expect(failures == [
+            "light textPrimary/selection", "light textSecondary/selection", "light accentText/selection", "light errorText/selection"
+        ])
     }
 
     @Test func unknownKeysAndVariantsAreRefused() throws {

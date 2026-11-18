@@ -162,7 +162,8 @@ public struct ThemeTokens: Sendable, Hashable, Decodable {
         // (toolbar and plain buttons, empty-state actions).
         ("systemText", "background"), ("systemText", "surface"), ("accentText", "systemCard"), ("accentText", "background"),
         // Themed native lists (#842): a selected row's text, secondary text and tint glyphs on `selection`.
-        ("textPrimary", "selection"), ("textSecondary", "selection"), ("accentText", "selection"), ("errorText", "surface"),
+        ("textPrimary", "selection"), ("textSecondary", "selection"), ("accentText", "selection"),
+        ("errorText", "surface"), ("errorText", "selection"),
         ("badgeOutline", "surface"),
         // The reader: links and accents in quotes, spoilers and code, and every text of an even message.
         ("link", "quoteBackground"), ("link", "spoilerBackground"), ("link", "codeBackground"),

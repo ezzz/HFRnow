@@ -40,6 +40,7 @@ struct AccountDeletionView: View {
                         Button("Effacer les données de \(row.displayName)", systemImage: "trash", role: .destructive) {
                             pendingErase = row
                         }
+                        .foregroundStyle(.themedError)
                         .disabled(deletion.isErasing)
                     }
                     // Data of accounts no longer in the app ("Retirer", a wipe that failed in part).
@@ -47,6 +48,7 @@ struct AccountDeletionView: View {
                         Button("Effacer les données restantes de \(key)", systemImage: "trash", role: .destructive) {
                             pendingLeftover = key
                         }
+                        .foregroundStyle(.themedError)
                         .disabled(deletion.isErasing)
                     }
                     result
