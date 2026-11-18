@@ -251,6 +251,29 @@ final class RootModel {
         detailReaders[entry] = nil
     }
 
+    /// What the split root's detail column shows for the sidebar destination: one id per topic or conversation, nil when it
+    /// shows none (legacy `activeTopicTarget`, `MainWindow.swift:2093-2108` @ 87fe0d1c).
+    var splitDetailTopic: String? {
+        switch sidebarDestination {
+        case .tab(.categories): categories.selectedTopic?.id
+        case .tab(.favorites): favorites.selectedTopic?.id
+        case .tab(.messages): messages.selected?.id
+        case .plus(let entry): detailReaders[entry].map { "\(entry):\($0.requested.source)" }
+        case .tab(.more), .tab(.search): nil
+        }
+    }
+
+    /// A fold or an unfold of the iPhone Duo (or an iPad window crossing regular width) swapped the tab bar root and the split
+    /// root (legacy `handleRootSwap`, `MainWindow.swift:2140-2183` @ 87fe0d1c, and `FoldHandoffStore`). Both roots read this
+    /// model, so each list keeps its topic and the reader its page; only the readers a topic's links pushed are closed, as
+    /// legacy carries the reader at the root of a tab and not the ones pushed over it (`MessagesView.swift:3244-3272`).
+    func rootSwapped() {
+        categories.closeLinkedReaders()
+        favorites.closeLinkedReaders()
+        messages.closeLinkedReaders()
+        for reader in detailReaders.values { reader.closeLinkedReaders() }
+    }
+
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
     /// filter (legacy `showTopicsForForum(_, initialFlagOverride: .favorites)`, `MainWindow.swift:2221-2232` @ 87fe0d1c).
     func showCategoryFromFavorites(_ category: TopicSource) {
