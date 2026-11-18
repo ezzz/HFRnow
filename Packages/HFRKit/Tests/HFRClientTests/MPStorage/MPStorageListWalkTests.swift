@@ -103,11 +103,20 @@ struct MPStorageListWalkTests {
         #expect(await pages.asked.count == 2)
     }
 
-    @Test(arguments: ["https://www.hardware.fr/forum1.php?page=2", "http://forum.hardware.fr/forum1.php?page=2", "//evil.example/x"])
+    @Test(arguments: ["https://www.hardware.fr/forum1.php?page=2", "http://forum.hardware.fr:8080/forum1.php?page=2", "//evil.example/x"])
     func aNextLinkOffTheForumIsNotFollowed(next: String) async throws {
         let pages = Pages([Self.page(1, next: next)])
         #expect(await Self.walk(pages) == .failure(.unexpectedPage))
         #expect(await pages.asked.count == 1)
+    }
+
+    @Test("#1200 P5: an http next link on the forum is followed over https, never in clear")
+    func anHTTPNextLinkIsFollowedOverHTTPS() async throws {
+        let pages = Pages([
+            Self.page(1, next: "http://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2"), Self.page(2, next: nil)
+        ])
+        #expect(try await Self.walk(pages).get() == nil)
+        #expect(await pages.asked.last?.absoluteString == "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2")
     }
 
     @Test func stopsAtTheLimitWithoutSayingNotFound() async throws {
