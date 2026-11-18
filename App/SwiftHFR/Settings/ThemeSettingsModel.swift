@@ -235,7 +235,14 @@ private struct AppScreenBackground: ViewModifier {
     /// the structure; a change between Legacy and a theme, or between Legacy's styles, rebuilds, which the user asked for. One
     /// change is not the user's: Noël abusé (LOT-166) drawn over Legacy is a theme too, so its packing, once a year at the
     /// first launch from 27/12, rebuilds the screens it wraps when the elves are done.
-    @ViewBuilder func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
+        // #1120 (operator, 2026-11-18): every screen's top bar sits on Apple's soft scroll-edge effect, set once here because every
+        // screen root carries this modifier. Measured: the automatic style draws a hard-edged frosted band 116 pt tall; the soft
+        // one fades the content out toward the bar. No custom blur or material (#1070).
+        screen(content).scrollEdgeEffectStyle(.soft, for: .top)
+    }
+
+    @ViewBuilder private func screen(_ content: Content) -> some View {
         switch appearance.screenFill {
         case let .theme(light, dark):
             let fill = Color(uiColor: ThemeAppearance.dynamic(light: light, dark: dark))

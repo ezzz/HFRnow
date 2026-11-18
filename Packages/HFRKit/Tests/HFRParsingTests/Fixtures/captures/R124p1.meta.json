@@ -1,0 +1,21 @@
+{
+  "id": "R124p1",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/profilebdd.php?config=hfr.inc&pseudo=user3",
+  "url": "https://forum.hardware.fr/profilebdd.php?config=hfr.inc&pseudo=user3",
+  "final_url": "https://forum.hardware.fr/hfr/profil-910001.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:22:16 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/profil-910001.htm"
+    }
+  ],
+  "set_cookie_names": [],
+  "note": "Public profile of the author of the category-13 forum-rules sticky, logged in (user2), via the profilebdd link (status other than Membre?)",
+  "file": "R124p1-profile-super-admin-logged-in.html",
+  "private": false
+}

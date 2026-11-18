@@ -1,0 +1,16 @@
+{
+  "id": "R360d",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message-smi-mp-aj.php?config=hfr.inc&findsmilies=%C3%A9clair",
+  "url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=%C3%A9clair",
+  "final_url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=%C3%A9clair",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:15:19 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Smiley search with an accent (UTF-8 percent-encoded), user2",
+  "file": "R360d-smiley-search-accent.html",
+  "private": false
+}

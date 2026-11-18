@@ -30,7 +30,7 @@ Inputs: `AQConfiguration(baseURL:)` (R2: the app injects it; the legacy value is
 | `AQClient.newCount(in:since:)`, `isNew(_:since:)` | none | "new since" badge: `publishedAt >= lastCheck` |
 
 Rules:
-- Every request: GET, no body, timeout 20 s (legacy feed), body capped at 1 MiB (`T01` is 31 KB, `T02` 13 KB),
+- Every request: GET, no body, timeout 10 s (legacy feed: `HFRNetworkTimeout.content`, `Common.swift:1906-1908` @ 87fe0d1c, `AQPlusView.swift:73, 278`; it was 20 s here until LOT-133), body capped at 1 MiB (`T01` is 31 KB, `T02` 13 KB),
   `redirectPolicy: .doNotFollow`. A 3xx is `AQError.redirected`, a 4xx/5xx `AQError.http`, a transport failure `AQError.network`,
   a body that is not the expected document `AQError.invalidResponse` (never an empty list: legacy's `nil` meant "unknown").
 - **Host**: URLs are built from the configured base only; redirects are never followed, so no request leaves that host.
@@ -86,7 +86,7 @@ An addition (`existingAlertID` set) sends `alerte_qualitay_id`, `pseudo`, `post_
   (cookies are scoped by domain), but an AQ answer redirecting to a forum URL was followed with the session (R1). Requests now go through
   the cookie-less transport and stop at the AQ host.
 - A failed check is an error, not `nil` (same meaning, typed); a non-listing body is an error instead of "not reported".
-- The check timeout is 20 s (legacy: `URLSession` default, 60 s).
+- The check timeout is 10 s, as the feed's (legacy: `URLSession` default, 60 s).
 
 ## Tests (create)
 `AQCreateTests` (9 tests; 19 with `AQClientTests`, counting parameterized cases once): `T50`'s answer is a success with the exact request (URL, POST, field order, `from`,

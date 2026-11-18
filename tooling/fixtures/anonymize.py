@@ -901,7 +901,10 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
     ("profile header", r"<h4\b[^>]*>\s*Informations sur\s*:\s*([^<]+?)\s*</h4>", 1, "name"),
     ("profile pseudo", r"<td\b[^>]*\bclass=%sprofilCase2%s[^>]*>\s*Pseudo(?:&nbsp;|\s)*:\s*</td>\s*"
      r"<td\b[^>]*\bclass=%sprofilCase3%s[^>]*>([^<]*)</td>" % (_Q, _Q, _Q, _Q), 1, "inner"),
-    ("posts by pseudo path", r"/hfr/recherche/pseudo-([^\"'<>/?#\s]{1,240}?)\.htm\b", 1, "path"),
+    # HFR prints raw spaces in the pseudo here (live, #124), and a pseudo may hold an apostrophe, raw or as an
+    # entity (Fable review of batch B): only line breaks, tabs, quotes and URL delimiters end the name.
+    ("posts by pseudo path", r"/hfr/recherche/pseudo-((?:[^\"'<>/?#\t\r\n]|'|&#0*39;|&apos;){1,240}?)\.htm\b", 1,
+     "path"),
     # REST API (R57*): author objects.
     ("REST author", r"\"(?:last_)?author\"\s*:\s*\{[^{}]*?\"title\"\s*:\s*\"((?:[^\"\\]|\\.)*)\"", 1, "json"),
     # Alertes Qualitaÿ (aq.super-h.fr, T01/T02; legacy AQPlusView.swift, MessagesView.swift): the initiator
@@ -2048,7 +2051,8 @@ _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"),
     ("member id theme preview", r"\binitexemple(\d+)"))}
 _V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|newdest|dest|auteur|util)=([^&#\"<>\n]{0,120})", re.I)
-_V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
+# Raw spaces (#124) and apostrophes, raw or as an entity, belong to the pseudo (Fable review of batch B).
+_V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-((?:[^/?#\"'<>\t\r\n]|'|&#0*39;|&apos;)+)\.htm", re.I)
 # Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
 _V_PROFILE_PERSONAL = re.compile(r"(?:Email|Date de naissance|Sexe|Ville|Profession|Loisirs|Site\b.*|Homepage|"
                                  r"Citation personnelle.*|Signature des messages)$", re.I)
