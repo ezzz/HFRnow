@@ -51,23 +51,48 @@ struct ReaderUnderBarsTests {
         })
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
-        window.frame = scene.screen.bounds
+        window.frame = scene.effectiveGeometry.coordinateSpace.bounds
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true }
         host.view.layoutIfNeeded()
         let statusBar = window.safeAreaInsets.top
-        for _ in 0..<100 where (seen.insets?.top ?? 0) < statusBar + 44 || (seen.insets?.bottom ?? 0) < 44 {
+        for _ in 0..<100 where (seen.insets?.top ?? 0) < statusBar + 44 || Self.barButton(in: window, below: statusBar) == nil {
             try await Task.sleep(for: .milliseconds(20))
         }
+        // Let the bar's own contribution reach the page before reading it.
+        try await Task.sleep(for: .milliseconds(200))
         let insets = try #require(seen.insets)
         // At least a bar each (44 points), on top of what the window's own safe area adds (status bar, Dynamic Island).
         #expect(insets.top >= window.safeAreaInsets.top + 44, "top: \(insets.top), window: \(window.safeAreaInsets)")
-        // The system puts the bottom bar on the screen's bottom edge, or on its side on the iPhone Duo cover screen (a trailing
-        // safe-area inset of the window): the page must be handed it on whichever edge it sits.
-        let barEdge = max(insets.bottom, insets.leading, insets.trailing)
-        #expect(barEdge >= 44, "bottom bar: \(insets), window: \(window.safeAreaInsets)")
+        // The bottom bar itself must exist: its button is a real view below the top bar.
+        let button = try #require(Self.barButton(in: window, below: statusBar), "no bottom bar button in the window")
+        let reserved = window.safeAreaInsets
+        let screen = window.bounds
+        if max(reserved.left, reserved.right) >= 44 {
+            // The window already reserves a side for the system bars (the iPhone Duo cover screen moves the bottom bar there): the
+            // inset alone cannot show the bar, so the bar's button must sit inside that side band and the page gets the band.
+            let onTheRight = reserved.right >= reserved.left
+            let band = onTheRight ? reserved.right : reserved.left
+            #expect((onTheRight ? insets.trailing : insets.leading) >= band, "page \(insets), window: \(reserved)")
+            let frame = button.convert(button.bounds, to: nil)
+            let inBand = onTheRight ? frame.minX >= screen.width - band : frame.maxX <= band
+            #expect(inBand, "button \(frame) outside the \(band) pt side band")
+        } else {
+            #expect(insets.bottom >= 44, "bottom: \(insets.bottom), window: \(reserved)")
+            let frame = button.convert(button.bounds, to: nil)
+            #expect(frame.maxY > screen.height - insets.bottom, "button \(frame), page \(insets)")
+        }
         let safe = host.view.safeAreaInsets
         #expect(insets.bottom >= safe.bottom && insets.leading >= safe.left && insets.trailing >= safe.right, "\(insets), host: \(safe)")
+    }
+
+    /// The system's button of a bottom-bar item (`_UIButtonBarButton`), below the top bar.
+    private static func barButton(in view: UIView, below top: CGFloat) -> UIView? {
+        if String(describing: type(of: view)).contains("ButtonBarButton"), view.convert(view.bounds, to: nil).minY > top + 44 {
+            return view
+        }
+        for sub in view.subviews { if let found = barButton(in: sub, below: top) { return found } }
+        return nil
     }
 }

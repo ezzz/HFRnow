@@ -44,7 +44,7 @@ struct ComposerLayoutHostedTests {
             .environment(\.composerLayoutProbe, box.probe)
             .appTypography(TextScale(percent: 100), density: .regular)
         let window = UIWindow(windowScene: scene)
-        window.frame = scene.screen.bounds
+        window.frame = scene.effectiveGeometry.coordinateSpace.bounds
         window.rootViewController = UIHostingController(rootView: view)
         window.isHidden = false
         defer { window.isHidden = true }
