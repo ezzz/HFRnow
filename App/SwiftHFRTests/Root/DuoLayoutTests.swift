@@ -111,7 +111,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         return page
     }
 
-    private func host() throws -> Hosted {
+    private func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
         let data = FakeDataSource()
         data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
         let pages = FakeTopicPages { target in Self.page(for: target) }
@@ -121,8 +121,8 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
             favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
                                        startupSource: RootModel.favoritesStartupSource),
-            messages: MessageListModel(source: FakePrivateMessages()),
-            store: InMemorySettingsStore(), initial: .tab(.favorites)
+            messages: MessageListModel(source: FakePrivateMessages(), topicPages: pages),
+            store: InMemorySettingsStore(), initial: initial
         )
         let services = ReaderServices(
             imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
@@ -231,19 +231,22 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         root.favorites.selectedTopic = favoriteTopic(1)
         let reader = try #require(root.favorites.reader(for: favoriteTopic(1)))
         #expect(await settle(window) { reader.page != nil && shows("Sujet 1 p1", in: window) }, "\(stacks(in: window))")
+        // Away from the page the row opened, so a reload of the requested target could not pass for the page kept.
+        await reader.goToPage(3)
+        #expect(await settle(window) { shows("Sujet 1 p3", in: window) }, "\(stacks(in: window))")
         reader.follow(ReaderTarget(source: .topic(topic), page: 4))
         let linked = try #require(reader.linkedReader)
         #expect(await settle(window) { linked.page != nil && shows("Sujet 1 p4", in: window) }, "\(stacks(in: window))")
 
         fold(window, host: hosted.host)
-        let folded = await settle(window) { hasTabBar(window) && shows("Sujet 1 p1", in: window) }
+        let folded = await settle(window) { hasTabBar(window) && shows("Sujet 1 p3", in: window) }
         #expect(folded, "folded: tab bar \(hasTabBar(window)), \(stacks(in: window))")
         #expect(!shows("Sujet 1 p4", in: window), "the pushed reader was carried: \(stacks(in: window))")
         #expect(reader.linkedReader == nil)
         #expect(root.favorites.reader(for: favoriteTopic(1)) === reader, "the reader (and its page) was not kept")
 
         unfold(window, host: hosted.host)
-        let unfolded = await settle(window) { !hasTabBar(window) && split(in: window) != nil && shows("Sujet 1 p1", in: window) }
+        let unfolded = await settle(window) { !hasTabBar(window) && split(in: window) != nil && shows("Sujet 1 p3", in: window) }
         #expect(unfolded, "unfolded: tab bar \(hasTabBar(window)), \(stacks(in: window))")
         #expect(root.favorites.reader(for: favoriteTopic(1)) === reader)
     }
@@ -270,5 +273,48 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         try await Task.sleep(for: .milliseconds(500))
         #expect(!shows("Sujet 1 p1", in: window), "the closed topic came back: \(stacks(in: window))")
         #expect(root.favorites.selectedTopic == nil)
+    }
+
+    /// Catégories (a three-column split: forum list, topics, reader) and Messages keep their open topic on screen through a fold,
+    /// as Favoris does: legacy pushes it on the tab's stack (`handleRootSwap`, `MainWindow.swift:2173-2181` @ 87fe0d1c).
+    @Test(arguments: [RootTab.categories, .messages])
+    func aFoldShowsTheTopicOpenInTheTab(tab: RootTab) async throws {
+        let hosted = try host(initial: .tab(tab))
+        defer { hosted.window.isHidden = true }
+        let (window, root) = (hosted.window, hosted.root)
+        let title: String
+        if tab == .categories {
+            root.categories.selectedSource = .forum(.forum(13), title: "Catégorie 13")
+            root.categories.selectedTopic = favoriteTopic(1)
+            title = "Sujet 1 p1"
+        } else {
+            root.messages.selected = messageThread(7)
+            title = "Sujet 7 p1"
+        }
+        #expect(await settle(window) { split(in: window) != nil && shows(title, in: window) }, "\(tab): \(stacks(in: window))")
+
+        fold(window, host: hosted.host)
+        let folded = await settle(window) { hasTabBar(window) && shows(title, in: window) }
+        #expect(folded, "\(tab) folded: tab bar \(hasTabBar(window)), \(stacks(in: window))")
+    }
+
+    /// An unfold with a topic open in portrait builds the split with the topic alone, not three columns first (legacy keeps the
+    /// orientation in the root that outlives the swap, `MainWindow.swift:1361`): the first time the split is in the window, its
+    /// display mode is already the topic alone.
+    @Test func anUnfoldShowsTheTopicAloneFromTheFirstFrame() async throws {
+        let hosted = try host()
+        defer { hosted.window.isHidden = true }
+        let (window, root) = (hosted.window, hosted.root)
+        fold(window, host: hosted.host)
+        root.favorites.selectedTopic = favoriteTopic(1)
+        #expect(await settle(window) { hasTabBar(window) && shows("Sujet 1 p1", in: window) }, "\(stacks(in: window))")
+
+        unfold(window, host: hosted.host)
+        var first: UISplitViewController.DisplayMode?
+        _ = await settle(window) {
+            if let mode = split(in: window)?.displayMode { first = mode }
+            return first != nil
+        }
+        #expect(first == .secondaryOnly, "first display mode \(String(describing: first?.rawValue))")
     }
 }

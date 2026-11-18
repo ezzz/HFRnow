@@ -148,19 +148,25 @@ struct RootLayout: View {
     @Environment(\.horizontalSizeClass) private var horizontal
     @Environment(\.verticalSizeClass) private var vertical
     @Environment(\.rootLayoutIdiom) private var idiomOverride
+    /// Kept here, not in the split root, so an unfold builds the split already knowing the orientation (legacy `isPortraitLayout`,
+    /// `MainWindow.swift:1361`, `:1672-1676` @ 87fe0d1c).
+    @State private var isPortrait = false
 
     var body: some View {
-        let usesSidebarRoot = RootNavigationView.usesSidebarRoot(
-            idiom: idiomOverride ?? UIDevice.current.userInterfaceIdiom, horizontal: horizontal, vertical: vertical
-        )
+        let idiom = idiomOverride ?? UIDevice.current.userInterfaceIdiom
+        let usesSidebarRoot = RootNavigationView.usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
         Group {
             if usesSidebarRoot {
-                RootSidebarView(model: model, environment: environment)
+                RootSidebarView(
+                    model: model, environment: environment,
+                    detailOnlyTopic: DuoSplitColumns.prefersDetailOnlyTopic(idiom: idiom, isPortrait: isPortrait)
+                )
             } else {
                 RootTabsView(model: model, environment: environment)
             }
         }
         .environment(\.rootHasTabBar, !usesSidebarRoot)
+        .onGeometryChange(for: Bool.self) { $0.size.height > $0.size.width } action: { isPortrait = $0 }
         // A fold or an unfold of the iPhone Duo (or an iPad window crossing regular width) swaps the roots (legacy
         // `handleRootSwap`, `MainWindow.swift:1747-1749` @ 87fe0d1c).
         .onChange(of: usesSidebarRoot) { model.rootSwapped() }

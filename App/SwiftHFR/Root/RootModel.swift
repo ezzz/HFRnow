@@ -258,7 +258,7 @@ final class RootModel {
         case .tab(.categories): categories.selectedTopic?.id
         case .tab(.favorites): favorites.selectedTopic?.id
         case .tab(.messages): messages.selected?.id
-        case .plus(let entry): detailReaders[entry].map { "\(ObjectIdentifier($0))" }
+        case .plus(let entry): detailReaders[entry].map { "\(entry):\($0.requested.source)" }
         case .tab(.more), .tab(.search): nil
         }
     }

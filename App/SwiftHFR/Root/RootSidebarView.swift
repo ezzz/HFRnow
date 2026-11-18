@@ -13,17 +13,27 @@ struct RootSidebarView: View {
     let environment: AppEnvironment
     /// All columns at launch and not persisted: an intentional difference (legacy defaults to two columns and persists the
     /// choice, `MainWindow.swift:1351`, `:1434-1505`).
-    @State private var visibility = NavigationSplitViewVisibility.all
+    @State private var visibility: NavigationSplitViewVisibility
     @State private var compactColumn = NavigationSplitViewColumn.sidebar
-    @State private var isPortrait = false
-    @Environment(\.rootLayoutIdiom) private var idiomOverride
+    /// The Duo portrait rule (`DuoSplitColumns.prefersDetailOnlyTopic`), measured by `RootLayout`, which outlives a fold.
+    private let detailOnlyTopic: Bool
+
+    init(model: RootModel, environment: AppEnvironment, detailOnlyTopic: Bool = false) {
+        self.model = model
+        self.environment = environment
+        self.detailOnlyTopic = detailOnlyTopic
+        // An unfold builds this root with the topic already open: its first frame shows the topic alone in portrait, not three
+        // columns first (legacy keeps `isPortraitLayout` in the root that survives the swap, `MainWindow.swift:1361`).
+        _visibility = State(initialValue: DuoSplitColumns.visibility(
+            .all, detailOnlyTopic: detailOnlyTopic, wasDetailOnlyTopic: detailOnlyTopic, hasTopic: model.splitDetailTopic != nil
+        ))
+    }
 
     var body: some View {
         layout
             .filteredPosts(model.categories.filtering, reader: environment.reader)
             .filteredPosts(model.favorites.filtering, reader: environment.reader)
-            .onGeometryChange(for: Bool.self) { $0.size.height > $0.size.width } action: { isPortrait = $0 }
-            .onChange(of: detailLayout, initial: true) { old, new in
+            .onChange(of: detailLayout) { old, new in
                 visibility = DuoSplitColumns.visibility(
                     visibility, detailOnlyTopic: new.detailOnlyTopic, wasDetailOnlyTopic: old.detailOnlyTopic, hasTopic: new.hasTopic
                 )
@@ -32,12 +42,7 @@ struct RootSidebarView: View {
 
     /// What the column visibility follows: the Duo portrait rule, the topic on screen and the destination.
     private var detailLayout: DuoSplitColumns.Layout {
-        DuoSplitColumns.Layout(
-            detailOnlyTopic: DuoSplitColumns.prefersDetailOnlyTopic(
-                idiom: idiomOverride ?? UIDevice.current.userInterfaceIdiom, isPortrait: isPortrait
-            ),
-            topic: model.splitDetailTopic, destination: model.sidebarDestination
-        )
+        DuoSplitColumns.Layout(detailOnlyTopic: detailOnlyTopic, topic: model.splitDetailTopic, destination: model.sidebarDestination)
     }
 
     @ViewBuilder
@@ -207,7 +212,8 @@ private struct CategoriesSidebarColumn: View {
 
 /// The iPhone Duo's inner screen in portrait is too narrow for the list beside the topic: once a topic is open it takes the full
 /// width, and landscape shows list and topic again (legacy `prefersDetailOnlyTopic`, decision of 2026-11-01 in legacy,
-/// `MainWindow.swift:1390-1396` @ 87fe0d1c). An iPad never does.
+/// `MainWindow.swift:1390-1396` @ 87fe0d1c). An iPad never takes the topic alone by itself, but the rule that brings the list
+/// back when the topic goes applies to it too, as legacy's `ensureVisibleIPadListIfNeeded` (`:2281-2290`).
 enum DuoSplitColumns {
     /// What the column visibility is decided on, compared between two updates.
     struct Layout: Equatable {
