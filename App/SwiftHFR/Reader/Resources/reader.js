@@ -61,7 +61,19 @@
     img.replaceWith(button);
   };
 
+  // A YouTube card's thumbnail (#1037): shown only once it has loaded; refused, failed or not asked for (images on tap, no Wi-Fi,
+  // a blocked host), the card stays the pill the builder wrote, with no placeholder and no link text in its place.
+  const applyThumb = (img, src, decision) => {
+    const card = img.closest(".video-card");
+    const fail = () => { img.remove(); if (card) { card.classList.remove("has-thumb"); } };
+    if (decision !== "load") { fail(); return; }
+    img.addEventListener("load", () => { if (card) { card.classList.add("has-thumb"); } }, { once: true });
+    img.addEventListener("error", fail, { once: true });
+    img.setAttribute("src", proxied(src));
+  };
+
   const apply = (img, src, decision) => {
+    if (img.classList.contains("video-thumb")) { applyThumb(img, src, decision); return; }
     if (decision === "load") { load(img, src); }
     else if (decision === "tap") { placeholder(img, src); }
     else { replaceWithLink(img, src); }
@@ -75,6 +87,22 @@
       event.preventDefault();
       channel.postMessage({ type: "video", token, post: Number(video.dataset.post), index: Number(video.dataset.video) });
       return;
+    }
+    // The card of a plain YouTube link, or that link itself (same address, same message): the app opens it in the YouTube app or in
+    // Safari (#1037). Only the message's own text link counts: not one in a quote, a spoiler or a code block (a table), nor one around a
+    // picture (that tap is the picture's). The app checks the address again; nothing else of the page is sent.
+    const anchor = target.closest("a[href]");
+    if (anchor) {
+      const article = anchor.closest("article");
+      const href = anchor.getAttribute("href");
+      const isCard = anchor.classList.contains("video-card");
+      const isCardLink = anchor.matches(".content a.cLink") && !anchor.closest("table") && anchor.querySelector("img") === null
+        && article !== null && Array.from(article.querySelectorAll("a.video-card")).some((card) => card.getAttribute("href") === href);
+      if (isCard || isCardLink) {
+        event.preventDefault();
+        channel.postMessage({ type: "videolink", token, url: href });
+        return;
+      }
     }
     // A loaded posted picture opens the viewer (LOT-109). Smileys and avatars have no `hfrplusimg` class; a picture that is
     // still a placeholder or became a link is no longer an `img`, so it is not in the list the app receives.

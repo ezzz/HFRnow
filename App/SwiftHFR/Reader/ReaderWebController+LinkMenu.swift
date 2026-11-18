@@ -104,10 +104,9 @@ enum ReaderLinkMenu {
         guard let image = ImageGallery.build(
             sources: [url.absoluteString], selected: 0, consented: [url.absoluteString], autoLoadsThirdParty: false
         )?.images.first else { return "Impossible d'enregistrer cette image." }
-        var bytes = try? await fetcher.image(at: image.full, allowsThirdParty: image.allowsThirdParty, hostTable: .standard).data
-        if bytes == nil, image.full != image.shown {
-            bytes = try? await fetcher.image(at: image.shown, allowsThirdParty: image.allowsThirdParty, hostTable: .standard).data
-        }
+        let bytes = try? await fetcher.imagePreferringFullSize(
+            at: image.shown, allowsThirdParty: image.allowsThirdParty, hostTable: .standard
+        ).data
         guard let bytes else { return "Erreur réseau" }
         do throws(ImageSaveError) {
             try await save(bytes)
@@ -157,7 +156,8 @@ extension ReaderWebController {
         case .open:
             events.link(url)
         case .copy:
-            linkMenuEnvironment.copy(url)
+            // An image link gives the full-size address (#1035), like the viewer's "Copier le lien"; any other link as posted.
+            linkMenuEnvironment.copy(ReaderLinkMenu.isImageLink(url) ? ImageGallery.fullSize(of: url) : url)
         case .openImage:
             openLinkedImage(url)
         case .saveImage:
@@ -177,6 +177,23 @@ extension ReaderWebController {
                 if await !environment.open(url, true) { _ = await environment.open(url, false) }
             }
         }
+    }
+
+    /// A tap on a video: LOT-108's player placeholder opens the player sheet, a YouTube card or its link the YouTube app or Safari.
+    func openVideo(_ message: ReaderBridgeMessage, token: Int) {
+        switch message {
+        case .video(let post, let index): events.video(post, index, token)
+        case .videoLink(let link): openVideoLink(link)
+        default: break
+        }
+    }
+
+    /// A tap on a YouTube thumbnail card or on its plain link (#1037): the YouTube app when it takes the link (universal links
+    /// only), Safari otherwise, never an in-app browser nor the player sheet. The page's `link` is a claim: only a YouTube video
+    /// link opens, over `https`, with its start time.
+    func openVideoLink(_ link: String) {
+        guard !ignoresPageTaps, let url = URL(string: link), let video = YouTubeLinkDetector.video(for: url) else { return }
+        performLinkEntry(.app(provider: .youtube), url: video.openURL)
     }
 
     /// Opens the viewer on the image of `url`; the viewer's own policy check (`ImageGallery`) refuses a blocked host.

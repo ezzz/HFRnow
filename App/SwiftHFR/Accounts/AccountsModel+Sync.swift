@@ -47,10 +47,13 @@ extension AccountsModel {
 
 /// The French texts of the account sync. None names an account or quotes stored bytes.
 enum AccountSyncMessages {
-    /// The switch's title (ADR 0013 §6).
-    static let title = "Synchroniser mes comptes via le trousseau iCloud"
+    /// The switch's title (ADR 0013 §6; renamed from « Synchroniser mes comptes via le trousseau iCloud », operator, #1065).
+    static let title = "Synchro des comptes dans iCloud"
 
-    /// What travels, where, and how to stop (#312); reviewed by the operator before merge.
+    /// The accessibility label of the (i) button that opens `explanation` in a bubble (#1065).
+    static let infoLabel = "À propos de la synchro des comptes"
+
+    /// What travels, where, and how to stop (#312); reviewed by the operator before merge. Shown in the info bubble of the row (#1065).
     static let explanation = """
         Vos comptes (cookies de session et jeton hash_check, jamais de mot de passe) sont copiés dans votre trousseau \
         iCloud, chiffré de bout en bout par Apple, et apparaissent sur vos autres appareils où l’option est activée. \

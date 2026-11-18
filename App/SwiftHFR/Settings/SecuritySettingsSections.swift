@@ -10,37 +10,44 @@ struct SecuritySettingsSections: View {
     var body: some View {
         @Bindable var lock = lock
         Section {
-            Toggle(AccountSyncMessages.title, isOn: Binding(
-                get: { accounts.isAccountSyncOn },
-                set: { accounts.setAccountSync($0) }
-            ))
-            if let notice = accounts.accountSyncNotice {
-                Text(notice)
-                    .scaledFont(.footnote)
-            }
+            Group {
+                HStack {
+                    Toggle(AccountSyncMessages.title, isOn: Binding(
+                        get: { accounts.isAccountSyncOn },
+                        set: { accounts.setAccountSync($0) }
+                    ))
+                    InfoBubbleButton(label: AccountSyncMessages.infoLabel) {
+                        Text(AccountSyncMessages.explanation)
+                            .padding()
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                if let notice = accounts.accountSyncNotice {
+                    Text(notice)
+                        .scaledFont(.footnote)
+                }
+            }.themedListRow()
         } header: {
-            Text("Comptes")
-        } footer: {
-            Text(AccountSyncMessages.explanation)
+            Text("Comptes").themedSectionHeader()
         }
         Section {
-            Toggle("Verrouiller l’app (Face ID / code)", isOn: Binding(
-                get: { lock.isEnabled },
-                set: { lock.setEnabled($0) }
-            ))
-            if lock.isEnabled {
-                Picker("Verrouiller", selection: $lock.grace) {
-                    ForEach(AppLockGrace.allCases, id: \.self) { Text($0.title).tag($0) }
+            Group {
+                Toggle("Verrouiller l’app (Face ID / code)", isOn: Binding(
+                    get: { lock.isEnabled },
+                    set: { lock.setEnabled($0) }
+                ))
+                if lock.isEnabled {
+                    Picker("Verrouiller", selection: $lock.grace) {
+                        ForEach(AppLockGrace.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
                 }
-            }
-            if let message = lock.message, !lock.isLocked {
-                Text(message)
-                    .scaledFont(.footnote)
-            }
+                if let message = lock.message, !lock.isLocked {
+                    Text(message)
+                        .scaledFont(.footnote)
+                }
+            }.themedListRow()
         } header: {
-            Text("Sécurité")
-        } footer: {
-            Text("L’app se verrouille au lancement et au retour après le délai choisi ; le code de l’appareil remplace Face ID.")
+            Text("Sécurité").themedSectionHeader()
         }
     }
 }

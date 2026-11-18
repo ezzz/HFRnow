@@ -1,0 +1,16 @@
+{
+  "id": "R360g",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "url": "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "final_url": "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:16:19 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Smiley wiki page of a code unknown to the wiki, no cookie, redirect not followed (as legacy)",
+  "file": "R360g-smiley-wiki-unknown-code-anon.html",
+  "private": false
+}

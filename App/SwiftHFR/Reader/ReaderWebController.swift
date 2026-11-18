@@ -121,8 +121,7 @@ final class ReaderWebController: NSObject {
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
         trackUnderPageBackground()
-        // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        configureScrollEdges()
         // Falling snow pauses while the page scrolls (LOT-166).
         SeasonalScrollActivity.shared.track(webView.scrollView)
         messageMenu.attach(to: webView)
@@ -224,8 +223,8 @@ final class ReaderWebController: NSObject {
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil
-        case .video(let post, let index):
-            events.video(post, index, document.token)
+        case .video, .videoLink:
+            openVideo(message, token: document.token)
             return nil
         case .menu(let post, let source, let anchor):
             // `getBoundingClientRect` counts from the bars' edge (`obscuredContentInsets`): the view starts above it.
@@ -359,7 +358,7 @@ extension ReaderWebController {
             self.running[key] = Task { [weak self] in
                 let result: Result<(data: Data, mimeType: String), ReaderImageFetcher.Failure>
                 do throws(ReaderImageFetcher.Failure) {
-                    result = .success(try await fetcher.image(at: imageURL, allowsThirdParty: allowsThirdParty))
+                    result = .success(try await fetcher.imagePreferringFullSize(at: imageURL, allowsThirdParty: allowsThirdParty))
                 } catch {
                     result = .failure(error)
                 }

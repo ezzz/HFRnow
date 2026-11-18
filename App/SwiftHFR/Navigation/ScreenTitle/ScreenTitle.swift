@@ -134,12 +134,14 @@ struct ScreenLargeTitle: View {
             Text(title)
                 .scaledFont(.largeTitle)
                 .fontWeight(.bold)
+                .themedTitle()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                 .accessibilityAddTraits(.isHeader)
                 .onScrollVisibilityChange { visibility.report($0) }
+                // #1107: a row trait set below `onScrollVisibilityChange` is not honoured (measured: the clear background,
+                // hidden separator and 4 pt insets this row used to set there were ignored, so the title sits on the card in
+                // the classic look, 16 pt in). They are dropped; the look's background must stay above it, here.
+                .listLookTitleRow()
         }
     }
 }

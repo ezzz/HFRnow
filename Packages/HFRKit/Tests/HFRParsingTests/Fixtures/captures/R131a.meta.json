@@ -1,0 +1,21 @@
+{
+  "id": "R131a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat={cat}&post={post}&page=1&p=1&subcat={subcat}&sondage=0&owntopic=0&new=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=100217&page=1&p=1&subcat=422&sondage=0&owntopic=0&new=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=13&post=100217&page=1&p=1&subcat=422&sondage=0&owntopic=0&new=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:20:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "reply composer of the locked topic of R31/R122a (URL built like R40a: the locked page has no answer link)",
+  "file": "R131a-reply-form-locked-topic-logged-in.html",
+  "private": false
+}

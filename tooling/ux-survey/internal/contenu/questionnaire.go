@@ -130,8 +130,8 @@ func (q *Questionnaire) Valider() error {
 			return fmt.Errorf("question %q absente des écrans", id)
 		}
 	}
-	if len(q.Cartes) != 9 {
-		return fmt.Errorf("neuf cartes attendues, %d trouvées", len(q.Cartes))
+	if len(q.Cartes) != 10 {
+		return fmt.Errorf("dix cartes attendues, %d trouvées", len(q.Cartes))
 	}
 	for _, c := range q.Cartes {
 		if q.Questions[c].Type != TypeReaction {

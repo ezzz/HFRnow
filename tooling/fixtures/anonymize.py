@@ -842,7 +842,8 @@ def _personal_block_end(text, start, end, placeholder, page, line):
 _E = r"(?:é|&eacute;|&#0*233;)"
 _AGRAVE = r"(?:à|&agrave;|&#0*224;)"
 _Q = r"[\"']"
-_PARAMS = r"(?:spseudo|pseudo|newdest|dest|auteur)"
+# `util`: the member whose colours the colour page /setperso.php shows (live R1096a, #1096).
+_PARAMS = r"(?:spseudo|pseudo|newdest|dest|auteur|util)"
 DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx, group, mode in (
     # Topic and MP pages: the author cell; `b.s2` elsewhere (poll question) is not a member.
     ("post author", r"<td\b[^>]*\bclass=%smessCase1%s[^>]*>(?:(?!</td>).)*?<b\b[^>]*\bclass=%ss2%s[^>]*>(.*?)</b>"
@@ -858,7 +859,7 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
     ("pseudo input (value first)", r"<input\b[^>]*\bvalue=([\"'])((?:(?!\1)[^<>])*)\1[^>]*\bname=%s%s%s" % (_Q, _PARAMS, _Q), 2,
      "name"),
     ("profile link", r"<a\b[^>]*\bhref=%s[^\"']*profil-\d+[^\"']*%s[^>]*>([^<]+)</a>" % (_Q, _Q), 1, "name"),
-    ("MP link text", r"<a\b[^>]*\bhref=%s[^\"']*?(?:dest|pseudo)=([^&\"'#]*)[^\"']*%s[^>]*>([^<]+)</a>" % (_Q, _Q),
+    ("MP link text", r"<a\b[^>]*\bhref=%s[^\"']*?(?:dest|pseudo|util)=([^&\"'#]*)[^\"']*%s[^>]*>([^<]+)</a>" % (_Q, _Q),
      2, "same"),
     # MP list (R13*): unread-by list, multi-correspondent list, recipients, ignore and lock titles.
     ("unread by", r"\btitle=\"[^\"]*?lu par\s*:\s*([^\"]*)\"", 1, "list"),
@@ -900,7 +901,10 @@ DISCOVER = tuple((label, re.compile(rx, re.I | re.S), group, mode) for label, rx
     ("profile header", r"<h4\b[^>]*>\s*Informations sur\s*:\s*([^<]+?)\s*</h4>", 1, "name"),
     ("profile pseudo", r"<td\b[^>]*\bclass=%sprofilCase2%s[^>]*>\s*Pseudo(?:&nbsp;|\s)*:\s*</td>\s*"
      r"<td\b[^>]*\bclass=%sprofilCase3%s[^>]*>([^<]*)</td>" % (_Q, _Q, _Q, _Q), 1, "inner"),
-    ("posts by pseudo path", r"/hfr/recherche/pseudo-([^\"'<>/?#\s]{1,240}?)\.htm\b", 1, "path"),
+    # HFR prints raw spaces in the pseudo here (live, #124), and a pseudo may hold an apostrophe, raw or as an
+    # entity (Fable review of batch B): only line breaks, tabs, quotes and URL delimiters end the name.
+    ("posts by pseudo path", r"/hfr/recherche/pseudo-((?:[^\"'<>/?#\t\r\n]|'|&#0*39;|&apos;){1,240}?)\.htm\b", 1,
+     "path"),
     # REST API (R57*): author objects.
     ("REST author", r"\"(?:last_)?author\"\s*:\s*\{[^{}]*?\"title\"\s*:\s*\"((?:[^\"\\]|\\.)*)\"", 1, "json"),
     # Alertes Qualitaÿ (aq.super-h.fr, T01/T02; legacy AQPlusView.swift, MessagesView.swift): the initiator
@@ -919,7 +923,9 @@ FAKE_NAME_RE = re.compile(r"user\d+$")
 ID_POSITIONS = tuple(re.compile(rx, re.I) for rx in (
     r"(profil-)(\d+)", r"(\badduser=)(\d+)", r"(\bid_user=)(\d+)", r"(mesdiscussions-)(\d+)",
     r"(\[quotemsg=\d+,\d+,)(\d+)(?=\])", r"(%5Bquotemsg%3D\d+%2C\d+%2C)(\d+)(?=%5D)",
-    r"(find_smilies_timer\(\s*'[^']*'\s*,\s*)(\d+)(?=\s*\))"))
+    r"(find_smilies_timer\(\s*'[^']*'\s*,\s*)(\d+)(?=\s*\))",
+    # The colour page's theme previews `initexemple<N>()` (live R1096a): taken for a member id, not verified.
+    r"(\binitexemple)(\d+)(?=\s*\()"))
 FAKE_ID_RE = re.compile(r"9[01]\d{4}$")
 
 # Free-text replacement skips short names and common words (a member called "Le" or "follow" must
@@ -1207,6 +1213,13 @@ class MPStorageDocumentError(AnonymizeError):
     """The MPStorage document holds a key or value the anonymizer cannot vouch for."""
 
 
+def plain_param(raw):
+    """A URL parameter value as a name. HFR writes these raw (a `+` may be the pseudo's own), so a value that
+    `+`-decoding leaves blank (a pseudo made of `+` signs, one on R1096a's raw page) is read without that step."""
+    name = html.unescape(urllib.parse.unquote_plus(raw)).strip()
+    return name or html.unescape(urllib.parse.unquote(raw)).strip()
+
+
 def decode_name(raw, mode):
     """Printed form of a name captured by a DISCOVER group in the given mode."""
     if mode == "json":
@@ -1215,7 +1228,7 @@ def decode_name(raw, mode):
         except ValueError:
             return raw.strip()
     if mode == "param":
-        return html.unescape(urllib.parse.unquote_plus(html.unescape(raw))).strip()
+        return plain_param(html.unescape(raw))
     if mode == "smileyparam":
         return html.unescape(urllib.parse.unquote_plus(raw)).strip()
     if mode == "smileypath":
@@ -2035,9 +2048,11 @@ _V_IDS = {label: re.compile(rx) for label, rx in (
     ("member id profil-", r"profil-(\d+)"), ("member id adduser=", r"adduser=(\d+)"),
     ("member id id_user=", r"id_user=(\d+)"), ("member id avatar", r"mesdiscussions-(\d+)"),
     ("member id quotemsg", r"quotemsg=\d+,\d+,(\d+)\]"),
-    ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"))}
-_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|newdest|dest|auteur)=([^&#\"<>\n]{0,120})", re.I)
-_V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-([^/?#\"'<>\s]+)\.htm")
+    ("member id smiley search", r"find_smilies_timer\([^,)]*,\s*(\d+)"),
+    ("member id theme preview", r"\binitexemple(\d+)"))}
+_V_PARAM = re.compile(r"(?:^|[?&;/])(pseudo|spseudo|newdest|dest|auteur|util)=([^&#\"<>\n]{0,120})", re.I)
+# Raw spaces (#124) and apostrophes, raw or as an entity, belong to the pseudo (Fable review of batch B).
+_V_POSTS_PATH = re.compile(r"/hfr/recherche/pseudo-((?:[^/?#\"'<>\t\r\n]|'|&#0*39;|&apos;)+)\.htm", re.I)
 # Public profile rows (R56), matched on the label cell's text: the value must be a placeholder or a fixed value.
 _V_PROFILE_PERSONAL = re.compile(r"(?:Email|Date de naissance|Sexe|Ville|Profession|Loisirs|Site\b.*|Homepage|"
                                  r"Citation personnelle.*|Signature des messages)$", re.I)
@@ -2129,7 +2144,7 @@ class StructuralVerifier(html.parser.HTMLParser):
             value = m.group(2)
             if s[:m.start(2)].count("'") % 2:  # inside a JS single-quoted string
                 value = value.split("'")[0]
-            value = html.unescape(urllib.parse.unquote_plus(value))
+            value = plain_param(value)
             # `dest` lists several recipients separated by commas.
             for item in (value.split(",") if m.group(1).lower() in ("dest", "newdest") else [value]):
                 if item.strip():
@@ -2280,6 +2295,8 @@ class StructuralVerifier(html.parser.HTMLParser):
             where = "profile link text"
         elif tag == "a" and "Tableau" in cls and "dest=" in href:
             where = "MP link text"
+        elif tag == "a" and "cCatTopic" in cls and re.search(r"[?&]util=", href):
+            where = "colour page theme link text"
         elif tag == "span" and cls & {"signature", "MoodStatus"}:
             where = "signature or mood"
         elif tag == "title":
@@ -2312,7 +2329,7 @@ class StructuralVerifier(html.parser.HTMLParser):
             # A link to a member (profile, MP) whose text is an alias must carry the same alias.
             for m in _V_PARAM.finditer(href):
                 value = m.group(2).split("'")[0] if href[:m.start(2)].count("'") % 2 else m.group(2)
-                params.append(name_key(html.unescape(urllib.parse.unquote_plus(value)).strip()))
+                params.append(name_key(plain_param(value)))
         self.stack.append({"tag": tag, "cls": cls, "where": where, "text": [], "line": self.getpos()[0],
                            "params": params, "mood_tail": mood_part})
 

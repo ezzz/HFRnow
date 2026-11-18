@@ -68,6 +68,10 @@ struct TopicReaderView: View {
     @State private var writes: MessageWriteModel?
     /// "Alerter" of the message menu (LOT-135); nil until the menu is installed.
     @State private var alerts: ModeratorAlertModel?
+    /// « Bookmark » of the message menu (LOT-132); nil until the menu is installed.
+    @State private var bookmarks: BookmarkActionModel?
+    /// The session's MPStorage sync, where bookmarks live (LOT-132); nil logged out.
+    @Environment(MPStorageSyncModel.self) private var mpStorage: MPStorageSyncModel?
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.isSelectedRootTab) private var isSelectedTab
@@ -107,6 +111,7 @@ struct TopicReaderView: View {
         .modifier(ReaderAuthorMenuSheet(flow: authorMenu, model: model))
         .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
+        .modifier(ReaderBookmarkFlow(bookmarks: bookmarks))
         .modifier(ReaderSearchFlow(model: model, composer: composer, search: $search))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
@@ -337,7 +342,7 @@ extension TopicReaderView {
         stop()
     }
 
-    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Editer" and "Supprimer". A later lot adds
+    /// The handlers of the merged lots: "Link", the quotes, "Favoris", "Alerter", "Bookmark", "Editer" and "Supprimer". A later lot adds
     /// its handler here, the policy is untouched.
     private func installMenuActions() {
         // Weak: the model stores this registry, a strong capture would keep every reader alive.
@@ -369,6 +374,11 @@ extension TopicReaderView {
         )
         self.alerts = alerts
         handlers.append(alerts.handler)
+        // The saved copy has no account behind it: no bookmark from it.
+        let bookmarks = self.bookmarks.flatMap { $0.isIdle ? nil : $0 }
+            ?? BookmarkActionModel(mpStorage: services.isSavedCopy ? nil : mpStorage, confirm: confirm)
+        self.bookmarks = bookmarks
+        handlers.append(bookmarks.handler)
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
             self.writes = writes

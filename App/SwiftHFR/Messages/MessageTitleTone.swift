@@ -30,7 +30,10 @@ enum MessageTitleTone: Equatable {
 /// an unread title: the hierarchical `.secondary` measured 1.7 to 2.3:1 on that fill (iPad, iOS 27), white 2.7 to 3.9:1.
 struct ReadTitleStyle: ShapeStyle {
     func resolve(in environment: EnvironmentValues) -> AnyShapeStyle {
-        environment.backgroundProminence == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(Self.color)
+        if environment.backgroundProminence == .increased { return AnyShapeStyle(.primary) }
+        // A gallery theme's `textSecondary`, which holds 4.5:1 on its rows and selection (#842); Legacy: the colour below.
+        if let themed = environment.themeAppearance.listColors?.secondaryText { return AnyShapeStyle(Color(uiColor: themed)) }
+        return AnyShapeStyle(Self.color)
     }
 
     /// `color(for:)` as a dynamic colour, resolved per scheme and contrast.

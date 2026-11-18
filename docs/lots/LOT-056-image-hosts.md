@@ -78,7 +78,7 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 - Blocking private/LAN hosts and non-image `*.hardware.fr` paths (D-071-1 point 1) is **not** here: it belongs to the reader (LOT-083),
   before any request.
 
-**Medium rendition (#917).** `.md.` is removed like `.th.`. Source (**code**, not verified): `Classes/RehostImage.m:328-343` @ `87fe0d1c` (example Chevereto answer with `"medium": {"filename": "example.md.png", …}`), read at `:366-368`; the legacy upload-history sample holding `….md.jpg` is synthetic, not a capture. Capture wanted: #922. No other host has a sourced medium rendition (`reho.st`, `rehost.diberie.com`, the http-only hosts): not sourced, no rule. If the full-size fetch fails the viewer shows the medium it was given (`ImageViewerModel.download`).
+**Medium rendition (#917).** `.md.` is removed like `.th.`. **Verified** (#922, 2026-11-18): a large upload's answer names `image.medium.url` `<name>.md.jpg` next to `image.url` `<name>.jpg` (`U03`), and both URLs serve the image cookie-less, with or without a `Referer` (`U03a`-`U03d`; HFR-PROTOCOL §6c LOT-056). First sourced from legacy code: `Classes/RehostImage.m:328-343` @ `87fe0d1c` (example Chevereto answer with `"medium": {"filename": "example.md.png", …}`), read at `:366-368`; the legacy upload-history sample holding `….md.jpg` is synthetic, not a capture. No other host has a sourced medium rendition (`reho.st`, `rehost.diberie.com`, the http-only hosts): not sourced, no rule. If the full-size fetch fails the viewer shows the medium it was given (`ImageViewerModel.download`).
 
 ## Edge cases
 
@@ -99,8 +99,9 @@ No rule carries a key: the table is keyless by construction, only `RehostConfigu
 
 ## Fixtures
 
-None. No capture of an upload answer exists and the real host is never contacted: tests use `MockTransport` and an in-process loopback
-server (`LoopbackServer`, 127.0.0.1). The wire shape comes from the legacy code only.
+`U01`/`U02` (upload answer, 2026-11-02, #394), `U03` and `U03a`-`U03f` (large upload with a medium rendition and the GETs of its three
+renditions, #922, 2026-11-18). Tests never contact the host: they use `MockTransport` and an in-process loopback server (`LoopbackServer`,
+127.0.0.1).
 
 Differential: `MultipartBodyTests.matchesTheLegacyUploadLayout` writes legacy's `makeMultipartBody` byte for byte and compares; the response
 tests use the payload shapes legacy reads; `ImageHostTableTests.thumbnailsMapToFullImages` reproduces the three legacy rewrites.
@@ -131,3 +132,5 @@ tests use the payload shapes legacy reads; `ImageHostTableTests.thumbnailsMapToF
 - A Swift Testing struct with a throwing `init` keeps `try` out of helpers; with typed throws, a `do/catch` whose body also calls an untyped
   throwing helper turns `error` into `any Error`, so keep helpers non-throwing.
 - Loopback tests prove "no cookie" and "redirect not followed" against a real socket; a mock only proves what the client put on the request.
+
+**Inline full size (#1035, operator 2026-11-17).** The reader's own images (`hfrreader:` handler, `ReaderImageFetcher.imagePreferringFullSize`) ask for `fullSizeURL(for:)` first and fall back to the posted address when that fetch fails, like the viewer and the long-press save and copy. Same policy C, cookie-less client and limits for both requests; the layout rules are unchanged (`max-width: 100%; height: auto`), so a rendition narrower than the column now shows at the full file's natural width, up to the column. A page image sends no `Referer` (LOT-071 R3), so a host whose rule has one (`reho.st`, 403 without it, `T30`-`T33`) keeps the posted address inline. Deliberate gap with legacy, ledger row GAP-1035.

@@ -69,7 +69,7 @@ enum AccessibleColors {
 
 /// A count capsule ("3", "non lu") that reads at 4.5:1: filled, or outlined for the quieter state (#646). A gallery theme
 /// (LOT-188) fills it with its `unread` and `onUnread` tokens (THEMES.md §3, 4.5:1 by its contrast test); the outlined state
-/// stays on these colours, since it sits on the row's system card, which themes keep.
+/// stays on these colours, which the theme's contrast test checks on its rows' `surface` (`badgeOutline`, #842).
 struct BadgeCapsule: View {
     let text: String
     var isBold = false

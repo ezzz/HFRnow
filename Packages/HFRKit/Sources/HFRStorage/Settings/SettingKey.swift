@@ -24,6 +24,10 @@ public enum SettingKey {
     /// in the "flags and favorites" mode. Legacy never registered a default: absent reads false.
     public static let favoritesShowsCollapsedSections = Setting.bool("FavoritesShowCollapsedSections", default: false)
 
+    /// `favorites_unread_only` (new, #1058): the Favoris « Non lus / Tous » button. Legacy has no such filter. Absent reads false
+    /// (« Tous »). Device-only UI state, not synced.
+    public static let favoritesUnreadOnly = Setting.bool("favorites_unread_only", default: false)
+
     /// `HFRswiftGlobalTopicListFlag` (`MainWindow.swift:305` @ 87fe0d1c, `ForumTopicsListView`): the last Tous / Favoris / Suivis / Lus
     /// choice, one for every forum. An unknown value reads as "Tous", like legacy's `?? .all`. Device-only UI state.
     public static let topicListFlag = Setting.integerEnum("HFRswiftGlobalTopicListFlag", default: TopicListFlag.all)
@@ -79,6 +83,9 @@ public enum SettingKey {
     /// `mp_check_interval` (LOT-140, new key): the minimum delay between two background MP checks, in minutes, `0` for none.
     /// An unknown value reads as the default, 30 minutes. A property of the device: never synced.
     public static let mpCheckInterval = Setting.integerEnum("mp_check_interval", default: MPCheckInterval.thirtyMinutes)
+    /// `mp_notifications_enabled` (#1060, new key): « Notifications » of Réglages › Notifications MP; off, the background
+    /// check shows no notification (the badge follows `mp_badge_enabled`). Absent before #1060: reads as on. Never synced.
+    public static let mpNotificationsEnabled = Setting.bool("mp_notifications_enabled", default: true)
     /// `app_lock_enabled` (LOT-173, new key): lock the app behind Face ID / the device code. A property of the device:
     /// never synced.
     public static let appLockEnabled = Setting.bool("app_lock_enabled", default: false)
@@ -176,6 +183,22 @@ public enum SettingKey {
         encode: { $0.map { .string(LastSyncDate.string(from: $0)) } }
     )
 
+    // MARK: Alertes Qualitay
+
+    /// `last_check_aq`: when the Alertes Qualitay list was last shown, the "new since" of the Plus badge (legacy
+    /// `AQPlusView.swift:41-50`, `Classes/AQTableViewController.m:71, 222, 300` @ 87fe0d1c). Device only (ADR 0013). Legacy stored a
+    /// `Date` object, which this store cannot read: it reads as nil (never checked, so everything is new once), then the key holds
+    /// seconds since 1970.
+    public static let aqLastCheck = Setting<Date?>(
+        key: "last_check_aq",
+        defaultValue: nil,
+        decode: {
+            guard case .double(let seconds) = $0, seconds.isFinite else { return nil }
+            return Date(timeIntervalSince1970: seconds)
+        },
+        encode: { $0.map { .double($0.timeIntervalSince1970) } }
+    )
+
     // MARK: Search and rehost
 
     /// `recherche_categorie`: last category chosen in the search form (default 13, Discussions).
@@ -233,14 +256,16 @@ public enum SettingKey {
 
     /// Every setting of the catalogue with its scope, in catalogue order.
     public static let all: [any CatalogueSetting] = [
-        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
+        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, favoritesUnreadOnly,
+        topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
-        privateMessageBadge, mpCheckInterval, startupScreen, mpListDisplay, replyButtonBehavior, opensLinksInDefaultBrowser, topicPageSwipe,
+        privateMessageBadge, mpCheckInterval, mpNotificationsEnabled, startupScreen, mpListDisplay, replyButtonBehavior,
+        opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
         experimentalMPDarkTopic, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]

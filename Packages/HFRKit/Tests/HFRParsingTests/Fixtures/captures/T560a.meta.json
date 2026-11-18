@@ -1,0 +1,15 @@
+{
+  "id": "T560a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+  "url": "https://media2.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+  "final_url": "https://media2.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+  "status": 200,
+  "content_type": "image/gif",
+  "date": "Wed, 18 Nov 2026 17:17:40 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Giphy media URL of a T40 item fetched without its query (cid, ep, rid, ct dropped)",
+  "private": false
+}

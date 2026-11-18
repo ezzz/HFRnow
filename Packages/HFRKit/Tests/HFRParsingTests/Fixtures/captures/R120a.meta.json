@@ -1,0 +1,29 @@
+{
+  "id": "R120a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=13&post=28563&page=702",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=28563&page=702",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_702.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:17:21 GMT",
+  "redirects": [
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/pizza-maison-sujet_28563_702.htm"
+    },
+    {
+      "status": 301,
+      "location": "/hfr/Discussions/Cuisine/pizza-maison-sujet_28563_702.htm"
+    }
+  ],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R120a-topic-logged-in-unread-mp-badge.html",
+  "private": false
+}

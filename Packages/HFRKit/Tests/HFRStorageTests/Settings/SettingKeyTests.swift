@@ -43,7 +43,13 @@ import Testing
             // #1003: the first activation of « Chargement des images », new.
             "experimental.imageLoadingChoice.started",
             // LOT-140: the background MP check interval, new.
-            "mp_check_interval"
+            "mp_check_interval",
+            // #1060: the « Notifications » switch of Réglages › Notifications MP, new.
+            "mp_notifications_enabled",
+            // #1058: the Favoris « Non lus / Tous » button, new.
+            "favorites_unread_only",
+            // LOT-133: the Alertes Qualitay last check (legacy name, new encoding).
+            "last_check_aq"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -54,6 +60,7 @@ import Testing
         #expect(store.value(for: SettingKey.favoritesGroupedByCategory))
         #expect(!store.value(for: SettingKey.favoritesAutoRefresh))
         #expect(!store.value(for: SettingKey.favoritesShowsCollapsedSections))
+        #expect(!store.value(for: SettingKey.favoritesUnreadOnly))
         #expect(!store.value(for: SettingKey.compactMode))
         #expect(store.value(for: SettingKey.tabBarMinimizesOnScroll))
         #expect(store.value(for: SettingKey.textSizeScale) == .percent100)
@@ -63,6 +70,8 @@ import Testing
         #expect(store.value(for: SettingKey.appIconPrevious) == nil)
         #expect(store.value(for: SettingKey.appIconRevertAsked) == nil)
         #expect(store.value(for: SettingKey.privateMessageBadge))
+        // #1060: absent for every member who ran an earlier version, so notifications stay on.
+        #expect(store.value(for: SettingKey.mpNotificationsEnabled))
         #expect(store.value(for: SettingKey.autoTheme) == .system)
         #expect(store.value(for: SettingKey.manualTheme) == .light)
         #expect(store.value(for: SettingKey.themeStyle) == .modern)

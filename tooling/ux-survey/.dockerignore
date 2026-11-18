@@ -1,3 +1,10 @@
-donnees/
-deploy/ux-survey.env
-*.md
+# Liste d'autorisation (M5) : seul ce que la compilation lit entre dans le contexte. Une base, un fichier .env
+# ou un export laissé dans le dossier de construction n'atteint jamais le cache de construction.
+*
+!go.mod
+!go.sum
+!embed.go
+!cmd
+!internal
+!web
+!contenu

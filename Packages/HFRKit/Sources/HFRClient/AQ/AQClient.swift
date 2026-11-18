@@ -10,8 +10,10 @@ import HFRParsing
 /// the default transport is `AnonymousTransport`, so no forum cookie is ever sent (R1), requests go only to the configured
 /// host and a redirect is never followed. `create(_:)` writes to that third party: one POST, never retried.
 public struct AQClient: Sendable {
-    /// Time limit of each request, in seconds (legacy feed request, `AQPlusView.swift:73, 278` @ 2440d79).
-    public static let timeout: Double = 20
+    /// Idle limit of each read, in seconds (`HTTPRequest.timeout`, #683): legacy's `HFRNetworkTimeout.content`
+    /// (`Common.swift:1906-1908` @ 87fe0d1c, `:1891-1893` @ 2fe43da3), which the feed requests use (`AQPlusView.swift:73, 278`
+    /// @ 87fe0d1c). The per-topic check shares it (legacy: the 60 s `URLSession` default).
+    public static let timeout: Double = 10
     /// Largest answer read, in bytes: `T01` (25 items) is 31 KB and `T02` (123 alerts) 13 KB.
     public static let maximumResponseBytes = 1_048_576
 

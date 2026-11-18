@@ -90,7 +90,7 @@ As ADR §6 *Bootstrap*, with one change (D8): the imported accounts are deleted 
 ### App side
 - `AccountsModel` takes an optional `AccountSyncing` (the engine; nil in tests that do not need it). It reconciles before its first read at launch and at each foreground, and reports each successful store write (login, refresh, avatar, removal) to it.
 - A report that replaced or added accounts rebuilds their sessions from the stored cookies and checks them; a report that removed accounts drops their sessions; a switch-off by another device is shown once in the settings section ("La synchronisation a été désactivée sur un autre appareil.").
-- Settings, section "Comptes" (`SecuritySettingsSections`): the toggle "Synchroniser mes comptes via le trousseau iCloud" and its explanation (text below, to be reviewed by the operator before merge).
+- Settings, section "Comptes" (`SecuritySettingsSections`): the toggle "Synchro des comptes dans iCloud" (renamed from "Synchroniser mes comptes via le trousseau iCloud", operator, 2026-11-17, [#1065](https://github.com/ezzz/HFRnow/issues/1065)) and its explanation, now in an info bubble (an `info.circle` button on the row, `InfoBubbleButton`; the text below is unchanged, reviewed by the operator before merge).
 
 > Vos comptes (cookies de session et jeton `hash_check`, jamais de mot de passe) sont copiés dans votre trousseau iCloud, chiffré de bout en bout par Apple, et apparaissent sur vos autres appareils où l'option est activée. Désactiver l'option retire la copie iCloud sur tous vos appareils ; chaque appareil garde les comptes qui y sont connectés.
 
