@@ -3,7 +3,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
 // in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
-// LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP row pending #545.
+// LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP-221.
 // #1013: the switch is a row of the list under the large title, so it scrolls away with it.
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
