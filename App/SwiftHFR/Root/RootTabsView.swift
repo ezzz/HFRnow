@@ -59,7 +59,14 @@ struct CategoriesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
     let composer: ComposerServices?
-    @State private var column = NavigationSplitViewColumn.sidebar
+    @State private var column: NavigationSplitViewColumn
+
+    init(navigation: NavigationModel, reader: ReaderServices, composer: ComposerServices?) {
+        self.navigation = navigation
+        self.reader = reader
+        self.composer = composer
+        _column = State(initialValue: .compactStart(showsTopic: navigation.selectedTopic != nil))
+    }
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
@@ -79,7 +86,14 @@ struct FavoritesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
     let composer: ComposerServices?
-    @State private var column = NavigationSplitViewColumn.sidebar
+    @State private var column: NavigationSplitViewColumn
+
+    init(navigation: NavigationModel, reader: ReaderServices, composer: ComposerServices?) {
+        self.navigation = navigation
+        self.reader = reader
+        self.composer = composer
+        _column = State(initialValue: .compactStart(showsTopic: navigation.selectedTopic != nil))
+    }
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
@@ -192,5 +206,15 @@ struct ReaderColumn: View {
         } else {
             MessagePlaceholderView(topic: navigation.selectedTopic)
         }
+    }
+}
+
+extension NavigationSplitViewColumn {
+    /// The column a tab's split shows first: the reader when the tab already has a topic open, as when a fold of the iPhone Duo
+    /// (or an iPad window turning compact) hands the split root's topic to the tab bar root, where legacy pushes it on the tab's
+    /// stack (`handleRootSwap`, `MainWindow.swift:2173-2181`; `FoldHandoffDestination.swift:1-57` @ 87fe0d1c, GAP-217); the
+    /// list otherwise.
+    static func compactStart(showsTopic: Bool) -> NavigationSplitViewColumn {
+        showsTopic ? .detail : .sidebar
     }
 }

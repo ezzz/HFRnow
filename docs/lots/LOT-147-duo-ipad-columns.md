@@ -68,13 +68,32 @@ Legacy's thumb-reach answer covers the **cover** screen; the beta feedback of [#
 - Scroll position across a fold: legacy carries the page only (above).
 
 ## Legacy counterpart (app lots)
-To write by the author: one line per SwiftHFR file, citing the rows above (`// Port of HFRswift/Swift/FoldHandoffStore.swift (FoldHandoffStore) @ 87fe0d1c. Differences: …`; `FoldHandoffStore.swift` is the same at `2fe43da3`).
+The legacy part (first PR, `Refs #237`). Lines @ `87fe0d1c`, `HFRswift/Swift/`:
+
+| SwiftHFR | Legacy | Rows |
+|---|---|---|
+| `Root/RootNavigationView.swift` (`usesSidebarRoot`, `RootLayout`) | `MainWindow.swift:1380-1388` (`usesSidebarRoot`), `:1792-1799` (`rootContainer`), `:1729-1749` (the height-class and root-swap handlers) | GAP-210, GAP-215 |
+| `Root/RootSidebarView.swift` (`DuoSplitColumns`) | `MainWindow.swift:1390-1396` (`prefersDetailOnlyTopic`), `:1755-1762`, `:2128-2135`, `:2215-2217`, `:2281-2290` | GAP-215 |
+| `Root/RootModel.swift` (`rootSwapped`, `splitDetailTopic`); `Root/RootTabsView.swift`, `Messages/MessagesRootView.swift` (`compactStart`) | `MainWindow.swift:2093-2108` (`activeTopicTarget`), `:2140-2193` (`handleRootSwap`, `clearAllTopicTargets`); `FoldHandoffStore.swift:11-103`; `FoldHandoffDestination.swift:1-57`; `MessagesView.swift:3244-3272` | GAP-217 |
+| `Settings/OrientationPolicy.swift` | `Common.swift:187-200, 216-242` (`HFRSwiftOrientationPolicy`, `796b34bd`) | GAP-213 |
 
 ## Behaviour, edge cases, fixtures
-To write. No HFR request is involved (layout only), so no capture is needed; Mac check on the iPhone Duo (or an iPad window resized between compact and regular, which legacy treats the same way, `FoldHandoffStore.swift:4-8`).
+No HFR request is involved (layout only), so no capture is needed.
+
+- **Split root**: a scene regular in both dimensions, or an iPad at regular width. The unfolded Duo (a `.phone` reporting regular/regular in portrait and in landscape) gets the sidebar, list and topic; the cover screen (compact width), other iPhones and a landscape Pro Max (regular width, compact height) keep the tab bar; the iPad rule is unchanged. The pager placement (`\.rootHasTabBar`, #565) follows the root that was built.
+- **Topic full width in portrait** (`DuoSplitColumns`): on a `.phone` split root held in portrait, opening a topic, rotating to portrait or picking a destination with a topic open shows the topic alone (`detailOnly`); rotating to landscape with the topic alone shows list and topic (`doubleColumn`); a topic gone (deleted conversation or bookmark, another destination without one) never leaves the list hidden. Anything else keeps the user's choice (the system sidebar control). An iPad never takes the topic alone by itself.
+- **Rotation**: the unfolded Duo rotates (all but upside down) whatever `landscape_mode`, and is not asked to rotate when the setting changes (the system ignores the supported orientations there); a fold, which flips only the height class, asks the scenes again, so the lock applies on the cover screen.
+- **Fold handoff**: both roots read one `RootModel`, so each list keeps its topic and the reader its model and page across a fold or an unfold, as an iPad window crossing regular width already did (LOT-170). `rootSwapped` closes the readers a topic's links pushed, as legacy carries only the reader at the root of a tab. A tab split built with a topic already open starts on the reader (`compactStart`), where legacy pushes the topic on the tab's stack. Closing the topic on the cover screen (back) clears the list's selection (the collapsed split's own pop), so an unfold does not bring it back (legacy `:2157-2160`).
+- Tests: `DuoLayoutTests` (the rules), `DuoLayoutHostedTests` (the real `RootLayout` in an inner-screen window, then a cover-screen one and back: the split, the topic alone in portrait, the topic kept without the pushed reader), `PagerPlacementTests`.
+- Mac check: the simulator cannot fold or unfold unattended (the hinge is a DeviceHub GUI control, [Mac check of `87fe0d1c` on #372](https://github.com/ezzz/HFRnow/pull/372#issuecomment-6737029007)); the operator checks the fold and the inner screen on a device or in DeviceHub.
+
+**Left for a later PR of this lot** (the legacy part):
+- The Plus tab across a fold: legacy carries a Bookmarks or Alertes Qualitay topic between the split's detail column and the Plus tab's stack (`handleRootSwap`, `:2157-2172`). SwiftHFR keeps `detailReaders` on an unfold (an older one can come back) and does not push it on the Plus stack on a fold.
+- The cover screen's thumb actions and their detection (`PhoneDisplayPolicy`, `CoverScreenThumbActions`, GAP-713), and the inline tab-root titles if SwiftHFR hangs too (#681: no hang reproduced, #1083).
 
 ## Intentional differences from legacy
-To write.
+- **The fold handoff is the shared model, not a store.** Legacy needs `FoldHandoffStore` because its tab root and split root keep separate state (a stack per tab, a target per destination); SwiftHFR's roots read one `RootModel` (LOT-170, GAP-210), so the topic and its reader carry over with no registration, deferred clear or pending push. Each tab keeps its own topic, not only the selected tab's: legacy clears the other destinations' targets because they are stale split state, which SwiftHFR does not have.
+- **Columns**: SwiftHFR's split starts with all columns and does not persist the choice (LOT-170); the Duo rule only sets the topic alone and back to list and topic, as legacy, and leaves that default alone otherwise.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
