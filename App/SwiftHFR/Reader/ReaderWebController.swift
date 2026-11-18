@@ -224,8 +224,8 @@ final class ReaderWebController: NSObject {
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil
-        case .video(let post, let index):
-            events.video(post, index, document.token)
+        case .video, .videoLink:
+            openVideo(message, token: document.token)
             return nil
         case .menu(let post, let source, let anchor):
             // `getBoundingClientRect` counts from the bars' edge (`obscuredContentInsets`): the view starts above it.
