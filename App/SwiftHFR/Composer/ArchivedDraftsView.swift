@@ -2,7 +2,7 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (ReplyDraftPickerSheet, :1855-2001) @ 87fe0d1c. Differences: a navigation stack instead of
-// the hand-drawn header; the list is the model's (per account, LOT-063); GAP-093.
+// the hand-drawn header; the list is the model's (per account, LOT-063); GAP-093. #1107: the list look of every list (`listLook`).
 /// The picker of a topic's archived drafts (LOT-101): "Mettre de côté et vider", the list, swipe "Supprimer", "Vider".
 struct ArchivedDraftsView: View {
     let model: ReplyComposerModel
@@ -35,34 +35,37 @@ struct ArchivedDraftsView: View {
 
     private var list: some View {
         List {
-            if model.canArchiveCurrent {
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                if model.canArchiveCurrent {
+                    Section {
+                        Button { Task { await model.archiveAndClear(); onDone() } } label: {
+                            Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
+                        }
+                        .densityRowMargin()
+                    }
+                }
                 Section {
-                    Button { Task { await model.archiveAndClear(); onDone() } } label: {
-                        Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
-                    }
-                    .densityRowMargin()
-                }
-            }
-            Section {
-                if model.archivedDrafts.isEmpty {
-                    Text("Aucun brouillon archivé").foregroundStyle(.secondary).densityRowMargin()
-                } else {
-                    ForEach(model.archivedDrafts) { draft in
-                        Button { Task { await model.use(draft); onDone() } } label: { row(draft) }
-                            .buttonStyle(.plain)
-                            .densityRowMargin()
-                            .disabled(model.isMovingDrafts)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button("Supprimer", systemImage: "trash", role: .destructive) {
-                                    Task { await model.discardArchived(draft) }
+                    if model.archivedDrafts.isEmpty {
+                        Text("Aucun brouillon archivé").foregroundStyle(.secondary).densityRowMargin()
+                    } else {
+                        ForEach(model.archivedDrafts) { draft in
+                            Button { Task { await model.use(draft); onDone() } } label: { row(draft).themedRowText() }
+                                .buttonStyle(.plain)
+                                .densityRowMargin()
+                                .disabled(model.isMovingDrafts)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button("Supprimer", systemImage: "trash", role: .destructive) {
+                                        Task { await model.discardArchived(draft) }
+                                    }
                                 }
-                            }
+                        }
                     }
                 }
             }
+            .listLookRows()
         }
-        .listStyle(.insetGrouped)
-        .densityListMargins()
+        .listLook()
     }
 
     private func row(_ draft: ArchivedDraft) -> some View {

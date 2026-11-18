@@ -16,23 +16,27 @@ struct ThemeSettingsView: View {
         @Bindable var theme = theme
         Form {
             Section {
-                Picker("Thème", selection: $theme.mode) {
-                    ForEach(ThemeSettingsModel.Mode.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                if theme.theme.isLegacy {
-                    legacyColors
-                }
+                Group {
+                    Picker("Thème", selection: $theme.mode) {
+                        ForEach(ThemeSettingsModel.Mode.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    if theme.theme.isLegacy {
+                        legacyColors
+                    }
+                }.themedListRow()
             } footer: {
-                if seasonal.drawnTheme == .noelAbuse {
-                    Text("Noël abusé est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
-                } else if theme.theme.isLegacy {
-                    Text(
-                        "Le style s’applique au thème sombre : fonds des écrans et du sujet ouvert. "
-                            + "La luminosité s’applique aux fonds sombres du sujet ouvert."
-                    )
-                } else if theme.appearance.forcedColorScheme != nil {
-                    Text("« \(theme.theme.name) » n’a qu’une variante : clair = sombre.")
-                }
+                Group {
+                    if seasonal.drawnTheme == .noelAbuse {
+                        Text("Noël abusé est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
+                    } else if theme.theme.isLegacy {
+                        Text(
+                            "Le style s’applique au thème sombre : fonds des écrans et du sujet ouvert. "
+                                + "La luminosité s’applique aux fonds sombres du sujet ouvert."
+                        )
+                    } else if theme.appearance.forcedColorScheme != nil {
+                        Text("« \(theme.theme.name) » n’a qu’une variante : clair = sombre.")
+                    }
+                }.themedSectionHeader()
             }
             // Only inside a season's window, as legacy's Noël cell (`PlusSettingsViewController.m:112-115` @ 87fe0d1c); above the
             // gallery, whose families never show a seasonal one (LOT-188: their window is LOT-166's).

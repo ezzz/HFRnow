@@ -3,6 +3,9 @@ import HFRNetwork
 @testable import SwiftHFR
 import Testing
 
+private let rehostMedium = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.md.jpg"
+private let rehostFull = "https://img3.super-h.fr/images/2024/01/01/f0e1d2c3b4a5.jpg"
+
 /// The long-press menu of a link (#596): which entries, what "Ouvrir" does, and that nothing is ever requested.
 @MainActor
 @Suite(.serialized)
@@ -202,6 +205,14 @@ struct ReaderLinkMenuTests: ReaderWebTesting {
         #expect(server.connections == 0)
         #expect(await transport.requests.isEmpty)
         #expect(recorder.links == [link])
+    }
+
+    @Test func copyOfAnImageLinkGivesTheFullSizeAddress() throws {
+        let (controller, _) = makeController(transport: quietTransport())
+        let spy = EnvironmentSpy()
+        controller.linkMenuEnvironment = spy.environment
+        controller.performLinkEntry(.copy, url: try #require(URL(string: rehostMedium)))
+        #expect(spy.copied.map(\.absoluteString) == [rehostFull])
     }
 }
 
