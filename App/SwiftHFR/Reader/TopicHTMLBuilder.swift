@@ -222,12 +222,13 @@ enum TopicHTMLBuilder {
     /// A thumbnail card per plain YouTube link of the message (#1037), under the text, which keeps the link. The card reads as the
     /// pill « Vidéo YouTube · toucher pour lire » until `reader.js` has the thumbnail: it goes through policy C and the cookie-less
     /// client like every image, and a thumbnail that is refused, late or failed leaves the pill. The card's address is the posted
-    /// one (the reader tells the card from its link by it; the app opens it over `https`); the thumbnail is built from the video id.
+    /// one, byte for byte (the reader tells the card from its link by it; the app opens it over `https`); the thumbnail comes from the
+    /// video id.
     private static func videoCards(of message: ReaderMessage) -> String {
         guard let cards = try? YouTubeLinkDetector.cards(inNormalizedHTML: message.content.html), !cards.isEmpty else { return "" }
         var html = "<div class=\"videolinks\">"
         for card in cards {
-            let address = HTMLEscaping.text(card.sourceURL.absoluteString)
+            let address = HTMLEscaping.text(card.postedAddress)
             html += "<a class=\"video-card\" href=\"\(address)\" data-post=\"\(message.numreponse)\" aria-label=\"Vidéo YouTube\">"
             html += "<img class=\"video-thumb\" src=\"\(HTMLEscaping.text(card.thumbnailURL.absoluteString))\" alt=\"\">"
             html += "<span class=\"video-play\" aria-hidden=\"true\"></span>"

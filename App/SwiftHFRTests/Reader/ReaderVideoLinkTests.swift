@@ -33,6 +33,15 @@ struct ReaderVideoLinkTests: ReaderWebTesting {
         #expect(page.contains(">\(Self.address)</a></b>"))
     }
 
+    /// The card's address is the posted text: a `URL` would write `é` as `%C3%A9`, and the reader matches the inline link by it.
+    @Test func theCardKeepsTheAddressAsPosted() {
+        let posted = "https://youtu.be/dQw4w9WgXcQ?si=é"
+        let link = "<p><b><a class=\"cLink\" href=\"\(posted)\">\(posted)</a></b></p>"
+        let page = html(for: link)
+        #expect(page.contains("class=\"video-card\" href=\"\(posted)\""))
+        #expect(!page.contains("%C3%A9"))
+    }
+
     @Test func aTopLevelLinkKeepsOnlyItsPlayerPlaceholder() throws {
         let link = "<p><a class=\"cLink\" href=\"\(Self.address)\">\(Self.address)</a></p>"
         let embed = MessageEmbed(
@@ -112,6 +121,25 @@ struct ReaderVideoLinkTests: ReaderWebTesting {
             #expect(recorder.links.isEmpty && recorder.videos.isEmpty, "\(selector)")
             #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
         }
+    }
+
+    /// Only the message's own text link is the card's link: the same address in a quote, or around a picture, behaves as any link.
+    @Test func theSameAddressInAQuoteOrAroundAPictureIsNotTheCard() async throws {
+        let quoted = "<table class=\"citation\"><tr><td><a class=\"cLink\" href=\"\(Self.address)\">\(Self.address)</a></td></tr></table>"
+        let picture = "<img src=\"https://forum-images.hardware.fr/i.png\">"
+        let pictured = "<p><b><a class=\"cLink\" id=\"pic\" href=\"\(Self.address)\">\(picture)</a></b></p>"
+        let (controller, recorder) = makeController(transport: imageTransport(), autoLoad: true)
+        let spy = OpenSpy(appTakesLinks: false)
+        controller.linkMenuEnvironment = spy.environment
+        controller.show(document(token: 1, content: Self.plainLink + quoted + pictured))
+        #expect(await until { recorder.ready == [1] })
+        let url = try #require(URL(string: Self.address))
+        _ = try await evaluate("document.querySelector(\"table a.cLink\").click(); return true;", in: controller)
+        #expect(await until { recorder.links == [url] })
+        _ = try await evaluate("document.getElementById(\"pic\").click(); return true;", in: controller)
+        #expect(await until { recorder.links == [url, url] })
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(spy.opened.isEmpty)
     }
 
     @Test func whenTheYouTubeAppTakesTheLinkSafariIsNotOpened() async throws {

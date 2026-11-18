@@ -5,10 +5,20 @@ import SwiftSoup
 public struct YouTubeVideoLink: Equatable, Sendable {
     /// The link as posted.
     public let sourceURL: URL
-    /// The video id: letters, digits, `_` and `-` only.
+    /// The address as written in the message, byte for byte: `sourceURL` percent-encodes what a `URL` cannot hold, so the reader
+    /// matches the inline link by this string.
+    public let postedAddress: String
+    /// The video id: ASCII letters, digits, `_` and `-` only.
     public let videoID: String
     /// The start offset of the link's `t` parameter (LOT-035 rules), nil without one.
     public let startSeconds: Int?
+
+    init(sourceURL: URL, videoID: String, startSeconds: Int?, postedAddress: String? = nil) {
+        self.sourceURL = sourceURL
+        self.videoID = videoID
+        self.startSeconds = startSeconds
+        self.postedAddress = postedAddress ?? sourceURL.absoluteString
+    }
 
     /// The thumbnail: `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, the 480×360 image YouTube serves for every video. A de-facto
     /// form, not documented by YouTube (operator decision of 2026-11-18 on #1037; HFR-PROTOCOL §6c, LOT-071 T9).
@@ -33,21 +43,22 @@ public struct YouTubeVideoLink: Equatable, Sendable {
 /// placeholder (LOT-108) and are not touched. The signature is not part of `MessageContent.html`, so its links never get a card.
 public enum YouTubeLinkDetector {
     /// The video of `url`: `youtu.be/<id>`, `youtube.com/watch?v=<id>` (also `www.` and `m.`) and `youtube.com/shorts/<id>`, over
-    /// `http(s)`, without user info. A channel, a playlist, a handle or any other YouTube page is nil.
+    /// `http(s)`, without user info or port. A channel, a playlist, a handle or any other YouTube page is nil.
     public static func video(for url: URL) -> YouTubeVideoLink? {
-        guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http", url.user() == nil, url.password() == nil,
+        guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              url.user() == nil, url.password() == nil, url.port == nil,
               let host = url.host(percentEncoded: true)?.lowercased() else { return nil }
         let id: Substring
         if host == "youtu.be" {
-            guard let match = url.path(percentEncoded: true).wholeMatch(of: /\/([\w-]+)\/?/) else { return nil }
+            guard let match = url.path(percentEncoded: true).wholeMatch(of: /\/([A-Za-z0-9_-]+)\/?/) else { return nil }
             id = match.output.1
         } else if host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com" {
             let path = url.path(percentEncoded: true)
-            if let match = path.wholeMatch(of: /\/shorts\/([\w-]+)\/?/) {
+            if let match = path.wholeMatch(of: /\/shorts\/([A-Za-z0-9_-]+)\/?/) {
                 id = match.output.1
             } else if path == "/watch" || path == "/watch/" {
                 let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-                guard let value = items.last(where: { $0.name == "v" })?.value, let match = value.wholeMatch(of: /[\w-]+/) else {
+                guard let value = items.last(where: { $0.name == "v" })?.value, let match = value.wholeMatch(of: /[A-Za-z0-9_-]+/) else {
                     return nil
                 }
                 id = match.output
@@ -67,10 +78,15 @@ public enum YouTubeLinkDetector {
         guard let body = (try? SwiftSoup.parseBodyFragment(html))?.body() else { throw .malformedDocument }
         let links = (try? body.select("a.cLink").array()) ?? []
         return links.compactMap { link in
-            guard link.children().isEmpty, link.childNodeSize() > 0, !MessageEmbedDetector.isCandidate(link, in: body),
-                  !hasTableAncestor(link), let href = try? link.attr("href"), let url = URL(string: href),
-                  let video = video(for: url), let text = try? link.text(), isAddress(text, of: href) else { return nil }
-            return video
+            guard link.children().isEmpty, link.childNodeSize() > 0, !hasTableAncestor(link), let href = try? link.attr("href"),
+                  let url = URL(string: href), let video = video(for: url), let text = try? link.text(), isAddress(text, of: href)
+            else { return nil }
+            // A link LOT-035 turns into a player keeps that placeholder. Its patterns are narrower (a `v=` on `youtube.com`, lower
+            // case), so a Shorts link or an upper-case host on a line of its own has no player and gets the card.
+            if MessageEmbedDetector.isCandidate(link, in: body), MessageEmbedDetector.embed(for: url) != nil { return nil }
+            return YouTubeVideoLink(
+                sourceURL: video.sourceURL, videoID: video.videoID, startSeconds: video.startSeconds, postedAddress: href
+            )
         }
     }
 
@@ -84,7 +100,8 @@ public enum YouTubeLinkDetector {
         return false
     }
 
-    /// The link text is the address itself, ignoring case, spaces around it, the scheme and a trailing `/`.
+    /// The link text is the address itself, ignoring case, spaces around it, the scheme and a trailing `/`, or HFR's shortened form of a
+    /// long address, `<start> [...] <last 10 characters>` (captures `R20`, `R21`, `R27`), whose two parts both belong to the address.
     private static func isAddress(_ text: String, of href: String) -> Bool {
         func bare(_ value: String) -> String {
             var result = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -92,6 +109,12 @@ public enum YouTubeLinkDetector {
             while result.hasSuffix("/") { result.removeLast() }
             return result
         }
-        return !bare(text).isEmpty && bare(text) == bare(href)
+        let address = bare(href)
+        let shown = bare(text)
+        guard !shown.isEmpty else { return false }
+        if shown == address { return true }
+        let parts = shown.components(separatedBy: " [...] ")
+        guard parts.count == 2, let start = parts.first, let end = parts.last, !start.isEmpty, !end.isEmpty else { return false }
+        return address.hasPrefix(start) && href.lowercased().hasSuffix(end)
     }
 }

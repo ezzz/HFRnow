@@ -21,7 +21,9 @@ struct YouTubeLinkDetectorTests {
             ("https://www.youtube.com/watch?list=PL1&v=abc123&t=706", "abc123", 706),
             ("https://www.youtube.com/shorts/Ab_-12345xy", "Ab_-12345xy", nil),
             ("https://m.youtube.com/shorts/abc123", "abc123", nil),
-            ("http://youtu.be/abc123", "abc123", nil)
+            ("http://youtu.be/abc123", "abc123", nil),
+            ("https://YOUTU.BE/abc123", "abc123", nil),
+            ("https://WWW.YouTube.com/watch?v=abc123", "abc123", nil)
         ]
     )
     func forms(link: String, id: String, start: Int?) throws {
@@ -49,7 +51,8 @@ struct YouTubeLinkDetectorTests {
             "https://www.youtube.com/embed/abc123", "https://www.youtube.com/shorts/", "https://www.youtube.com/shorts/a%20b",
             "https://youtu.be/", "https://youtu.be/a%20b", "https://youtube.com.example.org/watch?v=abc", "https://youtubeXcom/watch?v=abc",
             "https://example.org/?u=https://youtu.be/abc", "https://example.org/shorts/abc", "https://vimeo.com/123456",
-            "ftp://youtu.be/abc123", "https://user@youtu.be/abc123"
+            "ftp://youtu.be/abc123", "https://user@youtu.be/abc123", "https://www.youtube.com/watch?v=%C3%A9t%C3%A9",
+            "https://www.youtube.com:8443/watch?v=abc123", "https://youtu.be:8080/abc123", "https://youtu.be/%C3%A9t%C3%A9"
         ]
     )
     func notVideos(link: String) throws {
@@ -86,12 +89,43 @@ struct YouTubeLinkDetectorTests {
         #expect(try Self.cards(inTable + spoiler) == [])
     }
 
-    @Test("A top-level link is a LOT-035 embed and keeps its player placeholder: no card for it")
-    func embedCandidatesExcluded() throws {
+    @Test("A top-level link that LOT-035 turns into a player keeps its placeholder: no card for it")
+    func embedsExcluded() throws {
         let html = "<p>\(Self.link("https://youtu.be/aaa"))</p><p><b>\(Self.link("https://youtu.be/bbb"))</b></p>"
         #expect(try YouTubeLinkDetector.cards(inNormalizedHTML: html).map(\.videoID) == ["bbb"])
         // The embed rule itself is untouched: the first one is still the only embed.
         #expect(try MessageEmbedDetector.embeds(inNormalizedHTML: html).map(\.sourceURL.absoluteString) == ["https://youtu.be/aaa"])
+    }
+
+    /// Review round 1: a top-level link that LOT-035 does *not* embed (Shorts, an upper-case host: its patterns are case-sensitive and
+    /// need a `v=`) has no player either, so it gets the card.
+    @Test("A top-level link without a player gets a card")
+    func topLevelWithoutPlayer() throws {
+        let shorts = "<p>\(Self.link("https://youtube.com/shorts/abc"))</p>"
+        let upper = "<p>\(Self.link("https://YOUTU.BE/def"))</p>"
+        #expect(try MessageEmbedDetector.embeds(inNormalizedHTML: shorts + upper).isEmpty)
+        #expect(try Self.cards(shorts + upper) == ["abc", "def"])
+    }
+
+    /// HFR shortens the text of a long auto-link to `<start> [...] <last 10 characters>` (captures `R20`, `R21`, `R27`).
+    @Test("A link text shortened by HFR is still the address")
+    func shortenedText() throws {
+        let href = "https://youtube.com/shorts/abcdefghijk?si=0123456789abcdef"
+        let shortened = "https://youtube.com/shorts/abcdefghijk [...] \(href.suffix(10))"
+        let nested = { (text: String) in "<p><b>\(Self.link(href, text: text))</b></p>" }
+        #expect(try Self.cards(nested(shortened)) == ["abcdefghijk"])
+        #expect(try Self.cards(nested("https://youtube.com/shorts/zzzzzzzzzzz [...] \(href.suffix(10))")) == [])
+        #expect(try Self.cards(nested("https://youtube.com/shorts/abcdefghijk [...] xxxxxxxxxx")) == [])
+        #expect(try Self.cards(nested(" [...] \(href.suffix(10))")) == [])
+    }
+
+    /// The card carries the address as posted: the page matches the inline link by it (a `URL` would percent-encode it).
+    @Test("The posted address is kept as written")
+    func postedAddress() throws {
+        let href = "https://youtu.be/aaa?si=é"
+        let video = try #require(try YouTubeLinkDetector.cards(inNormalizedHTML: "<p><b>\(Self.link(href))</b></p>").first)
+        #expect(video.postedAddress == href)
+        #expect(video.sourceURL.absoluteString != href)
     }
 
     @Test("Other links, channels and links around images or formatted text get no card")

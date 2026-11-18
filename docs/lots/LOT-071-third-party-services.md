@@ -166,8 +166,10 @@ one of LOT-035's player candidates, shows a card under the text: the thumbnail `
 « Vidéo YouTube · toucher pour lire » when the thumbnail is refused (images on tap, or on Wi-Fi without it), fails or times out
 (`RequestTimeout.standard`, as every reader image, #683). The thumbnail is an ordinary image of the page: policy C, the cookie-less client, no
 `Referer`, a 15 MB cap, one hop at a time. A tap on the card, the pill or the link opens the video as a universal link only (the YouTube app),
-else in Safari (`UIApplication.open`), never in an in-app browser nor in the player sheet; the long press stays the #596 menu. LOT-035 candidates
-(a link alone in a top-level paragraph) keep their LOT-108 player placeholder and get no card, so the two never show for one link. The page tells
+else in Safari (`UIApplication.open`), never in an in-app browser nor in the player sheet; the long press stays the #596 menu. A link LOT-035
+turns into a player (a `youtube.com/watch?v=` or `youtu.be` link alone in a top-level paragraph) keeps its LOT-108 placeholder and gets no card, so the two
+never show for one link; a Shorts link or an upper-case host, which LOT-035 does not embed, gets the card. The link text counts as the address when it is the
+address or HFR's shortened form `<start> [...] <last 10 characters>` (captures `R20`, `R21`, `R27`); the id is ASCII, and a link with a port is no video. The page tells
 the app only the card's address; the app re-parses it (`YouTubeLinkDetector.video(for:)`) and opens it over `https`, start time kept.
 
 ## Decision D-071-3 — AQ requests

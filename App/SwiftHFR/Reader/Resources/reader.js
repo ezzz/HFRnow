@@ -89,13 +89,16 @@
       return;
     }
     // The card of a plain YouTube link, or that link itself (same address, same message): the app opens it in the YouTube app or in
-    // Safari (#1037). The app checks the address again; nothing else of the page is sent.
+    // Safari (#1037). Only the message's own text link counts: not one in a quote, a spoiler or a code block (a table), nor one around a
+    // picture (that tap is the picture's). The app checks the address again; nothing else of the page is sent.
     const anchor = target.closest("a[href]");
     if (anchor) {
       const article = anchor.closest("article");
       const href = anchor.getAttribute("href");
-      const inCards = (card) => card.getAttribute("href") === href;
-      if (article && (anchor.classList.contains("video-card") || Array.from(article.querySelectorAll("a.video-card")).some(inCards))) {
+      const isCard = anchor.classList.contains("video-card");
+      const isCardLink = anchor.matches(".content a.cLink") && !anchor.closest("table") && anchor.querySelector("img") === null
+        && article !== null && Array.from(article.querySelectorAll("a.video-card")).some((card) => card.getAttribute("href") === href);
+      if (isCard || isCardLink) {
         event.preventDefault();
         channel.postMessage({ type: "videolink", token, url: href });
         return;
