@@ -118,7 +118,7 @@ struct TopicReaderView: View {
         .offlineSave(model: model, saver: saver)
         .toolbar {
             // `depth` is constant for a reader's life: a depth 0 reader keeps the system title, the bar's items never change identity.
-            if model.depth > 0 { ToolbarItem(placement: .principal) { ReaderTitleWithDepth(depth: model.depth, title: model.title) } }
+            if model.depth > 0 { ReaderDepthTitleToolbar(depth: model.depth, title: model.title) }
             ReaderPageControls(buttons: pageButtons, placement: bottomPlacement)
             ToolbarItem(placement: .primaryAction) { ReaderRefreshButton(model: model, refresh: refresh) }
             overflowToolbar
