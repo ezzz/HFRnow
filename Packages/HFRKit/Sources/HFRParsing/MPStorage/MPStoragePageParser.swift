@@ -94,15 +94,22 @@ extension PrivateMessageListPage {
     /// The page as the member should see it: without the account's MPStorage thread, a technical store and not a conversation
     /// (#1074).
     ///
-    /// Only the thread `storagePost` is removed: the one the storage sync located, whose first message is the account's own
-    /// (`MPStorageTransport`). A subject alone proves nothing, since any member can send an MP with it (#1200 P1): the
-    /// other rows with the storage subject stay visible, so the member can read, answer or delete them. With no located
-    /// thread, nothing is removed. Display and unread counts use this; the storage flows parse the list themselves.
-    public func hidingStorageThread(post storagePost: Int?) -> PrivateMessageListPage {
-        guard let storagePost else { return self }
+    /// A subject alone proves nothing, since any member can send an MP with it (#1200 P1). A storage-subject row is removed
+    /// when it is the thread the storage sync located (`storagePost`, whose first message is the account's own), or a
+    /// one-to-one thread with the storage recipient: the account's storage threads are MPs to `recipient`, and their row
+    /// names it as the interlocutor (`R13u1`, `R13u1b`, `R333b` rows 1 and 16, under the files' alias; HFR-PROTOCOL §6c
+    /// LOT-038), so they stay hidden before the sync located one. Another member's MP with the subject names that member
+    /// and stays visible, so it can be read, answered or deleted. Display and unread counts use this; the storage flows
+    /// parse the list themselves.
+    public func hidingStorageThread(
+        post storagePost: Int?, recipient: String = MPStorageDocument.recipient
+    ) -> PrivateMessageListPage {
+        let recipientKey = HFRText.pseudoComparisonKey(recipient)
         var page = self
-        page.threads.removeAll {
-            MPStoragePageParser.isStorageSubject($0.summary.title) && $0.summary.topicID?.topic == storagePost
+        page.threads.removeAll { thread in
+            guard MPStoragePageParser.isStorageSubject(thread.summary.title) else { return false }
+            if let storagePost, thread.summary.topicID?.topic == storagePost { return true }
+            return !thread.isGroup && thread.interlocutors.map(HFRText.pseudoComparisonKey) == [recipientKey]
         }
         return page
     }

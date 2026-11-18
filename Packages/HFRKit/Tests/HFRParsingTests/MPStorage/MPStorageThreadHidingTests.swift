@@ -3,7 +3,9 @@ import Testing
 @testable import HFRParsing
 
 /// #1074: the account's MPStorage thread stays out of the member's list and unread counts, while its finder still sees it.
-/// #1200 P1: only the thread the storage sync located is hidden; another row with the storage subject stays visible.
+/// #1200 P1: a storage-subject row is hidden only when it is the located thread or a one-to-one thread with the storage
+/// recipient; another member's MP with the subject stays visible. The captures alias the recipient `MultiMP` per file
+/// (FIXTURES.md): `R13u1` names it `user117`, `R333b` `user3`, as their `[non lu]` tooltips show.
 @Suite("MPStorage thread hidden from the MP list")
 struct MPStorageThreadHidingTests {
     static let listURL = "/forum1.php?config=hfr.inc&cat=prive&page=1"
@@ -12,9 +14,18 @@ struct MPStorageThreadHidingTests {
     /// The storage thread of `R13u1` and of `R333b` row 1 (`R60a`).
     static let storagePost = 3_157_083
 
-    private static func thread(_ title: String, post: Int? = nil, readState: TopicReadState) -> PrivateMessageThread {
+    /// The storage recipient as `R13u1` and `R333b` alias it.
+    static let recipientInR13u1 = "user117"
+    static let recipientInR333b = "user3"
+
+    private static func thread(
+        _ title: String, post: Int? = nil, readState: TopicReadState, with interlocutors: [String] = ["user9"], group: Bool = false
+    ) -> PrivateMessageThread {
         let topicID = post.map { TopicID(category: .privateMessages, topic: $0) }
-        return PrivateMessageThread(summary: TopicSummary(topicID: topicID, title: title, path: "/x", readState: readState))
+        return PrivateMessageThread(
+            summary: TopicSummary(topicID: topicID, title: title, path: "/x", readState: readState),
+            interlocutors: interlocutors, isGroup: group
+        )
     }
 
     @Test("R13u1: the storage row (marked [non lu]) is dropped, the other rows keep their order")
@@ -29,30 +40,44 @@ struct MPStorageThreadHidingTests {
         #expect(shown.newMessagePath == page.newMessagePath)
     }
 
-    @Test("#1200 P1, R333b: only the located storage row is dropped; the other storage-subject row stays visible")
-    func keepsForeignStorageSubjectRowVisible() throws {
+    @Test("#1200 P1, R333b: both of the account's storage rows (to the recipient) are dropped, located or not")
+    func dropsTheAccountsStorageRowsByRecipient() throws {
         let page = try PrivateMessageListParser.parse(Fixture.capture("R333b-mp-list-p2-storage-row-first"), pageURL: Self.pageTwoURL)
         let storageRows = page.threads.filter { MPStoragePageParser.isStorageSubject($0.summary.title) }
         #expect(storageRows.map { $0.summary.topicID?.topic } == [Self.storagePost, 3_139_922])
-        let shown = page.hidingStorageThread(post: Self.storagePost)
-        #expect(shown.threads == page.threads.filter { $0.summary.topicID?.topic != Self.storagePost })
-        #expect(shown.threads.contains { $0.summary.topicID?.topic == 3_139_922 })
+        #expect(storageRows.allSatisfy { !$0.isGroup && $0.interlocutors == [Self.recipientInR333b] })
+        for located in [Self.storagePost, nil] as [Int?] {
+            let shown = page.hidingStorageThread(post: located, recipient: Self.recipientInR333b)
+            #expect(shown.threads == page.threads.filter { !MPStoragePageParser.isStorageSubject($0.summary.title) })
+        }
+    }
+
+    @Test("#1200 P1: R13u1's storage row is hidden before the sync located it, by its recipient")
+    func dropsTheStorageRowBeforeItIsLocated() throws {
+        let page = try PrivateMessageListParser.parse(Fixture.capture("R13u1-mp-list-recipient-unread"), pageURL: Self.listURL)
+        let shown = page.hidingStorageThread(post: nil, recipient: Self.recipientInR13u1)
+        #expect(!shown.threads.contains { $0.summary.topicID?.topic == Self.storagePost })
+        #expect(shown.threads.count == page.threads.count - 1)
     }
 
     @Test("#1200 P1: a row another member sent with the storage subject is not hidden, unread or not")
-    func keepsAnotherMembersStorageSubjectThread() {
+    func keepsForeignStorageSubjectRowVisible() {
         let page = PrivateMessageListPage(threads: [
-            Self.thread(MPStorageDocument.subject, post: Self.storagePost, readState: .read),
-            Self.thread(MPStorageDocument.subject, post: 99, readState: .unread)
+            Self.thread(MPStorageDocument.subject, post: Self.storagePost, readState: .read, with: ["MultiMP"]),
+            Self.thread(MPStorageDocument.subject, post: 99, readState: .unread, with: ["user9"]),
+            Self.thread(MPStorageDocument.subject, post: 98, readState: .unread, with: ["MultiMP", "user9"], group: true)
         ])
-        let shown = page.hidingStorageThread(post: Self.storagePost)
-        #expect(shown.threads.map { $0.summary.topicID?.topic } == [99])
-        #expect(shown.unreadThreadCount == 1)
+        for located in [Self.storagePost, nil] as [Int?] {
+            let shown = page.hidingStorageThread(post: located)
+            #expect(shown.threads.map { $0.summary.topicID?.topic } == [99, 98])
+            #expect(shown.unreadThreadCount == 2)
+        }
     }
 
-    @Test("#1200 P1: with no located storage thread, no row is hidden")
-    func hidesNothingWithoutALocatedThread() throws {
-        let page = try PrivateMessageListParser.parse(Fixture.capture("R13u1-mp-list-recipient-unread"), pageURL: Self.listURL)
+    @Test("#1200 P1: the located thread is hidden whatever its row names")
+    func dropsTheLocatedThreadWhateverItsInterlocutor() {
+        let page = PrivateMessageListPage(threads: [Self.thread(MPStorageDocument.subject, post: Self.storagePost, readState: .read)])
+        #expect(page.hidingStorageThread(post: Self.storagePost).threads.isEmpty)
         #expect(page.hidingStorageThread(post: nil) == page)
     }
 

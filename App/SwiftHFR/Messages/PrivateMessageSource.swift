@@ -11,14 +11,14 @@ protocol PrivateMessageSource: Sendable {
 
 /// The live source: `PageFetcher.privateMessages` (LOT-045) with the account's session, then `PrivateMessageListParser` (LOT-023).
 ///
-/// The account's MPStorage thread is removed from the page (#1074): the one its storage sync located, never another row
-/// with the same subject (#1200 P1).
+/// The account's MPStorage thread is removed from the page (#1074): the one its storage sync located, or a thread with the
+/// storage subject sent to the storage recipient; another member's MP with that subject stays (#1200 P1).
 ///
 /// Only the list is fetched: no thread page, so nothing is marked read here.
 struct LivePrivateMessageSource: PrivateMessageSource {
     let fetcher: PageFetcher
     /// The account's storage thread as its MPStorage sync last located it (a thread whose first message is the account's,
-    /// `MPStorageTransport`); nil when none is known, and then no row is hidden.
+    /// `MPStorageTransport`); nil when none is known, and then only the rows naming the storage recipient are hidden.
     let storagePost: @Sendable () async -> Int?
 
     /// The thread the MPStorage sync of `account` cached in the device copies (LOT-130); nil without an account.
@@ -39,7 +39,8 @@ struct LivePrivateMessageSource: PrivateMessageSource {
         do throws(ListPageFailure) {
             // The MPStorage thread is a technical store, not a conversation: it stays out of the list and of every count
             // read from it (#1074). The storage flows fetch and scan the list themselves, so they still find it. Only the
-            // located thread is hidden: any member can send an MP with the storage subject (#1200 P1).
+            // located thread and the account's own storage threads are hidden: any member can send an MP with the storage
+            // subject (#1200 P1).
             let page = try PrivateMessageListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString)
             return page.hidingStorageThread(post: await storagePost())
         } catch {

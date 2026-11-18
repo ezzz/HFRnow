@@ -17,13 +17,13 @@ struct LivePrivateMessageSourceTests {
         let anonymous: MockTransport
     }
 
-    private func rig(replying body: Data, session: MockTransport? = nil, storagePost: Int? = Self.storagePost) -> Rig {
+    private func rig(replying body: Data, session: MockTransport? = nil) -> Rig {
         let session = session ?? MockTransport { request async throws(NetworkError) -> HTTPResponse in
             HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: request.url, body: body)
         }
         let anonymous = MockTransport(replies: [])
         let source = LivePrivateMessageSource(
-            fetcher: PageFetcher(session: session, anonymous: anonymous), storagePost: { storagePost }
+            fetcher: PageFetcher(session: session, anonymous: anonymous), storagePost: { Self.storagePost }
         )
         return Rig(source: source, session: session, anonymous: anonymous)
     }
@@ -49,15 +49,6 @@ struct LivePrivateMessageSourceTests {
         #expect(page.threads.contains { $0.isGroup })
         #expect(page.threads.contains { $0.isUnread })
         #expect(page.threads.allSatisfy { ReaderTarget(opening: $0.summary) != nil })
-    }
-
-    /// #1200 P1: a row with the storage subject that is not the account's located thread (another member's MP, or no thread
-    /// located yet) stays in the list.
-    @Test(arguments: [nil, 99] as [Int?])
-    func aStorageSubjectRowOtherThanTheLocatedThreadStaysVisible(located: Int?) async throws {
-        let body = try LiveTopicPageSourceTests.capture("R13u1-mp-list-recipient-unread.html")
-        let page = try await rig(replying: body, storagePost: located).source.privateMessages(page: 1)
-        #expect(page.threads.contains { $0.summary.topicID?.topic == Self.storagePost })
     }
 
     /// Every path that turns the list into rows or counts reads the live source (#1075 map): the Messages model in both

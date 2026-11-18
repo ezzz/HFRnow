@@ -78,8 +78,11 @@ extension MPStorageTransport {
             do throws(MPStorageTransportError) {
                 _ = try await locate(post: post, through: session)
                 return true
-            } catch .editLinkMissing, .notAddressed {
-                // Another member's thread with the storage subject, or one the account no longer belongs to.
+            } catch .editLinkMissing, .notAddressed, .threadPage(.notStorageThread) {
+                // Another member's thread with the storage subject, one the account no longer belongs to, or a thread
+                // whose page title is not exactly the subject although its list row matched (`isStorageSubject` also
+                // takes a `[non lu] ` prefix). Any other failure stops the search: a page that could not be read may be
+                // the account's thread, and "not found" would let the app create a second one.
                 return false
             }
         }

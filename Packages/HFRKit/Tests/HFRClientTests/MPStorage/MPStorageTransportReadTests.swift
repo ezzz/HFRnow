@@ -57,6 +57,37 @@ struct MPStorageTransportReadTests {
         #expect(outcome.posts.isEmpty)
     }
 
+    @Test("A candidate whose first page is another thread (its title is not the storage subject) is skipped, not fatal")
+    func skipsCandidateWhosePageIsAnotherThread() async throws {
+        let otherThread = try Capture.response(
+            "RU1-mp-thread-recipient-view", url: try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url
+        )
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.list("R13u1"), .success(otherThread), .failure(.offline)]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.findThread(through: session)
+        }
+        // The walk moved on to page 2 (failed here) instead of stopping on the candidate.
+        #expect(outcome.error == .network(.offline))
+        #expect(outcome.requests.count == 3)
+        #expect(outcome.posts.isEmpty)
+    }
+
+    @Test("A candidate whose first page cannot be read stops the search: it may be the account's thread")
+    func aCandidatePageThatCannotBeReadStopsTheSearch() async throws {
+        let empty = HTTPResponse(
+            statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"],
+            url: try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url, body: Data("<html><body></body></html>".utf8)
+        )
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.list("R13u1"), .success(empty)]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.findThread(through: session)
+        }
+        #expect(outcome.error == .threadPage(.noMessage))
+        #expect(outcome.requests.count == 2)
+    }
+
     @Test func aListWithoutTheThreadAndNoNextPageIsNotFound() async throws {
         let replies = [try MPStorageCapture.list("R13a")]
         let outcome = await MPStorageHarness.run(replies) { transport, session throws(MPStorageTransportError) in
