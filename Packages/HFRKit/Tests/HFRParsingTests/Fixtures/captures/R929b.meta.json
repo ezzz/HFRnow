@@ -1,0 +1,15 @@
+{
+  "id": "R929b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/webservices/rest_api.php?uri=forums/hardwarefr/categories/4/subcategories/",
+  "url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/4/subcategories/",
+  "final_url": "https://forum.hardware.fr/webservices/rest_api.php?uri=forums/hardwarefr/categories/4/subcategories/",
+  "status": 200,
+  "content_type": "application/json",
+  "date": "Wed, 18 Nov 2026 01:48:19 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R929b-rest-subcategories-cat4.json",
+  "private": false
+}

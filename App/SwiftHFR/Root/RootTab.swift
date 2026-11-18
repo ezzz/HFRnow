@@ -93,6 +93,37 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
 
     /// Destructive entries are drawn in red, as legacy.
     var isDestructive: Bool { self == .deleteAccount }
+
+    /// Whether the regular-width iPad shows the entry as a list of topics beside the topic a row opens (three columns, as
+    /// Favoris); the others take a two-column split (legacy `IPadSidebarDestination.usesTopicList`, `MainWindow.swift:1326-1333`
+    /// @ 87fe0d1c, #685).
+    var usesTopicList: Bool { self == .bookmarks || self == .qualityAlerts }
+
+    /// What the detail column of a topic-list entry shows before a row is opened (legacy `detailPlaceholderTitle`,
+    /// `detailPlaceholderSystemImage`, `detailPlaceholderDescription`, `MainWindow.swift:2048-2089` @ 87fe0d1c); nil for the others.
+    var detailPlaceholder: DetailPlaceholder? {
+        switch self {
+        case .bookmarks:
+            DetailPlaceholder(title: "Aucun bookmark sélectionné", symbol: "pin", description: "Choisissez un bookmark dans la liste.")
+        case .qualityAlerts:
+            DetailPlaceholder(title: "Aucune alerte sélectionnée", symbol: "bell", description: "Choisissez une alerte dans la liste.")
+        case .settings, .search, .credits, .charter, .deleteAccount:
+            nil
+        }
+    }
+}
+
+/// The empty detail column of a topic-list destination.
+struct DetailPlaceholder: Hashable, Sendable {
+    let title: String
+    let symbol: String
+    let description: String
+}
+
+/// A titled section of the regular-width iPad sidebar.
+struct SidebarSection: Hashable, Sendable {
+    let title: String
+    let destinations: [SidebarDestination]
 }
 
 /// A destination of the regular-width iPad sidebar (legacy `IPadSidebarDestination`, `MainWindow.swift:1280-1316`).
@@ -100,11 +131,14 @@ enum SidebarDestination: Hashable, Sendable {
     case tab(RootTab)
     case plus(PlusEntry)
 
-    /// Sidebar sections, in legacy order (`MainWindow.swift:2205-2225`): the lists, the tools, then the Plus entries.
-    static let sections: [[SidebarDestination]] = [
-        [.tab(.categories), .tab(.favorites), .tab(.messages)],
-        [.plus(.bookmarks), .plus(.qualityAlerts)],
-        [.plus(.settings), .plus(.search), .plus(.credits), .plus(.charter), .plus(.deleteAccount)]
+    /// Sidebar sections, in legacy order and with legacy titles (`MainWindow.swift:1878-1901`, `:2384-2401` @ 87fe0d1c): the
+    /// lists, the tools, then the Plus entries.
+    static let sections: [SidebarSection] = [
+        SidebarSection(title: "Forum", destinations: [.tab(.categories), .tab(.favorites), .tab(.messages)]),
+        SidebarSection(title: "Outils", destinations: [.plus(.bookmarks), .plus(.qualityAlerts)]),
+        SidebarSection(
+            title: "Plus", destinations: [.plus(.settings), .plus(.search), .plus(.credits), .plus(.charter), .plus(.deleteAccount)]
+        )
     ]
 
     /// Row title.

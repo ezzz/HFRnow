@@ -44,12 +44,18 @@ struct MPNotificationCenter: MPNotificationDelivering {
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
     }
 
-    func setBadge(_ count: Int) async {
+    @discardableResult
+    func setBadge(_ count: Int) async -> Bool {
+        let center = UNUserNotificationCenter.current()
+        // Read before the write: the first launch's count can come while the permission prompt is still on screen (#1060).
+        let allowed = await center.notificationSettings().badgeSetting == .enabled
         do {
-            try await UNUserNotificationCenter.current().setBadgeCount(max(count, 0))
+            try await center.setBadgeCount(max(count, 0))
         } catch {
             Self.log.error("Badge not set")
+            return false
         }
+        return allowed
     }
 
     /// The system content: no message text, sound default, `.active` (never time-sensitive), and where a tap leads.

@@ -16,14 +16,21 @@ struct RootNavigationView: View {
     /// Taps on MP notifications, taken once the root is built (LOT-140).
     @State private var notificationRouter = MPNotificationRouter.shared
     private let environment: AppEnvironment
+    /// Where the app icon badge goes: the notification center in the app, a recorder in tests.
+    private let badges: any MPNotificationDelivering
+    /// The app icon badge iOS did not show (no badge permission yet, the first launch's count can come under the permission
+    /// prompt, or refused), set again when the window is back on screen (#1060): while refused, one settings read and one
+    /// write per foreground.
+    @State private var badgeIsPending = false
     /// The last destination, kept by `RootView` across session generations (the root is rebuilt on each).
     @Binding private var lastDestination: SidebarDestination?
 
     init(
         environment: AppEnvironment, lastDestination: Binding<SidebarDestination?> = .constant(nil),
-        store: any SettingsStore = UserDefaultsSettingsStore()
+        store: any SettingsStore = UserDefaultsSettingsStore(), badges: any MPNotificationDelivering = MPNotificationCenter()
     ) {
         self.environment = environment
+        self.badges = badges
         _lastDestination = lastDestination
         _model = State(initialValue: RootModel(environment: environment, store: store, initial: lastDestination.wrappedValue))
     }
@@ -57,16 +64,30 @@ struct RootNavigationView: View {
         // With several windows (LOT-146) only one takes it, and not one in the background: the tap waits in the router until a
         // window is active, whether it arrived before the root was built or while the window was away.
         .onChange(of: notificationRouter.pending, initial: true) { takeNotification() }
-        .onChange(of: scenePhase) { takeNotification() }
-        // The app icon badge follows the Messages badge (legacy `MainWindow.swift:1779-1784`, GAP-192).
-        .onChange(of: model.appIconBadge, initial: true) { _, badge in
-            guard let badge else { return }
-            Task { await MPNotificationCenter().setBadge(badge) }
+        .onChange(of: scenePhase) { _, phase in
+            takeNotification()
+            // Legacy sets the badge again each time the app is back on screen (`MainWindow.swift:2588-2593` @ 87fe0d1c); only a
+            // badge iOS did not show is set again here, so a shown badge never rewrites a newer count a background check set
+            // (GAP-192, #1060). Limit: a pending badge may rewrite such a count once, when the check ran after badges were turned
+            // on; the next page load corrects it.
+            if phase == .active, badgeIsPending { setBadge(model.appIconBadge) }
         }
+        // The app icon badge follows the Messages badge (legacy `MainWindow.swift:1779-1784`, GAP-192).
+        .onChange(of: model.appIconBadge, initial: true) { _, badge in setBadge(badge) }
         // A new session rebuilds the root: a filter run of the discarded one would keep reading pages with no control.
         .onDisappear {
             model.categories.filtering.cancel()
             model.favorites.filtering.cancel()
+        }
+    }
+
+    /// Hands `badge` to iOS and records whether it was shown; nil (no page gave a count yet) leaves the icon alone.
+    private func setBadge(_ badge: Int?) {
+        guard let badge else { return }
+        Task {
+            let shown = await badges.setBadge(badge)
+            // Only the answer for the badge the root shows now counts: an earlier write may finish after a later one.
+            if badge == model.appIconBadge { badgeIsPending = !shown }
         }
     }
 
