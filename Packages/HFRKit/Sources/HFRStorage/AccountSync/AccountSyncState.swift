@@ -1,8 +1,9 @@
 import Foundation
 
 /// This device's side of the account sync (LOT-173): the switch, the dates it acted on and the per-account stamps.
-/// Kept in its own device-only Keychain item, never in the synchronizable one. An absent or unreadable state is off with
-/// nothing known (fail closed).
+/// Kept in its own device-only Keychain item, never in the synchronizable one. An absent state is off with nothing known;
+/// an unreadable one (a later version's, or damaged) is refused and never written over (#1200 P3), since reading it as off
+/// would erase the switch and the tombstones it honoured.
 public struct AccountSyncState: Sendable, Hashable, Codable {
     /// Whether this device shares its accounts.
     public var isOn = false
@@ -34,7 +35,7 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
         case version, isOn, enabledAt, honouredDeletedAt, provisionalEnabledAt, imported, stamps, removed, hadLocalAccounts
     }
 
-    /// Reads a state; a version this code does not know is refused (`DecodingError`), and the caller reads it as off.
+    /// Reads a state; a version this code does not know is refused (`DecodingError`): the caller refuses to act on it.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let version = try container.decode(Int.self, forKey: .version)
@@ -74,9 +75,10 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
         return try encoder.encode(self)
     }
 
-    /// The state stored in `data`; off with nothing known when absent or undecodable.
-    static func decoded(from data: Data?) -> AccountSyncState {
-        guard let data, let state = try? JSONDecoder().decode(AccountSyncState.self, from: data) else { return AccountSyncState() }
-        return state
+    /// The state stored in `data`: off with nothing known when absent, nil when the bytes cannot be read (a version this
+    /// code does not know, or damaged).
+    static func decoded(from data: Data?) -> AccountSyncState? {
+        guard let data else { return AccountSyncState() }
+        return try? JSONDecoder().decode(AccountSyncState.self, from: data)
     }
 }

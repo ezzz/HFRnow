@@ -41,6 +41,10 @@ public struct AccountSyncReport: Sendable, Hashable {
 public enum AccountSyncError: Error, Sendable, Hashable {
     /// Another device kept changing the synchronizable item between this device's read and its write.
     case itemChanged
+    /// This device's state item holds bytes this version cannot read (a later version wrote it, or they are damaged).
+    /// Nothing was read as off and nothing was written over them: a later version can still read the switch and the
+    /// tombstones it honoured (#1200 P3).
+    case unreadableState
 }
 
 /// The opt-in iCloud Keychain sync of the accounts (ADR 0013 §6, LOT-173): the device-only store stays the master, a
@@ -69,7 +73,8 @@ public final class AccountSync: Sendable {
         self.clock = clock
     }
 
-    /// The device's state (off with nothing known when its item is absent or undecodable).
+    /// The device's state (off with nothing known when its item is absent).
+    /// - Throws: `AccountSyncError.unreadableState` when the item holds bytes this version cannot read.
     public func state() throws -> AccountSyncState {
         try lock.withLock { _ in try loadState() }
     }
@@ -353,10 +358,13 @@ extension AccountSync {
         return true
     }
 
-    /// The state; off with nothing known when the item is absent or undecodable. A Keychain refusal (device locked before
-    /// its first unlock) throws: read as "off", the next save would erase the switch and the tombstones it honoured.
+    /// The state; off with nothing known when the item is absent. A Keychain refusal (device locked before its first
+    /// unlock) throws, and so do bytes this version cannot read (`unreadableState`, #1200 P3): read as "off", the next save
+    /// would erase the switch and the tombstones it honoured. Every operation loads the state before it saves one, so an
+    /// unreadable state is never written over.
     private func loadState() throws -> AccountSyncState {
-        AccountSyncState.decoded(from: try stateItem.read())
+        guard let state = AccountSyncState.decoded(from: try stateItem.read()) else { throw AccountSyncError.unreadableState }
+        return state
     }
 
     /// Remembers, once, that this device holds accounts of its own: it is not a new device any more.

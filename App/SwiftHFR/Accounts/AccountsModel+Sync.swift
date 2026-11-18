@@ -70,7 +70,16 @@ enum AccountSyncMessages {
 
     /// What went wrong, and what to do.
     static func problem(_ error: any Error) -> String {
-        if error is AccountSyncError { return "Un autre appareil modifie la copie iCloud en ce moment. Réessayez." }
+        switch error as? AccountSyncError {
+        case .itemChanged?:
+            return "Un autre appareil modifie la copie iCloud en ce moment. Réessayez."
+        case .unreadableState?:
+            // Never written over (#1200 P3): a later version of the app can still read it.
+            return "L’état de la synchronisation des comptes vient d’une version plus récente de l’app ou est illisible. "
+                + "Mettez l’app à jour."
+        case nil:
+            break
+        }
         switch error as? CredentialStoreError {
         case .corrupted?:
             return "La copie iCloud des comptes est illisible. Désactivez puis réactivez l’option."

@@ -13,10 +13,10 @@ struct AccountsModelSyncTests {
     private let item = InMemorySecureDataItem()
 
     private func device(
-        _ accounts: [Account], login: ScriptedLogin = ScriptedLogin([])
+        _ accounts: [Account], login: ScriptedLogin = ScriptedLogin([]), state: InMemorySecureDataItem = InMemorySecureDataItem()
     ) throws -> (AccountsModel, InMemoryCredentialStore) {
         let store = try InMemoryCredentialStore(accounts: accounts)
-        let sync = AccountSync(accounts: store, item: item, state: InMemorySecureDataItem())
+        let sync = AccountSync(accounts: store, item: item, state: state)
         let model = AccountsModel(
             store: store, loginService: login, checker: ForumSessionCheck(refresher: ScriptedRefresher([:])),
             avatars: RecordingAvatars(), sync: sync
@@ -112,5 +112,18 @@ struct AccountsModelSyncTests {
         #expect(model.accountSyncNotice == AccountSyncMessages.problem(CredentialStoreError.corrupted))
         #expect(item.data == Data("not json".utf8))
         #expect(store.envelope == before)
+    }
+
+    @Test("#1200 P3: a state this version cannot read is shown, the switch stays off, and the state is kept")
+    func anUnreadableStateIsShownAndKept() throws {
+        let later = Data(#"{"version":2,"isOn":true,"enabledAt":1}"#.utf8)
+        let state = InMemorySecureDataItem(data: later)
+        let (model, _) = try device([Fake.account("user1", main: true)], state: state)
+        model.reconcileAccountSync()
+        model.setAccountSync(true)
+        #expect(!model.isAccountSyncOn)
+        #expect(model.accountSyncNotice == AccountSyncMessages.problem(AccountSyncError.unreadableState))
+        #expect(state.data == later)
+        #expect(item.writeCount == 0)
     }
 }
