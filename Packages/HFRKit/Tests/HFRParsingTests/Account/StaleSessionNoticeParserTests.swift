@@ -8,11 +8,13 @@ struct StaleSessionNoticeParserTests {
     private static let profilePage1 = URL(string: "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=1")
         ?? HFRURL.base
 
-    @Test("The four stale-session captures are recognized at the URL each was served at", arguments: [
+    @Test("The stale-session captures are recognized at the URL each was served at", arguments: [
         ("R70a-home-stale-session", "https://forum.hardware.fr/"),
         ("R70b-favourites-owntopic1-stale-session", "https://forum.hardware.fr/forum1f.php?config=hfr.inc&owntopic=1"),
         ("R70c-profile-edit-page1-stale-session", "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=1"),
-        ("R70d-profile-edit-page5-stale-session", "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5")
+        ("R70d-profile-edit-page5-stale-session", "https://forum.hardware.fr/user/editprofil.php?config=hfr.inc&page=5"),
+        // #283: invented stale identity cookies on the home page get the same notice (R283a, 2026-11-18).
+        ("R283a-home-stale-identity-cookies", "https://forum.hardware.fr/")
     ])
     func staleSessionCaptures(file: String, url: String) throws {
         let html = try Fixture.capture(file)
@@ -35,6 +37,8 @@ struct StaleSessionNoticeParserTests {
             }
         }
         #expect(recognized.sorted() == [
+            // #283: stale identity cookies (an invented pseudo and password) get the same notice.
+            "R283a-home-stale-identity-cookies.html",
             "R70a-home-stale-session.html", "R70b-favourites-owntopic1-stale-session.html",
             "R70c-profile-edit-page1-stale-session.html", "R70d-profile-edit-page5-stale-session.html",
             // The REST flag bucket asked with the same stale jar answers this very page, not JSON (#830).
