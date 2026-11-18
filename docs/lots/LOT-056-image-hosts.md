@@ -37,7 +37,7 @@ All in `Packages/HFRKit/Sources/HFRNetwork/`. Nothing imports another HFRKit mod
   Names of the build settings are the app lot's to wire (LOT-080); suggested: `REHOST_BASE_URL`, `REHOST_API_KEY` in the untracked
   `.xcconfig` of ADR 0007.
 - `RehostClient.upload(jpeg:)` builds `POST <base>/api/1/upload/?key=<percent-encoded key>`: `multipart/form-data` with
-  `imageCaption=Some Caption` then the `source` file (`image/jpeg`, `snapshot_<random>.jpg`), 60 s total timeout, redirects **not** followed, response read up to 64 KiB (`maximumResponseBytes`, via `HTTPRequest.maximumBodyBytes`; a longer
+  `imageCaption=Some Caption` then the `source` file (`image/jpeg`, `snapshot_<random>.jpg`), 60 s idle timeout (`timeoutInterval`; #683 made `HTTPRequest.timeout` an idle limit, which matches legacy), redirects **not** followed, response read up to 64 KiB (`maximumResponseBytes`, via `HTTPRequest.maximumBodyBytes`; a longer
   answer is `network(.invalidResponse)`).
   The default transport is `AnonymousTransport` (cookie-less, LOT-071 R1); no `Cookie` or `Referer` header is set.
 - The app prepares the JPEG (orientation, downscale to `RehostMaxDimension`, re-encode): those need UIKit/ImageIO and stay out of `HFRKit`.

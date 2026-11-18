@@ -64,7 +64,7 @@ struct CategoriesTabView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            ForumListView(navigation: navigation).appScreenBackground()
+            ForumListView(navigation: navigation).accountMenuToolbarItem().appScreenBackground()
         } content: {
             TopicsColumn(navigation: navigation, composer: composer).appScreenBackground()
         } detail: {
@@ -85,6 +85,7 @@ struct FavoritesTabView: View {
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
             TopicsColumn(navigation: navigation, composer: composer)
+                .accountMenuToolbarItem()
                 .toolbar { ToolbarItem(placement: .primaryAction) { FavoritesSourceMenu(navigation: navigation) } }
                 .appScreenBackground()
         } detail: {

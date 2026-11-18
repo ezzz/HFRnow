@@ -97,7 +97,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-229 | Separation between messages | 1 px near-black rule (`#202020`) above each message plus a 38 px header band; dark and OLED sheets use grey borders. | style-liste-light.css:153-160 @ 2440d79 | Even messages tinted (5 % light, 9 % dark of the text colour over the background, 7 % / 16 % in Increase Contrast) and a stronger 1 px rule below each message, all derived from the theme tokens. | #568, LOT-122 | UX change | new UX: operator (#568) | b |
 | GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for every link that is not a forum topic, MP or profile, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). An image link (extension or rehost host, as legacy `isImageURL`) also offers "Ouvrir l'image" (the viewer) and "Enregistrer dans Photos" (cookie-less download, add-only Photos permission), ported in #615. | #596, #615, LOT-137 | UX change | new UX: operator (2026-11-07) | b·operator |
 | GAP-595 | Default avatar in the reader | `avatar_male_gray_*.png` via CSS `--imagefile-avatar`, class `noavatar` (`MessagesView.swift:2411`, `LinkItem.m:65-69`) | MessagesView.swift:2411; HTML/style-liste-light.css:203-205 | Grey silhouette drawn in CSS when a member has no avatar (legacy `avatar_male_gray_*`); the picture covers it when there is one (#819). | #595 | ported with changes | port: ezzz Swift layer | a |
-| GAP-750 | Topic load timeout | 10 s from the page request to its answer, then "Le chargement du topic a expiré. Réessaie." | `MessagesView.swift:3668-3704` @ `87fe0d1c`; `Common.swift:1906-1907` | 30 s (HFRNetwork `RequestTimeout.standard`) from the first "Chargement des messages" to the page shown, fetch and web view together, then the timeout error with Réessayer; a page that still arrives is shown. | #750 | ported with changes | new UX: operator (#750) | b·operator |
+| GAP-750 | Topic load timeout | 10 s from the page request to its answer, then "Le chargement du topic a expiré. Réessaie." | `MessagesView.swift:3668-3704` @ `87fe0d1c`; `Common.swift:1906-1907` | 30 s (the reader's own wait limit, independent of the 10 s request idle limit since #683) from the first "Chargement des messages" to the page shown, fetch and web view together, then the timeout error with Réessayer; a page that still arrives is shown. | #750 | ported with changes | new UX: operator (#750) | b·operator |
 
 ## Composer
 
@@ -145,6 +145,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` label on group rows while the account syncs; opening at the flag comes with the reader's flag write (follow-up). | LOT-062, LOT-130 | ported with changes | port: ezzz Swift layer | a |
 | GAP-120 | MP list logged out | "Connectez-vous pour accéder aux MP". | MPListView.swift:289-296 | "Connexion requise", no request sent. | LOT-126 | same | port: ezzz Swift layer | a |
 | GAP-230 | MP avatar | Cache filled while parsing topic pages (download when missing or older than 24 h); grey disc when absent. | ParseMessagesOperation.m:176, 430-446; MPListView.swift (MPAvatarView) @ 2440d79 | `AvatarStore` fills the cache from every page read (cookie-less, forum image host only, 256 KiB cap, 24 h; not gated by any image setting (there is no « Images externes » setting since #902, and the experimental « Chargement des images » choice does not apply to avatars): forum avatars are first-party (LOT-071 D-071-1 point 3), as in the reader and legacy); the avatar files the legacy app cached (`MD5(lowercased pseudo)`) are adopted on first read after an update (#714); a one-to-one correspondent still missing is looked up while the row is shown (`profilebdd.php` redirect, then the public profile, both cookie-less, `R716a`-`R716d`; one lookup at a time, each pseudo once per session) and the avatar stored by `AvatarStore` (#714); monogram (initials, stable hue, ≥ 4.5:1) replaces the grey disc when there is none; groups keep their icon. | LOT-126, LOT-066, #569, #714 | ported with changes | port: ezzz Swift layer | a |
+| GAP-1074 | MPStorage thread in the MP list | Shown as a normal MP row and bumped « non lu » by every client write; no filter. | MPListView.swift (no filter); MPStorage.m:713 @ 87fe0d1c | The thread (subject `a2bcc09b…`) is hidden once at the list source, from « MP », « MP multiples » and the counts derived from the rows; MPStorage still finds it. HFR's own badge number is unchanged. | #1074 | new | operator feedback 2026-11-17, #1074, #1075; captures R13u1, R333b | b |
 
 ## Search
 
@@ -178,7 +179,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-153 | Smiley size, video rows | Rows commented out, no effect. | AppSettingsView.swift:422-432 | Not ported. | LOT-119 | dropped | new UX: spec | — |
 | GAP-209 | Pseudo lists after a toggle from the profile | profile sheet dismissed, `loadPage(page)` (`MessagesView.swift:3663-3694`) | `MessagesView.swift:3663` | From a message's author, as legacy: the sheet closes, the reader shows the sentence as a toast and rebuilds its page, no request (#652). From a link: the sheet stays open with the sentence under the buttons; reader rebuilds on close | #209 | UX change | none | b |
 | GAP-729 | Theme gallery | Two themes, light and dark, with the accent hue and the dark brightness. | Constants.h Theme; AppSettingsView.swift:421-466 @ 87fe0d1c | Galerie de thèmes sous les réglages de Réglages › Thème : familles, pastilles clair et sombre, nom, « par <auteur> », coche ; un thème est un fichier de jetons `<id>.theme.json` ; Legacy, par défaut, est l'app actuelle, inchangée (teinte, style sombre et luminosité réservés à Legacy). | LOT-188 | new | new UX: operator | b·operator |
-| GAP-903 | Experimental options | None. | — | Single row « Expérimental » at the end of Réglages (monochrome warning symbol) opening an « Expérimental » page; the themes (Composer, Messages…) are its sections, each switch with an ⓘ, the footer under the last one; device keys, all off by default (the modern composer too since #855, which made legacy's full-screen composer the default). Lists the options whose two paths exist: « Composer moderne » (#904), « Recherche dans la barre » (#896), « Stockage MP détaillé » (#859), « Chargement des images » (#902) and « Lignes denses » (#905, #973: dense topic and MP rows, last poster, one info line cut with « … » except at accessibility text sizes, bold section titles). | #903, #971, #855 | new | new UX: operator 2026-11-14 | b·operator |
+| GAP-903 | Experimental options | None. | — | Single row « Expérimental » at the end of Réglages (monochrome warning symbol) opening an « Expérimental » page; the themes (Composer, Messages…) are its sections, each switch with an ⓘ except « MP multiples → dark topic », whose description sits under its switch (#1014), the footer under the last one; device keys, all off by default (the modern composer too since #855, which made legacy's full-screen composer the default). Lists the options whose two paths exist: « Composer moderne » (#904), « Recherche dans la barre » (#896), « MP multiples → dark topic » (#1014, it replaced « Stockage MP détaillé », #859), « Chargement des images » (#902) and « Lignes denses » (#905, #973: dense topic and MP rows, last poster, one info line cut with « … » except at accessibility text sizes, bold section titles). | #903, #971, #855, #1014 | new | new UX: operator 2026-11-14 | b·operator |
 
 ## Accounts
 
@@ -201,7 +202,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
 | GAP-180 | Offline topics | Topic pages and images saved for offline reading. | OfflineStorage.m:41-60, 88-103 | Disabled (operator 2026-11-14, #822, as legacy): no entry reaches offline saving or the saved topics (reader overflow, progress banner, Réglages › Hors ligne); the code and the pages already saved stay for a later design (#846), marked `DISABLED(offline, #822)`. | LOT-068, LOT-139, #822, #903 | dropped | operator decision 2026-11-14 (#822) | — |
-| GAP-181 | MPStorage switch | App-wide `mpstorage_active`, "Resynchroniser". | AppSettingsView.swift:225-262 | Per-account state unasked / on / declined / off; merge, never replace; a single master switch as in legacy; behind Réglages › Expérimental (« Stockage MP détaillé », off by default), one switch per shipped function (« MP multiples → dark topic »; blacklist and bookmarks with LOT-131/132), each with an ⓘ, all on by default, the `disabled` list ignored while the option is off; a function off stops this app reading and writing its section, nothing deleted; an edit queued before the switch-off is still written (#859). | LOT-130 | UX change | new UX: operator | b·needed |
+| GAP-181 | MPStorage switch | App-wide `mpstorage_active`, "Resynchroniser". | AppSettingsView.swift:225-262 | Per-account state unasked / on / declined / off; merge, never replace; a single master switch as in legacy. The creation question is a choice with « Oui » preselected; « Non » shows a confirmation of what is lost (shared blacklist, message bookmarks, « MP multiples → dark topic ») and the storage message is never created without « Oui » (#1014). « MP multiples → dark topic » is its own option in Réglages › Expérimental, off by default (#1014, replacing #859's per-function switches); nothing is deleted when it is off. | LOT-130, #859, #1014 | UX change | new UX: operator | b·needed |
 | GAP-182 | Blacklist sync | Through the MPStorage thread. | MPStorage.m:202, 230, 271 | Local first, then written to the MPStorage thread; each sync merges both ways (device-only entries written, remote removals taken only while the forum list is non-empty or tombstoned), never emptied by an empty list; the first write of an undecided account asks before syncing. | LOT-131, LOT-062 | ported with changes | port: legacy ObjC | a |
 | GAP-183 | Bookmarks sync | Written synchronously to MPStorage. | MPStorage.m:313, 359 | Local first, merged on next sync. | LOT-132, LOT-062 | ported with changes | port: legacy ObjC | a |
 | GAP-184 | iCloud KVS | None. | — | Super favourites, smiley favourites and synced settings follow the Apple ID. | LOT-172 | new | new UX: operator | b·operator |
@@ -276,10 +277,10 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | ported with changes | 59 |
 | ported with changes (engine only) | 1 |
 | UX change | 48 |
-| new | 27 |
+| new | 28 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **178** |
+| **Total** | **179** |
 
 ## Convergence notes
 
@@ -309,7 +310,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (134)
+### GAP rows of type `ported with changes`, `UX change` or `new` (135)
 
 | H.1 | Rows | Count |
 |---|---|---|
@@ -317,7 +318,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
 | b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 30 |
-| b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229 | 37 |
+| b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 1074 | 38 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
 

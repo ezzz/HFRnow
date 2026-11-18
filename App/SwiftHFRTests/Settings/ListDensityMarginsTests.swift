@@ -22,17 +22,22 @@ private extension View {
 /// A section with a header and a row, as the app builds them.
 private struct SectionProbe: View {
     let box: DensityBox
+    /// Space left of the list, as an iPad content column or a list under a pushed screen's parallax (#979).
+    var leading: CGFloat = 0
 
     var body: some View {
-        List {
-            Section {
-                Text("Ligne").reportX("row", to: box).densityRowMargin()
-            } header: {
-                Text("En-tête").reportX("header", to: box).densityHeaderMargin()
+        HStack(spacing: 0) {
+            Color.clear.frame(width: leading)
+            List {
+                Section {
+                    Text("Ligne").reportX("row", to: box).densityRowMargin()
+                } header: {
+                    Text("En-tête").reportX("header", to: box).densityHeaderMargin()
+                }
             }
+            .listStyle(.insetGrouped)
+            .densityListMargins()
         }
-        .listStyle(.insetGrouped)
-        .densityListMargins()
         .environment(\.listDensity, box.density)
     }
 }
@@ -140,7 +145,7 @@ struct ListDensityMarginsTests {
     }
 
     /// Offsets from the card's left edge of the header and a row, in a window of the given size class.
-    private func offsets(_ density: ListDensity, regularClass: Bool) async -> [String: CGFloat] {
+    private func offsets(_ density: ListDensity, regularClass: Bool, leading: CGFloat = 0) async -> [String: CGFloat] {
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene else {
             return [:]
         }
@@ -148,7 +153,7 @@ struct ListDensityMarginsTests {
         box.density = density
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
-        let host = UIHostingController(rootView: SectionProbe(box: box))
+        let host = UIHostingController(rootView: SectionProbe(box: box, leading: leading))
         host.traitOverrides.horizontalSizeClass = regularClass ? .regular : .compact
         window.rootViewController = host
         window.isHidden = false
@@ -158,13 +163,23 @@ struct ListDensityMarginsTests {
             window.layoutIfNeeded()
             if box.minXs.count == 2 { break }
         }
-        let card = Self.collectionView(in: window)?.visibleCells.map(\.frame.minX).min() ?? 0
+        // In window coordinates, as the reported x: the list may not start at the window's edge.
+        let card = Self.collectionView(in: window)?.visibleCells.map { $0.convert($0.bounds, to: nil).minX }.min() ?? 0
         return box.minXs.mapValues { $0 - card }
     }
 
     @Test("In compact, headers and rows sit 7 pt from the card, in both size classes", arguments: [false, true])
     func compactTextSitsOnTheInnerMargin(regularClass: Bool) async {
         let found = await offsets(.compact, regularClass: regularClass)
+        #expect(found["header"] == 7, "\(found)")
+        #expect(found["row"] == 7, "\(found)")
+    }
+
+    /// #979: a section header is hosted apart from its list, so it can only place itself in window coordinates; a list that
+    /// does not start at the window's edge (an iPad column, a list under a pushed screen) must still get its header on the rows'.
+    @Test("In compact, a list away from the window's edge keeps its header on the rows' margin")
+    func compactHeaderFollowsAListAwayFromTheEdge() async {
+        let found = await offsets(.compact, regularClass: false, leading: 100)
         #expect(found["header"] == 7, "\(found)")
         #expect(found["row"] == 7, "\(found)")
     }
