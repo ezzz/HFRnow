@@ -128,10 +128,11 @@ struct AppIconBadgeHostedTests {
         #expect(await delivery.badges == [0, 3])
     }
 
-    // LOT-156: logged out, no page ever gives a count; the icon must not keep the last account's.
+    // LOT-156: logged out, the icon must not keep the last account's count. The home page fails here, so no count ever comes:
+    // only the rule clears the icon (a logged-out home page would record 0 by itself and hide its absence).
     @Test func aLoggedOutRootClearsTheIcon() async throws {
         let source = FakeDataSource()
-        source.forumHandler = { ForumListPage(forums: [], isLoggedIn: false, unreadPrivateMessages: nil) }
+        source.forumHandler = { () async throws(ListLoadError) -> ForumListPage in throw ListLoadError.offline }
         let delivery = FakeMPDelivery()
         let view = Host(
             environment: environment(source, count: PrivateMessageCount(), account: nil), store: InMemorySettingsStore(),
