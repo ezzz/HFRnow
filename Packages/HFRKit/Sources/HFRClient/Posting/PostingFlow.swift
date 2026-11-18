@@ -63,9 +63,11 @@ public struct PostingFlow: Sendable {
 
     /// Replaces an own message's text with `text` through its edit form; `subject` renames the thread and is accepted
     /// only on the first post, whose edit form shows the subject (`R43a`). `subcategory` is one of the `subcat` select's values
-    /// (a public first post, `R63b`; `""` is "Aucune"); nil sends the form's own choice. The `delete` box is never sent.
+    /// (a public first post, `R63b`; `""` is "Aucune"); nil sends the form's own choice. `poll` adds a poll to the topic, only
+    /// through a form that offers one (`ForumForm.offersPollCreation`, a public first post, `W41`). The `delete` box is never sent.
     public func edit(
-        _ text: String, subject: String? = nil, subcategory: String? = nil, options: [PostOption: Bool] = [:], with form: PostingForm
+        _ text: String, subject: String? = nil, subcategory: String? = nil, poll: PollDraft? = nil, options: [PostOption: Bool] = [:],
+        with form: PostingForm
     ) async throws(PostingError) -> PostingResult {
         try require(form, is: .edit)
         var overrides: [String: String] = [:]
@@ -79,9 +81,13 @@ public struct PostingFlow: Sendable {
             overrides["subcat"] = subcategory
         }
         try checkText(text)
-        return try await submit(
-            .edit, form: form, text: text, overrides: overrides, options: options, checkboxes: [PostingForm.deleteField: false]
-        )
+        var boxes = [PostingForm.deleteField: false]
+        if let poll {
+            overrides.merge(try pollFields(poll, in: form)) { _, new in new }
+            boxes[PollDraft.boxField] = true
+            boxes[PollDraft.visitorsField] = poll.allowsVisitors
+        }
+        return try await submit(.edit, form: form, text: text, overrides: overrides, options: options, checkboxes: boxes)
     }
 
     /// Deletes an own message through its edit form: the stored text sent back unchanged with the `delete` box checked
@@ -204,6 +210,29 @@ public struct PostingFlow: Sendable {
 
     func checkText(_ text: String) throws(PostingError) {
         try checkInput(text, as: .text)
+    }
+
+    /// The inputs `poll` fills, after checking that the form offers a poll and holds each of them as HFR served it in `R63b`:
+    /// a text input within its `maxlength`, `max_votes` a select with that option, `allowvisitor` a box when visitors may vote.
+    /// The closing date is written in the device's calendar and time zone, as legacy did (`TopicPollDraft.swift:38-48` @ 87fe0d1c).
+    private func pollFields(_ poll: PollDraft, in form: PostingForm) throws(PostingError) -> [String: String] {
+        guard form.form.offersPollCreation else { throw .pollNotOffered }
+        if let problem = poll.problem(now: Date()) { throw .invalidPoll(problem) }
+        let fields = poll.fields(calendar: .current)
+        for (name, value) in fields {
+            if let select = form.form.select(named: name) {
+                guard select.options.contains(where: { $0.value == value }) else { throw .unsupportedForm(reason: "poll field \(name)") }
+                continue
+            }
+            guard form.form.field(named: name)?.kind == .text else { throw .unsupportedForm(reason: "poll field \(name)") }
+            if let maximum = form.layout.maxLengths[name], value.utf16.count > maximum {
+                throw .unsupportedForm(reason: "poll field \(name)")
+            }
+        }
+        if poll.allowsVisitors, form.form.field(named: PollDraft.visitorsField)?.kind != .checkbox {
+            throw .unsupportedForm(reason: "poll field \(PollDraft.visitorsField)")
+        }
+        return fields
     }
 
     /// A subject or a recipient is a one-line text input: a browser cannot put a line break in it, and cuts it at the

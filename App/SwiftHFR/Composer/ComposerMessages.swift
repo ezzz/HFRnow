@@ -8,6 +8,7 @@ enum ComposerMessages {
     /// The text is always kept in the composer and its draft.
     static func message(for error: PostingError, newMessage: Bool = false, newTopic: Bool = false, edit: Bool = false) -> String {
         if edit, let text = editMessage(for: error) { return text }
+        if let text = pollMessage(for: error) { return text }
         return sharedMessage(for: error, newMessage: newMessage, newTopic: newTopic, edit: edit)
     }
 
@@ -33,8 +34,17 @@ enum ComposerMessages {
         case .unknownSubcategory where newTopic || edit:
             return "Le forum n’offre plus cette sous-catégorie : choisissez-la à nouveau. Rien n’a été envoyé."
         case .invalidFormURL, .missingAction, .unsupportedForm, .formMismatch, .unknownSubcategory, .subjectNotEditable,
-             .optionNotOffered, .deleteNotOffered, .wholeTopicDeletionNotConfirmed:
+             .optionNotOffered, .deleteNotOffered, .wholeTopicDeletionNotConfirmed, .pollNotOffered, .invalidPoll:
             return unsupportedForm(newMessage: newMessage, newTopic: newTopic)
+        }
+    }
+
+    /// The texts of a poll that could not be sent (LOT-100); nil for any other error.
+    private static func pollMessage(for error: PostingError) -> String? {
+        switch error {
+        case .pollNotOffered: pollNotOffered
+        case .invalidPoll(let problem): "Sondage invalide : " + poll(problem) + " Rien n’a été envoyé."
+        default: nil
         }
     }
 
@@ -175,6 +185,27 @@ enum ComposerMessages {
 
     /// Characters outside the Basic Multilingual Plane: HFR cuts the message at the first one and still answers success
     /// (decision Q-3, `W12`), so they are refused before anything is sent.
+    /// The form no longer adds a poll (legacy `ReplyPostingError.pollCreationUnavailable`, `ReplyService.swift:42-43` @ 87fe0d1c).
+    static let pollNotOffered = "Ce formulaire ne permet plus de créer un sondage sur ce sujet. Rien n’a été envoyé : retirez le sondage, "
+        + "ou créez-le en modifiant le premier message du sujet."
+
+    /// What stops a poll from being sent: legacy's sentences (`TopicPollDraft.swift:16-30` @ 87fe0d1c), plus the one-line and
+    /// character rules of the other fields.
+    static func poll(_ problem: PollProblem) -> String {
+        switch problem {
+        case .emptyQuestion: "Saisissez la question du sondage."
+        case .question(.tooLong): "La question est limitée à 255 caractères."
+        case .tooFewAnswers: "Saisissez au moins deux réponses."
+        case .tooManyAnswers: "Le sondage est limité à dix réponses."
+        case .answer(.tooLong): "Chaque réponse est limitée à 255 caractères."
+        case .question(.lineBreak), .answer(.lineBreak): "La question et chaque réponse tiennent sur une ligne."
+        case .question(.unsupportedCharacters(let characters)), .answer(.unsupportedCharacters(let characters)):
+            "Le forum ne peut pas enregistrer ces caractères : \(characters.map(String.init).joined(separator: " "))."
+        case .choicesOutOfRange: "Le nombre de choix dépasse le nombre de réponses."
+        case .closingDateNotInFuture: "Choisissez une date de clôture future."
+        }
+    }
+
     static func unsupported(_ characters: [Character]) -> String {
         let list = characters.map(String.init).joined(separator: " ")
         return "Le forum ne peut pas enregistrer ces caractères et couperait le message au premier : \(list). "

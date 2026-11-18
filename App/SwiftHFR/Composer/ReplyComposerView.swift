@@ -237,6 +237,10 @@ struct ReplyComposerView: View {
                 ComposerSubcategoryRow(model: model)
                 Divider()
             }
+            if model.showsPoll {
+                ComposerPollRow(model: model)
+                Divider()
+            }
             TextField("Sujet", text: Binding(get: { model.subject }, set: { model.update(subject: $0) }))
                 .focused($focused, equals: .subject)
                 .submitLabel(.next)

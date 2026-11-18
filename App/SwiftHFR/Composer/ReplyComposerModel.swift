@@ -112,10 +112,13 @@ final class ReplyComposerModel: Identifiable {
         self.prefill = prefill
         initialQuote = nil
         if let options = prefill.subcategories { picker.apply(options) }
+        poll.apply(offers: prefill.offersPoll)
     }
 
     /// The form's sub-category select (LOT-089, a first post's edit form, LOT-088): options, choice, loading and warning.
     var picker = NewTopicSubcategories()
+    /// The poll the message adds (LOT-100) and whether the form allows one.
+    var poll = ComposerPoll()
 
     /// The editor accepts typing.
     var canEdit: Bool { hasRestored && !isSending && !isClosing && !isMovingDrafts && closeReason == nil }
@@ -231,6 +234,8 @@ final class ReplyComposerModel: Identifiable {
             isSending = false
             errorMessage = ComposerMessages.message(for: error, newMessage: isNewMessage, newTopic: isNewTopic, edit: isEdit)
             if case .unconfirmed = error { mayHavePosted = true }
+            // The form no longer adds a poll: the draft stays on screen, to remove, and Send waits for that.
+            if case .pollNotOffered = error { poll.apply(offers: false) }
             if case .unknownSubcategory = error, offersSubcategories {
                 // The list changed since it was read: every retry would fail the same way, so read it again.
                 picker.reset()
