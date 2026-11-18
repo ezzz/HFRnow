@@ -82,7 +82,19 @@ a { color: var(--action); }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-.separator1 { border-top: 1px dashed var(--separator); }
+/* The read / unread line (`div.separator1`, only after the flag message, never after the page's last one). Parity (#807, legacy @ 87fe0d1c):
+   modern 2px solid (`style-liste-light.css:134-136`), classic 1px dashed (`style-liste.css:124-126`), both in `--color-separator-new-message`
+   rgba(0,0,0,0.4); the dark sheet has no such rule, so the colour is that 40 % of the text colour, which follows light, dark and the
+   themes. The « Nouveau » chip is a deliberate gap (operator, 2026-11-11): generated content, so no script and no markup change, and
+   VoiceOver reads it where the line sits; the vertical margin (none in legacy) makes room for it. */
+:root { --separator-new: color-mix(in srgb, var(--text) 40%, transparent); }
+.separator1 { position: relative; margin: 0.9em 0; border-top: 1px dashed var(--separator-new); }
+.style-modern .separator1 { border-top: 2px solid var(--separator-new); }
+.separator1::after {
+  content: "Nouveau"; position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%);
+  padding: 0.1em 0.7em; border-radius: 999px; background: var(--action); color: var(--background);
+  font-size: 0.7rem; font-weight: 600; line-height: 1.3; white-space: nowrap;
+}
 .message { padding: 0.6em 1em 0; border-bottom: 1px solid var(--separator-strong); }
 /* `nth-of-type` counts articles only, so the dashed `div.separator1` between pages does not shift the alternation. */
 article.message:nth-of-type(even) { background: var(--surface-alt); }
