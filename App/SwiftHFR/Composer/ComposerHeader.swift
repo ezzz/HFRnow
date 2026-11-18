@@ -21,15 +21,18 @@ struct ComposerHeader: View {
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
-    /// The bar's width as laid out, 0 before the first measure: the buttons are bounded to fit it (`ComposerToolSize.fitting`).
-    @State private var width: CGFloat = 0
 
-    /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows.
-    /// `inCard` is the chrome's `controlsInCard`: the bar then agrees with the row it sits over.
+    /// The most the text size (Dynamic Type times the app's text scale) grows these three buttons: past it they keep that size and
+    /// offer the Large Content Viewer, as the system's bars do. At 1.8 the cell is 86 pt at most, so three of them and the bar's
+    /// insets fit the narrowest supported width (320 pt) in both rows (#1126).
+    static let maxScaleFactor: CGFloat = 1.8
+
+    /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows, up to
+    /// `maxScaleFactor`. `inCard` is the chrome's `controlsInCard`: the bar then agrees with the row it sits over.
     static func buttonSize(
         metrics: ComposerBarMetrics, inCard: Bool, style: ComposerToolStyle = .current
     ) -> ComposerToolSize {
-        ComposerToolSize(metrics: metrics, inCard: inCard, style: style)
+        ComposerToolSize(metrics: metrics.capped(at: maxScaleFactor), inCard: inCard, style: style)
     }
 
     /// What the bar's sides and the gaps between its buttons take: the floating row has the gap on each side, legacy's bar its
@@ -39,11 +42,9 @@ struct ComposerHeader: View {
     }
 
     private var toolSize: ComposerToolSize {
-        let buttons = drafts == nil ? 2 : 3
-        return Self.buttonSize(
+        Self.buttonSize(
             metrics: ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType), inCard: chrome.controlsInCard
         )
-        .fitting(width: width, buttons: buttons, reserved: Self.reservedWidth(floats: floats, buttons: buttons))
     }
 
     /// The drafts button's state and action.
@@ -91,50 +92,38 @@ struct ComposerHeader: View {
 
     var body: some View {
         // EXPERIMENTAL(modernComposer, #904): replaces legacy's bar by the floating buttons, with no title strip (#972).
-        VStack(spacing: 0) {
-            // The width the bar is offered, not its content's: a sibling that only takes its proposal (a flexible frame around the
-            // content reports the content's width once it is wider, and the glass padding then feeds back into the bound, #1126).
-            Color.clear
-                .frame(height: 0)
-                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            if floats {
-                FloatingComposerButtons(
-                    title: title, isSending: isSending, canSend: canSend, drafts: drafts, size: toolSize, close: close, send: send
-                )
-            } else {
-                legacyBar
-            }
+        if floats {
+            FloatingComposerButtons(
+                title: title, isSending: isSending, canSend: canSend, drafts: drafts, size: toolSize, close: close, send: send
+            )
+        } else {
+            legacyBar
         }
     }
 
     /// The chrome this bar is drawn for.
     private var chrome: ComposerChrome { floats ? .docked : .sheet }
 
-    /// The title's room on each side: the close and drafts buttons (and legacy's spacing), never more than half the bar.
-    private var titleInset: CGFloat {
-        let inset = 2 * toolSize.diameter + 28
-        return width > 0 ? min(inset, width / 2) : inset
-    }
-
     /// An iPad: legacy's bar, the title centred over the row.
     private var legacyBar: some View {
-        ZStack {
+        HStack(spacing: 8) {
+            closeButton
+            if let drafts {
+                draftsButton(drafts)
+            }
+            Spacer()
+            sendButton
+        }
+        // An overlay, so the title never widens the bar: it takes what the buttons leave (and none when they take it all).
+        .overlay {
             Text(title)
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 // Room for the close and drafts buttons on each side, whatever the metrics make them (#1126).
-                .padding(.horizontal, titleInset)
+                .padding(.horizontal, 2 * toolSize.diameter + 28)
                 .accessibilityAddTraits(.isHeader)
                 .composerProbe(.title)
-            HStack(spacing: 8) {
-                closeButton
-                if let drafts {
-                    draftsButton(drafts)
-                }
-                Spacer()
-                sendButton
-            }
         }
         .frame(minHeight: 44)
         .padding(chrome.headerInsets(diameter: toolSize.diameter))
@@ -147,6 +136,7 @@ struct ComposerHeader: View {
             .disabled(!Self.closeIsEnabled(isSending: isSending))
             .keyboardShortcut(.cancelAction)
             .accessibilityLabel("Fermer")
+            .accessibilityShowsLargeContentViewer()
     }
 
     private func draftsButton(_ drafts: Drafts) -> some View {
@@ -155,6 +145,7 @@ struct ComposerHeader: View {
             .modifier(GlassStyle(isProminent: drafts.hasDrafts))
             .disabled(!Self.draftsAreEnabled(drafts, isSending: isSending))
             .accessibilityLabel("Brouillons")
+            .accessibilityShowsLargeContentViewer()
     }
 
     private var sendButton: some View {
@@ -173,6 +164,7 @@ struct ComposerHeader: View {
         .modifier(GlassStyle(isProminent: state.isProminent))
         .disabled(!state.isEnabled)
         .accessibilityLabel(state.label)
+        .accessibilityShowsLargeContentViewer()
     }
 
     /// A glyph in the card tools' circle: their diameter, glyph size and weight (#1126); the glass behind it is the bar's own.

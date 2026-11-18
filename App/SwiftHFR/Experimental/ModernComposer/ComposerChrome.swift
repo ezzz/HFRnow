@@ -105,19 +105,4 @@ struct ComposerToolSize: Equatable {
         diameter = style == .pills && inCard ? ComposerToolStyle.chipDiameter(cell: cell) : cell
         glyph = metrics.glyphSize
     }
-
-    private init(cell: CGFloat, diameter: CGFloat, glyph: CGFloat) {
-        self.cell = cell
-        self.diameter = diameter
-        self.glyph = glyph
-    }
-
-    /// This size bounded so `buttons` circles, each in a hit area of at least 44 pt, and the `reserved` insets and gaps between
-    /// them fit in `width` (an accessibility text size or a 130 % text scale makes the card tools wider than three fit on an
-    /// iPhone: the bar's close and send would be clipped). An unmeasured width (0) keeps the size.
-    func fitting(width: CGFloat, buttons: Int, reserved: CGFloat) -> ComposerToolSize {
-        guard width > 0, buttons > 0 else { return self }
-        let bounded = min(diameter, max(0, (width - reserved) / CGFloat(buttons)))
-        return ComposerToolSize(cell: cell, diameter: bounded, glyph: min(glyph, bounded * 0.8))
-    }
 }

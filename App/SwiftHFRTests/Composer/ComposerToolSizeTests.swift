@@ -12,28 +12,41 @@ struct ComposerToolSizeTests {
         }
     }
 
-    /// The header and the control row read the same value, whatever the density, text scale and Dynamic Type.
+    /// The header and the control row read the same value up to the bar's cap on the text size's growth (Dynamic Type times the
+    /// text scale); past it the header's buttons keep the cap's size, never larger than the card tools'.
     @Test(arguments: metricsCases, [ComposerToolStyle.plain, .pills])
     func theHeaderAndTheControlRowShareOneSize(metrics: ComposerBarMetrics, style: ComposerToolStyle) {
         let shared = ComposerToolSize(metrics: metrics, style: style)
-        #expect(ComposerHeader.buttonSize(metrics: metrics, inCard: true, style: style) == shared)
+        let header = ComposerHeader.buttonSize(metrics: metrics, inCard: true, style: style)
         #expect(ComposerControlRow.toolSize(metrics: metrics, inCard: true, style: style) == shared)
+        if metrics.dynamicType * metrics.scale.factor <= ComposerHeader.maxScaleFactor + 0.001 {
+            #expect(header == shared)
+        } else {
+            #expect(header.diameter < shared.diameter && header.glyph < shared.glyph, "capped: \(header) against \(shared)")
+        }
     }
 
-    /// Three buttons, their hit areas (44 pt at least) and the bar's insets fit the width at every text size (#1126, delta review).
-    @Test(arguments: metricsCases, [CGFloat(320), 375, 402, 440])
-    func theButtonsFitTheBarsWidth(metrics: ComposerBarMetrics, width: CGFloat) {
-        let size = ComposerToolSize(metrics: metrics, style: .pills)
-        for floats in [true, false] {
-            for buttons in [2, 3] {
-                let reserved = ComposerHeader.reservedWidth(floats: floats, buttons: buttons)
-                let fitted = size.fitting(width: width, buttons: buttons, reserved: reserved)
-                let used = CGFloat(buttons) * max(fitted.diameter, ComposerHeader.hitSize) + reserved
-                #expect(used <= width + 0.5, "\(buttons) buttons, floats \(floats), width \(width): \(used)")
-                #expect(fitted.diameter <= size.diameter && fitted.glyph <= size.glyph)
+    /// Three buttons, their hit areas (44 pt at least) and the bar's insets and gaps fit the narrowest supported width (320 pt) at
+    /// every text size, in the floating row and in legacy's bar, with and without the drafts button.
+    @Test(arguments: metricsCases, [ComposerToolStyle.plain, .pills])
+    func theCappedButtonsFitTheNarrowestWidth(metrics: ComposerBarMetrics, style: ComposerToolStyle) {
+        for inCard in [true, false] {
+            let size = ComposerHeader.buttonSize(metrics: metrics, inCard: inCard, style: style)
+            for floats in [true, false] {
+                let reserved = ComposerHeader.reservedWidth(floats: floats, buttons: 3)
+                let used = 3 * max(size.diameter, ComposerHeader.hitSize) + reserved
+                #expect(used <= 320, "inCard \(inCard), floats \(floats): \(used) pt for \(size)")
             }
         }
-        #expect(size.fitting(width: 0, buttons: 3, reserved: 16) == size, "unmeasured: the size is kept")
+    }
+
+    /// The cap holds the product of Dynamic Type and the text scale, whichever of the two is large.
+    @Test func theCapBoundsTheProductOfDynamicTypeAndTheTextScale() {
+        let metrics = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 130), dynamicType: 3.1)
+        let capped = metrics.capped(at: ComposerHeader.maxScaleFactor)
+        #expect(abs(capped.dynamicType * capped.scale.factor - ComposerHeader.maxScaleFactor) < 0.001)
+        let small = ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100), dynamicType: 1.2)
+        #expect(small.capped(at: ComposerHeader.maxScaleFactor) == small, "under the cap nothing changes")
     }
 
     /// The chip (pills) or the cell (plain) is the circle's diameter; the glyph is the bar's, medium weight.

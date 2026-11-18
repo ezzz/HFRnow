@@ -99,6 +99,7 @@ struct FloatingComposerButtons: View {
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
+        .accessibilityShowsLargeContentViewer()
     }
 
     /// An invisible shape of the circle's size that reports its frame to a test's probe (`part`), if any.
