@@ -32,6 +32,8 @@ struct TopicListView: View {
     var openCategory: ((TopicSource) -> Void)?
     /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
     var titleStyle: ScreenTitleStyle = .pill
+    /// The account button after the back button of a pushed list (`MainWindow.swift:803-818` @ 87fe0d1c, #425); off on the Favoris root.
+    var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
@@ -89,6 +91,7 @@ struct TopicListView: View {
         }
         .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
+            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
             // so the refresh never moves to the bottom bar (`:849-851`).
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -283,7 +286,9 @@ struct TopicListView: View {
         }
         .densityHeaderMargin())
     }
+}
 
+extension TopicListView {
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<TopicListContent>) -> some View {
         if let content = loader.value {
@@ -299,53 +304,6 @@ struct TopicListView: View {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
             ProgressView("Chargement des sujets")
-        }
-    }
-}
-
-/// Every section is folded and the options hide folded sections (legacy `allSectionsCollapsedState`).
-private struct AllSectionsCollapsedView: View {
-    let options: FavoritesOptionsModel
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Toutes les sections sont repliées", systemImage: "list.bullet.circle")
-        } description: {
-            Text("La vue filtrée masque les sections repliées.")
-        } actions: {
-            Button("Afficher les sections repliées") { options.showsCollapsedSections = true }
-            Button("Tout déplier") { Task { await options.expandAll() } }
-        }
-    }
-}
-
-private struct EmptyListView: View {
-    let reason: EmptyReason
-    let refresh: () async -> Void
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: "tray")
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
-        }
-    }
-
-    private var title: String {
-        switch reason {
-        case .nothing: "Aucun sujet"
-        case .signInRequired: "Connexion requise"
-        case .notice: "Rien à afficher"
-        }
-    }
-
-    private var message: String? {
-        switch reason {
-        case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour voir cette liste."
-        case .notice(let notice): notice
         }
     }
 }
@@ -366,25 +324,6 @@ private struct EmptyListView: View {
             status: .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
             jump: { jump in Task { await model.perform(jump) } }, isLoading: model.loader.isLoading
         )
-    }
-}
-
-/// HFR's confirmation of a new topic, above the list.
-private struct TopicSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }
 
