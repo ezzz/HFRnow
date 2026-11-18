@@ -6,6 +6,7 @@ import SwiftUI
 struct PlusView: View {
     let model: RootModel
     @State private var titleVisibility = TitleVisibility()
+    @Environment(\.themeAppearance) private var appearance
 
     var body: some View {
         // A row sets `model.plusEntry` and the tab's stack opens it (RootTabsView), so the open entry is the one selection
@@ -20,7 +21,7 @@ struct PlusView: View {
                     } label: {
                         HStack {
                             Label(entry.title, systemImage: entry.symbol)
-                                .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : Color.primary)
+                                .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : primaryText)
                             Spacer()
                             Image(systemName: "chevron.forward")
                                 .scaledFont(.footnote).fontWeight(.semibold)
@@ -36,6 +37,9 @@ struct PlusView: View {
         .screenTitle("Plus", style: .largeThenPill, visibility: titleVisibility)
         .accountMenuToolbarItem()
     }
+
+    /// The labels' colour: the system's primary for Legacy, as before; a theme's `textPrimary` (#842).
+    private var primaryText: Color { appearance.listColors.map { Color(uiColor: $0.text) } ?? Color.primary }
 }
 
 /// The screen behind a Plus entry: the built screen, or a placeholder until the owning lot (`PlusEntry.owningLot`) brings it.

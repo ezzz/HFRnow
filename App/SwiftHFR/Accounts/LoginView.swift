@@ -21,46 +21,52 @@ struct LoginView: View {
         ThemedNavigationStack {
             Form {
                 Section {
-                    TextField("Pseudo", text: $model.pseudo)
-                        .textContentType(.username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .disabled(!model.canEditPseudo)
-                        .focused($focusedField, equals: .pseudo)
-                        .submitLabel(.next)
-                        .onSubmit { focusedField = .password }
-                    SecureField("Mot de passe", text: $model.password)
-                        .textContentType(.password)
-                        .focused($focusedField, equals: .password)
-                        .submitLabel(.go)
-                        .onSubmit { model.submit() }
+                    Group {
+                        TextField("Pseudo", text: $model.pseudo)
+                            .textContentType(.username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .disabled(!model.canEditPseudo)
+                            .focused($focusedField, equals: .pseudo)
+                            .submitLabel(.next)
+                            .onSubmit { focusedField = .password }
+                        SecureField("Mot de passe", text: $model.password)
+                            .textContentType(.password)
+                            .focused($focusedField, equals: .password)
+                            .submitLabel(.go)
+                            .onSubmit { model.submit() }
+                    }.themedListRow()
                 } footer: {
-                    if case .existing = model.target {
-                        Text("Saisissez le mot de passe de ce compte pour renouveler sa session.")
-                    }
+                    Group {
+                        if case .existing = model.target {
+                            Text("Saisissez le mot de passe de ce compte pour renouveler sa session.")
+                        }
+                    }.themedSectionHeader()
                 }
 
                 if let message = model.errorMessage {
                     Section {
-                        StatusLabel(text: message, symbol: "exclamationmark.triangle.fill", tint: .red)
+                        StatusLabel(text: message, symbol: "exclamationmark.triangle.fill", tint: .red).themedListRow()
                     }
                 }
 
                 Section {
-                    Button {
-                        model.submit()
-                    } label: {
-                        HStack {
-                            Spacer()
-                            if model.isSubmitting {
-                                ProgressView().accessibilityLabel("Connexion en cours")
-                            } else {
-                                Text("Se connecter").bold()
+                    Group {
+                        Button {
+                            model.submit()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                if model.isSubmitting {
+                                    ProgressView().accessibilityLabel("Connexion en cours")
+                                } else {
+                                    Text("Se connecter").bold()
+                                }
+                                Spacer()
                             }
-                            Spacer()
                         }
-                    }
-                    .disabled(!model.canSubmit)
+                        .disabled(!model.canSubmit)
+                    }.themedListRow()
                 }
             }
             .navigationTitle(model.canEditPseudo ? "Ajouter un compte" : "Se reconnecter")

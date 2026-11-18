@@ -46,7 +46,7 @@ struct UserProfileView: View {
                         Section {
                             ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }
                         } header: {
-                            Text(section.title).densityHeaderMargin()
+                            Text(section.title).densityHeaderMargin().themedSectionHeader()
                         }
                     }
                     if !profile.personalSmilies.isEmpty {
@@ -59,7 +59,7 @@ struct UserProfileView: View {
                         Section {
                             ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
                         } header: {
-                            Text("Liens").densityHeaderMargin()
+                            Text("Liens").densityHeaderMargin().themedSectionHeader()
                         }
                     }
                 }
@@ -207,7 +207,7 @@ private struct ProfileSmileysSection: View {
                 }
             }
         } header: {
-            Text("Smilies persos (\(smileys.count))")
+            Text("Smilies persos (\(smileys.count))").themedSectionHeader()
         }
     }
 }

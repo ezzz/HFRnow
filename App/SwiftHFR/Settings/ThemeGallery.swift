@@ -15,17 +15,21 @@ struct ThemeGallery: View {
         let families = theme.catalog.galleryFamilies
         ForEach(Array(families.enumerated()), id: \.element.family) { index, group in
             Section {
-                ForEach(group.themes) { item in
-                    ThemeGalleryRow(theme: item, legacy: theme.appearance, isSelected: item.id == theme.theme.id) {
-                        theme.select(item)
+                Group {
+                    ForEach(group.themes) { item in
+                        ThemeGalleryRow(theme: item, legacy: theme.appearance, isSelected: item.id == theme.theme.id) {
+                            theme.select(item)
+                        }
                     }
-                }
+                }.themedListRow()
             } header: {
-                Text(group.family)
+                Text(group.family).themedSectionHeader()
             } footer: {
-                if index == families.count - 1 {
-                    Text("Envie de proposer un thème ? Les règles sont dans le dépôt : docs/THEMES.md (voir le README).")
-                }
+                Group {
+                    if index == families.count - 1 {
+                        Text("Envie de proposer un thème ? Les règles sont dans le dépôt : docs/THEMES.md (voir le README).")
+                    }
+                }.themedSectionHeader()
             }
         }
     }

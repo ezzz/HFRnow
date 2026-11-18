@@ -25,18 +25,20 @@ struct ExperimentalSettingsSection: View {
         let groups = ExperimentalPageLayout.groups()
         if !groups.isEmpty {
             Section {
-                NavigationLink {
-                    ExperimentalPageView(groups: groups, settings: settings).appScreenBackground()
-                } label: {
-                    Label {
-                        Text("Expérimental")
-                    } icon: {
-                        // Text colour, not tinted; decorative, so VoiceOver reads the row's title only.
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundStyle(Color.primary)
-                            .accessibilityHidden(true)
+                Group {
+                    NavigationLink {
+                        ExperimentalPageView(groups: groups, settings: settings).appScreenBackground()
+                    } label: {
+                        Label {
+                            Text("Expérimental")
+                        } icon: {
+                            // Text colour, not tinted; decorative, so VoiceOver reads the row's title only.
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundStyle(Color.primary)
+                                .accessibilityHidden(true)
+                        }
                     }
-                }
+                }.themedListRow()
             }
         }
     }
@@ -52,24 +54,28 @@ struct ExperimentalPageView: View {
         Form {
             ForEach(groups, id: \.theme) { group in
                 Section {
-                    ForEach(group.features) { feature in
-                        // EXPERIMENTAL(mpDarkTopic, #1014): a description under the switch, no ⓘ and no popover.
-                        if feature.showsExplanationUnderSwitch {
-                            DescribedFeatureRow(feature: feature, settings: settings)
-                        } else {
-                            ExperimentalFeatureRow(feature: feature, settings: settings)
+                    Group {
+                        ForEach(group.features) { feature in
+                            // EXPERIMENTAL(mpDarkTopic, #1014): a description under the switch, no ⓘ and no popover.
+                            if feature.showsExplanationUnderSwitch {
+                                DescribedFeatureRow(feature: feature, settings: settings)
+                            } else {
+                                ExperimentalFeatureRow(feature: feature, settings: settings)
+                            }
+                            // EXPERIMENTAL(imageLoadingChoice, #902): the picker shows once the option is on.
+                            if feature == .imageLoadingChoice, settings.isOn(feature) {
+                                ImageLoadingChoicePicker(store: settings.store)
+                            }
                         }
-                        // EXPERIMENTAL(imageLoadingChoice, #902): the picker shows once the option is on.
-                        if feature == .imageLoadingChoice, settings.isOn(feature) {
-                            ImageLoadingChoicePicker(store: settings.store)
-                        }
-                    }
+                    }.themedListRow()
                 } header: {
-                    Text(group.theme.title)
+                    Text(group.theme.title).themedSectionHeader()
                 } footer: {
-                    if group.theme == groups.last?.theme {
-                        Text("Options en cours de mise au point, désactivées par défaut.")
-                    }
+                    Group {
+                        if group.theme == groups.last?.theme {
+                            Text("Options en cours de mise au point, désactivées par défaut.")
+                        }
+                    }.themedSectionHeader()
                 }
             }
         }

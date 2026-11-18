@@ -74,6 +74,8 @@ struct BookmarksView: View {
         } else {
             ForEach(bookmarks) { bookmark in
                 Button { open(bookmark) } label: { BookmarkRow(bookmark: bookmark) }
+                    // #842: under a theme its `surface` or `selection`, inside the Legacy background below (a row's own wins).
+                    .themedListRow(isSelected: isSelected(bookmark))
                     // EXPERIMENTAL(denseRows, #1107): the dense look's clear row replaces the card's.
                     .listRowBackground(
                         isSelected(bookmark) ? Color.accentColor.opacity(0.15)
