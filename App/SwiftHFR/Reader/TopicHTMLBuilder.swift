@@ -29,6 +29,9 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
+    /// A placeholder per video link, the player opening on a tap (« Vidéos: Intégrée », the default, #691); off leaves the link a plain
+    /// link (legacy @ 2fe43da3, `d645f525`).
+    var embedsVideos = true
     /// Give each message a `+` button (LOT-087, the legacy glyph again: #594). Off until a message-menu handler is registered.
     var showsMessageMenus = false
     /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
@@ -129,7 +132,7 @@ enum TopicHTMLBuilder {
         // Body markup context only (LOT-034 contract).
         let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
         html += "<div class=\"content\">\(content)</div>\n"
-        html += videos(of: message)
+        if options.embedsVideos { html += videos(of: message) }
         if options.showsSignatures, let signature = message.content.signatureHTML {
             html += "<div class=\"signature\">\(signature)</div>\n"
         }
