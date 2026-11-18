@@ -24,8 +24,8 @@ Pure. One page of the MP list, read by `PrivateMessageListParser` (LOT-023), so 
 
 | Output | Rule |
 |---|---|
-| `.found(post:)` | the first row whose title is exactly `MPStorageDocument.subject` or `[non lu] ` + subject; `post` = the row's `topicID.topic` (the `post=` of its title link). LOT-023 already removes the `[non lu]` marker HFR prints as `span.red` (R13u1, R13u1b); the prefixed form is kept for a title cell that holds the words without the marker, as legacy compared the whole cell |
-| `.notOnPage(navigation:)` | no such row; `navigation` is the LOT-022 pager of the page. The caller walks on with `nextPath` while there is one |
+| `candidates` | every row whose title is exactly `MPStorageDocument.subject` or `[non lu] ` + subject, in list order; each is the row's `topicID.topic` (the `post=` of its title link). LOT-023 already removes the `[non lu]` marker HFR prints as `span.red` (R13u1, R13u1b); the prefixed form is kept for a title cell that holds the words without the marker, as legacy compared the whole cell. Legacy returned the first row only: any member can send an MP with the subject, so a row is a candidate until its first message proves to be the account's (LOT-052 find, #1200 P1) |
+| `navigation` | the LOT-022 pager of the page. The caller walks on with `nextPath` while no candidate is the account's |
 
 A title that merely contains the subject (`Re: …`, a suffix, other case) does not match. A row without a readable `post` is skipped, as legacy's loop did.
 

@@ -28,7 +28,9 @@ Legacy repository <https://github.com/ezzz/HFRnow> at `2440d79`, `Classes/MPStor
 storage it is; legacy used the main account's cookies, `:696-698, 772-774`).
 
 1. **Find** — GET `HFREndpoint.privateMessages(page: 1)`, then each page's `nextPath`, read by
-   `MPStoragePageParser.findThread`. `.found(post)` returns the id; a page without next page returns nil. A final URL
+   `MPStoragePageParser.findThread`. Each candidate's first page is read in list order (one GET each), and the first
+   whose first message carries the account's edit link is returned; one without it (another member's MP with the storage
+   subject: no edit link on another's post, `RU1`, `R44`) or answered "destiné" is skipped (#1200 P1). A page without next page returns nil. A final URL
    off the forum, a next link off the forum (`https`, forum host, default port), or a pager whose current page does not
    grow is `unexpectedPage`. After `maximumListPages` (50) pages without an end: `searchLimitReached`, never nil, so
    the app never creates a second thread because the search stopped early. A parser failure is `list(ListPageFailure)`.

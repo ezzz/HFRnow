@@ -14,11 +14,11 @@ public enum MPStoragePageParser {
     /// - Throws: `PrivateMessageListParser`'s failures (login wall, maintenance, not the MP list).
     public static func findThread(in html: String, pageURL: String) throws(ListPageFailure) -> MPStorageThreadSearch {
         let page = try PrivateMessageListParser.parse(html, pageURL: pageURL)
-        // Legacy takes the first matching row (`:710-724`); a row without a readable `post` is skipped, as legacy's loop did.
-        for thread in page.threads where isStorageSubject(thread.summary.title) {
-            if let post = thread.summary.topicID?.topic { return .found(post: post) }
-        }
-        return .notOnPage(navigation: page.navigation)
+        // Legacy takes the first matching row (`:710-724`). Every matching row is returned instead, in order: another member
+        // can send an MP with this subject (#1200 P1), so the first row is not always the account's thread. A row without a
+        // readable `post` is skipped, as legacy's loop did.
+        let candidates = page.threads.filter { isStorageSubject($0.summary.title) }.compactMap { $0.summary.topicID?.topic }
+        return MPStorageThreadSearch(candidates: candidates, navigation: page.navigation)
     }
 
     /// Reads the storage thread's first page: the first message's `numreponse` and its JSON document.
@@ -81,7 +81,7 @@ public enum MPStoragePageParser {
     /// Word of HFR's "Ce message ne vous est pas destiné, désolé" notice (`RA5`), the one legacy looks for.
     static let notAddressedWord = "destiné"
 
-    /// Whether a list row is the MPStorage thread (also used to hide it, #1074).
+    /// Whether a list row carries the MPStorage subject: a candidate for the account's thread, not proof (#1200 P1).
     ///
     /// Legacy compares the whole title cell with the subject, with or without the `[non lu] ` prefix (`:713`);
     /// `PrivateMessageListParser` already removes the prefix when HFR prints it as its marker.
@@ -91,13 +91,19 @@ public enum MPStoragePageParser {
 }
 
 extension PrivateMessageListPage {
-    /// The page as the member should see it: without the MPStorage thread, a technical store and not a conversation (#1074).
+    /// The page as the member should see it: without the account's MPStorage thread, a technical store and not a conversation
+    /// (#1074).
     ///
-    /// Display and unread counts use this; the storage flows (`findThread`, `MPStorageTransport`) parse the list themselves and
-    /// never see the filtered page. Matching is `MPStoragePageParser.isStorageSubject`, as legacy's finder (`MPStorage.m:713`).
-    public func hidingStorageThread() -> PrivateMessageListPage {
+    /// Only the thread `storagePost` is removed: the one the storage sync located, whose first message is the account's own
+    /// (`MPStorageTransport`). A subject alone proves nothing, since any member can send an MP with it (#1200 P1): the
+    /// other rows with the storage subject stay visible, so the member can read, answer or delete them. With no located
+    /// thread, nothing is removed. Display and unread counts use this; the storage flows parse the list themselves.
+    public func hidingStorageThread(post storagePost: Int?) -> PrivateMessageListPage {
+        guard let storagePost else { return self }
         var page = self
-        page.threads.removeAll { MPStoragePageParser.isStorageSubject($0.summary.title) }
+        page.threads.removeAll {
+            MPStoragePageParser.isStorageSubject($0.summary.title) && $0.summary.topicID?.topic == storagePost
+        }
         return page
     }
 }

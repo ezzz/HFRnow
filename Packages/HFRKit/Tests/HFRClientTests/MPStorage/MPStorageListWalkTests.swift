@@ -10,8 +10,10 @@ struct MPStorageListWalkTests {
     static let first = URL(string: "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=1")
         ?? URL(fileURLWithPath: "/")
 
-    static func page(_ current: Int, next: String?) -> MPStorageThreadSearch {
-        .notOnPage(navigation: PageNavigation(current: current, last: current + 1, nextPath: next))
+    static func page(_ current: Int, next: String?, candidates: [Int] = []) -> MPStorageThreadSearch {
+        MPStorageThreadSearch(
+            candidates: candidates, navigation: PageNavigation(current: current, last: current + 1, nextPath: next)
+        )
     }
 
     /// Serves `pages` in order and records the URLs asked.
@@ -23,15 +25,31 @@ struct MPStorageListWalkTests {
 
         func next(_ url: URL) -> MPStorageThreadSearch {
             asked.append(url)
-            return pages.isEmpty ? .notOnPage(navigation: PageNavigation()) : pages.removeFirst()
+            return pages.isEmpty ? MPStorageThreadSearch(candidates: [], navigation: PageNavigation()) : pages.removeFirst()
         }
     }
 
-    static func walk(_ pages: Pages, maximumPages: Int = 50) async -> Result<Int?, MPStorageTransportError> {
+    /// Records the candidates asked about; the account's threads are `accepted`.
+    actor Checks {
+        let accepted: Set<Int>
+        private(set) var asked: [Int] = []
+
+        init(accepting accepted: Set<Int>) { self.accepted = accepted }
+
+        func check(_ post: Int) -> Bool {
+            asked.append(post)
+            return accepted.contains(post)
+        }
+    }
+
+    static func walk(
+        _ pages: Pages, maximumPages: Int = 50, checks: Checks = Checks(accepting: [42])
+    ) async -> Result<Int?, MPStorageTransportError> {
         do throws(MPStorageTransportError) {
-            return .success(try await MPStorageTransport.walk(from: first, maximumPages: maximumPages) { url in
-                await pages.next(url)
-            })
+            return .success(try await MPStorageTransport.walk(
+                from: first, maximumPages: maximumPages, fetch: { url in await pages.next(url) },
+                isAccountThread: { post in await checks.check(post) }
+            ))
         } catch {
             return .failure(error)
         }
@@ -41,7 +59,7 @@ struct MPStorageListWalkTests {
         let pages = Pages([
             Self.page(1, next: "/forum1.php?config=hfr.inc&cat=prive&page=2"),
             Self.page(2, next: "/forum1.php?config=hfr.inc&cat=prive&page=3"),
-            .found(post: 42)
+            Self.page(3, next: nil, candidates: [42])
         ])
         #expect(try await Self.walk(pages).get() == 42)
         #expect(await pages.asked.map(\.absoluteString) == [
@@ -49,6 +67,26 @@ struct MPStorageListWalkTests {
             "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2",
             "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=3"
         ])
+    }
+
+    @Test("#1200 P1: candidates that are not the account's are skipped, on the page and on the next ones, in list order")
+    func skipsCandidatesThatAreNotTheAccountsThread() async throws {
+        let pages = Pages([
+            Self.page(1, next: "/forum1.php?config=hfr.inc&cat=prive&page=2", candidates: [7, 8]),
+            Self.page(2, next: "/forum1.php?config=hfr.inc&cat=prive&page=3", candidates: [9, 42, 43])
+        ])
+        let checks = Checks(accepting: [42, 43])
+        #expect(try await Self.walk(pages, checks: checks).get() == 42)
+        #expect(await checks.asked == [7, 8, 9, 42])
+        #expect(await pages.asked.count == 2)
+    }
+
+    @Test("#1200 P1: a list whose only storage-subject rows are other members' threads has no storage thread")
+    func onlyForeignCandidatesIsNotFound() async throws {
+        let pages = Pages([Self.page(1, next: nil, candidates: [7, 8])])
+        let checks = Checks(accepting: [42])
+        #expect(try await Self.walk(pages, checks: checks).get() == nil)
+        #expect(await checks.asked == [7, 8])
     }
 
     @Test func theLastPageWithoutTheThreadIsNotFound() async throws {
