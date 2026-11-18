@@ -48,7 +48,7 @@ Classification of directive H.1 (2026-11-01): the `H.1` column of [GAP-LEGACY-VS
 - GAP-023 no Tous / Favoris / Suivis / Lus filter: restored by #427 (persisted, `HFRswiftGlobalTopicListFlag`), **UXD-06** (A).
 - GAP-026, 027 topic row "author · replies · date", no "⚑ cur / max", capsule or tint: `b`, shipped, decided 2026-11-02, **UXD-07** (inside LOT-169); reversed by the operator on 2026-11-07: the capsule, the footer and the flag tint are back (#584).
 - GAP-212 detail column on every regular iPad width: decided 2026-11-02, **UXD-24**. GAP-214 large iPhone in landscape: `a` since #431 (the reader full width, as legacy), **UXD-24**.
-- GAP-024 "Page N" without a fake total: `b·needed` (HFR gives no reliable total, LOT-167). GAP-025, 038: `a`.
+- GAP-024 paging: « page x / y » with its menu since #980 (`y+` while HFR gives only a lower bound, no « last » then); `b·needed` is the row's class until the steward reviews it. GAP-025, 038: `a`.
 
 ### Decisions of 2026-11-02 (UXD)
 

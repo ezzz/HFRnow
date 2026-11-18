@@ -103,12 +103,15 @@ struct TopicListPagerTests {
         #expect(source.requests == ["topics:13:1", "topics:13:3"], "next past the end asks for nothing")
     }
 
-    @Test func flagsAndFavouritesHaveNoPager() async {
+    /// Flags and favourites are one page: the count stays 1 and a typed page sends nothing more. (`goToPage`'s `isPaged` guard is not
+    /// observable here: a one-page count clamps the target to the page on screen.)
+    @Test func flagsAndFavouritesStayOnOnePage() async {
         let source = FakeDataSource()
         let model = TopicListModel(source: .flagged, dataSource: source, isLoggedIn: { true })
         await model.loadIfNeeded()
         await model.perform(.page(3))
         #expect(!model.canGoToNext && !model.canGoToLast)
+        #expect(model.pageCount == 1 && model.currentPage == 1)
         #expect(source.requests == ["favorites:1"], "a typed page asks for nothing more")
     }
 }
