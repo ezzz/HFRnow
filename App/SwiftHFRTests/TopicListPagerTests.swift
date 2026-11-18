@@ -109,6 +109,6 @@ struct TopicListPagerTests {
         await model.loadIfNeeded()
         await model.perform(.page(3))
         #expect(!model.canGoToNext && !model.canGoToLast)
-        #expect(!source.requests.contains { $0.hasPrefix("topics:") }, "a typed page asks for no forum page")
+        #expect(source.requests == ["favorites:1"], "a typed page asks for nothing more")
     }
 }

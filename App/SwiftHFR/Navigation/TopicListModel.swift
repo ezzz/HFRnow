@@ -32,7 +32,7 @@ struct TopicListContent: Sendable, Equatable {
     var groups: [TopicGroup]
     /// Page shown (1-based); always 1 for flags and favourites.
     var page: Int
-    /// A next page exists. Honest paging: the pager is a window, so only "there is a next page" is known, never a total.
+    /// A next page exists. The pager is a window: the count `pageCount` is a lower bound unless `pageCountIsExact`.
     var hasNext: Bool
     /// HFR's last page (`navigation.last`, a lower bound when HFR's pager is a window), at least `page`: « page x / y » (#980).
     var pageCount: Int = 1
