@@ -9,17 +9,17 @@ import SwiftUI
 import Testing
 import UIKit
 
-/// A lookup or search that never answers, so the screen stays in its "searching" state.
+/// A lookup or search that answers only once its task is cancelled (the test cancels it), so the screen stays in its "searching" state.
 private struct Hanging: SmileyLookups, TopicSearching {
     func search(_ text: String, requireAll: Bool) async throws(SmileyLookupError) -> [ForumSmiley] {
-        try? await Task.sleep(for: .seconds(3600))
+        while !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
         return []
     }
 
     func wiki(code: String) async throws(SmileyLookupError) -> SmileyWikiDetail { throw .invalidCode }
 
     func search(_ query: TopicSearchQuery) async throws(TopicSearchError) -> TopicSearchResult {
-        try? await Task.sleep(for: .seconds(3600))
+        while !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
         throw .missingToken
     }
 }
@@ -40,11 +40,14 @@ struct GlassLeftoversTests {
         return (window, host)
     }
 
-    private func settle(_ window: UIWindow) async throws {
-        for _ in 0..<20 {
-            try await Task.sleep(for: .milliseconds(100))
+    /// Polls (laying out each time) until `condition` holds; false after 15 s, so the caller's expectation ends red.
+    private func eventually(_ window: UIWindow, _ condition: () -> Bool) async throws -> Bool {
+        for _ in 0..<300 {
             window.rootViewController?.view.layoutIfNeeded()
+            if condition() { return true }
+            try await Task.sleep(for: .milliseconds(50))
         }
+        return false
     }
 
     private func classes(of layer: CALayer) -> [String] {
@@ -69,18 +72,22 @@ struct GlassLeftoversTests {
         try? names.write(toFile: base + ".txt", atomically: true, encoding: .utf8)
     }
 
-    private func topicSheet(scheme: ColorScheme, searching: Bool) async throws -> (UIWindow, [String]) {
-        let model = TopicSearchModel(topic: TopicID(category: .forum(13), topic: 28563), searcher: Hanging())
-        model.word = "napolitaine"
-        let (window, host) = try window(TopicSearchSheet(model: model, open: { _ in }), scheme: scheme)
-        _ = host
-        if searching { Task { _ = await model.submit() } }
-        try await settle(window)
-        #expect((model.state == .searching) == searching)
-        return (window, classes(of: window))
+    /// A hosted screen: its window, and what cancels its pending work.
+    private struct Screen {
+        let window: UIWindow
+        let model: AnyObject
+        let stop: () -> Void
     }
 
-    private func smileySheet(scheme: ColorScheme) async throws -> (UIWindow, [String]) {
+    private func topicSheet(scheme: ColorScheme, searching: Bool) throws -> Screen {
+        let model = TopicSearchModel(topic: TopicID(category: .forum(13), topic: 28563), searcher: Hanging())
+        model.word = "napolitaine"
+        let (window, _) = try window(TopicSearchSheet(model: model, open: { _ in }), scheme: scheme)
+        let task = searching ? Task { _ = await model.submit() } : nil
+        return Screen(window: window, model: model, stop: { task?.cancel(); model.cancel(); window.isHidden = true })
+    }
+
+    private func smileySheet(scheme: ColorScheme) throws -> Screen {
         let search = SmileySearchModel(
             lookups: Hanging(), history: SmileySearchHistoryStore(persistence: InMemorySmallStorePersistence())
         )
@@ -88,33 +95,76 @@ struct GlassLeftoversTests {
             catalogue: [], store: AppSmileyFavoritesStore(persistence: InMemorySmallStorePersistence()), account: "user1",
             search: search
         )
-        let (window, host) = try window(SmileyPickerView(model: picker, onInsert: { _ in }), scheme: scheme)
-        _ = host
+        let (window, _) = try window(SmileyPickerView(model: picker, onInsert: { _ in }), scheme: scheme)
         search.text = "miaou"
         search.submit(requireAll: false)
-        try await settle(window)
-        #expect(search.isSearching)
-        return (window, classes(of: window))
+        return Screen(window: window, model: picker, stop: { search.clear(); window.isHidden = true })
     }
 
-    /// The panel adds one glass view to the sheet (a material adds none: the buttons of the bar are the only other glass).
+    /// RGB of the pixel at (`fx`, `fy`) of the window, as fractions of its size, decoded to 8-bit sRGB.
+    private func pixel(_ window: UIWindow, _ fx: Double, _ fy: Double) -> [Int] {
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        guard let cg = image.cgImage, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return [] }
+        var rgba = [UInt8](repeating: 0, count: 4)
+        let x = min(cg.width - 1, Int(fx * Double(cg.width))), y = min(cg.height - 1, Int(fy * Double(cg.height)))
+        rgba.withUnsafeMutableBytes { buffer in
+            let context = CGContext(
+                data: buffer.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: space,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+            context?.draw(cg, in: CGRect(x: -x, y: -(cg.height - 1 - y), width: cg.width, height: cg.height))
+        }
+        return rgba.prefix(3).map(Int.init)
+    }
+
+    private func count(_ name: String, in names: [String]) -> Int { names.filter { $0 == name }.count }
+
+    // The class names below are private UIKit/SwiftUI internals, so these tests are coupled to the OS: a rename makes them
+    // fail (never pass by accident); re-capture the names with `TEST_RUNNER_SHOT_DIR` (see `record`) and update them then.
+    private static let glass = "UIPlatformGlassInteractionView"
+    private static let backdrop = "CABackdropLayer"
+
+    /// The panel adds one glass view to the sheet (a material adds none: the buttons of the bar are the only other glass), and
+    /// nothing else under it: a material kept under the glass adds backdrop layers (11 with glass alone, 13 with both).
     @Test(arguments: [ColorScheme.light, .dark])
     func theTopicSearchProgressPanelIsGlass(scheme: ColorScheme) async throws {
-        let (idleWindow, idle) = try await topicSheet(scheme: scheme, searching: false)
-        idleWindow.isHidden = true
-        let (window, searching) = try await topicSheet(scheme: scheme, searching: true)
-        defer { window.isHidden = true }
-        record(window, name: "topicsearch", scheme: scheme)
-        let glass = "UIPlatformGlassInteractionView"
-        #expect(searching.filter { $0 == glass }.count == idle.filter { $0 == glass }.count + 1)
+        let idleScreen = try topicSheet(scheme: scheme, searching: false)
+        defer { idleScreen.stop() }
+        let idleReady = try await eventually(idleScreen.window) { count(Self.glass, in: classes(of: idleScreen.window)) >= 2 }
+        #expect(idleReady)
+        let idle = classes(of: idleScreen.window)
+        idleScreen.stop()
+
+        let screen = try topicSheet(scheme: scheme, searching: true)
+        defer { screen.stop() }
+        let glassFound = try await eventually(screen.window) {
+            count(Self.glass, in: classes(of: screen.window)) > count(Self.glass, in: idle)
+        }
+        #expect(glassFound)
+        record(screen.window, name: "topicsearch", scheme: scheme)
+        let searching = classes(of: screen.window)
+        #expect(count(Self.glass, in: searching) == count(Self.glass, in: idle) + 1)
+        #expect(count(Self.backdrop, in: searching) - count(Self.backdrop, in: idle) <= 11)
     }
 
-    /// The options strip is a system bottom bar (a scroll-edge pocket bar), not an inset with a `.bar` fill.
+    /// The options strip is a system bottom bar (a scroll-edge pocket bar) with no fill: the row between its label and its
+    /// switch shows the page, where `.background(.bar)` tinted it (5 levels in light).
     @Test(arguments: [ColorScheme.light, .dark])
     func theSmileySearchOptionsAreASystemBottomBar(scheme: ColorScheme) async throws {
-        let (window, names) = try await smileySheet(scheme: scheme)
-        defer { window.isHidden = true }
-        record(window, name: "smiley", scheme: scheme)
-        #expect(names.contains { $0.contains("ScrollPocketBarInteraction") })
+        let screen = try smileySheet(scheme: scheme)
+        defer { screen.stop() }
+        let found = try await eventually(screen.window) {
+            classes(of: screen.window).contains { $0.contains("ScrollPocketBarInteraction") }
+        }
+        #expect(found)
+        record(screen.window, name: "smiley", scheme: scheme)
+        let page = pixel(screen.window, 0.5, 0.7)
+        #expect(!page.isEmpty)
+        for fy in [0.94, 0.96, 0.98] {
+            let strip = pixel(screen.window, 0.5, fy)
+            #expect(zip(strip, page).allSatisfy { abs($0 - $1) <= 1 }, "y \(fy): \(strip) against the page \(page)")
+        }
     }
 }
