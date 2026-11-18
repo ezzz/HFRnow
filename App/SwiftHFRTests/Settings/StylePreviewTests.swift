@@ -32,7 +32,18 @@ struct StylePreviewTests {
     }
 
     @Test func theSentenceNamesWhatEachStyleChanges() {
-        #expect(StylePreviewContent.sentence(for: .modern) == "Moderne : texte aligné sous l’avatar, en-têtes discrets.")
-        #expect(StylePreviewContent.sentence(for: .classic) == "Classique : en-têtes colorés et alternés, texte à la marge.")
+        #expect(StylePreviewContent.sentence(for: .modern) == "Moderne : texte aligné sous le pseudo, en-têtes à peine teintés.")
+        #expect(StylePreviewContent.sentence(for: .classic) == "Classique : en-têtes teintés, texte à la marge.")
+    }
+
+    /// `reader.css` gives even messages their own band in both styles (`article.message:nth-of-type(even)`), so no sentence may
+    /// present the alternation as what a style changes; the two sentences name different things.
+    @Test func noSentenceClaimsTheAlternationOrTheAvatarIndent() {
+        let sentences = ThemeStyle.allCases.map(StylePreviewContent.sentence(for:))
+        #expect(Set(sentences).count == ThemeStyle.allCases.count)
+        for sentence in sentences {
+            #expect(!sentence.contains("altern"))
+            #expect(!sentence.contains("avatar"))
+        }
     }
 }

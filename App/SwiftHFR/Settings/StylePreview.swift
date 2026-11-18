@@ -4,9 +4,9 @@ import SwiftUI
 
 /// What the « Style des messages » preview shows (#1063): two sample messages, an odd and an even one, built by the reader's own
 /// `TopicHTMLBuilder` so the preview cannot drift from `reader.css`. Sample content only: neutral pseudos, no image, no link, so
-/// nothing is requested. The two styles differ by what `reader.css` says at `.style-modern` / `.style-classic`: the header band
-/// (3 % accent against 15 %), the text's indent under the avatar (modern) against the left margin (classic), and the band of every
-/// even message (classic only).
+/// nothing is requested. The two styles differ by what `reader.css` says at `.style-modern` / `.style-classic`: the header tint
+/// (3 % accent against 15 %) and where the text starts (`--indent`, under the pseudo, against the left margin). The band of every even
+/// message is the same in both styles (`article.message:nth-of-type(even)`), so the sentence does not claim it.
 enum StylePreviewContent {
     /// The page of the two sample messages.
     static let page = ReaderPage(
@@ -33,8 +33,8 @@ enum StylePreviewContent {
     /// The sentence under the preview: what the chosen style changes, as `reader.css` draws it.
     static func sentence(for style: ThemeStyle) -> String {
         switch style {
-        case .modern: "Moderne : texte aligné sous l’avatar, en-têtes discrets."
-        case .classic: "Classique : en-têtes colorés et alternés, texte à la marge."
+        case .modern: "Moderne : texte aligné sous le pseudo, en-têtes à peine teintés."
+        case .classic: "Classique : en-têtes teintés, texte à la marge."
         }
     }
 }
@@ -49,6 +49,8 @@ struct StylePreview: View {
     @State private var document: ReaderDocument?
     @State private var token = 0
     @ScaledMetric(relativeTo: .body) private var height = 220.0
+    /// The in-app text size (70 to 130 %) scales the page's text too: the frame follows, or the second message would be cut.
+    @Environment(\.textScale) private var textScale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -59,7 +61,7 @@ struct StylePreview: View {
                     Color.clear
                 }
             }
-            .frame(height: height)
+            .frame(height: textScale.scaled(height))
             .clipShape(.rect(cornerRadius: 8))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
