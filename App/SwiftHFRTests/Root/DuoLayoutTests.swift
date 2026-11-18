@@ -297,6 +297,10 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         }
         #expect(await settle(window) { split(in: window) != nil && shows(title, in: window) }, "\(tab): \(stacks(in: window))")
 
+        if tab == .messages {
+            // The split's list load has ended, so the one counted after the fold is the cover screen's own.
+            #expect(await settle(window) { !hosted.messages.requests.isEmpty && !root.messages.loader.isLoading })
+        }
         let loads = hosted.messages.requests.count
         fold(window, host: hosted.host)
         let folded = await settle(window) { hasTabBar(window) && shows(title, in: window) }
@@ -304,6 +308,10 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         guard tab == .messages else { return }
         // The cover screen's list loads again when it appears: the conversation outlives that load, not only the frames before it.
         #expect(await settle(window) { hosted.messages.requests.count > loads && !root.messages.loader.isLoading })
+        // `isLoading` drops one main-actor hop before `load()` applies the answer: give it that hop and a layout pass.
+        try await Task.sleep(for: .milliseconds(500))
+        window.layoutIfNeeded()
+        #expect(root.messages.selected?.id == messageThread(7).id, "the folded list's load closed the conversation")
         #expect(shows(title, in: window), "after the folded list's load: \(stacks(in: window))")
     }
 
