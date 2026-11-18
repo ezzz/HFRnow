@@ -8,7 +8,7 @@ Décisions du PO reprises ici :
 - D1 : une réponse « comme aujourd'hui » au thème 1, et partout où une évolution est proposée (`O1`, `L1`, `D1`, `D2`, `M1`) ;
 - D2 : pseudo `I1` à la fin, juste avant l'envoi ;
 - D3, révisée le 8 novembre 2026 : statistiques de l'écran de fin après **10** réponses ;
-- carte `C08` retirée le 8 novembre 2026 : **neuf cartes**, `C01` à `C07`, `C09`, `C10` ; `C08` n'est jamais réutilisé ;
+- carte `C08` retirée le 8 novembre 2026 : **neuf cartes** puis, le 17 novembre 2026, **dix** avec `C12` : `C01` à `C07`, `C09`, `C10`, `C12` ; `C08` n'est jamais réutilisé ;
 - `L1` : chaque réponse a un titre court et au plus trois points de détail ;
 - conservation : réponses, pseudos, table de correspondance, exports et sauvegardes effacés **deux mois après la fermeture** ; seuls les résultats d'ensemble restent ;
 - question `G1` ajoutée le 8 novembre 2026 : irritants du quotidien, texte libre de 280 caractères, facultatif, sans condition, sur son propre écran juste après `O1` et avant `L1` (cadrage §2, #670) ;
@@ -82,7 +82,7 @@ Forme (extrait illustratif) :
             "reponse_seule": { "code": "comme_aujourdhui", "libelle": "Laisser la barre comme aujourd'hui" } },
     "C01": { "type": "reaction", "libelle": "…", "reponses": [ { "code": "adore", "libelle": "J'adore" } ] }
   },
-  "cartes": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C09", "C10"]
+  "cartes": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C09", "C10", "C12"]
 }
 ```
 
@@ -112,7 +112,7 @@ Le test échoue sur tout identifiant, code, libellé ou détail absent, en trop 
   - les écrans `D1` et `D2` s'affichent seulement si `P1` vaut `ipad`, `duo` ou `plusieurs` ; `P1` sans réponse les masque ; si `P1` change vers une autre valeur, `D1` et `D2` sont effacés du brouillon ;
   - la barre de progression recalcule le nombre d'étapes.
 - **`L1` avec détails** : chaque réponse est un bouton radio dont le libellé est le titre court, suivi d'une liste `<ul>` d'au plus trois points, reliée au bouton par `aria-describedby`. Même rendu pour toute question dont les réponses ont des détails.
-- **Cartes** : les neuf cartes de `cartes` sont mélangées une fois par répondant (Fisher-Yates sur `crypto.getRandomValues`), l'ordre est gardé dans le brouillon et envoyé avec la réponse. La mention « pistes à l'étude, pas des engagements » est en tête de l'écran. Chaque carte est un `<fieldset>` avec sa phrase en `<legend>` et trois boutons radio natifs habillés en boutons.
+- **Cartes** : les dix cartes de `cartes` sont mélangées une fois par répondant (Fisher-Yates sur `crypto.getRandomValues`), l'ordre est gardé dans le brouillon et envoyé avec la réponse. La mention « pistes à l'étude, pas des engagements » est en tête de l'écran. Chaque carte est un `<fieldset>` avec sa phrase en `<legend>` et trois boutons radio natifs habillés en boutons.
 - **Tri `D1`** :
   - en tête, une **case à cocher** « Laisser la barre comme aujourd'hui » (et non un bouton radio, qui ne se décoche pas) ; cochée, elle désactive les cartes. Le bouton « Effacer ma réponse » de `D1` décoche la case et efface le tri ; décocher la case seule ne l'efface pas. Le tri reste dans le brouillon, rendu au décochage, mais la réponse envoyée est alors `{"comme_aujourdhui": true}` seule, sans `sections` ;
   - sinon, une liste ordonnée des neuf sections, dans l'ordre de `questions.md` ; pour chacune, un groupe de trois boutons radio (`garder`, `deplier`, `ecarter`, libellés de `questions.md`) ;
@@ -157,7 +157,7 @@ La logique sans DOM (conditions, mélange, construction de la réponse, calcul �
                           { "code": "reglages", "etat": "ecarter" } ] },
     "D2": "tableau_de_bord",
     "C04": "adore", "C01": "inutile",
-    "ordre_cartes": ["C04", "C01", "C09", "C02", "C10", "C03", "C07", "C05", "C06"],
+    "ordre_cartes": ["C04", "C01", "C09", "C12", "C02", "C10", "C03", "C07", "C05", "C06"],
     "C11": "", "M1": "un_onglet", "F1": "", "I1": "pseudo facultatif"
   }
 }
@@ -177,7 +177,7 @@ Le serveur ne fait pas confiance au front :
   - chaque code de section au plus une fois, état parmi `garder`, `deplier`, `ecarter` ;
   - les rangs ne couvrent que les sections `garder` et `deplier` : uniques et contigus de 1 à leur nombre (pas de 1 à 9) ; une section `ecarter` n'en a pas ;
   - `comme_aujourdhui` faux sans aucune section : `D1` devient absent ;
-- `ordre_cartes` : permutation exacte des neuf cartes, sinon ignoré ;
+- `ordre_cartes` : permutation exacte des dix cartes, sinon ignoré ;
 - **envoi vide** : après normalisation et application des conditions, un envoi sans aucune réponse (ni question, ni pseudo ; l'ordre des cartes et la durée n'en sont pas) est refusé en 400 « aucune réponse à enregistrer ». Rien n'est stocké, pas même le jeton, et il ne compte ni dans le total ni dans le seuil de 10. Le formulaire le dit avant d'envoyer, avec un message clair ;
 - **conditions**, appliquées avant stockage même si le front a envoyé les valeurs :
   - `P1` absent ou différent de `ipad`, `duo`, `plusieurs` : `D1` et `D2` retirés. C'est la seule condition ; `L2` et `G1` n'en ont pas.
@@ -201,10 +201,12 @@ Mode WAL, `busy_timeout` de 5 s, une seule connexion d'écriture. L'écriture d'
 ## 6. Anti-doublon, limitation de débit, champ piège
 
 - **Jeton** : un jeton déjà présent dans `jetons` donne 409 `{"deja_recu": true, "stats": …}` ; le front affiche alors l'écran de fin normalement. Cela couvre aussi la double soumission et le nouvel essai après coupure réseau.
-- **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. Une adresse IPv6 est ramenée à son préfixe /64 (celui d'une ligne ou d'un foyer, dans lequel un téléphone change d'adresse à volonté) avant l'empreinte et pour le limiteur de débit ; une adresse IPv4 est comptée telle quelle. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
-- **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, autres routes hors `/static/` 120 par minute, `/static/` non limité (fichiers embarqués, servis depuis la mémoire) ; au-delà, 429 avec `Retry-After`. Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
+- **Adresse** : au plus `UX_MAX_PAR_IP` envois acceptés par empreinte d'IP (3 par défaut, pour les foyers et les réseaux mobiles partagés), sinon 429. Une adresse IPv6 est ramenée à son préfixe **/56** (celui d'un foyer : une box française en reçoit un, soit 256 /64) avant l'empreinte qui compte les envois en base, et à son préfixe **/64** (une ligne, dans laquelle un téléphone change d'adresse à volonté) pour le limiteur de débit ; une adresse IPv4 est comptée telle quelle. L'IP en clair n'est jamais écrite, ni en base ni dans les journaux, et l'empreinte n'est jamais exportée (R4).
+- **Limitation de débit**, en mémoire : `POST /api/reponses` 10 par heure, `GET /api/stats` 60 par minute, `/static/` 600 par minute (404 compris : tout `/static/` compte ensemble), autres routes 120 par minute ; au-delà, 429 avec `Retry-After`. `/healthz` n'est pas limité.
+- **Plafond global** : `UX_PLAFOND_HORAIRE` (300 par défaut) envois acceptés par heure, tous clients confondus. Un jeton déjà enregistré est examiné **avant** le plafond : un nouvel essai d'un envoi déjà reçu reçoit 409 « déjà reçu », jamais 503. Au-delà : 503 avec `Retry-After`, `refus: plafond-horaire` dans la ligne de requête et une ligne d'avertissement par fenêtre d'une heure ; la fenêtre suivante reprend. Il borne ce que peut stocker un attaquant qui dispose de nombreux préfixes ; la valeur se règle selon l'affluence attendue le jour de l'annonce, et le plafond peut aussi servir à bloquer le formulaire (le PO surveille les lignes `refus: plafond-horaire`). Le limiteur est indexé par un HMAC de l'IP avec une **clé aléatoire propre au processus**, tirée au démarrage et jamais écrite, pour qu'il marche encore après l'effacement de `cle-ip`. Plafond de 1 000 entrées suivies, les plus anciennes oubliées d'abord.
 - **IP du client** : `UX_PROXY_DE_CONFIANCE` est **obligatoire**. Si la connexion vient de cette adresse ou de ce CIDR, l'IP du client est la **dernière** adresse de `X-Forwarded-For` (celle que le proxy a ajoutée) ; sinon, l'adresse de la connexion. La valeur `aucun` (service exposé sans proxy, ou développement local) fait ignorer l'en-tête. Sans cette variable, le service refuse de démarrer : derrière un proxy, tous les répondants auraient l'adresse du proxy, et le quatrième recevrait 429.
 - **Champ piège** : `site_web` non vide donne la même réponse 201 qu'un envoi accepté, sans rien stocker, pour ne pas renseigner le robot.
+- **Code d'accès** (`UX_CODE_ACCES`) : les essais avec des identifiants faux sont comptés par adresse ; au dixième échec en dix minutes, toute requête de cette adresse reçoit 429 (le bon code aussi) jusqu'à la fin de la fenêtre. Une visite sans identifiant n'est pas un essai. Le code doit être aléatoire, d'au moins 20 caractères.
 - **Origine** : un `POST` dont l'en-tête `Origin` diffère de `UX_ORIGINE` est refusé (403). Avec l'absence de cookie et le `Content-Type` JSON exigé, cela suffit contre les envois intersites.
 
 ## 7. API
@@ -228,7 +230,7 @@ Toute autre route : 404. Pas de route d'export ni d'administration : ces actions
 ## 8. Écran de fin et statistiques
 
 - Les réponses « limitées » (R13) sont exclues de tous les calculs, total compris.
-- Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les neuf cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
+- Questions fermées seulement : `P1` à `P3`, `O1`, `L1`, `D1`, `D2`, les dix cartes, `M1`. Jamais `G1`, `L2`, `C11`, `F1`, `I1`, `duree_s` ni `ordre_cartes`.
 - Pour chaque question : pourcentage de chaque code parmi ceux qui y ont répondu, entier arrondi au plus proche (la somme peut différer de 100), et effectif.
 - Pour `D1` : part de `comme_aujourdhui` parmi les répondants de `D1` ; puis, pour chaque section, part de chaque état et rang médian des sections gardées ou dépliables, calculés sur les répondants qui ont donné un état **à cette section** (son effectif propre, qui suit la règle de seuil par question ci-dessous).
 - **Seuil (D3)** : rien n'est publié tant que le total est sous `UX_SEUIL_STATS` (10). Ensuite, une question n'est publiée que si son propre effectif atteint aussi le seuil (utile pour le thème 2, vu par moins de monde).
@@ -270,7 +272,7 @@ Cache-Control: no-store            (routes /api/ et /donnees)
 
 **Aucune mesure d'audience** (R12) : pas d'outil d'analyse, pas de pixel, pas de bouton de réseau social, ni côté client ni à partir des journaux.
 
-**Journaux** (`log/slog`, JSON sur la sortie standard) : méthode, chemin sans paramètres, statut, durée, taille, et pour un refus sa raison (`honeypot`, `doublon-jeton`, `limite-ip`, `debit`, `origine`). Jamais : IP, empreinte d'IP, jeton, `User-Agent`, `Referer`, corps de requête, pseudo, texte libre. Le proxy inverse suit la même règle pour ce sous-domaine (R1) : journal d'accès coupé, ou sans IP, agent utilisateur ni référent. C'est une condition du déploiement (§13), vérifiée par #635 ; il n'y a pas de repli qui garde l'IP.
+**Journaux** (`log/slog`, JSON sur la sortie standard) : méthode, chemin sans paramètres (un chemin qui n'est ni une route ni un fichier embarqué est journalisé sous le libellé fixe `(inconnu)`, pour qu'un client n'écrive pas son texte dans le journal), statut, durée, taille, et pour un refus sa raison (`honeypot`, `doublon-jeton`, `limite-ip`, `debit`, `origine`, `plafond-horaire`, `echecs-acces`). Jamais : IP, empreinte d'IP, jeton, `User-Agent`, `Referer`, corps de requête, pseudo, texte libre. **Rotation** : `compose.yaml` borne les journaux du conteneur (`json-file`, 3 fichiers de 10 Mo) ; ils disparaissent avec le conteneur. Le proxy inverse suit la même règle pour ce sous-domaine (R1) : journal d'accès coupé, ou sans IP, agent utilisateur ni référent. C'est une condition du déploiement (§13), vérifiée par #635 ; il n'y a pas de repli qui garde l'IP.
 
 ## 10. Configuration
 
@@ -282,11 +284,12 @@ Variables d'environnement, aucun secret dans le dépôt :
 | `UX_DONNEES` | `./donnees` | Dossier de la base, de `cle-ip` et de `agregats.json` ; `/donnees` dans le conteneur, monté depuis le dossier de données propre au projet Compose |
 | `UX_ORIGINE` | — (obligatoire) | Origine publique, par exemple `https://sondage.exemple.fr` |
 | `UX_PROXY_DE_CONFIANCE` | — (obligatoire) | IP ou CIDR du proxy inverse, ou `aucun` (§6) |
-| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, le **jour** de fermeture (`AAAA-MM-JJ`, dans le décalage de la variable) est mémorisé (table `meta`) ; ensuite il peut être **avancé, jamais repoussé** : R5 compare des jours, pas des secondes. Au démarrage, un jour plus tardif que le jour mémorisé fait refuser le démarrage (de même pour toute commande `ux-survey`), un jour plus proche le remplace (R5) |
+| `UX_FERMETURE` | — (obligatoire) | Date et heure de fermeture, RFC 3339 avec décalage horaire. À la première réponse reçue, le **jour** de fermeture (`AAAA-MM-JJ`, dans le décalage de la variable) est mémorisé (table `meta`) ; ensuite il peut être **avancé, jamais repoussé** : R5 compare des jours, pas des secondes. **Une fois la fermeture exécutée**, l'instant de fermeture est mémorisé en UTC (`fermeture_faite`) et toute valeur plus tardive est refusée au démarrage, quel que soit son décalage horaire : un questionnaire fermé ne rouvre pas. Au démarrage, un jour plus tardif que le jour mémorisé fait refuser le démarrage (de même pour toute commande `ux-survey`), un jour plus proche le remplace (R5) |
 | `UX_MENTION_MAJ` | — (obligatoire) | Date de dernière mise à jour de la mention |
 | `UX_SEUIL_STATS` | `10` | Seuil D3 ; une valeur sous 10 est refusée |
 | `UX_MAX_PAR_IP` | `3` | Envois acceptés par empreinte d'IP |
-| `UX_CODE_ACCES` | vide | Mot de passe de l'accès restreint, vide en public |
+| `UX_CODE_ACCES` | vide | Mot de passe de l'accès restreint, vide en public ; aléatoire, 20 caractères au moins (§6) |
+| `UX_PLAFOND_HORAIRE` | `300` | Envois acceptés par heure, tous clients confondus ; au-delà, 503 (§6) |
 
 La **date d'effacement** n'est pas une variable : elle vaut toujours `UX_FERMETURE` + 2 mois (même jour du mois, ou dernier jour du mois s'il n'existe pas), comme le dit la mention. `ux-survey effacer` permet d'effacer plus tôt à la main (§12).
 
@@ -300,7 +303,9 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 
 **Hôte** : Ubuntu 24.04 LTS, Docker Engine et Docker Compose. Une autre application tourne déjà sur le même hôte : le questionnaire est un **projet Compose à part** (son propre nom de projet, son propre réseau, son propre dossier de données), sans rien partager avec elle. Aucune variante sans conteneur n'est prévue.
 
-**Conteneur** : `deploy/Dockerfile` en deux étapes, compilation `CGO_ENABLED=0` pour l'architecture de l'hôte, image finale `gcr.io/distroless/static` en utilisateur non root, volume `/donnees` (dossier de l'hôte en 0700, propriété de l'utilisateur du conteneur), système de fichiers en lecture seule, `cap_drop: [ALL]`, `no-new-privileges`. `deploy/compose.yaml` :
+**Conteneur** : `deploy/Dockerfile` en deux étapes, compilation `CGO_ENABLED=0` pour l'architecture de l'hôte, image finale `gcr.io/distroless/static` en utilisateur non root, volume `/donnees` (dossier de l'hôte en 0700, propriété de l'utilisateur du conteneur), système de fichiers en lecture seule, `cap_drop: [ALL]`, `no-new-privileges`, images de base épinglées par condensat. `deploy/compose.yaml` :
+- borne les ressources (`mem_limit: 256m`, `pids_limit: 128`, `cpus: 1.0`) et les journaux du conteneur (`json-file`, 3 fichiers de 10 Mo) : le VPS est partagé avec une autre application ;
+- exige `UX_DOSSIER_DONNEES` (dossier de données hors du dépôt, sans valeur par défaut) ; le contexte de construction est une liste d'autorisation (`.dockerignore`), pour qu'aucune base ni fichier d'environnement n'entre dans le cache de construction ;
 - fixe `UX_ADRESSE=0.0.0.0:8080` dans le conteneur et publie le port **seulement sur `127.0.0.1`**, sur un port libre de l'hôte choisi au déploiement (`127.0.0.1:<port>:8080`), jamais sur une interface publique ;
 - déclare un réseau à sous-réseau fixe (par exemple `172.31.250.0/24`, à choisir pour ne pas chevaucher celui de l'autre application) ;
 - fixe `UX_PROXY_DE_CONFIANCE` à l'adresse de la passerelle de ce réseau : un client de l'hôte qui se connecte à `127.0.0.1:<port>` arrive dans le conteneur depuis cette passerelle, quel que soit ce client (Tailscale Funnel ou Caddy, ci-dessous).
@@ -311,6 +316,8 @@ Le service refuse de démarrer si une variable obligatoire manque ou est invalid
 |---|---|---|---|---|---|
 | (a) **Tailscale Funnel**, retenue | Funnel devant `127.0.0.1:<port>`, aucun port à ouvrir | Terminé sur le VPS par `tailscaled` | Publique en `*.ts.net`, pas de sous-domaine | L'URL Funnel | Transmise par Funnel dans un en-tête, **à vérifier** (§13) |
 | (b) Proxy inverse, par exemple Caddy, en secours | Ports 80 et 443 ouverts | Caddy (Let's Encrypt) | Sous-domaine | `https://<sous-domaine>` | `X-Forwarded-For` ajouté par Caddy |
+
+**Mode du relais et usurpation de l'adresse** : tout ce qui arrive par `127.0.0.1:<port>` est « de confiance » pour l'en-tête `X-Forwarded-For` (la connexion vient de la passerelle). La sûreté repose donc sur le relais, qui doit **poser lui-même** l'en-tête et retirer celui du client. Funnel doit être en **mode proxy HTTP** (`tailscale funnel status` montre `proxy http://127.0.0.1:<port>`), jamais en mode TCP (`--tcp`, `--tls-terminated-tcp`), où l'en-tête du client passerait tel quel : un client pourrait alors inventer une adresse par requête et contourner la limite par adresse et le limiteur de débit. L'essai anti-usurpation du §13 est une condition d'ouverture. Un autre processus de l'hôte qui joint le port peut aussi forger l'en-tête : l'autre application de l'hôte ne doit pas relayer de requêtes vers la boucle locale.
 
 Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajouté, corps limité à 32 Ko et journal d'accès coupé. Pour (a), le README donne la commande Funnel vers `127.0.0.1:<port>` et rappelle la vérification du §13. Dans les deux cas, le service ne lit que la dernière adresse de `X-Forwarded-For` (§6) ; si la vérification montre que Funnel transmet l'adresse du client dans un autre en-tête, #634 ajoute une variable `UX_EN_TETE_CLIENT` (nom de l'en-tête, lu seulement depuis le proxy de confiance) plutôt que de deviner.
 
@@ -323,7 +330,9 @@ Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajo
 
 ## 12. Exports, fermeture et effacement
 
-**Sauvegarde** : `ux-survey sauvegarder <fichier>` écrit une copie cohérente de la base par `VACUUM INTO`, en 0600. C'est la seule sauvegarde prise en charge ; `cle-ip` n'y entre jamais. Si le VPS a ses propres sauvegardes, elles excluent **toujours** `cle-ip` ; si cette exclusion d'un seul fichier n'est pas possible, elles excluent tout le dossier de données. Les sauvegardes du VPS qui contiennent la base sont purgées à la date d'effacement (§13).
+**Sauvegarde** : `ux-survey sauvegarder <fichier>` écrit une copie cohérente de la base par `VACUUM INTO`, en 0600, puis **vide les tables `jetons` et `empreintes_ip` de la copie et la compacte** (R4 : aucune empreinte dans une sauvegarde). C'est la seule sauvegarde prise en charge ; `cle-ip` n'y entre jamais. Si le VPS a ses propres sauvegardes, elles excluent **toujours** `cle-ip` ; si cette exclusion d'un seul fichier n'est pas possible, elles excluent tout le dossier de données. Les sauvegardes du VPS qui contiennent la base sont purgées à la date d'effacement (§13).
+
+**Sorties** : `export --sortie` et `sauvegarder` n'écrivent que sous `exports/` et `sauvegardes/` du dossier de données (chemins relatifs, `..` et liens symboliques résolus ; le dossier est créé en 0700), pour que l'effacement supprime tout ce que le service a produit.
 
 **Exports**, lancés sur le serveur par `ux-survey export --format <format> --sortie <fichier>` :
 
@@ -333,7 +342,7 @@ Pour (b), `deploy/Caddyfile.exemple` fixe TLS automatique, `X-Forwarded-For` ajo
 | `agregats` (CSV et JSON) | Résultats d'ensemble (R11) : la charge du §8 pour les questions fermées, effectifs et pourcentages ; une question dont l'effectif est sous **5** est omise, et pour `D1`, une section à laquelle moins de 5 répondants ont donné un état est omise (effectif propre à la section, pas le nombre de répondants qui ont trié) ; aucun texte libre, pseudo ni identifiant | Publication | Le seul jeu de données gardé après l'effacement |
 | `pseudos` | `identifiant` et pseudo, pour traiter une demande de droits (R7) seulement | Bruno seul, jamais partagé | Supprimé dès la demande traitée |
 
-Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les neuf cartes, `C11`, `M1`, `F1` ; sans `C08`). Il n'y a pas de colonne `D1` : à sa place viennent `D1_comme_aujourdhui` puis, pour chacune des neuf sections dans l'ordre de `questions.md`, `D1_<code>_etat` et `D1_<code>_rang` (19 colonnes). Viennent ensuite `ordre_cartes` et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
+Colonnes de l'export d'analyse : `identifiant`, `recue_le`, `version`, `duree_s`, puis les identifiants du §2 dans l'ordre (`P1` à `P3`, `O1`, `G1`, `L1`, `L2`, `D1`, `D2`, les dix cartes, `C11`, `M1`, `F1` ; sans `C08`). Il n'y a pas de colonne `D1` : à sa place viennent `D1_comme_aujourdhui` puis, pour chacune des neuf sections dans l'ordre de `questions.md`, `D1_<code>_etat` et `D1_<code>_rang` (19 colonnes). Viennent ensuite `ordre_cartes` et une colonne `textes_relus`, vide à l'export. CSV en UTF-8 avec BOM, RFC 4180 ; toute cellule qui commence par `=`, `+`, `-`, `@`, tabulation ou retour chariot est préfixée d'une apostrophe (injection de formules). Chaque fichier porte sa date de génération dans son nom.
 
 **Relecture des textes libres (R10)** : le PO relit `G1`, `L2`, `C11` et `F1` dans une copie de l'export d'analyse, retire les détails identifiants, et inscrit `oui` dans `textes_relus` pour chaque ligne relue. Seule cette copie relue est partagée. Les réponses sur le serveur ne sont pas modifiées.
 
@@ -351,14 +360,15 @@ L'identité du demandeur est vérifiée par MP sur son compte HFR (`donnees.md`)
 **À la fermeture**, automatiquement, au premier passage de la tâche horaire après `UX_FERMETURE` (le refus 410 est, lui, immédiat, §7) : le service supprime `cle-ip`, vide `empreintes_ip` et `jetons`, puis lance `VACUUM` et `PRAGMA wal_checkpoint(TRUNCATE)`. Si le point de contrôle répond « occupé », la fermeture n'est pas annoncée comme faite et la tâche horaire la reprend (étapes sans effet si déjà faites) jusqu'à un point de contrôle réussi avec un `-wal` vide. `ux-survey fermer` fait la même chose à la main et sort en erreur dans ce cas. La page affiche « Questionnaire fermé » et les statistiques finales.
 
 **À la date d'effacement** (R6), fermeture + 2 mois, automatiquement par la tâche horaire, ou plus tôt par `ux-survey effacer`, qui **refuse** de s'exécuter avant `UX_FERMETURE` : après cette date, le 410 garantit qu'aucune réponse n'arrive après l'instantané. La procédure est **idempotente** : on peut la relancer après n'importe quelle interruption.
+0. l'indicateur de fermeture exécutée est posé (comme à `fermer`) ;
 1. si `agregats.json` n'existe pas : écrire l'instantané (même contenu que l'export `agregats`) dans `agregats.json.tmp`, `fsync` du fichier, renommer en `agregats.json`, puis `fsync` du dossier de données, avant l'étape 2 ; s'il existe déjà, ne pas le réécrire (une reprise ne doit jamais le remplacer par des agrégats vides) ;
-2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus (sans effet si elles sont déjà vides) ;
+2. vider `reponses` et `pseudos`, et ce qui reste des tables d'anti-abus (sans effet si elles sont déjà vides), puis supprimer `sauvegardes/` et tout `exports/` **sauf** les fichiers `agregats-*` (ces copies contiennent des pseudos et des textes libres : leur survie contredirait la mention) ;
 3. `VACUUM`, puis `PRAGMA wal_checkpoint(TRUNCATE)` ; si le point de contrôle répond « occupé », la commande sort en erreur sans annoncer l'effacement, et la tâche horaire reprend à cette étape (les étapes 1 et 2 sont déjà acquises ou sans effet) ;
 4. afficher « effacement terminé » seulement quand le point de contrôle a réussi et que le fichier `-wal` est vide.
 
 Liste à cocher du PO le même jour, notée sur #628 avec la date :
 - données du serveur effacées (sortie de `effacer`) ;
-- fichiers produits par `sauvegarder` supprimés, et sauvegardes du VPS qui contiennent le dossier de données purgées ;
+- `exports/` (hors agrégats) et `sauvegardes/` absents du dossier de données (l'effacement les supprime), et sauvegardes du VPS qui contiennent le dossier de données purgées ;
 - exports d'analyse et copies relues supprimés sur la machine du PO ;
 - exports partagés avec l'équipe et confiés à l'assistant d'analyse supprimés, confirmation demandée aux destinataires ;
 - seul l'export `agregats` reste.
@@ -369,6 +379,7 @@ Liste à cocher du PO le même jour, notée sur #628 avec la date :
 
 D4 est tranchée (§11). Reste, avant le déploiement (#635), pas avant la réalisation :
 - **exposition** : Tailscale Funnel, retenue le 9 novembre 2026 ;
+- **mode de Funnel et anti-usurpation** (§11) : mode proxy HTTP seulement ; essai avec un `X-Forwarded-For` forgé qui doit finir en 429 (liste du PO dans `verification-image.md`). Aucun 429 : l'en-tête forgé est cru, ne pas ouvrir ;
 - pour Funnel : **vérifier sur l'hôte**, avant l'ouverture, quel en-tête Funnel transmet avec l'adresse publique du client, et que l'étape 3 du §11 voit des adresses distinctes. Si Funnel ne transmet pas l'adresse du client, le PO choisit entre (b) et un anti-doublon sans limite par adresse (jeton et limitation de débit seulement), à noter sur #628. Vérifier aussi ce que `tailscaled` journalise des connexions Funnel (R1) ; la mention sur les données (#669) dit déjà que les connexions transitent par les relais de Tailscale ;
 - seulement si l'on bascule en secours sur (b) : sous-domaine et accès DNS ;
 - journal d'accès de l'option retenue pour ce questionnaire coupé, ou sans IP, agent utilisateur ni référent (R1) : c'est une **exigence** du déploiement, pas une option ; si elle ne peut pas être tenue, c'est `donnees.md` (#669) qui doit changer avant l'ouverture ;
@@ -381,10 +392,10 @@ Chaque test échoue sans le code qu'il couvre (LESSONS 2).
 | # | Test | Vérifie |
 |---|---|---|
 | 1 | Concordance | `questionnaire.json` et `questions.md` : identifiants, codes, libellés, détails, aides, conditions, ordre ; bloc `D1` lu par ses quatre lignes ; `C08` absent du JSON ; identifiants du §2 présents hors `C08` |
-| 2 | Contenu | Codes en ASCII minuscules, uniques par question ; neuf cartes ; chaque visuel référencé existe et `web/visuels/` est identique à `docs/ux/questionnaire/visuels/` |
+| 2 | Contenu | Codes en ASCII minuscules, uniques par question ; dix cartes ; chaque visuel référencé existe et `web/visuels/` est identique à `docs/ux/questionnaire/visuels/` |
 | 3 | Conditions serveur | `P1` vaut `ipad`, `duo`, `plusieurs` : `D1` et `D2` gardés ; `iphone` ou absent : retirés ; `G1` et `L2` gardés quels que soient le profil et la réponse à `L1` |
 | 4 | Conditions front (node) | Liste des écrans selon `P1`, avec l'écran `G1` toujours entre `O1` et `L1` ; changement de `P1` qui efface `D1` et `D2` ; `L2` actif sans `L1` |
-| 5 | Mélange et `D1` (node) | L'ordre des cartes est une permutation des neuf cartes et reste stable après rechargement du brouillon ; trier `D1` puis cocher « comme aujourd'hui » produit `{"comme_aujourdhui": true}` seul, et le décocher rend le tri |
+| 5 | Mélange et `D1` (node) | L'ordre des cartes est une permutation des dix cartes et reste stable après rechargement du brouillon ; trier `D1` puis cocher « comme aujourd'hui » produit `{"comme_aujourdhui": true}` seul, et le décocher rend le tri |
 | 6 | Validation | Clé inconnue (dont `C08`), code ou type inconnu, texte trop long (`G1` à 281 caractères compris), corps trop gros ; `D1` avec `comme_aujourdhui` et des sections, rangs en double ou non contigus, rang sur une section écartée : refus, aucune ligne |
 | 7 | Enregistrement | Un envoi valide : une ligne dans `reponses` avec un identifiant aléatoire, le pseudo seulement dans `pseudos`, `recue_le` sans heure |
 | 8 | Doublon par jeton | Deuxième envoi du même jeton : 409 `deja_recu`, toujours une seule ligne |

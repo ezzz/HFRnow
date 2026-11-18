@@ -1,0 +1,20 @@
+{
+  "id": "R360h",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "url": "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "final_url": "https://forum.hardware.fr/wikismilies.php?config=hfr.inc&detail=%5B%3Auser3%5D",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:16:39 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "Smiley wiki page of a personal smiley code (first hit of R360a), logged in (user2), to compare with R54",
+  "private": false
+}

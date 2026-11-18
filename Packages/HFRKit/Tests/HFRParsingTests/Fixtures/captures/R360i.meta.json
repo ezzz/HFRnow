@@ -1,0 +1,16 @@
+{
+  "id": "R360i",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message-smi-mp-aj.php?config=hfr.inc&findsmilies=pt1cable",
+  "url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=pt1cable",
+  "final_url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=pt1cable",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:17:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Smiley search for the name of a standard smiley (pt1cable), user2",
+  "file": "R360i-smiley-search-standard-name-pt1cable.html",
+  "private": false
+}

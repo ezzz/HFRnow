@@ -47,7 +47,9 @@ import Testing
             // #1060: the « Notifications » switch of Réglages › Notifications MP, new.
             "mp_notifications_enabled",
             // #1058: the Favoris « Non lus / Tous » button, new.
-            "favorites_unread_only"
+            "favorites_unread_only",
+            // LOT-133: the Alertes Qualitay last check (legacy name, new encoding).
+            "last_check_aq"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }

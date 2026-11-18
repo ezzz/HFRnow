@@ -1,0 +1,15 @@
+{
+  "id": "R126a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=35643367&quote_only=1&new=0&nojs=0",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=35643367&quote_only=1&new=0&nojs=0",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=35643367&quote_only=1&new=0&nojs=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:17:40 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R126a-topic-quote-only-list-anon.html",
+  "private": false
+}

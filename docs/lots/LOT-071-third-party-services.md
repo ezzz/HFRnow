@@ -56,6 +56,7 @@ Owner = who runs the host; none of them is this project or HFR.
 | T6 | Images in messages and signatures | any host a poster chose | displaying a page | an image request per URL; `Referer` and cookies depend on who fetches (see rules R3, R4) | the host's operator, unknown | LOT-034 (lists `MessageImage`), LOT-045 (cookie-less client), LOT-056 (host table), LOT-083 (loading), FEAT-011 (setting) | **decided**: D-071-1 |
 | T7 | Video players | `www.youtube.com`, `player.vimeo.com`, `streamable.com` (legacy active list) | displaying a page with a matching link (`embedded_videos`) | a player iframe: the provider's page, scripts and cookies, loaded without a tap | the provider | LOT-035 (detection), LOT-083 (display) | **decided**: D-071-2 (player on tap) |
 | T8 | External links | any | user taps a link | normal browsing in `SFSafariViewController` (Safari's own data, not the app's) | the site | LOT-083 | unchanged, no notice (user-initiated navigation) |
+| T9 | YouTube thumbnails of plain video links | `i.ytimg.com` | displaying a page with a plain YouTube link (#1037) | one image request per link, `GET https://i.ytimg.com/vi/<id>/hqdefault.jpg`, cookie-less, no `Referer` (R1, R3): YouTube learns the IP address, the time and which video a message links to | Google (YouTube) | #1037 (`YouTubeLinkDetector`, `reader.js`) | **decided**: operator, 2026-11-18, option 2 of #1037; under policy C like any image (`i.ytimg.com` is a third-party host: it loads by itself, or waits for the setting of Réglages › Expérimental › « Chargement des images », #902) |
 
 Seen in the captures: the `img` elements of the topic captures `R20`–`R28`, `RA*`, `RU*` reference 24 third-party hosts (for example
 `i.imgur.com`, `rehost.diberie.com`, `i85.servimg.com`, `media.tenor.com`, `i.redd.it`, `casimages.com`, `hostingpics.net`); 10 of them
@@ -158,6 +159,18 @@ Options considered: (a) auto-loaded player iframes, as `2440d79` did with `embed
 provider's scripts and cookies without a tap; (b) placeholder, player loaded on tap: **chosen**; (c) links only, opened in the browser:
 rejected. The live legacy app has since dropped embeds altogether (`d645f52`, see Legacy sources). LOT-035 detects the links, LOT-083
 shows the placeholder; the player request follows R1 and R3 (YouTube's player excepted, R3 exception, #752).
+
+**Amendment (operator, 2026-11-18, #1037): thumbnails of plain YouTube links (T9).** A link whose text is the video's own address
+(`youtu.be/<id>`, `youtube.com/watch?v=<id>`, `m.youtube.com`, `youtube.com/shorts/<id>`) outside a quote, a spoiler or code, and that is not
+one of LOT-035's player candidates, shows a card under the text: the thumbnail `https://i.ytimg.com/vi/<id>/hqdefault.jpg` (T9), or the pill
+« Vidéo YouTube · toucher pour lire » when the thumbnail is refused (images on tap, or on Wi-Fi without it), fails or times out
+(`RequestTimeout.standard`, as every reader image, #683). The thumbnail is an ordinary image of the page: policy C, the cookie-less client, no
+`Referer`, a 15 MB cap, one hop at a time. A tap on the card, the pill or the link opens the video as a universal link only (the YouTube app),
+else in Safari (`UIApplication.open`), never in an in-app browser nor in the player sheet; the long press stays the #596 menu. A link LOT-035
+turns into a player (a `youtube.com/watch?v=` or `youtu.be` link alone in a top-level paragraph) keeps its LOT-108 placeholder and gets no card, so the two
+never show for one link; a Shorts link or an upper-case host, which LOT-035 does not embed, gets the card. The link text counts as the address when it is the
+address or HFR's shortened form `<start> [...] <last 10 characters>` (captures `R20`, `R21`, `R27`); the id is ASCII, and a link with a port is no video. The page tells
+the app only the card's address; the app re-parses it (`YouTubeLinkDetector.video(for:)`) and opens it over `https`, start time kept.
 
 ## Decision D-071-3 — AQ requests
 

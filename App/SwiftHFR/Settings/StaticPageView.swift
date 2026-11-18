@@ -68,6 +68,8 @@ struct StaticPageWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
+        // #1120: a UIKit scroll view does not read SwiftUI's `scrollEdgeEffectStyle`: same soft top edge as every screen.
+        webView.scrollView.topEdgeEffect.style = .soft
         webView.navigationDelegate = context.coordinator
         context.coordinator.onLink = onLink
         context.coordinator.loadedHTML = html

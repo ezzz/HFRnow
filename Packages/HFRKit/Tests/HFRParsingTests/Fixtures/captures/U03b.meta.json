@@ -1,0 +1,15 @@
+{
+  "id": "U03b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://img3.super-h.fr/images/<yyyy>/<mm>/<dd>/<name>.md.jpg",
+  "url": "https://img3.super-h.fr/images/2026/11/18/snapshot_1234567890.md.jpg",
+  "final_url": "https://img3.super-h.fr/images/2026/11/18/snapshot_1234567890.md.jpg",
+  "status": 200,
+  "content_type": "image/jpeg",
+  "date": "Wed, 18 Nov 2026 19:01:14 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "medium rendition of U03, cookie-less (#922); JPEG 400x267, 9449 bytes (Content-Length 9449); Referer: https://forum.hardware.fr/",
+  "private": false
+}
