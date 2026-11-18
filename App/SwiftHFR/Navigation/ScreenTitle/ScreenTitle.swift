@@ -134,6 +134,7 @@ struct ScreenLargeTitle: View {
             Text(title)
                 .scaledFont(.largeTitle)
                 .fontWeight(.bold)
+                .themedTitle()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
