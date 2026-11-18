@@ -222,4 +222,75 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         #expect(stack(topped: "Sujet 5 p4", in: window) == nil)
         #expect(stack(topped: entry.title, in: window) != nil)
     }
+
+    /// #1089 review finding 3: a screen pushed on the Bookmarks / AQ content stack (a list's own push) reads the action and opens
+    /// its topic in the detail column through it; a plain stack (the Plus tab of the tab bar) has none.
+    @Test func aScreenPushedOnTheListColumnOpensItsTopicInTheDetailColumn() async throws {
+        let hosted = try host(initial: .plus(.qualityAlerts))
+        defer { hosted.window.isHidden = true }
+        let seen = OpenerProbe.Seen()
+        let opener = RootSidebarView.detailOpener(model: hosted.root, environment: hosted.environment, entry: .qualityAlerts)
+        let column = try hostAlone(PlusListColumn(entry: .qualityAlerts, opener: opener) { OpenerProbe(seen: seen) })
+        defer { column.isHidden = true }
+        #expect(await settle(column) { seen.pushedLeafSawAnAction != nil })
+        #expect(seen.pushedLeafSawAnAction == true)
+        #expect(hosted.root.detailReaders[.qualityAlerts] != nil, "the pushed screen's action did not reach the detail column")
+
+        let plainSeen = OpenerProbe.Seen()
+        let plain = try hostAlone(ThemedNavigationStack { OpenerProbe(seen: plainSeen) })
+        defer { plain.isHidden = true }
+        #expect(await settle(plain) { plainSeen.pushedLeafSawAnAction != nil })
+        #expect(plainSeen.pushedLeafSawAnAction == false)
+    }
+
+    /// The sidebar builds the Bookmarks / AQ content column with `PlusListColumn`, and the tab bar never sets the action.
+    @Test func onlyTheSidebarGivesTheListsTheAction() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "SwiftHFR/Root")
+        let sidebar = try String(contentsOf: root.appending(path: "RootSidebarView.swift"), encoding: .utf8)
+        let tabs = try String(contentsOf: root.appending(path: "RootTabsView.swift"), encoding: .utf8)
+        #expect(sidebar.contains("PlusListColumn(entry: entry, opener: Self.detailOpener("))
+        #expect(!tabs.contains("openTopicInDetail"))
+    }
+
+    private func hostAlone(_ view: some View) throws -> UIWindow {
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 400, height: 800)
+        window.rootViewController = UIHostingController(rootView: view)
+        window.isHidden = false
+        return window
+    }
+}
+
+/// A list stand-in: its root pushes a leaf at once, and the leaf records whether it can open a topic in the detail column, then
+/// opens one through it.
+private struct OpenerProbe: View {
+    @MainActor
+    final class Seen {
+        var pushedLeafSawAnAction: Bool?
+    }
+
+    let seen: Seen
+    @State private var pushed = false
+
+    var body: some View {
+        Text("Liste")
+            .navigationDestination(isPresented: $pushed) { Leaf(seen: seen) }
+            .onAppear { pushed = true }
+    }
+
+    private struct Leaf: View {
+        let seen: Seen
+        @Environment(\.openTopicInDetail) private var openTopicInDetail
+
+        var body: some View {
+            Text("Écran poussé")
+                .onAppear {
+                    seen.pushedLeafSawAnAction = openTopicInDetail != nil
+                    openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
+                }
+        }
+    }
 }

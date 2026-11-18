@@ -76,9 +76,9 @@ struct RootSidebarView: View {
             MessagesListColumn(model: model.messages, composer: environment.composer)
         case .plus(let entry):
             // Bookmarks and Alertes Qualitay: the list in its own stack; a row opens its topic beside it through `openTopicInDetail`.
-            ThemedNavigationStack { PlusEntryView(entry: entry, model: model, environment: environment) }
-                .id(entry)
-                .environment(\.openTopicInDetail, Self.detailOpener(model: model, environment: environment, entry: entry))
+            PlusListColumn(entry: entry, opener: Self.detailOpener(model: model, environment: environment, entry: entry)) {
+                PlusEntryView(entry: entry, model: model, environment: environment)
+            }
         case .tab(.more), .tab(.search):
             // Unreachable: `sidebarDestination` maps Plus to Réglages and Recherche to its Plus entry (#896).
             EmptyView()
@@ -121,6 +121,20 @@ struct OpenTopicInDetail {
 extension EnvironmentValues {
     /// How a list beside the detail column opens a topic there; nil when the list has no detail column.
     @Entry var openTopicInDetail: OpenTopicInDetail?
+}
+
+/// The content column of Bookmarks and Alertes Qualitay: the entry's list in its own stack, a new one per entry, every screen of
+/// which (pushed ones too) can open a topic in the detail column.
+struct PlusListColumn<Content: View>: View {
+    let entry: PlusEntry
+    let opener: OpenTopicInDetail
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ThemedNavigationStack { content }
+            .id(entry)
+            .environment(\.openTopicInDetail, opener)
+    }
 }
 
 /// The detail column of Bookmarks and Alertes Qualitay: the topic a row opened, in its own stack for the readers a link pushes

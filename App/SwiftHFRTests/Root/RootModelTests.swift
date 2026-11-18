@@ -53,6 +53,33 @@ struct RootModelTests {
         #expect(filter.flag == .favorites)
     }
 
+    // #1089 review finding 1: a Favoris section title naming the category already open drops the topic but kept its reader, so
+    // tapping the same row again showed the page a link had pushed over it.
+    @Test func aFavorisSectionTitleOnTheOpenCategoryDropsTheReaderAndWhatItsLinksPushed() throws {
+        let source = FakeDataSource()
+        let forums = ForumListModel(dataSource: source)
+        let root = RootModel(
+            forums: forums,
+            categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            messages: MessageListModel(source: FakePrivateMessages()),
+            store: InMemorySettingsStore(), initial: .tab(.categories)
+        )
+        let category = TopicSource.forum(.forum(13), title: "Discussions")
+        let topic = TopicSummary(topicID: TopicID(category: .forum(13), topic: 1), title: "Sujet", path: "/t1")
+        root.categories.selectedSource = category
+        root.categories.selectedTopic = topic
+        let first = try #require(root.categories.reader(for: topic))
+        first.follow(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 1)), page: 4))
+        #expect(first.linkedReader != nil)
+        root.showCategoryFromFavorites(category)
+        #expect(first.linkedReader == nil)
+        root.categories.selectedTopic = topic
+        let again = try #require(root.categories.reader(for: topic))
+        #expect(again !== first)
+        #expect(again.linkedReader == nil)
+    }
+
     // Both layouts read `RootModel.messages`: the open conversation survives a switch of tab or of layout.
     @Test func messagesModelIsSharedAcrossDestinations() async {
         let root = await model()
@@ -155,7 +182,7 @@ struct RootModelTests {
             ["Bookmarks", "Alertes Qualitay"],
             ["Réglages", "Rechercher sur le forum", "Crédits", "Charte du forum", "Supprimer mon compte"]
         ])
-        // Legacy section titles (`MainWindow.swift:1879-1893` @ 87fe0d1c, #685).
+        // Legacy section titles (`MainWindow.swift:1878-1901` @ 87fe0d1c, #685).
         #expect(SidebarDestination.sections.map(\.title) == ["Forum", "Outils", "Plus"])
     }
 
