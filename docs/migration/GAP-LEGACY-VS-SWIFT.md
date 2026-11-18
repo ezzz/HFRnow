@@ -26,7 +26,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-002 | Start tab | Favoris hard-coded at launch; no start-screen setting at this commit. | MainWindow.swift:1110-1112 | Start-screen setting, default Favoris (values from `master`'s `HFRswiftStartupScreen`). | LOT-119, LOT-170 | ported with changes | port: ezzz Swift layer | a·master |
 | GAP-003 | Tab bar minimize on scroll | `.onScrollDown` driven by `tabbar_minimize_on_scroll`, default on. | MainWindow.swift:1264; Common.swift:208-210 | Same key and behaviour, refreshed live without relaunch. | LOT-170 | same | port: ezzz Swift layer | a |
 | GAP-004 | MP badge on Messages tab | Badge from the `nb_mp` counter when `mp_badge_enabled`. | MainWindow.swift:1290 | Badge from the MP count of the latest home, topic-list, favourites or flags page loaded (0 on a logged-out home), -1 when an unread MP's last page is shown, +1 on a confirmed mark unread (#762); no count from topic pages, no `nb_mp` counter. | LOT-170, LOT-126 | ported with changes | port: ezzz Swift layer | a |
-| GAP-005 | AQ badge on Plus tab | Plus badge shows the unread AQ count, checked 3 s after launch. | MainWindow.swift:1297, 1178-1196 | Plus badge once the AQ feed lands. | LOT-133 | same | port: ezzz Swift layer | a |
+| GAP-005 | AQ badge on Plus tab | Plus badge shows the unread AQ count, checked 3 s after launch. | MainWindow.swift:1297, 1178-1196 | Le badge du Plus, de la ligne « Alertes Qualitay » et de la barre latérale iPad compte les AQ plus récentes que la dernière visite de la liste (catégorie 25 retirée avant de compter, comme pour le forum), relu 3 s après l'ouverture même déconnecté et à chaque nouvelle session; la liste ouvre le message à sa page et à son ancre. | LOT-133 | ported with changes | port: ezzz Swift layer | a |
 | GAP-006 | Plus menu | Seven rows: Réglages, Rechercher, Bookmarks, Alertes Qualitay, Crédits, Charte, Supprimer mon compte. | PlusTab.swift:16-64 | Same seven rows in the same order, filled by their lots. | LOT-170 | same | port: ezzz Swift layer | a |
 | GAP-007 | Tab reselect refreshes | Reselecting a root tab reloads its list with a haptic. | MainWindow.swift:1399-1416 | Not specified by LOT-082 or LOT-170. | — | not planned | — | — |
 | GAP-008 | Tab bar in the reader | The reader hides the tab bar in three paths: the favourites post-filter reader, `openInternalTopic` and `handleSearchResult`. | Favorites.swift:807; MessagesView.swift:3256, 3909 | Hidden while a topic is open, only in compact width (the split collapsed) and while the reader's tab is selected (a reader left open in another tab never hides the bar, #559); list and reader side by side keep it, and so do the full-screen Plus search and offline readers in regular width (Pro Max landscape), where legacy hides it (UXD-02, #424, decided 2026-11-02). **Kept despite the HIG** (Tab bars: "Make sure the tab bar is visible…"), by the operator's decision of 2026-11-07. | LOT-083, LOT-170 | UX change | new UX: spec | b |
@@ -47,7 +47,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-021 | Category icons | 28 pt template image per forum from the legacy asset names, shield for an unknown category (`Forum.m` `getImageFromID:` @ 87fe0d1c). | MainWindow.swift:983-1011 @ 87fe0d1c | Same images (copied from legacy), `.primary` tint, `folder.fill` if an asset is missing (#427). | #427 | ported with changes | #427 | a |
 | GAP-022 | Sub-forum choice | Menu picker at the top of the topic list. | MainWindow.swift:596-611 | « Sous-forum » menu at the top of a category's topic list, « Tous les sous-forums » first (#427). | LOT-082, #427 | ported with changes | #427 | a |
 | GAP-023 | Topic filter Tous / Favoris / Suivis / Lus | Segmented control on forum lists, persisted. | MainWindow.swift:613-640 | Segmented Tous / Favoris / Suivis / Lus on a category's list and on a sub-forum's, persisted under the legacy key; a sub-forum is filtered with the `subcat` its own page names in the new-topic link, so its filter starts after its first page and is not offered when the page names none; logged out, only Favoris, Suivis and Lus are disabled (Tous stays, and a tap on a disabled one never overwrites the stored choice); a Favoris section title opens its category on Favoris (#427, #593, #875). | LOT-082, LOT-170, #427 | ported with changes | #427, #875 | a |
-| GAP-024 | Forum list paging | Pager first / previous / "N / last" / next / last plus a page sheet. | MainWindow.swift:926-1000 | "Page N" without a fake total; last page only when the count is exact. The pager shows only when the list is scrolled to its end (or is shorter than the screen), with a short animation (#898). | LOT-082, LOT-167, FEAT-003 | UX change | new UX: Bybifok (FEAT-003) | b·needed |
+| GAP-024 | Forum list paging | Pager first / previous / "N / last" / next / last plus a page sheet. | MainWindow.swift:926-1000 | « page x / y » pill with its menu (first, previous, next, last, typed page) and ‹ › pills, as the MP list (#968); « y+ » and no « last » while the count is only a lower bound (HFR's pager is a window). The pager shows only when the list is scrolled to its end (or is shorter than the screen), with a short animation (#898); hidden on a one-page category (#980). | LOT-082, LOT-167, FEAT-003, #980 | UX change | new UX: Bybifok (FEAT-003) | b·needed |
 | GAP-025 | Refresh | Pull and toolbar refresh reload the list. | MainWindow.swift:712-723 | Reloads the page on screen, rows kept, retry banner on failure. | LOT-082 | ported with changes | new UX: spec | a |
 | GAP-026 | Topic row layout | Title 14.3 pt, unread capsule, footer "⚑ cur / max" and "author - date". | MainWindow.swift:455-504; Common.swift:3608-3650; ObjCTopicListParser.m:420-454 @ 87fe0d1c | Default row as legacy: pin and lock before the title, unread-pages pill, « ⚑ lue / total » or « N pages » left, « dernier posteur - date » right (« il y a 13 min » under 24 h, « HH:mm » for a date ahead of the clock, then « 06/11/26 »); no dot, star, reply count or starter. The dense row (dot and flag icon before the title, one line « ⚑ lue / total · dernier posteur · 14 minutes », no reply count, no « il y a ») is behind Réglages › Expérimental › « Lignes denses » (#905, #973). | LOT-082, LOT-169, #584, #817, #857 | ported with changes | port: ezzz Swift layer | a |
 | GAP-027 | Flag row tint | Row tinted by flag colour (yellow, blue, red). | MainWindow.swift:408-424; Common.swift:702-722 | Row highlighted by the flag colour as a rounded pill (corner 12, inset 4 pt from the block edge) at 0.6 of `RowTint`'s strength (super favourite: orange at full strength; legacy used bare 0.12 / 0.18 alphas), drawn over the list's card colour, also in the iPad Catégories column (#647); none on the selected row (#584, #803). In Favoris and Drapeaux only the super favourite is a pill, as legacy (`Favorites.swift:1134` @ 87fe0d1c). | #584, #803 | ported with changes | port: ezzz Swift layer | a |
@@ -102,6 +102,8 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-595 | Default avatar in the reader | `avatar_male_gray_*.png` via CSS `--imagefile-avatar`, class `noavatar` (`MessagesView.swift:2411`, `LinkItem.m:65-69`) | MessagesView.swift:2411; HTML/style-liste-light.css:203-205 | Grey silhouette drawn in CSS when a member has no avatar (legacy `avatar_male_gray_*`); the picture covers it when there is one (#819). | #595 | ported with changes | port: ezzz Swift layer | a |
 | GAP-750 | Topic load timeout | 10 s from the page request to its answer, then "Le chargement du topic a expiré. Réessaie." | `MessagesView.swift:3668-3704` @ `87fe0d1c`; `Common.swift:1906-1907` | 30 s (the reader's own wait limit, independent of the 10 s request idle limit since #683) from the first "Chargement des messages" to the page shown, fetch and web view together, then the timeout error with Réessayer; a page that still arrives is shown. | #750 | ported with changes | new UX: operator (#750) | b·operator |
 | GAP-1035 | Rehosted thumbnails and mediums | Every rendition is shown inline as posted. Save runs the link through `normalizedViewerURL`, which gives the full size for `.th.`, `reho.st` `/thumb/` and `diberie` `/t/`, but saves a `.md.` as posted. | MessagesView.swift:2646; Common.swift:2259-2272 @ 87fe0d1c | An `img3.super-h.fr` `.th.`/`.md.` image is fetched at full size inline, on long-press save and copy, and in the viewer, falling back to the posted address when the full-size fetch fails; more data per page, and a rendition narrower than the column shows at the full file's width. The `reho.st` and `rehost.diberie.com` thumbnail forms get the full size on save, copy and in the viewer; inline, a host that needs a `Referer` (`reho.st`) keeps the posted address. | #1035 | UX change | new UX: operator (2026-11-17) | b·operator |
+| GAP-807 | New-message line | Line between read and new messages: 2px solid (modern) or 1px dashed (classic), in the pseudo grey at 50 %, no label. | `style-liste-light.css:134-136`, `style-liste.css:124-126`, `ObjCTopicHTMLRenderer.m:60, 93` @ `87fe0d1c` | Same line per style, `--secondary` at 50 % (dimmer than legacy in dark), with a « Nouveau » chip centred on it (CSS only). | LOT-034, #807 | UX change | operator device test 2026-11-11 (#807) | b·operator |
+| GAP-1037 | Plain YouTube link in a message | A plain YouTube link stayed a text link (a LOT-035 candidate got the player placeholder only); a tap went to the in-app browser. No thumbnail. | ParseMessagesOperation.m:238-300, LinkItem.m:149-158 @ 2440d79 | A plain YouTube video link (`youtu.be`, `youtube.com/watch`, `m.`, `shorts`; text is the address; not in a quote, spoiler or code; not turned into a player by LOT-035) shows a thumbnail card under the text (`i.ytimg.com/vi/<id>/hqdefault.jpg`, policy C, cookie-less), or the pill « Vidéo YouTube · toucher pour lire » when it is refused or fails. A tap on the card, the pill or the link opens the YouTube app (universal link only), else Safari; never the in-app browser nor the player sheet. | #1037 | UX change | new UX: operator (2026-11-17) | b·operator |
 
 ## Composer
 
@@ -278,14 +280,14 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 35 |
-| ported with changes | 63 |
+| same | 34 |
+| ported with changes | 64 |
 | ported with changes (engine only) | 1 |
-| UX change | 50 |
+| UX change | 52 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **184** |
+| **Total** | **186** |
 
 ## Convergence notes
 
@@ -315,14 +317,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (142)
+### GAP rows of type `ported with changes`, `UX change` or `new` (145)
 
 | H.1 | Rows | Count |
 |---|---|---|
-| a | 004, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 040, 050, 053, 054, 055, 064, 067, 068, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595 | 51 |
+| a | 004, 005, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 040, 050, 053, 054, 055, 064, 067, 068, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595 | 52 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 217, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
-| b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 903, 978, 1035, 1058 | 33 |
+| b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058 | 35 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 1073, 1074, 1107 | 40 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
