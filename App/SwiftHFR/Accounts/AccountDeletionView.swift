@@ -13,45 +13,53 @@ struct AccountDeletionView: View {
     var body: some View {
         Form {
             Section {
-                Text("Votre compte appartient au forum Hardware.fr, pas à cette app : l’app ne peut pas le supprimer à votre place.")
-                Text(
-                    "Hardware.fr explique sur sa page « Données personnelles » comment exercer vos droits, dont la suppression "
-                        + "de vos données."
-                )
-                if let url = AccountDeletionModel.procedureURL {
-                    Link(destination: url) {
-                        Label("Ouvrir la page Données personnelles", systemImage: "safari")
+                Group {
+                    Text(
+                        "Votre compte appartient au forum Hardware.fr, pas à cette app : l’app ne peut pas le supprimer à votre place."
+                    )
+                    Text(
+                        "Hardware.fr explique sur sa page « Données personnelles » comment exercer vos droits, dont la suppression "
+                            + "de vos données."
+                    )
+                    if let url = AccountDeletionModel.procedureURL {
+                        Link(destination: url) {
+                            Label("Ouvrir la page Données personnelles", systemImage: "safari")
+                        }
                     }
-                }
+                }.themedListRow()
             } header: {
-                Text("Votre compte HFR")
+                Text("Votre compte HFR").themedSectionHeader()
             }
             Section {
-                if accounts.rows.isEmpty {
-                    Text("Aucun compte n’est enregistré sur cet appareil.")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(accounts.rows) { row in
-                    Button("Effacer les données de \(row.displayName)", systemImage: "trash", role: .destructive) {
-                        pendingErase = row
+                Group {
+                    if accounts.rows.isEmpty {
+                        Text("Aucun compte n’est enregistré sur cet appareil.")
+                            .foregroundStyle(.secondary)
                     }
-                    .disabled(deletion.isErasing)
-                }
-                // Data of accounts no longer in the app ("Retirer", a wipe that failed in part).
-                ForEach(deletion.leftovers, id: \.self) { key in
-                    Button("Effacer les données restantes de \(key)", systemImage: "trash", role: .destructive) {
-                        pendingLeftover = key
+                    ForEach(accounts.rows) { row in
+                        Button("Effacer les données de \(row.displayName)", systemImage: "trash", role: .destructive) {
+                            pendingErase = row
+                        }
+                        .disabled(deletion.isErasing)
                     }
-                    .disabled(deletion.isErasing)
-                }
-                result
+                    // Data of accounts no longer in the app ("Retirer", a wipe that failed in part).
+                    ForEach(deletion.leftovers, id: \.self) { key in
+                        Button("Effacer les données restantes de \(key)", systemImage: "trash", role: .destructive) {
+                            pendingLeftover = key
+                        }
+                        .disabled(deletion.isErasing)
+                    }
+                    result
+                }.themedListRow()
             } header: {
-                Text("Cet appareil")
+                Text("Cet appareil").themedSectionHeader()
             } footer: {
-                Text(
-                    "La liste blanche, les sujets hors ligne, l’historique des images envoyées, les caches et les réglages sont "
-                        + "communs à tous les comptes : ils restent sur l’appareil."
-                )
+                Group {
+                    Text(
+                        "La liste blanche, les sujets hors ligne, l’historique des images envoyées, les caches et les réglages sont "
+                            + "communs à tous les comptes : ils restent sur l’appareil."
+                    )
+                }.themedSectionHeader()
             }
         }
         .navigationTitle("Supprimer mon compte")

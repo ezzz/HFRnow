@@ -50,45 +50,47 @@ struct ForumSearchView: View {
 
     private var formSection: some View {
         Section {
-            TextField("Rechercher", text: $model.text)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .focused($fieldFocused)
-                .onSubmit(submit)
-            if let word = model.bannedWord {
-                StatusLabel(
-                    text: "Le mot « \(word) » ne peut pas être recherché.", symbol: "exclamationmark.triangle.fill", tint: .orange
-                )
-                    .font(.footnote)
-            }
-            if model.hasShortWord {
-                Text("Les mots de moins de 4 lettres peuvent être ignorés par la recherche du forum.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            if !model.categories.isEmpty {
-                Picker("Catégorie", selection: $model.category) {
-                    ForEach(model.categories) { Text($0.title).tag($0.id) }
+            Group {
+                TextField("Rechercher", text: $model.text)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                    .focused($fieldFocused)
+                    .onSubmit(submit)
+                if let word = model.bannedWord {
+                    StatusLabel(
+                        text: "Le mot « \(word) » ne peut pas être recherché.", symbol: "exclamationmark.triangle.fill", tint: .orange
+                    )
+                        .font(.footnote)
                 }
-            }
-            Picker("Mots", selection: $model.matchMode) {
-                Text("Tous").tag(GlobalSearchQuery.MatchMode.allWords)
-                Text("Au moins un").tag(GlobalSearchQuery.MatchMode.anyWord)
-                Text("Avancé").tag(GlobalSearchQuery.MatchMode.advanced)
-            }
-            .pickerStyle(.segmented)
-            Picker("Dans", selection: $model.scope) {
-                Text("Titre et contenu").tag(GlobalSearchQuery.Scope.titleAndContent)
-                Text("Titre").tag(GlobalSearchQuery.Scope.title)
-                Text("Contenu").tag(GlobalSearchQuery.Scope.content)
-            }
-            Picker("Période", selection: $model.period) {
-                ForEach(SearchPeriod.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            Button(action: submit) { Label("Rechercher", systemImage: "magnifyingglass") }
-                .disabled(!model.canSubmit)
+                if model.hasShortWord {
+                    Text("Les mots de moins de 4 lettres peuvent être ignorés par la recherche du forum.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                if !model.categories.isEmpty {
+                    Picker("Catégorie", selection: $model.category) {
+                        ForEach(model.categories) { Text($0.title).tag($0.id) }
+                    }
+                }
+                Picker("Mots", selection: $model.matchMode) {
+                    Text("Tous").tag(GlobalSearchQuery.MatchMode.allWords)
+                    Text("Au moins un").tag(GlobalSearchQuery.MatchMode.anyWord)
+                    Text("Avancé").tag(GlobalSearchQuery.MatchMode.advanced)
+                }
+                .pickerStyle(.segmented)
+                Picker("Dans", selection: $model.scope) {
+                    Text("Titre et contenu").tag(GlobalSearchQuery.Scope.titleAndContent)
+                    Text("Titre").tag(GlobalSearchQuery.Scope.title)
+                    Text("Contenu").tag(GlobalSearchQuery.Scope.content)
+                }
+                Picker("Période", selection: $model.period) {
+                    ForEach(SearchPeriod.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Button(action: submit) { Label("Rechercher", systemImage: "magnifyingglass") }
+                    .disabled(!model.canSubmit)
+            }.themedListRow()
         }
     }
 
@@ -96,7 +98,7 @@ struct ForumSearchView: View {
     private var resultsSection: some View {
         let loader = model.loader
         if let content = loader.value {
-            Section(summary(content)) {
+            ThemedSection(verbatim: summary(content)) {
                 if content.topics.isEmpty {
                     Text(content.notice ?? "Aucun résultat").foregroundStyle(.secondary)
                 }
@@ -107,15 +109,19 @@ struct ForumSearchView: View {
         }
         if loader.isLoading {
             Section {
-                HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
-                    .accessibilityElement(children: .combine)
-                Button("Annuler") { cancelledLoad = true; model.cancel() }
+                Group {
+                    HStack { ProgressView(); Text("Recherche en cours").foregroundStyle(.secondary) }
+                        .accessibilityElement(children: .combine)
+                    Button("Annuler") { cancelledLoad = true; model.cancel() }
+                }.themedListRow()
             }
         } else if let error = loader.error {
             Section {
-                Label(error.title, systemImage: error.symbol)
-                Text(error.detail).font(.footnote).foregroundStyle(.secondary)
-                Button("Réessayer") { Task { await model.retry() } }
+                Group {
+                    Label(error.title, systemImage: error.symbol)
+                    Text(error.detail).font(.footnote).foregroundStyle(.secondary)
+                    Button("Réessayer") { Task { await model.retry() } }
+                }.themedListRow()
             }
         }
     }

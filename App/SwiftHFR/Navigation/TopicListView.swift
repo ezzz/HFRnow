@@ -50,7 +50,7 @@ struct TopicListView: View {
                         Section {
                             if !group.isCollapsed { rows(group.topics) }
                         } header: {
-                            header(group, title: title)
+                            header(group, title: title).themedSectionHeader()
                         }
                     } else {
                         rows(group.topics)
@@ -186,6 +186,7 @@ struct TopicListView: View {
                     }
                 }
                 .contextMenu { menu(topic, isSuper: isSuper) }
+                .themedListRow(isSelected: selection == topic)
         }
     }
 

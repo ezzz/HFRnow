@@ -20,7 +20,7 @@ struct AccountsView: View {
                     storeProblemSection(problem)
                 }
                 if !accounts.rows.isEmpty {
-                    Section("Comptes") {
+                    ThemedSection("Comptes") {
                         ForEach(accounts.rows) { row in
                             AccountRowView(row: row, onSelect: { select(row) }, onRelogin: { relogin(row) })
                                 .swipeActions {
@@ -35,9 +35,9 @@ struct AccountsView: View {
                 }
                 if accounts.storeProblem == nil {
                     Section {
-                        Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }
+                        Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }.themedListRow()
                     } footer: {
-                        Text(Self.footer)
+                        Text(Self.footer).themedSectionHeader()
                     }
                 }
             }
@@ -71,16 +71,18 @@ struct AccountsView: View {
     @ViewBuilder
     private func storeProblemSection(_ problem: StoreProblem) -> some View {
         Section {
-            StatusLabel(text: AccountMessages.message(for: problem), symbol: "exclamationmark.triangle.fill", tint: .red)
-            switch problem {
-            case .corrupted:
-                Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
-            case .unavailable:
-                Button("Réessayer") { Task { await accounts.retryRestore() } }
-                    .disabled(accounts.isRestoring)
-            case .newerVersion:
-                EmptyView()
-            }
+            Group {
+                StatusLabel(text: AccountMessages.message(for: problem), symbol: "exclamationmark.triangle.fill", tint: .red)
+                switch problem {
+                case .corrupted:
+                    Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
+                case .unavailable:
+                    Button("Réessayer") { Task { await accounts.retryRestore() } }
+                        .disabled(accounts.isRestoring)
+                case .newerVersion:
+                    EmptyView()
+                }
+            }.themedListRow()
         }
     }
 

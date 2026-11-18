@@ -52,6 +52,8 @@ Theme files are strict: an unknown key, variant or token name is an error. `Them
 - **Unread capsule** (#646): `BadgeCapsule` fills with `unread` and writes with `onUnread`; its outlined state stays on `AccessibleColors`, since it sits on the row's system card.
 
 ### What a theme does not change (this lot)
+*Since #842 (2026-11-18) native lists follow the theme: rows, separators, selection, section headers, the large title and row text; THEMES.md §3 says which token draws what. The paragraph below is this lot's scope.*
+
 **Narrower than the issue's « those definitions read tokens » bullet: operator decision of 2026-11-12: (a); native rows, separators, selection and text are #842 (Fable round 1, finding 3; #729).** Native list rows and cards keep the system raised colour of the appearance in force, and native text keeps the system label colours: #572's one row, separator and state-tint definition, and #651's read and unread title tones, read the system colours, unchanged by a theme; what a theme decides for them is the appearance (its own for a single variant), and its tint is checked on the system card. Recolouring rows, separators, selection and native text means touching every list (`listRowBackground` is per row), which this lot leaves to #842 (once the shared list component of #836 lands). `title`, `sectionHeader`, `textPrimary`, `textSecondary`, `separator`, `selection`, `surfaceRaised` reach native screens through `ThemeAppearance.themeColor(_:)` for the views that adopt them; a theme lot that needs rows or text recoloured natively (LOT-192's Rétro 5250, LOT-193's table look) waits for #842, which makes that change against this model, not a second one.
 
 ### Gallery

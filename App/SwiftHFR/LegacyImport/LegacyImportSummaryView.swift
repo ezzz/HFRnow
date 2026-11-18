@@ -20,26 +20,30 @@ struct LegacyImportSummaryView: View {
         NavigationStack {
             List {
                 Section {
-                    Text(Self.intro).foregroundStyle(.secondary)
+                    Text(Self.intro).foregroundStyle(.secondary).themedListRow()
                 }
                 Section {
-                    ForEach(summary.rows) { row in
-                        LabeledContent {
-                            Text(row.detail)
-                                .foregroundStyle(row.isFailure ? Color.orange : Color.secondary)
-                                .multilineTextAlignment(.trailing)
-                        } label: {
-                            Text(row.title)
+                    Group {
+                        ForEach(summary.rows) { row in
+                            LabeledContent {
+                                Text(row.detail)
+                                    .foregroundStyle(row.isFailure ? Color.orange : Color.secondary)
+                                    .multilineTextAlignment(.trailing)
+                            } label: {
+                                Text(row.title)
+                            }
                         }
-                    }
-                    if let rejected = summary.rejectedLine {
-                        Text(rejected).foregroundStyle(.secondary)
-                    }
+                        if let rejected = summary.rejectedLine {
+                            Text(rejected).foregroundStyle(.secondary)
+                        }
+                    }.themedListRow()
                 }
                 if summary.canRetry {
                     Section {
-                        Button("Réessayer", action: retry)
-                            .disabled(model.isRunning)
+                        Group {
+                            Button("Réessayer", action: retry)
+                                .disabled(model.isRunning)
+                        }.themedListRow()
                     }
                 }
             }

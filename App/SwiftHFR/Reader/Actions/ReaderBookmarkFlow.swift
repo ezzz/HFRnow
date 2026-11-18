@@ -44,15 +44,19 @@ private struct BookmarkTitleSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
-                    TextField("Ajoutez un titre", text: $title)
-                        .textInputAutocapitalization(.sentences)
-                        .focused($focused)
-                        .submitLabel(.done)
-                        .onSubmit(submit)
+                    Group {
+                        Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
+                        TextField("Ajoutez un titre", text: $title)
+                            .textInputAutocapitalization(.sentences)
+                            .focused($focused)
+                            .submitLabel(.done)
+                            .onSubmit(submit)
+                    }.themedListRow()
                 } footer: {
-                    // Said before « Créer », so the title is never lost to a refused write (LOT-062).
-                    if let problem, !problem.isEmpty { Text(problem) }
+                    Group {
+                        // Said before « Créer », so the title is never lost to a refused write (LOT-062).
+                        if let problem, !problem.isEmpty { Text(problem) }
+                    }.themedSectionHeader()
                 }
             }
             .navigationTitle("Bookmark")

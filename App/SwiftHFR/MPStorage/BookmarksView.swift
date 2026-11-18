@@ -22,13 +22,14 @@ struct BookmarksView: View {
         List {
             switch model.state {
             case .signedOut:
-                Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary)
+                Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary).themedListRow()
             case .notSyncing:
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
                     Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
                         .scaledFont(.footnote).foregroundStyle(.secondary)
                 }
+                .themedListRow()
             case .syncing:
                 listContent
             }
@@ -60,14 +61,15 @@ struct BookmarksView: View {
     private var listContent: some View {
         if let error = model.errorMessage {
             StatusLabel(text: "Erreur : \(error)", symbol: "exclamationmark.triangle.fill", tint: AccessibleColors.errorText)
+                .themedListRow()
         }
         let bookmarks = model.bookmarks
         if bookmarks.isEmpty {
-            Text("Aucun bookmark").foregroundStyle(.secondary)
+            Text("Aucun bookmark").foregroundStyle(.secondary).themedListRow()
         } else {
             ForEach(bookmarks) { bookmark in
                 Button { open(bookmark) } label: { BookmarkRow(bookmark: bookmark) }
-                    .listRowBackground(isSelected(bookmark) ? Color.accentColor.opacity(0.15) : nil)
+                    .themedListRow(isSelected: isSelected(bookmark), legacySelection: Color.accentColor.opacity(0.15))
                     .accessibilityAddTraits(isSelected(bookmark) ? .isSelected : [])
             }
             .onDelete { offsets in

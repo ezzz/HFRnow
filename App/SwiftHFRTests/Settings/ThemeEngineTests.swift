@@ -112,8 +112,9 @@ struct ThemeEngineTests {
 
     // MARK: Shared definitions under a theme (#651: system tones, unchanged by a theme)
 
-    /// #651: the read and unread MP title tones hold on the rows of every bundled theme. A theme does not recolour native rows
-    /// or text (LOT-188 spec, "What a theme does not change"): what a theme decides is the appearance its rows show in (its own
+    /// #651: the read and unread MP title tones hold on the rows of every bundled theme. The system tones are Legacy's; a gallery
+    /// theme's rows draw `textPrimary` and `textSecondary` on `surface` since #842 (its contrast test). Before #842 a theme did
+    /// not recolour native rows or text (LOT-188 spec): what it decided was the appearance its rows show in (its own
     /// for a single variant), so the tones are checked on the system card of each appearance a theme shows in, and the theme's
     /// own pairs by its contrast test (`accentText` on that card included).
     @Test func theMPTitleTonesHoldInEveryBundledTheme() throws {

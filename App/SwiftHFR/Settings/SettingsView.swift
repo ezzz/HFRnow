@@ -75,7 +75,7 @@ struct SettingsView: View {
         @Bindable var general = general
         Form {
             ScreenLargeTitle(title: "Réglages", visibility: titleVisibility)
-            Section("Général") {
+            ThemedSection("Général") {
                 Picker("Écran de démarrage", selection: $general.startupScreen) {
                     ForEach(StartupScreen.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
@@ -109,31 +109,31 @@ struct SettingsView: View {
                     Text(SettingsDestination.icon.title)
                 }
             }
-            Section("Filtrer les posts") {
+            ThemedSection("Filtrer les posts") {
                 FilterMinimumQuotesRow(general: general)
                 Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
             }
-            Section("Messages") {
+            ThemedSection("Messages") {
                 Picker("Affichage des MP", selection: $general.mpListDisplay) {
                     ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
             }
             MPNotificationSettingsSection(model: notifications)
             MPStorageSettingsSection(model: mpStorage)
-            Section("Thème") {
+            ThemedSection("Thème") {
                 NavigationLink { SettingsDestinationView(destination: .theme) } label: {
                     Text(SettingsDestination.theme.title)
                 }
             }
             // DISABLED(offline, #822): kept for a later design (#846), not reachable
             if let reader, let offline = Self.offlineEntry(in: reader) {
-                Section("Hors ligne") {
+                ThemedSection("Hors ligne") {
                     NavigationLink { OfflineTopicsView(offline: offline, services: reader) } label: {
                         Label("Sujets enregistrés", systemImage: "arrow.down.circle")
                     }
                 }
             }
-            Section("Sujets") {
+            ThemedSection("Sujets") {
                 Picker("Style des messages", selection: $topics.messageStyle) {
                     ForEach(ThemeStyle.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
@@ -153,7 +153,7 @@ struct SettingsView: View {
             }
             SecuritySettingsSections()
             MaintenanceSection(model: maintenance)
-            Section("À propos") {
+            ThemedSection("À propos") {
                 VersionRow()
             }
             if let experimental { ExperimentalSettingsSection(settings: experimental) }

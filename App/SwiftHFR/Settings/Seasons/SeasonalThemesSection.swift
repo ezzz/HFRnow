@@ -10,22 +10,26 @@ struct SeasonalThemesSection: View {
 
     var body: some View {
         Section {
-            Picker("Thème de saison", selection: Binding(get: { model.activeTheme }, set: { model.select($0) })) {
-                Text("Thème habituel").tag(SeasonalTheme?.none)
-                ForEach(SeasonalTheme.allCases) { Text($0.title).tag(SeasonalTheme?.some($0)) }
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
-            Toggle("Thèmes de saison automatiques", isOn: $model.isAutomatic)
-            Toggle("Animations de saison", isOn: $model.animationsEnabled)
+            Group {
+                Picker("Thème de saison", selection: Binding(get: { model.activeTheme }, set: { model.select($0) })) {
+                    Text("Thème habituel").tag(SeasonalTheme?.none)
+                    ForEach(SeasonalTheme.allCases) { Text($0.title).tag(SeasonalTheme?.some($0)) }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                Toggle("Thèmes de saison automatiques", isOn: $model.isAutomatic)
+                Toggle("Animations de saison", isOn: $model.animationsEnabled)
+            }.themedListRow()
         } header: {
-            Text("Thèmes de saison")
+            Text("Thèmes de saison").themedSectionHeader()
         } footer: {
-            Text(
-                "Noël soft : neige légère et accent rouge sur le thème Legacy (un thème de la galerie garde son accent). "
-                    + "Noël abusé : vert sapin, guirlande, sapin et cadeaux, identique en clair et en sombre. "
-                    + "Jusqu’au 26 décembre ; votre thème revient ensuite. Sans animations, la neige ne tombe plus."
-            )
+            Group {
+                Text(
+                    "Noël soft : neige légère et accent rouge sur le thème Legacy (un thème de la galerie garde son accent). "
+                        + "Noël abusé : vert sapin, guirlande, sapin et cadeaux, identique en clair et en sombre. "
+                        + "Jusqu’au 26 décembre ; votre thème revient ensuite. Sans animations, la neige ne tombe plus."
+                )
+            }.themedSectionHeader()
         }
     }
 }

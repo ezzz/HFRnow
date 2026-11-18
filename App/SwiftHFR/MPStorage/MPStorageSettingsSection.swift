@@ -10,13 +10,15 @@ struct MPStorageSettingsSection: View {
 
     var body: some View {
         Section {
-            if let model {
-                MPStorageSettingsRows(model: model)
-            } else {
-                Text("Connectez-vous pour utiliser le stockage MP.").foregroundStyle(.secondary)
-            }
+            Group {
+                if let model {
+                    MPStorageSettingsRows(model: model)
+                } else {
+                    Text("Connectez-vous pour utiliser le stockage MP.").foregroundStyle(.secondary)
+                }
+            }.themedListRow()
         } header: {
-            Text("Stockage MP")
+            Text("Stockage MP").themedSectionHeader()
         }
     }
 }

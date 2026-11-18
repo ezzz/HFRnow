@@ -37,28 +37,32 @@ struct ArchivedDraftsView: View {
         List {
             if model.canArchiveCurrent {
                 Section {
-                    Button { Task { await model.archiveAndClear(); onDone() } } label: {
-                        Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
-                    }
-                    .densityRowMargin()
+                    Group {
+                        Button { Task { await model.archiveAndClear(); onDone() } } label: {
+                            Label("Mettre de côté et vider", systemImage: "tray.and.arrow.down")
+                        }
+                        .densityRowMargin()
+                    }.themedListRow()
                 }
             }
             Section {
-                if model.archivedDrafts.isEmpty {
-                    Text("Aucun brouillon archivé").foregroundStyle(.secondary).densityRowMargin()
-                } else {
-                    ForEach(model.archivedDrafts) { draft in
-                        Button { Task { await model.use(draft); onDone() } } label: { row(draft) }
-                            .buttonStyle(.plain)
-                            .densityRowMargin()
-                            .disabled(model.isMovingDrafts)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button("Supprimer", systemImage: "trash", role: .destructive) {
-                                    Task { await model.discardArchived(draft) }
+                Group {
+                    if model.archivedDrafts.isEmpty {
+                        Text("Aucun brouillon archivé").foregroundStyle(.secondary).densityRowMargin()
+                    } else {
+                        ForEach(model.archivedDrafts) { draft in
+                            Button { Task { await model.use(draft); onDone() } } label: { row(draft) }
+                                .buttonStyle(.plain)
+                                .densityRowMargin()
+                                .disabled(model.isMovingDrafts)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button("Supprimer", systemImage: "trash", role: .destructive) {
+                                        Task { await model.discardArchived(draft) }
+                                    }
                                 }
-                            }
+                        }
                     }
-                }
+                }.themedListRow()
             }
         }
         .listStyle(.insetGrouped)

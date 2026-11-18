@@ -29,6 +29,7 @@ struct MessageListView: View {
                     // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
                     .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
                     .tag(thread)
+                    .themedListRow(isSelected: model.selected == thread)
                 }
             }
         }

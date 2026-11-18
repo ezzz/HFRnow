@@ -17,29 +17,31 @@ struct MPNotificationSettingsSection: View {
 
     var body: some View {
         Section {
-            Toggle("Notifications", isOn: $model.notificationsEnabled)
-                .onChange(of: model.notificationsEnabled) { _, isOn in
-                    if isOn { Task { await model.notificationsTurnedOn() } }
+            Group {
+                Toggle("Notifications", isOn: $model.notificationsEnabled)
+                    .onChange(of: model.notificationsEnabled) { _, isOn in
+                        if isOn { Task { await model.notificationsTurnedOn() } }
+                    }
+                Toggle("Badge messages non lus", isOn: $model.badgeEnabled)
+                    .onChange(of: model.badgeEnabled) { _, isOn in
+                        if isOn { Task { await model.badgeTurnedOn() } }
+                    }
+                Picker("Vérifier les messages", selection: $model.interval) {
+                    ForEach(MPCheckInterval.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
-            Toggle("Badge messages non lus", isOn: $model.badgeEnabled)
-                .onChange(of: model.badgeEnabled) { _, isOn in
-                    if isOn { Task { await model.badgeTurnedOn() } }
+                if let text = model.lastCheckText() {
+                    Text(text)
+                        .scaledFont(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-            Picker("Vérifier les messages", selection: $model.interval) {
-                ForEach(MPCheckInterval.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            if let text = model.lastCheckText() {
-                Text(text)
-                    .scaledFont(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            Button("Réglages des notifications", systemImage: "bell.badge") {
-                if let url = Self.notificationSettingsURL { openURL(url) }
-            }
+                Button("Réglages des notifications", systemImage: "bell.badge") {
+                    if let url = Self.notificationSettingsURL { openURL(url) }
+                }
+            }.themedListRow()
         } header: {
-            Text("Notifications MP")
+            Text("Notifications MP").themedSectionHeader()
         } footer: {
-            Text(model.interval.footer)
+            Text(model.interval.footer).themedSectionHeader()
         }
         .task(id: accounts.current?.id) { await model.loadLastCheck(account: accounts.current?.id) }
     }

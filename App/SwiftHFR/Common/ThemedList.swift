@@ -41,8 +41,11 @@ extension View {
     /// A native list row (or every row of a `Section` or `ForEach` it wraps) under the theme (#842): background, separators, and
     /// the primary and secondary text styles. `isSelected` paints the theme's `selection` instead of the row colour: a row
     /// background replaces the system's own selection fill. Not for a row that sets its own background (a clear banner, the
-    /// large title): which of two row backgrounds wins is not something to rely on. Legacy: nothing.
-    func themedListRow(isSelected: Bool = false) -> some View { modifier(ThemedListRow(isSelected: isSelected)) }
+    /// large title): which of two row backgrounds wins is not something to rely on. Legacy: nothing, or, with `legacySelection`,
+    /// that colour behind a selected row, as the call site drew it before (Bookmarks).
+    func themedListRow(isSelected: Bool = false, legacySelection: Color? = nil) -> some View {
+        modifier(ThemedListRow(isSelected: isSelected, legacySelection: legacySelection))
+    }
 
     /// A section header or footer under the theme (#842): its text in `sectionHeader`, which holds 4.5:1 on `background`.
     /// Legacy: nothing.
@@ -54,6 +57,7 @@ extension View {
 
 private struct ThemedListRow: ViewModifier {
     let isSelected: Bool
+    let legacySelection: Color?
     @Environment(\.themeAppearance) private var appearance
 
     /// Legacy keeps `content` as is; only a change between Legacy and a theme changes the structure, which the user asked for
@@ -66,6 +70,8 @@ private struct ThemedListRow: ViewModifier {
                 .listRowBackground(Color(uiColor: isSelected ? colors.selectedRow : colors.row))
                 .listRowSeparatorTint(separator)
                 .listSectionSeparatorTint(separator)
+        } else if let legacySelection {
+            content.listRowBackground(isSelected ? legacySelection : nil)
         } else {
             content
         }
@@ -101,7 +107,7 @@ struct ThemedSection<Content: View>: View {
     }
 
     /// A header read verbatim, as `Section(_ title:content:)` with a string value.
-    init(_ title: some StringProtocol, @ViewBuilder content: () -> Content) {
+    init(verbatim title: some StringProtocol, @ViewBuilder content: () -> Content) {
         self.title = Text(title)
         self.content = content()
     }

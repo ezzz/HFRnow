@@ -20,7 +20,7 @@ struct OfflineTopicsView: View {
     var body: some View {
         List {
             if let message = model.errorMessage {
-                Section { Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
+                Section { Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.red).themedListRow() }
             }
             if model.topics.isEmpty, model.hasLoaded {
                 ContentUnavailableView(
@@ -38,10 +38,11 @@ struct OfflineTopicsView: View {
                     .swipeActions {
                         Button("Supprimer", role: .destructive) { Task { await model.remove(topic) } }
                     }
+                    .themedListRow()
             }
             if !model.topics.isEmpty {
                 Section {
-                    LabeledContent("Espace utilisé", value: OfflineSize.text(model.sizeOnDisk))
+                    LabeledContent("Espace utilisé", value: OfflineSize.text(model.sizeOnDisk)).themedListRow()
                 }
             }
         }
