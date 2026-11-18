@@ -106,6 +106,10 @@ CASES = (
     ("posts_by_pseudo_path", "posts by pseudo path",
      '<a href="/hfr/recherche/pseudo-Wxyz%20Qrst.htm" class="cLink">x</a>', ["Wxyz", "Qrst"],
      ['href="/hfr/recherche/pseudo-user1.htm"']),
+    # HFR prints the pseudo with raw spaces in this path too (live, a member profile of #124, 2026-11-18).
+    ("posts_by_pseudo_path_raw_space", "posts by pseudo path",
+     '<a href="/hfr/recherche/pseudo-%s.htm" class="cLink">x</a>' % N, [N, "Qrst"],
+     ['href="/hfr/recherche/pseudo-user1.htm"']),
     # Two letters: never replaced in free text, so only these text positions can alias them (R56 a.cLink).
     ("mp_to_text", "MP to text",
      '<a rel="nofollow" href="/message.php?config=hfr.inc&amp;cat=prive" class="cLink">Envoyer un message privé à Mo</a>',
