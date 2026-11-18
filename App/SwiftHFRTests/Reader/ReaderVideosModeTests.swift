@@ -8,10 +8,11 @@ import Testing
 @MainActor
 struct ReaderVideosModeTests {
     private let link = "https://www.youtube.com/watch?v=abc"
+    private let player = "https://www.youtube.com/embed/abc"
 
     private func document(embedding: Bool) -> String {
         let embed = MessageEmbed(
-            provider: .youtube, sourceURL: URL(string: link)!, embedURL: URL(string: "https://www.youtube.com/embed/abc")!
+            provider: .youtube, sourceURL: url(link), embedURL: url(player)
         )
         let content = MessageContent(html: "<p><a class=\"cLink\" href=\"\(link)\">\(link)</a></p>", embeds: [embed])
         var page = readerPage(page: 1)
