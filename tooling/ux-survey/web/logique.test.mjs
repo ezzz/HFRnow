@@ -56,10 +56,10 @@ test('envoi vide : l\'ordre des cartes seul n\'est pas une réponse', () => {
 });
 
 // Test 5 : mélange et D1.
-test('ordre des cartes : permutation des neuf cartes, stable au rechargement du brouillon', () => {
+test('ordre des cartes : permutation des dix cartes, stable au rechargement du brouillon', () => {
   const b = L.brouillonVide(contenu, 0);
   assert.deepEqual([...b.ordreCartes].sort(), [...contenu.cartes].sort());
-  assert.equal(b.ordreCartes.length, 9);
+  assert.equal(b.ordreCartes.length, 10);
   assert.ok(!b.ordreCartes.includes('C08'));
   const relu = L.lireBrouillon(JSON.stringify(b), contenu);
   assert.deepEqual(relu.ordreCartes, b.ordreCartes);
@@ -115,7 +115,7 @@ test('envoi : réponses vides absentes, ordre des cartes, durée bornée', () =>
   assert.equal(e.version, contenu.version);
   assert.equal(e.reponses.G1, undefined);
   assert.equal(e.reponses.P2, 'lit_surtout');
-  assert.equal(e.reponses.ordre_cartes.length, 9);
+  assert.equal(e.reponses.ordre_cartes.length, 10);
   assert.equal(L.construireEnvoi(contenu, b, 'b'.repeat(32), 1_000_000 + 99_999_000).duree_s, 7200);
 });
 
