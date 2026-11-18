@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import HFRClient
 import HFRModels
 import HFRNetwork
@@ -39,6 +40,9 @@ enum TopicFlagOutcome: Equatable, Sendable {
     case done(String)
     /// The write was not done, or may have been: the row stays as it was and `reason` says why, in French.
     case failed(String)
+    /// Nothing was sent and sending again may work (the session check proved nothing, the network failed before the
+    /// write): `reason` says why, and the list offers « Réessayer » (#1056).
+    case retryable(String)
 }
 
 // Port of HFRswift/Swift/Favorites.swift (ForumFavoritesTopicActionService.removeFavoriteFlag, FavoritesTopicActionError) and
@@ -55,7 +59,7 @@ struct TopicFlagActions: Sendable {
         do throws(TopicFlagError) {
             return .done(try await writer.removeFavorite(topic).message)
         } catch {
-            return .failed(Self.reason(for: error))
+            return Self.outcome(for: error)
         }
     }
 
@@ -64,7 +68,7 @@ struct TopicFlagActions: Sendable {
         do throws(TopicFlagError) {
             return .done(try await writer.addFavorite(link: link).message)
         } catch {
-            return .failed(Self.reason(for: error))
+            return Self.outcome(for: error)
         }
     }
 
@@ -73,7 +77,27 @@ struct TopicFlagActions: Sendable {
         do throws(TopicFlagError) {
             return .done(try await writer.markUnread(link: link).message)
         } catch {
-            return .failed(Self.reason(for: error))
+            return Self.outcome(for: error)
+        }
+    }
+
+    private static let log = Logger(subsystem: "SwiftHFR", category: "session")
+
+    /// The outcome of a failed write: retryable only when nothing left and the cause may pass (#1056). A write that may
+    /// have been done (`unconfirmed`) is never offered again.
+    static func outcome(for error: TopicFlagError) -> TopicFlagOutcome {
+        if case .sessionNotConfirmed(let health) = error {
+            // Case and reason only, never a cookie or a token: tells which check failed on a device (#1056).
+            log.notice("flag write refused by the session check: \(String(describing: health), privacy: .public)")
+        }
+        return isRetryable(error) ? .retryable(reason(for: error)) : .failed(reason(for: error))
+    }
+
+    /// Whether sending again may succeed without the user doing anything else first (logging in, refreshing the list).
+    static func isRetryable(_ error: TopicFlagError) -> Bool {
+        switch error {
+        case .sessionNotConfirmed(.unconfirmed), .network: true
+        case .sessionNotConfirmed, .invalidLink, .invalidTopic, .missingToken, .notLoggedIn, .rejected, .unconfirmed: false
         }
     }
 
@@ -82,8 +106,8 @@ struct TopicFlagActions: Sendable {
         switch error {
         case .invalidLink, .invalidTopic:
             "Sujet invalide : rien n'a été envoyé."
-        case .sessionNotConfirmed:
-            "Session non confirmée : rien n'a été envoyé. Reconnectez-vous puis réessayez."
+        case .sessionNotConfirmed(let health):
+            session(health)
         case .missingToken:
             "Session incomplète : rien n'a été envoyé. Actualisez la liste puis réessayez."
         case .notLoggedIn:
@@ -94,6 +118,25 @@ struct TopicFlagActions: Sendable {
             "HFR n'a pas confirmé l'action, qui a pu être faite. Actualisez pour vérifier avant de recommencer."
         case .network:
             "Réseau indisponible : rien n'a été envoyé."
+        }
+    }
+
+    /// The session check said no (LOT-044): « Reconnectez-vous » only when HFR proved the session logged out; otherwise
+    /// it could not tell, and the reason names which check failed, so a report from a device says it (#1056).
+    static func session(_ health: SessionHealth) -> String {
+        switch health {
+        case .expired(.noIdentityCookie):
+            "Session expirée : rien n'a été envoyé. Reconnectez-vous puis réessayez."
+        case .expired(.credentialsRefused):
+            "HFR refuse les identifiants de ce compte : rien n'a été envoyé. Reconnectez-vous puis réessayez."
+        case .unconfirmed(.sessionChanged):
+            "Le compte connecté a changé pendant la vérification : rien n'a été envoyé. Réessayez."
+        case .unconfirmed(.unrecognizedPage):
+            "Session non vérifiée (page de profil inattendue) : rien n'a été envoyé. Réessayez dans quelques instants."
+        case .unconfirmed(.identityNotConfirmed):
+            "Session non vérifiée (identité non confirmée par HFR) : rien n'a été envoyé. Réessayez dans quelques instants."
+        case .valid:
+            "Session non vérifiée : rien n'a été envoyé. Réessayez dans quelques instants."
         }
     }
 }
