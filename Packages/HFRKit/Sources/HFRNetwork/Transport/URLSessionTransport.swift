@@ -111,7 +111,7 @@ public final class URLSessionTransport: HTTPTransport {
         for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession
     ) async throws -> (Data, URLResponse) {
         #if canImport(FoundationNetworking)
-        let delegate = IdleWatchDelegate(follows: follows, owner: session)
+        let delegate = IdleWatchDelegate(follows: follows, idle: idle, owner: session)
         // Same configuration, so the same cookie storage as the account's session.
         let watcher = URLSession(configuration: session.configuration, delegate: delegate, delegateQueue: nil)
         defer { watcher.finishTasksAndInvalidate() }
@@ -181,6 +181,8 @@ public final class URLSessionTransport: HTTPTransport {
 private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let lock = NSLock()
     private let follows: Bool
+    /// The idle limit in seconds: a failure that comes after this much silence is a timeout.
+    private let idle: Double
     /// The session the request was made for: its delegate (an account session's host policy, LESSONS 30) still decides redirects.
     private let owner: URLSession
     private var task: URLSessionDataTask?
@@ -190,8 +192,9 @@ private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchec
     private var continuation: CheckedContinuation<(Data, URLResponse), any Error>?
     private var lastActivity = ContinuousClock.now
 
-    init(follows: Bool, owner: URLSession) {
+    init(follows: Bool, idle: Double, owner: URLSession) {
         self.follows = follows
+        self.idle = idle
         self.owner = owner
     }
 
@@ -262,9 +265,15 @@ private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchec
         lock.lock()
         let continuation = continuation
         self.continuation = nil
+        // The silence is measured here, when the connection ends, not by the watcher: a watcher that cannot run (a starved
+        // executor) must not let a server that dropped the quiet connection after the limit turn a timeout into a transport error
+        // (#1087). A cancellation (the caller's, or the watcher's own) stays a cancellation.
+        let silence = ContinuousClock.now - lastActivity
+        let silentSeconds = Double(silence.components.seconds) + Double(silence.components.attoseconds) / 1e18
         let result: Result<(Data, URLResponse), any Error>
         if let error {
-            result = .failure(error)
+            let cancelled = (error as? URLError)?.code == .cancelled
+            result = .failure(!cancelled && silentSeconds >= idle ? URLError(.timedOut) : error)
         } else if let response {
             result = .success((body, response))
         } else {

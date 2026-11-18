@@ -18,18 +18,21 @@ struct ServerReply: Sendable {
     var status = 200
     var headers: [String: String] = [:]
     var body = Data()
-    /// Never answers, to exercise timeouts and cancellation.
+    /// Never answers, to exercise timeouts and cancellation. The connection stays open until the **client** closes it (a
+    /// silent server that closes first races the client's own timeout whenever the test process is slow, #1087).
     var hangs = false
+    /// Goes silent, then closes the connection itself after this many seconds (after the first piece of a stalled body, if
+    /// there is one): a server that drops a quiet connection.
+    var dropsAfter: Double?
     /// Sends no `Content-Length`: the body ends when the connection closes (a streamed answer of unknown size).
     var omitsContentLength = false
     /// Sends the body in `dripChunks` pieces, `dripInterval` seconds apart: a slow answer that keeps flowing.
     var dripChunks = 1
     /// Seconds between two pieces of a dripped body.
     var dripInterval = 0.0
-    /// With a dripped body: sends the first piece, then goes silent, to exercise an idle limit.
+    /// With a dripped body: sends the first piece, then goes silent until the client closes the connection, to exercise an
+    /// idle limit.
     var stallsAfterFirstChunk = false
-    /// How long a stalled answer stays silent, in seconds.
-    var stallSeconds = 5.0
 }
 
 /// Minimal HTTP/1.1 server on 127.0.0.1 (no external network), because swift-corelibs-foundation
@@ -137,7 +140,11 @@ final class LoopbackServer: @unchecked Sendable {
         lock.unlock()
         let reply = route(request)
         if reply.hangs {
-            Thread.sleep(forTimeInterval: 5)
+            holdOpen(client)
+            return
+        }
+        if let delay = reply.dropsAfter {
+            Thread.sleep(forTimeInterval: delay)
             return
         }
         let length = reply.omitsContentLength ? "" : "Content-Length: \(reply.body.count)\r\n"
@@ -154,11 +161,20 @@ final class LoopbackServer: @unchecked Sendable {
             let start = min(index * size, reply.body.count)
             write(client, reply.body[start..<min(start + size, reply.body.count)])
             if reply.stallsAfterFirstChunk {
-                Thread.sleep(forTimeInterval: reply.stallSeconds)
+                if let delay = reply.dropsAfter { Thread.sleep(forTimeInterval: delay) } else { holdOpen(client) }
                 return
             }
             Thread.sleep(forTimeInterval: reply.dripInterval)
         }
+    }
+
+    /// Keeps `client` open and silent until it closes its end (`recv` returns 0 or an error). The safety timeout only stops a
+    /// serve thread whose client never closes; it is far longer than any stall of a loaded CI machine (60 s seen).
+    private func holdOpen(_ client: Int32) {
+        var timeout = timeval(tv_sec: 300, tv_usec: 0)
+        setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        var byte = [UInt8](repeating: 0, count: 64)
+        while recv(client, &byte, byte.count, 0) > 0 {}
     }
 
     private func readRequest(_ client: Int32) -> ReceivedRequest? {
