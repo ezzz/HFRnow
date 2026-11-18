@@ -73,7 +73,6 @@ extension ReplyButtonBehavior {
         case .hidden: "Pas de bouton de réponse : répondez depuis le menu d’un message (« Citer »)."
         }
     }
-
 }
 
 extension ThemeStyle {
