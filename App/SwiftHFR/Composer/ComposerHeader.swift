@@ -21,6 +21,8 @@ struct ComposerHeader: View {
     @Environment(\.listDensity) private var density
     @Environment(\.textScale) private var scale
     @ScaledMetric(relativeTo: .body) private var dynamicType: CGFloat = 1
+    /// The bar's width as laid out, 0 before the first measure: the buttons are bounded to fit it (`ComposerToolSize.fitting`).
+    @State private var width: CGFloat = 0
 
     /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows.
     /// `inCard` is the chrome's `controlsInCard`: the bar then agrees with the row it sits over.
@@ -30,10 +32,18 @@ struct ComposerHeader: View {
         ComposerToolSize(metrics: metrics, inCard: inCard, style: style)
     }
 
+    /// What the bar's sides and the gaps between its buttons take: the floating row has the gap on each side, legacy's bar its
+    /// 16 pt insets and 8 pt spacing.
+    static func reservedWidth(floats: Bool, buttons: Int) -> CGFloat {
+        floats ? 2 * FloatingSpacing.gap : 32 + 8 * CGFloat(max(0, buttons - 1))
+    }
+
     private var toolSize: ComposerToolSize {
-        Self.buttonSize(
+        let buttons = drafts == nil ? 2 : 3
+        return Self.buttonSize(
             metrics: ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType), inCard: chrome.controlsInCard
         )
+        .fitting(width: width, buttons: buttons, reserved: Self.reservedWidth(floats: floats, buttons: buttons))
     }
 
     /// The drafts button's state and action.
@@ -81,13 +91,16 @@ struct ComposerHeader: View {
 
     var body: some View {
         // EXPERIMENTAL(modernComposer, #904): replaces legacy's bar by the floating buttons, with no title strip (#972).
-        if floats {
-            FloatingComposerButtons(
-                title: title, isSending: isSending, canSend: canSend, drafts: drafts, size: toolSize, close: close, send: send
-            )
-        } else {
-            legacyBar
+        Group {
+            if floats {
+                FloatingComposerButtons(
+                    title: title, isSending: isSending, canSend: canSend, drafts: drafts, size: toolSize, close: close, send: send
+                )
+            } else {
+                legacyBar
+            }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     /// The chrome this bar is drawn for.

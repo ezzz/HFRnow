@@ -93,7 +93,7 @@ struct ComposerLayoutHostedTests {
 
     /// No title strip (#972): close and drafts on the left, send on the right, in one row directly above the card, each keeping
     /// a 44 pt hit area although its capsule is drawn smaller (operator, 2026-11-13), at the default size and an accessibility one.
-    @Test(arguments: [DynamicTypeSize.large, .accessibility3])
+    @Test(arguments: [DynamicTypeSize.large, .accessibility3, .accessibility5])
     func theFloatingButtonsSitAboveTheCardWithNoTitle(size: DynamicTypeSize) async throws {
         guard isPhone else { return }
         let box = try await host(size: size, text: "Bonjour")
@@ -107,6 +107,8 @@ struct ComposerLayoutHostedTests {
             #expect(button.maxY <= card.minY + 0.5, "\(part) \(button), card \(card)")
         }
         #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
+        #expect(close.minX >= box.leadingEdge - 0.5, "close clipped on the left: \(close)")
+        #expect(send.maxX <= box.trailingEdge + 0.5, "send clipped on the right: \(send)")
         #expect(drafts.maxX <= send.minX + 0.5, "the left group ends before send: drafts \(drafts), send \(send)")
         // The buttons are the card tools' size (#1126): at an accessibility size their hit areas outgrow half the width.
         if size == .large { #expect(drafts.maxX < box.midX && send.minX > box.midX, "drafts \(drafts), send \(send)") }
