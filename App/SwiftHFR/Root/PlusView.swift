@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: the account button is top left, as
-// `MainToolbar.swift:60-66` @ 87fe0d1c (#1057).
+// `MainToolbar.swift:60-66` @ 87fe0d1c (#1057). #1107: the list look of every list (`listLook`).
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
     let model: RootModel
@@ -11,24 +11,29 @@ struct PlusView: View {
         // A row sets `model.plusEntry` and the tab's stack opens it (RootTabsView), so the open entry is the one selection
         // both layouts read; a `NavigationLink(value:)` would push onto the stack without updating it.
         List {
-            ScreenLargeTitle(title: "Plus", visibility: titleVisibility)
-            ForEach(PlusEntry.allCases, id: \.self) { entry in
-                Button {
-                    model.plusEntry = entry
-                } label: {
-                    HStack {
-                        Label(entry.title, systemImage: entry.symbol)
-                            .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : Color.primary)
-                        Spacer()
-                        PlusBadgeCount(value: model.badge(for: entry))
-                        Image(systemName: "chevron.forward")
-                            .scaledFont(.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.tertiary)
-                            .accessibilityHidden(true)
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                ScreenLargeTitle(title: "Plus", visibility: titleVisibility)
+                ForEach(PlusEntry.allCases, id: \.self) { entry in
+                    Button {
+                        model.plusEntry = entry
+                    } label: {
+                        HStack {
+                            Label(entry.title, systemImage: entry.symbol)
+                                .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : Color.primary)
+                            Spacer()
+                            PlusBadgeCount(value: model.badge(for: entry))
+                            Image(systemName: "chevron.forward")
+                                .scaledFont(.footnote).fontWeight(.semibold)
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
+                        }
                     }
                 }
             }
+            .listLookRows()
         }
+        .listLook()
         .screenTitle("Plus", style: .largeThenPill, visibility: titleVisibility)
         .accountMenuToolbarItem()
     }

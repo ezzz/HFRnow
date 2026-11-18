@@ -100,6 +100,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-596 | Reader link long-press menu | A plain link got WebKit's own link menu, with a preview of the destination (`contextMenuConfigurationForElement` returned nil unless the link was an image URL); an image link got "Ouvrir l'image", "Save to Photos", "Copier le lien". | MessagesView.swift:1241-1278, 2147-2154 @ 2440d79 | A long press on an `http(s)` link offers the app's own menu, never a preview (nothing is requested): Ouvrir (tap routing), Copier le lien, Ouvrir dans Safari and, for every link that is not a forum topic, MP or profile, Ouvrir dans l'app (`.universalLinksOnly`, Safari if no app answers; named YouTube, Vimeo or Streamable for LOT-035 hosts). An image link (extension or rehost host, as legacy `isImageURL`) also offers "Ouvrir l'image" (the viewer) and "Enregistrer dans Photos" (cookie-less download, add-only Photos permission), ported in #615. | #596, #615, LOT-137 | UX change | new UX: operator (2026-11-07) | b·operator |
 | GAP-595 | Default avatar in the reader | `avatar_male_gray_*.png` via CSS `--imagefile-avatar`, class `noavatar` (`MessagesView.swift:2411`, `LinkItem.m:65-69`) | MessagesView.swift:2411; HTML/style-liste-light.css:203-205 | Grey silhouette drawn in CSS when a member has no avatar (legacy `avatar_male_gray_*`); the picture covers it when there is one (#819). | #595 | ported with changes | port: ezzz Swift layer | a |
 | GAP-750 | Topic load timeout | 10 s from the page request to its answer, then "Le chargement du topic a expiré. Réessaie." | `MessagesView.swift:3668-3704` @ `87fe0d1c`; `Common.swift:1906-1907` | 30 s (the reader's own wait limit, independent of the 10 s request idle limit since #683) from the first "Chargement des messages" to the page shown, fetch and web view together, then the timeout error with Réessayer; a page that still arrives is shown. | #750 | ported with changes | new UX: operator (#750) | b·operator |
+| GAP-1035 | Rehosted thumbnails and mediums | Every rendition is shown inline as posted. Save runs the link through `normalizedViewerURL`, which gives the full size for `.th.`, `reho.st` `/thumb/` and `diberie` `/t/`, but saves a `.md.` as posted. | MessagesView.swift:2646; Common.swift:2259-2272 @ 87fe0d1c | An `img3.super-h.fr` `.th.`/`.md.` image is fetched at full size inline, on long-press save and copy, and in the viewer, falling back to the posted address when the full-size fetch fails; more data per page, and a rendition narrower than the column shows at the full file's width. The `reho.st` and `rehost.diberie.com` thumbnail forms get the full size on save, copy and in the viewer; inline, a host that needs a `Referer` (`reho.st`) keeps the posted address. | #1035 | UX change | new UX: operator (2026-11-17) | b·operator |
 
 ## Composer
 
@@ -216,7 +217,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
-| GAP-190 | Background MP check | BGAppRefresh `com.hfrplus.refresh_mp` polls the home page. | MPBackgroundService.swift:21-46, 70-110 | Same task id; current account's stored session written back nowhere; home count then MP list page 1; interval setting (15 min to 4 h, Jamais; default 30 min) and the ledger's interval guard; nothing on an unknown or expired answer. | LOT-140, LOT-047 | ported with changes | port: ezzz Swift layer | b·operator |
+| GAP-190 | Background MP check | BGAppRefresh `com.hfrplus.refresh_mp` polls the home page. | MPBackgroundService.swift:21-46, 70-110 | Same task id; current account's stored session written back nowhere; home count then MP list page 1; interval setting (15 min to 4 h, Jamais; default 30 min) and the ledger's interval guard; nothing on an unknown or expired answer. A « Notifications » switch (default on) turns the notifications off and keeps the badge; an alert when a switch disagrees with iOS's settings (#1060). | LOT-140, LOT-047 | ported with changes | port: ezzz Swift layer | b·operator |
 | GAP-191 | Local notification | "Vous avez un nouveau message privé" when the count rises. | MPBackgroundService.swift:98-101, 140-157 | One notification per conversation that became unread (interlocutor and title, or a group's title), `mp-<topic>` identifier and thread, a summary past 5; the legacy text only when the list could not be read and the count rose. A reply in an already-unread conversation waits on #571. | LOT-140, LOT-091 | ported with changes | port: ezzz Swift layer | b·operator |
 | GAP-192 | App icon badge | Synced with the MP count when `mp_badge_enabled`. | MPBackgroundService.swift:60-66; MainWindow.swift:1564-1567, :2588-2593 | Badge per setting, set by the running app and by the background check; a badge iOS did not show (no permission yet) is set again when the app is back on screen, a shown one is not (#1060). A root logged out or rebuilt on a new session (switch, login, logout) sets 0 until its first count, as legacy's reset of `nb_mp` (LOT-156). | LOT-140 | ported with changes | port: ezzz Swift layer | b·needed |
 | GAP-193 | "Vérifier HFR" App Intent | None. | — | Shortcuts check of MPs and flags, minimum interval. | LOT-141, LOT-092, FEAT-005 | new | new UX: Bybifok (FEAT-005) | b |
@@ -279,11 +280,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 36 |
 | ported with changes | 62 |
 | ported with changes (engine only) | 1 |
-| UX change | 48 |
+| UX change | 49 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **182** |
+| **Total** | **183** |
 
 ## Convergence notes
 
@@ -313,14 +314,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (139)
+### GAP rows of type `ported with changes`, `UX change` or `new` (140)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 020, 021, 022, 023, 025, 026, 027, 032, 033, 038, 040, 050, 053, 054, 055, 064, 067, 068, 071, 080, 081, 082, 087, 090, 096, 098, 100, 110, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595 | 51 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 219, 713 | 9 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
-| b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 903, 978, 1058 | 32 |
+| b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 903, 978, 1035, 1058 | 33 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 1073, 1074 | 39 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).

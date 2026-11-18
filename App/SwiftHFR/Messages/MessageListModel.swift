@@ -199,6 +199,11 @@ final class MessageListModel {
         await load(page: target, advancing: false)
     }
 
+    /// Closes the readers the open conversation's links opened, keeping its reader and page (`RootModel.rootSwapped`).
+    func closeLinkedReaders() {
+        currentReader?.model.closeLinkedReaders()
+    }
+
     /// The reader of `thread`: the same model while it stays selected, a new one (a new load) for another conversation.
     /// Nil when the row names no thread page.
     func reader(for thread: PrivateMessageThread) -> TopicReaderModel? {
