@@ -59,7 +59,15 @@ struct CategoriesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
     let composer: ComposerServices?
-    @State private var column = NavigationSplitViewColumn.sidebar
+    @State private var column: NavigationSplitViewColumn
+
+    /// `column` is the column a collapsed split shows first (the sidebar; a test starts on another).
+    init(navigation: NavigationModel, reader: ReaderServices, composer: ComposerServices?, column: NavigationSplitViewColumn = .sidebar) {
+        self.navigation = navigation
+        self.reader = reader
+        self.composer = composer
+        _column = State(initialValue: column)
+    }
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
@@ -148,6 +156,9 @@ struct TopicsColumn: View {
     var openCategory: ((TopicSource) -> Void)?
     /// A column that is a pushed screen (a category's topics) shows the account button after its back button (#425).
     var showsAccountMenu = false
+    /// `TabSplitWidth` keeps `.regular` on a foldable's inner screen: all three columns show and the category list already has the
+    /// button, so a second one beside it would double it (legacy has one there, `MainWindow.swift:1880-1902` @ 87fe0d1c).
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         if let source = navigation.selectedSource {
@@ -156,7 +167,8 @@ struct TopicsColumn: View {
                 composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source),
                 openCategory: navigation.favorites == nil ? nil : (openCategory ?? { navigation.openCategory($0) }),
                 // Favoris is a main screen with its large title; the lists a forum row pushes get the pill (#977, #978).
-                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil), showsAccountMenu: showsAccountMenu
+                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil),
+                showsAccountMenu: showsAccountMenu && horizontalSizeClass != .regular
             )
             .id(source)
             .navigationDestination(item: $navigation.openedCategory) { category in

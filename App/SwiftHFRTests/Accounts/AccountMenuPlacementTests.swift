@@ -41,7 +41,7 @@ struct AccountMenuPlacementTests {
     /// and the controls drawn in the left half of a bar (SwiftUI may fill leading item groups instead of `leftBarButtonItems`,
     /// and its bar buttons are controls whose accessibility label a unit-test run does not reliably expose, so neither source
     /// is trusted alone). The roots have no back button and no other leading item, so without the modifier both stay empty.
-    private func readBars(of root: some View) async throws -> Found {
+    private func readBars(of root: some View, until done: (Found) -> Bool = \.isOnTheLeft) async throws -> Found {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let host = UIHostingController(rootView: root.environment(AccountsModel.preview()))
         let window = UIWindow(windowScene: scene)
@@ -54,7 +54,7 @@ struct AccountMenuPlacementTests {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
             found = Self.read(window)
-            if found.isOnTheLeft { break }
+            if done(found) { break }
         }
         return found
     }
@@ -170,9 +170,29 @@ struct AccountMenuPlacementTests {
                 TopicListView(model: model, selection: .constant(nil), showsAccountMenu: shows)
             }
         }
-        let found = try await readBars(of: view)
+        let found = try await readBars(of: view, until: { $0.leftItems > 0 })
         print("AccountMenuPlacementTests pushed list (\(shows)): \(found.diagnostics)")
         #expect((found.leftItems > 0) == shows, "pushed list, button \(shows): \(found.diagnostics)")
+    }
+
+    /// The real call sites, compact width (402 pt): the Catégories topic column and the category a Favoris section title opens each
+    /// carry exactly one account button, so removing `showsAccountMenu` at either call site, or a duplicate, fails here.
+    @Test(arguments: ["categories", "favorites"])
+    func theCategoryTopicListsOfTheTabsHaveExactlyOneAccountButton(tab: String) async throws {
+        let source = TopicSource.forum(.forum(13), title: "Matériel")
+        let view: AnyView
+        if tab == "categories" {
+            let navigation = NavigationModel(dataSource: FakeDataSource())
+            navigation.selectedSource = source
+            view = AnyView(CategoriesTabView(navigation: navigation, reader: services(), composer: nil, column: .content))
+        } else {
+            let navigation = NavigationModel(dataSource: FakeDataSource(), startupSource: .favorites)
+            navigation.openedCategory = source
+            view = AnyView(FavoritesTabView(navigation: navigation, reader: services(), composer: nil))
+        }
+        let found = try await readBars(of: view, until: { $0.leftItems > 0 })
+        print("AccountMenuPlacementTests \(tab) topic list: \(found.diagnostics)")
+        #expect(found.leftItems == 1, "\(tab): one account button expected: \(found.diagnostics)")
     }
 
     private static func views(in view: UIView) -> [UIView] {
