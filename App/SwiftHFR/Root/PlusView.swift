@@ -52,7 +52,9 @@ struct PlusEntryView: View {
             StaticPageView(page: .charter)
         case .deleteAccount:
             AccountDeletionView()
-        case .bookmarks, .qualityAlerts:
+        case .bookmarks:
+            BookmarksView(mpStorage: model.mpStorage, selection: model.bookmarkSelection, environment: environment)
+        case .qualityAlerts:
             placeholder
         }
     }

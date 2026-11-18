@@ -24,6 +24,10 @@ public enum SettingKey {
     /// in the "flags and favorites" mode. Legacy never registered a default: absent reads false.
     public static let favoritesShowsCollapsedSections = Setting.bool("FavoritesShowCollapsedSections", default: false)
 
+    /// `favorites_unread_only` (new, #1058): the Favoris « Non lus / Tous » button. Legacy has no such filter. Absent reads false
+    /// (« Tous »). Device-only UI state, not synced.
+    public static let favoritesUnreadOnly = Setting.bool("favorites_unread_only", default: false)
+
     /// `HFRswiftGlobalTopicListFlag` (`MainWindow.swift:305` @ 87fe0d1c, `ForumTopicsListView`): the last Tous / Favoris / Suivis / Lus
     /// choice, one for every forum. An unknown value reads as "Tous", like legacy's `?? .all`. Device-only UI state.
     public static let topicListFlag = Setting.integerEnum("HFRswiftGlobalTopicListFlag", default: TopicListFlag.all)
@@ -236,7 +240,8 @@ public enum SettingKey {
 
     /// Every setting of the catalogue with its scope, in catalogue order.
     public static let all: [any CatalogueSetting] = [
-        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, topicListFlag, compactMode,
+        favoritesSource, favoritesGroupedByCategory, favoritesAutoRefresh, favoritesShowsCollapsedSections, favoritesUnreadOnly,
+        topicListFlag, compactMode,
         tabBarMinimizesOnScroll, textSizeScale, textSizePercent, haptics, landscapeMode, appIconName,
         appIconPrevious, appIconRevertAsked,
         privateMessageBadge, mpCheckInterval, mpNotificationsEnabled, startupScreen, mpListDisplay, replyButtonBehavior,

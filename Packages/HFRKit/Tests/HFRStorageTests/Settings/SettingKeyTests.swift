@@ -45,7 +45,9 @@ import Testing
             // LOT-140: the background MP check interval, new.
             "mp_check_interval",
             // #1060: the « Notifications » switch of Réglages › Notifications MP, new.
-            "mp_notifications_enabled"
+            "mp_notifications_enabled",
+            // #1058: the Favoris « Non lus / Tous » button, new.
+            "favorites_unread_only"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -56,6 +58,7 @@ import Testing
         #expect(store.value(for: SettingKey.favoritesGroupedByCategory))
         #expect(!store.value(for: SettingKey.favoritesAutoRefresh))
         #expect(!store.value(for: SettingKey.favoritesShowsCollapsedSections))
+        #expect(!store.value(for: SettingKey.favoritesUnreadOnly))
         #expect(!store.value(for: SettingKey.compactMode))
         #expect(store.value(for: SettingKey.tabBarMinimizesOnScroll))
         #expect(store.value(for: SettingKey.textSizeScale) == .percent100)

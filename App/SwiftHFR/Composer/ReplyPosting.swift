@@ -75,6 +75,8 @@ struct NewTopicOptions: Equatable, Sendable {
     let subcategories: [FormOption]
     /// What a browser would send: the option marked selected, else the first (`FormSelect.effectiveValue`).
     let preselected: String?
+    /// The form can add a poll (`ForumForm.offersPollCreation`, LOT-100); never a new-topic form so far (`R45a`).
+    var offersPoll = false
 }
 
 /// What a composer writes: a reply in a topic or private thread (LOT-084), a new private message (LOT-128), a new topic
@@ -135,8 +137,9 @@ protocol ReplyPosting: Sendable {
     func editPrefill(_ target: EditTarget) async throws(PostingError) -> EditPrefill
 
     /// Fetches the edit form again (fresh token), then replaces the message. `subject` and `subcategory` are the first post's,
-    /// nil on a later one. Same contract as `reply`.
-    func edit(_ text: String, subject: String?, subcategory: String?, target: EditTarget) async throws(PostingError) -> PostingResult
+    /// nil on a later one; `poll` is added to the topic through a public first post's form (LOT-100). Same contract as `reply`.
+    func edit(_ text: String, subject: String?, subcategory: String?, poll: PollDraft?, target: EditTarget)
+        async throws(PostingError) -> PostingResult
 
     /// Fetches the edit form, then deletes the message; a first post is refused (LOT-175). Same contract as `reply`.
     func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult
@@ -173,7 +176,9 @@ struct LiveReplyPoster: ReplyPosting {
         let form = try await flow.loadForm(at: formURL, in: session)
         guard form.shape == .newTopic else { throw .formMismatch(expected: .newTopic, actual: form.shape) }
         let select = form.form.select(named: "subcat")
-        return NewTopicOptions(subcategories: form.form.subcategories, preselected: select?.effectiveValue)
+        return NewTopicOptions(
+            subcategories: form.form.subcategories, preselected: select?.effectiveValue, offersPoll: form.form.offersPollCreation
+        )
     }
 
     func newTopic(subject: String, subcategory: String?, text: String, formURL: URL) async throws(PostingError) -> PostingResult {
@@ -189,9 +194,10 @@ struct LiveReplyPoster: ReplyPosting {
         EditPrefill(form: try await editForm(of: target).form)
     }
 
-    func edit(_ text: String, subject: String?, subcategory: String?, target: EditTarget) async throws(PostingError) -> PostingResult {
+    func edit(_ text: String, subject: String?, subcategory: String?, poll: PollDraft?, target: EditTarget)
+        async throws(PostingError) -> PostingResult {
         let form = try await editForm(of: target)
-        return try await flow.edit(text, subject: subject, subcategory: subcategory, with: form)
+        return try await flow.edit(text, subject: subject, subcategory: subcategory, poll: poll, with: form)
     }
 
     func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult {
