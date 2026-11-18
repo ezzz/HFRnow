@@ -33,6 +33,35 @@ struct MPNotificationChecksHostedTests {
         }
     }
 
+    /// The pushed screen of `StackHost`, so a test can push one over Réglages and pop back.
+    @MainActor
+    @Observable
+    final class Path {
+        var screens: [Int] = []
+        /// How many times the pushed screen appeared.
+        var shown = 0
+    }
+
+    /// Réglages at the root of a stack the test drives, as Thème, Icône or Listes are pushed over it.
+    private struct StackHost: View {
+        let model: MPNotificationSettingsModel
+        let path: Path
+
+        var body: some View {
+            @Bindable var path = path
+            NavigationStack(path: $path.screens) {
+                SettingsView(store: InMemorySettingsStore(), notifications: model)
+                    .navigationDestination(for: Int.self) { _ in Text("Sous-écran").onAppear { path.shown += 1 } }
+            }
+            .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
+            .environment(ExperimentalSettings(store: InMemorySettingsStore()))
+            .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+            .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
+            .environment(AccountsModel.preview())
+            .environment(AppLockModel.preview())
+        }
+    }
+
     private func model(_ permission: FakeNotificationPermission) -> MPNotificationSettingsModel {
         MPNotificationSettingsModel(
             store: InMemorySettingsStore(), ledger: NotificationLedgerStore(persistence: InMemorySmallStorePersistence()),
@@ -99,5 +128,33 @@ struct MPNotificationChecksHostedTests {
         try await wait { presented(in: window) != nil }
         #expect(model.alert == .badge)
         #expect(await permission.reads > opened)
+    }
+
+    // Review r2 on #1097: a stack root's task can run again when a pushed screen pops; that is not a new opening of Réglages.
+    @Test func poppingBackFromASubScreenDoesNotShowTheSameAlertAgain() async throws {
+        let permission = FakeNotificationPermission(.denied)
+        let model = model(permission)
+        let path = Path()
+        let window = try host(StackHost(model: model, path: path))
+        defer { close(window) }
+        try await wait { presented(in: window) != nil }
+        #expect(model.alert == .notifications)
+        // « Annuler ».
+        model.alert = nil
+        try await wait { presented(in: window) == nil }
+        let before = await permission.reads
+        path.screens = [1]
+        try await wait { path.shown == 1 }
+        #expect(path.shown == 1)
+        try await Task.sleep(for: .milliseconds(300))
+        path.screens = []
+        for _ in 0..<50 where await permission.reads == before {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        try await Task.sleep(for: .milliseconds(500))
+        // Whether the root's task runs again on the pop is up to SwiftUI (on the iOS 27.0 simulator it does not, measured
+        // 2026-11-18); either way the alert this opening already showed stays away (`appearingAgainIsNotAnOpening`).
+        #expect(model.alert == nil)
+        #expect(presented(in: window) == nil)
     }
 }

@@ -35,8 +35,9 @@ final class MPNotificationSettingsModel {
     /// The alert on screen; the view sets it back to nil when it is dismissed.
     var alert: MPNotificationSettingsAlert?
 
-    /// The alerts already shown since Réglages appeared: one of each kind per opening, so coming back from iOS's settings
-    /// with nothing changed never shows the same alert again, while a disagreement still left there is shown once.
+    /// The alerts already shown by this model: one of each kind per opening of Réglages, which is the life of its
+    /// `SettingsView` (a pop back from Thème is not a new one), so coming back from iOS's settings or from a sub-screen with
+    /// nothing changed never shows the same alert again, while a disagreement still left there is shown once.
     @ObservationIgnored private var shownAlerts: Set<MPNotificationSettingsAlert> = []
 
     @ObservationIgnored private let store: any SettingsStore
@@ -80,14 +81,8 @@ final class MPNotificationSettingsModel {
 
     // MARK: Agreement with iOS (#1060)
 
-    /// Réglages appeared: a new opening, every kind of alert may be shown once again, then iOS is read.
-    func screenOpened() async {
-        shownAlerts = []
-        await checkPermission()
-    }
-
-    /// On opening and on coming back to the app: iOS is read every time, and the first disagreement whose alert was not
-    /// shown this opening is shown.
+    /// Each time Réglages appears (back from a sub-screen too) and the app is active again: iOS is read every time, and the
+    /// first disagreement whose alert was not shown this opening is shown.
     func checkPermission() async {
         let current = await permission.current()
         let pending = Self.disagreements(notifications: notificationsEnabled, badge: badgeEnabled, with: current)
@@ -110,7 +105,7 @@ final class MPNotificationSettingsModel {
     func badgeTurnedOn() async {
         let current = await permission.current()
         guard badgeEnabled else { return }
-        show(Self.disagreements(notifications: false, badge: true, with: current).first)
+        show(Self.disagreements(notifications: notificationsEnabled, badge: true, with: current).first)
     }
 
     /// The alert a pair of switches calls for, if any: notifications refused, else a badge iOS does not show; none while
@@ -127,9 +122,11 @@ final class MPNotificationSettingsModel {
         }
     }
 
-    /// Shows `alert` unless one is already on screen.
+    /// Shows `alert` unless one is already on screen; the same alert pending counts as shown too.
     private func show(_ alert: MPNotificationSettingsAlert?) {
-        guard let alert, self.alert == nil else { return }
+        guard let alert else { return }
+        if self.alert == alert { shownAlerts.insert(alert) }
+        guard self.alert == nil else { return }
         shownAlerts.insert(alert)
         self.alert = alert
     }

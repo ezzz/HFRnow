@@ -69,7 +69,7 @@ struct MPNotificationPermissionTests {
     )
     func alertForEachState(permission: NotificationPermission, expected: MPNotificationSettingsAlert?) async {
         let model = model(FakeNotificationPermission(permission))
-        await model.screenOpened()
+        await model.checkPermission()
         #expect(model.alert == expected)
     }
 
@@ -82,26 +82,40 @@ struct MPNotificationPermissionTests {
         #expect(MPNotificationSettingsModel.disagreements(notifications: true, badge: true, with: .denied) == [.notifications])
     }
 
-    @Test("Each alert once per opening, iOS read again on every return; a new opening shows it again")
+    @Test("Each alert once per opening (the model's life), iOS read again on every return; a new opening shows it again")
     func oncePerOpening() async {
         let permission = FakeNotificationPermission(.denied)
         let model = model(permission)
-        await model.screenOpened()
+        await model.checkPermission()
         #expect(model.alert == .notifications)
         model.alert = nil
         // Back from iOS's settings, still denied: read, not shown again.
         await model.checkPermission()
         #expect(model.alert == nil)
         #expect(await permission.reads == 2)
-        await model.screenOpened()
+        // A new opening of Réglages is a new model.
+        let reopened = self.model(permission)
+        await reopened.checkPermission()
+        #expect(reopened.alert == .notifications)
+    }
+
+    @Test("Réglages appearing again (back from Thème, Icône or Listes) is not a new opening: no second alert")
+    func appearingAgainIsNotAnOpening() async {
+        let permission = FakeNotificationPermission(.denied)
+        let model = model(permission)
+        await model.checkPermission()
         #expect(model.alert == .notifications)
+        model.alert = nil
+        await model.checkPermission()
+        #expect(model.alert == nil)
+        #expect(await permission.reads == 2)
     }
 
     @Test("Notifications allowed in iOS but badges still off on return: the badge alert, once")
     func badgeAlertAfterNotificationsAlert() async {
         let permission = FakeNotificationPermission(.denied)
         let model = model(permission)
-        await model.screenOpened()
+        await model.checkPermission()
         #expect(model.alert == .notifications)
         model.alert = nil
         await permission.change(to: .badgesOff)
@@ -116,7 +130,7 @@ struct MPNotificationPermissionTests {
     func oneAlertAtATime() async {
         let permission = FakeNotificationPermission(.denied)
         let model = model(permission)
-        await model.screenOpened()
+        await model.checkPermission()
         await permission.change(to: .badgesOff)
         await model.checkPermission()
         #expect(model.alert == .notifications)
@@ -126,7 +140,7 @@ struct MPNotificationPermissionTests {
     func rereadOnReturn() async {
         let permission = FakeNotificationPermission(.allowed)
         let model = model(permission)
-        await model.screenOpened()
+        await model.checkPermission()
         #expect(model.alert == nil)
         await permission.change(to: .badgesOff)
         await model.checkPermission()
@@ -137,7 +151,7 @@ struct MPNotificationPermissionTests {
     func turningNotificationsOn() async {
         let denied = FakeNotificationPermission(.denied)
         let model = model(denied)
-        await model.screenOpened()
+        await model.checkPermission()
         model.alert = nil
         model.notificationsEnabled = false
         model.notificationsEnabled = true
@@ -159,6 +173,23 @@ struct MPNotificationPermissionTests {
         #expect(model.alert == nil)
         await model.badgeTurnedOn()
         #expect(model.alert == .badge)
+    }
+
+    @Test("Turning the badge on with « Notifications » on and refused in iOS: the notifications alert, as on opening")
+    func turningBadgeOnWhileNotificationsRefused() async {
+        let model = model(FakeNotificationPermission(.denied))
+        await model.badgeTurnedOn()
+        #expect(model.alert == .notifications)
+    }
+
+    @Test("An alert already pending counts as shown: dismissed, it does not come back this opening")
+    func pendingAlertCountsAsShown() async {
+        let model = model(FakeNotificationPermission(.badgesOff))
+        model.alert = .badge
+        await model.checkPermission()
+        model.alert = nil
+        await model.checkPermission()
+        #expect(model.alert == nil)
     }
 
     @Test("The French texts of the alert")

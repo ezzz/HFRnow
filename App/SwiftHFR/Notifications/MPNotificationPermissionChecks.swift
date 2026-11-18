@@ -9,8 +9,8 @@ struct MPNotificationPermissionChecks: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            // One opening per appearance of the screen, like the cache measure of « Maintenance ».
-            .task { await model.screenOpened() }
+            // Each appearance reads iOS again; the opening is the model's life, so a pop back from Thème shows nothing twice.
+            .task { await model.checkPermission() }
             // Back from iOS's settings (or anywhere else): what changed there is read again.
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await model.checkPermission() } }
