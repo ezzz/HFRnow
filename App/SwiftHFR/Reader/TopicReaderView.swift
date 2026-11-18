@@ -117,6 +117,10 @@ struct TopicReaderView: View {
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
         .offlineSave(model: model, saver: saver)
         .toolbar {
+            // Constant for a reader's life, so the bar's items never change identity (a depth 0 reader keeps the system title).
+            if model.depth > 0 {
+                ToolbarItem(placement: .principal) { ReaderTitleWithDepth(depth: model.depth, title: model.title) }
+            }
             ReaderPageControls(buttons: pageButtons, placement: bottomPlacement)
             ToolbarItem(placement: .primaryAction) { ReaderRefreshButton(model: model, refresh: refresh) }
             overflowToolbar
