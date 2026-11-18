@@ -57,19 +57,23 @@ struct ReaderUnderBarsTests {
         defer { window.isHidden = true }
         host.view.layoutIfNeeded()
         let statusBar = window.safeAreaInsets.top
-        for _ in 0..<100 where (seen.insets?.top ?? 0) < statusBar + 44 || Self.barButton(in: window, below: statusBar) == nil {
-            try await Task.sleep(for: .milliseconds(20))
+        // Polls until the page has what the assertions below check (a timeout ends red there): the top bar, the bar's button, and
+        // the bar's inset on the edge the window gives it (the reserved side on the iPhone Duo, the bottom elsewhere).
+        let reserved = window.safeAreaInsets
+        let side = max(reserved.left, reserved.right) >= 44
+        func pageIsReady() -> Bool {
+            guard let insets = seen.insets, Self.barButton(in: window, below: statusBar) != nil else { return false }
+            let bar = side ? max(insets.leading, insets.trailing) >= max(reserved.left, reserved.right) : insets.bottom >= 44
+            return insets.top >= statusBar + 44 && bar
         }
-        // Let the bar's own contribution reach the page before reading it.
-        try await Task.sleep(for: .milliseconds(200))
+        for _ in 0..<150 where !pageIsReady() { try await Task.sleep(for: .milliseconds(20)) }
         let insets = try #require(seen.insets)
         // At least a bar each (44 points), on top of what the window's own safe area adds (status bar, Dynamic Island).
         #expect(insets.top >= window.safeAreaInsets.top + 44, "top: \(insets.top), window: \(window.safeAreaInsets)")
         // The bottom bar itself must exist: its button is a real view below the top bar.
         let button = try #require(Self.barButton(in: window, below: statusBar), "no bottom bar button in the window")
-        let reserved = window.safeAreaInsets
         let screen = window.bounds
-        if max(reserved.left, reserved.right) >= 44 {
+        if side {
             // The window already reserves a side for the system bars (the iPhone Duo cover screen moves the bottom bar there): the
             // inset alone cannot show the bar, so the bar's button must sit inside that side band and the page gets the band.
             let onTheRight = reserved.right >= reserved.left

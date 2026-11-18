@@ -54,12 +54,16 @@ struct ComposerLayoutHostedTests {
         // Polls until the draft is read, then until the text is laid out (a cold simulator can take a while).
         for _ in 0..<100 where !model.canEdit { try await Task.sleep(for: .milliseconds(50)) }
         model.update(text: text)
-        for _ in 0..<100 {
+        // Then until the frames stop moving (four equal reads in a row): the state the tests measure, not a fixed delay.
+        var last: [ComposerLayoutProbe.Part: CGRect] = [:]
+        var steady = 0
+        for _ in 0..<150 where steady < 4 {
             try await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
-            if box.layout.text > 0, box.frames[.controls] != nil, box.frames[.card] != nil { break }
+            let ready = box.layout.text > 0 && box.frames[.controls] != nil && box.frames[.card] != nil
+            steady = ready && box.frames == last ? steady + 1 : 0
+            last = box.frames
         }
-        try await Task.sleep(for: .milliseconds(300))
         return box
     }
 
