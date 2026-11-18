@@ -156,8 +156,8 @@ public enum SettingKey {
         decode: { SettingCoercion.string($0).map { $0 == "double" } },
         encode: { .string($0 ? "double" : "default") }
     )
-    /// `embedded_videos`: « Vidéos » in Réglages › Sujets (#691), a content-rendering choice like `display_sig`, so it is synced.
-    public static let embeddedVideos = Setting.stringEnum("embedded_videos", default: EmbeddedVideosMode.inlinePlayer).synced
+    /// `embedded_videos`.
+    public static let embeddedVideos = Setting.stringEnum("embedded_videos", default: EmbeddedVideosMode.inlinePlayer)
     /// `display_sig`: `yes`/`no`; the legacy test is `isEqualToString:@"yes"`.
     public static let displaySignatures = Setting(
         key: "display_sig",
@@ -181,6 +181,22 @@ public enum SettingKey {
         defaultValue: nil,
         decode: { SettingCoercion.string($0).flatMap(LastSyncDate.date(from:)) },
         encode: { $0.map { .string(LastSyncDate.string(from: $0)) } }
+    )
+
+    // MARK: Alertes Qualitay
+
+    /// `last_check_aq`: when the Alertes Qualitay list was last shown, the "new since" of the Plus badge (legacy
+    /// `AQPlusView.swift:41-50`, `Classes/AQTableViewController.m:71, 222, 300` @ 87fe0d1c). Device only (ADR 0013). Legacy stored a
+    /// `Date` object, which this store cannot read: it reads as nil (never checked, so everything is new once), then the key holds
+    /// seconds since 1970.
+    public static let aqLastCheck = Setting<Date?>(
+        key: "last_check_aq",
+        defaultValue: nil,
+        decode: {
+            guard case .double(let seconds) = $0, seconds.isFinite else { return nil }
+            return Date(timeIntervalSince1970: seconds)
+        },
+        encode: { $0.map { .double($0.timeIntervalSince1970) } }
     )
 
     // MARK: Search and rehost
@@ -249,7 +265,7 @@ public enum SettingKey {
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
         experimentalMPDarkTopic, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
