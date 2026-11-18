@@ -5,7 +5,7 @@
 - **Issue:** [#191](https://github.com/ezzz/HFRnow/issues/191) · **Milestone:** M4, backport of legacy evolution (operator, 2026-11-09, [#655](https://github.com/ezzz/HFRnow/issues/655))
 - **Depends on:** LOT-089 (#181, new-topic composer), LOT-088 (#180, edit own messages, the first post too)
 
-Stub written with the M4 move of #655. Absent at `2440d79` (only the `have_sondage` flag was read, `Classes/AddMessageViewController.m:521` @ `2440d79`), added by legacy at `2fe43da3` (`c7693a88`), so a port of legacy evolution, not an evolution. The author of the lot completes it before coding (AGENTS.md §5).
+Absent at `2440d79` (only the `have_sondage` flag was read, `Classes/AddMessageViewController.m:521` @ `2440d79`), added by legacy at `2fe43da3` (`c7693a88`), so a port of legacy evolution, not an evolution.
 
 ## Legacy sources
 At `2fe43da3` (`git show 2fe43da3:<path>`, `HFRswift/Swift/`):
@@ -23,7 +23,7 @@ At `2fe43da3` (`git show 2fe43da3:<path>`, `HFRswift/Swift/`):
 ## Legacy counterpart (app lots)
 | SwiftHFR | Legacy @ `87fe0d1c` | Differences |
 |---|---|---|
-| `HFRClient/Posting/PollDraft.swift` (`PollDraft`, `PollProblem`, `ForumForm.offersPollCreation`) | `TopicPollDraft.swift:4-53` (`TopicPollDraft`), `ReplyService.swift:279-281` (`canCreatePoll`) | a line break or a character outside the BMP in the question or an answer is refused (one-line inputs; Q-3) |
+| `HFRClient/Posting/PollDraft.swift` (`PollDraft`, `PollProblem`, `ForumForm.offersPollCreation`) | `TopicPollDraft.swift:4-53` (`TopicPollDraft`), `ReplyService.swift:279-281` (`canCreatePoll`) | a line break or a character outside the BMP in the question or an answer is refused (one-line inputs; Q-3); unused slots and date inputs written empty; Gregorian closing year |
 | `HFRClient/Posting/PostingFlow.swift` (`edit(_:subject:subcategory:poll:…)`) | `ReplyService.swift:154-156` (`pollCreationUnavailable`), `AnswerView.swift:1480-1486` | the poll is checked against the fetched form: each field must be one it serves (`max_votes` among its options, text inputs within `maxlength`) |
 | `App/SwiftHFR/Composer/ComposerPoll.swift`, `ReplyComposerModel+Poll.swift` | `AnswerView.swift:324-328`, `:434`, `MainWindow.swift:892`, `MessagesView.swift:5434` (`offersPollConfiguration`) | not offered on a private thread's first post, whose form never holds the poll block (`R43a`) |
 | `App/SwiftHFR/Composer/ComposerPollRow.swift` | `AnswerView.swift:873-906`, `:523-528` | a failed read is retried from the sub-category row (same failure, same "Réessayer") |
@@ -35,7 +35,7 @@ None: same UX as legacy at `87fe0d1c`.
 ## Behaviour
 - **Where**: the poll row ("Ajouter un sondage" / "Modifier le sondage", "Retirer") shows in the composer of a new topic and of the edit of a public topic's first post (its title is editable). The button is on only when the form allows a poll (`ForumForm.offersPollCreation`: an unchecked `have_sondage` box and a `textreponse0` input, legacy's test). Otherwise legacy's reason is shown: "Le forum ne propose pas de sondage à cette étape. Créez le sujet, puis éditez son premier message." on a new topic, "Le formulaire du forum ne propose pas la création d'un sondage pour ce message." elsewhere; "Chargement des options de sondage…" while a new topic's form is read.
 - **New topic**: neither new-topic form has a `have_sondage` input (`R45a`, `R170a`, HFR-PROTOCOL §6b "New poll"), so, as in legacy, the button stays off and no poll is sent with a new topic. Sending one through `nouveau_sondage.htm` (`sond=1`) waits for its answer to be captured (#1100).
-- **First-post edit** (`R63b` → `W41`): the edit form is fetched again at send (fresh token, `LiveReplyPoster`), the flow refuses a poll unless that form allows one (`pollNotOffered`), then sends the form in document order with `have_sondage=1`, `textreponse0` = the trimmed question, the non-blank answers packed from `textreponse1`, the empty slots as served, `max_votes`, `allowvisitor=1` when visitors may vote (else left out, browser semantics), and the closing date in `jour` `mois` `annee` `heure` `minute` (zero-padded, device calendar and time zone, legacy `TopicPollDraft.swift:42-48`), left empty without one (`W41`). Success is the edit's own sentence (`W41`); like every write it is sent once, never retried.
+- **First-post edit** (`R63b` → `W41`): the edit form is fetched again at send (fresh token, `LiveReplyPoster`), the flow refuses a poll unless that form allows one (`pollNotOffered`), then sends the form in document order with `have_sondage=1`, `textreponse0` = the trimmed question, the non-blank answers packed from `textreponse1`, `max_votes`, `allowvisitor=1` when visitors may vote (else left out, browser semantics), and the closing date in `jour` `mois` `annee` `heure` `minute` (zero-padded, Gregorian calendar in the device's time zone, legacy `TopicPollDraft.swift:42-48`), every unused slot and date input sent empty (`W41`). Success is the edit's own sentence (`W41`); like every write it is sent once, never retried.
 - **Validation** (legacy order and sentences, `TopicPollDraft.swift:16-30`): question required, ≤ 255 UTF-16 units; at least two non-blank answers; at most ten slots; each answer ≤ 255; 1 ≤ choices ≤ filled answers; closing date in the future. Plus: no line break, no character outside the BMP (refused before sending). The sheet's "Ajouter" and the composer's Send are off while the poll has a problem, which is shown; the engine checks again (`invalidPoll`).
 - **With a poll set**, an untouched first-post edit can be sent (the poll is the change). A poll refused at send because the form no longer offers one keeps the poll on screen, with the reason; Send stays off until it is removed.
 - The poll is not kept in the draft (legacy kept it in the view only).
@@ -58,7 +58,9 @@ None: same UX as legacy at `87fe0d1c`.
 - Question and answers with a line break or a non-BMP character are refused before sending (legacy sent them; HFR cuts the text at the first non-BMP character, Q-3).
 - Every poll field is checked against the form fetched at send (a field it does not serve fails as an unsupported form, nothing sent).
 - No poll row on a private thread's first post (its form never offers one).
-- An unchecked `allowvisitor` is left out of the body (browser semantics) where legacy sent `allowvisitor=0`; `W41` itself sent `0`, and HFR reads both (HFR-PROTOCOL §6b "Checkbox values").
+- The closing date is written in the Gregorian calendar (device time zone) whatever the device's calendar; legacy used `Calendar.current` (`TopicPollDraft.swift:33` @ `87fe0d1c`), which sends a Buddhist-calendar year on such a device.
+- Every answer slot and date input is written, empty when unused, instead of keeping what the form served in it (`R63b` serves them empty, `R170a` serves `DD`, `MM`, `YYYY`).
+- An unchecked `allowvisitor` is left out of the body (browser semantics), as legacy left it out (`ReplyService.swift:332-340` @ `87fe0d1c`); `W41`'s capture sent `0`, and HFR reads both (HFR-PROTOCOL §6b "Checkbox values").
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

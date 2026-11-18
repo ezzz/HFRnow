@@ -53,13 +53,17 @@ public struct PollDraft: Sendable, Hashable {
         return nil
     }
 
-    /// The text inputs this poll fills, by name: the question, the answers packed from `textreponse1`, `max_votes`, and the
-    /// closing date in `calendar` (legacy formats, `TopicPollDraft.swift:38-48`). Boxes are not included.
+    /// The inputs this poll fills, by name: the question, the answers packed from `textreponse1`, `max_votes`, and the
+    /// closing date in `calendar` (legacy formats, `TopicPollDraft.swift:38-48`). Every answer slot and date input is written,
+    /// empty when unused (`W41`), so nothing a form serves in them (`R170a` serves `DD`, `MM`, `YYYY`) goes out as the
+    /// user's. Boxes are not included.
     func fields(calendar: Calendar) -> [String: String] {
         var fields = ["textreponse0": Self.trimmed(question), "max_votes": String(maxChoices)]
-        for (index, answer) in filledAnswers.enumerated() {
-            fields["textreponse\(index + 1)"] = answer
+        let filled = filledAnswers
+        for slot in 1...Self.maximumAnswers {
+            fields["textreponse\(slot)"] = slot <= filled.count ? filled[slot - 1] : ""
         }
+        for name in Self.dateFields { fields[name] = "" }
         if let closingDate {
             let parts = calendar.dateComponents([.day, .month, .year, .hour, .minute], from: closingDate)
             fields["jour"] = Self.twoDigits(parts.day)
@@ -69,6 +73,14 @@ public struct PollDraft: Sendable, Hashable {
             fields["minute"] = Self.twoDigits(parts.minute)
         }
         return fields
+    }
+
+    /// The calendar the closing date is written in: Gregorian whatever the device's (a Buddhist one would send 2573 for 2030),
+    /// in the device's time zone, as legacy (`TopicPollDraft.swift:38`).
+    static var closingCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar
     }
 
     /// The date inputs, filled only with a closing date.

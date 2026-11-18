@@ -199,6 +199,12 @@ final class ReplyComposerModel: Identifiable {
         mayHavePosted = false
     }
 
+    /// A field changed: the last error no longer stands, unless the last send may have posted (its warning stays until the
+    /// text or subject changes, as for the sub-category).
+    func clearErrorUnlessMayHavePosted() {
+        if !mayHavePosted { errorMessage = nil }
+    }
+
     private func didEdit() {
         errorMessage = nil
         mayHavePosted = false

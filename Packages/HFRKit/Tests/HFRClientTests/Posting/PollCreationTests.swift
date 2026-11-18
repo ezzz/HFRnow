@@ -119,13 +119,52 @@ struct PollCreationTests {
         #expect(Self.value("textreponse10", in: outcome) == "")
         #expect(Self.value("allowvisitor", in: outcome) == "1")
         #expect(Self.value("max_votes", in: outcome) == "3")
-        let parts = Calendar.current.dateComponents([.day, .month, .year, .hour, .minute], from: closing)
+        let parts = PollDraft.closingCalendar.dateComponents([.day, .month, .year, .hour, .minute], from: closing)
         #expect(Self.value("annee", in: outcome) == String(try #require(parts.year)))
         #expect(Self.value("jour", in: outcome)?.count == 2)
         #expect(Self.value("jour", in: outcome).flatMap { Int($0) } == parts.day)
         #expect(Self.value("minute", in: outcome).flatMap { Int($0) } == parts.minute)
         let names = PostingHarness.pairs(of: try #require(outcome.body)).map(\.name)
         #expect(names == (try #require(try Capture.meta("W41").requestFields)).filter { !["smiley", "emaill", "delete"].contains($0) })
+    }
+
+    /// Runs `poll` on `R63b` with `edit` applied to the page.
+    private static func edit(_ poll: PollDraft, page edit: (String) -> String) async throws -> PostingHarness.Outcome {
+        let page = try PostingHarness.editedForm("R63b", edit)
+        return await PostingHarness.run(
+            formPage: page, formURL: try PostingCapture.pageURL("R63b"), answer: try PostingCapture.answer("W41")
+        ) { flow, form async throws(PostingError) in
+            try await flow.edit("Text removed.", poll: poll, with: form)
+        }
+    }
+
+    @Test("A form that does not serve a poll field as R63b does is refused before anything is sent", arguments: [
+        ("max_votes without the option", #"<option value="3" >3</option>"#, ""),
+        ("no textreponse10", #"<input size="49" maxlength="255" name="textreponse10" value="" />"#, ""),
+        ("a shorter maxlength", #"maxlength="255" name="textreponse0""#, #"maxlength="5" name="textreponse0""#),
+        ("no allowvisitor box", #"<input type="checkbox" name="allowvisitor" value="1" />"#, "")
+    ])
+    func formWithoutAPollField(why: String, served: String, edited: String) async throws {
+        let poll = PollDraft(question: "Question", answers: ["A", "B", "C"], maxChoices: 3, allowsVisitors: true)
+        let outcome = try await Self.edit(poll) { page in
+            #expect(page.contains(served), "\(why)")
+            return page.replacing(served, with: edited)
+        }
+        if case .unsupportedForm = outcome.error {} else { Issue.record("\(why): \(String(describing: outcome.error))") }
+        #expect(outcome.post == nil)
+    }
+
+    @Test("Answer slots and date inputs the poll leaves unused go out empty, whatever the form served in them")
+    func unusedInputsAreEmptied() async throws {
+        let outcome = try await Self.edit(Self.w41Poll) { page in
+            page.replacing(#"name="textreponse3" value="""#, with: #"name="textreponse3" value="stale""#)
+                .replacing(#"name="jour" value="""#, with: #"name="jour" value="DD""#)
+                .replacing(#"name="annee" value="""#, with: #"name="annee" value="YYYY""#)
+        }
+        #expect(outcome.error == nil)
+        #expect(Self.value("textreponse3", in: outcome) == "")
+        #expect(Self.value("jour", in: outcome) == "")
+        #expect(Self.value("annee", in: outcome) == "")
     }
 
     @Test("The closing date is written day, month, year, hour, minute, zero-padded, in the calendar's time zone")
@@ -140,7 +179,9 @@ struct PollCreationTests {
         #expect(fields["annee"] == "2030")
         #expect(fields["heure"] == "07")
         #expect(fields["minute"] == "09")
-        #expect(PollDraft(question: "Q", answers: ["A", "B"]).fields(calendar: calendar)["jour"] == nil)
+        #expect(PollDraft(question: "Q", answers: ["A", "B"]).fields(calendar: calendar)["jour"] == "")
+        // The device may use another calendar; the year HFR gets is the Gregorian one.
+        #expect(PollDraft.closingCalendar.identifier == .gregorian)
     }
 
     @Test("Legacy's limits: a 255-unit question and ten answers pass; the default draft is not sendable")

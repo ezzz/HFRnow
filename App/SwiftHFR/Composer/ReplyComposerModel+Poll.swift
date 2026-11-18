@@ -15,13 +15,13 @@ extension ReplyComposerModel {
     /// The user saved the poll sheet: the poll goes out with the message, when the form allows one.
     func set(poll newDraft: PollDraft) {
         guard showsPoll, canEdit, poll.set(newDraft) else { return }
-        if !mayHavePosted { errorMessage = nil }
+        clearErrorUnlessMayHavePosted()
     }
 
     /// "Retirer": the message goes out without a poll.
     func removePoll() {
         guard canEdit else { return }
         poll.remove()
-        if !mayHavePosted { errorMessage = nil }
+        clearErrorUnlessMayHavePosted()
     }
 }

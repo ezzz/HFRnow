@@ -183,8 +183,6 @@ enum ComposerMessages {
         }
     }
 
-    /// Characters outside the Basic Multilingual Plane: HFR cuts the message at the first one and still answers success
-    /// (decision Q-3, `W12`), so they are refused before anything is sent.
     /// The form no longer adds a poll (legacy `ReplyPostingError.pollCreationUnavailable`, `ReplyService.swift:42-43` @ 87fe0d1c).
     static let pollNotOffered = "Ce formulaire ne permet plus de créer un sondage sur ce sujet. Rien n’a été envoyé : retirez le sondage, "
         + "ou créez-le en modifiant le premier message du sujet."
@@ -206,6 +204,8 @@ enum ComposerMessages {
         }
     }
 
+    /// Characters outside the Basic Multilingual Plane: HFR cuts the message at the first one and still answers success
+    /// (decision Q-3, `W12`), so they are refused before anything is sent.
     static func unsupported(_ characters: [Character]) -> String {
         let list = characters.map(String.init).joined(separator: " ")
         return "Le forum ne peut pas enregistrer ces caractères et couperait le message au premier : \(list). "
