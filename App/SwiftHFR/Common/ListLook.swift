@@ -41,12 +41,20 @@ extension EnvironmentValues {
 /// for the system's), so switching the look keeps the list's identity: no reload, no lost scroll position (#1107).
 private struct ListLookModifier: ViewModifier {
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    @Environment(\.screenPaintsLists) private var painted
 
     func body(content: Content) -> some View {
+        let look = ListLook.current(experimental)
+        // EXPERIMENTAL(denseRows, #1107): the dense look replaces the grouped background by the plain list's, unless a theme or
+        // a dark style already paints the screen behind the list. The classic value is the one `AppScreenBackground` set (hidden
+        // where it paints, the system's elsewhere), so the classic look is unchanged.
+        let hidesBackground = painted || look == .dense
         content
             .listStyle(.insetGrouped)
+            .scrollContentBackground(hidesBackground ? .hidden : .automatic)
+            .background(look == .dense && !painted ? DenseListLook.plainBackground : Color.clear)
             .densityListMargins()
-            .environment(\.listLook, ListLook.current(experimental))
+            .environment(\.listLook, look)
     }
 }
 
@@ -55,7 +63,21 @@ private struct ListLookRows: ViewModifier {
     @Environment(\.listLook) private var look
 
     func body(content: Content) -> some View {
+        // EXPERIMENTAL(denseRows, #1107): the dense look's clear row replaces the card's background.
         content.listRowBackground(look == .dense ? DenseListLook.rowBackground : nil)
+    }
+}
+
+/// The background of a row a list can select: the dense look draws the selection itself, its clear row would hide the list's.
+private struct ListLookRow: ViewModifier {
+    let isSelected: Bool
+    @Environment(\.listLook) private var look
+
+    func body(content: Content) -> some View {
+        // EXPERIMENTAL(denseRows, #1107): the dense look's clear or selected row replaces the card's background.
+        content.listRowBackground(
+            look == .dense ? (isSelected ? DenseListLook.selectedRowBackground : DenseListLook.rowBackground) : nil
+        )
     }
 }
 
@@ -64,7 +86,12 @@ extension View {
     /// #572's definition sets it instead of its own style.
     func listLook() -> some View { modifier(ListLookModifier()) }
 
-    /// The rows' background in the list's look: put it on the rows (a `ForEach`, a section's content), not on the list. A row's
-    /// own `listRowBackground` (a clear title row, a selected bookmark) wins over it.
+    /// The rows' background in the list's look: put it once around the whole content of the list (`List { Group { … }
+    /// .listLookRows() }`), so no row keeps the card in the dense look. A row's own `listRowBackground` (a selected row's accent)
+    /// wins over it.
     func listLookRows() -> some View { modifier(ListLookRows()) }
+
+    /// The background of a row of a list with a selection (Catégories, the topic lists, Messages): the selected row keeps a
+    /// highlight in the dense look (#1107, iPad columns).
+    func listLookRow(isSelected: Bool) -> some View { modifier(ListLookRow(isSelected: isSelected)) }
 }

@@ -36,32 +36,34 @@ struct UserProfileView: View {
     @ViewBuilder private var content: some View {
         if let profile = model.profile {
             List {
-                if let error = model.error {
-                    LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-                }
-                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin().listLookRows()
-                ForEach(profile.sections) { section in
-                    Section {
-                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }.listLookRows()
-                    } header: {
-                        Text(section.title).densityHeaderMargin()
+                // #1107: every row of the list takes its look, once for the whole content.
+                Group {
+                    if let error = model.error {
+                        LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    }
+                    ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin()
+                    ForEach(profile.sections) { section in
+                        Section {
+                            ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }
+                        } header: {
+                            Text(section.title).densityHeaderMargin()
+                        }
+                    }
+                    if !profile.personalSmilies.isEmpty {
+                        ProfileSmileysSection(
+                            smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
+                        )
+                        .densityRowMargin()
+                    }
+                    if !profile.actions.isEmpty {
+                        Section {
+                            ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
+                        } header: {
+                            Text("Liens").densityHeaderMargin()
+                        }
                     }
                 }
-                if !profile.personalSmilies.isEmpty {
-                    ProfileSmileysSection(
-                        smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
-                    )
-                    .densityRowMargin()
-                    .listLookRows()
-                }
-                if !profile.actions.isEmpty {
-                    Section {
-                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
-                            .listLookRows()
-                    } header: {
-                        Text("Liens").densityHeaderMargin()
-                    }
-                }
+                .listLookRows()
             }
             .listLook()
             .refreshable { await model.reload() }

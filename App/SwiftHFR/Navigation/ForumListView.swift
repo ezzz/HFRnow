@@ -14,16 +14,21 @@ struct ForumListView: View {
         let loader = navigation.forums.loader
         let look = ListLook.current(experimental)
         List(selection: $navigation.selectedSource) {
-            ScreenLargeTitle(title: "Catégories", visibility: titleVisibility)
-            if let content = loader.value {
-                // Noël soft piles a little snow on the card's top edge, in the section header above it (LOT-166).
-                SeasonalSnowCapSection {
-                    ForEach(content.sections) { section in
-                        row(section, look: look).densityRowMargin().denseCategoryRowInsets(look).tag(section.source)
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                ScreenLargeTitle(title: "Catégories", visibility: titleVisibility)
+                if let content = loader.value {
+                    // Noël soft piles a little snow on the card's top edge, in the section header above it (LOT-166).
+                    SeasonalSnowCapSection {
+                        ForEach(content.sections) { section in
+                            row(section, look: look).densityRowMargin().denseCategoryRowInsets(look)
+                                .listLookRow(isSelected: navigation.selectedSource == section.source)
+                                .tag(section.source)
+                        }
                     }
-                    .listLookRows()
                 }
             }
+            .listLookRows()
         }
         .listLook()
         .seasonalScrollTracking()

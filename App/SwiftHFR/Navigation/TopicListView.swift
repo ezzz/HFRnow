@@ -41,23 +41,27 @@ struct TopicListView: View {
     var body: some View {
         let loader = counting(.body, model.loader, title: titleVisibility)
         List(selection: $selection) {
-            if titleStyle == .largeThenPill {
-                ScreenLargeTitle(title: model.source.navigationTitle, visibility: titleVisibility)
-            }
-            if let scope { ForumScopeBar(model: model, scope: scope) }
-            if loader.value != nil {
-                ForEach(model.displayedGroups) { group in
-                    if let title = group.title {
-                        Section {
-                            if !group.isCollapsed { rows(group.topics) }
-                        } header: {
-                            header(group, title: title)
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                if titleStyle == .largeThenPill {
+                    ScreenLargeTitle(title: model.source.navigationTitle, visibility: titleVisibility)
+                }
+                if let scope { ForumScopeBar(model: model, scope: scope) }
+                if loader.value != nil {
+                    ForEach(model.displayedGroups) { group in
+                        if let title = group.title {
+                            Section {
+                                if !group.isCollapsed { rows(group.topics) }
+                            } header: {
+                                header(group, title: title)
+                            }
+                        } else {
+                            rows(group.topics)
                         }
-                    } else {
-                        rows(group.topics)
                     }
                 }
             }
+            .listLookRows()
         }
         .listLook() // explicit: the automatic style is a plain list in an iPad column (#1073)
         .screenTitle(model.source.navigationTitle, style: titleStyle, visibility: titleVisibility)
@@ -162,6 +166,7 @@ struct TopicListView: View {
                 topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
                 flagIsTinted: TopicListView.flagPills(for: model.source)
             )
+                .listLookRow(isSelected: selection == topic)
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(
@@ -187,7 +192,6 @@ struct TopicListView: View {
                 }
                 .contextMenu { menu(topic, isSuper: isSuper) }
         }
-        .listLookRows()
     }
 
     /// "Supprimer" (legacy trailing swipe and menu entry): "Suppression…" and disabled while the removal is in flight.

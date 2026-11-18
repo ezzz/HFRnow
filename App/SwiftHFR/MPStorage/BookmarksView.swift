@@ -22,18 +22,22 @@ struct BookmarksView: View {
 
     var body: some View {
         List {
-            switch model.state {
-            case .signedOut:
-                Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary)
-            case .notSyncing:
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
-                    Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
-                        .scaledFont(.footnote).foregroundStyle(.secondary)
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                switch model.state {
+                case .signedOut:
+                    Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary)
+                case .notSyncing:
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
+                        Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
+                            .scaledFont(.footnote).foregroundStyle(.secondary)
+                    }
+                case .syncing:
+                    listContent
                 }
-            case .syncing:
-                listContent
             }
+            .listLookRows()
         }
         .listLook()
         .navigationTitle("Bookmarks")

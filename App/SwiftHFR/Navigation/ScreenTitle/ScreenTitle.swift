@@ -140,6 +140,7 @@ struct ScreenLargeTitle: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                 .accessibilityAddTraits(.isHeader)
                 .onScrollVisibilityChange { visibility.report($0) }
+                .listLookTitleRow()
         }
     }
 }

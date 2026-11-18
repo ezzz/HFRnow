@@ -27,7 +27,7 @@ struct ListLookHostedTests {
         TopicSummary(topicID: TopicID(category: .forum(23), topic: 2), title: "Sujet deux", path: "/t2", readState: .read)
     ]
 
-    private func host(dense: Bool) async throws -> HostedRoot {
+    private func host(dense: Bool, dark: Bool = false) async throws -> HostedRoot {
         let data = FakeDataSource()
         data.forumHandler = {
             ForumListPage(forums: [
@@ -64,7 +64,7 @@ struct ListLookHostedTests {
             .environment(experimental)
             .appTypography(.standard, density: .regular)
         let host = UIHostingController(rootView: root)
-        host.overrideUserInterfaceStyle = .light
+        host.overrideUserInterfaceStyle = dark ? .dark : .light
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
@@ -157,14 +157,26 @@ struct ListLookHostedTests {
         return Measure(frame: frame, inside: inside, beside: beside)
     }
 
+    /// The large-title row of the screen on show: the topmost cell of the list that shows « Hardware ».
+    private func titleRow(in window: UIWindow) throws -> Measure {
+        let row = try #require(Self.cell("Hardware", in: window), "no Catégories row")
+        let list = try #require(Self.lists(window).first { $0.visibleCells.contains(row) }, "no list")
+        let title = try #require(list.visibleCells.min { $0.frame.minY < $1.frame.minY }, "no title")
+        let frame = title.convert(title.bounds, to: window)
+        let inside = Self.colour(of: window, at: CGPoint(x: frame.maxX - 3, y: frame.midY))
+        let beside = frame.minX >= 6 ? Self.colour(of: window, at: CGPoint(x: frame.minX - 4, y: frame.midY)) : nil
+        return Measure(frame: frame, inside: inside, beside: beside)
+    }
+
     /// The four lists of the root, each by a plain (untinted) row: Catégories, a category's topics, Favoris, Messages.
-    private func measureEveryList(dense: Bool) async throws -> [String: Measure] {
-        let hosted = try await host(dense: dense)
+    private func measureEveryList(dense: Bool, dark: Bool = false) async throws -> [String: Measure] {
+        let hosted = try await host(dense: dense, dark: dark)
         defer { hosted.window.isHidden = true }
         HostedAccessibility.beginAutomation()
         defer { HostedAccessibility.endAutomation() }
         var found: [String: Measure] = [:]
         found["Catégories"] = try await measure("Hardware", in: hosted.window)
+        found["title"] = try titleRow(in: hosted.window)
         try await tap("Apple", in: hosted.window)
         found["topics"] = try await measure("Sujet deux", in: hosted.window)
         hosted.model.selectedDestination = .tab(.favorites)
@@ -178,22 +190,55 @@ struct ListLookHostedTests {
     func classicIsTheCardEverywhere() async throws {
         let found = try await measureEveryList(dense: false)
         let favoris = try #require(found["Favoris"])
-        for (list, row) in found {
+        for (list, row) in found where list != "title" {
             #expect(row.frame.minX >= 16, "\(list): the card starts at \(row.frame.minX)")
             #expect(row.frame.minX == favoris.frame.minX && row.frame.width == favoris.frame.width, "\(list) \(row.frame)")
             #expect(row.beside != nil && row.beside != row.inside, "\(list): no card, \(row)")
         }
     }
 
-    @Test("Dense: every list draws its rows from one side to the other, on the screen's background, with no card")
-    func denseHasNoCard() async throws {
-        let classic = try await measureEveryList(dense: false)
-        let dense = try await measureEveryList(dense: true)
+    /// The plain list's background, the system background: white in light (the grouped list's is grey), black in dark (the
+    /// card's is dark grey).
+    nonisolated private static func plainBackground(dark: Bool) -> [UInt8] { dark ? [0, 0, 0] : [255, 255, 255] }
+
+    /// Light tells the plain background from the grouped grey; dark tells a row with no card from a card (white in light).
+    @Test(
+        "Dense: every list draws its rows, its large title included, side to side on the plain background, with no card",
+        arguments: [false, true]
+    )
+    func denseHasNoCard(dark: Bool) async throws {
+        let dense = try await measureEveryList(dense: true, dark: dark)
         for (list, row) in dense {
-            let background = try #require(classic[list]?.beside, "\(list): no classic background measured")
             #expect(row.frame.minX == 0 && row.frame.width == 402, "\(list): \(row.frame)")
-            #expect(row.inside == background, "\(list): the row is drawn on \(row.inside), the screen is \(background)")
+            #expect(row.inside == Self.plainBackground(dark: dark), "\(list), dark \(dark): the row is drawn on \(row.inside)")
         }
+    }
+
+    /// Comptes: the account rows and the « Ajouter un compte » section, a row that is not a `ForEach` row.
+    private func accountsAddRow(dense: Bool, dark: Bool) async throws -> Measure {
+        let store = InMemorySettingsStore()
+        store.set(dense, for: SettingKey.experimentalDenseRows)
+        let host = UIHostingController(rootView: AccountsView()
+            .environment(makeModel(store: InMemoryCredentialStore()))
+            .environment(ExperimentalSettings(store: store)))
+        host.overrideUserInterfaceStyle = dark ? .dark : .light
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true }
+        HostedAccessibility.beginAutomation()
+        defer { HostedAccessibility.endAutomation() }
+        return try await measure("Ajouter un compte", in: window)
+    }
+
+    @Test("Dense: a row outside the list's ForEach (Comptes › « Ajouter un compte ») loses its card too", arguments: [false, true])
+    func denseCoversEveryRowOfAList(dark: Bool) async throws {
+        let classic = try await accountsAddRow(dense: false, dark: dark)
+        let dense = try await accountsAddRow(dense: true, dark: dark)
+        #expect(classic.frame.minX >= 16 && classic.beside != classic.inside, "classic \(classic)")
+        #expect(dense.frame.minX == 0 && dense.inside == Self.plainBackground(dark: dark), "dense, dark \(dark): \(dense)")
     }
 
     @Test("Dense: a category row is shorter than in the classic look, its icon kept")

@@ -22,10 +22,13 @@ struct ForumSearchView: View {
 
     var body: some View {
         List {
-            ScreenLargeTitle(title: "Recherche", visibility: titleVisibility)
-            // #1107: the rows of both sections take the list look.
-            formSection.listLookRows()
-            resultsSection.listLookRows()
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                ScreenLargeTitle(title: "Recherche", visibility: titleVisibility)
+                formSection
+                resultsSection
+            }
+            .listLookRows()
         }
         .listLook()
         .screenTitle("Recherche", style: .largeThenPill, visibility: titleVisibility)
