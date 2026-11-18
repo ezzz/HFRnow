@@ -15,36 +15,42 @@ struct PseudoListEditorView: View {
         @Bindable var model = model
         Form {
             if model.requiresAccount {
-                Section { Text("Connecte-toi pour gérer la liste noire de ton compte.").foregroundStyle(.secondary) }
+                Section { Text("Connecte-toi pour gérer la liste noire de ton compte.").foregroundStyle(.secondary).themedListRow() }
             } else {
                 Section {
-                    HStack {
-                        TextField("Pseudo", text: $model.draft)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .submitLabel(.done)
-                            .onSubmit { Task { await model.add() } }
-                        Button("Ajouter") { Task { await model.add() } }
-                            .disabled(!model.canAdd)
-                    }
+                    Group {
+                        HStack {
+                            TextField("Pseudo", text: $model.draft)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .submitLabel(.done)
+                                .onSubmit { Task { await model.add() } }
+                            Button("Ajouter") { Task { await model.add() } }
+                                .disabled(!model.canAdd)
+                        }
+                    }.themedListRow()
                 }
                 if let unreadable = model.unreadableMessage {
                     Section {
-                        Text(unreadable).foregroundStyle(.secondary)
-                        Button("Réessayer") { Task { await model.retry() } }
+                        Group {
+                            Text(unreadable).foregroundStyle(.secondary)
+                            Button("Réessayer") { Task { await model.retry() } }
+                        }.themedListRow()
                     }
                 } else {
                     Section {
-                        if model.pseudos.isEmpty {
-                            if model.hasLoaded { Text(model.kind.emptyMessage).foregroundStyle(.secondary) }
-                        } else {
-                            ForEach(model.pseudos, id: \.self) { Text(verbatim: $0) }
-                                .onDelete { model.remove(at: $0) }
-                        }
+                        Group {
+                            if model.pseudos.isEmpty {
+                                if model.hasLoaded { Text(model.kind.emptyMessage).foregroundStyle(.secondary) }
+                            } else {
+                                ForEach(model.pseudos, id: \.self) { Text(verbatim: $0) }
+                                    .onDelete { model.remove(at: $0) }
+                            }
+                        }.themedListRow()
                     } header: {
-                        Text(model.kind.title)
+                        Text(model.kind.title).themedSectionHeader()
                     } footer: {
-                        Text(model.kind.footer)
+                        Text(model.kind.footer).themedSectionHeader()
                     }
                 }
             }

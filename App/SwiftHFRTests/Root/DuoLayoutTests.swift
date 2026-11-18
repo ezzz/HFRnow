@@ -102,6 +102,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         let window: UIWindow
         let host: UIViewController
         let root: RootModel
+        let messages: FakePrivateMessages
     }
 
     nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
@@ -116,12 +117,15 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
         let pages = FakeTopicPages { target in Self.page(for: target) }
         let forums = ForumListModel(dataSource: data)
+        let messages = FakePrivateMessages()
         let root = RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
             favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
                                        startupSource: RootModel.favoritesStartupSource),
-            messages: MessageListModel(source: FakePrivateMessages(), topicPages: pages),
+            // Logged in, as Favoris: a logged-out list's load (each time the list appears, a fold included) closes the open
+            // conversation (`MessageListModel.load`, `.signedOut`), which raced the reader's title (#1124).
+            messages: MessageListModel(source: messages, isLoggedIn: { true }, topicPages: pages),
             store: InMemorySettingsStore(), initial: initial
         )
         let services = ReaderServices(
@@ -153,7 +157,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         unfold(window, host: host)
         window.isHidden = false
         window.layoutIfNeeded()
-        return Hosted(window: window, host: host, root: root)
+        return Hosted(window: window, host: host, root: root, messages: messages)
     }
 
     private func unfold(_ window: UIWindow, host: UIViewController) {
@@ -293,9 +297,22 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         }
         #expect(await settle(window) { split(in: window) != nil && shows(title, in: window) }, "\(tab): \(stacks(in: window))")
 
+        if tab == .messages {
+            // The split's list load has ended, so the one counted after the fold is the cover screen's own.
+            #expect(await settle(window) { !hosted.messages.requests.isEmpty && !root.messages.loader.isLoading })
+        }
+        let loads = hosted.messages.requests.count
         fold(window, host: hosted.host)
         let folded = await settle(window) { hasTabBar(window) && shows(title, in: window) }
         #expect(folded, "\(tab) folded: tab bar \(hasTabBar(window)), \(stacks(in: window))")
+        guard tab == .messages else { return }
+        // The cover screen's list loads again when it appears: the conversation outlives that load, not only the frames before it.
+        #expect(await settle(window) { hosted.messages.requests.count > loads && !root.messages.loader.isLoading })
+        // `isLoading` drops one main-actor hop before `load()` applies the answer: give it that hop and a layout pass.
+        try await Task.sleep(for: .milliseconds(500))
+        window.layoutIfNeeded()
+        #expect(root.messages.selected?.id == messageThread(7).id, "the folded list's load closed the conversation")
+        #expect(shows(title, in: window), "after the folded list's load: \(stacks(in: window))")
     }
 
     /// An unfold with a topic open in portrait builds the split with the topic alone, not three columns first (legacy keeps the
