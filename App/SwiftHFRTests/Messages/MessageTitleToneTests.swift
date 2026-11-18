@@ -86,8 +86,8 @@ struct MessageTitleToneTests {
     func drawnColour(dark: Bool) throws {
         let theme = Theme(dark: dark, increasedContrast: false)
         let background = Self.rgba(.secondarySystemGroupedBackground, theme).rgb
-        let read = try #require(Self.centre(of: Self.swatch(.secondary, dark: dark, background: background)))
-        let unread = try #require(Self.centre(of: Self.swatch(.primary, dark: dark, background: background)))
+        let read = try #require(Self.centre(of: Self.swatch(.secondary, dark: dark, background: background), background: background))
+        let unread = try #require(Self.centre(of: Self.swatch(.primary, dark: dark, background: background), background: background))
         #expect(Self.distance(read, Self.painted(ReadTitleStyle.color(for: theme.traits), on: background, theme)) < 0.02)
         #expect(Self.distance(unread, Self.painted(.label, on: background, theme)) < 0.02)
     }
@@ -95,8 +95,10 @@ struct MessageTitleToneTests {
     @Test("On the iPad's accent selection a read title is drawn like an unread one, never in a fainter secondary", arguments: [false, true])
     func prominentBackgroundUsesThePrimaryStyle(dark: Bool) throws {
         let accent = Monogram.RGB(red: 0.22, green: 0.5, blue: 0.93)
-        let read = try #require(Self.centre(of: Self.swatch(.secondary, dark: dark, background: accent, prominence: .increased)))
-        let unread = try #require(Self.centre(of: Self.swatch(.primary, dark: dark, background: accent, prominence: .increased)))
+        let readSwatch = Self.swatch(.secondary, dark: dark, background: accent, prominence: .increased)
+        let unreadSwatch = Self.swatch(.primary, dark: dark, background: accent, prominence: .increased)
+        let read = try #require(Self.centre(of: readSwatch, background: accent))
+        let unread = try #require(Self.centre(of: unreadSwatch, background: accent))
         #expect(Self.distance(read, unread) < 0.02)
     }
 
@@ -136,7 +138,7 @@ struct MessageTitleToneTests {
             .frame(width: 400)
             .background(Color(red: background.red, green: background.green, blue: background.blue))
             .environment(\.colorScheme, dark ? .dark : .light)
-        guard let image = render(row) else { return nil }
+        guard let image = render(row, background: background) else { return nil }
         let column = 150
         for line in 0..<image.height {
             guard let pixel = pixel(of: image, x: column, y: line), distance(pixel, background) > 0.1 else { continue }
@@ -145,14 +147,24 @@ struct MessageTitleToneTests {
         return nil
     }
 
-    private static func render(_ view: some View) -> CGImage? {
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 1
-        return renderer.cgImage
+    /// `view` drawn at 1×, or nil when three renders in a row show no `background` in the top-left corner.
+    ///
+    /// Every view here paints an opaque `background` behind its content, so a corner of another colour is a render
+    /// that failed, done again: under CI load `ImageRenderer` can hand back a blank image ("image provider timed out while
+    /// waiting for phase 6"), whose pixels read (0, 0, 0), 0.41 off the light read colour (#704).
+    private static func render(_ view: some View, background: Monogram.RGB) -> CGImage? {
+        for _ in 0..<3 {
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 1
+            if let image = renderer.cgImage, let corner = pixel(of: image, x: 0, y: 0), distance(corner, background) < 0.02 {
+                return image
+            }
+        }
+        return nil
     }
 
-    private static func centre(of view: some View) -> Monogram.RGB? {
-        guard let image = render(view) else { return nil }
+    private static func centre(of view: some View, background: Monogram.RGB) -> Monogram.RGB? {
+        guard let image = render(view, background: background) else { return nil }
         return pixel(of: image, x: image.width / 2, y: image.height / 2)
     }
 
