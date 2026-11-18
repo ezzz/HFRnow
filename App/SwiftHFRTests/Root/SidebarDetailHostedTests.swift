@@ -61,7 +61,11 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1366, height: 1024)
-        window.rootViewController = UIHostingController(rootView: view)
+        // CI tests on an iPhone simulator, whose window stays compact whatever its frame: the split needs the regular width an
+        // iPad window has (as `TabSplitWidthTests`).
+        let host = UIHostingController(rootView: view)
+        host.traitOverrides.horizontalSizeClass = .regular
+        window.rootViewController = host
         window.isHidden = false
         window.layoutIfNeeded()
         return Hosted(window: window, root: root, pages: pages, environment: environment)
@@ -232,15 +236,15 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         let opener = RootSidebarView.detailOpener(model: hosted.root, environment: hosted.environment, entry: .qualityAlerts)
         let column = try hostAlone(PlusListColumn(entry: .qualityAlerts, opener: opener) { OpenerProbe(seen: seen) })
         defer { column.isHidden = true }
-        #expect(await settle(column) { seen.pushedLeafSawAnAction != nil })
-        #expect(seen.pushedLeafSawAnAction == true)
+        #expect(await settle(column) { seen.leafAppeared })
+        #expect(seen.leafSawAnAction)
         #expect(hosted.root.detailReaders[.qualityAlerts] != nil, "the pushed screen's action did not reach the detail column")
 
         let plainSeen = OpenerProbe.Seen()
         let plain = try hostAlone(ThemedNavigationStack { OpenerProbe(seen: plainSeen) })
         defer { plain.isHidden = true }
-        #expect(await settle(plain) { plainSeen.pushedLeafSawAnAction != nil })
-        #expect(plainSeen.pushedLeafSawAnAction == false)
+        #expect(await settle(plain) { plainSeen.leafAppeared })
+        #expect(!plainSeen.leafSawAnAction)
     }
 
     /// The sidebar builds the Bookmarks / AQ content column with `PlusListColumn`, and the tab bar never sets the action.
@@ -269,7 +273,8 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
 private struct OpenerProbe: View {
     @MainActor
     final class Seen {
-        var pushedLeafSawAnAction: Bool?
+        var leafAppeared = false
+        var leafSawAnAction = false
     }
 
     let seen: Seen
@@ -288,7 +293,8 @@ private struct OpenerProbe: View {
         var body: some View {
             Text("Écran poussé")
                 .onAppear {
-                    seen.pushedLeafSawAnAction = openTopicInDetail != nil
+                    seen.leafSawAnAction = openTopicInDetail != nil
+                    seen.leafAppeared = true
                     openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
                 }
         }
