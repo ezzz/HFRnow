@@ -44,6 +44,8 @@ struct QualityAlertsView: View {
             guard !hasRequestedList else { return }
             hasRequestedList = true
             await model.load()
+            // A tab switch cancels this task and the load with it: the next appearance asks again (legacy's request outlives the view).
+            if Task.isCancelled { hasRequestedList = false }
         }
         .refreshable { await model.load() }
     }

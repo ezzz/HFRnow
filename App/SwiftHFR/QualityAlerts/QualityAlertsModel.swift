@@ -164,10 +164,12 @@ final class QualityAlertsModel {
         } catch {
             guard ticket == loadTicket else { return }
             if case .network(.cancelled) = error {
-                // Not a failure to show: the screen went away or a newer load took over.
-            } else {
-                failure = Failure(error)
+                // The screen went away (a tab switch cancels its task): not a failure and not an empty list. Nothing was learned,
+                // so `hasLoaded` stays as it was and the screen asks again when it comes back.
+                isLoading = false
+                return
             }
+            failure = Failure(error)
         }
         isLoading = false
         hasLoaded = true

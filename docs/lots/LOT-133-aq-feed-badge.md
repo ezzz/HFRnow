@@ -49,11 +49,13 @@ None that changes what legacy shows. Behaviour notes (no GAP row beyond GAP-005,
   `last_check_aq` is `SettingKey.aqLastCheck`: device scope, a `Double` of seconds since 1970. Legacy wrote a `Date` object, which
   the store cannot read: after an update it reads as "never checked" and the next count is the whole feed, once.
 - **Badge** (`QualityAlertsModel.refreshCount`): fetch, filter, `newCount`. A failed or unreadable answer says nothing and keeps the count
-  (legacy's silent `catch`). Every count request takes a ticket; showing the list takes one too, so a request that started before
-  the visit cannot bring the badge back (legacy `:86` compared dates; a ticket also covers two equal instants).
+  (legacy's silent `catch`). Every count request takes a ticket; showing the list takes one when it starts **and** again when it succeeds, so a request that
+  started before the visit, or while the list loaded (it read the old last check), cannot bring the badge back (legacy `:86` compared
+  dates; a ticket also covers two equal instants).
 - **List** (`load`): rows from the same items, `isNew` against the check **before** this visit; then, once the rows are set, last check =
   now and count = 0. A failure keeps the rows of an earlier success, shows a retry and marks nothing. A load overtaken by a newer one
-  is dropped; a cancelled one shows nothing.
+  is dropped; a cancelled one (a tab switch cancels the screen's task) changes nothing, `hasLoaded` included, and the screen, whose
+  load-once flag is per screen, asks again when it comes back.
 - **Launch** (`checkAtLaunch`): waits 3 s, then `refreshCount`; a cancelled wait fetches nothing.
 - **Row**: title = topic title (TU abbreviation), "par <initiator>", legacy age words (`QualityAlertAge`), AQ title and comment; bold
   while new. A row opens the reader on `ReaderTarget(link:)`: topic, **page and anchor kept** (issues #105, #106; all 25 links of

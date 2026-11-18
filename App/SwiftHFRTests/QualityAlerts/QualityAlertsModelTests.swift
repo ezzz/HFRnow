@@ -131,6 +131,24 @@ struct QualityAlertsModelTests {
         #expect(model.failure == nil)
     }
 
+    @Test func aCancelledFirstLoadIsNeitherAFailureNorAnEmptyList() async throws {
+        let items = try Support.capturedItems()
+        let store = InMemorySettingsStore()
+        let source = FakeQualityAlertsSource { (call: Int) async throws(AQError) -> [AQFeedItem] in
+            if call == 0 { throw .network(.cancelled) }
+            return items
+        }
+        let model = Support.model(source: source, store: store)
+        await model.load()
+        // A tab switch cancelled it: nothing was learned, so the screen still shows its spinner state and nothing is marked seen.
+        #expect(!model.hasLoaded && !model.isLoading)
+        #expect(model.failure == nil && model.rows.isEmpty)
+        #expect(store.value(for: SettingKey.aqLastCheck) == nil)
+        // Asking again works.
+        await model.load()
+        #expect(model.hasLoaded && model.rows.count == 25)
+    }
+
     @Test func aFailedFirstLoadIsAFailureNotAnEmptyList() async {
         let source = FakeQualityAlertsSource { _ async throws(AQError) in throw .invalidResponse(.malformedDocument) }
         let store = InMemorySettingsStore()
