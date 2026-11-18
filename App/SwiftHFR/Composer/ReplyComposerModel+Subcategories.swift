@@ -8,10 +8,14 @@ extension ReplyComposerModel {
     func loadSubcategories() async {
         guard case .newTopic(let topic) = target, !picker.isLoading else { return }
         picker.beginLoading()
+        poll.beginLoading()
         do throws(PostingError) {
-            picker.apply(try await services.poster.newTopicOptions(formURL: topic.formURL))
+            let options = try await services.poster.newTopicOptions(formURL: topic.formURL)
+            picker.apply(options)
+            poll.apply(offers: options.offersPoll)
         } catch {
             picker.fail(ComposerMessages.subcategoriesUnavailable(error))
+            poll.fail()
         }
     }
 
@@ -23,6 +27,7 @@ extension ReplyComposerModel {
         do throws(PostingError) {
             let fresh = try await services.poster.editPrefill(edit)
             if let options = fresh.subcategories { picker.apply(options) } else { picker.reset() }
+            poll.apply(offers: fresh.offersPoll)
             picker.endLoading()
         } catch {
             picker.fail(ComposerMessages.editUnavailable(error))

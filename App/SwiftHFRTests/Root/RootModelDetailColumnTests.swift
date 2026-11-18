@@ -103,4 +103,21 @@ struct RootModelDetailColumnTests {
         #expect(alert.linkedReader == nil)
         #expect(root.detailReaders[.qualityAlerts] === next)
     }
+
+    // LOT-132: deleting the bookmark shown beside the list empties the detail column (legacy `MainWindow.swift:2266-2271`).
+    @Test func closingADetailColumnShowsItsPlaceholderAgain() {
+        let root = model(initial: .plus(.bookmarks))
+        let target = ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 7)))
+        let bookmark = TopicReaderModel(target: target, title: "Bookmark", source: FakeTopicPages())
+        let alert = TopicReaderModel(target: target, title: "Alerte", source: FakeTopicPages())
+        root.openInDetail(bookmark, for: .bookmarks)
+        root.openInDetail(alert, for: .qualityAlerts)
+        bookmark.follow(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 8))))
+        #expect(bookmark.linkedReader != nil)
+
+        root.closeDetail(for: .bookmarks)
+        #expect(root.detailReaders[.bookmarks] == nil)
+        #expect(bookmark.linkedReader == nil)
+        #expect(root.detailReaders[.qualityAlerts] === alert)
+    }
 }

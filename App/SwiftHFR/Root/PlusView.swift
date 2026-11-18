@@ -1,7 +1,6 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: an entry shows a placeholder until its lot lands;
-// the account button is top left, as `MainToolbar.swift:60-66` @ 87fe0d1c (#1057).
+// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: the account button is top left, as `MainToolbar.swift:60-66` @ 87fe0d1c (#1057).
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
     let model: RootModel
@@ -34,7 +33,7 @@ struct PlusView: View {
     }
 }
 
-/// The screen behind a Plus entry: the built screen, or a placeholder until the owning lot (`PlusEntry.owningLot`) brings it.
+/// The screen behind a Plus entry.
 struct PlusEntryView: View {
     let entry: PlusEntry
     let model: RootModel
@@ -53,20 +52,11 @@ struct PlusEntryView: View {
             StaticPageView(page: .charter)
         case .deleteAccount:
             AccountDeletionView()
+        case .bookmarks:
+            BookmarksView(mpStorage: model.mpStorage, selection: model.bookmarkSelection, environment: environment)
         case .qualityAlerts:
             QualityAlertsView(model: model.qualityAlerts, environment: environment)
-        case .bookmarks:
-            placeholder
         }
-    }
-
-    private var placeholder: some View {
-        ContentUnavailableView(
-            entry.title, systemImage: entry.symbol,
-            description: Text("Cet écran arrive dans une prochaine version.")
-        )
-        .navigationTitle(entry.title)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -33,6 +33,8 @@ final class ScriptedPoster: ReplyPosting {
         var post: Int?
         /// The write was a delete.
         var isDelete = false
+        /// The poll an edit adds (LOT-100); nil for the other writes.
+        var poll: PollDraft?
     }
 
     private let state: Mutex<(outcomes: [Result<PostingResult, PostingError>], calls: [Call])>
@@ -70,8 +72,11 @@ final class ScriptedPoster: ReplyPosting {
         return try answer.get()
     }
 
-    func edit(_ text: String, subject: String?, subcategory: String?, target: EditTarget) async throws(PostingError) -> PostingResult {
-        try await answer(Call(text: text, formURL: target.formURL, subject: subject, subcategory: subcategory, post: target.post))
+    func edit(_ text: String, subject: String?, subcategory: String?, poll: PollDraft?, target: EditTarget)
+        async throws(PostingError) -> PostingResult {
+        try await answer(
+            Call(text: text, formURL: target.formURL, subject: subject, subcategory: subcategory, post: target.post, poll: poll)
+        )
     }
 
     func delete(_ target: EditTarget) async throws(PostingError) -> PostingResult {
