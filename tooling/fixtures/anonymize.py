@@ -1212,7 +1212,7 @@ class MPStorageDocumentError(AnonymizeError):
 
 def plain_param(raw):
     """A URL parameter value as a name. HFR writes these raw (a `+` may be the pseudo's own), so a value that
-    `+`-decoding leaves blank, such as the pseudo `++++` (live R1096a), is read without that step."""
+    `+`-decoding leaves blank (a pseudo made of `+` signs, one on R1096a's raw page) is read without that step."""
     name = html.unescape(urllib.parse.unquote_plus(raw)).strip()
     return name or html.unescape(urllib.parse.unquote(raw)).strip()
 

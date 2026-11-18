@@ -53,7 +53,7 @@ Policy: [docs/FIXTURES.md](../../docs/FIXTURES.md). Protocol facts: [docs/HFR-PR
 
 **Member positions** (`DISCOVER` in `anonymize.py`, all seen live in the LOT-001 corpus): post author cell
 (`td.messCase1 b.s2`; a `b.s2` elsewhere, such as a poll question, is not a member), quote headers (`X a écrit :`),
-edit notices, the recipient row of MP forms (`th.repCase1` "Destinataire", R60b), `pseudo=` / `spseudo=` / `dest=` / `auteur=` / `util=` (the colour page's member themes, R1096a) URL parameters (a value that `+`-decoding leaves blank, such as the pseudo `++++`, is read as written; HFR writes raw spaces and apostrophes in
+edit notices, the recipient row of MP forms (`th.repCase1` "Destinataire", R60b), `pseudo=` / `spseudo=` / `dest=` / `auteur=` / `util=` (the colour page's member themes, R1096a) URL parameters (a value that `+`-decoding leaves blank, a pseudo made of `+` signs, is decoded without that step; HFR writes raw spaces and apostrophes in
 these values, a pseudo may even end with `'`: a value runs to `&`, `"`, `<` or `#`, and to the closing `'` only
 inside a JS single-quoted string) and `pseudo`/`dest` inputs, profile and
 moderator link texts, the MP list titles (`lu par : a, b`, `Message privé pour a, b`, `Interlocuteurs multiples`

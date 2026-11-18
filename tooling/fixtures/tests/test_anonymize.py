@@ -1014,9 +1014,9 @@ class PositionTests(unittest.TestCase):
                 'modifcolor2("background","#ECEEF4");\n}\n//--></script></th>'
                 '<th class="cBackTab1"><a href="setperso.php?page=1&amp;util=Kilo-Lima&amp;config=hfr.inc" '
                 'class="cCatTopic s2">Kilo-Lima</a></th>'
-                '<th class="cBackTab2"><a href="setperso.php?page=1&amp;util=++++&amp;config=hfr.inc" '
-                'class="cCatTopic s2">++++</a></th>')
-        out = self.check_page(html, "Papa Quebec", "Kilo-Lima", r"\+\+\+\+", "555301")
+                '<th class="cBackTab2"><a href="setperso.php?page=1&amp;util=+%20+&amp;config=hfr.inc" '
+                'class="cCatTopic s2">+ +</a></th>')
+        out = self.check_page(html, "Papa Quebec", "Kilo-Lima", r"\+ \+", "555301")
         self.assertIn('util=user5&amp;config=hfr.inc" class="cCatTopic s2">user5</a>', out)
         self.assertIn('util=user3&amp;config=hfr.inc" class="cCatTopic s2">user3</a>', out)
         self.assertIn('util=user4&amp;config=hfr.inc" class="cCatTopic s2">user4</a>', out)
@@ -1025,7 +1025,7 @@ class PositionTests(unittest.TestCase):
         # Each position is reported on its own by the independent verifier.
         for page in ('<a href="setperso.php?page=1&amp;util=Papa Quebec&amp;config=hfr.inc">x</a>',
                      '<a href="setperso.php?page=1&amp;util=user3&amp;config=hfr.inc" class="cCatTopic s2">Papa Quebec</a>',
-                     '<a href="setperso.php?page=1&amp;util=++++&amp;config=hfr.inc">x</a>',
+                     '<a href="setperso.php?page=1&amp;util=+%20+&amp;config=hfr.inc">x</a>',
                      '<script>function initexemple555301() {}</script>'):
             self.assertTrue(A.verify_structure(page), page)
 
