@@ -217,6 +217,12 @@ had sent and user2 had never opened left user2's list with it (as `W131`); user2
 | R285a | `R285a-rest-subcategories-cat1.json` | REST sub-categories of cat 1 (Hardware), anonymous (#285): 15, the legacy list of `R01` (home + injection), same order | R57 | 057, 021 |
 | R285b | `R285b-rest-subcategories-cat2.json` | The same for cat 2 (Overclocking…): 7, legacy's 6 plus « Divers » (its injection is keyed on a sub-forum the home does not list) | R57 | 057, 021 |
 | R285c | `R285c-rest-subcategories-cat10.json` | The same for cat 10 (Programmation): 27, against 14 in legacy's list of `R01` (13 in common, « PDA » gone) | R57 | 057, 021 |
+| R929a | `R929a-rest-subcategories-cat14.json` | REST sub-categories of cat 14 (Photo numérique), anonymous, 2026-11-18 (#929): 10, « Divers » (457) included | R57 | 168 |
+| R929b | `R929b-rest-subcategories-cat4.json` | The same for cat 4 (Windows & Software): 12, « Win 9x/Me » (504) included | R57 | 168 |
+| R929c | `R929c-rest-subcategories-cat12.json` | The same for cat 12 (Graphisme): 10, « Concours » (229), « Ressources » (230), « Divers » (231) included | R57 | 168 |
+| R929d | `R929d-rest-subcategories-cat6.json` | The same for cat 6 (Achats & Ventes): 11, « Divers » (174), « Règles et coutumes » (399) included | R57 | 168 |
+| R728a | `R728a-stylesheet-default-skin.css` | The forum stylesheet of the default skin, anonymous, 2026-11-18 (#728): `GET /include/the_style1.php?color_key=FFFFFF/DEDFDF/…&abs_img_path=…&hide_bg_onglet=0&v=…`, the URL linked by the anonymous home page (its committed URL carries the redacted image-base field, #1090: do not replay it as is) | #728 | 193 |
+| R728b | `R728b-stylesheet-static-the-style.css` | The static stylesheet every full forum page links, `https://forum-images.hardware.fr/compressed/the_style.css?v=11102781422`, anonymous, 2026-11-18 (#728) | #728 | 193 |
 | R335a | `R335a-rest-bucket-participated.json` | REST flag bucket `topics/participated/` (global, grouped by category), logged in (user1): 2 groups of 1 topic, aliased by position so fixtures stay stable and carry no live data (kit README, REST flag buckets) | R57 | 057 |
 | R335b | `R335b-rest-bucket-read.json` | The same for `topics/read/` | R57 | 057 |
 | R335c | `R335c-rest-bucket-favorites.json` | The same for `topics/favorites/` | R57 | 057 |

@@ -289,7 +289,7 @@ final class MessageListModel {
     /// thread HFR now holds unread, and its next load could read it again. A failure changes nothing on the row.
     func markUnreadEnded(_ thread: PrivateMessageThread, in reader: TopicReaderModel, _ outcome: TopicFlagOutcome) async {
         switch outcome {
-        case .failed(let reason):
+        case .failed(let reason), .retryable(let reason):
             // Only the reader that sent it holds the failure: the same conversation opened again has a new one, which shows nothing.
             if currentReader?.model !== reader { actionFailure = reason }
         case .done(let message):

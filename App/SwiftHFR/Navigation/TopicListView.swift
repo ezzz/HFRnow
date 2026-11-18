@@ -110,7 +110,13 @@ struct TopicListView: View {
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
         ) {
-            Button("OK", role: .cancel) {}
+            // The row is captured here: the alert clears the model's state before a button's action runs (LOT-087).
+            if let topic = model.retryableRemoval {
+                Button("Réessayer") { Task { await model.removeFlag(topic) } }
+                Button("Annuler", role: .cancel) {}
+            } else {
+                Button("OK", role: .cancel) {}
+            }
         } message: {
             Text(model.actionFailure ?? "")
         }

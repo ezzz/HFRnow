@@ -6,6 +6,7 @@ protocol MPNotificationDelivering: Sendable {
     func deliver(_ content: MPNotificationContent) async
     /// Removes the notification with `identifier`, shown or pending.
     func withdraw(_ identifier: String) async
-    /// Sets the app icon badge; 0 hides it.
-    func setBadge(_ count: Int) async
+    /// Sets the app icon badge; 0 hides it. False when iOS does not show it: no badge permission (yet), or the write failed.
+    @discardableResult
+    func setBadge(_ count: Int) async -> Bool
 }

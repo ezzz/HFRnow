@@ -11,10 +11,13 @@ struct URLSessionTransportTests {
         try LoopbackServer(route: route)
     }
 
-    private func makeTransport() -> URLSessionTransport {
+    /// `sessionTimeout` is the session's own limit (corelibs' default is 60 s). A test of the idle watcher sets it far above
+    /// anything the test waits for, so without the watcher the request cannot end by itself and the test's time limit fails it.
+    private func makeTransport(sessionTimeout: TimeInterval? = nil) -> URLSessionTransport {
         // Ignore proxy environment variables: the target is 127.0.0.1.
         let configuration = URLSessionConfiguration.ephemeral
         configuration.connectionProxyDictionary = [:]
+        if let sessionTimeout { configuration.timeoutIntervalForRequest = sessionTimeout }
         return URLSessionTransport(session: URLSession(configuration: configuration))
     }
 
@@ -94,10 +97,12 @@ struct URLSessionTransportTests {
         #expect(response.redirectLocation == nil)
     }
 
-    @Test func silentServerTimesOut() async throws {
+    @Test(.timeLimit(.minutes(3))) func silentServerTimesOut() async throws {
         let server = try makeServer { _ in ServerReply(hangs: true) }
         defer { server.stop() }
-        await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(.get(server.baseURL, timeout: 0.5)) }
+        let transport = makeTransport(sessionTimeout: 3600)
+        let url = server.baseURL
+        await #expect(throws: NetworkError.timedOut) { try await transport.send(.get(url, timeout: 0.5)) }
     }
 
     /// #683: the presets of legacy 4.0.x at `2fe43da3` (`Classes/Constants.h:70-72`, `ObjCForumSearchWorker.m:8`,
@@ -122,16 +127,16 @@ struct URLSessionTransportTests {
         #expect(response.body.count == 8)
     }
 
-    @Test func answerThatStallsAfterItsFirstBytesFailsAtTheIdleLimit() async throws {
+    @Test(.timeLimit(.minutes(3))) func answerThatStallsAfterItsFirstBytesFailsAtTheIdleLimit() async throws {
         let server = try makeServer { _ in
-            // Silent for 20 s, then the server closes the connection: only the idle limit ends this request with `timedOut` before that
-            // (without it the answer is a transport error; corelibs' own default of 60 s is never reached).
-            ServerReply(
-                body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, stallsAfterFirstChunk: true, stallSeconds: 20
-            )
+            // One piece, then silence until the client closes: only the idle limit ends this request (the session's own
+            // limit is an hour, so without the watcher the time limit of the test fails it).
+            ServerReply(body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, stallsAfterFirstChunk: true)
         }
         defer { server.stop() }
-        await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(.get(server.baseURL, timeout: 0.6)) }
+        let transport = makeTransport(sessionTimeout: 3600)
+        let url = server.baseURL
+        await #expect(throws: NetworkError.timedOut) { try await transport.send(.get(url, timeout: 0.6)) }
     }
 
     /// Global search also caps the whole transfer (legacy `timeoutIntervalForResource`, `ObjCForumSearchWorker.m:131-132`).
@@ -156,11 +161,8 @@ struct URLSessionTransportTests {
     }
 
     @Test func refusedConnectionIsATransportError() async throws {
-        let server = try makeServer { _ in ServerReply() }
-        let url = server.baseURL
-        server.stop()
         do {
-            _ = try await makeTransport().send(.get(url))
+            _ = try await makeTransport().send(.get(RefusingPort.baseURL))
             Issue.record("expected a failure")
         } catch {
             if case .transport = error { return }

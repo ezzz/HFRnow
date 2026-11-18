@@ -1,0 +1,15 @@
+{
+  "id": "R728b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/compressed/the_style.css?v=11102781422",
+  "url": "https://forum-images.hardware.fr/compressed/the_style.css?v=11102781422",
+  "final_url": "https://forum-images.hardware.fr/compressed/the_style.css?v=11102781422",
+  "status": 200,
+  "content_type": "text/css",
+  "date": "Wed, 18 Nov 2026 01:49:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "file": "R728b-stylesheet-static-the-style.css",
+  "private": false
+}

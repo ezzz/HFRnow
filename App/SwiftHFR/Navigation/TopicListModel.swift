@@ -112,6 +112,8 @@ final class TopicListModel {
     var removingFlags: Set<TopicSummary.ID> = []
     /// Why the last row action did not end as asked, in French; the row stays as it was.
     var actionFailure: String?
+    /// The row whose removal failed with nothing sent and may work if sent again: the failure offers « Réessayer » (#1056).
+    var retryableRemoval: TopicSummary?
 
     /// The Tous / Favoris / Suivis / Lus choice shared by the lists that offer it; nil where there is none.
     let topicFilter: TopicFilterModel?

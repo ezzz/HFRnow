@@ -145,6 +145,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-119 | MPStorage flags on MP rows | Group rows show the stored flag page. | MPListView.swift:150-165 | `mpFlags` label on group rows while the account syncs; opening at the flag comes with the reader's flag write (follow-up). | LOT-062, LOT-130 | ported with changes | port: ezzz Swift layer | a |
 | GAP-120 | MP list logged out | "Connectez-vous pour accéder aux MP". | MPListView.swift:289-296 | "Connexion requise", no request sent. | LOT-126 | same | port: ezzz Swift layer | a |
 | GAP-230 | MP avatar | Cache filled while parsing topic pages (download when missing or older than 24 h); grey disc when absent. | ParseMessagesOperation.m:176, 430-446; MPListView.swift (MPAvatarView) @ 2440d79 | `AvatarStore` fills the cache from every page read (cookie-less, forum image host only, 256 KiB cap, 24 h; not gated by any image setting (there is no « Images externes » setting since #902, and the experimental « Chargement des images » choice does not apply to avatars): forum avatars are first-party (LOT-071 D-071-1 point 3), as in the reader and legacy); the avatar files the legacy app cached (`MD5(lowercased pseudo)`) are adopted on first read after an update (#714); a one-to-one correspondent still missing is looked up while the row is shown (`profilebdd.php` redirect, then the public profile, both cookie-less, `R716a`-`R716d`; one lookup at a time, each pseudo once per session) and the avatar stored by `AvatarStore` (#714); monogram (initials, stable hue, ≥ 4.5:1) replaces the grey disc when there is none; groups keep their icon. | LOT-126, LOT-066, #569, #714 | ported with changes | port: ezzz Swift layer | a |
+| GAP-1074 | MPStorage thread in the MP list | Shown as a normal MP row and bumped « non lu » by every client write; no filter. | MPListView.swift (no filter); MPStorage.m:713 @ 87fe0d1c | The thread (subject `a2bcc09b…`) is hidden once at the list source, from « MP », « MP multiples » and the counts derived from the rows; MPStorage still finds it. HFR's own badge number is unchanged. | #1074 | new | operator feedback 2026-11-17, #1074, #1075; captures R13u1, R333b | b |
 
 ## Search
 
@@ -214,7 +215,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 |---|---|---|---|---|---|---|---|---|
 | GAP-190 | Background MP check | BGAppRefresh `com.hfrplus.refresh_mp` polls the home page. | MPBackgroundService.swift:21-46, 70-110 | Same task id; current account's stored session written back nowhere; home count then MP list page 1; interval setting (15 min to 4 h, Jamais; default 30 min) and the ledger's interval guard; nothing on an unknown or expired answer. | LOT-140, LOT-047 | ported with changes | port: ezzz Swift layer | b·operator |
 | GAP-191 | Local notification | "Vous avez un nouveau message privé" when the count rises. | MPBackgroundService.swift:98-101, 140-157 | One notification per conversation that became unread (interlocutor and title, or a group's title), `mp-<topic>` identifier and thread, a summary past 5; the legacy text only when the list could not be read and the count rose. A reply in an already-unread conversation waits on #571. | LOT-140, LOT-091 | ported with changes | port: ezzz Swift layer | b·operator |
-| GAP-192 | App icon badge | Synced with the MP count when `mp_badge_enabled`. | MPBackgroundService.swift:60-66 | Badge per setting, set by the running app and by the background check. | LOT-140 | ported with changes | port: ezzz Swift layer | b·needed |
+| GAP-192 | App icon badge | Synced with the MP count when `mp_badge_enabled`. | MPBackgroundService.swift:60-66; MainWindow.swift:1564-1567, :2588-2593 | Badge per setting, set by the running app and by the background check; a badge iOS did not show (no permission yet) is set again when the app is back on screen, a shown one is not (#1060). | LOT-140 | ported with changes | port: ezzz Swift layer | b·needed |
 | GAP-193 | "Vérifier HFR" App Intent | None. | — | Shortcuts check of MPs and flags, minimum interval. | LOT-141, LOT-092, FEAT-005 | new | new UX: Bybifok (FEAT-005) | b |
 | GAP-194 | Flag news notification | Flags never notified. | — | Ledger notifies flagged topics with a newer post. | LOT-091, LOT-092 | new | new UX: Bybifok (FEAT-005) | b |
 | GAP-195 | "On t'a cité" | None. | — | Quote notice in Home and notifications, if the capture proves it feasible. | LOT-154, FEAT-018 | new | new UX: Bybifok (FEAT-018) | b |
@@ -276,10 +277,10 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | ported with changes | 59 |
 | ported with changes (engine only) | 1 |
 | UX change | 48 |
-| new | 27 |
+| new | 28 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **178** |
+| **Total** | **179** |
 
 ## Convergence notes
 
@@ -309,7 +310,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (134)
+### GAP rows of type `ported with changes`, `UX change` or `new` (135)
 
 | H.1 | Rows | Count |
 |---|---|---|
@@ -317,7 +318,7 @@ Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-co
 | a·master | 002, 093, 099, 117, 150, 152, 210, 211, 219, 713 | 10 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
 | b·operator | 011, 013, 016, 065, 091, 102, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 596, 653, 655, 703, 729, 750, 799, 903, 978 | 30 |
-| b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229 | 37 |
+| b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 1074 | 38 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
 
