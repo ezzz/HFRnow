@@ -84,3 +84,24 @@ enum ComposerToolStyle: Equatable {
     /// A chip's diameter in a cell of `cell` points.
     static func chipDiameter(cell: CGFloat) -> CGFloat { max(0, cell - 2 * chipInset) }
 }
+
+/// The size of one composer tool, from one source for the card's tools and the top bar's close, drafts and send buttons
+/// (#1126, operator 2026-11-18: the card's tools are the target): the cell is the hit area (at least the HIG's 44 pt), the
+/// diameter the round shape drawn in it, the glyph its symbol's point size and `glyphWeight` its weight.
+struct ComposerToolSize: Equatable {
+    /// The hit area's side.
+    let cell: CGFloat
+    /// The circle's diameter: the chip's with the `pills` style, the whole cell with `plain`.
+    let diameter: CGFloat
+    /// The symbol's point size.
+    let glyph: CGFloat
+
+    /// The symbol's weight.
+    static let glyphWeight: Font.Weight = .medium
+
+    init(metrics: ComposerBarMetrics, inCard: Bool = true, style: ComposerToolStyle = .current) {
+        cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard)
+        diameter = style == .pills && inCard ? ComposerToolStyle.chipDiameter(cell: cell) : cell
+        glyph = metrics.glyphSize
+    }
+}

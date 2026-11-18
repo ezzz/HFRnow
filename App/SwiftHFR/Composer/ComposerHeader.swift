@@ -26,6 +26,15 @@ struct ComposerHeader: View {
         ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType).glyphSize
     }
 
+    /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows.
+    static func buttonSize(metrics: ComposerBarMetrics, style: ComposerToolStyle = .current) -> ComposerToolSize {
+        ComposerToolSize(metrics: metrics, inCard: true, style: style)
+    }
+
+    private var toolSize: ComposerToolSize {
+        Self.buttonSize(metrics: ComposerBarMetrics(density: density, scale: scale, dynamicType: dynamicType))
+    }
+
     /// The drafts button's state and action.
     struct Drafts {
         /// Some drafts are archived: the button is prominent, as legacy's.
@@ -112,7 +121,7 @@ struct ComposerHeader: View {
     }
 
     private var closeButton: some View {
-        Button(action: close) { symbol("xmark", size: 14) }
+        Button(action: close) { symbol("xmark") }
             .buttonBorderShape(.circle)
             .buttonStyle(.glass)
             .disabled(!Self.closeIsEnabled(isSending: isSending))
@@ -121,7 +130,7 @@ struct ComposerHeader: View {
     }
 
     private func draftsButton(_ drafts: Drafts) -> some View {
-        Button(action: drafts.open) { symbol("tray", size: 15, weight: .semibold) }
+        Button(action: drafts.open) { symbol("tray") }
             .buttonBorderShape(.circle)
             .modifier(GlassStyle(isProminent: drafts.hasDrafts))
             .disabled(!Self.draftsAreEnabled(drafts, isSending: isSending))
@@ -134,11 +143,10 @@ struct ComposerHeader: View {
             if state.showsSpinner {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: 18, height: 18)
-                    .padding(8)
+                    .frame(width: toolSize.diameter, height: toolSize.diameter)
                     .accessibilityLabel(state.label)
             } else {
-                symbol("arrow.up", size: 16)
+                symbol("arrow.up")
             }
         }
         .buttonBorderShape(.circle)
@@ -147,11 +155,11 @@ struct ComposerHeader: View {
         .accessibilityLabel(state.label)
     }
 
-    private func symbol(_ name: String, size: CGFloat, weight: Font.Weight = .bold) -> some View {
+    /// A glyph in the card tools' circle: their diameter, glyph size and weight (#1126); the glass behind it is the bar's own.
+    private func symbol(_ name: String) -> some View {
         Image(systemName: name)
-            .font(.system(size: size, weight: weight))
-            .frame(width: 18, height: 18)
-            .padding(8)
+            .font(.system(size: toolSize.glyph, weight: ComposerToolSize.glyphWeight))
+            .frame(width: toolSize.diameter, height: toolSize.diameter)
     }
 }
 
