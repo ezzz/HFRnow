@@ -25,9 +25,9 @@ struct BookmarksView: View {
                 Text("Connectez-vous pour voir vos bookmarks.").foregroundStyle(.secondary)
             case .notSyncing:
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Stockage MP désactivé", systemImage: "tray").font(.headline)
+                    Label("Stockage MP désactivé", systemImage: "tray").scaledFont(.headline)
                     Text("Activez « Activer le stockage MP » dans Réglages pour récupérer vos bookmarks.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .scaledFont(.footnote).foregroundStyle(.secondary)
                 }
             case .syncing:
                 listContent
@@ -112,13 +112,13 @@ private struct BookmarkRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(BookmarkList.title(of: bookmark)).font(.headline).foregroundStyle(.primary)
+            Text(BookmarkList.title(of: bookmark)).scaledFont(.headline).foregroundStyle(.primary)
             HStack {
                 Text(bookmark.author)
                 Spacer()
                 Text(BookmarkList.dateText(of: bookmark))
             }
-            .font(.footnote)
+            .scaledFont(.footnote)
             .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)

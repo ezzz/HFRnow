@@ -63,13 +63,14 @@ final class BookmarksModel {
         selectedID = bookmark.id
     }
 
-    /// Removes `bookmark` from the document; returns whether it was the one open beside the list (the caller closes it).
+    /// Removes `bookmark` from the document; returns whether it was removed and was the one open beside the list (the
+    /// caller closes it). The record is read again first: another window may have switched the account off (LOT-146).
     @discardableResult
     func delete(_ bookmark: MPStorageBookmark) async -> Bool {
-        guard let mpStorage else { return false }
+        guard let mpStorage, mpStorage.writeConsent(for: .bookmarks) == .sync else { return false }
         let id = bookmark.id
-        await mpStorage.edit(.bookmarks) { document, stamp in try document.removeBookmark(id: id, stamp: stamp) }
-        guard selectedID == id else { return false }
+        let removed = await mpStorage.edit(.bookmarks) { document, stamp in try document.removeBookmark(id: id, stamp: stamp) }
+        guard removed, selectedID == id else { return false }
         selectedID = nil
         return true
     }

@@ -31,7 +31,8 @@ struct ReaderBookmarkFlow: ViewModifier {
     }
 }
 
-/// Legacy's prompt: the question, a title field, « Annuler » and « Créer », the latter off while the title is blank.
+/// Legacy's prompt: the question, a title field, « Annuler » and « Créer », the latter off while the title is blank or holds
+/// an emoji the storage cannot keep (said under the field).
 private struct BookmarkTitleSheet: View {
     let draft: BookmarkActionModel.Draft
     let create: (String) -> Void
@@ -43,28 +44,31 @@ private struct BookmarkTitleSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Créer un bookmark sur le post de \(draft.author) ?").font(.callout).foregroundStyle(.secondary)
+                    Text("Créer un bookmark sur le post de \(draft.author) ?").scaledFont(.callout).foregroundStyle(.secondary)
                     TextField("Ajoutez un titre", text: $title)
                         .textInputAutocapitalization(.sentences)
                         .focused($focused)
                         .submitLabel(.done)
                         .onSubmit(submit)
+                } footer: {
+                    // Said before « Créer », so the title is never lost to a refused write (LOT-062).
+                    if let problem, !problem.isEmpty { Text(problem) }
                 }
             }
             .navigationTitle("Bookmark")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Créer", action: submit).disabled(isBlank) }
+                ToolbarItem(placement: .confirmationAction) { Button("Créer", action: submit).disabled(problem != nil) }
             }
             .task { focused = true }
         }
     }
 
-    private var isBlank: Bool { title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var problem: String? { BookmarkActionModel.titleProblem(title) }
 
     private func submit() {
-        guard !isBlank else { return }
+        guard problem == nil else { return }
         create(title)
     }
 }
