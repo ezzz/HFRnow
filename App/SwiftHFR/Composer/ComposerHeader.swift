@@ -3,7 +3,8 @@ import SwiftUI
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`, composerCloseButtonStyle, composerDraftButtonStyle,
 // composerSendButtonStyle `:1704-1745`) @ 87fe0d1c. Differences: drawn on the docked card instead of a full-screen cover (#653,
 // GAP-653); with the modern composer the buttons float with no title (`FloatingComposerButtons`, #854, #895, #972); the drafts
-// button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type.
+// button only where LOT-101 archives drafts (a topic's reply); the title follows Dynamic Type; the buttons take the card tools' diameter,
+// glyph size and weight (`ComposerToolSize`, #1126).
 /// The composer's top bar, as legacy's (#653, operator reference of 2026-11-10): close `xmark` and the drafts `tray` on the left,
 /// the title in the middle, send `arrow.up` on the right, greyed while there is nothing to send and a spinner while sending.
 /// On an iPhone with the modern composer (`floats`) the same buttons, smaller, float above the text card with no title (#972).
@@ -100,7 +101,7 @@ struct ComposerHeader: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 // Room for the close and drafts buttons on each side, whatever the metrics make them (#1126).
-                .padding(.horizontal, 2 * toolSize.diameter + 16)
+                .padding(.horizontal, 2 * toolSize.diameter + 28)
                 .accessibilityAddTraits(.isHeader)
                 .composerProbe(.title)
             HStack(spacing: 8) {

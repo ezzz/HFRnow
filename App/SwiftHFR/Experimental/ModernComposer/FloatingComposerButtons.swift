@@ -2,9 +2,9 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`) @ 87fe0d1c. Differences: no title strip (#972, operator
-// 2026-11-16): close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, directly above the card, as small
-// capsules in 44 pt hit areas (#854) on an opaque-enough fill so they read over any page (#972), `FloatingSpacing.gap` from the
-// sides and the card (#895); GAP-653.
+// 2026-11-16): close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, directly above the card, as circles
+// of the card tools' diameter (`ComposerToolSize`, #1126) in 44 pt hit areas (#854) on an opaque-enough fill so they read over
+// any page (#972), `FloatingSpacing.gap` from the sides and the card (#895); GAP-653.
 /// The modern composer's floating buttons (#904, Réglages › Expérimental › « Composer moderne »): close and drafts on the left,
 /// send on the right, nothing between them. The title legacy's bar shows is the row's VoiceOver label only.
 struct FloatingComposerButtons: View {
