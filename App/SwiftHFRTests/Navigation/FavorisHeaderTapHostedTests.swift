@@ -7,48 +7,6 @@ import SwiftUI
 import Testing
 import UIKit
 
-/// Where the main actor last was, readable from a watchdog thread: a main-thread hang never reaches the next step, and
-/// `.timeLimit` cannot end it (it cancels, and a hung main thread never checks), so the watchdog names the step and ends the run.
-/// Every step goes to stderr as `[#979] <step>`: read the step a hang stopped after there (the xcodebuild log, or the test's
-/// standard error in the result bundle), on the `[#979] HANG` line.
-private final class StepLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var step = "start"
-    private var beat = Date()
-    private var stopped = false
-
-    func mark(_ name: String) {
-        lock.withLock {
-            step = name
-            beat = Date()
-        }
-        FileHandle.standardError.write(Data("[#979] \(name)\n".utf8))
-    }
-
-    func heartbeat() { lock.withLock { beat = Date() } }
-
-    /// Ends the watch with the test: a watchdog that outlives it would end the host in the middle of another test.
-    func stop() { lock.withLock { stopped = true } }
-
-    /// Watches the main actor for `limit` seconds of silence. The limit is far above a slow first hosting on a loaded runner
-    /// (the steps beat every 50 ms) and under the test's 60 s `.timeLimit`. The end is a crash, not `exit`: an exit made the run
-    /// relaunch and report its remaining tests as passed, while a crash is reported against this test with its message.
-    func watch(limit: TimeInterval) {
-        Thread.detachNewThread { [self] in
-            while true {
-                Thread.sleep(forTimeInterval: 1)
-                let (done, step, silence) = lock.withLock { (stopped, step, Date().timeIntervalSince(beat)) }
-                if done { return }
-                if silence > limit {
-                    let message = "[#979] HANG: main actor silent \(Int(silence)) s after '\(step)'"
-                    FileHandle.standardError.write(Data((message + "\n").utf8))
-                    fatalError(message)
-                }
-            }
-        }
-    }
-}
-
 /// The hosted Favoris tab and the models a test checks.
 private struct HostedFavoritesTab {
     let window: UIWindow
@@ -75,32 +33,6 @@ struct FavorisHeaderTapHostedTests {
             ),
             profiles: FakeUserProfiles([])
         )
-    }
-
-    /// Every accessibility element under `root`.
-    private func elements(under root: NSObject) -> [NSObject] {
-        var found: [NSObject] = []
-        var stack: [NSObject] = [root]
-        while let node = stack.popLast(), found.count < 5_000 {
-            found.append(node)
-            if let children = node.accessibilityElements as? [NSObject] {
-                stack.append(contentsOf: children)
-            } else {
-                let count = node.accessibilityElementCount()
-                if count != NSNotFound, count > 0 {
-                    stack.append(contentsOf: (0..<count).compactMap { node.accessibilityElement(at: $0) as? NSObject })
-                }
-            }
-            if let view = node as? UIView { stack.append(contentsOf: view.subviews) }
-        }
-        return found
-    }
-
-    /// Turns SwiftUI's accessibility tree on or off: it is built only for an assistive technology, as UI tests turn it on.
-    private static func setAccessibilityAutomation(_ isOn: Bool) {
-        guard let handle = dlopen("/usr/lib/libAccessibility.dylib", RTLD_NOW),
-              let symbol = dlsym(handle, "_AXSSetAutomationEnabled") else { return }
-        unsafeBitCast(symbol, to: (@convention(c) (Int32) -> Void).self)(isOn ? 1 : 0)
     }
 
     /// The favourites page (15 categories of 6 topics) and the forum list (the same categories, 8 sub-forums each).
@@ -163,11 +95,11 @@ struct FavorisHeaderTapHostedTests {
         .timeLimit(.minutes(1)), arguments: [ListDensity.compact, .regular], [CGFloat(320), 402]
     )
     func aSectionTitlePushesItsCategory(density: ListDensity, width: CGFloat) async throws {
-        let log = StepLog()
+        let log = HostedHangWatchdog(tag: "#979")
         log.watch(limit: 45)
-        Self.setAccessibilityAutomation(true)
+        HostedAccessibility.setAutomation(true)
         defer {
-            Self.setAccessibilityAutomation(false)
+            HostedAccessibility.setAutomation(false)
             log.stop()
         }
         log.mark("\(density) \(width): setup")
@@ -180,7 +112,9 @@ struct FavorisHeaderTapHostedTests {
             try await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
             log.heartbeat()
-            title = elements(under: window).first { $0.accessibilityLabel == "Catégorie 13" && $0.accessibilityHint == "Ouvrir le forum" }
+            title = HostedAccessibility.elements(under: window).first {
+                $0.accessibilityLabel == "Catégorie 13" && $0.accessibilityHint == "Ouvrir le forum"
+            }
         }
         let element = try #require(title, "the section title is not on screen")
 
