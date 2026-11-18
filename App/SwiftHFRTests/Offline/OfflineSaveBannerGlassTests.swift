@@ -19,7 +19,7 @@ struct OfflineSaveBannerGlassTests {
     private func render(window: UIWindow) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        format.preferredRange = .standard // 8-bit sRGB, so the bytes below are R, G, B
+        format.preferredRange = .standard // 8-bit sRGB, so the bytes below are 4 channels per pixel
         return UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -50,8 +50,9 @@ struct OfflineSaveBannerGlassTests {
     }
 
     /// A strip of the banner's row between its text and its close button (no glyph there), against a pixel of the bare page: a
-    /// bare banner leaves them identical, glass moves each channel by a few levels (7 to 9 in dark over red, more in light).
-    private func differsFromPage(_ image: UIImage, columns: Range<Int> = 280..<340) throws -> Bool {
+    /// bare banner leaves them identical, glass moves each channel by a few levels (7 to 9 in dark over red, 87 to 108 inside
+    /// the light fill). `minLevel` above the glass shadow (4 to 25 levels outside the card) separates the fill from the halo.
+    private func differsFromPage(_ image: UIImage, columns: Range<Int> = 280..<340, minLevel: Int = 3) throws -> Bool {
         let cg = try #require(image.cgImage)
         #expect(cg.bitsPerPixel == 32 && image.scale == 1)
         let data = try #require(cg.dataProvider?.data)
@@ -61,7 +62,7 @@ struct OfflineSaveBannerGlassTests {
         var differing = 0
         for y in stride(from: 70, to: 90, by: 2) {
             for x in stride(from: columns.lowerBound, to: columns.upperBound, by: 2) {
-                if zip(pixel(x, y), page).contains(where: { abs($0 - $1) > 3 }) { differing += 1 }
+                if zip(pixel(x, y), page).contains(where: { abs($0 - $1) > minLevel }) { differing += 1 }
             }
         }
         return differing > columns.count * 3
@@ -77,6 +78,6 @@ struct OfflineSaveBannerGlassTests {
     @Test func aWrappedMessageStillGetsTheGlass() async throws {
         let image = try await snapshot(scheme: .light, size: .accessibility3)
         // The card's left padding: glyphs start 16 pt inside the card (x 32), a bare banner's text at x 16.
-        #expect(try differsFromPage(image, columns: 20..<30))
+        #expect(try differsFromPage(image, columns: 20..<30, minLevel: 40))
     }
 }
