@@ -167,7 +167,7 @@ struct BookmarksModelTests {
         await gated.readIsHeld()
         #expect(model.bookmarks.isEmpty)
         await gated.gate.release()
-        await deletion.value
+        _ = await deletion.value
         #expect(model.bookmarks.isEmpty)
         #expect(try await gated.remote.bookmarks().isEmpty)
     }
