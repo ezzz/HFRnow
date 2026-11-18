@@ -114,16 +114,51 @@ struct AccountsModelSyncTests {
         #expect(store.envelope == before)
     }
 
-    @Test("#1200 P3: a state this version cannot read is shown, the switch stays off, and the state is kept")
-    func anUnreadableStateIsShownAndKept() throws {
+    @Test("#1200 P3: a state a later version wrote is shown, the switch stays off, no reset is offered, and the state is kept")
+    func aLaterVersionStateIsShownAndKept() throws {
         let later = Data(#"{"version":2,"isOn":true,"enabledAt":1}"#.utf8)
         let state = InMemorySecureDataItem(data: later)
         let (model, _) = try device([Fake.account("user1", main: true)], state: state)
         model.reconcileAccountSync()
+        #expect(!model.isAccountSyncDamaged)
         model.setAccountSync(true)
+        model.setAccountSync(false)
         #expect(!model.isAccountSyncOn)
-        #expect(model.accountSyncNotice == AccountSyncMessages.problem(AccountSyncError.unreadableState))
+        #expect(!model.isAccountSyncDamaged)
+        #expect(model.accountSyncNotice == AccountSyncMessages.problem(AccountSyncError.stateFromLaterVersion))
         #expect(state.data == later)
         #expect(item.writeCount == 0)
+    }
+
+    @Test("#1200 P3: damaged state bytes are shown with a reset; nothing changes until the user resets them")
+    func aDamagedStateOffersAResetAndKeepsTheBytesUntilThen() throws {
+        let damaged = Data("garbage".utf8)
+        let state = InMemorySecureDataItem(data: damaged)
+        let (model, _) = try device([Fake.account("user1", main: true)], state: state)
+        model.reconcileAccountSync()
+        model.setAccountSync(true)
+        #expect(model.isAccountSyncDamaged)
+        #expect(!model.isAccountSyncOn)
+        #expect(model.accountSyncNotice == AccountSyncMessages.problem(AccountSyncError.damagedState))
+        #expect(state.data == damaged)
+        #expect(item.writeCount == 0)
+    }
+
+    @Test("#1200 P3: the user's reset writes a fresh off state, keeps the accounts and never touches the iCloud item")
+    func theResetClearsADamagedState() throws {
+        let state = InMemorySecureDataItem(data: Data("garbage".utf8))
+        let (model, store) = try device([Fake.account("user1", main: true)], state: state)
+        model.reconcileAccountSync()
+        let accounts = store.envelope
+        model.resetAccountSync()
+        #expect(!model.isAccountSyncDamaged)
+        #expect(!model.isAccountSyncOn)
+        #expect(model.accountSyncNotice == nil)
+        #expect(state.data != Data("garbage".utf8))
+        #expect(item.writeCount == 0)
+        #expect(store.envelope == accounts)
+        // The switch works again once the state is reset.
+        model.setAccountSync(true)
+        #expect(model.isAccountSyncOn)
     }
 }

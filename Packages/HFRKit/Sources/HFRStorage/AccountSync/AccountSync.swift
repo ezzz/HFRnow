@@ -41,10 +41,14 @@ public struct AccountSyncReport: Sendable, Hashable {
 public enum AccountSyncError: Error, Sendable, Hashable {
     /// Another device kept changing the synchronizable item between this device's read and its write.
     case itemChanged
-    /// This device's state item holds bytes this version cannot read (a later version wrote it, or they are damaged).
-    /// Nothing was read as off and nothing was written over them: a later version can still read the switch and the
-    /// tombstones it honoured (#1200 P3).
-    case unreadableState
+    /// This device's state item was written by a later version of the app (a `version` this one does not know). Nothing
+    /// was read as off and nothing was written over it: the later version can still read the switch and the tombstones it
+    /// honoured (#1200 P3). No operation resets it.
+    case stateFromLaterVersion
+    /// This device's state item holds bytes no version wrote as they are (not a state, or a state missing its fields).
+    /// Nothing was written over them; only the user's explicit switch-off (`switchOff`) resets it to off (#1200 P3,
+    /// operator option (b)).
+    case damagedState
 }
 
 /// The opt-in iCloud Keychain sync of the accounts (ADR 0013 §6, LOT-173): the device-only store stays the master, a
@@ -74,7 +78,8 @@ public final class AccountSync: Sendable {
     }
 
     /// The device's state (off with nothing known when its item is absent).
-    /// - Throws: `AccountSyncError.unreadableState` when the item holds bytes this version cannot read.
+    /// - Throws: `AccountSyncError.stateFromLaterVersion` or `.damagedState` when the item holds bytes this version cannot
+    ///   read.
     public func state() throws -> AccountSyncState {
         try lock.withLock { _ in try loadState() }
     }
@@ -126,8 +131,19 @@ public final class AccountSync: Sendable {
     }
 
     /// The user's switch-off: writes a tombstone over whatever the item holds and keeps the accounts entered here.
+    ///
+    /// On damaged state bytes (`damagedState`) it is the reset the user asked for (#1200 P3, operator option (b)): the item
+    /// gets a fresh off state that remembers the device consented once (`hadLocalAccounts`), so it never bootstraps by
+    /// itself. The accounts and the synchronizable item are untouched: whether this device was sharing is unknown. A state
+    /// a later version wrote is never reset (`stateFromLaterVersion`).
     public func switchOff() throws -> AccountSyncReport {
         try lock.withLock { _ in
+            if case .damaged = AccountSyncState.decoded(from: try stateItem.read()) {
+                var reset = AccountSyncState()
+                reset.hadLocalAccounts = true
+                try saveState(reset)
+                return AccountSyncReport()
+            }
             var state = try loadState()
             try noteLocalAccounts(&state)
             guard state.isOn, let enabledAt = state.enabledAt else { return AccountSyncReport() }
@@ -359,12 +375,15 @@ extension AccountSync {
     }
 
     /// The state; off with nothing known when the item is absent. A Keychain refusal (device locked before its first
-    /// unlock) throws, and so do bytes this version cannot read (`unreadableState`, #1200 P3): read as "off", the next save
-    /// would erase the switch and the tombstones it honoured. Every operation loads the state before it saves one, so an
-    /// unreadable state is never written over.
+    /// unlock) throws, and so do bytes this version cannot read (#1200 P3): read as "off", the next save would erase the
+    /// switch and the tombstones it honoured. Every operation loads the state before it saves one, so such bytes are never
+    /// written over; only `switchOff` resets damaged ones, on purpose.
     private func loadState() throws -> AccountSyncState {
-        guard let state = AccountSyncState.decoded(from: try stateItem.read()) else { throw AccountSyncError.unreadableState }
-        return state
+        switch AccountSyncState.decoded(from: try stateItem.read()) {
+        case .readable(let state): return state
+        case .laterVersion: throw AccountSyncError.stateFromLaterVersion
+        case .damaged: throw AccountSyncError.damagedState
+        }
     }
 
     /// Remembers, once, that this device holds accounts of its own: it is not a new device any more.
@@ -376,13 +395,5 @@ extension AccountSync {
 
     private func saveState(_ state: AccountSyncState) throws {
         try stateItem.write(state.encoded())
-    }
-}
-
-extension AccountSyncState {
-    /// An "off" state that remembers the newest tombstone it honoured.
-    init(honouredDeletedAt: Date?) {
-        self.init()
-        self.honouredDeletedAt = honouredDeletedAt
     }
 }

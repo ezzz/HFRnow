@@ -12,7 +12,7 @@ extension AccountsModel {
         } catch {
             accountSyncNotice = AccountSyncMessages.problem(error)
         }
-        isAccountSyncOn = (try? sync.state())?.isOn ?? isAccountSyncOn
+        refreshAccountSyncState(sync)
     }
 
     /// The settings switch. Switching off never removes the accounts entered on this device.
@@ -24,7 +24,7 @@ extension AccountsModel {
         } catch {
             accountSyncNotice = AccountSyncMessages.problem(error)
         }
-        isAccountSyncOn = (try? sync.state())?.isOn ?? isAccountSyncOn
+        refreshAccountSyncState(sync)
     }
 
     /// Reports a change the store accepted, so the copy follows it while the switch is on (and the dates are kept for a
@@ -36,7 +36,26 @@ extension AccountsModel {
         } catch {
             accountSyncNotice = AccountSyncMessages.problem(error)
         }
-        isAccountSyncOn = (try? sync.state())?.isOn ?? isAccountSyncOn
+        refreshAccountSyncState(sync)
+    }
+
+    /// The settings' « Réinitialiser », once the user confirmed it: the explicit switch-off that resets a damaged state
+    /// (#1200 P3, option (b)). Never called on its own.
+    func resetAccountSync() {
+        setAccountSync(false)
+    }
+
+    /// Reads the switch and whether the state is damaged; another refusal (a later version's state, a locked Keychain)
+    /// keeps what is shown.
+    private func refreshAccountSyncState(_ sync: AccountSync) {
+        do {
+            isAccountSyncOn = try sync.state().isOn
+            isAccountSyncDamaged = false
+        } catch AccountSyncError.damagedState {
+            isAccountSyncDamaged = true
+        } catch {
+            isAccountSyncDamaged = false
+        }
     }
 
     private func apply(_ report: AccountSyncReport) {
@@ -61,6 +80,14 @@ enum AccountSyncMessages {
         connectés.
         """
 
+    /// The reset's button and the confirmation it asks for (#1200 P3): what is lost, and what is not.
+    static let resetButton = "Réinitialiser"
+    static let resetTitle = "Réinitialiser la synchronisation des comptes ?"
+    static let resetMessage = """
+        Les réglages de synchronisation de cet appareil seront effacés : l’option restera désactivée, et cet appareil \
+        n’importera plus de lui-même les comptes d’un autre appareil. Vos comptes ne sont pas touchés.
+        """
+
     /// Why the device switched itself off.
     static func switchedOff(_ reason: AccountSyncSwitchOff) -> String {
         switch reason {
@@ -76,10 +103,13 @@ enum AccountSyncMessages {
         switch error as? AccountSyncError {
         case .itemChanged?:
             return "Un autre appareil modifie la copie iCloud en ce moment. Réessayez."
-        case .unreadableState?:
-            // Never written over (#1200 P3): a later version of the app can still read it.
-            return "L’état de la synchronisation des comptes vient d’une version plus récente de l’app ou est illisible. "
-                + "Mettez l’app à jour."
+        case .stateFromLaterVersion?:
+            // Never written over (#1200 P3): the later version can still read it.
+            return "L’état de la synchronisation des comptes vient d’une version plus récente de l’app. Mettez l’app à jour."
+        case .damagedState?:
+            // Kept until the user resets it (#1200 P3, option (b)).
+            return "L’état de la synchronisation des comptes de cet appareil est illisible. Réinitialisez-le pour pouvoir "
+                + "réactiver l’option."
         case nil:
             break
         }
