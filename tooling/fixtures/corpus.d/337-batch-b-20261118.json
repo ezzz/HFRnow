@@ -7,7 +7,7 @@
   {"raw": "R360e", "id": "R360e", "slug": "smiley-search-standard-name-love", "ext": "html", "private": false},
   {"raw": "R360f", "id": "R360f", "slug": "smiley-search-one-word-anon", "ext": "html", "private": false},
   {"raw": "R360g", "id": "R360g", "slug": "smiley-wiki-unknown-code-anon", "ext": "html", "private": false},
-  {"raw": "R360h", "id": "R360h", "slug": "smiley-wiki-detail-logged-in", "ext": "html", "private": false},
+  {"raw": "R360h", "id": "R360h", "slug": "", "ext": null, "private": false},
   {"raw": "R360i", "id": "R360i", "slug": "smiley-search-standard-name-pt1cable", "ext": "html", "private": false},
   {"raw": "R124p1", "id": "R124p1", "slug": "profile-super-admin-logged-in", "ext": "html", "private": false},
   {"raw": "T560a", "id": "T560a", "slug": "", "ext": null, "private": false},
