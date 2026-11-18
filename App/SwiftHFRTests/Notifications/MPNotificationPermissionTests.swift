@@ -69,35 +69,64 @@ struct MPNotificationPermissionTests {
     )
     func alertForEachState(permission: NotificationPermission, expected: MPNotificationSettingsAlert?) async {
         let model = model(FakeNotificationPermission(permission))
-        await model.checkPermission()
+        await model.screenOpened()
         #expect(model.alert == expected)
     }
 
-    @Test("A switch that is off never disagrees with iOS")
+    @Test("A switch that is off never disagrees with iOS; both on and notifications refused: that alert alone")
     func offSwitches() {
-        #expect(MPNotificationSettingsModel.disagreement(notifications: false, badge: false, with: .denied) == nil)
-        #expect(MPNotificationSettingsModel.disagreement(notifications: false, badge: true, with: .denied) == .badge)
-        #expect(MPNotificationSettingsModel.disagreement(notifications: true, badge: false, with: .badgesOff) == nil)
+        #expect(MPNotificationSettingsModel.disagreements(notifications: false, badge: false, with: .denied).isEmpty)
+        #expect(MPNotificationSettingsModel.disagreements(notifications: false, badge: true, with: .denied) == [.badge])
+        #expect(MPNotificationSettingsModel.disagreements(notifications: true, badge: false, with: .badgesOff).isEmpty)
+        // Refused notifications cover the badge: one alert, never a badge alert after it.
+        #expect(MPNotificationSettingsModel.disagreements(notifications: true, badge: true, with: .denied) == [.notifications])
     }
 
-    @Test("Opening the section and coming back to the app show the alert once, never in a loop")
+    @Test("Each alert once per opening, iOS read again on every return; a new opening shows it again")
     func oncePerOpening() async {
         let permission = FakeNotificationPermission(.denied)
         let model = model(permission)
-        await model.checkPermission()
+        await model.screenOpened()
         #expect(model.alert == .notifications)
         model.alert = nil
-        // Back from iOS's settings, still denied.
+        // Back from iOS's settings, still denied: read, not shown again.
         await model.checkPermission()
         #expect(model.alert == nil)
-        #expect(await permission.reads == 1)
+        #expect(await permission.reads == 2)
+        await model.screenOpened()
+        #expect(model.alert == .notifications)
+    }
+
+    @Test("Notifications allowed in iOS but badges still off on return: the badge alert, once")
+    func badgeAlertAfterNotificationsAlert() async {
+        let permission = FakeNotificationPermission(.denied)
+        let model = model(permission)
+        await model.screenOpened()
+        #expect(model.alert == .notifications)
+        model.alert = nil
+        await permission.change(to: .badgesOff)
+        await model.checkPermission()
+        #expect(model.alert == .badge)
+        model.alert = nil
+        await model.checkPermission()
+        #expect(model.alert == nil)
+    }
+
+    @Test("An alert on screen is never replaced by another")
+    func oneAlertAtATime() async {
+        let permission = FakeNotificationPermission(.denied)
+        let model = model(permission)
+        await model.screenOpened()
+        await permission.change(to: .badgesOff)
+        await model.checkPermission()
+        #expect(model.alert == .notifications)
     }
 
     @Test("Back from iOS's settings: what changed there is read again")
     func rereadOnReturn() async {
         let permission = FakeNotificationPermission(.allowed)
         let model = model(permission)
-        await model.checkPermission()
+        await model.screenOpened()
         #expect(model.alert == nil)
         await permission.change(to: .badgesOff)
         await model.checkPermission()
@@ -108,7 +137,7 @@ struct MPNotificationPermissionTests {
     func turningNotificationsOn() async {
         let denied = FakeNotificationPermission(.denied)
         let model = model(denied)
-        await model.checkPermission()
+        await model.screenOpened()
         model.alert = nil
         model.notificationsEnabled = false
         model.notificationsEnabled = true
@@ -142,7 +171,7 @@ struct MPNotificationPermissionTests {
         )
         #expect(
             MPNotificationSettingsAlert.badge.message
-                == "Autorisez SwiftHFR dans Réglages › Notifications pour voir la pastille sur l'icône."
+                == "Autorisez SwiftHFR dans Réglages › Notifications pour voir la pastille sur l’icône."
         )
     }
 }

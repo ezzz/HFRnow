@@ -34,6 +34,7 @@ All `b·operator` (operator decisions of 2026-11-07 on #230), rows GAP-011, GAP-
 - Tap opens the conversation (a summary opens the list) (GAP-011).
 - Réglages › Notifications MP gains "Vérifier les messages" (15 min to 4 h, Jamais; default 30 min), its footer, « Dernière vérification » and a button to iOS's notification settings (GAP-190).
 - The background run sets the app icon badge too (GAP-192): legacy only set it from the running app, so the icon kept the last count the app saw.
+- Réglages › Notifications MP gains a « Notifications » switch (default on) and an alert when a switch disagrees with iOS's settings (GAP-190, `b·operator`, operator decision of 2026-11-18 on #1060, D10).
 
 ## Behaviour
 
@@ -76,7 +77,7 @@ At launch, as legacy (`HFRswiftApp.swift:27-29`, operator's comparison of 2026-1
 - "Vérifier les messages": 15 min, 30 min, 1 h, 2 h, 4 h, Jamais (`mp_check_interval`, minutes, `0` = Jamais, default 30; an unknown stored value reads as 30). Footer « Au plus souvent toutes les <durée>. iOS décide du moment réel ; ce délai est un minimum, pas une garantie. » (« Aucune vérification en arrière-plan. » for Jamais).
 - « Dernière vérification : <heure> » from the ledger of the current account (absent before the first one).
 - « Réglages des notifications » opens iOS's notification settings of the app (`UIApplication.openNotificationSettingsURLString`).
-- When a switch disagrees with iOS's settings (`notificationSettings()`, #1060): « Notifications » on while iOS refuses notifications, or "Badge messages non lus" on while iOS shows no badge (and iOS has been asked), an alert « Notifications désactivées dans iOS » / « Autorisez SwiftHFR dans Réglages › Notifications pour recevoir les messages privés. » (badge: « …pour voir la pastille sur l'icône. »), buttons « Ouvrir les réglages » and « Annuler ». Checked on opening the section and when the app is active again, at most once per opening; turning a switch on checks it again. « Notifications » turned on while iOS never asked shows the system prompt, no alert.
+- When a switch disagrees with iOS's settings (`notificationSettings()`, #1060): « Notifications » on while iOS refuses notifications, or "Badge messages non lus" on while iOS shows no badge (and iOS has been asked), an alert « Notifications désactivées dans iOS » / « Autorisez SwiftHFR dans Réglages › Notifications pour recevoir les messages privés. » (badge: « …pour voir la pastille sur l’icône. »), buttons « Ouvrir les réglages » and « Annuler ». iOS is read on each appearance of Réglages (an opening) and each time the app is active again; each kind of alert is shown at most once per opening, and never over another alert. Refused notifications take the badge with them: with « Notifications » on, their alert alone is shown, never a badge alert after it. Turning a switch on checks it again, even after its alert this opening. « Notifications » turned on while iOS never asked shows the system prompt, no alert. The checks and the alert hang on the Réglages `Form` (`mpNotificationPermissionChecks`), not on a row of the lazy list, so they run with the section out of sight.
 - No Do Not Disturb option: the app cannot read Focus, and iOS filters per Focus (operator).
 
 ### Logs
@@ -108,11 +109,14 @@ Captures read in place (no new fixture): `R336`-`R338` (#567, reply in an unread
 | D7 | one global `nb_mp`, `nb_mp_failure` | the per-account ledger (LOT-091 D1-D4) | LOT-091 |
 | D8 | tap opens the Messages tab | the conversation, or the list for a summary | operator 2026-11-07 |
 | D9 | notification triggered 3 s after the check (`UNTimeIntervalNotificationTrigger(timeInterval: 3)`, `MPBackgroundService.swift:148`) | delivered at once (`trigger: nil`) | nothing waits on the delay; a background task should finish quickly |
+| D10 | Notifications MP has the badge switch only (`AppSettingsView.swift:527-531` @ 87fe0d1c); the app never reads iOS's notification settings | a « Notifications » switch (`mp_notifications_enabled`, default on: off, no notification, the badge kept) and an alert when a switch disagrees with iOS's settings | operator 2026-11-18 (#1060): a member who turned notifications off in iOS, or never allowed them, was not told |
 
 ## Tests
 - HFRClient `MPNotificationPlanTests` (Linux): texts of a one-to-one and a group row from captures, identifiers, order, the burst limit (5 → five, 6 → summary), an unknown number, an empty news list.
 - HFRStorage `MPCheckIntervalTests`: values, default, an unknown stored value.
 - App `MPBackgroundCheckTests`: Jamais sends nothing; not due sends nothing; `nil` / expired / network error → no notification, no badge, nothing recorded; a list failure keeps the count; two identical runs → one notification; badge off → 0; first run silent. App `MPNotificationRoutingTests` and `MessageListModel` open-from-notification test.
+- App `MPBackgroundCheckTests/notificationsOff` (#1060): « Notifications » off → nothing delivered or withdrawn, news recorded, badge kept.
+- App `MPNotificationPermissionTests` (#1060, fake `NotificationPermissionReading`): the stored switch (absent = on), the alert for each iOS state, once per kind per opening with iOS read on every return, the badge alert after the notifications one, one alert at a time, the prompt when iOS never asked, the French texts. `MPNotificationChecksHostedTests`: the real Réglages screen, the section out of sight, shows the alert on opening and reads iOS again on coming back.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

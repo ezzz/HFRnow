@@ -35,9 +35,9 @@ final class MPNotificationSettingsModel {
     /// The alert on screen; the view sets it back to nil when it is dismissed.
     var alert: MPNotificationSettingsAlert?
 
-    /// One automatic alert per opening of the section (the model lives as long as the screen): back from iOS's settings
-    /// with nothing changed, it is not shown again.
-    @ObservationIgnored private var alertShown = false
+    /// The alerts already shown since Réglages appeared: one of each kind per opening, so coming back from iOS's settings
+    /// with nothing changed never shows the same alert again, while a disagreement still left there is shown once.
+    @ObservationIgnored private var shownAlerts: Set<MPNotificationSettingsAlert> = []
 
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let ledger: NotificationLedgerStore
@@ -80,15 +80,22 @@ final class MPNotificationSettingsModel {
 
     // MARK: Agreement with iOS (#1060)
 
-    /// On opening the section and on coming back to the app: the first switch iOS contradicts, once per opening.
-    func checkPermission() async {
-        guard !alertShown else { return }
-        let current = await permission.current()
-        guard !alertShown else { return }
-        show(Self.disagreement(notifications: notificationsEnabled, badge: badgeEnabled, with: current))
+    /// Réglages appeared: a new opening, every kind of alert may be shown once again, then iOS is read.
+    func screenOpened() async {
+        shownAlerts = []
+        await checkPermission()
     }
 
-    /// « Notifications » just turned on: asks iOS when it never asked, else the alert when iOS refuses.
+    /// On opening and on coming back to the app: iOS is read every time, and the first disagreement whose alert was not
+    /// shown this opening is shown.
+    func checkPermission() async {
+        let current = await permission.current()
+        let pending = Self.disagreements(notifications: notificationsEnabled, badge: badgeEnabled, with: current)
+        show(pending.first { !shownAlerts.contains($0) })
+    }
+
+    /// « Notifications » just turned on: asks iOS when it never asked, else the alert when iOS refuses (a user action: shown
+    /// even when it was already shown this opening).
     func notificationsTurnedOn() async {
         let current = await permission.current()
         guard notificationsEnabled else { return }
@@ -99,30 +106,37 @@ final class MPNotificationSettingsModel {
         }
     }
 
-    /// « Badge messages non lus » just turned on: the alert when iOS does not show the badge.
+    /// « Badge messages non lus » just turned on: the alert when iOS does not show the badge (a user action, as above).
     func badgeTurnedOn() async {
         let current = await permission.current()
         guard badgeEnabled else { return }
-        show(Self.disagreement(notifications: false, badge: true, with: current))
+        show(Self.disagreements(notifications: false, badge: true, with: current).first)
     }
 
-    /// The alert a pair of switches calls for: notifications refused first, then a badge iOS does not show; none while
-    /// iOS never asked (the system prompt comes first).
-    static func disagreement(notifications: Bool, badge: Bool, with permission: NotificationPermission) -> MPNotificationSettingsAlert? {
-        if notifications, permission.authorization == .denied { return .notifications }
-        if badge, permission.authorization != .notDetermined, !permission.badgesAllowed { return .badge }
-        return nil
+    /// The alert a pair of switches calls for, if any: notifications refused, else a badge iOS does not show; none while
+    /// iOS never asked (the system prompt comes first). Refused notifications take the badge with them, so their alert
+    /// alone is shown: a badge alert after it would say the same thing again.
+    static func disagreements(
+        notifications: Bool, badge: Bool, with permission: NotificationPermission
+    ) -> [MPNotificationSettingsAlert] {
+        let badgeHidden = badge && !permission.badgesAllowed
+        switch permission.authorization {
+        case .notDetermined: return []
+        case .denied: return notifications ? [.notifications] : badgeHidden ? [.badge] : []
+        case .allowed: return badgeHidden ? [.badge] : []
+        }
     }
 
+    /// Shows `alert` unless one is already on screen.
     private func show(_ alert: MPNotificationSettingsAlert?) {
-        guard let alert else { return }
-        alertShown = true
+        guard let alert, self.alert == nil else { return }
+        shownAlerts.insert(alert)
         self.alert = alert
     }
 }
 
 /// The alert of Réglages › Notifications MP when a switch is on while iOS does not show what it asks for (#1060).
-enum MPNotificationSettingsAlert: Sendable, Equatable {
+enum MPNotificationSettingsAlert: Sendable, Hashable {
     /// « Notifications » on, notifications refused in iOS.
     case notifications
     /// « Badge messages non lus » on, badges off in iOS.
@@ -135,7 +149,7 @@ enum MPNotificationSettingsAlert: Sendable, Equatable {
     var message: String {
         switch self {
         case .notifications: "Autorisez SwiftHFR dans Réglages › Notifications pour recevoir les messages privés."
-        case .badge: "Autorisez SwiftHFR dans Réglages › Notifications pour voir la pastille sur l'icône."
+        case .badge: "Autorisez SwiftHFR dans Réglages › Notifications pour voir la pastille sur l’icône."
         }
     }
 }

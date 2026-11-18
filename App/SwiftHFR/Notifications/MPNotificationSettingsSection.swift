@@ -9,40 +9,22 @@ import UIKit
 struct MPNotificationSettingsSection: View {
     @Environment(AccountsModel.self) private var accounts
     @Environment(\.openURL) private var openURL
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var model: MPNotificationSettingsModel
+    /// Owned by `SettingsView`, whose `Form` carries the checks against iOS (`mpNotificationPermissionChecks`).
+    @Bindable var model: MPNotificationSettingsModel
 
-    init(store: any SettingsStore = UserDefaultsSettingsStore()) {
-        _model = State(initialValue: MPNotificationSettingsModel(store: store))
-    }
+    /// iOS's notification settings of the app.
+    static let notificationSettingsURL = URL(string: UIApplication.openNotificationSettingsURLString)
 
     var body: some View {
-        @Bindable var model = model
         Section {
-            // The checks against iOS's settings hang on this one row: on the `Section`, they apply to each of its rows.
             Toggle("Notifications", isOn: $model.notificationsEnabled)
-                .task { await model.checkPermission() }
-                // Back from iOS's settings (or anywhere else): what changed there is read again.
-                .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { Task { await model.checkPermission() } }
-                }
                 .onChange(of: model.notificationsEnabled) { _, isOn in
                     if isOn { Task { await model.notificationsTurnedOn() } }
                 }
+            Toggle("Badge messages non lus", isOn: $model.badgeEnabled)
                 .onChange(of: model.badgeEnabled) { _, isOn in
                     if isOn { Task { await model.badgeTurnedOn() } }
                 }
-                .alert(
-                    model.alert?.title ?? "",
-                    isPresented: Binding(get: { model.alert != nil }, set: { if !$0 { model.alert = nil } }),
-                    presenting: model.alert
-                ) { _ in
-                    Button("Ouvrir les réglages", action: openNotificationSettings)
-                    Button("Annuler", role: .cancel) {}
-                } message: { alert in
-                    Text(alert.message)
-                }
-            Toggle("Badge messages non lus", isOn: $model.badgeEnabled)
             Picker("Vérifier les messages", selection: $model.interval) {
                 ForEach(MPCheckInterval.allCases, id: \.self) { Text($0.title).tag($0) }
             }
@@ -51,17 +33,14 @@ struct MPNotificationSettingsSection: View {
                     .scaledFont(.footnote)
                     .foregroundStyle(.secondary)
             }
-            Button("Réglages des notifications", systemImage: "bell.badge", action: openNotificationSettings)
+            Button("Réglages des notifications", systemImage: "bell.badge") {
+                if let url = Self.notificationSettingsURL { openURL(url) }
+            }
         } header: {
             Text("Notifications MP")
         } footer: {
             Text(model.interval.footer)
         }
         .task(id: accounts.current?.id) { await model.loadLastCheck(account: accounts.current?.id) }
-    }
-
-    /// iOS's notification settings of the app.
-    private func openNotificationSettings() {
-        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
     }
 }
