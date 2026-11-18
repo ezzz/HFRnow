@@ -31,13 +31,13 @@ struct ComposerLayoutHostedTests {
 
     private func host(
         size: DynamicTypeSize, text: String, model: ReplyComposerModel = ComposerFixture.model(poster: ScriptedPoster([])),
-        placement: ComposerPlacement = .sheet
+        placement: ComposerPlacement = .sheet, modern: Bool = true
     ) async throws -> ProbeBox {
         let box = ProbeBox()
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
         // The modern composer's layout (#854, #895): its switch is off by default since #855.
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
-        settings.set(.modernComposer, isOn: true)
+        settings.set(.modernComposer, isOn: modern)
         let view = ReplyComposerView(model: model, placement: placement) { _ in }
             .environment(settings)
             .environment(\.dynamicTypeSize, size)
@@ -163,6 +163,25 @@ struct ComposerLayoutHostedTests {
         let expected = try #require(UIImage(systemName: "xmark", withConfiguration: configuration)).size
         #expect(abs(glyph.height - expected.height) < 1, "glyph \(glyph), UIKit \(expected)")
         #expect(abs(glyph.width - expected.width) < 1, "glyph \(glyph), UIKit \(expected)")
+    }
+
+    /// #1126 (delta review): at every text size the three buttons' drawn circles stay inside the screen's edges and apart, in the
+    /// floating row and in legacy's bar (the default with the modern composer off). The circles are probed, not their hit areas:
+    /// a hit area is never wider than its slot, the circle drawn inside it can be.
+    @Test(arguments: [(true, DynamicTypeSize.accessibility5), (true, .accessibility3), (false, .accessibility5), (false, .large)])
+    func theThreeCirclesFitBetweenTheScreensEdges(modern: Bool, size: DynamicTypeSize) async throws {
+        guard isPhone else { return }
+        let box = try await host(size: size, text: "Bonjour", modern: modern)
+        let close = try #require(box.frames[.closeCircle])
+        let drafts = try #require(box.frames[.draftsCircle])
+        let send = try #require(box.frames[.sendCircle])
+        for (part, circle) in [("close", close), ("drafts", drafts), ("send", send)] {
+            #expect(circle.minX >= box.leadingEdge - 0.5, "\(part) clipped on the left: \(circle)")
+            #expect(circle.maxX <= box.trailingEdge + 0.5, "\(part) clipped on the right: \(circle)")
+            #expect(abs(circle.width - circle.height) < 0.5, "\(part) is a circle: \(circle)")
+        }
+        #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
+        #expect(drafts.maxX <= send.minX + 0.5, "drafts \(drafts), send \(send)")
     }
 
     /// #1126: the close button's drawn circle is the card tools' chip diameter on both axes (the base drew a 39 × 31 pt capsule).

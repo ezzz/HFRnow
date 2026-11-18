@@ -131,7 +131,7 @@ struct ComposerHeader: View {
     }
 
     private var closeButton: some View {
-        Button(action: close) { symbol("xmark") }
+        Button(action: close) { symbol("xmark", circle: .closeCircle) }
             .buttonBorderShape(.circle)
             .buttonStyle(.glass)
             .disabled(!Self.closeIsEnabled(isSending: isSending))
@@ -140,7 +140,7 @@ struct ComposerHeader: View {
     }
 
     private func draftsButton(_ drafts: Drafts) -> some View {
-        Button(action: drafts.open) { symbol("tray") }
+        Button(action: drafts.open) { symbol("tray", circle: .draftsCircle) }
             .buttonBorderShape(.circle)
             .modifier(GlassStyle(isProminent: drafts.hasDrafts))
             .disabled(!Self.draftsAreEnabled(drafts, isSending: isSending))
@@ -156,7 +156,7 @@ struct ComposerHeader: View {
                     .frame(width: toolSize.diameter, height: toolSize.diameter)
                     .accessibilityLabel(state.label)
             } else {
-                symbol("arrow.up")
+                symbol("arrow.up", circle: .sendCircle)
             }
         }
         .buttonBorderShape(.circle)
@@ -166,10 +166,11 @@ struct ComposerHeader: View {
     }
 
     /// A glyph in the card tools' circle: their diameter, glyph size and weight (#1126); the glass behind it is the bar's own.
-    private func symbol(_ name: String) -> some View {
+    private func symbol(_ name: String, circle: ComposerLayoutProbe.Part) -> some View {
         Image(systemName: name)
             .font(.system(size: toolSize.glyph, weight: ComposerToolSize.glyphWeight))
             .frame(width: toolSize.diameter, height: toolSize.diameter)
+            .composerProbe(circle)
     }
 }
 

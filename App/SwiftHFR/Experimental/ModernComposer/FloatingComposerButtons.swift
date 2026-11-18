@@ -33,7 +33,7 @@ struct FloatingComposerButtons: View {
             if let drafts {
                 button(
                     prominent: drafts.hasDrafts, enabled: ComposerHeader.draftsAreEnabled(drafts, isSending: isSending),
-                    action: drafts.open
+                    circle: .draftsCircle, action: drafts.open
                 ) {
                     symbol("tray")
                 }
@@ -57,7 +57,7 @@ struct FloatingComposerButtons: View {
 
     private var sendButton: some View {
         let state = ComposerHeader.SendState(isSending: isSending, canSend: canSend)
-        return button(prominent: state.isProminent, enabled: state.isEnabled, action: send) {
+        return button(prominent: state.isProminent, enabled: state.isEnabled, circle: .sendCircle, action: send) {
             if state.showsSpinner {
                 ProgressView()
                     .controlSize(.small)
