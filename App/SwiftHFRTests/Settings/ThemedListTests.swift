@@ -250,6 +250,46 @@ struct ThemedListTests {
         #expect(await until { near(pixel(of: legacy, x: 150, y: 350), grey) }, "\(pixel(of: legacy, x: 150, y: 350))")
     }
 
+    /// Error text on a row: the system red under Legacy (#FF453A in dark), the app's accessible red under a theme (#FF827A).
+    @Test func errorTextIsTheSystemRedForLegacyAndTheAccessibleRedUnderATheme() async throws {
+        let themed = try showSwatch(Rectangle().fill(.themedError), appearance: try swatchAppearance())
+        defer { themed.isHidden = true }
+        #expect(await until { near(pixel(of: themed, x: 150, y: 350), hex(0xFF827A)) }, "\(pixel(of: themed, x: 150, y: 350))")
+        let legacy = try showSwatch(Rectangle().fill(.themedError), appearance: .standard)
+        defer { legacy.isHidden = true }
+        #expect(await until { near(pixel(of: legacy, x: 150, y: 350), hex(0xFF453A)) }, "\(pixel(of: legacy, x: 150, y: 350))")
+    }
+
+    /// A short list in a sheet on a plain stack: below its one row, `themedListScreen` shows the theme's `background`
+    /// (#101820 dark); Legacy keeps the system's grouped background (black in dark).
+    @Test func aListScreenShowsTheThemesBackgroundAndLegacyTheSystems() async throws {
+        func screen() -> some View { NavigationStack { List { Text("") }.themedListScreen() } }
+        let themed = try showSwatch(screen(), appearance: try swatchAppearance())
+        defer { themed.isHidden = true }
+        #expect(await until { near(pixel(of: themed, x: 150, y: 650), hex(0x101820)) }, "\(pixel(of: themed, x: 150, y: 650))")
+        let legacy = try showSwatch(screen(), appearance: .standard)
+        defer { legacy.isHidden = true }
+        #expect(await until { near(pixel(of: legacy, x: 150, y: 650), hex(0x000000)) }, "\(pixel(of: legacy, x: 150, y: 650))")
+    }
+
+    /// Legacy keeps Bookmarks' selection through `legacySelection`: a selected row shows that colour, an unselected one the card.
+    @Test func underLegacyALegacySelectionStillPaintsTheSelectedRow() async throws {
+        func row(selected: Bool) -> some View {
+            List {
+                ForEach(0..<4, id: \.self) { _ in
+                    Text("").frame(height: 200).themedListRow(isSelected: selected, legacySelection: Color(red: 1, green: 0, blue: 0))
+                }
+            }
+            .listStyle(.insetGrouped)
+        }
+        let selected = try showSwatch(row(selected: true), appearance: .standard)
+        defer { selected.isHidden = true }
+        #expect(await until { near(pixel(of: selected, x: thirdRow.x, y: thirdRow.y), hex(0xFF0000)) })
+        let plain = try showSwatch(row(selected: false), appearance: .standard)
+        defer { plain.isHidden = true }
+        #expect(await until { near(pixel(of: plain, x: thirdRow.x, y: thirdRow.y), hex(0x1C1C1E)) })
+    }
+
     /// The `errorText` of the contrast rules is the app's error colour, so the rule checks what a themed row draws.
     @Test func theErrorTextRuleIsTheAppsErrorColour() throws {
         let tokens = try #require(try ThemeFixtures.testTheme().variants?.light)

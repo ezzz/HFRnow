@@ -169,6 +169,7 @@ struct SearchResultRow: View {
                     Text(snippet).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
                 }
             }
+            .themedRowText()
         }
         .buttonStyle(.plain)
         // On the row itself: the `listRowInsets` of the `TopicRowView` inside the stack is ignored by the list.

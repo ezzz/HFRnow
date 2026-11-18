@@ -31,7 +31,8 @@ struct TopicSearchSheet: View {
                 }
                 if case .failed(let message) = model.state {
                     Section {
-                        Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.red).font(.footnote).themedListRow()
+                        Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.themedError).font(.footnote)
+                            .themedListRow()
                     }
                 }
             }

@@ -20,7 +20,7 @@ struct OfflineTopicsView: View {
     var body: some View {
         List {
             if let message = model.errorMessage {
-                Section { Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.red).themedListRow() }
+                Section { Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.themedError).themedListRow() }
             }
             if model.topics.isEmpty, model.hasLoaded {
                 ContentUnavailableView(

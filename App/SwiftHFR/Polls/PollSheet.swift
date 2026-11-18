@@ -74,11 +74,11 @@ struct PollSheet: View {
         }
     }
 
-    private var color: Color {
+    private var color: AnyShapeStyle {
         switch model.phase {
-        case .voted: .green
-        case .settled: .orange
-        default: .red
+        case .voted: AnyShapeStyle(Color.green)
+        case .settled: AnyShapeStyle(Color.orange)
+        default: AnyShapeStyle(.themedError)
         }
     }
 

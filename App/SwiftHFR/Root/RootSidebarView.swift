@@ -49,7 +49,9 @@ struct RootSidebarView: View {
                 Section {
                     ForEach(section.destinations, id: \.self) { destination in
                         Label(destination.title, systemImage: destination.symbol)
-                            .foregroundStyle(destination == .plus(.deleteAccount) ? Color.red : primaryText)
+                            .foregroundStyle(
+                                destination == .plus(.deleteAccount) ? AnyShapeStyle(.themedError) : AnyShapeStyle(primaryText)
+                            )
                             .badge(destination == .tab(.messages) ? model.unreadPrivateMessages : 0)
                             .tag(destination)
                             .themedListRow(isSelected: destination == model.sidebarDestination)

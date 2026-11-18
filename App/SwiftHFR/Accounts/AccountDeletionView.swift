@@ -111,10 +111,10 @@ struct AccountDeletionView: View {
                 "Ces données de \(name) n’ont pas pu être effacées : \(failures.joined(separator: ", ")).",
                 systemImage: "exclamationmark.triangle.fill"
             )
-            .foregroundStyle(.red)
+            .foregroundStyle(.themedError)
         case .refused(let message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(.themedError)
         }
         if deletion.keychainItemPending {
             Button("Réessayer de supprimer l’élément du trousseau") { Task { await deletion.retry() } }

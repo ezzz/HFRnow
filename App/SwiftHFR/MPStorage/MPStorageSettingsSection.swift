@@ -47,7 +47,7 @@ struct MPStorageSettingsRows: View {
         if model.status == .working {
             ProgressView().frame(maxWidth: .infinity)
         } else if case .failed(let message) = model.status {
-            Text(message).scaledFont(.footnote).foregroundStyle(.red)
+            Text(message).scaledFont(.footnote).foregroundStyle(.themedError)
         }
     }
 

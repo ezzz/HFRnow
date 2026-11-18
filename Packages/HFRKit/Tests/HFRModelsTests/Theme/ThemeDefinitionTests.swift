@@ -133,13 +133,16 @@ import Testing
         for pair in [
             "link/quoteBackground", "link/codeBackground", "link/readerAlternate", "textSecondary/codeBackground",
             "accentText/codeBackground", "accentText/systemCard", "accentText/background", "meta/surface", "counter/surface",
-            "textSecondary/readerAlternate", "errorText/surface"
+            "textSecondary/readerAlternate", "errorText/surface", "badgeOutline/surface"
         ] {
             #expect(names.contains(pair), "\(pair)")
         }
         // An error written on a themed row (#842) is the app's `AccessibleColors.errorText` of the appearance.
         #expect(light.color(named: "errorText", inLight: true) == ThemeRGB(red: 176, green: 0, blue: 32))
         #expect(light.color(named: "errorText", inLight: false) == ThemeRGB(red: 255, green: 130, blue: 122))
+        // The outlined unread capsule on a themed row is the app's `AccessibleColors` badge fill of the appearance.
+        #expect(light.color(named: "badgeOutline", inLight: true) == ThemeRGB(red: 90, green: 90, blue: 96))
+        #expect(light.color(named: "badgeOutline", inLight: false) == ThemeRGB(red: 209, green: 209, blue: 214))
         // The even message is the text mixed into the surface: 7 % in light, 16 % in dark.
         #expect(light.color(named: "readerAlternate", inLight: true) == light.surface.mixed(with: light.textPrimary, amount: 0.07))
         #expect(ThemeRGB(red: 255, green: 255, blue: 255).mixed(with: ThemeRGB(red: 0, green: 0, blue: 0), amount: 0.5)

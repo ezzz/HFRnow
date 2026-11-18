@@ -157,3 +157,16 @@ struct ThemedSection<Content: View>: View {
         }
     }
 }
+
+/// Error text on a list row (#842): the system red for Legacy, as before; under a theme the app's `AccessibleColors.errorText`,
+/// which the theme's contrast test checks on `surface` (`errorText`): the system red is under 4.5:1 on some themes' rows.
+struct ThemedErrorStyle: ShapeStyle {
+    func resolve(in environment: EnvironmentValues) -> AnyShapeStyle {
+        environment.themeAppearance.listColors == nil ? AnyShapeStyle(Color.red) : AnyShapeStyle(AccessibleColors.errorText)
+    }
+}
+
+extension ShapeStyle where Self == ThemedErrorStyle {
+    /// `ThemedErrorStyle`: `.red` for Legacy, the accessible error colour under a theme.
+    static var themedError: ThemedErrorStyle { ThemedErrorStyle() }
+}
