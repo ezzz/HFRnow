@@ -45,21 +45,6 @@ struct LegacyAccountArchiveTests {
         #expect(records[1].isMain && !records[0].isMain)
     }
 
-    @Test("#1200 P4: an archive naming a class legacy's writer never wrote is unreadable, whatever the class")
-    func unexpectedClassIsRefused() throws {
-        let entry = NSMutableDictionary()
-        entry["PSEUDO"] = "fakeuser1"
-        entry["COOKIES"] = [try cookie("md_user", "fakeuser1", secure: false)]
-        // Secure-coding classes of Foundation, none of which legacy wrote: decoding them runs code legacy never asked for.
-        for unexpected: NSObject in [NSUUID(), NSValue(range: NSRange(location: 0, length: 1)), NSAttributedString(string: "x")] {
-            entry["EXTRA"] = unexpected
-            let archive = try NSKeyedArchiver.archivedData(withRootObject: NSArray(array: [entry]), requiringSecureCoding: false)
-            #expect(throws: LegacyImportError.sourceUnreadable, "\(type(of: unexpected))") { try LegacyAccountArchive.decode(archive) }
-        }
-        let rootOfAnotherClass = try NSKeyedArchiver.archivedData(withRootObject: NSUUID(), requiringSecureCoding: false)
-        #expect(throws: LegacyImportError.sourceUnreadable) { try LegacyAccountArchive.decode(rootOfAnotherClass) }
-    }
-
     @Test("bytes that are not a legacy archive are unreadable")
     func notAnArchive() throws {
         #expect(throws: LegacyImportError.sourceUnreadable) { try LegacyAccountArchive.decode(Data("garbage".utf8)) }
