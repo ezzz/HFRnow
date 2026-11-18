@@ -7,7 +7,7 @@ struct AutomationUsersTests {
         var users = AutomationUsers()
         let switches = [users.enter(), users.enter(), users.leave(), users.leave()]
         #expect(switches == [true, false, false, true])
-        #expect(users.count == 0)
+        #expect(users.active == 0)
     }
 
     @Test("A leave without an enter changes nothing")
@@ -15,7 +15,7 @@ struct AutomationUsersTests {
         var users = AutomationUsers()
         let stray = users.leave()
         #expect(!stray)
-        #expect(users.count == 0)
+        #expect(users.active == 0)
         let first = users.enter()
         #expect(first)
     }

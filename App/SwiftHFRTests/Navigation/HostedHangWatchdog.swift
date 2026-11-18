@@ -92,18 +92,18 @@ enum HostedAccessibility {
 
 /// Counts the users of a shared switch: on with the first, off with the last.
 struct AutomationUsers {
-    private(set) var count = 0
+    private(set) var active = 0
 
     /// A user arrives; true when the switch must turn on.
     mutating func enter() -> Bool {
-        count += 1
-        return count == 1
+        active += 1
+        return active == 1
     }
 
     /// A user leaves; true when the switch must turn off. A leave without an enter changes nothing.
     mutating func leave() -> Bool {
-        guard count > 0 else { return false }
-        count -= 1
-        return count == 0
+        guard active > 0 else { return false }
+        active -= 1
+        return active == 0
     }
 }
