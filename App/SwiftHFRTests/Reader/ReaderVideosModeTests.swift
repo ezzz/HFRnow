@@ -32,9 +32,10 @@ struct ReaderVideosModeTests {
     }
 
     /// Stands for #691's « no request to a video provider before a tap » criterion (orchestrator's call: a pure test on the page, as
-    /// the builder is pure HTML and makes no request): neither mode builds anything that loads a provider.
+    /// the builder is pure HTML and makes no request), for the player: neither mode builds a frame, embed or player source before a tap.
+    /// The one provider load left is #1037's thumbnail of a plain YouTube link, an operator decision, pinned below.
     @Test(arguments: [true, false])
-    func neitherModeBuildsAPageThatLoadsAProviderBeforeATap(embedding: Bool) {
+    func neitherModeBuildsAPlayerOrFrameBeforeATap(embedding: Bool) {
         let html = document(embedding: embedding)
         #expect(providerLoads(in: html).isEmpty, "embedding \(embedding): \(providerLoads(in: html))")
         #expect(html.contains("href=\"\(link)\""), "the link is always there")
@@ -60,6 +61,12 @@ struct ReaderVideosModeTests {
         let html = cardDocument(embedding: true)
         #expect(html.contains("class=\"video-card\""))
         #expect(html.contains("class=\"video-thumb\""))
+    }
+
+    /// In « Intégrée » the thumbnail of #1037's card is the only provider load of the page (policy C, before any tap): no player, no frame.
+    @Test func integratedLoadsOnlyTheThumbnailOfAPlainYouTubeLink() {
+        let loads = providerLoads(in: cardDocument(embedding: true))
+        #expect(loads.count == 1 && loads[0].contains("i.ytimg.com"), "\(loads)")
     }
 
     @Test func linkLeavesAPlainYouTubeLinkWithoutCardOrThumbnail() {
