@@ -82,7 +82,7 @@ struct ForumListCompletionTests {
         #expect(completed.map(\.title) == cooling.map(\.title) + ["Divers"])
     }
 
-    @Test("The four categories captured for #929: the page lists every REST row but the injected ones, whose place the page keeps")
+    @Test("Categories 14, 4, 12, 6 (#929): the page, injections included, already lists every REST row; nothing is added")
     func injectedCategories() throws {
         let forums = try Self.home()
         // cat → (REST count, injected titles of the table in that category).
@@ -100,6 +100,11 @@ struct ForumListCompletionTests {
             let pageKeys = Set(home.map { ForumListCompletion.key($0.title) })
             #expect(want.injected.allSatisfy { pageKeys.contains(ForumListCompletion.key($0)) }, "cat \(category)")
             #expect(completed.filter { home.contains($0) } == home, "cat \(category)")
+            // The page already holds every REST row: the completion adds nothing and changes no order.
+            #expect(completed == home, "cat \(category)")
+            // The injected entries are REST rows by title, not only page entries.
+            let restKeys = Set(rows.map { ForumListCompletion.key($0.title) })
+            #expect(want.injected.allSatisfy { restKeys.contains(ForumListCompletion.key($0)) }, "cat \(category)")
         }
     }
 
