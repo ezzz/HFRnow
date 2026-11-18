@@ -1,5 +1,6 @@
 import HFRModels
 import HFRNetwork
+import HFRStorage
 import SwiftUI
 @testable import SwiftHFR
 import Testing
@@ -80,7 +81,9 @@ struct FavorisScrollHostedTests {
             }
             Tab("Messages", systemImage: "envelope", value: 1) { Text("Messages") }
         }
-        .tabBarMinimizeBehavior(.onScrollDown))
+        .tabBarMinimizeBehavior(.onScrollDown)
+        // The tab roots read the accounts model since #1059 (the account button); SwiftUI traps without it.
+        .environment(makeModel(store: InMemoryCredentialStore())))
         window.rootViewController = host
         window.isHidden = false
         var found: UICollectionView?
