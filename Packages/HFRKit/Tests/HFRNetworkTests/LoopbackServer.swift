@@ -236,5 +236,5 @@ final class LoopbackServer: @unchecked Sendable {
 /// the SYN instead of resetting it, and the client times out.
 enum RefusingPort {
     /// `http://127.0.0.1:1`.
-    static var baseURL: URL { URL(string: "http://127.0.0.1:1")! }  // swiftlint:disable:this force_unwrapping
+    static var baseURL: URL { URL(string: "http://127.0.0.1:1")! }
 }
