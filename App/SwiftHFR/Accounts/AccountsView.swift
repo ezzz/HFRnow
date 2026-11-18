@@ -37,7 +37,7 @@ struct AccountsView: View {
                     Section {
                         Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }
                     } footer: {
-                        Text("Vos mots de passe ne sont jamais enregistrés : seule la session du forum est gardée, dans le trousseau.")
+                        Text(Self.footer)
                     }
                 }
             }
@@ -100,6 +100,14 @@ struct AccountsView: View {
         }
     }
 
+    /// Below "Ajouter un compte": what is kept, and why a session expires (LOT-156). HFR sets the login cookies for 30 days at
+    /// the login and again on every logged-in page (HFR-PROTOCOL §6b, `W03`, `R74`).
+    static let footer = """
+        Vos mots de passe ne sont jamais enregistrés : seule la session du forum est gardée, dans le trousseau. \
+        HFR garde un compte connecté 30 jours, prolongés à chaque page lue avec ce compte ; passé ce délai, « Se reconnecter » \
+        suffit, et les brouillons, listes et réglages du compte restent.
+        """
+
     private func relogin(_ row: AccountRow) {
         loginTarget = .existing(id: row.id, displayName: row.displayName)
     }
@@ -127,7 +135,7 @@ struct AccountRowView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row.displayName)
                             .foregroundStyle(.primary)
-                        if let status = AccountRowView.statusText(row.status) {
+                        if let status = AccountRowView.statusText(row.status, expiry: row.sessionExpiry) {
                             Text(status)
                                 .scaledFont(.footnote)
                                 .foregroundStyle(row.status == .expired ? AccessibleColors.errorText : Color.secondary)
@@ -151,15 +159,20 @@ struct AccountRowView: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// Short state line under the name; nil when there is nothing to say.
-    static func statusText(_ status: AccountSessionStatus) -> String? {
+    /// Short state line under the name; nil when there is nothing to say. A session the forum confirmed shows when its login
+    /// cookies lapse without a visit (LOT-156): only then is the date the one the forum set, and still renewed.
+    static func statusText(_ status: AccountSessionStatus, expiry: Date? = nil) -> String? {
         switch status {
-        case .restored, .valid: nil
+        case .restored: nil
+        case .valid: expiry.map { "Session valable jusqu’au \($0.formatted(expiryStyle))" }
         case .checking: "Vérification de la session…"
-        case .expired: "Session expirée"
+        case .expired: "Session expirée : reconnectez-vous"
         case .checkFailed: "Session non vérifiée (forum injoignable)"
         }
     }
+
+    /// "18 décembre", in the device's time zone (the date the user lives in).
+    static let expiryStyle = Date.FormatStyle(locale: Locale(identifier: "fr_FR")).day().month(.wide)
 }
 
 /// An account's avatar (decoded by `AccountsModel`), or a placeholder; scales with Dynamic Type.
