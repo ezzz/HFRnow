@@ -242,6 +242,10 @@ struct TopicRowActionsTests {
         await model.refresh()
         #expect(titles(model) == ["Sujet 1"])
     }
+}
+
+/// The failure messages and the retry of a removal (#1056), kept apart so the suite stays under the type body limit.
+extension TopicRowActionsTests {
 
     @Test func everyFailureSaysWhetherAnythingLeft() {
         let notSent: [TopicFlagError] = [
