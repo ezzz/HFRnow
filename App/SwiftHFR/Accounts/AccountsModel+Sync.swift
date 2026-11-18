@@ -52,6 +52,8 @@ extension AccountsModel {
             isAccountSyncOn = try sync.state().isOn
             isAccountSyncDamaged = false
         } catch AccountSyncError.damagedState {
+            // The switch reads off, so turning it off can never be a reset without the confirmation (#1214 round 1).
+            isAccountSyncOn = false
             isAccountSyncDamaged = true
         } catch {
             isAccountSyncDamaged = false
@@ -85,7 +87,8 @@ enum AccountSyncMessages {
     static let resetTitle = "Réinitialiser la synchronisation des comptes ?"
     static let resetMessage = """
         Les réglages de synchronisation de cet appareil seront effacés : l’option restera désactivée, et cet appareil \
-        n’importera plus de lui-même les comptes d’un autre appareil. Vos comptes ne sont pas touchés.
+        n’importera plus de lui-même les comptes d’un autre appareil. La copie iCloud n’est pas supprimée : pour la \
+        retirer de tous vos appareils, réactivez puis désactivez l’option. Vos comptes ne sont pas touchés.
         """
 
     /// Why the device switched itself off.

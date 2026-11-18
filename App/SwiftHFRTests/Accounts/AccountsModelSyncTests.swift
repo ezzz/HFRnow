@@ -144,6 +144,19 @@ struct AccountsModelSyncTests {
         #expect(item.writeCount == 0)
     }
 
+    @Test("#1200 P3: a state damaged while the switch showed on reads off, so turning it off is never an unconfirmed reset")
+    func aStateDamagedWhileOnShowsTheSwitchOff() throws {
+        let state = InMemorySecureDataItem()
+        let (model, _) = try device([Fake.account("user1", main: true)], state: state)
+        model.setAccountSync(true)
+        #expect(model.isAccountSyncOn)
+        state.data = Data("garbage".utf8)
+        model.reconcileAccountSync()
+        #expect(!model.isAccountSyncOn)
+        #expect(model.isAccountSyncDamaged)
+        #expect(state.data == Data("garbage".utf8))
+    }
+
     @Test("#1200 P3: the user's reset writes a fresh off state, keeps the accounts and never touches the iCloud item")
     func theResetClearsADamagedState() throws {
         let state = InMemorySecureDataItem(data: Data("garbage".utf8))

@@ -82,6 +82,19 @@ import Testing
         #expect(!device.isOn)
     }
 
+    @Test("A reset device with no account of its own does not import another device's accounts by itself")
+    func aResetDeviceWithoutAccountsNeverBootstraps() throws {
+        let other = try SyncDevice(item: item, accounts: [fakeAccount("user-z")])
+        try other.switchOn(at: 100)
+        let device = try SyncDevice(item: item)
+        device.state.data = Data("garbage".utf8)
+        try device.sync.switchOff()
+        let after = try device.reconcile(at: 110)
+        #expect(!after.bootstrapped)
+        #expect(device.pseudos.isEmpty)
+        #expect(!device.isOn)
+    }
+
     @Test("A device whose state a later version wrote after an opt-out does not bootstrap from another device's envelope")
     func anUnreadableStateNeverBootstraps() throws {
         let other = try SyncDevice(item: item, accounts: [fakeAccount("user-a")])
