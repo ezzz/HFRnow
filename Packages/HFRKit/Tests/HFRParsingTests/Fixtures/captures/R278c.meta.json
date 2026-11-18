@@ -1,0 +1,21 @@
+{
+  "id": "R278c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/hfr/Discussions/liste_sujet-1.htm?page=2",
+  "url": "https://forum.hardware.fr/hfr/Discussions/liste_sujet-1.htm?page=2",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/liste_sujet-1.htm?page=2",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:18:40 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R278c-list-liste-sujet-1-page-param-logged-in.html",
+  "private": false
+}
