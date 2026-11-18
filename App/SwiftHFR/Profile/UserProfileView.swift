@@ -4,7 +4,7 @@ import SwiftUI
 // Port of HFRswift/Swift/UserProfileView.swift (GAP-167: UserProfileView, UserProfileHeaderView, UserProfileQuickActionsView,
 // UserProfileSectionView, UserProfileFieldRow, UserProfileSmiliesView, UserProfileActionsView) @ 2440d79. Differences: images
 // through the reader's cookie-less fetcher and image policy, not `AsyncImage`; no smiley favourite toggle (LOT-104); a
-// list instead of cards (LOT-116 spec).
+// list instead of cards (LOT-116 spec); the list look of every list (`listLook`, #1107).
 /// A member's public profile in a sheet (LOT-116): header (avatar, pseudo, status, figures), the page's sections, personal
 /// smileys and the page's link rows. Every text the member wrote is shown verbatim, never read as Markdown or HTML.
 struct UserProfileView: View {
@@ -36,33 +36,36 @@ struct UserProfileView: View {
     @ViewBuilder private var content: some View {
         if let profile = model.profile {
             List {
-                if let error = model.error {
-                    LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-                }
-                ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin()
-                ForEach(profile.sections) { section in
-                    Section {
-                        ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }
-                    } header: {
-                        Text(section.title).densityHeaderMargin()
+                // #1107: every row of the list takes its look, once for the whole content.
+                Group {
+                    if let error = model.error {
+                        LoadFailureBanner(error: error, retry: model.reload).listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    }
+                    ProfileHeaderSection(profile: profile, fetcher: services.imageFetcher, model: model).densityRowMargin()
+                    ForEach(profile.sections) { section in
+                        Section {
+                            ForEach(section.fields) { field in ProfileFieldRow(field: field, open: open).densityRowMargin() }
+                        } header: {
+                            Text(section.title).densityHeaderMargin()
+                        }
+                    }
+                    if !profile.personalSmilies.isEmpty {
+                        ProfileSmileysSection(
+                            smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
+                        )
+                        .densityRowMargin()
+                    }
+                    if !profile.actions.isEmpty {
+                        Section {
+                            ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
+                        } header: {
+                            Text("Liens").densityHeaderMargin()
+                        }
                     }
                 }
-                if !profile.personalSmilies.isEmpty {
-                    ProfileSmileysSection(
-                        smileys: profile.personalSmilies, fetcher: services.imageFetcher, generation: model.loadGeneration
-                    )
-                    .densityRowMargin()
-                }
-                if !profile.actions.isEmpty {
-                    Section {
-                        ForEach(profile.actions) { action in ProfileActionRow(action: action, open: open).densityRowMargin() }
-                    } header: {
-                        Text("Liens").densityHeaderMargin()
-                    }
-                }
+                .listLookRows()
             }
-            .listStyle(.insetGrouped)
-            .densityListMargins()
+            .listLook()
             .refreshable { await model.reload() }
         } else if let error = model.error {
             LoadFailureView(error: error, retry: model.reload)

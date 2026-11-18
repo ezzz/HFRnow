@@ -17,23 +17,27 @@ struct MessageListView: View {
     var body: some View {
         let loader = model.loader
         List(selection: Binding(get: { model.selected }, set: { model.selected = $0 })) {
-            ScreenLargeTitle(title: "Messages", visibility: titleVisibility)
-            // A row of the list under the large title, like the category list's filter: it scrolls away with the content (#1013).
-            if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
-            if loader.value != nil {
-                ForEach(model.visibleThreads) { thread in
-                    MessageRowView(
-                        thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
-                        flagLabel: model.flagLabel(for: thread)
-                    )
-                    // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
-                    .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
-                    .tag(thread)
+            // #1107: every row of the list takes its look, once for the whole content.
+            Group {
+                ScreenLargeTitle(title: "Messages", visibility: titleVisibility)
+                // A row of the list under the large title, like the category list's filter: it scrolls away with the content (#1013).
+                if model.showsSegmentSwitch { MessageSegmentSwitch(model: model) }
+                if loader.value != nil {
+                    ForEach(model.visibleThreads) { thread in
+                        MessageRowView(
+                            thread: thread, isUnread: model.isUnread(thread), isSelected: model.selected == thread,
+                            flagLabel: model.flagLabel(for: thread)
+                        )
+                        // At the call site, not inside the row: the pill is the list's highlight, the row stays measurable alone (#803).
+                        .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
+                        .listLookRow(isSelected: model.selected == thread)
+                        .tag(thread)
+                    }
                 }
             }
+            .listLookRows()
         }
-        .listStyle(.insetGrouped) // explicit: legacy's rounded block (#803)
-        .densityListMargins()
+        .listLook() // explicit: legacy's rounded block (#803); the dense look behind « Lignes denses » (#1107)
         .screenTitle("Messages", style: .largeThenPill, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }

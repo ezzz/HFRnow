@@ -3,7 +3,7 @@ import UIKit
 
 // Port of HFRswift/Swift/AccountMenuViews.swift (AccountMenuRow, AccountAvatarView) and the "Déconnexion" item of
 // HFRswift/Swift/Favorites.swift (FavoritesListView) @ 2440d79. Differences: a manage screen where an account is removed after
-// confirmation (GAP-163).
+// confirmation (GAP-163). #1107: the list look of every list (`listLook`).
 /// The accounts screen: select, add, log in again and remove accounts; shows a store problem with its way out.
 struct AccountsView: View {
     @Environment(AccountsModel.self) private var accounts
@@ -16,31 +16,36 @@ struct AccountsView: View {
     var body: some View {
         ThemedNavigationStack {
             List {
-                if let problem = accounts.storeProblem {
-                    storeProblemSection(problem)
-                }
-                if !accounts.rows.isEmpty {
-                    Section("Comptes") {
-                        ForEach(accounts.rows) { row in
-                            AccountRowView(row: row, onSelect: { select(row) }, onRelogin: { relogin(row) })
-                                .swipeActions {
-                                    Button("Retirer", role: .destructive) { pendingRemoval = row }
-                                }
-                                .contextMenu {
-                                    Button("Se reconnecter", systemImage: "arrow.clockwise") { relogin(row) }
-                                    Button("Retirer", systemImage: "trash", role: .destructive) { pendingRemoval = row }
-                                }
+                // #1107: every row of the list takes its look, once for the whole content.
+                Group {
+                    if let problem = accounts.storeProblem {
+                        storeProblemSection(problem)
+                    }
+                    if !accounts.rows.isEmpty {
+                        Section("Comptes") {
+                            ForEach(accounts.rows) { row in
+                                AccountRowView(row: row, onSelect: { select(row) }, onRelogin: { relogin(row) })
+                                    .swipeActions {
+                                        Button("Retirer", role: .destructive) { pendingRemoval = row }
+                                    }
+                                    .contextMenu {
+                                        Button("Se reconnecter", systemImage: "arrow.clockwise") { relogin(row) }
+                                        Button("Retirer", systemImage: "trash", role: .destructive) { pendingRemoval = row }
+                                    }
+                            }
+                        }
+                    }
+                    if accounts.storeProblem == nil {
+                        Section {
+                            Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }
+                        } footer: {
+                            Text(Self.footer)
                         }
                     }
                 }
-                if accounts.storeProblem == nil {
-                    Section {
-                        Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }
-                    } footer: {
-                        Text(Self.footer)
-                    }
-                }
+                .listLookRows()
             }
+            .listLook()
             .navigationTitle("Comptes")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

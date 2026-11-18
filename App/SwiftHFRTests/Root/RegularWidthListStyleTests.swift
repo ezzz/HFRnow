@@ -12,14 +12,14 @@ import UIKit
 @MainActor
 @Suite(.serialized)
 struct RegularWidthListStyleTests {
-    private func rootModel() -> RootModel {
+    private func rootModel(favorites topics: [TopicSummary] = [topicSummary(1)]) -> RootModel {
         let data = FakeDataSource()
         data.forumHandler = {
             ForumListPage(forums: [ForumCategory(categoryID: .forum(13), title: "Discussions", path: "/hfr/Discussions/liste_sujet-1.htm")])
         }
         data.favoritesHandler = { _ in
             FavoritesPage(sections: [
-                FavoriteSection(forum: ForumLink(title: "Discussions", path: "/d"), categoryID: .forum(13), topics: [topicSummary(1)])
+                FavoriteSection(forum: ForumLink(title: "Discussions", path: "/d"), categoryID: .forum(13), topics: topics)
             ])
         }
         let forums = ForumListModel(dataSource: data)
@@ -120,5 +120,45 @@ struct RegularWidthListStyleTests {
             #expect(colours.beside == categories.beside, "\(tab) \(colours), Catégories \(categories)")
             #expect(colours.beside != colours.inside, "\(tab): no block, the row spans the column \(colours)")
         }
+    }
+
+    /// #1107: the dense look draws its rows on a clear background, which would hide the list's own selection in an iPad
+    /// column; the selected topic keeps a highlight there.
+    @Test func denseLookKeepsTheSelectedTopicHighlighted() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let model = rootModel(favorites: [topicSummary(1), topicSummary(2)])
+        let experimentalStore = InMemorySettingsStore()
+        experimentalStore.set(true, for: SettingKey.experimentalDenseRows)
+        let host = UIHostingController(rootView: RootSidebarView(
+            model: model, environment: AppEnvironment.make(session: HFRSession(), accountName: nil)
+        )
+        .environment(makeModel(store: InMemoryCredentialStore()))
+        .environment(ExperimentalSettings(store: experimentalStore)))
+        host.overrideUserInterfaceStyle = .light
+        host.traitOverrides.horizontalSizeClass = .regular
+        host.traitOverrides.verticalSizeClass = .regular
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1376, height: 1032)
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true }
+        model.selectedDestination = .tab(.favorites)
+        var rows: [UICollectionViewCell] = []
+        for _ in 0..<100 where rows.count < 3 {
+            try await Task.sleep(for: .milliseconds(50))
+            window.layoutIfNeeded()
+            rows = contentList(in: window)?.visibleCells.sorted { $0.frame.minY < $1.frame.minY } ?? []
+        }
+        model.favorites.selectedTopic = topicSummary(1)
+        try await Task.sleep(for: .milliseconds(800))
+        window.layoutIfNeeded()
+        // The two topic rows are the list's last two cells (the large title and the section come first).
+        let cells = try #require(contentList(in: window)?.visibleCells.sorted { $0.frame.minY < $1.frame.minY }, "no list")
+        try #require(cells.count >= 2, "rows \(cells.count)")
+        let selected = cells[cells.count - 2].convert(cells[cells.count - 2].bounds, to: nil)
+        let other = cells[cells.count - 1].convert(cells[cells.count - 1].bounds, to: nil)
+        let selectedColour = colour(of: window, at: CGPoint(x: selected.maxX - 3, y: selected.maxY - 3))
+        let otherColour = colour(of: window, at: CGPoint(x: other.maxX - 3, y: other.maxY - 3))
+        #expect(selectedColour.count == 3 && selectedColour != otherColour, "selected \(selectedColour), other \(otherColour)")
     }
 }
