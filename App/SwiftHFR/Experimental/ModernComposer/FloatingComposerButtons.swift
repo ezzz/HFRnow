@@ -21,7 +21,10 @@ struct FloatingComposerButtons: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            button(prominent: false, enabled: ComposerHeader.closeIsEnabled(isSending: isSending), action: close) {
+            button(
+                prominent: false, enabled: ComposerHeader.closeIsEnabled(isSending: isSending), circle: .closeCircle,
+                action: close
+            ) {
                 symbol("xmark", probe: .closeGlyph)
             }
             .keyboardShortcut(.cancelAction)
@@ -67,11 +70,12 @@ struct FloatingComposerButtons: View {
         .accessibilityLabel(state.label)
     }
 
-    /// A circle of the card tools' diameter inside a 44 pt hit area: the palette's fill under the system's interactive glass, so the glyph keeps its
-    /// contrast whatever page runs under it (#972); a prominent one is the accent, as before. `.plain` draws no disabled state:
-    /// only the glyph dims, the capsule stays readable as a button.
+    /// A circle of the card tools' diameter inside a 44 pt hit area: the palette's fill under the system's interactive glass, so
+    /// the glyph keeps its contrast whatever page runs under it (#972); a prominent one is the accent, as before. `.plain` draws
+    /// no disabled state: only the glyph dims, the circle stays readable as a button.
     private func button<Label: View>(
-        prominent: Bool, enabled: Bool, action: @escaping () -> Void, @ViewBuilder label: () -> Label
+        prominent: Bool, enabled: Bool, circle: ComposerLayoutProbe.Part? = nil, action: @escaping () -> Void,
+        @ViewBuilder label: () -> Label
     ) -> some View {
         let palette = FloatingButtonPalette(scheme: scheme)
         return Button(action: action) {
@@ -79,6 +83,7 @@ struct FloatingComposerButtons: View {
                 .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(palette.glyph.color))
                 .opacity(enabled ? 1 : FloatingButtonPalette.disabledGlyphOpacity)
                 .frame(width: size.diameter, height: size.diameter)
+                .background { probed(circle) }
                 .background {
                     if !prominent {
                         Circle()
@@ -94,6 +99,12 @@ struct FloatingComposerButtons: View {
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
+    }
+
+    /// An invisible shape of the circle's size that reports its frame to a test's probe (`part`), if any.
+    @ViewBuilder
+    private func probed(_ part: ComposerLayoutProbe.Part?) -> some View {
+        if let part { Color.clear.composerProbe(part) }
     }
 
     /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895, #1126).

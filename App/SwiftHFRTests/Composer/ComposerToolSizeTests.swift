@@ -6,7 +6,7 @@ import Testing
 /// #1126: the composer's close, drafts and send buttons and the card's tools are one size, read from `ComposerToolSize`.
 @MainActor
 struct ComposerToolSizeTests {
-    private static let metricsCases: [ComposerBarMetrics] = [ListDensity.regular, .compact].flatMap { density in
+    nonisolated private static let metricsCases: [ComposerBarMetrics] = [ListDensity.regular, .compact].flatMap { density in
         [(100, CGFloat(1)), (130, 1), (100, 1.6)].map { percent, dynamicType in
             ComposerBarMetrics(density: density, scale: TextScale(percent: percent), dynamicType: dynamicType)
         }

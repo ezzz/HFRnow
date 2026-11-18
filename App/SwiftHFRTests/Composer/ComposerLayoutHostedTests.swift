@@ -125,7 +125,8 @@ struct ComposerLayoutHostedTests {
         #expect(abs(card.minX - gap) < 0.5, "card \(card)")
         #expect(abs(402 - card.maxX - gap) < 0.5, "card \(card)")
         #expect(close.width >= ComposerHeader.hitSize - 0.5 && close.height >= ComposerHeader.hitSize - 0.5, "close \(close)")
-        let capsule = ComposerHeader.capsuleSize(diameter: ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter)
+        let tool = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)))
+        let capsule = ComposerHeader.capsuleSize(diameter: tool.diameter)
         #expect(abs(close.midX - capsule.width / 2 - gap) < 0.5, "close \(close)")
         #expect(abs(card.minY - (close.midY + capsule.height / 2) - gap) < 0.5, "close \(close), card \(card)")
     }
@@ -144,16 +145,14 @@ struct ComposerLayoutHostedTests {
         #expect(abs(glyph.width - expected.width) < 1, "glyph \(glyph), UIKit \(expected)")
     }
 
-    /// #1126: the close button is the card tools' circle (a chip's diameter), not a larger or smaller capsule.
+    /// #1126: the close button's drawn circle is the card tools' chip diameter on both axes (the base drew a 39 × 31 pt capsule).
     @Test func theFloatingButtonIsTheCardToolsDiameter() async throws {
         guard isPhone else { return }
         let box = try await host(size: .large, text: "Bonjour")
-        let close = try #require(box.frames[.close])
-        let diameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
-        // The hit area is 44 pt; the circle is its middle `diameter` points: the gap to the glyph's frame is the same on each side.
-        let glyph = try #require(box.frames[.closeGlyph])
-        #expect(glyph.width < diameter && glyph.height < diameter, "glyph \(glyph) inside a \(diameter) pt circle")
-        #expect(close.width >= max(diameter, ComposerHeader.hitSize) - 0.5, "close \(close)")
+        let circle = try #require(box.frames[.closeCircle])
+        let tool = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100)))
+        #expect(abs(circle.width - tool.diameter) < 0.5, "circle \(circle), chip \(tool.diameter)")
+        #expect(abs(circle.height - tool.diameter) < 0.5, "circle \(circle), chip \(tool.diameter)")
     }
 
     /// A new private message has its recipient and subject between the floating buttons and the card: the card keeps the

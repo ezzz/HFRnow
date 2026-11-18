@@ -99,7 +99,8 @@ struct ComposerHeader: View {
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .padding(.horizontal, 96)
+                // Room for the close and drafts buttons on each side, whatever the metrics make them (#1126).
+                .padding(.horizontal, 2 * toolSize.diameter + 16)
                 .accessibilityAddTraits(.isHeader)
                 .composerProbe(.title)
             HStack(spacing: 8) {

@@ -6,7 +6,7 @@ struct ComposerLayoutProbe {
     enum Part: Hashable {
         case title, close, drafts, send, card, editor, controls
         /// The recipient and subject fields; the close button's glyph as drawn (#895).
-        case fields, closeGlyph
+        case fields, closeGlyph, closeCircle
         /// The reader's docked bar's opaque fill (#972); the editor's "Plein écran" / "Réduire" toggle (#904's switch-off test).
         case fill, heightToggle
     }

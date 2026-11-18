@@ -17,7 +17,9 @@ private let composerSizes: [ComposerSize] = [ListDensity.regular, .compact].flat
 @MainActor
 struct ModernComposerInsetsTests {
     /// The card tools' glyph at the default text size and density (`ComposerBarMetrics`), which the floating buttons now use.
-    private static let defaultDiameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
+    private static let defaultDiameter = ComposerToolSize(
+        metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))
+    ).diameter
 
     @Test func theSharedGapIsTheReferencesEightPoints() {
         #expect(FloatingSpacing.gap == 8)
