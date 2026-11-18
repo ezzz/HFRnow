@@ -94,9 +94,9 @@ struct ExperimentalPageTests {
 
 /// #1128: one spacing between a switch's title and its description, read by every Réglages row that shows a description under
 /// its control (it was 2 pt on two rows and 6 pt on another).
+@MainActor
 struct SettingsRowSpacingTests {
-    /// The system `Form` sets a footnote under a row about one line-height of the footnote font from the title; 8 pt is clearly
-    /// more than the 2 and 6 pt it replaces without growing the row past what Settings.app does.
+    /// 8 pt is clearly more than the 2 and 6 pt it replaces (an estimate of Settings.app's look, to confirm on a device, #893).
     @Test func theSpacingIsClearlyLargerThanTheOldTwoAndSixPoints() {
         #expect(SettingsRowSpacing.titleToDescription == 8)
         #expect(SettingsRowSpacing.titleToDescription > 6)
