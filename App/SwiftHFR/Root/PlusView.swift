@@ -53,7 +53,7 @@ struct PlusEntryView: View {
         case .deleteAccount:
             AccountDeletionView()
         case .bookmarks:
-            BookmarksView(mpStorage: model.mpStorage, environment: environment)
+            BookmarksView(mpStorage: model.mpStorage, selection: model.bookmarkSelection, environment: environment)
         case .qualityAlerts:
             placeholder
         }

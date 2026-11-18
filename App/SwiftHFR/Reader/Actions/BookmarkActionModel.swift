@@ -28,8 +28,10 @@ final class BookmarkActionModel {
         }
     }
 
-    /// The question of a first bookmark when the account never chose (ADR 0013 §7).
-    static let consentQuestion = "Enregistrer les bookmarks de ce compte dans le stockage MP (un message privé sur le forum) ?"
+    /// The question of a first bookmark when the account never chose (ADR 0013 §7). « Activer » is legacy's single switch: the
+    /// shared blacklist syncs too (LOT-131), so the question says so.
+    static let consentQuestion =
+        "Activer le stockage MP pour ce compte (un message privé sur le forum) ? Il garde les bookmarks et la liste noire partagée."
 
     /// The draft whose title is asked (the sheet).
     var prompt: Draft?

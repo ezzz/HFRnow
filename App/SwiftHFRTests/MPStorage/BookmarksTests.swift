@@ -155,6 +155,36 @@ struct BookmarksModelTests {
         #expect(model.errorMessage == nil)
     }
 
+    // Fable round 2, finding 1: a swiped row leaves the list at once, before the forum exchange ends.
+    @Test func aDeletionShowsBeforeTheForumAnswers() async throws {
+        let shown = sampleBookmark()
+        let gated = try await GatedBookmarks.make(state: .on, base: try bookmarkDocumentText([shown]))
+        await gated.sync.loadCopyIfNeeded()
+        let model = BookmarksModel(mpStorage: gated.sync)
+        #expect(model.bookmarks == [shown])
+
+        let deletion = Task { await model.delete(shown) }
+        await gated.readIsHeld()
+        #expect(model.bookmarks.isEmpty)
+        await gated.gate.release()
+        await deletion.value
+        #expect(model.bookmarks.isEmpty)
+        #expect(try await gated.remote.bookmarks().isEmpty)
+    }
+
+    // Fable round 2, finding 2: the selection is the window's, so a list built again finds the bookmark still open.
+    @Test func theSelectionOutlivesTheListScreen() async throws {
+        let shown = sampleBookmark()
+        let fixture = try await fixture(state: .on, bookmarks: [shown])
+        let selection = BookmarkSelection()
+        BookmarksModel(mpStorage: fixture.model, selection: selection).didOpen(shown)
+        let again = BookmarksModel(mpStorage: fixture.model, selection: selection)
+        #expect(again.selectedID == shown.id)
+        await again.load()
+        #expect(await again.delete(shown))
+        #expect(selection.id == nil)
+    }
+
     @Test func aFailedRefreshSaysWhy() async throws {
         let fixture = try await fixture(state: .on)
         let model = BookmarksModel(mpStorage: fixture.model)

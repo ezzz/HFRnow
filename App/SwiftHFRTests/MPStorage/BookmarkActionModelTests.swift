@@ -142,6 +142,8 @@ struct BookmarkActionModelTests {
         #expect(fixture.model.asksCreation)
         #expect(fixture.model.creationPrompt == .write)
         #expect(model.prompt == nil)
+        // The creation question speaks for itself: nothing more is said.
+        #expect(setup.said.lines.isEmpty)
     }
 
     @Test func cancellingTheQuestionRecordsNothing() async throws {
@@ -265,24 +267,42 @@ struct BookmarkActionModelTests {
     }
 }
 
-/// The concurrency cases, with LOT-131's read gate.
-extension BookmarkActionModelTests {
-    // Fable round 1, finding 5: while the first pick reads the document, a second does nothing and the model stays busy
-    // (the reader keeps it, so the prompt it ends with is shown).
-    @Test func aPickWhileTheDocumentIsReadIsIgnored() async throws {
-        let remote = FakeMPStorageRemote(thread: 7, text: try bookmarkDocumentText([]))
+/// An account's MPStorage sync whose forum reads wait at a gate (LOT-131's `ReadGate`).
+struct GatedBookmarks {
+    let sync: MPStorageSyncModel
+    let remote: FakeMPStorageRemote
+    let gate: ReadGate
+
+    @MainActor
+    static func make(state: MPStorageSyncState, thread: Int? = 7, base: String? = nil) async throws -> GatedBookmarks {
+        let remote = FakeMPStorageRemote(thread: thread, text: try bookmarkDocumentText([]))
         let gate = ReadGate()
-        let settings = InMemorySettingsStore()
-        let states = MPStorageSyncStateStore(settings: settings)
-        states.set(.on, for: MPStorageSyncModelTests.account, at: MPStorageSyncModelTests.now)
+        let states = MPStorageSyncStateStore(settings: InMemorySettingsStore())
+        states.set(state, for: MPStorageSyncModelTests.account, at: MPStorageSyncModelTests.now)
         let copies = MPStorageCopyStore(persistence: InMemorySmallStorePersistence<MPStorageCopyDocument>())
-        try await copies.save(MPStorageCopy(post: 7), for: MPStorageSyncModelTests.account)
+        try await copies.save(MPStorageCopy(post: thread, base: base), for: MPStorageSyncModelTests.account)
         let persistence = MPStorageCopyPersistence(store: copies, account: MPStorageSyncModelTests.account)
         let sync = MPStorageSyncModel(
             account: MPStorageSyncModelTests.account,
             sync: MPStorageSync(remote: GatedMPStorageRemote(inner: remote, gate: gate), persistence: persistence),
             states: states, isLoggedIn: { true }, clock: { MPStorageSyncModelTests.now }
         )
+        return GatedBookmarks(sync: sync, remote: remote, gate: gate)
+    }
+
+    /// Waits until a read is held at the gate.
+    func readIsHeld() async {
+        while await gate.waiting == 0 { await Task.yield() }
+    }
+}
+
+/// The concurrency cases, with LOT-131's read gate.
+extension BookmarkActionModelTests {
+    // Fable round 1, finding 5: while the first pick reads the document, a second does nothing and the model stays busy
+    // (the reader keeps it, so the prompt it ends with is shown).
+    @Test func aPickWhileTheDocumentIsReadIsIgnored() async throws {
+        let gated = try await GatedBookmarks.make(state: .on)
+        let sync = gated.sync, remote = gated.remote, gate = gated.gate
         let model = BookmarkActionModel(mpStorage: sync, confirm: { _ in })
 
         let first = Task { await model.start(Self.context()) }
@@ -296,5 +316,24 @@ extension BookmarkActionModelTests {
         await second.value
         #expect(model.prompt?.topic == Self.topic)
         #expect(await remote.calls == [.read(7)])
+    }
+
+    // Fable round 2, finding 3: « Activer » keeps the model busy while it switches on, and a pick meanwhile does nothing.
+    @Test func aPickWhileActivatingIsIgnored() async throws {
+        let gated = try await GatedBookmarks.make(state: .unasked)
+        let model = BookmarkActionModel(mpStorage: gated.sync, confirm: { _ in })
+        await model.start(Self.context())
+        let draft = try #require(model.pendingConsent)
+
+        let answer = Task { await model.answerConsent(true, for: draft) }
+        await gated.readIsHeld()
+        #expect(!model.isIdle)
+        let other = Task { await model.start(Self.context(topic: TopicID(category: .forum(5), topic: 1))) }
+        for _ in 0..<50 { await Task.yield() }
+        await gated.gate.release()
+        await answer.value
+        await other.value
+        #expect(model.prompt == draft)
+        #expect(model.pendingConsent == nil)
     }
 }

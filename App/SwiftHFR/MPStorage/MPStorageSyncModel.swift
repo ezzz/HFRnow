@@ -231,7 +231,11 @@ final class MPStorageSyncModel {
         var changed = false
         await run { [self] () async throws(MPStorageSyncError) in
             changed = try await sync.edit(now: clock(), change)
-            if changed { try await syncOnce() }
+            guard changed else { return }
+            // Local first: the edit shows before the forum exchange, which can take long on a slow network (LOT-132). The
+            // merge's "before" was taken when the call began, so `afterSync` still diffs the documents around the call.
+            _ = await loadCopy()
+            try await syncOnce()
         } merges: {
             // An edit that changed nothing neither read nor wrote: no merge. Per call, never model state (calls overlap).
             changed

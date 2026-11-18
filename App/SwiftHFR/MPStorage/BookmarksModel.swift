@@ -20,15 +20,18 @@ final class BookmarksModel {
         case syncing
     }
 
-    /// The bookmark last opened, selected in the list while it shows beside it (legacy `bookmarksTopicTarget`).
-    private(set) var selectedID: String?
-
     @ObservationIgnored private let mpStorage: MPStorageSyncModel?
+    @ObservationIgnored private let selection: BookmarkSelection
 
-    /// The bookmarks of `mpStorage`'s account; nil logged out.
-    init(mpStorage: MPStorageSyncModel?) {
+    /// The bookmarks of `mpStorage`'s account (nil logged out); `selection` is the window's, kept by the root beside the
+    /// detail column so it outlives this screen.
+    init(mpStorage: MPStorageSyncModel?, selection: BookmarkSelection = BookmarkSelection()) {
         self.mpStorage = mpStorage
+        self.selection = selection
     }
+
+    /// The bookmark last opened, selected in the list while it shows beside it (legacy `bookmarksTopicTarget`).
+    var selectedID: String? { selection.id }
 
     /// The screen's state.
     var state: State {
@@ -60,7 +63,7 @@ final class BookmarksModel {
 
     /// Records the row the user opened.
     func didOpen(_ bookmark: MPStorageBookmark) {
-        selectedID = bookmark.id
+        selection.id = bookmark.id
     }
 
     /// Removes `bookmark` from the document; returns whether it was removed and was the one open beside the list (the
@@ -71,7 +74,17 @@ final class BookmarksModel {
         let id = bookmark.id
         let removed = await mpStorage.edit(.bookmarks) { document, stamp in try document.removeBookmark(id: id, stamp: stamp) }
         guard removed, selectedID == id else { return false }
-        selectedID = nil
+        selection.id = nil
         return true
     }
+}
+
+/// The bookmark open in a window's detail column (legacy `bookmarksTopicTarget`, `MainWindow.swift:1372`), held by the root
+/// next to `RootModel.detailReaders`: the list screen is rebuilt when the sidebar leaves Bookmarks and comes back, the
+/// detail column is not.
+@MainActor
+@Observable
+final class BookmarkSelection {
+    /// `MPStorageBookmark.id` of the bookmark opened beside the list; nil when none.
+    var id: String?
 }

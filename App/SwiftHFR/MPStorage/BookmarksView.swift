@@ -13,8 +13,8 @@ struct BookmarksView: View {
     /// The reader a row pushed on the Plus stack (no detail column).
     @State private var pushed: TopicReaderModel?
 
-    init(mpStorage: MPStorageSyncModel?, environment: AppEnvironment) {
-        _model = State(initialValue: BookmarksModel(mpStorage: mpStorage))
+    init(mpStorage: MPStorageSyncModel?, selection: BookmarkSelection, environment: AppEnvironment) {
+        _model = State(initialValue: BookmarksModel(mpStorage: mpStorage, selection: selection))
         self.environment = environment
     }
 
