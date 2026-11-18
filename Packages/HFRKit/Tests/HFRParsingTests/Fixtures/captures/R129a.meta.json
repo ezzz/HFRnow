@@ -1,0 +1,21 @@
+{
+  "id": "R129a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+  "url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Discussions/Cuisine/liste_sujet-1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:19:20 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p",
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R129a-subforum-list-new-topic-link-logged-in.html",
+  "private": false
+}

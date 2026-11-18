@@ -26,7 +26,7 @@ struct ReaderVideosModeTests {
         let elements = html.matches(of: /<(iframe|embed|object|video|audio|source)\b/).map { String($0.output.0) }
         let attributes = html.matches(of: #/
             (src|srcset|data|poster|data-src) \s* = \s* ["'] [^"']*
-            (youtube\.com|youtu\.be|youtube-nocookie\.com|vimeo\.com|streamable\.com|dailymotion\.com)
+            (youtube\.com|youtu\.be|youtube-nocookie\.com|ytimg\.com|vimeo\.com|streamable\.com|dailymotion\.com)
             /#).map { String($0.output.0) }
         return elements + attributes
     }
@@ -45,6 +45,27 @@ struct ReaderVideosModeTests {
         #expect(!providerLoads(in: "<iframe src=\"https://www.youtube.com/embed/abc\"></iframe>").isEmpty)
         #expect(!providerLoads(in: "<img src=\"https://player.vimeo.com/x\">").isEmpty)
         #expect(providerLoads(in: "<a href=\"https://www.youtube.com/watch?v=abc\">l</a>").isEmpty)
+    }
+
+    /// A plain YouTube link nested in `<b>` is not a LOT-035 player candidate: #1037 gives it a thumbnail card (`ReaderVideoLinkTests`).
+    private func cardDocument(embedding: Bool) -> String {
+        let address = "https://youtu.be/dQw4w9WgXcQ"
+        let content = MessageContent(html: "<p><b><a class=\"cLink\" href=\"\(address)\">\(address)</a></b></p>")
+        var page = readerPage(page: 1)
+        page.messages[0].content = content
+        return TopicHTMLBuilder.document(for: page, token: 1, options: ReaderRenderOptions(embedsVideos: embedding))
+    }
+
+    @Test func integratedShowsTheThumbnailCardOfAPlainYouTubeLink() {
+        let html = cardDocument(embedding: true)
+        #expect(html.contains("class=\"video-card\""))
+        #expect(html.contains("class=\"video-thumb\""))
+    }
+
+    @Test func linkLeavesAPlainYouTubeLinkWithoutCardOrThumbnail() {
+        let html = cardDocument(embedding: false)
+        #expect(!html.contains("video-card") && !html.contains("video-thumb") && !html.contains("ytimg.com"))
+        #expect(html.contains("href=\"https://youtu.be/dQw4w9WgXcQ\""), "the link stays a normal link")
     }
 
     @Test func embeddedIsTheDefaultOfTheRenderOptions() {

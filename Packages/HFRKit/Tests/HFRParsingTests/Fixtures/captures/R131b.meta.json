@@ -1,0 +1,21 @@
+{
+  "id": "R131b",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message.php?config=hfr.inc&cat=6&sond=0&p=1&subcat=169&dest=&subcatgroup=0",
+  "url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&sond=0&p=1&subcat=169&dest=&subcatgroup=0",
+  "final_url": "https://forum.hardware.fr/message.php?config=hfr.inc&cat=6&sond=0&p=1&subcat=169&dest=&subcatgroup=0",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:20:41 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "note": "new-topic composer of the Achats & Ventes Hardware sub-forum (md_btn_new_topic link of its list), user2",
+  "file": "R131b-new-topic-form-achats-ventes-logged-in.html",
+  "private": false
+}

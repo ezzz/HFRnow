@@ -354,14 +354,6 @@ func TestIdentifiantsDuCadrage(t *testing.T) {
 			continue
 		}
 		cellule := cols[2]
-		if strings.Contains(cellule, "à `C10`") { // « `C01` à `C10` sauf `C08` »
-			for n := 1; n <= 10; n++ {
-				if n != 8 {
-					ids = append(ids, "C"+strings.Repeat("0", 2-len(strconv.Itoa(n)))+strconv.Itoa(n))
-				}
-			}
-			continue
-		}
 		for _, m := range regexp.MustCompile("`([A-Z]\\d{1,2})`").FindAllStringSubmatch(cellule, -1) {
 			ids = append(ids, m[1])
 		}

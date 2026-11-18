@@ -22,6 +22,10 @@ var (
 	reglePost   = regle{10, time.Hour}
 	regleStats  = regle{60, time.Minute}
 	regleAutres = regle{120, time.Minute}
+	// Tous les /static/ ensemble : large pour une page qui charge ses visuels, étroit pour une boucle (E1).
+	regleStatiques = regle{600, time.Minute}
+	// Échecs d'authentification du code d'accès (F3) : au dixième échec en dix minutes, plus rien n'est essayé.
+	regleEchecs = regle{10, 10 * time.Minute}
 )
 
 type entree struct {
@@ -84,4 +88,17 @@ func (l *Limiteur) oublierLaPlusAncienne() {
 		}
 	}
 	delete(l.entrees, cle)
+}
+
+// Epuise dit si le plafond est atteint, sans compter de requête (sert à refuser avant d'examiner un code d'accès).
+func (l *Limiteur) Epuise(categorie, ip string, r regle) (bool, time.Duration) {
+	cle := l.cleClient(categorie, ip)
+	now := l.horloge()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	e := l.entrees[cle]
+	if e == nil || now.Sub(e.debut) >= r.fenetre || e.n < r.max {
+		return false, 0
+	}
+	return true, e.debut.Add(r.fenetre).Sub(now)
 }

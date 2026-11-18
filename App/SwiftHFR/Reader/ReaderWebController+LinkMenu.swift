@@ -179,6 +179,23 @@ extension ReaderWebController {
         }
     }
 
+    /// A tap on a video: LOT-108's player placeholder opens the player sheet, a YouTube card or its link the YouTube app or Safari.
+    func openVideo(_ message: ReaderBridgeMessage, token: Int) {
+        switch message {
+        case .video(let post, let index): events.video(post, index, token)
+        case .videoLink(let link): openVideoLink(link)
+        default: break
+        }
+    }
+
+    /// A tap on a YouTube thumbnail card or on its plain link (#1037): the YouTube app when it takes the link (universal links
+    /// only), Safari otherwise, never an in-app browser nor the player sheet. The page's `link` is a claim: only a YouTube video
+    /// link opens, over `https`, with its start time.
+    func openVideoLink(_ link: String) {
+        guard !ignoresPageTaps, let url = URL(string: link), let video = YouTubeLinkDetector.video(for: url) else { return }
+        performLinkEntry(.app(provider: .youtube), url: video.openURL)
+    }
+
     /// Opens the viewer on the image of `url`; the viewer's own policy check (`ImageGallery`) refuses a blocked host.
     private func openLinkedImage(_ url: URL) {
         guard let gallery = ImageGallery.build(

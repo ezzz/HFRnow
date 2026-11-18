@@ -132,7 +132,11 @@ enum TopicHTMLBuilder {
         // Body markup context only (LOT-034 contract).
         let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
         html += "<div class=\"content\">\(content)</div>\n"
-        if options.embedsVideos { html += videos(of: message) }
+        // « Vidéos: Lien » (#691) leaves every video link a plain link: no player placeholder, no thumbnail card (#1037).
+        if options.embedsVideos {
+            html += videos(of: message)
+            html += videoCards(of: message)
+        }
         if options.showsSignatures, let signature = message.content.signatureHTML {
             html += "<div class=\"signature\">\(signature)</div>\n"
         }
@@ -141,6 +145,14 @@ enum TopicHTMLBuilder {
         html += "</article>\n"
         return html
     }
+
+    /// The "+" of the message button (#1068): a 16 pt cross with 2 pt strokes, drawn rather than typeset so that its size depends on
+    /// neither the font nor Dynamic Type (legacy `plus-tinted@2x.png`: 64 px, an opaque 16 pt cross with 4 px strokes;
+    /// `style-liste-dark.css:590-595` @ 87fe0d1c). It takes the button's text colour.
+    private static let plusIcon = """
+        <svg class="plus" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">\
+        <path d="M8 0V16M0 8H16" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        """
 
     /// The message header: avatar, author (a button when the author menu is on), date and the `+` button (legacy
     /// `templatev2.htm:6` @ 87fe0d1c, operator decision of 2026-11-15 on #594: "+" again instead of "⋯").
@@ -164,7 +176,7 @@ enum TopicHTMLBuilder {
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
         if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">+</button>"
+            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">\(plusIcon)</button>"
         }
         html += "</header>\n"
         return html
@@ -217,6 +229,24 @@ enum TopicHTMLBuilder {
             let name = providerName(embed.provider)
             html += "<button type=\"button\" class=\"video\" data-post=\"\(message.numreponse)\" data-video=\"\(index)\""
             html += " aria-label=\"Lire la vidéo \(name)\">Vidéo \(name) · toucher pour lire</button>"
+        }
+        return html + "</div>\n"
+    }
+
+    /// A thumbnail card per plain YouTube link of the message (#1037), under the text, which keeps the link. The card reads as the
+    /// pill « Vidéo YouTube · toucher pour lire » until `reader.js` has the thumbnail: it goes through policy C and the cookie-less
+    /// client like every image, and a thumbnail that is refused, late or failed leaves the pill. The card's address is the posted
+    /// one, byte for byte (the reader tells the card from its link by it; the app opens it over `https`); the thumbnail comes from the
+    /// video id.
+    private static func videoCards(of message: ReaderMessage) -> String {
+        guard let cards = try? YouTubeLinkDetector.cards(inNormalizedHTML: message.content.html), !cards.isEmpty else { return "" }
+        var html = "<div class=\"videolinks\">"
+        for card in cards {
+            let address = HTMLEscaping.text(card.postedAddress)
+            html += "<a class=\"video-card\" href=\"\(address)\" data-post=\"\(message.numreponse)\" aria-label=\"Vidéo YouTube\">"
+            html += "<img class=\"video-thumb\" src=\"\(HTMLEscaping.text(card.thumbnailURL.absoluteString))\" alt=\"\">"
+            html += "<span class=\"video-play\" aria-hidden=\"true\"></span>"
+            html += "<span class=\"video-pill\">Vidéo YouTube · toucher pour lire</span></a>"
         }
         return html + "</div>\n"
     }

@@ -1,0 +1,20 @@
+{
+  "id": "R125a",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://forum.hardware.fr/",
+  "final_url": "https://forum.hardware.fr/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:16:20 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_user",
+    "md_user",
+    "md_passs",
+    "md_passs"
+  ],
+  "file": "R125a-home-logged-in-unread-mp-row-without-id.html",
+  "private": false
+}

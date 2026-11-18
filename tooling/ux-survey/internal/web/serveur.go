@@ -44,6 +44,7 @@ type Serveur struct {
 	mu         sync.RWMutex
 	cleIP      []byte // nil après la fermeture
 	fermeFait  bool
+	plafond    plafondHoraire
 	effaceFait bool
 }
 
@@ -68,6 +69,7 @@ func Nouveau(cfg *contenu.Config, q *contenu.Questionnaire, contenuJSON []byte, 
 	}
 	s := &Serveur{Cfg: cfg, Q: q, Base: base, Log: log, Horloge: horloge, Lim: lim,
 		val: &reponse.Validateur{Q: q}, pages: map[string][]byte{}, statiques: map[string]*fichier{}}
+	s.plafond = plafondHoraire{max: cfg.PlafondH, horloge: horloge}
 	s.cache = &stats.Cache{Source: s.sourceAgregats, Horloge: horloge, TTL: time.Minute}
 
 	for chemin, nom := range map[string]string{"/": "index.html", "/donnees": "donnees.html"} {

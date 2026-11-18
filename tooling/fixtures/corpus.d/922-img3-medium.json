@@ -1,0 +1,9 @@
+{"captures": [
+  {"raw": "U03", "id": "U03", "slug": "rehost-upload-large-medium", "ext": "json", "private": false},
+  {"raw": "U03a", "id": "U03a", "slug": "rehost-medium-no-referer", "ext": "", "private": false},
+  {"raw": "U03b", "id": "U03b", "slug": "rehost-medium-forum-referer", "ext": "", "private": false},
+  {"raw": "U03c", "id": "U03c", "slug": "rehost-full-no-referer", "ext": "", "private": false},
+  {"raw": "U03d", "id": "U03d", "slug": "rehost-full-forum-referer", "ext": "", "private": false},
+  {"raw": "U03e", "id": "U03e", "slug": "rehost-thumb-no-referer", "ext": "", "private": false},
+  {"raw": "U03f", "id": "U03f", "slug": "rehost-thumb-forum-referer", "ext": "", "private": false}
+]}

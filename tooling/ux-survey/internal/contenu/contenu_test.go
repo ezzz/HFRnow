@@ -13,7 +13,7 @@ import (
 	uxsurvey "github.com/ezzz/hfrnow/tooling/ux-survey"
 )
 
-// Test 2 : codes en ASCII minuscules, uniques ; neuf cartes ; visuels existants et identiques à ceux de #632.
+// Test 2 : codes en ASCII minuscules, uniques ; dix cartes ; visuels existants et identiques à ceux de #632.
 func TestContenuCodesCartesEtVisuels(t *testing.T) {
 	q := chargerContenu(t)
 	reASCII := regexp.MustCompile(`^[a-z0-9_]+$`)
@@ -26,8 +26,8 @@ func TestContenuCodesCartesEtVisuels(t *testing.T) {
 			vus[r.Code] = true
 		}
 	}
-	if len(q.Cartes) != 9 {
-		t.Errorf("neuf cartes attendues : %v", q.Cartes)
+	if len(q.Cartes) != 10 {
+		t.Errorf("dix cartes attendues : %v", q.Cartes)
 	}
 
 	racine := racineDepot(t)
@@ -241,5 +241,23 @@ func TestRemplacerEtDates(t *testing.T) {
 	}
 	if _, err := Remplacer("valeur {inconnue}", v); err == nil {
 		t.Error("une valeur inconnue doit être refusée")
+	}
+}
+
+// UX_PLAFOND_HORAIRE : 300 par défaut, entier positif sinon (M1).
+func TestPlafondHoraireConfig(t *testing.T) {
+	m := envValide()
+	if c, err := ChargerConfig(env(m)); err != nil || c.PlafondH != DefautPlafondHoraire {
+		t.Errorf("défaut : %v %v", c, err)
+	}
+	m["UX_PLAFOND_HORAIRE"] = "50"
+	if c, err := ChargerConfig(env(m)); err != nil || c.PlafondH != 50 {
+		t.Errorf("50 : %v", err)
+	}
+	for _, v := range []string{"0", "-3", "beaucoup"} {
+		m["UX_PLAFOND_HORAIRE"] = v
+		if _, err := ChargerConfig(env(m)); err == nil {
+			t.Errorf("UX_PLAFOND_HORAIRE=%q doit être refusé", v)
+		}
 	}
 }

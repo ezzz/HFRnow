@@ -80,11 +80,11 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
         }
     }
 
-    /// The lot that builds the screen behind the entry; until it lands the entry shows a placeholder, never a dead row.
+    /// The lot that builds the screen behind the entry, nil once it is built: every entry is (LOT-132 Bookmarks, LOT-133 Alertes
+    /// Qualitay), and a future one names its lot here rather than lead to a dead row.
     var owningLot: String? {
         switch self {
-        case .settings, .search, .bookmarks, .credits, .charter, .deleteAccount: nil
-        case .qualityAlerts: "LOT-133"
+        case .settings, .search, .bookmarks, .qualityAlerts, .credits, .charter, .deleteAccount: nil
         }
     }
 

@@ -1,0 +1,15 @@
+{
+  "id": "U03e",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "https://img3.super-h.fr/images/<yyyy>/<mm>/<dd>/<name>.th.jpg",
+  "url": "https://img3.super-h.fr/images/2026/11/18/snapshot_1234567890.th.jpg",
+  "final_url": "https://img3.super-h.fr/images/2026/11/18/snapshot_1234567890.th.jpg",
+  "status": 200,
+  "content_type": "image/jpeg",
+  "date": "Wed, 18 Nov 2026 19:01:23 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "thumbnail of U03, cookie-less, no Referer (#922); JPEG 120x120, 3075 bytes (Content-Length 3075), Content-Language: th",
+  "private": false
+}
