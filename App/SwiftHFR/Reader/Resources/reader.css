@@ -56,6 +56,8 @@
   /* A continuation (75 % opacity) keeps its date and note readable on the legacy grey (#1210): secondary text at 75 % was 3.45:1 there, the
      page text at 75 % is far above 4.5:1. */
   .message.continuation .date, .message.continuation .continuation-note { color: var(--text); }
+  /* The classic header is 15 % accent over the page: the date in secondary text was 3.75:1 on it over the legacy grey (6.5:1 on black). */
+  .style-classic .message .date { color: var(--text); }
 }
 
 /* Increase Contrast: a stronger rule (HIG, Accessibility: colours must hold in light, dark and increased contrast). */

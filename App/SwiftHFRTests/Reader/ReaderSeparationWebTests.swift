@@ -24,7 +24,8 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
     }
 
     /// [alpha of each article's background (three of them), the first article's bottom rule width, its colour channels, the quiet
-    ///  `--separator` as a border colour (the app supplies it as rgb()), whether `--surface-alt` is still defined (1) or not (0)].
+    ///  `--separator` as a border colour (the app supplies it as rgb()), whether `--surface-alt` is still defined (1) or not (0),
+    ///  whether the first message's date is drawn in the page text colour (1) or not (0)].
     private let probe = """
         // color-mix() computes to color(srgb 0.95 …) in some engines and rgb() in others: both become rounded 0-255 channels.
         const channels = (c) => {
@@ -44,9 +45,14 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         const separator = getComputedStyle(quiet).borderTopColor;
         quiet.remove();
         const alt = getComputedStyle(document.documentElement).getPropertyValue('--surface-alt').trim();
+        const textProbe = document.createElement('i');
+        textProbe.style.color = 'var(--text)';
+        document.body.appendChild(textProbe);
+        const dateIsText = getComputedStyle(articles[0].querySelector('.date')).color === getComputedStyle(textProbe).color;
+        textProbe.remove();
         return JSON.stringify([articles.map((a) => alpha(getComputedStyle(a).backgroundColor)),
                                parseFloat(first.borderBottomWidth), channels(first.borderBottomColor), channels(separator),
-                               alt === '' ? 0 : 1]);
+                               alt === '' ? 0 : 1, dateIsText ? 1 : 0]);
         """
 
     private struct Seen: Decodable {
@@ -55,6 +61,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         let rule: [Double]
         let quiet: [Double]
         let altDefined: Double
+        let dateIsText: Double
 
         init(from decoder: any Decoder) throws {
             var container = try decoder.unkeyedContainer()
@@ -63,6 +70,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
             rule = try container.decode([Double].self)
             quiet = try container.decode([Double].self)
             altDefined = try container.decode(Double.self)
+            dateIsText = try container.decode(Double.self)
         }
     }
 
@@ -71,8 +79,13 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         recorder.window?.overrideUserInterfaceStyle = style
         controller.show(twoMessages(token: token, style: theme))
         guard await until({ recorder.ready == [token] }) else { return nil }
-        let json = (try? await evaluate(probe, in: controller)) as? String ?? ""
-        return try? JSONDecoder().decode(Seen.self, from: Data(json.utf8))
+        var seen: Seen?
+        _ = await until(async: {
+            let json = (try? await self.evaluate(self.probe, in: controller)) as? String ?? ""
+            seen = try? JSONDecoder().decode(Seen.self, from: Data(json.utf8))
+            return seen != nil
+        })
+        return seen
     }
 
     private func check(style: UIUserInterfaceStyle, theme: ThemeStyle, token: Int, rule: [Double], quiet: [Double]) async {
@@ -96,7 +109,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
 
     // Rule at 35 % of 0xF2F2F7 over the legacy grey #2E2F33 (#1210): the page is no longer black, so the rule is lighter than the
     // 85,85,86 of the black page; the quiet separator is the standard style's `--app-dark-separator` when the app sets it, else
-    // the CSS fallback #38383a. Only the relations are pinned here, the exact values belong to `ThemeAppearanceTests`.
+    // the CSS fallback #4a4b50. Only the relations are pinned here, the exact values belong to `ThemeAppearanceTests`.
     @Test func inDarkNoMessageHasATintAndTheRuleIsStrongerThanTheQuietSeparator() async {
         guard let seen = await read(style: .dark, theme: .modern, token: 2) else {
             Issue.record("the reader did not answer")
@@ -120,5 +133,7 @@ struct ReaderSeparationWebTests: ReaderWebTesting {
         }
         #expect(seen.alphas == [0, 0, 0], "no message has a background of its own: \(seen.alphas)")
         #expect(seen.width == 1)
+        // The classic header is 15 % accent over the page; secondary text on it was 3.75:1 over the legacy grey.
+        #expect(seen.dateIsText == 1, "the classic header's date is drawn in the page text colour in dark")
     }
 }

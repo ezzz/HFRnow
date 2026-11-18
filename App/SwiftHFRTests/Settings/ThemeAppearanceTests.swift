@@ -52,10 +52,11 @@ struct ThemeAppearanceTests {
         let variables = Dictionary(uniqueKeysWithValues: appearance.readerVariables.map { ($0.name, $0.value) })
         #expect(variables["--app-action-light"] == "rgb(89, 227, 255)")
         #expect(variables["--app-action-dark"] == "rgb(73, 214, 242)")
-        // The standard style (#1210): the legacy grey page is capped at 100 % (no headroom for secondary text), its quote surface
-        // is scaled by the slider.
+        // The standard style (#1210): the legacy grey page and its quote surface are capped at 100 % (no headroom for secondary
+        // text); only its separator follows the slider above 100 %.
         #expect(variables["--app-dark-background"] == "rgb(46, 47, 51)")
-        #expect(variables["--app-dark-quote-background"] == appearance.adjustedDark(ThemeColor(hex: 0x26282F)).cssRGB)
+        #expect(variables["--app-dark-quote-background"] == "rgb(38, 40, 47)")
+        #expect(variables["--app-dark-separator"] == appearance.adjustedDark(ThemeColor(hex: 0x4A4B50)).cssRGB)
         #expect(variables.count == 6)
     }
 
@@ -212,5 +213,10 @@ struct ThemeAppearanceTests {
         let page = try channels("--app-dark-background")
         let folded = zip(page, [242.0, 242, 247]).map { $0 * 0.97 + $1 * 0.03 }
         #expect(ThemeAppearance.darkSecondaryText.contrast(with: colour(folded)) >= 4.5, "\(style) at \(brightness): folded quote")
+        // The classic header is 15 % accent over the page; its date is the page text colour in dark (`.style-classic .message .date`):
+        // secondary text measured 3.75:1 there on the legacy grey, the text colour is 8.6:1.
+        let accent = [appearance.nightAccent.red, appearance.nightAccent.green, appearance.nightAccent.blue].map { $0 * 255 }
+        let header = zip(page, accent).map { $0 * 0.85 + $1 * 0.15 }
+        #expect(ThemeAppearance.darkText.contrast(with: colour(header)) >= 4.5, "\(style) at \(brightness): classic header date")
     }
 }

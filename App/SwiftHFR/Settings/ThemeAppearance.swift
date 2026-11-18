@@ -193,11 +193,11 @@ struct ThemeAppearance: Equatable, Sendable {
     /// A reader surface at `darkBrightness`. No style lifts the page background above its own value: at 150 % the darker background
     /// (#0B0B0C) would put a continuation date (secondary text on the tinted header) under 4.5:1 (CodeRabbit on #589), and the
     /// standard style's legacy grey (#2E2F33, #1210) has no headroom either (secondary text is 5.2:1 on it, 3.6:1 at 150 %). The
-    /// standard placeholder, which also carries secondary text, is capped the same way. The slider still darkens them, and still
-    /// scales the other surfaces.
+    /// standard quote surface and placeholder, which carry secondary text, are capped the same way (every standard surface but the
+    /// separator). The slider still darkens them, and still scales the separator (and the other styles' other surfaces).
     private func readerSurface(_ variable: String, _ color: ThemeColor) -> ThemeColor {
-        let cappedVariables = darkStyle == .standard ? ["--app-dark-background", "--app-dark-placeholder"] : ["--app-dark-background"]
-        guard cappedVariables.contains(variable), darkBrightness > 1 else { return adjustedDark(color) }
+        let isCapped = darkStyle == .standard ? variable != "--app-dark-separator" : variable == "--app-dark-background"
+        guard isCapped, darkBrightness > 1 else { return adjustedDark(color) }
         var capped = self
         capped.darkBrightness = 1
         return capped.adjustedDark(color)
