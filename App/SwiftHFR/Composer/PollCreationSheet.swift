@@ -36,7 +36,7 @@ struct PollCreationSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Question") {
+                ThemedSection("Question") {
                     TextField("Question du sondage", text: $question, axis: .vertical)
                         .lineLimit(2...4)
                     Text("\(question.utf16.count)/\(PollDraft.maximumLength)")
@@ -44,7 +44,7 @@ struct PollCreationSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 answersSection
-                Section("Options") {
+                ThemedSection("Options") {
                     Picker("Choix possibles", selection: $maxChoices) {
                         ForEach(1...max(1, draft.filledAnswers.count), id: \.self) { count in
                             Text("\(count)").tag(count)
@@ -58,10 +58,11 @@ struct PollCreationSheet: View {
                 }
                 if let problem = draft.problem() {
                     Section {
-                        Text(ComposerMessages.poll(problem)).foregroundStyle(.secondary)
+                        Text(ComposerMessages.poll(problem)).foregroundStyle(.secondary).themedListRow()
                     }
                 }
             }
+            .themedListScreen()
             .navigationTitle("Créer un sondage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -80,7 +81,7 @@ struct PollCreationSheet: View {
     }
 
     private var answersSection: some View {
-        Section("Réponses") {
+        ThemedSection("Réponses") {
             ForEach(answers) { answer in
                 let number = (answers.firstIndex { $0.id == answer.id } ?? 0) + 1
                 HStack {

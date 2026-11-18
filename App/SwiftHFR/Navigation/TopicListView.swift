@@ -53,7 +53,7 @@ struct TopicListView: View {
                             Section {
                                 if !group.isCollapsed { rows(group.topics) }
                             } header: {
-                                header(group, title: title)
+                                header(group, title: title).themedSectionHeader()
                             }
                         } else {
                             rows(group.topics)
@@ -166,7 +166,7 @@ struct TopicListView: View {
                 topic: topic, isSuperFavorite: isSuper, markedRead: model.isMarkedRead(topic), showsFlag: model.hasFlag(topic),
                 flagIsTinted: TopicListView.flagPills(for: model.source)
             )
-                .listLookRow(isSelected: selection == topic)
+                .themedRowText().listLookRow(isSelected: selection == topic)
                 .tag(topic)
                 .rowPill(
                     TopicListView.rowTint(

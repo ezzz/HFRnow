@@ -15,6 +15,7 @@ struct RootSidebarView: View {
     /// choice, `MainWindow.swift:1351`, `:1434-1505`).
     @State private var visibility: NavigationSplitViewVisibility
     @State private var compactColumn = NavigationSplitViewColumn.sidebar
+    @Environment(\.themeAppearance) private var appearance
     /// The Duo portrait rule (`DuoSplitColumns.prefersDetailOnlyTopic`), measured by `RootLayout`, which outlives a fold.
     private let detailOnlyTopic: Bool
 
@@ -80,19 +81,27 @@ struct RootSidebarView: View {
     private var sidebar: some View {
         List(selection: selection) {
             ForEach(SidebarDestination.sections, id: \.self) { section in
-                Section(section.title) {
+                Section {
                     ForEach(section.destinations, id: \.self) { destination in
                         Label(destination.title, systemImage: destination.symbol)
-                            .foregroundStyle(destination == .plus(.deleteAccount) ? Color.red : Color.primary)
+                            .foregroundStyle(
+                                destination == .plus(.deleteAccount) ? AnyShapeStyle(.themedError) : AnyShapeStyle(primaryText)
+                            )
                             .badge(badge(of: destination))
                             .tag(destination)
+                            .themedListRow(isSelected: destination == model.sidebarDestination)
                     }
+                } header: {
+                    Text(section.title).themedSectionHeader()
                 }
             }
         }
         .navigationTitle("Hardware.fr")
         .accountMenuToolbarItem()
     }
+
+    /// The labels' colour: the system's primary for Legacy, as before; a theme's `textPrimary` (#842).
+    private var primaryText: Color { appearance.listColors.map { Color(uiColor: $0.text) } ?? Color.primary }
 
     /// A sidebar list selects an optional; deselecting keeps the current destination.
     private var selection: Binding<SidebarDestination?> {

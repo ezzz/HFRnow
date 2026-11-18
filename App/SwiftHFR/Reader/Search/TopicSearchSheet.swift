@@ -16,20 +16,23 @@ struct TopicSearchSheet: View {
         ThemedNavigationStack {
             Form {
                 Section {
-                    TextField("Mot-clé", text: $model.word)
-                        .focused($focus, equals: .word)
-                        .submitLabel(.next)
-                        .onSubmit { focus = .author }
-                    TextField("Pseudo", text: $model.author)
-                        .focused($focus, equals: .author)
-                        .submitLabel(.search)
-                        .onSubmit(submit)
+                    Group {
+                        TextField("Mot-clé", text: $model.word)
+                            .focused($focus, equals: .word)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .author }
+                        TextField("Pseudo", text: $model.author)
+                            .focused($focus, equals: .author)
+                            .submitLabel(.search)
+                            .onSubmit(submit)
+                    }.themedListRow()
                 } footer: {
-                    Text("Renseigne un mot-clé, un pseudo, ou les deux.")
+                    Text("Renseigne un mot-clé, un pseudo, ou les deux.").themedSectionHeader()
                 }
                 if case .failed(let message) = model.state {
                     Section {
-                        Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.red).font(.footnote)
+                        Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.themedError).font(.footnote)
+                            .themedListRow()
                     }
                 }
             }

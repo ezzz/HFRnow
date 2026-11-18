@@ -22,7 +22,7 @@ struct AccountsView: View {
                         storeProblemSection(problem)
                     }
                     if !accounts.rows.isEmpty {
-                        Section("Comptes") {
+                        ThemedSection("Comptes") {
                             ForEach(accounts.rows) { row in
                                 AccountRowView(row: row, onSelect: { select(row) }, onRelogin: { relogin(row) })
                                     .swipeActions {
@@ -39,7 +39,7 @@ struct AccountsView: View {
                         Section {
                             Button("Ajouter un compte", systemImage: "person.badge.plus") { loginTarget = .newAccount }
                         } footer: {
-                            Text(Self.footer)
+                            Text(Self.footer).themedSectionHeader()
                         }
                     }
                 }
