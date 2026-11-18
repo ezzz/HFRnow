@@ -2,13 +2,17 @@ import HFRModels
 import SwiftUI
 
 // Port of HFRswift/Swift/AQPlusView.swift (AQPlusView) and Classes/AQTableViewController.m @ 87fe0d1c (GAP-005). Differences: rows
-// are `Button`s opening the reader at the message's page and anchor (issues #105, #106) in the Plus stack, not the legacy topic
+// are `Button`s opening the reader at the message's page and anchor (issues #105, #106) in the Plus stack, or in the detail column
+// of the iPad split (`openTopicInDetail`, #685), not the legacy topic
 // row view; a failed load keeps the rows and shows a retry; the list is a plain `List`, not the topic row styles (no flag cues).
 /// The Alertes Qualitay list: one row per report, bold while new, opening the reported message.
 struct QualityAlertsView: View {
     let model: QualityAlertsModel
     let environment: AppEnvironment
     @State private var opened: QualityAlertsModel.Row?
+    /// Set inside the regular-width iPad split (#685): a row then opens its topic in the detail column beside the list; nil on the
+    /// Plus tab of the tab bar, where the row pushes the reader on this stack.
+    @Environment(\.openTopicInDetail) private var openTopicInDetail
     /// This screen has asked for its list. Per screen, not on the model: legacy builds a new view model on every push
     /// (`PlusTab.swift:38`, `AQPlusView.swift:337, 436-441` @ 87fe0d1c), so each visit fetches and marks the list seen, while coming
     /// back from a message keeps the screen and its list.
@@ -20,7 +24,13 @@ struct QualityAlertsView: View {
                 Label(failure.title, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
             }
             ForEach(model.rows) { row in
-                QualityAlertRow(row: row, now: .now) { opened = row }
+                QualityAlertRow(row: row, now: .now) {
+                    if let openTopicInDetail, let target = row.target {
+                        openTopicInDetail(target, title: row.title)
+                    } else {
+                        opened = row
+                    }
+                }
             }
         }
         .overlay {

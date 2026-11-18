@@ -60,7 +60,7 @@ None that changes what legacy shows. Behaviour notes (no GAP row beyond GAP-005,
 - **Row**: title = topic title (TU abbreviation), "par <initiator>", legacy age words (`QualityAlertAge`), AQ title and comment; bold
   while new. A row opens the reader on `ReaderTarget(link:)`: topic, **page and anchor kept** (issues #105, #106; all 25 links of
   `T01` route to a topic with page and message), `numreponse` links let HFR pick the page (R25). A link that is not a forum topic
-  link has no target: the row is plain text.
+  link has no target: the row is plain text. On the regular-width iPad the entry is a three-column one (#685, #1089): the row calls the `openTopicInDetail` environment action, which puts the reader in the detail column; without it (the tab bar's Plus stack) the row pushes the reader.
 
 ## Edge cases
 - A feed with every item hidden: "Aucune AQ" after a successful load (the last check still moves).
