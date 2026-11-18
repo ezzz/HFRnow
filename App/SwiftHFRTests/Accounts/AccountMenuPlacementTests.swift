@@ -190,8 +190,13 @@ struct AccountMenuPlacementTests {
             view = AnyView(CategoriesTabView(navigation: navigation, reader: services(), composer: nil, column: .content))
         } else {
             let navigation = NavigationModel(dataSource: FakeDataSource(), startupSource: .favorites)
-            navigation.openedCategory = source
             view = AnyView(FavoritesTabView(navigation: navigation, reader: services(), composer: nil))
+            // A section title is tapped on a list already on screen: set before the first render, the destination is never presented
+            // (the CI run of 2a12f15b saw only the root bar, with no back item).
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                navigation.openedCategory = source
+            }
         }
         // Only the pushed bar counts: the root's own button (Catégories list, Favoris root) must not satisfy the test.
         let found = try await readBars(of: view, until: { $0.pushedLeftItems > 0 })
