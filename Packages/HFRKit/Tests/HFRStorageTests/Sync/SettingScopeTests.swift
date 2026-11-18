@@ -38,9 +38,7 @@ import Testing
         // LOT-140: the background check runs on this device.
         "mp_check_interval": .device,
         // #1060: notifications follow this device's iOS permission, like the badge.
-        "mp_notifications_enabled": .device,
-        // LOT-133: the last time this device showed the Alertes Qualitay list (ADR 0013 appendix E: "AQ counter and last check", No).
-        "last_check_aq": .device
+        "mp_notifications_enabled": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {

@@ -183,22 +183,6 @@ public enum SettingKey {
         encode: { $0.map { .string(LastSyncDate.string(from: $0)) } }
     )
 
-    // MARK: Alertes Qualitay
-
-    /// `last_check_aq`: when the Alertes Qualitay list was last shown, the "new since" of the Plus badge (legacy
-    /// `AQPlusView.swift:41-50`, `Classes/AQTableViewController.m:71, 222, 300` @ 87fe0d1c). Device only (ADR 0013). Legacy stored a
-    /// `Date` object, which this store cannot read: it reads as nil (never checked, so everything is new once), then the key holds
-    /// seconds since 1970.
-    public static let aqLastCheck = Setting<Date?>(
-        key: "last_check_aq",
-        defaultValue: nil,
-        decode: {
-            guard case .double(let seconds) = $0, seconds.isFinite else { return nil }
-            return Date(timeIntervalSince1970: seconds)
-        },
-        encode: { $0.map { .double($0.timeIntervalSince1970) } }
-    )
-
     // MARK: Search and rehost
 
     /// `recherche_categorie`: last category chosen in the search form (default 13, Discussions).
@@ -265,7 +249,7 @@ public enum SettingKey {
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
         nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
-        mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
+        mpStorageLastSync, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
         experimentalMPDarkTopic, experimentalDenseRows, experimentalImageLoadingChoice, experimentalImageLoadingChoiceStarted
     ]
