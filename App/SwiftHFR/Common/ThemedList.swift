@@ -158,8 +158,7 @@ struct ThemedSection<Content: View>: View {
     }
 }
 
-/// Error text on a list row, a destructive row button's label included (#842): the system red for Legacy, as before (the
-/// destructive role's red); under a theme the app's `AccessibleColors.errorText`,
+/// Error text on a list row (#842): the system red for Legacy, as before; under a theme the app's `AccessibleColors.errorText`,
 /// which the theme's contrast test checks on `surface` (`errorText`): the system red is under 4.5:1 on some themes' rows.
 struct ThemedErrorStyle: ShapeStyle {
     func resolve(in environment: EnvironmentValues) -> AnyShapeStyle {

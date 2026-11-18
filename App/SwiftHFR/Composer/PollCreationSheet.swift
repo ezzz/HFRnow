@@ -92,7 +92,7 @@ struct PollCreationSheet: View {
                             answers.removeAll { $0.id == answer.id }
                             maxChoices = min(maxChoices, max(1, draft.filledAnswers.count))
                         } label: {
-                            Image(systemName: "minus.circle.fill").foregroundStyle(.themedError)
+                            Image(systemName: "minus.circle.fill")
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Supprimer la réponse \(number)")

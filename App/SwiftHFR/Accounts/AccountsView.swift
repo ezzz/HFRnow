@@ -75,7 +75,7 @@ struct AccountsView: View {
                 StatusLabel(text: AccountMessages.message(for: problem), symbol: "exclamationmark.triangle.fill", tint: .red)
                 switch problem {
                 case .corrupted:
-                    Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }.foregroundStyle(.themedError)
+                    Button("Effacer les comptes enregistrés", role: .destructive) { confirmErase = true }
                 case .unavailable:
                     Button("Réessayer") { Task { await accounts.retryRestore() } }
                         .disabled(accounts.isRestoring)
