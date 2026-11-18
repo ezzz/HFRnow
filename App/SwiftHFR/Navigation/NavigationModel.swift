@@ -132,6 +132,8 @@ final class NavigationModel {
     /// on screen.
     func open(_ topic: TopicSummary, at opening: TopicOpening) {
         requestedOpening = (topic.id, opening)
+        // The selection may stay the same topic: only the stack's identity changes then, which leaves a link's reader on top.
+        currentReader?.model.closeLinkedReaders()
         currentReader = nil
         readerGeneration += 1
         selectedTopic = topic

@@ -144,17 +144,50 @@ struct RootModelTests {
     }
 
     @Test func sidebarRowsUseTheLegacySymbols() {
-        #expect(SidebarDestination.sections.flatMap { $0.map(\.symbol) } == [
+        #expect(SidebarDestination.sections.flatMap { $0.destinations.map(\.symbol) } == [
             "folder.fill", "star.fill", "envelope", "pin", "bell", "gearshape", "magnifyingglass", "info.circle", "doc.text", "trash"
         ])
     }
 
     @Test func theIPadSidebarFollowsTheLegacySections() {
-        #expect(SidebarDestination.sections.map { $0.map(\.title) } == [
+        #expect(SidebarDestination.sections.map { $0.destinations.map(\.title) } == [
             ["Catégories", "Favoris", "Messages"],
             ["Bookmarks", "Alertes Qualitay"],
             ["Réglages", "Rechercher sur le forum", "Crédits", "Charte du forum", "Supprimer mon compte"]
         ])
+        // Legacy section titles (`MainWindow.swift:1879-1893` @ 87fe0d1c, #685).
+        #expect(SidebarDestination.sections.map(\.title) == ["Forum", "Outils", "Plus"])
+    }
+
+    // #685: Bookmarks and Alertes Qualitay are lists beside the topic they open (three columns on the regular-width iPad), as
+    // legacy's `usesTopicList` (`MainWindow.swift:1326-1333` @ 87fe0d1c); the other Plus entries keep two columns.
+    @Test func bookmarksAndQualityAlertsAreTheTopicListPlusEntries() {
+        #expect(PlusEntry.allCases.filter(\.usesTopicList) == [.bookmarks, .qualityAlerts])
+        #expect(PlusEntry.bookmarks.detailPlaceholder?.title == "Aucun bookmark sélectionné")
+        #expect(PlusEntry.qualityAlerts.detailPlaceholder?.title == "Aucune alerte sélectionnée")
+        #expect(PlusEntry.allCases.filter { $0.detailPlaceholder != nil } == [.bookmarks, .qualityAlerts])
+    }
+
+    // #685: each topic-list entry keeps the topic it opened in the detail column; an entry without a list opens nothing there.
+    @Test func eachTopicListEntryKeepsItsOwnDetailReader() async {
+        let root = await model(initial: .plus(.qualityAlerts))
+        let target = ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 7)))
+        let alert = TopicReaderModel(target: target, title: "Alerte", source: FakeTopicPages())
+        let bookmark = TopicReaderModel(target: target, title: "Bookmark", source: FakeTopicPages())
+        root.openInDetail(alert, for: .qualityAlerts)
+        root.openInDetail(bookmark, for: .bookmarks)
+        root.openInDetail(TopicReaderModel(target: target, title: "Réglages", source: FakeTopicPages()), for: .settings)
+        #expect(root.detailReaders[.qualityAlerts] === alert)
+        #expect(root.detailReaders[.bookmarks] === bookmark)
+        #expect(root.detailReaders[.settings] == nil)
+
+        // Another alert replaces the reader and closes what a link had pushed over the old one (#512 on this column).
+        alert.follow(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 8))))
+        #expect(alert.linkedReader != nil)
+        let next = TopicReaderModel(target: target, title: "Autre alerte", source: FakeTopicPages())
+        root.openInDetail(next, for: .qualityAlerts)
+        #expect(alert.linkedReader == nil)
+        #expect(root.detailReaders[.qualityAlerts] === next)
     }
 
     @Test func theCategoriesTabStartsWithoutASourceAndFavouritesOnTheFlags() async {

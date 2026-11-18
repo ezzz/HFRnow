@@ -41,6 +41,24 @@ struct NavigationModelTests {
         #expect(model.reader(for: topic) === opened)
     }
 
+    /// #512: a row menu's page of the topic on screen keeps the selection, so the detail stack only changes identity, which leaves
+    /// what a link pushed on top (`SidebarDetailHostedTests`): opening it closes every reader the links had opened.
+    @Test func openingARowAtAPageClosesTheReadersLinksOpened() throws {
+        let model = NavigationModel(dataSource: FakeDataSource())
+        model.selectedSource = .favorites
+        let topic = topicSummary(1)
+        model.selectedTopic = topic
+        let first = try #require(model.reader(for: topic))
+        let topicID = TopicID(category: .forum(13), topic: 1)
+        first.follow(ReaderTarget(source: .topic(topicID), page: 4))
+        let linked = try #require(first.linkedReader)
+        linked.follow(ReaderTarget(source: .topic(topicID), page: 5))
+        #expect(linked.linkedReader != nil)
+        model.open(topic, at: TopicOpening(target: ReaderTarget(source: .topic(topicID), page: 2)))
+        #expect(first.linkedReader == nil)
+        #expect(linked.linkedReader == nil)
+    }
+
     @Test func aPageAskedForOneTopicIsNotUsedForAnother() throws {
         let model = NavigationModel(dataSource: FakeDataSource())
         model.selectedSource = .favorites
