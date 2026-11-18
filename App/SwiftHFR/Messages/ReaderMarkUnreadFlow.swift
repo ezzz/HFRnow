@@ -29,7 +29,7 @@ extension TopicReaderModel {
         case .done(let message):
             markUnreadState = .idle
             if host == nil { showMenuFeedback(message) }
-        case .failed(let reason):
+        case .failed(let reason), .retryable(let reason):
             markUnreadState = .failed(reason)
         }
         await host?(outcome)

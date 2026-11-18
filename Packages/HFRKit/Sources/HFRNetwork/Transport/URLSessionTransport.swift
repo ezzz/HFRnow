@@ -111,7 +111,7 @@ public final class URLSessionTransport: HTTPTransport {
         for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession
     ) async throws -> (Data, URLResponse) {
         #if canImport(FoundationNetworking)
-        let delegate = IdleWatchDelegate(follows: follows, owner: session)
+        let delegate = IdleWatchDelegate(follows: follows, idle: idle, owner: session)
         // Same configuration, so the same cookie storage as the account's session.
         let watcher = URLSession(configuration: session.configuration, delegate: delegate, delegateQueue: nil)
         defer { watcher.finishTasksAndInvalidate() }
@@ -175,106 +175,6 @@ public final class URLSessionTransport: HTTPTransport {
         }
     }
 }
-
-#if canImport(FoundationNetworking)
-/// Collects one data task's answer and remembers when data last arrived (the idle watcher of `dataWithIdleLimit`).
-private final class IdleWatchDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    private let lock = NSLock()
-    private let follows: Bool
-    /// The session the request was made for: its delegate (an account session's host policy, LESSONS 30) still decides redirects.
-    private let owner: URLSession
-    private var task: URLSessionDataTask?
-    private var cancelled = false
-    private var body = Data()
-    private var response: URLResponse?
-    private var continuation: CheckedContinuation<(Data, URLResponse), any Error>?
-    private var lastActivity = ContinuousClock.now
-
-    init(follows: Bool, owner: URLSession) {
-        self.follows = follows
-        self.owner = owner
-    }
-
-    func start(_ task: URLSessionDataTask, _ continuation: CheckedContinuation<(Data, URLResponse), any Error>) {
-        lock.lock()
-        self.task = task
-        self.continuation = continuation
-        lastActivity = .now
-        let alreadyCancelled = cancelled
-        lock.unlock()
-        if alreadyCancelled { task.cancel() } else { task.resume() }
-    }
-
-    func cancel() {
-        lock.lock()
-        cancelled = true
-        let task = task
-        lock.unlock()
-        task?.cancel()
-    }
-
-    func noteActivity() {
-        lock.lock()
-        lastActivity = .now
-        lock.unlock()
-    }
-
-    var secondsSinceActivity: Double {
-        lock.lock()
-        defer { lock.unlock() }
-        let elapsed = ContinuousClock.now - lastActivity
-        return Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
-    }
-
-    func urlSession(
-        _ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
-        completionHandler: @escaping @Sendable (URLSession.ResponseDisposition) -> Void
-    ) {
-        lock.lock()
-        self.response = response
-        lastActivity = .now
-        lock.unlock()
-        completionHandler(.allow)
-    }
-
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        lock.lock()
-        body.append(data)
-        lastActivity = .now
-        lock.unlock()
-    }
-
-    func urlSession(
-        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void
-    ) {
-        guard follows else { return completionHandler(nil) }
-        if let inner = owner.delegate as? any URLSessionTaskDelegate {
-            inner.urlSession(
-                owner, task: task, willPerformHTTPRedirection: response, newRequest: request, completionHandler: completionHandler
-            )
-        } else {
-            completionHandler(request)
-        }
-    }
-
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
-        lock.lock()
-        let continuation = continuation
-        self.continuation = nil
-        let result: Result<(Data, URLResponse), any Error>
-        if let error {
-            result = .failure(error)
-        } else if let response {
-            result = .success((body, response))
-        } else {
-            result = .failure(URLError(.badServerResponse))
-        }
-        lock.unlock()
-        continuation?.resume(with: result)
-    }
-}
-#endif
 
 /// Task delegate that refuses every redirect so the 3xx answer is delivered as is.
 private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate, Sendable {
