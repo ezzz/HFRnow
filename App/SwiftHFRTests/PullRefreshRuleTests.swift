@@ -18,6 +18,7 @@ struct PullRefreshRuleTests {
         #expect(PullRefreshRule.scale(forPull: -40) == 0)
     }
 
+    @MainActor
     @Test func theThresholdIsTheReadersExistingSeventyTwoPoints() {
         #expect(PullRefreshRule.threshold == 72)
         #expect(ReaderPullWatcher.threshold == PullRefreshRule.threshold, "one threshold for the reader and the lists")
@@ -25,37 +26,53 @@ struct PullRefreshRuleTests {
 
     @Test func aShortPullThenARestFiresNothing() {
         var rule = PullRefreshRule()
-        #expect(!rule.update(pull: 10))
-        #expect(!rule.update(pull: threshold - 1))
-        #expect(!rule.update(pull: 0))
+        let step1 = rule.update(pull: 10)
+        #expect(!step1)
+        let step2 = rule.update(pull: threshold - 1)
+        #expect(!step2)
+        let step3 = rule.update(pull: 0)
+        #expect(!step3)
     }
 
     @Test func reachingFullSizeFiresExactlyOnceForThePull() {
         var rule = PullRefreshRule()
-        #expect(!rule.update(pull: threshold - 0.5))
-        #expect(rule.update(pull: threshold))
-        #expect(!rule.update(pull: threshold + 20), "still pulled: no second refresh")
-        #expect(!rule.update(pull: threshold))
+        let step4 = rule.update(pull: threshold - 0.5)
+        #expect(!step4)
+        let step5 = rule.update(pull: threshold)
+        #expect(step5)
+        let step6 = rule.update(pull: threshold + 20)
+        #expect(!step6, "still pulled: no second refresh")
+        let step7 = rule.update(pull: threshold)
+        #expect(!step7)
     }
 
     @Test func dippingBelowTheThresholdWithoutRestingDoesNotFireAgain() {
         var rule = PullRefreshRule()
-        #expect(rule.update(pull: threshold + 5))
-        #expect(!rule.update(pull: threshold - 20))
-        #expect(!rule.update(pull: threshold + 5), "one refresh per pull, not per crossing")
+        let step8 = rule.update(pull: threshold + 5)
+        #expect(step8)
+        let step9 = rule.update(pull: threshold - 20)
+        #expect(!step9)
+        let step10 = rule.update(pull: threshold + 5)
+        #expect(!step10, "one refresh per pull, not per crossing")
     }
 
     @Test func aNewPullAfterTheRestFiresAgain() {
         var rule = PullRefreshRule()
-        #expect(rule.update(pull: threshold))
-        #expect(!rule.update(pull: 0))
-        #expect(rule.update(pull: threshold))
+        let step11 = rule.update(pull: threshold)
+        #expect(step11)
+        let step12 = rule.update(pull: 0)
+        #expect(!step12)
+        let step13 = rule.update(pull: threshold)
+        #expect(step13)
     }
 
     @Test func aNegativeOffsetIsAnotherRest() {
         var rule = PullRefreshRule()
-        #expect(rule.update(pull: threshold))
-        #expect(!rule.update(pull: -12), "scrolled back into the content")
-        #expect(rule.update(pull: threshold))
+        let step14 = rule.update(pull: threshold)
+        #expect(step14)
+        let step15 = rule.update(pull: -12)
+        #expect(!step15, "scrolled back into the content")
+        let step16 = rule.update(pull: threshold)
+        #expect(step16)
     }
 }

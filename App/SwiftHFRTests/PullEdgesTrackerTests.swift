@@ -19,16 +19,22 @@ struct PullEdgesTrackerTests {
         var tracker = PullEdgesTracker()
         let half = tracker.update(topPull: 0, bottomPull: full / 2, fingerDown: true)
         #expect(half.bottom == 0.5 && half.top == 0 && !half.fires)
-        #expect(tracker.update(topPull: 0, bottomPull: full, fingerDown: true).fires)
+        let step1 = tracker.update(topPull: 0, bottomPull: full, fingerDown: true).fires
+        #expect(step1)
     }
 
     @Test func eachEndFiresOnceForItsPullAndAgainAfterARest() {
         var tracker = PullEdgesTracker()
-        #expect(tracker.update(topPull: full, bottomPull: 0, fingerDown: true).fires)
-        #expect(!tracker.update(topPull: full + 40, bottomPull: 0, fingerDown: true).fires, "held: still one")
-        #expect(!tracker.update(topPull: 0, bottomPull: 0, fingerDown: true).fires)
-        #expect(tracker.update(topPull: full, bottomPull: 0, fingerDown: true).fires, "a new pull")
-        #expect(tracker.update(topPull: 0, bottomPull: full, fingerDown: true).fires, "the other end has its own rule")
+        let step2 = tracker.update(topPull: full, bottomPull: 0, fingerDown: true).fires
+        #expect(step2)
+        let step3 = tracker.update(topPull: full + 40, bottomPull: 0, fingerDown: true).fires
+        #expect(!step3, "held: still one")
+        let step4 = tracker.update(topPull: 0, bottomPull: 0, fingerDown: true).fires
+        #expect(!step4)
+        let step5 = tracker.update(topPull: full, bottomPull: 0, fingerDown: true).fires
+        #expect(step5, "a new pull")
+        let step6 = tracker.update(topPull: 0, bottomPull: full, fingerDown: true).fires
+        #expect(step6, "the other end has its own rule")
     }
 
     @Test func aReleaseBeforeFullSizeDoesNothing() {
