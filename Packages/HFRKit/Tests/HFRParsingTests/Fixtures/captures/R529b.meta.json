@@ -1,0 +1,16 @@
+{
+  "id": "R529b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/forum2.php?config=hfr.inc&cat=24&post=1&page=1",
+  "url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=24&post=1&page=1",
+  "final_url": "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=24&post=1&page=1",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:22:41 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "cookie-less topic GET in member-only cat 24 with post=1: whether a topic with that id exists in cat 24 is NOT known (no topic id of that category is reachable without membership)",
+  "file": "R529b-member-only-category-topic-anon.html",
+  "private": false
+}
