@@ -32,8 +32,12 @@ struct TopicListContent: Sendable, Equatable {
     var groups: [TopicGroup]
     /// Page shown (1-based); always 1 for flags and favourites.
     var page: Int
-    /// A next page exists. Honest paging: the pager is a window, so only "there is a next page" is known, never a total.
+    /// A next page exists. The pager is a window: the count `pageCount` is a lower bound unless `pageCountIsExact`.
     var hasNext: Bool
+    /// HFR's last page (`navigation.last`, a lower bound when HFR's pager is a window), at least `page`: « page x / y » (#980).
+    var pageCount: Int = 1
+    /// `PageNavigation.isExact`; « page x / y+ » when false. Also true on the last page, where the pager has nothing to hide.
+    var pageCountIsExact: Bool = true
     var emptyReason: EmptyReason?
     /// The page's "new topic" link (`md_btn_new_topic`, LOT-089) and the category it belongs to; nil on flags and favourites.
     var newTopicPath: String?
@@ -51,6 +55,8 @@ struct TopicListContent: Sendable, Equatable {
         groups = [TopicGroup(id: "topics", title: nil, topics: page.topics)]
         self.page = page.navigation.current
         hasNext = page.navigation.nextPath != nil
+        pageCount = max(page.navigation.last, page.navigation.current + (hasNext ? 1 : 0))
+        pageCountIsExact = page.navigation.isExact || !hasNext
         emptyReason = Self.reason(isEmpty: page.topics.isEmpty, notice: page.notice, isLoggedIn: isLoggedIn)
         newTopicPath = page.newTopicPath
         categoryID = page.categoryID
@@ -198,6 +204,9 @@ final class TopicListModel {
     /// Page on screen; 1 before the first load.
     var currentPage: Int { loader.value?.page ?? 1 }
     var canGoToPrevious: Bool { source.isPaged && currentPage > 1 && !loader.isLoading }
+    /// Pages in the list and whether that is the real last page; 1 and true before the first load.
+    var pageCount: Int { loader.value?.pageCount ?? 1 }
+    var pageCountIsExact: Bool { loader.value?.pageCountIsExact ?? true }
     var canGoToNext: Bool { source.isPaged && (loader.value?.hasNext ?? false) && !loader.isLoading }
 
     /// The new-topic composer the page on screen links to (legacy "+" button, `MainWindow.swift:748-757` @ 2440d79, enabled
@@ -271,6 +280,26 @@ final class TopicListModel {
     func goToNextPage() async { if canGoToNext { await load(page: currentPage + 1) } }
     func goToPreviousPage() async { if canGoToPrevious { await load(page: currentPage - 1) } }
     func goToFirstPage() async { if canGoToPrevious { await load(page: 1) } }
+    /// Offered only when `pageCount` is the real last page.
+    var canGoToLast: Bool { canGoToNext && (loader.value?.pageCountIsExact ?? false) }
+    func goToLastPage() async { if canGoToLast { await load(page: pageCount) } }
+    /// Exactly HFR page `page`; clamped to 1...`pageCount` unless that is only a lower bound.
+    func goToPage(_ page: Int) async {
+        guard source.isPaged, !loader.isLoading else { return }
+        let target = pageCountIsExact ? min(max(page, 1), pageCount) : max(page, 1)
+        if target != currentPage { await load(page: target) }
+    }
+
+    /// What the pager's page menu asks for (#980); the same rules as the MP list's (#968).
+    func perform(_ jump: PagerJump) async {
+        switch jump {
+        case .first: await goToFirstPage()
+        case .previous: await goToPreviousPage()
+        case .next: await goToNextPage()
+        case .last: await goToLastPage()
+        case .page(let page): await goToPage(page)
+        }
+    }
 
     private func load(page: Int) async {
         requestedPage = page
