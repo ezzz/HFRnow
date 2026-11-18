@@ -51,6 +51,8 @@ struct RootNavigationView: View {
         .task { await model.blocklistSync?.run() }
         .blocklistSyncQuestions()
         .environment(model.blocklistSync)
+        // The readers' « Bookmark » writes the session's document (LOT-132).
+        .environment(model.mpStorage)
         .task {
             // Réglages writes the settings to `UserDefaults`: the badge and the tab bar follow without a relaunch.
             for await _ in NotificationCenter.default.notifications(named: UserDefaults.didChangeNotification) {

@@ -36,6 +36,8 @@ final class RootModel {
     /// beside the list, one per entry so each keeps its own (legacy `bookmarksTopicTarget`, `qualityAlertsTopicTarget`,
     /// `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
     private(set) var detailReaders: [PlusEntry: TopicReaderModel] = [:]
+    /// The bookmark open in the Bookmarks detail column (LOT-132): kept here, as the reader is, so the list finds it again.
+    let bookmarkSelection = BookmarkSelection()
     /// The one selection both layouts read, so a size-class change (Slide Over, Split View) keeps what the user was on.
     var selectedDestination: SidebarDestination {
         didSet {
@@ -241,6 +243,12 @@ final class RootModel {
         guard entry.usesTopicList else { return }
         detailReaders[entry]?.closeLinkedReaders()
         detailReaders[entry] = reader
+    }
+
+    /// Empties `entry`'s detail column: legacy's placeholder shows again (a deleted bookmark, `MainWindow.swift:2266-2271`).
+    func closeDetail(for entry: PlusEntry) {
+        detailReaders[entry]?.closeLinkedReaders()
+        detailReaders[entry] = nil
     }
 
     /// Regular-width iPad: a Favoris section title switches the content column to Catégories on that category, on the Favoris
