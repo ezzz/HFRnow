@@ -91,17 +91,10 @@ struct DuoLayoutTests {
         let shown = DuoSplitColumns.visibility(.doubleColumn, detailOnlyTopic: false, wasDetailOnlyTopic: true, hasTopic: true)
         #expect(shown == .doubleColumn)
     }
-
-    // MARK: Fold handoff (GAP-217)
-
-    @Test func aTabSplitStartsOnTheReaderWhenItsTopicIsOpen() {
-        #expect(NavigationSplitViewColumn.compactStart(showsTopic: true) == .detail)
-        #expect(NavigationSplitViewColumn.compactStart(showsTopic: false) == .sidebar)
-    }
 }
 
 /// The real roots (`RootLayout`) over fakes in a window whose size classes a fold or an unfold changes: the iPhone Duo's inner
-/// screen (regular in both dimensions, 1004 × 1427 pt in portrait) and its cover screen (compact width, 466 × 678 pt).
+/// screen (a portrait window regular in both dimensions) and its cover screen (compact width, 466 × 678 pt, #1083).
 @MainActor
 @Suite(.serialized)
 struct DuoLayoutHostedTests: ReaderWebTesting {

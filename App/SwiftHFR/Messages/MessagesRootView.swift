@@ -10,15 +10,7 @@ struct MessagesRootView: View {
     let reader: ReaderServices
     /// The current account's composer; nil when logged out.
     let composer: ComposerServices?
-    @State private var column: NavigationSplitViewColumn
-
-    init(model: MessageListModel, reader: ReaderServices, composer: ComposerServices?) {
-        self.model = model
-        self.reader = reader
-        self.composer = composer
-        // A conversation the split root showed before a fold stays on screen (GAP-217).
-        _column = State(initialValue: .compactStart(showsTopic: model.selected != nil))
-    }
+    @State private var column = NavigationSplitViewColumn.sidebar
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
