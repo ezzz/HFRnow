@@ -32,10 +32,10 @@ extension ReplyComposerModel {
     /// and by the engine
     /// (HFR's answer to one is not captured).
     var canSend: Bool {
-        guard hasText, canEdit, !picker.isLoading else { return false }
+        guard hasText, canEdit, !picker.isLoading, poll.isSendable else { return false }
         if isNewMessage { return !Self.isBlank(recipient) && !Self.isBlank(subject) }
         // An edit changing nothing would mark the message edited and lose a leading line break HFR does not serve (`R130b`).
-        if let prefill, !differsFromPrefill, picker.selected == prefill.subcategories?.preselected { return false }
+        if let prefill, !differsFromPrefill, picker.selected == prefill.subcategories?.preselected, poll.draft == nil { return false }
         return !hasSubjectField || !Self.isBlank(subject)
     }
 
@@ -79,7 +79,7 @@ extension ReplyComposerModel {
         case .edit(let edit):
             return try await services.poster.edit(
                 text, subject: hasSubjectField ? subject.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
-                subcategory: picker.selected, target: edit
+                subcategory: picker.selected, poll: poll.draft, target: edit
             )
         }
     }
