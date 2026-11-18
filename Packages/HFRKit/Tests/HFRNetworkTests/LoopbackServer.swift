@@ -143,7 +143,8 @@ final class LoopbackServer: @unchecked Sendable {
             holdOpen(client)
             return
         }
-        if let delay = reply.dropsAfter {
+        // A stalled body drops after its first piece (below), not before the headers.
+        if let delay = reply.dropsAfter, !(reply.dripChunks > 1 && reply.stallsAfterFirstChunk) {
             Thread.sleep(forTimeInterval: delay)
             return
         }
@@ -229,41 +230,11 @@ final class LoopbackServer: @unchecked Sendable {
     }
 }
 
-/// A port of 127.0.0.1 that refuses connections and that no other test can be given: bound, never listening, held open until
-/// the value goes away. A port freed by `LoopbackServer.stop()` is not that: the system hands it to the next server a parallel
-/// test creates, and the « refused » request then reaches that test's server (#1087, found by a 200-run loop under load).
-final class RefusingPort: @unchecked Sendable {
-    private let descriptor: Int32
-    /// `http://127.0.0.1:PORT`.
-    let baseURL: URL
-
-    init() throws {
-        #if canImport(Glibc)
-        let streamType = Int32(SOCK_STREAM.rawValue)
-        #else
-        let streamType = SOCK_STREAM
-        #endif
-        let held = socket(AF_INET, streamType, 0)
-        guard held >= 0 else { throw POSIXError(.EIO) }
-        var address = sockaddr_in()
-        address.sin_family = sa_family_t(AF_INET)
-        address.sin_port = 0
-        address.sin_addr.s_addr = UInt32(0x7F00_0001).bigEndian
-        let bound = withUnsafePointer(to: &address) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(held, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
-        }
-        guard bound == 0 else { close(held); throw POSIXError(.EADDRINUSE) }
-        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
-        _ = withUnsafeMutablePointer(to: &address) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(held, $0, &length) }
-        }
-        guard let url = URL(string: "http://127.0.0.1:\(UInt16(bigEndian: address.sin_port))") else {
-            close(held)
-            throw POSIXError(.EINVAL)
-        }
-        descriptor = held
-        baseURL = url
-    }
-
-    deinit { close(descriptor) }
+/// A port of 127.0.0.1 that refuses connections and that no other test can be given: port 1 is privileged, so the system never
+/// hands it out as an ephemeral port (a port freed by `LoopbackServer.stop()` is: the next parallel test's server gets it and
+/// the « refused » request reaches that server, #1087). A bound-but-not-listening socket is not an option either: macOS drops
+/// the SYN instead of resetting it, and the client times out.
+enum RefusingPort {
+    /// `http://127.0.0.1:1`.
+    static var baseURL: URL { URL(string: "http://127.0.0.1:1")! }  // swiftlint:disable:this force_unwrapping
 }

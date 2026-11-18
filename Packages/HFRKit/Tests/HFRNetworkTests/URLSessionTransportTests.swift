@@ -124,14 +124,17 @@ struct URLSessionTransportTests {
 
     @Test func answerThatStallsAfterItsFirstBytesFailsAtTheIdleLimit() async throws {
         let server = try makeServer { _ in
-            // Silent for 20 s, then the server drops the connection: only the idle limit ends this request with `timedOut`
-            // before that (without the watcher the answer is a transport error; corelibs' own default of 60 s is never reached).
-            ServerReply(
-                body: Data(String(repeating: "x", count: 8).utf8), dropsAfter: 20, dripChunks: 8, stallsAfterFirstChunk: true
-            )
+            // One piece, then silence until the client closes: only the idle limit ends this request early (without the
+            // watcher corelibs waits for its own 60 s default), so the elapsed time is what the test checks.
+            ServerReply(body: Data(String(repeating: "x", count: 8).utf8), dripChunks: 8, stallsAfterFirstChunk: true)
         }
         defer { server.stop() }
-        await #expect(throws: NetworkError.timedOut) { try await makeTransport().send(.get(server.baseURL, timeout: 0.6)) }
+        let transport = makeTransport()
+        let url = server.baseURL
+        let clock = ContinuousClock()
+        let start = clock.now
+        await #expect(throws: NetworkError.timedOut) { try await transport.send(.get(url, timeout: 0.6)) }
+        #expect(clock.now - start < .seconds(30))
     }
 
     /// Global search also caps the whole transfer (legacy `timeoutIntervalForResource`, `ObjCForumSearchWorker.m:131-132`).
@@ -156,10 +159,8 @@ struct URLSessionTransportTests {
     }
 
     @Test func refusedConnectionIsATransportError() async throws {
-        let port = try RefusingPort()
-        defer { withExtendedLifetime(port) {} }
         do {
-            _ = try await makeTransport().send(.get(port.baseURL))
+            _ = try await makeTransport().send(.get(RefusingPort.baseURL))
             Issue.record("expected a failure")
         } catch {
             if case .transport = error { return }
