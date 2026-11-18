@@ -41,7 +41,7 @@ struct TopicSearchSheet: View {
             .disabled(model.state == .searching)
             .overlay {
                 if model.state == .searching {
-                    ProgressView("Recherche en cours…").padding(24).background(.regularMaterial, in: .rect(cornerRadius: 14))
+                    ProgressView("Recherche en cours…").padding(24).glassEffect(in: .rect(cornerRadius: 12))
                 }
             }
             .navigationTitle("Rechercher")

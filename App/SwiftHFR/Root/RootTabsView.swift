@@ -5,7 +5,7 @@ import SwiftUI
 // a Favoris / Drapeaux source menu (GAP-032; UXD). The reader hides the tab bar only while the split is collapsed
 // (GAP-008, UXD-02, see `TopicReaderView`). On a large iPhone in landscape the splits collapse to a stack, as legacy's tab root
 // (`TabSplitWidth`, UXD-24, #431).
-// LOT-185: the options menu symbol is `ellipsis`, not `ellipsis.circle`; GAP row pending #545.
+// LOT-185: the options menu symbol is `ellipsis`, not `ellipsis.circle`; GAP-224.
 /// The iPhone root: a tab bar Catégories / Favoris / Messages / Plus, with Recherche before Plus behind an experimental option.
 /// Each tab keeps its own navigation, and the reader opens inside the tab (a collapsed split view is a stack).
 struct RootTabsView: View {

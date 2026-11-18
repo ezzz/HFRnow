@@ -2,7 +2,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (CombinedSmileyPickerView, FavoriteSmileyDetailView) @ 2440d79. Differences: see the
 // doc comment and the specs LOT-104 (GAP-087) and LOT-105 (GAP-088) in docs/lots/.
-// LOT-185: the notice capsule is glass; GAP row pending #545.
+// LOT-185: the notice capsule is glass (GAP-221).
 // #600: the search is the system search field of the navigation bar (it was a bottom bar nobody saw), the forum favourites are a
 // section, and any smiley has a favourite action in its context menu.
 /// The smiley panel of the reply sheet (legacy `CombinedSmileyPickerView`, `HFRswift/Swift/AnswerView.swift:1051` @ 2440d79).
@@ -52,7 +52,7 @@ struct SmileyPickerView: View {
                 // Cancelling the field (its "Annuler") goes back to the sections.
                 if !presented { model.search?.clear() }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaBar(edge: .bottom, spacing: 0) {
                 if model.search != nil, searchPresented || model.search?.isSearching == true { searchOptions }
             }
             .navigationTitle("Smileys")
@@ -151,7 +151,6 @@ struct SmileyPickerView: View {
             Toggle("Tous les mots clés", isOn: $requireAll).font(.footnote).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
-        .background(.bar)
     }
 
     /// The system field writes into the search model; without one (no account) it is inert.
