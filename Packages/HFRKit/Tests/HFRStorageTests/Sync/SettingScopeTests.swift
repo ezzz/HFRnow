@@ -14,16 +14,15 @@ import Testing
         "theme_day_color_superfavori": .synced, "theme_night_color_superfavori": .synced,
         "theme_night_brightness": .synced,
         "blacklist_hide_pseudo": .synced, "filter_posts_quotes": .synced, "filter_posts_min_quotes": .synced,
-        "display_sig": .synced, "rehost_use_link": .synced, "rehost_resize_before_upload": .synced,
+        "display_sig": .synced, "embedded_videos": .synced, "rehost_use_link": .synced, "rehost_resize_before_upload": .synced,
         "compact_mode": .device, "tabbar_minimize_on_scroll": .device, "text_size_scale": .device,
         "text_size_percent": .device, "haptics": .device, "landscape_mode": .device, "icon": .device,
         "theme_dark_style": .device, "theme_id": .device, "mp_badge_enabled": .device, "display_images": .device,
         "recherche_categorie": .device,
         "FavoritesShowCollapsedSections": .device, "favorites_unread_only": .device, "HFRswiftGlobalTopicListFlag": .device,
-        // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `embedded_videos` was removed from
-        // legacy by `d645f52`, `mpstorage_active` becomes the per-account record of §7, `mpstorage_last_rw` is this
-        // device's last sync.
-        "size_smileys": .device, "embedded_videos": .device, "mpstorage_active": .device, "mpstorage_last_rw": .device,
+        // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `mpstorage_active` becomes the per-account
+        // record of §7, `mpstorage_last_rw` is this device's last sync. `embedded_videos` is synced again (#691, "Vidéos").
+        "size_smileys": .device, "mpstorage_active": .device, "mpstorage_last_rw": .device,
         // LOT-173: the app lock is a property of the device (ADR 0013 §6, appendix E's device-capability rule).
         "app_lock_enabled": .device, "app_lock_grace_seconds": .device,
         // LOT-189: the dated-icon bookkeeping follows the icon the device shows.

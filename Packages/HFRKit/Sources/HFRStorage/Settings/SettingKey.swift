@@ -156,8 +156,8 @@ public enum SettingKey {
         decode: { SettingCoercion.string($0).map { $0 == "double" } },
         encode: { .string($0 ? "double" : "default") }
     )
-    /// `embedded_videos`.
-    public static let embeddedVideos = Setting.stringEnum("embedded_videos", default: EmbeddedVideosMode.inlinePlayer)
+    /// `embedded_videos`: « Vidéos » in Réglages › Sujets (#691), a content-rendering choice like `display_sig`, so it is synced.
+    public static let embeddedVideos = Setting.stringEnum("embedded_videos", default: EmbeddedVideosMode.inlinePlayer).synced
     /// `display_sig`: `yes`/`no`; the legacy test is `isEqualToString:@"yes"`.
     public static let displaySignatures = Setting(
         key: "display_sig",
