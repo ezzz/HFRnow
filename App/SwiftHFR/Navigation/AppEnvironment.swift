@@ -35,6 +35,9 @@ struct AppEnvironment {
     /// The unread private messages count behind the Messages badge: shared by every window of the app (LOT-146).
     /// Nil in a root built alone, which then counts for itself.
     let privateMessageCount: PrivateMessageCount?
+    /// Where the Plus tab's AQ list and badge come from (LOT-133); nil in an environment built by hand (tests), so no root
+    /// fetches the live feed with the address of the Info.plist. `make` sets the live one.
+    var qualityAlertsSource: (any QualityAlertsSource)?
 
     /// The environment for `session`.
     static func make(
@@ -73,6 +76,10 @@ struct AppEnvironment {
             moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
             moderatorAlertMail: ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:])
         )
+        var reader = reader
+        reader.qualityAlerts = LiveQualityAlertsSource.services(
+            from: Bundle.main.infoDictionary ?? [:], pseudo: accountName, settings: UserDefaultsSettingsStore()
+        )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
             topicPages: pages, reader: reader,
@@ -89,7 +96,8 @@ struct AppEnvironment {
             // Only the MP list asks, and it needs an account; the lookups themselves never carry the session.
             memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars),
             pseudoListsSnapshot: lists, blocklistChanges: blocklistChanges,
-            privateMessageCount: privateMessageCount
+            privateMessageCount: privateMessageCount,
+            qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:])
         )
     }
 
