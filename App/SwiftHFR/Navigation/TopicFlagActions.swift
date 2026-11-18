@@ -84,6 +84,8 @@ struct TopicFlagActions: Sendable {
             "Sujet invalide : rien n'a été envoyé."
         case .sessionNotConfirmed:
             "Session non confirmée : rien n'a été envoyé. Reconnectez-vous puis réessayez."
+        case .sessionChanged:
+            "Le compte connecté a changé pendant la vérification : rien n'a été envoyé. Réessayez."
         case .missingToken:
             "Session incomplète : rien n'a été envoyé. Actualisez la liste puis réessayez."
         case .notLoggedIn:
