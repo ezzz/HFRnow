@@ -54,7 +54,23 @@ extension ReplyButtonBehavior {
         switch self {
         case .quick: "Réponse rapide"
         case .forum: "Répondre comme le forum"
-        case .hidden: "Pas d'icône"
+        case .hidden: "Pas d’icône"
+        }
+    }
+
+    /// Whether this is the choice a fresh install gets (« Répondre comme le forum » since #1016): marked in the info bubble.
+    var isDefault: Bool { self == SettingKey.replyButtonBehavior.defaultValue }
+
+    /// One sentence for the info bubble of the « Bouton + » row (#1062, operator decision of 2026-11-17). It follows what the
+    /// code does: `quick` and `forum` call the same `requestReply()` (LOT-086, GAP-083), so only the icon differs, and
+    /// `hidden` leaves the quote entries of the message menu.
+    var explanation: String {
+        switch self {
+        case .quick: "Icône « + » : ouvre votre brouillon du sujet, avec les citations sélectionnées ajoutées."
+        case .forum:
+            "Icône crayon : même réponse que « Réponse rapide » (votre brouillon du sujet, avec les citations sélectionnées), "
+                + "seule l’icône change."
+        case .hidden: "Pas de bouton de réponse : répondez depuis le menu d’un message (« Citer »)."
         }
     }
 

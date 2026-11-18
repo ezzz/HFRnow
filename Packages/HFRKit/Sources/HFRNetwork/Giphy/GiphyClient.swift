@@ -7,7 +7,7 @@ import Foundation
 /// Every request is a GET on the injected host with the key and the search text as its only data. No cookie is sent (the
 /// default transport is `AnonymousTransport`) and a redirect is not followed, so the key never reaches another host.
 public struct GiphyClient: Sendable {
-    /// Total time limit of a request, in seconds.
+    /// Idle limit of a request, in seconds: no data for that long fails it (#683).
     public static let timeout: Double = 15
     /// Largest answer read, in bytes: 50 items of the captured shape are about 450 KB.
     public static let maximumResponseBytes = 2_097_152

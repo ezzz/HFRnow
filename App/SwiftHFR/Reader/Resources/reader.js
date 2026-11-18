@@ -202,6 +202,33 @@
   // would undo a user's scroll that sends no event (VoiceOver, status-bar tap). Nothing native waits on the frames, which do
   // not come while the page is hidden.
   const afterFirstFrames = (scroll) => requestAnimationFrame(() => requestAnimationFrame(scroll));
+  // WebKit's reset of a new document reaches the scroll view and the page at different times (#995): the scroll view at its
+  // top while the page still holds the previous document's offset, or the page's own position pushed back after the scroll
+  // view's reset. A reset still on its way to the page undid a restore made before it (`scrollY` 1000, then 0). So a scroll the
+  // app asks for also waits until the page shows what the scroll view showed when it was asked (`from`, its reading top in CSS
+  // pixels), for at most `agreementFrames` frames, after which it scrolls anyway. The member touching the page meanwhile
+  // (`touchstart`, `wheel`, `keydown`, `mousedown`) cancels it: the page is theirs, as for the landing's pin. A scroll that
+  // sends no event (VoiceOver, a status-bar tap) during the wait cannot be told from the reset by the page: the app's scroll
+  // still runs after it, as it did after the two frames before #995, now up to half a second later.
+  const agreementFrames = 30;
+  // Counted, not timed: WebKit coarsens `performance.now()` to a millisecond, which a touch and an ask can share.
+  let touches = 0;
+  ["touchstart", "wheel", "keydown", "mousedown"].forEach((name) =>
+    window.addEventListener(name, () => { touches += 1; }, { passive: true, capture: true }));
+  const afterAgreement = (from, scroll) => {
+    const touchesWhenAsked = touches;
+    let frames = 0;
+    const step = () => {
+      if (touches !== touchesWhenAsked) { return; }
+      if (typeof from !== "number" || Math.abs(window.scrollY - from) <= 1 || frames >= agreementFrames) {
+        scroll();
+        return;
+      }
+      frames += 1;
+      requestAnimationFrame(step);
+    };
+    afterFirstFrames(step);
+  };
   document.addEventListener("load", repin, true);
   document.addEventListener("error", repin, true);
   new ResizeObserver(repin).observe(document.documentElement);
@@ -213,9 +240,10 @@
       if (element) { afterFirstFrames(() => element.scrollIntoView({ block: "start" })); }
       return element !== null;
     },
-    // A refresh's restore (LOT-186): `scrollY` counts from the bars' edge, so `y` is the reading top.
-    restoreScroll: (y) => {
-      afterFirstFrames(() => window.scrollTo(0, y));
+    // A refresh's restore (LOT-186): `scrollY` counts from the bars' edge, so `y` is the reading top. `from` is the scroll
+    // view's reading top when it was asked (`afterAgreement`).
+    restoreScroll: (y, from) => {
+      afterAgreement(from, () => window.scrollTo(0, y));
       return true;
     },
     // "Citer extrait" / "Citer gras" (LOT-086): reports the selection and the message it sits in. Only a selection that starts
@@ -234,11 +262,11 @@
       channel.postMessage({ type: "quote", token, post: Number(article.dataset.post), text: Array.from(text).slice(0, 20000).join(""), bold: bold === true });
       return true;
     },
-    // Scrolls to the message and keeps it there while the page settles.
-    landOnPost: (number) => {
+    // Scrolls to the message and keeps it there while the page settles. `from` as for `restoreScroll`.
+    landOnPost: (number, from) => {
       const element = document.getElementById("t" + number);
       if (element) {
-        afterFirstFrames(() => {
+        afterAgreement(from, () => {
           element.scrollIntoView({ block: "start" });
           if (settled()) { pinned = null; scheduleReport(); } else { pinned = element; pinY = window.scrollY; }
         });

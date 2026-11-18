@@ -1,7 +1,8 @@
 import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (RootTabView, Messages tab) and HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79.
-// Differences: a split view on a regular width (GAP-212, UXD), except an iPhone of compact height, a stack as legacy (#431).
+// Differences: a split view on a regular width (GAP-212, UXD), except an iPhone of compact height, a stack as legacy (#431);
+// the account button is top left, as `MainToolbar.swift:60-66` @ 87fe0d1c (#1057).
 /// The Messages tab of the iPhone tab bar: the conversation list, then the reader of the chosen conversation. It owns its
 /// navigation container (a split view that collapses to a stack on a compact width), so a call site adds none.
 struct MessagesRootView: View {
@@ -13,7 +14,7 @@ struct MessagesRootView: View {
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
-            MessageListView(model: model, composer: composer).appScreenBackground()
+            MessageListView(model: model, composer: composer).accountMenuToolbarItem().appScreenBackground()
         } detail: {
             MessageReaderColumn(model: model, reader: reader, composer: composer).appScreenBackground()
         }

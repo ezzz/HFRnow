@@ -10,6 +10,8 @@ protocol PrivateMessageSource: Sendable {
 
 /// The live source: `PageFetcher.privateMessages` (LOT-045) with the account's session, then `PrivateMessageListParser` (LOT-023).
 ///
+/// The MPStorage thread is removed from the page (#1074).
+///
 /// Only the list is fetched: no thread page, so nothing is marked read here.
 struct LivePrivateMessageSource: PrivateMessageSource {
     let fetcher: PageFetcher
@@ -22,7 +24,9 @@ struct LivePrivateMessageSource: PrivateMessageSource {
             throw ListLoadError(error)
         }
         do throws(ListPageFailure) {
-            return try PrivateMessageListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString)
+            // The MPStorage thread is a technical store, not a conversation: it stays out of the list and of every count
+            // read from it (#1074). The storage flows fetch and scan the list themselves, so they still find it.
+            return try PrivateMessageListParser.parse(raw.text, pageURL: raw.finalURL.absoluteString).hidingStorageThread()
         } catch {
             throw ListLoadError(error)
         }

@@ -105,6 +105,8 @@ public final class URLSessionTransport: HTTPTransport {
     /// `session.data(for:)` with an idle limit. Apple's `URLSession` already treats `timeoutInterval` as one; swift-corelibs ignores it
     /// (and does not update `countOfBytesReceived` while a body streams in), so there a session delegate sees every chunk and the
     /// request fails with `URLError.timedOut` once none has arrived for `idle` seconds, a task that never receives one included.
+    /// Only received bytes count: a request body that takes longer than `idle` to send (a large upload) fails on Linux, which
+    /// Apple's `timeoutInterval` does not do. The Linux build is for tests and CI, it does not ship.
     private static func dataWithIdleLimit(
         for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession
     ) async throws -> (Data, URLResponse) {

@@ -120,26 +120,39 @@ article.message:nth-of-type(even) { background: var(--surface-alt); }
 .style-classic .message .content { padding-top: 8px; }
 /* The legacy body (#819): smaller text, tight blocks. `* { margin: 0 }` of the legacy stylesheet (`style-liste.css:39-47`) leaves
    paragraphs without margin (legacy's `.content br` block rule, `style-liste-light.css:514-519`, is not ported: it did not tighten a blank
-   line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`, which also pads 10 px on the right: the message's own 1em right padding stands for it, about 7 px wider than legacy's 10 px, on purpose: the operator asked for wider margins); lists keep 1em and 2em (`:343-347`). */
-.message .content { font-size: var(--content-em); padding-bottom: 10px; }
+   line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`; its 10 px right padding is `--text-right` below, added to the message's own 1em: wider than legacy's 10 px in total, on purpose: the operator asked for wider margins earlier, #1038 to be confirmed on #893); lists keep 1em and 2em (`:343-347`). */
+.message .content { font-size: var(--content-em); padding-bottom: 10px; padding-right: var(--text-right); }
 .content p { margin: 0; }
 .content ul, .content ol { margin: 1em 0; padding-left: 2em; }
 .style-modern .message .content { padding-left: var(--indent); }
+/* Where the message text starts and ends inside the article (#1038): the signature takes the same insets. --edge is the article's own
+   1em padding; --text-right is legacy's `padding-right: 10px` of `div[id^=para]` (`style-liste-light.css:505-509`, `style-liste-dark.css:506-509`,
+   `style-liste-oled.css:502-505`). A message of mine or a whitelisted one draws a 2 px bar and 0.5-0.6 em more padding on its text. */
+.message { --edge: calc(var(--text-scale, 1) * 1rem); --text-right: 10px; --text-inset: 0px; }
+.style-modern .message { --text-inset: var(--indent); }
+.style-classic .message.me, .style-classic .message.whitelist { --text-inset: calc(0.6 * var(--content-em) + 2px); }
+.style-modern .message.me, .style-modern .message.whitelist { --text-inset: calc(var(--indent) + 0.5 * var(--content-em) + 2px); }
 .continuation { opacity: 0.75; }
 .continuation-note, .deleted-note, .trailer { color: var(--secondary); font-size: 0.85em; }
 .trailer p { margin: 0.25em 0 0; }
 
 .content img, .signature img { max-width: 100%; height: auto; }
-/* Smileys (every image that is not a posted picture) sit on the text line. */
-.content img:not(.hfrplusimg), .signature img:not(.hfrplusimg) { vertical-align: middle; }
+/* Smileys and inline images rest on the text baseline (#1049): the legacy sheets set no `vertical-align` on message images
+   (`git grep vertical-align 87fe0d1c -- 'SuperHFRplus/Assets/HTML/style-liste*.css'` finds nothing), so they keep the CSS default, `baseline`. */
+.content img:not(.hfrplusimg), .signature img:not(.hfrplusimg) { vertical-align: baseline; }
 
 /* Quotes: div.container > table.citation | table.oldcitation | table.quote. */
 /* Legacy (`style-liste.css:329-334`, `style-liste-light.css:104-111`): a 2 px left border, no fill, 4 px before the text, 5 px below.
    A gallery theme brings its own quote surface back (last block of this file). */
 table.citation, table.oldcitation, table.quote, table.code, table.fixed {
   width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0 0 5px;
-  border-left: 2px solid var(--quote-border); background: transparent;
+  border: none; border-left: 2px solid var(--quote-border); background: transparent;
 }
+/* HFR writes `<hr size="1" />` after the header and the text of an `oldcitation` / `oldquote` (captures R33b, R47u1, R95f, R443l); the browser draws it
+   as an inset rule. Legacy hides it and keeps 12 px of space (its `* { margin: 0 }`, `style-liste.css:39-46`, leaves the browser's margins out), and drops a last one (`style-liste-light.css:393-400`, `style-liste-dark.css:302-309`, `style-liste-oled.css:298-305` @ 87fe0d1c). */
+hr { visibility: hidden; height: 12px; margin: 0; }
+hr:last-child { display: none; }
+/* No rule above or below a quote (#1038): legacy draws the left bar only (`style-liste-dark.css:296-300` @ 87fe0d1c). */
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
 /* Without a fill a quote shows the message's own surface, even messages included: --secondary on the 5 % tint is 4.55:1 or more
    (see --alt-strength above). */
@@ -161,7 +174,17 @@ table.spoiler.open div.masque { visibility: visible; }
 
 /* HFR's dashes are dropped by the normalizer (#755); the line is legacy's, 1px dashed (`style-liste-light.css:79`,
    `style-liste-dark.css:45` @ 87fe0d1c), in the theme's separator colour (THEMES.md §3, one definition) instead of lightgray. */
-.signature { margin-top: 0.75em; padding-top: 0.5em; border-top: 1px dashed var(--separator); font-size: calc(0.85 * var(--content-em)); color: var(--secondary); }
+/* Signature (#1038). Legacy's `span.signature` sits inside `div[id^=para]` (`style-liste-dark.css:45-50` @ 87fe0d1c), so its text has the
+   message text's inset while the operator keeps the dotted rule starting at the edge: the box spans the article (negative margins undo
+   the article's padding, --edge) and the padding puts the text back at --text-inset, with the 10 px right padding of the text. */
+.signature {
+  margin: 0.75em calc(-1 * var(--edge)) 0; padding: 0.5em calc(var(--edge) + var(--text-right)) 0 calc(var(--edge) + var(--text-inset));
+  border-top: 1px dashed var(--separator); font-size: calc(0.85 * var(--content-em)); color: var(--secondary);
+}
+/* A blocklisted post's children carry their own 1em margins (below), so the signature only needs the text inset. */
+.message.blocked .blocked-post > .signature:not(summary) {
+  margin-left: var(--content-em); margin-right: var(--content-em); padding-left: var(--text-inset); padding-right: var(--text-right);
+}
 .signature > br:first-child, .content span.signature { display: none; }
 
 /* Images and videos that wait for a tap, and refused images shown as their URL (LOT-071 D-071-1, D-071-2). */
