@@ -84,11 +84,23 @@ struct RegularWidthListStyleTests {
         window.isHidden = false
         defer { window.isHidden = true }
         var found: [RootTab: (beside: [UInt8], inside: [UInt8])] = [:]
+        var previous: UICollectionView?
         for tab in [RootTab.categories, .favorites, .messages] {
             model.selectedDestination = .tab(tab)
-            try await Task.sleep(for: .seconds(1.5))
+            // Polls until this tab's list (not the previous one's) shows its title and a row (a cold simulator can take a while).
+            var shown: UICollectionView?
+            for _ in 0..<100 {
+                try await Task.sleep(for: .milliseconds(50))
+                window.layoutIfNeeded()
+                if let list = contentList(in: window), list !== previous, list.visibleCells.count >= 2 {
+                    shown = list
+                    break
+                }
+            }
+            try await Task.sleep(for: .milliseconds(300))
             window.layoutIfNeeded()
-            let list = try #require(contentList(in: window), "no list in \(tab)")
+            let list = try #require(shown, "no list with rows in \(tab)")
+            previous = list
             let last = try #require(list.visibleCells.max { $0.frame.maxY < $1.frame.maxY }, "no row in \(tab)")
             let frame = last.convert(last.bounds, to: nil)
             found[tab] = (
