@@ -68,10 +68,42 @@ enum HostedAccessibility {
         return found
     }
 
+    /// The tests that use the accessibility tree now. It is process-wide: a test that turned it off while another still
+    /// looked up elements would fail that one when suites run in parallel, so it goes off only when the last user leaves.
+    private static var automation = AutomationUsers()
+
+    /// Turns SwiftUI's accessibility tree on for the caller; pair it with `endAutomation()`.
+    static func beginAutomation() {
+        if automation.enter() { setAutomation(true) }
+    }
+
+    /// The caller is done with the accessibility tree; it goes off with the last caller.
+    static func endAutomation() {
+        if automation.leave() { setAutomation(false) }
+    }
+
     /// Turns SwiftUI's accessibility tree on or off: it is built only for an assistive technology, as UI tests turn it on.
-    static func setAutomation(_ isOn: Bool) {
+    private static func setAutomation(_ isOn: Bool) {
         guard let handle = dlopen("/usr/lib/libAccessibility.dylib", RTLD_NOW),
               let symbol = dlsym(handle, "_AXSSetAutomationEnabled") else { return }
         unsafeBitCast(symbol, to: (@convention(c) (Int32) -> Void).self)(isOn ? 1 : 0)
+    }
+}
+
+/// Counts the users of a shared switch: on with the first, off with the last.
+struct AutomationUsers {
+    private(set) var count = 0
+
+    /// A user arrives; true when the switch must turn on.
+    mutating func enter() -> Bool {
+        count += 1
+        return count == 1
+    }
+
+    /// A user leaves; true when the switch must turn off. A leave without an enter changes nothing.
+    mutating func leave() -> Bool {
+        guard count > 0 else { return false }
+        count -= 1
+        return count == 0
     }
 }

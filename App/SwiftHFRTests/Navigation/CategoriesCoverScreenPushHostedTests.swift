@@ -29,7 +29,7 @@ private struct HostedCategoriesTab {
 @Suite(.serialized)
 struct CategoriesCoverScreenPushHostedTests {
     /// The last category of the list: far enough down that the list must scroll to show it.
-    private nonisolated static let lastCategory = 34
+    nonisolated private static let lastCategory = 34
 
     private func readerServices() -> ReaderServices {
         ReaderServices(
@@ -111,6 +111,35 @@ struct CategoriesCoverScreenPushHostedTests {
         log.heartbeat()
     }
 
+    /// Scrolls `scrollView` to its end in steps, as a finger would: the large title row leaves the screen on the way and the pill
+    /// takes over. The end is read again at each step, as the list sizes its rows as they come.
+    private func scrollToEnd(_ scrollView: UIScrollView, in window: UIWindow, _ log: HostedHangWatchdog) async throws {
+        for _ in 0..<60 {
+            let end = scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom
+            if scrollView.contentOffset.y >= end - 0.5 { break }
+            let y = min(scrollView.contentOffset.y + scrollView.bounds.height / 4, end)
+            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: y), animated: false)
+            try await frame(window, log)
+        }
+    }
+
+    /// Selects the visible row labelled `label` as a tap does: SwiftUI's list writes its selection from the collection view's
+    /// delegate.
+    private func selectRow(
+        _ label: String, in collection: UICollectionView, window: UIWindow, _ log: HostedHangWatchdog
+    ) async throws {
+        var row: IndexPath?
+        for _ in 0..<40 where row == nil {
+            try await frame(window, log)
+            row = rowIndexPath(label, in: collection)
+        }
+        let indexPath = try #require(row, "the row of \(label) is not on screen")
+        log.mark("selecting '\(label)' at \(indexPath)")
+        collection.selectItem(at: indexPath, animated: false, scrollPosition: [])
+        collection.delegate?.collectionView?(collection, didSelectItemAt: indexPath)
+        log.mark("selected '\(label)'")
+    }
+
     @Test(
         "A category opens without freezing after the list was scrolled (#681)",
         .timeLimit(.minutes(1)), arguments: [ListDensity.regular, .compact], [true, false]
@@ -118,9 +147,9 @@ struct CategoriesCoverScreenPushHostedTests {
     func aCategoryOpensAfterAScroll(density: ListDensity, scrolled: Bool) async throws {
         let log = HostedHangWatchdog(tag: "#681")
         log.watch(limit: 45)
-        HostedAccessibility.setAutomation(true)
+        HostedAccessibility.beginAutomation()
         defer {
-            HostedAccessibility.setAutomation(false)
+            HostedAccessibility.endAutomation()
             log.stop()
         }
         let name = "\(density) scrolled=\(scrolled)"
@@ -131,8 +160,7 @@ struct CategoriesCoverScreenPushHostedTests {
         let traits = window.traitCollection
         log.mark(
             "\(name): window \(window.bounds.size), safe area \(window.safeAreaInsets), "
-                + "size classes h=\(traits.horizontalSizeClass.rawValue) v=\(traits.verticalSizeClass.rawValue), "
-                + "model \(UIDevice.current.model)"
+                + "size classes h=\(traits.horizontalSizeClass.rawValue) v=\(traits.verticalSizeClass.rawValue)"
         )
 
         var list: UIScrollView?
@@ -140,35 +168,14 @@ struct CategoriesCoverScreenPushHostedTests {
             try await frame(window, log)
             list = categoryList(in: window)
         }
-        let scrollView = try #require(list, "the category list is not on screen")
+        let collection = try #require(list as? UICollectionView, "the category list is not on screen")
         if scrolled {
-            // In steps, as a finger would: the large title row leaves the screen on the way and the pill takes over. The end is
-            // read again at each step, as the list sizes its rows as they come.
-            for _ in 0..<60 {
-                let end = scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom
-                if scrollView.contentOffset.y >= end - 0.5 { break }
-                let y = min(scrollView.contentOffset.y + scrollView.bounds.height / 4, end)
-                scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: y), animated: false)
-                try await frame(window, log)
-            }
-            log.mark("\(name): scrolled to y=\(scrollView.contentOffset.y) of \(scrollView.contentSize.height)")
+            try await scrollToEnd(collection, in: window, log)
+            log.mark("\(name): scrolled to y=\(collection.contentOffset.y) of \(collection.contentSize.height)")
         }
 
-        let label = scrolled ? "Catégorie \(Self.lastCategory)" : "Catégorie 13"
-        let collection = try #require(scrollView as? UICollectionView, "the category list is not a collection view")
-        var row: IndexPath?
-        for _ in 0..<40 where row == nil {
-            try await frame(window, log)
-            row = rowIndexPath(label, in: collection)
-        }
-        let indexPath = try #require(row, "the row of \(label) is not on screen")
-
-        // What UIKit does for a tap on a row: SwiftUI's list writes its selection from the collection view's delegate.
-        log.mark("\(name): selecting '\(label)' at \(indexPath)")
-        collection.selectItem(at: indexPath, animated: false, scrollPosition: [])
-        collection.delegate?.collectionView?(collection, didSelectItemAt: indexPath)
-        log.mark("\(name): selected")
         let category = scrolled ? Self.lastCategory : 13
+        try await selectRow("Catégorie \(category)", in: collection, window: window, log)
         for _ in 0..<100 where !data.requests.contains(where: { $0.hasPrefix("topics:\(category):") }) {
             try await frame(window, log)
         }

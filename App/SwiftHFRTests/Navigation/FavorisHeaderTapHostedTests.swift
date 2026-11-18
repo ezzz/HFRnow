@@ -97,9 +97,9 @@ struct FavorisHeaderTapHostedTests {
     func aSectionTitlePushesItsCategory(density: ListDensity, width: CGFloat) async throws {
         let log = HostedHangWatchdog(tag: "#979")
         log.watch(limit: 45)
-        HostedAccessibility.setAutomation(true)
+        HostedAccessibility.beginAutomation()
         defer {
-            HostedAccessibility.setAutomation(false)
+            HostedAccessibility.endAutomation()
             log.stop()
         }
         log.mark("\(density) \(width): setup")
