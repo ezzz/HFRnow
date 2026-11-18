@@ -6,6 +6,7 @@ import HFRStorage
 import SwiftUI
 import Testing
 import UIKit
+import WebKit
 
 /// #1120 (operator, 2026-11-18): the top bar of every screen sits on Apple's soft scroll-edge effect. Measured on the simulator, the
 /// automatic style draws a hard-edged frosted band 116 pt tall under the bar; the soft one fades the content out toward it.
@@ -88,5 +89,45 @@ struct TopBarEdgeEffectTests {
             imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])), autoLoadsThirdPartyImages: { false }
         )
         #expect(controller.webView.scrollView.topEdgeEffect.style == .soft)
+    }
+
+    private static func webViews(_ view: UIView) -> [WKWebView] {
+        ((view as? WKWebView).map { [$0] } ?? []) + view.subviews.flatMap(webViews)
+    }
+
+    @Test("A static page (Charte, Crédits) draws its top edge with the soft effect")
+    func aStaticPageIsSoft() async throws {
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+        window.rootViewController = UIHostingController(rootView: StaticPageWebView(html: "<p>x</p>", onLink: { _ in }))
+        window.isHidden = false
+        defer { window.isHidden = true }
+        window.layoutIfNeeded()
+        let web = try #require(Self.webViews(window).first, "no web view")
+        #expect(web.scrollView.topEdgeEffect.style == .soft)
+    }
+
+    @Test("Réglages draws its top edge with the soft effect")
+    func settingsIsSoft() async throws {
+        let notifications = MPNotificationSettingsModel(
+            store: InMemorySettingsStore(), ledger: NotificationLedgerStore(persistence: InMemorySmallStorePersistence()),
+            reschedule: {}, permission: FakeNotificationPermission(.allowed)
+        )
+        let root = ThemedNavigationStack { SettingsView(store: InMemorySettingsStore(), notifications: notifications) }
+            .environment(GeneralSettingsModel(store: InMemorySettingsStore()))
+            .environment(ExperimentalSettings(store: InMemorySettingsStore()))
+            .environment(ThemeSettingsModel(store: InMemorySettingsStore()))
+            .environment(SeasonalThemeModel(store: InMemorySettingsStore()))
+            .environment(AccountsModel.preview())
+            .environment(AppLockModel.preview())
+        let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+        window.rootViewController = UIHostingController(rootView: root)
+        window.isHidden = false
+        defer { window.isHidden = true }
+        let found = try await styles(in: window)
+        #expect(!found.isEmpty && found.allSatisfy { $0 == .soft }, "\(found)")
     }
 }
