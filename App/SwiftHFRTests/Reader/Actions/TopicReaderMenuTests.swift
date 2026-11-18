@@ -54,9 +54,9 @@ struct TopicReaderMenuTests {
 
         let other = TopicID(category: .forum(5), topic: 42)
         // Built out here: the page closure is `@Sendable` and cannot call this main-actor suite's helper.
-        let shown = [message(101)]
+        let shown = [message(101)], pageURL = Self.canonical
         let pages = FakeTopicPages { _ in
-            ReaderPage(topicID: nil, title: "Sujet", currentPage: 1, maxPage: 1, messages: shown, pageURL: Self.canonical)
+            ReaderPage(topicID: nil, title: "Sujet", currentPage: 1, maxPage: 1, messages: shown, pageURL: pageURL)
         }
         let unnamed = TopicReaderModel(target: ReaderTarget(source: .topic(other)), source: pages)
         await unnamed.onAppear()
