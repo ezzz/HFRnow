@@ -104,10 +104,9 @@ enum ReaderLinkMenu {
         guard let image = ImageGallery.build(
             sources: [url.absoluteString], selected: 0, consented: [url.absoluteString], autoLoadsThirdParty: false
         )?.images.first else { return "Impossible d'enregistrer cette image." }
-        var bytes = try? await fetcher.image(at: image.full, allowsThirdParty: image.allowsThirdParty, hostTable: .standard).data
-        if bytes == nil, image.full != image.shown {
-            bytes = try? await fetcher.image(at: image.shown, allowsThirdParty: image.allowsThirdParty, hostTable: .standard).data
-        }
+        let bytes = try? await fetcher.imagePreferringFullSize(
+            at: image.shown, allowsThirdParty: image.allowsThirdParty, hostTable: .standard
+        ).data
         guard let bytes else { return "Erreur réseau" }
         do throws(ImageSaveError) {
             try await save(bytes)
@@ -157,7 +156,8 @@ extension ReaderWebController {
         case .open:
             events.link(url)
         case .copy:
-            linkMenuEnvironment.copy(url)
+            // An image link gives the full-size address (#1035), like the viewer's "Copier le lien"; any other link as posted.
+            linkMenuEnvironment.copy(ReaderLinkMenu.isImageLink(url) ? ImageGallery.fullSize(of: url) : url)
         case .openImage:
             openLinkedImage(url)
         case .saveImage:
