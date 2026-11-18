@@ -1,0 +1,16 @@
+{
+  "id": "R728c",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/include/the_style1.php?color_key=666666/404550/FFFFFF/C2C3F4/202530/888888/888888/000000/000000/000000/1A2A3C/aaaaaa/BBBBBB/aaaaaa/BBBBBB/000000/000000/eeeeee/eeeeee/444444/0000FF/EEEEFF/DDDDEE/000000/FFEEEE/000000/FFFFFF/FF0000/FFFFFF/0/1/https%3A%redacted@example.invalid/NULL/&abs_img_path=%40data%40sites%40forum%40www%40static%40&hide_bg_onglet=0&v=11102781422",
+  "url": "https://forum.hardware.fr/include/the_style1.php?color_key=666666/404550/FFFFFF/C2C3F4/202530/888888/888888/000000/000000/000000/1A2A3C/aaaaaa/BBBBBB/aaaaaa/BBBBBB/000000/000000/eeeeee/eeeeee/444444/0000FF/EEEEFF/DDDDEE/000000/FFEEEE/000000/FFFFFF/FF0000/FFFFFF/0/1/https%3A%redacted@example.invalid/NULL/&abs_img_path=%40data%40sites%40forum%40www%40static%40&hide_bg_onglet=0&v=11102781422",
+  "final_url": "https://forum.hardware.fr/include/the_style1.php?color_key=666666/404550/FFFFFF/C2C3F4/202530/888888/888888/000000/000000/000000/1A2A3C/aaaaaa/BBBBBB/aaaaaa/BBBBBB/000000/000000/eeeeee/eeeeee/444444/0000FF/EEEEFF/DDDDEE/000000/FFEEEE/000000/FFFFFF/FF0000/FFFFFF/0/1/https%3A%redacted@example.invalid/NULL/&abs_img_path=%40data%40sites%40forum%40www%40static%40&hide_bg_onglet=0&v=11102781422",
+  "status": 200,
+  "content_type": "text/css",
+  "date": "Wed, 18 Nov 2026 05:06:43 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "grey skin stylesheet (the_style1.php), color_key read from a logged-in user1 page (#728), fetched without session",
+  "file": "R728c-stylesheet-grey-skin.css",
+  "private": false
+}
