@@ -131,4 +131,29 @@ struct HFREndpointReadTests {
     func absoluteURLRefusesOtherHosts(href: String) {
         #expect(HFREndpoint.absoluteURL(href: href) == nil)
     }
+
+    /// #1200 P5, LESSONS 37: a forum link the session follows is never sent over plain `http`, whatever the page printed.
+    @Test("#1200 P5: an absolute http link on the forum host is upgraded to https, an explicit default port dropped", arguments: [
+        ("http://forum.hardware.fr/hfr/ia/liste_sujet-1.htm", "https://forum.hardware.fr/hfr/ia/liste_sujet-1.htm"),
+        (
+            "HTTP://Forum.Hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42",
+            "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=42"
+        ),
+        ("http://forum.hardware.fr:80/forum1.php?cat=prive&page=2", "https://forum.hardware.fr/forum1.php?cat=prive&page=2"),
+        ("https://forum.hardware.fr:443/hfr/x.htm#bas", "https://forum.hardware.fr/hfr/x.htm#bas")
+    ])
+    func absoluteURLUpgradesHTTPOnTheForumHost(href: String, expected: String) {
+        let url = HFREndpoint.absoluteURL(href: href)
+        #expect(url?.absoluteString == expected)
+        #expect(url?.scheme == "https")
+        #expect(url?.port == nil)
+    }
+
+    @Test("#1200 P5: a forum link on another port, or with user info, is refused", arguments: [
+        "http://forum.hardware.fr:8080/forum2.php", "https://forum.hardware.fr:8443/forum2.php", "https://forum.hardware.fr:80/x",
+        "//forum.hardware.fr:81/x", "https://user@forum.hardware.fr/forum2.php", "http://user:pass@forum.hardware.fr/forum2.php"
+    ])
+    func absoluteURLRefusesOtherPorts(href: String) {
+        #expect(HFREndpoint.absoluteURL(href: href) == nil)
+    }
 }

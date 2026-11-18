@@ -33,7 +33,9 @@ struct LiveMPCheckForum: MPCheckForum {
             return MPForumReading()
         }
         guard let count else { return MPForumReading() }
-        let source = LivePrivateMessageSource(fetcher: PageFetcher(session: session))
+        let source = LivePrivateMessageSource(
+            fetcher: PageFetcher(session: session), storagePost: LivePrivateMessageSource.locatedStoragePost(of: account.pseudo)
+        )
         let page = try? await source.privateMessages(page: 1)
         return MPForumReading(count: count, page: page)
     }

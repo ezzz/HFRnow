@@ -178,12 +178,16 @@ extension PostingSession {
     /// starts; a login adopted in that window sends the checked token with the new cookies. The vote endpoint's
     /// response to that cross-account pairing is not captured, so the outcome is unverified.
     /// A failure of the exchange itself is thrown.
+    ///
+    /// With `requiringToken` false (a write without `hash_check`, such as a flag link, #1200 P2), `make` gets the token held
+    /// then, possibly empty, and no token is not `missingToken`.
     func send(
-        since seed: HashCheckSeed, now: Date = Date(), _ make: @Sendable (String) -> HTTPRequest
+        since seed: HashCheckSeed, now: Date = Date(), requiringToken: Bool = true, _ make: @Sendable (String) -> HTTPRequest
     ) async throws(NetworkError) -> FencedSend {
         if Task.isCancelled { return .cancelled }
         guard userKey(now: now) == seed.identity, loginGeneration == seed.loginGeneration else { return .loginChanged }
-        guard let token = hashCheck, !token.isEmpty else { return .missingToken }
+        let token = hashCheck ?? ""
+        if requiringToken, token.isEmpty { return .missingToken }
         return .sent(try await send(make(token)))
     }
 }

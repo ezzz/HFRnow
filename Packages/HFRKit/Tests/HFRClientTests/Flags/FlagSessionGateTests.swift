@@ -250,3 +250,79 @@ struct FlagSessionGateTests {
         return Run(result: result, writes: await session.requests, checks: checks)
     }
 }
+
+// MARK: - Login fence (#1200 P2)
+
+/// A flag write is also fenced on the login the session held before its check, as the MP delete is (`DeletePrivateMessageFlow`):
+/// HFR confirms an `addflag` sent without a session (`P03q`), so a write that left after a logout or an account switch
+/// would read as done.
+extension FlagSessionGateTests {
+    @Test(
+        "#1200 P2: a login landing during the check (another account, the same one again, a logout) sends no write",
+        arguments: TopicFlagAction.allCases, [
+            ConcurrentLogin(identity: "user2", hashCheck: "fake-token-other"),
+            ConcurrentLogin(identity: "user1", hashCheck: Self.token),
+            ConcurrentLogin(identity: nil, hashCheck: Self.token)
+        ]
+    )
+    func loginDuringTheCheckSendsNothing(action: TopicFlagAction, login: ConcurrentLogin) async throws {
+        let session = ScriptedFlagSession([try FlagCapture.page(Self.answers(confirmed: true)[action] ?? "P03a")], hashCheck: Self.token)
+        let result = try await gated(action, session) { () async throws(NetworkError) -> SessionHealth in
+            await session.adoptLogin(login)
+            return .valid
+        }
+        #expect(result.failure == .sessionChanged)
+        #expect(await session.requests.isEmpty)
+    }
+
+    @Test(
+        "#1200 P2: an identity that changes during the check without a login (md_user expiring, or appearing) sends no write",
+        arguments: TopicFlagAction.allCases, [("user1", nil), (nil, "user1"), ("user1", "user2")] as [(String?, String?)]
+    )
+    func identityChangeDuringTheCheckSendsNothing(action: TopicFlagAction, change: (before: String?, after: String?)) async throws {
+        let session = ScriptedFlagSession(
+            [try FlagCapture.page(Self.answers(confirmed: true)[action] ?? "P03a")], hashCheck: Self.token, identity: change.before
+        )
+        let result = try await gated(action, session) { () async throws(NetworkError) -> SessionHealth in
+            await session.setIdentity(change.after)
+            return .valid
+        }
+        #expect(result.failure == .sessionChanged)
+        #expect(await session.requests.isEmpty)
+    }
+
+    @Test("#1200 P2: the list removal sends the token the session holds after the check (a refresh's fresh one)")
+    func listRemovalSendsTheTokenHeldAfterTheCheck() async throws {
+        let session = ScriptedFlagSession([try FlagCapture.page("P03j")], hashCheck: Self.token)
+        let result = try await gated(.removeFavoriteFromList, session) { () async throws(NetworkError) -> SessionHealth in
+            await session.adoptRefreshedToken("fake-token-fresh")
+            return .valid
+        }
+        #expect(result.failure == nil)
+        let body = try #require(await session.requests.first?.body)
+        #expect(String(bytes: body, encoding: .utf8)?.hasPrefix("hash_check=fake-token-fresh&") == true)
+    }
+
+    /// Runs `action` through the gate with `check`, on the topic of its captured link (`links`).
+    private func gated(
+        _ action: TopicFlagAction, _ session: ScriptedFlagSession, check: TopicFlagFlow.SessionCheck
+    ) async throws -> Result<TopicFlagResult, TopicFlagError> {
+        let link = try FlagCapture.requestURL(Self.links[action] ?? "P03a")
+        do throws(TopicFlagError) {
+            if action == .removeFavoriteFromList {
+                return .success(try await TopicFlagFlow().removeFavoriteFromList(Self.cuisine, through: session, after: check))
+            }
+            return .success(try await TopicFlagFlow().follow(action, link: link, through: session, after: check))
+        } catch {
+            return .failure(error)
+        }
+    }
+}
+
+private extension Result {
+    /// The error, nil on success.
+    var failure: Failure? {
+        if case .failure(let error) = self { return error }
+        return nil
+    }
+}
