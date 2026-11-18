@@ -48,18 +48,31 @@ import HFRModels
 
 /// Decodes the legacy account archive with `NSKeyedUnarchiver`, the API legacy read it with (`MultisManager.m:43-47`).
 ///
-/// Insecure decoding, as legacy's `unarchiveObjectWithData:`: whether `NSHTTPCookie` decodes under secure coding is not
-/// documented and is measured on a Mac (LOT-067 spec, M1). The input is only ever this app's own Keychain item.
+/// Secure decoding restricted to the classes legacy's writer puts in it (`MultisManager.m:49-80`: an array of
+/// dictionaries of strings, numbers, data and `NSHTTPCookie`s), where legacy's `unarchiveObjectWithData:` decoded any class
+/// the archive named (#1200 P4). An archive naming another class is unreadable. The input is only ever this app's own
+/// Keychain item; the real item is still LOT-067's Mac check M1.
 public enum LegacyAccountArchive {
-    /// The accounts of an archive; throws `sourceUnreadable` when it is not an array of dictionaries.
+    /// The only classes an archive may hold: legacy's writer's, their mutable forms, and the values a cookie holds.
+    static var allowedClasses: [AnyClass] {
+        [
+            NSArray.self, NSMutableArray.self, NSDictionary.self, NSMutableDictionary.self, NSString.self, NSMutableString.self,
+            NSNumber.self, NSData.self, NSMutableData.self, NSDate.self, NSURL.self, HTTPCookie.self
+        ]
+    }
+
+    /// The accounts of an archive; throws `sourceUnreadable` when it is not an array of dictionaries, or names a class
+    /// outside `allowedClasses`.
     public static func decode(_ data: Data) throws(LegacyImportError) -> [LegacyAccountRecord] {
         let root: Any?
         do {
             let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
-            unarchiver.requiresSecureCoding = false
+            unarchiver.requiresSecureCoding = true
             unarchiver.decodingFailurePolicy = .setErrorAndReturn
-            root = unarchiver.decodeObject(forKey: NSKeyedArchiveRootObjectKey)
+            root = unarchiver.decodeObject(of: allowedClasses, forKey: NSKeyedArchiveRootObjectKey)
+            let failure = unarchiver.error
             unarchiver.finishDecoding()
+            if failure != nil { throw LegacyImportError.sourceUnreadable }
         } catch {
             throw .sourceUnreadable
         }
