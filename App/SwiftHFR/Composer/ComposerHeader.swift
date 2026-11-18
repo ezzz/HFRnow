@@ -91,7 +91,12 @@ struct ComposerHeader: View {
 
     var body: some View {
         // EXPERIMENTAL(modernComposer, #904): replaces legacy's bar by the floating buttons, with no title strip (#972).
-        Group {
+        VStack(spacing: 0) {
+            // The width the bar is offered, not its content's: a sibling that only takes its proposal (a flexible frame around the
+            // content reports the content's width once it is wider, and the glass padding then feeds back into the bound, #1126).
+            Color.clear
+                .frame(height: 0)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             if floats {
                 FloatingComposerButtons(
                     title: title, isSending: isSending, canSend: canSend, drafts: drafts, size: toolSize, close: close, send: send
@@ -100,10 +105,6 @@ struct ComposerHeader: View {
                 legacyBar
             }
         }
-        // The width the bar is offered, not its content's: a flexible frame takes exactly the proposal, so a title padded wider than
-        // the bar (or buttons the bound has not shrunk yet) never feeds back into the bound (#1126, delta review).
-        .frame(minWidth: 0, maxWidth: .infinity)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     /// The chrome this bar is drawn for.
