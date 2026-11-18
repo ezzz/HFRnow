@@ -6,7 +6,7 @@ import Foundation
 // untyped values and ignored bad shapes silently.
 
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
-/// selector: the decoder knows nine names and takes only numbers and strings of the shape each one needs; anything else
+/// selector: the decoder knows ten names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.
 enum ReaderBridgeMessage: Equatable, Sendable {
     /// `src` of every image of the document, in order; an entry that is not a string is kept as nil (blocked).
@@ -15,6 +15,9 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     case tap(url: String)
     /// The document reached DOMContentLoaded and its images were routed.
     case ready
+    /// The user tapped a YouTube thumbnail card or the plain link it belongs to (#1037): the link as the page holds it, a claim
+    /// the app checks again before opening it.
+    case videoLink(url: String)
     /// The user tapped the placeholder of video `index` of message `post`.
     case video(post: Int, index: Int)
     /// The user tapped the menu button (`message`) or the author (`avatar`) of message `post`.
@@ -56,6 +59,9 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     /// Longest selection kept, in characters: a message holds far less, so a longer one is not a selection of it.
     static let maximumQuoteText = 20_000
 
+    /// Longest link taken from the page, in bytes: browsers and servers refuse far less, so more is not a video link.
+    static let maximumLinkLength = 2_048
+
     /// Most array entries read from one body: the images of a page, as the controller already caps them.
     static let maximumImages = 5_000
 
@@ -76,6 +82,9 @@ enum ReaderBridgeMessage: Equatable, Sendable {
             return .tap(url: url)
         case "ready":
             return .ready
+        case "videolink":
+            guard let url = object["url"] as? String, url.utf8.count <= maximumLinkLength else { throw .invalidPayload }
+            return .videoLink(url: url)
         case "edge":
             guard let atBottom = boolean(object["bottom"]) else { throw .invalidPayload }
             return .edge(atBottom: atBottom)
@@ -172,7 +181,7 @@ extension ReaderBridgeMessage {
     /// selection (the `tap` of a third-party placeholder answers with a consent and is handled on its own).
     var isTapAction: Bool {
         switch self {
-        case .menu, .video, .image, .quote: true
+        case .menu, .video, .videoLink, .image, .quote: true
         case .images, .tap, .ready, .position, .edge: false
         }
     }

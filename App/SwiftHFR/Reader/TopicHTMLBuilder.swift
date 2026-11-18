@@ -130,6 +130,7 @@ enum TopicHTMLBuilder {
         let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
         html += "<div class=\"content\">\(content)</div>\n"
         html += videos(of: message)
+        html += videoCards(of: message)
         if options.showsSignatures, let signature = message.content.signatureHTML {
             html += "<div class=\"signature\">\(signature)</div>\n"
         }
@@ -222,6 +223,24 @@ enum TopicHTMLBuilder {
             let name = providerName(embed.provider)
             html += "<button type=\"button\" class=\"video\" data-post=\"\(message.numreponse)\" data-video=\"\(index)\""
             html += " aria-label=\"Lire la vidéo \(name)\">Vidéo \(name) · toucher pour lire</button>"
+        }
+        return html + "</div>\n"
+    }
+
+    /// A thumbnail card per plain YouTube link of the message (#1037), under the text, which keeps the link. The card reads as the
+    /// pill « Vidéo YouTube · toucher pour lire » until `reader.js` has the thumbnail: it goes through policy C and the cookie-less
+    /// client like every image, and a thumbnail that is refused, late or failed leaves the pill. The card's address is the posted
+    /// one, byte for byte (the reader tells the card from its link by it; the app opens it over `https`); the thumbnail comes from the
+    /// video id.
+    private static func videoCards(of message: ReaderMessage) -> String {
+        guard let cards = try? YouTubeLinkDetector.cards(inNormalizedHTML: message.content.html), !cards.isEmpty else { return "" }
+        var html = "<div class=\"videolinks\">"
+        for card in cards {
+            let address = HTMLEscaping.text(card.postedAddress)
+            html += "<a class=\"video-card\" href=\"\(address)\" data-post=\"\(message.numreponse)\" aria-label=\"Vidéo YouTube\">"
+            html += "<img class=\"video-thumb\" src=\"\(HTMLEscaping.text(card.thumbnailURL.absoluteString))\" alt=\"\">"
+            html += "<span class=\"video-play\" aria-hidden=\"true\"></span>"
+            html += "<span class=\"video-pill\">Vidéo YouTube · toucher pour lire</span></a>"
         }
         return html + "</div>\n"
     }

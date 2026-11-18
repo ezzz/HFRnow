@@ -826,6 +826,16 @@ Read-only GETs of `mac/M1` (`R120a`, `R125a`, `R126a`, `R129a`, `R129b`, `R131a`
   - So a group row behaves as a one-to-one row: the reply lifts it by last-post order, and the replier's own row reads "Nouveau message".
 - **Clean-up** (run observation, `W64`'s and `W65`'s body, no answer or list published): both accounts deleted the thread (answer "Action effectuée avec succès" each) and neither list shows it afterwards. HFR allows one new MP per account per 60 minutes (`W11x`): one was created.
 
+### #1037 — YouTube thumbnail of a plain video link (third party, not HFR)
+
+Not an HFR fact: the thumbnail URL form of a third-party host, recorded here because the reader requests it ([LOT-071](lots/LOT-071-third-party-services.md) T9).
+
+- **Form** (operator decision of 2026-11-18, option 2 of #1037): `https://i.ytimg.com/vi/<id>/hqdefault.jpg`, `<id>` being the video id (`[A-Za-z0-9_-]+`) of `youtu.be/<id>`, `youtube.com/watch?v=<id>` or `youtube.com/shorts/<id>`. No oEmbed request, no API key, no other size.
+- **Status: de-facto, not documented by YouTube.** Read on 2026-11-17: the [YouTube Data API `thumbnails` resource](https://developers.google.com/youtube/v3/docs/thumbnails) documents the sizes (`high` is 480×360; `standard` and `maxres` exist "for some videos") and calls the `url` "The image's URL", with no URL pattern; no YouTube page documents `i.ytimg.com`. The form is known from third-party writing only (secondary at best, [ADR 0015](adr/0015-third-party-source-as-protocol-source.md)). `hqdefault` is the 480×360 image, the one the operator chose because it is the size every video has.
+- **Capture** (2026-11-18, headers of one public video id, `curl -sI https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg`, no body kept, no cookie sent): `HTTP/2 200`, `content-type: image/jpeg`. The reader accepts any `image/*` type (`ReaderImageFetcher.imageMIMEType`). One id, one day: it proves the form works, not that YouTube keeps it, nor that every video has one.
+- **Safe side** (ADR 0015 §4): a thumbnail that is refused, late, not an image or failed leaves the pill « Vidéo YouTube · toucher pour lire »; the card never depends on it. Not captured: a Shorts id and a private or removed video (the pill covers a failure).
+- Verified by tests: `YouTubeLinkDetectorTests` (the forms, the ids, the thumbnail URL), `ReaderVideoLinkTests` (the request goes through the cookie-less client, the pill on a failure).
+
 ## 7. Reported by redface2, to verify with our fixtures
 
 Facts from the redface2 project documentation, rewritten here; each becomes *verified* only through a LOT-001 fixture. Source: [docs/research/redface2-comparison.md](research/redface2-comparison.md) §4 (ids X/E below).

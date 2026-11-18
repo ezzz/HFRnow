@@ -200,6 +200,16 @@ button.image-tap, button.video {
   border: none; border-radius: 8px; padding: 0.6em 0.8em; margin: 0.25em 0; display: inline-block; max-width: 100%;
 }
 .videos { margin-top: 0.5em; }
+/* The thumbnail card of a plain YouTube link (#1037): the pill until the thumbnail has loaded (`reader.js` adds `has-thumb`), then the
+   thumbnail (hqdefault is 4:3 with black bars: cropped to 16:9) under a play mark drawn here, no extra request. */
+.videolinks { margin-top: 0.5em; }
+a.video-card { display: block; position: relative; max-width: 480px; margin: 0.25em 0; text-decoration: none; }
+a.video-card .video-pill { display: inline-block; font-size: 0.85em; color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
+a.video-card img.video-thumb, a.video-card .video-play { display: none; }
+a.video-card.has-thumb img.video-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--placeholder); }
+a.video-card.has-thumb .video-pill { display: none; }
+a.video-card.has-thumb .video-play { display: block; position: absolute; top: 50%; left: 50%; width: 3.2em; height: 3.2em; margin: -1.6em 0 0 -1.6em; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
+a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top: 50%; left: 50%; margin: -0.7em 0 0 -0.45em; border-style: solid; border-width: 0.7em 0 0.7em 1.2em; border-color: transparent transparent transparent #fff; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
 
 /* The pull-to-refresh hint of the reader's pages (#820): `FloatingSpacing.gap` under the last message, small and almost tone on

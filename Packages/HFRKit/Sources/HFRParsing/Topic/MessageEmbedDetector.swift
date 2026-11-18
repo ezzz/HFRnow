@@ -20,12 +20,16 @@ public enum MessageEmbedDetector {
         guard let body = (try? SwiftSoup.parseBodyFragment(html))?.body() else { throw .malformedDocument }
         let links = (try? body.select("a.cLink").array()) ?? []
         return links.compactMap { link in
-            // Text only, and some: legacy's rewrite matched `>([^<]+)</a>` (`LinkItem.m:149`).
-            guard link.parent()?.parent() === body, link.children().isEmpty, link.childNodeSize() > 0,
-                  let href = try? link.attr("href"), let url = URL(string: href)
-            else { return nil }
+            guard isCandidate(link, in: body), let href = try? link.attr("href"), let url = URL(string: href) else { return nil }
             return embed(for: url)
         }
+    }
+
+    /// Legacy's candidate rule on the normalized tree: a link that is a child of a top-level element of `body` and holds text
+    /// only, and some (`LinkItem.m:149`: the rewrite matched `>([^<]+)</a>`). Shared with `YouTubeLinkDetector`, which leaves
+    /// these links to their player placeholder.
+    static func isCandidate(_ link: Element, in body: Element) -> Bool {
+        link.parent()?.parent() === body && link.children().isEmpty && link.childNodeSize() > 0
     }
 
     /// The embed of one link, when it is a video of a supported host.
