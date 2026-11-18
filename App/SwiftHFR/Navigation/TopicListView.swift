@@ -31,8 +31,7 @@ struct TopicListView: View {
     var openCategory: ((TopicSource) -> Void)?
     /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
     var titleStyle: ScreenTitleStyle = .pill
-    /// A pushed list carries the account button after its back button, as legacy (`MainWindow.swift:803-818` @ 87fe0d1c, #425). The
-    /// Favoris root gets it from its tab instead, so this stays off there.
+    /// The account button after the back button of a pushed list (`MainWindow.swift:803-818` @ 87fe0d1c, #425); off on the Favoris root.
     var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
     @State private var titleVisibility = TitleVisibility()
@@ -286,7 +285,9 @@ struct TopicListView: View {
         }
         .densityHeaderMargin())
     }
+}
 
+extension TopicListView {
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<TopicListContent>) -> some View {
         if let content = loader.value {
