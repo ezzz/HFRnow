@@ -1,3 +1,4 @@
+import HFRModels
 @testable import SwiftHFR
 import Testing
 
