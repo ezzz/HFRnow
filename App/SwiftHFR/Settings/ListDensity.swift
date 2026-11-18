@@ -101,36 +101,40 @@ extension EnvironmentValues {
     @Entry var densityCardEdge: CGFloat = 0
 }
 
-/// Sets the outer side margin of a list from the density; a nil margin is the system layout, so the list keeps its identity
-/// (scroll position, row state) when the density changes. Also tells the headers where the cards start, in window coordinates:
-/// a section header is hosted apart from the list, so a coordinate space named on the list never reaches it (measured, #979).
+/// Sets the outer side margin of a list from the density and the list's look (#1107); a nil margin is the system layout, so the
+/// list keeps its identity (scroll position, row state) when the density or the look changes. Also tells the headers where the
+/// cards start, in window coordinates: a section header is hosted apart from the list, so a coordinate space named on the list
+/// never reaches it (measured, #979).
 ///
 /// #832: a scroll content margin replaces the system's side inset, safe area included, so in landscape the card slid under
 /// the notch while its rows kept the safe area inside it. The margins add the safe inset back; the list's frame already starts
 /// past it (measured: x = 62 under a 62 pt left inset), so the card edge is the frame's x plus the margin, nothing more.
 private struct DensityListMargins: ViewModifier {
     @Environment(\.listDensity) private var density
+    @Environment(\.listLook) private var look
     @State private var safeLeading: CGFloat = 0
     @State private var safeTrailing: CGFloat = 0
     @State private var originX: CGFloat = 0
 
     func body(content: Content) -> some View {
+        let margin = look.outerMargin(density)
         content
-            .contentMargins(.leading, density.outerMargin.map { $0 + safeLeading }, for: .scrollContent)
-            .contentMargins(.trailing, density.outerMargin.map { $0 + safeTrailing }, for: .scrollContent)
+            .contentMargins(.leading, margin.map { $0 + safeLeading }, for: .scrollContent)
+            .contentMargins(.trailing, margin.map { $0 + safeTrailing }, for: .scrollContent)
             .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.leading } action: { safeLeading = $0 }
             .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.trailing } action: { safeTrailing = $0 }
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { originX = $0 }
-            .environment(\.densityCardEdge, originX + (density.outerMargin ?? 0))
+            .environment(\.densityCardEdge, originX + (margin ?? 0))
     }
 }
 
 /// Sets the inner side inset of a row that keeps the system's vertical insets (nil in regular rows: the system's).
 private struct DensityRowMargin: ViewModifier {
     @Environment(\.listDensity) private var density
+    @Environment(\.listLook) private var look
 
     func body(content: Content) -> some View {
-        content.listRowInsets(.horizontal, density.rowSideInset)
+        content.listRowInsets(.horizontal, look.rowSideInset(density))
     }
 }
 
@@ -143,6 +147,7 @@ private struct DensityRowMargin: ViewModifier {
 private struct DensityHeaderMargin: ViewModifier {
     @Environment(\.listDensity) private var density
     @Environment(\.densityCardEdge) private var cardEdge
+    @Environment(\.listLook) private var look
     @State private var systemX: CGFloat?
 
     /// The most a header moves: the system's header inset (16 or 20 pt) is the whole distance to the card's inner margin.
@@ -154,7 +159,7 @@ private struct DensityHeaderMargin: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        let shift = systemX.flatMap { x in density.rowSideInset.map { Self.shift(from: x, to: cardEdge + $0) } } ?? 0
+        let shift = systemX.flatMap { x in look.rowSideInset(density).map { Self.shift(from: x, to: cardEdge + $0) } } ?? 0
         content
             .padding(.horizontal, shift)
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minX } action: { systemX = $0 }

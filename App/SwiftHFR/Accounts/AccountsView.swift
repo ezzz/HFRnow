@@ -3,7 +3,7 @@ import UIKit
 
 // Port of HFRswift/Swift/AccountMenuViews.swift (AccountMenuRow, AccountAvatarView) and the "Déconnexion" item of
 // HFRswift/Swift/Favorites.swift (FavoritesListView) @ 2440d79. Differences: a manage screen where an account is removed after
-// confirmation (GAP-163).
+// confirmation (GAP-163). #1107: the list look of every list (`listLook`).
 /// The accounts screen: select, add, log in again and remove accounts; shows a store problem with its way out.
 struct AccountsView: View {
     @Environment(AccountsModel.self) private var accounts
@@ -31,6 +31,7 @@ struct AccountsView: View {
                                     Button("Retirer", systemImage: "trash", role: .destructive) { pendingRemoval = row }
                                 }
                         }
+                        .listLookRows()
                     }
                 }
                 if accounts.storeProblem == nil {
@@ -41,6 +42,7 @@ struct AccountsView: View {
                     }
                 }
             }
+            .listLook()
             .navigationTitle("Comptes")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

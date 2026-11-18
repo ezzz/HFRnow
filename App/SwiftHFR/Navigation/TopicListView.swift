@@ -14,6 +14,7 @@ import UIKit
 // (`Favorites.swift:666`, `MainWindow.swift:663` @ 87fe0d1c) and paints its palette behind the list (`.scrollContentBackground(.hidden)`,
 // `Favorites.swift:744-745`, `MainWindow.swift:789-790`); its iPad look is not measured (87fe0d1c does not build). Here the automatic
 // style was a plain list in an iPad column (measured), unlike Catégories and Messages; the iPad choice waits on #648 (GAP-1073).
+// #1107: that style is the classic look of `listLook`; « Lignes denses » draws the rows without the card (`DenseListLook`).
 /// The middle column: the topics of the selected source, with pagination for forums.
 struct TopicListView: View {
     let model: TopicListModel
@@ -58,8 +59,7 @@ struct TopicListView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped) // explicit: the automatic style is a plain list in an iPad column (#1073)
-        .densityListMargins()
+        .listLook() // explicit: the automatic style is a plain list in an iPad column (#1073)
         .screenTitle(model.source.navigationTitle, style: titleStyle, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
@@ -187,6 +187,7 @@ struct TopicListView: View {
                 }
                 .contextMenu { menu(topic, isSuper: isSuper) }
         }
+        .listLookRows()
     }
 
     /// "Supprimer" (legacy trailing swipe and menu entry): "Suppression…" and disabled while the removal is in flight.

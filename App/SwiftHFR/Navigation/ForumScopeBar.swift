@@ -25,6 +25,7 @@ struct ForumScopeBar: View {
             TopicFlagFilterPicker(filter: scope.filter, canFilter: model.offersFilter).densityRowMargin()
             if let note { Text(note).font(.footnote).foregroundStyle(.secondary).densityRowMargin() }
         }
+        .listLookRows()
     }
 
     private func subforumRow(_ section: ForumSection) -> some View {

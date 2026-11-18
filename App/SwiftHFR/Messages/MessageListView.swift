@@ -30,10 +30,10 @@ struct MessageListView: View {
                     .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
                     .tag(thread)
                 }
+                .listLookRows()
             }
         }
-        .listStyle(.insetGrouped) // explicit: legacy's rounded block (#803)
-        .densityListMargins()
+        .listLook() // explicit: legacy's rounded block (#803); the dense look behind « Lignes denses » (#1107)
         .screenTitle("Messages", style: .largeThenPill, visibility: titleVisibility)
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
