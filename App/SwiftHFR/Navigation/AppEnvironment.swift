@@ -59,7 +59,7 @@ struct AppEnvironment {
             store: avatars
         )
         let flagActions = accountName == nil ? nil : TopicFlagActions(writer: LiveTopicFlagWriter(session: session))
-        let reader = ReaderServices(
+        var reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(
                 store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
@@ -76,7 +76,6 @@ struct AppEnvironment {
             moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
             moderatorAlertMail: ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:])
         )
-        var reader = reader
         reader.qualityAlerts = LiveQualityAlertsSource.services(
             from: Bundle.main.infoDictionary ?? [:], pseudo: accountName, settings: UserDefaultsSettingsStore()
         )
