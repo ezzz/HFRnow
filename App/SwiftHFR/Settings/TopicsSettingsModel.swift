@@ -20,8 +20,8 @@ final class TopicsSettingsModel {
     var showsSignatures: Bool {
         didSet { if showsSignatures != oldValue { store.set(showsSignatures, for: SettingKey.displaySignatures) } }
     }
-    /// « Vidéos » (`embedded_videos`): the player on a tap (« Intégrée », the default: legacy's `yes`, and its `both`) or the plain link
-    /// (« Lien »: `no`). The reader asks for a video placeholder unless this is `.never` (#691).
+    /// « Vidéos » (`embedded_videos`): the player on a tap (« Intégrée », the default: legacy's `yes`, and its `both`) or the plain
+    /// link (« Lien »: `no`). The reader asks for a video placeholder unless this is `.never` (#691).
     var videosMode: EmbeddedVideosMode {
         didSet { if videosMode != oldValue { store.set(videosMode, for: SettingKey.embeddedVideos) } }
     }

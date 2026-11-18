@@ -29,8 +29,8 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
-    /// A placeholder per video link, the player opening on a tap (« Vidéos: Intégrée », the default, #691); off leaves the link a plain
-    /// link (legacy @ 2fe43da3, `d645f525`).
+    /// A placeholder per video link, the player opening on a tap (« Vidéos: Intégrée », the default, #691); off leaves the link
+    /// a plain link (legacy @ 2fe43da3, `d645f525`).
     var embedsVideos = true
     /// Give each message a `+` button (LOT-087, the legacy glyph again: #594). Off until a message-menu handler is registered.
     var showsMessageMenus = false
