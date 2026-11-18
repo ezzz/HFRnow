@@ -103,7 +103,9 @@ struct ComposerLayoutHostedTests {
             #expect(button.maxY <= card.minY + 0.5, "\(part) \(button), card \(card)")
         }
         #expect(close.maxX <= drafts.minX + 0.5, "close \(close), drafts \(drafts)")
-        #expect(drafts.maxX < box.midX && send.minX > box.midX, "drafts \(drafts), send \(send)")
+        #expect(drafts.maxX <= send.minX + 0.5, "the left group ends before send: drafts \(drafts), send \(send)")
+        // The buttons are the card tools' size (#1126): at an accessibility size their hit areas outgrow half the width.
+        if size == .large { #expect(drafts.maxX < box.midX && send.minX > box.midX, "drafts \(drafts), send \(send)") }
         #expect(abs(close.midY - send.midY) < 0.5, "one row: close \(close), send \(send)")
         // Nothing but the row above the card: no strip of its own (a title over or under the buttons would add one).
         let diameter = ComposerToolSize(metrics: ComposerBarMetrics(density: .regular, scale: TextScale(percent: 100))).diameter
