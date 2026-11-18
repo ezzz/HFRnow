@@ -51,7 +51,7 @@ struct ReaderUnderBarsTests {
         })
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.frame = scene.screen.bounds
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true }
@@ -63,6 +63,11 @@ struct ReaderUnderBarsTests {
         let insets = try #require(seen.insets)
         // At least a bar each (44 points), on top of what the window's own safe area adds (status bar, Dynamic Island).
         #expect(insets.top >= window.safeAreaInsets.top + 44, "top: \(insets.top), window: \(window.safeAreaInsets)")
-        #expect(insets.bottom >= 44, "bottom: \(insets.bottom)")
+        // The system puts the bottom bar on the screen's bottom edge, or on its side on the iPhone Duo cover screen (a trailing
+        // safe-area inset of the window): the page must be handed it on whichever edge it sits.
+        let barEdge = max(insets.bottom, insets.leading, insets.trailing)
+        #expect(barEdge >= 44, "bottom bar: \(insets), window: \(window.safeAreaInsets)")
+        let safe = host.view.safeAreaInsets
+        #expect(insets.bottom >= safe.bottom && insets.leading >= safe.left && insets.trailing >= safe.right, "\(insets), host: \(safe)")
     }
 }
