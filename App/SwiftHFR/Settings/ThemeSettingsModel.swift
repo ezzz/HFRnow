@@ -22,15 +22,6 @@ final class ThemeSettingsModel {
         /// Always dark (`auto_theme` = 0, `theme` = 1).
         case dark
 
-        /// Picker label, as legacy's options (`AppSettingsView.swift:140-148`).
-        var title: String {
-            switch self {
-            case .system: "Automatique (iOS)"
-            case .light: "Clair"
-            case .dark: "Sombre"
-            }
-        }
-
         /// The label under the mode's tile (#1213).
         var tileTitle: String {
             switch self {
@@ -301,9 +292,11 @@ private struct AppScreenBackground: ViewModifier {
                 .containerBackground(for: .navigationSplitView) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
         case let .softLight(light, dark):
             // Doux (#1213): one dynamic colour in both appearances, like a theme's, so a flip changes a value, not the structure.
-            // The dark side the style leaves to the system is the system's own background (black in dark, as the lists show it).
-            let systemDark = UIColor.systemBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
-            let fill = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? (dark?.uiColor ?? systemDark) : light.uiColor })
+            // The dark side the style leaves to the system is the system's own background, resolved with the trait collection the
+            // fill is drawn in (a sheet's or a popover's elevated level keeps its lighter black).
+            let fill = Color(uiColor: UIColor { traits in
+                traits.userInterfaceStyle == .dark ? (dark?.uiColor ?? UIColor.systemBackground.resolvedColor(with: traits)) : light.uiColor
+            })
             content
                 .scrollContentBackground(.hidden)
                 .environment(\.screenPaintsLists, true)

@@ -13,13 +13,18 @@ struct ThemeModeTiles: View {
     @ScaledMetric(relativeTo: .caption) private var spacing = 12.0
 
     /// The tiles in the order the screen shows them (the enum's order is the stored one).
-    private static let order: [ThemeSettingsModel.Mode] = [.light, .dark, .system]
+    static let order: [ThemeSettingsModel.Mode] = [.light, .dark, .system]
+
+    /// What tapping a tile does: it becomes the mode.
+    static func select(_ tile: ThemeSettingsModel.Mode, in mode: Binding<ThemeSettingsModel.Mode>) {
+        mode.wrappedValue = tile
+    }
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumWidth), spacing: spacing, alignment: .top)], spacing: spacing) {
             ForEach(Self.order, id: \.self) { tile in
                 let isSelected = tile == mode
-                Button { mode = tile } label: {
+                Button { Self.select(tile, in: $mode) } label: {
                     VStack(spacing: 6) {
                         ThemeTileArt(mode: tile, appearance: appearance, isSelected: isSelected).frame(height: tileHeight)
                         Text(tile.tileTitle)

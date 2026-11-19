@@ -32,25 +32,25 @@ struct ThemeLightStyleTests {
 
     // MARK: Doux
 
-    /// The proposed values (validated by the operator on the PR's screenshot): an off-white page, a quote/placeholder step darker,
-    /// a warmer quiet separator, and a secondary text a notch darker so it keeps its contrast on the warm surfaces.
+    /// The proposed values (validated by the operator on the PR's screenshot): an off-white page, a placeholder step darker, a warmer
+    /// quiet separator, and a secondary text a notch darker so it keeps its contrast on the warm surfaces. The default quote has no
+    /// fill (#819), so no quote surface is sent.
     @Test func douxSendsItsWarmSurfacesToTheReader() {
         let sent = variables(doux)
         #expect(sent["--app-light-background"] == "rgb(245, 244, 239)")
-        #expect(sent["--app-light-quote-background"] == "rgb(237, 235, 227)")
         #expect(sent["--app-light-placeholder"] == "rgb(233, 231, 222)")
         #expect(sent["--app-light-separator"] == "rgb(214, 211, 200)")
         #expect(sent["--app-light-secondary"] == "rgb(99, 99, 102)")
-        #expect(sent.count == 11)
+        #expect(sent.count == 10)
     }
 
-    /// Text (#1C1C1E) and the secondary text of Doux keep 4.5:1 on every Doux surface that carries text, and on the two tints the
+    /// Text (#1C1C1E) and the secondary text of Doux keep 4.5:1 on every Doux surface that carries text, and on the tints the
     /// reader lays over the page (the folded quote's 5 % of the text colour, the classic header's 15 % of the accent).
     @Test func textAndSecondaryTextKeepTheirContrastOnDoux() {
         let text = ThemeColor(hex: 0x1C1C1E)
         let secondary = ThemeColor(hex: 0x636366)
         let surfaces = Dictionary(uniqueKeysWithValues: doux.lightSurfaces.map { ($0.variable, $0.color) })
-        for name in ["--app-light-background", "--app-light-quote-background", "--app-light-placeholder"] {
+        for name in ["--app-light-background", "--app-light-placeholder"] {
             let surface = surfaces[name] ?? ThemeColor(hex: 0)
             #expect(text.contrast(with: surface) >= 4.5, "text on \(name)")
             #expect(secondary.contrast(with: surface) >= 4.5, "secondary on \(name)")
@@ -93,7 +93,7 @@ struct ThemeLightStyleTests {
     @Test func theReaderScriptSetsDouxAndRemovesItForBlanc() {
         #expect(doux.readerScript.contains("s.setProperty('--app-light-background', 'rgb(245, 244, 239)');"))
         let blanc = ThemeAppearance.standard.readerScript
-        for name in ["background", "quote-background", "placeholder", "separator", "secondary"] {
+        for name in ["background", "placeholder", "separator", "secondary"] {
             #expect(blanc.contains("s.removeProperty('--app-light-\(name)');"), name)
         }
         #expect(!blanc.contains("setProperty('--app-light-"))
@@ -127,6 +127,21 @@ struct ThemeLightStyleTests {
     }
 
     // MARK: The tiles
+
+    /// Choosing a tile sets the mode, which the model stores under the legacy appearance keys; the tiles come in the order the
+    /// screen shows them.
+    @Test func choosingATileSetsTheModeAndTheStoredSetting() {
+        #expect(ThemeModeTiles.order == [.light, .dark, .system])
+        let store = InMemorySettingsStore()
+        let model = ThemeSettingsModel(store: store)
+        var chosen = model.mode
+        let binding = Binding(get: { chosen }, set: { chosen = $0; model.mode = $0 })
+        ThemeModeTiles.select(.dark, in: binding)
+        #expect(chosen == .dark && model.mode == .dark)
+        #expect(store.value(for: SettingKey.autoTheme) == .manual && store.value(for: SettingKey.manualTheme) == .dark)
+        ThemeModeTiles.select(.system, in: binding)
+        #expect(store.value(for: SettingKey.autoTheme) == .system)
+    }
 
     @Test func theTilesAreLabelledForVoiceOver() {
         #expect(ThemeSettingsModel.Mode.allCases.map(\.tileTitle) == ["Système", "Clair", "Sombre"])

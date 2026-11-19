@@ -7,7 +7,7 @@
   --background: var(--app-light-background, #ffffff);
   --separator: var(--app-light-separator, #d1d1d6);
   --quote-border: #8e8e93;
-  --quote-background: var(--app-light-quote-background, #f2f2f7);
+  --quote-background: #f2f2f7;
   --action: var(--app-action-light, #007aff);
   /* The `--app-light-*` are « Doux »'s (#1213, set by the app only for that light style); without them the page is today's white. */
   --placeholder: var(--app-light-placeholder, #e5e5ea);
