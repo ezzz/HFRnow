@@ -27,6 +27,7 @@ import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _ui  # noqa: E402
+import mpstorage_doc  # noqa: E402
 
 REDACTED = "REDACTED"
 PRIVATE_PLACEHOLDER = "Private message content removed."
@@ -215,51 +216,6 @@ def private_request_subject(body):
 MPSTORAGE_HEADER_RE = re.compile(
     r"<th\b[^>]*\bclass=[\"'][^\"']*\bpadding\b[^\"']*[\"'][^>]*>(?:\s|&nbsp;)*Sujet\s*:\s*<h3>\s*%s\s*</h3>"
     % MPSTORAGE_SUBJECT, re.I)
-# Keys and string values seen in the live document (R60b; `Classes/MPStorage.m:24-26, 737-739`).
-MPSTORAGE_KEYS = {"data", "version", "blacklist", "mpFlags", "bookmarks", "list", "sourceName", "lastUpdate"}
-MPSTORAGE_STRING_VALUES = {"version": {"0.1"}, "sourceName": {"iOS"}}
-
-
-def _unique_pairs(items):
-    """json object hook: a duplicate key would let json.loads drop the first value unchecked."""
-    if len({k for k, _v in items}) != len(items):
-        raise ValueError("duplicate key")
-    return dict(items)
-
-
-def mpstorage_document_problem(inner, markup=True):
-    """None when the body is a JSON document with known keys and string values only.
-
-    markup: the body is HTML (post, review cell), whose tags are dropped; a textarea's text is taken whole,
-    since a `<` there is document text."""
-    text = _strip_tags(inner) if markup else html.unescape(inner).strip()
-    try:
-        doc = json.loads(text.replace("\u00a0", ""), object_pairs_hook=_unique_pairs)
-    except ValueError:
-        return "not a JSON document"
-
-    def walk(node, key):
-        if isinstance(node, dict):
-            for k, v in node.items():
-                problem = "unknown key" if k not in MPSTORAGE_KEYS else walk(v, k)
-                if problem:
-                    return problem
-        elif isinstance(node, list):
-            for v in node:
-                # A list holds section objects only: bare values (pseudos, numeric member or topic ids) are rejected.
-                problem = "bare value in a list" if not isinstance(v, dict) else walk(v, key)
-                if problem:
-                    return problem
-        elif isinstance(node, str):
-            if node not in MPSTORAGE_STRING_VALUES.get(key, ()):
-                return "string value outside the known ones"
-        # Numbers only as timestamps; another number (an id) or a boolean / null is not vouched for.
-        elif isinstance(node, bool) or not isinstance(node, (int, float)) or key != "lastUpdate":
-            return "value outside the known ones"
-        return None
-    return walk(doc, None)
-
-
 # Signatures and mood statuses are a member's own words (names, handles, links): always replaced.
 PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
@@ -1139,10 +1095,10 @@ REVIEW_BODY_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>.*?<
 
 
 def mpstorage_form_copies(text):
-    """The document copies of an MPStorage thread form page (empty textareas skipped)."""
+    """(start, end, markup) of the document copies of an MPStorage thread form page (empty textareas skipped)."""
     if not MPSTORAGE_FORM_RE.search(text):
         return []
-    return [(m.group(1), markup) for rx, markup in ((CONTENT_FORM_RE, False), (REVIEW_BODY_RE, True))
+    return [(m.start(1), m.end(1), markup) for rx, markup in ((CONTENT_FORM_RE, False), (REVIEW_BODY_RE, True))
             for m in rx.finditer(text) if m.group(1).strip()]
 
 
@@ -1786,6 +1742,21 @@ class Anonymizer:
         s = self._free_text(s) if free_text else self._free_urls(s)
         return self._secrets(s)
 
+    def _alias_storage_document(self, raw, markup):
+        """The MPStorage document held by raw (post body or form copy, as HTML) with its personal positions aliased."""
+        first, last = raw.find("{"), raw.rfind("}")
+        if first < 0 or last < first:
+            raise MPStorageDocumentError("MPStorage document: not a JSON document; extend the anonymizer")
+        region = raw[first:last + 1]
+        decoded = html.unescape(re.sub(r"<[^>]*>", "", region) if markup else region)
+        try:
+            aliased = mpstorage_doc.alias_document(decoded, self._alias)
+        except mpstorage_doc.DocumentError as e:
+            raise MPStorageDocumentError("MPStorage document: %s; extend the anonymizer" % e) from e
+        if aliased == decoded:
+            return raw
+        return raw[:first] + html.escape(aliased, quote=False).replace('"', "&#034;") + raw[last + 1:]
+
     def anonymize(self, text, private=False, url=None, context=""):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
@@ -1796,18 +1767,15 @@ class Anonymizer:
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
-            for copy, markup in mpstorage_form_copies(text):
-                problem = mpstorage_document_problem(copy, markup)
-                if problem:
-                    raise MPStorageDocumentError("MPStorage document copy in a form: %s; extend the anonymizer" % problem)
+            for start, end, markup in sorted(mpstorage_form_copies(text), reverse=True):
+                text = text[:start] + self._alias_storage_document(text[start:end], markup) + text[end:]
             for start, end in _find_para_blocks(text):
                 if start < last:
                     continue
                 if keep_first:
                     keep_first = False
-                    problem = mpstorage_document_problem(text[start:end])
-                    if problem:
-                        raise MPStorageDocumentError("MPStorage document: %s; extend the anonymizer" % problem)
+                    parts += [text[last:start], self._alias_storage_document(text[start:end], True)]
+                    last = end
                     continue
                 parts += [text[last:start], PRIVATE_PLACEHOLDER]
                 last = end
@@ -1983,8 +1951,8 @@ class Anonymizer:
 # position the anonymizer misses is reported here. Every name found must be an alias (`userN`) or
 # a known placeholder, every member id a fake one (9000NN / 9100NN).
 # Each rule has its own label, reported in the finding ("structural check: <label> not aliased").
-# MPStorage first post, checked apart from MPSTORAGE_HEADER_RE / mpstorage_document_problem: the page
-# <title> names the thread, and every JSON string (keys included) must be one of a fixed set of words.
+# MPStorage first post, checked apart from MPSTORAGE_HEADER_RE / mpstorage_doc: the page
+# <title> names the thread, and every JSON key and string must be a format word or an alias.
 _V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJECT, re.I)
 # Its form pages print "Sujet : MP_NAME" (R60a header, R60b review table); there every content_form and every cell
 # after a messCase1bis author cell is a copy of the document.
@@ -2007,23 +1975,23 @@ def _v_text(inner, markup):
     return html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ").strip()
 
 
-_V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
-                                "sourceName", "iOS", "lastUpdate"))
+# Written apart from mpstorage_doc (the redactor): its own word lists and alias patterns, no import. A document passes
+# when every key is a format word or an alias key (`nsN`, `keyN`), every string is `0.1`, `iOS`, a category id under
+# `cat`, or an alias (`userN`, `textN`, `clientN`, a fake id), and every number is a timestamp, a small page, or a fake id.
+_V_DOC_KEYS = frozenset(("data", "version", "blacklist", "mpFlags", "bookmarks", "list", "sourceName", "lastUpdate",
+                         "createDate", "deleteDate", "tombstones", "id", "username", "author", "label", "post", "cat",
+                         "numreponse", "p", "href", "page", "uri"))
+_V_DOC_ALIAS_KEY = re.compile(r"(?:ns|key)\d+")
+_V_DOC_ALIAS_STR = re.compile(r"(?:user|text|client)\d+[ \u00a0\U0001F600]*")
+_V_DOC_FAKE_ID = re.compile(r"9[01]\d{4}")
+_V_DOC_TIME = frozenset(("lastUpdate", "createDate", "deleteDate"))
 
 
 def _v_mpstorage_document_ok(inner, markup=True):
-    """True when the body's text is JSON whose every key and string value is a known impersonal word."""
-    strings, scalars_ok = [], [True]
-
+    """True when the body's text is JSON holding nothing but format words, timestamps and aliases (see above)."""
     def pairs(items):
         if len(set(k for k, _v in items)) != len(items):  # json.loads would keep only the last value
             raise ValueError("duplicate key")
-        strings.extend(k for k, _v in items)
-        strings.extend(v for _k, v in items if isinstance(v, str))
-        # Besides strings, only `lastUpdate` numbers (timestamps): ids, booleans and null are never vouched for.
-        for k, v in items:
-            if not isinstance(v, (str, dict, list)) and (k != "lastUpdate" or isinstance(v, bool) or v is None):
-                scalars_ok[0] = False
         return dict(items)
     body = html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ")
     try:
@@ -2032,16 +2000,30 @@ def _v_mpstorage_document_ok(inner, markup=True):
         return False
     if not isinstance(doc, dict):
         return False
-    stack = [doc]
+    stack = [(doc, None)]
     while stack:
-        node = stack.pop()
-        values = node.values() if isinstance(node, dict) else node if isinstance(node, list) else ()
-        for v in values:
-            if isinstance(v, (dict, list)):
-                stack.append(v)
-            elif isinstance(node, list):  # bare values in a list (pseudos, numeric ids) are never vouched for
+        node, key = stack.pop()
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k not in _V_DOC_KEYS and not _V_DOC_ALIAS_KEY.fullmatch(k):
+                    return False
+                stack.append((v, k))
+        elif isinstance(node, list):
+            stack.extend((v, key) for v in node)
+        elif isinstance(node, str):
+            if not (node in ("0.1", "iOS") or _V_DOC_ALIAS_STR.fullmatch(node) or _V_DOC_FAKE_ID.fullmatch(node)
+                    or (key == "cat" and re.fullmatch(r"\d{1,3}", node))):
                 return False
-    return scalars_ok[0] and all(w in _V_MPSTORAGE_WORDS for w in strings)
+        elif isinstance(node, bool) or node is None:
+            continue
+        elif isinstance(node, int):
+            if not (key in _V_DOC_TIME or _V_DOC_FAKE_ID.fullmatch(str(node))
+                    or (key in ("page", "cat") and 0 <= node < 100000)):
+                return False
+        else:  # a float is only ever a timestamp
+            if key not in _V_DOC_TIME:
+                return False
+    return True
 
 
 _V_IDS = {label: re.compile(rx) for label, rx in (

@@ -1,6 +1,7 @@
 """Tests for anonymize.py. All HTML here is synthetic: no real pseudo, cookie or token."""
 import contextlib
 import io
+import json
 import os
 import re
 import sys
@@ -348,30 +349,120 @@ class MPStorageTests(unittest.TestCase):
         self.assertIn("lastUpdate", out)
         self.assertIn("private message body not replaced", self.reasons(out))
 
-    def test_pseudo_in_document_stops_the_run(self):
-        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    # A synthetic multi-client document (fake pseudos only): the positions of a non-empty document (#272).
+    LEAKS = ("Quuxbar", "Frobnitz", "Hansaplast", "Carafe", "96827", "59533822", "123456", "redface", "salut",
+             "DTCloud", "Mauve", "smiley7")
+    RICH = ('{"data":[{"version":"0.1","blacklist":{"list":[{"createDate":1700000000002,"username":"Quuxbar"},'
+            '{"createDate":1700000000003,"username":"Frobnitz"},{"createDate":1700000000004,"username":"quuxbar"}],'
+            '"sourceName":"DTCloud","lastUpdate":1700000000005},'
+            '"mpFlags":{"list":[{"post":123456,"p":"2","href":"/forum2.php?post=123456&pseudo=Quuxbar","page":3,'
+            '"uri":"smiley7"}],"sourceName":"iOS","lastUpdate":1700000000001},'
+            '"bookmarks":{"list":[{"post":"96827","cat":"13","author":"Hansaplast","numreponse":59533822,'
+            '"label":"Carafe\u00a0noire \U0001F600","createDate":1700000000006}],"sourceName":"iOS",'
+            '"lastUpdate":1700000000001,"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]},'
+            '"redface":{"Quuxbar":{"count":42,"ok":true,"none":null,"note":"salut"},'
+            '"sourceName":"redface2","lastUpdate":1700000000008},"sourceName":"iOS","lastUpdate":1700000000001}],'
+            '"sourceName":"DTCloud","lastUpdate":1700000000001}')
 
-    def test_unknown_key_stops_the_run(self):
-        doc = self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":1700000000001,"Quuxbar":1}],')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    @staticmethod
+    def document_of(out):
+        """The JSON document of the page's first post, entity-decoded."""
+        start = out.index("{")
+        return A.html.unescape(out[start:out.rindex("}") + 1])
 
-    def test_unknown_source_name_stops_the_run(self):
-        doc = self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"Quuxbar"', 1)
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    def aliased(self):
+        return json.loads(self.document_of(anon(storage_page(self.RICH), private=True)))
 
-    def test_numeric_ids_in_a_list_stop_the_run(self):
-        # Fail closed: a bare number in a list may be a member or topic id, so it is not vouched for.
-        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":[555123]')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    def test_rich_document_is_aliased_and_passes_the_check(self):
+        page = storage_page(self.RICH)
+        self.assertIn("private message body not replaced", self.reasons(page))
+        out = anon(page, private=True)
+        for word in self.LEAKS:
+            self.assertNotIn(word, out, word)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_rich_document_keeps_its_shape_and_timestamps(self):
+        doc = self.aliased()
+        entry = doc["data"][0]
+        users = [u["username"] for u in entry["blacklist"]["list"]]
+        self.assertEqual(users[1], "user2")  # the operator's own pseudo keeps its alias
+        self.assertRegex(users[0], r"^user\d+$")
+        self.assertNotEqual(users[0], users[1])
+        self.assertEqual(users[2], users[0], "Quuxbar and quuxbar are one member (legacy lowercases to compare)")
+        self.assertEqual([u["createDate"] for u in entry["blacklist"]["list"]],
+                         [1700000000002, 1700000000003, 1700000000004])
+        self.assertEqual(entry["blacklist"]["sourceName"], "client1")
+        self.assertEqual(doc["sourceName"], "client1", "one other client, one alias")
+        bookmark = entry["bookmarks"]["list"][0]
+        self.assertEqual(bookmark["cat"], "13")
+        self.assertRegex(bookmark["post"], r"^9[01]\d{4}$")
+        self.assertIsInstance(bookmark["numreponse"], int)
+        self.assertRegex(str(entry["mpFlags"]["list"][0]["post"]), r"^9[01]\d{4}$")
+        self.assertEqual(entry["mpFlags"]["list"][0]["page"], 3)
+        self.assertEqual(entry["bookmarks"]["tombstones"][0]["deleteDate"], 1700000000007)
+        namespaces = [k for k in entry if re.fullmatch(r"ns\d+", k)]
+        self.assertEqual(len(namespaces), 1)
+        inner = entry[namespaces[0]]
+        self.assertEqual(len(inner), 3)
+        self.assertEqual(inner["lastUpdate"], 1700000000008)  # timestamps keep their key and value
+        self.assertTrue(all(re.fullmatch(r"key\d+|lastUpdate", k) for k in inner), "every other key is aliased")
+        self.assertEqual(len(inner["key1"]), 4)
+        self.assertIn(True, inner["key1"].values())
+        self.assertIn(None, inner["key1"].values())
+
+    def test_aliases_keep_nbsp_and_non_bmp_properties(self):
+        label = self.aliased()["data"][0]["bookmarks"]["list"][0]["label"]
+        self.assertRegex(label, "^text\\d+ \U0001F600$")
+
+    def test_json_escapes_in_strings_are_read_as_characters(self):
+        # Another client may write U+00A0 and an emoji as \u escapes (a surrogate pair): same markers, same aliases.
+        doc = self.EMPTY.replace('"blacklist":{"list":[]',
+                                 '"blacklist":{"list":[{"username":"Quu\\u00a0xbar \\ud83d\\ude00","createDate":1}]')
+        out = anon(storage_page(doc), private=True)
+        self.assertNotIn("Quu", out)
+        self.assertEqual(leaks(out, private=True), [])
+        self.assertRegex(json.loads(self.document_of(out))["data"][0]["blacklist"]["list"][0]["username"], r"^user\d+$")
+
+    def test_run_is_idempotent(self):
+        once = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(anon(once, private=True), once)
+
+    def test_text_outside_the_json_braces_is_untouched(self):
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertIn('</p></div>', out)
+        self.assertIn('<div style="clear: both;"> </div>', out)
+        self.assertTrue(out.startswith("<html><head><title>%s" % A.MPSTORAGE_SUBJECT))
+
+    def test_bare_list_values_are_aliased(self):
+        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar",555123]')
+        out = anon(storage_page(doc), private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertNotIn("555123", out)
+        self.assertEqual(leaks(out, private=True), [])
+        items = json.loads(self.document_of(out))["data"][0]["blacklist"]["list"]
+        self.assertRegex(items[0], r"^user\d+$")
+        self.assertRegex(str(items[1]), r"^9[01]\d{4}$")
+
+    def test_unknown_key_and_source_name_are_aliased(self):
+        for doc in (self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":1700000000001,"Quuxbar":1}],'),
+                    self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"Quuxbar"', 1)):
+            out = anon(storage_page(doc), private=True)
+            self.assertNotIn("Quuxbar", out)
+            self.assertEqual(leaks(out, private=True), [])
+
+    def test_check_flags_each_unaliased_position(self):
+        # The verifier has its own rules: put one real-looking value back into the aliased page, one at a time.
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        swaps = (("user3", "Quuxbar"), ("client1", "DTCloud"), ("ns1", "redface"), ("key2", "Quuxbar"),
+                 ("text1", "salut"), ("&#034;13&#034;", "&#034;1337&#034;"), ("&#034;page&#034;:3", "&#034;page&#034;:333333"),
+                 ("&#034;key3&#034;:910001", "&#034;key3&#034;:424242"), ("910001", "123456"))
+        hit = 0
+        for old, new in swaps:
+            if old in out:
+                hit += 1
+                self.assertIn("private message body not replaced", self.reasons(out.replace(old, new, 1)), (old, new))
+        self.assertGreaterEqual(hit, 6)
 
     def test_fast_reply_subject_constant_kept(self):
         # Live R60a: the fast-reply form repeats MP_NAME in a hidden `sujet`; 32 hex chars, but a public constant.
@@ -395,50 +486,55 @@ class MPStorageTests(unittest.TestCase):
         self.assertEqual(out.count("lastUpdate"), 2 * self.EMPTY.count("lastUpdate"))
         self.assertEqual(leaks(out, private=True), [])
 
-    def test_pseudo_in_form_copies_stops_the_run(self):
-        # CodeRabbit on #259: the textarea and the review cell are copies of the document outside the `para` body.
-        bad = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
-        for page in (self.form_page(bad, self.EMPTY), self.form_page(self.EMPTY, bad)):
-            with self.assertRaises(A.MPStorageDocumentError):
-                anon(page, private=True)
-            self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+    def test_rich_form_copies_are_aliased_and_pass_the_check(self):
+        # Both copies of the document outside the `para` body: the textarea and the review cell.
+        page = self.form_page(self.RICH, self.RICH)
+        self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+        out = anon(page, private=True)
+        for word in self.LEAKS:
+            self.assertNotIn(word, out, word)
+        self.assertEqual(leaks(out, private=True), [])
+        self.assertEqual(out.count("&#034;client1&#034;"), 2 * self.RICH.count('"sourceName":"DTCloud"'))
 
-    def test_form_copies_checked_whatever_the_attribute_order_and_quotes(self):
+    def test_form_copies_aliased_whatever_the_attribute_order_and_quotes(self):
         # CodeRabbit on #259: `value` before `name`, single-quoted `content_form`.
-        bad = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
-        page = (self.form_page(bad, self.EMPTY)
+        page = (self.form_page(self.RICH, self.EMPTY)
                 .replace('<input type="text" name="sujet" value="%s" />' % A.MPSTORAGE_SUBJECT,
                          "<input value='%s' type='text' name='sujet' />" % A.MPSTORAGE_SUBJECT)
                 .replace('name="content_form"', "name='content_form'"))
         self.assertIn("name='content_form'", page)
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(page, private=True)
-        self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
 
     def test_tag_shaped_text_in_the_textarea_is_document_text(self):
-        # CodeRabbit on #259: stripping tags from the textarea would drop `<Quuxbar>` and vouch for the rest.
+        # CodeRabbit on #259: stripping tags from the textarea would drop `<Quuxbar>` and keep the rest.
         bad = self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"iOS<Quuxbar>"', 1)
         page = self.form_page(bad, self.EMPTY)
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(page, private=True)
         self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_unchanged_document_keeps_its_exact_bytes(self):
+        page = self.form_page(self.EMPTY, self.EMPTY)
+        self.assertIn(self.EMPTY.replace('"', "&#034;"), anon(page, private=True))
 
     def test_form_of_another_thread_is_not_checked_as_a_document(self):
         page = self.form_page("plain text", "plain text", subject="fixture-test-1")
         self.assertIn("plain text", anon(page, private=True))
         self.assertNotIn("MPStorage document copy not vouched for", self.reasons(page))
 
-    def test_number_bool_or_null_outside_timestamps_stops_the_run(self):
-        # CodeRabbit on #259: a number under another key may be an id; booleans and null are not vouched for either.
+    def test_number_bool_or_null_outside_timestamps_is_aliased_or_harmless(self):
+        # CodeRabbit on #259: a number under another key may be an id, so it becomes a fake id; booleans and
+        # null carry no member data and keep their value.
         for value in ("123456", "true", "null"):
             doc = self.EMPTY.replace('"version":"0.1"', '"version":%s' % value)
-            with self.assertRaises(A.MPStorageDocumentError, msg=value):
-                anon(storage_page(doc), private=True)
-            self.assertIn("private message body not replaced", self.reasons(storage_page(doc)), value)
-        doc = self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":true}],')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+            out = anon(storage_page(doc), private=True)
+            self.assertNotIn("123456", out)
+            self.assertEqual(leaks(out, private=True), [], value)
+        self.assertIn("private message body not replaced",
+                      self.reasons(storage_page(self.EMPTY.replace('"version":"0.1"', '"version":123456'))))
 
     def test_duplicate_key_stops_the_run(self):
         # CodeRabbit on #259: json.loads keeps the last `list`, so a first one holding a pseudo went unchecked.

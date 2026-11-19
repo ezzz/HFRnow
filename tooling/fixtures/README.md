@@ -148,10 +148,17 @@ Obfuscated links (`md_noclass_cryptlink`, `md_blank_cryptlink`, `md_cryptlink` c
 (the `a.cCatTopic` of the title cell `td.sujetCase3`, chosen by position, never by content: a subject may be digits
 only, and the page links of `td.sujetCase4` are not subjects) except the fixture threads `fixture-test-N` and the
 MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers. On the MPStorage thread page (R60a) the
-first post, the storage JSON document, is kept when the thread header names the thread and the document holds only known
-keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
-document (`content_form`, the review cell after `td.messCase1bis`) must pass the same check, on both sides. `check --private`
-accepts that body only on a page whose `<title>` names the thread and whose JSON keys and strings are all in its own word list.
+first post, the storage JSON document, is kept when the thread header names the thread, and rewritten in place by
+`mpstorage_doc.py`: member pseudos (blacklist `username`, bookmark `author`) become `userN`, other clients' namespaces
+`nsN` (keys `keyN`, strings `textN`, numbers fake ids), a foreign `sourceName` `clientN`, `post` / `numreponse` / tombstone
+`id` fake ids (9100NN), `label`, `p`, `href`, `uri` `textN`; timestamps (`lastUpdate`, `createDate`, `deleteDate`), `page`,
+`cat` (up to 3 digits), booleans and null are kept; an alias keeps a U+00A0 or non-BMP mark of its original; the rewrite
+is idempotent and leaves every other byte alone. A document that is not JSON or holds a duplicate key raises
+`MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
+document (`content_form`, the review cell after `td.messCase1bis`) are rewritten the same way. `check --private`
+(its own rules in `anonymize.py`, no import of `mpstorage_doc`) accepts that body only on a page whose `<title>` names
+the thread and whose every key is a format word or an alias key, every string `0.1`, `iOS`, a category under `cat` or an
+alias, and every number a timestamp, a small `page` / `cat` or a fake id; both copies and the post are checked.
 On every other form page (composer, edit, quote prefill), `--private` also replaces the `content_form` textarea and the review cell after `td.messCase1bis` by the placeholder, unless the page names only fixture threads (`fixture-test-N` in every `sujet` input and "Sujet :" header); a page naming no thread fails closed. `check --private` flags both positions, in both verifiers (#401).
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.

@@ -37,9 +37,12 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   user), kept so LOT-038 can test locating the storage MP (also in the hidden `sujet` of the thread's fast-reply form).
   The storage MP's recipient `MultiMP` (`MP_SENDTO`, `Classes/MPStorage.m:24`), printed `multimp` in the edit form's
   recipient row (R60b), is a member position and is aliased on purpose, although it is a constant too.
-- The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps it, and only it,
-  when the page is the storage thread and the document holds known keys and the strings `0.1` and `iOS` (R60a); any other
-  key or string (a blacklisted pseudo, another client's data) stops the anonymizer until that position gets aliasing.
+- The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps its structure, and only
+  its, when the page is the storage thread (R60a). The document is rewritten in place (`tooling/fixtures/mpstorage_doc.py`):
+  blacklist pseudos and bookmark authors become `userN` (the page's own table), other clients' namespaces `nsN` with
+  `keyN` keys, `textN` strings and fake ids inside, a foreign `sourceName` `clientN`, post and message ids fake
+  (9100NN); timestamps, small page and category numbers, booleans and null are kept, and an alias keeps whether its
+  original held a U+00A0 or a character outside the BMP. A document that is not JSON or repeats a key stops the anonymizer.
 - List rows (rows linking with `owntopic=1|2|3`, or showing a flag, in the `forum2.php` or the rewritten link form) are aliased **row by row** by position (topic and message ids, title and slug, categories, page numbers, counts, dates), so fixtures stay stable and carry no live data. `check` fails on any number of such a row that is not an alias ([kit README](../tooling/fixtures/README.md#list-rows)).
 - The personal smiley page (`uploadsmil.php`) goes through the same member aliasing, and each filled `keyword<N>` input becomes `Keywords removed.`; `check` fails otherwise, on any page ([kit README](../tooling/fixtures/README.md#what-is-replaced)).
 - REST flag buckets (logged-in `topics/{participated,read,favorites}` answers) are aliased by position and cut to a fixed size, like list rows; `check` fails on any key outside the exact set of its dict kind, and on any id, title, date, count, offset, size, type word, avatar or href of a bucket that is not exactly the alias of its position (also when the capture's request, not the body, says it is a bucket), and on a category of a bucket URL in a meta that is not an alias ([kit README](../tooling/fixtures/README.md#rest-flag-buckets)).
