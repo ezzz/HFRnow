@@ -3,7 +3,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (GiphyPanel :2294-2340, SDK picker with confirmation screen) @ 2440d79 (GAP-089).
 // Differences: our own grid over the REST client (LOT-098); notice N1 before the first request (LOT-071); LOT-185 rules: the search
-// bar is a `safeAreaBar` whose field is system glass (#856), no hand-made fill.
+// bar is a `safeAreaBar` whose field is system glass (#856), no hand-made fill; the confirmation is pushed in the panel, not a
+// third sheet (#1177).
 /// The GIF panel of the reply sheet: trending or search results in a grid, a tap opens a confirmation, "Insérer" posts
 /// `[img]<url>[/img]`. Thin: every rule is in `GifPickerModel`.
 struct GifPickerView: View {
@@ -12,6 +13,8 @@ struct GifPickerView: View {
     let onInsert: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var isAskingNotice = false
+    /// The GIF the confirmation shows, kept while it pops after « Retour » cleared the selection.
+    @State private var confirmed: GiphyGIF?
     @FocusState private var searchFocused: Bool
 
     private let columns = [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 6)]
@@ -31,20 +34,30 @@ struct GifPickerView: View {
                 } message: {
                     Text(model.noticeMessage)
                 }
+                // Pushed, not a third sheet over the composer (#1177; HIG › Sheets: one sheet at a time): back returns to
+                // the grid.
+                .navigationDestination(isPresented: isConfirming) {
+                    if let gif = model.selected ?? confirmed {
+                        GifConfirmationView(model: model, gif: gif) { snippet in
+                            onInsert(snippet)
+                            model.selected = nil
+                            dismiss()
+                        }
+                        .appScreenBackground()
+                    }
+                }
+                .onChange(of: model.selected?.id) { _, id in if id != nil { confirmed = model.selected } }
         }
         .presentationDetents([.large])
-        .sheet(item: $model.selected) { gif in
-            GifConfirmationView(model: model, gif: gif) { snippet in
-                onInsert(snippet)
-                model.selected = nil
-                dismiss()
-            }
-            .presentationDetents([.medium, .large])
-        }
         .task {
             isAskingNotice = model.isAskingNotice
             await model.start()
         }
+    }
+
+    /// The confirmation is shown while a GIF is selected; going back clears the selection.
+    private var isConfirming: Binding<Bool> {
+        Binding(get: { model.selected != nil }, set: { if !$0 { model.selected = nil } })
     }
 
     @ViewBuilder
@@ -138,7 +151,6 @@ private struct GifConfirmationView: View {
     let model: GifPickerModel
     let gif: GiphyGIF
     let onInsert: (String) -> Void
-    @Environment(\.dismiss) private var dismiss
     /// The full GIF is shown (it can take a moment, and a very large one stays a still frame: `SmileyImageLoader.maximumAnimationPixels`).
     @State private var hasOriginal = false
 
@@ -153,24 +165,20 @@ private struct GifConfirmationView: View {
         }
     }
 
+    /// Pushed inside the panel (#1177): the system back button goes back to the grid, so no « Annuler » of its own.
     var body: some View {
-        ThemedNavigationStack {
-            VStack(spacing: 16) {
-                preview
-                    .aspectRatio(aspect, contentMode: .fit)
-                    .clipShape(.rect(cornerRadius: 10))
-                    .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)
-                Button("Insérer") { if let snippet = model.snippet(for: gif) { onInsert(snippet) } }
-                    .appProminentButtonStyle()
-                    .disabled(model.snippet(for: gif) == nil)
-            }
-            .padding()
-            .navigationTitle("Insérer ce GIF ?")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
-            }
+        VStack(spacing: 16) {
+            preview
+                .aspectRatio(aspect, contentMode: .fit)
+                .clipShape(.rect(cornerRadius: 10))
+                .accessibilityLabel(gif.title.isEmpty ? "Aperçu du GIF" : gif.title)
+            Button("Insérer") { if let snippet = model.snippet(for: gif) { onInsert(snippet) } }
+                .appProminentButtonStyle()
+                .disabled(model.snippet(for: gif) == nil)
         }
+        .padding()
+        .navigationTitle("Insérer ce GIF ?")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var aspect: CGFloat {

@@ -271,7 +271,7 @@ final class SmileyPickerModel: Identifiable {
     /// The detail's "Insérer": the smiley goes to the composer.
     func insertPresented() {
         chosen = presented
-        // The detail goes away with the choice, so the panel never closes under a presented sheet.
+        // The detail goes away with the choice, so the panel never closes over a pushed detail (#1177).
         presented = nil
     }
 
