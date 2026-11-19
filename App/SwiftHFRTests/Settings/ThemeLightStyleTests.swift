@@ -94,7 +94,7 @@ struct ThemeLightStyleTests {
         #expect(doux.readerScript.contains("s.setProperty('--app-light-background', 'rgb(245, 244, 239)');"))
         let blanc = ThemeAppearance.standard.readerScript
         for name in ["background", "placeholder", "separator", "secondary"] {
-            #expect(blanc.contains("s.removeProperty('--app-light-\(name)');"), name)
+            #expect(blanc.contains("s.removeProperty('--app-light-\(name)');"), "\(name)")
         }
         #expect(!blanc.contains("setProperty('--app-light-"))
     }
