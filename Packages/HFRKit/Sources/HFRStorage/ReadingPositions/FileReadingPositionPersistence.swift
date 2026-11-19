@@ -17,6 +17,10 @@ public struct FileReadingPositionPersistence: ReadingPositionPersistence {
     public func load() throws -> ReadingPositionDocument? {
         guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data = try Data(contentsOf: fileURL)
+        // The version first, as the small stores do (#1184): a newer file is "update the app" whatever its shape.
+        let version = try StoredVersion.read(data)
+        guard version <= ReadingPositionDocument.currentVersion else { throw ReadingPositionError.unsupportedVersion(version) }
+        guard version >= 1 else { throw ReadingPositionError.loadFailed(reason: "invalid version \(version)") }
         return try Self.decoder.decode(ReadingPositionDocument.self, from: data)
     }
 

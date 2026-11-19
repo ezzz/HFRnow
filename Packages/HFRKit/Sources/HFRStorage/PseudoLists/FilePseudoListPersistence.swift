@@ -17,6 +17,10 @@ public struct FilePseudoListPersistence: PseudoListPersistence {
     public func load() throws -> PseudoListDocument? {
         guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data = try Data(contentsOf: fileURL)
+        // The version first, as the small stores do (#1184): a newer file is "update the app" whatever its shape.
+        let version = try StoredVersion.read(data)
+        guard version <= PseudoListDocument.currentVersion else { throw PseudoListError.unsupportedVersion(version) }
+        guard version >= 1 else { throw PseudoListError.loadFailed(reason: "invalid version \(version)") }
         return try JSONDecoder().decode(PseudoListDocument.self, from: data)
     }
 

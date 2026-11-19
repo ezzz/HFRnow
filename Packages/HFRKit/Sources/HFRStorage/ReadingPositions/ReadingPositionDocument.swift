@@ -5,7 +5,8 @@ public struct ReadingPositionDocument: Sendable, Hashable, Codable {
 
     /// Format version.
     public var version: Int
-    /// Records keyed by the account identifier (`Account.id`), one per topic, in no particular order.
+    /// Records keyed by the account key (`AccountKey`), one per topic, in no particular order. Files written before #1184
+    /// may hold other spellings of a key: the store merges them on read.
     public var accounts: [String: [ReadingPositionRecord]]
 
     /// Creates a document.

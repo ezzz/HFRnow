@@ -19,7 +19,7 @@ Code in `Sources/HFRStorage/Drafts/`, tests in `Tests/HFRStorageTests/Drafts/`.
 
 - **`DraftContext`**: `reply(topic:page:)`, `newTopic(forum:)`, `privateMessage(recipient:)`, `edit(topic:post:)` and `legacyGlobal` (the old single draft, filled by LOT-067). `storageKey` is the identity; the recipient is compared without case and zero-width spaces (the account key form, `AccountKey`).
 - **`Draft`**: context, account, text, optional subject (new topics and MPs), `updatedAt`.
-- **`DraftStore`** (actor): `draft(for:account:)`, `drafts(account:)` (newest first), `save(_:subject:for:account:)`, `discard(for:account:)` (after a successful post), `discardAll(account:)` (logout), `purgeExpired()`, `reload()`. Drafts are scoped per account (normalised like pseudos).
+- **`DraftStore`** (actor): `draft(for:account:)`, `drafts(account:)` (newest first), `save(_:subject:for:account:)`, `discard(for:account:)` (after a successful post), `discardAll(account:)` (logout), `purgeExpired()`, `reload()`. Drafts are scoped per account (normalised like pseudos). An account whose key (`AccountKey`) is empty is refused (`DraftError.emptyAccount`, #1184) by `save` with content and by `archiveReply`; removing (empty text) stays possible under any key.
 - **Saving empty text and empty subject removes the draft**; nothing empty is stored, and no write happens when nothing changed.
 - **TTL**: 30 days from the last save (`defaultTimeToLive`); reads ignore expired drafts, every save also drops them from the file, `purgeExpired()` is for launch. A draft exactly at the TTL is still live.
 - **Size bound**: at most 100 drafts (`defaultMaximumCount`); the least recently saved are dropped. Text length is not capped (a forum post is bounded by the forum).

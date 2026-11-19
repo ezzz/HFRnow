@@ -28,7 +28,7 @@ Code in `Sources/HFRStorage/ReadingPositions/`, tests in `Tests/HFRStorageTests/
   - `position(of:account:)`, `records(for:)` (most recently updated first: what the iCloud mirror will take the head of).
   - `remove(_:account:)`, `removeAccount(_:)` (account removed from the app).
   - **Bounded per account**: `limitPerAccount` (default 500, at least 1). Writing a new topic beyond the limit evicts the least recently updated topics of that account; the record just written is always kept, even if its date is the oldest (device clock moved back). Other accounts are never evicted.
-- **Accounts** are the caller's `Account.id` (the `md_user` value), compared exactly. No normalisation, unlike LOT-061's `PseudoNormalizer`: the app's own identifier is already exact, and a normaliser that changes later (LOT-072, #96) would re-key every position.
+- **Accounts** are keyed by `AccountKey` (#1184; ADR 0013 §7: U+200B removed, lower-cased, frozen), as every other per-account store: positions recorded under "Alice" are found under "alice", and an account whose key is empty is refused. Files written before stored the caller's spelling: the spellings of one key are merged on read (per topic the newest `updatedAt`, equal dates to the position ahead, nothing dropped) and saved under the key at the next write. Not LOT-061's `PseudoNormalizer`, whose rule may change (LOT-072, #96): the account key is frozen.
 - **Persistence** (`ReadingPositionPersistence`: `load`, `save`, `quarantineUnreadableData`): `FileReadingPositionPersistence` (one JSON document, `Data.write(options: .atomic)`, dates as seconds since 1970) and `InMemoryReadingPositionPersistence`.
 - **Failure guard** (same rule as LOT-061): a document that cannot be read or decoded, or whose `version` is newer than this code, makes reads answer nothing and every write throw (`loadFailed`, `unsupportedVersion`); nothing is saved over it. Ways out: `reload()` or `discardUnreadableData()` (moves the file to `<name>.corrupt`, an earlier backup kept under a unique name, never deleted). A failed save throws `saveFailed` and leaves memory unchanged.
 
@@ -50,7 +50,7 @@ None for the store (synthetic documents, temporary directories). The message-num
 ## Tests
 
 - `ReadingPositionOrderTests`: message beats page, offset within a message, page without both numbers, known beats unknown, date ignored, validity bounds.
-- `ReadingPositionStoreTests`: first record saved, never backwards, explicit reset, accounts apart and compared exactly, category part of the key, newest-first records, per-account eviction, a new record kept despite an old date, limit below 1, removal of a topic and of an account, invalid input unsaved.
+- `ReadingPositionStoreTests`: first record saved, never backwards, explicit reset, accounts apart and keyed by `AccountKey` (`StoreGuardsTests`: any spelling, spellings merged on read, empty key refused, version read first), category part of the key, newest-first records, per-account eviction, a new record kept despite an old date, limit below 1, removal of a topic and of an account, invalid input unsaved.
 - `ReadingPositionStoreFailureTests`: unreadable data answers nothing and refuses writes, discard and reload, newer format never overwritten, failed save leaves memory unchanged.
 - `FileReadingPositionPersistenceTests`: missing file, round trip without temporary files, exact JSON of a record (ids and numbers only), corrupt file kept and set aside, earlier backup kept.
 

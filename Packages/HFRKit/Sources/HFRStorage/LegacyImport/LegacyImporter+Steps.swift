@@ -133,6 +133,10 @@ extension LegacyImporter {
         } catch PseudoListError.emptyPseudo {
             report.rejectedItems += 1
             return 0
+        } catch PseudoListError.emptyAccount {
+            // A legacy list filed under an empty name has no account to go to (#1184): rejected, the others go on.
+            report.rejectedItems += 1
+            return 0
         }
     }
 
