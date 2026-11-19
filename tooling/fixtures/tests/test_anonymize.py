@@ -460,28 +460,60 @@ class MPStorageTests(unittest.TestCase):
         self.assertEqual(entry["bookmarks"]["tombstones"][0]["id"],
                          "13-%s-%s" % (bookmark["post"], bookmark["numreponse"]))
 
+    # HFR's trailer after the storage post's paragraph, byte for byte as the committed corpus prints it (#272 round 5:
+    # 961 post trailers, 301 review cells): the clear div, `</p>`, an optional `div.edited` (HFR's link and "Message cité
+    # N fois", a `<br />` and "Message édité par X le jj-mm-aaaa&nbsp;à&nbsp;hh:mm:ss", or both), an optional signature
+    # after a bare `<br />`. A review cell holds the clear div only.
+    CLEAR = '<div style="clear: both;"> </div>'
+    TAIL = CLEAR + '</p>'
+    LINK = ('<a href="/forum2.php?config=hfr.inc&amp;cat=13&amp;subcat=433&amp;post=28563&amp;page=1&amp;p=1&amp;'
+            'sondage=&amp;owntopic=&amp;trash=&amp;trash_post=&amp;print=&amp;numreponse=2666649&amp;quote_only=1&amp;'
+            'new=0&amp;nojs=0" class="cLink" rel="nofollow">')
+    CITED = LINK + "Message cité 11 fois</a>"
+    NOTICE = "Message édité par Quuxbar le 11-11-2018&nbsp;à&nbsp;18:24:51"
+    SIG = ('<br /><span class="signature"> ---------------\n\t\t\t<br />plonk words Quuxbar <a href="https://s.example/">'
+           'S</a><div style="clear: both;"> </div></span>')
+
+    def edited(self, link=None, notice=None):
+        return '<div class="edited">%sMessage cité 11 fois</a><br />%s</div>' % (link or self.LINK, notice or self.NOTICE)
+
+    def with_tail(self, tail):
+        return storage_page(self.RICH).replace(self.TAIL, self.TAIL + tail, 1)
+
+    def in_cell(self, tail, page=None):
+        quoted = self.RICH.replace('"', "&#034;")
+        page = page or self.form_page(self.RICH, self.RICH)
+        return page.replace('%s%s</td>' % (quoted, self.CLEAR), '%s%s%s</td>' % (quoted, self.CLEAR, tail), 1)
+
+    def corpus_shapes(self):
+        """Every trailer shape of the corpus (the edited div's three forms, each with and without a signature)."""
+        edits = ("", '<div class="edited">%s</div>' % self.CITED, '<div class="edited"><br />%s</div>' % self.NOTICE,
+                 '<div class="edited">%s<br />%s</div>' % (self.CITED, self.NOTICE),
+                 '<div class="edited">%s</div>' % self.CITED.replace("11 fois", "1 fois"),
+                 '<div class="edited">%s</div>' % self.CITED.replace("&amp;subcat=433", ""))
+        return [e + s for e in edits for s in ("", self.SIG)]
+
+    @staticmethod
+    def trailer_region(page):
+        """(start, end) of the storage post's trailer: from its clear div to the end of div#para."""
+        start = page.index('<div style="clear: both;"> </div></p>', page.index('<div id="para1980000001">'))
+        return start, page.index("</div></td></tr></table>", start)
+
+    def mutate(self, page, old, new):
+        start, end = self.trailer_region(page)
+        region = page[start:end]
+        self.assertIn(old, region, (old, new))
+        return page[:start] + region.replace(old, new, 1) + page[end:]
+
     def test_edited_trailer_inside_the_message_is_not_part_of_the_document(self):
-        # Finding 3: legacy edits the first post, so HFR adds its `div.edited` trailer inside div#para, after the <p>
-        # (MPStorage.m:882 reads the first <p> only). Both sides scope to that paragraph.
-        trailer = ('<div class="edited"><a href="/forum2.php?config=hfr.inc&amp;cat=prive&amp;post=1" class="cLink" '
-                   'rel="nofollow">Message &eacute;dit&eacute; par Quuxbar le 01-01-2026 &agrave; 10:00:00</a></div>')
-        page = storage_page(self.RICH).replace('</p></div></td></tr></table><table class="messagetable">',
-                                               '</p>%s</div></td></tr></table><table class="messagetable">' % trailer, 1)
-        self.assertIn("class=\"edited\"", page)
+        # Round 1, finding 3: legacy edits the first post, so HFR adds its `div.edited` trailer inside div#para, after the
+        # <p> (MPStorage.m:882 reads the first <p> only). The notice's pseudo is aliased.
+        page = self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE)
+        self.assertIn("private message body not replaced", self.reasons(page))
         out = anon(page, private=True)
         self.assertNotIn("Quuxbar", out)
+        self.assertRegex(out, r'<div class="edited"><br />Message édité par user\d+ le 11-11-2018&nbsp;à&nbsp;18:24:51</div>')
         self.assertEqual(leaks(out, private=True), [])
-        self.assertIn("private message body not replaced", self.reasons(page))
-        # the form's review cell may carry the trailer too
-        cell = self.form_page(self.RICH, self.RICH).replace(
-            '%s<div style="clear: both;"> </div></td>' % self.RICH.replace('"', "&#034;"),
-            '%s<div style="clear: both;"> </div>%s</td>' % (self.RICH.replace('"', "&#034;"), trailer), 1)
-        self.assertIn("class=\"edited\"", cell)
-        out = anon(cell, private=True)
-        self.assertNotIn("Quuxbar", out)
-        self.assertEqual(leaks(out, private=True), [])
-
-    TAIL = '<div style="clear: both;"> </div></p>'
 
     def test_only_hfrs_trailer_may_follow_the_document(self):
         # Review round 2, finding 1: after the first <p>, anything but the clear div and `div.edited` stays in the page
@@ -520,15 +552,6 @@ class MPStorageTests(unittest.TestCase):
                 anon(page, private=True)
             self.assertTrue(self.reasons(page))
 
-    def test_hfrs_real_trailer_is_accepted(self):
-        edited = ('<div class="edited"><a href="/forum2.php?config=hfr.inc&amp;numreponse=1&amp;quote_only=1" class="cLink" '
-                  'rel="nofollow">Message cit&eacute; 11 fois</a><br />Message &eacute;dit&eacute; par Quuxbar le '
-                  '11-11-2018&nbsp;&agrave;&nbsp;18:24:51</div>')
-        page = storage_page(self.RICH).replace(self.TAIL, '<div style="clear: both;"> </div></p>' + edited, 1)
-        out = anon(page, private=True)
-        self.assertNotIn("Quuxbar", out)
-        self.assertEqual(leaks(out, private=True), [])
-
     def test_bookmark_tombstone_with_a_long_category_is_one_rule_for_both_sides(self):
         # Review round 2, finding 2: a 4+ digit category in a tombstone id is aliased; check must accept the result.
         doc = self.RICH.replace('"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]',
@@ -544,30 +567,135 @@ class MPStorageTests(unittest.TestCase):
         self.assertIn("1700000008", out)
         self.assertEqual(leaks(out, private=True), [])
 
-    LINK = ('<a href="/forum2.php?config=hfr.inc&amp;cat=13&amp;subcat=433&amp;post=28563&amp;page=1&amp;p=1&amp;'
-            'sondage=&amp;owntopic=&amp;trash=&amp;trash_post=&amp;print=&amp;numreponse=2666649&amp;quote_only=1&amp;'
-            'new=0&amp;nojs=0" class="cLink" rel="nofollow">')
-    NOTICE = "Message &eacute;dit&eacute; par Quuxbar le 11-11-2018&nbsp;&agrave;&nbsp;18:24:51"
-
-    def edited(self, link=None, notice=None):
-        return ('<div class="edited">%sMessage cit&eacute; 11 fois</a><br />%s</div>'
-                % (link or self.LINK, notice or self.NOTICE))
-
-    def with_tail(self, tail):
-        return storage_page(self.RICH).replace(self.TAIL, '<div style="clear: both;"> </div></p>' + tail, 1)
-
-    def in_cell(self, tail):
-        quoted = self.RICH.replace('"', "&#034;")
-        return self.form_page(self.RICH, self.RICH).replace(
-            '%s<div style="clear: both;"> </div></td>' % quoted,
-            '%s<div style="clear: both;"> </div>%s</td>' % (quoted, tail), 1)
-
-    def test_real_link_and_notice_shapes_are_accepted(self):
-        for tail in (self.edited(), self.edited(notice=self.NOTICE.replace("&nbsp;", "&#160;")),
-                     self.edited().replace("<br />Message", "<BR>Message").replace("&nbsp;", " ")):
+    def test_corpus_trailer_shapes_pass_both_sides(self):
+        # Round 5: every shape of the closed grammar, as the corpus prints it, is aliased and checks clean.
+        for tail in self.corpus_shapes():
             out = anon(self.with_tail(tail), private=True)
-            self.assertNotIn("Quuxbar", out)
+            self.assertNotIn("Quuxbar", out, tail)
+            self.assertNotIn("plonk", out, tail)
             self.assertEqual(leaks(out, private=True), [], tail)
+            if "signature" in tail:
+                self.assertIn('<br /><span class="signature"> ---------------\n\t\t\t<br />Signature removed.'
+                              '<div style="clear: both;"> </div></span>', out)
+
+    def test_signature_after_a_bare_br_is_replaced_by_the_placeholder(self):
+        # Round 4, finding 1: all 407 corpus signatures follow a bare `<br />` (`</p><br /><span class="signature">`,
+        # `</div><br /><span …>`); legacy posts with signature=1 (MPStorage.m:798 @ 87fe0d1c).
+        for tail in (self.SIG, self.edited() + self.SIG):
+            page = self.with_tail(tail)
+            self.assertIn("private message body not replaced", self.reasons(page))
+            out = anon(page, private=True)
+            self.assertNotIn("plonk", out)
+            self.assertIn(A.SIGNATURE_PLACEHOLDER, out)
+            self.assertEqual(leaks(out, private=True), [])
+        # Round 3's shape (no `<br />` before the span) is not HFR's: refused on both sides.
+        page = self.with_tail(self.SIG[len("<br />"):])
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        out = anon(self.with_tail(self.SIG), private=True)
+        self.assertIn("private message body not replaced",
+                      self.reasons(self.mutate(out, '</p><br /><span class="signature">', '</p><span class="signature">')))
+
+    def test_notice_name_outside_the_alias_table_is_refused(self):
+        # Round 4, finding 2: a `<br />`, a link or `&nbsp;` around the notice's name hid it from the name rule.
+        out = anon(self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        name = re.search(r"Message édité par (user\d+) le", out).group(1)
+        raw = self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE)
+        # (probe, also a raw shape the redactor must refuse): a plain unlisted name is a valid raw notice (aliased).
+        probes = (
+            (lambda n: ("par %s le" % n, "par<br />Hansaplast le"), True),
+            (lambda n: ("par %s le" % n, "par %sHansaplast</a> le" % self.LINK), True),
+            (lambda n: ("Message édité par %s le 11-11-2018" % n,
+                        "Message&nbsp;édité&nbsp;par&nbsp;Hansaplast&nbsp;le&nbsp;11-11-2018"), True),
+            (lambda n: ("par %s le" % n, "par &#117;ser3 le"), True),
+            (lambda n: ("par %s le" % n, "par Hansaplast le"), False),
+            (lambda n: ("par %s le" % n, "par %s plonk le" % n), False),
+        )
+        for probe, raw_too in probes:
+            old, new = probe(name)
+            self.assertIn("private message body not replaced", self.reasons(self.mutate(out, old, new)), new)
+            if raw_too:
+                old, new = probe("Quuxbar")
+                with self.assertRaises(A.MPStorageDocumentError, msg=new):
+                    anon(self.mutate(raw, old, new), private=True)
+
+    def test_the_notice_pseudo_is_not_greedy(self):
+        # Round 3, finding 3: a second "le <date>" inside the name hid text in it.
+        notice = ("Message édité par Quuxbar le 01-01-2000&nbsp;à&nbsp;00:00:00 plonk words Qux le "
+                  "11-11-2018&nbsp;à&nbsp;18:24:51")
+        page = self.with_tail('<div class="edited"><br />%s</div>' % notice)
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        self.assertIn("private message body not replaced", self.reasons(page))
+
+    def test_notice_name_that_already_looks_like_an_alias_is_refused(self):
+        # Round 1, finding 5, for the notice: no value is kept for looking like an alias.
+        page = self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE.replace("Quuxbar", "user77"))
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+
+    # Near misses of the corpus shapes (case, entities, CRLF, spacing, attributes, query, order): each one is outside
+    # the grammar, so the redactor raises on the raw page and `check` flags the anonymized one.
+    NEAR_MISSES = (
+        ("<br />Message édité", "<BR />Message édité"), ("<br />Message édité", "<br>Message édité"),
+        ("<br />Message édité", "<br/>Message édité"), ("&nbsp;à&nbsp;", " à "), ("&nbsp;à&nbsp;", "&#160;à&#160;"),
+        ("&nbsp;à&nbsp;", "&nbsp;&agrave;&nbsp;"), ("&nbsp;à&nbsp;", " à "),
+        ("Message édité par", "Message &eacute;dit&eacute; par"), ("Message édité par", "Message&nbsp;édité&nbsp;par"),
+        ("Message édité par", "message édité par"), ("cité 11 fois", "cité 0 fois"), ("cité 11 fois", "cité 11 fois plonk"),
+        ("cité 11 fois", "cit&eacute; 11 fois"), ("11-11-2018", "11-11-18"), ("18:24:51", "18:24"),
+        ('class="cLink" rel="nofollow"', 'rel="nofollow" class="cLink"'), ('class="cLink"', "class='cLink'"),
+        ('rel="nofollow">', 'rel="nofollow" title="plonk">'), ("cat=13", "cat=prive"), ("cat=13", "cat=plonk"),
+        ("&amp;subcat=433&amp;post=28563", "&amp;post=28563&amp;subcat=433"), ("&amp;nojs=0", "&amp;nojs=0&amp;plonk=1"),
+        ("&amp;sondage=", "&amp;sondage=1"), ("&amp;cat=", "&cat="), ('href="/forum2.php', 'href="https://x.example/forum2.php'),
+        ("&amp;nojs=0", "&amp;nojs="), ("<a href", "<A href"),
+        ('<div class="edited">', '<div class="edited"> '), ('<div class="edited">', '<div  class="edited">'),
+        ('<div class="edited">', '<div class="Edited">'),
+        ('</div><br /><span', '</div>\r\n<br /><span'), ('</div><br /><span', '</div><span'),
+        ('</div><br /><span', '</div><br /><br /><span'), ('</div><br /><span', '</div>&nbsp;<br /><span'),
+        ('<span class="signature">', '<span class="signature" title="plonk">'), ('<span class="signature">', '<SPAN class="signature">'),
+        ('</p><div class="edited">', '</p>\n<div class="edited">'), ('</p><div class="edited">', '</P><div class="edited">'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear: both;">&nbsp;</div></p>'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear:both;"> </div></p>'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear: both;"></div></p>'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear: both;"> </div>\r\n</p>'),
+        ('<div style="clear: both;"> </div></p>', '</p>'),
+    )
+
+    def test_near_miss_trailers_fail_on_both_sides(self):
+        tail = '<div class="edited">%s<br />%s</div>%s' % (self.CITED, self.NOTICE, self.SIG)
+        raw = self.with_tail(tail)
+        out = anon(raw, private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        for old, new in self.NEAR_MISSES:
+            with self.assertRaises(A.MPStorageDocumentError, msg=(old, new)):
+                anon(self.mutate(raw, old, new), private=True)
+            self.assertIn("private message body not replaced", self.reasons(self.mutate(out, old, new)), (old, new))
+        # Structural near misses: an empty or repeated edited div, a lone `<br />`, text after the signature.
+        for extra in ('<div class="edited"></div>', tail.replace(self.SIG, "") * 2, "<br />",
+                      self.SIG + "plonk", self.SIG + self.SIG, '<div class="edited"><br /></div>'):
+            with self.assertRaises(A.MPStorageDocumentError, msg=extra):
+                anon(self.with_tail(extra), private=True)
+        bare = anon(storage_page(self.RICH), private=True)
+        self.assertIn(self.TAIL + "</div>", bare)
+        anonymized_sig = '<br /><span class="signature">Signature removed.</span>'
+        for extra in ('<div class="edited"></div>', "<br />", anonymized_sig + "plonk", anonymized_sig * 2,
+                      '<div class="edited"><br /></div>', '<br /><span class="signature">Signature plonk.</span>'):
+            bad = bare.replace(self.TAIL + "</div>", self.TAIL + extra + "</div>", 1)
+            self.assertIn("private message body not replaced", self.reasons(bad), extra)
+
+    def test_review_cell_holds_the_clear_div_only(self):
+        # Corpus: all 301 review cells end with the clear div and nothing else; no edited div, no signature there.
+        out = anon(self.form_page(self.RICH, self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        anonymized_notice = '<div class="edited"><br />Message édité par user1 le 11-11-2018&nbsp;à&nbsp;18:24:51</div>'
+        for tail in (self.edited(), self.SIG, "&nbsp;", " ", anonymized_notice):
+            with self.assertRaises(A.MPStorageDocumentError, msg=tail):
+                anon(self.in_cell(tail), private=True)
+        self.assertIn(self.CLEAR + "</td>", out)
+        for tail in (anonymized_notice, '<br /><span class="signature">Signature removed.</span>', "&nbsp;", "\r\n"):
+            bad = out.replace(self.CLEAR + "</td>", self.CLEAR + tail + "</td>", 1)
+            self.assertIn("MPStorage document copy not vouched for", self.reasons(bad), tail)
 
     def test_markup_in_the_paragraph_is_an_anomaly_for_the_verifier(self):
         # Review round 3, finding 1: the redactor never writes markup inside the paragraph.
@@ -588,7 +716,7 @@ class MPStorageTests(unittest.TestCase):
         self.assertEqual(leaks(out, private=True), [])
 
     def test_attributes_are_pinned_on_both_sides(self):
-        # Finding 2: only a bare <p> and HFR's real link (known query names, numeric or empty values).
+        # Round 3, finding 2: only a bare <p> and HFR's real link (corpus query names and order, numeric or empty values).
         bad_links = (
             self.LINK.replace('class="cLink"', 'class="cLink" data-x="plonk words"'),
             self.LINK.replace('href="/forum2.php', 'href="https://x.example/plonk-words'),
@@ -604,39 +732,16 @@ class MPStorageTests(unittest.TestCase):
             with self.assertRaises(A.MPStorageDocumentError):
                 anon(page, private=True)
             self.assertIn("private message body not replaced", self.reasons(page))
-        for link in bad_links:
-            cell = self.in_cell(self.edited(link=link))
-            with self.assertRaises(A.MPStorageDocumentError):
-                anon(cell, private=True)
-            self.assertIn("MPStorage document copy not vouched for", self.reasons(cell))
 
-    def test_the_notice_pseudo_is_not_greedy(self):
-        # Finding 3: `par Quuxbar le 01-01-2000 à 00:00:00 plonk words Qux le 11-11-2018 à …` hid text inside the name.
-        notice = ("Message &eacute;dit&eacute; par Quuxbar le 01-01-2000 &agrave; 00:00:00 plonk words Qux le "
-                  "11-11-2018 &agrave; 18:24:51")
-        page = self.with_tail(self.edited(notice=notice))
+    def test_post_without_its_paragraph_is_refused(self):
+        # The storage post is a bare <p> (R60a); a post body without it is outside the grammar on both sides.
+        page = storage_page(self.RICH).replace('<div id="para1980000001"><p>', '<div id="para1980000001">', 1)
+        page = page.replace(self.TAIL, self.CLEAR, 1)
         with self.assertRaises(A.MPStorageDocumentError):
             anon(page, private=True)
-        self.assertIn("private message body not replaced", self.reasons(page))
-
-    def test_signature_after_the_trailer_is_replaced_by_the_placeholder(self):
-        # Finding 4: legacy posts with signature=1 (MPStorage.m:798), so the capturing account's signature follows.
-        sig = ('<span class="signature">---------------<br />plonk words Quuxbar'
-               '<div style="clear: both;"> </div></span>')
-        for tail in (self.edited() + sig, sig):
-            page = self.with_tail(tail)
-            self.assertIn("private message body not replaced", self.reasons(page))
-            out = anon(page, private=True)
-            self.assertNotIn("plonk", out)
-            self.assertIn(A.SIGNATURE_PLACEHOLDER, out)
-            self.assertEqual(leaks(out, private=True), [])
-        # (a review cell has no HFR element after it in this synthetic form, so only the redaction is checked)
-        self.assertNotIn("plonk", anon(self.in_cell(sig), private=True))
-
-    def test_blank_entities_after_the_paragraph_agree_on_both_sides(self):
-        # Finding 5: `&#160;` was accepted by the redactor and rejected by the verifier.
-        out = anon(self.with_tail("&#160;" + self.edited() + "&nbsp;"), private=True)
-        self.assertEqual(leaks(out, private=True), [])
+        out = anon(storage_page(self.RICH), private=True)
+        bad = out.replace('<div id="para1980000001"><p>', '<div id="para1980000001">', 1).replace(self.TAIL, self.CLEAR, 1)
+        self.assertIn("private message body not replaced", self.reasons(bad))
 
     def test_values_that_look_like_aliases_are_not_kept(self):
         # Finding 5: a real member `user77`, a real id in the fake range, a foreign number under a timestamp key.
@@ -1889,3 +1994,66 @@ class NewDestTests(unittest.TestCase):
             meta = {"url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc", "request_body": body}
             found = [r for _l, _c, r in leaks(json.dumps(meta, indent=2)) if "message text" in r]
             self.assertEqual(bool(found), bad, body)
+
+
+class MPStorageTrailerCorpusTests(unittest.TestCase):
+    """The storage trailer grammar against every real trailer of the committed corpus (#272 round 5). The extraction
+    here is the test's own: each post's trailer runs from its last clear div before `</p>` (outside the signature) to the
+    end of div#para; each review cell's from its last clear div to the cell's end."""
+
+    ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
+    CLEAR = '<div style="clear: both;"> </div>'
+
+    def corpus(self):
+        for top in (os.path.join(self.ROOT, "Packages", "HFRKit", "Tests"), os.path.join(self.ROOT, "tooling", "fixtures")):
+            for folder, _dirs, files in os.walk(top):
+                for name in sorted(files):
+                    if name.endswith((".html", ".htm")):
+                        with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as fh:
+                            yield name, fh.read()
+
+    @staticmethod
+    def cell(text, start):
+        """The content of the cell opened just before start (nested cells balanced)."""
+        depth = 1
+        for t in re.finditer(r"<(/?)td\b[^>]*>", text[start:]):
+            depth += -1 if t.group(1) else 1
+            if depth == 0:
+                return text[start:start + t.start()]
+        return text[start:]
+
+    def trailers(self):
+        posts, cells = [], []
+        for name, text in self.corpus():
+            for chunk in text.split('<div id="para')[1:]:
+                block = chunk[:chunk.find("</div></td></tr></table>")]
+                sig = block.find('<span class="signature">')
+                head = block if sig < 0 else block[:sig]
+                at = head.rfind(self.CLEAR + "</p>")
+                if at >= 0:
+                    posts.append((name, block[at:]))
+            for m in re.finditer(r'class="messCase1bis"[^>]*>[^<]*</td>\s*<td[^>]*>', text):
+                cell = self.cell(text, m.end())
+                at = cell.rfind(self.CLEAR)
+                if at >= 0:
+                    cells.append((name, cell[at:]))
+        return posts, cells
+
+    def test_every_corpus_trailer_is_in_the_grammar_on_both_sides(self):
+        posts, cells = self.trailers()
+        self.assertGreaterEqual(len(posts), 900)  # 957 by this extraction on 2026-11-19
+        self.assertGreaterEqual(len(cells), 300)  # 301
+        shapes = set()
+        for kind, found in (("post", posts), ("review", cells)):
+            for name, rest in found:
+                self.assertTrue(A._v_trailer_ok(rest, kind), (name, rest[:300]))
+                out = A.rewrite_storage_trailer(rest, kind, lambda n: "user1")
+                self.assertTrue(A._v_trailer_ok(out, kind), (name, out[:300]))
+                shapes.add((kind, re.sub(r">[^<]+<", "><", out)[:200]))
+        self.assertGreaterEqual(len(shapes), 9)  # every form of the edited div, with and without a signature
+
+    def test_redactor_refuses_a_corpus_notice_whose_name_it_cannot_alias(self):
+        posts, _cells = self.trailers()
+        edited = next(rest for _n, rest in posts if "Message édité par" in rest)
+        with self.assertRaises(A.MPStorageDocumentError):
+            A.rewrite_storage_trailer(edited, "post", lambda n: None)

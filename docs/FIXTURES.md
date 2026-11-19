@@ -39,7 +39,8 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   recipient row (R60b), is a member position and is aliased on purpose, although it is a constant too.
 - The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps its structure, and only
   its, when the page is the storage thread (R60a). The document is the first `<p>` of the message (legacy `MPStorage.m:882`;
-  HFR's `div.edited` trailer after it is not part of it) and is rewritten in place (`tooling/fixtures/mpstorage_doc.py`):
+  HFR's trailer after it, a closed grammar of the corpus's own shapes on both sides, is not part of it: clear div, `</p>`,
+  `div.edited`, a signature after `<br />`; tooling/fixtures/README.md) and is rewritten in place (`tooling/fixtures/mpstorage_doc.py`):
   blacklist pseudos and bookmark authors become `userN` (the page's own table), other clients' namespaces `nsN` with
   `keyN` keys, `textN` strings and fake ids inside, a foreign `sourceName` `clientN`, post and message ids fake (9100NN),
   tombstone ids the aliases of their item's storage key. Plausible timestamps (10 or 13 digits), small page and category

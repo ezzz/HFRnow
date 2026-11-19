@@ -160,11 +160,18 @@ alias (`user77`, an id of 9100NN): a document is aliased from its original, not 
 strings, keys and numbers are kept in `content_form`; **a rendered copy** (post `<p>`, review cell) is re-encoded from its
 tag-stripped text, so markup inside the document and the document's length are lost (aliases are shorter): state that in
 the MANIFEST row, a fixture of a document near 64 KiB or of rendered smileys needs another route. The paragraph must be a bare `<p>`; the redactor writes it back as plain escaped text (markup inside it, such as a rendered
-smiley, is dropped) and `check` flags any `<` in it. After the paragraph only HFR's own trailer is accepted, on both sides
-(written separately): `</p>`, the clear div, `div.edited` holding HFR's real link (`<a href="/forum2.php?config=hfr.inc&amp;...`
-`" class="cLink" rel="nofollow">`, known query names, numeric or empty values, `cat` a number or `prive`), `<br />` and the
-"Message cité N fois" / "Message édité par X le jj-mm-aaaa à hh:mm:ss" notice (X may not contain ` le <digit>`),
-and a signature span, which the redactor reduces to the kit's placeholder (the capturing account may have one); text
+smiley, is dropped) and `check` flags any `<` in it. After the paragraph only HFR's trailer is accepted, as a closed grammar of exact byte tokens derived from every trailer of
+the committed corpus (961 post trailers, 301 review cells, #272 round 5), written separately on each side (the redactor
+walks tokens with a cursor, `rewrite_storage_trailer`; `check` cuts tags and text runs and compares token lists, `_v_trailer_ok`):
+post `CLEAR </p> [EDITED] [<br /> SIGNATURE]`, review cell `CLEAR` alone; `CLEAR` is `<div style="clear: both;"> </div>`;
+`EDITED` is `<div class="edited">` holding HFR's quote link (`<a href="/forum2.php?config=hfr.inc&amp;cat=…" class="cLink" rel="nofollow">`,
+the corpus's two query orders, digits or empty values) with "Message cité N fois</a>", and/or `<br />` with "Message édité
+par X le jj-mm-aaaa&nbsp;à&nbsp;hh:mm:ss"; the signature span is the post's last element. No case, entity, CRLF or
+spacing variant is in the corpus, so none is accepted (`<BR>`, `&#160;`, `&eacute;`, a `cat=prive` link: re-capture and
+extend the grammar). The redactor aliases X through the page's name table after decoding entities and U+00A0, and
+refuses a name it cannot alias (not a member, already shaped like `userN`, holding ` le <digit>`, irregular blanks); a
+signature's content becomes the placeholder, framed by HFR's separator and clear div only when both are there byte for
+byte. `check` accepts X only as a raw alias `userN` and a signature only as one of the two placeholder forms. Text
 around the braces, a second paragraph, a quote block or any other content raises `MPStorageDocumentError` and fails `check`.
 **Never feed anonymized output back to `anonymize.py`**: aliases are not recognised (`user3` becomes `text1`); `publish.py` and
 `flows.py` read raw captures, `check` only reads. A document that is not
