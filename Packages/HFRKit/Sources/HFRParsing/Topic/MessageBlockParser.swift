@@ -13,46 +13,78 @@ public enum MessageBlockParser {
     static let continuationLead = "Reprise du message précédent :"
 
     /// Message blocks of a page in page order; advertisement blocks are skipped. A page without any block
-    /// (a deleted conversation, a page that is not a topic) gives an empty array, not an error.
+    /// (a deleted conversation, a page that is not a topic) gives an empty array, not an error. A block that cannot be read
+    /// is skipped, as legacy read each message on its own (`ParseMessagesOperation.m:139-177` @ 87fe0d1c); the page throws
+    /// only when it has message blocks and none of them is readable (#1186).
     public static func blocks(in html: String) throws(ParsingError) -> [MessageBlock] {
         let document = try HTMLDocumentLoader.document(from: html)
         return try extract(from: document).map(\.block)
     }
 
+    /// The readable blocks of a page and what was skipped (#1186).
+    struct Extraction {
+        /// The readable blocks, in page order.
+        var blocks: [ExtractedMessageBlock] = []
+        /// Message blocks skipped because a field could not be read (advertisement blocks are not counted).
+        var skipped = 0
+        /// The failure of the first skipped block, when it came before every readable one.
+        var leadingFailure: ParsingError?
+    }
+
     /// Message blocks with their DOM elements, for the stages that continue on the same tree.
     static func extract(from document: Document) throws(ParsingError) -> [ExtractedMessageBlock] {
+        try extraction(from: document).blocks
+    }
+
+    /// The readable message blocks with their DOM elements and the skipped count; throws the first block's failure when no
+    /// block is readable (LESSONS 44: "could not read" stays distinct from "no message").
+    static func extraction(from document: Document) throws(ParsingError) -> Extraction {
         // `contentHTML` is handed on as served: pretty-printing would add newlines inside `<pre>` and around inline tags.
         document.outputSettings().prettyPrint(pretty: false)
         guard let body = document.body() else { throw .malformedDocument }
-        var blocks: [ExtractedMessageBlock] = []
+        var extraction = Extraction()
+        var firstFailure: ParsingError?
         // Legacy matches the whole class attribute (`allowPartial:NO`); the ad block uses the same class and is dropped below.
         for table in body.descendants(matching: .exact("messagetable")) {
-            let elements = (try? table.getAllElements().array().dropFirst()) ?? []
-            guard let author = try author(in: elements) else { continue }
-            let numreponse = try numreponse(in: elements)
-            let content = try content(in: elements, numreponse: numreponse)
-            let toolbar = elements.first { $0.hasAttributeValue("class", .exact("toolbar")) }
-            let edited = elements.first { $0.hasAttributeValue("class", .exact("edited")) }
-            let date = toolbar.flatMap { postingDate(in: $0) }
-            let trailer = edited.map { editTrailer(in: $0) } ?? EditTrailer()
-            let block = MessageBlock(
-                numreponse: numreponse,
-                author: author,
-                isDeleted: isDeleted(table),
-                isContinuation: blocks.isEmpty && isContinuation(content),
-                avatarURL: avatarURL(in: elements),
-                dateText: date?.text ?? "",
-                postedAt: date?.instant,
-                contentHTML: try innerHTML(of: content),
-                editNote: trailer.note,
-                editedBy: trailer.editor,
-                editedAt: trailer.instant,
-                quotedByCount: trailer.quotedByCount,
-                quotedByURL: trailer.quotedByURL
-            )
-            blocks.append(ExtractedMessageBlock(block: block, table: table, content: content, toolbar: toolbar, edited: edited))
+            do throws(ParsingError) {
+                guard let extracted = try block(in: table, isFirst: extraction.blocks.isEmpty) else { continue }
+                extraction.blocks.append(extracted)
+            } catch {
+                extraction.skipped += 1
+                firstFailure = firstFailure ?? error
+                if extraction.blocks.isEmpty { extraction.leadingFailure = extraction.leadingFailure ?? error }
+            }
         }
-        return blocks
+        if extraction.blocks.isEmpty, let firstFailure { throw firstFailure }
+        return extraction
+    }
+
+    /// The block of `table`, nil for the advertisement block; throws when a field the block needs cannot be read.
+    private static func block(in table: Element, isFirst: Bool) throws(ParsingError) -> ExtractedMessageBlock? {
+        let elements = (try? table.getAllElements().array().dropFirst()) ?? []
+        guard let author = try author(in: elements) else { return nil }
+        let numreponse = try numreponse(in: elements)
+        let content = try content(in: elements, numreponse: numreponse)
+        let toolbar = elements.first { $0.hasAttributeValue("class", .exact("toolbar")) }
+        let edited = elements.first { $0.hasAttributeValue("class", .exact("edited")) }
+        let date = toolbar.flatMap { postingDate(in: $0) }
+        let trailer = edited.map { editTrailer(in: $0) } ?? EditTrailer()
+        let block = MessageBlock(
+            numreponse: numreponse,
+            author: author,
+            isDeleted: isDeleted(table),
+            isContinuation: isFirst && isContinuation(content),
+            avatarURL: avatarURL(in: elements),
+            dateText: date?.text ?? "",
+            postedAt: date?.instant,
+            contentHTML: try innerHTML(of: content),
+            editNote: trailer.note,
+            editedBy: trailer.editor,
+            editedAt: trailer.instant,
+            quotedByCount: trailer.quotedByCount,
+            quotedByURL: trailer.quotedByURL
+        )
+        return ExtractedMessageBlock(block: block, table: table, content: content, toolbar: toolbar, edited: edited)
     }
 
     // MARK: - Fields

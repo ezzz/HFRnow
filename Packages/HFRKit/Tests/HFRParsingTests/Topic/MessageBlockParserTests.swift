@@ -151,3 +151,56 @@ struct MessageBlockParserTests {
         #expect(throws: Never.self) { try typed("<html><body></body></html>") }
     }
 }
+
+/// #1186: one unreadable block no longer makes the page unreadable; the R20 capture is broken in memory, one field at a time.
+@Suite("Message block parser: unreadable blocks")
+struct MessageBlockUnreadableTests {
+    /// R20's second message.
+    static let target = 2_666_682
+
+    /// `html` with `old` replaced by `new` inside the message table of `numreponse` only.
+    static func breaking(_ html: String, block numreponse: Int, _ old: String, _ new: String) throws -> String {
+        let anchor = try #require(html.range(of: "name=\"t\(numreponse)\""))
+        let start = try #require(html.range(of: "class=\"messagetable\"", options: .backwards, range: html.startIndex..<anchor.lowerBound))
+        let end = html.range(of: "class=\"messagetable\"", range: anchor.upperBound..<html.endIndex)?.lowerBound ?? html.endIndex
+        let table = html[start.lowerBound..<end]
+        #expect(table.contains(old), "the mutation must hit the block")
+        return html.replacingCharacters(in: start.lowerBound..<end, with: table.replacing(old, with: new))
+    }
+
+    @Test(
+        "A block without its anchor, its author cell or its content is skipped; the others stay, in order",
+        arguments: [
+            ("name=\"t\(target)\"", "name=\"x\(target)\""),
+            ("class=\"s2\"", "class=\"s3\""),
+            ("id=\"para\(target)\"", "id=\"body\(target)\"")
+        ]
+    )
+    func skipsUnreadableBlock(old: String, new: String) throws {
+        let html = try Fixture.capture("R20-topic-p1-anon")
+        let expected = try MessageBlockParser.blocks(in: html).map(\.numreponse).filter { $0 != Self.target }
+        let broken = try Self.breaking(html, block: Self.target, old, new)
+        #expect(try MessageBlockParser.blocks(in: broken).map(\.numreponse) == expected)
+        let document = try HTMLDocumentLoader.document(from: broken)
+        let extraction = try MessageBlockParser.extraction(from: document)
+        #expect(extraction.skipped == 1)
+        #expect(extraction.leadingFailure == nil)
+        // The action links stay aligned with the blocks (`TopicPageSource` pairs them by position).
+        #expect(try MessageActionsParser.actions(in: broken).count == expected.count)
+    }
+
+    @Test("A page whose every block is unreadable is still an error, not an empty topic")
+    func everyBlockBrokenThrows() throws {
+        let html = try Fixture.capture("R20-topic-p1-anon").replacing("name=\"t", with: "name=\"x")
+        #expect(throws: ParsingError.missingElement("a[name=t<numreponse>]")) { try MessageBlockParser.blocks(in: html) }
+    }
+
+    @Test("MPStorage refuses a page whose first block is unreadable: the next message must not pass for the document")
+    func storageRefusesAnUnreadableFirstBlock() throws {
+        let html = try Fixture.capture("R20-topic-p1-anon")
+        let broken = try Self.breaking(html, block: 2_666_649, "name=\"t2666649\"", "name=\"x2666649\"")
+        #expect(throws: MPStoragePageError.unreadablePage(.missingElement("a[name=t<numreponse>]"))) {
+            try MPStoragePageParser.locateMessage(in: broken)
+        }
+    }
+}

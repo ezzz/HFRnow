@@ -33,7 +33,7 @@ capture, see Edge cases), action links (`:371-390`, LOT-031), avatar cache and d
 
 | Type | Members | Rules |
 |---|---|---|
-| `MessageBlockParser` (public) | `blocks(in: String) throws(ParsingError) -> [MessageBlock]` | Parses the page, returns the message blocks in page order, advertisement blocks skipped. A page without any `messagetable` (a deleted conversation `RA5`, a non-topic page) gives `[]`, not an error |
+| `MessageBlockParser` (public) | `blocks(in: String) throws(ParsingError) -> [MessageBlock]` | Parses the page, returns the message blocks in page order, advertisement blocks skipped. A page without any `messagetable` (a deleted conversation `RA5`, a non-topic page) gives `[]`, not an error. A block that cannot be read is skipped; the page throws only when it has blocks and none is readable (#1186) |
 | `MessageBlockParser` (internal) | `extract(from: Document) throws(ParsingError) -> [ExtractedMessageBlock]` | Same, with the DOM elements, for the next stages inside HFRParsing |
 | `ExtractedMessageBlock` (internal) | `block`, `table`, `content`, `toolbar?`, `edited?` | SwiftSoup elements never leave the module (ADR 0002) |
 | `MessageBlock` (public, `Sendable, Hashable, Identifiable, Codable`) | see below | the facts of one block, no policy, no rewriting |
@@ -149,7 +149,9 @@ and `result.render` (LOT-033, app).
 6. **Selectors instead of positions.** `firstChild.firstChild[name]` becomes "first `<a name="t<n>">`"; `id="para<numreponse>"` is tried
    before the legacy "any `id` containing `para`"; the deleted wrapper is matched as a class token, not as the whole attribute.
 7. **Errors are typed and specific** (`missingElement("class=s2")`, `"a[name=t<numreponse>]"`, `"id=para<numreponse>"`) where legacy
-   produced a `LinkItem` with nil fields; a page without blocks is `[]` in both.
+   produced a `LinkItem` with nil fields; a page without blocks is `[]` in both. Since #1186 such a block is skipped and the page keeps its
+   other messages (legacy kept each message on its own, `ParseMessagesOperation.m:139-177` @ 87fe0d1c); the error is thrown only when no
+   block of the page is readable, and `MPStoragePageParser` refuses a page whose first block was skipped (it edits that message).
 8. **The "Voir ce message dans le sujet non filtré" link is not part of the content.** On a search page with the filter checked
    (`filter=1`, R122c, 31 messages) HFR puts `<a class="cLink"><b>Voir ce message dans le sujet non filtré</b></a>` before each `div#para<n>`, as
    the second child of `messCase2`; legacy prepends it to `dicoHTML` (`ParseMessagesOperation.m:364-368` @ 2440d79), the port reads the `para`
