@@ -51,11 +51,11 @@ import Testing
         state.imported = ["user-a"]
         state.stamps = ["user-a": AccountStamp(credentialsAt: moment(90), consentAt: moment(80))]
         state.removed = ["user-x": moment(95)]
-        #expect(AccountSyncState.decoded(from: try state.encoded()) == state)
-        #expect(AccountSyncState.decoded(from: nil) == AccountSyncState())
-        #expect(AccountSyncState.decoded(from: Data("garbage".utf8)) == nil)
-        #expect(AccountSyncState.decoded(from: Data(#"{"version":2,"isOn":true,"enabledAt":1}"#.utf8)) == nil)
-        #expect(AccountSyncState.decoded(from: Data(#"{"version":1,"isOn":true}"#.utf8))?.isOn == false)
+        #expect(AccountSyncState.decoded(from: try state.encoded()) == .readable(state))
+        #expect(AccountSyncState.decoded(from: nil) == .readable(AccountSyncState()))
+        #expect(AccountSyncState.decoded(from: Data("garbage".utf8)) == .damaged)
+        #expect(AccountSyncState.decoded(from: Data(#"{"version":2,"isOn":true,"enabledAt":1}"#.utf8)) == .laterVersion)
+        #expect(AccountSyncState.decoded(from: Data(#"{"version":1,"isOn":true}"#.utf8)) == .readable(AccountSyncState()))
     }
 
     /// ADR 0013 §6: the copy syncs and is `AfterFirstUnlock` (a `ThisDeviceOnly` class cannot sync); the state never leaves
