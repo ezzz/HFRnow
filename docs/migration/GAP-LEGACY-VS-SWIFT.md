@@ -178,7 +178,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-144 | Dark brightness | `theme_night_brightness` scales dark colours; at `2fe43da3` (`f917fafd`) the Swift settings show the "Luminosité du thème sombre" slider (0 to 150 %). | ThemeColors.m:116-118; AppSettingsView.swift:448-462 @ 2fe43da3 | Kept. | LOT-121 | same | port: legacy ObjC | a |
 | GAP-145 | Darker dark and OLED | No OLED theme (Light and Dark only); the dark reader page is #2E2F33 (`style-liste-dark.css:263-266` @ 87fe0d1c), the native dark #17181A. | Constants.h:52-55; ThemeColors.m:164 | Picker « Style du thème sombre » (Standard par défaut, le gris de legacy #2E2F33 pour la page du reader depuis #1210 / Plus sombre #0B0B0C / Noir OLED) avec aperçu ; les séparateurs sont les jetons de #577, sans réglage dédié. | LOT-122, FEAT-010, #1210 | new | new UX: Bybifok (FEAT-010), operator (#1210) | a |
 | GAP-146 | Accent colour | Hue slider (default 190°), day and night tints derived from one hue. | AppSettingsView.swift:307-312, 391-398; Common.swift:461-466 | Legacy accent kept; FEAT-010 asks a single accent with live preview. | LOT-121, LOT-180 | UX change | new UX: Bybifok (FEAT-010) | b |
-| GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 @ 2440d79; HFRplusAppDelegate.m:627-677 (forced off at :103, :365); ThemeManager.m:213-245; Common.swift:610-627; HFRNavigationController.m:85-90, 134-139; HFRplusAppDelegate.m:382-388; PlusSettingsViewController.m:112-115 @ 87fe0d1c | Noël (Noël soft, Noël abusé) selectable 01/12–26/12 on local dates every year, Noël soft switched on 01/12–24/12 unless opted out, arrival: Santa's sleigh pulled by its reindeer crosses the screen, then the « Oh Oh Oh ! » alert; elves packing and restore of the previous theme (silent after 02/01); Noël soft = legacy's red accent over the Legacy theme, a gallery theme keeping its own accent (operator, 2026-11-12), never stored,, procedural light snow (legacy's snow frames have no stated licence), snow piled on the first card and in the bottom corners, and a Christmas object crossing the screen every 20–90 min of foreground time; Samain 01/10–31/10 (LOT-191); 14 July overlay (LOT-194); « Thèmes de saison automatiques » and « Animations de saison » settings (docs/THEMES.md §4–§5). | LOT-166, LOT-191, LOT-194, FEAT-010 | UX change | new UX: operator | b·operator |
+| GAP-147 | Seasonal theme | Christmas red accent and images unless disabled. | ThemeManager.m:213-244; Common.swift:469-473 @ 2440d79; HFRplusAppDelegate.m:627-677 (forced off at :103, :365); ThemeManager.m:213-245; Common.swift:610-627; HFRNavigationController.m:85-90, 134-139; HFRplusAppDelegate.m:382-388; PlusSettingsViewController.m:112-115 @ 87fe0d1c | Noël (Noël soft, Noël abusé) selectable 01/12–26/12 on local dates every year, Noël soft switched on 01/12–24/12 unless opted out, arrival: Santa's sleigh pulled by its reindeer crosses the screen, then the « Thème de Noël activé » alert (« Thème de Noël » when nothing was switched on; « OK » the cancel role, #1174); elves packing and restore of the previous theme (silent after 02/01); Noël soft = legacy's red accent over the Legacy theme, a gallery theme keeping its own accent (operator, 2026-11-12), never stored, procedural light snow (legacy's snow frames have no stated licence), snow piled on the first card and in the bottom corners, and a Christmas object crossing the screen every 20–90 min of foreground time; Samain 01/10–31/10 (LOT-191); 14 July overlay (LOT-194); « Thèmes de saison automatiques » and « Animations de saison » settings (docs/THEMES.md §4–§5). | LOT-166, LOT-191, LOT-194, FEAT-010 | UX change | new UX: operator | b·operator |
 | GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker grouped by pack (Legacy, Beta, X-face, Saisons) as a grid with a preview of every icon (as on the Home Screen, light or dark) and its name: the 9 shipped options on their legacy keys and names plus Noël REDFACE and Noël HFR (01/12 to 26/12), then (LOT-190) Orange, Classique Blue, Beta rouge, the X-face variations and the other season icons; dated icons only inside their window, with a one-time « Revenir à l'icône précédente ? » after it (docs/ICONS.md). | LOT-123, LOT-189, LOT-190 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-150 | Open links in default browser | Absent at `2440d79`; at `2fe43da3` (`9f15513d`) the "Navigateur par défaut" toggle (key `open_links_in_default_browser`, off: in-app browser). | Common.swift:257-259, AppSettingsView.swift:402-406 @ 2fe43da3 | "Navigateur par défaut" toggle; HFR links stay in the app. | LOT-119, LOT-137 | new | port: ezzz Swift layer | a·master |
@@ -228,6 +228,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-193 | "Vérifier HFR" App Intent | None. | — | Shortcuts check of MPs and flags, minimum interval. | LOT-141, LOT-092, FEAT-005 | new | new UX: Bybifok (FEAT-005) | b |
 | GAP-194 | Flag news notification | Flags never notified. | — | Ledger notifies flagged topics with a newer post. | LOT-091, LOT-092 | new | new UX: Bybifok (FEAT-005) | b |
 | GAP-195 | "On t'a cité" | None. | — | Quote notice in Home and notifications, if the capture proves it feasible. | LOT-154, FEAT-018 | new | new UX: Bybifok (FEAT-018) | b |
+| GAP-1172 | Notification permission prompt | Asked at every launch, logged in or not (iOS shows it once). | HFRswiftApp.swift:27-29 @ 87fe0d1c | The `mp` category is registered at launch; the prompt is asked when an account becomes current (restore, login, switch), once, while iOS never asked and « Notifications » or « Badge messages non lus » is on; never logged out; Réglages still asks when « Notifications » or « Badge messages non lus » is turned on. | LOT-140, #1172 | UX change | HIG › Privacy (Requesting permission), #866 review, operator triage 2026-11-19 | b·operator |
 
 ## Accessibility
 
@@ -285,11 +286,11 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 | same | 33 |
 | ported with changes | 64 |
 | ported with changes (engine only) | 1 |
-| UX change | 55 |
+| UX change | 56 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 3 |
-| **Total** | **188** |
+| **Total** | **189** |
 
 ## Convergence notes
 
@@ -319,14 +320,14 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (148)
+### GAP rows of type `ported with changes`, `UX change` or `new` (149)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 005, 020, 021, 022, 023, 026, 027, 032, 033, 038, 040, 050, 053, 054, 055, 064, 067, 068, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595 | 50 |
 | a·master | 002, 093, 099, 117, 150, 152, 210, 217, 219, 682, 713 | 11 |
 | b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
-| b·operator | 011, 013, 016, 025, 065, 069, 091, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1207 | 39 |
+| b·operator | 011, 013, 016, 025, 065, 069, 091, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1207 | 40 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 1073, 1074, 1107 | 40 |
 
 The (b) rows include the ones the merged code already ships: 008, 009, 051, 060, 092, 163 (020, 022, 212 and 214 now follow legacy, so they are `a` or `a·master`). The `same` rows are (a).
