@@ -186,16 +186,20 @@ struct ArchivedDraftsTests {
     }
 
     /// The pending autosave is settled first, so the only write is the archive's: no active draft is stored, before or after
-    /// the autosave's delay. (A late autosave would also read an empty text, so this pins the outcome, not the ordering.)
-    @Test func aPendingAutosaveLeavesNoActiveDraftAfterASetAside() async {
+    /// the autosave's delay. A late autosave would also read an empty text, so the cancellation is checked as well (#1194).
+    @Test func aPendingAutosaveLeavesNoActiveDraftAfterASetAside() async throws {
         let persistence = CountingDraftPersistence()
         let drafts = DraftStore(persistence: persistence)
         let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(50))
         await composer.start()
         composer.update(text: "en attente")
+        let pending = try #require(composer.pendingAutosave)
         await composer.archiveAndClear()
+        // The set-aside settled it: this pins the ordering, not only the outcome.
+        #expect(pending.isCancelled)
         await composer.waitForAutosave()
-        try? await Task.sleep(for: .milliseconds(120))
+        // The autosave scheduled before the set-aside has ended, however late it would have fired (#1194: not a delay).
+        await pending.value
         #expect(persistence.saves == 1)
         #expect(await ComposerFixture.storedText(drafts) == nil)
         #expect(await archived(drafts) == ["en attente"])
