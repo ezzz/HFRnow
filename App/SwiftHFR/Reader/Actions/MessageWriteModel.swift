@@ -59,17 +59,32 @@ final class MessageWriteModel {
     }
 
     /// "Editer": reads the edit form, then opens the composer on it. A failure opens nothing and offers to read it again.
+    ///
+    /// One composer at a time over the page (#1190): refused while another composer is open or being prepared, and it holds the
+    /// reader's slot while the form loads, so "Répondre" and the quotes wait for it. A composer that opened meanwhile anyway
+    /// (the author menu's MP) drops the late edit, and the member is told.
     func openEditor(_ target: EditTarget) async {
-        guard progress == nil, editor == nil else { return }
+        guard progress == nil, editor == nil, let reader, reader.composerSlotIsFree else { return }
+        reader.isLoadingQuote = true
         progress = "Chargement de l’édition…"
-        defer { progress = nil }
+        defer {
+            progress = nil
+            reader.isLoadingQuote = false
+        }
         do throws(PostingError) {
             let prefill = try await services.poster.editPrefill(target)
+            guard !reader.suspendsPageInteractions, reader.pendingReply == nil else {
+                reader.showMenuFeedback(Self.editDropped)
+                return
+            }
             editor = ReplyComposerModel(editing: target, prefill: prefill, services: services)
         } catch {
             failure = Failure(title: "Edition impossible", message: ComposerMessages.editUnavailable(error), retry: target)
         }
     }
+
+    /// Said when a composer opened while the edit form loaded (#1190).
+    static let editDropped = "Edition abandonnée : un autre message est en cours d’écriture."
 
     /// The composer closed: HFR's sentence and the message after a confirmed edit, the message alone after an unconfirmed one,
     /// so the user sees what the forum holds. Closing with or without the draft changes nothing.

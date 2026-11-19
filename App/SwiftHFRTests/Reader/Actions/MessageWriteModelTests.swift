@@ -89,6 +89,58 @@ struct MessageWriteModelTests {
         #expect(fixture.writes.progress == nil)
     }
 
+    // MARK: - One composer at a time (#1190)
+
+    /// "Editer" on a slow network, then "Répondre" while the form loads: the reply is refused, and only the edit composer opens.
+    @Test func aReplyAskedDuringAnEditPrefillKeepsOneComposer() async throws {
+        let gate = ReaderGate()
+        let poster = ScriptedPoster([], prefillGate: gate)
+        poster.scriptPrefill([.success(try EditCapture.prefill(EditCapture.laterPostForm))])
+        let fixture = try await fixture(poster: poster)
+        let target = try target(fixture)
+        let editing = Task { await fixture.writes.openEditor(target) }
+        await gate.untilArrived()
+        #expect(!fixture.reader.composerSlotIsFree)
+        await fixture.reader.requestReply()
+        #expect(fixture.reader.pendingReply == nil)
+        await gate.open()
+        await editing.value
+        #expect(fixture.writes.editor != nil)
+        #expect(fixture.reader.pendingReply == nil)
+    }
+
+    /// The other way round: a quote in flight, or a composer open, holds the slot, so "Editer" reads nothing.
+    @Test func editIsRefusedWhileTheSlotIsHeld() async throws {
+        let poster = ScriptedPoster([])
+        poster.scriptPrefill([.success(try EditCapture.prefill(EditCapture.laterPostForm))])
+        let fixture = try await fixture(poster: poster)
+        let target = try target(fixture)
+        fixture.reader.isLoadingQuote = true
+        await fixture.writes.openEditor(target)
+        #expect(poster.prefillRequests.isEmpty && fixture.writes.editor == nil)
+        fixture.reader.isLoadingQuote = false
+        fixture.reader.composer(.reply, isOpen: true)
+        await fixture.writes.openEditor(target)
+        #expect(poster.prefillRequests.isEmpty && fixture.writes.editor == nil)
+    }
+
+    /// A composer the slot does not cover (the author menu's MP) opened while the form loaded: the late edit is dropped, and
+    /// the member is told.
+    @Test func aComposerOpenedDuringThePrefillDropsTheLateEdit() async throws {
+        let gate = ReaderGate()
+        let poster = ScriptedPoster([], prefillGate: gate)
+        poster.scriptPrefill([.success(try EditCapture.prefill(EditCapture.laterPostForm))])
+        let fixture = try await fixture(poster: poster)
+        let target = try target(fixture)
+        let editing = Task { await fixture.writes.openEditor(target) }
+        await gate.untilArrived()
+        fixture.reader.composer(.privateMessage, isOpen: true)
+        await gate.open()
+        await editing.value
+        #expect(fixture.writes.editor == nil)
+        #expect(fixture.reader.menuFeedback == MessageWriteModel.editDropped)
+    }
+
     @Test func aFailedReadOpensNothingAndOffersToReadAgain() async throws {
         let poster = ScriptedPoster([])
         poster.scriptPrefill([

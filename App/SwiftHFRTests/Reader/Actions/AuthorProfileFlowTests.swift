@@ -133,6 +133,22 @@ struct AuthorProfileFlowTests {
         #expect(noLink.privateMessageRecipient == nil)
     }
 
+    /// #1190: the menu's "MP" waits for the reader's composer slot: refused while a reply, quote or edit is being prepared.
+    @Test func mpIsRefusedWhileAnotherComposerIsBeingPrepared() async throws {
+        let fixture = Fixture()
+        let profile = try profileModel(store: fixture.store)
+        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(readerTopic)), source: FakeTopicPages())
+        let handlers = fixture.flow.handlers(reader: reader, composer: fixture.composer, makeProfile: { _ in profile }, confirm: { _ in })
+        let handler = try #require(handlers.compactMap { $0 as? PrivateMessageActionHandler }.first)
+        reader.isLoadingQuote = true
+        await handler.perform(with: context())
+        #expect(fixture.flow.newMessage == nil)
+        #expect(reader.menuFeedback == AuthorMenuFlow.slotHeld)
+        reader.isLoadingQuote = false
+        await handler.perform(with: context())
+        #expect(fixture.flow.newMessage != nil)
+    }
+
     /// "MP" closes the profile; the composer opens once the sheet is gone, addressed from the message's link.
     @Test func mpClosesTheProfileThenOpensTheComposer() async throws {
         let fixture = Fixture()
