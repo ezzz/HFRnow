@@ -91,10 +91,13 @@ struct UnreadableDataRecoveryTests {
         let stores = SeededStores()
         let positions = ReadingPositionStore(persistence: UnreadablePositionPersistence())
         let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser(positions: positions))
-        await deletion.erase(try #require(accounts.rows.first))
+        let row = try #require(accounts.rows.first)
+        await deletion.erase(row)
         #expect(deletion.positionsAreUnreadable)
         await deletion.discardUnreadablePositions()
-        #expect(!deletion.positionsAreUnreadable && deletion.phase == .idle)
+        #expect(!deletion.positionsAreUnreadable)
+        // Positions were the wipe's only failure: once they are set aside, the account reads as erased.
+        #expect(deletion.phase == .erased(name: row.displayName))
         #expect(await positions.loadFailure() == nil)
     }
 

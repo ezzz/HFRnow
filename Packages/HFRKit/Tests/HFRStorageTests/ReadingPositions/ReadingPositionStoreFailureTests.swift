@@ -58,6 +58,17 @@ import Testing
         #expect(try await store.advance(Self.cuisine, to: ReadingPosition(page: 2), account: "user1"))
     }
 
+    /// #1182: a read that failed once and works again is not set aside: the discard reads the data first.
+    @Test func discardKeepsDataThatReadsAgain() async throws {
+        let persistence = FailingPersistence()
+        let store = ReadingPositionStore(persistence: persistence)
+        #expect(await store.loadFailure() != nil)
+        persistence.failsToLoad = false
+        try await store.discardUnreadableData()
+        #expect(persistence.quarantined == false)
+        #expect(await store.loadFailure() == nil)
+    }
+
     @Test func discardDoesNothingWhenTheDataIsReadable() async throws {
         let persistence = FailingPersistence()
         persistence.failsToLoad = false
