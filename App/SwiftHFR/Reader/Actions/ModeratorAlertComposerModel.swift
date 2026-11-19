@@ -32,6 +32,11 @@ final class ModeratorAlertComposerModel: Identifiable {
     /// The sheet ended (sent, closed or unconfirmed): nothing more is sent from it, even by a late tap.
     private(set) var isFinished = false
 
+    /// A reason is typed that closing would throw away (#1169): « Annuler » asks and the swipe-down waits.
+    var hasUnsavedReason: Bool {
+        !isFinished && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private let alert: PreparedModeratorAlert
     private let finish: @MainActor (Outcome) -> Void
 

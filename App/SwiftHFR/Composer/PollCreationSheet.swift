@@ -4,7 +4,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/TopicPollDraft.swift:56-144 (TopicPollCreationSheet) @ 87fe0d1c (GAP-099). Differences: answers carry
 // their own identity, so deleting one never rebinds a field to the wrong row (legacy bound `options[index]` by position); the
-// one-line and character rules of `PollDraft` are shown like legacy's other messages.
+// one-line and character rules of `PollDraft` are shown like legacy's other messages; changes are not thrown away without asking
+// (#1169, legacy `:124-127` closed at once).
 /// "Créer un sondage" (LOT-100): the question, two to ten answers, the number of choices, visitors and the closing date.
 struct PollCreationSheet: View {
     /// One answer field.
@@ -20,6 +21,9 @@ struct PollCreationSheet: View {
     @State private var allowsVisitors: Bool
     @State private var hasClosingDate: Bool
     @State private var closingDate: Date
+    @State private var isAskingDiscard = false
+    /// The poll the sheet opened on: closing asks only once the fields differ from it (#1169).
+    private let initial: PollDraft
     let onSave: (PollDraft) -> Void
 
     /// A sheet opened on `draft` (an empty one adds a poll, the composer's one edits it).
@@ -30,6 +34,7 @@ struct PollCreationSheet: View {
         _allowsVisitors = State(initialValue: draft.allowsVisitors)
         _hasClosingDate = State(initialValue: draft.closingDate != nil)
         _closingDate = State(initialValue: draft.closingDate ?? Date().addingTimeInterval(86_400))
+        initial = draft
         self.onSave = onSave
     }
 
@@ -67,7 +72,9 @@ struct PollCreationSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler") {
+                        if Self.hasChanges(draft, from: initial) { isAskingDiscard = true } else { dismiss() }
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Ajouter") {
@@ -78,6 +85,14 @@ struct PollCreationSheet: View {
                 }
             }
         }
+        .discardConfirmation(
+            "Abandonner ce sondage ?", hasChanges: Self.hasChanges(draft, from: initial), isAsking: $isAskingDiscard
+        ) { dismiss() }
+    }
+
+    /// Whether closing would throw something away (#1169): any field differs from the poll the sheet opened on.
+    static func hasChanges(_ current: PollDraft, from initial: PollDraft) -> Bool {
+        current != initial
     }
 
     private var answersSection: some View {
