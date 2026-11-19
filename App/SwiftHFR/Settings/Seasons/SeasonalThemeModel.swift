@@ -26,8 +26,22 @@ final class SeasonalThemeModel {
 
     /// The alert to show once nothing covers the screen.
     enum Alert: Hashable, Identifiable {
-        /// « Oh Oh Oh ! » [OK] [Désactiver].
+        /// « Thème de Noël activé » [OK] [Désactiver].
         case noelArrival(year: Int)
+
+        /// The alert's title: it names the situation (HIG › Alerts, #1174).
+        var title: String {
+            switch self {
+            case .noelArrival: "Thème de Noël activé"
+            }
+        }
+
+        /// The alert's message.
+        var message: String {
+            switch self {
+            case .noelArrival: "Thème disponible dans les réglages"
+            }
+        }
 
         var id: Self { self }
     }

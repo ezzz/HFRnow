@@ -75,3 +75,13 @@ struct SeasonalArrivalTests {
         #expect(model.alert(for: right, screen: Self.clear) == nil)
     }
 }
+
+/// The arrival alert's wording (#1174, HIG › Alerts): a title that names the situation, not a greeting.
+struct SeasonalArrivalAlertTextTests {
+    @Test func theTitleNamesTheSituationAndTheMessageSaysWhereToFindIt() {
+        let alert = SeasonalThemeModel.Alert.noelArrival(year: 2026)
+        #expect(alert.title == "Thème de Noël activé")
+        #expect(alert.message == "Thème disponible dans les réglages")
+        #expect(!alert.title.contains("Oh"))
+    }
+}
