@@ -63,7 +63,9 @@ Code in `App/SwiftHFR/Reader/Actions/`, tests in `App/SwiftHFRTests/Reader/Actio
    - an error: "Alerte impossible" with a French text that says nothing was sent (HFR's own sentence for `formUnavailable`).
 3. **Compose and send** — the sheet "Alerte Modération" shows legacy's warning, a text editor with the placeholder "Décrivez
    le problème…", "Annuler" and "Envoyer". "Envoyer" is enabled for a non-blank reason while nothing is being sent; one send
-   at a time; "Annuler" and the swipe-down are disabled while sending. `ModeratorAlertFlow.submit` sends the form once:
+   at a time; "Annuler" and the swipe-down are disabled while sending. While a reason is typed, the swipe-down is refused and
+   "Annuler" asks « Abandonner cette alerte ? » (« Abandonner » / « Continuer la saisie »), as the composer does (#1169;
+   legacy closed at once, `MessagesView.swift:7479-7484` @ 87fe0d1c). `ModeratorAlertFlow.submit` sends the form once:
    - success (`W46`, HFR's sentence "Un message a été envoyé avec succès aux modérateurs"): the sheet closes and the sentence
      is the reader's toast;
    - nothing was sent and the form is still usable (`emptyReason`, `unsupportedCharacters`, `rejected`, `network`): the
@@ -87,7 +89,8 @@ No HFR fact is new here: links, pages, form and answers are LOT-050's (HFR-PROTO
 ## Edge cases
 
 - A tap on "Alerter" while a preparation runs, or while the sheet is open, does nothing.
-- The sheet dismissed by a swipe drops the reason (legacy did too); nothing was sent.
+- A typed reason is not dropped by a swipe or « Annuler » without asking (#1169; legacy dropped it). A blank reason closes at
+  once; nothing was sent.
 - A send still running when the sheet goes away still reports its outcome to the reader.
 - A message with both an alert link and a permalink, with an account, never offers the mail (legacy `:2232-2254`). Without
   an account (a page read before a logout) it offers the mail where legacy opened the form and failed (difference 3).
