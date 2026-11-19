@@ -263,7 +263,7 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 - **Legacy reference**: `HFRswift/Swift/LiquidGlass.swift` at `2440d79` (`git show 2440d79:HFRswift/Swift/LiquidGlass.swift`). Used by 8 files, 27 lines besides the helper file. Quoted from `git grep -c 'glassEffect\|hfrGlass' 2440d79 -- HFRswift` (one line per file): 9 files and 33 lines in total, `LiquidGlass.swift:6` included; without it, 8 files and 27 lines.
 - **HIG pages read on 2026-11-07**: [Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets), [Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode), [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
 - **Ported by**: LOT-185 (#548) outside the reader, LOT-186 (#549) for the reader chrome, which absorbs #428.
-- **Not in these rows**: the M5 items (the composer bar, LOT-174; `Tab(role: .search)`; `tabViewBottomAccessory`) and the layered app icon (LOT-123). LOT-147 and its FEAT-016 additions are M4 (#655, #237, GAP-215, GAP-655).
+- **Not in these rows**: the M5 items (the composer bar, LOT-174; `Tab(role: .search)`; `tabViewBottomAccessory`) and the layered app icon (LOT-123). LOT-147's legacy part is M4 (#655, GAP-215); its FEAT-016 additions went back to M5, on hold, on 2026-11-19 (#237, carried by #160, GAP-655).
 
 | Id | Feature | Legacy behaviour | Legacy ref | SwiftHFR final | Lot/Feat | Gap | Source | H.1 |
 |---|---|---|---|---|---|---|---|---|
@@ -303,7 +303,7 @@ Decisions the UX review (H.1) has to make; each names its rows.
 7. **Images and videos.** Images always load by default, as in legacy (#902, operator 2026-11-14). Only policy C's when-to-load modes (« Wi-Fi uniquement », « Jamais (au toucher) ») sit behind Réglages › Expérimental › « Chargement des images »; its cookie-less client and private-host block always apply. Tap-to-play videos replace "always load" (GAP-056, 058).
 8. **Text size and Dynamic Type.** A 4-step picker becomes a slider on Dynamic Type; map the legacy values (GAP-053, 200).
 9. **Composer behaviour.** Per-topic drafts that block swipe-down, emoji refused at send rather than at typing, first-post delete, a quote tray (GAP-083, 092, 095, 097).
-10. **Duo and wide layouts.** The Duo inner screen follows legacy at `2fe43da3` (GAP-215, 217); the rail and the pinned sidebar are FEAT-016 additions in M4, opt-in and off by default (operator 2026-11-09, #237), designed in the LOT-147 spec and approved by the operator before code (GAP-655). GAP-212 and 216 are unchanged; GAP-214 follows legacy since #431 (a landscape iPhone reads the topic full width).
+10. **Duo and wide layouts.** The Duo inner screen follows legacy at `2fe43da3` (GAP-215, 217); the FEAT-016 additions are M5, on hold, since 2026-11-19 (#237, carried by #160): the tab rail is declined, the cover-screen tab bar kept while reading and the sidebar modes are the M5 work, designed in the LOT-147 spec's appendix (GAP-655). GAP-212 and 216 are unchanged; GAP-214 follows legacy since #431 (a landscape iPhone reads the topic full width).
 11. **Uncovered legacy features.** Tab reselect to refresh, quick actions, clear / undo / redo, "+" modes, time-based theme: keep (new lot) or drop on record (GAP-007, 010, 084, 086, 102, 143).
 12. **"Legacy parity" labels that are new.** MP mark unread, delete, members, poll creation, multi-window and archived drafts are not in `2440d79`; relabel or find their legacy source (GAP-093, 099, 116-118, 219). Poll creation, multi-window and archived drafts are in `2fe43da3`: backports of legacy evolution, M4 (#655, GAP-093, 099, 219).
 
@@ -344,7 +344,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 051, 060,
 
 | Class | Lots | Count |
 |---|---|---|
-| (a) port | 080, 086, 089, 100, 101, 102, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 146, 147 (and its FEAT-016 additions, GAP-655, `b·operator`), 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 36 |
+| (a) port | 080, 086, 089, 100, 101, 102, 104, 105, 113, 114, 116, 117, 118, 121, 123, 124, 126, 131, 132, 133, 135, 136, 139, 140, 146, 147, 155, 156, 158, 160, 161, 162, 163, 164, 165, 166 | 36 |
 | mixed | 081, 082, 083, 084, 085, 087, 088, 103, 106, 109, 111, 115, 119, 120, 122, 125, 127, 128, 130, 134, 137, 157, 159, 169, 170, 171 | 26 |
 | (b) evolution | 107, 108, 110, 112, 138, 141, 142, 143, 144, 145, 148, 149, 150, 151, 152, 153, 154, 173 | 18 |
 
@@ -379,7 +379,7 @@ The (b) rows include the ones the merged code already ships: 008, 009, 051, 060,
 - **iPhone Duo** (neither LOT-147 / #237 nor PR #4 gives a size; PR #4 only says the inner screen is regular / regular with a `.phone` idiom): inner screen 7.6 in, 2670 × 1878 px at 430 ppi; cover screen 5.4 in, 1398 × 2034 px (published specs as reported by the press, September 2026). Assumed scale @3x, so inner **890 × 626 pt** (unfolded, hinge vertical) or 626 × 890 pt rotated, cover **466 × 678 pt**. Camera as a punch hole; hinge crease drawn faintly. To check against Apple's developer device sizes.
 - Legacy cover screen: the black band of #368 G.1 is drawn at the bottom; its real position is not captured.
 - Legacy iPhone landscape is shown with "Rotation d'écran" on (off by default: portrait lock).
-- SwiftHFR Duo layouts follow FEAT-016's one-line summary (two columns, tab rail); the Phase 5 design document does not exist yet.
+- The mock-up's SwiftHFR Duo layout still draws the tab rail, declined on 2026-11-19 (#237); the FEAT-016 additions are M5, on hold (#160), with the LOT-147 spec's appendix as their starting point.
 - Fonts: Inter stands in for SF Pro, drawn icons for SF Symbols. Light theme on both sides; pseudos `user1`…`user6`; topic titles are illustrative.
 
 ## UX decisions of 2026-11-02
