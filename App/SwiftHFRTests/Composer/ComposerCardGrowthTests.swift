@@ -42,6 +42,23 @@ struct ComposerCardGrowthTests {
         #expect(layout(lines: 40, available: 200).editorHeight == 6 * Self.line + ComposerCardLayout.editorInsets)
     }
 
+    /// Before the keyboard has shown there is no room (today's six lines); once it has, the room follows it up and down but a
+    /// hidden keyboard keeps the last room, so the card does not rise over the page.
+    @Test func theRoomFollowsTheKeyboardOnlyWhileItIsUp() {
+        var keyboard = ComposerKeyboardRoom()
+        #expect(keyboard.room(window: 874, topInset: 62, line: 20) == nil, "no keyboard yet: no room, a long draft stays at six lines")
+        keyboard.keyboardChanged(height: 0)
+        #expect(keyboard.room(window: 874, topInset: 62, line: 20) == nil, "a hidden keyboard is not a measure")
+        keyboard.keyboardChanged(height: 336)
+        let up = keyboard.room(window: 874, topInset: 62, line: 20)
+        #expect(up == ComposerCardLayout.room(window: 874, topInset: 62, keyboard: 336, line: 20))
+        keyboard.keyboardChanged(height: 0)
+        #expect(keyboard.room(window: 874, topInset: 62, line: 20) == up, "the keyboard hides: the room stays")
+        keyboard.keyboardChanged(height: 400)
+        let higher = ComposerCardLayout.room(window: 874, topInset: 62, keyboard: 400, line: 20)
+        #expect(keyboard.room(window: 874, topInset: 62, line: 20) == higher)
+    }
+
     /// The window less the safe area, the navigation bar, the keyboard and a strip of the page's last message (three lines of the
     /// body font): an iPhone 18 Pro (402 × 874 pt, top inset 62 pt, keyboard 336 pt with its suggestion bar; illustrative inputs,
     /// to be replaced by a device measure on #893).

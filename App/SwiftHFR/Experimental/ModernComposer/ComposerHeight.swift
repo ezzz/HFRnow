@@ -81,7 +81,8 @@ struct ComposerCardLayout: Equatable {
     /// The tallest card the screen allows (`room`): the editor grows up to it, then scrolls. nil until it is measured: today's
     /// six lines (#1136).
     var availableHeight: CGFloat?
-    /// The standard navigation bar's height (HIG): the card stays below it.
+    /// The standard navigation bar's height (HIG, 44 pt for the inline bar; not yet measured on iOS 27: to confirm on the device,
+    /// #893): the card stays below it.
     static let navigationBarHeight: CGFloat = 44
     /// Lines of the body font kept visible of the page above the card, so the header of its last message shows (#1136).
     static let pageStripLines: CGFloat = 3

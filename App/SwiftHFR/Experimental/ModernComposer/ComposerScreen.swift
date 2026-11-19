@@ -28,13 +28,12 @@ enum ComposerScreen {
 struct ComposerRoomUpdates: ViewModifier {
     @Binding var layout: ComposerCardLayout
     let isDocked: Bool
-    /// The keyboard's height over the window, from its notifications: the card's room is what it leaves.
-    @State private var keyboardHeight: CGFloat = 0
+    @State private var keyboard = ComposerKeyboardRoom()
 
     func body(content: Content) -> some View {
         content
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
-                keyboardHeight = ComposerScreen.keyboardHeight(note)
+                keyboard.keyboardChanged(height: ComposerScreen.keyboardHeight(note))
                 update()
             }
             .onChange(of: layout.line, initial: true) { update() }
@@ -42,7 +41,25 @@ struct ComposerRoomUpdates: ViewModifier {
 
     private func update() {
         guard isDocked, layout.line > 0, let window = ComposerScreen.window else { return }
-        let room = ComposerCardLayout.room(window: window.height, topInset: window.topInset, keyboard: keyboardHeight, line: layout.line)
+        let room = keyboard.room(window: window.height, topInset: window.topInset, line: layout.line)
         if layout.availableHeight != room { layout.availableHeight = room }
+    }
+}
+
+/// The card's room, which follows the keyboard only while it is up (#1136, review): until the keyboard has shown once there is no
+/// room (`nil`: today's six lines, so a long draft never sizes the card over the whole screen and shrinks it when the focus raises
+/// the keyboard), and when the keyboard hides the last room stays, so the card does not rise over the page the user scrolled to read.
+struct ComposerKeyboardRoom: Equatable {
+    /// The last height of the keyboard while it was up; nil until it has been.
+    private(set) var lastHeight: CGFloat?
+
+    /// A keyboard frame change: a hidden keyboard (0) changes nothing.
+    mutating func keyboardChanged(height: CGFloat) {
+        if height > 0 { lastHeight = height }
+    }
+
+    /// The room for the card (`ComposerCardLayout.room`) with the last keyboard, nil before there was one.
+    func room(window: CGFloat, topInset: CGFloat, line: CGFloat) -> CGFloat? {
+        lastHeight.map { ComposerCardLayout.room(window: window, topInset: topInset, keyboard: $0, line: line) }
     }
 }
