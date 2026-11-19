@@ -28,7 +28,7 @@ final class ComposerFormattingModel {
         /// `[url]` with nothing selected and a clipboard text: the two forms are offered (legacy tag 667).
         case linkChoice(text: String, range: NSRange, changeCount: Int)
 
-        /// The alert's message (French).
+        /// The question's message (French).
         var message: String {
             switch self {
             case .link(let url, _, _): url
@@ -45,7 +45,7 @@ final class ComposerFormattingModel {
     private(set) var cursorRevision = 0
     /// The palette replaces the tag buttons.
     var isPaletteShown = false
-    /// The clipboard alert, when one is open.
+    /// The clipboard question, when one is open.
     private(set) var pending: Pending?
 
     private let composer: ReplyComposerModel
@@ -63,7 +63,7 @@ final class ComposerFormattingModel {
     func tap(_ target: ReplyFormattingTarget) {
         guard composer.canEdit else { return }
         let range = ReplyTextInsertionEngine.clamped(selectedRange, in: composer.text)
-        // Legacy closes the palette on the colour tap, even when the clipboard alert follows.
+        // Legacy closes the palette on the colour tap, even when the clipboard question follows.
         if case .color = target { isPaletteShown = false }
         if case .bbCode(.url) = target, range.length > 0, let candidate = urlCandidate() {
             pending = .link(url: candidate.text, range: range, changeCount: candidate.changeCount)

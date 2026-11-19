@@ -80,4 +80,37 @@ struct ComposerClipboardChoiceTests {
         formatting.choose(try #require(pending.choices.first), for: pending)
         #expect(composer.text == "[url=https://example.org]mot[/url]")
     }
+
+    private func choose(
+        titled title: String, tapping target: ReplyFormattingTarget, text: String, clipboardText: String
+    ) async throws -> String {
+        let clipboard = ScriptedClipboard()
+        clipboard.string = clipboardText
+        let composer = ComposerFixture.model(poster: ScriptedPoster([]))
+        await composer.start()
+        composer.update(text: text)
+        let formatting = ComposerFormattingModel(composer: composer, clipboard: clipboard)
+        formatting.selectedRange = NSRange(location: 1, length: 0)
+        formatting.tap(target)
+        let pending = try #require(formatting.pending)
+        formatting.choose(try #require(pending.choices.first { $0.title == title }), for: pending)
+        return composer.text
+    }
+
+    /// Legacy's « Oui [url=XXX] » and « Oui [url]XXX[/url] » (`HFRTextView.m:327-350` @ 2440d79), each by its title.
+    @Test func eachLinkFormInsertsItsOwnTags() async throws {
+        let attribute = try await choose(
+            titled: "Insérer [url=XXX]", tapping: .bbCode(.url), text: "ab", clipboardText: "https://example.org/"
+        )
+        #expect(attribute == "a[url=https://example.org/][/url]b")
+        let wrapped = try await choose(
+            titled: "Insérer [url]XXX[/url]", tapping: .bbCode(.url), text: "ab", clipboardText: "https://example.org/"
+        )
+        #expect(wrapped == "a[url]https://example.org/[/url]b")
+    }
+
+    @Test func insertingTheClipboardWrapsItInTheTag() async throws {
+        let text = try await choose(titled: "Insérer", tapping: .bbCode(.quote), text: "x", clipboardText: "extrait")
+        #expect(text == "x[quote]extrait[/quote]")
+    }
 }

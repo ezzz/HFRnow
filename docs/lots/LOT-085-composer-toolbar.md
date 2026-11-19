@@ -41,4 +41,4 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 
 ## Pending
 
-Hand check on simulator/device (caret after each tag, palette, clipboard alerts, Dynamic Type XL, dark mode).
+Hand check on simulator/device (caret after each tag, palette, clipboard questions, Dynamic Type XL, dark mode).
