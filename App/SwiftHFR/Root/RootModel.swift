@@ -307,6 +307,15 @@ final class RootModel {
         selectedDestination = .tab(.categories)
     }
 
+    /// The current session changed in place (a re-login, synced credentials, an expiry found by a check): the root is kept, so
+    /// the home page is read again, then the lists of both tabs, which take whether the account is signed in from it (#1195).
+    /// An expiry the home page already shows sends nothing.
+    func currentSessionChanged(expired: Bool) async {
+        guard await forums.sessionDidChange(expired: expired) else { return }
+        await categories.sessionDidChange()
+        await favorites.sessionDidChange()
+    }
+
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge
     /// follows `appIconBadge` (LOT-140).
     func reloadSettings() {

@@ -152,6 +152,7 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 1102 | T | Deux bookmarks du même numéro de message dans deux catégories ne se confondent plus, et la suppression retire le bon. | LOT-132 #222 | `Classes/MPStorage.m:330-335, 379-389` @ `87fe0d1c` |
 | 1129 | UX | Les boutons fermer, brouillons et envoyer du composer prennent le diamètre, la taille et la graisse des outils de la carte. | #1126 #1129 | `AnswerView.swift:1704-1745` @ `87fe0d1c` |
 | 1132 | UX | Réglage Vidéos : intégrée (par défaut, lecture au tap) ou lien. | LOT-108 #691 | `d645f525` (retrait des vidéos intégrées, `LinkItem.m:148-155` @ `2440d79`), `87fe0d1c` |
+| 1142 | UX | « AQ » dans le menu d'un message : on peut plussoyer une AQ d'un autre membre (au lieu d'un refus), notice avant la première création. | LOT-134 #1142 | `MessagesView.swift:325-340, 4506-4543` @ `87fe0d1c`, captures `T55`/`T56` |
 | 1202 | T | Un MP d'un autre membre portant le sujet MPStorage n'est plus pris pour le stockage du compte : il reste visible dans la liste, et la synchronisation trouve le vrai fil. | #1200 #1202 | `MPStorage.m:713-723` @ `87fe0d1c` (premier fil au bon sujet) ; captures RU1, R44, R60a |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).

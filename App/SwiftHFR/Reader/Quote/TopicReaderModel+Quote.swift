@@ -21,32 +21,44 @@ extension TopicReaderModel {
     /// has one (`quick` and `forum` alike, see the spec). Without a selection, or when the quotes cannot be fetched, the
     /// composer still opens, so a failed quote never blocks a reply; the message says what was not added.
     func requestReply() async {
-        guard !suspendsPageInteractions, replyTarget != nil, !isLoadingQuote, pendingReply == nil else { return }
-        // Busy before the first await: a second tap meanwhile must not start a second fetch.
+        guard composerSlotIsFree, replyTarget != nil else { return }
+        // Busy before the first await: a second tap meanwhile must not start a second fetch, nor "Editer" a second composer.
         isLoadingQuote = true
         defer { isLoadingQuote = false }
         guard let quoting, let page, let answerURL = page.answerURL, let token = selectionToken(on: page),
               !(await quoting.selectedNumbers(for: token)).isEmpty else {
-            pendingReply = ReplyRequest()
+            hand(ReplyRequest())
             return
         }
         do throws(QuoteError) {
-            pendingReply = ReplyRequest(quote: try await quoting.selectionQuote(token, answerFormURL: answerURL))
+            hand(ReplyRequest(quote: try await quoting.selectionQuote(token, answerFormURL: answerURL)))
         } catch {
             showMenuFeedback(ComposerMessages.quote(error))
             // Still opens, carrying the selection: a draft that quotes it releases it once posted.
-            pendingReply = ReplyRequest(quote: ReplyQuote(text: "", release: await currentRelease()))
+            hand(ReplyRequest(quote: ReplyQuote(text: "", release: await currentRelease())))
         }
     }
 
+    /// Hands `request` to the screen, unless a composer opened while it was prepared (the author menu's MP): one composer at a
+    /// time (#1190); the member is told.
+    private func hand(_ request: ReplyRequest) {
+        guard !suspendsPageInteractions else {
+            showMenuFeedback(Self.replyDropped)
+            return
+        }
+        pendingReply = request
+    }
+
+    /// Said when a composer opened while the reply was being prepared (#1190).
+    static let replyDropped = "Réponse abandonnée : un autre message est en cours d’écriture."
+
     /// "Citer": the message's own quote, merged into the draft. A failure opens nothing and says why.
     func quoteMessage(post: Int) async {
-        guard !suspendsPageInteractions, let quoting, replyTarget != nil, !isLoadingQuote, pendingReply == nil,
-              let actions = actions(of: post) else { return }
+        guard composerSlotIsFree, let quoting, replyTarget != nil, let actions = actions(of: post) else { return }
         isLoadingQuote = true
         defer { isLoadingQuote = false }
         do throws(QuoteError) {
-            pendingReply = ReplyRequest(quote: ReplyQuote(text: try await quoting.quote(actions), release: await currentRelease()))
+            hand(ReplyRequest(quote: ReplyQuote(text: try await quoting.quote(actions), release: await currentRelease())))
         } catch {
             showMenuFeedback(ComposerMessages.quote(error))
         }
@@ -55,14 +67,14 @@ extension TopicReaderModel {
     /// "Citer extrait" / "Citer gras": the selection `text` of message `post`, narrowed or bolded by LOT-049's formatter. A
     /// selection from another document (a page loaded since) is dropped, like every message of the page.
     func quoteSelection(post: Int, text: String, bold: Bool, token: Int) async {
-        guard !suspendsPageInteractions, token == document?.token, let quoting, replyTarget != nil, !isLoadingQuote,
-              pendingReply == nil, let actions = actions(of: post) else { return }
+        guard composerSlotIsFree, token == document?.token, let quoting, replyTarget != nil,
+              let actions = actions(of: post) else { return }
         isLoadingQuote = true
         defer { isLoadingQuote = false }
         do throws(QuoteError) {
             let prefill = try await quoting.quote(actions)
             let narrowed = QuoteSelectionFormatter.format(prefill, selection: text, bold: bold)
-            pendingReply = ReplyRequest(quote: ReplyQuote(text: narrowed, release: await currentRelease()))
+            hand(ReplyRequest(quote: ReplyQuote(text: narrowed, release: await currentRelease())))
         } catch {
             showMenuFeedback(ComposerMessages.quote(error))
         }

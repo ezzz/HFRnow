@@ -60,7 +60,8 @@ final class TopicReaderModel {
     var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
-    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    /// A composer is being prepared (a quote being fetched, or an edit form, #1190): another waits for it, as legacy's
+    /// `isLoadingQuoteTemplate` (LOT-086).
     var isLoadingQuote = false
     /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
     var quoteSelected: Set<Int> = []

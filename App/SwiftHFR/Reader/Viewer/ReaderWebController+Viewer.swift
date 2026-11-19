@@ -12,12 +12,13 @@ extension ReaderWebController {
         return nil
     }
 
-    /// One decision per image `src`, in order.
+    /// One decision per image `src`, in order; a third-party image tapped in this document loads (the page asks again after a
+    /// reload, #1188).
     func decisions(for urls: [String?]) -> [String] {
         let auto = autoLoadsThirdPartyImages()
         return urls.prefix(Self.maximumImages).map { value -> String in
             guard let text = value, let url = URL(string: text) else { return ImageDecision.block.rawValue }
-            return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto).rawValue
+            return ImageDecision(origin: ImagePolicy.classify(url), autoLoadsThirdParty: auto, tapped: consented.contains(text)).rawValue
         }
     }
 }

@@ -16,14 +16,32 @@ struct TextScaleTests {
         for style in styles {
             let traits = UITraitCollection(preferredContentSizeCategory: .large)
             let system = UIFont.preferredFont(forTextStyle: style.uiTextStyle, compatibleWith: traits).pointSize
-            #expect(abs(TextScale(percent: 70).pointSize(style, at: .large) - system * 0.7) < 0.001, "\(style)")
+            // Below 100 % the 11 pt floor applies (#1157), so only styles whose 70 % size stays above it scale exactly.
+            #expect(abs(TextScale(percent: 70).pointSize(style, at: .large) - max(system * 0.7, min(system, 11))) < 0.001, "\(style)")
             #expect(TextScale.standard.pointSize(style, at: .large) == system, "\(style)")
             #expect(abs(TextScale(percent: 130).pointSize(style, at: .large) - system * 1.3) < 0.001, "\(style)")
         }
     }
 
-    @Test func seventyPercentIsSmallerThanTheDefault() {
+    @Test func shrunkTextNeverGoesUnderElevenPoints() {
         for style in styles {
+            for percent in percents {
+                #expect(TextScale(percent: percent).pointSize(style, at: .large) >= 11, "\(style) \(percent) %")
+            }
+        }
+    }
+
+    @Test func belowTheDefaultOnlyTheFloorChangesTheScaledSize() {
+        let scale = TextScale(percent: 70)
+        #expect(scale.pointSize(.caption2, at: .large) == 11)
+        #expect(abs(scale.pointSize(.largeTitle, at: .large) - TextScale.standard.pointSize(.largeTitle, at: .large) * 0.7) < 0.001)
+        // At xSmall caption2 is 11 pt in Apple's table: the floor holds there too, and never raises text above the default.
+        #expect(scale.pointSize(.caption2, at: .xSmall) == 11)
+        for style in styles { #expect(scale.pointSize(style, at: .xSmall) <= TextScale.standard.pointSize(style, at: .xSmall), "\(style)") }
+    }
+
+    @Test func seventyPercentIsSmallerThanTheDefault() {
+        for style in styles where TextScale.standard.pointSize(style, at: .large) > 11 {
             #expect(TextScale(percent: 70).pointSize(style, at: .large) < TextScale.standard.pointSize(style, at: .large))
         }
     }
