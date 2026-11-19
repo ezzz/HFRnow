@@ -7,9 +7,10 @@ import Testing
 import UIKit
 
 /// LOT-147 (GAP-713): the real roots (`RootLayout`) in a cover-screen window (466 × 678 pt, compact width, the system chrome as
-/// a side safe-area inset, the model not taken for a foldable so the inset alone is the signal) and in a regular iPhone window.
-/// On the cover screen « Actualiser » of the four lists is a bottom-bar item, a pushed topic list and a topic get « Retour »
-/// there; on a regular iPhone nothing is added and the forum list's « Actualiser » stays in the top bar.
+/// a side safe-area inset, the model not taken for a foldable so the inset alone is the signal) and, off a foldable, in a regular
+/// iPhone window. On the cover screen « Actualiser » of the four lists is a bottom-bar item, a pushed topic list and a topic get
+/// « Retour » there; on a regular iPhone nothing is added and a forum list's « Actualiser » stays in the top bar. Read from the
+/// items SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups): its Liquid Glass bars hold no `UIControl` to find.
 @MainActor
 @Suite(.serialized)
 struct CoverScreenThumbActionsTests: ReaderWebTesting {
@@ -23,12 +24,16 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         let root: RootModel
     }
 
-    /// The shown controls of the bars, bottom and top-right, with what was seen for a failure message.
-    private struct Bars {
-        var bottom: [UIControl] = []
-        var topRight = 0
-        var diagnostics = ""
+    /// The titles of the bar items on screen (spacers left out): the bottom bar's (`toolbarItems`) and the top bar's trailing ones.
+    private struct Items: CustomStringConvertible {
+        var bottom: [String] = []
+        var topTrailing: [String] = []
+        var description: String { "bottom \(bottom), top trailing \(topTrailing)" }
     }
+
+    /// The Duo simulator's own screen has the side strip: every portrait window there is a cover screen, so a regular-iPhone
+    /// control is meaningful only where the device is not a foldable (CI's iPhone simulator).
+    nonisolated private static var isNotAFoldable: Bool { !PhoneDisplayPolicy.isFoldableModel(PhoneDisplayPolicy.currentModelIdentifier) }
 
     nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
         guard case .topic(let topic) = target.source else { return readerPage(page: target.page) }
@@ -120,117 +125,130 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
             .contains { $0.viewControllers.last?.navigationItem.title == title }
     }
 
+    /// A bar item's title; nil for a spacer, which the lists put before their items.
     private static func views(in view: UIView) -> [UIView] {
         [view] + view.subviews.flatMap { views(in: $0) }
     }
 
-    /// In the window, with no hidden or transparent view between it and `bar` (UIKit keeps transition copies at alpha 0).
-    private static func isShown(_ view: UIView, below bar: UIView) -> Bool {
-        guard view.window != nil else { return false }
-        var current: UIView? = view
-        while let node = current, node !== bar {
-            if node.isHidden || node.alpha <= 0.01 { return false }
-            current = node.superview
+    private static func title(of item: UIBarButtonItem) -> String? { item.title ?? item.accessibilityLabel }
+
+    /// The bar items of the screens on view: SwiftUI hands its `.bottomBar` items to `toolbarItems` and its trailing ones to the
+    /// navigation item's trailing groups (or `rightBarButtonItems`), with their titles.
+    private static func read(_ window: UIWindow, controllers: [UIViewController]) -> Items {
+        var items = Items()
+        for controller in controllers {
+            items.bottom += (controller.toolbarItems ?? []).compactMap(title(of:))
+            let navigationItem = controller.navigationItem
+            items.topTrailing += (navigationItem.rightBarButtonItems ?? []).compactMap(title(of:))
+            items.topTrailing += navigationItem.trailingItemGroups.flatMap(\.barButtonItems).compactMap(title(of:))
         }
-        return current === bar
-    }
-
-    /// The accessibility label of a control or of one of its views (SwiftUI's bar buttons carry it on a subview).
-    private static func label(of control: UIView) -> String? {
-        views(in: control).lazy.compactMap(\.accessibilityLabel).first
-    }
-
-    /// The shown controls of the window's bars: a `UIToolbar`'s are the bottom bar's (where `.bottomBar` items go), the controls
-    /// drawn in the right half of a `UINavigationBar` are its trailing items. The tab bar and the pull-to-refresh control are no bars.
-    private static func read(_ window: UIWindow) -> Bars {
-        var bars = Bars()
-        let all = views(in: window).filter { $0 is UINavigationBar || $0 is UIToolbar }.filter { !$0.isHidden && $0.alpha > 0 }
-        bars.diagnostics = "\(all.count) bar(s)"
-        for bar in all {
-            let controls = views(in: bar).compactMap { $0 as? UIControl }
-                .filter { isShown($0, below: bar) && !$0.bounds.isEmpty && !($0 is UIRefreshControl) }
-            let named = controls.map { "\(type(of: $0))(\(label(of: $0) ?? "-"))@\(Int(bar.convert($0.bounds, from: $0).midX))" }
-            bars.diagnostics += "; \(type(of: bar)) \(bar.bounds.size): " + named.joined(separator: ",")
-            if bar is UIToolbar {
-                bars.bottom += controls
-            } else {
-                bars.topRight += controls.filter { bar.convert($0.bounds, from: $0).midX > bar.bounds.midX }.count
-            }
-        }
-        return bars
-    }
-
-    private func settle(_ window: UIWindow, until condition: (Bars) -> Bool) async -> Bars {
-        var bars = Bars()
-        _ = await until({
-            window.layoutIfNeeded()
-            bars = Self.read(window)
-            return condition(bars)
-        }, timeout: .seconds(30))
-        return bars
+        return items
     }
 
     private func ready(_ screen: Screen, in window: UIWindow) -> Bool {
         switch screen {
+        case .categories: shows("Catégories", in: window)
         case .topicList: shows("Catégorie 13", in: window)
+        case .favorites: shows("Favoris", in: window)
+        case .messages: shows("Messages", in: window)
         case .reader: shows("Sujet 1 p1", in: window)
-        default: true
         }
     }
 
-    /// How many bottom-bar controls the screen has on a regular iPhone: none on a list (the pager is an inset there, #565), the
-    /// page controls on a topic (`ReaderBottomBar.placement`: the tab bar is hidden, so `.bottomBar`).
-    private func baseline(_ screen: Screen) async throws -> Int {
-        let hosted = try host(screen, cover: false)
-        defer { hosted.window.isHidden = true }
-        let bars = await settle(hosted.window) { _ in ready(screen, in: hosted.window) }
-        try await Task.sleep(for: .milliseconds(300))
-        let settled = Self.read(hosted.window)
-        print("CoverScreenThumbActionsTests regular \(screen): \(settled.diagnostics)")
-        #expect(ready(screen, in: hosted.window), "\(screen) not shown: \(bars.diagnostics)")
-        return settled.bottom.count
+    /// The screen's items once it is on view and `condition` holds (or the wait ends), with a layout pass each time.
+    private func settle(_ screen: Screen, in window: UIWindow, until condition: (Items) -> Bool = { _ in true }) async -> Items {
+        var items = Items()
+        _ = await until({
+            window.layoutIfNeeded()
+            guard ready(screen, in: window) else { return false }
+            items = Self.read(window, controllers: controllers(in: window))
+            return condition(items)
+        }, timeout: .seconds(30))
+        return items
     }
 
-    /// On the cover screen each list gains one bottom-bar control, « Actualiser » (two with « Retour » on a pushed list), and the
-    /// topic gains « Retour » over its page controls; on a regular iPhone the bottom bar has what it had.
+    /// On the cover screen « Actualiser » of each list is a bottom-bar item and leaves the top bar; a pushed topic list and a topic
+    /// get « Retour » there, first (above the page controls on a topic, legacy Mac check 2c); the topic keeps its top « Actualiser ».
     @Test(arguments: Screen.allCases)
     func theCoverScreenPutsTheThumbActionsInTheBottomBar(screen: Screen) async throws {
-        let regular = try await baseline(screen)
         let hosted = try host(screen, cover: true)
         defer { hosted.window.isHidden = true }
-        let added = screen == .topicList ? 2 : 1
-        let bars = await settle(hosted.window) { ready(screen, in: hosted.window) && $0.bottom.count >= regular + added }
-        print("CoverScreenThumbActionsTests cover \(screen): \(bars.diagnostics)")
-        let seen = "\(screen): \(regular) bottom control(s) on a regular iPhone; cover: \(bars.diagnostics)"
-        #expect(bars.bottom.count == regular + added, "\(seen)")
+        let wanted: [String] = switch screen {
+        case .topicList: ["Retour", "Actualiser"]
+        case .reader: ["Retour"]
+        default: ["Actualiser"]
+        }
+        let items = await settle(screen, in: hosted.window) { Array($0.bottom.prefix(wanted.count)) == wanted }
+        print("CoverScreenThumbActionsTests cover \(screen): \(items)")
+        #expect(Array(items.bottom.prefix(wanted.count)) == wanted, "\(screen): \(items)")
+        #expect(items.topTrailing.contains("Actualiser") == (screen == .reader), "\(screen): \(items)")
+        if screen != .topicList, screen != .reader { #expect(!items.bottom.contains("Retour"), "\(screen): \(items)") }
     }
 
-    /// The forum list's « Actualiser » leaves the top bar on the cover screen: the only trailing item there (no composer, no
-    /// favourites filter) is gone, where a regular iPhone keeps it.
-    @Test(arguments: [true, false])
-    func theTopicListsRefreshLeavesTheTopBarOnTheCoverScreen(cover: Bool) async throws {
-        let hosted = try host(.topicList, cover: cover)
+    /// Off the cover screen nothing is added: the lists have no bottom-bar item (the pager is an inset there, #565), the topic
+    /// lists (a forum's, Favoris) keep « Actualiser » in the top bar, Catégories and Messages have none (pull to refresh), the
+    /// topic's bottom bar is its page controls with no « Retour ».
+    @Test(.enabled(if: Self.isNotAFoldable), arguments: Screen.allCases)
+    func aRegularIPhoneKeepsItsBars(screen: Screen) async throws {
+        let hosted = try host(screen, cover: false)
         defer { hosted.window.isHidden = true }
-        let bars = await settle(hosted.window) { ready(.topicList, in: hosted.window) && ($0.topRight > 0) != cover }
-        print("CoverScreenThumbActionsTests top bar cover=\(cover): \(bars.diagnostics)")
-        #expect((bars.topRight > 0) != cover, "cover \(cover): \(bars.diagnostics)")
+        let hasTopRefresh = [Screen.topicList, .favorites, .reader].contains(screen)
+        let items = await settle(screen, in: hosted.window) { !hasTopRefresh || $0.topTrailing.contains("Actualiser") }
+        print("CoverScreenThumbActionsTests regular \(screen): \(items)")
+        #expect(!items.bottom.contains("Retour"), "\(screen): \(items)")
+        #expect(!items.bottom.contains("Actualiser"), "\(screen): \(items)")
+        #expect(items.topTrailing.contains("Actualiser") == hasTopRefresh, "\(screen): \(items)")
+    }
+
+    /// On a foldable (the Duo simulator's own cover screen, 466 × 678 pt), the lists' bottom-bar items are drawn in the lower
+    /// half of the column, right above the tab bar, not under the top items: iOS 27.2 lays them in an empty trailing slot and
+    /// honours their flexible spacer only once that slot holds an item (`AccountMenuButton.placement(on:)`). Measured before the
+    /// fix at y 239 (Catégories, Messages), 299 and 351 (« Retour », « Actualiser » of a pushed list); after it at 335 and 387, the
+    /// tab bar at 442. A regular iPhone has no column: the bar is the system bottom bar, left to `aRegularIPhoneKeepsItsBars`.
+    @Test(.enabled(if: !Self.isNotAFoldable), arguments: [Screen.categories, .topicList, .favorites, .messages])
+    func onTheDuoTheListsActionsSitAboveTheTabBar(screen: Screen) async throws {
+        let hosted = try host(screen, cover: true)
+        defer { hosted.window.isHidden = true }
+        let count = screen == .topicList ? 2 : 1
+        _ = await settle(screen, in: hosted.window) { $0.bottom.count >= count }
+        try await Task.sleep(for: .milliseconds(500))
+        hosted.window.layoutIfNeeded()
+        let window = hosted.window
+        // The strip's bar buttons: the buttons drawn in the right-edge column (the tab buttons carry no button trait).
+        let tops = Self.views(in: window).compactMap { $0 as? UIControl }
+            .filter { $0.window != nil && !$0.isHidden && $0.alpha > 0.01 && $0.accessibilityTraits.contains(.button) }
+            .map { window.convert($0.bounds, from: $0) }
+            .filter { $0.minX > window.bounds.width - 70 }
+            .map(\.minY).sorted()
+        let lowest = tops.suffix(count)
+        print("CoverScreenThumbActionsTests strip \(screen): \(tops)")
+        #expect(lowest.count == count && lowest.allSatisfy { $0 > window.bounds.midY }, "\(screen): strip buttons at \(tops)")
     }
 
     /// « Retour » goes back: on the pushed topic list it pops to Catégories (the collapsed split clears the forum), on the topic
-    /// it closes it (the selection cleared, so an unfold does not bring it back, as the system back button).
+    /// it closes it (the selection cleared, so an unfold does not bring it back, as the system back button does).
     @Test(arguments: [Screen.topicList, .reader])
     func retourGoesBack(screen: Screen) async throws {
         let hosted = try host(screen, cover: true)
         defer { hosted.window.isHidden = true }
         let (window, root) = (hosted.window, hosted.root)
-        let bars = await settle(window) { ready(screen, in: window) && $0.bottom.contains { Self.label(of: $0) == "Retour" } }
-        let retour = try #require(bars.bottom.first { Self.label(of: $0) == "Retour" }, "no « Retour »: \(bars.diagnostics)")
-        retour.sendActions(for: .primaryActionTriggered)
+        let items = await settle(screen, in: window) { $0.bottom.contains("Retour") }
+        let retour = try #require(
+            controllers(in: window).flatMap { $0.toolbarItems ?? [] }.first { Self.title(of: $0) == "Retour" }, "\(screen): \(items)"
+        )
+        // SwiftUI's bar items carry a `UIAction`; a control given that action runs it, as a tap on the button does.
+        if let target = retour.target, let action = retour.action {
+            _ = UIApplication.shared.sendAction(action, to: target, from: retour, for: nil)
+        } else if let primary = retour.primaryAction as UIAction? {
+            UIButton(primaryAction: primary).sendActions(for: .primaryActionTriggered)
+        } else {
+            Issue.record("\(screen): « Retour » has no action")
+        }
         let back = await until({
             window.layoutIfNeeded()
             return screen == .topicList ? root.categories.selectedSource == nil : root.favorites.selectedTopic == nil
         }, timeout: .seconds(10))
-        #expect(back, "\(screen): « Retour » did not go back; forum \(String(describing: root.categories.selectedSource)), "
-            + "topic \(String(describing: root.favorites.selectedTopic))")
+        let left = "forum \(String(describing: root.categories.selectedSource)), topic \(String(describing: root.favorites.selectedTopic))"
+        #expect(back, "\(screen): « Retour » did not go back; \(left)")
     }
 }

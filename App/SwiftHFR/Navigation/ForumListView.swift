@@ -11,7 +11,6 @@ struct ForumListView: View {
     @Bindable var navigation: NavigationModel
     @State private var titleVisibility = TitleVisibility()
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
-    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
 
     var body: some View {
         let loader = navigation.forums.loader
@@ -43,13 +42,7 @@ struct ForumListView: View {
             }
         }
         .refreshable { await navigation.forums.reload() }
-        .toolbar {
-            if phoneDisplayKind.placesThumbActionsAtBottom {
-                ToolbarItem(placement: .bottomBar) {
-                    RefreshToolbarButton(isLoading: loader.isLoading) { await navigation.forums.reload() }
-                }
-            }
-        }
+        .coverScreenThumbActions { RefreshToolbarButton(isLoading: loader.isLoading) { await navigation.forums.reload() } }
         .task { await navigation.forums.loadIfNeeded() }
     }
 

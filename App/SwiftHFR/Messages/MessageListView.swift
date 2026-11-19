@@ -16,7 +16,6 @@ struct MessageListView: View {
     let composer: ComposerServices?
     @State private var newMessage: ReplyComposerModel?
     @State private var titleVisibility = TitleVisibility()
-    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
 
     var body: some View {
         let loader = model.loader
@@ -72,10 +71,8 @@ struct MessageListView: View {
                     }
                 }
             }
-            if phoneDisplayKind.placesThumbActionsAtBottom {
-                ToolbarItem(placement: .bottomBar) { RefreshToolbarButton(isLoading: loader.isLoading) { await model.refresh() } }
-            }
         }
+        .coverScreenThumbActions { RefreshToolbarButton(isLoading: loader.isLoading) { await model.refresh() } }
         .sheet(item: $newMessage) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }

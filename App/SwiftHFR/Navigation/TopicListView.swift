@@ -92,7 +92,7 @@ struct TopicListView: View {
         }
         .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
-            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
+            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement(on: phoneDisplayKind)) { AccountMenuButton() } }
             // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c); on the iPhone Duo cover screen the
             // refresh goes to the bottom of the toolbar column instead (`:848-852`, `Favorites.swift:806`; GAP-713).
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -105,10 +105,10 @@ struct TopicListView: View {
                 }
                 if !phoneDisplayKind.placesThumbActionsAtBottom { refreshButton }
             }
-            if phoneDisplayKind.placesThumbActionsAtBottom { ToolbarItem(placement: .bottomBar) { refreshButton } }
         }
-        // A pushed category's list gets « Retour » on the cover screen (`MainWindow.swift:854` @ 87fe0d1c); the Favoris root is no push.
-        .coverScreenBottomBackButton()
+        // The cover screen: « Actualiser » at the bottom of the column, with « Retour » on a pushed category's list (`MainWindow.swift:854`
+        // @ 87fe0d1c; the Favoris root is no push).
+        .coverScreenThumbActions { refreshButton }
         .sheet(item: $newTopic) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newTopicDidClose(reason) }
