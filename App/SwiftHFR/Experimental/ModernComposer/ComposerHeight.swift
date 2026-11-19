@@ -19,9 +19,10 @@ enum ComposerHeight: Equatable {
     /// The sheet's full height.
     case full
 
-    /// The composer offers the partial height and its toggle: an iPhone in regular height.
-    static func offersToggle(isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?) -> Bool {
-        isPhone && verticalSizeClass != .compact
+    /// The composer offers the partial height and its toggle: an iPhone in regular height, unless it opens full screen with no
+    /// way to shrink it (`opensFull`: a new private message or topic, #1137).
+    static func offersToggle(isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, opensFull: Bool = false) -> Bool {
+        isPhone && verticalSizeClass != .compact && !opensFull
     }
 
     /// The height the sheet shows: the one `chosen` with the toggle; before any choice, partial, or full at an accessibility
@@ -29,9 +30,10 @@ enum ComposerHeight: Equatable {
     /// (measured at AX XL on the iPhone 18 Pro Max simulator, #749; operator decision, confirmed 2026-11-11). Full without the
     /// toggle (an iPad, or compact height, where the system shows the sheet full anyway), whatever was chosen in regular height.
     static func shown(
-        chosen: ComposerHeight?, isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, largeText: Bool = false
+        chosen: ComposerHeight?, isPhone: Bool, verticalSizeClass: UserInterfaceSizeClass?, largeText: Bool = false,
+        opensFull: Bool = false
     ) -> ComposerHeight {
-        guard offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass) else { return .full }
+        guard offersToggle(isPhone: isPhone, verticalSizeClass: verticalSizeClass, opensFull: opensFull) else { return .full }
         return chosen ?? (largeText ? .full : .partial)
     }
 

@@ -35,6 +35,10 @@ struct ComposerHeader: View {
         ComposerToolSize(metrics: metrics.capped(at: maxScaleFactor), inCard: inCard, style: style)
     }
 
+    /// The legacy bar's title is drawn over the buttons' row (an overlay, so it never widens the bar): it takes no tap, so the
+    /// edge of the drafts button under it at large text sizes still gets its own (#1137, review of #1129).
+    static let titleTakesTaps = false
+
     /// What the bar's sides and the gaps between its buttons take: the floating row has the gap on each side, legacy's bar its
     /// 16 pt insets and 8 pt spacing.
     static func reservedWidth(floats: Bool, buttons: Int) -> CGFloat {
@@ -123,6 +127,7 @@ struct ComposerHeader: View {
                 // Room for the close and drafts buttons on each side, whatever the metrics make them (#1126).
                 .padding(.horizontal, 2 * toolSize.diameter + 28)
                 .accessibilityAddTraits(.isHeader)
+                .allowsHitTesting(Self.titleTakesTaps)
                 .composerProbe(.title)
         }
         .frame(minHeight: 44)

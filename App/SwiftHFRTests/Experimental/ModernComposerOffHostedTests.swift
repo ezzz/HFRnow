@@ -154,8 +154,14 @@ struct ModernComposerOffHostedTests {
             #expect(Self.floatingParts.isSubset(of: drawn), "\(entry): \(drawn)")
             #expect(card.insetBy(dx: -0.5, dy: -0.5).contains(controls), "\(entry): controls in the card")
             #expect(frames[.title] == nil, "\(entry): no title strip (#972)")
-            #expect(abs(editor.height - cap) < 1, "\(entry): partial height, the editor at its cap \(cap): \(editor)")
-            #expect(frames[.heightToggle] != nil, "\(entry): the height toggle")
+            if entry == .newMessageSheet {
+                // A new private message opens full screen with no way to shrink it (#1137).
+                #expect(editor.height > cap + 1, "\(entry): full height, the editor past the partial cap \(cap): \(editor)")
+                #expect(frames[.heightToggle] == nil, "\(entry): no height toggle")
+            } else {
+                #expect(abs(editor.height - cap) < 1, "\(entry): partial height, the editor at its cap \(cap): \(editor)")
+                #expect(frames[.heightToggle] != nil, "\(entry): the height toggle")
+            }
             if entry != .newMessageSheet { #expect(frames[.drafts] != nil, "\(entry): a topic reply archives drafts") }
             if entry == .reader {
                 #expect(frames[.fill] != nil, "the docked bar")

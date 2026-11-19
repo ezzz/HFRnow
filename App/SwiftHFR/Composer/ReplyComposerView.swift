@@ -289,13 +289,15 @@ extension ReplyComposerView {
 
     /// An iPhone in regular height: partial height first, and the toggle (#653).
     private var offersHeightToggle: Bool {
-        ComposerHeight.offersToggle(isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass)
+        ComposerHeight.offersToggle(
+            isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass, opensFull: model.opensFullScreen
+        )
     }
 
     private var height: ComposerHeight {
         ComposerHeight.shown(
             chosen: chosenHeight, isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass,
-            largeText: dynamicTypeSize.isAccessibilitySize
+            largeText: dynamicTypeSize.isAccessibilitySize, opensFull: model.opensFullScreen
         )
     }
 
