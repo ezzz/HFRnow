@@ -56,8 +56,9 @@ enum PhoneDisplayPolicy {
         return isFoldableModel || hasSideChromeInPortrait || hasShownExpandedLayoutThisLaunch ? .duoCover : .other
     }
 
-    /// Whether « Actualiser » and « Retour » go to the bottom of the toolbar. On the cover screen the toolbar is a column on
-    /// the right edge, and only its bottom is within thumb reach (beta feedback on #372).
+    /// Whether a pushed screen's « Retour » goes to the bottom of the toolbar (legacy moves its lists' « Actualiser » too; SwiftHFR
+    /// has none, #1206, #1239). On the cover screen the toolbar is a column on the right edge, and only its bottom is within thumb
+    /// reach (beta feedback on #372).
     static func placesThumbActionsAtBottom(kind: PhoneDisplayKind) -> Bool {
         kind == .duoCover
     }

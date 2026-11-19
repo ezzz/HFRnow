@@ -13,8 +13,9 @@ struct AccountMenuButton: View {
 
     /// The placement on `kind`'s display: top left, except on the iPhone Duo cover screen, where the bars are one column on the
     /// right edge (no left or right in it) and the button is drawn at the same spot either way. There it takes the trailing slot:
-    /// iOS 27.2 lays a screen's `.bottomBar` items in an empty trailing slot, at the top of the column, and honours their flexible
-    /// spacer only once that slot holds an item (measured on the Duo simulator, #1239; the cause of GAP-713's legacy defect).
+    /// iOS 27.2 lays a screen's `.bottomBar` items (a pushed list's « Retour », `coverScreenListActions`) in an empty trailing
+    /// slot, at the top of the column, and honours their flexible spacer only once that slot holds an item (measured on the Duo
+    /// simulator, #1239; the cause of GAP-713's legacy defect).
     static func placement(on kind: PhoneDisplayKind) -> ToolbarItemPlacement {
         kind.placesThumbActionsAtBottom ? .topBarTrailing : placement
     }

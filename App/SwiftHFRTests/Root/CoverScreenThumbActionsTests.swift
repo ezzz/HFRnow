@@ -8,9 +8,9 @@ import UIKit
 
 /// LOT-147 (GAP-713): the real roots (`RootLayout`) in a cover-screen window (466 × 678 pt, compact width, the system chrome as
 /// a side safe-area inset, the model not taken for a foldable so the inset alone is the signal) and, off a foldable, in a regular
-/// iPhone window. On the cover screen « Actualiser » of Catégories and Messages is a bottom-bar item (the topic lists have none,
-/// a pull refreshes them, #1206), a pushed topic list and a topic get « Retour » there; on a regular iPhone nothing is added. Read
-/// from the items SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups): its Liquid Glass bars hold no `UIControl`.
+/// iPhone window. On the cover screen a pushed topic list and a topic get « Retour » as a bottom-bar item; no list gets an
+/// « Actualiser » there (a pull refreshes it, #1206, operator on #1239); on a regular iPhone nothing is added. Read from the items
+/// SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups): its Liquid Glass bars hold no `UIControl`.
 @MainActor
 @Suite(.serialized)
 struct CoverScreenThumbActionsTests: ReaderWebTesting {
@@ -167,20 +167,19 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         return items
     }
 
-    /// On the cover screen « Actualiser » of Catégories and Messages is a bottom-bar item, a pushed topic list and a topic get
-    /// « Retour » there, first (above the page controls on a topic, legacy Mac check 2c); the Favoris root, neither pushed nor
-    /// refreshed by a button (#1206), gets nothing; the topic keeps its top « Actualiser ».
+    /// On the cover screen a pushed topic list and a topic get « Retour » as their first bottom-bar item (above the page controls
+    /// on a topic, legacy Mac check 2c); the Catégories, Favoris and Messages roots, never pushed and refreshed by a pull, not a
+    /// button (#1206, operator on #1239), get nothing; the topic keeps its top « Actualiser ».
     @Test(arguments: Screen.allCases)
     func theCoverScreenPutsTheThumbActionsInTheBottomBar(screen: Screen) async throws {
         let hosted = try host(screen, cover: true)
         defer { hosted.window.isHidden = true }
         let wanted: [String] = switch screen {
         case .topicList, .reader: ["Retour"]
-        case .favorites: []
-        case .categories, .messages: ["Actualiser"]
+        case .categories, .favorites, .messages: []
         }
         var items = await settle(screen, in: hosted.window) { Array($0.bottom.prefix(wanted.count)) == wanted }
-        if screen == .favorites {
+        if wanted.isEmpty {
             // Nothing to wait for: a later layout pass is given its chance to add an item it should not.
             try await Task.sleep(for: .milliseconds(500))
             items = await settle(screen, in: hosted.window)
@@ -188,8 +187,8 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         print("CoverScreenThumbActionsTests cover \(screen): \(items)")
         #expect(Array(items.bottom.prefix(wanted.count)) == wanted, "\(screen): \(items)")
         #expect(items.topTrailing.contains("Actualiser") == (screen == .reader), "\(screen): \(items)")
-        if screen != .topicList, screen != .reader { #expect(!items.bottom.contains("Retour"), "\(screen): \(items)") }
-        if screen != .categories, screen != .messages { #expect(!items.bottom.contains("Actualiser"), "\(screen): \(items)") }
+        if wanted.isEmpty { #expect(items.bottom.isEmpty, "\(screen): \(items)") }
+        #expect(!items.bottom.contains("Actualiser"), "\(screen): \(items)")
     }
 
     /// Off the cover screen nothing is added: the lists have no bottom-bar item (the pager is an inset there, #565) and no
@@ -206,12 +205,13 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         #expect(items.topTrailing.contains("Actualiser") == hasTopRefresh, "\(screen): \(items)")
     }
 
-    /// On a foldable (the Duo simulator's own cover screen, 466 × 678 pt), the lists' bottom-bar items are drawn in the lower
-    /// half of the column, right above the tab bar, not under the top items: iOS 27.2 lays them in an empty trailing slot and
-    /// honours their flexible spacer only once that slot holds an item (`AccountMenuButton.placement(on:)`). Measured before the
-    /// fix at y 239 (Catégories, Messages) and 299 (« Retour » of a pushed list); after it at 387, the tab bar at 442. A regular
-    /// iPhone has no column: the bar is the system bottom bar, left to `aRegularIPhoneKeepsItsBars`.
-    @Test(.enabled(if: !Self.isNotAFoldable), arguments: [Screen.categories, .topicList, .messages])
+    /// On a foldable (the Duo simulator's own cover screen, 466 × 678 pt), a pushed list's « Retour » is drawn in the lower half
+    /// of the column, right above the tab bar, not under the top items: iOS 27.2 lays a `.bottomBar` item in an empty trailing
+    /// slot and honours its flexible spacer only once that slot holds an item (`AccountMenuButton.placement(on:)`). Measured with
+    /// the account button leading at y 299–307, with it trailing at 387–395, the tab bar at 442 (the root lists carry no bottom
+    /// item since the operator's decision on #1239). A regular iPhone has no column: the bar is the system bottom bar, left to
+    /// `aRegularIPhoneKeepsItsBars`.
+    @Test(.enabled(if: !Self.isNotAFoldable), arguments: [Screen.topicList])
     func onTheDuoTheListsActionsSitAboveTheTabBar(screen: Screen) async throws {
         let hosted = try host(screen, cover: true)
         defer { hosted.window.isHidden = true }
