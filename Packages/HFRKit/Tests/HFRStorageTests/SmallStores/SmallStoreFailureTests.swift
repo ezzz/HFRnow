@@ -32,6 +32,18 @@ import Testing
         #expect(try await store.add(Self.cuisine, account: "user1"))
     }
 
+    /// #1182: a read that failed once and works again is not set aside: the discard reads the data first.
+    @Test func discardKeepsDataThatReadsAgain() async throws {
+        let persistence = FailingSmallStorePersistence<SuperFavoritesDocument>()
+        persistence.failsToLoad = true
+        let store = SuperFavoritesStore(persistence: persistence)
+        #expect(await store.loadFailure() != nil)
+        persistence.failsToLoad = false
+        try await store.discardUnreadableData()
+        #expect(!persistence.quarantined)
+        #expect(await store.loadFailure() == nil)
+    }
+
     @Test func discardDoesNothingWhenTheDataIsReadable() async throws {
         let persistence = FailingSmallStorePersistence<SuperFavoritesDocument>()
         let store = SuperFavoritesStore(persistence: persistence)

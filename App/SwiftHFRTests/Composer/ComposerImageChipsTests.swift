@@ -10,6 +10,7 @@ private struct OneImageHistory: ImageUploadHistoryStoring {
     func load() async -> (images: [RehostedImage], isUnreadable: Bool) { ([image], false) }
     func add(_ image: RehostedImage) async throws {}
     func remove(id: String) async throws {}
+    func discardUnreadable() async throws {}
 }
 
 private struct UnusedPreparer: ImagePreparing {

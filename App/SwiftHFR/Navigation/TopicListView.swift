@@ -71,11 +71,18 @@ struct TopicListView: View {
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
-            if let problem = model.favorites?.storeProblem {
-                Label(problem, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if let favorites = model.favorites, let problem = favorites.storeProblem {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                    if favorites.canDiscardUnreadable {
+                        UnreadableDataRecoveryButton(content: "les sections repliées et les super-favoris") {
+                            await favorites.discardUnreadable()
+                        }
+                    }
+                }
+                .font(.footnote)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .safeAreaInset(edge: .top) {

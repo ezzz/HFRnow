@@ -5,7 +5,8 @@ import Observation
 // Port of HFRswift/Swift/AppSettingsView.swift (ProfileFilterListEditorView: reloadProfiles, addProfile, removeProfiles, `:581-700`)
 // and of Classes/BlackListTableViewController.m / WhiteListTableViewController.m (`addPseudoToList:`, delete row) @ 2440d79.
 // Differences: the logic is a model over LOT-117's store (GAP-209); a list the store cannot read shows its failure and a retry
-// instead of an empty list (writes are refused, the file is never overwritten); a pseudo already listed says so.
+// instead of an empty list (writes are refused, the file is never overwritten), with « Repartir de zéro » as the way out
+// (#1182); a pseudo already listed says so.
 /// State of one list editor in Réglages (LOT-118): the sorted pseudos, the field for a manual add, and the errors.
 @MainActor
 @Observable
@@ -76,6 +77,17 @@ final class PseudoListEditorModel {
     /// Reads the stored file again (the "Réessayer" button), for example after a restore.
     func retry() async {
         _ = await manager.reload()
+        await load()
+    }
+
+    /// "Repartir de zéro", after the member confirmed (#1182): the unreadable file is set aside as `.corrupt`, never deleted,
+    /// and both lists start empty and writable.
+    func discardUnreadable() async {
+        do {
+            try await manager.discardUnreadableData()
+        } catch {
+            errorMessage = UnreadableDataRecovery.failure
+        }
         await load()
     }
 

@@ -24,7 +24,7 @@ All @ `2440d79`:
 - Profile opened from a link: the sheet stays open after a toggle and shows the sentence under the buttons (legacy dismissed the sheet, then `loadPage`); the reader rebuilds its page when the sheet closes. GAP-209, class `b`. Opened from a message's author (#652), it behaves as legacy: the toggle acts on the message's author, closes the sheet, the reader shows the sentence as a toast and rebuilds its page.
 - Message menu: the page on screen is rebuilt from the refreshed snapshot (`applyDisplaySettings()`), without legacy's page request. Same visible result, no network. Not a UX difference.
 - Profile buttons: legacy's "Ajouter WL / BL" order and labels, destructive role and `.slash` symbols are not kept: longer labels, blocklist first, fixed symbols (class `b`, same GAP-209 row). Not offered on the account's own profile (legacy `canToggleLists`). Legacy offered them only from the avatar's actions; here any profile page offers them.
-- An unreadable list file shows "illisibles, non modifiées" and a "Réessayer" button instead of an empty list. GAP-209, class `b·needed` (the empty list was the legacy wipe, audit E §7.2).
+- An unreadable list file shows "illisibles, non modifiées", a "Réessayer" button and « Repartir de zéro… » (#1182: once confirmed, the file is set aside as `.corrupt`, never deleted, and the lists start empty) instead of an empty list. GAP-209, class `b·needed` (the empty list was the legacy wipe, audit E §7.2).
 
 ## Behaviour
 - **One store.** Every write goes through `PseudoListsSnapshot.liveStore` (LOT-117: one actor per file). `PseudoListManager` wraps it for the current account (`AppEnvironment.reader.pseudoLists`); the snapshot is refreshed after each write.

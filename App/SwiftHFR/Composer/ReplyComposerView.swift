@@ -151,6 +151,7 @@ struct ReplyComposerView: View {
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
+        .onChange(of: model.draftsNotice) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flushDraft() } }
         }
@@ -210,6 +211,7 @@ struct ReplyComposerView: View {
                 }
             }
         }
+        if let note = model.draftsNotice { ComposerBanner(text: note, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {} }
         if let warning = model.draftWarning {
             ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {
                 // Keep and discard cannot close while the store refuses writes: the only exit, as the warning says.

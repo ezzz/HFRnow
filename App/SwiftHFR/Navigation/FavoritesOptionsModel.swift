@@ -144,6 +144,25 @@ final class FavoritesOptionsModel {
         unreadOnly = settings.value(for: SettingKey.favoritesUnreadOnly)
     }
 
+    /// A store could not be read: « Repartir de zéro » is offered (#1182).
+    var canDiscardUnreadable: Bool { readProblem != nil }
+
+    /// « Repartir de zéro », after the member confirmed (#1182): the unreadable stores are set aside as `.corrupt` (never
+    /// deleted) and start empty; a store that reads fine is left as it is.
+    func discardUnreadable() async {
+        guard let stores else { return }
+        do throws(SmallStoreError) {
+            try await stores.layout.discardUnreadableData()
+            try await stores.superFavorites.discardUnreadableData()
+            // The writes refused while the stores were unreadable are not news any more: the stores take writes again.
+            layoutWriteProblem = nil
+            superWriteProblem = nil
+        } catch {
+            layoutWriteProblem = UnreadableDataRecovery.failure
+        }
+        await reload()
+    }
+
     /// Reads the folded sections and the super-favourites again; the list calls it each time it shows (legacy `onAppear`).
     func reload() async {
         reloadSettings()

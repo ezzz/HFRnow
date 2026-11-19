@@ -20,6 +20,8 @@ protocol ImageUploadHistoryStoring: Sendable {
     func add(_ image: RehostedImage) async throws
     /// Forgets the upload with this `RehostedImage.id`.
     func remove(id: String) async throws
+    /// Sets unreadable stored data aside (`.corrupt`, never deleted) and starts empty; only after the member confirmed (#1182).
+    func discardUnreadable() async throws
 }
 
 /// The history over the engine's `RehostUploadHistoryStore` (versioned file, unreadable data kept aside, never overwritten).
@@ -41,6 +43,8 @@ struct LiveImageUploadHistory: ImageUploadHistoryStoring {
     func add(_ image: RehostedImage) async throws { try await store.add(image) }
 
     func remove(id: String) async throws { try await store.remove(id: id) }
+
+    func discardUnreadable() async throws { try await store.discardUnreadableData() }
 }
 
 /// What the image panel needs: the uploader (nil when this build has no key), its settings and its notice.
