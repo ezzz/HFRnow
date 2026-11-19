@@ -11,7 +11,7 @@ struct ArchivedDraftsClearConfirmationTests {
 
     @Test(arguments: [
         (1, "Le brouillon archivé de ce topic sera supprimé."),
-        (3, "Les 3 brouillons archivés de ce topic seront supprimés."),
+        (3, "Les 3 brouillons archivés de ce topic seront supprimés.")
     ])
     func theMessageCountsWhatWillBeDeleted(count: Int, expected: String) {
         #expect(ArchivedDraftsFormat.clearConfirmMessage(count: count) == expected)
