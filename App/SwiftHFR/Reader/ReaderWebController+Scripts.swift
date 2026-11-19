@@ -9,12 +9,12 @@ extension ReaderWebController {
         return try? String(contentsOf: url, encoding: .utf8)
     }()
 
-    /// The scripts that set the text size, the theme colours and the pull hint of a document before it renders, then `reader.js`; all in
+    /// The scripts that set the text size, the theme colours of a document before it renders, then `reader.js`; all in
     /// the reader's world.
     func installUserScripts() {
         let controller = webView.configuration.userContentController
         controller.removeAllUserScripts()
-        for source in [Self.textScaleScript(textScale), theme.readerScript, Self.pullHintScript(offersPullHint)] {
+        for source in [Self.textScaleScript(textScale), theme.readerScript] {
             controller.addUserScript(
                 WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: Self.world)
             )
@@ -48,21 +48,6 @@ extension ReaderWebController {
     func applyDisplayState() {
         applyTextScale()
         applyTheme()
-        applyPullHint()
-    }
-
-    /// `offersPullHint` changed: the next documents start with it (the user script), the shown one takes it now.
-    func pullHintChanged(from old: Bool) {
-        guard offersPullHint != old else { return }
-        installUserScripts()
-        applyPullHint()
-    }
-
-    /// Shows or hides the end-of-page hint of the shown document (`reader.css` `.no-pull-hint`): off while the pull past the end
-    /// does nothing (a composer is open, #820). The hint keeps its room, so the reading position does not move.
-    func applyPullHint() {
-        guard document != nil else { return }
-        run(Self.pullHintScript(offersPullHint))
     }
 
     /// The page's own background (the dark style's, LOT-122) shows past the page's ends while it bounces. WebKit resolves the colour
@@ -76,11 +61,6 @@ extension ReaderWebController {
         webView.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { [weak self] (_: UIView, _) in
             self?.applyUnderPageBackground()
         }
-    }
-
-    /// The script that shows (`true`) or hides the pull hint, with no dependence on `reader.js` having run yet.
-    static func pullHintScript(_ shown: Bool) -> String {
-        "document.documentElement.classList.toggle('no-pull-hint', \(shown ? "false" : "true"));"
     }
 
     /// The script that sets `--text-scale` to `scale`'s factor; a number the app formats, never page text.
