@@ -33,7 +33,7 @@ struct TopicListToolbarTests {
         [view] + view.subviews.flatMap { views(in: $0) }
     }
 
-    /// Hosts `root` and reads its bar once `ready` holds and the counts stop changing (SwiftUI installs items a few frames after the window).
+    /// Hosts `root`, reads its bar once `ready` holds and the counts stop changing (SwiftUI installs items a frame or two late).
     private func bar(of root: some View, ready: (Bar) -> Bool) async throws -> Bar {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
