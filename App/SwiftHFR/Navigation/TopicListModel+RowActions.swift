@@ -8,7 +8,7 @@ import HFRModels
 /// as VoiceOver actions. Legacy offers both on every favourites row and on a forum row that has a flag.
 extension TopicListModel {
     /// The row has a flag the user can act on: every row of flags and favourites, a forum row with a flag colour or a flag
-    /// link (legacy `topicHasFlag`, `MainWindow.swift:444-449`), until its flag is removed.
+    /// link (legacy `topicHasFlag`, `MainWindow.swift:444-449` @ 2440d79), until its flag is removed.
     func hasFlag(_ topic: TopicSummary) -> Bool {
         (source.isFavoritesList || loadedFilter != .all || topic.flag != nil || topic.flagPath != nil) && removedFlags[topic.id] == nil
     }

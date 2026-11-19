@@ -52,8 +52,9 @@ enum FilterCapture: CaseIterable {
 }
 
 /// #870: the four filters of a forum's list (Tous, Favoris, Suivis, Lus) draw through one list and one row component; they differ
-/// only by what legacy's `topicHasFlag` gates (`MainWindow.swift:513-518` @ 87fe0d1c). The list is the app's own routing: the
-/// `TopicsColumn` that `RootTabsView` and `RootSidebarView` build for the selected source.
+/// only by what legacy's `topicHasFlag` gates (`MainWindow.swift:513-518` @ 87fe0d1c). This is the iPhone route: the
+/// `TopicsColumn` that `RootTabsView` builds for the selected source (the iPad sidebar is `TopicFilterSidebarHostedTests`; the
+/// `openedCategory` push of `RootTabsView` is not hosted, #870).
 @MainActor
 @Suite(.serialized)
 struct TopicFilterListHostedTests {
@@ -105,7 +106,8 @@ struct TopicFilterListHostedTests {
             #expect((TopicRowView.builds[topic.id] ?? 0) > (baseline[topic.id] ?? 0), "no TopicRowView build for \(topic.id)")
         }
         if filter == .read { #expect(!hosted.page.topics.isEmpty) }
-        // The Tous / Favoris / Suivis / Lus control is the one `TopicFlagFilterPicker` of `ForumScopeBar` (`MainWindow.swift:683-696` @ 87fe0d1c).
+        // The Tous / Favoris / Suivis / Lus control is the one `TopicFlagFilterPicker` of `ForumScopeBar`
+        // (`MainWindow.swift:683-696` @ 87fe0d1c).
         let labels = HostedAccessibility.elements(under: hosted.window).compactMap(\.accessibilityLabel)
         for title in ["Tous", "Favoris", "Suivis", "Lus"] { #expect(labels.contains(title), "\(title) not in \(labels)") }
     }

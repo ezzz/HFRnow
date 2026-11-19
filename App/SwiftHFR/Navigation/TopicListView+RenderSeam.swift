@@ -37,10 +37,11 @@ extension TopicRowView {
     @MainActor private(set) static var builds: [String: Int] = [:]
     #endif
 
-    /// Counts one build of this row in a debug build.
-    @MainActor func countingBuild() {
+    /// Passes `value` through; a debug build also counts one build of this row.
+    @MainActor func countingBuild<Value>(_ value: Value) -> Value {
         #if DEBUG
         Self.builds[topic.id, default: 0] += 1
         #endif
+        return value
     }
 }

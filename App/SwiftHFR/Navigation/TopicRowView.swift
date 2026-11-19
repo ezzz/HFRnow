@@ -26,8 +26,7 @@ struct TopicRowView: View {
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     var body: some View {
-        let _ = countingBuild()
-        switch TopicRowStyle.current(experimental) {
+        switch countingBuild(TopicRowStyle.current(experimental)) {
         case .legacy:
             LegacyTopicRowView(
                 topic: topic, isSuperFavorite: isSuperFavorite, flagIsTinted: flagIsTinted, markedRead: markedRead, showsFlag: showsFlag
