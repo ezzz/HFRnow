@@ -20,7 +20,7 @@ Legacy app: `master` of ezzz/HFRnow at `21173e77` (read-only). Functional refere
 | `Classes/QuoteMessageViewController.m:254-256` (`haveTo` when the form has `dest`), `:306-330` (editable "À :" field filled with the form's `dest`); `Classes/AddMessageViewController.m:557-568` (`sujet` and `dest` posted as typed) | `ReplyComposerView.messageFields`, `ReplyComposerModel.recipient` / `subject`, LOT-048 `newPrivateMessage` |
 | `HFRswift/Swift/MessagesView.swift:4208-4224` (`openPrivateMessageComposer`: subject required, recipient = the author, trimmed, no draft), `HFRswift/Swift/AnswerView.swift:826-831` (recipient shown read-only), `:1472-1479` (`sujet` trimmed, `dest` overrides) | `NewMessageTarget(link:)`, `ComposerTarget.newPrivateMessage` |
 | `HFRswift/Swift/UserProfileView.swift:702-705` (quick action "MP") | LOT-116 calls `NewMessageTarget(link:)` (not wired here) |
-| `HFRswift/Swift/MessagesView.swift:5481-5494` ("Répondre" when the page has an answer link), MP threads read like topics | `MessageReaderColumn(composer:)`: the LOT-084 "Répondre" on a conversation |
+| `HFRswift/Swift/MessagesView.swift:5482-5494` ("Répondre" when the page has an answer link), MP threads read like topics | `MessageReaderColumn(composer:)`: the LOT-084 "Répondre" on a conversation |
 
 ## Behaviour
 
