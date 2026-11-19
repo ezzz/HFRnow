@@ -60,8 +60,8 @@ The sheet is the composer of LOT-084, title "Edition". Send needs a text, a titl
 over the form's text at opening. While the fields equal what the form served nothing is stored and closing asks nothing; typing back to it
 removes the draft. The sub-category is not in a draft (LOT-063 has no such field), so closing with only the picker changed asks nothing.
 
-**Delete.** The menu entry only sets `pendingDelete`; the legacy alert asks ("Supprimer ce message ?", Non / Oui, "Cette action est définitive."). Nothing
-leaves before "Oui". The form is fetched, then `PostingFlow.deleteLaterPost(_:with:)` refuses, nothing sent: another message's form, a form with a first-post
+**Delete.** The menu entry only sets `pendingDelete`; the legacy alert asks ("Supprimer ce message ?", Non / Oui, "Cette action est définitive."; here Annuler / Supprimer, #1151). Nothing
+leaves before "Supprimer". The form is fetched, then `PostingFlow.deleteLaterPost(_:with:)` refuses, nothing sent: another message's form, a form with a first-post
 sign (`deletesWholeTopic`: visible `sujet` or "intégralité", `R63b`, `R43a`), a form without the box (`R44`). Then the stored text goes back with `delete=1`.
 
 - This is the decision LOT-048 left open: `PostingFlow.delete` asks a whole-topic confirmation of **every** public form (fail closed). LOT-088 lifts it for a form
