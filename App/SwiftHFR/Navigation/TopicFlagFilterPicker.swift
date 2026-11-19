@@ -1,7 +1,7 @@
 import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/MainWindow.swift (the segmented `Picker("Filtre")`, `:613-640`) @ 87fe0d1c. Differences: none visible.
+// Port of HFRswift/Swift/MainWindow.swift (the segmented `Picker("Filtre")`, `:683-696`) @ 87fe0d1c. Differences: none visible.
 /// The segmented Tous / Favoris / Suivis / Lus control, bound to the shared `TopicFilterModel`. One component for every list
 /// that offers the filter. Without `canFilter` only "Tous" can be chosen, as legacy does logged out, and the control reads
 /// "Tous" while the stored choice is kept.

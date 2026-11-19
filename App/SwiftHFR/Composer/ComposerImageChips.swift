@@ -54,6 +54,8 @@ struct ComposerImageChipsRow: View {
     static let height: CGFloat = 66
 
     let chips: [ComposerImageChip]
+    /// The panel's thumbnail loader (#1193): the cookie-less client, the rehost host only.
+    let thumbnails: SmileyImageLoader
     let isEnabled: Bool
     let remove: (ComposerImageChip) -> Void
 
@@ -61,9 +63,7 @@ struct ComposerImageChipsRow: View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 ForEach(chips) { chip in
-                    AsyncImage(url: chip.thumbnail) { phase in
-                        if let loaded = phase.image { loaded.resizable().scaledToFill() } else { Color.secondary.opacity(0.2) }
-                    }
+                    RemoteThumbnail(url: chip.thumbnail, loader: thumbnails)
                     .frame(width: 56, height: 56)
                     .clipShape(.rect(cornerRadius: 10))
                     .overlay(alignment: .topTrailing) {

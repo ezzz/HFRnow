@@ -71,11 +71,18 @@ struct TopicListView: View {
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
-            if let problem = model.favorites?.storeProblem {
-                Label(problem, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if let favorites = model.favorites, let problem = favorites.storeProblem {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                    if favorites.canDiscardUnreadable {
+                        UnreadableDataRecoveryButton(content: "les sections repliées et les super-favoris") {
+                            await favorites.discardUnreadable()
+                        }
+                    }
+                }
+                .font(.footnote)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .safeAreaInset(edge: .top) {
@@ -113,7 +120,7 @@ struct TopicListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .refreshable { await model.refresh() }
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
@@ -205,7 +212,8 @@ struct TopicListView: View {
         .disabled(removing)
     }
 
-    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter.
+    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter. What cannot run
+    /// now is left out, not dimmed (HIG › Context menus, #1162).
     @ViewBuilder
     private func menu(_ topic: TopicSummary, isSuper: Bool) -> some View {
         if let open {
@@ -238,13 +246,12 @@ struct TopicListView: View {
                 Task { await favorites.toggleSuperFavorite(topic) }
             }
         }
-        if model.canRemoveFlag(topic) { removeButton(topic) }
-        if model.source == .favorites, let filtering, topic.topicID != nil {
+        if model.menuOffersRemove(topic) { removeButton(topic) }
+        if let filtering, model.menuOffersFilter(topic, filterIsBusy: filtering.isBusy) {
             Divider()
             Button { filtering.start(opening: topic) } label: {
                 Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
             }
-            .disabled(filtering.isBusy)
         }
     }
 
@@ -299,7 +306,7 @@ extension TopicListView {
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
-            ProgressView("Chargement des sujets")
+            ProgressView()
         }
     }
 }

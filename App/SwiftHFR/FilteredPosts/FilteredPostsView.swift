@@ -114,7 +114,7 @@ struct FilteredPostsView: View {
                         Button("Réessayer") { show(model.result) }
                     }
                 } else {
-                    ProgressView("Chargement des messages")
+                    ProgressView()
                 }
             }
         }

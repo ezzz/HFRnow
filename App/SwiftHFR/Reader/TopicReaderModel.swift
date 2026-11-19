@@ -25,6 +25,12 @@ final class TopicReaderModel {
     private(set) var page: ReaderPage?
     /// A load is running.
     private(set) var isLoading = false
+    /// The page is pulled past its top or its end: the refresh icons' scales, 0 to 1 (#1207).
+    var pullTop: CGFloat = 0
+    /// The end's pull, same scale.
+    var pullBottom: CGFloat = 0
+    /// The end whose pull started the refresh that is running; only that icon turns (a first load or a page change turns none).
+    var pulledEdge: PullEdge?
     /// Failure of the latest load; cleared by the next success.
     private(set) var error: ListLoadError?
     /// The document for the web view; replaced by every successful load.
@@ -54,7 +60,8 @@ final class TopicReaderModel {
     var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
-    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    /// A composer is being prepared (a quote being fetched, or an edit form, #1190): another waits for it, as legacy's
+    /// `isLoadingQuoteTemplate` (LOT-086).
     var isLoadingQuote = false
     /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
     var quoteSelected: Set<Int> = []

@@ -8,6 +8,22 @@ struct ReaderStateOverlay: View {
     let refresh: @MainActor () async -> Void
 
     var body: some View {
+        ZStack {
+            content
+            // The pulls past the page's top and end (#1207): the end's above the floating bar, never in the way of a touch.
+            PullRefreshIcon(progress: model.pullTop, isRefreshing: model.pulledEdge == .top)
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .allowsHitTesting(false)
+            PullRefreshIcon(progress: model.pullBottom, isRefreshing: model.pulledEdge == .bottom)
+                .padding(.bottom, 96)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if model.page == nil {
             if let error = model.error {
                 LoadFailureView(error: error, retry: retry)

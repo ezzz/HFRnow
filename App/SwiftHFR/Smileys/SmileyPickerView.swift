@@ -185,10 +185,23 @@ struct SmileyPickerView: View {
         case .failed(let text):
             VStack(alignment: .leading, spacing: 8) {
                 Text(text).font(.subheadline).foregroundStyle(.secondary)
-                if section.kind == .forum { Button("Réessayer") { Task { await model.retryForum() } }.font(.subheadline) }
-                if section.kind == .own { Button("Réessayer") { Task { await model.retryOwn() } }.font(.subheadline) }
+                failureAction(section.kind).font(.subheadline)
             }
             .padding(.horizontal, 4)
+        }
+    }
+
+    /// What a failed section offers: a retry for what the forum serves, the way out of an unreadable store (#1182).
+    @ViewBuilder
+    private func failureAction(_ kind: PickerSectionKind) -> some View {
+        switch kind {
+        case .forum: Button("Réessayer") { Task { await model.retryForum() } }
+        case .own: Button("Réessayer") { Task { await model.retryOwn() } }
+        case .appFavorites:
+            if model.favoritesAreUnreadable {
+                UnreadableDataRecoveryButton(content: "les smileys favoris") { await model.discardUnreadableFavorites() }
+            }
+        case .basic: EmptyView()
         }
     }
 

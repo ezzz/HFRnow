@@ -77,11 +77,21 @@ private final class FlakyPersistence: PseudoListPersistence {
         let persistence = FlakyPersistence(document: existing, failLoad: true)
         let store = PseudoListStore(persistence: persistence)
         #expect(await store.loadFailure() != nil)
-        persistence.failLoad.withLock { $0 = false }
         try await store.discardUnreadableData()
         #expect(await store.loadFailure() == nil)
         #expect(try await store.block("Fresh", account: "me"))
         #expect(persistence.document?.blocklists["me"]?.map(\.pseudo) == ["Fresh"])
+    }
+
+    /// #1182: a read that failed once (an I/O error) and works again is not set aside: the discard reads the data first.
+    @Test func discardKeepsDataThatReadsAgain() async throws {
+        let persistence = FlakyPersistence(document: existing, failLoad: true)
+        let store = PseudoListStore(persistence: persistence)
+        #expect(await store.loadFailure() != nil)
+        persistence.failLoad.withLock { $0 = false }
+        try await store.discardUnreadableData()
+        #expect(await store.isBlocked("Spammer", account: "me"))
+        #expect(persistence.document == existing)
     }
 
     @Test func discardIsANoOpWhenTheStoreIsHealthy() async throws {

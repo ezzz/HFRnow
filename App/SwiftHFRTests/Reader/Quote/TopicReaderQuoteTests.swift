@@ -95,6 +95,21 @@ struct TopicReaderQuoteTests {
         #expect(!model.isLoadingQuote)
     }
 
+    /// #1190: a composer opened while the quote was fetched (the author menu's MP): the late quote is dropped, and said.
+    @Test func aQuoteLandingAfterAnotherComposerOpenedIsDropped() async throws {
+        let gate = ReaderGate()
+        let quoter = ScriptedQuoter(gate: gate)
+        quoter.scriptQuote(.success(prefill))
+        let model = await reader(quoter: quoter)
+        let quoting = Task { await model.quoteMessage(post: 100) }
+        await gate.untilArrived()
+        model.composer(.privateMessage, isOpen: true)
+        await gate.open()
+        await quoting.value
+        #expect(model.pendingReply == nil)
+        #expect(model.menuFeedback == TopicReaderModel.replyDropped)
+    }
+
     @Test func loggedOutThereIsNothingToQuoteWith() async {
         let model = await reader(quoter: nil)
         #expect(!model.canQuote)

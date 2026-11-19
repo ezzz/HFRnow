@@ -73,4 +73,10 @@ public actor MPStorageCopyStore {
     public func loadFailure() -> SmallStoreError? {
         state.failure()
     }
+
+    /// Sets the unreadable data aside (a `.corrupt` copy, never a deletion) and starts from no copy; the next sync reads the
+    /// forum's document again. Only after the user agreed (#1182); does nothing when the store is usable.
+    public func discardUnreadableData() throws(SmallStoreError) {
+        try state.discardUnreadableData()
+    }
 }
