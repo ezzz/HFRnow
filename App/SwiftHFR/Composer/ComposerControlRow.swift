@@ -98,25 +98,29 @@ struct ComposerControlRow: View {
         inCard ? max(cell, ComposerHeader.hitSize) : cell
     }
 
+    /// The size of a tool of this row: the one the top bar's buttons read too (#1126).
+    static func toolSize(metrics: ComposerBarMetrics, inCard: Bool, style: ComposerToolStyle = .current) -> ComposerToolSize {
+        ComposerToolSize(metrics: metrics, inCard: inCard, style: style)
+    }
+
     // EXPERIMENTAL(modernComposer, #904): replaces the bare glyphs of the card's tools by round chips (#895 D), in the card only.
     @ViewBuilder
-    private func chip(cell: CGFloat) -> some View {
+    private func chip(_ size: ComposerToolSize) -> some View {
         if inCard, ComposerToolStyle.current == .pills {
-            let diameter = ComposerToolStyle.chipDiameter(cell: cell)
-            Circle().fill(.quaternary).frame(width: diameter, height: diameter)
+            Circle().fill(.quaternary).frame(width: size.diameter, height: size.diameter)
         }
     }
 
     private func button(
         _ label: String, symbol: String, enabled: Bool, tint: Color? = nil, action: @escaping () -> Void
     ) -> some View {
-        let cell = Self.cellSize(metrics.cellSize, inCard: inCard)
+        let size = Self.toolSize(metrics: metrics, inCard: inCard)
         return Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: metrics.glyphSize, weight: .medium))
+                .font(.system(size: size.glyph, weight: ComposerToolSize.glyphWeight))
                 .foregroundStyle(tint ?? .primary)
-                .background { chip(cell: cell) }
-                .frame(minWidth: cell, minHeight: cell)
+                .background { chip(size) }
+                .frame(minWidth: size.cell, minHeight: size.cell)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)

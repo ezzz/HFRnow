@@ -2,8 +2,8 @@ import Foundation
 
 /// This device's side of the account sync (LOT-173): the switch, the dates it acted on and the per-account stamps.
 /// Kept in its own device-only Keychain item, never in the synchronizable one. An absent state is off with nothing known;
-/// an unreadable one (a later version's, or damaged) is refused and never written over (#1200 P3), since reading it as off
-/// would erase the switch and the tombstones it honoured.
+/// one a later version wrote is refused and never written over (#1200 P3), since reading it as off would erase the switch
+/// and the tombstones it honoured. Damaged bytes are refused too, until the user's explicit switch-off resets them.
 public struct AccountSyncState: Sendable, Hashable, Codable {
     /// Whether this device shares its accounts.
     public var isOn = false
@@ -75,10 +75,33 @@ public struct AccountSyncState: Sendable, Hashable, Codable {
         return try encoder.encode(self)
     }
 
-    /// The state stored in `data`: off with nothing known when absent, nil when the bytes cannot be read (a version this
-    /// code does not know, or damaged).
-    static func decoded(from data: Data?) -> AccountSyncState? {
-        guard let data else { return AccountSyncState() }
-        return try? JSONDecoder().decode(AccountSyncState.self, from: data)
+    /// What a state item holds.
+    enum Stored: Equatable {
+        /// A state this version reads; off with nothing known when the item is absent.
+        case readable(AccountSyncState)
+        /// A state written by a later version: a `version` above this one's. Never reset (#1200 P3).
+        case laterVersion
+        /// Bytes no version writes as they are (not JSON, no integer `version`, or this version without its fields): only
+        /// the user's explicit switch-off resets them (#1200 P3, option (b)).
+        case damaged
+    }
+
+    /// The state stored in `data`, told apart as `Stored` says.
+    static func decoded(from data: Data?) -> Stored {
+        guard let data else { return .readable(AccountSyncState()) }
+        if let state = try? JSONDecoder().decode(AccountSyncState.self, from: data) { return .readable(state) }
+        struct Versioned: Decodable { let version: Int }
+        if let versioned = try? JSONDecoder().decode(Versioned.self, from: data), versioned.version > currentVersion {
+            return .laterVersion
+        }
+        return .damaged
+    }
+}
+
+extension AccountSyncState {
+    /// An "off" state that remembers the newest tombstone it honoured.
+    init(honouredDeletedAt: Date?) {
+        self.init()
+        self.honouredDeletedAt = honouredDeletedAt
     }
 }

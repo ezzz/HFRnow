@@ -216,7 +216,7 @@ final class RootModel {
             blocklistSync: Self.blocklistSync(environment, mpStorage: mpStorage),
             clearsIconBadgeBeforeCount: Self.clearsIconBadgeBeforeCount(accountName: environment.currentAccountName, initial: initial),
             qualityAlerts: QualityAlertsModel(
-                source: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:]),
+                source: environment.qualityAlertsSource,
                 visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
                 store: store
             )

@@ -2,9 +2,9 @@ import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (composerHeader `:768-819`) @ 87fe0d1c. Differences: no title strip (#972, operator
-// 2026-11-16): close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, directly above the card, as small
-// capsules in 44 pt hit areas (#854) on an opaque-enough fill so they read over any page (#972), `FloatingSpacing.gap` from the
-// sides and the card (#895); GAP-653.
+// 2026-11-16): close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, directly above the card, as circles
+// of the card tools' diameter (`ComposerToolSize`, #1126) in 44 pt hit areas (#854) on an opaque-enough fill so they read over
+// any page (#972), `FloatingSpacing.gap` from the sides and the card (#895); GAP-653.
 /// The modern composer's floating buttons (#904, Réglages › Expérimental › « Composer moderne »): close and drafts on the left,
 /// send on the right, nothing between them. The title legacy's bar shows is the row's VoiceOver label only.
 struct FloatingComposerButtons: View {
@@ -13,15 +13,18 @@ struct FloatingComposerButtons: View {
     let isSending: Bool
     let canSend: Bool
     let drafts: ComposerHeader.Drafts?
-    /// The glyph's point size: the card tools' (`ComposerBarMetrics.glyphSize`, #895).
-    let glyph: CGFloat
+    /// The card tools' size (#895, #1126): the circle's diameter, the glyph's point size and weight.
+    let size: ComposerToolSize
     let close: () -> Void
     let send: () -> Void
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         HStack(spacing: 0) {
-            button(prominent: false, enabled: ComposerHeader.closeIsEnabled(isSending: isSending), action: close) {
+            button(
+                prominent: false, enabled: ComposerHeader.closeIsEnabled(isSending: isSending), circle: .closeCircle,
+                action: close
+            ) {
                 symbol("xmark", probe: .closeGlyph)
             }
             .keyboardShortcut(.cancelAction)
@@ -30,7 +33,7 @@ struct FloatingComposerButtons: View {
             if let drafts {
                 button(
                     prominent: drafts.hasDrafts, enabled: ComposerHeader.draftsAreEnabled(drafts, isSending: isSending),
-                    action: drafts.open
+                    circle: .draftsCircle, action: drafts.open
                 ) {
                     symbol("tray")
                 }
@@ -45,7 +48,7 @@ struct FloatingComposerButtons: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(title)
         // The capsules sit `FloatingSpacing.gap` from the sides, the page and the card: their hit areas' slack counts (#895).
-        .padding(ComposerChrome.docked.headerInsets(glyph: glyph))
+        .padding(ComposerChrome.docked.headerInsets(diameter: size.diameter))
         // Where the docked bar's fill starts (#972, `DockedComposerBar`).
         .background {
             GeometryReader { Color.clear.preference(key: ComposerButtonsHeightKey.self, value: $0.size.height) }
@@ -54,11 +57,11 @@ struct FloatingComposerButtons: View {
 
     private var sendButton: some View {
         let state = ComposerHeader.SendState(isSending: isSending, canSend: canSend)
-        return button(prominent: state.isProminent, enabled: state.isEnabled, action: send) {
+        return button(prominent: state.isProminent, enabled: state.isEnabled, circle: .sendCircle, action: send) {
             if state.showsSpinner {
                 ProgressView()
                     .controlSize(.small)
-                    .frame(width: glyph, height: glyph)
+                    .frame(width: size.glyph, height: size.glyph)
                     .accessibilityLabel(state.label)
             } else {
                 symbol("arrow.up")
@@ -67,44 +70,51 @@ struct FloatingComposerButtons: View {
         .accessibilityLabel(state.label)
     }
 
-    /// A small capsule inside a 44 pt hit area: the palette's fill under the system's interactive glass, so the glyph keeps its
-    /// contrast whatever page runs under it (#972); a prominent one is the accent, as before. `.plain` draws no disabled state:
-    /// only the glyph dims, the capsule stays readable as a button.
+    /// A circle of the card tools' diameter inside a 44 pt hit area: the palette's fill under the system's interactive glass, so
+    /// the glyph keeps its contrast whatever page runs under it (#972); a prominent one is the accent, as before. `.plain` draws
+    /// no disabled state: only the glyph dims, the circle stays readable as a button.
     private func button<Label: View>(
-        prominent: Bool, enabled: Bool, action: @escaping () -> Void, @ViewBuilder label: () -> Label
+        prominent: Bool, enabled: Bool, circle: ComposerLayoutProbe.Part? = nil, action: @escaping () -> Void,
+        @ViewBuilder label: () -> Label
     ) -> some View {
         let palette = FloatingButtonPalette(scheme: scheme)
         return Button(action: action) {
             label()
                 .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(palette.glyph.color))
                 .opacity(enabled ? 1 : FloatingButtonPalette.disabledGlyphOpacity)
-                .padding(.horizontal, ComposerHeader.capsulePadding.width)
-                .padding(.vertical, ComposerHeader.capsulePadding.height)
+                .frame(width: size.diameter, height: size.diameter)
+                .background { probed(circle) }
                 .background {
                     if !prominent {
-                        Capsule()
+                        Circle()
                             .fill(palette.fill.color)
                             .overlay {
-                                Capsule().strokeBorder(palette.glyph.color.opacity(FloatingButtonPalette.strokeOpacity), lineWidth: 0.5)
+                                Circle().strokeBorder(palette.glyph.color.opacity(FloatingButtonPalette.strokeOpacity), lineWidth: 0.5)
                             }
                     }
                 }
-                .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
+                .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .circle)
                 .frame(minWidth: ComposerHeader.hitSize, minHeight: ComposerHeader.hitSize)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
+        .accessibilityShowsLargeContentViewer()
     }
 
-    /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895); semibold
-    /// rather than medium, a little heavier over the page (#972).
+    /// An invisible shape of the circle's size that reports its frame to a test's probe (`part`), if any.
+    @ViewBuilder
+    private func probed(_ part: ComposerLayoutProbe.Part?) -> some View {
+        if let part { Color.clear.composerProbe(part) }
+    }
+
+    /// The glyph at the card tools' size and weight (`ComposerControlRow`), so the composer has one icon size (#895, #1126).
     private func symbol(_ name: String, probe part: ComposerLayoutProbe.Part? = nil) -> some View {
-        let image = Image(systemName: name).font(.system(size: glyph, weight: FloatingButtonPalette.glyphWeight))
+        let image = Image(systemName: name).font(.system(size: size.glyph, weight: ComposerToolSize.glyphWeight))
         return Group {
             if let part { image.composerProbe(part) } else { image }
         }
-        .frame(width: glyph, height: glyph)
+        .frame(width: size.glyph, height: size.glyph)
     }
 }
 
@@ -117,8 +127,6 @@ struct FloatingButtonPalette: Equatable {
     /// The capsule's fill, its alpha the share of the page it hides.
     let fill: ThemeColor
 
-    /// The glyph's weight: the card tools' size, one step heavier.
-    static let glyphWeight: Font.Weight = .semibold
     /// A disabled glyph (send with nothing to send, close during a send): dimmed, the capsule kept.
     static let disabledGlyphOpacity: Double = 0.4
     /// The hairline around the capsule, in the glyph's colour, so a capsule over a page of its own colour keeps an edge.

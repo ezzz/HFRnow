@@ -3,12 +3,13 @@ import SwiftUI
 @testable import SwiftHFR
 import Testing
 
-/// Where the composer opens (#653): at partial height on an iPhone, whatever it writes (a reply, an edit, a new topic, a new
-/// private message: operator, 2026-11-10), a card docked on the keyboard so the page it was opened from stays visible above it;
-/// full height on an iPad and in compact height, where the system shows a sheet full anyway and no toggle claims otherwise.
+/// Where the composer opens (#653): at partial height on an iPhone for a reply or an edit (a new topic and a new private message
+/// open full screen with no toggle since #1137, `ComposerFullScreenTests`; operator, 2026-11-10), a card docked on the keyboard so
+/// the page it was opened from stays visible above it; full height on an iPad and in compact height, where the system shows a
+/// sheet full anyway and no toggle claims otherwise.
 struct ComposerPresentationTests {
     @Test(arguments: [true, false])
-    func everyComposerOpensAtPartialHeightOnlyOnAnIPhone(isPhone: Bool) {
+    func aReplyOrAnEditOpensAtPartialHeightOnlyOnAnIPhone(isPhone: Bool) {
         let expected: ComposerHeight = isPhone ? .partial : .full
         #expect(ComposerHeight.shown(chosen: nil, isPhone: isPhone, verticalSizeClass: .regular) == expected)
         #expect(ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: .regular) == isPhone)

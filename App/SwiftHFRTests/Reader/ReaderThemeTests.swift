@@ -40,16 +40,16 @@ struct ReaderThemeTests: ReaderWebTesting {
     @Test func theDarkVariantGetsTheNightAccentAndTheScaledSurfacesThenFollowsAChangeLive() async {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = .dark
-        controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 1.5)
+        controller.theme = ThemeAppearance(dayAccent: red, nightAccent: blue, darkBrightness: 0)
         controller.show(document(token: 1))
         #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
-        // The dark surfaces scale (0x1C1C1E at 150 %: rgb(42, 42, 45), ThemeAppearanceTests) but the default quote has no fill (#819).
+        // The dark surfaces scale (at 0 % they are black; the standard grey is 0x2E2F33) but the default quote has no fill (#819).
         let expected = "rgb(0, 0, 255)|\(none)"
         let first = await until(async: { await colours(in: controller) == expected })
         let seen = await colours(in: controller)
         #expect(first, "colours: \(seen)")
-        // 0x2C2C2E at 150 %.
-        let scaled = await until(async: { await placeholder(in: controller) == "rgb(66, 66, 69)" })
+        // 0x35363B at 0 %: black.
+        let scaled = await until(async: { await placeholder(in: controller) == "rgb(0, 0, 0)" })
         let seenPlaceholder = await placeholder(in: controller)
         #expect(scaled, "placeholder: \(seenPlaceholder)")
 
@@ -57,7 +57,7 @@ struct ReaderThemeTests: ReaderWebTesting {
         let live = await until(async: { await colours(in: controller) == "rgb(255, 0, 0)|\(none)" })
         let seenLive = await colours(in: controller)
         #expect(live, "colours: \(seenLive)")
-        let scaledLive = await until(async: { await placeholder(in: controller) == "rgb(44, 44, 46)" })
+        let scaledLive = await until(async: { await placeholder(in: controller) == "rgb(53, 54, 59)" })
         let seenPlaceholderLive = await placeholder(in: controller)
         #expect(scaledLive, "placeholder: \(seenPlaceholderLive)")
         #expect(recorder.ready == [1])
@@ -90,7 +90,7 @@ struct ReaderThemeTests: ReaderWebTesting {
                 """
             return ((try? await evaluate(script, in: controller)) as? String) ?? ""
         }
-        let standard = await until(async: { await surfaces().hasPrefix("rgb(0, 0, 0)") })
+        let standard = await until(async: { await surfaces().hasPrefix("rgb(46, 47, 51)") })
         let seenStandard = await surfaces()
         #expect(standard, "standard: \(seenStandard)")
 
@@ -153,7 +153,10 @@ struct ReaderThemeTests: ReaderWebTesting {
         let restored = await until(async: { await colours(in: controller) == legacy })
         let seenLegacy = await colours(in: controller)
         #expect(restored, "legacy: \(seenLegacy)")
-        #expect(await page() == "rgb(0, 0, 0)|\(none)")
+        // The Legacy page is the standard dark style's legacy grey since #1210 (it was black).
+        let legacyPage = await until(async: { await page() == "rgb(46, 47, 51)|\(none)" })
+        let seenLegacyPage = await page()
+        #expect(legacyPage, "legacy page: \(seenLegacyPage)")
         #expect(recorder.ready == [4])
     }
 }
