@@ -4,6 +4,9 @@ import HFRStorage
 /// What the picker prints for an archived draft (legacy `ReplyDraftSource.title`, `previewText`, `formattedDate`,
 /// `AnswerView.swift:103-121, 1930-1998` @ 87fe0d1c).
 enum ArchivedDraftsFormat {
+    /// The question of the « Vider » confirmation (#1179).
+    static let clearConfirmQuestion = "Vider les brouillons ?"
+
     /// The destructive button of the "Vider" confirmation (#1179): it names the action, unlike the toolbar button that opens it.
     static let clearConfirmTitle = "Supprimer les brouillons"
 

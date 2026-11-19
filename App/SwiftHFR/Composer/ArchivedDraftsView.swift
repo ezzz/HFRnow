@@ -3,14 +3,15 @@ import SwiftUI
 
 // Port of HFRswift/Swift/AnswerView.swift (ReplyDraftPickerSheet, :1855-2001) @ 87fe0d1c. Differences: a navigation stack instead of
 // the hand-drawn header; the list is the model's (per account, LOT-063); GAP-093. #1107: the list look of every list (`listLook`).
+// #1179: « Vider » asks first (legacy deleted at once, `:1936-1941`); GAP-093.
 /// The picker of a topic's archived drafts (LOT-101): "Mettre de côté et vider", the list, swipe "Supprimer", "Vider".
 struct ArchivedDraftsView: View {
     let model: ReplyComposerModel
     /// Called after a draft was picked or the text set aside: the sheet closes and the editor takes focus.
     let onDone: () -> Void
     @Environment(\.dismiss) private var dismiss
-    /// "Vider" was tapped: the confirmation is showing (#1179); nothing is deleted before it is accepted.
-    @State private var confirmsClear = false
+    /// "Vider" asks first (#1179); nothing is deleted before the confirmation is accepted.
+    @State private var clearing = ArchivedClearConfirmation()
 
     var body: some View {
         ThemedNavigationStack {
@@ -28,15 +29,19 @@ struct ArchivedDraftsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Vider", role: .destructive) { confirmsClear = true }
+                    Button("Vider", role: .destructive) { clearing.request() }
                         .disabled(model.archivedDrafts.isEmpty || model.isMovingDrafts)
+                        .confirmationDialog(
+                            ArchivedDraftsFormat.clearConfirmQuestion, isPresented: $clearing.isAsking, titleVisibility: .visible
+                        ) {
+                            Button(ArchivedDraftsFormat.clearConfirmTitle, role: .destructive) {
+                                Task { await clearing.confirm(discardingIn: model) }
+                            }
+                            Button("Annuler", role: .cancel) { clearing.cancel() }
+                        } message: {
+                            Text(ArchivedDraftsFormat.clearConfirmMessage(count: model.archivedDrafts.count))
+                        }
                 }
-            }
-            .confirmationDialog("Vider les brouillons ?", isPresented: $confirmsClear, titleVisibility: .visible) {
-                Button(ArchivedDraftsFormat.clearConfirmTitle, role: .destructive) { Task { await model.discardAllArchived() } }
-                Button("Annuler", role: .cancel) {}
-            } message: {
-                Text(ArchivedDraftsFormat.clearConfirmMessage(count: model.archivedDrafts.count))
             }
         }
     }

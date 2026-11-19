@@ -1,0 +1,23 @@
+import Observation
+
+/// The « Vider » confirmation of the archived-drafts sheet (#1179): asking only raises the question; the archive is emptied by
+/// `confirm`, so a tap on « Vider » alone deletes nothing. Its own object so the rule is testable without rendering the sheet.
+@MainActor
+@Observable
+final class ArchivedClearConfirmation {
+    /// The confirmation is showing.
+    var isAsking = false
+
+    /// « Vider » was tapped.
+    func request() { isAsking = true }
+
+    /// « Annuler »: nothing is deleted.
+    func cancel() { isAsking = false }
+
+    /// « Supprimer les brouillons »: deletes every archived draft of the topic, only after a request.
+    func confirm(discardingIn model: ReplyComposerModel) async {
+        guard isAsking else { return }
+        isAsking = false
+        await model.discardAllArchived()
+    }
+}
