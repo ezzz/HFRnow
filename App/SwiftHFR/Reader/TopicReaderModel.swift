@@ -565,7 +565,7 @@ final class TopicReaderModel {
     ) async -> Result<ReaderPage, ListLoadError> {
         do throws(ListLoadError) {
             // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (#566, #1191).
-            return .success(try await retryingUnrequestedCancellation(isCancellation: { $0 == .cancelled }) {
+            return .success(try await retryingUnrequestedCancellation(cancelledAs: .cancelled) {
                 () async throws(ListLoadError) -> ReaderPage in try await source.page(for: target)
             })
         } catch {

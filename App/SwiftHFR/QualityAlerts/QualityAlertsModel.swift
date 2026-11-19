@@ -153,7 +153,7 @@ final class QualityAlertsModel {
         isLoading = true
         do throws(AQError) {
             // A cancellation nobody asked for is asked once more (#1191).
-            let items = try await retryingUnrequestedCancellation(isCancellation: { $0 == .network(.cancelled) }) {
+            let items = try await retryingUnrequestedCancellation(cancelledAs: .network(.cancelled)) {
                 () async throws(AQError) -> [AQFeedItem] in try await source.feed()
             }
             let visible = await visibleItems(items)

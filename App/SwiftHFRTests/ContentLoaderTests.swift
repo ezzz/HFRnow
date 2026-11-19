@@ -83,6 +83,19 @@ struct ContentLoaderTests {
         #expect(loader.value == nil && loader.error == .other && !loader.isLoading)
     }
 
+    /// An operation that must not be sent twice (a search POST) is not retried: the unrequested cancellation is a failure at once.
+    @Test func anOperationThatMustNotBeSentTwiceFailsAtOnce() async {
+        let loader = ContentLoader<Int>()
+        let calls = ReaderCallCounter()
+        let applied = await loader.load(retriesUnrequestedCancellation: false) { () async throws(ListLoadError) -> Int in
+            _ = calls.next()
+            throw .cancelled
+        }
+        #expect(!applied)
+        #expect(calls.calls == 1)
+        #expect(loader.value == nil && loader.error == .other && !loader.isLoading)
+    }
+
     /// A load `cancel()` stopped is not asked again and shows no failure.
     @Test func aRequestedCancellationIsNotRetried() async {
         let loader = ContentLoader<Int>()

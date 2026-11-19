@@ -221,7 +221,7 @@ final class FilteredPostsModel {
         let criteria = services.criteria()
         do throws(FilteredPostsError) {
             // A cancellation nobody asked for is asked once more (#1191).
-            let batch = try await retryingUnrequestedCancellation(isCancellation: { $0 == .network(.cancelled) }) {
+            let batch = try await retryingUnrequestedCancellation(cancelledAs: .network(.cancelled)) {
                 () async throws(FilteredPostsError) -> FilteredPostsBatch in
                 try await services.source.batch(in: topic, from: page, after: message, criteria: criteria) { [weak self] progress in
                     await self?.report(progress, run: id)

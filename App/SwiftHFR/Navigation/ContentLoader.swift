@@ -20,9 +20,11 @@ final class ContentLoader<Value: Sendable> {
     ///
     /// The work runs in its own task so that cancelling the caller (a pull-to-refresh that is dismissed) does not leave the
     /// screen in a half-loaded state; only a newer `load` or `cancel()` supersedes it. A `.cancelled` that neither asked for is
-    /// retried once, then shown as `.other` (#1191).
+    /// retried once when `retriesUnrequestedCancellation` (an operation that only reads), then shown as `.other` (#1191).
     @discardableResult
-    func load(_ operation: @escaping @Sendable () async throws(ListLoadError) -> Value) async -> Bool {
+    func load(
+        retriesUnrequestedCancellation: Bool = true, _ operation: @escaping @Sendable () async throws(ListLoadError) -> Value
+    ) async -> Bool {
         task?.cancel()
         generation += 1
         let mine = generation
@@ -31,7 +33,11 @@ final class ContentLoader<Value: Sendable> {
             let result: Result<Value, ListLoadError>
             do throws(ListLoadError) {
                 // A cancellation nobody asked for is asked once more (`cancel()` and a newer load cancel this task; #1191).
-                result = .success(try await retryingUnrequestedCancellation(isCancellation: { $0 == .cancelled }, operation))
+                if retriesUnrequestedCancellation {
+                    result = .success(try await retryingUnrequestedCancellation(cancelledAs: .cancelled, operation))
+                } else {
+                    result = .success(try await operation())
+                }
             } catch {
                 result = .failure(error)
             }

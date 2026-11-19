@@ -147,13 +147,17 @@ struct TopicSearchModelTests {
         #expect(sheet.state == .idle)
     }
 
-    @Test func aCancelledSearchIsNotAFailure() async {
-        let sheet = model(ScriptedSearcher { (_) async throws(TopicSearchError) -> TopicSearchResult in
+    /// The transport's cancellation while the sheet did not cancel (#1191): a failure in the sheet, never a silent return to
+    /// the form, and not a second POST. `closingTheSheetDropsTheAnswer` covers the cancellation the sheet asks for.
+    @Test func anUnrequestedCancellationIsAFailureAndSendsTheSearchOnce() async {
+        let searcher = ScriptedSearcher { (_) async throws(TopicSearchError) -> TopicSearchResult in
             throw TopicSearchError.network(.cancelled)
-        })
+        }
+        let sheet = model(searcher)
         sheet.word = "a"
         #expect(await sheet.submit() == nil)
-        #expect(sheet.state == .idle)
+        #expect(sheet.state == .failed("Impossible de joindre le forum."))
+        #expect(searcher.queries.count == 1)
     }
 
     @Test func aMatchOnThePageShownScrollsInPlace() async throws {

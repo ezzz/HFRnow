@@ -273,7 +273,7 @@ struct FilteredPostsModelTests {
         #expect(model.statusMessage == "Aucun autre post trouvé")
         #expect(model.nextBatchHint == nil)
         model.showNextBatch()
-        #expect(source.calls.calls == 2)
+        #expect(source.calls.count == 2)
     }
 
     @Test func aFinishedTopicOffersNoNextResults() async {
@@ -283,7 +283,7 @@ struct FilteredPostsModelTests {
         await settle(model)
         model.showNextBatch()
         #expect(!model.isAdvancing)
-        #expect(source.calls.calls == 1)
+        #expect(source.calls.count == 1)
     }
 
     @Test func cancellingNextResultsLeavesTheBatchShown() async {
