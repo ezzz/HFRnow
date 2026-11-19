@@ -7,7 +7,8 @@ public enum HFRParsing {
     public static let moduleName = "HFRParsing"
 
     /// Returns the trimmed text of the document `<title>`, or nil when absent.
-    /// Smoke test for the SwiftSoup integration; replaced by real parsers in Phase 3.
+    /// Smoke test for the SwiftSoup integration, kept for the engine's own tests (`EngineInfoTests`, `HFRParsingTests`); the real
+    /// parsers are the other types of this module.
     /// Goes through `HTMLDocumentLoader`, so only `ParsingError` can escape.
     public static func documentTitle(in html: String) throws(ParsingError) -> String? {
         let document = try HTMLDocumentLoader.document(from: html)

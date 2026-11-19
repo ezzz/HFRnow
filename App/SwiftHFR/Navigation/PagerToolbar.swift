@@ -2,7 +2,7 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsPaginationBar, `:926-981`) and of the pager of HFRswift/Swift/ForumSearchView.swift
 // (`:395-432`) @ 2440d79. Differences: legacy drew its own glass capsule; the iPad sidebar root uses the system bottom bar, the tab bar
-/// root (every iPhone, compact iPad) a glass strip inset above the tab bar (#565); GAP row pending #545 (LOT-185).
+// root (every iPhone, compact iPad) a glass strip inset above the tab bar (#565); GAP row pending #545 (LOT-185).
 /// The page controls of a list: system bottom-bar items under the iPad sidebar root (Liquid Glass), a glass strip above the tab bar
 /// under the tab bar root (`PagerPlacement`), instead of a hand-built strip with an opaque fill.
 struct PagerToolbar {
