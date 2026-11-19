@@ -20,7 +20,6 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
 
     private struct Hosted {
         let window: UIWindow
-        let host: UIViewController
         let root: RootModel
     }
 
@@ -79,7 +78,7 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
             .environment(\.rootLayoutIdiom, .phone)
             .environment(\.tabSplitIdiom, .phone)
             // Not a foldable by its model: on the cover window the side inset is the only signal, on the regular window none is.
-            .environment(\.rootLayoutFoldableModel, false)
+            .environment(\.rootLayoutModelIdentifier, "iPhone18,1")
             .environment(makeModel(store: InMemoryCredentialStore()))
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
@@ -101,7 +100,7 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         case .reader: root.favorites.selectedTopic = favoriteTopic(1)
         default: break
         }
-        return Hosted(window: window, host: host, root: root)
+        return Hosted(window: window, root: root)
     }
 
     private func controllers(in window: UIWindow) -> [UIViewController] {
@@ -202,7 +201,8 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         let added = screen == .topicList ? 2 : 1
         let bars = await settle(hosted.window) { ready(screen, in: hosted.window) && $0.bottom.count >= regular + added }
         print("CoverScreenThumbActionsTests cover \(screen): \(bars.diagnostics)")
-        #expect(bars.bottom.count == regular + added, "\(screen): \(regular) bottom control(s) on a regular iPhone; cover: \(bars.diagnostics)")
+        let seen = "\(screen): \(regular) bottom control(s) on a regular iPhone; cover: \(bars.diagnostics)"
+        #expect(bars.bottom.count == regular + added, "\(seen)")
     }
 
     /// The forum list's « Actualiser » leaves the top bar on the cover screen: the only trailing item there (no composer, no

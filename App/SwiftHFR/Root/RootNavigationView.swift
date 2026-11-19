@@ -150,7 +150,7 @@ struct RootLayout: View {
     @Environment(\.horizontalSizeClass) private var horizontal
     @Environment(\.verticalSizeClass) private var vertical
     @Environment(\.rootLayoutIdiom) private var idiomOverride
-    @Environment(\.rootLayoutFoldableModel) private var foldableOverride
+    @Environment(\.rootLayoutModelIdentifier) private var modelOverride
     /// Orientation and side inset, kept here, not in the split root, so an unfold builds the split already knowing the orientation
     /// (legacy `isPortraitLayout` and `windowShape`, `MainWindow.swift:1361-1363`, `:1677-1684` @ 87fe0d1c), and a fold knows the
     /// cover screen (GAP-713).
@@ -165,7 +165,8 @@ struct RootLayout: View {
         let usesSidebarRoot = RootNavigationView.usesSidebarRoot(idiom: idiom, horizontal: horizontal, vertical: vertical)
         // Which iPhone Duo display the scene is on (`phoneDisplayKind`, `MainWindow.swift:1398-1408` @ 87fe0d1c).
         let displayKind = PhoneDisplayPolicy.displayKind(
-            isPhone: idiom == .phone, usesSidebarRoot: usesSidebarRoot, isFoldableModel: foldableOverride ?? Self.isFoldableModel,
+            isPhone: idiom == .phone, usesSidebarRoot: usesSidebarRoot,
+            isFoldableModel: modelOverride.map(PhoneDisplayPolicy.isFoldableModel) ?? Self.isFoldableModel,
             window: windowShape, hasShownExpandedLayoutThisLaunch: hasShownExpandedPhoneLayout
         )
         Group {

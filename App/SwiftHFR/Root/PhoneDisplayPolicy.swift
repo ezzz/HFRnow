@@ -66,7 +66,7 @@ enum PhoneDisplayPolicy {
 extension EnvironmentValues {
     /// Set by `RootLayout`: which iPhone Duo display the scene is on (`.other` elsewhere, and outside the roots).
     @Entry var phoneDisplayKind: PhoneDisplayKind = .other
-    /// Whether `RootLayout` takes the device for a foldable model; nil reads the model identifier. Tests set it: the Duo simulator
-    /// reports `iPhone19,4` to every process, a regular one never does, so the other signals could not be checked alone.
-    @Entry var rootLayoutFoldableModel: Bool?
+    /// The model identifier `RootLayout` classifies; nil is the device's. Tests set it: the Duo simulator reports `iPhone19,4` to
+    /// every process, a regular one never does, so the other signals could not be checked alone.
+    @Entry var rootLayoutModelIdentifier: String?
 }

@@ -107,7 +107,7 @@ struct TopicListView: View {
             }
             if phoneDisplayKind.placesThumbActionsAtBottom { ToolbarItem(placement: .bottomBar) { refreshButton } }
         }
-        // A pushed category's list gets « Retour » on the cover screen (`MainWindow.swift:854` @ 87fe0d1c); the Favoris root is not pushed.
+        // A pushed category's list gets « Retour » on the cover screen (`MainWindow.swift:854` @ 87fe0d1c); the Favoris root is no push.
         .coverScreenBottomBackButton()
         .sheet(item: $newTopic) { composer in
             ReplyComposerView(model: composer) { reason in
@@ -164,7 +164,7 @@ struct TopicListView: View {
         return RowTint(tint: accent.color, weight: accent.weight)
     }
 
-    /// « Actualiser », top trailing or at the bottom of the cover screen's toolbar column (`refreshToolbarButton`, `MainWindow.swift:381-393`).
+    /// « Actualiser », top trailing or at the bottom of the cover screen's column (`refreshToolbarButton`, `MainWindow.swift:381-393`).
     private var refreshButton: some View {
         RefreshToolbarButton(isLoading: model.loader.isLoading, isEnabled: model.canRefresh) { await model.refresh() }
     }
