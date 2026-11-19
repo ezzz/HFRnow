@@ -101,7 +101,7 @@ struct MessageListView: View {
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
-            ProgressView("Chargement des messages")
+            ProgressView()
         }
     }
 }

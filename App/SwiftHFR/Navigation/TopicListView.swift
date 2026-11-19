@@ -209,7 +209,8 @@ struct TopicListView: View {
         .disabled(removing)
     }
 
-    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter.
+    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter. What cannot run
+    /// now is left out, not dimmed (HIG › Context menus, #1162).
     @ViewBuilder
     private func menu(_ topic: TopicSummary, isSuper: Bool) -> some View {
         if let open {
@@ -242,13 +243,12 @@ struct TopicListView: View {
                 Task { await favorites.toggleSuperFavorite(topic) }
             }
         }
-        if model.canRemoveFlag(topic) { removeButton(topic) }
-        if model.source == .favorites, let filtering, topic.topicID != nil {
+        if model.menuOffersRemove(topic) { removeButton(topic) }
+        if let filtering, model.menuOffersFilter(topic, filterIsBusy: filtering.isBusy) {
             Divider()
             Button { filtering.start(opening: topic) } label: {
                 Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
             }
-            .disabled(filtering.isBusy)
         }
     }
 
@@ -303,7 +303,7 @@ extension TopicListView {
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
-            ProgressView("Chargement des sujets")
+            ProgressView()
         }
     }
 }

@@ -234,6 +234,28 @@ struct TopicRowActionsTests {
         #expect(titles(model).isEmpty)
     }
 
+    /// #1162: the context menu hides "Supprimer" while the removal runs (the swipe button keeps its disabled state) and shows it
+    /// again after; "Filtrer les posts" is hidden while a filter run is busy and absent off Favoris.
+    @Test(.timeLimit(.minutes(1))) func theContextMenuHidesWhatCannotRunInsteadOfDimmingIt() async {
+        let writer = FakeFlagWriter()
+        let gate = AsyncGate()
+        writer.removeHandler = { topic in
+            await gate.wait()
+            return confirmed(.removeFavoriteFromList, topic, "Drapeaux effacés avec succès")
+        }
+        let topic = flaggedTopic(1)
+        let (model, _) = await favoritesList([topic], writer: writer)
+        #expect(model.menuOffersRemove(topic))
+        let removal = Task { await model.removeFlag(topic) }
+        while writer.removed.isEmpty { await Task.yield() }
+        #expect(model.canRemoveFlag(topic), "the swipe button is still built, dimmed")
+        #expect(!model.menuOffersRemove(topic), "the menu entry is gone while it runs")
+        await gate.open()
+        await removal.value
+        #expect(model.menuOffersFilter(flaggedTopic(2), filterIsBusy: false))
+        #expect(!model.menuOffersFilter(flaggedTopic(2), filterIsBusy: true), "no dimmed « Filtrer les posts »")
+    }
+
     @Test func theNextLoadShowsHFRsStateAgain() async {
         let topic = flaggedTopic(1)
         let (model, _) = await favoritesList([topic])

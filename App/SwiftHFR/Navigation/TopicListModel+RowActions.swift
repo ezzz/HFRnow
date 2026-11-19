@@ -39,6 +39,15 @@ extension TopicListModel {
     /// The removal of the row's flag is in flight ("Suppression…", disabled).
     func isRemovingFlag(_ topic: TopicSummary) -> Bool { removingFlags.contains(topic.id) }
 
+    /// The context menu lists "Supprimer" only while it can run: HIG hides what is unavailable instead of dimming it (#1162). The
+    /// trailing swipe button keeps its disabled "Suppression…" state.
+    func menuOffersRemove(_ topic: TopicSummary) -> Bool { canRemoveFlag(topic) && !isRemovingFlag(topic) }
+
+    /// The context menu lists "Filtrer les posts" on a Favoris row with a topic number, and only while no filter run is busy (#1162).
+    func menuOffersFilter(_ topic: TopicSummary, filterIsBusy: Bool) -> Bool {
+        source == .favorites && topic.topicID != nil && !filterIsBusy
+    }
+
     /// "Supprimer": removes the row's flag (legacy `removeFavoriteFlag`, the favourites list POST). On HFR's confirmation the
     /// row leaves the flags and favourites lists, and a forum row loses its flag; otherwise the row stays and
     /// `actionFailure` says why. A removal in flight is not sent a second time, and an unconfirmed one is never resent.
