@@ -47,6 +47,11 @@ struct LiveTopicPageSource: TopicPageSource {
                     return RawPage(response: try await session.send(try Self.messageRequest(topic: topic, numreponse: numreponse)))
                 }
                 return try await fetcher.topicPage(topic: topic, page: target.page, as: .authenticated).page
+            case .quotingMessages(let link):
+                // `R126a`: the posts quoting one message, through the account session like the page the user is reading.
+                if Task.isCancelled { throw .cancelled }
+                let request = try HFREndpoint.quotingMessages(topic: link.topic, subcategory: link.subcategory, numreponse: link.numreponse)
+                return RawPage(response: try await session.send(request))
             }
         } catch {
             throw ListLoadError(error)
@@ -87,7 +92,8 @@ struct LiveTopicPageSource: TopicPageSource {
                     quotedByCount: block.quotedByCount,
                     content: content,
                     quotes: ReaderMessage.quotes(of: content),
-                    actions: hasActions ? actionSets[index] : MessageActions()
+                    actions: hasActions ? actionSets[index] : MessageActions(),
+                    quotedByURL: block.quotedByURL
                 ))
             }
             page = ReaderPage(

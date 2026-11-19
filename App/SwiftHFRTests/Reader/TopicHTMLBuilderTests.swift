@@ -103,14 +103,44 @@ struct TopicHTMLBuilderTests {
         #expect(!TopicHTMLBuilder.document(for: page([quiet]), token: 1).contains("<footer class=\"trailer\">"))
     }
 
-    /// Port of `LinkItem.m:237-238` @ 87fe0d1c without its link: where `quote_only=1` leads is not captured (#126), so the
-    /// bubble is inert text, never an anchor the reader would route to the in-app browser.
-    @Test func theBubbleIsNotALink() {
+    /// The quote view the bubble opens (`R353a`'s `div.edited` link, anonymized ids).
+    private static let quotingLink = "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&subcat=433&post=28563&page=1&p=1"
+        + "&sondage=&owntopic=&trash=&trash_post=&print=&numreponse=35632185&quote_only=1&new=0&nojs=0"
+
+    /// Port of `LinkItem.m:237-238` @ 87fe0d1c, with its link (#1039, capture `R126a`): the bubble is a button for VoiceOver that
+    /// names what it opens, and the href is the link HFR wrote (escaped).
+    @Test func theBubbleIsALinkToTheQuoteViewWhenTheAppCanOpenIt() {
+        var cited = message()
+        cited.quotedByCount = 3
+        cited.quotedByURL = url(Self.quotingLink)
+        let html = TopicHTMLBuilder.document(for: page([cited]), token: 1)
+        let href = Self.quotingLink.replacingOccurrences(of: "&", with: "&amp;")
+        let expected = "<a class=\"quoted-bubble\" role=\"button\" href=\"\(href)\""
+            + " aria-label=\"Voir les 3 messages qui citent celui-ci\">3</a>"
+        #expect(html.contains(expected))
+        #expect(!html.contains("<span class=\"quoted-bubble\""))
+    }
+
+    @Test func theLabelOfASingleQuoterIsSingular() {
         var cited = message()
         cited.quotedByCount = 1
+        cited.quotedByURL = url(Self.quotingLink)
+        let html = TopicHTMLBuilder.document(for: page([cited]), token: 1)
+        #expect(html.contains("aria-label=\"Voir le message qui cite celui-ci\">1</a>"))
+    }
+
+    /// No link, or one the app does not open (another host, another view): the count stays inert text, never an anchor the reader
+    /// would hand to the browser.
+    @Test(arguments: [nil, "https://example.org/forum2.php?config=hfr.inc&cat=13&post=5&numreponse=9&quote_only=1",
+                      "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=5&numreponse=9"])
+    func otherwiseTheBubbleIsInert(link: String?) {
+        var cited = message()
+        cited.quotedByCount = 1
+        cited.quotedByURL = link.map(url)
         let html = TopicHTMLBuilder.document(for: page([cited]), token: 1)
         #expect(html.contains("aria-label=\"Message cité 1 fois\">1</span>"))
         #expect(!html.contains("quote_only"))
+        #expect(!html.contains("<a class=\"quoted-bubble\""))
     }
 
     @Test func aVideoIsAPlaceholderThatNamesNoProviderURL() {
