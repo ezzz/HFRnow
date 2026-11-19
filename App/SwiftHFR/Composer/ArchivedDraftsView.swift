@@ -9,6 +9,8 @@ struct ArchivedDraftsView: View {
     /// Called after a draft was picked or the text set aside: the sheet closes and the editor takes focus.
     let onDone: () -> Void
     @Environment(\.dismiss) private var dismiss
+    /// "Vider" was tapped: the confirmation is showing (#1179); nothing is deleted before it is accepted.
+    @State private var confirmsClear = false
 
     var body: some View {
         ThemedNavigationStack {
@@ -26,9 +28,15 @@ struct ArchivedDraftsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Vider", role: .destructive) { Task { await model.discardAllArchived() } }
+                    Button("Vider", role: .destructive) { confirmsClear = true }
                         .disabled(model.archivedDrafts.isEmpty || model.isMovingDrafts)
                 }
+            }
+            .confirmationDialog("Vider les brouillons ?", isPresented: $confirmsClear, titleVisibility: .visible) {
+                Button(ArchivedDraftsFormat.clearConfirmTitle, role: .destructive) { Task { await model.discardAllArchived() } }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text(ArchivedDraftsFormat.clearConfirmMessage(count: model.archivedDrafts.count))
             }
         }
     }
