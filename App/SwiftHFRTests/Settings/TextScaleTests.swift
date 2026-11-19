@@ -35,8 +35,9 @@ struct TextScaleTests {
         let scale = TextScale(percent: 70)
         #expect(scale.pointSize(.caption2, at: .large) == 11)
         #expect(abs(scale.pointSize(.largeTitle, at: .large) - TextScale.standard.pointSize(.largeTitle, at: .large) * 0.7) < 0.001)
-        // A size the system already gives under 11 pt is not raised above it.
-        #expect(scale.pointSize(.caption2, at: .xSmall) == TextScale.standard.pointSize(.caption2, at: .xSmall))
+        // At xSmall caption2 is 11 pt in Apple's table: the floor holds there too, and never raises text above the default.
+        #expect(scale.pointSize(.caption2, at: .xSmall) == 11)
+        for style in styles { #expect(scale.pointSize(style, at: .xSmall) <= TextScale.standard.pointSize(style, at: .xSmall), "\(style)") }
     }
 
     @Test func seventyPercentIsSmallerThanTheDefault() {

@@ -6,7 +6,8 @@ import UIKit
 // instead of an @AppStorage read per view (LOT-169).
 /// The app-wide type scale: a system text style at the current Dynamic Type size, times the in-app percentage.
 ///
-/// The percentage multiplies the system size, so accessibility sizes still grow the text at every slider value.
+/// The percentage multiplies the system size, so accessibility sizes still grow the text at every slider value. Below 100 %
+/// the result is floored at 11 pt (HIG minimum, #1157).
 struct TextScale: Equatable, Sendable {
     /// 100 %: the system sizes unchanged.
     static let standard = TextScale(percent: 100)
@@ -19,7 +20,8 @@ struct TextScale: Equatable, Sendable {
 
     /// The smallest size the percentage may shrink text to (HIG minimum, #1157). Legacy never goes below 100 %
     /// (`AppTextSizeScale`, Common.swift:314-322 @ 87fe0d1c), so it has no floor; below it, only a size the system already
-    /// gives under 11 pt (a small Dynamic Type size) is kept as it is.
+    /// gives under 11 pt is kept as it is. That `min(system, 11)` branch is defensive: Apple's size table has no text style
+    /// under 11 pt, so it is not reached today; it only stops the floor from ever raising a text above the default.
     static let minimumPointSize: CGFloat = 11
 
     /// Point size of `style` at Dynamic Type size `size`, times the percentage, never under 11 pt when shrinking.
