@@ -122,7 +122,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
             forums: forums,
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
             favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
-                                       startupSource: RootModel.favoritesStartupSource),
+                                       startupSource: TopicSource(mode: .flagsAndFavorites)),
             // Logged in, as Favoris: a logged-out list's load (each time the list appears, a fold included) closes the open
             // conversation (`MessageListModel.load`, `.signedOut`), which raced the reader's title (#1124).
             messages: MessageListModel(source: messages, isLoggedIn: { true }, topicPages: pages),

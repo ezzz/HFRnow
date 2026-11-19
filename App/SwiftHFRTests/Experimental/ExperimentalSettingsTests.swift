@@ -37,10 +37,8 @@ struct ExperimentalSettingsTests {
 
     /// Every option is listed once built, section by section (#905 built the last hidden one); the enum is declared in that order.
     @Test func everyOptionIsListed() {
-        #expect(ExperimentalFeature.allCases.allSatisfy { $0.isListed })
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
         #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpDarkTopic, .imageLoadingChoice])
-        #expect(listed == ExperimentalFeature.allCases.filter(\.isListed))
         #expect(ExperimentalTheme.listed == [.composer, .navigation, .lists, .messages, .imageLoading])
     }
 
@@ -60,7 +58,7 @@ struct ExperimentalPageTests {
         // The dense rows (#905) are the « Listes » section, between the tab bar and the messages (enum order).
         #expect(groups.map(\.theme) == [.composer, .navigation, .lists, .messages, .imageLoading])
         #expect(groups == ExperimentalTheme.listed.map { ExperimentalPageLayout.Group(theme: $0, features: $0.listedFeatures) })
-        #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases.filter(\.isListed))
+        #expect(groups.flatMap(\.features) == ExperimentalFeature.allCases)
         #expect(groups.allSatisfy { group in group.features.allSatisfy { $0.theme == group.theme } })
     }
 

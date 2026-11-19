@@ -146,11 +146,9 @@ final class RootModel {
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
-    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites. The environment-built
-    /// Favoris tab opens on the list its favourites mode names instead (`TopicSource(mode:)`, LOT-124); this is the fallback of
-    /// a model built without options.
+    /// The source Catégories opens on: none (the user picks a forum). The Favoris tab opens on the list its favourites mode names
+    /// (`TopicSource(mode:)`, LOT-124), as `init(environment:)` builds it.
     static let categoriesStartupSource: TopicSource? = nil
-    static let favoritesStartupSource: TopicSource? = .flagged
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.

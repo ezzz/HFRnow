@@ -12,7 +12,7 @@ struct RootAlertsBadgeTests {
         return RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), qualityAlerts: qualityAlerts
         )

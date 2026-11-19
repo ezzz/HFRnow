@@ -34,7 +34,7 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
             forums: forums,
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
             favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
-                                       startupSource: RootModel.favoritesStartupSource),
+                                       startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: initial
         )

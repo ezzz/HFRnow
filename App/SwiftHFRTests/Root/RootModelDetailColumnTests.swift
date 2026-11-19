@@ -13,7 +13,7 @@ struct RootModelDetailColumnTests {
         return RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: initial
         )
@@ -30,7 +30,7 @@ struct RootModelDetailColumnTests {
             categories: NavigationModel(
                 dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource, topicFilter: filter
             ),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: .tab(.favorites)
         )
@@ -54,7 +54,7 @@ struct RootModelDetailColumnTests {
         let root = RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: source, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: .tab(.categories)
         )

@@ -99,14 +99,14 @@ struct ComposerControlRow: View {
     }
 
     /// The size of a tool of this row: the one the top bar's buttons read too (#1126).
-    static func toolSize(metrics: ComposerBarMetrics, inCard: Bool, style: ComposerToolStyle = .current) -> ComposerToolSize {
-        ComposerToolSize(metrics: metrics, inCard: inCard, style: style)
+    static func toolSize(metrics: ComposerBarMetrics, inCard: Bool) -> ComposerToolSize {
+        ComposerToolSize(metrics: metrics, inCard: inCard)
     }
 
     // EXPERIMENTAL(modernComposer, #904): replaces the bare glyphs of the card's tools by round chips (#895 D), in the card only.
     @ViewBuilder
     private func chip(_ size: ComposerToolSize) -> some View {
-        if inCard, ComposerToolStyle.current == .pills {
+        if inCard {
             Circle().fill(.quaternary).frame(width: size.diameter, height: size.diameter)
         }
     }

@@ -49,7 +49,7 @@ extension TopicFilterListHostedTests {
             forums: forums,
             categories: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicFilter: topicFilter),
             favorites: NavigationModel(
-                dataSource: data, forums: forums, sessionIsLoggedIn: { true }, startupSource: RootModel.favoritesStartupSource
+                dataSource: data, forums: forums, sessionIsLoggedIn: { true }, startupSource: TopicSource(mode: .flagsAndFavorites)
             ),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: .tab(.categories)
