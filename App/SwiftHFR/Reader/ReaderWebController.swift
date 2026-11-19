@@ -155,6 +155,7 @@ final class ReaderWebController: NSObject {
         lastReportedPost = nil
         relandingPost = nil
         cutImageSources = []
+        inFlightSources.removeAll()
         resetWatch.stop()
         self.document = document
         readyToken = nil

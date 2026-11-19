@@ -47,7 +47,7 @@
   const load = (img, src) => {
     img.addEventListener("error", () => {
       const restore = replaceWithLink(img, src);
-      failedLoads.set(src, (failedLoads.get(src) || []).concat([() => { restore(); load(img, src); }]));
+      failedLoads.set(src, (failedLoads.get(src) || []).concat([() => { restore(); img.removeAttribute("src"); load(img, src); }]));
     }, { once: true });
     // A posted picture without a description is read as "Image", not as its file name (LOT-163).
     // HFR's [img] writes the address itself as the alt, so an alt that is empty or an address counts as none.
@@ -85,8 +85,19 @@
     const card = img.closest(".video-card");
     const fail = () => { img.remove(); if (card) { card.classList.remove("has-thumb"); } };
     if (decision !== "load") { fail(); return; }
+    const parent = img.parentNode;
+    const next = img.nextSibling;
     img.addEventListener("load", () => { if (card) { card.classList.add("has-thumb"); } }, { once: true });
-    img.addEventListener("error", fail, { once: true });
+    img.addEventListener("error", () => {
+      fail();
+      // Put back and asked again when a stop of the reader cut it (#1187).
+      failedLoads.set(src, (failedLoads.get(src) || []).concat([() => {
+        if (parent && parent.isConnected) { parent.insertBefore(img, next && next.parentNode === parent ? next : null); }
+        img.removeAttribute("src");
+        applyThumb(img, src, "load");
+      }]));
+    }, { once: true });
+    img.dataset.thumbSrc = src;
     img.setAttribute("src", proxied(src));
   };
 
@@ -285,8 +296,10 @@
     retryImages: (sources) => {
       const wanted = new Set(sources);
       // First the loads that never ended, then the failed ones put back (which start their own load).
-      document.querySelectorAll("img[data-viewer-src]").forEach((img) => {
-        if (img.complete || !wanted.has(img.dataset.viewerSrc)) { return; }
+      // A cut load may end as `complete` with no picture and no `error`: only a picture that has its pixels is left alone.
+      document.querySelectorAll("img[data-viewer-src], img[data-thumb-src]").forEach((img) => {
+        const src = img.dataset.viewerSrc || img.dataset.thumbSrc;
+        if ((img.complete && img.naturalWidth > 0) || !wanted.has(src)) { return; }
         const current = img.getAttribute("src");
         img.removeAttribute("src");
         img.setAttribute("src", current);

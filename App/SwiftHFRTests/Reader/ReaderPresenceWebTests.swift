@@ -120,22 +120,26 @@ struct ReaderPresenceWebTests: ReaderWebTesting {
         #expect(recorder.ready == [1], "the page was loaded again")
     }
 
-    /// The other way WebKit may end a cut load: the picture failed into a link. Asked again, it is put back where it was.
-    @Test func aCutPictureThatFailedIntoALinkIsPutBackAndLoaded() async throws {
-        let (controller, recorder) = makeController(transport: imageTransport())
+    /// The other way WebKit may end a cut load: the picture failed into a link. Asked again, it is put back where it was and
+    /// fetched again.
+    @Test func aCutPictureThatFailedIntoALinkIsPutBackAndFetchedAgain() async throws {
+        let calls = ReaderCallCounter()
+        let transport = MockTransport { request in
+            // The first answer fails, so the page turns the picture into a link; the next one serves it.
+            if calls.next() == 1 { return HTTPResponse(statusCode: 404, url: request.url) }
+            return HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: readerTestPixel)
+        }
+        let (controller, recorder) = makeController(transport: transport)
         controller.show(pictureDocument())
         #expect(await until { recorder.ready == [1] })
-        #expect(await until(async: { (try? await self.evaluate(self.loaded, in: controller)) as? Bool == true }))
         let failed = """
-            const img = document.querySelector("img.hfrplusimg");
-            img.dispatchEvent(new Event("error"));
             return document.querySelector("img") === null && document.querySelector(".image-link") !== null;
             """
-        #expect(try await evaluate(failed, in: controller) as? Bool == true)
-        let retried = try await evaluate(
-            "return window.hfrReader.retryImages([\"\(Self.picture)\"]);", in: controller
-        )
+        #expect(await until(async: { (try? await self.evaluate(failed, in: controller)) as? Bool == true }), "no link")
+        let before = await transport.requests.count
+        let retried = try await evaluate("return window.hfrReader.retryImages([\"\(Self.picture)\"]);", in: controller)
         #expect(retried as? Bool == true)
         #expect(await until(async: { (try? await self.evaluate(self.loaded, in: controller)) as? Bool == true }))
+        #expect(await transport.requests.count > before, "the picture was not fetched again")
     }
 }
