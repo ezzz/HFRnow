@@ -141,6 +141,9 @@ final class ReplyComposerModel: Identifiable {
         await refreshArchivedDrafts()
         if let failure = await drafts.loadFailure() {
             draftWarning = Self.draftWarning(for: failure)
+        } else if await drafts.takeRecoveredCorruptDataNotice() {
+            // The store set an undecodable file aside (`.corrupt`): said once, by the first sheet that opens (#1182).
+            draftWarning = Self.draftsSetAsideNotice
         }
         // A draft of an edit holding only a subject has no text: the message's own one still stands.
         text = draft.map(\.text).flatMap { $0.isEmpty ? nil : $0 } ?? prefill?.text ?? ""

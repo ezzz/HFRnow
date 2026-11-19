@@ -114,6 +114,22 @@ struct ReplyComposerDraftTests {
         #expect(await ComposerFixture.storedText(drafts) == nil)
     }
 
+    /// #1182: an undecodable drafts file is set aside by the store; the first composer says so, the next ones do not.
+    @Test func draftsSetAsideAreAnnouncedOnce() async throws {
+        let directory = URL.temporaryDirectory.appending(path: "Drafts-1182-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appending(path: "drafts.json")
+        try Data("not json".utf8).write(to: file)
+        let drafts = DraftStore(persistence: FileDraftPersistence(fileURL: file))
+        let first = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        await first.start()
+        #expect(first.draftWarning == ReplyComposerModel.draftsSetAsideNotice)
+        let second = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        await second.start()
+        #expect(second.draftWarning == nil)
+    }
+
     @Test func aFailedDraftWriteIsReportedAndTheTextStays() async {
         let persistence = CountingDraftPersistence()
         let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: DraftStore(persistence: persistence))

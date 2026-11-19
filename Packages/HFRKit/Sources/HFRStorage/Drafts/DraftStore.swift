@@ -24,6 +24,7 @@ public actor DraftStore {
     let clock: @Sendable () -> Date
     private var state = State.unloaded
     private var recoveredCorruptData = false
+    private var recoveryNoticeTaken = false
 
     /// Creates a store; nothing is read until the first call. `clock` is injectable for tests.
     public init(
@@ -69,6 +70,14 @@ public actor DraftStore {
     public func didRecoverFromCorruptData() -> Bool {
         _ = loadedState()
         return recoveredCorruptData
+    }
+
+    /// True once, the first time it is asked after a load set undecodable data aside: the screen tells the member once
+    /// (#1182). `didRecoverFromCorruptData()` keeps answering the fact.
+    public func takeRecoveredCorruptDataNotice() -> Bool {
+        guard didRecoverFromCorruptData(), !recoveryNoticeTaken else { return false }
+        recoveryNoticeTaken = true
+        return true
     }
 
     // MARK: Writing

@@ -33,6 +33,28 @@ import Testing
         #expect(persistence.document == newer)
     }
 
+    /// #1182: the way out of an unreadable file: the bytes are set aside as `.corrupt`, never deleted, and the store starts empty
+    /// and writable.
+    @Test func discardingUnreadableDataKeepsItAsideAndMakesTheStoreWritable() async throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "MPStorageCopyStoreTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appending(path: "copies.json")
+        let garbage = Data("not json".utf8)
+        try garbage.write(to: url)
+        let persistence = FileSmallStorePersistence<MPStorageCopyDocument>(fileURL: url)
+        let store = MPStorageCopyStore(persistence: persistence)
+        #expect(await store.loadFailure() != nil)
+        try await store.discardUnreadableData()
+        #expect(await store.loadFailure() == nil)
+        #expect(await store.copy(for: "Alice") == MPStorageCopy())
+        try await store.save(Self.copy, for: "Alice")
+        #expect(try Data(contentsOf: persistence.quarantineURL) == garbage)
+        // A usable store is left alone.
+        try await store.discardUnreadableData()
+        #expect(await store.copy(for: "alice") == Self.copy)
+    }
+
     @Test func theFileRoundTrips() async throws {
         let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appending(path: "MPStorageCopyStoreTests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }

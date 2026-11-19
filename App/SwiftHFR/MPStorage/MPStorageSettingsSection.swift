@@ -49,6 +49,9 @@ struct MPStorageSettingsRows: View {
         } else if case .failed(let message) = model.status {
             Text(message).scaledFont(.footnote).foregroundStyle(.themedError)
         }
+        if model.copyIsUnreadable, model.status != .working {
+            UnreadableDataRecoveryButton(content: "les données du stockage MP") { await model.discardUnreadableCopy() }
+        }
     }
 
     /// The account's state in words.

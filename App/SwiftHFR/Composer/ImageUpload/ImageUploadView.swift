@@ -112,6 +112,10 @@ struct ImageUploadView: View {
             if let warning = model.historyWarning {
                 Text(warning).font(.footnote).foregroundStyle(.secondary)
             }
+            if model.historyIsUnreadable {
+                UnreadableDataRecoveryButton(content: "les images envoyées") { await model.discardUnreadableHistory() }
+                    .font(.footnote)
+            }
         }
     }
 
