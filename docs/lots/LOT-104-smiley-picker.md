@@ -47,7 +47,7 @@ Legacy app `master` of ezzz/HFRnow @ `2440d79`, `HFRswift/Swift/`. Functional re
 
 - Smileys are downloaded, not bundled: the app ships no GIF files (the catalogue's URLs are on the forum image host).
   Legacy's remote path used `URLSession.shared`; ours is the cookie-less policy-C fetcher.
-- The detail is a medium sheet, not an overlay card.
+- The detail is pushed inside the panel's navigation stack (title: the smiley's code, system back button), not legacy's overlay card. Until #1177 it was a third sheet over the composer with a swipe as its only way out (HIG › Sheets: one sheet at a time; › Accessibility: a button besides the swipe).
 - "Smileys du forum" (#600): legacy read the forum favourites from its in-memory `SmileyCache`, filled by earlier form fetches
   (`ReplySmileyCatalog.swift:57-71` @ 2440d79; collapse key `AnswerView.smileys.forumFavorites.expanded`, `AnswerView.swift:1062`).
   The picker fetches the composer form itself each time it opens: one request, and "indisponibles" with a "Réessayer" button when
