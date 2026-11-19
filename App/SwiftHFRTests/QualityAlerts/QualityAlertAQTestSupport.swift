@@ -2,6 +2,7 @@ import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork
+import HFRParsing
 import HFRStorage
 @testable import SwiftHFR
 import Testing
@@ -19,7 +20,19 @@ actor AQScriptedHost {
         self.create = create
     }
 
-    func handle(_ request: HTTPRequest) throws(NetworkError) -> HTTPResponse {
+    /// While set, a GET waits (after being counted) until `release()`: a check still in flight.
+    private var held: CheckedContinuation<Void, Never>?
+    private var holds = false
+
+    func holdGets() { holds = true }
+
+    func release() {
+        holds = false
+        held?.resume()
+        held = nil
+    }
+
+    func handle(_ request: HTTPRequest) async throws(NetworkError) -> HTTPResponse {
         if request.method == .post {
             posts += 1
             lastPostBody = request.body.flatMap { String(data: $0, encoding: .utf8) }
@@ -28,6 +41,7 @@ actor AQScriptedHost {
             return HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/plain;charset=UTF-8"], url: request.url, body: create)
         }
         gets += 1
+        if holds { await withCheckedContinuation { held = $0 } }
         guard let alerts else { throw .timedOut }
         return HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/xml;charset=UTF-8"], url: request.url, body: alerts)
     }
@@ -83,6 +97,12 @@ enum QualityAlertAQTestSupport {
             services: services, topicTitle: { "AQ local topic" }, confirm: { announcements.announce($0) }
         )
         return AQRig(model: model, transport: AQRigTransport(host: host), announcements: announcements)
+    }
+
+    /// The alerts of a capture, parsed by the real parser.
+    static func alerts(_ name: String) async throws -> [AQAlert] {
+        let data = try #require(try capture(name))
+        return try AQAlertListParser.parse(try #require(String(bytes: data, encoding: .utf8)))
     }
 
     static let permalink = URL(string: "https://forum.hardware.fr/hfr/Discussions/Societe/aq-local-topic-sujet_700001_1.htm#t700102")

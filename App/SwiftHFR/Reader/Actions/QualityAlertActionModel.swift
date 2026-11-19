@@ -198,7 +198,7 @@ final class QualityAlertActionModel {
             // The POST may have been recorded and no answer is a refusal: read the topic's list before saying anything (LOT-055).
             switch await recorded(draft) {
             case true?: confirm(draft.existing == nil ? QualityAlertMessages.created : QualityAlertMessages.added)
-            case false?: confirm(QualityAlertMessages.notRecorded)
+            case false?: confirm(draft.existing == nil ? QualityAlertMessages.notRecorded : QualityAlertMessages.additionNotRecorded)
             case nil: confirm(QualityAlertMessages.unverified)
             }
         }
@@ -262,7 +262,11 @@ enum QualityAlertMessages {
     static let ownReport = "Post déjà signalé par vous"
     static let created = "Alerte Qualitay créée."
     static let added = "Message ajouté à l'Alerte Qualitay."
-    static let notRecorded = "L'Alerte Qualitay n'a pas été enregistrée. Réessayez dans un moment."
+    /// No invitation to retry: every attempt e-mails the AQ operator and a refusal may be the anti-flood ban (HFR-PROTOCOL §8).
+    static let notRecorded = "L'Alerte Qualitay n'a pas été enregistrée : le service a refusé ou n'a pas répondu."
+    /// The topic's list does not say who joined an AQ: a refused addition is most often one the member already made (`T59`).
+    static let additionNotRecorded =
+        "Ajout non enregistré. Vous avez peut-être déjà signalé ce message dans cette alerte : vérifiez la liste avant de réessayer."
     static let unverified = "Alerte Qualitay non confirmée par le service. Vérifiez la liste avant de réessayer."
 
     /// The notice N1 (LOT-071 T3): the host and who runs it, what is sent, what becomes public, the operator's own records.

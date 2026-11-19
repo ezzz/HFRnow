@@ -40,12 +40,13 @@
   refused), topic id and title (page title), account pseudo, message number, permalink, comment `post de <author>`.
 - **Outcomes**: success → « Alerte Qualitay créée. » / « Message ajouté… ». `invalidReport` → the problem in French, nothing sent.
   `unconfirmed` (the POST may have been recorded; no refusal is captured on the live host, LOT-055): the topic's list is read first;
-  the member's report there → success, absent → « n'a pas été enregistrée », list unreadable → « non confirmée… vérifiez » — never an
+  the member's report there → success, absent → « n'a pas été enregistrée » (an addition: « vous avez peut-être déjà signalé ce message dans cette alerte »; neither invites a retry: every attempt e-mails the AQ operator and an empty 200 is the anti-flood ban, `T59`/`T67`), list unreadable → « non confirmée… vérifiez » — never an
   automatic retry. An addition is detected by one more occurrence of the message number in the AQ's list (`T56`: `700102,700101`).
 - **Test seam**: `AppEnvironment.qualityAlertsSource` (nil by hand, set by `make`): a hosted test no longer fetches the live feed with
   the Info.plist address when a root is built (LOT-133 follow-up).
 
 ## Edge cases
+- **Limit**: the topic's list only names an AQ's initiator, not who joined it (HFR-PROTOCOL §8). A member who already added a message to another member's AQ is offered « Plussoyer » again; the server refuses the duplicate (`-4`, `T59`), the client reads it as `unconfirmed`, the list shows no new occurrence, and the banner says so without inviting a retry.
 - Message numbers repeat in an AQ's list after an addition; the membership test is `contains`, the addition test a count.
 - Pseudo comparison ignores case (the service stores the pseudo lower-cased).
 
@@ -59,11 +60,11 @@ The addition (above); the check is a typed list, not a substring test; an unconf
 the notice; no account, no entry.
 
 ## Tests
-`QualityAlertActionModelTests` (12): notice → title → create with the exact body; decline; no path creates before the notice;
+`QualityAlertActionModelTests` (14): notice → title → create with the exact body; decline; no path creates before the notice;
 accepted notice not asked again; blank title; join another member's AQ (body names the AQ id); own report refused before any question;
-failed check; unconfirmed create found / not found in the list; a second pick waits; the entry's availability.
+failed check; unconfirmed create found / not found in the list (upper-case account pseudo); unconfirmed addition found / not found (`T54` → `T56`); a second pick waits, also while the check is in flight; the entry's availability.
 Mutations checked to fail (model compiled on Linux in a scratch package): no gate in `send`, no own-report check, an unconfirmed create
-found in the list reported as not recorded. Not run by the author: the SwiftUI flow and wiring (compile check, device checks on #893).
+found in the list reported as not recorded, an addition always reported recorded, a case-sensitive pseudo compare, no `isIdle` guard in `start` (the in-flight test then hangs). Not run by the author: the SwiftUI flow and wiring (compile check, device checks on #893).
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

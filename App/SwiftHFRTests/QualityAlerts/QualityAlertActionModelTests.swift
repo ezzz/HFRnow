@@ -92,7 +92,8 @@ struct QualityAlertActionModelTests {
 
     @Test func anUnconfirmedCreateReadsTheTopicBeforeSayingAnything() async throws {
         // The POST gets no usable answer (no refusal is captured), the list then shows the member's report: it was recorded (`T54`).
-        let rig = try Support.rig(alerts: "T54-aq-alerts-after-create-local.xml", create: nil, accepted: true, pseudo: "user3")
+        // The account pseudo has capitals, the service stores it lower-cased (`pseudoInitiateur="user3"`).
+        let rig = try Support.rig(alerts: "T54-aq-alerts-after-create-local.xml", create: nil, accepted: true, pseudo: "USER3")
         await rig.model.create(Support.draft(numreponse: 700_101), title: "Titre")
         #expect(await rig.transport.posts == 1)
         #expect(await rig.transport.gets == 1)
@@ -124,5 +125,41 @@ struct QualityAlertActionModelTests {
         #expect(!rig.model.canReport(Support.context(permalink: nil)))
         #expect(!rig.model.canReport(Support.context(topic: TopicID(category: .privateMessages, topic: 700_001))))
         #expect(!(try Support.rig(alerts: nil, create: nil, pseudo: "")).model.canReport(Support.context()))
+    }
+
+    @Test func anUnconfirmedAdditionIsRecordedOnlyWhenTheMessageNumberAppearsOnceMore() async throws {
+        // Before: AQ 13636 holds 700101 (`T54`); after: it holds 700102 and 700101 (`T56`).
+        let before = try #require(try await Support.alerts("T54-aq-alerts-after-create-local.xml").first)
+        var draft = Support.draft(numreponse: 700_101)
+        draft.existing = before
+        let recorded = try Support.rig(alerts: "T56-aq-alerts-after-add-local.xml", create: nil, accepted: true, pseudo: "user4")
+        await recorded.model.add(draft)
+        #expect(await recorded.transport.posts == 1)
+        // 700101 occurs once in both lists: not recorded, whatever else changed.
+        #expect(recorded.messages == [QualityAlertMessages.additionNotRecorded])
+        var added = Support.draft(numreponse: 700_102)
+        added.existing = before
+        let rig = try Support.rig(alerts: "T56-aq-alerts-after-add-local.xml", create: nil, accepted: true, pseudo: "user4")
+        await rig.model.add(added)
+        #expect(rig.messages == [QualityAlertMessages.added])
+        let refused = try Support.rig(alerts: "T54-aq-alerts-after-create-local.xml", create: nil, accepted: true, pseudo: "user4")
+        await refused.model.add(added)
+        #expect(refused.messages == [QualityAlertMessages.additionNotRecorded])
+        #expect(!QualityAlertMessages.additionNotRecorded.contains("Réessayez"))
+        #expect(!QualityAlertMessages.notRecorded.contains("Réessayez"))
+    }
+
+    @Test func aSecondPickWhileTheCheckIsStillRunningDoesNothing() async throws {
+        let rig = try Support.rig(alerts: "T52-aq-alerts-empty-local.xml", create: nil, accepted: true)
+        await rig.transport.host.holdGets()
+        let first = Task { @MainActor in await rig.model.start(Support.context()) }
+        while await rig.transport.gets == 0 { await Task.yield() }
+        #expect(rig.model.isWorking)
+        await rig.model.start(Support.context())
+        #expect(await rig.transport.gets == 1)
+        await rig.transport.host.release()
+        await first.value
+        #expect(rig.model.prompt == .title(Support.draft()))
+        #expect(await rig.transport.gets == 1)
     }
 }
