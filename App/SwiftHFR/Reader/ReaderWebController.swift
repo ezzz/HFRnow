@@ -83,6 +83,9 @@ final class ReaderWebController: NSObject {
     private var savedReadingTop: CGFloat?
     /// The last post the ready page reported at the reading top, and where a reload after a process death lands (#1188).
     private var lastReportedPost: Int?, relandingPost: Int?
+    /// The source of every image request in flight or waiting, and those a stop cut on the ready document: asked again when
+    /// it comes back (#1187).
+    private var inFlightSources: [ObjectIdentifier: String] = [:], cutImageSources: [String] = []
     private var appliedScrollID: Int?
     /// Holds a new document's landing or restore until WebKit has reset its scroll view (#772).
     let resetWatch = WebKitResetWatch()
@@ -143,6 +146,7 @@ final class ReaderWebController: NSObject {
             return
         }
         guard document.token != self.document?.token else {
+            if !cutImageSources.isEmpty, readyToken == document.token { retryCutImages() }
             ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
             return
         }
@@ -150,6 +154,8 @@ final class ReaderWebController: NSObject {
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
         lastReportedPost = nil
         relandingPost = nil
+        cutImageSources = []
+        inFlightSources.removeAll()
         resetWatch.stop()
         self.document = document
         readyToken = nil
@@ -172,10 +178,14 @@ final class ReaderWebController: NSObject {
     }
 
     /// Stops the page and every image download in flight (the screen goes away). A document that was not ready yet is
-    /// forgotten, so the next `show` of it loads it again (issue #566).
+    /// forgotten, so the next `show` of it loads it again (issue #566); a ready one keeps its place, and the pictures the stop
+    /// cut are asked again when it is shown again (#1187).
     func stopLoading() {
         let wasReady = document != nil && readyToken == document?.token
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
+        // Read before WebKit stops the scheme tasks: the pictures of a page kept on screen are asked again on return.
+        if wasReady { cutImageSources += inFlightSources.values }
+        inFlightSources.removeAll()
         webView.stopLoading()
         stopped = true
         stoppedDocument = document
@@ -306,6 +316,7 @@ final class ReaderWebController: NSObject {
             // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen. It
             // lands where the member was reading; the images tapped stay allowed (`consented`, same document) (#1188).
             relandingPost = lastReportedPost
+            cutImageSources = [] // the reload asks for every picture again
             readyToken = nil
             reloadedAfterFailure = false
             loadPage(document)
@@ -354,6 +365,7 @@ extension ReaderWebController {
         let key = ObjectIdentifier(task)
         running[key]?.cancel()
         running[key] = nil
+        inFlightSources[key] = nil
         waiting.removeAll { $0.key == key }
         startWaitingImages()
     }
@@ -384,6 +396,7 @@ extension ReaderWebController {
                     result = .failure(error)
                 }
                 guard let self, self.running.removeValue(forKey: key) != nil else { return }
+                self.inFlightSources[key] = nil
                 switch result {
                 case .success(let image): self.respond(task, url: url, data: image.data, mimeType: image.mimeType)
                 case .failure: self.fail(task)
@@ -391,6 +404,7 @@ extension ReaderWebController {
                 self.startWaitingImages()
             }
         }
+        inFlightSources[key] = source
         waiting.append((key, start))
         startWaitingImages()
     }
@@ -416,5 +430,18 @@ extension ReaderWebController {
 
     private func fail(_ task: any WKURLSchemeTask) {
         task.didFailWithError(URLError(.resourceUnavailable))
+    }
+}
+
+// MARK: - Pictures cut by a stop (#1187)
+
+extension ReaderWebController {
+    /// The ready document is shown again after a stop that cut picture loads: the page asks for exactly those again, where
+    /// they are (an image that failed into a link comes back), so the page keeps its place and nothing else is fetched.
+    fileprivate func retryCutImages() {
+        let sources = Array(Set(cutImageSources))
+        cutImageSources = []
+        ReaderLog.debug("show retries \(sources.count) cut image(s) token=\(document?.token ?? -1)")
+        run("window.hfrReader.retryImages(sources); return true;", arguments: ["sources": sources])
     }
 }
