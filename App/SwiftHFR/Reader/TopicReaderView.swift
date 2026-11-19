@@ -70,6 +70,8 @@ struct TopicReaderView: View {
     @State private var alerts: ModeratorAlertModel?
     /// « Bookmark » of the message menu (LOT-132); nil until the menu is installed.
     @State private var bookmarks: BookmarkActionModel?
+    /// « AQ » of the message menu (LOT-134); nil until installed, and without an account or an AQ address.
+    @State private var qualityAlerts: QualityAlertActionModel?
     /// The session's MPStorage sync, where bookmarks live (LOT-132); nil logged out.
     @Environment(MPStorageSyncModel.self) private var mpStorage: MPStorageSyncModel?
     @Environment(\.openURL) private var openURL
@@ -112,6 +114,7 @@ struct TopicReaderView: View {
         .modifier(ReaderComposerGuard(model: model, controller: controller, isEditing: writes?.editor != nil))
         .modifier(ReaderAlertFlow(alerts: alerts))
         .modifier(ReaderBookmarkFlow(bookmarks: bookmarks))
+        .modifier(ReaderQualityAlertFlow(alerts: qualityAlerts))
         .modifier(ReaderSearchFlow(model: model, composer: composer, search: $search))
         .modifier(ReaderPollFlow(model: model, composer: composer))
         .modifier(ReaderMarkUnreadFlow(model: model, actions: services.flagActions, host: onMarkUnread))
@@ -381,6 +384,11 @@ extension TopicReaderView {
             ?? BookmarkActionModel(mpStorage: services.isSavedCopy ? nil : mpStorage, confirm: confirm)
         self.bookmarks = bookmarks
         handlers.append(bookmarks.handler)
+        qualityAlerts = QualityAlertActionModel.reusing(
+            qualityAlerts, services: services.isSavedCopy ? nil : services.qualityAlerts,
+            page: { [weak model] in model?.page?.title }, confirm: confirm
+        )
+        if let qualityAlerts { handlers.append(qualityAlerts.handler) }
         if let composer {
             let writes = writes ?? MessageWriteModel(reader: model, services: composer)
             self.writes = writes
@@ -389,12 +397,4 @@ extension TopicReaderView {
         model.install(MessageActionRegistry(handlers))
         controller?.offersSelectionQuote = model.offersSelectionQuote
     }
-}
-
-/// The reader a link pushed, identified by its model.
-private struct LinkedReader: Hashable {
-    let model: TopicReaderModel
-
-    static func == (lhs: LinkedReader, rhs: LinkedReader) -> Bool { lhs.model === rhs.model }
-    func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(model)) }
 }
