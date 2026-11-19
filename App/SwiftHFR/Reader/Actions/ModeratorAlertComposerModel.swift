@@ -34,7 +34,7 @@ final class ModeratorAlertComposerModel: Identifiable {
 
     /// A reason is typed that closing would throw away (#1169): « Annuler » asks and the swipe-down waits.
     var hasUnsavedReason: Bool {
-        !isFinished && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !isFinished && DiscardConfirmation.hasText(reason)
     }
 
     private let alert: PreparedModeratorAlert

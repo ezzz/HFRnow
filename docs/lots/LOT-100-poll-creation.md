@@ -27,7 +27,7 @@ At `2fe43da3` (`git show 2fe43da3:<path>`, `HFRswift/Swift/`):
 | `HFRClient/Posting/PostingFlow.swift` (`edit(_:subject:subcategory:poll:…)`) | `ReplyService.swift:154-156` (`pollCreationUnavailable`), `AnswerView.swift:1480-1486` | the poll is checked against the fetched form: each field must be one it serves (`max_votes` among its options, text inputs within `maxlength`) |
 | `App/SwiftHFR/Composer/ComposerPoll.swift`, `ReplyComposerModel+Poll.swift` | `AnswerView.swift:324-328`, `:434`, `MainWindow.swift:892`, `MessagesView.swift:5434` (`offersPollConfiguration`) | not offered on a private thread's first post, whose form never holds the poll block (`R43a`) |
 | `App/SwiftHFR/Composer/ComposerPollRow.swift` | `AnswerView.swift:873-906`, `:523-528` | a failed read is retried from the sub-category row (same failure, same "Réessayer") |
-| `App/SwiftHFR/Composer/PollCreationSheet.swift` | `TopicPollDraft.swift:56-144` (`TopicPollCreationSheet`) | answers keep their identity when one is deleted (legacy bound `options[index]`) |
+| `App/SwiftHFR/Composer/PollCreationSheet.swift` | `TopicPollDraft.swift:56-144` (`TopicPollCreationSheet`) | answers keep their identity when one is deleted (legacy bound `options[index]`); changes are not thrown away without asking: the swipe-down is refused and « Annuler » asks « Abandonner ce sondage ? » while a field differs from the poll the sheet opened on, blank text not counting (#1169; legacy `:124-127` closed at once) |
 
 ## UX evolutions (app lots)
 None: same UX as legacy at `87fe0d1c`.

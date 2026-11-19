@@ -90,9 +90,19 @@ struct PollCreationSheet: View {
         ) { dismiss() }
     }
 
-    /// Whether closing would throw something away (#1169): any field differs from the poll the sheet opened on.
+    /// Whether closing would throw something away (#1169): a field differs from the poll the sheet opened on. Blank text is
+    /// nothing to lose, as in the composer: spaces around the question or an answer, and blank answer rows, do not count.
     static func hasChanges(_ current: PollDraft, from initial: PollDraft) -> Bool {
-        current != initial
+        meaningful(current) != meaningful(initial)
+    }
+
+    /// What a poll holds once blank text is left out.
+    private static func meaningful(_ poll: PollDraft) -> PollDraft {
+        let trimmed = { (text: String) in text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        return PollDraft(
+            question: trimmed(poll.question), answers: poll.answers.map(trimmed).filter { !$0.isEmpty },
+            maxChoices: poll.maxChoices, allowsVisitors: poll.allowsVisitors, closingDate: poll.closingDate
+        )
     }
 
     private var answersSection: some View {
