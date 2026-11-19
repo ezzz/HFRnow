@@ -18,7 +18,10 @@ struct QuotingMessagesViewTests {
 
     /// `R126a` parses with the ordinary chain: the two messages that quote the cited one, no pager.
     @Test func theCapturedPageParsesAsTwoMessagesWithoutPager() throws {
-        let page = try LiveTopicPageSourceTests.readerPage(of: "R126a-topic-quote-only-list-anon.html")
+        // The page URL is the request's own (`R126a.meta.json`): the page number comes from it, as for any page the reader loads.
+        let data = try LiveTopicPageSourceTests.capture("R126a-topic-quote-only-list-anon.html")
+        let html = try #require(String(data: data, encoding: .utf8))
+        let page = try LiveTopicPageSource.parse(html, pageURL: url(Self.linkText), normalizer: LiveContentNormalizer())
         #expect(page.messages.count == 2)
         #expect(page.maxPage == 1)
         #expect(page.currentPage == 1)
@@ -68,5 +71,27 @@ struct QuotingMessagesViewTests {
         #expect(model.shown?.source == .quotingMessages(Self.quotingLink))
         await model.refresh()
         #expect(pages.requests.map(\.source) == [.quotingMessages(Self.quotingLink), .quotingMessages(Self.quotingLink)])
+    }
+
+    /// A reply written in the quote view is shown in its topic: HFR appends it at the topic's end, not among the quoting posts.
+    @Test func aReplySentFromTheQuoteViewIsShownInItsTopic() async {
+        let pages = FakeTopicPages()
+        let model = reader(on: ReaderTarget(source: .quotingMessages(Self.quotingLink)), pages: pages)
+        await model.onAppear()
+        await model.showLatestPost()
+        #expect(pages.requests.last?.source == .topic(readerTopic))
+    }
+
+    /// The quote view shows posts of other pages of the topic: none is recorded as where the user is reading (positions only
+    /// move forward and sync).
+    @Test func theQuoteViewRecordsNoReadingPosition() async throws {
+        let recorder = RecordingPositions()
+        let model = reader(on: ReaderTarget(source: .quotingMessages(Self.quotingLink)))
+        model.positions = recorder
+        await model.onAppear()
+        let token = try #require(model.document?.token)
+        let post = try #require(model.page?.messages.first { !$0.isContinuation }?.numreponse)
+        await model.recordPosition(post: post, token: token)
+        #expect(await recorder.records.isEmpty)
     }
 }

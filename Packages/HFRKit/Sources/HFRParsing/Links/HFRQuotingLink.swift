@@ -20,16 +20,16 @@ public struct HFRQuotingLink: Sendable, Hashable {
     }
 
     /// Nil unless `url` is a `forum2.php` link of `forum.hardware.fr` (exact host, no port or user info) with `quote_only=1`, the
-    /// default forum configuration, a category, a topic and a message number; any other value is refused, never guessed.
+    /// default forum configuration, a public category, a topic and a message number; any other value is refused, never guessed.
     public init?(url: URL) {
         guard let target = HFRLinkRoute.Target(url), target.path == "/forum2.php", target.isQuoteOnlyView else { return nil }
         do {
             try target.requireForumConfig()
             guard let post = try target.positive("post"), let message = try target.numreponse() else { return nil }
-            self.init(
-                topic: TopicID(category: try target.category(), topic: post), subcategory: try target.positive("subcat"),
-                numreponse: message
-            )
+            // Only a public topic's quote view was captured (`R126a`): a private thread's shape is not guessed.
+            let category = try target.category()
+            guard category != .privateMessages else { return nil }
+            self.init(topic: TopicID(category: category, topic: post), subcategory: try target.positive("subcat"), numreponse: message)
         } catch {
             return nil
         }

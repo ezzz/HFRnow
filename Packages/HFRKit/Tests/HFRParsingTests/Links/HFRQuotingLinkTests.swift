@@ -40,7 +40,9 @@ struct HFRQuotingLinkTests {
         "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=0&post=5&numreponse=9&quote_only=1",
         "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&numreponse=9&quote_only=1",
         "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=13&post=5&numreponse=9&quote_only=1&subcat=x",
-        "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&post=5&numreponse=9&quote_only=1"
+        "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=13&post=5&numreponse=9&quote_only=1",
+        // A private thread's quote view was never captured: its shape is not guessed (#1039).
+        "https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=5&numreponse=9&quote_only=1"
     ])
     func otherLinksAreRefused(link: String) throws {
         #expect(try parse(link) == nil)
