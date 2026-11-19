@@ -50,8 +50,7 @@ struct LiveTopicPageSource: TopicPageSource {
             case .quotingMessages(let link):
                 // `R126a`: the posts quoting one message, through the account session like the page the user is reading.
                 if Task.isCancelled { throw .cancelled }
-                let request = try HFREndpoint.quotingMessages(topic: link.topic, subcategory: link.subcategory, numreponse: link.numreponse)
-                return RawPage(response: try await session.send(request))
+                return RawPage(response: try await session.send(try Self.quotingRequest(link)))
             }
         } catch {
             throw ListLoadError(error)
@@ -64,6 +63,15 @@ struct LiveTopicPageSource: TopicPageSource {
             return try HFREndpoint.topicPage(topic: topic, page: 1, numreponse: numreponse)
         } catch {
             throw .invalidRequest(reason: "message link")
+        }
+    }
+
+    /// `R126a`'s request for the quote view of `link`: the endpoint throws untyped, the reader's `do throws(NetworkError)` wants its own.
+    static func quotingRequest(_ link: HFRQuotingLink) throws(NetworkError) -> HTTPRequest {
+        do {
+            return try HFREndpoint.quotingMessages(topic: link.topic, subcategory: link.subcategory, numreponse: link.numreponse)
+        } catch {
+            throw .invalidRequest(reason: "quote view link")
         }
     }
 
