@@ -9,8 +9,8 @@ final class RenderProbe {
     @ObservationIgnored fileprivate(set) var rendered = 0
 
     /// Asks for `passes` updates one after the other and returns whether the host rendered each (within about two seconds
-    /// each). A chain started by the change (a `Task` hop, then a state write and its `onChange`) has had that many main-actor
-    /// turns and renders to land before a negative is checked: the window is counted in passes, not in milliseconds.
+    /// each). It proves the host rendered after the change; it bounds, without proving, how long a later chain (a `Task` hop,
+    /// then a state write and its `onChange`) had to land, so a test also checks the negative at its source when it can.
     func settled(passes: Int = 3) async -> Bool {
         for _ in 0..<passes {
             asked += 1

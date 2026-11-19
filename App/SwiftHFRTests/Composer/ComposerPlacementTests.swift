@@ -139,7 +139,7 @@ struct ComposerPlacementTests: ReaderWebTesting {
         let state = PresentedComposer(composer)
         let seen = SeenInsets()
         let host = UIHostingController(rootView: DockHost(state: state, seen: seen))
-        let window = try #require(Self.window(host))
+        let window = try #require(Self.window(host, key: true))
         defer { window.isHidden = true }
         let textView = try #require(await Self.waitForTextView(in: host.view))
         // The bar has slid in and the page's inset reaches it (#1194: waits for that layout, not a delay).
@@ -155,25 +155,27 @@ struct ComposerPlacementTests: ReaderWebTesting {
         let inset = try #require(seen.bottom)
         #expect(abs(window.bounds.maxY - inset - barTop) <= 1, "the page's bottom inset reaches the bar's top: \(inset), \(barTop)")
         // The keyboard goes (a pull-down or "return"): the composer stays open with its text. The editor has the keyboard first
-        // (it focuses itself on appearing), else nothing would go.
-        window.makeKey()
+        // (it focuses itself once editable, in a window already key), else nothing would go.
         await Self.waitUntil { textView.isFirstResponder }
         #expect(textView.isFirstResponder, "the editor has the keyboard")
         window.endEditing(true)
         #expect(!textView.isFirstResponder)
         #expect(await state.probe.settled(), "an update after the change was rendered")
+        // At the source too: the composer was not asked to close, whatever reached the presenter.
+        #expect(composer.closeReason == nil && !composer.isAskingClose)
         #expect(state.composer != nil)
         #expect(Self.textView(in: host.view) != nil, "the bar is still there")
     }
 
-    private static func window(_ host: UIViewController) -> UIWindow? {
+    /// `key` makes the window key before the host lays out, so a focus the composer asks for on appearing can land.
+    private static func window(_ host: UIViewController, key: Bool = false) -> UIWindow? {
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene else {
             return nil
         }
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
         window.rootViewController = host
-        window.isHidden = false
+        if key { window.makeKeyAndVisible() } else { window.isHidden = false }
         host.view.layoutIfNeeded()
         return window
     }
