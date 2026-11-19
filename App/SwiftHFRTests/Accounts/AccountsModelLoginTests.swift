@@ -113,6 +113,42 @@ struct AccountsModelLoginTests {
         #expect(model.currentSessionChanges == changes)
     }
 
+    /// The save fails after the login renewed the session in memory: the lists must still follow it (#1195).
+    @Test func aReloginOfTheCurrentAccountWhoseSaveFailsStillSignalsTheChange() async throws {
+        let store = try FlakyStore(accounts: [Fake.account("user1", main: true)])
+        let login = ScriptedLogin([.success(
+            userKey: "user1", displayName: "user1", cookies: Fake.cookies(user: "user1", pass: "renewed"),
+            hashCheck: "renewed-hash", avatarURL: nil
+        )])
+        let model = makeModel(store: store, login: login)
+        await model.restore()
+        let changes = model.currentSessionChanges
+        store.failWrites.withLock { $0 = true }
+
+        await #expect(throws: (any Error).self) {
+            try await model.logIn(pseudo: "user1", password: "fake-password", for: .existing(id: "user1", displayName: "user1"))
+        }
+
+        #expect(model.currentSessionChanges == changes + 1)
+    }
+
+    /// Credentials another device replaced are adopted by the same session object: a change in place of the current
+    /// session, and only of the current one (#1195).
+    @Test(arguments: [("user1", 1), ("user2", 0)])
+    func adoptedSyncedCredentialsSignalTheChangeOfTheCurrentSessionOnly(pseudo: String, expected: Int) async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])
+        let model = makeModel(store: store, checker: ScriptedChecker(["user1": .valid, "user2": .valid]))
+        await model.restore()
+        let changes = model.currentSessionChanges
+        var report = AccountSyncReport()
+        report.replaced = [pseudo]
+
+        model.adoptSyncReport(report)
+        await model.syncCheckTask?.value
+
+        #expect(model.currentSessionChanges == changes + expected)
+    }
+
     /// The reverse: a check that finds the current account's session expired is a change in place too (#1195).
     @Test func aCheckThatFindsTheCurrentSessionExpiredSignalsIt() async throws {
         let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true), Fake.account("user2")])

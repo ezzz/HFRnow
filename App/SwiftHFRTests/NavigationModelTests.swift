@@ -140,20 +140,50 @@ struct NavigationModelTests {
         let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(1)]))
         let model = NavigationModel(dataSource: source, sessionIsLoggedIn: { loggedIn.value }, topicFilter: filter)
         await model.forums.loadIfNeeded()
+        // B was opened first, then A: B's list stays cached, hidden.
+        let hidden = TopicSource.forum(.forum(14), title: "B")
+        model.selectedSource = hidden
+        let hiddenList = model.topicList(for: hidden)
+        await hiddenList.onAppear()
         let category = TopicSource.forum(.forum(13), title: "A")
         model.selectedSource = category
         let list = model.topicList(for: category)
-        await list.loadIfNeeded()
-        #expect(!list.offersFilter)
-        #expect(source.requests == ["forums", "topics:13:1"])
+        await list.onAppear()
+        #expect(!list.offersFilter && !hiddenList.offersFilter)
+        #expect(source.requests == ["forums", "topics:14:1", "topics:13:1"])
 
         loggedIn.value = true
-        await model.forums.sessionDidChange()
-        await model.reloadShownLists()
+        #expect(await model.forums.sessionDidChange(expired: false))
+        await model.sessionDidChange()
 
-        #expect(source.requests == ["forums", "topics:13:1", "forums", "topics:13:1:owntopic=3"])
+        // The list on screen at once, from page 1, with the chosen filter.
+        #expect(source.requests == ["forums", "topics:14:1", "topics:13:1", "forums", "topics:13:1:owntopic=3"])
         #expect(list.offersFilter)
         #expect(await model.isLoggedIn())
+        // The hidden one when shown again, not before.
+        model.selectedSource = hidden
+        await hiddenList.onAppear()
+        #expect(source.requests.last == "topics:14:1:owntopic=3")
+        #expect(hiddenList.offersFilter)
+    }
+
+    /// A launch with an expired session: the home page already says logged out, the expiry found by the check sends nothing
+    /// more (#1195). An expiry under a page that says logged in reloads it.
+    @Test func anExpiryTheHomePageAlreadyShowsSendsNothing() async {
+        let source = FakeDataSource()
+        let loggedIn = LoginFlag()
+        loggedIn.value = false
+        source.forumHandler = { ForumListPage(forums: [], isLoggedIn: loggedIn.value) }
+        let model = NavigationModel(dataSource: source)
+        await model.forums.loadIfNeeded()
+        #expect(await !model.forums.sessionDidChange(expired: true))
+        #expect(source.requests == ["forums"])
+        loggedIn.value = true
+        await model.forums.reload()
+        loggedIn.value = false
+        #expect(await model.forums.sessionDidChange(expired: true))
+        #expect(source.requests == ["forums", "forums", "forums"])
+        #expect(await !model.isLoggedIn())
     }
 
     /// The home page read before the change no longer answers, even when its reload fails: the session does (#1195).
@@ -164,7 +194,7 @@ struct NavigationModelTests {
         await model.forums.loadIfNeeded()
         #expect(await !model.isLoggedIn())
         source.forumHandler = { () async throws(ListLoadError) -> ForumListPage in throw .offline }
-        await model.forums.sessionDidChange()
+        await model.forums.sessionDidChange(expired: false)
         #expect(model.forums.loader.value?.isLoggedIn == false) // the list stays on screen
         #expect(await model.isLoggedIn())
         // A page loaded after the change answers again.

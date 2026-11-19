@@ -266,6 +266,8 @@ final class AccountsModel {
             guard sessions[id] === session else { throw .unknownAccount }
             // The login already renewed this session in memory; it stays valid even if the store write below fails.
             statuses[id] = .valid
+            // The same object renewed: the root stays, and is told, whether or not the save below works (#1195).
+            if session === currentSession { currentSessionChanges += 1 }
         }
         // A new account whose sheet was dismissed meanwhile is not added. A re-login is saved even then: its session
         // is already renewed in memory (LOT-043), and the store must hold what the session holds.
@@ -282,8 +284,6 @@ final class AccountsModel {
         statuses[stored.pseudo] = .valid
         storeProblem = nil
         reloadRows()
-        // The same object renewed: the root stays, and is told (#1195).
-        if case .existing = target, session === currentSession { currentSessionChanges += 1 }
         noteSyncChange(.login(pseudo: stored.pseudo))
         if let avatarURL = result.avatarURL {
             avatarTask = Task { await self.fetchAvatar(at: avatarURL, for: stored.pseudo) }

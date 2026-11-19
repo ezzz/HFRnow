@@ -86,13 +86,14 @@ final class NavigationModel {
         return await sessionIsLoggedIn()
     }
 
-    /// Reloads the topic lists this navigation shows (the selection and a category pushed from Favoris), after the session
-    /// changed in place (#1195): their filter and their notices depend on whether the account is signed in. Lists not on
-    /// screen load fresh when shown again.
-    func reloadShownLists() async {
-        let sources = [selectedSource, openedCategory].compactMap { $0 }
-        for (index, source) in sources.enumerated() where !sources[..<index].contains(source) {
-            await topicLists[source]?.refresh()
+    /// The session changed in place (#1195): every topic list loaded so far depends on whether the account was signed in
+    /// (its filter, its notices). The lists this navigation shows (the selection, a category pushed from Favoris) reload now;
+    /// the others when they are shown again.
+    func sessionDidChange() async {
+        let shown = Set([selectedSource, openedCategory].compactMap { $0 })
+        for list in topicLists.values { list.sessionDidChange() }
+        for source in shown {
+            await topicLists[source]?.reloadAfterSessionChange()
         }
     }
 

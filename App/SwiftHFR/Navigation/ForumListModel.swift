@@ -104,9 +104,13 @@ final class ForumListModel {
 
     /// The current session was renewed or found expired without becoming another object (a re-login keeps it, so the root
     /// is not rebuilt): the page on screen no longer says whether the account is signed in, nor which categories it sees.
-    /// Reloads it (#1195).
-    func sessionDidChange() async {
+    /// Reloads it and returns true (#1195). An expiry the page already shows (a launch with an expired session: the home page
+    /// was read logged out, or is being read) changes nothing and sends nothing.
+    @discardableResult
+    func sessionDidChange(expired: Bool) async -> Bool {
+        if expired, loader.value?.isLoggedIn != true { return false }
         sessionChangedSincePage = true
         await reload()
+        return true
     }
 }

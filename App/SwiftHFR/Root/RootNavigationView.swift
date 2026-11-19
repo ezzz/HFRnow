@@ -41,7 +41,10 @@ struct RootNavigationView: View {
         RootLayout(model: model, environment: environment)
         .task { await model.forums.loadIfNeeded() }
         // A re-login in place keeps this root (same session object): the lists ask again whether the account is signed in (#1195).
-        .onChange(of: accounts?.currentSessionChanges) { Task { await model.currentSessionChanged() } }
+        .onChange(of: accounts?.currentSessionChanges) {
+            let expired = accounts?.current?.status == .expired
+            Task { await model.currentSessionChanged(expired: expired) }
+        }
         // The Plus badge: the AQ feed is read about 3 s after the root appears, logged out too (legacy `MainWindow.swift:1178-1192`).
         .task { await model.qualityAlerts.checkAtLaunch() }
         // EXPERIMENTAL(mpDarkTopic, #1014): the account's model reads the option from here.
