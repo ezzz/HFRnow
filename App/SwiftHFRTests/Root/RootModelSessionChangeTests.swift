@@ -29,7 +29,7 @@ struct RootModelSessionChangeTests {
                 topicFilter: filter
             ),
             favorites: NavigationModel(
-                dataSource: source, forums: forums, sessionIsLoggedIn: session, startupSource: RootModel.favoritesStartupSource
+                dataSource: source, forums: forums, sessionIsLoggedIn: session, startupSource: TopicSource(mode: .flagsAndFavorites)
             ),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), initial: .tab(.categories)
