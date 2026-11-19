@@ -70,7 +70,7 @@ Read-only, ezzz/HFRnow `origin/master` at `21173e77` (the default-browser settin
 - A private message link posted in a public topic opens in the reader with the session, as legacy did (`isForumTopicURL`); HFR
   serves it only to a participant. That reader gets the reader's composer like any other (#1189): it answers through its own
   page's answer link, as the same conversation opened from Messages does since LOT-128 (legacy: MP threads read like topics,
-  "Répondre" when the page has an answer link, `HFRswift/Swift/MessagesView.swift:5481-5494` @ `21173e77`, LOT-128 spec).
+  "Répondre" when the page has an answer link, `HFRswift/Swift/MessagesView.swift:5482-5494` @ `21173e77`, `:5587-5599` @ `87fe0d1c`, LOT-128 spec).
 
 ## Edge cases
 - A link to the page on screen without an anchor pushes a reader of that page (legacy pushed too); the page bar, refresh and

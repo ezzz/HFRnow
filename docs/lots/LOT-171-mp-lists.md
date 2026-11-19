@@ -32,7 +32,7 @@ A group thread opens in the same reader as a one-to-one MP (`MessageListModel.re
 | Topic feature | MP group | Source |
 |---|---|---|
 | Page navigator (LOT-110 #201), message actions (LOT-087 #179), quote and multi-quote (LOT-086 #178), quick reply (LOT-153 #243) | apply, as those lots land; nothing in this lot blocks them | reader shared with topics |
-| Reply composer | **LOT-128 (#219)**, not here: `MessageReaderColumn` still gets `composer: nil` (the refresh after posting on a `cat=prive` thread is not captured, LOT-126 spec). A group member's reply form has no `newdest` field, the owner's has (#336, `R123a`-`R123f`) | HFR-PROTOCOL §6c "M2 write captures" |
+| Reply composer | **LOT-128 (#219)**, not here: since LOT-128 `MessageReaderColumn` gets the current account's composer, on both call sites (`MessagesRootView`, `RootSidebarView`); it was `composer: nil` when this lot shipped. A group member's reply form has no `newdest` field, the owner's has (#336, `R123a`-`R123f`) | HFR-PROTOCOL §6c "M2 write captures" |
 | First-unread landing (LOT-111 #202) | **does not apply as such**: MP rows have no flag link (`sujetCase5` is `&nbsp;`, `R13u1`), so there is no resume position; the reader opens on the latest message | LOT-126 spec |
 | Flags / favourites (`addflag`, `delflag`, `W18` mark unread) | **do not exist for MPs** | `R13u1`; legacy `MPListView.swift` has no flag action |
 
