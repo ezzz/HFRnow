@@ -28,3 +28,19 @@ extension TopicListView {
         return value
     }
 }
+
+/// Test seam (#870): the lists draw every row through `TopicRowView`; a debug build counts its builds per topic id, so a test
+/// shows that each filter's rows reached it, not only the list's own row loop.
+extension TopicRowView {
+    #if DEBUG
+    /// Builds of `body` per topic id. Ids are fixture ids and never removed: a test reads a delta from a baseline.
+    @MainActor private(set) static var builds: [String: Int] = [:]
+    #endif
+
+    /// Counts one build of this row in a debug build.
+    @MainActor func countingBuild() {
+        #if DEBUG
+        Self.builds[topic.id, default: 0] += 1
+        #endif
+    }
+}

@@ -26,6 +26,7 @@ struct TopicRowView: View {
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
     var body: some View {
+        let _ = countingBuild()
         switch TopicRowStyle.current(experimental) {
         case .legacy:
             LegacyTopicRowView(

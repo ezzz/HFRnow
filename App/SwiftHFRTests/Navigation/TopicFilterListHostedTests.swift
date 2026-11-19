@@ -46,12 +46,14 @@ enum FilterCapture: CaseIterable {
         var root = URL(filePath: file)
         for _ in 0..<4 { root.deleteLastPathComponent() }
         let url = root.appending(path: "Packages/HFRKit/Tests/HFRParsingTests/Fixtures/captures/\(capture).html")
-        return try TopicListParser.parse(String(decoding: Data(contentsOf: url), as: UTF8.self), pageURL: pageURL)
+        let html = try #require(String(bytes: Data(contentsOf: url), encoding: .utf8))
+        return try TopicListParser.parse(html, pageURL: pageURL)
     }
 }
 
 /// #870: the four filters of a forum's list (Tous, Favoris, Suivis, Lus) draw through one list and one row component; they differ
-/// only by what legacy's `topicHasFlag` gates.
+/// only by what legacy's `topicHasFlag` gates (`MainWindow.swift:513-518` @ 87fe0d1c). The list is the app's own routing: the
+/// `TopicsColumn` that `RootTabsView` and `RootSidebarView` build for the selected source.
 @MainActor
 @Suite(.serialized)
 struct TopicFilterListHostedTests {
@@ -61,43 +63,49 @@ struct TopicFilterListHostedTests {
         let page = try filter.page()
         let data = FakeDataSource()
         data.topicHandler = { _, _ in page }
-        let store = InMemorySettingsStore()
-        let topicFilter = TopicFilterModel(settings: store)
+        let topicFilter = TopicFilterModel(settings: InMemorySettingsStore())
         topicFilter.flag = filter.flag
-        let model = TopicListModel(
-            source: .forum(.forum(13), title: "Discussions"), dataSource: data, isLoggedIn: { true }, topicFilter: topicFilter
+        let source = TopicSource.forum(.forum(13), title: "Discussions")
+        let navigation = NavigationModel(
+            dataSource: data, sessionIsLoggedIn: { true }, startupSource: source, topicFilter: topicFilter
         )
-        let scope = ForumScope(section: { nil }, filter: topicFilter, select: { _ in })
-        var selection: TopicSummary?
-        let root = NavigationStack {
-            TopicListView(model: model, selection: Binding(get: { selection }, set: { selection = $0 }), scope: scope)
-        }
-        .environment(ExperimentalSettings(store: InMemorySettingsStore()))
+        let root = NavigationStack { TopicsColumn(navigation: navigation, composer: nil) }
+            .environment(ExperimentalSettings(store: InMemorySettingsStore()))
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: width, height: 874)
         window.overrideUserInterfaceStyle = style
         window.rootViewController = UIHostingController(rootView: root)
         window.isHidden = false
-        await model.loadIfNeeded()
-        for _ in 0..<40 {
+        let model = navigation.topicList(for: source)
+        for _ in 0..<60 {
             try await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
         }
         return HostedFilteredList(window: window, model: model, page: page)
     }
 
-    @Test("Every filter draws its topics through the shared list and row, once each (#870)", arguments: FilterCapture.allCases)
-    func everyFilterUsesTheSharedListAndRows(filter: FilterCapture) async throws {
-        let hosted = try await Self.host(filter)
-        defer { hosted.window.isHidden = true }
+    @Test(
+        "Every filter draws its topics through the shared list, row and picker (#870)",
+        arguments: FilterCapture.allCases, [UIUserInterfaceStyle.light, .dark]
+    )
+    func everyFilterUsesTheSharedListAndRows(filter: FilterCapture, style: UIUserInterfaceStyle) async throws {
+        HostedAccessibility.beginAutomation()
+        defer { HostedAccessibility.endAutomation() }
+        // Row builds are counted per topic id and ids repeat across runs: read what this run adds.
+        let baseline = TopicRowView.builds
+        let hosted = try await Self.host(filter, style: style)
+        defer {
+            hosted.window.isHidden = true
+            hosted.window.rootViewController = nil
+        }
         #expect(hosted.model.loadedFilter == filter.flag.filter)
-        let builds = TopicListView.renders[ObjectIdentifier(hosted.model)] ?? [:]
-        #expect((builds[.body] ?? 0) > 0)
-        // One `TopicRowView` build site: every loaded row reached it, on every filter.
-        for topic in hosted.page.topics { #expect((builds[.row(topic.id)] ?? 0) > 0, "no row build for \(topic.id)") }
+        // `TopicRowView` itself was built for every loaded row, whatever the filter.
+        for topic in hosted.page.topics {
+            #expect((TopicRowView.builds[topic.id] ?? 0) > (baseline[topic.id] ?? 0), "no TopicRowView build for \(topic.id)")
+        }
         if filter == .read { #expect(!hosted.page.topics.isEmpty) }
-        // The Tous / Favoris / Suivis / Lus control is the one `TopicFlagFilterPicker` of `ForumScopeBar`.
+        // The Tous / Favoris / Suivis / Lus control is the one `TopicFlagFilterPicker` of `ForumScopeBar` (`MainWindow.swift:683-696` @ 87fe0d1c).
         let labels = HostedAccessibility.elements(under: hosted.window).compactMap(\.accessibilityLabel)
         for title in ["Tous", "Favoris", "Suivis", "Lus"] { #expect(labels.contains(title), "\(title) not in \(labels)") }
     }
