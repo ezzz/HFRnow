@@ -74,8 +74,28 @@ struct ReaderPresenceWebTests: ReaderWebTesting {
         #expect(left == 1)
     }
 
+    /// A page whose one message holds one posted picture of the forum's own host.
+    private static let picture = "https://forum-images.hardware.fr/images/perso/photo.png"
+
+    private func pictureDocument() -> ReaderDocument {
+        let message = ReaderMessage(
+            numreponse: 7, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil, dateText: "",
+            editNote: nil, quotedByCount: nil,
+            content: MessageContent(html: "<p><img class=\"hfrplusimg\" src=\"\(Self.picture)\" alt=\"\"></p>")
+        )
+        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
+        return ReaderDocument(token: 1, html: TopicHTMLBuilder.document(for: page, token: 1), anchor: nil, keepsScrollPosition: false)
+    }
+
+    /// The page's picture is loaded and nothing is a link.
+    private let loaded = """
+        const images = Array.from(document.querySelectorAll("img"));
+        return images.length === 1 && images.every((img) => img.complete && img.naturalWidth > 0)
+            && document.querySelector(".image-link") === null;
+        """
+
     /// #1187: images still loading when a shown page is stopped (a tab switch) are cut; when the reader comes back they load,
-    /// instead of staying blank or turning into links until « Actualiser ».
+    /// instead of staying blank or turning into links until « Actualiser ». The page is not loaded again: it keeps its place.
     @Test func aShownPageStoppedWithImagesInFlightShowsThemWhenItComesBack() async throws {
         let gate = ReaderGate()
         let calls = ReaderCallCounter()
@@ -85,16 +105,7 @@ struct ReaderPresenceWebTests: ReaderWebTesting {
             return HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: readerTestPixel)
         }
         let (controller, recorder) = makeController(transport: transport)
-        let image = "https://forum-images.hardware.fr/images/perso/photo.png"
-        let message = ReaderMessage(
-            numreponse: 7, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil, dateText: "",
-            editNote: nil, quotedByCount: nil,
-            content: MessageContent(html: "<p><img class=\"hfrplusimg\" src=\"\(image)\" alt=\"\"></p>")
-        )
-        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
-        let shown = ReaderDocument(
-            token: 1, html: TopicHTMLBuilder.document(for: page, token: 1), anchor: nil, keepsScrollPosition: false
-        )
+        let shown = pictureDocument()
         controller.show(shown)
         #expect(await until { recorder.ready == [1] })
         #expect(await until(async: { await transport.requests.count >= 1 }), "the image never left")
@@ -102,14 +113,29 @@ struct ReaderPresenceWebTests: ReaderWebTesting {
         controller.resume()
         controller.show(shown)
         await gate.open()
-        let loaded = """
-            const images = Array.from(document.querySelectorAll("img"));
-            return images.length === 1 && images.every((img) => img.complete && img.naturalWidth > 0)
-                && document.querySelector(".image-link") === null;
-            """
         #expect(
-            await until(async: { (try? await self.evaluate(loaded, in: controller)) as? Bool == true }),
+            await until(async: { (try? await self.evaluate(self.loaded, in: controller)) as? Bool == true }),
             "the cut image is still blank or a link"
         )
+        #expect(recorder.ready == [1], "the page was loaded again")
+    }
+
+    /// The other way WebKit may end a cut load: the picture failed into a link. Asked again, it is put back where it was.
+    @Test func aCutPictureThatFailedIntoALinkIsPutBackAndLoaded() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.show(pictureDocument())
+        #expect(await until { recorder.ready == [1] })
+        #expect(await until(async: { (try? await self.evaluate(self.loaded, in: controller)) as? Bool == true }))
+        let failed = """
+            const img = document.querySelector("img.hfrplusimg");
+            img.dispatchEvent(new Event("error"));
+            return document.querySelector("img") === null && document.querySelector(".image-link") !== null;
+            """
+        #expect(try await evaluate(failed, in: controller) as? Bool == true)
+        let retried = try await evaluate(
+            "return window.hfrReader.retryImages([\"\(Self.picture)\"]);", in: controller
+        )
+        #expect(retried as? Bool == true)
+        #expect(await until(async: { (try? await self.evaluate(self.loaded, in: controller)) as? Bool == true }))
     }
 }
