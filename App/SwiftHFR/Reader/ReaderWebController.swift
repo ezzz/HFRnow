@@ -244,7 +244,8 @@ final class ReaderWebController: NSObject {
     }
 
     private func positionReported(_ post: Int, token: Int) {
-        // Only a ready page tells where the member reads: a reload's page reports its top before it lands (#1188).
+        // Reports before ready are dropped: a reload's page reports its top before it lands. A report between ready and the
+        // landing is kept; only a second process death in that window would land on it (#1188).
         if readyToken == token { lastReportedPost = post }
         resetWatch.pageReportedPosition()
         events.position(post, token)
