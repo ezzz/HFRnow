@@ -30,8 +30,10 @@ struct QuotingMessagesViewTests {
     /// The session asks for exactly `R126a`'s request, not the link as it was written and not the topic page.
     @Test func theSourceAsksTheQuoteViewThroughTheSession() async throws {
         let body = try LiveTopicPageSourceTests.capture("R126a-topic-quote-only-list-anon.html")
+        // Read on the main actor here: the transport's closure is `@Sendable` and runs elsewhere.
+        let servedURL = url(Self.linkText)
         let session = MockTransport { _ in
-            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: url(Self.linkText), body: body)
+            HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: servedURL, body: body)
         }
         let anonymous = MockTransport(replies: [])
         let source = LiveTopicPageSource(
