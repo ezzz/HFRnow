@@ -327,6 +327,10 @@ final class ReplyComposerModel: Identifiable {
         await autosave?.value
     }
 
+    /// The scheduled autosave (tests): kept before a call that should settle it, then awaited, it shows what that very save
+    /// did, whenever it would have fired (#1194).
+    var pendingAutosave: Task<Void, Never>? { autosave }
+
     // MARK: - Draft writes
 
     /// Each autosave waits for the one it replaces: a replaced save that already woke up still finishes first, so waiting
