@@ -122,12 +122,17 @@ struct ReplyComposerDraftTests {
         let file = directory.appending(path: "drafts.json")
         try Data("not json".utf8).write(to: file)
         let drafts = DraftStore(persistence: FileDraftPersistence(fileURL: file))
-        let first = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        let first = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(10))
         await first.start()
-        #expect(first.draftWarning == ReplyComposerModel.draftsSetAsideNotice)
+        #expect(first.draftsNotice == ReplyComposerModel.draftsSetAsideNotice)
+        // Not a failure: no « Fermer sans enregistrer », and a working save keeps it on screen.
+        #expect(first.draftWarning == nil && !first.canCloseWithoutSaving)
+        first.update(text: "Bonjour")
+        await first.waitForAutosave()
+        #expect(first.draftsNotice == ReplyComposerModel.draftsSetAsideNotice && !first.canCloseWithoutSaving)
         let second = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
         await second.start()
-        #expect(second.draftWarning == nil)
+        #expect(second.draftsNotice == nil)
     }
 
     @Test func aFailedDraftWriteIsReportedAndTheTextStays() async {

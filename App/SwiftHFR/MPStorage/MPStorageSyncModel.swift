@@ -118,7 +118,9 @@ final class MPStorageSyncModel {
             return
         }
         status = .idle
-        _ = await loadCopy()
+        // The appearance that met the unreadable copy did nothing else: an `on` account syncs now, as at an appearance.
+        started = false
+        await start()
     }
 
     /// Whether sync runs for the account.

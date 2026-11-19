@@ -83,6 +83,21 @@ struct UnreadableDataRecoveryTests {
         #expect(!model.copyIsUnreadable)
     }
 
+    /// Reading positions the wipe could not read: the account screen offers the way out, and the positions are then empty.
+    @Test func unreadablePositionsMetByAWipeCanBeDiscarded() async throws {
+        let store = try InMemoryCredentialStore(accounts: [Fake.account("user1", main: true)])
+        let accounts = makeModel(store: store)
+        await accounts.restore()
+        let stores = SeededStores()
+        let positions = ReadingPositionStore(persistence: UnreadablePositionPersistence())
+        let deletion = AccountDeletionModel(accounts: accounts, eraser: stores.eraser(positions: positions))
+        await deletion.erase(try #require(accounts.rows.first))
+        #expect(deletion.positionsAreUnreadable)
+        await deletion.discardUnreadablePositions()
+        #expect(!deletion.positionsAreUnreadable && deletion.phase == .idle)
+        #expect(await positions.loadFailure() == nil)
+    }
+
     private func mpStorageModel(
         copies: MPStorageCopyStore, discard: (@Sendable () async throws -> Void)?
     ) -> MPStorageSyncModel {

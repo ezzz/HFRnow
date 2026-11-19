@@ -9,10 +9,11 @@ enum UnreadableDataRecovery {
     /// The confirmation's title and its destructive choice.
     static let confirmationTitle = "Repartir de zéro ?"
     static let confirmTitle = "Repartir de zéro"
-    /// What the confirmation says happens: `content` names the data ("les listes de pseudos", "l'historique des images").
+    /// What the confirmation says happens: `content` names the data in the plural ("les listes de pseudos", "les images
+    /// envoyées").
     static func message(for content: String) -> String {
         "L'app ne sait plus lire \(content) de cet appareil. Le fichier est gardé de côté, il n'est pas effacé, "
-            + "et \(content) repartent vides ici."
+            + "et \(content) repartent de zéro sur cet appareil."
     }
 
     /// What the screen shows when the set-aside failed.

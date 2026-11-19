@@ -59,7 +59,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
   POST is never retried); HTTP and payload refusals show `Erreur de l'hébergeur (code) : message`. The composer text is never touched by a failure.
 - **History**: the engine's `RehostUploadHistoryStore` (LOT-064: versioned file, `Application Support/RehostHistory/uploads.json`, newest first,
   no duplicate id), read once per model (reopening the panel keeps what is in memory). Unreadable data is never overwritten: the store refuses writes,
-  the panel warns, new images stay in memory for the session. Setting the unreadable file aside (`discardUnreadableData`) is not offered here. A failed
+  the panel warns, new images stay in memory for the session. « Repartir de zéro… » (#1182) sets the unreadable file aside (`.corrupt`, never deleted) once confirmed; the images of the session stay listed and the next uploads are remembered again. A failed
   write warns and keeps the list in memory. Legacy's `rehostImagesSwiftUI.json` is not read (other schema, other app container).
 - **Insert**: tapping a rendition builds `RehostedImage.snippet(variant:mode:)` (LOT-056 / LOT-012: `[url=FULL][img]URL[/img][/url]\n`,
   `[img]URL[/img]\n` or the bare URL; a missing rendition falls back to the next larger one) and `ComposerFormattingModel.insert` puts it at the caret

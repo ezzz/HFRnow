@@ -75,7 +75,9 @@ struct TopicListView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Label(problem, systemImage: "exclamationmark.triangle")
                     if favorites.canDiscardUnreadable {
-                        UnreadableDataRecoveryButton(content: "les préférences des favoris") { await favorites.discardUnreadable() }
+                        UnreadableDataRecoveryButton(content: "les sections repliées et les super-favoris") {
+                            await favorites.discardUnreadable()
+                        }
                     }
                 }
                 .font(.footnote)

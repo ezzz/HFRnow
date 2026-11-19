@@ -51,6 +51,9 @@ final class ReplyComposerModel: Identifiable {
     private(set) var mayHavePosted = false
     /// The draft could not be read or written; the text on screen is still there.
     private(set) var draftWarning: String?
+    /// Undecodable drafts were set aside by the store (#1182): said in the first sheet that opens, for as long as it is open.
+    /// Not a failure: it does not offer « Fermer sans enregistrer » and a working save does not clear it.
+    private(set) var draftsNotice: String?
     /// Replies set aside in this topic (LOT-101), newest first; empty for every other composer. Read when the sheet opens and
     /// after each change made here.
     var archivedDrafts: [ArchivedDraft] = []
@@ -141,10 +144,8 @@ final class ReplyComposerModel: Identifiable {
         await refreshArchivedDrafts()
         if let failure = await drafts.loadFailure() {
             draftWarning = Self.draftWarning(for: failure)
-        } else if await drafts.takeRecoveredCorruptDataNotice() {
-            // The store set an undecodable file aside (`.corrupt`): said once, by the first sheet that opens (#1182).
-            draftWarning = Self.draftsSetAsideNotice
-        }
+        // The store set an undecodable file aside (`.corrupt`): said once, by the first sheet that opens (#1182).
+        } else if await drafts.takeRecoveredCorruptDataNotice() { draftsNotice = Self.draftsSetAsideNotice }
         // A draft of an edit holding only a subject has no text: the message's own one still stands.
         text = draft.map(\.text).flatMap { $0.isEmpty ? nil : $0 } ?? prefill?.text ?? ""
         if hasSubjectField { subject = draft?.subject ?? prefill?.subject ?? "" }

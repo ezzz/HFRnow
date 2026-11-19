@@ -210,6 +210,9 @@ struct ReplyComposerView: View {
                 }
             }
         }
+        if let notice = model.draftsNotice {
+            ComposerBanner(text: notice, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {}
+        }
         if let warning = model.draftWarning {
             ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {
                 // Keep and discard cannot close while the store refuses writes: the only exit, as the warning says.

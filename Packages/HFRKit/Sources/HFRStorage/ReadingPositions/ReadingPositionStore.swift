@@ -136,6 +136,8 @@ public actor ReadingPositionStore {
     /// Sets the unreadable data aside (a `.corrupt` copy for files, never a deletion) and starts empty.
     /// Only call it after the user agreed: this is the single way out of a failed load.
     public func discardUnreadableData() throws {
+        // Read again first: a read that failed once (an I/O error) and works now is not set aside (#1182).
+        state = .unloaded
         guard case .failed = loadedState() else { return }
         do {
             try persistence.quarantineUnreadableData()

@@ -81,7 +81,7 @@ While the record is `on`, a group row (`PrivateMessageThread.isGroup`) whose thr
 - Two devices: the record syncs through iCloud (once #447 wires it); the document merges (LOT-062).
 - A thread deleted from another device while `on`: `sync` searches again; not found → `.noThread`, the section says "Le MP de stockage est introuvable."; switching off then on searches again and asks before creating one.
 - `searchLimitReached` (more than 50 MP pages without the thread): `failed`, never "not found", so nothing is ever created from it (LOT-052).
-- The device copy unreadable (or written by a newer build): "La copie locale du stockage MP est illisible.", nothing is synced (nothing could be stored) and nothing overwrites it.
+- The device copy unreadable (or written by a newer build): "La copie locale du stockage MP est illisible.", nothing is synced (nothing could be stored) and nothing overwrites it. Réglages offers « Repartir de zéro… » (#1182): once confirmed the copies are set aside as `.corrupt` (never deleted, pending edits included) and the next sync reads the forum's document.
 - An edit while a sync runs: queued after it, never inside its read-merge-write.
 - Account removed: its record and copy stay (ADR 0013: nothing deleted); logging in again finds them.
 

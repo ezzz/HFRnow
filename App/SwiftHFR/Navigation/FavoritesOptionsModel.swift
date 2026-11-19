@@ -154,6 +154,9 @@ final class FavoritesOptionsModel {
         do throws(SmallStoreError) {
             try await stores.layout.discardUnreadableData()
             try await stores.superFavorites.discardUnreadableData()
+            // The writes refused while the stores were unreadable are not news any more: the stores take writes again.
+            layoutWriteProblem = nil
+            superWriteProblem = nil
         } catch {
             layoutWriteProblem = UnreadableDataRecovery.failure
         }

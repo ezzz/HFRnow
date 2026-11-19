@@ -176,6 +176,7 @@ struct FavoritesOptionsModelFailureTests {
         )
         await options.reload()
         #expect(options.canDiscardUnreadable && options.storeProblem != nil)
+        await options.toggleCollapsed("cat:2") // refused: a write problem too
         await options.discardUnreadable()
         #expect(!options.canDiscardUnreadable && options.storeProblem == nil)
         await options.toggleCollapsed("cat:1")
