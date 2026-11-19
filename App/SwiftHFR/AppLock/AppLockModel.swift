@@ -43,7 +43,8 @@ enum AppLockOutcome: Sendable, Equatable {
 /// How the device unlocks the app, for the settings switch's title (#1173): what `LAContext` reports, never a method the device lacks.
 enum AppLockMethod: Sendable, Equatable {
     case faceID, touchID, opticID
-    /// No biometry (none, or none enrolled): the device code alone.
+    /// The device reports no biometry: the device code alone. A sensor with nothing enrolled (or locked out) is still reported as
+    /// `.faceID` / `.touchID`: `biometryType` is set whatever `canEvaluatePolicy` returns, and the device does offer that method.
     case codeOnly
 
     /// Maps the biometry the device reports.
