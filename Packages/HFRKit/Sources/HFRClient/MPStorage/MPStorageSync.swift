@@ -13,9 +13,9 @@ public actor MPStorageSync {
     private let sourceName: String
     /// The last call queued; the next one waits for it.
     private var tail: Task<Void, Never>?
-    /// Calls entered and not returned yet, the running one included: a caller (a test first) can wait until a call is
-    /// queued behind another instead of guessing a delay (#1194).
-    public private(set) var queuedCalls = 0
+    /// Calls entered and not returned yet, the running one included: a test waits until a call is queued behind another
+    /// instead of guessing a delay (#1194).
+    private(set) var callsInFlight = 0
 
     /// Creates the loop over the forum side and the device copy. `sourceName` is stamped on what this app writes.
     public init(
@@ -242,8 +242,8 @@ public actor MPStorageSync {
             }
         }
         tail = Task { _ = await task.value }
-        queuedCalls += 1
-        defer { queuedCalls -= 1 }
+        callsInFlight += 1
+        defer { callsInFlight -= 1 }
         return try await task.value.get()
     }
 }

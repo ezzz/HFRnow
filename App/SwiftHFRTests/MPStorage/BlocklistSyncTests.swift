@@ -1,5 +1,5 @@
 import Foundation
-import HFRClient
+@testable import HFRClient
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
@@ -248,12 +248,12 @@ struct BlocklistSyncModelTests {
         let starting = Task { await model.start() }
         while await gate.waiting == 0 { try await Task.sleep(for: .milliseconds(5)) }
         try await manager.remove("Delta", from: .blocklist)
-        let running = await engine.queuedCalls
+        let running = await engine.callsInFlight
         let handling = Task { await sync.handle(BlocklistChange(pseudo: "Delta", added: false)) }
         // The edit is queued behind the read before the read answers (#1194: a signal, not a delay).
         var spins = 0
-        while await engine.queuedCalls <= running, spins < 100_000 { spins += 1; await Task.yield() }
-        #expect(await engine.queuedCalls == running + 1, "the edit waits behind the start's read")
+        while await engine.callsInFlight <= running, spins < 100_000 { spins += 1; await Task.yield() }
+        #expect(await engine.callsInFlight == running + 1, "the edit waits behind the start's read")
         await gate.release()
         await starting.value
         await handling.value

@@ -8,11 +8,16 @@ final class RenderProbe {
     private(set) var asked = 0
     @ObservationIgnored fileprivate(set) var rendered = 0
 
-    /// Asks for an update and returns whether the host rendered it (within about two seconds).
-    func settled() async -> Bool {
-        asked += 1
-        for _ in 0..<100 where rendered != asked { try? await Task.sleep(for: .milliseconds(20)) }
-        return rendered == asked
+    /// Asks for `passes` updates one after the other and returns whether the host rendered each (within about two seconds
+    /// each). A chain started by the change (a `Task` hop, then a state write and its `onChange`) has had that many main-actor
+    /// turns and renders to land before a negative is checked: the window is counted in passes, not in milliseconds.
+    func settled(passes: Int = 3) async -> Bool {
+        for _ in 0..<passes {
+            asked += 1
+            for _ in 0..<100 where rendered != asked { try? await Task.sleep(for: .milliseconds(20)) }
+            guard rendered == asked else { return false }
+        }
+        return true
     }
 }
 

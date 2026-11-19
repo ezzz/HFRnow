@@ -154,7 +154,11 @@ struct ComposerPlacementTests: ReaderWebTesting {
         #expect(barTop > window.bounds.midY, "the bar sits at the bottom: \(barTop)")
         let inset = try #require(seen.bottom)
         #expect(abs(window.bounds.maxY - inset - barTop) <= 1, "the page's bottom inset reaches the bar's top: \(inset), \(barTop)")
-        // The keyboard goes (a pull-down or "return"): the composer stays open with its text.
+        // The keyboard goes (a pull-down or "return"): the composer stays open with its text. The editor has the keyboard first
+        // (it focuses itself on appearing), else nothing would go.
+        window.makeKey()
+        await Self.waitUntil { textView.isFirstResponder }
+        #expect(textView.isFirstResponder, "the editor has the keyboard")
         window.endEditing(true)
         #expect(!textView.isFirstResponder)
         #expect(await state.probe.settled(), "an update after the change was rendered")

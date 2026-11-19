@@ -304,8 +304,8 @@ extension MPStorageSyncTests {
         // The edit has entered the queue behind the held sync (#1194: a signal, not a delay). Without the queue it would store
         // its edit now, then the sync would save the copy it loaded before, dropping the edit.
         var spins = 0
-        while await sync.queuedCalls < 2, spins < 100_000 { spins += 1; await Task.yield() }
-        #expect(await sync.queuedCalls == 2, "the edit is queued behind the sync")
+        while await sync.callsInFlight < 2, spins < 100_000 { spins += 1; await Task.yield() }
+        #expect(await sync.callsInFlight == 2, "the edit is queued behind the sync")
         #expect(await persistence.stored.pending == nil)
         await remote.release()
         #expect(try await syncing.value == .synced(wrote: false))
