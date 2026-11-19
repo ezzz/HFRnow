@@ -56,7 +56,8 @@ struct ReplyComposerView: View {
     @State private var imageInserted = false
     /// "GIF Giphy" was tapped: `gifPanel` opens its sheet.
     @State private var gifRequested = false
-    /// The height chosen with the toggle; nil until then (partial on an iPhone). Not remembered: every opening starts partial.
+    /// The height chosen with the toggle; nil until then (partial on an iPhone for a reply or an edit; always full for a new
+    /// message or topic, #1137). Not remembered.
     @State private var chosenHeight: ComposerHeight?
     /// The archived drafts' picker is open (LOT-101).
     @State private var isShowingArchive = false
@@ -287,7 +288,8 @@ extension ReplyComposerView {
             .composerProbe(.controls)
     }
 
-    /// An iPhone in regular height: partial height first, and the toggle (#653).
+    /// An iPhone in regular height, for a reply or an edit: partial height first, and the toggle (#653); none for a new message
+    /// or topic (#1137).
     private var offersHeightToggle: Bool {
         ComposerHeight.offersToggle(
             isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass, opensFull: model.opensFullScreen

@@ -9,7 +9,7 @@ import Testing
 /// sheet full anyway and no toggle claims otherwise.
 struct ComposerPresentationTests {
     @Test(arguments: [true, false])
-    func everyComposerOpensAtPartialHeightOnlyOnAnIPhone(isPhone: Bool) {
+    func aReplyOrAnEditOpensAtPartialHeightOnlyOnAnIPhone(isPhone: Bool) {
         let expected: ComposerHeight = isPhone ? .partial : .full
         #expect(ComposerHeight.shown(chosen: nil, isPhone: isPhone, verticalSizeClass: .regular) == expected)
         #expect(ComposerHeight.offersToggle(isPhone: isPhone, verticalSizeClass: .regular) == isPhone)

@@ -1,8 +1,9 @@
 import CoreGraphics
 import SwiftUI
 
-/// How tall the composer is (#653): on an iPhone every composer (reply, edit, new topic, new private message) opens at
-/// partial height, a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it (in the
+/// How tall the composer is (#653): on an iPhone a reply and an edit open at partial height (a new topic and a new private
+/// message open full screen with no toggle, `ReplyComposerModel.opensFullScreen`, #1137: new content has no page to keep in
+/// view), a card docked on the keyboard (`ComposerCardLayout`) with the page it was opened from visible above it (in the
 /// reader a bar docked at the bottom of the page, elsewhere a sheet: `ComposerPlacement`, #853), and
 /// a control switches to the full height and back (operator, 2026-11-08 for a reply, 2026-11-10 for the others, 2026-11-10
 /// reference for the card). The device decides, not the width's size class: inside an

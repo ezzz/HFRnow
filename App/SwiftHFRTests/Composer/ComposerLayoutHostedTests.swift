@@ -13,6 +13,8 @@ private final class ProbeBox {
     var leadingEdge: CGFloat = 0
     /// The hosting window's top safe-area inset: under it, where the full-screen composers' buttons sit (#1137).
     var topInset: CGFloat = 0
+    /// The hosting window's height.
+    var height: CGFloat = 0
     var trailingEdge: CGFloat = 0
     var midX: CGFloat { (leadingEdge + trailingEdge) / 2 }
 
@@ -53,6 +55,7 @@ struct ComposerLayoutHostedTests {
         window.layoutIfNeeded()
         box.leadingEdge = window.safeAreaInsets.left
         box.topInset = window.safeAreaInsets.top
+        box.height = window.bounds.height
         box.trailingEdge = window.bounds.width - window.safeAreaInsets.right
         // Polls until the draft is read, then until the text is laid out (a cold simulator can take a while).
         for _ in 0..<100 where !model.canEdit { try await Task.sleep(for: .milliseconds(50)) }
@@ -210,7 +213,7 @@ struct ComposerLayoutHostedTests {
         #expect(box.frames[.heightToggle] == nil, "no height toggle")
         let card = try #require(box.frames[.card])
         let fields = try #require(box.frames[.fields])
-        #expect(card.maxY > 874 / 2, "the card fills the screen: \(card)")
+        #expect(card.maxY > box.height / 2, "the card fills the screen: \(card), window \(box.height)")
         for part in [ComposerLayoutProbe.Part.closeCircle, .draftsCircle, .sendCircle] {
             guard let circle = box.frames[part] else {
                 // A new composer has no drafts button (LOT-101: only a topic's reply archives drafts).

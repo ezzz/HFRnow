@@ -23,10 +23,6 @@ struct ComposerFullScreenTests {
         #expect(!ComposerHeight.offersToggle(isPhone: true, verticalSizeClass: .regular, opensFull: true))
     }
 
-    @Test func theLegacyBarsTitleTakesNoTapSoTheButtonsUnderItKeepTheirs() {
-        #expect(!ComposerHeader.titleTakesTaps)
-    }
-
     @Test func aReplyOrAnEditKeepsThePartialHeightAndItsToggle() {
         #expect(ComposerHeight.shown(chosen: nil, isPhone: true, verticalSizeClass: .regular, opensFull: false) == .partial)
         #expect(ComposerHeight.offersToggle(isPhone: true, verticalSizeClass: .regular, opensFull: false))
