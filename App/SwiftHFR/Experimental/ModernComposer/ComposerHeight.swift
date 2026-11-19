@@ -10,7 +10,8 @@ import SwiftUI
 /// iPad's form sheet the width is compact too (measured on the iPad Pro 13" simulator, iOS 27.1). In compact height (an iPhone
 /// in landscape) the system shows every sheet at full height whatever its detents, so there is no toggle there (the reader's
 /// docked bar fills the reader there too).
-/// Every opening starts at partial height: the height chosen with the toggle is not remembered (operator, 2026-11-10).
+/// Every opening of a reply or an edit starts at partial height: the height chosen with the toggle is not remembered
+/// (operator, 2026-11-10).
 ///
 /// Legacy shows the composer full screen (`MessagesView.swift:5429-5443`, `coverVerticalFullScreen` @ 87fe0d1c): the partial
 /// height is a (b) evolution asked by the operator (GAP-653).

@@ -70,7 +70,7 @@ inside the card above the text, the two pills just under the editor so they move
   (draft, quote, edit prefill) is no step, and each step is saved like typing (LESSONS 48). Off while sending or closing (`canEdit`).
 - **Aa** shows the bar above the row (hidden on each opening, as legacy); the bar keeps #599 (off while the recipient or subject
   has focus, one view across focus changes) and the #602/#605 behaviour.
-- **Height (b·operator, GAP-653).** On an iPhone every composer opens at partial height: a reply (topic or MP) and an edit
+- **Height (b·operator, GAP-653).** On an iPhone a reply (topic or MP) and an edit open at partial height
   (operator, 2026-11-08); a new topic and a new MP opened at partial height too (operator, 2026-11-10) until #1137 (operator,
   2026-11-18): they open full screen with no toggle, their buttons in the top band above the fields. At partial height the sheet is the docked card: its
   detent is the card's measured height (`ComposerCardLayout`: header, banners, fields, image chips, the editor, the row), and the
@@ -137,7 +137,7 @@ inside the card above the text, the two pills just under the editor so they move
 1. Legacy's drafts button (`tray`, archived drafts per topic) belongs to LOT-101
    ([#192](https://github.com/ezzz/HFRnow/issues/192)), merged since: the top bar shows it where LOT-101 offers it, after "Fermer".
 2. The page behind the partial sheet scrolls; its taps are ignored while the composer is open (above).
-3. The chosen height is not remembered: every opening starts at a third of the screen.
+3. The chosen height is not remembered: every opening of a reply or an edit starts at a third of the screen.
 4. "Fermer" (×) stays at the top left, as in legacy.
 5. A new topic and a new MP opened at partial height too, with the toggle, until #1137: now full screen, no toggle.
 6. Legacy's button placement in the Claude app's layout (reference of 2026-11-10, above); send stays at the top right.
