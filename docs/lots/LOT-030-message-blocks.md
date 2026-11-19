@@ -35,6 +35,7 @@ capture, see Edge cases), action links (`:371-390`, LOT-031), avatar cache and d
 |---|---|---|
 | `MessageBlockParser` (public) | `blocks(in: String) throws(ParsingError) -> [MessageBlock]` | Parses the page, returns the message blocks in page order, advertisement blocks skipped. A page without any `messagetable` (a deleted conversation `RA5`, a non-topic page) gives `[]`, not an error. A block that cannot be read is skipped; the page throws only when it has blocks and none is readable (#1186) |
 | `MessageBlockParser` (internal) | `extract(from: Document) throws(ParsingError) -> [ExtractedMessageBlock]` | Same, with the DOM elements, for the next stages inside HFRParsing |
+| `MessageBlockParser` (internal) | `extraction(from: Document) throws(ParsingError) -> Extraction` | The readable blocks, `skipped` (unreadable message blocks, ads not counted) and `leadingFailure` (a block skipped before any readable one; `MPStoragePageParser` refuses the page then). The count is internal: no consumer shows it yet (#1186) |
 | `ExtractedMessageBlock` (internal) | `block`, `table`, `content`, `toolbar?`, `edited?` | SwiftSoup elements never leave the module (ADR 0002) |
 | `MessageBlock` (public, `Sendable, Hashable, Identifiable, Codable`) | see below | the facts of one block, no policy, no rewriting |
 

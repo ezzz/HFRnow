@@ -44,12 +44,17 @@ public enum MessageBlockParser {
         guard let body = document.body() else { throw .malformedDocument }
         var extraction = Extraction()
         var firstFailure: ParsingError?
+        // Only the page's first message block can be the continuation copy, readable or not: a block after a skipped first
+        // one is never taken for it.
+        var isFirst = true
         // Legacy matches the whole class attribute (`allowPartial:NO`); the ad block uses the same class and is dropped below.
         for table in body.descendants(matching: .exact("messagetable")) {
             do throws(ParsingError) {
-                guard let extracted = try block(in: table, isFirst: extraction.blocks.isEmpty) else { continue }
+                guard let extracted = try block(in: table, isFirst: isFirst) else { continue }
+                isFirst = false
                 extraction.blocks.append(extracted)
             } catch {
+                isFirst = false
                 extraction.skipped += 1
                 firstFailure = firstFailure ?? error
                 if extraction.blocks.isEmpty { extraction.leadingFailure = extraction.leadingFailure ?? error }
