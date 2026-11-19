@@ -17,6 +17,10 @@ extension TopicReaderModel {
     /// A composer is open over this reader: the page's taps and actions do nothing until it closes.
     var suspendsPageInteractions: Bool { !openComposers.isEmpty }
 
+    /// Nothing holds the reader's one composer slot (#1190): no composer open, none being prepared (a quote or an edit form in
+    /// flight, `isLoadingQuote`), no reply handed to the screen and not yet shown. Every way to open a composer asks it first.
+    var composerSlotIsFree: Bool { !suspendsPageInteractions && !isLoadingQuote && pendingReply == nil }
+
     /// The end-of-page hint « Tirer vers le haut pour actualiser » is shown: the refresh it names is offered, so not while a
     /// composer is open (#820). The page toggles it live (`ReaderWebController.offersPullHint`); no reload.
     var offersPullHint: Bool { !suspendsPageInteractions }
