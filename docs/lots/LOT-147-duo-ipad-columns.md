@@ -2,8 +2,8 @@
 
 - **Module:** App
 - **Difficulty / model:** difficult (Fable → Opus)
-- **Issue:** [#237](https://github.com/ezzz/HFRnow/issues/237) · implements FEAT-016 (#160, proposed by Bybifok), all of it
-- **Milestone:** M4, the whole lot: the legacy Duo layout as a backport of legacy evolution (operator, 2026-11-09, [#655](https://github.com/ezzz/HFRnow/issues/655)), and the FEAT-016 additions legacy lacks (operator, 2026-11-09, on [#237](https://github.com/ezzz/HFRnow/issues/237))
+- **Issue:** [#237](https://github.com/ezzz/HFRnow/issues/237) · implements the legacy part of FEAT-016 (#160, proposed by Bybifok); the FEAT-016 additions moved to M5 on 2026-11-19 ([below](#feat-016-additions-moved-to-m5-operator-2026-11-19-on-237)), and #160 closes with that M5 work
+- **Milestone:** M4, the legacy part: the legacy Duo layout as a backport of legacy evolution (operator, 2026-11-09, [#655](https://github.com/ezzz/HFRnow/issues/655)). The FEAT-016 additions legacy lacks went to M4 on 2026-11-09 (on [#237](https://github.com/ezzz/HFRnow/issues/237)) and back to M5, on hold, on 2026-11-19 (operator, on #237; [below](#feat-016-additions-moved-to-m5-operator-2026-11-19-on-237))
 - **Depends on:** LOT-082 (#100, done), LOT-170 (#296, done: the iPad split root this lot widens). No longer LOT-145 (#235, M5): the handoff is an in-memory store, not per-scene state restoration (`FoldHandoffStore.swift:11-88` @ `2fe43da3`)
 
 Short spec written by the catch-up pass of [#655](https://github.com/ezzz/HFRnow/issues/655) (legacy reference `legacy/duo-inner-cover` @ `2fe43da3`, PR #372), and brought to the reference `87fe0d1c` on 2026-11-10 ([below](#legacy-at-87fe0d1c-the-beta-feedback-fixes)). It records what the reference does and the operator decision on the fold handoff; the author of the lot completes it before coding (AGENTS.md §5).
@@ -33,92 +33,20 @@ The handoff carries the topic and its **page** (`Reading.navigationTarget`: `ini
 
 SwiftHFR today: the split root is iPad-only (`App/SwiftHFR/Root/RootNavigationView.swift:47-48`, ported from `2440d79`), so the unfolded Duo shows the tab bar and there is no handoff (GAP-210, GAP-215, GAP-217).
 
-## Scope (M4): the FEAT-016 additions legacy lacks
+## FEAT-016 additions: moved to M5 (operator, 2026-11-19, on #237)
 
-**Operator decision, 2026-11-09** (m2-lead, recorded on [#237](https://github.com/ezzz/HFRnow/issues/237)): the FEAT-016 items legacy does not have at `2fe43da3` are in M4 too, in this lot. They are evolutions, not parity: an explicit operator exception to the M5 rule of `docs/LOTS.md`. They stay under the UX principles of `docs/FEATURES.md` (*Preserve what works*, *Defaults keep the legacy UX; changes are opt-in settings*, operator 2026-10-28): **both are opt-in settings, off by default**, so the legacy bottom bar and the legacy sidebar behaviour stay the default. Making one the default would change navigation and needs the community's support recorded on #160 (`docs/FEATURES.md:12`). GAP-655 (`b·operator`) records them.
+The FEAT-016 items legacy does not have at `2fe43da3` (tabs in a rail when folded, sidebar pinned or on demand; [#160](https://github.com/ezzz/HFRnow/issues/160), Bybifok) went to M4 in this lot on 2026-11-09 (operator, on [#237](https://github.com/ezzz/HFRnow/issues/237), GAP-655 `b·operator`, as opt-in settings off by default). The design was written in this spec on 2026-11-19 ([appendix](#appendix-feat-016-design-the-m5-starting-point)) and the operator decided the same day, on #237, that **all the FEAT-016 additions leave LOT-147 for M5, on hold** (« on verra »). **LOT-147 in M4 is the legacy part only**, and closes with it; #160 closes with the M5 work, under an M5 issue the orchestrator opens.
 
-| FEAT-016 item ([#160](https://github.com/ezzz/HFRnow/issues/160), Bybifok) | Legacy @ `2fe43da3` | To specify before coding |
-|---|---|---|
-| Tabs in a rail when folded | the cover screen keeps the tab bar (`MainWindow.swift:1357-1365`, `usesSidebarRoot` false) | which screens and size classes get the rail; how it coexists with the reader's hidden tab bar (GAP-008, UXD-02) and the Liquid Glass bars (GAP-220 to GAP-226) |
-| Sidebar pinned or on demand | two split roots (`MainWindow.swift:1796-1820`; every `MainWindow.swift` line of this cell is 19 to 53 lines lower at `87fe0d1c`, e.g. `:1849-1873`, `:1336-1341`, `:1378`, `:1489-1506`, `:2128-2135`). Destinations with a topic list: the sidebar starts hidden (`doubleColumn`, list + topic), the user shows or hides it with the system control, and that choice is persisted across launches, but picking a destination sets it back to `doubleColumn` (`detailOnly` for a Duo portrait topic, `:2075-2079`) (`:1317-1322` `SidebarVisibilityStorage`, key `HFRswiftIPadSplitColumnVisibilityV3`; `:1355` default; `:1452-1469` binding). The other destinations (Réglages, Rechercher, Crédits, Charte, Supprimer mon compte): a two-column split whose sidebar starts visible (`:1343` `.all`, `:1813`), not persisted, and set back to `.all` (`:2082`). No pin setting | what "pinned" adds to the persisted visibility (a sidebar that stays shown when a topic opens, say), the setting, its scope (device, ADR 0013) and whether it also applies to the iPad split; off by default |
+Decided (operator, 2026-11-19, on #237):
 
-Bybifok's own notes are ideas only (`docs/research/bybifok-proposals.md:33, 77`: PR #4, ultra-hfr `RootLayout`). There is no design document: **the author writes this section's design (layouts, defaults, the setting if any) in this spec first, and the operator approves it on #237 before any code.** Off by default, as above. The PR that ships them says `Closes #160` (this lot is FEAT-016's last one).
+- **(a) Tab rail: declined**, everywhere, except what iOS already draws by itself on the Duo cover screen. A vertical icon rail is not an Apple HIG pattern on iOS or iPadOS: *Tab bars* (HIG, last changed 2026-06-08) says on iOS "A tab bar floats above content at the bottom of the screen" (and minimizes on scroll with an accessory), on iPadOS "The system displays a tab bar near the top of the screen. You can choose to have the tab bar appear as a fixed element, or with a button that converts it to a sidebar"; the only vertical tab bar is visionOS's ("a tab bar is always vertical, floating in a position that's fixed relative to the window's leading side") ([developer.apple.com/design/human-interface-guidelines/tab-bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars)). SwiftUI's `TabViewStyle.sidebarAdaptable` (iOS 18) is the HIG equivalent: "iPadOS displays a top tab bar that can adapt into a sidebar. iOS displays a bottom tab bar." ([developer.apple.com/documentation/swiftui/tabviewstyle/sidebaradaptable](https://developer.apple.com/documentation/swiftui/tabviewstyle/sidebaradaptable)); a rail is Material's navigation rail, not Apple's. What the Duo cover screen does by itself (measured, appendix §1): iOS 27.2 draws the `TabView`'s tab bar inside the system's right-edge strip, for legacy and SwiftHFR alike, with nothing to build. **The only idea kept** from item 1: keep that tab bar visible while a topic is read on the cover screen (an opt-in exception to UXD-02 limited to `.duoCover`; appendix §1), M5.
+- **(b) Pinned sidebar: wanted**, given the iPad and Duo screen estate; **collapsible in portrait** (available, never forced, so it does not eat the screen), M5. Starting point: appendix §2.
+- **(c) Device-local settings**, no iCloud sync (ADR 0013 §1 rule 4).
+- **(d) One set of rules for the iPad split and the Duo inner screen** (both split roots).
+- **(e) The cover-screen option is a `Toggle`, OFF by default** (operator, 2026-11-19, on #237).
+- **(f) The sidebar setting is the three-mode picker** « Automatique / Épinglée / À la demande » (operator, 2026-11-19, on #237); « Automatique » is today's behaviour. Its default mode is not stated: « Automatique » until the operator says otherwise.
 
-### FEAT-016 design (pending operator approval)
-
-Written by `mac/mac-mbp` (Fable, 2026-11-19) after #1115, for the operator's approval on #237 before any code. Both items are Bybifok's proposals (#160); both are opt-in and off by default, and every default below is today's `dev-swift` behaviour, unchanged. The decisions the operator takes are listed at the end (D1 to D8), each with a recommendation. Lines @ `87fe0d1c`, `HFRswift/Swift/` unless said otherwise.
-
-**What the cover screen already does (measured).** On the Duo cover screen (1398 × 2034 px, `simctl io enumerate` in the Mac check cited in this paragraph; 466 × 678 pt at @3x, compact width), iOS 27.2 draws the system bars in a vertical strip on the right edge and the `TabView`'s tab bar inside that strip, under the navigation items: on a forum list the strip holds, top to bottom, back, « Nouveau sujet », « Retour », « Actualiser », then the tab bar at y 444–594 ([Mac check of `87fe0d1c` on #372](https://github.com/ezzz/HFRnow/pull/372#issuecomment-6737029007), check 2a, shot 2; `PhoneDisplayPolicy.swift:56-57, 85-86`). Legacy keeps a plain `TabView` there (`MainWindow.swift:1380-1388`, `:1806-1846`), and so does SwiftHFR (`RootTabsView`). So **the folded Duo already has its tabs in a rail**, drawn by the system: nothing is to build for the rail itself. What the cover lacks is the rail *while a topic is read*: the reader hides the tab bar in compact width (GAP-008, UXD-02; `ReaderTabBar.visibility`), and legacy's topic screen shows the strip without the tabs (check 2c, shot 3). On the cover that hiding frees no room for the page (the strip is the side safe-area inset, there with or without the bar; `PhoneDisplayPolicy.swift:56-57`): it only removes the way to switch tabs. Item 1 is therefore specified as that one thing.
-
-#### 1. Tabs in a rail when folded: « Garder la tab bar dans les sujets (écran externe) »
-
-- **Where.** The Duo cover screen only: `.phone`, tab bar root, display kind `.duoCover` (`PhoneDisplayPolicy.displayKind`, `PhoneDisplayPolicy.swift:59-70`, ported by the cover-screen PR of this lot, GAP-713: item 1 ships with or after it). Any orientation (the cover is portrait-locked by default, GAP-213; the landscape cover is a pending Mac check). Other iPhones, a Pro Max in landscape and the iPad are untouched: UXD-02 stays as it is.
-- **Behaviour, ON.** `ReaderTabBar.visibility` returns `.automatic` instead of `.hidden` for the reader of the selected tab on the cover: the rail stays in the strip while reading, in every tab (Catégories, Favoris, Messages, Plus). The reader's page controls then take the placement the existing rule already gives beside a visible tab bar (`ReaderBottomBar.placement`: `rootHasTabBar && tabBar != .hidden` → `.inset`, the `ReaderPageStrip` of #649): a Liquid Glass strip above the page's end, instead of `.bottomBar` items in the side strip. So the side strip never has to hold the page controls, GAP-713's « Retour » and the rail together (five tabs with the experimental Recherche, plus ‹ › refresh reply and « Retour », would overflow its 678 pt). The #559 rule stays: a reader left open in another tab never shows or hides the shared bar.
-- **Behaviour, OFF (default).** Today's behaviour, legacy's: the tab bar hidden while a topic is open, the page controls in the strip (check 2c).
-
-```text
- Cover, topic open, OFF (default, legacy)         Cover, topic open, ON
- +--------------------------------+-----+         +--------------------------------+-----+
- | <  Sujet                       |  o  |         | <  Sujet                       |  o  |
- |                                | ... |         |                                | ... |
- |  page                          |     |         |  page                          |     |
- |                                |     |         |                                |  C  |
- |                                |  <  |         |                                |  F  |
- |                                |  >  |         | +----------------------------+ |  M  |
- |                                |  R  |         | | < >    12 / 40     O   R   | |  P  |
- +--------------------------------+-----+         +--------------------------------+-----+
-                                  strip             glass page strip (#649)         rail
- (< > page moves, R reply, O refresh; C F M P the four tabs)
-```
-
-- **Setting.** `Toggle` « Garder la tab bar dans les sujets (écran externe) », Réglages › Général, right under « Réduire la tab bar au scroll » (same family). Shown only on a Duo: model identifier (`PhoneDisplayPolicy.isFoldableModel`) or the split root seen on a `.phone` since launch, D6. Key `cover_tab_rail`, `Setting.bool(default: false)`, scope `.device` (ADR 0013 §1 rule 4: its right value depends on the device; an iPad or a plain iPhone has no cover screen), read by `RootModel.reloadSettings` like `tabbar_minimize_on_scroll` and handed to the readers as an environment value.
-- **iPad split.** Does not apply (no tab bar there).
-- **Edge cases.** Fold with a topic open: the compact stack shows the reader with the rail (ON) or without (OFF); unfold: the split root has no tab bar, the setting is idle. Tab switch while reading: unchanged (#559). `tabBarMinimizeBehavior` inside the strip: left to the system, listed for the Mac check. GAP-713's « Retour » and « Actualiser » at the strip's bottom: with ON they sit above the rail, as on the lists (check 2a).
-- **Tests.** `ReaderTabBarTests` (pure rule): cover + selected tab + ON → `.automatic`; cover + OFF → `.hidden`; a plain iPhone + ON → `.hidden`; the inner screen and the iPad unchanged; `ReaderBottomBar.placement` with the rail → `.inset` (existing test extended); `GeneralSettingsModelTests`: round trip, default false, not in `SettingKey.syncedKeys`; `DuoLayoutHostedTests`: the cover window (466 × 678, compact/regular) with ON shows a `UITabBar` while « Sujet 1 p1 » is on screen, with OFF none. The simulator cannot fold (above): the strip with five tabs and the minimize behaviour go to the device checks of #893.
-
-#### 2. Sidebar pinned or on demand: « Barre latérale » (Automatique / Épinglée / À la demande)
-
-Legacy at `87fe0d1c`, one code for the iPad and the Duo inner screen (`iPadSidebarRoot`, `MainWindow.swift:1849-1873`): the destinations with a topic list start with the sidebar hidden (`doubleColumn`, `:1378`), the system control shows or hides it and that choice is persisted (`SidebarVisibilityStorage`, key `HFRswiftIPadSplitColumnVisibilityV3`, `:1336-1341`; binding `:1489-1507`), a destination pick sets it back to `doubleColumn` (`detailOnly` under the Duo portrait rule with a topic open, `:2128-2133`), a topic pick in Duo portrait sets `detailOnly` (`:2215-2217`), a topic gone brings the list back (`:2281-2290`); the no-list destinations (Réglages, Rechercher, Crédits, Charte, Supprimer mon compte) use a second split whose sidebar starts `.all` (`:1366`, `:1865-1873`; reset `:2135`). No pin. SwiftHFR today (LOT-170, #1115): one `visibility` state for both splits, `.all` at launch, not persisted, moved only by the Duo rules of `DuoSplitColumns.visibility`; the user's choice survives a destination pick (an intentional difference, [below](#intentional-differences-from-legacy)).
-
-One `Picker` with three modes; « Automatique » is today's behaviour, byte for byte:
-
-| Mode | Launch | Destination pick | Topic pick | System sidebar control | Duo inner screen in portrait |
-|---|---|---|---|---|---|
-| **Automatique** (default) | `.all` | kept | kept | free, not persisted | topic alone once open; list and topic back when it goes or in landscape (unchanged) |
-| **Épinglée** | `.all` | `.all` | `.all` (iPad, Duo landscape) | the toggle is removed (`.toolbar(removing: .sidebarToggle)`), and any other change (edge drag) is set back to `.all` by the rule | topic alone once open (the inner screen in portrait is too narrow for a sidebar beside a topic: legacy's decision of 2026-11-01, `:1390-1396`); **`.all`** back when the topic goes or on rotation to landscape, not `.doubleColumn` |
-| **À la demande** (legacy's own behaviour) | `.doubleColumn` | `.doubleColumn` (`:2128-2133`) | unchanged (`.detailOnly` under the portrait rule, `:2215-2217`) | shows it; it stays until the next destination pick, then hides again (legacy `:2128-2133`) | as Automatique |
-
-The no-list destinations show the sidebar in every mode (`.all`, legacy `:1366`, `:2135`: they are reached from it). The transient visibility is persisted in no mode (LOT-170's difference kept): the mode is the setting. It applies to **every split root**, the iPad at regular width and the Duo inner screen (same legacy code, one rule), D4.
-
-```text
- iPad / Duo inner, landscape (890 x 626)
- Epinglee                                   A la demande (after a pick)
- +--------+-----------+-----------------+   +----------------+--------------------+
- | Side   | Liste     | Sujet           |   | [=] Liste      | Sujet              |
- | C      | sujet 1   |                 |   |     sujet 1    |                    |
- | F      | sujet 2 > | page            |   |     sujet 2 >  | page               |
- | M      | sujet 3   |                 |   |     sujet 3    |                    |
- | Plus.. |           |                 |   |                |                    |
- +--------+-----------+-----------------+   +----------------+--------------------+
-  no sidebar toggle                          [=] shows the sidebar until the next pick
-
- Duo inner, portrait (626 x 890), a topic open: the topic alone in every mode (legacy `:1390-1396`)
-```
-
-- **Setting.** `Picker` « Barre latérale » with « Automatique », « Épinglée », « À la demande », Réglages › Général, under the item 1 toggle; shown on an iPad and on a Duo (D6). Key `sidebar_mode`, `Setting.stringEnum(default: .automatic)`, values `automatic`, `pinned`, `on_demand` (`SidebarMode` in `HFRStorage`, like `MPListDisplay`); scope `.device` (an iPad and a Duo want different answers; ADR 0013 §1 rule 4, `landscape_mode`'s precedent), read by `RootModel.reloadSettings` and handed to `RootSidebarView`, whose single rule becomes `DuoSplitColumns.visibility(_:mode:detailOnlyTopic:wasDetailOnlyTopic:hasTopic:destinationChanged:)`.
-- **Edge cases.** Fold then unfold (or an iPad window crossing regular width): the split is rebuilt with the mode's launch value (`.all`, or `.doubleColumn` on demand), under the portrait rule (`.detailOnly` with a topic) from the first frame, as today. A mode changed in Réglages while the split shows: Réglages is a no-list destination (`.all` in every mode), so nothing jumps under the finger; the new mode applies at the next pick or layout change. Épinglée + a Plus no-list entry: `.all`. À la demande + a Favoris section title switching to Catégories (`showCategoryFromFavorites`): a destination change, `.doubleColumn`. À la demande + the sidebar shown by the control, then a topic pick on the iPad: it stays (legacy `selectTopic` does not touch it, `:2213-2217`).
-- **Tests.** `DuoLayoutTests` on the rule: `.automatic` unchanged (the existing tests pass with it); `.pinned` returns `.all` on a destination pick, a topic pick and after a user hide, `.detailOnly` only under the portrait topic rule and `.all` back; `.onDemand` starts at `.doubleColumn`, returns to it on a pick, keeps `.all` after the user showed it until a pick, `.detailOnly` under the rule. `DuoLayoutHostedTests` on the regular/regular window (1004 × 1427): pinned keeps `UISplitViewController.displayMode == .twoBesideSecondary` after a destination pick; on demand shows `.oneBesideSecondary` at launch and after a pick. `GeneralSettingsModelTests`: round trip, default `.automatic`, unknown value reads `.automatic`, not in `syncedKeys`. Every new test shown to fail without the change.
-
-#### Decisions for the operator (recommendation in bold)
-
-- **D1. Item 1 is "keep the rail while reading on the cover", nothing more**: the rail itself is the system's (measured, check 2a). **Yes.** The alternative, a custom vertical rail on every iPhone, is not recommended: it fights the HIG tab bar and Liquid Glass, `tabBarMinimizeBehavior`, the pager placement (`rootHasTabBar`) and UXD-02, with no system support (`TabViewStyle.sidebarAdaptable` is a tab bar on iPhone, Apple's documentation of that style).
-- **D2. Default of item 1 on the cover**: off, or on because the hiding frees nothing there. **Off now** (operator rule of 2026-11-09, no community support on #160); revisit after a device check (#893).
-- **D3. Shape of item 2**: a toggle « Épinglée » only, or the three-way picker with « À la demande ». **The picker**: « À la demande » is legacy's own behaviour at `87fe0d1c` and one more branch of the same rule; it covers both words of FEAT-016.
-- **D4. Item 2 on the iPad too**: **yes** (same legacy code, one rule, one test set; the iPad is where a pinned sidebar matters most).
-- **D5. Where in Réglages**: Général under « Réduire la tab bar au scroll », or Expérimental. **Général**: decided settings (GAP-655, `b·operator`), not M5 experiments (AGENTS.md §7 `experimental`).
-- **D6. Row visibility**: only where the setting can apply (item 1 on a Duo, item 2 on an iPad or a Duo), or always on every iPhone. **Only where it applies**, a Duo being `iPhone19,4` or a `.phone` seen with the split root since launch; the real device's `hw.machine` is not captured (#893 lists it), so until then a Duo with another identifier shows the rows once it has been unfolded in the session.
-- **D7. Scope `.device` for both keys**, no iCloud sync. **Yes** (ADR 0013 §1 rule 4).
-- **D8. Order of the PRs**: item 2 first (no dependency, checked on the iPad simulator), item 1 with or after the cover-screen PR (GAP-713, it needs `.duoCover`). **That order.** Each PR is `Refs #237`; the last one of the lot says `Closes #237` and `Closes #160`; the GAP-655 edit (the measured rail, the two settings) goes in that PR's `### Ledger`.
+Left **open for M5**, not decided here: where the two settings sit in Réglages (appendix: Général under « Réduire la tab bar au scroll », a proposal). The M5 issue (`status: on-hold`, `m5.M5_OPEN`) points to the appendix; its PR says `Closes #160`. The GAP-655 row still describes the 2026-11-09 state: its edit (M5, rail declined, the cover's own rail measured) goes in the `### Ledger` of the first PR that touches it.
 
 ## Legacy at `87fe0d1c`: the beta-feedback fixes
 
@@ -138,6 +66,7 @@ Not this lot: `b16eb82d`, no page swipe from a touch that starts in a horizontal
 Legacy's thumb-reach answer covers the **cover** screen; the beta feedback of [#671](https://github.com/ezzz/HFRnow/issues/671) (a legacy-app study, open) is about the **unfolded** Duo's reader, which `87fe0d1c` leaves as it was (refresh at the bottom only on the last page scrolled to its end, `MessagesView.swift:4972`). This lot ports the cover-screen behaviour; the inner screen follows #671's outcome.
 
 ## Not in this lot
+- The FEAT-016 additions (the cover-screen tab bar kept while reading, the sidebar modes): M5, on hold (operator, 2026-11-19, [above](#feat-016-additions-moved-to-m5-operator-2026-11-19-on-237); starting point in the [appendix](#appendix-feat-016-design-the-m5-starting-point)).
 - iOS 27.1 layout APIs as a goal of their own: use them only where the design above needs them.
 - Legacy's own iPad layout (sidebar sections, Bookmarks and Alertes Qualitay in the split) is LOT-170 and #685.
 - The cover screen's fill: done by #432 (M4, GAP-216).
@@ -173,3 +102,68 @@ No HFR request is involved (layout only), so no capture is needed.
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.
+
+## Appendix: FEAT-016 design, the M5 starting point
+
+Written by `mac/mac-mbp` (Fable, 2026-11-19) after #1115, as the design the operator asked for before any code; superseded the same day by the decisions [above](#feat-016-additions-moved-to-m5-operator-2026-11-19-on-237), and kept, trimmed to them, as the starting point of the M5 issue. Nothing here is decided beyond those decisions. Lines @ `87fe0d1c`, `HFRswift/Swift/` unless said otherwise.
+
+### 1. The cover screen's own tab rail, kept while reading (the one idea kept from "tabs in a rail when folded")
+
+**Measured.** On the Duo cover screen (1398 × 2034 px, `simctl io enumerate` in the Mac check cited here; 466 × 678 pt at @3x, compact width), iOS 27.2 draws the system bars in a vertical strip on the right edge and the `TabView`'s tab bar inside that strip, under the navigation items: on a forum list the strip holds, top to bottom, back, « Nouveau sujet », « Retour », « Actualiser », then the tab bar at y 444–594 ([Mac check of `87fe0d1c` on #372](https://github.com/ezzz/HFRnow/pull/372#issuecomment-6737029007), check 2a, shot 2; `PhoneDisplayPolicy.swift:56-57, 85-86`). Legacy keeps a plain `TabView` there (`MainWindow.swift:1380-1388`, `:1806-1846`), and so does SwiftHFR (`RootTabsView`): nothing to build for the rail itself. What the cover lacks is that rail *while a topic is read*: the reader hides the tab bar in compact width (GAP-008, UXD-02; `ReaderTabBar.visibility`), and legacy's topic screen shows the strip without the tabs (check 2c, shot 3). On the cover that hiding frees no room for the page (the strip is the side safe-area inset, there with or without the bar; `PhoneDisplayPolicy.swift:56-57`): it only removes the way to switch tabs.
+
+- **Where.** The Duo cover screen only: `.phone`, tab bar root, display kind `.duoCover` (`PhoneDisplayPolicy.displayKind`, `PhoneDisplayPolicy.swift:59-70`, ported by the cover-screen PR of this lot, GAP-713: the M5 work needs it). Any orientation (the cover is portrait-locked by default, GAP-213; the landscape cover is a pending Mac check). Other iPhones, a Pro Max in landscape and the iPad are untouched: UXD-02 stays as it is.
+- **Behaviour, ON.** `ReaderTabBar.visibility` returns `.automatic` instead of `.hidden` for the reader of the selected tab on the cover: the tab bar stays in the strip while reading, in every tab. The reader's page controls then take the placement the existing rule already gives beside a visible tab bar (`ReaderBottomBar.placement`: `rootHasTabBar && tabBar != .hidden` → `.inset`, the `ReaderPageStrip` of #649), a Liquid Glass strip above the page's end, instead of `.bottomBar` items in the side strip; so the side strip never has to hold the page controls, GAP-713's « Retour » and the tabs together (five tabs with the experimental Recherche, plus ‹ › refresh reply and « Retour », would overflow its 678 pt). The #559 rule stays: a reader left open in another tab never shows or hides the shared bar.
+- **Behaviour, OFF.** Today's behaviour, legacy's: the tab bar hidden while a topic is open, the page controls in the strip (check 2c).
+
+```text
+ Cover, topic open, OFF (today, legacy)           Cover, topic open, ON
+ +--------------------------------+-----+         +--------------------------------+-----+
+ | <  Sujet                       |  o  |         | <  Sujet                       |  o  |
+ |                                | ... |         |                                | ... |
+ |  page                          |     |         |  page                          |     |
+ |                                |     |         |                                |  C  |
+ |                                |  <  |         |                                |  F  |
+ |                                |  >  |         | +----------------------------+ |  M  |
+ |                                |  R  |         | | < >    12 / 40     O   R   | |  P  |
+ +--------------------------------+-----+         +--------------------------------+-----+
+                                  strip             glass page strip (#649)         tabs
+ (< > page moves, R reply, O refresh; C F M P the four tabs)
+```
+
+- **Setting.** A `Toggle` (decided (e)), OFF by default (decided (e)), proposed as « Garder la tab bar dans les sujets (écran externe) », key `cover_tab_rail`, `Setting.bool(default: false)`, scope `.device` (decided (c)); its place in Réglages is open (proposal: Général, under « Réduire la tab bar au scroll »). Read by `RootModel.reloadSettings` like `tabbar_minimize_on_scroll` and handed to the readers as an environment value. Shown only on a Duo: model identifier (`PhoneDisplayPolicy.isFoldableModel`, `iPhone19,4` in the simulator) or the split root seen on a `.phone` since launch; the real device's `hw.machine` is not captured (#893), so a Duo with another identifier shows the row once it has been unfolded in the session.
+- **Edge cases.** Fold with a topic open: the compact stack shows the reader with the tabs (ON) or without (OFF); unfold: the split root has no tab bar, the setting is idle. Tab switch while reading: unchanged (#559). `tabBarMinimizeBehavior` inside the strip: left to the system, listed for the Mac check. GAP-713's « Retour » and « Actualiser » at the strip's bottom: with ON they sit above the tabs, as on the lists (check 2a).
+- **Tests.** `ReaderTabBarTests` (pure rule): cover + selected tab + ON → `.automatic`; cover + OFF → `.hidden`; a plain iPhone + ON → `.hidden`; the inner screen and the iPad unchanged; `ReaderBottomBar.placement` with the tabs visible → `.inset` (existing test extended); settings round trip, not in `SettingKey.syncedKeys`; `DuoLayoutHostedTests`: the cover window (466 × 678, compact/regular) with ON shows a `UITabBar` while « Sujet 1 p1 » is on screen, with OFF none. The simulator cannot fold: the strip with five tabs and the minimize behaviour go to the device checks of #893.
+
+### 2. Sidebar pinned, collapsible in portrait
+
+Legacy at `87fe0d1c`, one code for the iPad and the Duo inner screen (`iPadSidebarRoot`, `MainWindow.swift:1849-1873`): the destinations with a topic list start with the sidebar hidden (`doubleColumn`, `:1378`), the system control shows or hides it and that choice is persisted (`SidebarVisibilityStorage`, key `HFRswiftIPadSplitColumnVisibilityV3`, `:1336-1341`; binding `:1489-1507`), a destination pick sets it back to `doubleColumn` (`detailOnly` under the Duo portrait rule with a topic open, `:2128-2133`), a topic pick in Duo portrait sets `detailOnly` (`:2215-2217`), a topic gone brings the list back (`:2281-2290`); the no-list destinations (Réglages, Rechercher, Crédits, Charte, Supprimer mon compte) use a second split whose sidebar starts `.all` (`:1366`, `:1865-1873`; reset `:2135`). No pin. SwiftHFR today (LOT-170, #1115): one `visibility` state for both splits, `.all` at launch, not persisted, moved only by the Duo rules of `DuoSplitColumns.visibility`; the user's choice survives a destination pick (an intentional difference, [above](#intentional-differences-from-legacy)).
+
+Three modes in one picker (decided (f)), one rule for the iPad split and the Duo inner screen (decided (d)); « Automatique » is today's behaviour, unchanged, « À la demande » is legacy's own behaviour at `87fe0d1c`, one more branch of the same rule:
+
+| Mode | Launch | Destination pick | Topic pick | System sidebar control | Portrait (iPad, Duo inner) |
+|---|---|---|---|---|---|
+| **Automatique** (today) | `.all` | kept | kept | free, not persisted | Duo inner: topic alone once open; list and topic back when it goes or in landscape (unchanged). iPad: as landscape |
+| **Épinglée** | `.all` | `.all` | `.all` (landscape) | landscape: the toggle is removed (`.toolbar(removing: .sidebarToggle)`) and any other change (edge drag) is set back to `.all` by the rule. Portrait: the toggle stays and a collapse is respected until the next destination pick (decision (b): available, never forced) | the sidebar is shown again at launch and after a destination pick, and collapsible meanwhile. Duo inner with a topic: topic alone (the inner screen in portrait is too narrow for a sidebar beside a topic: legacy's decision of 2026-11-01, `:1390-1396`); `.all` back when the topic goes or on rotation to landscape, not `.doubleColumn` |
+| **À la demande** (legacy's own) | `.doubleColumn` | `.doubleColumn` (`:2128-2133`) | unchanged (`.detailOnly` under the portrait rule, `:2215-2217`) | shows it; it stays until the next destination pick, then hides again (`:2128-2133`) | as Automatique |
+
+The no-list destinations show the sidebar in every mode (`.all`, legacy `:1366`, `:2135`: they are reached from it). The transient visibility is persisted in no mode (LOT-170's difference kept): the mode is the setting.
+
+```text
+ iPad / Duo inner, landscape (890 x 626)
+ Epinglee                                   A la demande (after a pick)
+ +--------+-----------+-----------------+   +----------------+--------------------+
+ | Side   | Liste     | Sujet           |   | [=] Liste      | Sujet              |
+ | C      | sujet 1   |                 |   |     sujet 1    |                    |
+ | F      | sujet 2 > | page            |   |     sujet 2 >  | page               |
+ | M      | sujet 3   |                 |   |     sujet 3    |                    |
+ | Plus.. |           |                 |   |                |                    |
+ +--------+-----------+-----------------+   +----------------+--------------------+
+  no sidebar toggle                          [=] shows the sidebar until the next pick
+
+ Portrait, Epinglee: the sidebar shown, with its toggle [=] kept (collapsible); Duo inner with a topic open:
+ the topic alone in every mode (legacy `:1390-1396`)
+```
+
+- **Setting.** A `Picker` « Barre latérale » (decided (f)), proposed key `sidebar_mode`, `Setting.stringEnum(default: .automatic)`, values `automatic`, `pinned`, `on_demand` (`SidebarMode` in `HFRStorage`, like `MPListDisplay`); scope `.device` (decided (c); `landscape_mode`'s precedent); its place in Réglages is open (proposal: Général, under the §1 toggle). Read by `RootModel.reloadSettings` and handed to `RootSidebarView`, whose single rule becomes `DuoSplitColumns.visibility(_:mode:isPortrait:detailOnlyTopic:wasDetailOnlyTopic:hasTopic:destinationChanged:)`. Shown on an iPad and on a Duo (same detection as §1).
+- **Edge cases.** Fold then unfold (or an iPad window crossing regular width): the split is rebuilt with the mode's launch value (`.all`, or `.doubleColumn` on demand), under the portrait rule (`.detailOnly` with a topic) from the first frame, as today. Rotation to portrait, pinned: the sidebar stays as it is and the toggle appears; to landscape: `.all` and the toggle goes. A mode changed in Réglages while the split shows: Réglages is a no-list destination (`.all` in every mode), so nothing jumps under the finger; the new mode applies at the next pick or layout change. Épinglée + a Plus no-list entry: `.all`. À la demande + a Favoris section title switching to Catégories (`showCategoryFromFavorites`): a destination change, `.doubleColumn`. À la demande + the sidebar shown by the control, then a topic pick on the iPad: it stays (legacy `selectTopic` does not touch it, `:2213-2217`).
+- **Tests.** `DuoLayoutTests` on the rule: `.automatic` unchanged (the existing tests pass with it); `.pinned` returns `.all` on a destination pick, a topic pick and, in landscape, after a user hide, keeps a portrait collapse until the next pick, `.detailOnly` only under the Duo portrait topic rule and `.all` back; `.onDemand` starts at `.doubleColumn`, returns to it on a pick, keeps `.all` after the user showed it until a pick, `.detailOnly` under the rule. `DuoLayoutHostedTests` on the regular/regular window (1004 × 1427): pinned keeps `UISplitViewController.displayMode == .twoBesideSecondary` after a destination pick; on demand shows `.oneBesideSecondary` at launch and after a pick. Settings: round trip, default `.automatic`, unknown value reads `.automatic`, not in `syncedKeys`. Every new test shown to fail without the change.
