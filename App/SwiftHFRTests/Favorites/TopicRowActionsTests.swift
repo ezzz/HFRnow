@@ -252,8 +252,15 @@ struct TopicRowActionsTests {
         #expect(!model.menuOffersRemove(topic), "the menu entry is gone while it runs")
         await gate.open()
         await removal.value
-        #expect(model.menuOffersFilter(flaggedTopic(2), filterIsBusy: false))
-        #expect(!model.menuOffersFilter(flaggedTopic(2), filterIsBusy: true), "no dimmed « Filtrer les posts »")
+        #expect(!model.menuOffersFilter(flaggedTopic(2), filterIsBusy: false), "absent off Favoris (this list is Drapeaux)")
+    }
+
+    /// « Filtrer les posts » is offered on a Favoris row while no filter run is busy, and left out (not dimmed) while one is.
+    @Test func theFilterEntryIsOfferedOnFavorisWhileIdleAndHiddenWhileBusy() async {
+        let topic = flaggedTopic(2)
+        let (favorites, _) = await favoritesList([topic], source: .favorites)
+        #expect(favorites.menuOffersFilter(topic, filterIsBusy: false))
+        #expect(!favorites.menuOffersFilter(topic, filterIsBusy: true), "no dimmed « Filtrer les posts »")
     }
 
     @Test func theNextLoadShowsHFRsStateAgain() async {
