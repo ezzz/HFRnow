@@ -79,10 +79,21 @@ final class NavigationModel {
     }
 
     /// Whether the account is signed in: what the last forum list says, else what the session says (a list opened before the
-    /// home page loaded must not call a plain HFR notice a login wall).
+    /// home page loaded must not call a plain HFR notice a login wall; a home page read before a re-login in place no longer
+    /// answers, #1195).
     func isLoggedIn() async -> Bool {
-        if let known = forums.loader.value?.isLoggedIn { return known }
+        if let known = forums.loginStatePage?.isLoggedIn { return known }
         return await sessionIsLoggedIn()
+    }
+
+    /// Reloads the topic lists this navigation shows (the selection and a category pushed from Favoris), after the session
+    /// changed in place (#1195): their filter and their notices depend on whether the account is signed in. Lists not on
+    /// screen load fresh when shown again.
+    func reloadShownLists() async {
+        let sources = [selectedSource, openedCategory].compactMap { $0 }
+        for (index, source) in sources.enumerated() where !sources[..<index].contains(source) {
+            await topicLists[source]?.refresh()
+        }
     }
 
     /// The model of `source`, created once so going back keeps rows, page and scroll position.

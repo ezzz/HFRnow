@@ -1,4 +1,5 @@
 import HFRModels
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 
@@ -125,6 +126,51 @@ struct NavigationModelTests {
         #expect(await !model.isLoggedIn())
         await model.forums.loadIfNeeded()
         #expect(await model.isLoggedIn())
+    }
+
+    /// #1195: the home page was read logged out, then the member logged in again in place (same session object, so the root
+    /// is not rebuilt). The list on screen and the next ones load with the chosen filter, without a pull on Catégories.
+    @Test func aReloginInPlaceMakesTheListsLoggedInWithoutAManualRefresh() async {
+        let source = FakeDataSource()
+        let loggedIn = LoginFlag()
+        loggedIn.value = false
+        source.forumHandler = {
+            ForumListPage(forums: [ForumCategory(categoryID: .forum(13), title: "A", path: "/a")], isLoggedIn: loggedIn.value)
+        }
+        let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(1)]))
+        let model = NavigationModel(dataSource: source, sessionIsLoggedIn: { loggedIn.value }, topicFilter: filter)
+        await model.forums.loadIfNeeded()
+        let category = TopicSource.forum(.forum(13), title: "A")
+        model.selectedSource = category
+        let list = model.topicList(for: category)
+        await list.loadIfNeeded()
+        #expect(!list.offersFilter)
+        #expect(source.requests == ["forums", "topics:13:1"])
+
+        loggedIn.value = true
+        await model.forums.sessionDidChange()
+        await model.reloadShownLists()
+
+        #expect(source.requests == ["forums", "topics:13:1", "forums", "topics:13:1:owntopic=3"])
+        #expect(list.offersFilter)
+        #expect(await model.isLoggedIn())
+    }
+
+    /// The home page read before the change no longer answers, even when its reload fails: the session does (#1195).
+    @Test func afterASessionChangeAnOldHomePageNoLongerSaysWhetherTheAccountIsSignedIn() async {
+        let source = FakeDataSource()
+        source.forumHandler = { ForumListPage(forums: [ForumCategory(categoryID: .forum(1), title: "A", path: "/a")], isLoggedIn: false) }
+        let model = NavigationModel(dataSource: source, sessionIsLoggedIn: { true })
+        await model.forums.loadIfNeeded()
+        #expect(await !model.isLoggedIn())
+        source.forumHandler = { () async throws(ListLoadError) -> ForumListPage in throw .offline }
+        await model.forums.sessionDidChange()
+        #expect(model.forums.loader.value?.isLoggedIn == false) // the list stays on screen
+        #expect(await model.isLoggedIn())
+        // A page loaded after the change answers again.
+        source.forumHandler = { ForumListPage(forums: [], isLoggedIn: false) }
+        await model.forums.reload()
+        #expect(await !model.isLoggedIn())
     }
 
     @Test func beforeTheHomePageLoadsTheSessionDecidesSoANoticeIsNotALoginWall() async {

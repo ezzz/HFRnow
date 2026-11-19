@@ -34,6 +34,10 @@ final class AccountsModel {
     /// added again). Screens built on the current session are rebuilt on it, never on `current?.id`, which does not
     /// change when the current account's session is replaced.
     private(set) var currentSessionGeneration = 0
+    /// Changes whenever the current session changes in place: renewed by a re-login, given synced credentials, or found
+    /// expired by a check. `currentSessionGeneration` does not move then, so the root is kept: its lists must ask again
+    /// whether the account is signed in (#1195).
+    private(set) var currentSessionChanges = 0
 
     @ObservationIgnored let store: any CredentialStore // internal for AccountsModel+Erase.swift (LOT-157)
     @ObservationIgnored private let loginService: any AccountLoggingIn
@@ -216,6 +220,7 @@ final class AccountsModel {
                 await persistSession(of: id)
             case .expired:
                 statuses[id] = .expired
+                if session === currentSession { currentSessionChanges += 1 }
             case .unconfirmed:
                 statuses[id] = .restored
             case .failed(let error):
@@ -277,6 +282,8 @@ final class AccountsModel {
         statuses[stored.pseudo] = .valid
         storeProblem = nil
         reloadRows()
+        // The same object renewed: the root stays, and is told (#1195).
+        if case .existing = target, session === currentSession { currentSessionChanges += 1 }
         noteSyncChange(.login(pseudo: stored.pseudo))
         if let avatarURL = result.avatarURL {
             avatarTask = Task { await self.fetchAvatar(at: avatarURL, for: stored.pseudo) }
@@ -421,6 +428,7 @@ extension AccountsModel {
         syncCheckTask = Task {
             for install in installs {
                 await install.session.adoptSyncedCredentials(cookies: install.account.cookies, hashCheck: install.account.hashCheck)
+                if install.session === self.currentSession { self.currentSessionChanges += 1 }
             }
             await self.checkSessions(ids) { $0 == .checking }
         }
