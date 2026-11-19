@@ -5,18 +5,28 @@ import Observation
 @MainActor
 @Observable
 final class ArchivedClearConfirmation {
-    /// The confirmation is showing.
+    /// The confirmation is showing. SwiftUI clears it (through the dialog's binding) before a dialog button's action runs
+    /// (AGENTS.md §11, LOT-087), so the decision never reads it: `isRequested` carries it.
     var isAsking = false
+    /// « Vider » was tapped and neither answer came yet.
+    private(set) var isRequested = false
 
     /// « Vider » was tapped.
-    func request() { isAsking = true }
+    func request() {
+        isRequested = true
+        isAsking = true
+    }
 
     /// « Annuler »: nothing is deleted.
-    func cancel() { isAsking = false }
+    func cancel() {
+        isRequested = false
+        isAsking = false
+    }
 
     /// « Supprimer les brouillons »: deletes every archived draft of the topic, only after a request.
     func confirm(discardingIn model: ReplyComposerModel) async {
-        guard isAsking else { return }
+        guard isRequested else { return }
+        isRequested = false
         isAsking = false
         await model.discardAllArchived()
     }

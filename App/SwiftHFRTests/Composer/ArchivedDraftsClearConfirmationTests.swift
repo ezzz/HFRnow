@@ -35,6 +35,25 @@ struct ArchivedDraftsClearConfirmationTests {
         #expect(!confirmation.isAsking)
     }
 
+    /// A SwiftUI dialog clears its presenting flag before the button's action runs (AGENTS.md §11, LOT-087).
+    @Test func confirmingStillDeletesWhenTheDialogAlreadyClearedItsFlag() async throws {
+        let composer = try await composerWithDrafts(["a", "b"])
+        let confirmation = ArchivedClearConfirmation()
+        confirmation.request()
+        confirmation.isAsking = false
+        await confirmation.confirm(discardingIn: composer)
+        #expect(composer.archivedDrafts.isEmpty)
+    }
+
+    @Test func aConfirmAfterACancelDeletesNothing() async throws {
+        let composer = try await composerWithDrafts(["a", "b"])
+        let confirmation = ArchivedClearConfirmation()
+        confirmation.request()
+        confirmation.cancel()
+        await confirmation.confirm(discardingIn: composer)
+        #expect(composer.archivedDrafts.count == 2)
+    }
+
     @Test func cancellingKeepsTheDraftsAndCloses() async throws {
         let composer = try await composerWithDrafts(["a", "b"])
         let confirmation = ArchivedClearConfirmation()
