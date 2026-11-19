@@ -35,15 +35,15 @@ public actor ReadingPositionStore {
 
     /// The account's position in `topic`; nil when none is stored or the stored data is unreadable.
     public func position(of topic: TopicID, account: String) -> ReadingPosition? {
-        document?.accounts[account]?.first { $0.topic == topic }?.position
+        document?.accounts[AccountKey.make(account)]?.first { $0.topic == topic }?.position
     }
 
     /// The account's positions, most recently updated first; empty while the stored data is unreadable.
     public func records(for account: String) -> [ReadingPositionRecord] {
-        Self.newestFirst(document?.accounts[account] ?? [])
+        Self.newestFirst(document?.accounts[AccountKey.make(account)] ?? [])
     }
 
-    /// The accounts holding positions, as stored; empty while the stored data is unreadable.
+    /// The account keys (`AccountKey`) holding positions; empty while the stored data is unreadable.
     public func accounts() -> [String] {
         (document?.accounts.keys).map { $0.sorted() } ?? []
     }
@@ -78,12 +78,13 @@ public actor ReadingPositionStore {
     /// Forgets the account's position in `topic`. Returns false when none was stored.
     @discardableResult
     public func remove(_ topic: TopicID, account: String) throws -> Bool {
-        try mutate { document in
-            guard var list = document.accounts[account], let index = list.firstIndex(where: { $0.topic == topic }) else {
+        let key = AccountKey.make(account)
+        return try mutate { document in
+            guard var list = document.accounts[key], let index = list.firstIndex(where: { $0.topic == topic }) else {
                 return false
             }
             list.remove(at: index)
-            document.accounts[account] = list.isEmpty ? nil : list
+            document.accounts[key] = list.isEmpty ? nil : list
             return true
         }
     }
@@ -94,25 +95,22 @@ public actor ReadingPositionStore {
     /// Returns false when nothing changed.
     @discardableResult
     public func merge(_ records: [ReadingPositionRecord], account: String) throws -> Bool {
-        guard !account.isEmpty else { throw ReadingPositionError.emptyAccount }
+        let key = AccountKey.make(account)
+        guard !key.isEmpty else { throw ReadingPositionError.emptyAccount }
         let limit = limitPerAccount
         return try mutate { document in
-            let stored = document.accounts[account] ?? []
+            let stored = document.accounts[key] ?? []
             var byTopic = Dictionary(stored.map { ($0.topic, $0.position) }, uniquingKeysWith: { first, _ in first })
             for record in records where record.topic.topic > 0 && record.position.isValid {
                 guard let current = byTopic[record.topic] else {
                     byTopic[record.topic] = record.position
                     continue
                 }
-                let incoming = record.position
-                if incoming.updatedAt > current.updatedAt
-                    || (incoming.updatedAt == current.updatedAt && incoming.isAhead(of: current)) {
-                    byTopic[record.topic] = incoming
-                }
+                if Self.wins(record.position, over: current) { byTopic[record.topic] = record.position }
             }
             let merged = Array(Self.newestFirst(byTopic.map { ReadingPositionRecord(topic: $0.key, position: $0.value) }).prefix(limit))
             guard Set(merged) != Set(stored) else { return false }
-            document.accounts[account] = merged.isEmpty ? nil : merged
+            document.accounts[key] = merged.isEmpty ? nil : merged
             return true
         }
     }
@@ -121,7 +119,8 @@ public actor ReadingPositionStore {
     /// Returns false when it had none.
     @discardableResult
     public func removeAccount(_ account: String) throws -> Bool {
-        try mutate { document in document.accounts.removeValue(forKey: account) != nil }
+        let key = AccountKey.make(account)
+        return try mutate { document in document.accounts.removeValue(forKey: key) != nil }
     }
 
     // MARK: Recovery
@@ -161,9 +160,13 @@ public actor ReadingPositionStore {
                 let stored = try persistence.load() ?? ReadingPositionDocument()
                 if stored.version > ReadingPositionDocument.currentVersion {
                     state = .failed(.unsupportedVersion(stored.version))
+                } else if stored.version < 1 {
+                    state = .failed(.loadFailed(reason: "invalid version \(stored.version)"))
                 } else {
-                    state = .loaded(stored)
+                    state = .loaded(Self.keyedByAccount(stored))
                 }
+            } catch let error as ReadingPositionError {
+                state = .failed(error)
             } catch {
                 state = .failed(.loadFailed(reason: String(describing: error)))
             }
@@ -175,11 +178,12 @@ public actor ReadingPositionStore {
     private func write(
         _ topic: TopicID, _ position: ReadingPosition, account: String, accepts: (ReadingPosition?) -> Bool
     ) throws -> Bool {
-        guard !account.isEmpty else { throw ReadingPositionError.emptyAccount }
+        let key = AccountKey.make(account)
+        guard !key.isEmpty else { throw ReadingPositionError.emptyAccount }
         guard topic.topic > 0, position.isValid else { throw ReadingPositionError.invalidPosition }
         let limit = limitPerAccount
         return try mutate { document in
-            var list = document.accounts[account] ?? []
+            var list = document.accounts[key] ?? []
             let index = list.firstIndex { $0.topic == topic }
             guard accepts(index.map { list[$0].position }) else { return false }
             if let index {
@@ -192,7 +196,7 @@ public actor ReadingPositionStore {
                 let kept = Self.newestFirst(list.filter { $0.topic != topic }).prefix(limit - 1)
                 list = Array(kept) + [ReadingPositionRecord(topic: topic, position: position)]
             }
-            document.accounts[account] = list
+            document.accounts[key] = list
             return true
         }
     }
@@ -216,6 +220,30 @@ public actor ReadingPositionStore {
             feed.signal()
             return true
         }
+    }
+
+    /// The document with its accounts under their key (#1184). Files written before stored positions under the spelling the
+    /// reader used: the spellings of one key are merged, per topic the position that `wins`, nothing dropped (the next write
+    /// applies the limit). A document already keyed is returned as it is.
+    static func keyedByAccount(_ document: ReadingPositionDocument) -> ReadingPositionDocument {
+        guard document.accounts.keys.contains(where: { AccountKey.make($0) != $0 }) else { return document }
+        var keyed = document
+        keyed.accounts = [:]
+        for name in document.accounts.keys.sorted() {
+            let key = AccountKey.make(name)
+            var byTopic: [TopicID: ReadingPosition] = [:]
+            for record in (keyed.accounts[key] ?? []) + (document.accounts[name] ?? []) {
+                if let current = byTopic[record.topic], !Self.wins(record.position, over: current) { continue }
+                byTopic[record.topic] = record.position
+            }
+            keyed.accounts[key] = Self.newestFirst(byTopic.map { ReadingPositionRecord(topic: $0.key, position: $0.value) })
+        }
+        return keyed
+    }
+
+    /// Whether `incoming` replaces `current` for one topic: the newest `updatedAt`, equal dates to the position ahead.
+    private static func wins(_ incoming: ReadingPosition, over current: ReadingPosition) -> Bool {
+        incoming.updatedAt > current.updatedAt || (incoming.updatedAt == current.updatedAt && incoming.isAhead(of: current))
     }
 
     /// Most recently updated first; ties broken by topic so the order never depends on storage order.

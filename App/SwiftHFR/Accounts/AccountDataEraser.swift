@@ -96,7 +96,7 @@ struct AccountDataEraser: Sendable {
             // An empty list removes the account's key from the document.
             _ = try await pseudoLists.replaceBlocklist(with: [], account: account)
         case .readingPositions:
-            // Stored under the spelling the reader used: remove every spelling of the account's key.
+            // The store keys positions by `AccountKey` (#1184); every spelling still listed is removed, whatever the store holds.
             // An unreadable store lists no account: report it instead of a success.
             if let failure = await positions.loadFailure() { throw failure }
             let key = AccountKey.make(account)
