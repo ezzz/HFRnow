@@ -101,10 +101,15 @@ final class MPNotificationSettingsModel {
         }
     }
 
-    /// « Badge messages non lus » just turned on: the alert when iOS does not show the badge (a user action, as above).
+    /// « Badge messages non lus » just turned on: asks iOS when it never asked (an account can be current without the prompt
+    /// once both switches were off, #1172), else the alert when iOS does not show the badge (a user action, as above).
     func badgeTurnedOn() async {
         let current = await permission.current()
         guard badgeEnabled else { return }
+        if current.authorization == .notDetermined {
+            await permission.requestAuthorization()
+            return
+        }
         show(Self.disagreements(notifications: notificationsEnabled, badge: true, with: current).first)
     }
 
