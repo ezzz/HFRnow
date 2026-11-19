@@ -181,4 +181,26 @@ struct ThemeLightStyleTests {
         #expect(appearance.tileLook(dark: false).surface == ThemeColor(rgb: variants.light.surface))
         #expect(appearance.tileLook(dark: true).surface == ThemeColor(rgb: variants.dark.surface))
     }
+
+    /// The web view's own layer shows the Doux page in light (what appears while the page bounces past its ends), and the
+    /// system's in « Blanc » (#1213, review round 2).
+    @Test func theReaderLayerShowsDouxInLightOnly() {
+        func rgb(_ color: UIColor) -> [Int] {
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+            color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            return [red, green, blue].map { Int(($0 * 255).rounded()) }
+        }
+        #expect(rgb(doux.readerBackground) == [0xF5, 0xF4, 0xEF])
+        #expect(rgb(ThemeAppearance.standard.readerBackground) == [0xFF, 0xFF, 0xFF])
+    }
+
+    /// `reader.css` reads exactly the light variables the app sets and takes back, and the two lists are one (#1213, round 2): a
+    /// misspelt name in the stylesheet, or a surface missing from the removal list, is caught here.
+    @Test func theStylesheetReadsEveryLightVariableTheAppSets() throws {
+        let url = try #require(Bundle.main.url(forResource: "reader", withExtension: "css"))
+        let css = try String(contentsOf: url, encoding: .utf8)
+        let read = Set(css.matches(of: /var\((--app-light-[a-z-]+)/).map { String($0.output.1) })
+        #expect(read == Set(ThemeAppearance.lightVariableNames))
+        #expect(Set(doux.lightSurfaces.map(\.variable)) == Set(ThemeAppearance.lightVariableNames))
+    }
 }

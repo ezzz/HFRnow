@@ -291,7 +291,9 @@ private struct AppScreenBackground: ViewModifier {
                 .containerBackground(for: .navigation) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
                 .containerBackground(for: .navigationSplitView) { ThemeScreenBackdrop(fill: fill, decorations: decorations) }
         case let .softLight(light, dark):
-            // Doux (#1213): one dynamic colour in both appearances, like a theme's, so a flip changes a value, not the structure.
+            // Doux (#1213): one dynamic colour in both appearances, like a theme's, so a flip changes a value, not the structure. This
+            // also hides the list and split-view backgrounds in dark, where « Blanc » leaves them to the system (the iPad sidebar
+            // keeps no material of its own, as under any theme: device check on #893).
             // The dark side the style leaves to the system is the system's own background, resolved with the trait collection the
             // fill is drawn in (a sheet's or a popover's elevated level keeps its lighter black).
             let fill = Color(uiColor: UIColor { traits in

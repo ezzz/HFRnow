@@ -22,16 +22,19 @@ extension ThemeAppearance {
     var lightSurfaces: [(variable: String, color: ThemeColor)] {
         switch lightStyle {
         case .blanc: []
-        case .doux:
-            [("--app-light-background", Self.douxPage), ("--app-light-placeholder", ThemeColor(hex: 0xE9E7DE)),
-             ("--app-light-separator", ThemeColor(hex: 0xD6D3C8)), ("--app-light-secondary", ThemeColor(hex: 0x636366))]
+        case .doux: Self.douxSurfaces
         }
     }
 
-    /// The names of the light variables, to take off the page when the style goes back to « Blanc ».
-    static let lightVariableNames = [
-        "--app-light-background", "--app-light-placeholder", "--app-light-separator", "--app-light-secondary"
+    /// « Doux »'s four surfaces: the one list the reader variables and `lightVariableNames` both come from.
+    private static let douxSurfaces: [(variable: String, color: ThemeColor)] = [
+        ("--app-light-background", douxPage), ("--app-light-placeholder", ThemeColor(hex: 0xE9E7DE)),
+        ("--app-light-separator", ThemeColor(hex: 0xD6D3C8)), ("--app-light-secondary", ThemeColor(hex: 0x636366))
     ]
+
+    /// The names of the light variables, to take off the page when the style goes back to « Blanc »: derived from « Doux »'s surfaces,
+    /// so a surface added there is removed on the switch back.
+    static let lightVariableNames = douxSurfaces.map(\.variable)
 
     /// What a « Thème » tile draws for the light or the dark variant (#1213): the surface the reader shows (the light style's page,
     /// the dark style's page at the chosen brightness, or a gallery theme's `surface`), a secondary-text colour for its two lines,
