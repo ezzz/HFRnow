@@ -190,7 +190,7 @@ struct MessageWriteModelTests {
 
     // MARK: - Delete
 
-    /// The menu entry only asks: nothing leaves before "Oui".
+    /// The menu entry only asks: nothing leaves before "Supprimer".
     @Test func deleteAsksFirstAndSendsNothing() async throws {
         let poster = ScriptedPoster([])
         let fixture = try await fixture(poster: poster)

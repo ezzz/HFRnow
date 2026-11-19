@@ -75,7 +75,7 @@ Code in `App/SwiftHFR/Reader/Actions/`, tests in `App/SwiftHFRTests/Reader/Actio
      sheet closes, "Alerte impossible" says nothing was sent and what to do.
 4. **Mail fallback** — without an alert link (or without an account), with an address in the build's `ModeratorAlertMailAddress`
    (Info.plist, from `MODERATOR_ALERT_MAIL_ADDRESS`) and a permalink: legacy's confirmation "Alerter les modérateurs par email ?"
-   / "Un email sera préparé dans votre application Mail." / "Non" / "Oui"; "Oui" opens `mailto:<address>` with legacy's subject
+   / "Un email sera préparé dans votre application Mail." / "Annuler" / "Préparer l’email" (#1151; legacy "Non" / "Oui"); "Préparer l’email" opens `mailto:<address>` with legacy's subject
    and body through the system. The address must be one `local@domain` token without spaces or URL delimiters, else the
    fallback is off. Nothing is sent by the app: the user sends the mail.
 5. **Session** — the alerter is built from the current account's session (`AppEnvironment`, rebuilt on an account change); a

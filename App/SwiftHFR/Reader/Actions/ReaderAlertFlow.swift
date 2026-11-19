@@ -2,7 +2,8 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MessagesView.swift (the progress "Chargement de l'alerte...", `:5368-5375`; the composer sheet,
 // `:5497-5505`; the alerts "Alerter les modérateurs par email ?" and "Alerte impossible", `:5534-5546`) @ 87fe0d1c.
-// Differences: GAP-070; "Alerte non confirmée" for an alert that may have left.
+// Differences: GAP-070; the mail alert's buttons name the action, « Annuler » / « Préparer l'email » (#1151, legacy « Non » / « Oui »);
+// "Alerte non confirmée" for an alert that may have left.
 /// The screens of "Alerter" (LOT-135), all driven by `ModeratorAlertModel`. No branch on `alerts`: it arrives after the first
 /// render, and a branch would rebuild the reader's web view.
 struct ReaderAlertFlow: ViewModifier {
