@@ -36,7 +36,7 @@ The picker groups icons by pack ([LOT-189](LOTS.md)). *Shipped* = in `dev-swift`
 | | Été | `summer` | blue background, a big sun, a small coconut palm in the opposite corner, the redface with sunglasses | all year | shipped (LOT-190) |
 | | Hiver | `winter` | the redface with a scarf as on `icons-season.jpg` (operator 15:40: « la précédente était mieux ») | all year | shipped (LOT-190) |
 
-**Dated icons** are listed only inside their window. At the end of the window the icon stays (a switch must be the user's): on the first launch after the window the app asks once « Revenir à l'icône précédente ? » (decision Q4, 2026-10-28); the buttons [Oui] [Garder] are a proposal *(to confirm)*.
+**Dated icons** are listed only inside their window. The window's dates are Gregorian, in the device's time zone, whatever the device calendar (Islamic, Hebrew, Persian, Buddhist, Japanese: #1199), as the seasonal theme's are (`NoelCalendar`). At the end of the window the icon stays (a switch must be the user's): on the first launch after the window the app asks once « Revenir à l'icône précédente ? » (decision Q4, 2026-10-28); the buttons [Oui] [Garder] are a proposal *(to confirm)*.
 
 ## 3. `orange-hfr`
 
