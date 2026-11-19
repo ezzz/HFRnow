@@ -57,12 +57,50 @@ struct ContentLoaderTests {
         #expect(!loader.isLoading)
     }
 
-    @Test func aCancelledLoadIsNotAnError() async {
+    /// The transport answered `.cancelled` while nothing cancelled the load (#566, #1191): it is asked once more.
+    @Test func aCancellationNobodyAskedForIsRetriedOnce() async {
         let loader = ContentLoader<Int>()
-        await loader.load { () async throws(ListLoadError) -> Int in throw .cancelled }
-        #expect(loader.error == nil)
-        #expect(loader.value == nil)
-        #expect(!loader.isLoading)
+        let calls = ReaderCallCounter()
+        let applied = await loader.load { () async throws(ListLoadError) -> Int in
+            if calls.next() == 1 { throw .cancelled }
+            return 1
+        }
+        #expect(applied)
+        #expect(calls.calls == 2)
+        #expect(loader.value == 1 && loader.error == nil && !loader.isLoading)
+    }
+
+    /// A second cancellation nobody asked for is a failure the screen shows, never a screen with no value, no load and no error.
+    @Test func aCancellationNobodyAskedForTwiceIsAFailure() async {
+        let loader = ContentLoader<Int>()
+        let calls = ReaderCallCounter()
+        let applied = await loader.load { () async throws(ListLoadError) -> Int in
+            _ = calls.next()
+            throw .cancelled
+        }
+        #expect(!applied)
+        #expect(calls.calls == 2)
+        #expect(loader.value == nil && loader.error == .other && !loader.isLoading)
+    }
+
+    /// A load `cancel()` stopped is not asked again and shows no failure.
+    @Test func aRequestedCancellationIsNotRetried() async {
+        let loader = ContentLoader<Int>()
+        let calls = ReaderCallCounter()
+        let gate = CheckGate()
+        let slow = gate.run {
+            await loader.load { () async throws(ListLoadError) -> Int in
+                _ = calls.next()
+                await gate.wait()
+                throw .cancelled
+            }
+        }
+        guard await gate.entered() else { Issue.record("The load never started"); return }
+        loader.cancel()
+        await gate.open()
+        await slow.value
+        #expect(calls.calls == 1)
+        #expect(loader.value == nil && loader.error == nil && !loader.isLoading)
     }
 
     @Test func cancelStopsTheLoadAndDropsItsResult() async {

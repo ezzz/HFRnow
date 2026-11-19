@@ -152,7 +152,10 @@ final class QualityAlertsModel {
         let lastCheck = self.lastCheck
         isLoading = true
         do throws(AQError) {
-            let items = try await source.feed()
+            // A cancellation nobody asked for is asked once more (#1191).
+            let items = try await retryingUnrequestedCancellation(isCancellation: { $0 == .network(.cancelled) }) {
+                () async throws(AQError) -> [AQFeedItem] in try await source.feed()
+            }
             let visible = await visibleItems(items)
             guard ticket == loadTicket else { return }
             rows = visible.map { Row(item: $0, isNew: AQClient.isNew($0, since: lastCheck), target: Self.target(of: $0)) }
@@ -163,9 +166,10 @@ final class QualityAlertsModel {
             unreadCount = 0
         } catch {
             guard ticket == loadTicket else { return }
-            if case .network(.cancelled) = error {
+            if case .network(.cancelled) = error, Task.isCancelled {
                 // The screen went away (a tab switch cancels its task): not a failure and not an empty list. Nothing was learned,
-                // so `hasLoaded` stays as it was and the screen asks again when it comes back.
+                // so `hasLoaded` stays as it was and the screen asks again when it comes back. A cancellation nobody asked for
+                // came twice: it ends the load as a failure below, never as "Chargement…" for ever (#1191).
                 isLoading = false
                 return
             }

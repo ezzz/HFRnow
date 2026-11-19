@@ -550,11 +550,7 @@ final class TopicReaderModel {
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
-            var result = await TopicReaderModel.fetch(target, from: source)
-            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (issue #566).
-            if case .failure(.cancelled) = result, !Task.isCancelled {
-                result = await TopicReaderModel.fetch(target, from: source)
-            }
+            let result = await TopicReaderModel.fetch(target, from: source)
             // Delivered, page or failure: what a write owed is settled, in the same turn (a failure shows "Réessayer").
             if settles { self?.settleFollowUp(generation: mine) }
             self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
@@ -568,7 +564,10 @@ final class TopicReaderModel {
         _ target: ReaderTarget, from source: any TopicPageSource
     ) async -> Result<ReaderPage, ListLoadError> {
         do throws(ListLoadError) {
-            return .success(try await source.page(for: target))
+            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (#566, #1191).
+            return .success(try await retryingUnrequestedCancellation(isCancellation: { $0 == .cancelled }) {
+                () async throws(ListLoadError) -> ReaderPage in try await source.page(for: target)
+            })
         } catch {
             return .failure(error)
         }

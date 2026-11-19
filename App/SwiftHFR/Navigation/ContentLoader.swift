@@ -19,7 +19,8 @@ final class ContentLoader<Value: Sendable> {
     /// true only when this call's value is now `value` (a superseded or failed load returns false).
     ///
     /// The work runs in its own task so that cancelling the caller (a pull-to-refresh that is dismissed) does not leave the
-    /// screen in a half-loaded state; only a newer `load` or `cancel()` supersedes it.
+    /// screen in a half-loaded state; only a newer `load` or `cancel()` supersedes it. A `.cancelled` that neither asked for is
+    /// retried once, then shown as `.other` (#1191).
     @discardableResult
     func load(_ operation: @escaping @Sendable () async throws(ListLoadError) -> Value) async -> Bool {
         task?.cancel()
@@ -29,7 +30,8 @@ final class ContentLoader<Value: Sendable> {
         let task = Task { [weak self] in
             let result: Result<Value, ListLoadError>
             do throws(ListLoadError) {
-                result = .success(try await operation())
+                // A cancellation nobody asked for is asked once more (`cancel()` and a newer load cancel this task; #1191).
+                result = .success(try await retryingUnrequestedCancellation(isCancellation: { $0 == .cancelled }, operation))
             } catch {
                 result = .failure(error)
             }
@@ -65,6 +67,9 @@ final class ContentLoader<Value: Sendable> {
             error = nil
             return true
         case .failure(.cancelled):
+            // `cancel()` and a newer load change the generation, so this one was not asked for and came twice: a failure,
+            // never a screen left with no value, no load and no error (#1191, the reader's rule of #566).
+            error = .other
             return false
         case .failure(let failure):
             error = failure
