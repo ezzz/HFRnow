@@ -5,6 +5,9 @@ import SwiftUI
 // in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
 // LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP row pending #545.
 // #1013: the switch is a row of the list under the large title, so it scrolls away with it.
+// GAP-713: on the iPhone Duo cover screen « Actualiser » sits at the bottom of the toolbar column (`MPListView.swift:676` @ 87fe0d1c,
+// its intended placement; legacy draws it at the top there, a defect not ported); elsewhere the list has no « Actualiser » button
+// (pull to refresh), as before.
 /// The Messages list: the member's conversations, paged, with pull to refresh. A tap selects a row; the reader shows it.
 /// "Nouveau message" opens the new-MP composer (LOT-128) when an account is current and the page links to the form.
 struct MessageListView: View {
@@ -13,6 +16,7 @@ struct MessageListView: View {
     let composer: ComposerServices?
     @State private var newMessage: ReplyComposerModel?
     @State private var titleVisibility = TitleVisibility()
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
 
     var body: some View {
         let loader = model.loader
@@ -67,6 +71,9 @@ struct MessageListView: View {
                         Label("Nouveau message", systemImage: "square.and.pencil")
                     }
                 }
+            }
+            if phoneDisplayKind.placesThumbActionsAtBottom {
+                ToolbarItem(placement: .bottomBar) { RefreshToolbarButton(isLoading: loader.isLoading) { await model.refresh() } }
             }
         }
         .sheet(item: $newMessage) { composer in

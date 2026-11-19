@@ -3,12 +3,15 @@ import SwiftUI
 // Port of HFRswift/Swift/MainWindow.swift (CategoriesListView, forumRowLabel, `:129-262`) @ 87fe0d1c. Differences: explicit inset-grouped
 // style like the MP list (#427, #572) instead of the default list; the sub-forums are chosen from the topic list's menu, as in
 // legacy (GAP-020, 021, 022); "1 sous-forum" in the singular. #1107: the list look (`listLook`) of every list; the dense look keeps
-// the icons with less height and a wider icon gap (`DenseListLook`).
+// the icons with less height and a wider icon gap (`DenseListLook`). GAP-713: on the iPhone Duo cover screen « Actualiser » sits at
+// the bottom of the toolbar column (`:206` @ 87fe0d1c, its intended placement; legacy draws it at the top there, a defect not
+// ported); elsewhere the list has no « Actualiser » button (pull to refresh), as before.
 /// The Catégories list: one flat row per forum with its icon and sub-forum count (flags and favourites have their own tab, LOT-170).
 struct ForumListView: View {
     @Bindable var navigation: NavigationModel
     @State private var titleVisibility = TitleVisibility()
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
 
     var body: some View {
         let loader = navigation.forums.loader
@@ -40,6 +43,13 @@ struct ForumListView: View {
             }
         }
         .refreshable { await navigation.forums.reload() }
+        .toolbar {
+            if phoneDisplayKind.placesThumbActionsAtBottom {
+                ToolbarItem(placement: .bottomBar) {
+                    RefreshToolbarButton(isLoading: loader.isLoading) { await navigation.forums.reload() }
+                }
+            }
+        }
         .task { await navigation.forums.loadIfNeeded() }
     }
 

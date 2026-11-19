@@ -35,6 +35,7 @@ struct TopicListView: View {
     /// The account button after the back button of a pushed list (`MainWindow.swift:803-818` @ 87fe0d1c, #425); off on the Favoris root.
     var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
@@ -92,8 +93,8 @@ struct TopicListView: View {
         .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
             if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
-            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
-            // so the refresh never moves to the bottom bar (`:849-851`).
+            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c); on the iPhone Duo cover screen the
+            // refresh goes to the bottom of the toolbar column instead (`:848-852`, `Favorites.swift:806`; GAP-713).
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
                 if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
@@ -102,12 +103,12 @@ struct TopicListView: View {
                         Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
-                Button { Task { await model.refresh() } } label: {
-                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
-                }
-                .disabled(!model.canRefresh)
+                if !phoneDisplayKind.placesThumbActionsAtBottom { refreshButton }
             }
+            if phoneDisplayKind.placesThumbActionsAtBottom { ToolbarItem(placement: .bottomBar) { refreshButton } }
         }
+        // A pushed category's list gets « Retour » on the cover screen (`MainWindow.swift:854` @ 87fe0d1c); the Favoris root is not pushed.
+        .coverScreenBottomBackButton()
         .sheet(item: $newTopic) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newTopicDidClose(reason) }
@@ -161,6 +162,11 @@ struct TopicListView: View {
             return nil
         }
         return RowTint(tint: accent.color, weight: accent.weight)
+    }
+
+    /// « Actualiser », top trailing or at the bottom of the cover screen's toolbar column (`refreshToolbarButton`, `MainWindow.swift:381-393`).
+    private var refreshButton: some View {
+        RefreshToolbarButton(isLoading: model.loader.isLoading, isEnabled: model.canRefresh) { await model.refresh() }
     }
 
     private func rows(_ topics: [TopicSummary]) -> some View {
