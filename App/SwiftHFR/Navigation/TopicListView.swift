@@ -7,7 +7,7 @@ import UIKit
 // (« y+ » while HFR's pager gives a lower bound, no « last » then; GAP-024, #980); the sub-forum menu and the filter are `ForumScopeBar`
 // (GAP-022, 023). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending
 // #545. #770: "+" is hidden, not greyed, when the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic
-// on refresh (`:382`; no haptics caller yet).
+// on refresh (`:382`; no haptics caller yet). #1206: no refresh button in the top bar (legacy `:835-846`), the pull refreshes.
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
 // `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
 // Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
@@ -92,8 +92,8 @@ struct TopicListView: View {
         .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
             if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
-            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
-            // so the refresh never moves to the bottom bar (`:849-851`).
+            // Trailing group: "+" only. Legacy adds a refresh button after it (`MainWindow.swift:835-846` @ 87fe0d1c); here the list
+            // refreshes on a pull (`.refreshable`), as the operator asked (#1206).
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
                 if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
@@ -102,10 +102,6 @@ struct TopicListView: View {
                         Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
-                Button { Task { await model.refresh() } } label: {
-                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
-                }
-                .disabled(!model.canRefresh)
             }
         }
         .sheet(item: $newTopic) { composer in
