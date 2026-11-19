@@ -124,6 +124,47 @@ import Testing
         #expect(try Data(contentsOf: directory.appending(path: "drafts.json")) == Data(text.utf8))
     }
 
+    /// A load whose write-back fails leaves one copy, however often it is retried (`reload()`), not one per attempt.
+    @Test func aRetriedSetAsideKeepsOneCopy() async throws {
+        let unknown = #"{"account":"user1","context":{"poll":{}},"text":"futur","updatedAt":"2027-01-15T08:00:00Z"}"#
+        let text = Self.versionOne.replacingOccurrences(of: "\"drafts\":[", with: "\"drafts\":[\(unknown),")
+        let (directory, persistence) = try file(holding: text)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = DraftStore(persistence: RefusingSave(inner: persistence))
+        #expect(await store.loadFailure() != nil)
+        for _ in 0..<3 { _ = await store.reload() }
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path(percentEncoded: false))
+        #expect(files.sorted() == ["drafts.json", "drafts.json.corrupt"])
+    }
+
+    /// A persistence that keeps a file but does not say how to copy it aside: the store blocks writes, never drops the entry.
+    @Test func aPersistenceWithoutABackupBlocksWrites() async throws {
+        let unknown = #"{"account":"user1","context":{"poll":{}},"text":"futur","updatedAt":"2027-01-15T08:00:00Z"}"#
+        let text = Self.versionOne.replacingOccurrences(of: "\"drafts\":[", with: "\"drafts\":[\(unknown),")
+        let (directory, persistence) = try file(holding: text)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = DraftStore(persistence: Forwarding(inner: persistence))
+        #expect(await store.loadFailure() != nil)
+        #expect(try Data(contentsOf: directory.appending(path: "drafts.json")) == Data(text.utf8))
+    }
+
+    /// A file persistence whose saves fail.
+    private struct RefusingSave: DraftPersistence {
+        let inner: FileDraftPersistence
+        func load() throws -> DraftDocument? { try inner.load() }
+        func save(_ document: DraftDocument) throws { throw CocoaError(.fileWriteNoPermission) }
+        func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
+        func backUpUnreadableData() throws { try inner.backUpUnreadableData() }
+    }
+
+    /// A wrapper that forwards everything but the backup.
+    private struct Forwarding: DraftPersistence {
+        let inner: FileDraftPersistence
+        func load() throws -> DraftDocument? { try inner.load() }
+        func save(_ document: DraftDocument) throws { try inner.save(document) }
+        func quarantineUnreadableData() throws { try inner.quarantineUnreadableData() }
+    }
+
     /// A persistence whose backup fails.
     private struct RefusingBackup: DraftPersistence {
         let inner: FileDraftPersistence

@@ -36,6 +36,10 @@ public struct FileDraftPersistence: DraftPersistence {
     public func backUpUnreadableData() throws {
         let manager = FileManager.default
         guard manager.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return }
+        // Already copied by a load whose write-back then failed (or a crash between the two): one copy is enough.
+        if manager.contentsEqual(atPath: fileURL.path(percentEncoded: false), andPath: quarantineURL.path(percentEncoded: false)) {
+            return
+        }
         try keepEarlierQuarantine()
         try manager.copyItem(at: fileURL, to: quarantineURL)
     }

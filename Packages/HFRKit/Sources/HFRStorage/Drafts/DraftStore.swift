@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Persistence is one atomic JSON document. Every save rewrites it, so callers should debounce keystrokes.
 /// A document that cannot be decoded (corrupt, or from a newer version) is moved aside as `.corrupt` and the store starts
-/// empty: a draft is not worth blocking the composer. A document that cannot be *read* (I/O error) blocks writes
+/// empty: a draft is not worth blocking the composer. A document with some unreadable entries is copied aside as `.corrupt`
+/// and its readable drafts are kept (#1183). A document that cannot be *read* (I/O error) blocks writes
 /// instead, so a transient failure never replaces good data.
 public actor DraftStore {
     /// How long a draft lives after its last save: 30 days.
@@ -72,7 +73,7 @@ public actor DraftStore {
         return recoveredCorruptData
     }
 
-    /// True once, the first time it is asked after a load set undecodable data aside: the screen tells the member once
+    /// True once, the first time it is asked after a load set undecodable data or entries aside: the screen tells the member once
     /// (#1182). `didRecoverFromCorruptData()` keeps answering the fact.
     public func takeRecoveredCorruptDataNotice() -> Bool {
         guard didRecoverFromCorruptData(), !recoveryNoticeTaken else { return false }

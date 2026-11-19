@@ -1,3 +1,5 @@
+import Foundation
+
 /// Where drafts live. A file in the app, memory in tests.
 public protocol DraftPersistence: Sendable {
     /// The stored document, or nil when nothing has been stored. Throws `DecodingError` for undecodable data and
@@ -13,6 +15,9 @@ public protocol DraftPersistence: Sendable {
 }
 
 extension DraftPersistence {
-    /// Nothing to copy by default (in-memory stores and test doubles keep no file).
-    public func backUpUnreadableData() throws {}
+    /// Refuses by default: a persistence that keeps a file must copy it aside before the store writes the readable drafts
+    /// back, and one that does not say so would let the store drop entries it never set aside. The store then blocks writes.
+    public func backUpUnreadableData() throws {
+        throw CocoaError(.featureUnsupported)
+    }
 }
