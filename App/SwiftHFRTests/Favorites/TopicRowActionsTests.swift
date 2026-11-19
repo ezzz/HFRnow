@@ -249,7 +249,8 @@ extension TopicRowActionsTests {
 
     @Test func everyFailureSaysWhetherAnythingLeft() {
         let notSent: [TopicFlagError] = [
-            .invalidLink, .invalidTopic, .sessionNotConfirmed(.expired(.noIdentityCookie)), .missingToken, .network(.offline)
+            .invalidLink, .invalidTopic, .sessionNotConfirmed(.expired(.noIdentityCookie)), .sessionChanged, .missingToken,
+            .network(.offline)
         ]
         for error in notSent { #expect(TopicFlagActions.reason(for: error).contains("rien n'a été envoyé")) }
         #expect(TopicFlagActions.reason(for: .unconfirmed(.transport(.timedOut))).contains("a pu être faite"))
@@ -294,6 +295,17 @@ extension TopicRowActionsTests {
         #expect(writer.removed.count == 2)
         model.clearActionFailure()
         #expect(model.retryableRemoval == nil)
+    }
+
+    /// #1200 P2: a login landing between the check and the write sent nothing, and may not land again: « Réessayer ».
+    @Test func aSessionThatChangedDuringTheCheckOffersARetry() async {
+        let writer = FakeFlagWriter()
+        writer.removeHandler = { (_) async throws(TopicFlagError) -> TopicFlagResult in throw .sessionChanged }
+        let topic = flaggedTopic(1)
+        let (model, _) = await favoritesList([topic], writer: writer)
+        await model.removeFlag(topic)
+        #expect(model.retryableRemoval == topic)
+        #expect(model.actionFailure == TopicFlagActions.session(.unconfirmed(.sessionChanged)))
     }
 
     /// A write that may have left, an expired session or HFR's refusal is never offered again from the alert (#1056).

@@ -33,6 +33,9 @@ final class ReaderCallCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
 
+    /// Calls so far.
+    var calls: Int { lock.withLock { count } }
+
     func next() -> Int {
         lock.withLock {
             count += 1

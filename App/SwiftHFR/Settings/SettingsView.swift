@@ -139,6 +139,10 @@ struct SettingsView: View {
                 }
                 StylePreview(style: topics.messageStyle)
                 Toggle("Afficher les signatures", isOn: $topics.showsSignatures)
+                Picker("Vidéos", selection: $topics.embedsVideos) {
+                    Text("Intégrée").tag(true)
+                    Text("Lien").tag(false)
+                }
                 Toggle("Masquer les pseudos blacklistés", isOn: $topics.hidesBlocklisted)
                 if let lists = reader?.pseudoLists {
                     NavigationLink { PseudoListEditorView(kind: .blocklist, manager: lists) } label: {

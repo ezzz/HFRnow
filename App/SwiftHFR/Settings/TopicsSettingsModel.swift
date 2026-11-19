@@ -20,6 +20,16 @@ final class TopicsSettingsModel {
     var showsSignatures: Bool {
         didSet { if showsSignatures != oldValue { store.set(showsSignatures, for: SettingKey.displaySignatures) } }
     }
+    /// « Vidéos » (`embedded_videos`): the player on a tap (« Intégrée », the default: legacy's `yes`, and its `both`) or the plain
+    /// link (« Lien »: `no`). The reader asks for a video placeholder unless this is `.never` (#691).
+    var videosMode: EmbeddedVideosMode {
+        didSet { if videosMode != oldValue { store.set(videosMode, for: SettingKey.embeddedVideos) } }
+    }
+    /// The picker's two choices over `videosMode`: choosing « Intégrée » again keeps a legacy `both`.
+    var embedsVideos: Bool {
+        get { videosMode != .never }
+        set { if newValue != embedsVideos { videosMode = newValue ? .inlinePlayer : .never } }
+    }
     /// A horizontal swipe changes the reader's page (`topic_page_swipe_navigation`).
     var swipesPages: Bool {
         didSet { if swipesPages != oldValue { store.set(swipesPages, for: SettingKey.topicPageSwipe) } }
@@ -42,6 +52,7 @@ final class TopicsSettingsModel {
         self.store = store
         messageStyle = store.value(for: SettingKey.themeStyle)
         showsSignatures = store.value(for: SettingKey.displaySignatures)
+        videosMode = store.value(for: SettingKey.embeddedVideos)
         swipesPages = store.value(for: SettingKey.topicPageSwipe)
         replyButton = store.value(for: SettingKey.replyButtonBehavior)
         hidesBlocklisted = store.value(for: SettingKey.hideBlocklistedPosts)

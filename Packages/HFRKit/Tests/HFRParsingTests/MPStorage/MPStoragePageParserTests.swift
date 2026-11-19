@@ -19,16 +19,14 @@ struct MPStoragePageParserTests {
         let search = try MPStoragePageParser.findThread(in: html, pageURL: Self.listURL)
         if let post = oracle.postID {
             #expect(oracle.returned)
-            #expect(search == .found(post: try #require(Int(post))))
+            // Legacy returned the first storage row; the parser lists every one, first row first (#1200 P1).
+            #expect(search.candidates == [try #require(Int(post))])
         } else {
             #expect(!oracle.returned)
+            #expect(search.candidates.isEmpty)
             // Legacy issued one GET: its pager read one page, so there is no next page to walk to.
-            guard case .notOnPage(let navigation) = search else {
-                Issue.record("expected notOnPage, got \(search)")
-                return
-            }
-            #expect(navigation.nextPath == nil)
-            #expect(navigation.last == 1)
+            #expect(search.navigation.nextPath == nil)
+            #expect(search.navigation.last == 1)
         }
     }
 
@@ -43,17 +41,15 @@ struct MPStoragePageParserTests {
         let postText = try #require(oracle.postID)
         let post = try #require(Int(postText))
 
-        guard case .notOnPage(let navigation) = try MPStoragePageParser.findThread(
-            in: Fixture.capture(oracle.responses[0]), pageURL: Self.listURL)
-        else {
-            Issue.record("R333a holds no storage row")
-            return
-        }
+        let pageOne = try MPStoragePageParser.findThread(in: Fixture.capture(oracle.responses[0]), pageURL: Self.listURL)
+        #expect(pageOne.candidates.isEmpty, "R333a holds no storage row")
+        let navigation = pageOne.navigation
         #expect(navigation.current == 1)
         #expect(navigation.nextPath != nil)
 
         // R333b holds two storage-subject rows, both behind `[non lu]`: row 1 and row 16. Legacy returns inside the row
-        // loop (`MPStorage.m:723`), so its `sPostId` is row 1's thread, never row 16's; the parser takes row 1 too.
+        // loop (`MPStorage.m:723`), so its `sPostId` is row 1's thread, never row 16's. The parser lists both, row 1
+        // first, so the transport tries row 1 first and takes it when its first message is the account's (#1200 P1).
         let pageTwo = try Fixture.capture(oracle.responses[1])
         let rows = try PrivateMessageListParser.parse(pageTwo, pageURL: pageTwoURL).threads
         let storageRows = rows.indices.filter { MPStoragePageParser.isStorageSubject(rows[$0].summary.title) }
@@ -62,14 +58,17 @@ struct MPStoragePageParserTests {
         let rowPosts = storageRows.map { rows[$0].summary.topicID?.topic }
         #expect(rowPosts.first == post)
         #expect(rowPosts.last != post)
-        #expect(try MPStoragePageParser.findThread(in: pageTwo, pageURL: pageTwoURL) == .found(post: post))
+        let rowPostIDs = rowPosts.compactMap { $0 }
+        #expect(try MPStoragePageParser.findThread(in: pageTwo, pageURL: pageTwoURL).candidates == rowPostIDs)
+        #expect(rowPostIDs.first == post)
+        #expect(rowPostIDs.count == 2)
     }
 
     @Test("The storage row of R13u1 carries HFR's [non lu] marker and is still found")
     func findsMarkedRow() throws {
         let html = try Fixture.capture("R13u1-mp-list-recipient-unread")
         #expect(html.contains("<span class=\"red\" title=\"Ce message n'a pas été lu par : user117\">[non lu]</span> <a href="))
-        #expect(try MPStoragePageParser.findThread(in: html, pageURL: Self.listURL) == .found(post: 3_157_083))
+        #expect(try MPStoragePageParser.findThread(in: html, pageURL: Self.listURL).candidates == [3_157_083])
     }
 
     @Test("Only the subject itself, with or without the [non lu] prefix, is the storage thread")

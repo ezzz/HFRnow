@@ -134,12 +134,23 @@ struct QualityAlertsModelTests {
     @Test func aCancelledFirstLoadIsNeitherAFailureNorAnEmptyList() async throws {
         let items = try Support.capturedItems()
         let store = InMemorySettingsStore()
+        let entered = AQGate()
+        let release = AQGate()
         let source = FakeQualityAlertsSource { (call: Int) async throws(AQError) -> [AQFeedItem] in
-            if call == 0 { throw .network(.cancelled) }
+            if call == 0 {
+                await entered.open()
+                await release.wait()
+                throw .network(.cancelled)
+            }
             return items
         }
         let model = Support.model(source: source, store: store)
-        await model.load()
+        let visit = Task { await model.load() }
+        await entered.wait()
+        visit.cancel()
+        await release.open()
+        await visit.value
+        #expect(source.calls == 1) // a cancellation that was asked for is not asked again
         // A tab switch cancelled it: nothing was learned, so the screen still shows its spinner state and nothing is marked seen.
         #expect(!model.hasLoaded && !model.isLoading)
         #expect(model.failure == nil && model.rows.isEmpty)
@@ -147,6 +158,30 @@ struct QualityAlertsModelTests {
         // Asking again works.
         await model.load()
         #expect(model.hasLoaded && model.rows.count == 25)
+    }
+
+    /// The transport answered `.cancelled` while nothing cancelled the visit (#1191): it is asked once more.
+    @Test func aCancellationNobodyAskedForIsRetriedOnce() async throws {
+        let items = try Support.capturedItems()
+        let source = FakeQualityAlertsSource { (call: Int) async throws(AQError) -> [AQFeedItem] in
+            if call == 0 { throw .network(.cancelled) }
+            return items
+        }
+        let model = Support.model(source: source)
+        await model.load()
+        #expect(source.calls == 2)
+        #expect(model.hasLoaded && model.failure == nil && model.rows.count == 25)
+    }
+
+    /// Twice: a failure with "Réessayer", never "Chargement…" for ever (#1191).
+    @Test func aCancellationNobodyAskedForEndsTheLoad() async {
+        let store = InMemorySettingsStore()
+        let source = FakeQualityAlertsSource { _ async throws(AQError) in throw .network(.cancelled) }
+        let model = Support.model(source: source, store: store)
+        await model.load()
+        #expect(source.calls == 2)
+        #expect(model.hasLoaded && model.failure == .other && !model.isLoading)
+        #expect(store.value(for: SettingKey.aqLastCheck) == nil)
     }
 
     @Test func aFailedFirstLoadIsAFailureNotAnEmptyList() async {

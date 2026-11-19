@@ -65,14 +65,17 @@ struct ThemeAppearance: Equatable, Sendable {
         return ThemeColor(hue: hsb.hue, saturation: hsb.saturation, brightness: adjusted, alpha: color.alpha)
     }
 
-    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is the `reader.css` dark palette (LOT-083), so the
-    /// default is unchanged. These feed `reader.css`'s tokens: its message rule and alternate surface (#568) derive from the
-    /// text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background` is still sent but
-    /// not read by the reader (a border-only quote, #819: legacy
-    /// `style-liste.css:329-334`); it is kept for the settings tests.
+    /// The reader's dark surfaces of `style` at brightness 100 %. `standard` is legacy's grey (#1210): the page is
+    /// `rgba(46, 47, 51)` (`style-liste-dark.css:263-266, 563-564` @ 87fe0d1c) and the quote surface another legacy dark surface,
+    /// `rgba(38, 40, 47)` (`#actualiserbtn` `:330`, `#toolbarpage` `:602`); the placeholder (secondary text keeps 4.5:1 on it) and the
+    /// quiet separator are lifted to stay apart from that grey. « Plus sombre » and OLED stay near black. These feed `reader.css`'s
+    /// tokens: its message rule derives
+    /// from the text colour and `--app-dark-background`, so there is no second separator spec here. `--app-dark-quote-background`
+    /// is still sent but not read by the reader (a border-only quote, #819: legacy `style-liste.css:329-334`); it is kept for the
+    /// settings tests.
     static func readerDarkSurfaces(_ style: DarkStyle) -> [(variable: String, color: ThemeColor)] {
         let palette: [Int] = switch style {
-        case .standard: [0x000000, 0x1C1C1E, 0x2C2C2E, 0x38383A]
+        case .standard: [0x2E2F33, 0x26282F, 0x35363B, 0x4A4B50]
         case .darker: [0x0B0B0C, 0x17181A, 0x232326, 0x2E2E31]
         case .oled: [0x000000, 0x111113, 0x1C1C1E, 0x38383A]
         }
@@ -187,11 +190,14 @@ struct ThemeAppearance: Equatable, Sendable {
     static let darkText = ThemeColor(hex: 0xF2F2F7)
     static let darkSecondaryText = ThemeColor(hex: 0xA1A1A6)
 
-    /// A reader surface at `darkBrightness`. The darker and OLED styles never lift the page background above their own value:
-    /// at 150 % the darker background (#0B0B0C) would put a continuation date (secondary text at 75 % opacity on the tinted
-    /// header) under 4.5:1 (CodeRabbit on #589); the slider still darkens it, and still scales the other surfaces.
+    /// A reader surface at `darkBrightness`. No style lifts the page background above its own value: at 150 % the darker background
+    /// (#0B0B0C) would put a continuation date (secondary text on the tinted header) under 4.5:1 (CodeRabbit on #589), and the
+    /// standard style's legacy grey (#2E2F33, #1210) has no headroom either (secondary text is 5.2:1 on it, 3.6:1 at 150 %). The
+    /// standard quote surface and placeholder, which carry secondary text, are capped the same way (every standard surface but the
+    /// separator). The slider still darkens them, and still scales the separator (and the other styles' other surfaces).
     private func readerSurface(_ variable: String, _ color: ThemeColor) -> ThemeColor {
-        guard darkStyle != .standard, variable == "--app-dark-background", darkBrightness > 1 else { return adjustedDark(color) }
+        let isCapped = darkStyle == .standard ? variable != "--app-dark-separator" : variable == "--app-dark-background"
+        guard isCapped, darkBrightness > 1 else { return adjustedDark(color) }
         var capped = self
         capped.darkBrightness = 1
         return capped.adjustedDark(color)

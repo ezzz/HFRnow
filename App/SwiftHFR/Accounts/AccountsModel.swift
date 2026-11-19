@@ -45,6 +45,8 @@ final class AccountsModel {
     var isAccountSyncOn = false
     /// A one-time note about the sync (switched off from another device, an unreadable copy); nil when none.
     var accountSyncNotice: String?
+    /// Whether this device's sync state is damaged, so the settings offer its reset (#1200 P3, option (b)).
+    var isAccountSyncDamaged = false
     /// The session checks started for accounts another device replaced (tests await it).
     @ObservationIgnored private(set) var syncCheckTask: Task<Void, Never>?
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
