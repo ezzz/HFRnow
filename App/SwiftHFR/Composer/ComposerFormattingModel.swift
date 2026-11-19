@@ -80,7 +80,7 @@ final class ComposerFormattingModel {
         apply(target, range: range)
     }
 
-    /// The user accepted the clipboard (Oui / Insérer).
+    /// The user accepted the clipboard (« Coller le lien » / « Insérer », #1180).
     func acceptPending(_ current: Pending) {
         if case .linkChoice = current {
             acceptLinkChoice(current, attribute: false)
@@ -110,7 +110,7 @@ final class ComposerFormattingModel {
         }
     }
 
-    /// The user refused the clipboard (Non / Sans le presse-papiers): the plain tags go in.
+    /// The user refused the clipboard (« Insérer sans le presse-papiers », #1180): the plain tags go in.
     func declinePending(_ current: Pending) {
         pending = nil
         switch current {
@@ -120,7 +120,7 @@ final class ComposerFormattingModel {
         }
     }
 
-    /// The alert was dismissed without a choice: nothing is inserted.
+    /// « Annuler », or the question dismissed (Esc, a tap outside): nothing is inserted.
     func dismissPending() { pending = nil }
 
     /// Puts the caret at the end of the text (after a draft was restored, as legacy does on appear).
