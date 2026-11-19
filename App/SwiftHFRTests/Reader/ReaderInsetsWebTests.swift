@@ -86,6 +86,49 @@ struct ReaderInsetsWebTests: ReaderWebTesting {
         #expect(recorder.failed == [1])
     }
 
+    /// #1188: iOS killed the content process while the member read far below the flag message. The reload lands on the last
+    /// message the page reported, not on the document's anchor.
+    @Test func aReloadAfterProcessTerminationLandsOnTheLastReportedPost() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        controller.obscuredInsets = bars
+        let document = tallDocument(token: 1, anchor: 1)
+        controller.show(document)
+        #expect(await until { recorder.ready == [1] })
+        let scrollView = controller.webView.scrollView
+        // The landing on the anchor is done, so its own report is in before the member's.
+        let anchorTop = try await top(of: 1, in: controller)
+        #expect(await until { abs(scrollView.contentOffset.y + bars.top - anchorTop) <= 2 })
+        _ = controller.handle(.position(post: 2), in: document)
+
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+
+        #expect(await until { recorder.ready == [1, 1] }, "ready: \(recorder.ready)")
+        let messageTop = try await top(of: 2, in: controller)
+        #expect(messageTop > 1000)
+        #expect(
+            await until { abs(scrollView.contentOffset.y + bars.top - messageTop) <= 2 },
+            "offset \(scrollView.contentOffset.y), message at \(messageTop): the reload did not land on the last reported post"
+        )
+    }
+
+    /// #1188: a third-party image the member tapped is still allowed when the page asks again after the reload.
+    @Test func aTappedImageIsLoadedAgainAfterAContentProcessReload() async throws {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        let shown = tallDocument(token: 1)
+        controller.show(shown)
+        #expect(await until { recorder.ready == [1] })
+        let photo = "https://i.imgur.com/photo.jpg"
+        #expect(controller.decisions(for: [photo]) == [ImageDecision.tap.rawValue])
+        #expect(controller.handle(.tap(url: photo), in: shown) as? Bool == true)
+
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+
+        #expect(controller.decisions(for: [photo]) == [ImageDecision.load.rawValue])
+        // Another document starts without that consent.
+        controller.show(tallDocument(token: 2))
+        #expect(controller.decisions(for: [photo]) == [ImageDecision.tap.rawValue])
+    }
+
     @Test func aMessageLandsBelowTheTopBar() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
         controller.obscuredInsets = bars

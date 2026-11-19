@@ -2,6 +2,10 @@ import Foundation
 import UIKit
 import WebKit
 
+// The `hfrreader:` scheme handler below shares the controller's private state (download queue, consent, document); a
+// file of its own would widen that state's access (#1188 took the file past 400 lines).
+// swiftlint:disable file_length
+
 // Port of HFRswift/Swift/MessagesView.swift (WebView, MessageWebView, WebView.Coordinator) @ 2440d79. Differences: no page script,
 // strict CSP, everything served by the app's `hfrreader:` scheme, images through policy C and the cookie-less client (GAP-050, 056).
 /// Owns the reader's `WKWebView` and enforces what the page may do (LOT-083):
@@ -78,6 +82,8 @@ final class ReaderWebController: NSObject {
     /// The reading top (`ReaderScrollGeometry`, in the page's own points) a refresh restores;
     /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
+    /// The last post the ready page reported at the reading top, and where a reload after a process death lands (#1188).
+    private var lastReportedPost: Int?, relandingPost: Int?
     private var appliedScrollID: Int?
     /// Holds a new document's landing or restore until WebKit has reset its scroll view (#772).
     let resetWatch = WebKitResetWatch()
@@ -142,6 +148,8 @@ final class ReaderWebController: NSObject {
         }
         ReaderLog.debug("show loads token=\(document.token)")
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
+        lastReportedPost = nil
+        relandingPost = nil
         resetWatch.stop()
         self.document = document
         readyToken = nil
@@ -216,8 +224,7 @@ final class ReaderWebController: NSObject {
             documentIsReady(document, token: document.token)
             return nil
         case .position(let post):
-            resetWatch.pageReportedPosition()
-            events.position(post, document.token)
+            positionReported(post, token: document.token)
             return nil
         case .edge(let atBottom): return pageEndReported(atBottom, token: document.token)
         case .quote(let post, let text, let bold):
@@ -236,6 +243,13 @@ final class ReaderWebController: NSObject {
         }
     }
 
+    private func positionReported(_ post: Int, token: Int) {
+        // Only a ready page tells where the member reads: a reload's page reports its top before it lands (#1188).
+        if readyToken == token { lastReportedPost = post }
+        resetWatch.pageReportedPosition()
+        events.position(post, token)
+    }
+
     /// The user tapped a placeholder: consent for that exact URL, third-party only, in this document only.
     private func recordTap(_ text: String?) -> Bool {
         guard let text, let url = URL(string: text), ImagePolicy.classify(url) == .thirdParty,
@@ -248,12 +262,15 @@ final class ReaderWebController: NSObject {
         // A size or a colour changed while this document was loading reached the previous one: set them again.
         applyDisplayState()
         let scrollView = webView.scrollView
-        if let anchor = document.anchor {
+        if let post = relandingPost { // after a process death: where the member was reading, not the flag message (#1188)
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: post, landing: true) }
+        } else if let anchor = document.anchor {
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: anchor, landing: true) }
         } else if let readingTop = savedReadingTop {
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(toReadingTop: readingTop) }
         }
         savedReadingTop = nil
+        relandingPost = nil
         readyToken = token
         ReaderLog.debug("ready accepted token=\(token)")
         events.ready(token)
@@ -278,13 +295,16 @@ final class ReaderWebController: NSObject {
         retryOrReport(document, reason: "navigation failed code=\(code)")
     }
 
-    /// The content process died (memory pressure on a huge page). A document already shown is loaded again; one not ready
-    /// yet follows the reload-once rule, so a page that kills the process every time ends on the retry, not a spinner.
+    /// The content process died (memory pressure on a huge page, or iOS reclaiming a backgrounded app). A document already
+    /// shown is loaded again and lands on the last message the page reported; one not ready yet follows the reload-once rule,
+    /// so a page that kills the process every time ends on the retry, not a spinner.
     func contentProcessTerminated() {
         guard let document else { return }
         guard readyToken != document.token else {
             ReaderLog.debug("content process terminated token=\(document.token) ready=true: reloading")
-            // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen.
+            // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen. It
+            // lands where the member was reading; the images tapped stay allowed (`consented`, same document) (#1188).
+            relandingPost = lastReportedPost
             readyToken = nil
             reloadedAfterFailure = false
             loadPage(document)
