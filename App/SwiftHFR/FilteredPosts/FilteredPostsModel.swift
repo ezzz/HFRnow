@@ -212,7 +212,7 @@ final class FilteredPostsModel {
         self.progress = progress
     }
 
-    /// The batch from `page`, normalized; `.success(nil)` when the run was cancelled.
+    /// The batch from `page`, normalized; `.success(nil)` when the run's task was cancelled.
     private func read(
         topic: TopicID, page: Int, after message: Int?, run id: Int
     ) async -> Result<FilteredPostsResult?, FilteredPostsError> {
@@ -220,14 +220,18 @@ final class FilteredPostsModel {
         await services.prepare()
         let criteria = services.criteria()
         do throws(FilteredPostsError) {
-            let batch = try await services.source.batch(in: topic, from: page, after: message, criteria: criteria) { [weak self] progress in
-                await self?.report(progress, run: id)
+            // A cancellation nobody asked for is asked once more (#1191).
+            let batch = try await retryingUnrequestedCancellation(cancelledAs: .network(.cancelled)) {
+                () async throws(FilteredPostsError) -> FilteredPostsBatch in
+                try await services.source.batch(in: topic, from: page, after: message, criteria: criteria) { [weak self] progress in
+                    await self?.report(progress, run: id)
+                }
             }
             if Task.isCancelled { return .success(nil) }
             return .success(try await Self.result(of: batch, topic: topic, title: title, normalizer: services.normalizer))
         } catch {
-            // A cancelled run is not an error to show.
-            if case .network(.cancelled) = error { return .success(nil) }
+            // A cancelled run is not an error to show; a cancellation nobody asked for that came twice is (#1191).
+            if case .network(.cancelled) = error, Task.isCancelled { return .success(nil) }
             return .failure(error)
         }
     }
