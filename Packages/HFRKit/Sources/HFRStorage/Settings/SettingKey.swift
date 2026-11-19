@@ -132,6 +132,9 @@ public enum SettingKey {
     /// `theme_dark_style` (LOT-122, new): standard, darker or OLED black dark surfaces. Device-only: whether black saves power
     /// or smears is a property of the screen (ADR 0013 matrix E).
     public static let darkStyle = Setting.integerEnum("theme_dark_style", default: DarkStyle.standard)
+    /// `theme_light_style` (#1213, new): Blanc (today's light look) or Doux (warm, low glare). Device-only, like the dark style: how a
+    /// screen looks in light is a property of the screen (ADR 0013 matrix E).
+    public static let lightStyle = Setting.integerEnum("theme_light_style", default: LightStyle.blanc)
     /// `theme_id` (LOT-188, new): the theme of the gallery (THEMES.md); nil or an id no bundled theme has reads as Legacy, and is
     /// left in the store. Device-only, like the dark style (ADR 0013 matrix E).
     public static let themeID = Setting.optionalString("theme_id")
@@ -263,7 +266,7 @@ public enum SettingKey {
         privateMessageBadge, mpCheckInterval, mpNotificationsEnabled, startupScreen, mpListDisplay, replyButtonBehavior,
         opensLinksInDefaultBrowser, topicPageSwipe,
         autoTheme, manualTheme, themeStyle, dayActionColor, nightActionColor, dayLoveColor, nightLoveColor, daySuperFavoriteColor,
-        nightSuperFavoriteColor, nightBrightness, darkStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
+        nightSuperFavoriteColor, nightBrightness, darkStyle, lightStyle, themeID, hideBlocklistedPosts, quoteFilterExceptions,
         quoteFilterMinimumCount, doubleSizeSmileys, embeddedVideos, displaySignatures, displayImages, mpStorageActive,
         mpStorageLastSync, aqLastCheck, searchCategory, rehostLinkMode, rehostMaxDimension, appLockEnabled, appLockGraceSeconds,
         seasonalThemesAutomatic, seasonalAnimations, noelActiveYear, experimentalModernComposer, experimentalSearchTab,
