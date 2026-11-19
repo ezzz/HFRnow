@@ -30,7 +30,7 @@ At `2fe43da3` (`git show 2fe43da3:<path>`, `HFRswift/Swift/`):
 | `App/SwiftHFR/Composer/PollCreationSheet.swift` | `TopicPollDraft.swift:56-144` (`TopicPollCreationSheet`) | answers keep their identity when one is deleted (legacy bound `options[index]`); changes are not thrown away without asking: the swipe-down is refused and « Annuler » asks « Abandonner ce sondage ? » while a field differs from the poll the sheet opened on, blank text not counting (#1169; legacy `:124-127` closed at once) |
 
 ## UX evolutions (app lots)
-None: same UX as legacy at `87fe0d1c`.
+- **b** (#1169, GAP-099): the sheet does not throw changes away without asking: the swipe-down is refused and « Annuler » asks « Abandonner ce sondage ? » while a field differs from the poll the sheet opened on (HIG › Sheets, › Modality; legacy `TopicPollDraft.swift:124-127` @ `87fe0d1c` closed at once). Otherwise the same UX as legacy at `87fe0d1c`.
 
 ## Behaviour
 - **Where**: the poll row ("Ajouter un sondage" / "Modifier le sondage", "Retirer") shows in the composer of a new topic and of the edit of a public topic's first post (its title is editable). The button is on only when the form allows a poll (`ForumForm.offersPollCreation`: an unchecked `have_sondage` box and a `textreponse0` input, legacy's test). Otherwise legacy's reason is shown: "Le forum ne propose pas de sondage à cette étape. Créez le sujet, puis éditez son premier message." on a new topic, "Le formulaire du forum ne propose pas la création d'un sondage pour ce message." elsewhere; "Chargement des options de sondage…" while a new topic's form is read.
