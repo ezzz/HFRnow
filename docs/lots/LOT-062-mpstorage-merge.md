@@ -39,7 +39,7 @@ Built on the LOT-013 types. Every function is pure and `Sendable`; no I/O.
 | Level | Rule |
 |---|---|
 | Entries | only the writable entry is merged; the others are `theirs` verbatim. `theirs` or `ours` without a `0.1` entry → `noWritableEntry` |
-| Root keys, namespaces, section keys this app does not model | key by key: the side that did not change since `base` takes the other side's value; both changed → ours, reported |
+| Root keys, namespaces, section keys this app does not model | key by key: the side that did not change since `base` takes the other side's value; both changed → ours, reported; this app deleted a key `theirs` changed → `theirs`, reported (`changedAndDeleted`) |
 | Section | unchanged on one side since `base` → the other side's section as is (metadata included) |
 | List items, matched by `storageKey` | same on both sides → kept. Changed on one side → that change. Changed on both → **ours** (this app is the last writer), `bothChanged`. Added on both, different → ours, `bothAdded`. Deleted on one side, unchanged on the other → deleted. Deleted on one side, **changed** on the other → the change survives, `changedAndDeleted`. Added on one side only → kept, unless the other side has a tombstone **newer than the item's date** (then removed and reported as `addedAndDeleted`) |
 | Undecodable raw items | `theirs`, minus those `ours` dropped since `base`, plus those `ours` added |
