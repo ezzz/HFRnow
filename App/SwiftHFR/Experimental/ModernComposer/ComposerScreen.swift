@@ -22,3 +22,27 @@ enum ComposerScreen {
         return max(0, window.bounds.maxY - window.convert(frame, from: nil).minY)
     }
 }
+
+/// Keeps `layout.availableHeight` (the tallest card the screen allows, `ComposerCardLayout.room`) current: when the keyboard
+/// changes and when one line's height does. The modern chrome's docked card only (`isDocked`): nothing for legacy's composer.
+struct ComposerRoomUpdates: ViewModifier {
+    @Binding var layout: ComposerCardLayout
+    let isDocked: Bool
+    /// The keyboard's height over the window, from its notifications: the card's room is what it leaves.
+    @State private var keyboardHeight: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+                keyboardHeight = ComposerScreen.keyboardHeight(note)
+                update()
+            }
+            .onChange(of: layout.line, initial: true) { update() }
+    }
+
+    private func update() {
+        guard isDocked, layout.line > 0, let window = ComposerScreen.window else { return }
+        let room = ComposerCardLayout.room(window: window.height, topInset: window.topInset, keyboard: keyboardHeight, line: layout.line)
+        if layout.availableHeight != room { layout.availableHeight = room }
+    }
+}
