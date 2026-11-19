@@ -17,10 +17,17 @@ struct TextScale: Equatable, Sendable {
     /// The multiplier applied to every system size.
     var factor: CGFloat { CGFloat(percent) / 100 }
 
-    /// Point size of `style` at Dynamic Type size `size`, times the percentage.
+    /// The smallest size the percentage may shrink text to (HIG minimum, #1157). Legacy never goes below 100 %
+    /// (`AppTextSizeScale`, Common.swift:314-322 @ 87fe0d1c), so it has no floor; below it, only a size the system already
+    /// gives under 11 pt (a small Dynamic Type size) is kept as it is.
+    static let minimumPointSize: CGFloat = 11
+
+    /// Point size of `style` at Dynamic Type size `size`, times the percentage, never under 11 pt when shrinking.
     func pointSize(_ style: Font.TextStyle, at size: DynamicTypeSize) -> CGFloat {
         let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
-        return UIFont.preferredFont(forTextStyle: style.uiTextStyle, compatibleWith: traits).pointSize * factor
+        let system = UIFont.preferredFont(forTextStyle: style.uiTextStyle, compatibleWith: traits).pointSize
+        guard factor < 1 else { return system * factor }
+        return max(system * factor, min(system, Self.minimumPointSize))
     }
 
     /// `value` (an icon or spacing size, already scaled by Dynamic Type through `@ScaledMetric`) times the percentage.
