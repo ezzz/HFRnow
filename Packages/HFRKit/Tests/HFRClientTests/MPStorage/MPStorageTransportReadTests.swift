@@ -8,29 +8,84 @@ import Testing
 /// Finding and reading the storage thread on the captured pages (`R13a`, `R13u1`, `R60a`, `R60b`, `RA5`).
 struct MPStorageTransportReadTests {
     @Test func findsTheThreadOnTheFirstListPage() async throws {
-        let replies = [try MPStorageCapture.list("R13u1")]
+        let replies = [try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage()]
         let outcome = await MPStorageHarness.run(replies) { transport, session throws(MPStorageTransportError) in
             try await transport.findThread(through: session)
         }
         #expect(outcome.value == MPStorageCapture.post)
-        #expect(outcome.requests.map(\.url) == [try HFREndpoint.privateMessages(page: 1).url])
+        // The storage row's first page (`R60a`) carries the account's edit link: it is the account's thread (#1200 P1).
+        #expect(outcome.requests.map(\.url) == [
+            try HFREndpoint.privateMessages(page: 1).url, try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url
+        ])
     }
 
     @Test("R333a → R333b: a storage row pushed to page 2 is found there, through page 1's next link (#333)")
     func findsTheThreadOnPageTwo() async throws {
         let outcome = await MPStorageHarness.run(
-            [try MPStorageCapture.list("R333a"), try MPStorageCapture.list("R333b")]
+            [try MPStorageCapture.list("R333a"), try MPStorageCapture.list("R333b"), try MPStorageCapture.threadPage()]
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.findThread(through: session)
         }
         // `R333b` also holds an older storage thread (row 16): legacy and the parser take the first row.
         #expect(outcome.value == MPStorageCapture.post)
-        // Page 2 is `R333a`'s own next link, as served.
+        // Page 2 is `R333a`'s own next link, as served; row 1's first page (`R60a`) proves it is the account's (#1200 P1).
         #expect(outcome.requests.map(\.url.absoluteString) == [
             try HFREndpoint.privateMessages(page: 1).url.absoluteString,
             "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2&subcat=0&sondage=0&owntopic=0&trash=0"
-                + "&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0"
+                + "&trash_post=0&moderation=0&new=0&nojs=0&subcatgroup=0",
+            try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url.absoluteString
         ])
+    }
+
+    @Test("#1200 P1: a storage-subject thread whose first message has no edit link is another member's, not the account's")
+    func skipsForeignThreadWithStorageSubject() async throws {
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPageOfAnotherMember(), .failure(.offline)]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.findThread(through: session)
+        }
+        // `R13u1`'s only storage row is ruled out by its first page, so the search walks on to page 2 (failed here) instead
+        // of returning that row.
+        #expect(outcome.error == .network(.offline))
+        let urls = outcome.requests.map(\.url.absoluteString)
+        #expect(urls.count == 3)
+        #expect(urls.prefix(2) == [
+            try HFREndpoint.privateMessages(page: 1).url.absoluteString,
+            try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url.absoluteString
+        ])
+        #expect(urls.last?.contains("cat=prive&page=2") == true)
+        #expect(outcome.posts.isEmpty)
+    }
+
+    @Test("A candidate whose first page is another thread (its title is not the storage subject) is skipped, not fatal")
+    func skipsCandidateWhosePageIsAnotherThread() async throws {
+        let otherThread = try Capture.response(
+            "RU1-mp-thread-recipient-view", url: try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url
+        )
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.list("R13u1"), .success(otherThread), .failure(.offline)]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.findThread(through: session)
+        }
+        // The walk moved on to page 2 (failed here) instead of stopping on the candidate.
+        #expect(outcome.error == .network(.offline))
+        #expect(outcome.requests.count == 3)
+        #expect(outcome.posts.isEmpty)
+    }
+
+    @Test("A candidate whose first page cannot be read stops the search: it may be the account's thread")
+    func aCandidatePageThatCannotBeReadStopsTheSearch() async throws {
+        let empty = HTTPResponse(
+            statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"],
+            url: try HFREndpoint.privateThreadFirstPage(post: MPStorageCapture.post).url, body: Data("<html><body></body></html>".utf8)
+        )
+        let outcome = await MPStorageHarness.run(
+            [try MPStorageCapture.list("R13u1"), .success(empty)]
+        ) { transport, session throws(MPStorageTransportError) in
+            try await transport.findThread(through: session)
+        }
+        #expect(outcome.error == .threadPage(.noMessage))
+        #expect(outcome.requests.count == 2)
     }
 
     @Test func aListWithoutTheThreadAndNoNextPageIsNotFound() async throws {

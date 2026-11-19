@@ -10,7 +10,9 @@ import HFRParsing
 /// Every request is sent once: the transport never retries, and a failure after sending is `unconfirmed`, never a
 /// success nor a plain failure. A followed link must be an `https` page of the forum with the write's exact path.
 /// A write leaves only once LOT-044 confirmed the session just before it (#314): HFR answers an `addflag` sent without
-/// a session with the logged-in success bytes (`P03q` = `P03a`), so its sentence alone does not prove the write.
+/// a session with the logged-in success bytes (`P03q` = `P03a`), so its sentence alone does not prove the write. The
+/// write is also fenced on the login the session held before the check (#1200 P2, as `DeletePrivateMessageFlow`): a
+/// login, logout or account switch landing meanwhile sends nothing (`sessionChanged`).
 public struct TopicFlagFlow: Sendable {
     /// What a write asks before it leaves: the health of the account session, from one GET of HFR (LOT-044).
     typealias SessionCheck = () async throws(NetworkError) -> SessionHealth
@@ -32,7 +34,7 @@ public struct TopicFlagFlow: Sendable {
     ///
     /// Idempotent on HFR: a topic already in the favourites gets the same confirmation (`P03b`). The session is checked
     /// first (one GET of the profile page), since HFR confirms an `addflag` sent without a session too (`P03q`).
-    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
+    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `sessionChanged`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func addFavorite(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
         try await follow(.addFavorite, link: link, through: session, after: check(session))
     }
@@ -42,7 +44,7 @@ public struct TopicFlagFlow: Sendable {
     /// On a favourite this also removes the topic's read flag (`P03f`). HFR never refuses it: sent again on a topic
     /// without flag it answers the same success (`P03o` = `P03n`), so a result means "no flag left", not "a flag was
     /// removed". The session is checked first, as for `addFavorite`.
-    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
+    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `sessionChanged`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func removeFlag(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
         try await follow(.removeFlag, link: link, through: session, after: check(session))
     }
@@ -52,7 +54,8 @@ public struct TopicFlagFlow: Sendable {
     ///
     /// HFR confirms it with "Drapeaux effacés avec succès" (legacy's body, `P03j`) or "Favoris supprimés avec succès" (the
     /// browser's, `P03h`). The session is checked first, as for `addFavorite`; a valid check also records a fresh token.
-    /// - Throws: `invalidTopic`, `sessionNotConfirmed`, `missingToken`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
+    /// - Throws: `invalidTopic`, `sessionNotConfirmed`, `sessionChanged`, `missingToken`, `notLoggedIn`, `rejected`,
+    ///   `unconfirmed`, `network`.
     public func removeFavoriteFromList(_ topic: TopicID, in session: HFRSession) async throws(TopicFlagError)
         -> TopicFlagResult {
         try await removeFavoriteFromList(topic, through: session, after: check(session))
@@ -65,7 +68,7 @@ public struct TopicFlagFlow: Sendable {
     /// Success only with HFR's own sentence for it ("Le message a été marqué comme non lu avec succès", `W18`); the MP list
     /// then shows the conversation unread (`R13b`). The session is checked first, as for `addFavorite`: without a session
     /// HFR answers this GET with the "pas destiné" refusal of a thread the account cannot see (`W137a`), which proves nothing.
-    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
+    /// - Throws: `invalidLink`, `sessionNotConfirmed`, `sessionChanged`, `notLoggedIn`, `rejected`, `unconfirmed`, `network`.
     public func markUnread(link: URL, in session: HFRSession) async throws(TopicFlagError) -> TopicFlagResult {
         try await follow(.markUnread, link: link, through: session, after: check(session))
     }
@@ -82,45 +85,64 @@ public struct TopicFlagFlow: Sendable {
 
     // MARK: - Steps
 
-    /// `follow`, sent only when `check` says the account session is valid; an invalid link asks nothing.
+    /// `follow`, sent only when `check` says the account session is valid and the session kept the login it had before
+    /// the check; an invalid link asks nothing.
     func follow(
         _ action: TopicFlagAction, link: URL, through session: any PostingSession, after check: SessionCheck
     ) async throws(TopicFlagError) -> TopicFlagResult {
         guard let path = action.linkPath, FlagLink(link, path: path, privateThread: action.actsOnPrivateThread) != nil else {
             throw .invalidLink
         }
-        try await Self.confirm(check)
-        return try await follow(action, link: link, through: session)
+        let seed = try await Self.confirm(check, in: session)
+        return try await follow(action, link: link, through: session, since: seed)
     }
 
-    /// `removeFavoriteFromList`, sent only when `check` says the account session is valid; an invalid topic asks nothing.
+    /// `removeFavoriteFromList`, sent only when `check` says the account session is valid and the session kept the login
+    /// it had before the check; an invalid topic asks nothing.
     func removeFavoriteFromList(
         _ topic: TopicID, through session: any PostingSession, after check: SessionCheck
     ) async throws(TopicFlagError) -> TopicFlagResult {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0 else { throw .invalidTopic }
-        try await Self.confirm(check)
-        return try await removeFavoriteFromList(topic, through: session)
+        let seed = try await Self.confirm(check, in: session)
+        return try await removeFavoriteFromList(topic, through: session, since: seed)
     }
 
-    func follow(_ action: TopicFlagAction, link: URL, through session: any PostingSession) async throws(TopicFlagError)
-        -> TopicFlagResult {
+    /// The write's GET. With a `seed`, it leaves only while the session holds `seed`'s login (`PostingSession.send(since:)`).
+    func follow(
+        _ action: TopicFlagAction, link: URL, through session: any PostingSession, since seed: HashCheckSeed? = nil
+    ) async throws(TopicFlagError) -> TopicFlagResult {
         guard let path = action.linkPath, let flagLink = FlagLink(link, path: path, privateThread: action.actsOnPrivateThread)
         else { throw .invalidLink }
         // A redirect is not followed: HFR answers these GETs in place (`P03a`, `P03d`), anything else is not its confirmation.
         let request = HTTPRequest.get(flagLink.url, redirectPolicy: .doNotFollow)
-        let response = try await exchange(request, through: session)
+        let response: HTTPResponse
+        if let seed {
+            response = try await exchange(through: session, since: seed, requiringToken: false) { _ in request }
+        } else {
+            response = try await exchange(request, through: session)
+        }
         return try Self.confirmation(of: action, topic: flagLink.topic, in: response, requestURL: flagLink.url)
     }
 
-    func removeFavoriteFromList(_ topic: TopicID, through session: any PostingSession) async throws(TopicFlagError)
-        -> TopicFlagResult {
+    /// The list's POST, with the token the session holds when it leaves. With a `seed`, it leaves only while the session
+    /// holds `seed`'s login, and the token is read in the same turn of the session actor.
+    func removeFavoriteFromList(
+        _ topic: TopicID, through session: any PostingSession, since seed: HashCheckSeed? = nil
+    ) async throws(TopicFlagError) -> TopicFlagResult {
         guard case .forum(let category) = topic.category, category > 0, topic.topic > 0 else { throw .invalidTopic }
-        guard let token = await session.hashCheck else { throw .missingToken }
-        let request = HTTPRequest.post(
-            Self.manageActionURL, form: Self.removalBody(topic: topic.topic, category: category, token: token),
-            redirectPolicy: .doNotFollow
-        )
-        let response = try await exchange(request, through: session)
+        let make = { @Sendable (token: String) -> HTTPRequest in
+            HTTPRequest.post(
+                Self.manageActionURL, form: Self.removalBody(topic: topic.topic, category: category, token: token),
+                redirectPolicy: .doNotFollow
+            )
+        }
+        let response: HTTPResponse
+        if let seed {
+            response = try await exchange(through: session, since: seed, requiringToken: true, make)
+        } else {
+            guard let token = await session.hashCheck else { throw .missingToken }
+            response = try await exchange(make(token), through: session)
+        }
         return try Self.confirmation(of: .removeFavoriteFromList, topic: topic, in: response, requestURL: Self.manageActionURL)
     }
 
@@ -162,8 +184,11 @@ public struct TopicFlagFlow: Sendable {
     }
 
     /// Lets a write leave only after a `valid` session check; a check that could not be done is a `network` failure.
-    private static func confirm(_ check: SessionCheck) async throws(TopicFlagError) {
+    /// Returns the login the session held before the check, which the write is fenced on (#1200 P2).
+    private static func confirm(_ check: SessionCheck, in session: any PostingSession) async throws(TopicFlagError)
+        -> HashCheckSeed {
         if Task.isCancelled { throw .network(.cancelled) }
+        let seed = await session.hashCheckSeed()
         let health: SessionHealth
         do throws(NetworkError) {
             health = try await check()
@@ -171,6 +196,31 @@ public struct TopicFlagFlow: Sendable {
             throw .network(error)
         }
         guard health == .valid else { throw .sessionNotConfirmed(health) }
+        if Task.isCancelled { throw .network(.cancelled) }
+        guard seed.identity != nil else { throw .sessionChanged }
+        return seed
+    }
+
+    /// Sends the request `make` builds once, only while the session holds `seed`'s login, as one turn of the session actor
+    /// (`PostingSession.send(since:)`). Before it leaves a failure is `network`; after, `unconfirmed`.
+    private func exchange(
+        through session: any PostingSession, since seed: HashCheckSeed, requiringToken: Bool,
+        _ make: @escaping @Sendable (String) -> HTTPRequest
+    ) async throws(TopicFlagError) -> HTTPResponse {
+        let outcome: FencedSend
+        do {
+            outcome = try await session.send(since: seed, requiringToken: requiringToken, make)
+        } catch .invalidRequest(let reason) {
+            throw .network(.invalidRequest(reason: reason))
+        } catch {
+            throw .unconfirmed(.transport(error))
+        }
+        switch outcome {
+        case .sent(let response): return response
+        case .loginChanged: throw .sessionChanged
+        case .missingToken: throw .missingToken
+        case .cancelled: throw .network(.cancelled)
+        }
     }
 
     /// Sends `request` once. Before it leaves the device a failure is `network`; after, HFR may have acted: `unconfirmed`.

@@ -30,6 +30,7 @@ struct ReaderSettings: Sendable {
             renderOptions: {
                 ReaderRenderOptions(
                     showsSignatures: store.value(for: SettingKey.displaySignatures),
+                    embedsVideos: store.value(for: SettingKey.embeddedVideos) != .never,
                     style: store.value(for: SettingKey.themeStyle),
                     visibility: visibility(store: store, pseudo: pseudo, lists: pseudoLists())
                 )
