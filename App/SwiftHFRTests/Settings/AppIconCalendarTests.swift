@@ -8,7 +8,7 @@ import Testing
 struct AppIconCalendarTests {
     private static let noel = IconWindow(startMonth: 12, startDay: 1, endMonth: 12, endDay: 26)
 
-    private static let calendars: [Calendar.Identifier] = [.islamicUmmAlQura, .hebrew, .persian, .buddhist, .japanese]
+    nonisolated private static let calendars: [Calendar.Identifier] = [.islamicUmmAlQura, .hebrew, .persian, .buddhist, .japanese]
 
     private func deviceCalendar(_ identifier: Calendar.Identifier) -> Calendar {
         var calendar = Calendar(identifier: identifier)
