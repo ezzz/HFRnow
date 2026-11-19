@@ -8,9 +8,9 @@ import UIKit
 
 /// LOT-147 (GAP-713): the real roots (`RootLayout`) in a cover-screen window (466 × 678 pt, compact width, the system chrome as
 /// a side safe-area inset, the model not taken for a foldable so the inset alone is the signal) and, off a foldable, in a regular
-/// iPhone window. On the cover screen « Actualiser » of the four lists is a bottom-bar item, a pushed topic list and a topic get
-/// « Retour » there; on a regular iPhone nothing is added and a forum list's « Actualiser » stays in the top bar. Read from the
-/// items SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups): its Liquid Glass bars hold no `UIControl` to find.
+/// iPhone window. On the cover screen « Actualiser » of Catégories and Messages is a bottom-bar item (the topic lists have none,
+/// a pull refreshes them, #1206), a pushed topic list and a topic get « Retour » there; on a regular iPhone nothing is added. Read
+/// from the items SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups): its Liquid Glass bars hold no `UIControl`.
 @MainActor
 @Suite(.serialized)
 struct CoverScreenThumbActionsTests: ReaderWebTesting {
@@ -167,32 +167,38 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         return items
     }
 
-    /// On the cover screen « Actualiser » of each list is a bottom-bar item and leaves the top bar; a pushed topic list and a topic
-    /// get « Retour » there, first (above the page controls on a topic, legacy Mac check 2c); the topic keeps its top « Actualiser ».
+    /// On the cover screen « Actualiser » of Catégories and Messages is a bottom-bar item, a pushed topic list and a topic get
+    /// « Retour » there, first (above the page controls on a topic, legacy Mac check 2c); the Favoris root, neither pushed nor
+    /// refreshed by a button (#1206), gets nothing; the topic keeps its top « Actualiser ».
     @Test(arguments: Screen.allCases)
     func theCoverScreenPutsTheThumbActionsInTheBottomBar(screen: Screen) async throws {
         let hosted = try host(screen, cover: true)
         defer { hosted.window.isHidden = true }
         let wanted: [String] = switch screen {
-        case .topicList: ["Retour", "Actualiser"]
-        case .reader: ["Retour"]
-        default: ["Actualiser"]
+        case .topicList, .reader: ["Retour"]
+        case .favorites: []
+        case .categories, .messages: ["Actualiser"]
         }
-        let items = await settle(screen, in: hosted.window) { Array($0.bottom.prefix(wanted.count)) == wanted }
+        var items = await settle(screen, in: hosted.window) { Array($0.bottom.prefix(wanted.count)) == wanted }
+        if screen == .favorites {
+            // Nothing to wait for: a later layout pass is given its chance to add an item it should not.
+            try await Task.sleep(for: .milliseconds(500))
+            items = await settle(screen, in: hosted.window)
+        }
         print("CoverScreenThumbActionsTests cover \(screen): \(items)")
         #expect(Array(items.bottom.prefix(wanted.count)) == wanted, "\(screen): \(items)")
         #expect(items.topTrailing.contains("Actualiser") == (screen == .reader), "\(screen): \(items)")
         if screen != .topicList, screen != .reader { #expect(!items.bottom.contains("Retour"), "\(screen): \(items)") }
+        if screen != .categories, screen != .messages { #expect(!items.bottom.contains("Actualiser"), "\(screen): \(items)") }
     }
 
-    /// Off the cover screen nothing is added: the lists have no bottom-bar item (the pager is an inset there, #565), the topic
-    /// lists (a forum's, Favoris) keep « Actualiser » in the top bar, Catégories and Messages have none (pull to refresh), the
-    /// topic's bottom bar is its page controls with no « Retour ».
+    /// Off the cover screen nothing is added: the lists have no bottom-bar item (the pager is an inset there, #565) and no
+    /// « Actualiser » button (a pull refreshes them, #1206), the topic's bottom bar is its page controls with no « Retour ».
     @Test(.enabled(if: Self.isNotAFoldable), arguments: Screen.allCases)
     func aRegularIPhoneKeepsItsBars(screen: Screen) async throws {
         let hosted = try host(screen, cover: false)
         defer { hosted.window.isHidden = true }
-        let hasTopRefresh = [Screen.topicList, .favorites, .reader].contains(screen)
+        let hasTopRefresh = screen == .reader
         let items = await settle(screen, in: hosted.window) { !hasTopRefresh || $0.topTrailing.contains("Actualiser") }
         print("CoverScreenThumbActionsTests regular \(screen): \(items)")
         #expect(!items.bottom.contains("Retour"), "\(screen): \(items)")
@@ -203,13 +209,13 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
     /// On a foldable (the Duo simulator's own cover screen, 466 × 678 pt), the lists' bottom-bar items are drawn in the lower
     /// half of the column, right above the tab bar, not under the top items: iOS 27.2 lays them in an empty trailing slot and
     /// honours their flexible spacer only once that slot holds an item (`AccountMenuButton.placement(on:)`). Measured before the
-    /// fix at y 239 (Catégories, Messages), 299 and 351 (« Retour », « Actualiser » of a pushed list); after it at 335 and 387, the
-    /// tab bar at 442. A regular iPhone has no column: the bar is the system bottom bar, left to `aRegularIPhoneKeepsItsBars`.
-    @Test(.enabled(if: !Self.isNotAFoldable), arguments: [Screen.categories, .topicList, .favorites, .messages])
+    /// fix at y 239 (Catégories, Messages) and 299 (« Retour » of a pushed list); after it at 387, the tab bar at 442. A regular
+    /// iPhone has no column: the bar is the system bottom bar, left to `aRegularIPhoneKeepsItsBars`.
+    @Test(.enabled(if: !Self.isNotAFoldable), arguments: [Screen.categories, .topicList, .messages])
     func onTheDuoTheListsActionsSitAboveTheTabBar(screen: Screen) async throws {
         let hosted = try host(screen, cover: true)
         defer { hosted.window.isHidden = true }
-        let count = screen == .topicList ? 2 : 1
+        let count = 1
         _ = await settle(screen, in: hosted.window) { $0.bottom.count >= count }
         try await Task.sleep(for: .milliseconds(500))
         hosted.window.layoutIfNeeded()

@@ -42,7 +42,7 @@ struct ForumListView: View {
             }
         }
         .refreshable { await navigation.forums.reload() }
-        .coverScreenThumbActions { RefreshToolbarButton(isLoading: loader.isLoading) { await navigation.forums.reload() } }
+        .coverScreenListActions { RefreshToolbarButton(isLoading: loader.isLoading) { await navigation.forums.reload() } }
         .task { await navigation.forums.loadIfNeeded() }
     }
 

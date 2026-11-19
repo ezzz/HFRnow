@@ -72,7 +72,7 @@ struct MessageListView: View {
                 }
             }
         }
-        .coverScreenThumbActions { RefreshToolbarButton(isLoading: loader.isLoading) { await model.refresh() } }
+        .coverScreenListActions { RefreshToolbarButton(isLoading: loader.isLoading) { await model.refresh() } }
         .sheet(item: $newMessage) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }

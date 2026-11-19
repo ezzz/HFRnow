@@ -10,7 +10,7 @@ import WebKit
 // split collapsed, also on a Pro Max in landscape, #431) and only when the reader's tab is the selected one: list and reader side
 // by side (iPad, a foldable's inner screen) keep the bar, the only way to switch tabs there. The full-screen Plus search and
 // offline readers keep it in regular width too (see GAP-008). GAP-713: « Retour » at the bottom of the cover screen's toolbar column
-// (`MessagesView.swift:5696` @ 87fe0d1c, `coverScreenThumbActions`).
+// (`MessagesView.swift:5696` @ 87fe0d1c, `coverScreenTopicActions`).
 /// Whether the reader's root tab is the selected one; `RootTabsView` sets it per tab (default true outside the tab bar).
 private struct IsSelectedRootTabKey: EnvironmentKey {
     static let defaultValue = true
@@ -129,7 +129,7 @@ struct TopicReaderView: View {
         }
         // A pushed topic gets « Retour » in the iPhone Duo cover screen's toolbar column (`MessagesView.swift:5696` @ 87fe0d1c,
         // GAP-713); applied after the page controls, as legacy, so it sits right above them in the column (Mac check 2c).
-        .coverScreenThumbActions()
+        .coverScreenTopicActions()
         // Always attached (empty under the system bottom bar), so the page's identity never changes with the placement (#565).
         .safeAreaBar(edge: .bottom) {
             if bottomPlacement == .inset { ReaderPageStrip(buttons: pageButtons) }
