@@ -35,7 +35,7 @@ SwiftHFR today: the split root is iPad-only (`App/SwiftHFR/Root/RootNavigationVi
 
 ## FEAT-016 additions: moved to M5 (operator, 2026-11-19, on #237)
 
-The FEAT-016 items legacy does not have at `2fe43da3` (tabs in a rail when folded, sidebar pinned or on demand; [#160](https://github.com/ezzz/HFRnow/issues/160), Bybifok) went to M4 in this lot on 2026-11-09 (operator, on [#237](https://github.com/ezzz/HFRnow/issues/237), GAP-655 `b·operator`, as opt-in settings off by default). The design was written in this spec on 2026-11-19 ([appendix](#appendix-feat-016-design-the-m5-starting-point)) and the operator decided the same day, on #237, that **all the FEAT-016 additions leave LOT-147 for M5, on hold** (« on verra »). **LOT-147 in M4 is the legacy part only**, and closes with it; #160 closes with the M5 work, under an M5 issue the orchestrator opens.
+The FEAT-016 items legacy does not have at `2fe43da3` (tabs in a rail when folded, sidebar pinned or on demand; [#160](https://github.com/ezzz/HFRnow/issues/160), Bybifok) went to M4 in this lot on 2026-11-09 (operator, on [#237](https://github.com/ezzz/HFRnow/issues/237), GAP-655 `b·operator`, as opt-in settings off by default). The design was written in this spec on 2026-11-19 ([appendix](#appendix-feat-016-design-the-m5-starting-point)) and the operator decided the same day, on #237, that **all the FEAT-016 additions leave LOT-147 for M5, on hold** (« on verra »). **LOT-147 in M4 is the legacy part only**, and closes with it; #160 (now `status: on-hold`) carries the M5 work and closes with it.
 
 Decided (operator, 2026-11-19, on #237):
 
@@ -46,7 +46,7 @@ Decided (operator, 2026-11-19, on #237):
 - **(e) The cover-screen option is a `Toggle`, OFF by default** (operator, 2026-11-19, on #237).
 - **(f) The sidebar setting is the three-mode picker** « Automatique / Épinglée / À la demande » (operator, 2026-11-19, on #237); « Automatique » is today's behaviour. Its default mode is not stated: « Automatique » until the operator says otherwise.
 
-Left **open for M5**, not decided here: where the two settings sit in Réglages (appendix: Général under « Réduire la tab bar au scroll », a proposal). The M5 issue (`status: on-hold`, `m5.M5_OPEN`) points to the appendix; its PR says `Closes #160`. The GAP-655 row still describes the 2026-11-09 state: its edit (M5, rail declined, the cover's own rail measured) goes in the `### Ledger` of the first PR that touches it.
+Left **open for M5**, not decided here: where the two settings sit in Réglages (appendix: Général under « Réduire la tab bar au scroll », a proposal). #160 (`status: on-hold` until `m5.M5_OPEN`) points to this appendix; the M5 PR says `Closes #160`. The GAP-655 row still describes the 2026-11-09 state: its edit (M5, rail declined, the cover's own rail measured) goes in the `### Ledger` of the first PR that touches it.
 
 ## Legacy at `87fe0d1c`: the beta-feedback fixes
 
@@ -105,7 +105,7 @@ To copy into AGENTS.md §11 when the lot closes.
 
 ## Appendix: FEAT-016 design, the M5 starting point
 
-Written by `mac/mac-mbp` (Fable, 2026-11-19) after #1115, as the design the operator asked for before any code; superseded the same day by the decisions [above](#feat-016-additions-moved-to-m5-operator-2026-11-19-on-237), and kept, trimmed to them, as the starting point of the M5 issue. Nothing here is decided beyond those decisions. Lines @ `87fe0d1c`, `HFRswift/Swift/` unless said otherwise.
+Written by `mac/mac-mbp` (Fable, 2026-11-19) after #1115, as the design the operator asked for before any code; superseded the same day by the decisions [above](#feat-016-additions-moved-to-m5-operator-2026-11-19-on-237), and kept, trimmed to them, as the starting point of the M5 work (#160). Nothing here is decided beyond those decisions. Lines @ `87fe0d1c`, `HFRswift/Swift/` unless said otherwise.
 
 ### 1. The cover screen's own tab rail, kept while reading (the one idea kept from "tabs in a rail when folded")
 
