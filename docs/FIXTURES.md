@@ -42,7 +42,7 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   HFR's `div.edited` trailer after it is not part of it) and is rewritten in place (`tooling/fixtures/mpstorage_doc.py`):
   blacklist pseudos and bookmark authors become `userN` (the page's own table), other clients' namespaces `nsN` with
   `keyN` keys, `textN` strings and fake ids inside, a foreign `sourceName` `clientN`, post and message ids fake (9100NN),
-  tombstone ids the aliases of their item's storage key. Plausible timestamps (13 digits), small page and category
+  tombstone ids the aliases of their item's storage key. Plausible timestamps (10 or 13 digits), small page and category
   numbers, booleans and null are kept; a `textN` alias keeps whether its original held a U+00A0 (written as the `\u00a0`
   escape, since the parser removes raw ones) or a non-BMP character (member aliases do not). No value is kept because it
   looks like an alias. **Limits**: a *rendered* copy (the post's `<p>`, the review cell) is re-encoded from its

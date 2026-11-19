@@ -1165,6 +1165,37 @@ def private_form_copies(text):
     return "".join(parts) + text[last:], count
 
 
+BLANKS = " \t\r\n\u00a0"
+_TRAILER_BLANK_RE = re.compile(r"(?:\s|&nbsp;|&#160;|\u00a0)+", re.I)
+_TRAILER_ITEMS = (
+    re.compile(r"</p>", re.I),
+    re.compile(r"<div style=\"clear: both;\">(?:\s|&nbsp;|\u00a0)*</div>", re.I),
+    re.compile(r"<div class=\"edited\">((?:[^<]|<a\b[^>]*>|</a>|<br\s*/?>)*)</div>", re.I),
+)
+_EDITED_TEXT_RE = re.compile(r"(?:Message cit\u00e9 \d+ fois)?\s*(?:Message \u00e9dit\u00e9 par .{1,100} le \d{2}-\d{2}-\d{4} \u00e0 \d{2}:\d{2}:\d{2})?")
+
+
+def storage_trailer_ok(rest):
+    """True when rest (what follows the storage document's paragraph in the post or review cell) holds only HFR's own
+    trailer: `</p>`, the clear div, and `div.edited` ("Message cit\u00e9 N fois", "Message \u00e9dit\u00e9 par X le ...")."""
+    pos = 0
+    while True:
+        pos = _TRAILER_BLANK_RE.match(rest, pos).end() if _TRAILER_BLANK_RE.match(rest, pos) else pos
+        if pos >= len(rest):
+            return True
+        for item in _TRAILER_ITEMS:
+            m = item.match(rest, pos)
+            if m:
+                if m.groups():
+                    text = html.unescape(re.sub(r"<[^>]*>", " ", m.group(1))).replace("\u00a0", " ")
+                    if not _EDITED_TEXT_RE.fullmatch(" ".join(text.split())):
+                        return False
+                pos = m.end()
+                break
+        else:
+            return False
+
+
 class MPStorageDocumentError(AnonymizeError):
     """The MPStorage document holds a key or value the anonymizer cannot vouch for."""
 
@@ -1750,11 +1781,19 @@ class Anonymizer:
         if markup:
             para = re.search(r"<p\b[^>]*>", raw, re.I)
             offset = para.end() if para else 0
+            if para and raw[:para.start()].strip(BLANKS):
+                raise MPStorageDocumentError("MPStorage document: text before its paragraph; extend the anonymizer")
             stop = re.compile(r"</p\b|<div\b|<table\b", re.I).search(raw, offset)
             limit = stop.start() if stop else len(raw)
         first, last = raw.find("{", offset, limit), raw.rfind("}", offset, limit)
         if first < 0 or last < first:
             raise MPStorageDocumentError("MPStorage document: not a JSON document; extend the anonymizer")
+        # Fail closed: nothing but blanks around the braces, and after the paragraph only HFR's own trailer.
+        if raw[offset:first].strip(BLANKS) or raw[last + 1:limit].strip(BLANKS):
+            raise MPStorageDocumentError("MPStorage document: text around the document; extend the anonymizer")
+        if markup and not storage_trailer_ok(raw[limit:]):
+            raise MPStorageDocumentError("MPStorage document: content after the document that is not HFR's trailer; "
+                                         "extend the anonymizer")
         region = raw[first:last + 1]
         decoded = html.unescape(re.sub(r"<[^>]*>", "", region) if markup else region)
         try:
@@ -1994,14 +2033,26 @@ _V_DOC_ALIAS_STR = re.compile(r"(?:user|text|client)\d+[ \u00a0\U0001F600]*")
 _V_DOC_FAKE_ID = re.compile(r"9[01]\d{4}")
 _V_DOC_TIME = frozenset(("lastUpdate", "createDate", "deleteDate"))
 # A tombstone id is its item's storage key: `cat-post-numreponse` of fake ids, the lower-cased alias, a fake id.
-_V_DOC_BOOKMARK_KEY = re.compile(r"\d{1,3}-9[01]\d{4}-9[01]\d{4}")
+_V_DOC_BOOKMARK_KEY = re.compile(r"(?:\d{1,3}|9[01]\d{4})-9[01]\d{4}-9[01]\d{4}")
 
 
-def _v_first_paragraph(inner):
-    """The message's first <p> up to the first block start or its end (what legacy reads), without the trailer."""
+def _v_split_paragraph(inner):
+    """(text before the paragraph, the message's first <p> up to the first block start, what follows): legacy's view."""
     para = re.search(r"<p\b[^>]*>", inner, re.I)
-    body = inner[para.end():] if para else inner
-    return re.split(r"</p\b|<div\b|<table\b", body, maxsplit=1, flags=re.I)[0]
+    before, body = (inner[:para.start()], inner[para.end():]) if para else ("", inner)
+    parts = re.split(r"(?=</p\b|<div\b|<table\b)", body, maxsplit=1, flags=re.I)
+    return before, parts[0], parts[1] if len(parts) > 1 else ""
+
+
+def _v_trailer_ok(rest):
+    """True when rest holds only HFR's trailer: clear div, `</p>`, `div.edited` with links, <br> and its notice text."""
+    def edited(m):
+        text = html.unescape(re.sub(r"<[^>]*>", " ", m.group(1))).replace("\u00a0", " ")
+        notice = r"(?:Message cit\u00e9 \d+ fois)? ?(?:Message \u00e9dit\u00e9 par [^\n]{1,100} le [\d-]{10} \u00e0 [\d:]{8})?"
+        return "" if re.fullmatch(notice, " ".join(text.split())) else "\x00"
+    rest = re.sub(r'<div class="edited">((?:[^<]|<a\b[^>]*>|</a>|<br\s*/?>)*)</div>', edited, rest, flags=re.I)
+    rest = re.sub(r'<div style="clear: both;">[\s\u00a0]*</div>|</p>|&nbsp;', "", rest, flags=re.I)
+    return not rest.replace("\u00a0", " ").strip()
 
 
 def _v_mpstorage_document_ok(inner, markup=True):
@@ -2011,7 +2062,10 @@ def _v_mpstorage_document_ok(inner, markup=True):
             raise ValueError("duplicate key")
         return dict(items)
     if markup:
-        inner = re.sub(r"<[^>]*>", " ", _v_first_paragraph(inner))
+        before, paragraph, rest = _v_split_paragraph(inner)
+        if before.strip() or not _v_trailer_ok(rest):
+            return False
+        inner = re.sub(r"<[^>]*>", " ", paragraph)
     body = html.unescape(inner).replace("\u00a0", " ")
     try:
         doc = json.loads(body, object_pairs_hook=pairs)
@@ -2038,8 +2092,8 @@ def _v_mpstorage_document_ok(inner, markup=True):
         elif isinstance(node, bool) or node is None:
             continue
         elif isinstance(node, int):
-            if key in _V_DOC_TIME:
-                if not 10 ** 12 <= node < 10 ** 13:
+            if key in _V_DOC_TIME:  # seconds or milliseconds
+                if not (10 ** 9 <= node < 10 ** 10 or 10 ** 12 <= node < 10 ** 13):
                     return False
             elif not (_V_DOC_FAKE_ID.fullmatch(str(node)) or (key == "page" and 0 <= node < 100000)
                       or (key == "cat" and 0 <= node < 1000)):

@@ -25,7 +25,7 @@ import re
 
 FAKE_ID_OTHER = 910001
 TIME_KEYS = ("lastUpdate", "createDate", "deleteDate")
-TIMESTAMP_RE = re.compile(r"\d{13}\Z")  # milliseconds since the epoch, 2001 to 2286
+TIMESTAMP_RE = re.compile(r"\d{10}\Z|\d{13}\Z")  # seconds (2001 to 2286) or milliseconds, as legacy writes (MPStorage.m:28)
 FAKE_TIME = 1700000000000
 NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?")
 WHITESPACE = " \t\r\n\u00a0"  # U+00A0: legacy removes it before parsing (`MPStorage.m`, HFR-PROTOCOL 3.3)

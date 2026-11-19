@@ -473,9 +473,76 @@ class MPStorageTests(unittest.TestCase):
         self.assertEqual(leaks(out, private=True), [])
         self.assertIn("private message body not replaced", self.reasons(page))
         # the form's review cell may carry the trailer too
-        cell = self.form_page(self.RICH, self.RICH + '<div style="clear: both;"> </div>' + trailer)
+        cell = self.form_page(self.RICH, self.RICH).replace(
+            '%s<div style="clear: both;"> </div></td>' % self.RICH.replace('"', "&#034;"),
+            '%s<div style="clear: both;"> </div>%s</td>' % (self.RICH.replace('"', "&#034;"), trailer), 1)
+        self.assertIn("class=\"edited\"", cell)
         out = anon(cell, private=True)
         self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    TAIL = '<div style="clear: both;"> </div></p>'
+
+    def test_only_hfrs_trailer_may_follow_the_document(self):
+        # Review round 2, finding 1: after the first <p>, anything but the clear div and `div.edited` stays in the page
+        # unchecked. Each shape must stop the redactor and be flagged by the verifier, in the post and in the form copies.
+        shapes = (
+            ("second paragraph", '<div style="clear: both;"> </div></p><p>secret words 0612345678</p>'),
+            ("quote block", '<div style="clear: both;"> </div></p><div class="container"><table class="citation">'
+                            '<tr><td>secret words</td></tr></table></div>'),
+            ("text after the clear div", '<div style="clear: both;"> </div>secret words</p>'),
+            ("signature", '<div style="clear: both;"> </div></p><span class="signature">secret words</span>'),
+            ("markup in the edited div", '<div style="clear: both;"> </div></p><div class="edited"><b>secret words</b></div>'),
+            ("free text in the edited div", '<div style="clear: both;"> </div></p><div class="edited">secret words</div>'),
+            ("text after the paragraph", '<div style="clear: both;"> </div></p>secret words'),
+        )
+        for name, tail in shapes:
+            page = storage_page(self.RICH).replace(self.TAIL, tail, 1)
+            self.assertIn("secret words", page, name)
+            with self.assertRaises(A.MPStorageDocumentError, msg=name):
+                anon(page, private=True)
+            self.assertIn("private message body not replaced", self.reasons(page), name)
+        cells = [(name, tail) for name, tail in shapes if name != "second paragraph"]
+        cells.append(("review text", '<div style="clear: both;"> </div>review secret words'))
+        for name, tail in cells:
+            page = self.form_page(self.RICH, self.RICH).replace(
+                '%s<div style="clear: both;"> </div></td>' % self.RICH.replace('"', "&#034;"),
+                '%s%s</td>' % (self.RICH.replace('"', "&#034;"), tail.replace("</p>", "")), 1)
+            self.assertIn("secret words", page, name)
+            with self.assertRaises(A.MPStorageDocumentError, msg=name):
+                anon(page, private=True)
+            self.assertIn("MPStorage document copy not vouched for", self.reasons(page), name)
+
+    def test_text_around_the_document_inside_its_paragraph_is_refused(self):
+        for page in (storage_page("secret " + self.RICH), storage_page(self.RICH + " secret"),
+                     storage_page(self.RICH).replace("<p>", "secret words<p>", 1),
+                     self.form_page("secret " + self.RICH, self.RICH)):
+            with self.assertRaises(A.MPStorageDocumentError):
+                anon(page, private=True)
+            self.assertTrue(self.reasons(page))
+
+    def test_hfrs_real_trailer_is_accepted(self):
+        edited = ('<div class="edited"><a href="/forum2.php?config=hfr.inc&amp;numreponse=1&amp;quote_only=1" class="cLink" '
+                  'rel="nofollow">Message cit&eacute; 11 fois</a><br />Message &eacute;dit&eacute; par Quuxbar le '
+                  '11-11-2018&nbsp;&agrave;&nbsp;18:24:51</div>')
+        page = storage_page(self.RICH).replace(self.TAIL, '<div style="clear: both;"> </div></p>' + edited, 1)
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_bookmark_tombstone_with_a_long_category_is_one_rule_for_both_sides(self):
+        # Review round 2, finding 2: a 4+ digit category in a tombstone id is aliased; check must accept the result.
+        doc = self.RICH.replace('"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]',
+                                '"tombstones":[{"id":"1234-96827-59533822","deleteDate":1700000000007},'
+                                '{"id":"13-96827-59533822","deleteDate":1700000000007}]')
+        out = anon(storage_page(doc), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_second_timestamps_keep_their_unit(self):
+        # Review round 2, finding 4: a 10-digit timestamp (seconds) is plausible and stays; legacy writes milliseconds.
+        doc = self.RICH.replace('"lastUpdate":1700000000008', '"lastUpdate":1700000008')
+        out = anon(storage_page(doc), private=True)
+        self.assertIn("1700000008", out)
         self.assertEqual(leaks(out, private=True), [])
 
     def test_values_that_look_like_aliases_are_not_kept(self):
