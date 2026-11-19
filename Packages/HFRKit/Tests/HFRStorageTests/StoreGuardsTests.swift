@@ -57,7 +57,44 @@ import Testing
         }
     }
 
+    @Test func aPositionVersionBelowOneIsUnreadable() async throws {
+        let (directory, url) = try file(holding: #"{"version":0,"accounts":{}}"#, named: "positions.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ReadingPositionStore(persistence: FileReadingPositionPersistence(fileURL: url))
+        guard case .loadFailed? = await store.loadFailure() else {
+            Issue.record("expected loadFailed")
+            return
+        }
+    }
+
     // MARK: Empty account
+
+    /// A blocklist stored under an empty key before #1184 can still be emptied (the eraser's leftovers).
+    @Test func aBlocklistUnderAnEmptyKeyCanStillBeEmptied() async throws {
+        let persistence = InMemoryPseudoListPersistence(PseudoListDocument(blocklists: ["": [PseudoListEntry(pseudo: "Spam")]]))
+        let store = PseudoListStore(persistence: persistence)
+        #expect(try await store.replaceBlocklist(with: [], account: ""))
+        #expect(persistence.document?.blocklists.isEmpty == true)
+    }
+
+    @Test func anAccountKeyEmptyOnceNormalizedIsRefusedForAMerge() async {
+        let store = ReadingPositionStore(persistence: InMemoryReadingPositionPersistence())
+        let record = ReadingPositionRecord(topic: Self.cuisine, position: ReadingPosition(page: 2))
+        await #expect(throws: ReadingPositionError.emptyAccount) { try await store.merge([record], account: "\u{200B}") }
+    }
+
+    /// A draft belongs to an account; removing one stays possible whatever the key.
+    @Test(arguments: ["", "\u{200B}"])
+    func anEmptyAccountIsRefusedForADraft(_ account: String) async throws {
+        let persistence = InMemoryDraftPersistence()
+        let store = DraftStore(persistence: persistence)
+        await #expect(throws: DraftError.emptyAccount) { try await store.save("x", for: .legacyGlobal, account: account) }
+        await #expect(throws: DraftError.emptyAccount) {
+            try await store.archiveReply("x", topic: Self.cuisine, source: .quickReply, account: account)
+        }
+        try await store.save("", for: .legacyGlobal, account: account)
+        #expect(await store.accountKeys().isEmpty)
+    }
 
     @Test(arguments: ["", "\u{200B}"])
     func anEmptyAccountIsRefusedForABlocklist(_ account: String) async {

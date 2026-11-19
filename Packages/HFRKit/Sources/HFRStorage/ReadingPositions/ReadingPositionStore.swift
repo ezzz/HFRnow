@@ -223,8 +223,8 @@ public actor ReadingPositionStore {
     }
 
     /// The document with its accounts under their key (#1184). Files written before stored positions under the spelling the
-    /// reader used: the spellings of one key are merged, per topic the position that `wins`, nothing dropped (the next write
-    /// applies the limit). A document already keyed is returned as it is.
+    /// reader used: the spellings of one key are merged, per topic the position that `wins`, nothing dropped (the limit is
+    /// applied by the next `advance`, `reset` or `merge` of that account). A document already keyed is returned as it is.
     static func keyedByAccount(_ document: ReadingPositionDocument) -> ReadingPositionDocument {
         guard document.accounts.keys.contains(where: { AccountKey.make($0) != $0 }) else { return document }
         var keyed = document

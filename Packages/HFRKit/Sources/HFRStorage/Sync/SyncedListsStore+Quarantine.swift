@@ -50,7 +50,7 @@ extension SyncedListsStore {
         stale[slot.rawValue] = stale[slot.rawValue] ?? previous
     }
 
-    /// The account keys (lists), the accounts as stored (positions) or the single allowlist a store holds.
+    /// The account keys (lists and positions, #1184) or the single allowlist a store holds.
     func listNames(_ slot: Slot) async -> [String] {
         switch slot {
         case .allowlist: [""]
@@ -61,7 +61,7 @@ extension SyncedListsStore {
         }
     }
 
-    /// The quarantine key of one list: the cloud key's form, with the stored account for positions.
+    /// The quarantine key of one list: the cloud key's form, with the account key.
     func slotKey(_ slot: Slot, name: String) -> String {
         slot.isGlobal ? slot.rawValue : "\(slot.rawValue).\(name)"
     }

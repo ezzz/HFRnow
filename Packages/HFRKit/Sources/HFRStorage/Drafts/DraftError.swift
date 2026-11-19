@@ -4,4 +4,6 @@ public enum DraftError: Error, Sendable, Equatable {
     case loadFailed(reason: String)
     /// The drafts could not be persisted; memory was left unchanged.
     case saveFailed(reason: String)
+    /// The account's key (`AccountKey`) is empty: a draft belongs to an account (#1184). Nothing was stored.
+    case emptyAccount
 }

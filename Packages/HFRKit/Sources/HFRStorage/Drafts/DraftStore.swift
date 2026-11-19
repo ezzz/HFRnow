@@ -88,6 +88,8 @@ public actor DraftStore {
         let now = clock()
         let key = AccountKey.make(account)
         let hasContent = !text.isEmpty || !(subject ?? "").isEmpty
+        // Removing (empty text) stays possible under any key; storing needs an account (#1184).
+        if hasContent, key.isEmpty { throw DraftError.emptyAccount }
         try mutate { drafts in
             let original = drafts
             drafts.removeAll { Self.matches($0, context, account) }

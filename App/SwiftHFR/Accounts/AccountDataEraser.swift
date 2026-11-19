@@ -60,7 +60,7 @@ struct AccountDataEraser: Sendable {
     func accountKeys() async -> Set<String> {
         var keys = await drafts.accountKeys()
         keys.formUnion(await pseudoLists.blocklistAccountKeys())
-        // Positions are stored under the account's spelling, not its key.
+        // Positions are keyed by the account key since #1184; `AccountKey.make` keeps older listings safe.
         keys.formUnion(await positions.accounts().map(AccountKey.make))
         keys.formUnion(await superFavorites.accountKeys())
         keys.formUnion(await smileyFavorites.accountKeys())
