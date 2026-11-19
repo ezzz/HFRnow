@@ -35,6 +35,23 @@ struct SmileyPickerModelTests {
         ForumSmiley(code: code, url: url(Self.base + "forum.gif"))
     }
 
+    /// #1182: favourites from a newer build cannot be read; their section says so and, once the member confirmed, the store
+    /// is set aside and a favourite can be added again.
+    @Test func unreadableFavouritesCanBeDiscardedAndWrittenAgain() async {
+        let persistence = InMemorySmallStorePersistence(
+            AppSmileyFavoritesDocument(version: AppSmileyFavoritesDocument.currentVersion + 1)
+        )
+        let model = picker(store: AppSmileyFavoritesStore(persistence: persistence))
+        await model.loadFavorites()
+        #expect(model.favoritesAreUnreadable)
+        #expect(model.sections.last?.state == .failed(SmileyPickerModel.unreadableFavoritesText))
+        await model.discardUnreadableFavorites()
+        #expect(!model.favoritesAreUnreadable)
+        await model.setFavorite(favorite("[:fav]"), true)
+        #expect(model.favorites.map(\.code) == ["[:fav]"])
+        #expect(persistence.document?.accounts.isEmpty == false)
+    }
+
     @Test func theBasicPaletteHoldsTheEditorSmileysInCatalogueOrder() {
         #expect(picker().basic.map(\.code) == [":)", ":o"])
     }

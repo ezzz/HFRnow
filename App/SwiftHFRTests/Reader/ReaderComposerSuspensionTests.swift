@@ -39,19 +39,6 @@ struct ReaderComposerSuspensionTests: ReaderWebTesting {
         #expect(!model.suspendsPageInteractions)
     }
 
-    /// Operator's device feedback of 2026-11-16 on #820: the pull is off under a composer, so its hint is too; it is back at close.
-    @Test func theEndOfPageHintFollowsTheComposer() async {
-        let model = await reader()
-        #expect(model.offersPullHint)
-        model.composer(.reply, isOpen: true)
-        #expect(!model.offersPullHint, "docked or sheet, the pull does nothing")
-        model.composer(.edit, isOpen: true)
-        model.composer(.reply, isOpen: false)
-        #expect(!model.offersPullHint, "the edit composer is still open")
-        model.composer(.edit, isOpen: false)
-        #expect(model.offersPullHint)
-    }
-
     @Test func underAnOpenComposerNoLinkNavigatesAndNoPageLoads() async {
         let pages = FakeTopicPages { target in readerPage(page: target.page) }
         let model = await reader(pages)
@@ -150,7 +137,19 @@ struct ReaderComposerSuspensionTests: ReaderWebTesting {
         #expect(positions == [7], "scrolling still records the reading position")
         #expect(controller.linkMenuEntries(for: url("https://example.com/page")).isEmpty)
         #expect(controller.linkMenuConfiguration(for: url("https://example.com/page")) != nil, "ours, never WebKit's")
+        controller.show(shown)
+        var scales: [[CGFloat]] = []
+        var pulled: [PullEdge] = []
+        controller.events.pullProgress = { top, bottom, _ in scales.append([top, bottom]) }
+        controller.events.pulled = { edge, _ in pulled.append(edge) }
+        controller.pullProgressChanged(top: 0.5, bottom: 0.75)
+        controller.pulledPastEnd(.bottom)
+        #expect(scales == [[0, 0]], "no pull icon under the composer")
+        #expect(pulled.isEmpty, "no pull refresh under the composer")
         controller.ignoresPageTaps = false
+        controller.pullProgressChanged(top: 0.5, bottom: 0.75)
+        controller.pulledPastEnd(.top)
+        #expect(scales.last == [0.5, 0.75] && pulled == [.top], "and both again at the close")
         _ = controller.handle(.menu(post: 7, source: .message, anchor: nil), in: shown)
         controller.route(link: url("https://example.com/page"))
         #expect(menus == [7])

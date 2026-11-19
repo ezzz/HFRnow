@@ -24,6 +24,8 @@ final class ImageUploadModel {
     private(set) var errorMessage: String?
     /// The history could not be read or written; uploads stay usable.
     private(set) var historyWarning: String?
+    /// The stored history cannot be read: « Repartir de zéro » is offered (#1182).
+    private(set) var historyIsUnreadable = false
     /// Uploaded images, newest first.
     private(set) var history: [RehostedImage] = []
     /// A picked image waits for the notice: nothing is prepared or sent until it is accepted.
@@ -77,9 +79,24 @@ final class ImageUploadModel {
         let known = Set(history.map(\.id))
         history += stored.images.filter { !known.contains($0.id) }
         history.sort { $0.uploadedAt > $1.uploadedAt }
+        historyIsUnreadable = stored.isUnreadable
         if stored.isUnreadable {
             historyWarning = "L'historique des images est illisible : les nouvelles images ne seront pas enregistrées."
         }
+    }
+
+    /// « Repartir de zéro », after the member confirmed (#1182): the unreadable history is set aside as `.corrupt` (never
+    /// deleted); the images of this session stay listed, and the next uploads are remembered again.
+    func discardUnreadableHistory() async {
+        do {
+            try await services.history.discardUnreadable()
+        } catch {
+            historyWarning = UnreadableDataRecovery.failure
+            return
+        }
+        historyWarning = nil
+        didLoad = false
+        await load()
     }
 
     /// A picked image: asks the notice first if it was never accepted, else uploads. Nothing leaves before the notice.

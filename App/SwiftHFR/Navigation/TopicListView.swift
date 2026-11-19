@@ -71,11 +71,18 @@ struct TopicListView: View {
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
-            if let problem = model.favorites?.storeProblem {
-                Label(problem, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if let favorites = model.favorites, let problem = favorites.storeProblem {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                    if favorites.canDiscardUnreadable {
+                        UnreadableDataRecoveryButton(content: "les sections repliées et les super-favoris") {
+                            await favorites.discardUnreadable()
+                        }
+                    }
+                }
+                .font(.footnote)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .safeAreaInset(edge: .top) {
@@ -113,7 +120,7 @@ struct TopicListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .refreshable { await model.refresh() }
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })

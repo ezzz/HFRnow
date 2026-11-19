@@ -64,7 +64,7 @@ extension ComposerChrome {
 
 extension ReplyComposerModel {
     /// A banner or the recipient and subject fields sit between the composer's top bar and its text card (#895).
-    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || hasSubjectField }
+    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || draftsNotice != nil || hasSubjectField }
 }
 
 /// The round chip behind each of the text card's tools (#895 D, operator 2026-11-14; device check of 2026-11-16 kept the chips, the

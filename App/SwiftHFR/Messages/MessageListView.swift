@@ -74,7 +74,7 @@ struct MessageListView: View {
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }
             }
         }
-        .refreshable { await model.refresh() }
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task { await model.onAppear() }
         // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
         .task { await model.mpStorage?.start() }
