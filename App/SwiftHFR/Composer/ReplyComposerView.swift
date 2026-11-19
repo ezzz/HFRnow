@@ -194,6 +194,7 @@ struct ReplyComposerView: View {
     private var editorCard: some View {
         ComposerEditorCard(
             model: model, formatting: formatting, selection: $selection, focused: $focused, chips: model.shownImageChips,
+            thumbnails: imageUpload.thumbnails,
             editorHeight: height == .partial ? measured.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
             onToggle: { chosenHeight = height.toggled }, removeChip: removeImage,
             measure: { text, line in measured.text = text; measured.line = line },

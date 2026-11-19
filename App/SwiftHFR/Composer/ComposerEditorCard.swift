@@ -14,6 +14,8 @@ struct ComposerEditorCard: View {
     let focused: FocusState<ComposerField?>.Binding
     /// The chips of the images still in the text.
     let chips: [ComposerImageChip]
+    /// The image panel's thumbnail loader, shared with its history (#1193).
+    let thumbnails: SmileyImageLoader
     /// The editor's height at partial height (`ComposerCardLayout.editorHeight`); nil fills the sheet (full height).
     let editorHeight: CGFloat?
     /// The toggle's target, nil where the composer has no toggle (an iPad, compact height).
@@ -33,7 +35,7 @@ struct ComposerEditorCard: View {
         VStack(spacing: 0) {
             if !chips.isEmpty {
                 ComposerImageChipsRow(
-                    chips: chips, thumbnails: model.imageUploadServices.thumbnails(), isEnabled: model.canEdit, remove: removeChip
+                    chips: chips, thumbnails: thumbnails, isEnabled: model.canEdit, remove: removeChip
                 )
                     .frame(height: ComposerImageChipsRow.height)
             }
