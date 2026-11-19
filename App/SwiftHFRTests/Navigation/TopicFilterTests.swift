@@ -132,7 +132,7 @@ struct TopicFilterTests {
         let filter = TopicFilterModel(settings: InMemorySettingsStore([SettingKey.topicListFlag.key: .int(2)]))
         let list = model(fake: fake, filter: filter)
         await list.loadIfNeeded()
-        // Legacy `topicHasFlag`: with a filter on, every row is a flagged one (`MainWindow.swift:444-449`).
+        // Legacy `topicHasFlag`: with a filter on, every row is a flagged one (`MainWindow.swift:444-449` @ 2440d79).
         #expect(list.hasFlag(topicSummary(10)))
         let plain = model(fake: fake, filter: nil)
         await plain.loadIfNeeded()
