@@ -8,6 +8,13 @@ struct ComposerBarMetrics: Equatable {
     /// The Dynamic Type factor (`@ScaledMetric` of 1 relative to the body style).
     var dynamicType: CGFloat = 1
 
+    /// These metrics with the text size's growth (Dynamic Type times the app's text scale) held to at most `factor`.
+    func capped(at factor: CGFloat) -> ComposerBarMetrics {
+        var metrics = self
+        metrics.dynamicType = min(dynamicType, factor / max(scale.factor, 0.01))
+        return metrics
+    }
+
     /// Height and minimum width of one cell.
     var cellSize: CGFloat { (density == .compact ? 40 : 48) * dynamicType * scale.factor }
     /// Diameter of a colour swatch: half the cell, as the legacy 24 pt in a 48 pt cell.
