@@ -66,7 +66,7 @@ public actor DraftStore {
         return nil
     }
 
-    /// Whether the last load found undecodable data and moved it aside to `.corrupt`.
+    /// Whether the last load found undecodable data, or entries it could not read (#1183), and set it aside to `.corrupt`.
     public func didRecoverFromCorruptData() -> Bool {
         _ = loadedState()
         return recoveredCorruptData
@@ -173,6 +173,8 @@ public actor DraftStore {
             let stored = try persistence.load() ?? DraftDocument()
             if stored.version > DraftDocument.currentVersion {
                 state = quarantine(reason: "newer format version \(stored.version)")
+            } else if stored.unreadableEntryCount > 0 {
+                state = setAsideUnreadableEntries(of: stored)
             } else {
                 state = .loaded(stored)
             }
@@ -182,6 +184,22 @@ public actor DraftStore {
             state = .failed(.loadFailed(reason: String(describing: error)))
         }
         return state
+    }
+
+    /// Some entries cannot be read (#1183): the file as it was is copied aside (`.corrupt`, never deleted), then the readable
+    /// drafts are written back, so the next load is clean and the others are kept. If either step fails, writes stay blocked
+    /// as for an I/O failure: a save must never drop entries that were not set aside.
+    private func setAsideUnreadableEntries(of stored: DraftDocument) -> State {
+        var readable = stored
+        readable.unreadableEntryCount = 0
+        do {
+            try persistence.backUpUnreadableData()
+            try persistence.save(readable)
+        } catch {
+            return .failed(.loadFailed(reason: "unreadable entries could not be set aside: \(error)"))
+        }
+        recoveredCorruptData = true
+        return .loaded(readable)
     }
 
     private func quarantine(reason: String) -> State {
