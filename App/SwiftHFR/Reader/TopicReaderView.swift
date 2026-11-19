@@ -384,10 +384,9 @@ extension TopicReaderView {
             ?? BookmarkActionModel(mpStorage: services.isSavedCopy ? nil : mpStorage, confirm: confirm)
         self.bookmarks = bookmarks
         handlers.append(bookmarks.handler)
-        // Nothing for a saved copy (no account behind it) or without an AQ address.
         qualityAlerts = QualityAlertActionModel.reusing(
-            qualityAlerts, services: services.isSavedCopy ? nil : services.qualityAlerts, page: { [weak model] in model?.page?.title },
-            confirm: confirm
+            qualityAlerts, services: services.isSavedCopy ? nil : services.qualityAlerts,
+            page: { [weak model] in model?.page?.title }, confirm: confirm
         )
         if let qualityAlerts { handlers.append(qualityAlerts.handler) }
         if let composer {

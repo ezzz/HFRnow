@@ -95,7 +95,7 @@ private struct QualityAlertTitleSheet: View {
 
 extension QualityAlertActionModel {
     /// The model for an appearance's install: the one in progress when a question is open, else a fresh one over the current
-    /// services; nil without services.
+    /// services; nil without services (the caller passes none for a saved copy: no account behind it).
     static func reusing(
         _ current: QualityAlertActionModel?, services: QualityAlertServices?, page title: @escaping @MainActor () -> String?,
         confirm: @escaping @MainActor (String) -> Void
