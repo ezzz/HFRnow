@@ -29,10 +29,8 @@ struct ComposerHeader: View {
 
     /// The size of the bar's close, drafts and send buttons: the card tools' (#1126), one source for both rows, up to
     /// `maxScaleFactor`. `inCard` is the chrome's `controlsInCard`: the bar then agrees with the row it sits over.
-    static func buttonSize(
-        metrics: ComposerBarMetrics, inCard: Bool, style: ComposerToolStyle = .current
-    ) -> ComposerToolSize {
-        ComposerToolSize(metrics: metrics.capped(at: maxScaleFactor), inCard: inCard, style: style)
+    static func buttonSize(metrics: ComposerBarMetrics, inCard: Bool) -> ComposerToolSize {
+        ComposerToolSize(metrics: metrics.capped(at: maxScaleFactor), inCard: inCard)
     }
 
     /// What the bar's sides and the gaps between its buttons take: the floating row has the gap on each side, legacy's bar its

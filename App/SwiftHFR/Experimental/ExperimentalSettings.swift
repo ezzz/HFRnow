@@ -17,15 +17,14 @@ final class ExperimentalSettings {
         stored = Dictionary(uniqueKeysWithValues: ExperimentalFeature.allCases.map { ($0, store.value(for: $0.setting)) })
     }
 
-    /// Whether `feature` is on: its stored value when it is listed, its default otherwise (a hidden option never runs).
+    /// Whether `feature` is on: its stored value, its default when nothing is stored.
     func isOn(_ feature: ExperimentalFeature) -> Bool {
-        guard feature.isListed else { return feature.setting.defaultValue }
-        return stored[feature] ?? feature.setting.defaultValue
+        stored[feature] ?? feature.setting.defaultValue
     }
 
-    /// Turns `feature` on or off; a hidden option cannot be changed.
+    /// Turns `feature` on or off.
     func set(_ feature: ExperimentalFeature, isOn: Bool) {
-        guard feature.isListed, stored[feature] != isOn else { return }
+        guard stored[feature] != isOn else { return }
         stored[feature] = isOn
         // EXPERIMENTAL(imageLoadingChoice, #1003): the option's first activation starts its choice at « Toujours ». Before the
         // switch is written: the reader reads both off the main actor and must never see the option on with a stale choice.

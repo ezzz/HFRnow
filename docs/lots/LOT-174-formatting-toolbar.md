@@ -121,7 +121,7 @@ inside the card above the text, the two pills just under the editor so they move
   100 %) the slack is wider than the gap and is kept. After a banner or the recipient and subject fields, the gap is above the
   card too (`ComposerChrome.gapAboveCard`). The floating buttons' glyphs take the card tools' size and weight
   (`ComposerBarMetrics.glyphSize`), and the card's tools and its "Aa" bar keep 44 pt cells at the compact density. Variant D (each tool in a round
-  chip, `ComposerToolStyle`) is the one the build shows until the operator chooses on the device. Legacy's chrome (an iPad, or the
+  chip, `ComposerChip`) is the one the build shows: the operator's device check of 2026-11-16 kept it (#895) and the bare-glyph variant was deleted (#1196). Legacy's chrome (an iPad, or the
   option off) keeps its paddings.
 - **Image chips.** An image the panel uploaded and inserted shows as a 56 pt thumbnail (the host's mini rendition, as the panel's
   history) at the top of the card, with an ✕ ("Retirer l'image"). The snippet stays in the text where legacy puts it (at the caret,
