@@ -13,6 +13,8 @@ struct GifPickerView: View {
     let onInsert: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var isAskingNotice = false
+    /// The GIF the confirmation shows, kept while it pops after « Retour » cleared the selection.
+    @State private var confirmed: GiphyGIF?
     @FocusState private var searchFocused: Bool
 
     private let columns = [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 6)]
@@ -35,14 +37,16 @@ struct GifPickerView: View {
                 // Pushed, not a third sheet over the composer (#1177; HIG › Sheets: one sheet at a time): back returns to
                 // the grid.
                 .navigationDestination(isPresented: isConfirming) {
-                    if let gif = model.selected {
+                    if let gif = model.selected ?? confirmed {
                         GifConfirmationView(model: model, gif: gif) { snippet in
                             onInsert(snippet)
                             model.selected = nil
                             dismiss()
                         }
+                        .appScreenBackground()
                     }
                 }
+                .onChange(of: model.selected?.id) { _, id in if id != nil { confirmed = model.selected } }
         }
         .presentationDetents([.large])
         .task {

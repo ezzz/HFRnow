@@ -68,6 +68,9 @@ struct SmileyPickerView: View {
                 SmileyDetailView(model: model, smiley: smiley, requireAll: requireAll)
                     .navigationTitle(smiley.code)
                     .navigationBarTitleDisplayMode(.inline)
+                    .appScreenBackground()
+                    // The favourite's notice (« Erreur :/ » included) shows over the detail too: the root's is covered.
+                    .overlay(alignment: .top) { noticeBanner }
             }
         }
         .presentationDetents([.large])
