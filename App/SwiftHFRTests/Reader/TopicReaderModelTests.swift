@@ -267,7 +267,7 @@ extension TopicReaderModelTests {
         #expect(reader.action(forLink: url("mailto:someone@example.com"), defaultBrowser: true) == .ignored)
     }
 
-    /// A private conversation linked from a public topic is known as one, so the view gives it no composer (LOT-128).
+    /// A private conversation linked from a public topic is known as one (what it offers: `LinkedPrivateConversationTests`).
     @Test func aPrivateConversationLinkIsKnownAsOne() throws {
         let reader = model(FakeTopicPages())
         #expect(!reader.isPrivateConversation)
