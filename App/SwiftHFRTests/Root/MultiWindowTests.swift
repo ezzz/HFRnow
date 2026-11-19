@@ -68,6 +68,14 @@ struct MultiWindowTests {
         #expect(log.entries.filter { $0 == "restore" }.count == 1)
     }
 
+    /// #1172: the prompt answers the account change before its legacy import step, so it never lands over the import summary.
+    @Test func theNotificationPromptComesBeforeTheAccountsImportStep() async {
+        let log = Log()
+        let lifecycle = AppLifecycle(steps: log.steps())
+        await lifecycle.currentAccountChanged(to: "a")
+        #expect(log.entries == ["ask:a", "importForAccount"])
+    }
+
     @Test func everyWindowSeeingAChangeRunsItsReactionOnce() async {
         let log = Log()
         let lifecycle = AppLifecycle(steps: log.steps())
