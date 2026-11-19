@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // Port of HFRswift/Swift/AnswerView.swift (AnswerView, reply mode; new topic: sub-category `Picker`, :395-420, GAP-098; edit mode,
 // GAP-096) @ 2440d79; the "Brouillons" button (LOT-101, GAP-093) is `AnswerView.swift:783-796` @ 87fe0d1c.
@@ -62,6 +63,8 @@ struct ReplyComposerView: View {
     @State private var isShowingArchive = false
     /// The docked card's parts as last laid out (#653).
     @State private var measured = ComposerCardLayout()
+    /// The keyboard's height over the window, from its notifications: the card's room is what it leaves (#1136).
+    @State private var keyboardHeight: CGFloat = 0
     /// Réglages › Expérimental (#903); nil keeps each option's default (hosted tests, previews).
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
 
@@ -147,6 +150,12 @@ struct ReplyComposerView: View {
         }
         .task { await model.loadSubcategories() }
         .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
+        // The card grows with the text up to the room the screen leaves (#1136): the window, the keyboard and one line's height.
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            keyboardHeight = ComposerScreen.keyboardHeight(note)
+            updateRoom()
+        }
+        .onChange(of: measured.line, initial: true) { updateRoom() }
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
@@ -279,6 +288,15 @@ extension ReplyComposerView {
 
     /// The modern composer's lighter chrome: the controls in the card, floating buttons (#854).
     private var chrome: ComposerChrome { ComposerChrome(isPhone: usesModernComposer) }
+
+    /// The tallest card the screen allows now (`ComposerCardLayout.room`), for the modern chrome's partial height only.
+    private func updateRoom() {
+        guard chrome == .docked, measured.line > 0, let window = ComposerScreen.window else { return }
+        let room = ComposerCardLayout.room(
+            window: window.height, topInset: window.topInset, keyboard: keyboardHeight, line: measured.line
+        )
+        if measured.availableHeight != room { measured.availableHeight = room }
+    }
 
     /// The controls, their height measured for the docked card (`ComposerCardLayout.controls`).
     private var measuredControls: some View {
