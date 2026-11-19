@@ -5,7 +5,8 @@ import Testing
 import UIKit
 
 /// The app root's theme (LOT-121) in a real window: a manual theme overrides iOS for every view below the root (the reader's
-/// web view reads the same trait), and going back to "Automatique (iOS)" follows iOS again without a relaunch.
+/// web view reads the same trait), and going back to « Système » (the tile; "Automatique (iOS)" before #1213) follows iOS again
+/// without a relaunch.
 @MainActor
 @Suite(.serialized)
 struct AppThemeTests {

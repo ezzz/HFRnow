@@ -66,12 +66,17 @@ struct ThemeAppearanceTests {
         #expect(script.hasPrefix("(() => { const s = document.documentElement.style; "))
         #expect(script.hasSuffix(" })();"))
         #expect(script.contains("s.setProperty('--app-action-light', 'rgb(89, 227, 255)');"))
-        // Nothing but the six setters and Legacy's fixed attribute removal (LOT-188) between the prefix and the closing: no page
-        // text can reach it.
+        // Nothing but the six setters, the four fixed removals of « Blanc »'s light variables (#1213, a live switch back from
+        // « Doux ») and Legacy's fixed attribute removal (LOT-188) between the prefix and the closing: no page text can reach it.
         #expect(script.hasSuffix(" document.documentElement.removeAttribute('data-app-theme'); })();"))
-        let setters = script.split(separator: ";").dropFirst().dropLast(2)
+        let statements = script.split(separator: ";").dropFirst().dropLast(2)
+        let setters = statements.filter { $0.contains("s.setProperty(") }
+        let removals = statements.filter { $0.contains("s.removeProperty(") }
         #expect(setters.count == 6)
         #expect(setters.allSatisfy { $0.contains("s.setProperty('--app-") && $0.contains("'rgb(") })
+        #expect(removals.count == 4)
+        #expect(removals.allSatisfy { $0.contains("s.removeProperty('--app-light-") })
+        #expect(setters.count + removals.count == statements.count)
     }
 
     @Test @MainActor func theNativeAccentFollowsTheVariant() {

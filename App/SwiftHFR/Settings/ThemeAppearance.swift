@@ -17,6 +17,8 @@ struct ThemeAppearance: Equatable, Sendable {
     var darkBrightness: Double
     /// How dark the dark surfaces are (`theme_dark_style`, LOT-122); the brightness multiplier applies on top of it.
     var darkStyle = DarkStyle.standard
+    /// How the light surfaces look (`theme_light_style`, #1213): « Blanc » is today's look and sends nothing new; « Doux » is warm.
+    var lightStyle = LightStyle.blanc
     /// The colours of the gallery's theme (LOT-188), or nil for Legacy: the values above, today's app, untouched. A theme's
     /// tokens replace the accent, the screen background and the reader's palette; the hue, style and brightness above then only
     /// feed what the theme does not define (the reader's `--app-dark-*` surfaces, which its own palette covers).
@@ -120,11 +122,15 @@ struct ThemeAppearance: Equatable, Sendable {
         case darkOnly(ThemeColor)
         /// A theme's `background`, in both appearances (a dynamic colour).
         case theme(light: ThemeRGB, dark: ThemeRGB)
+        /// Legacy's « Doux » light style (#1213): this colour in light, and in dark the dark style's (nil: the system's, which is
+        /// black in dark, as the standard style leaves it). Painted in both appearances with one dynamic colour, like a theme's.
+        case softLight(light: ThemeColor, dark: ThemeColor?)
     }
 
     /// The screen fill of the current theme and style.
     var screenFill: ScreenFill {
         if let themeVariants { return .theme(light: themeVariants.light.background, dark: themeVariants.dark.background) }
+        if let light = lightScreenBackground { return .softLight(light: light, dark: darkScreenBackground) }
         return darkScreenBackground.map(ScreenFill.darkOnly) ?? .system
     }
 
@@ -143,6 +149,7 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerVariables: [(name: String, value: String)] {
         [("--app-action-light", dayAccent.cssRGB), ("--app-action-dark", nightAccent.cssRGB)]
             + readerSurfaces.map { ($0.variable, $0.color.cssRGB) }
+            + lightSurfaces.map { ($0.variable, $0.color.cssRGB) }
             + readerThemeVariables
     }
 
@@ -183,7 +190,8 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerBackground: UIColor {
         if let surface = themeColor(\.surface) { return surface }
         let dark = readerSurfaces.first { $0.variable == "--app-dark-background" }?.color.uiColor ?? .black
-        return UIColor { $0.userInterfaceStyle == .dark ? dark : UIColor.systemBackground.resolvedColor(with: $0) }
+        let light = lightScreenBackground?.uiColor
+        return UIColor { $0.userInterfaceStyle == .dark ? dark : (light ?? UIColor.systemBackground.resolvedColor(with: $0)) }
     }
 
     /// The dark theme's text and secondary text (`reader.css` dark palette), which the contrast checks and the settings preview use.
@@ -208,6 +216,8 @@ struct ThemeAppearance: Equatable, Sendable {
     var readerScript: String {
         // Inside a function: the reader's world is shared by every user script, so nothing is declared at its top level.
         let lines = readerVariables.map { "s.setProperty('\($0.name)', '\($0.value)');" }
+            // « Blanc » takes Doux's variables back off the page (a live switch back); their fallbacks are today's light look.
+            + (lightStyle == .blanc ? Self.lightVariableNames.map { "s.removeProperty('\($0)');" } : [])
         guard themeVariants != nil else {
             let flag = "document.documentElement.removeAttribute('data-app-theme');"
             return (["(() => { const s = document.documentElement.style;"] + lines + [flag, "})();"]).joined(separator: " ")

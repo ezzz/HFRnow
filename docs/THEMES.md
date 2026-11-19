@@ -6,7 +6,7 @@ Source: the operator's requests of 2026-10-28 and the decisions taken that day. 
 
 ## 1. What the user sees
 
-- **Réglages › Thème** keeps its shipped pickers (« Thème » Automatique (iOS) / Clair / Sombre, « Teinte d'accent », « Style du thème sombre », « Luminosité du thème sombre »; the last three are Legacy's and show while Legacy is the theme) and adds a **gallery** below them ([LOT-188](lots/LOT-188-theme-engine.md); [LOT-180](lots/LOT-180-single-accent.md) moves it into a « Thème » sub-menu with a light and dark preview per theme):
+- **Réglages › Thème** keeps its shipped controls (« Thème » as three image tiles Clair / Sombre / Système since #1213, « Teinte d'accent », « Style du thème clair » (Blanc / Doux, #1213), « Style du thème sombre », « Luminosité du thème sombre »; all but the tiles are Legacy's and show while Legacy is the theme, the style and brightness controls following the tile: Clair shows the light style, Sombre the dark style and brightness, Système both) and adds a **gallery** below them ([LOT-188](lots/LOT-188-theme-engine.md); [LOT-180](lots/LOT-180-single-accent.md) moves it into a « Thème » sub-menu with a light and dark preview per theme):
   - themes grouped by **family** (Classiques, Rétro, OG Web, and a seasonal family only inside its window, §5);
   - each row: a light and a dark swatch (one swatch and *clair = sombre* for a single-variant theme), the name, *par &lt;auteur&gt;*, a check mark on the active theme;
   - toggles « Thèmes de saison automatiques » and « Animations de saison » (both on by default, §4–§5);
