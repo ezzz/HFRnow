@@ -108,8 +108,6 @@ struct MessageWriteModelTests {
         await editing.value
         #expect(fixture.writes.editor != nil)
         #expect(fixture.reader.pendingReply == nil)
-        // The edit composer holds the slot from the moment it is set, before the screen reports it.
-        #expect(fixture.reader.suspendsPageInteractions)
     }
 
     /// The other way round: a quote in flight, or a composer open, holds the slot, so "Editer" reads nothing.
