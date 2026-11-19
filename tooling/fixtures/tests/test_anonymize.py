@@ -491,7 +491,6 @@ class MPStorageTests(unittest.TestCase):
             ("quote block", '<div style="clear: both;"> </div></p><div class="container"><table class="citation">'
                             '<tr><td>secret words</td></tr></table></div>'),
             ("text after the clear div", '<div style="clear: both;"> </div>secret words</p>'),
-            ("signature", '<div style="clear: both;"> </div></p><span class="signature">secret words</span>'),
             ("markup in the edited div", '<div style="clear: both;"> </div></p><div class="edited"><b>secret words</b></div>'),
             ("free text in the edited div", '<div style="clear: both;"> </div></p><div class="edited">secret words</div>'),
             ("text after the paragraph", '<div style="clear: both;"> </div></p>secret words'),
@@ -543,6 +542,100 @@ class MPStorageTests(unittest.TestCase):
         doc = self.RICH.replace('"lastUpdate":1700000000008', '"lastUpdate":1700000008')
         out = anon(storage_page(doc), private=True)
         self.assertIn("1700000008", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    LINK = ('<a href="/forum2.php?config=hfr.inc&amp;cat=13&amp;subcat=433&amp;post=28563&amp;page=1&amp;p=1&amp;'
+            'sondage=&amp;owntopic=&amp;trash=&amp;trash_post=&amp;print=&amp;numreponse=2666649&amp;quote_only=1&amp;'
+            'new=0&amp;nojs=0" class="cLink" rel="nofollow">')
+    NOTICE = "Message &eacute;dit&eacute; par Quuxbar le 11-11-2018&nbsp;&agrave;&nbsp;18:24:51"
+
+    def edited(self, link=None, notice=None):
+        return ('<div class="edited">%sMessage cit&eacute; 11 fois</a><br />%s</div>'
+                % (link or self.LINK, notice or self.NOTICE))
+
+    def with_tail(self, tail):
+        return storage_page(self.RICH).replace(self.TAIL, '<div style="clear: both;"> </div></p>' + tail, 1)
+
+    def in_cell(self, tail):
+        quoted = self.RICH.replace('"', "&#034;")
+        return self.form_page(self.RICH, self.RICH).replace(
+            '%s<div style="clear: both;"> </div></td>' % quoted,
+            '%s<div style="clear: both;"> </div>%s</td>' % (quoted, tail), 1)
+
+    def test_real_link_and_notice_shapes_are_accepted(self):
+        for tail in (self.edited(), self.edited(notice=self.NOTICE.replace("&nbsp;", "&#160;")),
+                     self.edited().replace("<br />Message", "<BR>Message").replace("&nbsp;", " ")):
+            out = anon(self.with_tail(tail), private=True)
+            self.assertNotIn("Quuxbar", out)
+            self.assertEqual(leaks(out, private=True), [], tail)
+
+    def test_markup_in_the_paragraph_is_an_anomaly_for_the_verifier(self):
+        # Review round 3, finding 1: the redactor never writes markup inside the paragraph.
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        for junk in ('<span title="plonk words"></span>', "<!-- plonk words -->", "<b></b>"):
+            self.assertIn("private message body not replaced", self.reasons(out.replace("<p>", "<p>" + junk, 1)), junk)
+            self.assertIn("private message body not replaced",
+                          self.reasons(out.replace('<div style="clear', junk + '<div style="clear', 1)), junk)
+
+    def test_markup_inside_the_document_is_dropped_by_the_redactor(self):
+        page = storage_page(self.RICH).replace(
+            "salut", 'salut <img src="/s/o.gif" alt=":o" title="plonk words" />')
+        self.assertIn("plonk", page)
+        out = anon(page, private=True)
+        self.assertNotIn("plonk", out)
+        self.assertNotIn("<img", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_attributes_are_pinned_on_both_sides(self):
+        # Finding 2: only a bare <p> and HFR's real link (known query names, numeric or empty values).
+        bad_links = (
+            self.LINK.replace('class="cLink"', 'class="cLink" data-x="plonk words"'),
+            self.LINK.replace('href="/forum2.php', 'href="https://x.example/plonk-words'),
+            self.LINK.replace("config=hfr.inc", "config=hfr.inc&amp;plonk=words"),
+            self.LINK.replace("cat=13", "cat=plonk"),
+            self.LINK.replace('rel="nofollow"', 'rel="nofollow" title="plonk words"'),
+            self.LINK.replace("&amp;nojs=0", "&amp;nojs=plonk"),
+        )
+        pages = [self.with_tail(self.edited(link=link)) for link in bad_links]
+        pages.append(storage_page(self.RICH).replace("<p>", '<p title="plonk words">', 1))
+        for page in pages:
+            self.assertIn("plonk", page)
+            with self.assertRaises(A.MPStorageDocumentError):
+                anon(page, private=True)
+            self.assertIn("private message body not replaced", self.reasons(page))
+        for link in bad_links:
+            cell = self.in_cell(self.edited(link=link))
+            with self.assertRaises(A.MPStorageDocumentError):
+                anon(cell, private=True)
+            self.assertIn("MPStorage document copy not vouched for", self.reasons(cell))
+
+    def test_the_notice_pseudo_is_not_greedy(self):
+        # Finding 3: `par Quuxbar le 01-01-2000 à 00:00:00 plonk words Qux le 11-11-2018 à …` hid text inside the name.
+        notice = ("Message &eacute;dit&eacute; par Quuxbar le 01-01-2000 &agrave; 00:00:00 plonk words Qux le "
+                  "11-11-2018 &agrave; 18:24:51")
+        page = self.with_tail(self.edited(notice=notice))
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        self.assertIn("private message body not replaced", self.reasons(page))
+
+    def test_signature_after_the_trailer_is_replaced_by_the_placeholder(self):
+        # Finding 4: legacy posts with signature=1 (MPStorage.m:798), so the capturing account's signature follows.
+        sig = ('<span class="signature">---------------<br />plonk words Quuxbar'
+               '<div style="clear: both;"> </div></span>')
+        for tail in (self.edited() + sig, sig):
+            page = self.with_tail(tail)
+            self.assertIn("private message body not replaced", self.reasons(page))
+            out = anon(page, private=True)
+            self.assertNotIn("plonk", out)
+            self.assertIn(A.SIGNATURE_PLACEHOLDER, out)
+            self.assertEqual(leaks(out, private=True), [])
+        # (a review cell has no HFR element after it in this synthetic form, so only the redaction is checked)
+        self.assertNotIn("plonk", anon(self.in_cell(sig), private=True))
+
+    def test_blank_entities_after_the_paragraph_agree_on_both_sides(self):
+        # Finding 5: `&#160;` was accepted by the redactor and rejected by the verifier.
+        out = anon(self.with_tail("&#160;" + self.edited() + "&nbsp;"), private=True)
         self.assertEqual(leaks(out, private=True), [])
 
     def test_values_that_look_like_aliases_are_not_kept(self):

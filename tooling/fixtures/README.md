@@ -159,9 +159,13 @@ as the `\u00a0` escape: the parser removes raw ones) or non-BMP mark of its orig
 alias (`user77`, an id of 9100NN): a document is aliased from its original, not re-trusted. Bytes outside the rewritten
 strings, keys and numbers are kept in `content_form`; **a rendered copy** (post `<p>`, review cell) is re-encoded from its
 tag-stripped text, so markup inside the document and the document's length are lost (aliases are shorter): state that in
-the MANIFEST row, a fixture of a document near 64 KiB or of rendered smileys needs another route. After the document's `<p>` only HFR's own trailer is accepted, on both sides (the clear div, `</p>`, and `div.edited` holding
-a link, `<br />` and the "Message cité N fois" / "Message édité par X le ..." notice); text around the braces, a second
-paragraph, a quote block, a signature or any other content there raises `MPStorageDocumentError` and fails `check`.
+the MANIFEST row, a fixture of a document near 64 KiB or of rendered smileys needs another route. The paragraph must be a bare `<p>`; the redactor writes it back as plain escaped text (markup inside it, such as a rendered
+smiley, is dropped) and `check` flags any `<` in it. After the paragraph only HFR's own trailer is accepted, on both sides
+(written separately): `</p>`, the clear div, `div.edited` holding HFR's real link (`<a href="/forum2.php?config=hfr.inc&amp;...`
+`" class="cLink" rel="nofollow">`, known query names, numeric or empty values, `cat` a number or `prive`), `<br />` and the
+"Message cité N fois" / "Message édité par X le jj-mm-aaaa à hh:mm:ss" notice (X may not contain ` le <digit>`),
+and a signature span, which the redactor reduces to the kit's placeholder (the capturing account may have one); text
+around the braces, a second paragraph, a quote block or any other content raises `MPStorageDocumentError` and fails `check`.
 **Never feed anonymized output back to `anonymize.py`**: aliases are not recognised (`user3` becomes `text1`); `publish.py` and
 `flows.py` read raw captures, `check` only reads. A document that is not
 JSON or holds a duplicate key raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the

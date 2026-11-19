@@ -1165,35 +1165,58 @@ def private_form_copies(text):
     return "".join(parts) + text[last:], count
 
 
-BLANKS = " \t\r\n\u00a0"
-_TRAILER_BLANK_RE = re.compile(r"(?:\s|&nbsp;|&#160;|\u00a0)+", re.I)
+BLANKS = " \t\r\n "
+_TRAILER_BLANK_RE = re.compile(r"(?:\s|&nbsp;|&#0*160;|&#x0*a0;| )+", re.I)
+# HFR's own link in the edit trailer (all 300 occurrences of the corpus): fixed path, fixed attributes, known query
+# names, numeric or empty values (`cat` is a number, or `prive` in an MP).
+_TRAILER_LINK = (r'<a href="/forum2\.php\?config=hfr\.inc(?:&amp;(?:cat=(?:\d+|prive)'
+                 r'|(?:subcat|post|page|p|numreponse|quote_only|new|nojs)=\d*|(?:sondage|owntopic|trash|trash_post|print)='
+                 r'))*" class="cLink" rel="nofollow">')
 _TRAILER_ITEMS = (
     re.compile(r"</p>", re.I),
-    re.compile(r"<div style=\"clear: both;\">(?:\s|&nbsp;|\u00a0)*</div>", re.I),
-    re.compile(r"<div class=\"edited\">((?:[^<]|<a\b[^>]*>|</a>|<br\s*/?>)*)</div>", re.I),
+    re.compile(r'<div style="clear: both;">(?:\s|&nbsp;|&#0*160;| )*</div>', re.I),
+    re.compile(r'<div class="edited">((?:[^<]|%s|</a>|<br\s*/?>)*)</div>' % _TRAILER_LINK, re.I),
+    # What `PERSONAL_BLOCKS` leaves of a signature: HFR's head, the placeholder, HFR's clear div.
+    re.compile(r'<span class="signature">(?:\s*-{15}\s*<br\s*/?>)?Signature removed\.'
+               r'(?:<div style="clear: both;">(?:\s|&nbsp;| )*</div>)?</span>', re.I),
 )
-_EDITED_TEXT_RE = re.compile(r"(?:Message cit\u00e9 \d+ fois)?\s*(?:Message \u00e9dit\u00e9 par .{1,100} le \d{2}-\d{2}-\d{4} \u00e0 \d{2}:\d{2}:\d{2})?")
+_EDITED_TEXT_RE = re.compile(r"(?:Message cité \d+ fois)?\s*(?:Message édité par ((?:(?! le \d).){1,100}) le "
+                             r"\d{2}-\d{2}-\d{4} à \d{2}:\d{2}:\d{2})?")
 
 
 def storage_trailer_ok(rest):
     """True when rest (what follows the storage document's paragraph in the post or review cell) holds only HFR's own
-    trailer: `</p>`, the clear div, and `div.edited` ("Message cit\u00e9 N fois", "Message \u00e9dit\u00e9 par X le ...")."""
+    trailer: `</p>`, the clear div, `div.edited` ("Message cité N fois", "Message édité par X le ..."), and
+    a signature already reduced to the placeholder."""
     pos = 0
     while True:
-        pos = _TRAILER_BLANK_RE.match(rest, pos).end() if _TRAILER_BLANK_RE.match(rest, pos) else pos
+        blank = _TRAILER_BLANK_RE.match(rest, pos)
+        pos = blank.end() if blank else pos
         if pos >= len(rest):
             return True
         for item in _TRAILER_ITEMS:
             m = item.match(rest, pos)
             if m:
-                if m.groups():
-                    text = html.unescape(re.sub(r"<[^>]*>", " ", m.group(1))).replace("\u00a0", " ")
+                if item is _TRAILER_ITEMS[2]:
+                    text = html.unescape(re.sub(r"<[^>]*>", " ", m.group(1))).replace(" ", " ")
                     if not _EDITED_TEXT_RE.fullmatch(" ".join(text.split())):
                         return False
                 pos = m.end()
                 break
         else:
             return False
+
+
+def replace_trailer_signatures(rest):
+    """rest with every signature span reduced to the kit's placeholder (what the page-wide pass does later)."""
+    open_re = PERSONAL_BLOCKS[0][0]
+    parts, last = [], 0
+    for start, end in _personal_blocks(rest, open_re, SIGNATURE_PLACEHOLDER):
+        if start < last:
+            continue
+        parts += [rest[last:start], signature_placeholder(rest[start:end])]
+        last = end
+    return "".join(parts) + rest[last:]
 
 
 class MPStorageDocumentError(AnonymizeError):
@@ -1781,8 +1804,9 @@ class Anonymizer:
         if markup:
             para = re.search(r"<p\b[^>]*>", raw, re.I)
             offset = para.end() if para else 0
-            if para and raw[:para.start()].strip(BLANKS):
-                raise MPStorageDocumentError("MPStorage document: text before its paragraph; extend the anonymizer")
+            if para and (raw[:para.start()].strip(BLANKS) or para.group(0).lower() != "<p>"):
+                raise MPStorageDocumentError("MPStorage document: text or attributes before its paragraph; extend the "
+                                             "anonymizer")
             stop = re.compile(r"</p\b|<div\b|<table\b", re.I).search(raw, offset)
             limit = stop.start() if stop else len(raw)
         first, last = raw.find("{", offset, limit), raw.rfind("}", offset, limit)
@@ -1791,18 +1815,22 @@ class Anonymizer:
         # Fail closed: nothing but blanks around the braces, and after the paragraph only HFR's own trailer.
         if raw[offset:first].strip(BLANKS) or raw[last + 1:limit].strip(BLANKS):
             raise MPStorageDocumentError("MPStorage document: text around the document; extend the anonymizer")
-        if markup and not storage_trailer_ok(raw[limit:]):
-            raise MPStorageDocumentError("MPStorage document: content after the document that is not HFR's trailer; "
-                                         "extend the anonymizer")
+        rest = raw[limit:]
+        if markup:
+            rest = replace_trailer_signatures(rest)
+            if not storage_trailer_ok(rest):
+                raise MPStorageDocumentError("MPStorage document: content after the document that is not HFR's "
+                                             "trailer; extend the anonymizer")
         region = raw[first:last + 1]
         decoded = html.unescape(re.sub(r"<[^>]*>", "", region) if markup else region)
         try:
             aliased = mpstorage_doc.alias_document(decoded, self._alias)
         except mpstorage_doc.DocumentError as e:
             raise MPStorageDocumentError("MPStorage document: %s; extend the anonymizer" % e) from e
-        if aliased == decoded:
+        # The paragraph is written back as plain escaped text: markup inside it (a rendered smiley) is dropped.
+        if aliased == decoded and "<" not in region and rest == raw[limit:]:
             return raw
-        return raw[:first] + html.escape(aliased, quote=False).replace('"', "&#034;") + raw[last + 1:]
+        return (raw[:first] + html.escape(aliased, quote=False).replace('"', "&#034;") + raw[last + 1:limit] + rest)
 
     def anonymize(self, text, private=False, url=None, context=""):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
@@ -2040,19 +2068,50 @@ def _v_split_paragraph(inner):
     """(text before the paragraph, the message's first <p> up to the first block start, what follows): legacy's view."""
     para = re.search(r"<p\b[^>]*>", inner, re.I)
     before, body = (inner[:para.start()], inner[para.end():]) if para else ("", inner)
+    if para and para.group(0).lower() != "<p>":
+        before += "<attributes>"
     parts = re.split(r"(?=</p\b|<div\b|<table\b)", body, maxsplit=1, flags=re.I)
     return before, parts[0], parts[1] if len(parts) > 1 else ""
 
 
+_V_LINK_NAMES = {"cat": r"\d+|prive", "subcat": r"\d*", "post": r"\d*", "page": r"\d*", "p": r"\d*", "numreponse": r"\d*",
+                 "quote_only": r"\d*", "new": r"\d*", "nojs": r"\d*", "sondage": r"", "owntopic": r"", "trash": r"",
+                 "trash_post": r"", "print": r""}
+
+
+def _v_link_ok(tag):
+    """HFR's own edit-trailer link: exactly href, class, rel in that order; fixed path, known names, numeric values."""
+    attrs = re.findall(r'\s([a-z-]+)="([^"]*)"', tag)
+    if re.sub(r'\s[a-z-]+="[^"]*"', "", tag) != "<a>" or [k for k, _v in attrs] != ["href", "class", "rel"]:
+        return False
+    if [v for k, v in attrs[1:]] != ["cLink", "nofollow"]:
+        return False
+    parts = urllib.parse.urlsplit(html.unescape(attrs[0][1]))
+    if parts.scheme or parts.netloc or parts.path != "/forum2.php" or parts.fragment:
+        return False
+    pairs = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    return (len(pairs) == len({k for k, _v in pairs}) and ("config", "hfr.inc") in pairs
+            and all(k == "config" or (k in _V_LINK_NAMES and re.fullmatch(_V_LINK_NAMES[k], v)) for k, v in pairs))
+
+
 def _v_trailer_ok(rest):
-    """True when rest holds only HFR's trailer: clear div, `</p>`, `div.edited` with links, <br> and its notice text."""
+    """True when rest holds only HFR's trailer: clear div, `</p>`, `div.edited` (its link, <br> and notice text) and a
+    signature already reduced to the placeholder. Everything else, any other attribute included, is an anomaly."""
     def edited(m):
-        text = html.unescape(re.sub(r"<[^>]*>", " ", m.group(1))).replace("\u00a0", " ")
-        notice = r"(?:Message cit\u00e9 \d+ fois)? ?(?:Message \u00e9dit\u00e9 par [^\n]{1,100} le [\d-]{10} \u00e0 [\d:]{8})?"
-        return "" if re.fullmatch(notice, " ".join(text.split())) else "\x00"
+        inner = m.group(1)
+        for tag in re.findall(r"<a\b[^>]*>", inner, flags=re.I):
+            if not _v_link_ok(tag):
+                return "\x00"
+        text = html.unescape(re.sub(r"<[^>]*>", " ", inner)).replace(" ", " ")
+        text = " ".join(text.split())
+        notice = re.fullmatch(r"(?:Message cité \d+ fois)? ?(?:Message édité par (.{1,100}?) le \d{2}-\d{2}-\d{4} "
+                              r"à \d{2}:\d{2}:\d{2})?", text)
+        return "" if notice and not re.search(r" le \d", notice.group(1) or "") else "\x00"
     rest = re.sub(r'<div class="edited">((?:[^<]|<a\b[^>]*>|</a>|<br\s*/?>)*)</div>', edited, rest, flags=re.I)
-    rest = re.sub(r'<div style="clear: both;">[\s\u00a0]*</div>|</p>|&nbsp;', "", rest, flags=re.I)
-    return not rest.replace("\u00a0", " ").strip()
+    rest = re.sub(r'<span class="signature">(?:\s*-{15}\s*<br\s*/?>)?Signature removed\.'
+                  r'(?:<div style="clear: both;">[\s ]*</div>)?</span>', "", rest, flags=re.I)
+    rest = re.sub(r'<div style="clear: both;">[\s ]*</div>|</p>|&nbsp;|&#0*160;|&#x0*a0;', "", rest, flags=re.I)
+    return not rest.replace(" ", " ").strip()
 
 
 def _v_mpstorage_document_ok(inner, markup=True):
@@ -2063,9 +2122,9 @@ def _v_mpstorage_document_ok(inner, markup=True):
         return dict(items)
     if markup:
         before, paragraph, rest = _v_split_paragraph(inner)
-        if before.strip() or not _v_trailer_ok(rest):
-            return False
-        inner = re.sub(r"<[^>]*>", " ", paragraph)
+        if before.strip() or not _v_trailer_ok(rest) or "<" in paragraph:
+            return False  # the redactor writes no markup inside the paragraph: any `<` there is an anomaly
+        inner = paragraph
     body = html.unescape(inner).replace("\u00a0", " ")
     try:
         doc = json.loads(body, object_pairs_hook=pairs)
