@@ -52,4 +52,18 @@ struct PagerPageMenuTests {
         #expect(menu.page(fromEntry: "0") == nil)
         #expect(PagerPageMenu(current: 1, total: 10).label == "page 1 / 10")
     }
+
+    /// #1154: « Aller » is off while the entry cannot be taken, so the alert never closes on nothing; the range is in its message.
+    @Test(arguments: [
+        ("8", true), ("12", true), ("1", true), ("0", false), ("13", false), ("9999", false), ("huit", false), ("", false), (" ", false)
+    ])
+    func theGoButtonIsOnlyOnForAnEntryInRange(entry: String, accepted: Bool) {
+        #expect(PagerPageMenu(current: 2, total: 12).canSubmit(entry: entry) == accepted)
+    }
+
+    @Test func theAlertMessageStatesTheRange() {
+        #expect(PagerPageMenu(current: 2, total: 12).entryMessage == "Choisir une page entre 1 et 12")
+        #expect(PagerPageMenu(current: 1, total: 10, isExact: false).entryMessage == "Choisir une page à partir de 1 (au moins 10 pages)")
+        #expect(PagerPageMenu(current: 1, total: 10, isExact: false).canSubmit(entry: "23"))
+    }
 }

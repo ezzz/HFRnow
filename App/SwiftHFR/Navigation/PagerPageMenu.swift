@@ -38,6 +38,14 @@ struct PagerPageMenu: Equatable {
         return page
     }
 
+    /// Whether « Aller » may be pressed for `text`: the same rule as `page(fromEntry:)`, so a refused entry never closes the alert.
+    func canSubmit(entry text: String) -> Bool { page(fromEntry: text) != nil }
+
+    /// The alert's message: the range the entry must be in (legacy `TopicPagePickerSheet`, `Common.swift:3130` @ 87fe0d1c).
+    var entryMessage: String {
+        isExact ? "Choisir une page entre 1 et \(total)" : "Choisir une page à partir de 1 (au moins \(total) pages)"
+    }
+
     /// « page x / y », « page x / y+ » when `total` is a lower bound.
     var label: String { "page \(current) / \(total)" + (isExact ? "" : "+") }
 }
@@ -83,6 +91,9 @@ struct PagerPageMenuPill: View {
                 TextField(menu.isExact ? "1 à \(menu.total)" : "Numéro", text: $entry).keyboardType(.numberPad)
                 Button("Annuler", role: .cancel) {}
                 Button("Aller") { if let page = menu.page(fromEntry: entry) { onJump(.page(page)) } }
+                    .disabled(!menu.canSubmit(entry: entry))
+            } message: {
+                Text(menu.entryMessage)
             }
         } else {
             pill(menu)
