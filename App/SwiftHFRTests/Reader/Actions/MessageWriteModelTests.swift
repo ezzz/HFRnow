@@ -101,12 +101,15 @@ struct MessageWriteModelTests {
         let editing = Task { await fixture.writes.openEditor(target) }
         await gate.untilArrived()
         #expect(!fixture.reader.composerSlotIsFree)
+        #expect(fixture.reader.replyTarget != nil) // the reply is refused for the slot, not for a missing form
         await fixture.reader.requestReply()
         #expect(fixture.reader.pendingReply == nil)
         await gate.open()
         await editing.value
         #expect(fixture.writes.editor != nil)
         #expect(fixture.reader.pendingReply == nil)
+        // The edit composer holds the slot from the moment it is set, before the screen reports it.
+        #expect(fixture.reader.suspendsPageInteractions)
     }
 
     /// The other way round: a quote in flight, or a composer open, holds the slot, so "Editer" reads nothing.

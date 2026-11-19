@@ -78,6 +78,9 @@ final class MessageWriteModel {
                 return
             }
             editor = ReplyComposerModel(editing: target, prefill: prefill, services: services)
+            // Held from now, not from the screen's next render: `isLoadingQuote` is released by the `defer` (the view's own
+            // report of the open composer is the same insert, and its close removes it).
+            reader.composer(.edit, isOpen: true)
         } catch {
             failure = Failure(title: "Edition impossible", message: ComposerMessages.editUnavailable(error), retry: target)
         }

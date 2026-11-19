@@ -125,6 +125,8 @@ final class AuthorMenuFlow {
             return
         }
         newMessage = ReplyComposerModel(composing: .newPrivateMessage(target), services: composer)
+        // Held from now, not from the screen's next render; the view's close removes it (#1190).
+        reader?.composer(.privateMessage, isOpen: true)
     }
 
     /// Said when the MP composer cannot open over another one (#1190).
