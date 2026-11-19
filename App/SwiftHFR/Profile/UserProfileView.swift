@@ -70,7 +70,7 @@ struct UserProfileView: View {
         } else if let error = model.error {
             LoadFailureView(error: error, retry: model.reload)
         } else {
-            ProgressView("Chargement du profil…").frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
