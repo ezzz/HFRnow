@@ -189,6 +189,22 @@ struct MessageBlockUnreadableTests {
         #expect(try MessageActionsParser.actions(in: broken).count == expected.count)
     }
 
+    /// Only the page's first message block can be the continuation copy: with that block skipped, a later message that starts
+    /// with the same lead (R22a's own markup, moved in memory) is an ordinary message, keeping its menu and its filtering.
+    @Test("A block after a skipped first block is never the continuation copy")
+    func aBlockAfterASkippedFirstOneIsNotTheContinuation() throws {
+        let html = try Fixture.capture("R22a-topic-middle-page-anon")
+        #expect(try MessageBlockParser.blocks(in: html).first?.isContinuation == true)
+        let lead = "<p><strong>Reprise du message précédent :</strong><br />"
+        var broken = try Self.breaking(html, block: 39_966_395, "name=\"t39966395\"", "name=\"x39966395\"")
+        broken = try Self.breaking(broken, block: 39_966_452, "id=\"para39966452\"><p>", "id=\"para39966452\">\(lead)")
+        let blocks = try MessageBlockParser.blocks(in: broken)
+        let second = try #require(blocks.first)
+        #expect(second.numreponse == 39_966_452)
+        #expect(second.contentHTML.hasPrefix(lead), "the mutation must reach the content")
+        #expect(!second.isContinuation)
+    }
+
     @Test("A page whose every block is unreadable is still an error, not an empty topic")
     func everyBlockBrokenThrows() throws {
         let html = try Fixture.capture("R20-topic-p1-anon").replacing("name=\"t", with: "name=\"x")
