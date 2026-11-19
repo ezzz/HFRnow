@@ -75,6 +75,17 @@ struct RehostThumbnailTests {
         #expect(await transport.requests.map(\.url.host) == ["img.example"])
     }
 
+    /// #1249: the loader the history and the chips read (the model's) keeps the rehost host filter: off-host refused,
+    /// on-host allowed (a loader without a filter, or Giphy's, fails this).
+    @MainActor
+    @Test func thePanelsLoaderFiltersOnTheRehostHost() throws {
+        let model = ImageUploadModel(services: services(hostName: Self.host))
+        let filter = try #require(model.thumbnails.hostFilter)
+        #expect(filter(try #require(URL(string: "https://img.example/images/g.th.jpg"))))
+        #expect(!filter(try #require(URL(string: "https://other.example/images/g.th.jpg"))))
+        #expect(!filter(try #require(URL(string: "https://media.giphy.com/media/g/giphy.gif"))))
+    }
+
     /// A build without a key still shows the thumbnails of an imported or synced history, from the configured base URL's
     /// host only; without that either, nothing is asked.
     @Test func aKeylessBuildUsesTheConfiguredBaseHost() async throws {
