@@ -46,7 +46,7 @@ struct SecuritySettingsSections: View {
         }
         Section {
             Group {
-                Toggle("Verrouiller l’app (Face ID / code)", isOn: Binding(
+                Toggle(lock.switchTitle, isOn: Binding(
                     get: { lock.isEnabled },
                     set: { lock.setEnabled($0) }
                 ))

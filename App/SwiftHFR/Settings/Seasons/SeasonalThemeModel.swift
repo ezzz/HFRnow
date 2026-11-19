@@ -26,8 +26,15 @@ final class SeasonalThemeModel {
 
     /// The alert to show once nothing covers the screen.
     enum Alert: Hashable, Identifiable {
-        /// « Oh Oh Oh ! » [OK] [Désactiver].
+        /// « Thème de Noël activé » (or « Thème de Noël » when nothing was switched on) [OK] [Désactiver].
         case noelArrival(year: Int)
+
+        /// The alert's message.
+        var message: String {
+            switch self {
+            case .noelArrival: "Thème disponible dans les réglages"
+            }
+        }
 
         var id: Self { self }
     }
@@ -145,6 +152,14 @@ final class SeasonalThemeModel {
         if switched { switchOn(year: year, theme: .noelSoft) }
         if animationsAllowed { crossings.queueArrival() }
         return .arrival(year: year, switchedOn: switched, sleigh: animationsAllowed)
+    }
+
+    /// The alert's title: it names the situation (HIG › Alerts, #1174), so « activé » only when a Noël theme really is on (not on
+    /// 25–26/12, with automatic themes off, or after the user picked another theme before the alert came).
+    func title(for alert: Alert) -> String {
+        switch alert {
+        case .noelArrival: activeTheme != nil ? "Thème de Noël activé" : "Thème de Noël"
+        }
     }
 
     /// The answer to the arrival alert: « Désactiver » restores the previous theme and opts out for the season; « OK » keeps it.

@@ -101,8 +101,8 @@ struct SwiftHFRApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     Task { await lifecycle.scenePhaseChanged(to: phase) }
                 }
-                // Notification permission at launch, as legacy (`HFRswiftApp.swift:27-29` @ 87fe0d1c, LOT-140); iOS asks once.
-                .task { await MPNotificationCenter().prepare() }
+                // The `mp` category at launch; the permission prompt waits for a current account (`MPNotificationPrompt`, #1172).
+                .task { MPNotificationCenter.registerCategory() }
                 // The app lock follows the app's phase; it asks by itself once per lock (LOT-173).
                 .onChange(of: scenePhase, initial: true) { _, phase in lifecycle.lockAndSeasonsFollow(phase) }
         }

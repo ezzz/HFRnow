@@ -73,7 +73,7 @@ private struct QualityAlertsPlaceholder: View {
     var body: some View {
         if model.rows.isEmpty {
             if model.isLoading || !model.hasLoaded {
-                ProgressView("Chargement…")
+                ProgressView()
             } else if let failure = model.failure {
                 ContentUnavailableView {
                     Label(failure.title, systemImage: "bell.slash")

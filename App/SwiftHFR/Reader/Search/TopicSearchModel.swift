@@ -56,7 +56,10 @@ final class TopicSearchModel: Identifiable {
             do throws(TopicSearchError) {
                 outcome = Self.outcome(of: try await searcher.search(query), topic: topic)
             } catch {
-                outcome = Self.outcome(of: error)
+                // `cancel()` cancels this task; a cancellation nobody asked for is a failure, not a retry: the search is a POST
+                // (#1191).
+                outcome = error == .network(.cancelled) && !Task.isCancelled
+                    ? .failed("Impossible de joindre le forum.") : Self.outcome(of: error)
             }
             return self.finish(outcome, generation: mine)
         }

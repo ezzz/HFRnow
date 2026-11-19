@@ -244,6 +244,23 @@ final class TopicListModel {
         confirmationTimer.arm { [weak self] in self?.clearSentConfirmation() }
     }
 
+    /// In-place changes of the session so far, and the one the page on screen was loaded under (#1195).
+    @ObservationIgnored private var sessionChanges = 0
+    @ObservationIgnored private var pageSessionChanges = 0
+
+    /// The session changed in place (#1195): the page on screen says nothing reliable about the sign-in any more; it is
+    /// reloaded from page 1 when the list is shown again (`onAppear`) or now (`reloadAfterSessionChange`).
+    func sessionDidChange() {
+        sessionChanges += 1
+    }
+
+    /// Reloads page 1 when the page on screen predates a change of the session: the filter it may offer changed with the
+    /// sign-in, and HFR's page for a filter starts at 1.
+    func reloadAfterSessionChange() async {
+        guard loader.value != nil || loader.isLoading, pageSessionChanges != sessionChanges else { return }
+        await load(page: 1)
+    }
+
     /// Loads page 1 once; later calls keep what is shown.
     func loadIfNeeded() async {
         guard loader.value == nil, !loader.isLoading else { return }
@@ -259,6 +276,9 @@ final class TopicListModel {
         await favorites?.reload()
         if loader.value == nil {
             await loadIfNeeded()
+        } else if pageSessionChanges != sessionChanges {
+            // Loaded before a re-login or an expiry in place: signed-in state, filter and notices are those of then (#1195).
+            await load(page: 1)
         } else if wantedFilter != loadedFilter {
             // The choice changed here or in another list: HFR's page for it starts at 1 (legacy reloads on every change).
             await load(page: 1)
@@ -266,10 +286,6 @@ final class TopicListModel {
             await refresh()
         }
     }
-
-    /// The top-bar refresh button is enabled unless a load is running (legacy `.disabled(viewModel.isLoading)`,
-    /// `MainWindow.swift:381-393` @ 87fe0d1c). Pull-to-refresh is not gated by it: SwiftUI shows its own spinner.
-    var canRefresh: Bool { !loader.isLoading }
 
     /// Reloads the page on screen.
     func refresh() async { await load(page: currentPage) }
@@ -313,6 +329,7 @@ final class TopicListModel {
         let chosenFilter = topicFilter?.flag.filter ?? .all
         let hasFilter = topicFilter != nil
         let target = subforumTarget
+        let startedUnder = sessionChanges
         let applied = await loader.load { () async throws(ListLoadError) -> TopicListContent in
             let loggedIn = await isLoggedIn()
             let filter = hasFilter && loggedIn ? chosenFilter : .all
@@ -343,6 +360,7 @@ final class TopicListModel {
         }
         // Only the page this call put on screen reconciles: a superseded load (its page dropped) or a failed one changes nothing.
         guard applied else { return }
+        pageSessionChanges = startedUnder
         if case .subforum = source, let found = SubforumTarget(newTopicPath: loader.value?.newTopicPath) { subforumTarget = found }
         // HFR's page now says what is read and flagged: the marks made before this load started are forgotten (legacy kept
         // them in the rows it replaced on reload). A mark made while it was in flight stays: the page may predate it.

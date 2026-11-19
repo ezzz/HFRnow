@@ -74,6 +74,15 @@ final class ForumListModel {
         self.accountName = accountName
     }
 
+    /// The current session changed in place since the page on screen was loaded (#1195); cleared by the next page applied.
+    @ObservationIgnored private var sessionChangedSincePage = false
+
+    /// The home page on screen while it still says whether the account is signed in: nil before a page, and from a change of
+    /// the session in place until a page loaded after it (#1195).
+    var loginStatePage: ForumListContent? {
+        sessionChangedSincePage ? nil : loader.value
+    }
+
     /// Loads once; later calls keep what is shown.
     func loadIfNeeded() async {
         guard loader.value == nil, !loader.isLoading else { return }
@@ -85,9 +94,23 @@ final class ForumListModel {
         let dataSource = dataSource
         let visibility = visibility
         let accountName = accountName
-        await loader.load { () async throws(ListLoadError) -> ForumListContent in
+        let applied = await loader.load { () async throws(ListLoadError) -> ForumListContent in
             let page = try await dataSource.forumList()
             return ForumListContent(page: page, visibility: visibility, accountName: await accountName())
         }
+        // This load started after any change noted so far: a load in flight at the change was superseded by the change's own.
+        if applied { sessionChangedSincePage = false }
+    }
+
+    /// The current session was renewed or found expired without becoming another object (a re-login keeps it, so the root
+    /// is not rebuilt): the page on screen no longer says whether the account is signed in, nor which categories it sees.
+    /// Reloads it and returns true (#1195). An expiry the page already shows (a launch with an expired session: the home page
+    /// was read logged out, or is being read) changes nothing and sends nothing.
+    @discardableResult
+    func sessionDidChange(expired: Bool) async -> Bool {
+        if expired, loader.value?.isLoggedIn != true { return false }
+        sessionChangedSincePage = true
+        await reload()
+        return true
     }
 }

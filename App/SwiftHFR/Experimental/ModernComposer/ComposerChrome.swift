@@ -64,20 +64,12 @@ extension ComposerChrome {
 
 extension ReplyComposerModel {
     /// A banner or the recipient and subject fields sit between the composer's top bar and its text card (#895).
-    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || hasSubjectField }
+    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || draftsNotice != nil || hasSubjectField }
 }
 
-/// How the text card's tools are drawn (#895 D, operator 2026-11-14: "to try", as the Claude app's `+` and mic in round chips):
-/// bare glyphs on the card's glass, or each glyph in its own round chip. The operator chooses on the device and the choice is
-/// recorded on the PR; the other variant is then deleted. The chip is a plain fill, not glass: glass is not stacked on the
-/// card's glass.
-enum ComposerToolStyle: Equatable {
-    case plain
-    case pills
-
-    /// The variant this build shows.
-    static let current: ComposerToolStyle = .pills
-
+/// The round chip behind each of the text card's tools (#895 D, operator 2026-11-14; device check of 2026-11-16 kept the chips, the
+/// bare-glyph variant was deleted, #1196). The chip is a plain fill, not glass: glass is not stacked on the card's glass.
+enum ComposerChip {
     /// Space between a chip and its cell's edge: neighbouring chips never touch, the whole cell stays the hit area.
     static let chipInset: CGFloat = 4
 
@@ -91,7 +83,7 @@ enum ComposerToolStyle: Equatable {
 struct ComposerToolSize: Equatable {
     /// The hit area's side.
     let cell: CGFloat
-    /// The circle's diameter: the chip's with the `pills` style, the whole cell with `plain`.
+    /// The circle's diameter: the chip's in the card, the whole cell outside it.
     let diameter: CGFloat
     /// The symbol's point size.
     let glyph: CGFloat
@@ -100,9 +92,9 @@ struct ComposerToolSize: Equatable {
     static let glyphWeight: Font.Weight = .medium
 
     @MainActor
-    init(metrics: ComposerBarMetrics, inCard: Bool = true, style: ComposerToolStyle = .current) {
+    init(metrics: ComposerBarMetrics, inCard: Bool = true) {
         cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard)
-        diameter = style == .pills && inCard ? ComposerToolStyle.chipDiameter(cell: cell) : cell
+        diameter = inCard ? ComposerChip.chipDiameter(cell: cell) : cell
         glyph = metrics.glyphSize
     }
 }

@@ -112,6 +112,10 @@ struct ImageUploadView: View {
             if let warning = model.historyWarning {
                 Text(warning).font(.footnote).foregroundStyle(.secondary)
             }
+            if model.historyIsUnreadable {
+                UnreadableDataRecoveryButton(content: "les images envoyées") { await model.discardUnreadableHistory() }
+                    .font(.footnote)
+            }
         }
     }
 
@@ -127,7 +131,9 @@ struct ImageUploadView: View {
                 Text("Aucune image envoyée.").foregroundStyle(.secondary)
             }
             ForEach(model.history) { image in
-                UploadedImageRow(image: image) { variant in onInsert(model.snippet(for: image, variant: variant)) }
+                UploadedImageRow(image: image, thumbnails: model.thumbnails) { variant in
+                    onInsert(model.snippet(for: image, variant: variant))
+                }
                     .swipeActions(allowsFullSwipe: false) {
                         Button("Retirer", systemImage: "trash") { model.requestRemoval(image) }.tint(.red)
                     }
@@ -169,14 +175,13 @@ extension View {
 /// One uploaded image: its thumbnail, size and one button per rendition the host returned.
 private struct UploadedImageRow: View {
     let image: RehostedImage
+    let thumbnails: SmileyImageLoader
     let onInsert: (RehostImageVariant) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                AsyncImage(url: image.miniURL ?? image.mediumURL ?? image.fullURL) { phase in
-                    if let loaded = phase.image { loaded.resizable().scaledToFill() } else { Color.secondary.opacity(0.2) }
-                }
+                RemoteThumbnail(url: image.miniURL ?? image.mediumURL ?? image.fullURL, loader: thumbnails)
                 .frame(width: 56, height: 56)
                 .clipShape(.rect(cornerRadius: 8))
                 .accessibilityHidden(true)

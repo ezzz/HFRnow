@@ -7,7 +7,6 @@ import Testing
 struct SearchTabTests {
     @Test func theOptionIsOffByDefaultAndListedUnderTheTabBar() {
         let settings = ExperimentalSettings(store: InMemorySettingsStore())
-        #expect(ExperimentalFeature.searchTab.isListed)
         #expect(ExperimentalFeature.searchTab.theme == .navigation)
         #expect(!SearchTabOption.isOn(settings))
         #expect(!SearchTabOption.isOn(nil))

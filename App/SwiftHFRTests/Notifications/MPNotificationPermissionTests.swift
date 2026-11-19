@@ -175,6 +175,16 @@ struct MPNotificationPermissionTests {
         #expect(model.alert == .badge)
     }
 
+    /// #1172: an account can be current while iOS never asked (both switches were off at the login): the badge asks too.
+    @Test("Turning the badge on while iOS never asked shows the system prompt, no alert")
+    func turningBadgeOnWhileNeverAsked() async {
+        let undecided = FakeNotificationPermission(.notDetermined, answer: .badgesOff)
+        let model = model(undecided)
+        await model.badgeTurnedOn()
+        #expect(await undecided.requests == 1)
+        #expect(model.alert == nil)
+    }
+
     @Test("Turning the badge on with « Notifications » on and refused in iOS: the notifications alert, as on opening")
     func turningBadgeOnWhileNotificationsRefused() async {
         let model = model(FakeNotificationPermission(.denied))

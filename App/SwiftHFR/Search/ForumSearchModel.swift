@@ -147,7 +147,9 @@ final class ForumSearchModel {
         loader.reset()
         let query = GlobalSearchQuery(text: words, category: searchedCategory, matchMode: matchMode, scope: scope, dateRange: dateRange())
         let source = source
-        await loader.load { () async throws(ListLoadError) -> SearchContent in
+        // The search starts with a POST that LOT-046 never sends twice: a cancellation nobody asked for is a failure at once
+        // ("Réessayer"), not a retry (#1191).
+        await loader.load(retriesUnrequestedCancellation: false) { () async throws(ListLoadError) -> SearchContent in
             SearchContent(page: try await source.search(query))
         }
     }
