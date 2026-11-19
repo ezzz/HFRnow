@@ -22,6 +22,11 @@ struct PullRefreshRule: Equatable, Sendable {
     /// Creates a rule at rest.
     init() {}
 
+    /// The finger left the page: the next touch may fire, even if no offset moved after the lift.
+    mutating func fingerLifted() {
+        isArmed = true
+    }
+
     /// Feeds the pull distance now and whether a finger is on the page; true exactly when this step reaches full size with a
     /// finger down, the first time since the finger last left (the caller then gives the haptic and refreshes). Only a lifted finger
     /// arms the next pull: a refresh that resets the page to its top (WebKit, #642) is no rest while the finger is still down, so
@@ -61,6 +66,12 @@ struct PullEdgesTracker: Equatable, Sendable {
 
     /// Creates a tracker at rest.
     init() {}
+
+    /// The finger left the page: both ends may fire on the next touch.
+    mutating func fingerLifted() {
+        topRule.fingerLifted()
+        bottomRule.fingerLifted()
+    }
 
     /// Feeds the pulls past the top and the bottom, in points, and whether a finger is on the list.
     mutating func update(topPull: CGFloat, bottomPull: CGFloat, fingerDown: Bool) -> Step {

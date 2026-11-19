@@ -156,6 +156,22 @@ struct ReaderBottomBarTests {
         withExtendedLifetime(watcher) {}
     }
 
+    /// #1207 (review round 2): a lift with no momentum moves no offset, yet the next touch refreshes again.
+    @Test func aLiftWithoutAnyOffsetChangeArmsTheNextTouch() {
+        let scrollView = pullScrollView()
+        let pulls = Pulls()
+        let watcher = watching(scrollView, pulls)
+        let threshold = ReaderPullWatcher.threshold
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold)
+        #expect(pulls.edges == [.bottom])
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold + 1)
+        #expect(pulls.edges == [.bottom], "same touch")
+        watcher.fingerLifted()
+        #expect(pulls.bottoms.last == 0, "the icon goes with the finger")
+        scrollView.contentOffset = CGPoint(x: 0, y: 200 + threshold + 2)
+        #expect(pulls.edges == [.bottom, .bottom], "a new touch refreshes again")
+    }
+
     /// #1207 (review): the reader refreshes from the top too, with the top icon.
     @Test func aPullPastTheTopGrowsTheTopIconAndFiresTheTopEdge() {
         let scrollView = pullScrollView()

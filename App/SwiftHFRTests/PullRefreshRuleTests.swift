@@ -60,6 +60,15 @@ struct PullRefreshRuleTests {
         #expect(first && !lifted && second)
     }
 
+    /// A lift with no offset change after it (no momentum) still arms the next touch.
+    @Test func aLiftArmsTheNextTouchWithoutAnyOffsetChange() {
+        var rule = PullRefreshRule()
+        let first = rule.update(pull: threshold, fingerDown: true)
+        rule.fingerLifted()
+        let second = rule.update(pull: threshold, fingerDown: true)
+        #expect(first && second)
+    }
+
     /// A refresh resets the page to its top (WebKit, #642): a rest with the finger still down, so a member who keeps pulling
     /// gets no second refresh in the same touch.
     @Test func aRestWithTheFingerStillDownDoesNotArmTheNextPull() {

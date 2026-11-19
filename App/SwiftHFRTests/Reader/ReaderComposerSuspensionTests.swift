@@ -137,7 +137,19 @@ struct ReaderComposerSuspensionTests: ReaderWebTesting {
         #expect(positions == [7], "scrolling still records the reading position")
         #expect(controller.linkMenuEntries(for: url("https://example.com/page")).isEmpty)
         #expect(controller.linkMenuConfiguration(for: url("https://example.com/page")) != nil, "ours, never WebKit's")
+        controller.show(shown)
+        var scales: [[CGFloat]] = []
+        var pulled: [PullEdge] = []
+        controller.events.pullProgress = { top, bottom, _ in scales.append([top, bottom]) }
+        controller.events.pulled = { edge, _ in pulled.append(edge) }
+        controller.pullProgressChanged(top: 0.5, bottom: 0.75)
+        controller.pulledPastEnd(.bottom)
+        #expect(scales == [[0, 0]], "no pull icon under the composer")
+        #expect(pulled.isEmpty, "no pull refresh under the composer")
         controller.ignoresPageTaps = false
+        controller.pullProgressChanged(top: 0.5, bottom: 0.75)
+        controller.pulledPastEnd(.top)
+        #expect(scales.last == [0.5, 0.75] && pulled == [.top], "and both again at the close")
         _ = controller.handle(.menu(post: 7, source: .message, anchor: nil), in: shown)
         controller.route(link: url("https://example.com/page"))
         #expect(menus == [7])

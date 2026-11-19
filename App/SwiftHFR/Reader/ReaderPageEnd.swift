@@ -33,6 +33,18 @@ final class ReaderPullWatcher: NSObject {
         observation = scrollView.observe(\.contentOffset, options: []) { [weak self] scrollView, _ in
             MainActor.assumeIsolated { self?.offsetChanged(of: scrollView) }
         }
+        // A lift with no momentum moves no offset: the pan's end arms the next touch.
+        scrollView.panGestureRecognizer.addTarget(self, action: #selector(panChanged(_:)))
+    }
+
+    @objc private func panChanged(_ pan: UIPanGestureRecognizer) {
+        if pan.state == .ended || pan.state == .cancelled || pan.state == .failed { fingerLifted() }
+    }
+
+    /// The finger left the page: the icons go and the next touch may refresh. Internal so a test can lift without a gesture.
+    func fingerLifted() {
+        tracker.fingerLifted()
+        progress(0, 0)
     }
 
     /// How far past the end `scrollView` is pulled, in points (zero or less when it is not).
