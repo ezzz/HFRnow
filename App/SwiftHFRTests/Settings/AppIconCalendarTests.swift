@@ -1,3 +1,4 @@
+import Foundation
 import HFRStorage
 @testable import SwiftHFR
 import Testing
