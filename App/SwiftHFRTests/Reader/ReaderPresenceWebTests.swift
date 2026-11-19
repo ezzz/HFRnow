@@ -1,4 +1,5 @@
 import HFRModels
+import HFRNetwork
 @testable import SwiftHFR
 import Testing
 import UIKit
@@ -71,5 +72,44 @@ struct ReaderPresenceWebTests: ReaderWebTesting {
         controller.webView.removeFromSuperview()
         controller.viewDisappeared()
         #expect(left == 1)
+    }
+
+    /// #1187: images still loading when a shown page is stopped (a tab switch) are cut; when the reader comes back they load,
+    /// instead of staying blank or turning into links until « Actualiser ».
+    @Test func aShownPageStoppedWithImagesInFlightShowsThemWhenItComesBack() async throws {
+        let gate = ReaderGate()
+        let calls = ReaderCallCounter()
+        let transport = MockTransport { request in
+            // The first image is held until the page has been stopped and has come back.
+            if calls.next() == 1 { await gate.wait() }
+            return HTTPResponse(statusCode: 200, headers: ["Content-Type": "image/png"], url: request.url, body: readerTestPixel)
+        }
+        let (controller, recorder) = makeController(transport: transport)
+        let image = "https://forum-images.hardware.fr/images/perso/photo.png"
+        let message = ReaderMessage(
+            numreponse: 7, author: "auteur", isDeleted: false, isContinuation: false, avatarURL: nil, dateText: "",
+            editNote: nil, quotedByCount: nil,
+            content: MessageContent(html: "<p><img class=\"hfrplusimg\" src=\"\(image)\" alt=\"\"></p>")
+        )
+        let page = ReaderPage(topicID: readerTopic, title: "Titre", currentPage: 1, maxPage: 1, messages: [message])
+        let shown = ReaderDocument(
+            token: 1, html: TopicHTMLBuilder.document(for: page, token: 1), anchor: nil, keepsScrollPosition: false
+        )
+        controller.show(shown)
+        #expect(await until { recorder.ready == [1] })
+        #expect(await until(async: { await transport.requests.count >= 1 }), "the image never left")
+        controller.stopLoading()
+        controller.resume()
+        controller.show(shown)
+        await gate.open()
+        let loaded = """
+            const images = Array.from(document.querySelectorAll("img"));
+            return images.length === 1 && images.every((img) => img.complete && img.naturalWidth > 0)
+                && document.querySelector(".image-link") === null;
+            """
+        #expect(
+            await until(async: { (try? await self.evaluate(loaded, in: controller)) as? Bool == true }),
+            "the cut image is still blank or a link"
+        )
     }
 }

@@ -84,6 +84,8 @@ final class ReaderWebController: NSObject {
     private var savedReadingTop: CGFloat?
     /// The last post the ready page reported at the reading top, and where a reload after a process death lands (#1188).
     private var lastReportedPost: Int?, relandingPost: Int?
+    /// A stop cut the image loads of the ready document (#1187), and the reading top its reload lands on.
+    private var imagesCutByStop = false, relandingTop: CGFloat?
     private var appliedScrollID: Int?
     /// Holds a new document's landing or restore until WebKit has reset its scroll view (#772).
     let resetWatch = WebKitResetWatch()
@@ -143,6 +145,7 @@ final class ReaderWebController: NSObject {
             return
         }
         guard document.token != self.document?.token else {
+            if imagesCutByStop, readyToken == document.token { return reloadCutImages(document) }
             ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
             return
         }
@@ -150,6 +153,8 @@ final class ReaderWebController: NSObject {
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
         lastReportedPost = nil
         relandingPost = nil
+        imagesCutByStop = false
+        relandingTop = nil
         resetWatch.stop()
         self.document = document
         readyToken = nil
@@ -172,7 +177,8 @@ final class ReaderWebController: NSObject {
     }
 
     /// Stops the page and every image download in flight (the screen goes away). A document that was not ready yet is
-    /// forgotten, so the next `show` of it loads it again (issue #566).
+    /// forgotten, so the next `show` of it loads it again (issue #566); a ready one whose images were cut is loaded again in
+    /// place when it is shown again (#1187).
     func stopLoading() {
         let wasReady = document != nil && readyToken == document?.token
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
@@ -183,6 +189,8 @@ final class ReaderWebController: NSObject {
         if !wasReady {
             document = nil
             readyToken = nil
+        } else if !running.isEmpty || !waiting.isEmpty {
+            imagesCutByStop = true
         }
         for task in running.values { task.cancel() }
         running.removeAll()
@@ -265,6 +273,8 @@ final class ReaderWebController: NSObject {
         let scrollView = webView.scrollView
         if let post = relandingPost { // after a process death: where the member was reading, not the flag message (#1188)
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: post, landing: true) }
+        } else if let top = relandingTop { // images cut by a stop: the same place, not the flag message (#1187)
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(toReadingTop: top) }
         } else if let anchor = document.anchor {
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: anchor, landing: true) }
         } else if let readingTop = savedReadingTop {
@@ -272,6 +282,7 @@ final class ReaderWebController: NSObject {
         }
         savedReadingTop = nil
         relandingPost = nil
+        relandingTop = nil
         readyToken = token
         ReaderLog.debug("ready accepted token=\(token)")
         events.ready(token)
@@ -325,6 +336,24 @@ final class ReaderWebController: NSObject {
         }
         ReaderLog.debug("\(reason) again token=\(document.token): reported")
         events.failed(document.token)
+    }
+}
+
+// MARK: - Images cut by a stop (#1187)
+
+extension ReaderWebController {
+    /// The ready document came back after a stop that cut its image loads (#1187): WebKit fails or never ends the cut scheme
+    /// tasks, so those pictures would stay blank or become links. It is loaded again where the member reads, with its consent
+    /// (the images tapped stay allowed); the page is not fetched again.
+    fileprivate func reloadCutImages(_ document: ReaderDocument) {
+        ReaderLog.debug("show reloads token=\(document.token): images cut by a stop")
+        imagesCutByStop = false
+        relandingTop = readingTop
+        resetWatch.stop()
+        readyToken = nil
+        reloadedAfterFailure = false
+        imageRequests.removeAll()
+        loadPage(document)
     }
 }
 
