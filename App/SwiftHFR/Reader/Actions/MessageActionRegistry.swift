@@ -59,7 +59,7 @@ struct MessageActionRegistry {
 }
 
 /// "Link": copies the message's permalink. The other actions' handlers live with the flow each one starts (quote, write,
-/// favourite, profile, MP, quality alert, pseudo lists).
+/// favourite, bookmark, profile, MP, quality alert, moderator alert, pseudo lists).
 @MainActor
 struct LinkActionHandler: MessageActionHandler {
     /// Puts the URL on the pasteboard (the view's side effect, replaced in tests).
