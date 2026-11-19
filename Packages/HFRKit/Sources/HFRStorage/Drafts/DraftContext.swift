@@ -3,8 +3,13 @@ import HFRModels
 
 /// What a draft is written for. Each context has its own draft, so writing a quote, an edit or a private message
 /// never touches the reply draft of a topic (the legacy app had a single global draft, audit D §4).
+///
+/// Coded by the synthesized `Codable`: the case and label names are the keys of the drafts file, pinned by
+/// `DraftFileFormatTests` (#1183). Renaming one makes the drafts written before unreadable (each is then kept aside, not
+/// shown); a change of format is a new `DraftDocument.currentVersion` with a migration on read.
 public enum DraftContext: Sendable, Hashable, Codable {
-    /// A reply in a topic, written while reading `page` (1-based).
+    /// A reply in a topic, written while reading `page` (1-based). The app always writes 1 (`ReplyTarget.draftContext`): the
+    /// draft is kept per topic, whatever the page. `page` stays because it is in the key and in the v1 file.
     case reply(topic: TopicID, page: Int)
     /// A new topic in a forum category.
     case newTopic(forum: CategoryID)
