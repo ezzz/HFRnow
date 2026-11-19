@@ -423,9 +423,83 @@ class MPStorageTests(unittest.TestCase):
         self.assertEqual(leaks(out, private=True), [])
         self.assertRegex(json.loads(self.document_of(out))["data"][0]["blacklist"]["list"][0]["username"], r"^user\d+$")
 
-    def test_run_is_idempotent(self):
-        once = anon(storage_page(self.RICH), private=True)
-        self.assertEqual(anon(once, private=True), once)
+    @staticmethod
+    def parser_view(out):
+        """The document as MPStoragePageParser.swift:31 / MPStorage.m:883 read it: every U+00A0 removed, then JSON."""
+        return json.loads(MPStorageTests.document_of(out).replace(" ", ""))
+
+    def test_nbsp_mark_is_written_as_an_escape_and_survives_the_parser_view(self):
+        # Review round 1, finding 2: a raw U+00A0 in the aliased document is removed by the parser before the JSON.
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertNotIn(" ", out)
+        self.assertIn("\\u00a0", self.document_of(out))
+        label = self.parser_view(out)["data"][0]["bookmarks"]["list"][0]["label"]
+        self.assertRegex(label, "^text\\d+ \U0001F600$")
+        escaped = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":[{"createDate":1700000000002,'
+                                     '"username":"Quuxbar","note":"a\\u00a0b"}]')
+        label = self.parser_view(anon(storage_page(escaped), private=True))["data"][0]["blacklist"]["list"][0]
+        self.assertRegex(label["key1"], "^text\\d+ $")
+
+    def test_tombstone_ids_follow_their_item(self):
+        # Finding 1: a tombstone id is its item's storageKey (MPStorageItem.swift): pseudo lower-cased,
+        # `String(topic)`, `cat-post-numreponse`.
+        doc = self.RICH.replace('"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]',
+                                '"tombstones":[{"id":"13-96827-59533822","deleteDate":1700000000007}]')
+        doc = doc.replace('"sourceName":"DTCloud","lastUpdate":1700000000005}',
+                          '"sourceName":"DTCloud","lastUpdate":1700000000005,"tombstones":'
+                          '[{"id":"quuxbar","deleteDate":1700000000010}]}', 1)
+        doc = doc.replace('"uri":"smiley7"}],"sourceName":"iOS","lastUpdate":1700000000001}',
+                          '"uri":"smiley7"}],"sourceName":"iOS","lastUpdate":1700000000001,'
+                          '"tombstones":[{"id":"123456","deleteDate":1700000000011}]}', 1)
+        out = anon(storage_page(doc), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        entry = self.parser_view(out)["data"][0]
+        self.assertEqual(entry["blacklist"]["tombstones"][0]["id"], entry["blacklist"]["list"][0]["username"].lower())
+        self.assertEqual(entry["mpFlags"]["tombstones"][0]["id"], str(entry["mpFlags"]["list"][0]["post"]))
+        bookmark = entry["bookmarks"]["list"][0]
+        self.assertEqual(entry["bookmarks"]["tombstones"][0]["id"],
+                         "13-%s-%s" % (bookmark["post"], bookmark["numreponse"]))
+
+    def test_edited_trailer_inside_the_message_is_not_part_of_the_document(self):
+        # Finding 3: legacy edits the first post, so HFR adds its `div.edited` trailer inside div#para, after the <p>
+        # (MPStorage.m:882 reads the first <p> only). Both sides scope to that paragraph.
+        trailer = ('<div class="edited"><a href="/forum2.php?config=hfr.inc&amp;cat=prive&amp;post=1" class="cLink" '
+                   'rel="nofollow">Message &eacute;dit&eacute; par Quuxbar le 01-01-2026 &agrave; 10:00:00</a></div>')
+        page = storage_page(self.RICH).replace('</p></div></td></tr></table><table class="messagetable">',
+                                               '</p>%s</div></td></tr></table><table class="messagetable">' % trailer, 1)
+        self.assertIn("class=\"edited\"", page)
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
+        self.assertIn("private message body not replaced", self.reasons(page))
+        # the form's review cell may carry the trailer too
+        cell = self.form_page(self.RICH, self.RICH + '<div style="clear: both;"> </div>' + trailer)
+        out = anon(cell, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_values_that_look_like_aliases_are_not_kept(self):
+        # Finding 5: a real member `user77`, a real id in the fake range, a foreign number under a timestamp key.
+        doc = self.EMPTY.replace('"blacklist":{"list":[]',
+                                 '"blacklist":{"list":[{"createDate":1700000000002,"username":"user77"}]')
+        doc = doc.replace('"mpFlags":{"list":[]', '"mpFlags":{"list":[{"post":900123,"p":"text9","page":1}]')
+        doc = doc.replace('"bookmarks":{"list":[]',
+                          '"bookmarks":{"list":[]},"zz":{"createDate":12345678,"k":910005')
+        out = anon(storage_page(doc), private=True)
+        for word in ("user77", "900123", "12345678", "910005", "text9"):
+            self.assertNotIn(word, out, word)
+        self.assertEqual(leaks(out, private=True), [])
+        entry = self.parser_view(out)["data"][0]
+        self.assertNotEqual(entry["mpFlags"]["list"][0]["post"], 900123)
+
+    def test_check_bounds_match_the_redactor(self):
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        for old, new in (("&#034;page&#034;:3", "&#034;page&#034;:3,&#034;cat&#034;:5000"),
+                         ("&#034;lastUpdate&#034;:1700000000008", "&#034;lastUpdate&#034;:12345678"),
+                         ("&#034;createDate&#034;:1700000000006", "&#034;createDate&#034;:5")):
+            self.assertIn(old, out, old)
+            self.assertIn("private message body not replaced", self.reasons(out.replace(old, new, 1)), new)
 
     def test_text_outside_the_json_braces_is_untouched(self):
         out = anon(storage_page(self.RICH), private=True)

@@ -38,11 +38,18 @@ Public forum post content may stay when needed for the test; prefer neutral exce
   The storage MP's recipient `MultiMP` (`MP_SENDTO`, `Classes/MPStorage.m:24`), printed `multimp` in the edit form's
   recipient row (R60b), is a member position and is aliased on purpose, although it is a constant too.
 - The first post of that thread is the MPStorage JSON document LOT-038 parses: `--private` keeps its structure, and only
-  its, when the page is the storage thread (R60a). The document is rewritten in place (`tooling/fixtures/mpstorage_doc.py`):
+  its, when the page is the storage thread (R60a). The document is the first `<p>` of the message (legacy `MPStorage.m:882`;
+  HFR's `div.edited` trailer after it is not part of it) and is rewritten in place (`tooling/fixtures/mpstorage_doc.py`):
   blacklist pseudos and bookmark authors become `userN` (the page's own table), other clients' namespaces `nsN` with
-  `keyN` keys, `textN` strings and fake ids inside, a foreign `sourceName` `clientN`, post and message ids fake
-  (9100NN); timestamps, small page and category numbers, booleans and null are kept, and an alias keeps whether its
-  original held a U+00A0 or a character outside the BMP. A document that is not JSON or repeats a key stops the anonymizer.
+  `keyN` keys, `textN` strings and fake ids inside, a foreign `sourceName` `clientN`, post and message ids fake (9100NN),
+  tombstone ids the aliases of their item's storage key. Plausible timestamps (13 digits), small page and category
+  numbers, booleans and null are kept; a `textN` alias keeps whether its original held a U+00A0 (written as the `\u00a0`
+  escape, since the parser removes raw ones) or a non-BMP character (member aliases do not). No value is kept because it
+  looks like an alias. **Limits**: a *rendered* copy (the post's `<p>`, the review cell) is re-encoded from its
+  tag-stripped text, so rendered smileys or tags inside the document and its byte length are not preserved, and an alias
+  is shorter than what it replaces: a fixture does not show a document near 64 KiB nor how HFR renders markup inside it;
+  the `content_form` copy keeps the structure, and any such property is stated in the capture's MANIFEST row. A document
+  that is not JSON or repeats a key stops the anonymizer.
 - List rows (rows linking with `owntopic=1|2|3`, or showing a flag, in the `forum2.php` or the rewritten link form) are aliased **row by row** by position (topic and message ids, title and slug, categories, page numbers, counts, dates), so fixtures stay stable and carry no live data. `check` fails on any number of such a row that is not an alias ([kit README](../tooling/fixtures/README.md#list-rows)).
 - The personal smiley page (`uploadsmil.php`) goes through the same member aliasing, and each filled `keyword<N>` input becomes `Keywords removed.`; `check` fails otherwise, on any page ([kit README](../tooling/fixtures/README.md#what-is-replaced)).
 - REST flag buckets (logged-in `topics/{participated,read,favorites}` answers) are aliased by position and cut to a fixed size, like list rows; `check` fails on any key outside the exact set of its dict kind, and on any id, title, date, count, offset, size, type word, avatar or href of a bucket that is not exactly the alias of its position (also when the capture's request, not the body, says it is a bucket), and on a category of a bucket URL in a meta that is not an alias ([kit README](../tooling/fixtures/README.md#rest-flag-buckets)).

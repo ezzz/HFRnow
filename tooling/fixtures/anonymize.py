@@ -1744,7 +1744,15 @@ class Anonymizer:
 
     def _alias_storage_document(self, raw, markup):
         """The MPStorage document held by raw (post body or form copy, as HTML) with its personal positions aliased."""
-        first, last = raw.find("{"), raw.rfind("}")
+        # Legacy reads the first <p> of the message (`MPStorage.m:882`); HFR's `div.edited` trailer and the clear div
+        # follow it inside div#para (a div ends a <p> for legacy's parser), so only that span is the document.
+        offset, limit = 0, len(raw)
+        if markup:
+            para = re.search(r"<p\b[^>]*>", raw, re.I)
+            offset = para.end() if para else 0
+            stop = re.compile(r"</p\b|<div\b|<table\b", re.I).search(raw, offset)
+            limit = stop.start() if stop else len(raw)
+        first, last = raw.find("{", offset, limit), raw.rfind("}", offset, limit)
         if first < 0 or last < first:
             raise MPStorageDocumentError("MPStorage document: not a JSON document; extend the anonymizer")
         region = raw[first:last + 1]
@@ -1985,6 +1993,15 @@ _V_DOC_ALIAS_KEY = re.compile(r"(?:ns|key)\d+")
 _V_DOC_ALIAS_STR = re.compile(r"(?:user|text|client)\d+[ \u00a0\U0001F600]*")
 _V_DOC_FAKE_ID = re.compile(r"9[01]\d{4}")
 _V_DOC_TIME = frozenset(("lastUpdate", "createDate", "deleteDate"))
+# A tombstone id is its item's storage key: `cat-post-numreponse` of fake ids, the lower-cased alias, a fake id.
+_V_DOC_BOOKMARK_KEY = re.compile(r"\d{1,3}-9[01]\d{4}-9[01]\d{4}")
+
+
+def _v_first_paragraph(inner):
+    """The message's first <p> up to the first block start or its end (what legacy reads), without the trailer."""
+    para = re.search(r"<p\b[^>]*>", inner, re.I)
+    body = inner[para.end():] if para else inner
+    return re.split(r"</p\b|<div\b|<table\b", body, maxsplit=1, flags=re.I)[0]
 
 
 def _v_mpstorage_document_ok(inner, markup=True):
@@ -1993,7 +2010,9 @@ def _v_mpstorage_document_ok(inner, markup=True):
         if len(set(k for k, _v in items)) != len(items):  # json.loads would keep only the last value
             raise ValueError("duplicate key")
         return dict(items)
-    body = html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ")
+    if markup:
+        inner = re.sub(r"<[^>]*>", " ", _v_first_paragraph(inner))
+    body = html.unescape(inner).replace("\u00a0", " ")
     try:
         doc = json.loads(body, object_pairs_hook=pairs)
     except ValueError:
@@ -2012,17 +2031,21 @@ def _v_mpstorage_document_ok(inner, markup=True):
             stack.extend((v, key) for v in node)
         elif isinstance(node, str):
             if not (node in ("0.1", "iOS") or _V_DOC_ALIAS_STR.fullmatch(node) or _V_DOC_FAKE_ID.fullmatch(node)
-                    or (key == "cat" and re.fullmatch(r"\d{1,3}", node))):
+                    or (key == "cat" and re.fullmatch(r"\d{1,3}", node))
+                    or (key == "id" and (_V_DOC_BOOKMARK_KEY.fullmatch(node)
+                                         or re.fullmatch(r"user\d+", node)))):
                 return False
         elif isinstance(node, bool) or node is None:
             continue
         elif isinstance(node, int):
-            if not (key in _V_DOC_TIME or _V_DOC_FAKE_ID.fullmatch(str(node))
-                    or (key in ("page", "cat") and 0 <= node < 100000)):
+            if key in _V_DOC_TIME:
+                if not 10 ** 12 <= node < 10 ** 13:
+                    return False
+            elif not (_V_DOC_FAKE_ID.fullmatch(str(node)) or (key == "page" and 0 <= node < 100000)
+                      or (key == "cat" and 0 <= node < 1000)):
                 return False
-        else:  # a float is only ever a timestamp
-            if key not in _V_DOC_TIME:
-                return False
+        else:  # a float is never vouched for
+            return False
     return True
 
 

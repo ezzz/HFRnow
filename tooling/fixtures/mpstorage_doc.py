@@ -25,12 +25,10 @@ import re
 
 FAKE_ID_OTHER = 910001
 TIME_KEYS = ("lastUpdate", "createDate", "deleteDate")
-FAKE_NAME_RE = re.compile(r"user\d+\Z")
-ALIAS_TEXT_RE = re.compile(r"(?:text|client)\d+[ \U0001F600]*\Z")
-ALIAS_KEY_RE = re.compile(r"(?:ns|key)\d+\Z")
-FAKE_ID_RE = re.compile(r"9[01]\d{4}\Z")
+TIMESTAMP_RE = re.compile(r"\d{13}\Z")  # milliseconds since the epoch, 2001 to 2286
+FAKE_TIME = 1700000000000
 NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?")
-WHITESPACE = " \t\r\n "  # U+00A0: legacy removes it before parsing (`MPStorage.m`, HFR-PROTOCOL 3.3)
+WHITESPACE = " \t\r\n\u00a0"  # U+00A0: legacy removes it before parsing (`MPStorage.m`, HFR-PROTOCOL 3.3)
 
 
 class DocumentError(ValueError):
@@ -148,34 +146,31 @@ class Aliaser:
         table = self._tables.setdefault(kind, {})
         return table.setdefault(real, len(table) + 1)
 
+    # No value is ever kept because it looks like an alias (`user77`, an id in 9100NN): a real value can look like
+    # one. Everything not structural goes through the tables, so an aliased document is re-aliased, not trusted.
     def text(self, s):
-        if ALIAS_TEXT_RE.match(s) or FAKE_NAME_RE.match(s):
-            return s
-        marks = (" " if " " in s else "") + ("\U0001F600" if any(ord(c) > 0xFFFF for c in s) else "")
+        marks = ("\u00a0" if "\u00a0" in s else "") + ("\U0001F600" if any(ord(c) > 0xFFFF for c in s) else "")
         return "text%d%s" % (self._number("text", s), marks)
 
     def member(self, s):
-        if FAKE_NAME_RE.match(s):
-            return s
         return self.name_alias(s) or self.text(s)
 
     def client(self, s):
-        return s if ALIAS_TEXT_RE.match(s) else "client%d" % self._number("client", s)
+        return "client%d" % self._number("client", s)
 
     def key(self, s, prefix):
-        if s in TIME_KEYS or ALIAS_KEY_RE.match(s):
+        if s in TIME_KEYS:
             return s
         return "%s%d" % (prefix, self._number(prefix, s))
 
     def fake_id(self, real):
-        if FAKE_ID_RE.match(real):
-            return real
         return str(FAKE_ID_OTHER + self._number("id", real) - 1)
 
     # -- edits -----------------------------------------------------------------------------------------
     def _set(self, node, new):
         if node.kind == "str" and new != node.value:
-            self.edits.append((node.start, node.end, json.dumps(new, ensure_ascii=False)))
+            # U+00A0 as an escape: the page parser removes every raw one before reading the JSON (MPStorage.m:883).
+            self.edits.append((node.start, node.end, json.dumps(new, ensure_ascii=False).replace("\u00a0", "\\u00a0")))
 
     def _set_number(self, node, new):
         if node.value != new:
@@ -196,9 +191,8 @@ class Aliaser:
                 self.generic(v, key)
         elif node.kind == "str":
             self._set(node, self.text(node.value))
-        elif node.kind == "num" and key not in TIME_KEYS:
-            self._set_number(node, str(FAKE_ID_OTHER + self._number("id", node.value) - 1)
-                             if not FAKE_ID_RE.match(node.value) else node.value)
+        elif node.kind == "num":
+            self.timestamp(node) if key in TIME_KEYS else self._set_number(node, self.fake_id(node.value))
 
     def namespace(self, knode, vnode):
         self._key(knode, "ns")
@@ -248,6 +242,11 @@ class Aliaser:
         if not (v.kind == "num" and re.fullmatch(r"\d{1,5}", v.value)):
             self.generic(v, "page")
 
+    def timestamp(self, node):
+        """A plausible timestamp keeps its value; anything else (an id, a small number) becomes a fixed fake one."""
+        if not TIMESTAMP_RE.match(node.value):
+            self._set_number(node, str(FAKE_TIME + self._number("time", node.value)))
+
     def time(self, v):
         self.generic(v, "lastUpdate")
 
@@ -275,7 +274,24 @@ class Aliaser:
                 self._key(k, "key")
                 self.generic(v, k.value)
 
-    def tombstones(self, v):
+    def tombstone_id(self, val, section):
+        """A tombstone id is its item's storageKey (MPStorageItem.swift): alias it the way the item is aliased."""
+        if val.kind == "num":
+            self.id_value(val)
+        elif val.kind != "str":
+            self.generic(val)
+        elif section == "blacklist":
+            self._set(val, self.member(val.value).lower())
+        elif section == "mpFlags" and val.value.isdigit():
+            self._set(val, self.fake_id(val.value))
+        elif section == "bookmarks" and re.fullmatch(r"\d+-\d+-\d+", val.value):
+            cat, post, numreponse = val.value.split("-")
+            self._set(val, "-".join((cat if len(cat) <= 3 else self.fake_id(cat), self.fake_id(post),
+                                     self.fake_id(numreponse))))
+        else:
+            self._set(val, self.text(val.value))
+
+    def tombstones(self, v, section=None):
         if v.kind != "arr":
             self.generic(v)
             return
@@ -285,10 +301,7 @@ class Aliaser:
                 continue
             for k, val in e.items:
                 if k.value == "id":
-                    if val.kind == "num":
-                        self.id_value(val)
-                    else:
-                        self.text_value(val)
+                    self.tombstone_id(val, section)
                 elif k.value == "deleteDate":
                     self.time(val)
                 else:
@@ -308,7 +321,7 @@ class Aliaser:
             elif k.value == "lastUpdate":
                 self.time(val)
             elif k.value == "tombstones":
-                self.tombstones(val)
+                self.tombstones(val, name)
             else:
                 self.namespace(k, val)
 
