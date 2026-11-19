@@ -36,8 +36,8 @@ struct StylePreviewTests {
         #expect(StylePreviewContent.sentence(for: .classic) == "Classique : en-têtes teintés, texte à la marge.")
     }
 
-    /// `reader.css` gives even messages their own band in both styles (`article.message:nth-of-type(even)`), so no sentence may
-    /// present the alternation as what a style changes; the two sentences name different things.
+    /// `reader.css` has no alternating band between messages (#1210), so no sentence may present one as what a style changes; the
+    /// two sentences name different things.
     @Test func noSentenceClaimsTheAlternationOrTheAvatarIndent() {
         let sentences = ThemeStyle.allCases.map(StylePreviewContent.sentence(for:))
         #expect(Set(sentences).count == ThemeStyle.allCases.count)
