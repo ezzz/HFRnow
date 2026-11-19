@@ -152,6 +152,7 @@ struct ReplyComposerView: View {
         }
         .task { await model.loadSubcategories() }
         .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
+        .modifier(ComposerRoomUpdates(layout: $measured, isDocked: chrome == .docked)) // the card's room (#1136)
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
@@ -295,8 +296,7 @@ extension ReplyComposerView {
             .composerProbe(.controls)
     }
 
-    /// An iPhone in regular height, for a reply or an edit: partial height first, and the toggle (#653); none for a new message
-    /// or topic (#1137).
+    /// An iPhone in regular height, for a reply or an edit: partial height first, and the toggle (#653); none for new content (#1137).
     private var offersHeightToggle: Bool {
         ComposerHeight.offersToggle(
             isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass, opensFull: model.opensFullScreen
