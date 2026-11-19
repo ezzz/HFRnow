@@ -104,7 +104,8 @@ struct MessageMenuContext: Equatable, Sendable {
     var topic: TopicID?
     /// The topic's first message: legacy never offers its deletion, and on HFR it deletes the whole topic (HFR-PROTOCOL §3.1).
     var isFirstPostOfTopic = false
-    /// Multi-quote state of the message (legacy cookie `quotes…`): LOT-086 owns it, false until then.
+    /// The message is in the multi-quote selection (legacy cookie `quotes…`): the reader sets it from `quoteSelected` (LOT-086,
+    /// `TopicReaderModel+Menu`), false when the message has no selection link.
     var isQuoteSelectionEnabled = false
     /// The message is the user's own: HFR only gives an edit link on those (LOT-031 decision 5, legacy `isOwnMessage`).
     var isOwnMessage: Bool { actions.editURL != nil }

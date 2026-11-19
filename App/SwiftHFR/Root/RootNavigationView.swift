@@ -12,6 +12,8 @@ struct RootNavigationView: View {
     /// This window's phase (read inside the scene, not in the `App`): only a window on screen opens a notification's target.
     @Environment(\.scenePhase) private var scenePhase
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    /// Optional: previews and tests build a root without the accounts.
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
     @State private var model: RootModel
     /// Taps on MP notifications, taken once the root is built (LOT-140).
     @State private var notificationRouter = MPNotificationRouter.shared
@@ -38,6 +40,11 @@ struct RootNavigationView: View {
     var body: some View {
         RootLayout(model: model, environment: environment)
         .task { await model.forums.loadIfNeeded() }
+        // A re-login in place keeps this root (same session object): the lists ask again whether the account is signed in (#1195).
+        .onChange(of: accounts?.currentSessionChanges) {
+            let expired = accounts?.current?.status == .expired
+            Task { await model.currentSessionChanged(expired: expired) }
+        }
         // The Plus badge: the AQ feed is read about 3 s after the root appears, logged out too (legacy `MainWindow.swift:1178-1192`).
         .task { await model.qualityAlerts.checkAtLaunch() }
         // EXPERIMENTAL(mpDarkTopic, #1014): the account's model reads the option from here.

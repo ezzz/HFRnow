@@ -16,15 +16,15 @@ struct HapticFeedbackTests {
         let recorder = Recorder()
         let haptics = make(InMemorySettingsStore(), recorder)
         haptics.impact(.light)
-        haptics.notification(.success)
-        #expect(recorder.played == [.impact(.light), .notification(.success)])
+        haptics.impact(.rigid)
+        #expect(recorder.played == [.impact(.light), .impact(.rigid)])
     }
 
-    @Test func offSilencesEveryKind() {
+    @Test func offSilencesEveryImpact() {
         let recorder = Recorder()
         let haptics = make(InMemorySettingsStore(["haptics": .bool(false)]), recorder)
         haptics.impact(.rigid)
-        haptics.notification(.error)
+        haptics.impact(.light)
         #expect(recorder.played.isEmpty)
     }
 

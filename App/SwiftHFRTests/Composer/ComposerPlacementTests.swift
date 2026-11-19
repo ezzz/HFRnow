@@ -89,15 +89,20 @@ struct ComposerPlacementTests: ReaderWebTesting {
         #expect(abs((seen.bottom ?? 0) - base - 200) < 1, "partial: \(seen.bottom ?? -1)")
         state.bar = 0
         state.docked = nil
-        await Self.waitUntil { abs((seen.bottom ?? 0) - base) < 1 }
-        // The first pass of a full-height opening: the bar covers the page, the composer has not reported its height yet.
+        await Self.waitUntil { abs((seen.bottom ?? 0) - base) < 1 && seen.docked == nil }
+        // The first pass of a full-height opening: the bar covers the page, the composer has not reported its height yet. The
+        // checks run once the page had that pass (#1194: a signal, not a delay); `largest` holds every inset handed since.
+        seen.largest = nil
         state.bar = 820
         state.docked = .partial
-        try await Task.sleep(for: .milliseconds(200))
+        await Self.waitUntil { seen.docked == .partial && abs((seen.barHeight ?? 0) - 820) < 1 }
+        #expect(seen.docked == .partial && abs((seen.barHeight ?? 0) - 820) < 1, "the covered pass ran")
         #expect(abs((seen.bottom ?? 0) - base) < 1, "covered, before the height is known: \(seen.bottom ?? -1)")
         state.docked = .full
-        try await Task.sleep(for: .milliseconds(200))
+        await Self.waitUntil { seen.docked == .full }
+        #expect(seen.docked == .full, "the full pass ran")
         #expect(abs((seen.bottom ?? 0) - base) < 1, "full: \(seen.bottom ?? -1)")
+        #expect((seen.largest ?? .infinity) <= base + 1, "never the viewport while covered: \(seen.largest ?? -1)")
         state.bar = 250
         state.docked = .partial
         await Self.waitUntil { abs((seen.bottom ?? 0) - base - 250) < 1 }
@@ -119,7 +124,7 @@ struct ComposerPlacementTests: ReaderWebTesting {
         await composer.requestClose()
         await Self.waitUntil { state.composer == nil }
         await Self.waitUntil { Self.textView(in: host.view) == nil } // the bar slides out
-        try await Task.sleep(for: .milliseconds(300))
+        #expect(await state.probe.settled(), "an update after the change was rendered")
         #expect(state.closes.count == 1, "\(state.closes)")
         #expect(state.composer == nil)
         #expect(state.path == [1], "the reader is still pushed")
@@ -134,35 +139,43 @@ struct ComposerPlacementTests: ReaderWebTesting {
         let state = PresentedComposer(composer)
         let seen = SeenInsets()
         let host = UIHostingController(rootView: DockHost(state: state, seen: seen))
-        let window = try #require(Self.window(host))
+        let window = try #require(Self.window(host, key: true))
         defer { window.isHidden = true }
         let textView = try #require(await Self.waitForTextView(in: host.view))
-        try await Task.sleep(for: .milliseconds(200))
+        // The bar has slid in and the page's inset reaches it (#1194: waits for that layout, not a delay).
+        await Self.waitUntil {
+            abs(window.bounds.maxY - (seen.bottom ?? -.infinity) - Self.barTop(in: window, above: textView)) <= 1
+        }
         let card = textView.convert(textView.bounds, to: window)
         #expect(textView.window === window, "in the reader's own window, not a presented sheet")
         // The bar's top as touches see it: the first point above the text where the page takes the touch.
-        let x = window.bounds.midX
-        var barTop = card.minY
-        while barTop > 0, !Self.isInScrollView(window.hitTest(CGPoint(x: x, y: barTop - 1), with: nil)) { barTop -= 1 }
+        let barTop = Self.barTop(in: window, above: textView)
         #expect(barTop < card.minY - 20, "the bar's header and its background take the touches: \(barTop) vs \(card.minY)")
         #expect(barTop > window.bounds.midY, "the bar sits at the bottom: \(barTop)")
         let inset = try #require(seen.bottom)
         #expect(abs(window.bounds.maxY - inset - barTop) <= 1, "the page's bottom inset reaches the bar's top: \(inset), \(barTop)")
-        // The keyboard goes (a pull-down or "return"): the composer stays open with its text.
+        // The keyboard goes (a pull-down or "return"): the composer stays open with its text. The editor has the keyboard first
+        // (it focuses itself once editable, in a window already key), else nothing would go.
+        await Self.waitUntil { textView.isFirstResponder }
+        #expect(textView.isFirstResponder, "the editor has the keyboard")
         window.endEditing(true)
-        try await Task.sleep(for: .milliseconds(100))
+        #expect(!textView.isFirstResponder)
+        #expect(await state.probe.settled(), "an update after the change was rendered")
+        // At the source too: the composer was not asked to close, whatever reached the presenter.
+        #expect(composer.closeReason == nil && !composer.isAskingClose)
         #expect(state.composer != nil)
         #expect(Self.textView(in: host.view) != nil, "the bar is still there")
     }
 
-    private static func window(_ host: UIViewController) -> UIWindow? {
+    /// `key` makes the window key before the host lays out, so a focus the composer asks for on appearing can land.
+    private static func window(_ host: UIViewController, key: Bool = false) -> UIWindow? {
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene else {
             return nil
         }
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
         window.rootViewController = host
-        window.isHidden = false
+        if key { window.makeKeyAndVisible() } else { window.isHidden = false }
         host.view.layoutIfNeeded()
         return window
     }
@@ -181,15 +194,6 @@ struct ComposerPlacementTests: ReaderWebTesting {
         for child in view.subviews { if let found = textView(in: child) { return found } }
         return nil
     }
-
-    private static func isInScrollView(_ view: UIView?) -> Bool {
-        var current = view
-        while let candidate = current {
-            if candidate is UIScrollView, !(candidate is UITextView) { return true }
-            current = candidate.superview
-        }
-        return false
-    }
 }
 
 @MainActor
@@ -199,6 +203,10 @@ private final class SeenInsets {
     }
     /// The largest bottom inset handed to the page so far.
     var largest: CGFloat?
+    /// The docked composer the page saw in its latest pass, and the stand-in bar's laid-out height: the passes the checks wait
+    /// for (#1194).
+    var docked: DockedComposer?
+    var barHeight: CGFloat?
 }
 
 @MainActor
@@ -215,6 +223,7 @@ private final class PresentedComposer {
     var closes: [ReplyComposerModel.CloseReason] = []
     var path: [Int] = []
     var placement = ComposerPlacement.docked
+    let probe = RenderProbe()
     /// « Composer moderne », on for the docked bar's tests (its default is off since #855); the cover's test turns it off.
     let settings = ExperimentalSettings(store: InMemorySettingsStore())
     init(_ composer: ReplyComposerModel?) {
@@ -226,10 +235,12 @@ private final class PresentedComposer {
 /// The reader's page as `TopicReaderView` lays it out, over a stand-in scroll view.
 private struct Page: View {
     let seen: SeenInsets
+    @Environment(\.dockedComposer) private var docked
 
     var body: some View {
         ReaderUnderBars { insets in
             seen.bottom = insets.bottom
+            seen.docked = docked
             return ScrollView { Color.gray.frame(height: 3_000) }
         }
     }
@@ -244,6 +255,7 @@ private struct DockHost: View {
         Page(seen: seen).modifier(ReaderComposerPresenter(composer: $state.composer, placement: state.placement) { _, reason in
             state.closes.append(reason)
         })
+        .background { RenderProbeView(probe: state.probe) }
         .environment(state.settings)
     }
 }
@@ -269,7 +281,10 @@ private struct InsetsHost: View {
     var body: some View {
         Page(seen: seen)
             .environment(\.dockedComposer, state.docked)
-            .safeAreaInset(edge: .bottom, spacing: 0) { Color.red.frame(height: state.bar) }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.red.frame(height: state.bar)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { seen.barHeight = $0 }
+            }
     }
 }
 
@@ -301,7 +316,13 @@ extension ComposerPlacementTests {
         seen.largest = nil
         state.composer = ComposerFixture.model(poster: ScriptedPoster([]))
         _ = try #require(await Self.waitForTextView(in: host.view))
-        try await Task.sleep(for: .milliseconds(400))
+        // The composer has reported its full height and the page had a pass with it, the bar laid out full (#1194: signals,
+        // not a delay); `largest` holds every inset handed to the page since the opening.
+        await Self.waitUntil {
+            seen.docked == .full
+                && (Self.textView(in: host.view)?.convert(CGRect.zero, to: window).minY ?? .infinity) < window.bounds.midY
+        }
+        #expect(seen.docked == .full, "the page saw the composer full")
         let card = try #require(Self.textView(in: host.view)).convert(CGRect.zero, to: window)
         #expect(card.minY < window.bounds.midY, "opened full: the editor starts in the top half (\(card.minY))")
         #expect((seen.largest ?? 0) <= base + 1, "the largest bottom inset handed to the page: \(seen.largest ?? -1), base \(base)")
@@ -323,7 +344,7 @@ extension ComposerPlacementTests {
         #expect(Self.textView(in: host.view) == nil, "the bar is gone")
         state.placement = .docked
         await Self.waitUntil { host.presentedViewController == nil && Self.textView(in: host.view) != nil }
-        try await Task.sleep(for: .milliseconds(300))
+        #expect(await state.probe.settled(), "an update after the change was rendered")
         #expect(state.composer === composer)
         #expect(state.closes.isEmpty, "\(state.closes)")
         #expect(host.presentedViewController == nil)
@@ -342,7 +363,7 @@ extension ComposerPlacementTests {
         await composer.start()
         await composer.requestClose()
         await Self.waitUntil { state.composer == nil && host.presentedViewController == nil }
-        try await Task.sleep(for: .milliseconds(300))
+        #expect(await state.probe.settled(), "an update after the change was rendered")
         #expect(state.closes.count == 1, "\(state.closes)")
         #expect(state.composer == nil)
         #expect(host.presentedViewController == nil)
@@ -365,7 +386,7 @@ extension ComposerPlacementTests {
         await composer.start()
         await composer.requestClose()
         await Self.waitUntil { state.composer == nil && host.presentedViewController == nil }
-        try await Task.sleep(for: .milliseconds(300))
+        #expect(await state.probe.settled(), "an update after the change was rendered")
         #expect(state.closes.count == 1, "\(state.closes)")
         #expect(host.presentedViewController == nil)
     }

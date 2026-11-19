@@ -15,7 +15,7 @@ final class AppIconSeasonModel {
 
     /// The pending question, nil when there is none.
     private(set) var question: Question?
-    /// The French message of a refused « Oui », nil otherwise; the question comes back at the next launch.
+    /// The French message of a refused « Revenir », nil otherwise; the question comes back at the next launch.
     var errorMessage: String?
 
     @ObservationIgnored private let store: any SettingsStore
@@ -62,7 +62,7 @@ final class AppIconSeasonModel {
         self.question = nil
     }
 
-    /// "Oui": applies the previous icon through the system (the user's own answer); a refusal leaves the icon and asks again next
+    /// "Revenir": applies the previous icon through the system (the user's own answer); a refusal leaves the icon and asks again next
     /// launch.
     func revert() async {
         guard let asked = question else { return }
@@ -122,8 +122,8 @@ private struct AppIconSeasonAlert: ViewModifier {
                 isPresented: Binding(get: { model.question != nil && gate.isOpen }, set: { _ in }),
                 presenting: model.question
             ) { _ in
-                Button("Oui") { Task { await model.revert() } }
-                Button("Garder", role: .cancel) { model.keep() }
+                Button(AlertVerbs.revertSeasonalIcon) { Task { await model.revert() } }
+                Button(AlertVerbs.keepIcon, role: .cancel) { model.keep() }
             } message: { question in
                 Text(
                     "L’icône « \(question.dated.title) » est une icône de saison, qui s’est terminée. "

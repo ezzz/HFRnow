@@ -114,6 +114,27 @@ struct ReplyComposerDraftTests {
         #expect(await ComposerFixture.storedText(drafts) == nil)
     }
 
+    /// #1182: an undecodable drafts file is set aside by the store; the first composer says so, the next ones do not.
+    @Test func draftsSetAsideAreAnnouncedOnce() async throws {
+        let directory = URL.temporaryDirectory.appending(path: "Drafts-1182-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appending(path: "drafts.json")
+        try Data("not json".utf8).write(to: file)
+        let drafts = DraftStore(persistence: FileDraftPersistence(fileURL: file))
+        let first = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts, autosaveDelay: .milliseconds(10))
+        await first.start()
+        #expect(first.draftsNotice == ReplyComposerModel.draftsSetAsideNotice)
+        // Not a failure: no « Fermer sans enregistrer », and a working save keeps it on screen.
+        #expect(first.draftWarning == nil && !first.canCloseWithoutSaving)
+        first.update(text: "Bonjour")
+        await first.waitForAutosave()
+        #expect(first.draftsNotice == ReplyComposerModel.draftsSetAsideNotice && !first.canCloseWithoutSaving)
+        let second = ComposerFixture.model(poster: ScriptedPoster([]), drafts: drafts)
+        await second.start()
+        #expect(second.draftsNotice == nil)
+    }
+
     @Test func aFailedDraftWriteIsReportedAndTheTextStays() async {
         let persistence = CountingDraftPersistence()
         let composer = ComposerFixture.model(poster: ScriptedPoster([]), drafts: DraftStore(persistence: persistence))

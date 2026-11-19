@@ -24,8 +24,9 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 ## Behaviour (legacy parity)
 
 - Selection: `[tag]sel[/tag]`, caret after. No selection: empty tags, caret between. Colours write `[<hex>]…[/<hex>]`.
-- `url` with a selection and an http(s) clipboard URL: alert "Utiliser le presse-papiers ?" (Oui → `[url=<clip>]sel[/url]`,
-  Non → `[url]sel[/url]`). Empty selection and non-blank clipboard text: alert offering to wrap that text. A clipboard
+- `url` with a selection and an http(s) clipboard URL: question "Utiliser le presse-papiers ?" (« Coller le lien » → `[url=<clip>]sel[/url]`,
+  « Insérer sans le presse-papiers » → `[url]sel[/url]`, « Annuler » → nothing; legacy answered Oui / Non and its cancel button inserted the
+  tag, #1180). Empty selection and non-blank clipboard text: the same question offering to wrap that text. A clipboard
   content already inserted (same `changeCount`) is not offered again; refusing does not mark it used (legacy).
 - `splitQuote` (cursor strictly inside a `[quotemsg=…]` block) is ported and tested; no button calls it yet (legacy button
   is part of the quote lot).
@@ -40,4 +41,4 @@ Absorbs feedback 'BBCode toolbar' (p. 505), 'link paste helper' (p. 497) and cur
 
 ## Pending
 
-Hand check on simulator/device (caret after each tag, palette, clipboard alerts, Dynamic Type XL, dark mode).
+Hand check on simulator/device (caret after each tag, palette, clipboard questions, Dynamic Type XL, dark mode).

@@ -80,17 +80,6 @@ enum PlusEntry: CaseIterable, Hashable, Sendable {
         }
     }
 
-    /// The lot that builds the screen behind the entry, nil once it is built: every entry is (LOT-132 Bookmarks, LOT-133 Alertes
-    /// Qualitay), and a future one names its lot here rather than lead to a dead row.
-    var owningLot: String? {
-        switch self {
-        case .settings, .search, .bookmarks, .qualityAlerts, .credits, .charter, .deleteAccount: nil
-        }
-    }
-
-    /// Whether the entry leads to a built screen.
-    var isBuilt: Bool { owningLot == nil }
-
     /// Destructive entries are drawn in red, as legacy.
     var isDestructive: Bool { self == .deleteAccount }
 

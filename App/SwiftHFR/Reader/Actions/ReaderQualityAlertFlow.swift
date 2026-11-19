@@ -59,6 +59,7 @@ private struct QualityAlertTitleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     @State private var title = ""
+    @State private var isAskingDiscard = false
 
     var body: some View {
         NavigationStack {
@@ -78,11 +79,17 @@ private struct QualityAlertTitleSheet: View {
             .navigationTitle("AQ")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { if DiscardConfirmation.hasText(title) { isAskingDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Créer", action: submit).disabled(isBlank) }
             }
             .task { focused = true }
         }
+        // A typed title is not thrown away without asking (#1169).
+        .discardConfirmation(
+            "Abandonner cette alerte ?", hasChanges: DiscardConfirmation.hasText(title), isAsking: $isAskingDiscard
+        ) { dismiss() }
     }
 
     private var isBlank: Bool { title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }

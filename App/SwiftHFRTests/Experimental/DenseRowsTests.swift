@@ -43,7 +43,6 @@ struct DenseRowsTests {
         #expect(TopicRowStyle.current(nil) == .legacy)
         settings.set(.denseRows, isOn: true)
         #expect(TopicRowStyle.current(settings) == .dense)
-        #expect(ExperimentalFeature.denseRows.isListed)
         #expect(ExperimentalSettings(store: store).isOn(.denseRows))
     }
 

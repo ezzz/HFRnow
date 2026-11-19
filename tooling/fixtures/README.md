@@ -148,10 +148,39 @@ Obfuscated links (`md_noclass_cryptlink`, `md_blank_cryptlink`, `md_cryptlink` c
 (the `a.cCatTopic` of the title cell `td.sujetCase3`, chosen by position, never by content: a subject may be digits
 only, and the page links of `td.sujetCase4` are not subjects) except the fixture threads `fixture-test-N` and the
 MPStorage title (FIXTURES.md); `check --private` verifies it, in both verifiers. On the MPStorage thread page (R60a) the
-first post, the storage JSON document, is kept when the thread header names the thread and the document holds only known
-keys and the strings `0.1` / `iOS`; any other content raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
-document (`content_form`, the review cell after `td.messCase1bis`) must pass the same check, on both sides. `check --private`
-accepts that body only on a page whose `<title>` names the thread and whose JSON keys and strings are all in its own word list.
+first post, the storage JSON document (its first `<p>`, as legacy reads it; the `div.edited` trailer is not part of it), is kept when the
+thread header names the thread, and rewritten in place by
+`mpstorage_doc.py`: member pseudos (blacklist `username`, bookmark `author`) become `userN`, other clients' namespaces
+`nsN` (keys `keyN`, strings `textN`, numbers fake ids), a foreign `sourceName` `clientN`, `post` / `numreponse` fake ids
+(9100NN), tombstone `id` the alias of its item's storage key (lower-cased member alias, fake id, `cat-post-numreponse`),
+`label`, `p`, `href`, `uri` `textN`; plausible timestamps (10 digits, seconds, or 13, milliseconds; anything else under a timestamp key becomes
+`1700000000000`+n), `page`, `cat` (up to 3 digits), booleans and null are kept. A `textN` alias keeps a U+00A0 (written
+as the `\u00a0` escape: the parser removes raw ones) or non-BMP mark of its original. No value is kept for looking like an
+alias (`user77`, an id of 9100NN): a document is aliased from its original, not re-trusted. Bytes outside the rewritten
+strings, keys and numbers are kept in `content_form`; **a rendered copy** (post `<p>`, review cell) is re-encoded from its
+tag-stripped text, so markup inside the document and the document's length are lost (aliases are shorter): state that in
+the MANIFEST row, a fixture of a document near 64 KiB or of rendered smileys needs another route. The paragraph must be a bare `<p>`; the redactor writes it back as plain escaped text (markup inside it, such as a rendered
+smiley, is dropped) and `check` flags any `<` in it. After the paragraph only HFR's trailer is accepted, as a closed grammar of exact byte tokens derived from every trailer of
+the committed corpus (961 post trailers, 301 review cells, #272 round 5), written separately on each side (the redactor
+walks tokens with a cursor, `rewrite_storage_trailer`; `check` cuts tags and text runs and compares token lists, `_v_trailer_ok`):
+post `CLEAR </p> [EDITED] [<br /> SIGNATURE]`, review cell `CLEAR` alone; `CLEAR` is `<div style="clear: both;"> </div>`;
+`EDITED` is `<div class="edited">` holding HFR's quote link (`<a href="/forum2.php?config=hfr.inc&amp;cat=…" class="cLink" rel="nofollow">`,
+the corpus's two query orders, digits or empty values) with "Message cité N fois</a>", and/or `<br />` with "Message édité
+par X le jj-mm-aaaa&nbsp;à&nbsp;hh:mm:ss"; the signature span is the post's last element. No case, entity, CRLF or
+spacing variant is in the corpus, so none is accepted (`<BR>`, `&#160;`, `&eacute;`, a `cat=prive` link: re-capture and
+extend the grammar). The redactor aliases X through the page's name table after decoding entities and U+00A0, and
+refuses a name it cannot alias (not a member, already shaped like `userN`, holding ` le <digit>`, irregular blanks); a
+signature's content becomes the placeholder, framed by HFR's separator and clear div only when both are there byte for
+byte. `check` accepts X only as a raw alias `userN` and a signature only as one of the two placeholder forms. Text
+around the braces, a second paragraph, a quote block or any other content raises `MPStorageDocumentError` and fails `check`.
+**Never feed anonymized output back to `anonymize.py`**: aliases are not recognised (`user3` becomes `text1`); `publish.py` and
+`flows.py` read raw captures, `check` only reads. A document that is not
+JSON or holds a duplicate key raises `MPStorageDocumentError` (fail closed). On the storage thread's form pages the copies of the
+document (`content_form`, the review cell after `td.messCase1bis`) are rewritten the same way. `check --private`
+(its own rules in `anonymize.py`, no import of `mpstorage_doc`, its own first-paragraph scope) accepts that body only on a page whose `<title>` names
+the thread and whose every key is a format word or an alias key, every string `0.1`, `iOS`, a category under `cat` or an
+alias (a tombstone `id` also its storage-key forms), and every number a 10- or 13-digit timestamp, a `page` / `cat` of at most 5 / 3
+digits, or a fake id; the post and both copies are checked.
 On every other form page (composer, edit, quote prefill), `--private` also replaces the `content_form` textarea and the review cell after `td.messCase1bis` by the placeholder, unless the page names only fixture threads (`fixture-test-N` in every `sujet` input and "Sujet :" header); a page naming no thread fails closed. `check --private` flags both positions, in both verifiers (#401).
 
 The CLI runs `check` on its own output and writes nothing if a leak remains. `check` exits non-zero and prints each offending line.

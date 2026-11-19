@@ -45,4 +45,18 @@ extension HFREndpoint {
     public static func topicPage(post: PostID, page: Int) throws -> HTTPRequest {
         try topicPage(topic: post.topic, page: page, anchor: post.numreponse)
     }
+
+    /// The quote view of one message (`quote_only=1`, #1039): the posts that quote message `numreponse` of `topic`, in place, with no
+    /// pager (capture `R126a`, HFR-PROTOCOL §6c « Batch A »). Built in the exact shape of the capture, empty parameters
+    /// included and in HFR's order, because that is the only shape seen; `subcategory` is the link's `subcat=` (HFR writes it empty
+    /// for a forum without sub-categories).
+    public static func quotingMessages(topic: TopicID, subcategory: Int?, numreponse: Int) throws -> HTTPRequest {
+        guard numreponse >= 1 else { throw NetworkError.invalidRequest(reason: "numreponse must be 1 or more") }
+        let query = [
+            ("config", config), ("cat", topic.category.queryValue), ("subcat", subcategory.map(String.init) ?? ""),
+            ("post", String(topic.topic)), ("page", "1"), ("p", "1"), ("sondage", ""), ("owntopic", ""), ("trash", ""),
+            ("trash_post", ""), ("print", ""), ("numreponse", String(numreponse)), ("quote_only", "1"), ("new", "0"), ("nojs", "0")
+        ]
+        return try HTTPRequest.get(url(path: "/forum2.php", query: query))
+    }
 }

@@ -39,6 +39,7 @@ private struct BookmarkTitleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     @State private var title = ""
+    @State private var isAskingDiscard = false
 
     var body: some View {
         NavigationStack {
@@ -63,11 +64,17 @@ private struct BookmarkTitleSheet: View {
             .navigationTitle("Bookmark")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { if DiscardConfirmation.hasText(title) { isAskingDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Créer", action: submit).disabled(problem != nil) }
             }
             .task { focused = true }
         }
+        // A typed title is not thrown away without asking (#1169).
+        .discardConfirmation(
+            "Abandonner ce bookmark ?", hasChanges: DiscardConfirmation.hasText(title), isAsking: $isAskingDiscard
+        ) { dismiss() }
     }
 
     private var problem: String? { BookmarkActionModel.titleProblem(title) }

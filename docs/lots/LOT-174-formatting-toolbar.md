@@ -23,7 +23,7 @@ None @ 2440d79 (new UX). The code says so in its `// Port of …` header: "none 
 ## Behaviour
 Delivered by #598 (the first slice; the rest of the lot is still to write), on top of the merged LOT-085:
 - **Size** (`ComposerBarMetrics`): a cell is 48 pt in regular density and 40 pt in compact, times Dynamic Type (`@ScaledMetric`, LOT-169) and the text scale; the colour swatch is half a cell, the symbol 0.4 of it.
-- **`[url]`**: with a selection, today's path (clipboard link → `[url=<clip>]sel[/url]`). With nothing selected and a non-blank clipboard text not already used, the alert offers both legacy forms (`HFRTextView.m:205-262`, `:308-350` @ 2440d79): `[url=<clip>][/url]` with the caret between the tags, or `[url]<clip>[/url]`; "Sans le presse-papiers" writes the empty `[url][/url]` and, as in legacy, does not mark the clipboard used (the choice is offered again until a form is picked); without such a clipboard text, `[url][/url]` is inserted with no choice.
+- **`[url]`**: with a selection, today's path (clipboard link → `[url=<clip>]sel[/url]`). With nothing selected and a non-blank clipboard text not already used, the question offers both legacy forms (as « Insérer [url=XXX] » / « Insérer [url]XXX[/url] », #1180) (`HFRTextView.m:205-262`, `:308-350` @ 2440d79): `[url=<clip>][/url]` with the caret between the tags, or `[url]<clip>[/url]`; « Insérer sans le presse-papiers » writes the empty `[url][/url]` and, as in legacy, does not mark the clipboard used (the choice is offered again until a form is picked); without such a clipboard text, `[url][/url]` is inserted with no choice.
 - **Icons**: the top upload button is `photo.badge.plus`; the bottom `[img]` tag keeps `photo`.
 
 ## Composer layout and control row ([#653](https://github.com/ezzz/HFRnow/issues/653), M4)
@@ -121,7 +121,7 @@ inside the card above the text, the two pills just under the editor so they move
   100 %) the slack is wider than the gap and is kept. After a banner or the recipient and subject fields, the gap is above the
   card too (`ComposerChrome.gapAboveCard`). The floating buttons' glyphs take the card tools' size and weight
   (`ComposerBarMetrics.glyphSize`), and the card's tools and its "Aa" bar keep 44 pt cells at the compact density. Variant D (each tool in a round
-  chip, `ComposerToolStyle`) is the one the build shows until the operator chooses on the device. Legacy's chrome (an iPad, or the
+  chip, `ComposerChip`) is the one the build shows: the operator's device check of 2026-11-16 kept it (#895) and the bare-glyph variant was deleted (#1196). Legacy's chrome (an iPad, or the
   option off) keeps its paddings.
 - **Image chips.** An image the panel uploaded and inserted shows as a 56 pt thumbnail (the host's mini rendition, as the panel's
   history) at the top of the card, with an ✕ ("Retirer l'image"). The snippet stays in the text where legacy puts it (at the caret,

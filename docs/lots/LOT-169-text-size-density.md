@@ -34,7 +34,8 @@ Read-only, `origin/master` of ezzz/HFRnow at `21173e77`.
   | unread dot, avatar | 8, 40 | 6, 28 |
   | min row height, section spacing | 44, system | 28, 6 |
 
-- **Dynamic Type.** The percentage multiplies the system size: accessibility sizes still grow the text at every slider value (70 % at AX5 is larger than 130 % at the default size). At accessibility sizes, titles and meta lines drop their line limits so nothing truncates, and the MP avatar stops at 64 pt. Fonts are `.system(size:)` at the computed size, so a text style's own traits beyond its weight (headline: semibold) are not carried over.
+- **Floor (#1157).** Below 100 % the scaled size is floored at 11 pt (HIG minimum): `max(system × factor, min(system, 11))` in `TextScale.pointSize`, the one place every font goes through; 100 % and above are unchanged, and legacy has no floor because it never goes under 100 % (`Common.swift:314-322` @ 87fe0d1c). Accepted consequence: at 70 % the regular titles (subheadline), info lines (caption) and badges (caption2) all come out at 11 pt, and in compact the titles (footnote) equal the info lines, so the hierarchy there rests on weight and colour alone. The reader's web text has its own floor issue (#1237).
+- **Dynamic Type.** The percentage multiplies the system size (above the floor): accessibility sizes still grow the text at every slider value (70 % at AX5 is larger than 130 % at the default size). At accessibility sizes, titles and meta lines drop their line limits so nothing truncates, and the MP avatar stops at 64 pt. Fonts are `.system(size:)` at the computed size, so a text style's own traits beyond its weight (headline: semibold) are not carried over.
 
 ## Measurements (iPhone 18 Pro simulator, iOS 27.0, 402 × 874 pt, plain list of 40 rows, default Dynamic Type)
 
@@ -44,7 +45,7 @@ Read-only, `origin/master` of ezzz/HFRnow at `21173e77`.
 |---|---|---|
 | Topics 100 % (median row, rows fully visible) | 46.3 pt, 13 | 36.0 pt, 17 |
 | MP 100 % | 66.3 pt, 10 | 36.0 pt, 19 |
-| Topics 70 % | 44.0 pt, 15 | 28.0 pt, 23 |
+| Topics 70 % (outdated: measured before the 11 pt floor, #1157) | 44.0 pt, 15 | 28.0 pt, 23 |
 | Topics 130 % | 56.0 pt, 10 | 45.0 pt, 13 |
 | Legacy favourites row rebuilt from its code (above) | 49.0 pt, 13 | 47.0 pt, 13 |
 

@@ -91,7 +91,7 @@ import Testing
         #expect(try await store.merge(incoming, account: "Alice"))
         #expect(await store.position(of: Self.first, account: "Alice")?.page == 2)
         #expect(await store.records(for: "Alice").map(\.topic) == [Self.second, Self.first])
-        #expect(await store.accounts() == ["Alice"])
+        #expect(await store.accounts() == ["alice"], "the account key (#1184)")
         #expect(await Self.signalled(changes))
         #expect(try await store.merge(incoming, account: "Alice") == false)
     }

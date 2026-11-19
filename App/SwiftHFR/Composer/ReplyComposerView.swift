@@ -4,7 +4,9 @@ import SwiftUI
 // GAP-096) @ 2440d79; the "Brouillons" button (LOT-101, GAP-093) is `AnswerView.swift:783-796` @ 87fe0d1c.
 // Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
-// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the formatting bar is
+// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD);
+// the clipboard question is a dialog with verb titles and a real « Annuler » (#1180; legacy: alert, Oui / Non, `AnswerView.swift:530-557`
+// @ 87fe0d1c, its cancel button inserted the tag); the formatting bar is
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 // Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
@@ -103,7 +105,9 @@ struct ReplyComposerView: View {
         .appScreenBackground()
         .modifier(DockedComposerBar(isDocked: placement == .docked, height: height))
         .gifPanel(services: model.gifServices, formatting: formatting, request: $gifRequested) { focused = .text }
-        .alert("Utiliser le presse-papiers ?", isPresented: askingClipboard, presenting: formatting.pending) { pending in
+        .confirmationDialog(
+            "Utiliser le presse-papiers ?", isPresented: askingClipboard, titleVisibility: .visible, presenting: formatting.pending
+        ) { pending in
             clipboardButtons(pending)
         } message: { pending in
             Text(pending.message)
@@ -148,9 +152,11 @@ struct ReplyComposerView: View {
         }
         .task { await model.loadSubcategories() }
         .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
+        .modifier(ComposerRoomUpdates(layout: $measured, isDocked: chrome == .docked)) // the card's room (#1136)
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: model.draftWarning) { _, text in ReaderAccessibility.announce(text) }
+        .onChange(of: model.draftsNotice) { _, text in ReaderAccessibility.announce(text) }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flushDraft() } }
         }
@@ -194,6 +200,7 @@ struct ReplyComposerView: View {
     private var editorCard: some View {
         ComposerEditorCard(
             model: model, formatting: formatting, selection: $selection, focused: $focused, chips: model.shownImageChips,
+            thumbnails: imageUpload.thumbnails,
             editorHeight: height == .partial ? measured.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
             onToggle: { chosenHeight = height.toggled }, removeChip: removeImage,
             measure: { text, line in measured.text = text; measured.line = line },
@@ -210,6 +217,7 @@ struct ReplyComposerView: View {
                 }
             }
         }
+        if let note = model.draftsNotice { ComposerBanner(text: note, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {} }
         if let warning = model.draftWarning {
             ComposerBanner(text: warning, symbol: "externaldrive.badge.exclamationmark", tint: .secondary) {
                 // Keep and discard cannot close while the store refuses writes: the only exit, as the warning says.
@@ -288,8 +296,7 @@ extension ReplyComposerView {
             .composerProbe(.controls)
     }
 
-    /// An iPhone in regular height, for a reply or an edit: partial height first, and the toggle (#653); none for a new message
-    /// or topic (#1137).
+    /// An iPhone in regular height, for a reply or an edit: partial height first, and the toggle (#653); none for new content (#1137).
     private var offersHeightToggle: Bool {
         ComposerHeight.offersToggle(
             isPhone: usesModernComposer, verticalSizeClass: verticalSizeClass, opensFull: model.opensFullScreen
@@ -347,20 +354,14 @@ extension ReplyComposerView {
 }
 
 extension ReplyComposerView {
-    /// The buttons of the clipboard alert, by what the tap could use.
+    /// The buttons of the clipboard question, by what the tap could use (#1180: verbs and a real « Annuler »).
     @ViewBuilder
     fileprivate func clipboardButtons(_ pending: ComposerFormattingModel.Pending) -> some View {
-        switch pending {
-        case .link:
-            Button("Non", role: .cancel) { formatting.declinePending(pending); focused = .text }
-            Button("Oui") { formatting.acceptPending(pending); focused = .text }
-        case .linkChoice:
-            Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
-            Button("Oui [url=XXX]") { formatting.acceptLinkChoice(pending, attribute: true); focused = .text }
-            Button("Oui [url]XXX[/url]") { formatting.acceptLinkChoice(pending, attribute: false); focused = .text }
-        case .formatting:
-            Button("Sans le presse-papiers", role: .cancel) { formatting.declinePending(pending); focused = .text }
-            Button("Insérer") { formatting.acceptPending(pending); focused = .text }
+        ForEach(pending.choices) { choice in
+            Button(choice.title, role: choice.kind == .cancel ? .cancel : nil) {
+                formatting.choose(choice, for: pending)
+                focused = .text
+            }
         }
     }
 

@@ -60,8 +60,8 @@ enum ComposerHeight: Equatable {
 struct ComposerCardLayout: Equatable {
     /// Lines the editor shows with no text, so the caret and the first line of a reply have room.
     static let minimumLines: CGFloat = 2
-    /// Lines past which the editor scrolls inside the card: about the third of the screen the original request (#653) gave the
-    /// text and the control row on a 6.9" iPhone, so the page above keeps its top third with the keyboard up.
+    /// Lines the editor always shows before it scrolls: about the third of the screen the original request (#653) gave the text and
+    /// the control row on a 6.9" iPhone. It is the cap until the room is measured, and the floor of the cap after (#1136).
     static let maximumLines: CGFloat = 6
     /// `UITextView`'s `textContainerInset` (8 pt top and bottom), which `TextEditor` keeps around the text.
     static let editorInsets: CGFloat = 16
@@ -78,14 +78,40 @@ struct ComposerCardLayout: Equatable {
     var text: CGFloat = 0
     /// One line of the body font at the current text size.
     var line: CGFloat = 0
+    /// The tallest card the screen allows (`room`): the editor grows up to it, then scrolls. nil until it is measured: today's
+    /// six lines (#1136).
+    var availableHeight: CGFloat?
+    /// The standard navigation bar's height (HIG, 44 pt for the inline bar; not yet measured on iOS 27: to confirm on the device,
+    /// #893): the card stays below it.
+    static let navigationBarHeight: CGFloat = 44
+    /// Lines of the body font kept visible of the page above the card, so the header of its last message shows (#1136).
+    static let pageStripLines: CGFloat = 3
+
+    /// The room for the card on a screen: the window less the top safe area, the navigation bar, the keyboard and a strip of the
+    /// page above (`pageStripLines`). The system lifts the sheet over the keyboard, so the keyboard counts here, not in the
+    /// card's own height. Never negative.
+    static func room(window: CGFloat, topInset: CGFloat, keyboard: CGFloat, line: CGFloat) -> CGFloat {
+        max(0, window - topInset - navigationBarHeight - keyboard - pageStripLines * line)
+    }
     /// The space above and below the card with legacy's chrome (an iPad, or the option off). The modern composer's is
     /// `ComposerChrome.cardInsets` (#895).
     static let gap: CGFloat = 8
 
-    /// The editor's height: its text's, between two and six lines, insets included.
+    /// The editor's height: its text's, from two lines up to `textCap`, insets included.
     var editorHeight: CGFloat {
         let lines = max(line, 1)
-        return min(max(text, Self.minimumLines * lines), Self.maximumLines * lines) + Self.editorInsets
+        return min(max(text, Self.minimumLines * lines), textCap) + Self.editorInsets
+    }
+
+    /// The most text the editor shows before it scrolls: what is left of `availableHeight` once the buttons, the banners, the
+    /// chips, the controls, the gaps and the text view's insets are taken (#1136), never under six lines (the cap before the
+    /// room was measured); six lines until it is.
+    var textCap: CGFloat {
+        let lines = max(line, 1)
+        guard let availableHeight else { return Self.maximumLines * lines }
+        let insets = ComposerChrome.docked.cardInsets
+        let room = availableHeight - top - chips - controls - insets.top - insets.bottom - Self.editorInsets
+        return max(Self.maximumLines * lines, room)
     }
 
     /// The rounded text card (#854): the image chips, the editor, then the controls on its bottom edge.

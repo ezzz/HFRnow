@@ -66,8 +66,9 @@ public actor PseudoListStore {
     /// Adds a pseudo to the account's blocklist. Returns false when it was already there (the list is then untouched).
     @discardableResult
     public func block(_ pseudo: String, account: String) throws -> Bool {
-        try mutate { document in
-            try Self.insert(pseudo, into: &document.blocklists[AccountKey.make(account), default: []])
+        let key = try Self.writableKey(account)
+        return try mutate { document in
+            try Self.insert(pseudo, into: &document.blocklists[key, default: []])
         }
     }
 
@@ -87,10 +88,11 @@ public actor PseudoListStore {
     /// and empty pseudos are dropped. Returns false when the resulting list equals the current one.
     @discardableResult
     public func replaceBlocklist(with pseudos: [String], account: String) throws -> Bool {
-        try mutate { document in
+        // Emptying stays possible under any key, so data stored under an empty key before #1184 can be erased.
+        let key = pseudos.isEmpty ? AccountKey.make(account) : try Self.writableKey(account)
+        return try mutate { document in
             var list: [PseudoListEntry] = []
             for pseudo in pseudos { _ = try? Self.insert(pseudo, into: &list) }
-            let key = AccountKey.make(account)
             guard list != (document.blocklists[key] ?? []) else { return false }
             document.blocklists[key] = list.isEmpty ? nil : list
             return true
@@ -138,6 +140,8 @@ public actor PseudoListStore {
     /// Sets the unreadable data aside (a `.corrupt` copy for files, never a deletion) and starts from empty lists.
     /// Only call it after the user agreed: this is the single way out of a failed load.
     public func discardUnreadableData() throws {
+        // Read again first: a read that failed once (an I/O error) and works now is not set aside (#1182).
+        state = .unloaded
         guard case .failed = loadedState() else { return }
         do {
             try persistence.quarantineUnreadableData()
@@ -166,9 +170,13 @@ public actor PseudoListStore {
                 let stored = try persistence.load() ?? PseudoListDocument()
                 if stored.version > PseudoListDocument.currentVersion {
                     state = .failed(.unsupportedVersion(stored.version))
+                } else if stored.version < 1 {
+                    state = .failed(.loadFailed(reason: "invalid version \(stored.version)"))
                 } else {
                     state = .loaded(stored)
                 }
+            } catch let error as PseudoListError {
+                state = .failed(error)
             } catch {
                 state = .failed(.loadFailed(reason: String(describing: error)))
             }
@@ -194,6 +202,13 @@ public actor PseudoListStore {
             state = .loaded(updated)
             return true
         }
+    }
+
+    /// The account's key for a write that adds to a blocklist: an empty key is refused (#1184, as `AccountKey.forWriting`).
+    private static func writableKey(_ account: String) throws -> String {
+        let key = AccountKey.make(account)
+        guard !key.isEmpty else { throw PseudoListError.emptyAccount }
+        return key
     }
 
     private static func index(of pseudo: String, in list: [PseudoListEntry]) -> Int? {
