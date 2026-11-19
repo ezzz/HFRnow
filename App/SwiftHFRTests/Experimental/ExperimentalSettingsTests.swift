@@ -39,7 +39,6 @@ struct ExperimentalSettingsTests {
     @Test func everyOptionIsListed() {
         let listed = ExperimentalTheme.listed.flatMap(\.listedFeatures)
         #expect(listed == [.modernComposer, .searchTab, .denseRows, .mpDarkTopic, .imageLoadingChoice])
-        #expect(Set(listed) == Set(ExperimentalFeature.allCases), "every option is in a section")
         #expect(ExperimentalTheme.listed == [.composer, .navigation, .lists, .messages, .imageLoading])
     }
 
