@@ -154,5 +154,6 @@ Registre des problèmes **présents dans l'app legacy** (HFR+ / HFRnow, branche 
 | 1132 | UX | Réglage Vidéos : intégrée (par défaut, lecture au tap) ou lien. | LOT-108 #691 | `d645f525` (retrait des vidéos intégrées, `LinkItem.m:148-155` @ `2440d79`), `87fe0d1c` |
 | 1142 | UX | « AQ » dans le menu d'un message : on peut plussoyer une AQ d'un autre membre (au lieu d'un refus), notice avant la première création. | LOT-134 #1142 | `MessagesView.swift:325-340, 4506-4543` @ `87fe0d1c`, captures `T55`/`T56` |
 | 1202 | T | Un MP d'un autre membre portant le sujet MPStorage n'est plus pris pour le stockage du compte : il reste visible dans la liste, et la synchronisation trouve le vrai fil. | #1200 #1202 | `MPStorage.m:713-723` @ `87fe0d1c` (premier fil au bon sujet) ; captures RU1, R44, R60a |
+| 1248 | T | Vignettes de l'historique d'envoi d'images et des images insérées dans la réponse : chargées par le chargeur d'images sans cookies et sa politique, depuis l'hébergeur configuré seulement, au lieu d'`AsyncImage` (toute adresse, cookies et cache partagés). | LOT-103 #1193 | `HFRswift/Swift/AnswerView.swift:2984` (`AsyncImage`) @ `87fe0d1c` ; captures `U01`/`U03` (envoi et images sur le même hôte) |
 
 Points « non corrigés volontairement » (comportement legacy gardé) : AQ appelé au lancement (D-071-3).
