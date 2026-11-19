@@ -60,11 +60,11 @@ The addition (above); the check is a typed list, not a substring test; an unconf
 the notice; no account, no entry.
 
 ## Tests
-`QualityAlertActionModelTests` (14): notice → title → create with the exact body; decline; no path creates before the notice;
+`QualityAlertActionModelTests` (16): notice → title → create with the exact body; decline; no path creates before the notice;
 accepted notice not asked again; blank title; join another member's AQ (body names the AQ id); own report refused before any question;
-failed check; unconfirmed create found / not found in the list (upper-case account pseudo); unconfirmed addition found / not found (`T54` → `T56`); a second pick waits, also while the check is in flight; the entry's availability.
+failed check; unconfirmed create found / not found in the list (upper-case account pseudo); unconfirmed addition found / not found (`T54` → `T56`); a second pick waits, also while the check is in flight; a double tap on « Créer » sends one report; an unconfirmed create whose list cannot be read says « non confirmée »; the entry's availability.
 Mutations checked to fail (model compiled on Linux in a scratch package): no gate in `send`, no own-report check, an unconfirmed create
-found in the list reported as not recorded, an addition always reported recorded, a case-sensitive pseudo compare, no `isIdle` guard in `start` (the in-flight test then hangs). Not run by the author: the SwiftUI flow and wiring (compile check, device checks on #893).
+found in the list reported as not recorded, an addition always reported recorded, a case-sensitive pseudo compare, no `isIdle` guard in `start` (the in-flight test then hangs), no `isWorking` guard in `send`. Not run by the author: the SwiftUI flow and wiring (compile check, device checks on #893).
 
 ## Learnings
 To copy into AGENTS.md §11 when the lot closes.

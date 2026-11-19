@@ -162,4 +162,20 @@ struct QualityAlertActionModelTests {
         #expect(rig.model.prompt == .title(Support.draft()))
         #expect(await rig.transport.gets == 1)
     }
+
+    @Test func aDoubleTapOnCreateSendsOneReport() async throws {
+        let rig = try Support.rig(alerts: "T52-aq-alerts-empty-local.xml", create: "T53-aq-create-ok-local.txt", accepted: true)
+        async let first: Void = rig.model.create(Support.draft(), title: "Titre")
+        async let second: Void = rig.model.create(Support.draft(), title: "Titre")
+        _ = await (first, second)
+        // Each report e-mails the AQ operator, and three in a minute get the address banned (HFR-PROTOCOL §8).
+        #expect(await rig.transport.posts == 1)
+    }
+
+    @Test func anUnconfirmedCreateWhoseListCannotBeReadSaysItIsUnverified() async throws {
+        let rig = try Support.rig(alerts: nil, create: nil, accepted: true)
+        await rig.model.create(Support.draft(), title: "Titre")
+        #expect(await rig.transport.posts == 1)
+        #expect(rig.messages == [QualityAlertMessages.unverified])
+    }
 }
