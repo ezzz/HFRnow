@@ -19,7 +19,7 @@ struct SeasonalArrivalAlert: ViewModifier {
             .background(WindowReader(reference: window))
             // A normal alert, spoken by VoiceOver (THEMES.md §4 rule 6). The setter ignores the dismissal: each button answers,
             // « OK » being the cancel role, so Esc on a hardware keyboard keeps the theme (#1174).
-            .alert(shown?.title ?? "", isPresented: Binding(get: { shown != nil }, set: { _ in }), presenting: shown) { _ in
+            .alert(shown.map(model.title(for:)) ?? "", isPresented: Binding(get: { shown != nil }, set: { _ in }), presenting: shown) { _ in
                 Button("OK", role: .cancel) { answer(disable: false) }
                 Button("Désactiver") { answer(disable: true) }
             } message: { alert in
