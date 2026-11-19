@@ -40,6 +40,8 @@ final class ImageUploadModel {
 
     private var didLoad = false
     private let services: ImageUploadServices
+    /// The history's thumbnail loader (#1193).
+    var thumbnails: SmileyImageLoader { services.thumbnails }
     private let now: @Sendable () -> Date
 
     /// A panel over `services`; `now` dates a manual link.

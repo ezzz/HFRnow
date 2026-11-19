@@ -54,6 +54,11 @@ struct ImageUploadServices: Sendable {
     /// Holds `rehost_use_link`, `rehost_resize_before_upload` and the notice flag.
     let settings: any SettingsStore
 
+    /// The host the history's and the chips' thumbnails may come from: the one the panel uploads to (#1193).
+    var thumbnailHost: String? { hostName }
+    /// Loads those thumbnails through the cookie-less image client, on that host only.
+    var thumbnails: SmileyImageLoader { .rehostThumbnails(host: thumbnailHost) }
+
     /// Build settings read from the app's `Info.plist`: `RehostBaseURL` and `RehostAPIKey` (ADR 0007, wired by the Mac check).
     static let baseURLKey = "RehostBaseURL"
     static let apiKeyKey = "RehostAPIKey"
