@@ -42,12 +42,16 @@ final class ImageUploadModel {
 
     private var didLoad = false
     private let services: ImageUploadServices
+    /// The thumbnail loader of the history and the composer's chips (#1193), built once: each loader holds its own HTTP
+    /// sessions, so one per render would drop connection reuse and churn sessions on every keystroke.
+    let thumbnails: SmileyImageLoader
     private let now: @Sendable () -> Date
 
     /// A panel over `services`; `now` dates a manual link.
     init(services: ImageUploadServices, now: @escaping @Sendable () -> Date = { Date() }) {
         self.services = services
         self.now = now
+        thumbnails = services.thumbnails()
         linkMode = services.settings.value(for: SettingKey.rehostLinkMode)
         maxDimension = services.settings.value(for: SettingKey.rehostMaxDimension)
     }

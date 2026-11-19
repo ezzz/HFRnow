@@ -49,6 +49,17 @@ struct SmileyImageLoader: Sendable {
         SmileyImageLoader(fetcher: fetcher, allowsThirdParty: true, hostFilter: GifMediaPolicy.isAllowed)
     }
 
+    /// The loader of the image panel's thumbnails (#1193): third parties allowed, but only `host`, the configured rehost host
+    /// the panel uploads to (captures `U01`/`U03`: the upload and the answer's image URLs share it), at every hop. Without a
+    /// host (no rehost configuration in the build) nothing is requested.
+    static func rehostThumbnails(host: String?, fetcher: ReaderImageFetcher = ReaderImageFetcher()) -> SmileyImageLoader {
+        let allowed = host?.lowercased()
+        return SmileyImageLoader(fetcher: fetcher, allowsThirdParty: true) { url in
+            guard let allowed, let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return false }
+            return url.host(percentEncoded: false)?.lowercased() == allowed
+        }
+    }
+
     /// The image already decoded for `url`, if any (no work, no request).
     static func cached(_ url: URL) -> UIImage? {
         shared.storage.object(forKey: url as NSURL)
