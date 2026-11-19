@@ -33,7 +33,7 @@ struct ComposerEditorCard: View {
         VStack(spacing: 0) {
             if !chips.isEmpty {
                 ComposerImageChipsRow(
-                    chips: chips, thumbnails: model.imageUploadServices.thumbnails, isEnabled: model.canEdit, remove: removeChip
+                    chips: chips, thumbnails: model.imageUploadServices.thumbnails(), isEnabled: model.canEdit, remove: removeChip
                 )
                     .frame(height: ComposerImageChipsRow.height)
             }

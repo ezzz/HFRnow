@@ -56,15 +56,37 @@ struct RehostThumbnailTests {
         #expect(await transport.requests.isEmpty)
     }
 
-    /// The panel's services hand the loader the host they upload to.
-    @Test func theServicesFilterOnTheirHost() {
-        let services = ImageUploadServices(
-            uploader: nil, hostName: Self.host, preparer: ImageIOPreparer(), history: LiveImageUploadHistory(
-                store: RehostUploadHistoryStore(persistence: InMemorySmallStorePersistence())
-            ),
-            settings: InMemorySettingsStore()
+    private func services(hostName: String?, configuredHost: String? = nil) -> ImageUploadServices {
+        ImageUploadServices(
+            uploader: nil, hostName: hostName, preparer: ImageIOPreparer(),
+            history: LiveImageUploadHistory(store: RehostUploadHistoryStore(persistence: InMemorySmallStorePersistence())),
+            settings: InMemorySettingsStore(), configuredHost: configuredHost
         )
-        #expect(services.thumbnailHost == Self.host)
+    }
+
+    /// The chips and the history load through the services' own loader: an off-host thumbnail sends nothing, an on-host one
+    /// is asked.
+    @Test func theServicesLoaderAsksOnlyTheirHost() async throws {
+        let transport = transport()
+        let loader = services(hostName: Self.host).thumbnails(fetcher: ReaderImageFetcher(transport: transport))
+        _ = await loader.image(at: try #require(URL(string: "https://other.example/images/e.th.jpg")))
+        #expect(await transport.requests.isEmpty)
+        _ = await loader.image(at: try #require(URL(string: "https://img.example/images/e.th.jpg")))
+        #expect(await transport.requests.map(\.url.host) == ["img.example"])
+    }
+
+    /// A build without a key still shows the thumbnails of an imported or synced history, from the configured base URL's
+    /// host only; without that either, nothing is asked.
+    @Test func aKeylessBuildUsesTheConfiguredBaseHost() async throws {
+        #expect(ImageUploadServices.baseHost(from: ["RehostBaseURL": "https://img.example", "RehostAPIKey": ""]) == Self.host)
+        #expect(ImageUploadServices.baseHost(from: ["RehostBaseURL": "$(REHOST_BASE_URL)"]) == nil)
+        #expect(ImageUploadServices.baseHost(from: ["RehostBaseURL": " "]) == nil)
+        #expect(ImageUploadServices.baseHost(from: [:]) == nil)
+        let transport = transport()
+        let loader = services(hostName: nil, configuredHost: Self.host).thumbnails(fetcher: ReaderImageFetcher(transport: transport))
+        _ = await loader.image(at: try #require(URL(string: "https://other.example/images/f.th.jpg")))
+        _ = await loader.image(at: try #require(URL(string: "https://img.example/images/f.th.jpg")))
+        #expect(await transport.requests.map(\.url.host) == ["img.example"])
     }
 }
 
