@@ -3,13 +3,14 @@
 :root {
   color-scheme: light dark;
   --text: #1c1c1e;
-  --secondary: #6c6c70;
-  --background: #ffffff;
-  --separator: #d1d1d6;
+  --secondary: var(--app-light-secondary, #6c6c70);
+  --background: var(--app-light-background, #ffffff);
+  --separator: var(--app-light-separator, #d1d1d6);
   --quote-border: #8e8e93;
-  --quote-background: #f2f2f7;
+  --quote-background: var(--app-light-quote-background, #f2f2f7);
   --action: var(--app-action-light, #007aff);
-  --placeholder: #e5e5ea;
+  /* The `--app-light-*` are « Doux »'s (#1213, set by the app only for that light style); without them the page is today's white. */
+  --placeholder: var(--app-light-placeholder, #e5e5ea);
   /* Visibility (LOT-117): legacy defaults of the "love" colour, `theme_day_color_love` hsb(0.9, 0.1, 1) and
      `theme_night_color_love` hsb(0.9, 0.9, 0.3) (Common.swift:438-441 @ 2440d79); the border is the same colour at full
      saturation and brightness (`MessagesView.swift:2402`); the moderation background is `messageModoBackgroundColor`. */

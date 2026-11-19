@@ -64,6 +64,29 @@ struct ReaderThemeTests: ReaderWebTesting {
         #expect(controller.webView.url == ReaderWebController.pageURL(token: 1))
     }
 
+    /// #1213: « Doux » reaches the page's background, live, and « Blanc » takes it back off (today's white).
+    @Test func theLightStyleSetsTheReaderBackgroundLiveAndBlancTakesItBack() async {
+        let (controller, recorder) = makeController(transport: imageTransport())
+        recorder.window?.overrideUserInterfaceStyle = .light
+        var appearance = ThemeAppearance.standard
+        appearance.lightStyle = .doux
+        controller.theme = appearance
+        controller.show(document(token: 5))
+        #expect(await until { recorder.ready == [5] }, "ready: \(recorder.ready)")
+        func background() async -> String {
+            let script = "return getComputedStyle(document.body).backgroundColor;"
+            return ((try? await evaluate(script, in: controller)) as? String) ?? ""
+        }
+        let soft = await until(async: { await background() == "rgb(245, 244, 239)" })
+        let seenSoft = await background()
+        #expect(soft, "doux: \(seenSoft)")
+        controller.theme = .standard
+        let white = await until(async: { await background() == "rgb(255, 255, 255)" })
+        let seenWhite = await background()
+        #expect(white, "blanc: \(seenWhite)")
+        #expect(recorder.ready == [5])
+    }
+
     @Test func theLightVariantGetsTheDayAccent() async {
         let (controller, recorder) = makeController(transport: imageTransport())
         recorder.window?.overrideUserInterfaceStyle = .light
