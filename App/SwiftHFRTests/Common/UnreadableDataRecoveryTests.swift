@@ -95,9 +95,7 @@ struct UnreadableDataRecoveryTests {
         await deletion.erase(row)
         #expect(deletion.positionsAreUnreadable)
         await deletion.discardUnreadablePositions()
-        #expect(!deletion.positionsAreUnreadable)
-        // Positions were the wipe's only failure: once they are set aside, the account reads as erased.
-        #expect(deletion.phase == .erased(name: row.displayName))
+        #expect(!deletion.positionsAreUnreadable && deletion.phase == .idle)
         #expect(await positions.loadFailure() == nil)
     }
 

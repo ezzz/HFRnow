@@ -79,8 +79,8 @@ final class AccountDeletionModel {
     }
 
     /// « Repartir de zéro » on the reading positions, after the member confirmed (#1182): the unreadable file is set aside
-    /// (`.corrupt`, never deleted), so the app reads no position of any account any more; the leftovers are read again, and
-    /// the other failures of the same wipe stay on screen.
+    /// (`.corrupt`, never deleted), so the app reads no position of any account any more; the leftovers are read again and
+    /// list what is still on the device (a read that works again sets nothing aside).
     func discardUnreadablePositions() async {
         guard positionsAreUnreadable, !isErasing else { return }
         do {
@@ -90,10 +90,7 @@ final class AccountDeletionModel {
             return
         }
         positionsAreUnreadable = false
-        if case .partial(let name, let failures) = phase {
-            let others = failures.filter { $0 != AccountDataKind.readingPositions.title }
-            phase = others.isEmpty ? .erased(name: name) : .partial(name: name, failures: others)
-        }
+        phase = .idle
         await refreshLeftovers()
     }
 
