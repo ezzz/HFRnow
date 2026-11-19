@@ -122,8 +122,8 @@ private struct AppIconSeasonAlert: ViewModifier {
                 isPresented: Binding(get: { model.question != nil && gate.isOpen }, set: { _ in }),
                 presenting: model.question
             ) { _ in
-                Button("Oui") { Task { await model.revert() } }
-                Button("Garder", role: .cancel) { model.keep() }
+                Button(AlertVerbs.revertSeasonalIcon) { Task { await model.revert() } }
+                Button(AlertVerbs.keepIcon, role: .cancel) { model.keep() }
             } message: { question in
                 Text(
                     "L’icône « \(question.dated.title) » est une icône de saison, qui s’est terminée. "

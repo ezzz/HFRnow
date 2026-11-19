@@ -29,8 +29,8 @@ struct ReaderEditFlow: ViewModifier {
                 isPresented: Binding(get: { writes?.pendingDelete != nil }, set: { if !$0 { writes?.pendingDelete = nil } }),
                 presenting: writes?.pendingDelete
             ) { target in
-                Button("Non", role: .cancel) {}
-                Button("Oui", role: .destructive) { Task { await writes?.confirmDelete(target) } }
+                Button(AlertVerbs.cancel, role: .cancel) {}
+                Button(AlertVerbs.deleteMessage, role: .destructive) { Task { await writes?.confirmDelete(target) } }
             } message: { _ in
                 Text("Cette action est définitive.")
             }

@@ -23,8 +23,8 @@ struct ReaderAlertFlow: ViewModifier {
                 isPresented: Binding(get: { alerts?.pendingMail != nil }, set: { if !$0 { alerts?.pendingMail = nil } }),
                 presenting: alerts?.pendingMail
             ) { mail in
-                Button("Non", role: .cancel) {}
-                Button("Oui") { alerts?.confirmMail(mail) }
+                Button(AlertVerbs.cancel, role: .cancel) {}
+                Button(AlertVerbs.prepareModeratorMail) { alerts?.confirmMail(mail) }
             } message: { _ in
                 Text("Un email sera préparé dans votre application Mail.")
             }
