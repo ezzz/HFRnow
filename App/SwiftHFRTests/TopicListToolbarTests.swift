@@ -33,7 +33,7 @@ struct TopicListToolbarTests {
         [view] + view.subviews.flatMap { views(in: $0) }
     }
 
-    /// Hosts `root` and reads its bar once `ready` holds (the items SwiftUI installs show up a few frames after the window).
+    /// Hosts `root` and reads its bar once `ready` holds and the counts stop changing (SwiftUI installs items a few frames after the window).
     private func bar(of root: some View, ready: (Bar) -> Bool) async throws -> Bar {
         let scene = try #require(UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
@@ -42,11 +42,14 @@ struct TopicListToolbarTests {
         window.isHidden = false
         defer { window.isHidden = true }
         var found = Bar()
+        var previous: Bar?
         for _ in 0..<100 {
             try? await Task.sleep(for: .milliseconds(50))
             window.layoutIfNeeded()
             found = read(window)
-            if ready(found) { break }
+            // Settled: ready and unchanged for two reads, so a group installed a frame later is still seen.
+            if ready(found), let last = previous, last.leading == found.leading, last.trailing == found.trailing { break }
+            previous = found
         }
         return found
     }
