@@ -299,6 +299,7 @@ final class TopicReaderModel {
     var isPrivateConversation: Bool {
         switch requested.source {
         case .topic(let topic): topic.category == .privateMessages
+        case .quotingMessages(let link): link.topic.category == .privateMessages
         }
     }
 
@@ -405,7 +406,10 @@ final class TopicReaderModel {
     /// thread is not captured (`R24` is a public topic). Its last known page is asked for; when that page's pager says
     /// the reply opened a new one, that page is asked for next.
     func showLatestPost() async {
-        guard let page, let shown else { return }
+        guard let page, let current = shown else { return }
+        // A reply written in the quote view (#1039) lands at the end of its topic, not among the quoting posts.
+        var shown = current
+        if case .quotingMessages = current.source, let topic = page.topicID { shown = ReaderTarget(source: .topic(topic)) }
         guard page.topicID?.category == .privateMessages else {
             await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage, followUp: .latestPost)
             return
@@ -598,7 +602,12 @@ final class TopicReaderModel {
         task = nil
         switch result {
         case .success(let loaded):
-            let source = loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
+            // The quote view stays the quote view (#1039): the page's topic would make a refresh ask for the whole topic.
+            let source: ReaderTarget.Source = if case .quotingMessages = target.source {
+                target.source
+            } else {
+                loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
+            }
             // HFR may serve another page than the one asked (past the end): the target follows the page served.
             shown = ReaderTarget(source: source).atPage(loaded.currentPage)
             page = loaded

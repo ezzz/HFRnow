@@ -62,6 +62,9 @@ extension HFRLinkRoute {
 
         func has(_ name: String) -> Bool { value(name) != nil }
 
+        /// `quote_only=1`: the quote view of one message (`R126a`), not a plain topic page.
+        var isQuoteOnlyView: Bool { value("quote_only") == "1" }
+
         /// `config` must be absent or `hfr.inc`: another configuration is another forum, not routed.
         func requireForumConfig() throws {
             if let config = value("config"), config != "hfr.inc" { throw Refused() }

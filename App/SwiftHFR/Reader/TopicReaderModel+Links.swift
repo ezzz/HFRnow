@@ -14,6 +14,8 @@ extension TopicReaderModel {
         guard !suspendsPageInteractions else { return .ignored }
         guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return .ignored }
         if let target = ReaderTarget(link: url.absoluteString) { return .reader(target) }
+        // "Message cité N fois" (#1039): the posts quoting a message open in the app, as a reader of their own.
+        if let quoting = HFRQuotingLink(url: url) { return .reader(ReaderTarget(source: .quotingMessages(quoting))) }
         if case .profile(let memberID) = HFRLinkRoute.route(for: url) { return .profile(memberID: memberID) }
         return defaultBrowser ? .defaultBrowser(url) : .inAppBrowser(url)
     }
