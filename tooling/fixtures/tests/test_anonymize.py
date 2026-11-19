@@ -1,6 +1,7 @@
 """Tests for anonymize.py. All HTML here is synthetic: no real pseudo, cookie or token."""
 import contextlib
 import io
+import json
 import os
 import re
 import sys
@@ -348,30 +349,459 @@ class MPStorageTests(unittest.TestCase):
         self.assertIn("lastUpdate", out)
         self.assertIn("private message body not replaced", self.reasons(out))
 
-    def test_pseudo_in_document_stops_the_run(self):
-        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    # A synthetic multi-client document (fake pseudos only): the positions of a non-empty document (#272).
+    LEAKS = ("Quuxbar", "Frobnitz", "Hansaplast", "Carafe", "96827", "59533822", "123456", "redface", "salut",
+             "DTCloud", "Mauve", "smiley7")
+    RICH = ('{"data":[{"version":"0.1","blacklist":{"list":[{"createDate":1700000000002,"username":"Quuxbar"},'
+            '{"createDate":1700000000003,"username":"Frobnitz"},{"createDate":1700000000004,"username":"quuxbar"}],'
+            '"sourceName":"DTCloud","lastUpdate":1700000000005},'
+            '"mpFlags":{"list":[{"post":123456,"p":"2","href":"/forum2.php?post=123456&pseudo=Quuxbar","page":3,'
+            '"uri":"smiley7"}],"sourceName":"iOS","lastUpdate":1700000000001},'
+            '"bookmarks":{"list":[{"post":"96827","cat":"13","author":"Hansaplast","numreponse":59533822,'
+            '"label":"Carafe\u00a0noire \U0001F600","createDate":1700000000006}],"sourceName":"iOS",'
+            '"lastUpdate":1700000000001,"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]},'
+            '"redface":{"Quuxbar":{"count":42,"ok":true,"none":null,"note":"salut"},'
+            '"sourceName":"redface2","lastUpdate":1700000000008},"sourceName":"iOS","lastUpdate":1700000000001}],'
+            '"sourceName":"DTCloud","lastUpdate":1700000000001}')
 
-    def test_unknown_key_stops_the_run(self):
-        doc = self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":1700000000001,"Quuxbar":1}],')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    @staticmethod
+    def document_of(out):
+        """The JSON document of the page's first post, entity-decoded."""
+        start = out.index("{")
+        return A.html.unescape(out[start:out.rindex("}") + 1])
 
-    def test_unknown_source_name_stops_the_run(self):
-        doc = self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"Quuxbar"', 1)
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+    def aliased(self):
+        return json.loads(self.document_of(anon(storage_page(self.RICH), private=True)))
 
-    def test_numeric_ids_in_a_list_stop_the_run(self):
-        # Fail closed: a bare number in a list may be a member or topic id, so it is not vouched for.
-        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":[555123]')
+    def test_rich_document_is_aliased_and_passes_the_check(self):
+        page = storage_page(self.RICH)
+        self.assertIn("private message body not replaced", self.reasons(page))
+        out = anon(page, private=True)
+        for word in self.LEAKS:
+            self.assertNotIn(word, out, word)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_rich_document_keeps_its_shape_and_timestamps(self):
+        doc = self.aliased()
+        entry = doc["data"][0]
+        users = [u["username"] for u in entry["blacklist"]["list"]]
+        self.assertEqual(users[1], "user2")  # the operator's own pseudo keeps its alias
+        self.assertRegex(users[0], r"^user\d+$")
+        self.assertNotEqual(users[0], users[1])
+        self.assertEqual(users[2], users[0], "Quuxbar and quuxbar are one member (legacy lowercases to compare)")
+        self.assertEqual([u["createDate"] for u in entry["blacklist"]["list"]],
+                         [1700000000002, 1700000000003, 1700000000004])
+        self.assertEqual(entry["blacklist"]["sourceName"], "client1")
+        self.assertEqual(doc["sourceName"], "client1", "one other client, one alias")
+        bookmark = entry["bookmarks"]["list"][0]
+        self.assertEqual(bookmark["cat"], "13")
+        self.assertRegex(bookmark["post"], r"^9[01]\d{4}$")
+        self.assertIsInstance(bookmark["numreponse"], int)
+        self.assertRegex(str(entry["mpFlags"]["list"][0]["post"]), r"^9[01]\d{4}$")
+        self.assertEqual(entry["mpFlags"]["list"][0]["page"], 3)
+        self.assertEqual(entry["bookmarks"]["tombstones"][0]["deleteDate"], 1700000000007)
+        namespaces = [k for k in entry if re.fullmatch(r"ns\d+", k)]
+        self.assertEqual(len(namespaces), 1)
+        inner = entry[namespaces[0]]
+        self.assertEqual(len(inner), 3)
+        self.assertEqual(inner["lastUpdate"], 1700000000008)  # timestamps keep their key and value
+        self.assertTrue(all(re.fullmatch(r"key\d+|lastUpdate", k) for k in inner), "every other key is aliased")
+        self.assertEqual(len(inner["key1"]), 4)
+        self.assertIn(True, inner["key1"].values())
+        self.assertIn(None, inner["key1"].values())
+
+    def test_aliases_keep_nbsp_and_non_bmp_properties(self):
+        label = self.aliased()["data"][0]["bookmarks"]["list"][0]["label"]
+        self.assertRegex(label, "^text\\d+ \U0001F600$")
+
+    def test_json_escapes_in_strings_are_read_as_characters(self):
+        # Another client may write U+00A0 and an emoji as \u escapes (a surrogate pair): same markers, same aliases.
+        doc = self.EMPTY.replace('"blacklist":{"list":[]',
+                                 '"blacklist":{"list":[{"username":"Quu\\u00a0xbar \\ud83d\\ude00","createDate":1}]')
+        out = anon(storage_page(doc), private=True)
+        self.assertNotIn("Quu", out)
+        self.assertEqual(leaks(out, private=True), [])
+        self.assertRegex(json.loads(self.document_of(out))["data"][0]["blacklist"]["list"][0]["username"], r"^user\d+$")
+
+    @staticmethod
+    def parser_view(out):
+        """The document as MPStoragePageParser.swift:31 / MPStorage.m:883 read it: every U+00A0 removed, then JSON."""
+        return json.loads(MPStorageTests.document_of(out).replace(" ", ""))
+
+    def test_nbsp_mark_is_written_as_an_escape_and_survives_the_parser_view(self):
+        # Review round 1, finding 2: a raw U+00A0 in the aliased document is removed by the parser before the JSON.
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertNotIn(" ", out)
+        self.assertIn("\\u00a0", self.document_of(out))
+        label = self.parser_view(out)["data"][0]["bookmarks"]["list"][0]["label"]
+        self.assertRegex(label, "^text\\d+ \U0001F600$")
+        escaped = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":[{"createDate":1700000000002,'
+                                     '"username":"Quuxbar","note":"a\\u00a0b"}]')
+        label = self.parser_view(anon(storage_page(escaped), private=True))["data"][0]["blacklist"]["list"][0]
+        self.assertRegex(label["key1"], "^text\\d+ $")
+
+    def test_tombstone_ids_follow_their_item(self):
+        # Finding 1: a tombstone id is its item's storageKey (MPStorageItem.swift): pseudo lower-cased,
+        # `String(topic)`, `cat-post-numreponse`.
+        doc = self.RICH.replace('"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]',
+                                '"tombstones":[{"id":"13-96827-59533822","deleteDate":1700000000007}]')
+        doc = doc.replace('"sourceName":"DTCloud","lastUpdate":1700000000005}',
+                          '"sourceName":"DTCloud","lastUpdate":1700000000005,"tombstones":'
+                          '[{"id":"quuxbar","deleteDate":1700000000010}]}', 1)
+        doc = doc.replace('"uri":"smiley7"}],"sourceName":"iOS","lastUpdate":1700000000001}',
+                          '"uri":"smiley7"}],"sourceName":"iOS","lastUpdate":1700000000001,'
+                          '"tombstones":[{"id":"123456","deleteDate":1700000000011}]}', 1)
+        out = anon(storage_page(doc), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        entry = self.parser_view(out)["data"][0]
+        self.assertEqual(entry["blacklist"]["tombstones"][0]["id"], entry["blacklist"]["list"][0]["username"].lower())
+        self.assertEqual(entry["mpFlags"]["tombstones"][0]["id"], str(entry["mpFlags"]["list"][0]["post"]))
+        bookmark = entry["bookmarks"]["list"][0]
+        self.assertEqual(entry["bookmarks"]["tombstones"][0]["id"],
+                         "13-%s-%s" % (bookmark["post"], bookmark["numreponse"]))
+
+    # HFR's trailer after the storage post's paragraph, byte for byte as the committed corpus prints it (#272 round 5:
+    # 961 post trailers, 301 review cells): the clear div, `</p>`, an optional `div.edited` (HFR's link and "Message cité
+    # N fois", a `<br />` and "Message édité par X le jj-mm-aaaa&nbsp;à&nbsp;hh:mm:ss", or both), an optional signature
+    # after a bare `<br />`. A review cell holds the clear div only.
+    CLEAR = '<div style="clear: both;"> </div>'
+    TAIL = CLEAR + '</p>'
+    LINK = ('<a href="/forum2.php?config=hfr.inc&amp;cat=13&amp;subcat=433&amp;post=28563&amp;page=1&amp;p=1&amp;'
+            'sondage=&amp;owntopic=&amp;trash=&amp;trash_post=&amp;print=&amp;numreponse=2666649&amp;quote_only=1&amp;'
+            'new=0&amp;nojs=0" class="cLink" rel="nofollow">')
+    CITED = LINK + "Message cité 11 fois</a>"
+    NOTICE = "Message édité par Quuxbar le 11-11-2018&nbsp;à&nbsp;18:24:51"
+    SIG = ('<br /><span class="signature"> ---------------\n\t\t\t<br />plonk words Quuxbar <a href="https://s.example/">'
+           'S</a><div style="clear: both;"> </div></span>')
+
+    def edited(self, link=None, notice=None):
+        return '<div class="edited">%sMessage cité 11 fois</a><br />%s</div>' % (link or self.LINK, notice or self.NOTICE)
+
+    def with_tail(self, tail):
+        return storage_page(self.RICH).replace(self.TAIL, self.TAIL + tail, 1)
+
+    def in_cell(self, tail, page=None):
+        quoted = self.RICH.replace('"', "&#034;")
+        page = page or self.form_page(self.RICH, self.RICH)
+        return page.replace('%s%s</td>' % (quoted, self.CLEAR), '%s%s%s</td>' % (quoted, self.CLEAR, tail), 1)
+
+    def corpus_shapes(self):
+        """Every trailer shape of the corpus (the edited div's three forms, each with and without a signature)."""
+        edits = ("", '<div class="edited">%s</div>' % self.CITED, '<div class="edited"><br />%s</div>' % self.NOTICE,
+                 '<div class="edited">%s<br />%s</div>' % (self.CITED, self.NOTICE),
+                 '<div class="edited">%s</div>' % self.CITED.replace("11 fois", "1 fois"),
+                 '<div class="edited">%s</div>' % self.CITED.replace("&amp;subcat=433", ""))
+        return [e + s for e in edits for s in ("", self.SIG)]
+
+    @staticmethod
+    def trailer_region(page):
+        """(start, end) of the storage post's trailer: from its clear div to the end of div#para."""
+        start = page.index('<div style="clear: both;"> </div></p>', page.index('<div id="para1980000001">'))
+        return start, page.index("</div></td></tr></table>", start)
+
+    def mutate(self, page, old, new):
+        start, end = self.trailer_region(page)
+        region = page[start:end]
+        self.assertIn(old, region, (old, new))
+        return page[:start] + region.replace(old, new, 1) + page[end:]
+
+    def test_edited_trailer_inside_the_message_is_not_part_of_the_document(self):
+        # Round 1, finding 3: legacy edits the first post, so HFR adds its `div.edited` trailer inside div#para, after the
+        # <p> (MPStorage.m:882 reads the first <p> only). The notice's pseudo is aliased.
+        page = self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE)
+        self.assertIn("private message body not replaced", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertRegex(out, r'<div class="edited"><br />Message édité par user\d+ le 11-11-2018&nbsp;à&nbsp;18:24:51</div>')
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_only_hfrs_trailer_may_follow_the_document(self):
+        # Review round 2, finding 1: after the first <p>, anything but the clear div and `div.edited` stays in the page
+        # unchecked. Each shape must stop the redactor and be flagged by the verifier, in the post and in the form copies.
+        shapes = (
+            ("second paragraph", '<div style="clear: both;"> </div></p><p>secret words 0612345678</p>'),
+            ("quote block", '<div style="clear: both;"> </div></p><div class="container"><table class="citation">'
+                            '<tr><td>secret words</td></tr></table></div>'),
+            ("text after the clear div", '<div style="clear: both;"> </div>secret words</p>'),
+            ("markup in the edited div", '<div style="clear: both;"> </div></p><div class="edited"><b>secret words</b></div>'),
+            ("free text in the edited div", '<div style="clear: both;"> </div></p><div class="edited">secret words</div>'),
+            ("text after the paragraph", '<div style="clear: both;"> </div></p>secret words'),
+        )
+        for name, tail in shapes:
+            page = storage_page(self.RICH).replace(self.TAIL, tail, 1)
+            self.assertIn("secret words", page, name)
+            with self.assertRaises(A.MPStorageDocumentError, msg=name):
+                anon(page, private=True)
+            self.assertIn("private message body not replaced", self.reasons(page), name)
+        cells = [(name, tail) for name, tail in shapes if name != "second paragraph"]
+        cells.append(("review text", '<div style="clear: both;"> </div>review secret words'))
+        for name, tail in cells:
+            page = self.form_page(self.RICH, self.RICH).replace(
+                '%s<div style="clear: both;"> </div></td>' % self.RICH.replace('"', "&#034;"),
+                '%s%s</td>' % (self.RICH.replace('"', "&#034;"), tail.replace("</p>", "")), 1)
+            self.assertIn("secret words", page, name)
+            with self.assertRaises(A.MPStorageDocumentError, msg=name):
+                anon(page, private=True)
+            self.assertIn("MPStorage document copy not vouched for", self.reasons(page), name)
+
+    def test_text_around_the_document_inside_its_paragraph_is_refused(self):
+        for page in (storage_page("secret " + self.RICH), storage_page(self.RICH + " secret"),
+                     storage_page(self.RICH).replace("<p>", "secret words<p>", 1),
+                     self.form_page("secret " + self.RICH, self.RICH)):
+            with self.assertRaises(A.MPStorageDocumentError):
+                anon(page, private=True)
+            self.assertTrue(self.reasons(page))
+
+    def test_bookmark_tombstone_with_a_long_category_is_one_rule_for_both_sides(self):
+        # Review round 2, finding 2: a 4+ digit category in a tombstone id is aliased; check must accept the result.
+        doc = self.RICH.replace('"tombstones":[{"id":"Mauve","deleteDate":1700000000007}]',
+                                '"tombstones":[{"id":"1234-96827-59533822","deleteDate":1700000000007},'
+                                '{"id":"13-96827-59533822","deleteDate":1700000000007}]')
+        out = anon(storage_page(doc), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_second_timestamps_keep_their_unit(self):
+        # Review round 2, finding 4: a 10-digit timestamp (seconds) is plausible and stays; legacy writes milliseconds.
+        doc = self.RICH.replace('"lastUpdate":1700000000008', '"lastUpdate":1700000008')
+        out = anon(storage_page(doc), private=True)
+        self.assertIn("1700000008", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_corpus_trailer_shapes_pass_both_sides(self):
+        # Round 5: every shape of the closed grammar, as the corpus prints it, is aliased and checks clean.
+        for tail in self.corpus_shapes():
+            out = anon(self.with_tail(tail), private=True)
+            self.assertNotIn("Quuxbar", out, tail)
+            self.assertNotIn("plonk", out, tail)
+            self.assertEqual(leaks(out, private=True), [], tail)
+            if "signature" in tail:
+                self.assertIn('<br /><span class="signature"> ---------------\n\t\t\t<br />Signature removed.'
+                              '<div style="clear: both;"> </div></span>', out)
+
+    def test_signature_after_a_bare_br_is_replaced_by_the_placeholder(self):
+        # Round 4, finding 1: all 407 corpus signatures follow a bare `<br />` (`</p><br /><span class="signature">`,
+        # `</div><br /><span …>`); legacy posts with signature=1 (MPStorage.m:798 @ 87fe0d1c).
+        for tail in (self.SIG, self.edited() + self.SIG):
+            page = self.with_tail(tail)
+            self.assertIn("private message body not replaced", self.reasons(page))
+            out = anon(page, private=True)
+            self.assertNotIn("plonk", out)
+            self.assertIn(A.SIGNATURE_PLACEHOLDER, out)
+            self.assertEqual(leaks(out, private=True), [])
+        # Round 3's shape (no `<br />` before the span) is not HFR's: refused on both sides.
+        page = self.with_tail(self.SIG[len("<br />"):])
         with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+            anon(page, private=True)
+        out = anon(self.with_tail(self.SIG), private=True)
+        self.assertIn("private message body not replaced",
+                      self.reasons(self.mutate(out, '</p><br /><span class="signature">', '</p><span class="signature">')))
+
+    def test_notice_name_outside_the_alias_table_is_refused(self):
+        # Round 4, finding 2: a `<br />`, a link or `&nbsp;` around the notice's name hid it from the name rule.
+        out = anon(self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        name = re.search(r"Message édité par (user\d+) le", out).group(1)
+        raw = self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE)
+        # (probe, also a raw shape the redactor must refuse): a plain unlisted name is a valid raw notice (aliased).
+        probes = (
+            (lambda n: ("par %s le" % n, "par<br />Hansaplast le"), True),
+            (lambda n: ("par %s le" % n, "par %sHansaplast</a> le" % self.LINK), True),
+            (lambda n: ("Message édité par %s le 11-11-2018" % n,
+                        "Message&nbsp;édité&nbsp;par&nbsp;Hansaplast&nbsp;le&nbsp;11-11-2018"), True),
+            (lambda n: ("par %s le" % n, "par &#117;ser3 le"), True),
+            (lambda n: ("par %s le" % n, "par Hansaplast le"), False),
+            (lambda n: ("par %s le" % n, "par %s plonk le" % n), False),
+        )
+        for probe, raw_too in probes:
+            old, new = probe(name)
+            self.assertIn("private message body not replaced", self.reasons(self.mutate(out, old, new)), new)
+            if raw_too:
+                old, new = probe("Quuxbar")
+                with self.assertRaises(A.MPStorageDocumentError, msg=new):
+                    anon(self.mutate(raw, old, new), private=True)
+
+    def test_the_notice_pseudo_is_not_greedy(self):
+        # Round 3, finding 3: a second "le <date>" inside the name hid text in it.
+        notice = ("Message édité par Quuxbar le 01-01-2000&nbsp;à&nbsp;00:00:00 plonk words Qux le "
+                  "11-11-2018&nbsp;à&nbsp;18:24:51")
+        page = self.with_tail('<div class="edited"><br />%s</div>' % notice)
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        self.assertIn("private message body not replaced", self.reasons(page))
+
+    def test_notice_name_that_already_looks_like_an_alias_is_refused(self):
+        # Round 1, finding 5, for the notice: no value is kept for looking like an alias.
+        page = self.with_tail('<div class="edited"><br />%s</div>' % self.NOTICE.replace("Quuxbar", "user77"))
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+
+    # Near misses of the corpus shapes (case, entities, CRLF, spacing, attributes, query, order): each one is outside
+    # the grammar, so the redactor raises on the raw page and `check` flags the anonymized one.
+    NEAR_MISSES = (
+        ("<br />Message édité", "<BR />Message édité"), ("<br />Message édité", "<br>Message édité"),
+        ("<br />Message édité", "<br/>Message édité"), ("&nbsp;à&nbsp;", " à "), ("&nbsp;à&nbsp;", "&#160;à&#160;"),
+        ("&nbsp;à&nbsp;", "&nbsp;&agrave;&nbsp;"), ("&nbsp;à&nbsp;", " à "),
+        ("Message édité par", "Message &eacute;dit&eacute; par"), ("Message édité par", "Message&nbsp;édité&nbsp;par"),
+        ("Message édité par", "message édité par"), ("cité 11 fois", "cité 0 fois"), ("cité 11 fois", "cité 11 fois plonk"),
+        ("cité 11 fois", "cit&eacute; 11 fois"), ("11-11-2018", "11-11-18"), ("18:24:51", "18:24"),
+        ('class="cLink" rel="nofollow"', 'rel="nofollow" class="cLink"'), ('class="cLink"', "class='cLink'"),
+        ('rel="nofollow">', 'rel="nofollow" title="plonk">'), ("cat=13", "cat=prive"), ("cat=13", "cat=plonk"),
+        ("&amp;subcat=433&amp;post=28563", "&amp;post=28563&amp;subcat=433"), ("&amp;nojs=0", "&amp;nojs=0&amp;plonk=1"),
+        ("&amp;sondage=", "&amp;sondage=1"), ("&amp;cat=", "&cat="), ('href="/forum2.php', 'href="https://x.example/forum2.php'),
+        ("&amp;nojs=0", "&amp;nojs="), ("<a href", "<A href"),
+        ('<div class="edited">', '<div class="edited"> '), ('<div class="edited">', '<div  class="edited">'),
+        ('<div class="edited">', '<div class="Edited">'),
+        ('</div><br /><span', '</div>\r\n<br /><span'), ('</div><br /><span', '</div><span'),
+        ('</div><br /><span', '</div><br /><br /><span'), ('</div><br /><span', '</div>&nbsp;<br /><span'),
+        ('<span class="signature">', '<span class="signature" title="plonk">'), ('<span class="signature">', '<SPAN class="signature">'),
+        ('</p><div class="edited">', '</p>\n<div class="edited">'), ('</p><div class="edited">', '</P><div class="edited">'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear: both;">&nbsp;</div></p>'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear:both;"> </div></p>'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear: both;"></div></p>'),
+        ('<div style="clear: both;"> </div></p>', '<div style="clear: both;"> </div>\r\n</p>'),
+        ('<div style="clear: both;"> </div></p>', '</p>'),
+    )
+
+    def test_near_miss_trailers_fail_on_both_sides(self):
+        tail = '<div class="edited">%s<br />%s</div>%s' % (self.CITED, self.NOTICE, self.SIG)
+        raw = self.with_tail(tail)
+        out = anon(raw, private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        for old, new in self.NEAR_MISSES:
+            with self.assertRaises(A.MPStorageDocumentError, msg=(old, new)):
+                anon(self.mutate(raw, old, new), private=True)
+            self.assertIn("private message body not replaced", self.reasons(self.mutate(out, old, new)), (old, new))
+        # Structural near misses: an empty or repeated edited div, a lone `<br />`, text after the signature.
+        for extra in ('<div class="edited"></div>', tail.replace(self.SIG, "") * 2, "<br />",
+                      self.SIG + "plonk", self.SIG + self.SIG, '<div class="edited"><br /></div>'):
+            with self.assertRaises(A.MPStorageDocumentError, msg=extra):
+                anon(self.with_tail(extra), private=True)
+        bare = anon(storage_page(self.RICH), private=True)
+        self.assertIn(self.TAIL + "</div>", bare)
+        anonymized_sig = '<br /><span class="signature">Signature removed.</span>'
+        for extra in ('<div class="edited"></div>', "<br />", anonymized_sig + "plonk", anonymized_sig * 2,
+                      '<div class="edited"><br /></div>', '<br /><span class="signature">Signature plonk.</span>'):
+            bad = bare.replace(self.TAIL + "</div>", self.TAIL + extra + "</div>", 1)
+            self.assertIn("private message body not replaced", self.reasons(bad), extra)
+
+    def test_review_cell_holds_the_clear_div_only(self):
+        # Corpus: all 301 review cells end with the clear div and nothing else; no edited div, no signature there.
+        out = anon(self.form_page(self.RICH, self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        anonymized_notice = '<div class="edited"><br />Message édité par user1 le 11-11-2018&nbsp;à&nbsp;18:24:51</div>'
+        for tail in (self.edited(), self.SIG, "&nbsp;", " ", anonymized_notice):
+            with self.assertRaises(A.MPStorageDocumentError, msg=tail):
+                anon(self.in_cell(tail), private=True)
+        self.assertIn(self.CLEAR + "</td>", out)
+        for tail in (anonymized_notice, '<br /><span class="signature">Signature removed.</span>', "&nbsp;", "\r\n"):
+            bad = out.replace(self.CLEAR + "</td>", self.CLEAR + tail + "</td>", 1)
+            self.assertIn("MPStorage document copy not vouched for", self.reasons(bad), tail)
+
+    def test_markup_in_the_paragraph_is_an_anomaly_for_the_verifier(self):
+        # Review round 3, finding 1: the redactor never writes markup inside the paragraph.
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        for junk in ('<span title="plonk words"></span>', "<!-- plonk words -->", "<b></b>"):
+            self.assertIn("private message body not replaced", self.reasons(out.replace("<p>", "<p>" + junk, 1)), junk)
+            self.assertIn("private message body not replaced",
+                          self.reasons(out.replace('<div style="clear', junk + '<div style="clear', 1)), junk)
+
+    def test_markup_inside_the_document_is_dropped_by_the_redactor(self):
+        page = storage_page(self.RICH).replace(
+            "salut", 'salut <img src="/s/o.gif" alt=":o" title="plonk words" />')
+        self.assertIn("plonk", page)
+        out = anon(page, private=True)
+        self.assertNotIn("plonk", out)
+        self.assertNotIn("<img", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_attributes_are_pinned_on_both_sides(self):
+        # Round 3, finding 2: only a bare <p> and HFR's real link (corpus query names and order, numeric or empty values).
+        bad_links = (
+            self.LINK.replace('class="cLink"', 'class="cLink" data-x="plonk words"'),
+            self.LINK.replace('href="/forum2.php', 'href="https://x.example/plonk-words'),
+            self.LINK.replace("config=hfr.inc", "config=hfr.inc&amp;plonk=words"),
+            self.LINK.replace("cat=13", "cat=plonk"),
+            self.LINK.replace('rel="nofollow"', 'rel="nofollow" title="plonk words"'),
+            self.LINK.replace("&amp;nojs=0", "&amp;nojs=plonk"),
+        )
+        pages = [self.with_tail(self.edited(link=link)) for link in bad_links]
+        pages.append(storage_page(self.RICH).replace("<p>", '<p title="plonk words">', 1))
+        for page in pages:
+            self.assertIn("plonk", page)
+            with self.assertRaises(A.MPStorageDocumentError):
+                anon(page, private=True)
+            self.assertIn("private message body not replaced", self.reasons(page))
+
+    def test_post_without_its_paragraph_is_refused(self):
+        # The storage post is a bare <p> (R60a); a post body without it is outside the grammar on both sides.
+        page = storage_page(self.RICH).replace('<div id="para1980000001"><p>', '<div id="para1980000001">', 1)
+        page = page.replace(self.TAIL, self.CLEAR, 1)
+        with self.assertRaises(A.MPStorageDocumentError):
+            anon(page, private=True)
+        out = anon(storage_page(self.RICH), private=True)
+        bad = out.replace('<div id="para1980000001"><p>', '<div id="para1980000001">', 1).replace(self.TAIL, self.CLEAR, 1)
+        self.assertIn("private message body not replaced", self.reasons(bad))
+
+    def test_values_that_look_like_aliases_are_not_kept(self):
+        # Finding 5: a real member `user77`, a real id in the fake range, a foreign number under a timestamp key.
+        doc = self.EMPTY.replace('"blacklist":{"list":[]',
+                                 '"blacklist":{"list":[{"createDate":1700000000002,"username":"user77"}]')
+        doc = doc.replace('"mpFlags":{"list":[]', '"mpFlags":{"list":[{"post":900123,"p":"text9","page":1}]')
+        doc = doc.replace('"bookmarks":{"list":[]',
+                          '"bookmarks":{"list":[]},"zz":{"createDate":12345678,"k":910005')
+        out = anon(storage_page(doc), private=True)
+        for word in ("user77", "900123", "12345678", "910005", "text9"):
+            self.assertNotIn(word, out, word)
+        self.assertEqual(leaks(out, private=True), [])
+        entry = self.parser_view(out)["data"][0]
+        self.assertNotEqual(entry["mpFlags"]["list"][0]["post"], 900123)
+
+    def test_check_bounds_match_the_redactor(self):
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        for old, new in (("&#034;page&#034;:3", "&#034;page&#034;:3,&#034;cat&#034;:5000"),
+                         ("&#034;lastUpdate&#034;:1700000000008", "&#034;lastUpdate&#034;:12345678"),
+                         ("&#034;createDate&#034;:1700000000006", "&#034;createDate&#034;:5")):
+            self.assertIn(old, out, old)
+            self.assertIn("private message body not replaced", self.reasons(out.replace(old, new, 1)), new)
+
+    def test_text_outside_the_json_braces_is_untouched(self):
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertIn('</p></div>', out)
+        self.assertIn('<div style="clear: both;"> </div>', out)
+        self.assertTrue(out.startswith("<html><head><title>%s" % A.MPSTORAGE_SUBJECT))
+
+    def test_bare_list_values_are_aliased(self):
+        doc = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar",555123]')
+        out = anon(storage_page(doc), private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertNotIn("555123", out)
+        self.assertEqual(leaks(out, private=True), [])
+        items = json.loads(self.document_of(out))["data"][0]["blacklist"]["list"]
+        self.assertRegex(items[0], r"^user\d+$")
+        self.assertRegex(str(items[1]), r"^9[01]\d{4}$")
+
+    def test_unknown_key_and_source_name_are_aliased(self):
+        for doc in (self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":1700000000001,"Quuxbar":1}],'),
+                    self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"Quuxbar"', 1)):
+            out = anon(storage_page(doc), private=True)
+            self.assertNotIn("Quuxbar", out)
+            self.assertEqual(leaks(out, private=True), [])
+
+    def test_check_flags_each_unaliased_position(self):
+        # The verifier has its own rules: put one real-looking value back into the aliased page, one at a time.
+        out = anon(storage_page(self.RICH), private=True)
+        self.assertEqual(leaks(out, private=True), [])
+        swaps = (("user3", "Quuxbar"), ("client1", "DTCloud"), ("ns1", "redface"), ("key2", "Quuxbar"),
+                 ("text1", "salut"), ("&#034;13&#034;", "&#034;1337&#034;"), ("&#034;page&#034;:3", "&#034;page&#034;:333333"),
+                 ("&#034;key3&#034;:910001", "&#034;key3&#034;:424242"), ("910001", "123456"))
+        hit = 0
+        for old, new in swaps:
+            if old in out:
+                hit += 1
+                self.assertIn("private message body not replaced", self.reasons(out.replace(old, new, 1)), (old, new))
+        self.assertGreaterEqual(hit, 6)
 
     def test_fast_reply_subject_constant_kept(self):
         # Live R60a: the fast-reply form repeats MP_NAME in a hidden `sujet`; 32 hex chars, but a public constant.
@@ -395,50 +825,55 @@ class MPStorageTests(unittest.TestCase):
         self.assertEqual(out.count("lastUpdate"), 2 * self.EMPTY.count("lastUpdate"))
         self.assertEqual(leaks(out, private=True), [])
 
-    def test_pseudo_in_form_copies_stops_the_run(self):
-        # CodeRabbit on #259: the textarea and the review cell are copies of the document outside the `para` body.
-        bad = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
-        for page in (self.form_page(bad, self.EMPTY), self.form_page(self.EMPTY, bad)):
-            with self.assertRaises(A.MPStorageDocumentError):
-                anon(page, private=True)
-            self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+    def test_rich_form_copies_are_aliased_and_pass_the_check(self):
+        # Both copies of the document outside the `para` body: the textarea and the review cell.
+        page = self.form_page(self.RICH, self.RICH)
+        self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+        out = anon(page, private=True)
+        for word in self.LEAKS:
+            self.assertNotIn(word, out, word)
+        self.assertEqual(leaks(out, private=True), [])
+        self.assertEqual(out.count("&#034;client1&#034;"), 2 * self.RICH.count('"sourceName":"DTCloud"'))
 
-    def test_form_copies_checked_whatever_the_attribute_order_and_quotes(self):
+    def test_form_copies_aliased_whatever_the_attribute_order_and_quotes(self):
         # CodeRabbit on #259: `value` before `name`, single-quoted `content_form`.
-        bad = self.EMPTY.replace('"blacklist":{"list":[]', '"blacklist":{"list":["Quuxbar"]')
-        page = (self.form_page(bad, self.EMPTY)
+        page = (self.form_page(self.RICH, self.EMPTY)
                 .replace('<input type="text" name="sujet" value="%s" />' % A.MPSTORAGE_SUBJECT,
                          "<input value='%s' type='text' name='sujet' />" % A.MPSTORAGE_SUBJECT)
                 .replace('name="content_form"', "name='content_form'"))
         self.assertIn("name='content_form'", page)
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(page, private=True)
-        self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
 
     def test_tag_shaped_text_in_the_textarea_is_document_text(self):
-        # CodeRabbit on #259: stripping tags from the textarea would drop `<Quuxbar>` and vouch for the rest.
+        # CodeRabbit on #259: stripping tags from the textarea would drop `<Quuxbar>` and keep the rest.
         bad = self.EMPTY.replace('"sourceName":"iOS"', '"sourceName":"iOS<Quuxbar>"', 1)
         page = self.form_page(bad, self.EMPTY)
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(page, private=True)
         self.assertIn("MPStorage document copy not vouched for", self.reasons(page))
+        out = anon(page, private=True)
+        self.assertNotIn("Quuxbar", out)
+        self.assertEqual(leaks(out, private=True), [])
+
+    def test_unchanged_document_keeps_its_exact_bytes(self):
+        page = self.form_page(self.EMPTY, self.EMPTY)
+        self.assertIn(self.EMPTY.replace('"', "&#034;"), anon(page, private=True))
 
     def test_form_of_another_thread_is_not_checked_as_a_document(self):
         page = self.form_page("plain text", "plain text", subject="fixture-test-1")
         self.assertIn("plain text", anon(page, private=True))
         self.assertNotIn("MPStorage document copy not vouched for", self.reasons(page))
 
-    def test_number_bool_or_null_outside_timestamps_stops_the_run(self):
-        # CodeRabbit on #259: a number under another key may be an id; booleans and null are not vouched for either.
+    def test_number_bool_or_null_outside_timestamps_is_aliased_or_harmless(self):
+        # CodeRabbit on #259: a number under another key may be an id, so it becomes a fake id; booleans and
+        # null carry no member data and keep their value.
         for value in ("123456", "true", "null"):
             doc = self.EMPTY.replace('"version":"0.1"', '"version":%s' % value)
-            with self.assertRaises(A.MPStorageDocumentError, msg=value):
-                anon(storage_page(doc), private=True)
-            self.assertIn("private message body not replaced", self.reasons(storage_page(doc)), value)
-        doc = self.EMPTY.replace('"lastUpdate":1700000000001}],', '"lastUpdate":true}],')
-        with self.assertRaises(A.MPStorageDocumentError):
-            anon(storage_page(doc), private=True)
-        self.assertIn("private message body not replaced", self.reasons(storage_page(doc)))
+            out = anon(storage_page(doc), private=True)
+            self.assertNotIn("123456", out)
+            self.assertEqual(leaks(out, private=True), [], value)
+        self.assertIn("private message body not replaced",
+                      self.reasons(storage_page(self.EMPTY.replace('"version":"0.1"', '"version":123456'))))
 
     def test_duplicate_key_stops_the_run(self):
         # CodeRabbit on #259: json.loads keeps the last `list`, so a first one holding a pseudo went unchecked.
@@ -1559,3 +1994,66 @@ class NewDestTests(unittest.TestCase):
             meta = {"url": "https://forum.hardware.fr/bddpost.php?config=hfr.inc", "request_body": body}
             found = [r for _l, _c, r in leaks(json.dumps(meta, indent=2)) if "message text" in r]
             self.assertEqual(bool(found), bad, body)
+
+
+class MPStorageTrailerCorpusTests(unittest.TestCase):
+    """The storage trailer grammar against every real trailer of the committed corpus (#272 round 5). The extraction
+    here is the test's own: each post's trailer runs from its last clear div before `</p>` (outside the signature) to the
+    end of div#para; each review cell's from its last clear div to the cell's end."""
+
+    ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
+    CLEAR = '<div style="clear: both;"> </div>'
+
+    def corpus(self):
+        for top in (os.path.join(self.ROOT, "Packages", "HFRKit", "Tests"), os.path.join(self.ROOT, "tooling", "fixtures")):
+            for folder, _dirs, files in os.walk(top):
+                for name in sorted(files):
+                    if name.endswith((".html", ".htm")):
+                        with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as fh:
+                            yield name, fh.read()
+
+    @staticmethod
+    def cell(text, start):
+        """The content of the cell opened just before start (nested cells balanced)."""
+        depth = 1
+        for t in re.finditer(r"<(/?)td\b[^>]*>", text[start:]):
+            depth += -1 if t.group(1) else 1
+            if depth == 0:
+                return text[start:start + t.start()]
+        return text[start:]
+
+    def trailers(self):
+        posts, cells = [], []
+        for name, text in self.corpus():
+            for chunk in text.split('<div id="para')[1:]:
+                block = chunk[:chunk.find("</div></td></tr></table>")]
+                sig = block.find('<span class="signature">')
+                head = block if sig < 0 else block[:sig]
+                at = head.rfind(self.CLEAR + "</p>")
+                if at >= 0:
+                    posts.append((name, block[at:]))
+            for m in re.finditer(r'class="messCase1bis"[^>]*>[^<]*</td>\s*<td[^>]*>', text):
+                cell = self.cell(text, m.end())
+                at = cell.rfind(self.CLEAR)
+                if at >= 0:
+                    cells.append((name, cell[at:]))
+        return posts, cells
+
+    def test_every_corpus_trailer_is_in_the_grammar_on_both_sides(self):
+        posts, cells = self.trailers()
+        self.assertGreaterEqual(len(posts), 900)  # 957 by this extraction on 2026-11-19
+        self.assertGreaterEqual(len(cells), 300)  # 301
+        shapes = set()
+        for kind, found in (("post", posts), ("review", cells)):
+            for name, rest in found:
+                self.assertTrue(A._v_trailer_ok(rest, kind), (name, rest[:300]))
+                out = A.rewrite_storage_trailer(rest, kind, lambda n: "user1")
+                self.assertTrue(A._v_trailer_ok(out, kind), (name, out[:300]))
+                shapes.add((kind, re.sub(r">[^<]+<", "><", out)[:200]))
+        self.assertGreaterEqual(len(shapes), 9)  # every form of the edited div, with and without a signature
+
+    def test_redactor_refuses_a_corpus_notice_whose_name_it_cannot_alias(self):
+        posts, _cells = self.trailers()
+        edited = next(rest for _n, rest in posts if "Message édité par" in rest)
+        with self.assertRaises(A.MPStorageDocumentError):
+            A.rewrite_storage_trailer(edited, "post", lambda n: None)
