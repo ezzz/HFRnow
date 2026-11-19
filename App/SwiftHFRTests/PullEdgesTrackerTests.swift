@@ -29,12 +29,19 @@ struct PullEdgesTrackerTests {
         #expect(step2)
         let step3 = tracker.update(topPull: full + 40, bottomPull: 0, fingerDown: true).fires
         #expect(!step3, "held: still one")
-        let step4 = tracker.update(topPull: 0, bottomPull: 0, fingerDown: true).fires
-        #expect(!step4)
+        let step4 = tracker.update(topPull: 0, bottomPull: 0, fingerDown: false).fires
+        #expect(!step4, "the finger left")
         let step5 = tracker.update(topPull: full, bottomPull: 0, fingerDown: true).fires
         #expect(step5, "a new pull")
         let step6 = tracker.update(topPull: 0, bottomPull: full, fingerDown: true).fires
         #expect(step6, "the other end has its own rule")
+    }
+
+    @Test func theFiringEdgeIsNamed() {
+        var tracker = PullEdgesTracker()
+        #expect(tracker.update(topPull: full, bottomPull: 0, fingerDown: true).firedEdge == .top)
+        #expect(tracker.update(topPull: 0, bottomPull: full, fingerDown: true).firedEdge == .bottom)
+        #expect(tracker.update(topPull: 0, bottomPull: full + 5, fingerDown: true).firedEdge == nil)
     }
 
     @Test func aReleaseBeforeFullSizeDoesNothing() {

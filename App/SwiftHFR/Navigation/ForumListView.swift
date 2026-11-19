@@ -39,7 +39,7 @@ struct ForumListView: View {
                 LoadFailureBanner(error: error, retry: navigation.forums.reload)
             }
         }
-        .refreshable { await navigation.forums.reload() }
+        .pullToRefresh(isRefreshing: loader.isLoading) { await navigation.forums.reload() }
         .task { await navigation.forums.loadIfNeeded() }
     }
 

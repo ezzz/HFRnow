@@ -10,22 +10,22 @@ import UIKit
 /// `SeasonalScrollActivity` does).
 @MainActor
 final class ReaderPullWatcher: NSObject {
-    /// How far past the end, in points, the icon is full and the refresh fires: the one threshold of `PullRefreshRule`.
+    /// How far past an end, in points, the icon is full and the refresh fires: the one threshold of `PullRefreshRule`.
     static let threshold: CGFloat = PullRefreshRule.threshold
 
-    /// Only a finger on the page starts a refresh; tests turn this off to move the offset without one.
-    var requiresFinger = true
+    /// Whether a finger is on `scrollView`; tests replace it to move the offset without one.
+    var isFingerDown: (UIScrollView) -> Bool = { $0.isTracking || $0.isDragging }
 
     private weak var scrollView: UIScrollView?
     private var observation: NSKeyValueObservation?
-    private var rule = PullRefreshRule()
-    private var progress: @MainActor (CGFloat) -> Void = { _ in }
-    private var pulled: @MainActor () -> Void = {}
+    private var tracker = PullEdgesTracker()
+    private var progress: @MainActor (_ top: CGFloat, _ bottom: CGFloat) -> Void = { _, _ in }
+    private var pulled: @MainActor (_ edge: PullEdge) -> Void = { _ in }
 
-    /// Follows `scrollView`: `progress` gets the icon's scale (0 to 1) at each move, `pulled` is called once per pull.
+    /// Follows `scrollView`: `progress` gets both icons' scales (0 to 1) at each move, `pulled` is called once per pull, with the end.
     func track(
-        _ scrollView: UIScrollView, progress: @escaping @MainActor (CGFloat) -> Void = { _ in },
-        pulled: @escaping @MainActor () -> Void
+        _ scrollView: UIScrollView, progress: @escaping @MainActor (_ top: CGFloat, _ bottom: CGFloat) -> Void = { _, _ in },
+        pulled: @escaping @MainActor (_ edge: PullEdge) -> Void
     ) {
         self.scrollView = scrollView
         self.progress = progress
@@ -44,12 +44,18 @@ final class ReaderPullWatcher: NSObject {
         )
     }
 
-    /// The scroll view moved. Internal so a test can drive it without a finger (`requiresFinger = false`).
+    /// How far past the top `scrollView` is pulled, in points (zero or less when it is not).
+    static func topPull(of scrollView: UIScrollView) -> CGFloat {
+        -(scrollView.contentOffset.y + scrollView.adjustedContentInset.top)
+    }
+
+    /// The scroll view moved. Internal so a test can drive it without a finger (`isFingerDown`).
     func offsetChanged(of scrollView: UIScrollView) {
-        let held = !requiresFinger || scrollView.isTracking || scrollView.isDragging
-        let pull = held ? Self.pull(of: scrollView) : 0
-        progress(PullRefreshRule.scale(forPull: pull))
-        if rule.update(pull: pull) { pulled() }
+        let step = tracker.update(
+            topPull: Self.topPull(of: scrollView), bottomPull: Self.pull(of: scrollView), fingerDown: isFingerDown(scrollView)
+        )
+        progress(step.top, step.bottom)
+        if let edge = step.firedEdge { pulled(edge) }
     }
 }
 
@@ -73,15 +79,20 @@ enum ReaderRefresh {
             // Legacy animates the bar's change (`.animation(.easeOut(duration: 0.22))`, MessagesView.swift:5789 @ 87fe0d1c).
             withAnimation(.easeOut(duration: 0.22)) { atPageEnd.wrappedValue = atEnd }
         }
-        controller.events.pullProgress = { [weak model] scale, token in
+        controller.events.pullProgress = { [weak model] top, bottom, token in
             guard let model, token == model.document?.token else { return }
-            model.pullProgress = scale
+            model.pullTop = top
+            model.pullBottom = bottom
         }
-        controller.events.pulled = { [weak controller, weak model] token in
+        controller.events.pulled = { [weak controller, weak model] edge, token in
             guard let model, token == model.document?.token, !model.isLoading else { return }
             // Legacy `AppHaptics.refreshStarted()` (`Common.swift:108-110` @ 87fe0d1c): a light impact, then the refresh.
             haptic()
-            Task { [controller] in await run(model: model, controller: controller) }
+            model.pulledEdge = edge
+            Task { [controller] in
+                await run(model: model, controller: controller)
+                model.pulledEdge = nil
+            }
         }
     }
 }

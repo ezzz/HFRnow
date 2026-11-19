@@ -124,9 +124,8 @@ final class ReaderWebController: NSObject {
         // Falling snow pauses while the page scrolls (LOT-166).
         SeasonalScrollActivity.shared.track(webView.scrollView)
         messageMenu.attach(to: webView)
-        pullWatcher.track(
-            webView.scrollView, progress: { [weak self] in self?.pullProgressChanged($0) }, pulled: { [weak self] in self?.pulledPastEnd() }
-        )
+        pullWatcher.track(webView.scrollView, progress: { [weak self] in self?.pullProgressChanged(top: $0, bottom: $1) },
+                          pulled: { [weak self] in self?.pulledPastEnd($0) })
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document

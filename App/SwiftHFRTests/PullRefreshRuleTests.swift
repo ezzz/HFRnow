@@ -24,55 +24,50 @@ struct PullRefreshRuleTests {
         #expect(ReaderPullWatcher.threshold == PullRefreshRule.threshold, "one threshold for the reader and the lists")
     }
 
-    @Test func aShortPullThenARestFiresNothing() {
+    @Test func aShortPullThenALiftFiresNothing() {
         var rule = PullRefreshRule()
-        let step1 = rule.update(pull: 10)
-        #expect(!step1)
-        let step2 = rule.update(pull: threshold - 1)
-        #expect(!step2)
-        let step3 = rule.update(pull: 0)
-        #expect(!step3)
+        let first = rule.update(pull: 10, fingerDown: true)
+        let second = rule.update(pull: threshold - 1, fingerDown: true)
+        let lifted = rule.update(pull: 0, fingerDown: false)
+        #expect(!first && !second && !lifted)
     }
 
-    @Test func reachingFullSizeFiresExactlyOnceForThePull() {
+    @Test func reachingFullSizeFiresExactlyOnceForTheTouch() {
         var rule = PullRefreshRule()
-        let step4 = rule.update(pull: threshold - 0.5)
-        #expect(!step4)
-        let step5 = rule.update(pull: threshold)
-        #expect(step5)
-        let step6 = rule.update(pull: threshold + 20)
-        #expect(!step6, "still pulled: no second refresh")
-        let step7 = rule.update(pull: threshold)
-        #expect(!step7)
+        let short = rule.update(pull: threshold - 0.5, fingerDown: true)
+        let full = rule.update(pull: threshold, fingerDown: true)
+        let past = rule.update(pull: threshold + 20, fingerDown: true)
+        let again = rule.update(pull: threshold, fingerDown: true)
+        #expect(!short)
+        #expect(full)
+        #expect(!past && !again, "still pulled: no second refresh")
     }
 
-    @Test func dippingBelowTheThresholdWithoutRestingDoesNotFireAgain() {
+    @Test func dippingBelowTheThresholdWithTheFingerDownDoesNotFireAgain() {
         var rule = PullRefreshRule()
-        let step8 = rule.update(pull: threshold + 5)
-        #expect(step8)
-        let step9 = rule.update(pull: threshold - 20)
-        #expect(!step9)
-        let step10 = rule.update(pull: threshold + 5)
-        #expect(!step10, "one refresh per pull, not per crossing")
+        let first = rule.update(pull: threshold + 5, fingerDown: true)
+        let dip = rule.update(pull: threshold - 20, fingerDown: true)
+        let back = rule.update(pull: threshold + 5, fingerDown: true)
+        #expect(first)
+        #expect(!dip && !back, "one refresh per touch, not per crossing")
     }
 
-    @Test func aNewPullAfterTheRestFiresAgain() {
+    @Test func aNewTouchAfterTheFingerLeftFiresAgain() {
         var rule = PullRefreshRule()
-        let step11 = rule.update(pull: threshold)
-        #expect(step11)
-        let step12 = rule.update(pull: 0)
-        #expect(!step12)
-        let step13 = rule.update(pull: threshold)
-        #expect(step13)
+        let first = rule.update(pull: threshold, fingerDown: true)
+        let lifted = rule.update(pull: 0, fingerDown: false)
+        let second = rule.update(pull: threshold, fingerDown: true)
+        #expect(first && !lifted && second)
     }
 
-    @Test func aNegativeOffsetIsAnotherRest() {
+    /// A refresh resets the page to its top (WebKit, #642): a rest with the finger still down, so a member who keeps pulling
+    /// gets no second refresh in the same touch.
+    @Test func aRestWithTheFingerStillDownDoesNotArmTheNextPull() {
         var rule = PullRefreshRule()
-        let step14 = rule.update(pull: threshold)
-        #expect(step14)
-        let step15 = rule.update(pull: -12)
-        #expect(!step15, "scrolled back into the content")
-        let step16 = rule.update(pull: threshold)
-        #expect(step16)
+        let first = rule.update(pull: threshold, fingerDown: true)
+        let reset = rule.update(pull: -12, fingerDown: true)
+        let second = rule.update(pull: threshold, fingerDown: true)
+        #expect(first)
+        #expect(!reset && !second)
     }
 }

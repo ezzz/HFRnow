@@ -28,10 +28,10 @@ extension ReaderWebController {
         var returned: @MainActor () -> Void = {}
         /// The end of document `token` came on screen (true) or left it (false): the end-of-page bar (#820).
         var pageEnd: @MainActor (_ atEnd: Bool, _ token: Int) -> Void = { _, _ in }
-        /// The user pulled past the end of document `token` and let go beyond the threshold: a refresh (#820).
-        var pulled: @MainActor (_ token: Int) -> Void = { _ in }
-        /// How far, as the icon's scale (0 to 1), the page is pulled past its end (#1207); 0 at rest and under an open composer.
-        var pullProgress: @MainActor (_ scale: CGFloat, _ token: Int) -> Void = { _, _ in }
+        /// The user pulled past an end of document `token` until the icon was full: a refresh (#820, #1207).
+        var pulled: @MainActor (_ edge: PullEdge, _ token: Int) -> Void = { _, _ in }
+        /// How far, as the icons' scales (0 to 1), the page is pulled past its top and end (#1207); 0 at rest and under a composer.
+        var pullProgress: @MainActor (_ top: CGFloat, _ bottom: CGFloat, _ token: Int) -> Void = { _, _, _ in }
     }
 
     /// `reader.js` says whether the page's end is on screen (#820); the page gets no answer.
@@ -40,15 +40,15 @@ extension ReaderWebController {
         return nil
     }
 
-    /// The pull watcher saw a pull past the end: reported for the document on screen, never under an open composer (#653).
-    func pulledPastEnd() {
+    /// The pull watcher saw a pull past an end: reported for the document on screen, never under an open composer (#653).
+    func pulledPastEnd(_ edge: PullEdge) {
         guard let document, !ignoresPageTaps else { return }
-        events.pulled(document.token)
+        events.pulled(edge, document.token)
     }
 
-    /// The pull past the end grew or shrank: the icon's scale for the document on screen; none under an open composer (#653).
-    func pullProgressChanged(_ scale: CGFloat) {
+    /// The pulls grew or shrank: the icons' scales for the document on screen; none under an open composer (#653).
+    func pullProgressChanged(top: CGFloat, bottom: CGFloat) {
         guard let document else { return }
-        events.pullProgress(ignoresPageTaps ? 0 : scale, document.token)
+        events.pullProgress(ignoresPageTaps ? 0 : top, ignoresPageTaps ? 0 : bottom, document.token)
     }
 }

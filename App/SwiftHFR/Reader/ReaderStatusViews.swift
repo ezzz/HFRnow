@@ -10,8 +10,12 @@ struct ReaderStateOverlay: View {
     var body: some View {
         ZStack {
             content
-            // The pull past the page's end (#1207): above the floating bar, never in the way of a touch.
-            PullRefreshIcon(progress: model.pullProgress, isRefreshing: model.isLoading)
+            // The pulls past the page's top and end (#1207): the end's above the floating bar, never in the way of a touch.
+            PullRefreshIcon(progress: model.pullTop, isRefreshing: model.pulledEdge == .top)
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .allowsHitTesting(false)
+            PullRefreshIcon(progress: model.pullBottom, isRefreshing: model.pulledEdge == .bottom)
                 .padding(.bottom, 96)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .allowsHitTesting(false)

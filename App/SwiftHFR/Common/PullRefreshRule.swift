@@ -16,17 +16,18 @@ struct PullRefreshRule: Equatable, Sendable {
         min(max(distance, 0) / threshold, 1)
     }
 
-    /// Whether the current pull may still fire; set again by the next rest.
+    /// Whether the current touch may still fire: set again only once the finger is up.
     private var isArmed = true
 
     /// Creates a rule at rest.
     init() {}
 
-    /// Feeds the pull distance now; true exactly when this step reaches full size for the first time since the last rest (the
-    /// caller then gives the haptic and refreshes). A rest (no pull, or scrolled back into the content) arms the next pull; a
-    /// dip below the threshold without a rest does not, so one pull never refreshes twice.
-    mutating func update(pull distance: CGFloat) -> Bool {
-        if distance <= 0 {
+    /// Feeds the pull distance now and whether a finger is on the page; true exactly when this step reaches full size with a
+    /// finger down, the first time since the finger last left (the caller then gives the haptic and refreshes). Only a lifted finger
+    /// arms the next pull: a refresh that resets the page to its top (WebKit, #642) is no rest while the finger is still down, so
+    /// one touch never refreshes twice.
+    mutating func update(pull distance: CGFloat, fingerDown: Bool) -> Bool {
+        guard fingerDown else {
             isArmed = true
             return false
         }
@@ -36,7 +37,12 @@ struct PullRefreshRule: Equatable, Sendable {
     }
 }
 
-/// The two ends of a scrolling list (#1207): each has its own `PullRefreshRule`, and only a finger on the list pulls, so a fling
+/// An end of a scrolling page.
+enum PullEdge: Equatable, Sendable {
+    case top, bottom
+}
+
+/// The two ends of a scrolling page (#1207): each has its own `PullRefreshRule`, and only a finger on the page pulls, so a fling
 /// that overshoots an end grows no icon and refreshes nothing.
 struct PullEdgesTracker: Equatable, Sendable {
     /// What one move of the list changes: both icons' scales (0 to 1), and whether the refresh fires now, from the top or the bottom.
@@ -45,6 +51,9 @@ struct PullEdgesTracker: Equatable, Sendable {
         var bottom: CGFloat
         var fires: Bool
         var firesAtTop: Bool
+
+        /// The end that fires now, nil when none does.
+        var firedEdge: PullEdge? { fires ? (firesAtTop ? .top : .bottom) : nil }
     }
 
     private var topRule = PullRefreshRule()
@@ -57,8 +66,8 @@ struct PullEdgesTracker: Equatable, Sendable {
     mutating func update(topPull: CGFloat, bottomPull: CGFloat, fingerDown: Bool) -> Step {
         let top = fingerDown ? topPull : 0
         let bottom = fingerDown ? bottomPull : 0
-        let firesTop = topRule.update(pull: top)
-        let firesBottom = bottomRule.update(pull: bottom)
+        let firesTop = topRule.update(pull: top, fingerDown: fingerDown)
+        let firesBottom = bottomRule.update(pull: bottom, fingerDown: fingerDown)
         return Step(
             top: PullRefreshRule.scale(forPull: top), bottom: PullRefreshRule.scale(forPull: bottom),
             fires: firesTop || firesBottom, firesAtTop: firesTop
