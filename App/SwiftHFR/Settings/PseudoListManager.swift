@@ -82,6 +82,9 @@ struct PseudoListManager: Sendable {
     /// Reads the stored lists again, after the user restored the file.
     func reload() async -> PseudoListError? { await store.reload() }
 
+    /// Sets the unreadable file aside (`.corrupt`) and starts from empty lists; only after the member confirmed (#1182).
+    func discardUnreadableData() async throws { try await store.discardUnreadableData() }
+
     /// Whether `pseudo` is in the list.
     func contains(_ pseudo: String, in kind: PseudoListKind) async -> Bool {
         await pseudos(of: kind).contains { PseudoNormalizer.matches($0, pseudo) }

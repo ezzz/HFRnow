@@ -17,6 +17,8 @@ private final class ScriptedAuthenticator: DeviceOwnerAuthenticating {
 
     var sheets: Int { state.withLock { $0.sheets } }
 
+    let method = AppLockMethod.faceID
+
     func availability() -> AppLockAvailability { availabilityValue }
 
     func authenticate(reason: String) async -> AppLockOutcome {

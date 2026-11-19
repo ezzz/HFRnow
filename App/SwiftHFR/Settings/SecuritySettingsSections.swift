@@ -6,6 +6,8 @@ import SwiftUI
 struct SecuritySettingsSections: View {
     @Environment(AccountsModel.self) private var accounts
     @Environment(AppLockModel.self) private var lock
+    /// The reset's confirmation is shown (#1200 P3).
+    @State private var confirmsSyncReset = false
 
     var body: some View {
         @Bindable var lock = lock
@@ -26,13 +28,25 @@ struct SecuritySettingsSections: View {
                     Text(notice)
                         .scaledFont(.footnote)
                 }
+                if accounts.isAccountSyncDamaged {
+                    // Only for damaged bytes, and only once confirmed: a reset is never silent (#1200 P3, option (b)).
+                    Button(AccountSyncMessages.resetButton, role: .destructive) { confirmsSyncReset = true }
+                        .confirmationDialog(
+                            AccountSyncMessages.resetTitle, isPresented: $confirmsSyncReset, titleVisibility: .visible
+                        ) {
+                            Button(AccountSyncMessages.resetButton, role: .destructive) { accounts.resetAccountSync() }
+                            Button("Annuler", role: .cancel) {}
+                        } message: {
+                            Text(AccountSyncMessages.resetMessage)
+                        }
+                }
             }.themedListRow()
         } header: {
             Text("Comptes").themedSectionHeader()
         }
         Section {
             Group {
-                Toggle("Verrouiller l’app (Face ID / code)", isOn: Binding(
+                Toggle(lock.switchTitle, isOn: Binding(
                     get: { lock.isEnabled },
                     set: { lock.setEnabled($0) }
                 ))

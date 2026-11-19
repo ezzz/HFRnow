@@ -34,8 +34,10 @@ struct SmallStoreState<Document: SmallStoreDocument> {
         return failure()
     }
 
-    /// Sets the unreadable data aside and starts from an empty document; does nothing when the store is usable.
+    /// Sets the unreadable data aside and starts from an empty document; does nothing when the store is usable. The data are
+    /// read again first: a read that failed once (an I/O error) and works now is not set aside (#1182).
     mutating func discardUnreadableData() throws(SmallStoreError) {
+        phase = .unloaded
         guard case .failed = load() else { return }
         do {
             try persistence.quarantineUnreadableData()

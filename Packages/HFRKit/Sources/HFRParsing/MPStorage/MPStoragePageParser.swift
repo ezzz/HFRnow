@@ -59,7 +59,11 @@ public enum MPStoragePageParser {
         let blocks: [ExtractedMessageBlock]
         do throws(ParsingError) {
             document = try HTMLDocumentLoader.document(from: html)
-            blocks = try MessageBlockParser.extract(from: document)
+            let extraction = try MessageBlockParser.extraction(from: document)
+            // The document is the thread's first message, and it is edited in place: when that block cannot be read, the
+            // next one must never pass for it (#1186).
+            if let failure = extraction.leadingFailure { throw failure }
+            blocks = extraction.blocks
         } catch {
             throw .unreadablePage(error)
         }

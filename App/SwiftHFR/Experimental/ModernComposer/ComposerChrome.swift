@@ -44,15 +44,15 @@ extension ComposerChrome {
         self == .docked && hasPartsUnderHeader ? FloatingSpacing.gap : 0
     }
 
-    /// Around the composer's top bar, for a glyph of `glyph` points (`ComposerBarMetrics.glyphSize`): floating, each capsule is
-    /// the gap away from the sides, from the page above and from the card below. A glyph under 16 pt (the compact density at a
-    /// text size under 100 %) leaves more slack than the gap: the hit area stays 44 pt, so the capsule is that slack away
-    /// instead (at most 10.4 pt, at 70 %). On the main actor, as `ComposerHeader`'s rules it reads.
+    /// Around the composer's top bar, for circles of `diameter` points (`ComposerToolSize.diameter`): floating, each circle is
+    /// the gap away from the sides, from the page above and from the card below. A circle under 28 pt would leave more slack
+    /// than the gap: the hit area stays 44 pt, so the circle is that slack away instead. On the main actor, as
+    /// `ComposerHeader`'s rules it reads.
     @MainActor
-    func headerInsets(glyph: CGFloat) -> EdgeInsets {
+    func headerInsets(diameter: CGFloat) -> EdgeInsets {
         switch self {
         case .docked:
-            let slack = ComposerHeader.hitSlack(glyph: glyph)
+            let slack = ComposerHeader.hitSlack(diameter: diameter)
             let vertical = max(0, FloatingSpacing.gap - slack.height)
             let horizontal = max(0, FloatingSpacing.gap - slack.width)
             return EdgeInsets(top: vertical, leading: horizontal, bottom: vertical, trailing: horizontal)
@@ -64,23 +64,37 @@ extension ComposerChrome {
 
 extension ReplyComposerModel {
     /// A banner or the recipient and subject fields sit between the composer's top bar and its text card (#895).
-    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || hasSubjectField }
+    var hasPartsUnderHeader: Bool { errorMessage != nil || draftWarning != nil || draftsNotice != nil || hasSubjectField }
 }
 
-/// How the text card's tools are drawn (#895 D, operator 2026-11-14: "to try", as the Claude app's `+` and mic in round chips):
-/// bare glyphs on the card's glass, or each glyph in its own round chip. The operator chooses on the device and the choice is
-/// recorded on the PR; the other variant is then deleted. The chip is a plain fill, not glass: glass is not stacked on the
-/// card's glass.
-enum ComposerToolStyle: Equatable {
-    case plain
-    case pills
-
-    /// The variant this build shows.
-    static let current: ComposerToolStyle = .pills
-
+/// The round chip behind each of the text card's tools (#895 D, operator 2026-11-14; device check of 2026-11-16 kept the chips, the
+/// bare-glyph variant was deleted, #1196). The chip is a plain fill, not glass: glass is not stacked on the card's glass.
+enum ComposerChip {
     /// Space between a chip and its cell's edge: neighbouring chips never touch, the whole cell stays the hit area.
     static let chipInset: CGFloat = 4
 
     /// A chip's diameter in a cell of `cell` points.
     static func chipDiameter(cell: CGFloat) -> CGFloat { max(0, cell - 2 * chipInset) }
+}
+
+/// The size of one composer tool, from one source for the card's tools and the top bar's close, drafts and send buttons
+/// (#1126, operator 2026-11-18: the card's tools are the target): the cell is the hit area (at least the HIG's 44 pt), the
+/// diameter the round shape drawn in it, the glyph its symbol's point size and `glyphWeight` its weight.
+struct ComposerToolSize: Equatable {
+    /// The hit area's side.
+    let cell: CGFloat
+    /// The circle's diameter: the chip's in the card, the whole cell outside it.
+    let diameter: CGFloat
+    /// The symbol's point size.
+    let glyph: CGFloat
+
+    /// The symbol's weight.
+    static let glyphWeight: Font.Weight = .medium
+
+    @MainActor
+    init(metrics: ComposerBarMetrics, inCard: Bool = true) {
+        cell = ComposerControlRow.cellSize(metrics.cellSize, inCard: inCard)
+        diameter = inCard ? ComposerChip.chipDiameter(cell: cell) : cell
+        glyph = metrics.glyphSize
+    }
 }

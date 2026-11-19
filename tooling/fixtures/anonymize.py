@@ -27,6 +27,7 @@ import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _ui  # noqa: E402
+import mpstorage_doc  # noqa: E402
 
 REDACTED = "REDACTED"
 PRIVATE_PLACEHOLDER = "Private message content removed."
@@ -215,51 +216,6 @@ def private_request_subject(body):
 MPSTORAGE_HEADER_RE = re.compile(
     r"<th\b[^>]*\bclass=[\"'][^\"']*\bpadding\b[^\"']*[\"'][^>]*>(?:\s|&nbsp;)*Sujet\s*:\s*<h3>\s*%s\s*</h3>"
     % MPSTORAGE_SUBJECT, re.I)
-# Keys and string values seen in the live document (R60b; `Classes/MPStorage.m:24-26, 737-739`).
-MPSTORAGE_KEYS = {"data", "version", "blacklist", "mpFlags", "bookmarks", "list", "sourceName", "lastUpdate"}
-MPSTORAGE_STRING_VALUES = {"version": {"0.1"}, "sourceName": {"iOS"}}
-
-
-def _unique_pairs(items):
-    """json object hook: a duplicate key would let json.loads drop the first value unchecked."""
-    if len({k for k, _v in items}) != len(items):
-        raise ValueError("duplicate key")
-    return dict(items)
-
-
-def mpstorage_document_problem(inner, markup=True):
-    """None when the body is a JSON document with known keys and string values only.
-
-    markup: the body is HTML (post, review cell), whose tags are dropped; a textarea's text is taken whole,
-    since a `<` there is document text."""
-    text = _strip_tags(inner) if markup else html.unescape(inner).strip()
-    try:
-        doc = json.loads(text.replace("\u00a0", ""), object_pairs_hook=_unique_pairs)
-    except ValueError:
-        return "not a JSON document"
-
-    def walk(node, key):
-        if isinstance(node, dict):
-            for k, v in node.items():
-                problem = "unknown key" if k not in MPSTORAGE_KEYS else walk(v, k)
-                if problem:
-                    return problem
-        elif isinstance(node, list):
-            for v in node:
-                # A list holds section objects only: bare values (pseudos, numeric member or topic ids) are rejected.
-                problem = "bare value in a list" if not isinstance(v, dict) else walk(v, key)
-                if problem:
-                    return problem
-        elif isinstance(node, str):
-            if node not in MPSTORAGE_STRING_VALUES.get(key, ()):
-                return "string value outside the known ones"
-        # Numbers only as timestamps; another number (an id) or a boolean / null is not vouched for.
-        elif isinstance(node, bool) or not isinstance(node, (int, float)) or key != "lastUpdate":
-            return "value outside the known ones"
-        return None
-    return walk(doc, None)
-
-
 # Signatures and mood statuses are a member's own words (names, handles, links): always replaced.
 PERSONAL_BLOCKS = (
     (re.compile(r"<(span)\b[^>]*\bclass=[\"']signature[\"'][^>]*>", re.I), "Signature removed."),
@@ -1139,10 +1095,10 @@ REVIEW_BODY_RE = re.compile(r"<td\b[^>]*\bclass=[\"']messCase1bis[\"'][^>]*>.*?<
 
 
 def mpstorage_form_copies(text):
-    """The document copies of an MPStorage thread form page (empty textareas skipped)."""
+    """(start, end, markup) of the document copies of an MPStorage thread form page (empty textareas skipped)."""
     if not MPSTORAGE_FORM_RE.search(text):
         return []
-    return [(m.group(1), markup) for rx, markup in ((CONTENT_FORM_RE, False), (REVIEW_BODY_RE, True))
+    return [(m.start(1), m.end(1), markup) for rx, markup in ((CONTENT_FORM_RE, False), (REVIEW_BODY_RE, True))
             for m in rx.finditer(text) if m.group(1).strip()]
 
 
@@ -1207,6 +1163,111 @@ def private_form_copies(text):
         parts += [text[last:start], PRIVATE_PLACEHOLDER]
         last, count = end, count + 1
     return "".join(parts) + text[last:], count
+
+
+BLANKS = " \t\r\n "
+# HFR's trailer after the storage post's paragraph, as a closed grammar over exact byte tokens. Derived from every trailer
+# of the committed corpus (#272 round 5, 2026-11-19: 961 post trailers, 301 review cells; no CRLF, entity, case or spacing
+# variant exists there, so none is accepted):
+#   post      := CLEAR "</p>" [EDITED] [SIGNATURE]
+#   review    := CLEAR
+#   CLEAR     := '<div style="clear: both;"> </div>'
+#   EDITED    := '<div class="edited">' (CITED | "<br />" EDIT | CITED "<br />" EDIT) "</div>"
+#   CITED     := LINK "Message cité " N " fois</a>"
+#   EDIT      := "Message édité par " NAME " le " dd-mm-yyyy "&nbsp;à&nbsp;" hh:mm:ss
+#   SIGNATURE := "<br />" '<span class="signature">' content "</span>", the post's last element; its content is
+#                replaced with the kit's placeholder, whatever it holds, framed by HFR's separator and clear div only
+#                when the content starts and ends with their exact bytes.
+# LINK is HFR's quote link in one of the corpus's two query orders (with or without `subcat`). NAME is normalised
+# (entities decoded, U+00A0 read as a space), then aliased through the page's name table; a name that cannot be
+# aliased (not a member, already shaped like an alias, holding " le <digit>" or irregular blanks) is refused.
+STORAGE_CLEAR = '<div style="clear: both;"> </div>'
+STORAGE_SIGNATURE_HEAD = " ---------------\n\t\t\t<br />"
+_STORAGE_CITED_RE = re.compile(
+    r'<a href="/forum2\.php\?config=hfr\.inc&amp;cat=\d+(?:&amp;subcat=\d+)?&amp;post=\d+&amp;page=\d+&amp;p=\d+'
+    r'&amp;sondage=&amp;owntopic=&amp;trash=&amp;trash_post=&amp;print=&amp;numreponse=\d+&amp;quote_only=\d+'
+    r'&amp;new=\d+&amp;nojs=\d+" class="cLink" rel="nofollow">Message cité [1-9]\d{0,3} fois</a>', re.ASCII)
+_STORAGE_EDIT_RE = re.compile(r"Message édité par ([^<>\r\n\t]{1,100}?)( le \d{2}-\d{2}-\d{4}&nbsp;à&nbsp;"
+                              r"\d{2}:\d{2}:\d{2})(?=</div>)", re.ASCII)
+
+
+class _StorageTrailer:
+    """A cursor over the trailer: each step consumes one token of the grammar or refuses."""
+
+    def __init__(self, text):
+        self.text, self.pos = text, 0
+
+    def literal(self, token):
+        if self.text.startswith(token, self.pos):
+            self.pos += len(token)
+            return True
+        return False
+
+    def pattern(self, rx):
+        m = rx.match(self.text, self.pos)
+        if m:
+            self.pos = m.end()
+        return m
+
+    def need(self, token, what):
+        if not self.literal(token):
+            raise MPStorageDocumentError("MPStorage document: %s expected after the document at offset %d (HFR's "
+                                         "trailer grammar); extend the anonymizer" % (what, self.pos))
+
+
+def rewrite_storage_trailer(rest, kind, alias):
+    """rest (what follows the storage document's paragraph: kind "post" in div#para, "review" in the form's review cell)
+    rewritten per the grammar above: the notice's name aliased with alias(name) (None refuses it), a signature's content
+    replaced. Anything outside the grammar raises MPStorageDocumentError."""
+    cur = _StorageTrailer(rest)
+    cur.need(STORAGE_CLEAR, "HFR's clear div")
+    out = [STORAGE_CLEAR]
+    if kind == "post":
+        cur.need("</p>", "`</p>`")
+        out.append("</p>")
+        if cur.literal('<div class="edited">'):
+            out.append('<div class="edited">')
+            cited = cur.pattern(_STORAGE_CITED_RE)
+            if cited:
+                out.append(cited.group(0))
+            if cur.literal("<br />"):
+                edit = cur.pattern(_STORAGE_EDIT_RE)
+                if not edit:
+                    raise MPStorageDocumentError("MPStorage document: an edited div whose notice is not HFR's; extend "
+                                                 "the anonymizer")
+                out += ["<br />Message édité par ", html.escape(_storage_notice_alias(edit.group(1), alias)), edit.group(2)]
+            elif not cited:
+                raise MPStorageDocumentError("MPStorage document: an edited div with neither notice; extend the anonymizer")
+            cur.need("</div>", "the end of the edited div")
+            out.append("</div>")
+        if cur.literal('<br /><span class="signature">'):
+            content = rest[cur.pos:-len("</span>")]
+            if (not rest.endswith("</span>") or len(rest) - len("</span>") < cur.pos
+                    or re.search(r"class=[\"']?signature", content, re.I)):
+                raise MPStorageDocumentError("MPStorage document: a signature that is not the post's last element, or "
+                                             "a second one; extend the anonymizer")
+            # HFR's separator and clear div are kept around the placeholder only in their exact corpus bytes, together.
+            framed = content.startswith(STORAGE_SIGNATURE_HEAD) and content.endswith(STORAGE_CLEAR)
+            placeholder = (STORAGE_SIGNATURE_HEAD + SIGNATURE_PLACEHOLDER + STORAGE_CLEAR if framed
+                           else SIGNATURE_PLACEHOLDER)
+            out += ['<br /><span class="signature">', placeholder, "</span>"]
+            cur.pos = len(rest)
+    elif kind != "review":
+        raise ValueError(kind)
+    if cur.pos != len(rest):
+        raise MPStorageDocumentError("MPStorage document: content after the document that is not HFR's trailer (offset "
+                                     "%d); extend the anonymizer" % cur.pos)
+    return "".join(out)
+
+
+def _storage_notice_alias(raw, alias):
+    """The alias of the notice's name, read the way a browser shows it; refuses a name the page's table cannot alias."""
+    name = html.unescape(raw).replace(" ", " ")
+    fake = None if (name != " ".join(name.split()) or re.search(r" le \d", name) or not name.isprintable()) else alias(name)
+    if not fake or not FAKE_NAME_RE.fullmatch(fake):
+        raise MPStorageDocumentError("MPStorage document: the edit notice names something the anonymizer cannot alias; "
+                                     "extend the anonymizer")
+    return fake
 
 
 class MPStorageDocumentError(AnonymizeError):
@@ -1786,6 +1847,41 @@ class Anonymizer:
         s = self._free_text(s) if free_text else self._free_urls(s)
         return self._secrets(s)
 
+    def _alias_storage_document(self, raw, kind):
+        """The MPStorage document held by raw with its personal positions aliased. kind: "post" (div#para, HTML),
+        "review" (the form's review cell, HTML) or "form" (the `content_form` textarea, plain text)."""
+        # Legacy reads the first <p> of the message (`MPStorage.m:882`); HFR's trailer (clear div, `div.edited`,
+        # signature) follows it inside div#para (a div ends a <p> for legacy's parser), so only that span is the document.
+        markup = kind != "form"
+        offset, limit = 0, len(raw)
+        if kind == "post":
+            para = re.search(r"<p\b[^>]*>", raw, re.I)
+            if not para or raw[:para.start()].strip(BLANKS) or para.group(0) != "<p>":
+                raise MPStorageDocumentError("MPStorage document: no bare <p>, or text before it; extend the anonymizer")
+            offset = para.end()
+        if markup:
+            stop = re.compile(r"</p\b|<div\b|<table\b", re.I).search(raw, offset)
+            limit = stop.start() if stop else len(raw)
+        first, last = raw.find("{", offset, limit), raw.rfind("}", offset, limit)
+        if first < 0 or last < first:
+            raise MPStorageDocumentError("MPStorage document: not a JSON document; extend the anonymizer")
+        # Fail closed: nothing but blanks around the braces, and after the paragraph only HFR's trailer (its grammar).
+        if raw[offset:first].strip(BLANKS) or raw[last + 1:limit].strip(BLANKS):
+            raise MPStorageDocumentError("MPStorage document: text around the document; extend the anonymizer")
+        # The notice's name is a member position: aliased like the page-wide "edit notice" position (free text too).
+        rest = (rewrite_storage_trailer(raw[limit:], kind, lambda name: self._alias(name, free_text=True)) if markup
+                else raw[limit:])
+        region = raw[first:last + 1]
+        decoded = html.unescape(re.sub(r"<[^>]*>", "", region) if markup else region)
+        try:
+            aliased = mpstorage_doc.alias_document(decoded, self._alias)
+        except mpstorage_doc.DocumentError as e:
+            raise MPStorageDocumentError("MPStorage document: %s; extend the anonymizer" % e) from e
+        # The paragraph is written back as plain escaped text: markup inside it (a rendered smiley) is dropped.
+        if aliased == decoded and "<" not in region and rest == raw[limit:]:
+            return raw
+        return (raw[:first] + html.escape(aliased, quote=False).replace('"', "&#034;") + raw[last + 1:limit] + rest)
+
     def anonymize(self, text, private=False, url=None, context=""):
         """Return the anonymized page. Mapping of other members is consistent within this call."""
         self._reset()
@@ -1796,18 +1892,15 @@ class Anonymizer:
         if private:
             parts, last = [], 0
             keep_first = bool(MPSTORAGE_HEADER_RE.search(text))
-            for copy, markup in mpstorage_form_copies(text):
-                problem = mpstorage_document_problem(copy, markup)
-                if problem:
-                    raise MPStorageDocumentError("MPStorage document copy in a form: %s; extend the anonymizer" % problem)
+            for start, end, markup in sorted(mpstorage_form_copies(text), reverse=True):
+                text = text[:start] + self._alias_storage_document(text[start:end], "review" if markup else "form") + text[end:]
             for start, end in _find_para_blocks(text):
                 if start < last:
                     continue
                 if keep_first:
                     keep_first = False
-                    problem = mpstorage_document_problem(text[start:end])
-                    if problem:
-                        raise MPStorageDocumentError("MPStorage document: %s; extend the anonymizer" % problem)
+                    parts += [text[last:start], self._alias_storage_document(text[start:end], "post")]
+                    last = end
                     continue
                 parts += [text[last:start], PRIVATE_PLACEHOLDER]
                 last = end
@@ -1973,7 +2066,7 @@ class Anonymizer:
             if _V_MPSTORAGE_SUBJECT_TEXT.search(text):
                 for m in _V_MPSTORAGE_COPY.finditer(text):
                     body = m.group(1) if m.group(1) is not None else m.group(2)
-                    if body.strip() and not _v_mpstorage_document_ok(body, markup=m.group(1) is None):
+                    if body.strip() and not _v_mpstorage_document_ok(body, "review" if m.group(1) is None else "form"):
                         res.append((line_of(text, m.start()), column_of(text, m.start()),
                                     "MPStorage document copy not vouched for"))
         return sorted(set(res))
@@ -1983,8 +2076,8 @@ class Anonymizer:
 # position the anonymizer misses is reported here. Every name found must be an alias (`userN`) or
 # a known placeholder, every member id a fake one (9000NN / 9100NN).
 # Each rule has its own label, reported in the finding ("structural check: <label> not aliased").
-# MPStorage first post, checked apart from MPSTORAGE_HEADER_RE / mpstorage_document_problem: the page
-# <title> names the thread, and every JSON string (keys included) must be one of a fixed set of words.
+# MPStorage first post, checked apart from MPSTORAGE_HEADER_RE / mpstorage_doc: the page
+# <title> names the thread, and every JSON key and string must be a format word or an alias.
 _V_MPSTORAGE_TITLE = re.compile(r"<title>\s*%s - Messages priv" % MPSTORAGE_SUBJECT, re.I)
 # Its form pages print "Sujet : MP_NAME" (R60a header, R60b review table); there every content_form and every cell
 # after a messCase1bis author cell is a copy of the document.
@@ -2007,41 +2100,158 @@ def _v_text(inner, markup):
     return html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ").strip()
 
 
-_V_MPSTORAGE_WORDS = frozenset(("data", "version", "0.1", "blacklist", "mpFlags", "bookmarks", "list",
-                                "sourceName", "iOS", "lastUpdate"))
+# Written apart from mpstorage_doc (the redactor): its own word lists and alias patterns, no import. A document passes
+# when every key is a format word or an alias key (`nsN`, `keyN`), every string is `0.1`, `iOS`, a category id under
+# `cat`, or an alias (`userN`, `textN`, `clientN`, a fake id), and every number is a timestamp, a small page, or a fake id.
+_V_DOC_KEYS = frozenset(("data", "version", "blacklist", "mpFlags", "bookmarks", "list", "sourceName", "lastUpdate",
+                         "createDate", "deleteDate", "tombstones", "id", "username", "author", "label", "post", "cat",
+                         "numreponse", "p", "href", "page", "uri"))
+_V_DOC_ALIAS_KEY = re.compile(r"(?:ns|key)\d+")
+_V_DOC_ALIAS_STR = re.compile(r"(?:user|text|client)\d+[ \u00a0\U0001F600]*")
+_V_DOC_FAKE_ID = re.compile(r"9[01]\d{4}")
+_V_DOC_TIME = frozenset(("lastUpdate", "createDate", "deleteDate"))
+# A tombstone id is its item's storage key: `cat-post-numreponse` of fake ids, the lower-cased alias, a fake id.
+_V_DOC_BOOKMARK_KEY = re.compile(r"(?:\d{1,3}|9[01]\d{4})-9[01]\d{4}-9[01]\d{4}")
 
 
-def _v_mpstorage_document_ok(inner, markup=True):
-    """True when the body's text is JSON whose every key and string value is a known impersonal word."""
-    strings, scalars_ok = [], [True]
+def _v_split_paragraph(inner, where):
+    """(text before the paragraph, the paragraph up to the first block start, what follows): legacy's view. A post opens
+    with a bare <p>; a review cell has none."""
+    before, body = "", inner
+    if where == "post":
+        para = re.search(r"<p\b[^>]*>", inner, re.I)
+        if not para or para.group(0) != "<p>":
+            return "<no bare paragraph>", "", ""
+        before, body = inner[:para.start()], inner[para.end():]
+    parts = re.split(r"(?=</p\b|<div\b|<table\b)", body, maxsplit=1, flags=re.I)
+    return before, parts[0], parts[1] if len(parts) > 1 else ""
 
+
+# The trailer the redactor leaves, as token lists (tags and text runs, exact bytes), from the corpus's own shapes (#272
+# round 5: 961 post trailers, 301 review cells, all lower case, `<br />`, `&nbsp;à&nbsp;`, no CR): a review cell is the clear
+# div alone; a post is the clear div and `</p>`, then optionally the edited div (quote link + "Message cité N fois", and/or
+# `<br />` + "Message édité par <alias> le …"), then optionally `<br />` and a signature reduced to the placeholder.
+_V_CLEAR_TOKENS = ['<div style="clear: both;">', " ", "</div>"]
+_V_SIGNATURE_TOKENS = (
+    ['<span class="signature">', "Signature removed.", "</span>"],
+    ['<span class="signature">', " ---------------\n\t\t\t", "<br />", "Signature removed.", '<div style="clear: both;">',
+     " ", "</div>", "</span>"],
+)
+_V_CITED_TEXT = re.compile(r"Message cité [1-9][0-9]{0,3} fois")
+# The name must be an alias of the page's table (`userN`), raw: no entity, blank or markup around it.
+_V_EDIT_TEXT = re.compile(r"Message édité par user[1-9][0-9]* le [0-9]{2}-[0-9]{2}-[0-9]{4}&nbsp;à&nbsp;"
+                          r"[0-9]{2}:[0-9]{2}:[0-9]{2}")
+# HFR's quote link: the two query orders of the corpus (300 links), names fixed, values digits or empty as listed.
+_V_LINK_QUERIES = (
+    ("config", "cat", "subcat", "post", "page", "p", "sondage", "owntopic", "trash", "trash_post", "print", "numreponse",
+     "quote_only", "new", "nojs"),
+    ("config", "cat", "post", "page", "p", "sondage", "owntopic", "trash", "trash_post", "print", "numreponse",
+     "quote_only", "new", "nojs"),
+)
+_V_LINK_EMPTY = frozenset(("sondage", "owntopic", "trash", "trash_post", "print"))
+
+
+def _v_link_ok(tag):
+    """HFR's own quote link: `<a href="…" class="cLink" rel="nofollow">`, path /forum2.php, a corpus query."""
+    m = re.fullmatch(r'<a href="([A-Za-z0-9_/?=&;.]*)" class="cLink" rel="nofollow">', tag)
+    if not m or "&" in m.group(1).replace("&amp;", ""):
+        return False
+    parts = urllib.parse.urlsplit(m.group(1).replace("&amp;", "&"))
+    if parts.scheme or parts.netloc or parts.path != "/forum2.php" or parts.fragment:
+        return False
+    try:
+        pairs = urllib.parse.parse_qsl(parts.query, keep_blank_values=True, strict_parsing=True)
+    except ValueError:
+        return False
+    if tuple(k for k, _v in pairs) not in _V_LINK_QUERIES:
+        return False
+    for k, v in pairs:
+        want = "hfr.inc" if k == "config" else "" if k in _V_LINK_EMPTY else None
+        if (v != want) if want is not None else not (v.isascii() and v.isdigit()):
+            return False
+    return True
+
+
+def _v_trailer_ok(rest, where):
+    """True when rest, cut into tags and text runs, is one of the token sequences above for that place."""
+    tokens = re.findall(r"<[^<>]*>|[^<]+", rest)
+    if "".join(tokens) != rest:
+        return False  # a stray `<`
+    if where == "review":
+        return tokens == _V_CLEAR_TOKENS
+    i = 0
+
+    def take(seq):
+        nonlocal i
+        if tokens[i:i + len(seq)] == list(seq):
+            i += len(seq)
+            return True
+        return False
+
+    if not take(_V_CLEAR_TOKENS + ["</p>"]):
+        return False
+    if take(['<div class="edited">']):
+        cited = (len(tokens) >= i + 3 and _v_link_ok(tokens[i]) and _V_CITED_TEXT.fullmatch(tokens[i + 1])
+                 and tokens[i + 2] == "</a>")
+        if cited:
+            i += 3
+        edit = len(tokens) >= i + 2 and tokens[i] == "<br />" and _V_EDIT_TEXT.fullmatch(tokens[i + 1])
+        if edit:
+            i += 2
+        if not (cited or edit) or not take(["</div>"]):
+            return False
+    if take(["<br />"]) and not any(take(seq) for seq in _V_SIGNATURE_TOKENS):
+        return False
+    return i == len(tokens)
+
+
+def _v_mpstorage_document_ok(inner, where="post"):
+    """True when the body's text is JSON holding nothing but format words, timestamps and aliases (see above). where:
+    "post" (div#para), "review" (the form's review cell), "form" (the `content_form` textarea, plain text)."""
     def pairs(items):
         if len(set(k for k, _v in items)) != len(items):  # json.loads would keep only the last value
             raise ValueError("duplicate key")
-        strings.extend(k for k, _v in items)
-        strings.extend(v for _k, v in items if isinstance(v, str))
-        # Besides strings, only `lastUpdate` numbers (timestamps): ids, booleans and null are never vouched for.
-        for k, v in items:
-            if not isinstance(v, (str, dict, list)) and (k != "lastUpdate" or isinstance(v, bool) or v is None):
-                scalars_ok[0] = False
         return dict(items)
-    body = html.unescape(re.sub(r"<[^>]*>", " ", inner) if markup else inner).replace("\u00a0", " ")
+    if where != "form":
+        before, paragraph, rest = _v_split_paragraph(inner, where)
+        if before.strip() or not _v_trailer_ok(rest, where) or "<" in paragraph:
+            return False  # the redactor writes no markup inside the paragraph: any `<` there is an anomaly
+        inner = paragraph
+    body = html.unescape(inner).replace("\u00a0", " ")
     try:
         doc = json.loads(body, object_pairs_hook=pairs)
     except ValueError:
         return False
     if not isinstance(doc, dict):
         return False
-    stack = [doc]
+    stack = [(doc, None)]
     while stack:
-        node = stack.pop()
-        values = node.values() if isinstance(node, dict) else node if isinstance(node, list) else ()
-        for v in values:
-            if isinstance(v, (dict, list)):
-                stack.append(v)
-            elif isinstance(node, list):  # bare values in a list (pseudos, numeric ids) are never vouched for
+        node, key = stack.pop()
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k not in _V_DOC_KEYS and not _V_DOC_ALIAS_KEY.fullmatch(k):
+                    return False
+                stack.append((v, k))
+        elif isinstance(node, list):
+            stack.extend((v, key) for v in node)
+        elif isinstance(node, str):
+            if not (node in ("0.1", "iOS") or _V_DOC_ALIAS_STR.fullmatch(node) or _V_DOC_FAKE_ID.fullmatch(node)
+                    or (key == "cat" and re.fullmatch(r"\d{1,3}", node))
+                    or (key == "id" and (_V_DOC_BOOKMARK_KEY.fullmatch(node)
+                                         or re.fullmatch(r"user\d+", node)))):
                 return False
-    return scalars_ok[0] and all(w in _V_MPSTORAGE_WORDS for w in strings)
+        elif isinstance(node, bool) or node is None:
+            continue
+        elif isinstance(node, int):
+            if key in _V_DOC_TIME:  # seconds or milliseconds
+                if not (10 ** 9 <= node < 10 ** 10 or 10 ** 12 <= node < 10 ** 13):
+                    return False
+            elif not (_V_DOC_FAKE_ID.fullmatch(str(node)) or (key == "page" and 0 <= node < 100000)
+                      or (key == "cat" and 0 <= node < 1000)):
+                return False
+        else:  # a float is never vouched for
+            return False
+    return True
 
 
 _V_IDS = {label: re.compile(rx) for label, rx in (

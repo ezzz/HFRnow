@@ -146,11 +146,9 @@ final class RootModel {
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
-    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites. The environment-built
-    /// Favoris tab opens on the list its favourites mode names instead (`TopicSource(mode:)`, LOT-124); this is the fallback of
-    /// a model built without options.
+    /// The source Catégories opens on: none (the user picks a forum). The Favoris tab opens on the list its favourites mode names
+    /// (`TopicSource(mode:)`, LOT-124), as `init(environment:)` builds it.
     static let categoriesStartupSource: TopicSource? = nil
-    static let favoritesStartupSource: TopicSource? = .flagged
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
@@ -216,7 +214,7 @@ final class RootModel {
             blocklistSync: Self.blocklistSync(environment, mpStorage: mpStorage),
             clearsIconBadgeBeforeCount: Self.clearsIconBadgeBeforeCount(accountName: environment.currentAccountName, initial: initial),
             qualityAlerts: QualityAlertsModel(
-                source: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:]),
+                source: environment.qualityAlertsSource,
                 visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
                 store: store
             )
@@ -305,6 +303,15 @@ final class RootModel {
         // category was already open (`NavigationModel.selectedTopic`).
         categories.selectedTopic = nil
         selectedDestination = .tab(.categories)
+    }
+
+    /// The current session changed in place (a re-login, synced credentials, an expiry found by a check): the root is kept, so
+    /// the home page is read again, then the lists of both tabs, which take whether the account is signed in from it (#1195).
+    /// An expiry the home page already shows sends nothing.
+    func currentSessionChanged(expired: Bool) async {
+        guard await forums.sessionDidChange(expired: expired) else { return }
+        await categories.sessionDidChange()
+        await favorites.sessionDidChange()
     }
 
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge

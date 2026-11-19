@@ -2,6 +2,7 @@ import Foundation
 import HFRClient
 import HFRModels
 import HFRNetwork
+import HFRStorage
 
 /// Where the Alertes Qualitay list comes from: the AQ feed, every category (hiding one is the model's policy, Q-7).
 protocol QualityAlertsSource: Sendable {
@@ -24,6 +25,15 @@ struct LiveQualityAlertsSource: QualityAlertsSource {
               !text.isEmpty, !text.hasPrefix("$("), let url = URL(string: text),
               let configuration = try? AQConfiguration(baseURL: url) else { return nil }
         return LiveQualityAlertsSource(client: AQClient(configuration: configuration))
+    }
+
+    /// The AQ entry of the message menu over the same configured client; nil when there is no usable address or no account.
+    static func services(
+        from info: [String: Any], pseudo: String?, settings: any SettingsStore
+    ) -> QualityAlertServices? {
+        let text = (info[baseURLKey] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard let pseudo, !pseudo.isEmpty, let source = configured(from: info), let host = URL(string: text)?.host() else { return nil }
+        return QualityAlertServices(service: source.client, pseudo: pseudo, hostName: host, settings: settings)
     }
 
     /// The Info.plist key holding the AQ origin.

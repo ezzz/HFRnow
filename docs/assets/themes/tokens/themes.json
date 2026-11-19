@@ -661,7 +661,7 @@
    "trigger": "first launch in 12-01..12-26 (once per year); auto-enable of Noël soft only in 12-01..12-24",
    "overlay": "sleigh-crossing",
    "maxSeconds": 5,
-   "then": "alert 'Oh Oh Oh ! Thème disponible dans les réglages' [OK] [Désactiver]"
+   "then": "alert 'Thème de Noël activé. Thème disponible dans les réglages' [OK] [Désactiver]"
   },
   {
    "id": "noel-packing",

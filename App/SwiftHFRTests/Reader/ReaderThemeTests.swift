@@ -176,7 +176,10 @@ struct ReaderThemeTests: ReaderWebTesting {
         let restored = await until(async: { await colours(in: controller) == legacy })
         let seenLegacy = await colours(in: controller)
         #expect(restored, "legacy: \(seenLegacy)")
-        #expect(await page() == "rgb(0, 0, 0)|\(none)")
+        // The Legacy page is the standard dark style's legacy grey since #1210 (it was black).
+        let legacyPage = await until(async: { await page() == "rgb(46, 47, 51)|\(none)" })
+        let seenLegacyPage = await page()
+        #expect(legacyPage, "legacy page: \(seenLegacyPage)")
         #expect(recorder.ready == [4])
     }
 }

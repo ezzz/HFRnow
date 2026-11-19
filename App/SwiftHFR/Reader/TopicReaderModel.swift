@@ -25,6 +25,12 @@ final class TopicReaderModel {
     private(set) var page: ReaderPage?
     /// A load is running.
     private(set) var isLoading = false
+    /// The page is pulled past its top or its end: the refresh icons' scales, 0 to 1 (#1207).
+    var pullTop: CGFloat = 0
+    /// The end's pull, same scale.
+    var pullBottom: CGFloat = 0
+    /// The end whose pull started the refresh that is running; only that icon turns (a first load or a page change turns none).
+    var pulledEdge: PullEdge?
     /// Failure of the latest load; cleared by the next success.
     private(set) var error: ListLoadError?
     /// The document for the web view; replaced by every successful load.
@@ -54,7 +60,8 @@ final class TopicReaderModel {
     var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
-    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    /// A composer is being prepared (a quote being fetched, or an edit form, #1190): another waits for it, as legacy's
+    /// `isLoadingQuoteTemplate` (LOT-086).
     var isLoadingQuote = false
     /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
     var quoteSelected: Set<Int> = []
@@ -550,11 +557,7 @@ final class TopicReaderModel {
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
-            var result = await TopicReaderModel.fetch(target, from: source)
-            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (issue #566).
-            if case .failure(.cancelled) = result, !Task.isCancelled {
-                result = await TopicReaderModel.fetch(target, from: source)
-            }
+            let result = await TopicReaderModel.fetch(target, from: source)
             // Delivered, page or failure: what a write owed is settled, in the same turn (a failure shows "Réessayer").
             if settles { self?.settleFollowUp(generation: mine) }
             self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
@@ -568,7 +571,10 @@ final class TopicReaderModel {
         _ target: ReaderTarget, from source: any TopicPageSource
     ) async -> Result<ReaderPage, ListLoadError> {
         do throws(ListLoadError) {
-            return .success(try await source.page(for: target))
+            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (#566, #1191).
+            return .success(try await retryingUnrequestedCancellation(cancelledAs: .cancelled) {
+                () async throws(ListLoadError) -> ReaderPage in try await source.page(for: target)
+            })
         } catch {
             return .failure(error)
         }

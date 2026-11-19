@@ -24,6 +24,12 @@ LOT-102 already lists, persists and reinserts. This lot adds only what FEAT-019 
 - `confirmRemoval(_:)` takes the entry the dialog was shown for (SwiftUI clears its state before the button runs), removes the entry and writes the store like `remove(_:)` does, and sets `removalNotice` before that write is awaited. A refused save keeps the existing history warning and no "removed" notice (the entry is only hidden for the session). The notice is set before the write is awaited, so a later request or upload clears it for good.
 - The swipe button has no destructive role (the row must not slide out before the confirmation) and no full swipe.
 - Any new upload or removal request, and reopening the panel (`load()`), clears the previous notice.
+- Thumbnails (#1193): the history rows and the composer's image chips load them through `RemoteThumbnail` over
+  `SmileyImageLoader.rehostThumbnails(host:)`, i.e. `ReaderImageFetcher` (cookie-less client, policy C, size cap, every redirect hop
+  checked), third parties allowed but only the configured rehost host (`ImageUploadServices.thumbnailHost`, the upload's own host:
+  captures `U01`/`U03` upload to and answer from the same host; a build with `RehostBaseURL` but no key still uses that host, so an
+  imported or synced history keeps its thumbnails). An entry on another host, or a build without `RehostBaseURL`, shows the grey
+  square and sends nothing. Legacy used `AsyncImage` on any host (`AnswerView.swift:2984` @ `87fe0d1c`).
 
 ## Pending capture
 Server-side delete of a guest upload (B12): not captured, not offered.

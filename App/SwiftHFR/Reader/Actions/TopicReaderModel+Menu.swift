@@ -42,8 +42,6 @@ extension TopicReaderModel {
         var options = renderOptions()
         options.showsMessageMenus = hasMessageMenus
         options.showsAuthorMenus = hasAuthorMenus
-        // This reader refreshes on a pull past the end (`ReaderRefresh.wirePageEnd`), so its pages say so (#820).
-        options.offersPullToRefresh = true
         return options
     }
 

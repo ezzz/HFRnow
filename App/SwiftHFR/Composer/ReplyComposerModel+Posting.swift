@@ -12,6 +12,10 @@ extension ReplyComposerModel {
         if case .newTopic = target { true } else { false }
     }
 
+    /// The composer opens full screen and offers no height toggle: new content (a new private message or topic) has no page to keep
+    /// in view, unlike a reply or an edit (#1137, operator 2026-11-18).
+    var opensFullScreen: Bool { isNewMessage || isNewTopic }
+
     /// The sheet may show the sub-category picker: a new topic, or a first post whose edit form serves the select.
     var offersSubcategories: Bool { isNewTopic || prefill?.subcategories != nil }
 

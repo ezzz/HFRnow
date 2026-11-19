@@ -42,10 +42,13 @@ final class ScriptedPoster: ReplyPosting {
     private let prefillState = Mutex<(answers: [Result<EditPrefill, PostingError>], requests: [EditTarget])>(([], []))
     /// Suspends every reply until opened, when set.
     let gate: ReaderGate?
+    /// Suspends every `editPrefill` until opened, when set (#1190).
+    let prefillGate: ReaderGate?
 
-    init(_ outcomes: [Result<PostingResult, PostingError>], gate: ReaderGate? = nil) {
+    init(_ outcomes: [Result<PostingResult, PostingError>], gate: ReaderGate? = nil, prefillGate: ReaderGate? = nil) {
         state = Mutex((outcomes, []))
         self.gate = gate
+        self.prefillGate = prefillGate
     }
 
     var calls: [Call] { state.withLock { $0.calls } }
@@ -69,6 +72,7 @@ final class ScriptedPoster: ReplyPosting {
             if state.answers.count > 1 { return state.answers.removeFirst() }
             return state.answers.first ?? .failure(.network(.unscripted))
         }
+        await prefillGate?.wait()
         return try answer.get()
     }
 

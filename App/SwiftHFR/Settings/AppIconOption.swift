@@ -28,9 +28,10 @@ struct IconWindow: Equatable, Sendable {
     let endMonth: Int
     let endDay: Int
 
-    /// True when the calendar day of `date` is inside the window, in the calendar's time zone.
+    /// True when the calendar day of `date` is inside the window, in the calendar's time zone. The day is the Gregorian one, as the
+    /// seasonal theme's (`NoelCalendar`): an Islamic, Hebrew or Persian device calendar never moves the window (#1199).
     func contains(_ date: Date, calendar: Calendar) -> Bool {
-        let day = calendar.dateComponents([.month, .day], from: date)
+        let day = NoelCalendar.gregorian(in: calendar.timeZone).dateComponents([.month, .day], from: date)
         let value = (day.month ?? 0) * 100 + (day.day ?? 0)
         let start = startMonth * 100 + startDay
         let end = endMonth * 100 + endDay
@@ -40,7 +41,7 @@ struct IconWindow: Equatable, Sendable {
     /// The year in which the last occurrence of the window ended on or before `date`: what a "window already answered" mark is
     /// keyed on, so a launch on 03/01 belongs to the Noël that ended the previous 26/12.
     func lastEndYear(before date: Date, calendar: Calendar) -> Int {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        let parts = NoelCalendar.gregorian(in: calendar.timeZone).dateComponents([.year, .month, .day], from: date)
         let year = parts.year ?? 0
         let today = (parts.month ?? 0) * 100 + (parts.day ?? 0)
         return today >= endMonth * 100 + endDay ? year : year - 1

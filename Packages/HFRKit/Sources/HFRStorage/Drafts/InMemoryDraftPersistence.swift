@@ -25,4 +25,7 @@ public final class InMemoryDraftPersistence: DraftPersistence {
     public func quarantineUnreadableData() throws {
         stored.withLock { $0 = nil }
     }
+
+    /// No file to copy: a document in memory holds no unreadable entry to keep.
+    public func backUpUnreadableData() throws {}
 }

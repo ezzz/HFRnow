@@ -75,3 +75,40 @@ struct SeasonalArrivalTests {
         #expect(model.alert(for: right, screen: Self.clear) == nil)
     }
 }
+
+/// The arrival alert's wording (#1174, HIG › Alerts): a title that names the situation and never says « activé » for a theme
+/// that is off.
+@MainActor
+struct SeasonalArrivalAlertTextTests {
+    @Test func theTitleSaysActivatedWhenNoelSoftWasSwitchedOn() {
+        let model = SeasonTestClock(1, 12, 2026).model(store: InMemorySettingsStore())
+        model.sceneDidBecomeActive()
+        let alert = model.pendingAlert
+        #expect(alert == .noelArrival(year: 2026))
+        #expect(model.activeTheme == .noelSoft)
+        #expect(alert.map(model.title(for:)) == "Thème de Noël activé")
+        #expect(alert?.message == "Thème disponible dans les réglages")
+    }
+
+    @Test(arguments: [25, 26])
+    func theTitleClaimsNothingOnTheDaysNothingIsSwitchedOn(day: Int) {
+        let model = SeasonTestClock(day, 12, 2026).model(store: InMemorySettingsStore())
+        model.sceneDidBecomeActive()
+        #expect(model.activeTheme == nil)
+        #expect(model.pendingAlert.map(model.title(for:)) == "Thème de Noël")
+    }
+
+    @Test func theTitleClaimsNothingWithAutomaticThemesOff() {
+        let model = SeasonTestClock(1, 12, 2026).model(store: InMemorySettingsStore())
+        model.isAutomatic = false
+        model.sceneDidBecomeActive()
+        #expect(model.activeTheme == nil)
+        #expect(model.pendingAlert.map(model.title(for:)) == "Thème de Noël")
+    }
+
+    @Test func noTitleGreetsInsteadOfNamingTheSituation() {
+        let model = SeasonTestClock(1, 12, 2026).model(store: InMemorySettingsStore())
+        model.sceneDidBecomeActive()
+        #expect(model.pendingAlert.map(model.title(for:))?.contains("Oh") == false)
+    }
+}

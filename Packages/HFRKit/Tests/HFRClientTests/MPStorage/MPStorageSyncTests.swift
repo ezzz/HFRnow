@@ -301,9 +301,11 @@ extension MPStorageSyncTests {
         let editing = Task {
             try await sync.edit(now: Fixture.now) { document, stamp in try document.addBlocklistEntry(username: "user9", stamp: stamp) }
         }
-        // Time for the edit to run if nothing queued it: without the queue it would store its edit now, then the sync would
-        // save the copy it loaded before, dropping the edit.
-        for _ in 0..<200 { await Task.yield() }
+        // The edit has entered the queue behind the held sync (#1194: a signal, not a delay). Without the queue it would store
+        // its edit now, then the sync would save the copy it loaded before, dropping the edit.
+        var spins = 0
+        while await sync.callsInFlight < 2, spins < 100_000 { spins += 1; await Task.yield() }
+        #expect(await sync.callsInFlight == 2, "the edit is queued behind the sync")
         #expect(await persistence.stored.pending == nil)
         await remote.release()
         #expect(try await syncing.value == .synced(wrote: false))

@@ -34,6 +34,10 @@ final class AccountsModel {
     /// added again). Screens built on the current session are rebuilt on it, never on `current?.id`, which does not
     /// change when the current account's session is replaced.
     private(set) var currentSessionGeneration = 0
+    /// Changes whenever the current session changes in place: renewed by a re-login, given synced credentials, or found
+    /// expired by a check. `currentSessionGeneration` does not move then, so the root is kept: its lists must ask again
+    /// whether the account is signed in (#1195).
+    private(set) var currentSessionChanges = 0
 
     @ObservationIgnored let store: any CredentialStore // internal for AccountsModel+Erase.swift (LOT-157)
     @ObservationIgnored private let loginService: any AccountLoggingIn
@@ -45,6 +49,8 @@ final class AccountsModel {
     var isAccountSyncOn = false
     /// A one-time note about the sync (switched off from another device, an unreadable copy); nil when none.
     var accountSyncNotice: String?
+    /// Whether this device's sync state is damaged, so the settings offer its reset (#1200 P3, option (b)).
+    var isAccountSyncDamaged = false
     /// The session checks started for accounts another device replaced (tests await it).
     @ObservationIgnored private(set) var syncCheckTask: Task<Void, Never>?
     @ObservationIgnored private var sessions: [String: HFRSession] = [:]
@@ -214,6 +220,7 @@ final class AccountsModel {
                 await persistSession(of: id)
             case .expired:
                 statuses[id] = .expired
+                if session === currentSession { currentSessionChanges += 1 }
             case .unconfirmed:
                 statuses[id] = .restored
             case .failed(let error):
@@ -259,6 +266,8 @@ final class AccountsModel {
             guard sessions[id] === session else { throw .unknownAccount }
             // The login already renewed this session in memory; it stays valid even if the store write below fails.
             statuses[id] = .valid
+            // The same object renewed: the root stays, and is told, whether or not the save below works (#1195).
+            if session === currentSession { currentSessionChanges += 1 }
         }
         // A new account whose sheet was dismissed meanwhile is not added. A re-login is saved even then: its session
         // is already renewed in memory (LOT-043), and the store must hold what the session holds.
@@ -419,6 +428,7 @@ extension AccountsModel {
         syncCheckTask = Task {
             for install in installs {
                 await install.session.adoptSyncedCredentials(cookies: install.account.cookies, hashCheck: install.account.hashCheck)
+                if install.session === self.currentSession { self.currentSessionChanges += 1 }
             }
             await self.checkSessions(ids) { $0 == .checking }
         }

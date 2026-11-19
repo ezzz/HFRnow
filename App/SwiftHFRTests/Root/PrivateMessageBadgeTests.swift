@@ -16,7 +16,7 @@ struct PrivateMessageBadgeTests {
         return RootModel(
             forums: forums,
             categories: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.categoriesStartupSource),
-            favorites: NavigationModel(dataSource: counted, forums: forums, startupSource: RootModel.favoritesStartupSource),
+            favorites: NavigationModel(dataSource: counted, forums: forums, startupSource: TopicSource(mode: .flagsAndFavorites)),
             messages: MessageListModel(source: FakePrivateMessages()),
             store: InMemorySettingsStore(), privateMessageCount: count
         )

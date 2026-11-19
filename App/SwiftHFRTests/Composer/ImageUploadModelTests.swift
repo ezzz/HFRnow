@@ -55,6 +55,8 @@ private final class MemoryHistory: ImageUploadHistoryStoring {
         if unreadable || failWrites { throw CocoaError(.fileWriteOutOfSpace) }
         state.withLock { $0.removeAll { $0.id == id } }
     }
+
+    func discardUnreadable() async throws {}
 }
 
 /// Counts what it is asked to prepare.

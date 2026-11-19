@@ -336,7 +336,7 @@ final class MessageListModel {
         let mine = loadCount
         let source = source
         let isLoggedIn = isLoggedIn
-        await loader.load { () async throws(ListLoadError) -> MessageListContent in
+        let applied = await loader.load { () async throws(ListLoadError) -> MessageListContent in
             guard await isLoggedIn() else { return .signedOut }
             return MessageListContent(page: try await source.privateMessages(page: page))
         }
@@ -347,6 +347,9 @@ final class MessageListModel {
             if case .notAuthenticated = error { selected = nil }
             return
         }
+        // A load that applied nothing (stopped under the list) leaves on screen a page from before the local marks: they stay,
+        // and the ledger is not handed that page again (#1192, as the topic list does).
+        guard applied else { return }
         // Threads opened while this load was running were not in its answer: they stay read until the next load. A thread the
         // answer does not list (another page, deleted) stays read too: its reader may still be open on the tap's value, and the
         // badge's -1 / +1 must not take that stale value for the row (#762).
