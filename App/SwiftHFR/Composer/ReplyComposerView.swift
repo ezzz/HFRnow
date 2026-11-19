@@ -4,7 +4,9 @@ import SwiftUI
 // GAP-096) @ 2440d79; the "Brouillons" button (LOT-101, GAP-093) is `AnswerView.swift:783-796` @ 87fe0d1c.
 // Differences: formatting toolbar (LOT-085, GAP-085); image panel (LOT-102, GAP-090),
 // GIF panel (`GifPanel`, LOT-155, GAP-089), smiley picker as a sheet from the toolbar (LOT-104, GAP-087);
-// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD); the clipboard question is a dialog with verb titles and a real « Annuler » (#1180; legacy: alert, Oui / Non, `AnswerView.swift:530-557` @ 87fe0d1c, its cancel button inserted the tag); the formatting bar is
+// errors say whether anything was posted instead of the toast (GAP-100); draft per topic (GAP-092, UXD);
+// the clipboard question is a dialog with verb titles and a real « Annuler » (#1180; legacy: alert, Oui / Non, `AnswerView.swift:530-557`
+// @ 87fe0d1c, its cancel button inserted the tag); the formatting bar is
 // pinned to the keyboard safe area and off while the recipient or subject has focus (#599, GAP-085).
 // Layout of HFRswift/Swift/AnswerView.swift (body `:458-482`, `ComposerHeader` `:768-819`, composerToolbar `:940-962`) @ 87fe0d1c:
 // close `xmark` and drafts `tray` on the left, send `arrow.up` on the right, the editor in a rounded card, the control row and the
