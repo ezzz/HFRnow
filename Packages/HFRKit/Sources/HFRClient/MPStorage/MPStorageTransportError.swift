@@ -25,7 +25,9 @@ public enum MPStorageTransportError: Error, Sendable, Equatable {
     /// HFR says the thread is not for this account ("Ce message ne vous est pas destiné", `RA5`): the cached `post` is
     /// stale (deleted thread, another account's id). Find the thread again.
     case notAddressed
-    /// The first message has no edit link of its own thread and message: it cannot be written.
+    /// The first message has no edit link of its own thread and message: it cannot be written. Another member's post
+    /// carries none (`RU1`, `R44`), so a thread with the storage subject that another member sent is not the account's
+    /// (#1200 P1): the search skips it, and a cached `post` that answers this is found again, like `notAddressed`.
     case editLinkMissing
     /// The edit form is not the storage message's (another thread, message or subject, not an edit form).
     case notStorageForm

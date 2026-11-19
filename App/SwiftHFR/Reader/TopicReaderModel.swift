@@ -129,6 +129,10 @@ final class TopicReaderModel {
     /// which have no web view to make a page ready) never times out.
     private var isOnScreen = false
 
+    /// How many readers a followed link stacked below this one: 0 for a reader opened from a list, the opener's plus one for a
+    /// reader a link pushed (legacy `navigationDepth`, `MessagesView.swift:4021, 4720` @ 87fe0d1c; #682). The title shows it from 1.
+    let depth: Int
+
     /// A reader that will open `target`; nothing is fetched before `onAppear()`. With `opensAtLastMessage` the first load
     /// (and "Réessayer" after its failure) opens at the page's last message like a reply does, for a link that stands for
     /// "the latest message" (legacy `#bas`) rather than for a message of its own.
@@ -137,8 +141,10 @@ final class TopicReaderModel {
         title: String = "",
         source: any TopicPageSource,
         opensAtLastMessage: Bool = false,
+        depth: Int = 0,
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() }
     ) {
+        self.depth = max(depth, 0)
         self.requested = target
         self.requestedAnchor = opensAtLastMessage ? .lastMessage : .target
         self.initialTitle = title
@@ -277,7 +283,8 @@ final class TopicReaderModel {
             return
         }
         linkedReader = TopicReaderModel(
-            target: target, title: target.source == shown?.source ? title : "", source: source, renderOptions: renderOptions
+            target: target, title: target.source == shown?.source ? title : "", source: source, depth: depth + 1,
+            renderOptions: renderOptions
         )
     }
 

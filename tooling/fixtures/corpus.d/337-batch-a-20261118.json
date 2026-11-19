@@ -1,0 +1,19 @@
+{"captures": [
+  {"raw": "R125a", "id": "R125a", "slug": "home-logged-in-unread-mp-row-without-id", "ext": "html", "private": false},
+  {"raw": "R120a", "id": "R120a", "slug": "topic-logged-in-unread-mp-badge", "ext": "html", "private": false},
+  {"raw": "R126a", "id": "R126a", "slug": "topic-quote-only-list-anon", "ext": "html", "private": false},
+  {"raw": "R129a", "id": "R129a", "slug": "subforum-list-new-topic-link-logged-in", "ext": "html", "private": false},
+  {"raw": "R129b", "id": "R129b", "slug": "new-topic-form-from-subforum-link", "ext": "html", "private": false},
+  {"raw": "R131a", "id": "R131a", "slug": "reply-form-locked-topic-logged-in", "ext": "html", "private": false},
+  {"raw": "R131b", "id": "R131b", "slug": "new-topic-form-achats-ventes-logged-in", "ext": "html", "private": false},
+  {"raw": "R278a", "id": "R278a", "slug": "list-forum1-page2-logged-in-redirect", "ext": "html", "private": false},
+  {"raw": "R278c", "id": "R278c", "slug": "list-liste-sujet-1-page-param-logged-in", "ext": "html", "private": false},
+  {"raw": "R278d", "id": "R278d", "slug": "list-liste-sujet-1-page-param-anon", "ext": "html", "private": false},
+  {"raw": "R283a", "id": "R283a", "slug": "home-stale-identity-cookies", "ext": "html", "private": false},
+  {"raw": "R283b", "id": "R283b", "slug": "unlog-after-stale-identity", "ext": "html", "private": false},
+  {"raw": "R353a", "id": "R353a", "slug": "topic-page-700-anon", "ext": "html", "private": false},
+  {"raw": "R353b", "id": "R353b", "slug": "topic-page-701-anon", "ext": "html", "private": false},
+  {"raw": "X529a", "id": "R529a", "slug": "member-only-category-list-anon", "ext": "html", "private": false},
+  {"raw": "X529d", "id": "R529b", "slug": "member-only-category-topic-anon", "ext": "html", "private": false},
+  {"raw": "X529c", "id": "R529c", "slug": "rest-member-only-category-last-topics", "ext": "json", "private": false}
+]}

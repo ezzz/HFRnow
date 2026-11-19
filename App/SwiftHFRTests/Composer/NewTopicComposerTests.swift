@@ -54,9 +54,18 @@ struct NewTopicComposerTests {
         #expect(newTopicTarget.draftContext == .newTopic(forum: .forum(13)))
     }
 
-    @Test(arguments: [nil, "https://example.invalid/hfr/Discussions/nouveau_sujet.htm", "http://forum.hardware.fr/hfr/x/nouveau_sujet.htm"])
+    @Test(arguments: [
+        nil, "https://example.invalid/hfr/Discussions/nouveau_sujet.htm", "http://forum.hardware.fr:8080/hfr/x/nouveau_sujet.htm",
+        "https://user@forum.hardware.fr/hfr/x/nouveau_sujet.htm"
+    ])
     func aLinkOffTheForumOrMissingIsNoTarget(_ path: String?) {
         #expect(NewTopicTarget(path: path, forum: .forum(13)) == nil)
+    }
+
+    /// #1200 P5: the forum's `http` link is the same origin over `https`: `HFREndpoint.absoluteURL` upgrades it.
+    @Test func anHTTPLinkOnTheForumIsTheComposerOverHTTPS() {
+        let target = NewTopicTarget(path: "http://forum.hardware.fr/hfr/x/nouveau_sujet.htm", forum: .forum(13))
+        #expect(target?.formURL == url("https://forum.hardware.fr/hfr/x/nouveau_sujet.htm"))
     }
 
     @Test func noCategoryOrThePrivateMessagesGivesNoTarget() {

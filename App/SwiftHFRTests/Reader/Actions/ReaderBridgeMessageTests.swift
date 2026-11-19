@@ -2,7 +2,7 @@ import Foundation
 @testable import SwiftHFR
 import Testing
 
-/// The typed bridge: nine known names, exact shapes, everything else rejected (LOT-087, audit C14).
+/// The typed bridge: ten known names, exact shapes, everything else rejected (LOT-087, audit C14).
 struct ReaderBridgeMessageTests {
     private func decode(_ body: Any) -> Result<ReaderBridgeMessage.Decoded, ReaderBridgeMessage.Failure> {
         do throws(ReaderBridgeMessage.Failure) { return .success(try ReaderBridgeMessage.decode(body)) } catch { return .failure(error) }
@@ -30,6 +30,16 @@ struct ReaderBridgeMessageTests {
             == .success(.init(token: 3, message: .edge(atBottom: true))))
         #expect(decode(["type": "edge", "token": 3, "bottom": false])
             == .success(.init(token: 3, message: .edge(atBottom: false))))
+    }
+
+    /// #1037: the tap of a YouTube thumbnail card carries the link; the app re-checks it, so only a string of a sane length decodes.
+    @Test func aVideoLinkTapCarriesOnlyAString() {
+        #expect(decode(["type": "videolink", "token": 3, "url": "https://youtu.be/abc123"])
+            == .success(.init(token: 3, message: .videoLink(url: "https://youtu.be/abc123"))))
+        #expect(decode(["type": "videolink", "token": 3]) == .failure(.invalidPayload))
+        #expect(decode(["type": "videolink", "token": 3, "url": 7]) == .failure(.invalidPayload))
+        #expect(decode(["type": "videolink", "token": 3, "url": String(repeating: "a", count: 5_000)]) == .failure(.invalidPayload))
+        #expect(ReaderBridgeMessage.videoLink(url: "https://youtu.be/abc123").isTapAction)
     }
 
     /// Issue #820: the end of the page is a real boolean, nothing else; it is no tap, so an open composer lets it through.

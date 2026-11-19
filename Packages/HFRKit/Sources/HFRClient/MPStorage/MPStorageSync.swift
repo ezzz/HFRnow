@@ -155,14 +155,15 @@ public actor MPStorageSync {
         return true
     }
 
-    /// The forum copy: the cached thread, or, when it is unknown or no longer this account's (`notAddressed`), the thread
-    /// the MP list shows, cached in `copy`. Nil when the list ends without one (the cached id is then dropped).
+    /// The forum copy: the cached thread, or, when it is unknown or not this account's (`notAddressed`; `editLinkMissing`,
+    /// another member's thread with the storage subject, #1200 P1), the thread the MP list shows, cached in `copy`. Nil
+    /// when the list ends without one (the cached id is then dropped).
     private func locate(_ copy: inout MPStorageSyncCopy) async throws(MPStorageSyncError) -> MPStorageSnapshot? {
         do throws(MPStorageTransportError) {
             if let post = copy.post {
                 do throws(MPStorageTransportError) {
                     return try await remote.read(post: post)
-                } catch .notAddressed {
+                } catch .notAddressed, .editLinkMissing {
                     copy.post = nil
                 }
             }

@@ -1,0 +1,17 @@
+{
+  "id": "R529a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/hfr/Blabla-Divers-back-to-life/liste_sujet-1.htm",
+  "url": "https://forum.hardware.fr/hfr/Blabla-Divers-back-to-life/liste_sujet-1.htm",
+  "final_url": "https://forum.hardware.fr/hfr/Blabla-Divers-back-to-life/liste_sujet-1.htm",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:21:41 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "p"
+  ],
+  "file": "R529a-member-only-category-list-anon.html",
+  "private": false
+}

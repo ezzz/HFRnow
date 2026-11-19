@@ -1,0 +1,16 @@
+{
+  "id": "R283a",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/",
+  "url": "https://forum.hardware.fr/",
+  "final_url": "https://forum.hardware.fr/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:21:01 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "anonymous GET with a stale identity: md_user = a pseudo no account uses, md_passs = 32 zeros (both invented, no real value); extra cookies: md_user, md_passs",
+  "file": "R283a-home-stale-identity-cookies.html",
+  "private": false
+}

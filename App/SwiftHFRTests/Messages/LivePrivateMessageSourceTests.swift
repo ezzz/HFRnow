@@ -8,6 +8,9 @@ import Testing
 
 /// The live source: the list goes through the account session, then LOT-023's parser, on the captured MP lists.
 struct LivePrivateMessageSourceTests {
+    /// `R13u1`'s storage thread, as the account's MPStorage sync located it (`R60a`).
+    static let storagePost = 3_157_083
+
     private struct Rig {
         let source: LivePrivateMessageSource
         let session: MockTransport
@@ -19,7 +22,9 @@ struct LivePrivateMessageSourceTests {
             HTTPResponse(statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"], url: request.url, body: body)
         }
         let anonymous = MockTransport(replies: [])
-        let source = LivePrivateMessageSource(fetcher: PageFetcher(session: session, anonymous: anonymous))
+        let source = LivePrivateMessageSource(
+            fetcher: PageFetcher(session: session, anonymous: anonymous), storagePost: { Self.storagePost }
+        )
         return Rig(source: source, session: session, anonymous: anonymous)
     }
 
@@ -39,7 +44,7 @@ struct LivePrivateMessageSourceTests {
         let listURL = "https://forum.hardware.fr/forum1.php?config=hfr.inc&cat=prive&page=2"
         let oracle = try PrivateMessageListParser.parse(try #require(String(data: body, encoding: .utf8)), pageURL: listURL)
         // R13u1 holds the MPStorage row, which the source hides (#1074): every other row is there, in order.
-        #expect(page.threads == oracle.hidingStorageThread().threads)
+        #expect(page.threads == oracle.hidingStorageThread(post: Self.storagePost).threads)
         #expect(page.threads.count == oracle.threads.count - 1)
         #expect(page.threads.contains { $0.isGroup })
         #expect(page.threads.contains { $0.isUnread })
@@ -75,7 +80,8 @@ struct LivePrivateMessageSourceTests {
         let index = try #require(unreadStorage.threads.firstIndex { $0.id == storage.id })
         unreadStorage.threads[index].summary.readState = .unread
         #expect(MPNotificationLedger.seenSummary(of: unreadStorage).unreadThreads?.contains(storageTopic) == true)
-        #expect(MPNotificationLedger.seenSummary(of: unreadStorage.hidingStorageThread()).unreadThreads?.contains(storageTopic) != true)
+        let hidden = unreadStorage.hidingStorageThread(post: Self.storagePost)
+        #expect(MPNotificationLedger.seenSummary(of: hidden).unreadThreads?.contains(storageTopic) != true)
         #expect(MPNotificationPlan.make(newThreads: [storageTopic], in: page).isEmpty)
     }
 

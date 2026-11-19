@@ -1,0 +1,28 @@
+{
+  "id": "R283b",
+  "account": "anon",
+  "method": "GET",
+  "url_template": "/unlog.php?config=hfr.inc",
+  "url": "https://forum.hardware.fr/unlog.php?config=hfr.inc",
+  "final_url": "https://forum.hardware.fr/unlog.php?config=hfr.inc",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:21:21 GMT",
+  "redirects": [],
+  "set_cookie_names": [
+    "md_data",
+    "md_user",
+    "md_passs",
+    "md_id",
+    "md_data",
+    "md_user",
+    "md_passs",
+    "md_id",
+    "md_user",
+    "md_passs",
+    "md_id"
+  ],
+  "note": "the refresh target of R283a (/unlog.php?config=hfr.inc, no codehex), with the same invented stale cookies, as a browser follows it; extra cookies: md_user, md_passs",
+  "file": "R283b-unlog-after-stale-identity.html",
+  "private": false
+}

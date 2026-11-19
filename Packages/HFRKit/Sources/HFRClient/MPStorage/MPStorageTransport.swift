@@ -22,7 +22,11 @@ public struct MPStorageTransport: Sendable {
 
     /// The storage thread's id, searched page by page in the MP list (`MPStorage.m:692-736`); nil when the list ends
     /// without it.
-    /// - Throws: `network`, `list`, `unexpectedPage`, `searchLimitReached`.
+    ///
+    /// A row with the storage subject is only a candidate: any member can send an MP with it (#1200 P1). The first candidate
+    /// whose first message carries the account's edit link is the thread; legacy took the first row. Each candidate costs one
+    /// GET of its first page (`R60a`).
+    /// - Throws: `network`, `list`, `unexpectedPage`, `searchLimitReached`, and a candidate's `threadPage`.
     public func findThread(in session: HFRSession) async throws(MPStorageTransportError) -> Int? {
         try await findThread(through: session)
     }
@@ -70,36 +74,58 @@ extension MPStorageTransport {
                 throw .list(error)
             }
         }
-        return try await Self.walk(from: first.url, maximumPages: Self.maximumListPages, fetch: fetch)
+        func isAccountThread(_ post: Int) async throws(MPStorageTransportError) -> Bool {
+            do throws(MPStorageTransportError) {
+                _ = try await locate(post: post, through: session)
+                return true
+            } catch .editLinkMissing, .notAddressed, .threadPage(.notStorageThread) {
+                // Another member's thread with the storage subject, one the account no longer belongs to, or a thread
+                // whose page title is not exactly the subject although its list row matched (`isStorageSubject` also
+                // takes a `[non lu] ` prefix). Any other failure stops the search: a page that could not be read may be
+                // the account's thread, and "not found" would let the app create a second one.
+                return false
+            }
+        }
+        return try await Self.walk(
+            from: first.url, maximumPages: Self.maximumListPages, fetch: fetch, isAccountThread: isAccountThread
+        )
     }
 
-    /// Walks the MP list from `first`, following each page's `nextPath`, until a page shows the thread or has no next
-    /// page. A next link off the forum, or a page number that does not grow, stops the walk: HFR's pager always moves on.
+    /// Walks the MP list from `first`, following each page's `nextPath`, until a page shows a candidate that
+    /// `isAccountThread` accepts, or has no next page. Candidates are tried in list order. A next link off the forum, or a
+    /// page number that does not grow, stops the walk: HFR's pager always moves on.
     static func walk(
         from first: URL,
         maximumPages: Int,
-        fetch: (URL) async throws(MPStorageTransportError) -> MPStorageThreadSearch
+        fetch: (URL) async throws(MPStorageTransportError) -> MPStorageThreadSearch,
+        isAccountThread: (Int) async throws(MPStorageTransportError) -> Bool
     ) async throws(MPStorageTransportError) -> Int? {
         var url = first
         var previous = 0
         for _ in 0..<maximumPages {
-            switch try await fetch(url) {
-            case .found(let post):
+            let search = try await fetch(url)
+            for post in search.candidates where try await isAccountThread(post) {
                 return post
-            case .notOnPage(let navigation):
-                guard let path = navigation.nextPath else { return nil }
-                guard
-                    navigation.current > previous,
-                    let next = HFREndpoint.absoluteURL(href: path), PostingFlow.isForumPage(next)
-                else { throw .unexpectedPage }
-                previous = navigation.current
-                url = next
             }
+            let navigation = search.navigation
+            guard let path = navigation.nextPath else { return nil }
+            guard
+                navigation.current > previous,
+                let next = HFREndpoint.absoluteURL(href: path), PostingFlow.isForumPage(next)
+            else { throw .unexpectedPage }
+            previous = navigation.current
+            url = next
         }
         throw .searchLimitReached(pages: maximumPages)
     }
 
     func read(post: Int, through session: any PostingSession) async throws(MPStorageTransportError) -> MPStorageSnapshot {
+        try await storedCopy(at: locate(post: post, through: session), through: session).snapshot
+    }
+
+    /// The storage message of thread `post`, from its first page: its `numreponse` and the account's edit link. A first
+    /// message without that link is another member's (`RU1`, `R44`): `editLinkMissing`.
+    func locate(post: Int, through session: any PostingSession) async throws(MPStorageTransportError) -> MPStorageLocation {
         let request = try Self.endpoint { () throws -> HTTPRequest in try HFREndpoint.privateThreadFirstPage(post: post) }
         let response = try await Self.get(request, through: session)
         // Not followed: a redirect answer is somewhere else than the thread asked for.
@@ -115,8 +141,7 @@ extension MPStorageTransport {
         }
         guard case .message(let numreponse, let link) = located else { throw .notAddressed }
         guard let editURL = link, Self.isEditLink(editURL, post: post, numreponse: numreponse) else { throw .editLinkMissing }
-        let location = MPStorageLocation(post: post, numreponse: numreponse, editURL: editURL)
-        return try await storedCopy(at: location, through: session).snapshot
+        return MPStorageLocation(post: post, numreponse: numreponse, editURL: editURL)
     }
 
     func save(

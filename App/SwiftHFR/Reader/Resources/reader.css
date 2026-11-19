@@ -82,7 +82,23 @@ a { color: var(--action); }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-.separator1 { border-top: 1px dashed var(--separator); }
+/* The read / unread line (`div.separator1`, only after the flag message, never after the page's last one). Parity (#807, legacy @ 87fe0d1c):
+   modern 2px solid (`style-liste-light.css:134-136`), classic 1px dashed (`style-liste.css:124-126`). Colour: the CSS default
+   rgba(0,0,0,0.4) is replaced at runtime by `textColorPseudo` at 50 % alpha (`ObjCTopicHTMLRenderer.m:60, 93`; `ThemeColors.m:269-275`: grey 120
+   in light, 206 in dark); here `--secondary` at 50 %, the sheet's own grey, which follows light, dark and the themes (108 and 161
+   against legacy's 120 and 206: darker in light, dimmer in dark; on the page, about 2.0:1 against legacy's 1.9:1 in light and 2.6:1 against 3.7:1 in dark). The « Nouveau » chip is a deliberate gap (operator, 2026-11-11):
+   generated content, so no script and no markup change, and VoiceOver reads it where the line sits. Its text is `--text` on a tint of
+   the accent, with an accent border, so it stays readable whatever accent hue the user picks (white on a yellow accent was 1.07:1);
+   its size follows the body's (`em`, so `--text-scale`); the vertical margin (none in legacy) makes room for it. */
+:root { --separator-new: color-mix(in srgb, var(--secondary) 50%, transparent); }
+.separator1 { position: relative; margin: 0.9em 0; border-top: 1px dashed var(--separator-new); }
+.style-modern .separator1 { border-top: 2px solid var(--separator-new); }
+.separator1::after {
+  content: "Nouveau"; position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%);
+  padding: 0.1em 0.7em; border-radius: 999px; border: 1px solid var(--action); color: var(--text);
+  background: color-mix(in srgb, var(--action) 20%, var(--background));
+  font-size: 0.7em; font-weight: 600; line-height: 1.3; white-space: nowrap;
+}
 .message { padding: 0.6em 1em 0; border-bottom: 1px solid var(--separator-strong); }
 /* `nth-of-type` counts articles only, so the dashed `div.separator1` between pages does not shift the alternation. */
 article.message:nth-of-type(even) { background: var(--surface-alt); }
@@ -200,6 +216,16 @@ button.image-tap, button.video {
   border: none; border-radius: 8px; padding: 0.6em 0.8em; margin: 0.25em 0; display: inline-block; max-width: 100%;
 }
 .videos { margin-top: 0.5em; }
+/* The thumbnail card of a plain YouTube link (#1037): the pill until the thumbnail has loaded (`reader.js` adds `has-thumb`), then the
+   thumbnail (hqdefault is 4:3 with black bars: cropped to 16:9) under a play mark drawn here, no extra request. */
+.videolinks { margin-top: 0.5em; }
+a.video-card { display: block; position: relative; max-width: 480px; margin: 0.25em 0; text-decoration: none; }
+a.video-card .video-pill { display: inline-block; font-size: 0.85em; color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
+a.video-card img.video-thumb, a.video-card .video-play { display: none; }
+a.video-card.has-thumb img.video-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--placeholder); }
+a.video-card.has-thumb .video-pill { display: none; }
+a.video-card.has-thumb .video-play { display: block; position: absolute; top: 50%; left: 50%; width: 3.2em; height: 3.2em; margin: -1.6em 0 0 -1.6em; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
+a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top: 50%; left: 50%; margin: -0.7em 0 0 -0.45em; border-style: solid; border-width: 0.7em 0 0.7em 1.2em; border-color: transparent transparent transparent #fff; }
 .image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
 
 /* The pull-to-refresh hint of the reader's pages (#820): `FloatingSpacing.gap` under the last message, small and almost tone on

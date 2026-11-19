@@ -38,6 +38,17 @@ struct MPStorageSyncTests {
         #expect(await persistence.stored.post == 42)
     }
 
+    @Test("#1200 P1: a cached thread whose first message is not the account's is dropped and searched again")
+    func aCachedForeignThreadIsSearchedAgain() async throws {
+        let remote = ScriptedMPStorageRemote(
+            finds: [.success(42)], reads: [.failure(.editLinkMissing), .success(try Fixture.snapshot(post: 42))]
+        )
+        let (sync, persistence) = Self.make(MPStorageSyncCopy(post: Self.post), remote: remote)
+        #expect(try await sync.detect(now: Fixture.now) == .found)
+        #expect(await remote.calls == [.read(Self.post), .find, .read(42)])
+        #expect(await persistence.stored.post == 42)
+    }
+
     @Test func aFailedReadOfTheCachedThreadKeepsItAndDoesNotSearch() async throws {
         let remote = ScriptedMPStorageRemote(reads: [.failure(.network(.offline))])
         let (sync, persistence) = Self.make(MPStorageSyncCopy(post: Self.post), remote: remote)

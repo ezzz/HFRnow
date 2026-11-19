@@ -23,6 +23,29 @@ enum MPStorageCapture {
         .success(try Capture.response("R60a-mpstorage-thread-first-post", url: PostingCapture.url(try Capture.meta("R60a").url)))
     }
 
+    /// `R60a` as a member who did not write its first message sees it: the same page without the message's edit links
+    /// (#1200 P1).
+    ///
+    /// A thread with the storage subject that another member started is not captured. What it lacks is: HFR prints no edit
+    /// link on another member's post, to the recipient of an MP (`RU1`, `R44`) or on a public topic (`R63a`, `R63e`), and
+    /// prints both the obfuscated edit span and the "Edition rapide" link on the viewer's own post (`R60a`, `R63a`).
+    static func threadPageOfAnotherMember() throws -> Result<HTTPResponse, NetworkError> {
+        let page = try Capture.page("R60a-mpstorage-thread-first-post")
+        let editSpan = /<span class="md_noclass_cryptlink[0-9A-F]+"><img [^>]*alt="edit" \/><\/span>/
+        let quickEdit = /<a rel="nofollow" href="\/message\.php[^"]*" onclick="edit_in\([^"]*"><img [^>]*alt="Edition rapide" \/><\/a>/
+        let stripped = page.replacing(editSpan, with: "").replacing(quickEdit, with: "")
+        guard
+            page.matches(of: editSpan).count == 1, page.matches(of: quickEdit).count == 1,
+            stripped.matches(of: editSpan).isEmpty, stripped.matches(of: quickEdit).isEmpty
+        else { throw Capture.Missing(name: "R60a edit links") }
+        return .success(
+            HTTPResponse(
+                statusCode: 200, headers: ["Content-Type": "text/html; charset=utf-8"],
+                url: PostingCapture.url(try Capture.meta("R60a").url), body: Data(stripped.utf8)
+            )
+        )
+    }
+
     /// The first message's edit form (`R60b`), holding `text` instead of the captured document when given.
     ///
     /// The replaced text stands for what HFR stores after an edit: the text as sent, byte for byte (`R43a`, X11).
