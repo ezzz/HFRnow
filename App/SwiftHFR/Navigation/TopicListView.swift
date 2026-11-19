@@ -101,7 +101,7 @@ struct TopicListView: View {
         .toolbar {
             if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
             // Trailing group: "+" only. Legacy adds a refresh button after it (`MainWindow.swift:835-846` @ 87fe0d1c); here the list
-            // refreshes on a pull (`.refreshable`), as the operator asked (#1206).
+            // refreshes on a pull (`.pullToRefresh`, #1207), as the operator asked (#1206).
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
                 if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
