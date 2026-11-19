@@ -58,11 +58,12 @@ final class AppLifecycle {
         await steps.evictOffline()
     }
 
-    /// The current account changed: the import goes on with it, then the notification prompt, once for the change.
+    /// The current account changed: the notification prompt, then the import goes on with it, once for the change. The prompt
+    /// comes first: right after the login it answers, never later over the import's own summary.
     func currentAccountChanged(to account: String?) async {
         guard events.isNew(account, for: "currentAccount") else { return }
-        await steps.importForAccount(account)
         await steps.askNotificationPermission(account)
+        await steps.importForAccount(account)
     }
 
     /// The scene phase changed: re-check the sessions when active, schedule the background check when in the background.

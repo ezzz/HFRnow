@@ -5,7 +5,8 @@ import HFRStorage
 // GAP-1172, #1172).
 /// When the app shows iOS's notification prompt: once an account is current (a stored one restored, a login, a switch), while
 /// iOS never asked and « Notifications » or « Badge messages non lus » is on. Logged out, nothing the app would show needs it;
-/// Réglages › Notifications MP still asks when a switch is turned on (`MPNotificationSettingsModel.notificationsTurnedOn`).
+/// Réglages › Notifications MP still asks when either switch is turned on (`MPNotificationSettingsModel.notificationsTurnedOn`,
+/// `badgeTurnedOn`).
 @MainActor
 struct MPNotificationPrompt {
     let store: any SettingsStore
