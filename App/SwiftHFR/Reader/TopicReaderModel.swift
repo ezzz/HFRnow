@@ -26,7 +26,9 @@ final class TopicReaderModel {
     /// A load is running.
     private(set) var isLoading = false
     /// The page is pulled past its top or its end: the refresh icons' scales, 0 to 1 (#1207).
-    var pullTop: CGFloat = 0, pullBottom: CGFloat = 0
+    var pullTop: CGFloat = 0
+    /// The end's pull, same scale.
+    var pullBottom: CGFloat = 0
     /// The end whose pull started the refresh that is running; only that icon turns (a first load or a page change turns none).
     var pulledEdge: PullEdge?
     /// Failure of the latest load; cleared by the next success.
