@@ -154,8 +154,8 @@ struct TopicReaderView: View {
             authorMenu.profileDidClose() // the MP composer or the toast a quick action asked for (#652)
         }, content: { UserProfileView(model: $0, services: services) })
         .navigationDestination(item: linkedReader) { linked in
-            // A private conversation reached from a topic offers no reply: MP replies are LOT-128's (no composer in Messages).
-            TopicReaderView(model: linked.model, services: services, composer: linked.model.isPrivateConversation ? nil : composer)
+            // A private conversation too: it answers through its own page, as when opened from Messages (LOT-128, #1189).
+            TopicReaderView(model: linked.model, services: services, composer: composer)
         }
         .appScreenBackground().onAppear(perform: makeController)
         // A view that comes back hands the document again: its load may have been stopped before it was ready (issue #566).
