@@ -78,6 +78,8 @@ struct MultiWindowTests {
         for _ in 0..<2 { await lifecycle.evictOfflineOnce() }
         for _ in 0..<2 { lifecycle.lockAndSeasonsFollow(.active) }
         #expect(log.entries.filter { $0 == "importForAccount" }.count == 1)
+        // The notification prompt follows the account change, once for it (#1172), never the launch.
+        #expect(log.entries.filter { $0.hasPrefix("ask:") } == ["ask:a"])
         #expect(log.entries.filter { $0 == "recheck" }.count == 2)
         #expect(log.entries.filter { $0 == "schedule" }.count == 1)
         #expect(log.entries.filter { $0 == "evict" }.count == 1)
@@ -222,7 +224,8 @@ private final class Log {
             recheckSessions: { self.add("recheck") },
             scheduleBackgroundCheck: { self.add("schedule") },
             evictOffline: { self.add("evict") },
-            lockAndSeasons: { _ in self.add("lock") }
+            lockAndSeasons: { _ in self.add("lock") },
+            askNotificationPermission: { account in self.add("ask:\(account ?? "nil")") }
         )
     }
 }

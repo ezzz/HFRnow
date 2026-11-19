@@ -62,7 +62,7 @@ At most 2 requests per run (`GET /`, the MP list page 1), as the operator decide
 - `earliestBeginDate = now + interval` (operator: "ce délai est un minimum, pas une garantie"); "Jamais" cancels the pending request. Scheduled when the scene goes to the background, at the start of each run, and when the setting changes.
 
 ### Permission
-At launch, as legacy (`HFRswiftApp.swift:27-29`, operator's comparison of 2026-11-11): `requestAuthorization([.alert, .sound, .badge])`; iOS shows the prompt once. The category is registered at the same time.
+The category is registered at launch. The prompt (`requestAuthorization([.alert, .sound, .badge])`) is no longer asked at launch as legacy did (`HFRswiftApp.swift:27-29` @ 87fe0d1c, operator's comparison of 2026-11-11), but in context (#1172, HIG › Privacy « Requesting permission »: avoid asking at launch, ask when a feature needs it): `MPNotificationPrompt` asks when an account becomes current (`AppLifecycle.currentAccountChanged`: a stored account restored, a login, a switch), only while iOS never asked (`.notDetermined`) and « Notifications » or "Badge messages non lus" is on. Logged out, nothing is asked. Réglages still asks when « Notifications » is turned on (below). iOS shows the prompt once whatever asks.
 
 ### Tap
 `AppDelegate` is the `UNUserNotificationCenter` delegate through a main-actor conformance (the async handler returns on the main actor). `MPNotificationRouter.shared` holds the pending destination (the conversation's number, or the list). The root selects Messages, and `MessageListModel.open(topic:)` reloads page 1 and selects that conversation when it lists it (the reader then opens at its latest message, LOT-126); else the list stays shown. A summary loads page 1, whatever page was on screen. A tap that cold-launches the app waits for the root to be built.
@@ -116,6 +116,7 @@ Captures read in place (no new fixture): `R336`-`R338` (#567, reply in an unread
 - HFRStorage `MPCheckIntervalTests`: values, default, an unknown stored value.
 - App `MPBackgroundCheckTests`: Jamais sends nothing; not due sends nothing; `nil` / expired / network error → no notification, no badge, nothing recorded; a list failure keeps the count; two identical runs → one notification; badge off → 0; first run silent. App `MPNotificationRoutingTests` and `MessageListModel` open-from-notification test.
 - App `MPBackgroundCheckTests/notificationsOff` (#1060): « Notifications » off → nothing delivered or withdrawn, news recorded, badge kept.
+- App `MPNotificationPromptTests` (#1172): logged out nothing is asked; an account becoming current asks once while iOS never asked, never after an answer, nor with both switches off; only `LiveNotificationPermission` calls `requestAuthorization(options:)`. `MultiWindowTests`: the prompt follows the account change once, never the launch.
 - App `MPNotificationPermissionTests` (#1060, fake `NotificationPermissionReading`): the stored switch (absent = on), the alert for each iOS state, once per kind per opening with iOS read on every return, the badge alert after the notifications one, one alert at a time, the prompt when iOS never asked, the French texts. `MPNotificationChecksHostedTests`: the real Réglages screen, the section out of sight, shows the alert on opening and reads iOS again on coming back.
 
 ## Learnings

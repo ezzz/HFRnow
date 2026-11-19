@@ -12,21 +12,15 @@ struct MPNotificationCenter: MPNotificationDelivering {
 
     private static let log = Logger(subsystem: "SwiftHFR", category: "MPNotificationCenter")
 
-    /// Registers the category, then asks for permission as legacy does at every launch (`HFRswiftApp.swift:27-29`): iOS
-    /// shows the prompt once and answers from the member's choice afterwards.
-    func prepare() async {
-        let center = UNUserNotificationCenter.current()
-        center.setNotificationCategories([
+    /// Registers the category at launch. The permission is not asked here (legacy asked at every launch,
+    /// `HFRswiftApp.swift:27-29` @ 87fe0d1c): `MPNotificationPrompt` asks once an account is current (#1172).
+    static func registerCategory() {
+        UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(
-                identifier: Self.categoryIdentifier, actions: [], intentIdentifiers: [],
+                identifier: categoryIdentifier, actions: [], intentIdentifiers: [],
                 hiddenPreviewsBodyPlaceholder: "%u nouveaux messages privés", options: []
             )
         ])
-        do {
-            _ = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-        } catch {
-            Self.log.error("Notification authorization failed")
-        }
     }
 
     func deliver(_ content: MPNotificationContent) async {
