@@ -1,5 +1,7 @@
+import HFRModels
+
 /// The Messages list's switch position (#899, `mp_list_segment`): every conversation, one-to-one ones, or group ones.
-public enum MPSegment: String, Sendable, Codable, CaseIterable {
+public enum MPSegment: String, Sendable, CaseIterable {
     /// "Tous": one-to-one and group conversations together (the default).
     case all
     /// One-to-one conversations ("MP").

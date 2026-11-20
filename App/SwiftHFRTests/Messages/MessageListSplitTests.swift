@@ -4,7 +4,7 @@ import HFRStorage
 @testable import SwiftHFR
 import Testing
 
-/// "Deux listes" (LOT-171): the switch, the segment counts and the bounded search for a segment's rows.
+/// The Tous / MP / MP multiples switch (LOT-171, #899): the switch, its remembered choice, the counts and the bounded search.
 private func pageOf(_ threads: [PrivateMessageThread], page: Int, last: Int) -> PrivateMessageListPage {
     PrivateMessageListPage(
         threads: threads,
@@ -249,6 +249,10 @@ struct MessageListSplitTests {
         await model.select(.oneToOne)
         #expect(model.selected == nil)
     }
+}
+
+/// The Tous choice and its remembered position (#899), kept apart so the suite stays under the type body limit.
+extension MessageListSplitTests {
 
     @Test func tousNeverSearchesWhateverTheListHolds() async {
         let source = FakePrivateMessages()

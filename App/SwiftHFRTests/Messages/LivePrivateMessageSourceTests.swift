@@ -3,6 +3,7 @@ import HFRClient
 import HFRModels
 import HFRNetwork
 import HFRParsing
+import HFRStorage
 @testable import SwiftHFR
 import Testing
 

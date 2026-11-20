@@ -1,8 +1,9 @@
 import HFRModels
+import HFRStorage
 import SwiftUI
 
 // Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
-// in the reader column (GAP-110); the "MP" / "MP multiples" switch is new (LOT-171).
+// in the reader column (GAP-110); the Tous / MP / MP multiples switch is new (LOT-171, #899), its last position remembered per account.
 // LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP row pending #545.
 // #1013: the switch is a row of the list under the large title, so it scrolls away with it.
 // GAP-713: no « Actualiser » button, on the iPhone Duo cover screen either (legacy puts one at the bottom of the toolbar column there,

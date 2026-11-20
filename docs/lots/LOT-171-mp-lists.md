@@ -17,7 +17,7 @@ Legacy `2440d79` of <https://github.com/ezzz/HFRnow>; the issue cites `origin/ma
 ## Behaviour
 | Piece | Rule |
 |---|---|
-| Setting (replaced by #899) | The « Affichage des MP » picker is removed: the switch Tous / MP / MP multiples is always shown, its last position kept per account (operator, 2026-11-16) in the **new** device-only keys `mp_list_segment.<account key>` (`MPListSegmentStore`, `MPSegment`: `all` default, `oneToOne`, `group`; unknown reads `all`; logged out reads `all`). `mp_list_display` is read only to seed an account's first choice (`single` is Tous, `split` is MP), and ignored once that account's key is stored. Tests `MPListSegmentStoreTests`, `theSeedAppliesOncePerAccount`, `twoAccountsKeepTheirOwnChoiceAndLoggedOutReadsTous` |
+| Setting (replaced by #899) | The « Affichage des MP » picker is removed: the switch Tous / MP / MP multiples is always shown, its last position kept per account (#899 §Scope, "stored per account") in the **new** device-only keys `mp_list_segment.<account key>` (`MPListSegmentStore`, `MPSegment` in `HFRStorage`: `all` default, `oneToOne`, `group`; unknown reads `all`; logged out reads `all`). `mp_list_display` is read only to seed an account's first choice (`single` is Tous, `split` is MP), and ignored once that account's key is stored. Tests `MPListSegmentStoreTests`, `theSeedAppliesOncePerAccount`, `twoAccountsKeepTheirOwnChoiceAndLoggedOutReadsTous` |
 | Reading it | `MessageListModel.init` reads the current account's position from the store (`settings:` and `account:`, given by `RootModel`) and stores the seed; `chooseSegment` writes each change |
 | Default | Tous: `visibleThreads` is every row of the page, no extra request (test `tousNeverSearchesWhateverTheListHolds`) |
 | Two lists | A segmented control above the list: "Tous" (every row), "MP" (`!isGroup`) and "MP multiples" (`isGroup`). The split is client-side over the page on screen: no server filter of the MP list is known, so none is guessed |
@@ -51,7 +51,7 @@ Existing captures only (`R13u1`: group and one-to-one rows, 7 pages; `R04`, `R08
 ## Intentional differences from legacy
 | # | Legacy | Port | Why |
 |---|---|---|---|
-| D1 | one list | optional split, default "Tout en un" | operator decision 2026-10-28 |
+| D1 | one list | switch Tous / MP / MP multiples, default Tous, last position remembered per account | operator decision 2026-10-28, replaced by #899 |
 | D2 | group detected by the text "multiples" | `isGroup` (LOT-023 D4) | LOT-023 |
 
 ## Learnings
