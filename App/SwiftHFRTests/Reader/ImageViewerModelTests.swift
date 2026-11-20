@@ -65,6 +65,20 @@ struct ImageViewerModelTests {
         #expect(loads.sorted() == ["https://reho.st/0.jpg", "https://reho.st/1.jpg", "https://reho.st/2.jpg"])
     }
 
+    @Test func aLinkedAddressThatIsNoImageFallsBackToTheTablesFullSizeBeforeTheThumbnail() async throws {
+        let recorder = Recorder()
+        let shown = try #require(URL(string: "https://reho.st/thumb/9.jpg"))
+        let page = try #require(URL(string: "https://reho.st/view/9"))
+        let model = ImageViewerModel(
+            images: [GalleryImage(shown: shown, full: page, allowsThirdParty: true)], index: 0,
+            services: services(recorder: recorder, failing: [page.absoluteString])
+        )
+        model.prefetch()
+        await model.settle()
+        #expect(await recorder.loads == ["https://reho.st/view/9", "https://reho.st/9.jpg"])
+        #expect(model.currentLink?.absoluteString == "https://reho.st/9.jpg")
+    }
+
     @Test func aMissingFullSizeImageFallsBackToTheThumbnailTheUserSaw() async {
         let recorder = Recorder()
         let model = ImageViewerModel(

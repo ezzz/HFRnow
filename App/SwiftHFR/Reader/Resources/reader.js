@@ -143,7 +143,10 @@
       const index = pictures.indexOf(picture);
       if (index >= 0) {
         event.preventDefault();
-        channel.postMessage({ type: "image", token, urls: pictures.map((img) => img.dataset.viewerSrc), index });
+        // The link around the picture goes along (#912): `href` is the resolved address, or null outside a link. The page never
+        // navigates; the app decides between the viewer, the forum and a confirmation.
+        const anchor = picture.closest("a[href]");
+        channel.postMessage({ type: "image", token, urls: pictures.map((img) => img.dataset.viewerSrc), index, link: anchor ? anchor.href : null });
         return;
       }
     }

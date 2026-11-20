@@ -31,8 +31,9 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     case quote(post: Int, text: String, bold: Bool)
 
     /// The user tapped a posted picture: the `src` of the pictures the page shows (in order) and the tapped one's position
-    /// among them (LOT-109). The app re-checks every entry; the page's list is a claim.
-    case image(urls: [String], index: Int)
+    /// among them (LOT-109), and the `href` of the link around the tapped one, nil when it is in none (#912). The app re-checks
+    /// every entry and decides what the link means; the page's list and link are claims.
+    case image(urls: [String], index: Int, link: String? = nil)
 
     /// The page's end came on screen (`atBottom`) or left it: legacy's `scrollState` message (`MessagesView.swift:1013-1035`
     /// @ 87fe0d1c), sent only on a change. It drives the end-of-page bar (#820).
@@ -146,7 +147,14 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         // One entry that is not a string rejects the whole message: the index must keep pointing at the same picture.
         let urls = list.compactMap { $0 as? String }
         guard urls.count == list.count else { throw .invalidPayload }
-        return .image(urls: urls, index: index)
+        // `link` is absent or null outside a link; any other type rejects the message rather than reading a tap as unlinked.
+        let link: String?
+        switch object["link"] {
+        case nil, is NSNull: link = nil
+        case let text as String: link = text.utf8.count <= maximumLinkLength ? text : nil
+        default: throw .invalidPayload
+        }
+        return .image(urls: urls, index: index, link: link)
     }
 
     /// The message number a body names: a whole number above zero, nothing else.

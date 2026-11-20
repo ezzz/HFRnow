@@ -20,6 +20,8 @@ extension ReaderWebController {
         var quote: @MainActor (_ post: Int, _ text: String, _ bold: Bool, _ token: Int) -> Void = { _, _, _, _ in }
         /// The user tapped a posted picture; `images` are those the viewer may show (policy C applied here), opened on `index`.
         var image: @MainActor (_ images: [GalleryImage], _ index: Int, _ token: Int) -> Void = { _, _, _ in }
+        /// The user tapped a picture inside a link that is not an image (#912): the app routes it, asking first when it leaves the app.
+        var pictureLink: @MainActor (URL) -> Void = { _ in }
         /// A short sentence for the reader's feedback line (the result of "Enregistrer dans Photos", #615).
         var notice: @MainActor (_ text: String) -> Void = { _ in }
         /// The reader left the screen: its web view left its window after SwiftUI's `onDisappear` (`+Presence`, issue #750).
