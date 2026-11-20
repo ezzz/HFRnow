@@ -59,7 +59,8 @@ enum ImageGallery {
             var usable = fullSize(of: url, hosts: hosts)
             // The link around the tapped picture, when it is an image the policy lets the viewer fetch (#912).
             if isSelected, let linked,
-               let target = linkedFull(of: url, linked: linked, autoLoadsThirdParty: autoLoadsThirdParty, hosts: hosts) {
+               let target = linkedFull(
+                   of: url, linked: linked, consented: consented, autoLoadsThirdParty: autoLoadsThirdParty, hosts: hosts) {
                 usable = target
             }
             if isSelected { index = images.count }
@@ -70,19 +71,22 @@ enum ImageGallery {
         return (images, index)
     }
 
-    /// The full-size address of the image that the link around the picture `shown` points to (#912), or nil when the viewer
-    /// must not fetch it: a blocked address, or a third-party host the user has not allowed (consent covers the picture's own
-    /// host, so another one needs the "load third-party images" setting). The host table's rewrite applies, as for `shown`.
+    /// The full-size address of the image that the link around a picture points to (#912), or nil when the viewer must not
+    /// fetch it: a blocked address, or a third-party address the user has not allowed. Consent is per address (`consented`
+    /// holds the pictures' own addresses), so a third-party link is fetched only when its own address is consented or the
+    /// "load third-party images" setting is on, whatever host the picture is on. The one exception is the picture's own full size
+    /// (the viewer fetches it for `shown` anyway). The host table's rewrite applies.
     static func linkedFull(
-        of shown: URL, linked: URL, autoLoadsThirdParty: Bool, hosts: ImageHostTable = .standard
+        of shown: URL, linked: URL, consented: Set<String> = [], autoLoadsThirdParty: Bool, hosts: ImageHostTable = .standard
     ) -> URL? {
         let candidate = hosts.fullSizeURL(for: linked)
         switch ImagePolicy.classify(candidate) {
         case .blocked: return nil
         case .forum: return candidate
         case .thirdParty:
-            let sameHost = candidate.host()?.lowercased() == shown.host()?.lowercased()
-            return autoLoadsThirdParty || sameHost ? candidate : nil
+            let own = candidate == fullSize(of: shown, hosts: hosts)
+            let consent = consented.contains(linked.absoluteString) || consented.contains(candidate.absoluteString)
+            return autoLoadsThirdParty || own || consent ? candidate : nil
         }
     }
 }

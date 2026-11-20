@@ -183,6 +183,10 @@ final class ImageViewerModel: Identifiable {
     /// The full-size image, or the thumbnail the page showed when the host does not serve the full-size one.
     private static func download(_ item: GalleryImage, services: ImageViewerServices) async -> (image: ViewerImage, url: URL)? {
         if let image = try? await services.load(item.full, item.allowsThirdParty) { return (image, item.full) }
+        // A linked address that is no image falls back to the table's full size of the picture before its thumbnail.
+        let tableFull = ImageGallery.fullSize(of: item.shown)
+        if tableFull != item.full, tableFull != item.shown, !Task.isCancelled,
+           let image = try? await services.load(tableFull, item.allowsThirdParty) { return (image, tableFull) }
         guard item.full != item.shown, !Task.isCancelled,
               let image = try? await services.load(item.shown, item.allowsThirdParty) else { return nil }
         return (image, item.shown)

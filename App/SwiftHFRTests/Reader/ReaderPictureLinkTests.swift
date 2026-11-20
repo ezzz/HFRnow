@@ -24,13 +24,42 @@ struct ReaderPictureLinkTests: ReaderWebTesting {
         #expect(ReaderPictureTap.decide(shown: small, link: upper, autoLoadsThirdParty: false) == .linkedImage(link(upper)))
         #expect(ReaderPictureTap.decide(shown: small, link: "https://forum-images.hardware.fr/page.php?f=a.png", autoLoadsThirdParty: false)
             == .link(link("https://forum-images.hardware.fr/page.php?f=a.png")))
-        // A rehost thumbnail whose link is the table's own full image keeps the table's rewrite and its extension-less path.
+        // A rehost thumbnail linking to the host's own image path (img3 `/images/`, captured as full images in R298).
         let thumb = "https://reho.st/preview/self/abc"
-        #expect(ReaderPictureTap.decide(shown: thumb, link: "https://reho.st/self/abc", autoLoadsThirdParty: false)
-            == .linkedImage(link("https://reho.st/self/abc")))
+        let img3Thumb = "https://img3.super-h.fr/images/2025/03/26/snapshot_1.th.png"
+        let img3Full = "https://img3.super-h.fr/images/2025/03/26/snapshot_1.png"
+        #expect(ReaderPictureTap.decide(shown: img3Thumb, link: img3Full, consented: [img3Thumb], autoLoadsThirdParty: false)
+            == .linkedImage(link(img3Full)), "the picture's own full size is the one the viewer fetches anyway")
+        #expect(ReaderPictureTap.decide(shown: img3Thumb, link: img3Full.replacing("snapshot_1", with: "other"), autoLoadsThirdParty: false)
+            != .linkedImage(link(img3Full.replacing("snapshot_1", with: "other"))), "another address needs its own consent")
         // The host alone is not an image: the rehost's home page is a page.
         let home = "https://reho.st/"
         #expect(ReaderPictureTap.decide(shown: thumb, link: home, autoLoadsThirdParty: false) == .link(link(home)))
+    }
+
+    /// Captures R298a/b/e: an img3 thumbnail inside a link to the Chevereto viewer page, never to an image. Red before the fix:
+    /// the page was taken for an image, fetched, failed, and the viewer showed the thumbnail instead of the full size.
+    @Test func anImg3ThumbnailLinkedToItsViewerPageStaysTheViewerOnTheFullSize() {
+        let shown = "https://img3.super-h.fr/images/d5e912eb1dcfe4523d4e0ffb8e5e20731b7e016e30e27be7ea040156.th.png"
+        let page = "https://img3.super-h.fr/image/gd99"
+        #expect(ReaderPictureTap.decide(shown: shown, link: page, autoLoadsThirdParty: false) == .viewer)
+        #expect(!ReaderPictureTap.isImage(link(page)))
+        // The viewer then opens the table's full size, as before #912.
+        let gallery = ImageGallery.build(sources: [shown], selected: 0, consented: [shown], autoLoadsThirdParty: false)
+        #expect(gallery?.images.first?.full.absoluteString
+            == "https://img3.super-h.fr/images/d5e912eb1dcfe4523d4e0ffb8e5e20731b7e016e30e27be7ea040156.png")
+    }
+
+    /// R122c: `reho.st/view/self/<hash>.png` around a `/preview/` thumbnail. No capture shows what `/view/` serves (#1280), so it
+    /// is a page link, whatever its extension; so is the host's home page.
+    @Test func aRehostViewLinkIsAPageUntilItsCaptureSaysOtherwise() {
+        let hash = "cb1f7efe6157caa50541f62a6d98ea6c19d087f6"
+        let view = "https://reho.st/view/self/\(hash).png"
+        #expect(ReaderPictureTap.decide(shown: "https://reho.st/preview/self/\(hash).png", link: view, autoLoadsThirdParty: false)
+            == .link(link(view)))
+        let bare = "https://reho.st/self/abc"
+        #expect(ReaderPictureTap.decide(shown: "https://reho.st/preview/self/abc", link: bare, autoLoadsThirdParty: false)
+            == .link(link(bare)))
     }
 
     @Test func aLinkToAnythingElseIsALink() {
@@ -53,8 +82,13 @@ struct ReaderPictureLinkTests: ReaderWebTesting {
         // The user allowed `shown`'s host only: the other host's image is a page to leave for, with the warning.
         #expect(ReaderPictureTap.decide(shown: shown, link: other, autoLoadsThirdParty: false) == .link(link(other)))
         #expect(ReaderPictureTap.decide(shown: shown, link: other, autoLoadsThirdParty: true) == .linkedImage(link(other)))
-        #expect(ReaderPictureTap.decide(shown: shown, link: "https://i.imgur.com/big.jpg", autoLoadsThirdParty: false)
-            == .linkedImage(link("https://i.imgur.com/big.jpg")))
+        // Consent is per address: the same host's other address is not fetched unless it is consented too (strict, #912 review).
+        let sameHost = "https://i.imgur.com/big.jpg"
+        #expect(ReaderPictureTap.decide(shown: shown, link: sameHost, consented: [shown], autoLoadsThirdParty: false)
+            == .link(link(sameHost)))
+        #expect(ReaderPictureTap.decide(shown: shown, link: sameHost, consented: [shown, sameHost], autoLoadsThirdParty: false)
+            == .linkedImage(link(sameHost)))
+        #expect(ReaderPictureTap.decide(shown: shown, link: sameHost, autoLoadsThirdParty: true) == .linkedImage(link(sameHost)))
         // A blocked address is never fetched, whatever the setting: it falls to the link route.
         #expect(ReaderPictureTap.decide(shown: shown, link: "http://192.168.1.1/a.png", autoLoadsThirdParty: true)
             == .link(link("http://192.168.1.1/a.png")))
@@ -107,6 +141,20 @@ struct ReaderPictureLinkTests: ReaderWebTesting {
         _ = controller.handle(.image(urls: [small], index: 0), in: shown)
         #expect(opened.count == 2)
         #expect(opened.last?.images.first?.full == link(small))
+    }
+
+    @Test func aLinkLongerThanTheBridgeKeepsOpensTodaysViewer() throws {
+        let (controller, _) = makeController(transport: imageTransport())
+        var opened = 0
+        var pages: [URL] = []
+        controller.events.image = { _, _, _ in opened += 1 }
+        controller.events.pictureLink = { pages.append($0) }
+        let long = "https://example.com/" + String(repeating: "a", count: ReaderBridgeMessage.maximumLinkLength)
+        let payload: [String: Any] = ["type": "image", "token": 2, "urls": [small] as [Any], "index": 0, "link": long]
+        let message = try #require(try? ReaderBridgeMessage.decode(payload).message)
+        _ = controller.handle(message, in: document(token: 2))
+        #expect(opened == 1, "a link dropped by the bridge is no link: today's viewer")
+        #expect(pages.isEmpty, "and no page to ask about")
     }
 
     /// `reader.js` in a real web view: the tap sends the wrapping link, and the page never navigates by itself.

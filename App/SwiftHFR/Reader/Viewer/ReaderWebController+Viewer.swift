@@ -16,7 +16,9 @@ extension ReaderWebController {
     /// viewer; a link to anything else goes to the app (`events.pictureLink`), which asks before leaving. Nothing is answered.
     func pictureTapped(urls: [String], index: Int, link: String?, token: Int) -> Any? {
         let shown = urls.indices.contains(index) ? urls[index] : nil
-        switch ReaderPictureTap.decide(shown: shown, link: link, autoLoadsThirdParty: autoLoadsThirdPartyImages()) {
+        switch ReaderPictureTap.decide(
+            shown: shown, link: link, consented: consented, autoLoadsThirdParty: autoLoadsThirdPartyImages()
+        ) {
         case .viewer: return openViewer(urls: urls, index: index, token: token)
         case .linkedImage(let target): return openViewer(urls: urls, index: index, linked: target, token: token)
         case .link(let url): events.pictureLink(url)
