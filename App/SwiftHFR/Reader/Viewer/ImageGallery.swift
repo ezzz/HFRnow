@@ -39,7 +39,7 @@ enum ImageGallery {
     /// Nil when the tapped image itself is not allowed.
     static func build(
         sources: [String], selected: Int, consented: Set<String>, autoLoadsThirdParty: Bool,
-        hosts: ImageHostTable = .standard
+        linked: URL? = nil, hosts: ImageHostTable = .standard
     ) -> (images: [GalleryImage], index: Int)? {
         guard sources.indices.contains(selected) else { return nil }
         // A window of at most `maximumImages` around the tapped picture, so a picture late on a huge page still opens.
@@ -56,11 +56,33 @@ enum ImageGallery {
             case .thirdParty where !(autoLoadsThirdParty || consented.contains(text)): continue
             case .forum, .thirdParty: break
             }
+            var usable = fullSize(of: url, hosts: hosts)
+            // The link around the tapped picture, when it is an image the policy lets the viewer fetch (#912).
+            if isSelected, let linked,
+               let target = linkedFull(of: url, linked: linked, autoLoadsThirdParty: autoLoadsThirdParty, hosts: hosts) {
+                usable = target
+            }
             if isSelected { index = images.count }
             let allowsThirdParty = origin == .thirdParty || autoLoadsThirdParty
-            images.append(GalleryImage(shown: url, full: fullSize(of: url, hosts: hosts), allowsThirdParty: allowsThirdParty))
+            images.append(GalleryImage(shown: url, full: usable, allowsThirdParty: allowsThirdParty))
         }
         guard let index else { return nil }
         return (images, index)
+    }
+
+    /// The full-size address of the image that the link around the picture `shown` points to (#912), or nil when the viewer
+    /// must not fetch it: a blocked address, or a third-party host the user has not allowed (consent covers the picture's own
+    /// host, so another one needs the "load third-party images" setting). The host table's rewrite applies, as for `shown`.
+    static func linkedFull(
+        of shown: URL, linked: URL, autoLoadsThirdParty: Bool, hosts: ImageHostTable = .standard
+    ) -> URL? {
+        let candidate = hosts.fullSizeURL(for: linked)
+        switch ImagePolicy.classify(candidate) {
+        case .blocked: return nil
+        case .forum: return candidate
+        case .thirdParty:
+            let sameHost = candidate.host()?.lowercased() == shown.host()?.lowercased()
+            return autoLoadsThirdParty || sameHost ? candidate : nil
+        }
     }
 }

@@ -248,8 +248,8 @@ final class ReaderWebController: NSObject {
             let anchor = anchor?.offsetBy(dx: 0, dy: obscuredInsets.top)
             events.menu(post, source, anchor, document.token)
             return nil
-        case .image(let urls, let index):
-            return openViewer(urls: urls, index: index, token: document.token)
+        case .image(let urls, let index, let link):
+            return pictureTapped(urls: urls, index: index, link: link, token: document.token)
         }
     }
 

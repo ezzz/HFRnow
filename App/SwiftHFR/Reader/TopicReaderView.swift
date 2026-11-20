@@ -55,6 +55,7 @@ struct TopicReaderView: View {
     @State private var showsAccounts = false
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
+    @State private var pictureLink: PendingPictureLink?
     /// The open image viewer (LOT-109); a fresh model per tap.
     @State private var viewer: ImageViewerModel?
     /// The profile sheet, the author menu's MP composer and their handlers (issues #595, #652).
@@ -147,6 +148,7 @@ struct TopicReaderView: View {
         }
         .onChange(of: model.presentedMenu) { _, menu in controller?.showMessageMenu(menu, of: model) }
         .onChange(of: model.document?.token) { atPageEnd = false }
+        .modifier(ReaderPictureLinkPrompt(pending: $pictureLink, open: { open($0) }))
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
@@ -154,7 +156,7 @@ struct TopicReaderView: View {
             model.applyDisplaySettings()
             authorMenu.profileDidClose() // the MP composer or the toast a quick action asked for (#652)
         }, content: { UserProfileView(model: $0, services: services) })
-        .navigationDestination(item: linkedReader) { linked in
+        .navigationDestination(item: LinkedReader.binding(of: model)) { linked in
             // A private conversation too: it answers through its own page, as when opened from Messages (LOT-128, #1189).
             TopicReaderView(model: linked.model, services: services, composer: composer)
         }
@@ -210,7 +212,7 @@ struct TopicReaderView: View {
             filter: { onFilterPosts?() },
             filterIsBusy: filterIsBusy,
             pages: AnyView(Group {
-                if let page { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: askForPage) }
+                if let page { ReaderPageMenuItems(model: model, maxPage: page.maxPage, askPage: { askingPage = true }) }
             }))
     }
 
@@ -234,15 +236,19 @@ struct TopicReaderView: View {
         return settings.replyButton == .forum ? "square.and.pencil" : "plus"
     }
 
-    private var linkedReader: Binding<LinkedReader?> {
-        Binding(
-            get: { model.linkedReader.map(LinkedReader.init) },
-            set: { if $0 == nil { model.closeLinkedReader() } }
-        )
-    }
+    /// Does what a tapped link means (LOT-137).
+    private var defaultBrowser: Bool { services.settings.opensLinksInDefaultBrowser() }
 
-    private func askForPage() {
-        askingPage = true
+    private func open(_ action: ReaderLinkAction, asking: Bool = false) {
+        if asking, let pending = PendingPictureLink(action) { return pictureLink = pending }
+        switch action {
+        case .reader(let target): model.follow(target)
+        // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
+        case .profile(let id): authorMenu.show(services.profileModel(memberID: id, listsChanged: model.displaySettingsHook))
+        case .inAppBrowser(let url): external = ExternalLink(url: url)
+        case .defaultBrowser(let url): openURL(url)
+        case .ignored: break
+        }
     }
 
     private func makeController() {
@@ -253,17 +259,7 @@ struct TopicReaderView: View {
         controller.events = ReaderWebController.Events(
             ready: { [model] token in model.documentDidBecomeReady(token: token) },
             failed: { [model] token in model.documentDidFail(token: token) },
-            link: { [model] url in
-                switch model.action(forLink: url, defaultBrowser: services.settings.opensLinksInDefaultBrowser()) {
-                case .reader(let target): model.follow(target)
-                // The hook holds the model weakly: the sheet outlives this tap (`UserProfileModel.onListsChanged`).
-                case .profile(let memberID):
-                    authorMenu.show(services.profileModel(memberID: memberID, listsChanged: model.displaySettingsHook))
-                case .inAppBrowser(let url): external = ExternalLink(url: url)
-                case .defaultBrowser(let url): openURL(url)
-                case .ignored: break
-                }
-            },
+            link: { [model] url in open(model.action(forLink: url, defaultBrowser: defaultBrowser)) },
             video: { [model] post, index, token in
                 if let embed = model.video(post: post, index: index, token: token) { video = VideoItem(embed: embed) }
             },
@@ -277,7 +273,10 @@ struct TopicReaderView: View {
             image: { images, index, _ in
                 // The controller already checked the document token (a stale page's tap never gets here).
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
-            }, notice: { [model] in model.showMenuFeedback($0) },
+            },
+            // A picture inside a link to a page (#912): a forum link opens as any other, the rest asks first.
+            pictureLink: { [model] url in open(model.action(forLink: url, defaultBrowser: defaultBrowser), asking: true) },
+            notice: { [model] in model.showMenuFeedback($0) },
             // Weak and through bindings, not `self`: the controller stores this closure, and `self`'s `@State` holds the
             // controller (LOT-087).
             left: { [weak controller, model, viewerID, covered = $viewer, saver = $saver, settings] in
@@ -319,7 +318,7 @@ extension TopicReaderView {
     /// The bottom bar's buttons, for both placements.
     private var pageButtons: ReaderPageButtons {
         ReaderPageButtons(
-            model: model, atPageEnd: atPageEnd, voiceOver: voiceOver, askPage: askForPage, replySymbol: replySymbol,
+            model: model, atPageEnd: atPageEnd, voiceOver: voiceOver, askPage: { askingPage = true }, replySymbol: replySymbol,
             refresh: refresh
         )
     }
