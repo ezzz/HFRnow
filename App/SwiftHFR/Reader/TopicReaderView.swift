@@ -126,6 +126,7 @@ struct TopicReaderView: View {
             ToolbarItem(placement: .primaryAction) { ReaderRefreshButton(model: model, refresh: refresh) }
             overflowToolbar
         }
+        .coverScreenTopicActions() // GAP-713: « Retour » above the page controls, as legacy (MessagesView.swift:5696 @ 87fe0d1c)
         // Always attached (empty under the system bottom bar), so the page's identity never changes with the placement (#565).
         .safeAreaBar(edge: .bottom) {
             if bottomPlacement == .inset { ReaderPageStrip(buttons: pageButtons) }

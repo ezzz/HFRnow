@@ -36,6 +36,7 @@ struct TopicListView: View {
     /// The account button after the back button of a pushed list (`MainWindow.swift:803-818` @ 87fe0d1c, #425); off on the Favoris root.
     var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
@@ -99,9 +100,9 @@ struct TopicListView: View {
         }
         .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
-            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
+            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement(on: phoneDisplayKind)) { AccountMenuButton() } }
             // Trailing group: "+" only. Legacy adds a refresh button after it (`MainWindow.swift:835-846` @ 87fe0d1c); here the list
-            // refreshes on a pull (`.pullToRefresh`, #1207), as the operator asked (#1206).
+            // refreshes on a pull (`.pullToRefresh`, #1207), as the operator asked (#1206), on the Duo cover screen too (GAP-713).
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
                 if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
@@ -112,6 +113,9 @@ struct TopicListView: View {
                 }
             }
         }
+        // The cover screen: « Retour » at the bottom of the column on a pushed category's list (`MainWindow.swift:854` @ 87fe0d1c; the
+        // Favoris root is no push); no « Actualiser » to move there (#1206).
+        .coverScreenListActions()
         .sheet(item: $newTopic) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newTopicDidClose(reason) }

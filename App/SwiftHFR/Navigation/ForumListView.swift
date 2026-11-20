@@ -3,7 +3,9 @@ import SwiftUI
 // Port of HFRswift/Swift/MainWindow.swift (CategoriesListView, forumRowLabel, `:129-262`) @ 87fe0d1c. Differences: explicit inset-grouped
 // style like the MP list (#427, #572) instead of the default list; the sub-forums are chosen from the topic list's menu, as in
 // legacy (GAP-020, 021, 022); "1 sous-forum" in the singular. #1107: the list look (`listLook`) of every list; the dense look keeps
-// the icons with less height and a wider icon gap (`DenseListLook`).
+// the icons with less height and a wider icon gap (`DenseListLook`). GAP-713: no « Actualiser » button, on the iPhone Duo cover
+// screen either (legacy puts one at the bottom of the toolbar column there, `:206` @ 87fe0d1c, drawn at the top, a defect): a pull
+// refreshes the list everywhere (operator, #1239, following #1206); the cover screen gets « Retour » only, on a pushed list.
 /// The Catégories list: one flat row per forum with its icon and sub-forum count (flags and favourites have their own tab, LOT-170).
 struct ForumListView: View {
     @Bindable var navigation: NavigationModel
@@ -40,6 +42,7 @@ struct ForumListView: View {
             }
         }
         .pullToRefresh(isRefreshing: loader.isLoading) { await navigation.forums.reload() }
+        .coverScreenListActions()
         .task { await navigation.forums.loadIfNeeded() }
     }
 
