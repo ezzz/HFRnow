@@ -8,7 +8,9 @@ private struct OpenedViewer {
     let index: Int
 }
 
-private func link(_ text: String) -> URL { URL(string: text)! } // swiftlint:disable:this force_unwrapping (literals in tests)
+// The URLs are literals in tests.
+// swiftlint:disable:next force_unwrapping
+private func link(_ text: String) -> URL { URL(string: text)! }
 
 /// A picture inside a link (#912): the rules that read the link, the typed message, the controller and the page's tap.
 @MainActor
