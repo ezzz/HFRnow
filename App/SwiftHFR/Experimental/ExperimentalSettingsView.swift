@@ -85,7 +85,14 @@ struct ExperimentalFeatureRow: View {
 
     let feature: ExperimentalFeature
     let settings: ExperimentalSettings
-    @State private var isExplained = false
+    @State private var isExplained: Bool
+
+    /// `isExplained` starts the row with its explanation shown (the rendered-spacing test measures that state).
+    init(feature: ExperimentalFeature, settings: ExperimentalSettings, isExplained: Bool = false) {
+        self.feature = feature
+        self.settings = settings
+        _isExplained = State(initialValue: isExplained)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Self.descriptionSpacing) {

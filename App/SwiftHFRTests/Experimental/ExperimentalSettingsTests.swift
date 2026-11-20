@@ -89,18 +89,3 @@ struct ExperimentalPageTests {
         #expect(store.rawValue(forKey: "experimental.mpDarkTopic") == .bool(true))
     }
 }
-
-/// #1128: one spacing between a switch's title and its description, read by every Réglages row that shows a description under
-/// its control (it was 2 pt on two rows and 6 pt on another; the operator kept 6 pt).
-@MainActor
-struct SettingsRowSpacingTests {
-    /// 6 pt: the Expérimental rows' spacing, kept by the operator (2026-11-18) over the 2 pt of the other two rows.
-    @Test func theSpacingIsTheSixPointsTheOperatorKept() {
-        #expect(SettingsRowSpacing.titleToDescription == 6)
-    }
-
-    @Test func everyRowWithADescriptionUnderItsControlReadsTheConstant() {
-        #expect(ExperimentalFeatureRow.descriptionSpacing == SettingsRowSpacing.titleToDescription)
-        #expect(MPStorageSettingsRows.descriptionSpacing == SettingsRowSpacing.titleToDescription)
-    }
-}
