@@ -16,35 +16,18 @@ struct TopicReaderWriteFollowUpTests {
         case conversation
     }
 
-    private static let edited = PostingResult(
+    static let edited = PostingResult(
         action: .edit, message: "Votre message a été édité avec succès !",
         refreshURL: url("https://forum.hardware.fr/forum2.php?config=hfr.inc&cat=prive&post=4242&page=2#t201"),
         refreshAnchor: "t201", postNumber: 201
     )
-
-    private struct Fixture {
-        let reader: TopicReaderModel
-        let writes: MessageWriteModel
-        let pages: FakeTopicPages
-    }
-
-    /// A reader on page `number` of the thread, before any send, with the write model the view installs. A viewer is on
-    /// screen (the disappearance tests need one); the wait limit never fires, there is no web view to make a page ready.
-    private func fixture(_ thread: Kind, onPage number: Int, maxPage: Int = 3) async -> Fixture {
-        let pages = FakeTopicPages { target in followUpPage(thread, min(target.page, maxPage), maxPage: maxPage, text: "before") }
-        let reader = TopicReaderModel(target: ReaderTarget(source: .topic(followUpTopic(thread)), page: number), source: pages)
-        reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) }
-        let writes = MessageWriteModel(reader: reader, services: ComposerFixture.services(poster: ScriptedPoster([])))
-        await reader.onAppear(viewer: 1)
-        return Fixture(reader: reader, writes: writes, pages: pages)
-    }
 
     // MARK: - Success
 
     /// A confirmed edit: the page on screen is asked again and opens at the edited message, which shows the new text.
     @Test(arguments: Kind.allCases)
     func aConfirmedEditShowsTheEditedTextAtTheMessage(_ thread: Kind) async throws {
-        let fixture = await fixture(thread, onPage: 2)
+        let fixture = await followUpFixture(thread, onPage: 2)
         fixture.pages.handler = { target in followUpPage(thread, target.page, text: "after-edit") }
         await fixture.writes.editorDidClose(.sent(Self.edited), post: 201)
         #expect(fixture.pages.requests.map(\.page) == [2, 2])
@@ -57,7 +40,7 @@ struct TopicReaderWriteFollowUpTests {
     /// (`R24`); a conversation asks its last known page, then the one its pager names (LOT-128).
     @Test(arguments: Kind.allCases)
     func aConfirmedReplyShowsTheNewMessageOnTheLastPage(_ thread: Kind) async throws {
-        let fixture = await fixture(thread, onPage: 3)
+        let fixture = await followUpFixture(thread, onPage: 3)
         fixture.pages.handler = { target in followUpPage(thread, min(target.page, 4), maxPage: 4, text: "the-reply") }
         await fixture.reader.composerDidClose(.sent(replyConfirmed))
         #expect(fixture.pages.requests.map(\.page) == (thread == .topic ? [3, 4] : [3, 3, 4]))
@@ -72,7 +55,7 @@ struct TopicReaderWriteFollowUpTests {
     /// An unconfirmed send reloads once to show what the forum holds, and says no success.
     @Test(arguments: Kind.allCases)
     func anUnconfirmedSendReloadsOnceWithoutSuccess(_ thread: Kind) async {
-        let fixture = await fixture(thread, onPage: 2)
+        let fixture = await followUpFixture(thread, onPage: 2)
         await fixture.writes.editorDidClose(.checkTopic, post: 201)
         #expect(fixture.pages.requests.map(\.page) == [2, 2])
         #expect(fixture.reader.replyConfirmation == nil)
@@ -85,7 +68,7 @@ struct TopicReaderWriteFollowUpTests {
     /// A composer closed without a send (draft kept, discarded, or not saved) reloads nothing and owes nothing.
     @Test(arguments: Kind.allCases, [ReplyComposerModel.CloseReason.keptDraft, .discardedDraft, .closedWithoutSaving])
     func closingWithoutASendReloadsNothing(_ thread: Kind, _ reason: ReplyComposerModel.CloseReason) async {
-        let fixture = await fixture(thread, onPage: 2)
+        let fixture = await followUpFixture(thread, onPage: 2)
         await fixture.writes.editorDidClose(reason, post: 201)
         await fixture.reader.composerDidClose(reason)
         #expect(fixture.pages.requests.count == 1)
@@ -104,7 +87,7 @@ struct TopicReaderWriteFollowUpTests {
     /// round arrow showed the edit). The screen coming back runs it, once.
     @Test(arguments: Kind.allCases)
     func anEditReloadStoppedByADisappearanceRunsWhenTheScreenComesBack(_ thread: Kind) async throws {
-        let fixture = await fixture(thread, onPage: 2)
+        let fixture = await followUpFixture(thread, onPage: 2)
         let gate = ReaderGate()
         fixture.pages.handler = { target in
             await gate.wait()
@@ -129,7 +112,7 @@ struct TopicReaderWriteFollowUpTests {
     /// The same for a reply: the screen coming back shows the new message on the last page.
     @Test(arguments: Kind.allCases)
     func aReplyReloadStoppedByADisappearanceRunsWhenTheScreenComesBack(_ thread: Kind) async throws {
-        let fixture = await fixture(thread, onPage: 3)
+        let fixture = await followUpFixture(thread, onPage: 3)
         let gate = ReaderGate()
         fixture.pages.handler = { target in
             await gate.wait()
@@ -152,7 +135,7 @@ struct TopicReaderWriteFollowUpTests {
     /// An owed reload never runs under an open composer (#653): it waits, still owed, and runs once the composer closes.
     @Test(arguments: Kind.allCases)
     func anOwedReloadWaitsForTheComposerToClose(_ thread: Kind) async throws {
-        let fixture = await fixture(thread, onPage: 2)
+        let fixture = await followUpFixture(thread, onPage: 2)
         let gate = ReaderGate()
         fixture.pages.handler = { target in
             await gate.wait()
@@ -176,7 +159,7 @@ struct TopicReaderWriteFollowUpTests {
 
     /// A newer load that delivers settles what a write owed: the screen coming back then reloads nothing more.
     @Test func aRefreshThatDeliversSettlesTheOwedReload() async {
-        let fixture = await fixture(.conversation, onPage: 2)
+        let fixture = await followUpFixture(.conversation, onPage: 2)
         let gate = ReaderGate()
         fixture.pages.handler = { target in
             await gate.wait()
@@ -195,6 +178,25 @@ struct TopicReaderWriteFollowUpTests {
     }
 }
 
+/// A reader with the write model the view installs, and the pages it asks for.
+struct FollowUpFixture {
+    let reader: TopicReaderModel
+    let writes: MessageWriteModel
+    let pages: FakeTopicPages
+}
+
+/// A reader on page `number` of the thread, before any send, with the write model the view installs. A viewer is on
+/// screen (the disappearance tests need one); the wait limit never fires, there is no web view to make a page ready.
+@MainActor
+func followUpFixture(_ thread: TopicReaderWriteFollowUpTests.Kind, onPage number: Int, maxPage: Int = 3) async -> FollowUpFixture {
+    let pages = FakeTopicPages { target in followUpPage(thread, min(target.page, maxPage), maxPage: maxPage, text: "before") }
+    let reader = TopicReaderModel(target: ReaderTarget(source: .topic(followUpTopic(thread)), page: number), source: pages)
+    reader.waitClock = { _ in try await Task.sleep(for: .seconds(3_600)) }
+    let writes = MessageWriteModel(reader: reader, services: ComposerFixture.services(poster: ScriptedPoster([])))
+    await reader.onAppear(viewer: 1)
+    return FollowUpFixture(reader: reader, writes: writes, pages: pages)
+}
+
 /// The thread `thread` stands for.
 private func followUpTopic(_ thread: TopicReaderWriteFollowUpTests.Kind) -> TopicID {
     switch thread {
@@ -204,7 +206,7 @@ private func followUpTopic(_ thread: TopicReaderWriteFollowUpTests.Kind) -> Topi
 }
 
 /// Page `number` of `maxPage` of `thread`, whose second message (`number * 100 + 1`) reads `text`.
-private func followUpPage(_ thread: TopicReaderWriteFollowUpTests.Kind, _ number: Int, maxPage: Int = 3, text: String) -> ReaderPage {
+func followUpPage(_ thread: TopicReaderWriteFollowUpTests.Kind, _ number: Int, maxPage: Int = 3, text: String) -> ReaderPage {
     var page = readerPage(page: number, maxPage: maxPage)
     page.topicID = followUpTopic(thread)
     page.messages[1].content = MessageContent(html: "<p>\(text)</p>")

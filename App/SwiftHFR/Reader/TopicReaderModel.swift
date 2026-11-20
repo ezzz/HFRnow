@@ -79,8 +79,8 @@ final class TopicReaderModel {
     /// The target of the page on screen (topic and page as served), what a refresh reloads.
     private(set) var shown: ReaderTarget?
     /// The reload a confirmed or unconfirmed write asked for and that has not delivered yet (#908): a disappearance that stops
-    /// it (`viewDidDisappear`) leaves it owed, and the screen coming back runs it, so the result of a send is never lost to a
-    /// page that stays as it was before the write. Any newer load that delivers settles it.
+    /// it (`viewDidDisappear`) leaves it owed, and the screen coming back or the last composer closing runs it, so the result
+    /// of a send is never lost to a page that stays as it was before the write. Any newer load that delivers settles it.
     private(set) var owedFollowUp: WriteFollowUp?
     /// The owed reload started when the last composer closed (tests await it).
     @ObservationIgnored private(set) var owedTask: Task<Void, Never>?
@@ -336,8 +336,19 @@ final class TopicReaderModel {
     /// The last one closing runs a write's reload that waited for it (#908) while the reader is on screen.
     func composer(_ composer: ReaderComposer, isOpen: Bool) {
         if isOpen { openComposers.insert(composer) } else { openComposers.remove(composer) }
-        guard !isOpen, openComposers.isEmpty, isOnScreen, let owedFollowUp, page != nil, !isLoading else { return }
-        owedTask = Task { [weak self] in await self?.runOwed(owedFollowUp) }
+        guard !isOpen, let owedFollowUp, canRunOwed else { return }
+        owedTask = Task { [weak self] in await self?.runOwedIfStillDue(owedFollowUp) }
+    }
+
+    /// The reader can run an owed reload now: on screen, a page shown, nothing loading, no composer open.
+    private var canRunOwed: Bool { openComposers.isEmpty && isOnScreen && page != nil && !isLoading }
+
+    /// The task the last composer closing queued runs after what that turn started, such as the reload of the reply just
+    /// sent (#950 round 3): it runs `followUp` only while it is still what is owed and the reader can still run it, so a
+    /// stale edit reload never cancels a newer one.
+    private func runOwedIfStillDue(_ followUp: WriteFollowUp) async {
+        guard owedFollowUp == followUp, canRunOwed else { return }
+        await runOwed(followUp)
     }
 
     /// The reply sheet closed: after a confirmed reply, shows HFR's sentence and the topic's latest post; after an
@@ -433,7 +444,8 @@ final class TopicReaderModel {
         await load(servedTarget.atPage(served.maxPage), keepsScrollPosition: false, anchor: .lastMessage, followUp: followUp)
     }
 
-    /// Runs the reload a write still owes (#908): the screen came back after a disappearance stopped it.
+    /// Runs the reload a write still owes (#908): the screen came back, or the last composer closed, after a disappearance
+    /// stopped it.
     private func runOwed(_ followUp: WriteFollowUp) async {
         ReaderLog.debug("owed follow-up model=\(debugID)")
         switch followUp {
