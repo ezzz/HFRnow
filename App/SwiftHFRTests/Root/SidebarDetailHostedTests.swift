@@ -247,15 +247,54 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         #expect(!plainSeen.leafSawAnAction)
     }
 
-    /// The sidebar builds the Bookmarks / AQ content column with `PlusListColumn`, and the tab bar never sets the action.
-    @Test func onlyTheSidebarGivesTheListsTheAction() throws {
+    /// The sidebar builds the Bookmarks / AQ content column with `PlusListColumn`; the Plus tab of the tab bar gives the lists the
+    /// stack action through `PlusStackReader` only (LOT-147), never the tab root itself.
+    @Test func onlyTheSidebarAndThePlusStackGiveTheListsTheAction() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "SwiftHFR/Root")
         let sidebar = try String(contentsOf: root.appending(path: "RootSidebarView.swift"), encoding: .utf8)
         let tabs = try String(contentsOf: root.appending(path: "RootTabsView.swift"), encoding: .utf8)
+        let plus = try String(contentsOf: root.appending(path: "PlusView.swift"), encoding: .utf8)
         #expect(sidebar.contains("PlusListColumn(entry: entry, opener: Self.detailOpener("))
         #expect(!tabs.contains("openTopicInDetail"))
+        #expect(plus.contains("besideTheList: false"))
+    }
+
+    /// LOT-147: on a plain stack (the Plus tab of the tab bar), `PlusStackReader` gives the list it wraps the action, marked as not
+    /// beside the list, and pushes the entry's reader over it; beside a detail column it leaves the column's action alone.
+    @Test func thePlusStackGivesTheListTheActionAndPushesTheReader() async throws {
+        let hosted = try host(initial: .plus(.qualityAlerts))
+        defer { hosted.window.isHidden = true }
+        let seen = OpenerProbe.Seen()
+        let plain = try hostAlone(ThemedNavigationStack {
+            StackProbe(seen: seen)
+                .modifier(PlusStackReader(entry: .qualityAlerts, model: hosted.root, environment: hosted.environment))
+        })
+        defer { plain.isHidden = true }
+        #expect(await settle(plain) { seen.leafAppeared })
+        #expect(seen.leafSawAnAction)
+        #expect(!seen.actionIsBesideTheList)
+        let reader = try #require(hosted.root.detailReaders[.qualityAlerts])
+        let pushed = await settle(plain) { reader.page != nil && stack(topped: "Sujet 9 p1", in: plain)?.count == 2 }
+        #expect(pushed, "\(stacks(in: plain))")
+
+        let columnSeen = OpenerProbe.Seen()
+        let column = try hostAlone(PlusListColumn(
+            entry: .qualityAlerts,
+            opener: RootSidebarView.detailOpener(model: hosted.root, environment: hosted.environment, entry: .qualityAlerts)
+        ) {
+            StackProbe(seen: columnSeen)
+                .modifier(PlusStackReader(entry: .qualityAlerts, model: hosted.root, environment: hosted.environment))
+        })
+        #expect(await settle(column) { columnSeen.leafAppeared })
+        #expect(columnSeen.leafSawAnAction && columnSeen.actionIsBesideTheList)
+        defer { column.isHidden = true }
+        #expect(await settle(column) { hosted.root.detailReaders[.qualityAlerts] !== reader })
+        // The reader's title exists once its page is loaded: only then can a stack show it (#1277 review, round 1, detail 3).
+        let replacement = try #require(hosted.root.detailReaders[.qualityAlerts])
+        #expect(await settle(column) { replacement.page != nil })
+        #expect(stack(topped: "Sujet 9 p1", in: column) == nil, "the column's list pushed the reader: \(stacks(in: column))")
     }
 
     private func hostAlone(_ view: some View) throws -> UIWindow {
@@ -268,6 +307,23 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
     }
 }
 
+/// A list stand-in at the root of its stack (what `PlusStackReader` wraps): records the action it sees there, then opens a topic
+/// through it.
+private struct StackProbe: View {
+    let seen: OpenerProbe.Seen
+    @Environment(\.openTopicInDetail) private var openTopicInDetail
+
+    var body: some View {
+        Text("Liste")
+            .onAppear {
+                seen.leafSawAnAction = openTopicInDetail != nil
+                seen.actionIsBesideTheList = openTopicInDetail?.besideTheList == true
+                seen.leafAppeared = true
+                openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
+            }
+    }
+}
+
 /// A list stand-in: its root pushes a leaf at once, and the leaf records whether it can open a topic in the detail column, then
 /// opens one through it.
 private struct OpenerProbe: View {
@@ -275,6 +331,8 @@ private struct OpenerProbe: View {
     final class Seen {
         var leafAppeared = false
         var leafSawAnAction = false
+        /// `besideTheList` of the action the leaf saw; false without one (`leafSawAnAction` tells the two apart).
+        var actionIsBesideTheList = false
     }
 
     let seen: Seen
@@ -294,6 +352,7 @@ private struct OpenerProbe: View {
             Text("Écran poussé")
                 .onAppear {
                     seen.leafSawAnAction = openTopicInDetail != nil
+                    seen.actionIsBesideTheList = openTopicInDetail?.besideTheList == true
                     seen.leafAppeared = true
                     openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
                 }

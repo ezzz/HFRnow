@@ -98,11 +98,12 @@ struct DuoLayoutTests {
 @MainActor
 @Suite(.serialized)
 struct DuoLayoutHostedTests: ReaderWebTesting {
-    private struct Hosted {
+    struct Hosted {
         let window: UIWindow
         let host: UIViewController
         let root: RootModel
         let messages: FakePrivateMessages
+        let environment: AppEnvironment
     }
 
     nonisolated private static func page(for target: ReaderTarget) -> ReaderPage {
@@ -112,7 +113,8 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         return page
     }
 
-    private func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
+    /// `mpStorage` gives the Bookmarks list its rows (nil: « Connectez-vous »).
+    func host(initial: SidebarDestination = .tab(.favorites), mpStorage: MPStorageSyncModel? = nil) throws -> Hosted {
         let data = FakeDataSource()
         data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
         let pages = FakeTopicPages { target in Self.page(for: target) }
@@ -126,7 +128,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
             // Logged in, as Favoris: a logged-out list's load (each time the list appears, a fold included) closes the open
             // conversation (`MessageListModel.load`, `.signedOut`), which raced the reader's title (#1124).
             messages: MessageListModel(source: messages, isLoggedIn: { true }, topicPages: pages),
-            store: InMemorySettingsStore(), initial: initial
+            store: InMemorySettingsStore(), initial: initial, mpStorage: mpStorage
         )
         let services = ReaderServices(
             imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
@@ -157,22 +159,22 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         unfold(window, host: host)
         window.isHidden = false
         window.layoutIfNeeded()
-        return Hosted(window: window, host: host, root: root, messages: messages)
+        return Hosted(window: window, host: host, root: root, messages: messages, environment: environment)
     }
 
-    private func unfold(_ window: UIWindow, host: UIViewController) {
+    func unfold(_ window: UIWindow, host: UIViewController) {
         window.frame = CGRect(x: 0, y: 0, width: 1004, height: 1427)
         host.traitOverrides.horizontalSizeClass = .regular
         host.traitOverrides.verticalSizeClass = .regular
     }
 
-    private func fold(_ window: UIWindow, host: UIViewController) {
+    func fold(_ window: UIWindow, host: UIViewController) {
         window.frame = CGRect(x: 0, y: 0, width: 466, height: 678)
         host.traitOverrides.horizontalSizeClass = .compact
         host.traitOverrides.verticalSizeClass = .regular
     }
 
-    private func controllers(in window: UIWindow) -> [UIViewController] {
+    func controllers(in window: UIWindow) -> [UIViewController] {
         var result: [UIViewController] = []
         var queue: [UIViewController] = window.rootViewController.map { [$0] } ?? []
         while !queue.isEmpty {
@@ -185,25 +187,25 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
     }
 
     /// The title stacks of the navigation controllers on screen: a pushed reader is a second title.
-    private func stacks(in window: UIWindow) -> [[String]] {
+    func stacks(in window: UIWindow) -> [[String]] {
         controllers(in: window).compactMap { $0 as? UINavigationController }.map {
             $0.viewControllers.map { $0.navigationItem.title ?? "" }
         }
     }
 
-    private func split(in window: UIWindow) -> UISplitViewController? {
+    func split(in window: UIWindow) -> UISplitViewController? {
         controllers(in: window).lazy.compactMap { $0 as? UISplitViewController }.first { !$0.isCollapsed && $0.style == .tripleColumn }
     }
 
-    private func hasTabBar(_ window: UIWindow) -> Bool {
+    func hasTabBar(_ window: UIWindow) -> Bool {
         controllers(in: window).contains { $0 is UITabBarController }
     }
 
-    private func shows(_ title: String, in window: UIWindow) -> Bool {
+    func shows(_ title: String, in window: UIWindow) -> Bool {
         stacks(in: window).contains { $0.last == title }
     }
 
-    private func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
+    func settle(_ window: UIWindow, until condition: () -> Bool) async -> Bool {
         await until({
             window.layoutIfNeeded()
             return condition()

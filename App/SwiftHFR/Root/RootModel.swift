@@ -35,9 +35,10 @@ final class RootModel {
     /// The app icon badge reads 0, not "leave it", until a page gives this root's count (LOT-156): true for a root built
     /// logged out or after the account changed, where the icon still shows another account's count.
     let clearsIconBadgeBeforeCount: Bool
-    /// Bookmarks and Alertes Qualitay on the regular-width iPad: the reader of the topic a row opened, shown in the detail column
-    /// beside the list, one per entry so each keeps its own (legacy `bookmarksTopicTarget`, `qualityAlertsTopicTarget`,
-    /// `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
+    /// Bookmarks and Alertes Qualitay: the reader of the topic a row opened, shown in the detail column beside the list in the split
+    /// root, pushed over the list on the Plus tab of the tab bar (`PlusStackReader`), one per entry so each keeps its own (legacy
+    /// `bookmarksTopicTarget`, `qualityAlertsTopicTarget`, `selectTopic(_:for:)`, `MainWindow.swift:2195-2213` @ 87fe0d1c, #685).
+    /// One reader for both roots, so a fold or an unfold keeps it as the tabs' topics (legacy `handleRootSwap`, `:2157-2172`).
     private(set) var detailReaders: [PlusEntry: TopicReaderModel] = [:]
     /// The bookmark open in the Bookmarks detail column (LOT-132): kept here, as the reader is, so the list finds it again.
     let bookmarkSelection = BookmarkSelection()
@@ -257,18 +258,22 @@ final class RootModel {
     /// The badge of the Plus tab: what its entries announce.
     var plusBadge: Int { badge(for: .qualityAlerts) }
 
-    /// Regular-width iPad: shows `reader` in the detail column of `entry`, a topic-list Plus entry, in place of what it showed (a
-    /// new stack: what a link had pushed there goes). Another entry is ignored: it has no detail column for a topic.
+    /// Shows `reader` as the reader of `entry`, a topic-list Plus entry, in place of what it showed (a new stack: what a link had
+    /// pushed there goes). Another entry is ignored: it has no detail column for a topic.
     func openInDetail(_ reader: TopicReaderModel, for entry: PlusEntry) {
         guard entry.usesTopicList else { return }
         detailReaders[entry]?.closeLinkedReaders()
         detailReaders[entry] = reader
     }
 
-    /// Empties `entry`'s detail column: legacy's placeholder shows again (a deleted bookmark, `MainWindow.swift:2266-2271`).
+    /// Empties `entry`'s detail column (legacy's placeholder shows again: a deleted bookmark, `MainWindow.swift:2266-2271`) and pops
+    /// its reader off the Plus stack; back on that stack calls it too, so an unfold shows no topic the cover screen closed. The
+    /// bookmark selection goes with the reader: legacy's one target drives the row's highlight and the detail (`bookmarksTopicTarget`,
+    /// `:1978`, cleared by `clearAllTopicTargets`, `:2186-2193`), so no row stays selected beside the placeholder (#1277 round 1).
     func closeDetail(for entry: PlusEntry) {
         detailReaders[entry]?.closeLinkedReaders()
         detailReaders[entry] = nil
+        if entry == .bookmarks { bookmarkSelection.id = nil }
     }
 
     /// What the split root's detail column shows for the sidebar destination: one id per topic or conversation, nil when it
