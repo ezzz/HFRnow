@@ -121,7 +121,10 @@ final class QualityAlertsModel {
         after delay: Duration = .seconds(3), sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async {
         do { try await sleep(delay) } catch { return }
+        // DO NOT MERGE (#1276): the AQ feed at launch.
+        T1276.log("aq checkAtLaunch start")
         await refreshCount()
+        T1276.log("aq checkAtLaunch end")
     }
 
     /// Fetches the feed and sets the badge, without touching the list or the last check. A failed answer says nothing and keeps the

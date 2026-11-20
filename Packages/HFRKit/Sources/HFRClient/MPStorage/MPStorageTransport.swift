@@ -75,6 +75,7 @@ extension MPStorageTransport {
             }
         }
         func isAccountThread(_ post: Int) async throws(MPStorageTransportError) -> Bool {
+            T1276.log("mpStorage findThread candidate check")
             do throws(MPStorageTransportError) {
                 _ = try await locate(post: post, through: session)
                 return true
@@ -86,9 +87,18 @@ extension MPStorageTransport {
                 return false
             }
         }
-        return try await Self.walk(
-            from: first.url, maximumPages: Self.maximumListPages, fetch: fetch, isAccountThread: isAccountThread
-        )
+        // DO NOT MERGE (#1276): the #1202 candidate walk.
+        T1276.log("mpStorage findThread walk start")
+        do throws(MPStorageTransportError) {
+            let found = try await Self.walk(
+                from: first.url, maximumPages: Self.maximumListPages, fetch: fetch, isAccountThread: isAccountThread
+            )
+            T1276.log("mpStorage findThread walk end found=\(found != nil)")
+            return found
+        } catch {
+            T1276.log("mpStorage findThread walk end error")
+            throw error
+        }
     }
 
     /// Walks the MP list from `first`, following each page's `nextPath`, until a page shows a candidate that

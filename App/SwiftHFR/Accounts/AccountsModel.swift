@@ -207,11 +207,15 @@ final class AccountsModel {
     /// `eligible` are checked, and a result is applied only if the account still has the same session and status: a
     /// login or a removal that landed during the check wins.
     private func checkSessions(_ ids: [String], when eligible: (AccountSessionStatus?) -> Bool) async {
-        for id in ids {
+        for (traceIndex, id) in ids.enumerated() {
             guard let session = sessions[id], eligible(statuses[id]) else { continue }
             let before = statuses[id]
             let saves = loginSaves[id, default: 0]
+            // DO NOT MERGE (#1276): accounts by index only, never by name.
+            let traceCurrent = session === currentSession
+            T1276.log("accounts check #\(traceIndex + 1)/\(ids.count) start current=\(traceCurrent)")
             let result = await checker.check(session)
+            T1276.log("accounts check #\(traceIndex + 1)/\(ids.count) end current=\(traceCurrent) result=\(result.traceName)")
             // Same session and status, and no login or adopted sync credentials meanwhile (the object stays the same then).
             guard sessions[id] === session, statuses[id] == before, loginSaves[id, default: 0] == saves else { continue }
             switch result {

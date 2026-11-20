@@ -9,11 +9,14 @@ public final class URLSessionTransport: HTTPTransport {
     /// Same configuration (so same cookie storage) with a delegate that refuses redirects: a per-task delegate is
     /// ignored by swift-corelibs-foundation, so `RedirectPolicy.doNotFollow` needs a session-level one.
     private let noFollowSession: URLSession
+    /// DO NOT MERGE (#1276): trace id of this transport's session.
+    private let traceID = T1276.nextSessionID()
 
     /// Uses `session`; LOT-042 passes one per account with its own cookie storage. The default is ephemeral and cookie-less.
     public init(session: URLSession = URLSessionTransport.makeDefaultSession()) {
         self.session = session
         self.noFollowSession = URLSession(configuration: session.configuration, delegate: NoRedirectDelegate(), delegateQueue: nil)
+        T1276.logSession(traceID, kind: session.configuration.httpShouldSetCookies ? "jar" : "anon", session.configuration)
     }
 
     deinit {
@@ -35,14 +38,38 @@ public final class URLSessionTransport: HTTPTransport {
             throw .invalidRequest(reason: "URL scheme must be http or https")
         }
         let urlRequest = Self.makeURLRequest(request)
+        // DO NOT MERGE (#1276): one line at the start and one at the end of every request.
+        let trace = T1276.nextRequestID()
+        let started = ProcessInfo.processInfo.systemUptime
+        let place = T1276.place(request.url)
+        let method = request.method.rawValue
+        let total = request.totalTimeout.map { "\($0)" } ?? "-"
+        T1276.log(
+            "req r\(trace) start s\(traceID) \(method) \(place) idle=\(request.timeout) total=\(total) "
+                + "follow=\(request.redirectPolicy == .follow) limit=\(request.maximumBodyBytes != nil) inFlight=\(T1276.began())"
+        )
+        func elapsed() -> Int { Int((ProcessInfo.processInfo.systemUptime - started) * 1000) }
         do {
             let chosen = request.redirectPolicy == .doNotFollow ? noFollowSession : session
             let exchange: @Sendable () async throws -> HTTPResponse = {
-                try await Self.exchange(request, urlRequest, on: chosen)
+                try await Self.exchange(request, urlRequest, on: chosen, trace: trace)
             }
-            guard let total = request.totalTimeout else { return try await exchange() }
-            return try await withDeadline(seconds: total, exchange)
+            let response: HTTPResponse
+            if let total = request.totalTimeout {
+                response = try await withDeadline(seconds: total, exchange)
+            } else {
+                response = try await exchange()
+            }
+            T1276.log(
+                "req r\(trace) end s\(traceID) \(method) \(place) \(elapsed())ms status=\(response.statusCode) "
+                    + "bytes=\(response.body.count) final=\(T1276.place(response.url)) inFlight=\(T1276.ended())"
+            )
+            return response
         } catch {
+            T1276.log(
+                "req r\(trace) end s\(traceID) \(method) \(place) \(elapsed())ms error=\(T1276.describe(error)) "
+                    + "taskCancelled=\(Task.isCancelled) inFlight=\(T1276.ended())"
+            )
             throw Self.map(error)
         }
     }
@@ -59,11 +86,11 @@ public final class URLSessionTransport: HTTPTransport {
 
     /// One URLSession round trip converted to plain values.
     private static func exchange(
-        _ request: HTTPRequest, _ urlRequest: URLRequest, on session: URLSession
+        _ request: HTTPRequest, _ urlRequest: URLRequest, on session: URLSession, trace: Int
     ) async throws -> HTTPResponse {
         let (data, response) = try await body(
             of: urlRequest, limit: request.maximumBodyBytes, idle: request.timeout,
-            follows: request.redirectPolicy == .follow, on: session
+            follows: request.redirectPolicy == .follow, on: session, trace: trace
         )
         guard let http = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
         var headers = HTTPHeaders()
@@ -75,16 +102,22 @@ public final class URLSessionTransport: HTTPTransport {
 
     /// The body and response; with a `limit`, read as a stream and abandoned as soon as it is known to exceed it.
     private static func body(
-        of urlRequest: URLRequest, limit: Int?, idle: Double, follows: Bool, on session: URLSession
+        of urlRequest: URLRequest, limit: Int?, idle: Double, follows: Bool, on session: URLSession, trace: Int
     ) async throws -> (Data, URLResponse) {
-        guard let limit else { return try await dataWithIdleLimit(for: urlRequest, idle: idle, follows: follows, on: session) }
+        guard let limit else {
+            return try await dataWithIdleLimit(for: urlRequest, idle: idle, follows: follows, on: session, trace: trace)
+        }
         #if canImport(FoundationNetworking)
         // swift-corelibs-foundation has no byte stream: the limit is checked once the body is in.
-        let (data, response) = try await dataWithIdleLimit(for: urlRequest, idle: idle, follows: follows, on: session)
+        let (data, response) = try await dataWithIdleLimit(
+            for: urlRequest, idle: idle, follows: follows, on: session, trace: trace
+        )
         guard data.count <= limit else { throw NetworkError.invalidResponse }
         return (data, response)
         #else
-        let (bytes, response) = try await session.bytes(for: urlRequest)
+        let (bytes, response) = try await session.bytes(for: urlRequest, delegate: T1276MetricsDelegate(requestID: trace))
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        T1276.log("req r\(trace) headers status=\(status) expected=\(response.expectedContentLength)")
         guard response.expectedContentLength <= Int64(limit) else {
             bytes.task.cancel()
             throw NetworkError.invalidResponse
@@ -108,7 +141,7 @@ public final class URLSessionTransport: HTTPTransport {
     /// Only received bytes count: a request body that takes longer than `idle` to send (a large upload) fails on Linux, which
     /// Apple's `timeoutInterval` does not do. The Linux build is for tests and CI, it does not ship.
     private static func dataWithIdleLimit(
-        for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession
+        for urlRequest: URLRequest, idle: Double, follows: Bool, on session: URLSession, trace: Int
     ) async throws -> (Data, URLResponse) {
         #if canImport(FoundationNetworking)
         let delegate = IdleWatchDelegate(follows: follows, idle: idle, owner: session)
@@ -141,7 +174,7 @@ public final class URLSessionTransport: HTTPTransport {
             return first
         }
         #else
-        return try await session.data(for: urlRequest)
+        return try await session.data(for: urlRequest, delegate: T1276MetricsDelegate(requestID: trace))
         #endif
     }
 

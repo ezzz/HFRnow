@@ -1,3 +1,5 @@
+import HFRNetwork
+
 /// Runs `operation` and, when it fails with `cancelled` while the calling task was not cancelled, runs it once more: the
 /// transport reports every `URLError.cancelled` as a cancellation, also one nobody asked for (issues #566, #1191). A second
 /// such failure is thrown as is; the caller shows it as a failure when its task is still not cancelled, never as "stopped", so
@@ -14,6 +16,8 @@ func retryingUnrequestedCancellation<Value, Failure: Error & Equatable>(
         return try await operation()
     } catch {
         guard error == cancelled, !Task.isCancelled else { throw error }
+        // DO NOT MERGE (#1276): the #1230 retry fired.
+        T1276.log("retry #1230 unrequested cancellation: second attempt of \(Value.self)")
         return try await operation()
     }
 }

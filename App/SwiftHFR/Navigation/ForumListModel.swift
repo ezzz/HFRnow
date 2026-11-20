@@ -1,4 +1,5 @@
 import HFRModels
+import HFRNetwork
 import Observation
 
 // Port of HFRswift/Swift/MainWindow.swift (CategoriesListViewModel) @ 87fe0d1c. Differences: forums from LOT-021; the sub-forums
@@ -94,10 +95,13 @@ final class ForumListModel {
         let dataSource = dataSource
         let visibility = visibility
         let accountName = accountName
+        // DO NOT MERGE (#1276): the home page load (the one that gave the Messages badge).
+        T1276.log("home reload start")
         let applied = await loader.load { () async throws(ListLoadError) -> ForumListContent in
             let page = try await dataSource.forumList()
             return ForumListContent(page: page, visibility: visibility, accountName: await accountName())
         }
+        T1276.log("home reload end applied=\(applied) error=\(loader.error?.traceName ?? "-")")
         // This load started after any change noted so far: a load in flight at the change was superseded by the change's own.
         if applied { sessionChangedSincePage = false }
     }

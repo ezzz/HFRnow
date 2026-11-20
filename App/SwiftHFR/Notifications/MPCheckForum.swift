@@ -26,6 +26,9 @@ struct LiveMPCheckForum: MPCheckForum {
     func read(as account: Account) async -> MPForumReading {
         let session = HFRSession(cookies: account.cookies, hashCheck: account.hashCheck)
         let count: Int?
+        // DO NOT MERGE (#1276): the MP count poll.
+        T1276.log("mp poll start")
+        defer { T1276.log("mp poll end") }
         do throws(MPUnreadPollError) {
             count = try await MPUnreadPoll(session: session).unreadCount()
         } catch {

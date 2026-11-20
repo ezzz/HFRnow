@@ -1,5 +1,18 @@
 import HFRModels
+import HFRNetwork
 import Observation
+
+// DO NOT MERGE (#1276): a trace name that never carries a forum path or title.
+extension TopicSource {
+    var traceName: String {
+        switch self {
+        case .favorites: "favorites"
+        case .flagged: "flagged"
+        case .forum: "forum"
+        case .subforum: "subforum"
+        }
+    }
+}
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListViewModel) @ 87fe0d1c and HFRswift/Swift/Favorites.swift (FavoritesViewModel)
 // @ 2440d79. Differences: the page on screen is kept on refresh, with a retry banner (GAP-025); a sub-forum's `subcat` comes from
@@ -263,6 +276,7 @@ final class TopicListModel {
 
     /// Loads page 1 once; later calls keep what is shown.
     func loadIfNeeded() async {
+        T1276.log("list \(source.traceName) loadIfNeeded value=\(loader.value != nil) loading=\(loader.isLoading)")
         guard loader.value == nil, !loader.isLoading else { return }
         await load(page: 1)
     }
@@ -273,7 +287,12 @@ final class TopicListModel {
     /// Favourites refresh on their own only with "Actualisation automatique" (`favorites_auto_refresh`, legacy default off):
     /// otherwise the list is refreshed by pull or by the refresh action.
     func onAppear() async {
+        T1276.log(
+            "list \(source.traceName) onAppear start fav=\(favorites != nil) value=\(loader.value != nil) "
+                + "loading=\(loader.isLoading)"
+        )
         await favorites?.reload()
+        T1276.log("list \(source.traceName) onAppear after favorites.reload")
         if loader.value == nil {
             await loadIfNeeded()
         } else if pageSessionChanges != sessionChanges {
@@ -330,8 +349,12 @@ final class TopicListModel {
         let hasFilter = topicFilter != nil
         let target = subforumTarget
         let startedUnder = sessionChanges
+        let traceName = source.traceName
+        T1276.log("list \(traceName) load page=\(page)")
         let applied = await loader.load { () async throws(ListLoadError) -> TopicListContent in
+            T1276.log("list \(traceName) isLoggedIn ask")
             let loggedIn = await isLoggedIn()
+            T1276.log("list \(traceName) isLoggedIn=\(loggedIn)")
             let filter = hasFilter && loggedIn ? chosenFilter : .all
             switch source {
             case .subforum(let path, _):
@@ -358,6 +381,7 @@ final class TopicListModel {
                 return TopicListContent(favorites: try await dataSource.favorites(filter: .favorites), isLoggedIn: loggedIn)
             }
         }
+        T1276.log("list \(traceName) load page=\(page) applied=\(applied) error=\(loader.error?.traceName ?? "-")")
         // Only the page this call put on screen reconciles: a superseded load (its page dropped) or a failed one changes nothing.
         guard applied else { return }
         pageSessionChanges = startedUnder

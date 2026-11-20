@@ -1,5 +1,6 @@
 import Foundation
 import HFRModels
+import HFRNetwork
 import HFRStorage
 import Observation
 
@@ -314,9 +315,15 @@ final class RootModel {
     /// the home page is read again, then the lists of both tabs, which take whether the account is signed in from it (#1195).
     /// An expiry the home page already shows sends nothing.
     func currentSessionChanged(expired: Bool) async {
-        guard await forums.sessionDidChange(expired: expired) else { return }
+        // DO NOT MERGE (#1276): the #1231 reloads.
+        T1276.log("session change #1231 start expired=\(expired)")
+        guard await forums.sessionDidChange(expired: expired) else {
+            T1276.log("session change #1231 end (home page already shows it)")
+            return
+        }
         await categories.sessionDidChange()
         await favorites.sessionDidChange()
+        T1276.log("session change #1231 end")
     }
 
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge

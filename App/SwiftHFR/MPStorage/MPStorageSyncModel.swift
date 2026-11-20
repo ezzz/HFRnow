@@ -134,6 +134,9 @@ final class MPStorageSyncModel {
     func start() async {
         guard !started else { return }
         started = true
+        // DO NOT MERGE (#1276): MPStorage at launch (#1202 candidate walk included).
+        T1276.log("mpStorage start begin state=\(record.map { "\($0.state)" } ?? "nil")")
+        defer { T1276.log("mpStorage start end") }
         // Only this start's own failure counts: a network failure left by an earlier call (Réglages) must not re-arm it.
         lastFailureWasNetwork = false
         defer { if case .failed = status, lastFailureWasNetwork { started = false } }
@@ -285,7 +288,14 @@ final class MPStorageSyncModel {
     // MARK: Internals
 
     private func syncOnce() async throws(MPStorageSyncError) {
-        threadMissing = try await sync.sync(now: clock()) == .noThread
+        T1276.log("mpStorage syncOnce start")
+        do throws(MPStorageSyncError) {
+            threadMissing = try await sync.sync(now: clock()) == .noThread
+        } catch {
+            T1276.log("mpStorage syncOnce end error")
+            throw error
+        }
+        T1276.log("mpStorage syncOnce end threadMissing=\(threadMissing)")
     }
 
     private func decide(_ state: MPStorageSyncState) {

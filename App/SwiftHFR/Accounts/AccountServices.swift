@@ -50,6 +50,18 @@ enum SessionCheckResult: Sendable, Equatable {
     case failed(NetworkError)
 }
 
+// DO NOT MERGE (#1276): the result for the trace.
+extension SessionCheckResult {
+    var traceName: String {
+        switch self {
+        case .valid: "valid"
+        case .expired: "expired"
+        case .unconfirmed: "unconfirmed"
+        case .failed(let error): "failed(\(T1276.name(error)))"
+        }
+    }
+}
+
 /// Checks a restored account session: `ForumSessionCheck` in the app, a scripted double in tests.
 protocol SessionChecking: Sendable {
     /// Checks `session` and never clears it.

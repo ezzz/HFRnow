@@ -1,3 +1,4 @@
+import HFRNetwork
 import HFRStorage
 import SwiftUI
 
@@ -41,6 +42,8 @@ struct SwiftHFRApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        // DO NOT MERGE (#1276): fixes the trace origin at app init.
+        T1276.log("app init (trace origin)")
         let accounts = AccountsModel.live()
         _accounts = State(initialValue: accounts)
         _deletion = State(initialValue: AccountDeletionModel(accounts: accounts, eraser: .live))

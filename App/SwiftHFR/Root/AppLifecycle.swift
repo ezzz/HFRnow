@@ -1,3 +1,4 @@
+import HFRNetwork
 import SwiftUI
 
 // Port: none @ 87fe0d1c (legacy's app delegate runs this work once; `HFRswiftApp.swift:25-35` @ 87fe0d1c attaches the scene phase
@@ -89,17 +90,34 @@ extension AppLifecycle {
     static func live(
         accounts: AccountsModel, legacyImport: LegacyImportModel, appLock: AppLockModel, seasonal: SeasonalThemeModel
     ) -> AppLifecycle {
+        // DO NOT MERGE (#1276): one line at the start and end of each launch step.
         AppLifecycle(steps: Steps(
-            importLegacy: { await legacyImport.runAtLaunch() },
-            reconcileAccounts: { accounts.reconcileAccountSync() },
-            restoreAccounts: { await accounts.restore() },
+            importLegacy: {
+                T1276.log("launch legacyImport.runAtLaunch start")
+                await legacyImport.runAtLaunch()
+                T1276.log("launch legacyImport.runAtLaunch end")
+            },
+            reconcileAccounts: {
+                T1276.log("launch iCloud reconcileAccountSync start")
+                accounts.reconcileAccountSync()
+                T1276.log("launch iCloud reconcileAccountSync end")
+            },
+            restoreAccounts: {
+                T1276.log("launch accounts.restore start")
+                await accounts.restore()
+                T1276.log("launch accounts.restore end")
+            },
             importForAccount: { account in
+                T1276.log("launch legacyImport.accountDidChange start hasAccount=\(account != nil)")
                 if await legacyImport.accountDidChange(to: account) { await accounts.readStoreAgain() }
+                T1276.log("launch legacyImport.accountDidChange end")
             },
             recheckSessions: {
                 // What another device changed first, so the re-check sees the current accounts (LOT-173).
+                T1276.log("active recheckSessions start")
                 accounts.reconcileAccountSync()
                 await accounts.recheckUnconfirmedSessions()
+                T1276.log("active recheckSessions end")
             },
             scheduleBackgroundCheck: { await MPBackgroundScheduler.schedule() },
             evictOffline: { await LiveOfflineStore().evict() },
@@ -108,7 +126,11 @@ extension AppLifecycle {
                 // "First launch" of a season is the first activation on or after its date (THEMES.md §5).
                 if phase == .active { seasonal.sceneDidBecomeActive() }
             },
-            askNotificationPermission: { account in await MPNotificationPrompt.live.accountBecameCurrent(account) }
+            askNotificationPermission: { account in
+                T1276.log("launch notificationPrompt start hasAccount=\(account != nil)")
+                await MPNotificationPrompt.live.accountBecameCurrent(account)
+                T1276.log("launch notificationPrompt end")
+            }
         ))
     }
 }
