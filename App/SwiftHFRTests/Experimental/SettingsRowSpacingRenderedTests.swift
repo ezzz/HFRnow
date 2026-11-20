@@ -31,7 +31,10 @@ struct SettingsRowSpacingRenderedTests {
         let window = UIWindow(windowScene: scene)
         window.overrideUserInterfaceStyle = .light
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 300)
+        // Text size pinned: a larger simulator size would wrap a title and turn the second line of text into the "description".
         let form = Form { row.listRowBackground(Color.white) }.scrollContentBackground(.hidden).background(Color.white)
+            .environment(\.dynamicTypeSize, .large)
+            .environment(\.textScale, .standard)
         window.rootViewController = UIHostingController(rootView: form)
         window.isHidden = false
         defer { window.isHidden = true }
@@ -51,11 +54,16 @@ struct SettingsRowSpacingRenderedTests {
         let width = image.width
         let height = image.height
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
-        let context = try #require(CGContext(
-            data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
-            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ))
-        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        // The context lives only inside the closure: a pointer from `withUnsafeMutableBytes` must not escape it.
+        let drawn = pixels.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return false }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        try #require(drawn, "no bitmap context")
         let columns = Int(36 * scale)..<Int(220 * scale)
         let inked = (0..<height).map { y in
             columns.contains { x in
