@@ -10,7 +10,7 @@ import UIKit
 /// a side safe-area inset, the model not taken for a foldable so the inset alone is the signal) and, off a foldable, in a regular
 /// iPhone window. On the cover screen a pushed topic list and a topic get « Retour » as a bottom-bar item; no list gets an
 /// « Actualiser » there (a pull refreshes it, #1206, operator on #1239); on a regular iPhone nothing is added. Read from the items
-/// SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups): its Liquid Glass bars hold no `UIControl`.
+/// SwiftUI hands UIKit (`toolbarItems`, the navigation item's groups); the strip probe reads the `UIButton`s UIKit draws for them.
 @MainActor
 @Suite(.serialized)
 struct CoverScreenThumbActionsTests: ReaderWebTesting {
@@ -42,6 +42,28 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         return page
     }
 
+    /// An environment with no network: the fakes of `data` and `pages`, an image fetcher that answers nothing.
+    private static func environment(data: FakeDataSource, pages: FakeTopicPages) -> AppEnvironment {
+        let services = ReaderServices(
+            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
+            settings: ReaderSettings(
+                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
+            ),
+            profiles: FakeUserProfiles([])
+        )
+        return AppEnvironment(
+            session: HFRSession(), dataSource: data, visibility: ForumVisibility(), currentAccountName: nil, topicPages: pages,
+            reader: services, privateMessages: FakePrivateMessages(), composer: nil, filteredPosts: .unavailable,
+            favoriteStores: FavoritesStores(
+                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
+                superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()), account: nil
+            ),
+            flagActions: nil, memberAvatars: nil,
+            pseudoListsSnapshot: PseudoListsSnapshot(store: PseudoListStore(persistence: InMemoryPseudoListPersistence()), account: nil),
+            blocklistChanges: nil, privateMessageCount: nil
+        )
+    }
+
     private func host(_ screen: Screen, cover: Bool) throws -> Hosted {
         let data = FakeDataSource()
         data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
@@ -57,29 +79,11 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
             forums: forums,
             categories: NavigationModel(dataSource: data, forums: forums, topicPages: pages),
             favorites: NavigationModel(dataSource: data, forums: forums, sessionIsLoggedIn: { true }, topicPages: pages,
-                                       startupSource: RootModel.favoritesStartupSource),
+                                       startupSource: .flagged),
             messages: MessageListModel(source: messages, isLoggedIn: { true }, topicPages: pages),
             store: InMemorySettingsStore(), initial: initial
         )
-        let services = ReaderServices(
-            imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),
-            settings: ReaderSettings(
-                autoLoadsThirdPartyImages: { false }, renderOptions: { ReaderRenderOptions() }, swipesPages: { false }
-            ),
-            profiles: FakeUserProfiles([])
-        )
-        let environment = AppEnvironment(
-            session: HFRSession(), dataSource: data, visibility: ForumVisibility(), currentAccountName: nil, topicPages: pages,
-            reader: services, privateMessages: FakePrivateMessages(), composer: nil, filteredPosts: .unavailable,
-            favoriteStores: FavoritesStores(
-                layout: FavoritesLayoutStore(persistence: InMemorySmallStorePersistence()),
-                superFavorites: SuperFavoritesStore(persistence: InMemorySmallStorePersistence()), account: nil
-            ),
-            flagActions: nil, memberAvatars: nil,
-            pseudoListsSnapshot: PseudoListsSnapshot(store: PseudoListStore(persistence: InMemoryPseudoListPersistence()), account: nil),
-            blocklistChanges: nil, privateMessageCount: nil
-        )
-        let view = RootLayout(model: root, environment: environment)
+        let view = RootLayout(model: root, environment: Self.environment(data: data, pages: pages))
             .environment(\.rootLayoutIdiom, .phone)
             .environment(\.tabSplitIdiom, .phone)
             // Not a foldable by its model: on the cover window the side inset is the only signal, on the regular window none is.
@@ -125,11 +129,17 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
             .contains { $0.viewControllers.last?.navigationItem.title == title }
     }
 
-    /// A bar item's title; nil for a spacer, which the lists put before their items.
+    /// Every view of the tree under `view`, itself included.
     private static func views(in view: UIView) -> [UIView] {
         [view] + view.subviews.flatMap { views(in: $0) }
     }
 
+    /// Whether `view` is drawn inside a `UITabBar` (the strip's tab buttons, never a bar item).
+    private static func isInTabBar(_ view: UIView) -> Bool {
+        sequence(first: view, next: \.superview).contains { $0 is UITabBar }
+    }
+
+    /// A bar item's title; nil for a spacer, which the lists put before their items.
     private static func title(of item: UIBarButtonItem) -> String? { item.title ?? item.accessibilityLabel }
 
     /// The bar items of the screens on view: SwiftUI hands its `.bottomBar` items to `toolbarItems` and its trailing ones to the
@@ -220,9 +230,11 @@ struct CoverScreenThumbActionsTests: ReaderWebTesting {
         try await Task.sleep(for: .milliseconds(500))
         hosted.window.layoutIfNeeded()
         let window = hosted.window
-        // The strip's bar buttons: the buttons drawn in the right-edge column (the tab buttons carry no button trait).
-        let tops = Self.views(in: window).compactMap { $0 as? UIControl }
-            .filter { $0.window != nil && !$0.isHidden && $0.alpha > 0.01 && $0.accessibilityTraits.contains(.button) }
+        // The strip's bar buttons: the `UIButton`s drawn in the right-edge column, outside the tab bar (its tab buttons and the bar
+        // items' wrappers are plain `UIControl`s). Not the button accessibility trait: the iOS 27.1 runtime sets none in a test
+        // process (the probe found nothing there, 2026-11-20, same positions), 27.2 does; the class holds on both.
+        let tops = Self.views(in: window).compactMap { $0 as? UIButton }
+            .filter { $0.window != nil && !$0.isHidden && $0.alpha > 0.01 && !Self.isInTabBar($0) }
             .map { window.convert($0.bounds, from: $0) }
             .filter { $0.minX > window.bounds.width - 70 }
             .map(\.minY).sorted()

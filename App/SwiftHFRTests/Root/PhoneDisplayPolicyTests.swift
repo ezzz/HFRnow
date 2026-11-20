@@ -47,7 +47,7 @@ struct PhoneDisplayPolicyTests {
         #expect(!PhoneDisplayPolicy.currentModelIdentifier.isEmpty)
     }
 
-    /// « Actualiser » and « Retour » go to the bottom of the toolbar column on the cover screen only (`PhoneDisplayPolicy.swift:85-89`).
+    /// « Retour » goes to the bottom of the toolbar column on the cover screen only (`PhoneDisplayPolicy.swift:59-64`).
     @Test func thumbActionsGoToTheBottomOnTheCoverScreenOnly() {
         #expect(PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: .duoCover))
         #expect(!PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: .duoInner))
