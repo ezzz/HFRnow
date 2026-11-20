@@ -158,7 +158,8 @@ final class RootModel {
     ) -> MessageListModel {
         MessageListModel(
             source: environment.privateMessages, isLoggedIn: environment.isLoggedIn, topicPages: environment.topicPages,
-            renderOptions: environment.reader.settings.renderOptions, settings: store, mpStorage: mpStorage,
+            renderOptions: environment.reader.settings.renderOptions, settings: store,
+            account: environment.currentAccountName, mpStorage: mpStorage,
             privateMessageCount: count,
             // What the list shows is not notified by the next background check (LOT-140).
             ledgerSeen: environment.currentAccountName.map { account in

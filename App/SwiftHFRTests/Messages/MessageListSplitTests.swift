@@ -17,17 +17,17 @@ private func pageOf(_ threads: [PrivateMessageThread], page: Int, last: Int) -> 
 // The suite limit is a backstop for a hang only: on a loaded simulator it measures the shared main-actor queue (#366).
 @MainActor @Suite(.timeLimit(.minutes(5)))
 struct MessageListSplitTests {
+    /// A list on `segment` (the stored last choice), Tous by default.
     private func model(
-        _ source: FakePrivateMessages, display: MPListDisplay, store: (any SettingsStore)? = nil
+        _ source: FakePrivateMessages, segment: MPSegment = .all, store: InMemorySettingsStore = InMemorySettingsStore()
     ) -> MessageListModel {
-        let model = MessageListModel(source: source, isLoggedIn: { true }, settings: store)
-        model.display = display
-        return model
+        MPListSegmentStore(settings: store).set(segment, for: "Alice")
+        return MessageListModel(source: source, isLoggedIn: { true }, settings: store, account: "Alice")
     }
 
     @Test func defaultShowsEveryRowOfTheListUnchanged() async {
         let source = FakePrivateMessages()
-        let model = model(source, display: .single)
+        let model = model(source, segment: .all)
         await model.onAppear()
         #expect(model.visibleThreads == model.loader.value?.threads)
         #expect(model.visibleThreads.count == 2)
@@ -36,7 +36,7 @@ struct MessageListSplitTests {
 
     @Test func theSwitchShowsOnlyItsSegment() async {
         let source = FakePrivateMessages()
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         #expect(model.visibleThreads.map(\.isGroup) == [false])
         await model.select(.group)
@@ -50,7 +50,7 @@ struct MessageListSplitTests {
             pageOf([messageThread(1, unread: true), messageThread(2, unread: true, group: true),
                     messageThread(3, unread: true, group: true), messageThread(4, group: true)], page: 1, last: 1)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         #expect(model.unreadCount(in: .oneToOne) == 1)
         #expect(model.unreadCount(in: .group) == 2)
@@ -65,7 +65,7 @@ struct MessageListSplitTests {
         source.handler = { page in
             pageOf([messageThread(page * 10)] + (page == 3 ? [messageThread(99, group: true)] : []), page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         #expect(source.requests == [1, 2, 3])
@@ -77,7 +77,7 @@ struct MessageListSplitTests {
     @Test func theSearchStopsAtTheLastPage() async {
         let source = FakePrivateMessages()
         source.handler = { page in pageOf([messageThread(page)], page: page, last: 2) }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         #expect(source.requests == [1, 2])
@@ -88,7 +88,7 @@ struct MessageListSplitTests {
     @Test func theSearchIsBounded() async {
         let source = FakePrivateMessages()
         source.handler = { page in pageOf([messageThread(page)], page: page, last: 50) }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         #expect(source.requests == Array(1...(1 + MessageListModel.maxAutoAdvance)))
@@ -102,7 +102,7 @@ struct MessageListSplitTests {
             if page == 2 { throw ListLoadError.timedOut }
             return pageOf([messageThread(page)], page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         #expect(source.requests == [1, 2])
@@ -115,7 +115,7 @@ struct MessageListSplitTests {
         source.handler = { page in
             pageOf([messageThread(page)] + (page == 1 || page == 3 ? [messageThread(90 + page, group: true)] : []), page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         await model.goToNextPage()
@@ -134,7 +134,7 @@ struct MessageListSplitTests {
         source.handler = { page in
             pageOf([messageThread(page)] + (page == 1 || page == 3 ? [messageThread(90 + page, group: true)] : []), page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         #expect(source.requests == [1])
@@ -157,7 +157,7 @@ struct MessageListSplitTests {
             if page == 2 { await gate.wait() }
             return pageOf([messageThread(page)], page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         let search = gate.run { await model.select(.group) }
         // `entered()` is false, not a hang, if the search never reaches page 2.
@@ -183,7 +183,7 @@ struct MessageListSplitTests {
             if page == 2 { await gate.wait() }
             return pageOf([page == 1 ? unread : messageThread(page)], page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         model.markOpened(unread, page: 1, of: 1)
         #expect(!model.isUnread(unread))
@@ -200,7 +200,7 @@ struct MessageListSplitTests {
     @Test func twoQuickSwitchChangesEndOnTheLastOne() async {
         let source = FakePrivateMessages()
         source.handler = { page in pageOf([messageThread(page)], page: page, last: 3) }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         // The view applies each change at once and starts a search task after it; the tasks run later, in any order.
         model.chooseSegment(.group)
@@ -220,7 +220,7 @@ struct MessageListSplitTests {
         source.handler = { page in
             pageOf([messageThread(1, group: true), messageThread(5)], page: page, last: 4)
         }
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         await model.onAppear()
         await model.select(.group)
         let before = source.requests
@@ -233,42 +233,134 @@ struct MessageListSplitTests {
 
     @Test func theSwitchIsHiddenWithoutRows() async {
         let source = FakePrivateMessages()
-        let model = model(source, display: .split)
+        let model = model(source, segment: .oneToOne)
         #expect(!model.showsSegmentSwitch)
         await model.onAppear()
         #expect(model.showsSegmentSwitch)
         let signedOut = MessageListModel(source: source, isLoggedIn: { false })
-        signedOut.display = .split
         await signedOut.onAppear()
         #expect(!signedOut.showsSegmentSwitch)
     }
 
     @Test func aConversationHiddenByTheSwitchIsClosed() async {
-        let model = model(FakePrivateMessages(), display: .split)
+        let model = model(FakePrivateMessages(), segment: .oneToOne)
         await model.onAppear()
         model.selected = messageThread(11, group: true)
         await model.select(.oneToOne)
         #expect(model.selected == nil)
     }
 
-    @Test func singleModeNeverSearchesWhateverTheListHolds() async {
+    @Test func tousNeverSearchesWhateverTheListHolds() async {
         let source = FakePrivateMessages()
         source.handler = { page in pageOf([messageThread(page)], page: page, last: 4) }
-        let model = model(source, display: .single)
+        let model = model(source)
         await model.onAppear()
-        await model.select(.group)
+        await model.select(.all)
         #expect(source.requests == [1])
     }
 
-    @Test func theDisplaySettingIsReadWhenTheListAppears() async {
+    @Test func aFreshInstallOpensOnTous() async {
         let store = InMemorySettingsStore()
-        let model = model(FakePrivateMessages(), display: .single, store: store)
+        let model = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        #expect(model.segment == .all)
         await model.onAppear()
-        #expect(model.display == .single)
-        store.set(.split, for: SettingKey.mpListDisplay)
+        #expect(model.visibleThreads.count == 2)
+        #expect(model.showsSegmentSwitch)
+    }
+
+    @Test func theLastChoiceIsRememberedAcrossModels() async {
+        let store = InMemorySettingsStore()
+        let first = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        await first.onAppear()
+        await first.select(.group)
+        #expect(store.rawValue(forKey: "mp_list_segment.alice") == .string("group"))
+        let relaunched = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        #expect(relaunched.segment == .group)
+    }
+
+    @Test(arguments: [("single", MPSegment.all), ("split", .oneToOne)])
+    func theRetiredDisplaySettingSeedsTheFirstChoiceOnce(old: String, expected: MPSegment) async {
+        let store = InMemorySettingsStore(["mp_list_display": .string(old)])
+        let first = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        #expect(first.segment == expected)
+        await first.select(.group)
+        // The old key is ignored from now on, whatever it says.
+        store.set(expected == .all ? MPListDisplay.split : .single, for: SettingKey.mpListDisplay)
+        #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice").segment == .group)
+    }
+
+    @Test func theSeedIsStoredSoALaterChangeOfTheOldKeyIsIgnored() {
+        let store = InMemorySettingsStore(["mp_list_display": .string("split")])
+        _ = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        store.set(MPListDisplay.single, for: SettingKey.mpListDisplay)
+        let rebuilt = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        #expect(rebuilt.segment == .oneToOne)
+    }
+
+    @Test func twoAccountsKeepTheirOwnChoiceAndLoggedOutReadsTous() async {
+        let store = InMemorySettingsStore()
+        let alice = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        let bob = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Bob")
+        await alice.select(.group)
+        await bob.select(.oneToOne)
+        // Each account's rebuilt list shows its own last choice.
+        for (name, expected) in [("Alice", MPSegment.group), ("Bob", .oneToOne)] {
+            let rebuilt = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: name)
+            #expect(rebuilt.segment == expected)
+        }
+        let signedOut = MessageListModel(source: FakePrivateMessages(), settings: store)
+        #expect(signedOut.segment == .all)
+        await signedOut.select(.group)
+        #expect(MessageListModel(source: FakePrivateMessages(), settings: store, account: "Bob").segment == .oneToOne)
+    }
+
+    @Test func theSeedAppliesOncePerAccount() async {
+        let store = InMemorySettingsStore(["mp_list_display": .string("split")])
+        let alice = MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice")
+        await alice.select(.group)
+        #expect(alice.segment == .group)
+        // Bob is seeded from the retired setting on his own first use, not from Alice's choice.
+        #expect(MessageListModel(source: FakePrivateMessages(), settings: store, account: "Bob").segment == .oneToOne)
+        store.set(MPListDisplay.single, for: SettingKey.mpListDisplay)
+        #expect(MessageListModel(source: FakePrivateMessages(), settings: store, account: "Bob").segment == .oneToOne)
+    }
+
+    @Test func anUnknownStoredChoiceReadsAsTous() {
+        let store = InMemorySettingsStore(["mp_list_segment.alice": .string("everything"), "mp_list_display": .string("split")])
+        #expect(MessageListModel(source: FakePrivateMessages(), isLoggedIn: { true }, settings: store, account: "Alice").segment == .all)
+    }
+
+    @Test func tousCountsTheUnreadRowsOfBothSegments() async {
+        let source = FakePrivateMessages()
+        source.handler = { _ in
+            pageOf([messageThread(1, unread: true), messageThread(2, unread: true, group: true),
+                    messageThread(3, group: true)], page: 1, last: 1)
+        }
+        let model = model(source)
         await model.onAppear()
-        #expect(model.display == .split)
-        #expect(model.visibleThreads.map(\.id) == [messageThread(10, unread: true).id])
+        #expect(model.unreadCount(in: .all) == 2)
+        #expect(model.unreadCount(in: .all) == model.unreadCount(in: .oneToOne) + model.unreadCount(in: .group))
+    }
+
+    @Test func aSentMessageKeepsTousAndOpensItsThread() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(1, group: true), messageThread(5)], page: page, last: 1) }
+        let model = model(source)
+        await model.onAppear()
+        await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
+        #expect(model.segment == .all)
+        #expect(model.selected?.summary.topicID?.topic == 5)
+    }
+
+    @Test func aSentMessageSwitchesTheViewWithoutSavingItAsTheLastChoice() async {
+        let source = FakePrivateMessages()
+        source.handler = { page in pageOf([messageThread(1, group: true), messageThread(5)], page: page, last: 1) }
+        let store = InMemorySettingsStore()
+        let model = model(source, segment: .group, store: store)
+        await model.onAppear()
+        await model.newMessageDidClose(.sent(newMessageConfirmed), subject: "Sujet 5")
+        #expect(model.segment == .oneToOne)
+        #expect(store.rawValue(forKey: "mp_list_segment.alice") == .string("group"))
     }
 
     @Test func theSegmentRulesFollowTheParsedGroupFlag() {
@@ -276,5 +368,6 @@ struct MessageListSplitTests {
         #expect(!MPSegment.group.contains(messageThread(1)))
         #expect(MPSegment.oneToOne.contains(messageThread(1)))
         #expect(!MPSegment.oneToOne.contains(messageThread(1, group: true)))
+        #expect(MPSegment.all.contains(messageThread(1)) && MPSegment.all.contains(messageThread(1, group: true)))
     }
 }

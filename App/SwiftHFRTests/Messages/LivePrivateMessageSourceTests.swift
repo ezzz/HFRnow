@@ -65,14 +65,11 @@ struct LivePrivateMessageSourceTests {
 
         let source = FakePrivateMessages()
         source.handler = { _ in page }
-        for display in [MPListDisplay.single, .split] {
-            for segment in MPSegment.allCases {
-                let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages())
-                model.display = display
-                model.segment = segment
-                await model.onAppear()
-                #expect(!model.visibleThreads.contains { $0.summary.topicID?.topic == storageTopic })
-            }
+        for segment in MPSegment.allCases {
+            let model = MessageListModel(source: source, isLoggedIn: { true }, topicPages: FakeTopicPages())
+            model.chooseSegment(segment)
+            await model.onAppear()
+            #expect(!model.visibleThreads.contains { $0.summary.topicID?.topic == storageTopic })
         }
         // R13u1's storage row is read for the member, so the seen set is checked on a page where it is unread: the
         // background check's ledger input (`MPBackgroundCheck`) would hold it without the filter.

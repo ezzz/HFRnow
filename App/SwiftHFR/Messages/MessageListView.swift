@@ -95,10 +95,10 @@ struct MessageListView: View {
     private func overlay(_ loader: ContentLoader<MessageListContent>) -> some View {
         if let content = loader.value {
             if model.isSearchingSegment, model.visibleThreads.isEmpty {
-                ProgressView("Recherche des \(model.segment.title)")
+                ProgressView("Recherche dans « \(model.segment.title) »")
             } else if model.visibleThreads.isEmpty {
                 EmptyMessagesView(
-                    reason: content.emptyReason ?? .nothing, segment: model.display == .split ? model.segment : nil,
+                    reason: content.emptyReason ?? .nothing, segment: model.segment,
                     refresh: model.refresh
                 )
             }
@@ -131,8 +131,8 @@ private struct MessageSentBanner: View {
 
 private struct EmptyMessagesView: View {
     let reason: EmptyReason
-    /// The switch position when the list is split: the page may hold none of it though later pages exist.
-    let segment: MPSegment?
+    /// The switch position: the page may hold none of it though later pages exist.
+    let segment: MPSegment
     let refresh: () async -> Void
 
     var body: some View {
@@ -151,7 +151,7 @@ private struct EmptyMessagesView: View {
             switch segment {
             case .group: "Aucun MP multiple"
             case .oneToOne: "Aucun MP individuel"
-            case nil: "Aucun message privé"
+            case .all: "Aucun message privé"
             }
         case .signInRequired: "Connexion requise"
         case .notice: "Rien à afficher"
@@ -188,7 +188,7 @@ private struct EmptyMessagesView: View {
     }
 }
 
-/// The "MP" / "MP multiples" switch of the split list, each segment with its own unread count (page-bounded).
+/// The Tous / MP / MP multiples switch, each segment with its own unread count (page-bounded).
 private struct MessageSegmentSwitch: View {
     let model: MessageListModel
 
