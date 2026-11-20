@@ -53,9 +53,10 @@ enum ReaderPictureTap: Equatable, Sendable {
     }
 
     /// The path under which the rule's host serves an image itself, from the rule's rewrite (`/images/` for img3, captured as
-    /// full images such as `R298` `/images/2025/03/26/snapshot_….jpg`; `/Picture/Get/f/` for diberie, the target of its rewrite,
+    /// full images such as R298c/d `/images/…` links equal to the picture; `/Picture/Get/f/` for diberie, the target of its rewrite,
     /// linked in the corpus). Nil when no capture shows the shape: `reho.st` rewrites to `/`, and no capture of a link around
-    /// its thumbnail shows an image (`/view/self/…` only), so its links are pages until #1280's capture says otherwise.
+    /// its thumbnail shows an image (`/view/self/…` only), so its links are pages until #1280's capture says otherwise (a `/thumb/`
+    /// picture with a same-host link still takes the `.viewer` exception of `decide`).
     static func imagePathPrefix(of url: URL, hosts: ImageHostTable) -> String? {
         switch hosts.rule(for: url)?.thumbnailRewrite {
         case .pathPrefix(_, let replacement): replacement == "/" ? nil : replacement

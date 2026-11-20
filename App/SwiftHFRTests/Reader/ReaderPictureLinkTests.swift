@@ -24,14 +24,19 @@ struct ReaderPictureLinkTests: ReaderWebTesting {
         #expect(ReaderPictureTap.decide(shown: small, link: upper, autoLoadsThirdParty: false) == .linkedImage(link(upper)))
         #expect(ReaderPictureTap.decide(shown: small, link: "https://forum-images.hardware.fr/page.php?f=a.png", autoLoadsThirdParty: false)
             == .link(link("https://forum-images.hardware.fr/page.php?f=a.png")))
-        // A rehost thumbnail linking to the host's own image path (img3 `/images/`, captured as full images in R298).
+        // A rehost thumbnail linking to the host's own image path (img3 `/images/`, links equal to the picture in R298c/d).
         let thumb = "https://reho.st/preview/self/abc"
         let img3Thumb = "https://img3.super-h.fr/images/2025/03/26/snapshot_1.th.png"
         let img3Full = "https://img3.super-h.fr/images/2025/03/26/snapshot_1.png"
         #expect(ReaderPictureTap.decide(shown: img3Thumb, link: img3Full, consented: [img3Thumb], autoLoadsThirdParty: false)
             == .linkedImage(link(img3Full)), "the picture's own full size is the one the viewer fetches anyway")
-        #expect(ReaderPictureTap.decide(shown: img3Thumb, link: img3Full.replacing("snapshot_1", with: "other"), autoLoadsThirdParty: false)
-            != .linkedImage(link(img3Full.replacing("snapshot_1", with: "other"))), "another address needs its own consent")
+        let other = img3Full.replacing("snapshot_1", with: "other")
+        #expect(ReaderPictureTap.decide(shown: img3Thumb, link: other, autoLoadsThirdParty: false) == .link(link(other)),
+                "another address needs its own consent")
+        // Rule (b), R28: an imgur `…l.png` thumbnail linked to the full `….png`, URLs as in the anonymized capture.
+        let imgurThumb = "https://i.imgur.com/dmD8vSul.png"
+        let imgurFull = "https://i.imgur.com/dmD8vSu.png"
+        #expect(ReaderPictureTap.decide(shown: imgurThumb, link: imgurFull, autoLoadsThirdParty: true) == .linkedImage(link(imgurFull)))
         // The host alone is not an image: the rehost's home page is a page.
         let home = "https://reho.st/"
         #expect(ReaderPictureTap.decide(shown: thumb, link: home, autoLoadsThirdParty: false) == .link(link(home)))
