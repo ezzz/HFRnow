@@ -12,8 +12,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
-	_ "modernc.org/sqlite" // pilote Go pur, sans cgo : seule dépendance tierce (spec §1)
+	_ "modernc.org/sqlite" // pilote Go pur, sans cgo : dépendance directe (go.mod en compte deux, plus leurs dépendances indirectes)
 )
 
 // Noms de fichiers du dossier de données.
@@ -33,6 +34,9 @@ var (
 	ErrIntrouvable  = errors.New("réponse introuvable")
 )
 
+// reponses et pseudos sont WITHOUT ROWID (M4) : sans cela, l'ordre d'arrivée reste lisible dans le rowid, y compris
+// dans une sauvegarde, et recoupé avec l'heure du journal il donnerait l'heure de chaque envoi. Les lignes sont
+// rangées par identifiant aléatoire ; les tables d'anti-abus gardent leur rowid mais sont vidées à la fermeture.
 const schema = `
 CREATE TABLE IF NOT EXISTS reponses (
   identifiant  TEXT PRIMARY KEY,
@@ -42,11 +46,11 @@ CREATE TABLE IF NOT EXISTS reponses (
   ordre_cartes TEXT NOT NULL,
   donnees      TEXT NOT NULL,
   limitee      INTEGER NOT NULL DEFAULT 0
-);
+) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS pseudos (
   identifiant TEXT PRIMARY KEY REFERENCES reponses(identifiant),
   pseudo      TEXT NOT NULL
-);
+) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS jetons (
   empreinte TEXT PRIMARY KEY
 );
@@ -91,6 +95,10 @@ func Ouvrir(dossier string) (*Base, error) {
 		db.Close()
 		return nil, fmt.Errorf("schéma : %w", err)
 	}
+	if err := verifierSansRowid(db); err != nil {
+		db.Close()
+		return nil, err
+	}
 	b := &Base{db: db, dossier: dossier}
 	b.pointDeControle = b.checkpointTronque
 	return b, nil
@@ -111,4 +119,20 @@ func nouvelIdentifiant() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(o[:]), nil
+}
+
+// ErrSchemaAncien signale une base créée avant le passage de reponses et pseudos en WITHOUT ROWID (M4).
+var ErrSchemaAncien = errors.New("base d'un ancien schéma (tables avec rowid, ordre d'arrivée lisible) : la supprimer avec cle-ip et la recréer")
+
+func verifierSansRowid(db *sql.DB) error {
+	for _, t := range []string{"reponses", "pseudos"} {
+		var def string
+		if err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?`, t).Scan(&def); err != nil {
+			return fmt.Errorf("schéma : %w", err)
+		}
+		if !strings.Contains(strings.ToUpper(def), "WITHOUT ROWID") {
+			return fmt.Errorf("%w (table %s)", ErrSchemaAncien, t)
+		}
+	}
+	return nil
 }

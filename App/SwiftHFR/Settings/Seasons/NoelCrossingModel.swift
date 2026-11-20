@@ -16,7 +16,7 @@ final class NoelCrossingModel {
         /// The art's size, in points.
         let size: CGSize
         let path: CrossingPath
-        /// The arrival sleigh (1/4 of the window height, ≤ 240 pt), played before the « Oh Oh Oh ! » alert.
+        /// The arrival sleigh (1/4 of the window height, ≤ 240 pt), played before the arrival alert.
         let isArrival: Bool
         /// The scene that shows it.
         let scene: UUID

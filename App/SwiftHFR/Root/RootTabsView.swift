@@ -46,6 +46,7 @@ struct RootTabsView: View {
                 }
                 .environment(\.isSelectedRootTab, model.selectedTab == .more)
             }
+            .badge(model.plusBadge)
         }
         .tabBarMinimizeBehavior(model.minimizesTabBarOnScroll ? .onScrollDown : .never)
         // EXPERIMENTAL(searchTab, #896): the selection follows the option and the Plus search entry.
@@ -59,13 +60,21 @@ struct CategoriesTabView: View {
     @Bindable var navigation: NavigationModel
     let reader: ReaderServices
     let composer: ComposerServices?
-    @State private var column = NavigationSplitViewColumn.sidebar
+    @State private var column: NavigationSplitViewColumn
+
+    /// `column` is the column a collapsed split shows first (the sidebar; a test starts on another).
+    init(navigation: NavigationModel, reader: ReaderServices, composer: ComposerServices?, column: NavigationSplitViewColumn = .sidebar) {
+        self.navigation = navigation
+        self.reader = reader
+        self.composer = composer
+        _column = State(initialValue: column)
+    }
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $column) {
             ForumListView(navigation: navigation).accountMenuToolbarItem().appScreenBackground()
         } content: {
-            TopicsColumn(navigation: navigation, composer: composer).appScreenBackground()
+            TopicsColumn(navigation: navigation, composer: composer, showsAccountMenu: true).appScreenBackground()
         } detail: {
             ReaderColumn(navigation: navigation, reader: reader, composer: composer).appScreenBackground()
         }
@@ -146,6 +155,12 @@ struct TopicsColumn: View {
     /// Favoris: what a section title does. Nil pushes the category on this column's stack (compact width, as legacy's
     /// `NavigationLink`); the regular-width iPad sidebar passes the switch to Catégories (`onOpenForum`, `MainWindow.swift:2221-2232`).
     var openCategory: ((TopicSource) -> Void)?
+    /// A column that is a pushed screen (a category's topics) shows the account button after its back button (#425).
+    var showsAccountMenu = false
+    /// `TabSplitWidth` keeps `.regular` on a foldable's inner screen: all three columns show and the category list already has the
+    /// button, so a second one beside it would double it (legacy carries it on its list column only, `MainWindow.swift:1932-1938`
+    /// @ 87fe0d1c). Not tested at that width: the foldable check is on #893.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         if let source = navigation.selectedSource {
@@ -154,13 +169,15 @@ struct TopicsColumn: View {
                 composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: source),
                 openCategory: navigation.favorites == nil ? nil : (openCategory ?? { navigation.openCategory($0) }),
                 // Favoris is a main screen with its large title; the lists a forum row pushes get the pill (#977, #978).
-                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil)
+                titleStyle: .topicList(isFavoritesRoot: navigation.favorites != nil),
+                showsAccountMenu: showsAccountMenu && horizontalSizeClass != .regular
             )
             .id(source)
             .navigationDestination(item: $navigation.openedCategory) { category in
                 TopicListView(
                     model: navigation.topicList(for: category), selection: $navigation.selectedTopic, filtering: navigation.filtering,
-                    composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category)
+                    composer: composer, open: { navigation.open($0, at: $1) }, scope: navigation.scope(for: category),
+                    showsAccountMenu: true
                 )
                 .appScreenBackground()
             }

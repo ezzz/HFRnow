@@ -35,6 +35,7 @@ struct PseudoListEditorView: View {
                         Group {
                             Text(unreadable).foregroundStyle(.secondary)
                             Button("Réessayer") { Task { await model.retry() } }
+                            UnreadableDataRecoveryButton(content: "les listes de pseudos") { await model.discardUnreadable() }
                         }.themedListRow()
                     }
                 } else {

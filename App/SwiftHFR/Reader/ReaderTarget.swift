@@ -10,6 +10,9 @@ struct ReaderTarget: Hashable, Sendable {
         /// LOT-137: a canonical path is read by LOT-095's router, which knows its category, and is never fetched as the
         /// link wrote it.
         case topic(TopicID)
+        /// The quote view of one message (`quote_only=1`, #1039): the posts that quote it, in place, without a pager. Asked for as
+        /// capture `R126a` shows it, rebuilt from the link's values, never fetched as the link wrote it.
+        case quotingMessages(HFRQuotingLink)
     }
 
     var source: Source

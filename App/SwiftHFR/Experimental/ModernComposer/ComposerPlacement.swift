@@ -6,7 +6,8 @@ import UIKit
 /// bottom of the reader, on the keyboard: the page above it is the reader's own scroll view, so it scrolls with the keyboard
 /// up, and dragging it down pulls the keyboard down with the finger while the bar stays. A sheet below full height could not do
 /// that: iOS moves a sheet to its largest detent when the keyboard rises, and with one detent left the page under it inert
-/// (device, 2026-11-13). The bar's "Plein écran" fills the reader instead (`ComposerHeight.full`).
+/// (device, 2026-11-13). The bar's "Plein écran" fills the reader instead (`ComposerHeight.full`). The author menu's MP,
+/// new content, opens at that full height with no toggle (#1137): it covers the reader's page, not scrollable behind it.
 ///
 /// Part of the modern composer (#904, Réglages › Expérimental › « Composer moderne », #903). With the option off (the default
 /// since #855) an iPhone's reader composers are legacy's full-screen cover (`MessagesView.swift:5429-5443`,

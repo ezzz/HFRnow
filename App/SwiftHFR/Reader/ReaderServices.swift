@@ -20,6 +20,8 @@ struct ReaderServices: Sendable {
     var pseudoLists: PseudoListManager?
     /// The moderator alerts of the current account (LOT-135); nil when logged out and in the offline reader.
     var moderatorAlerts: (any ModeratorAlerting)?
+    /// « AQ » of the message menu (LOT-134); nil when logged out, in previews, in the offline reader, or without an AQ address.
+    var qualityAlerts: QualityAlertServices?
     /// True only in the offline reader (a saved copy, `OfflineTopicsView`): it has no account behind it, so the search entry
     /// (#821) stays out. Not derived from `offline`, which is also nil in the live app while offline saving is disabled (#822).
     var isSavedCopy = false

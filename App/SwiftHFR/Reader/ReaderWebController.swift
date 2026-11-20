@@ -2,6 +2,10 @@ import Foundation
 import UIKit
 import WebKit
 
+// The `hfrreader:` scheme handler below shares the controller's private state (download queue, consent, document); a
+// file of its own would widen that state's access (#1188 took the file past 400 lines).
+// swiftlint:disable file_length
+
 // Port of HFRswift/Swift/MessagesView.swift (WebView, MessageWebView, WebView.Coordinator) @ 2440d79. Differences: no page script,
 // strict CSP, everything served by the app's `hfrreader:` scheme, images through policy C and the cookie-less client (GAP-050, 056).
 /// Owns the reader's `WKWebView` and enforces what the page may do (LOT-083):
@@ -29,7 +33,6 @@ final class ReaderWebController: NSObject {
     let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
     var events = Events()
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
-    var offersPullHint = true { didSet { pullHintChanged(from: oldValue) } } // the end-of-page hint shows (#820); see `applyPullHint`
     /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
     var dismissesKeyboardInteractively = false {
         didSet { webView.scrollView.keyboardDismissMode = dismissesKeyboardInteractively ? .interactive : .none }
@@ -78,6 +81,11 @@ final class ReaderWebController: NSObject {
     /// The reading top (`ReaderScrollGeometry`, in the page's own points) a refresh restores;
     /// the insets may change before the next document is ready.
     private var savedReadingTop: CGFloat?
+    /// The last post the ready page reported at the reading top, and where a reload after a process death lands (#1188).
+    private var lastReportedPost: Int?, relandingPost: Int?
+    /// The source of every image request in flight or waiting, and those a stop cut on the ready document: asked again when
+    /// it comes back (#1187).
+    private var inFlightSources: [ObjectIdentifier: String] = [:], cutImageSources: [String] = []
     private var appliedScrollID: Int?
     /// Holds a new document's landing or restore until WebKit has reset its scroll view (#772).
     let resetWatch = WebKitResetWatch()
@@ -121,12 +129,12 @@ final class ReaderWebController: NSObject {
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
         trackUnderPageBackground()
-        // Insets come from the SwiftUI layout (`obscuredInsets`): UIKit's safe area does not see the reader's banners.
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        configureScrollEdges()
         // Falling snow pauses while the page scrolls (LOT-166).
         SeasonalScrollActivity.shared.track(webView.scrollView)
         messageMenu.attach(to: webView)
-        pullWatcher.track(webView.scrollView) { [weak self] in self?.pulledPastEnd() }
+        pullWatcher.track(webView.scrollView, progress: { [weak self] in self?.pullProgressChanged(top: $0, bottom: $1) },
+                          pulled: { [weak self] in self?.pulledPastEnd($0) })
     }
 
     /// Shows `document` unless it is already the one shown. Nothing happens for nil (the screen shows its own state). A document
@@ -138,11 +146,16 @@ final class ReaderWebController: NSObject {
             return
         }
         guard document.token != self.document?.token else {
+            if !cutImageSources.isEmpty, readyToken == document.token { retryCutImages() }
             ReaderLog.debug("show skipped token=\(document.token) ready=\(readyToken == document.token)")
             return
         }
         ReaderLog.debug("show loads token=\(document.token)")
         savedReadingTop = document.keepsScrollPosition ? readingTop : nil
+        lastReportedPost = nil
+        relandingPost = nil
+        cutImageSources = []
+        inFlightSources.removeAll()
         resetWatch.stop()
         self.document = document
         readyToken = nil
@@ -165,10 +178,14 @@ final class ReaderWebController: NSObject {
     }
 
     /// Stops the page and every image download in flight (the screen goes away). A document that was not ready yet is
-    /// forgotten, so the next `show` of it loads it again (issue #566).
+    /// forgotten, so the next `show` of it loads it again (issue #566); a ready one keeps its place, and the pictures the stop
+    /// cut are asked again when it is shown again (#1187).
     func stopLoading() {
         let wasReady = document != nil && readyToken == document?.token
         ReaderLog.debug("stopLoading token=\(document?.token ?? -1) ready=\(wasReady)")
+        // Read before WebKit stops the scheme tasks: the pictures of a page kept on screen are asked again on return.
+        if wasReady { cutImageSources += inFlightSources.values }
+        inFlightSources.removeAll()
         webView.stopLoading()
         stopped = true
         stoppedDocument = document
@@ -217,15 +234,14 @@ final class ReaderWebController: NSObject {
             documentIsReady(document, token: document.token)
             return nil
         case .position(let post):
-            resetWatch.pageReportedPosition()
-            events.position(post, document.token)
+            positionReported(post, token: document.token)
             return nil
         case .edge(let atBottom): return pageEndReported(atBottom, token: document.token)
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil
-        case .video(let post, let index):
-            events.video(post, index, document.token)
+        case .video, .videoLink:
+            openVideo(message, token: document.token)
             return nil
         case .menu(let post, let source, let anchor):
             // `getBoundingClientRect` counts from the bars' edge (`obscuredContentInsets`): the view starts above it.
@@ -235,6 +251,14 @@ final class ReaderWebController: NSObject {
         case .image(let urls, let index):
             return openViewer(urls: urls, index: index, token: document.token)
         }
+    }
+
+    private func positionReported(_ post: Int, token: Int) {
+        // Reports before ready are dropped: a reload's page reports its top before it lands. A report between ready and the
+        // landing is kept; only a second process death in that window would land on it (#1188).
+        if readyToken == token { lastReportedPost = post }
+        resetWatch.pageReportedPosition()
+        events.position(post, token)
     }
 
     /// The user tapped a placeholder: consent for that exact URL, third-party only, in this document only.
@@ -249,12 +273,15 @@ final class ReaderWebController: NSObject {
         // A size or a colour changed while this document was loading reached the previous one: set them again.
         applyDisplayState()
         let scrollView = webView.scrollView
-        if let anchor = document.anchor {
+        if let post = relandingPost { // after a process death: where the member was reading, not the flag message (#1188)
+            resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: post, landing: true) }
+        } else if let anchor = document.anchor {
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(to: anchor, landing: true) }
         } else if let readingTop = savedReadingTop {
             resetWatch.perform(token: token, on: scrollView) { [weak self] in self?.scroll(toReadingTop: readingTop) }
         }
         savedReadingTop = nil
+        relandingPost = nil
         readyToken = token
         ReaderLog.debug("ready accepted token=\(token)")
         events.ready(token)
@@ -279,13 +306,17 @@ final class ReaderWebController: NSObject {
         retryOrReport(document, reason: "navigation failed code=\(code)")
     }
 
-    /// The content process died (memory pressure on a huge page). A document already shown is loaded again; one not ready
-    /// yet follows the reload-once rule, so a page that kills the process every time ends on the retry, not a spinner.
+    /// The content process died (memory pressure on a huge page, or iOS reclaiming a backgrounded app). A document already
+    /// shown is loaded again and lands on the last message the page reported; one not ready yet follows the reload-once rule,
+    /// so a page that kills the process every time ends on the retry, not a spinner.
     func contentProcessTerminated() {
         guard let document else { return }
         guard readyToken != document.token else {
             ReaderLog.debug("content process terminated token=\(document.token) ready=true: reloading")
-            // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen.
+            // The web view is blank again: the reload is a new load, under the same once rule, or its failure goes unseen. It
+            // lands where the member was reading; the images tapped stay allowed (`consented`, same document) (#1188).
+            relandingPost = lastReportedPost
+            cutImageSources = [] // the reload asks for every picture again
             readyToken = nil
             reloadedAfterFailure = false
             loadPage(document)
@@ -334,6 +365,7 @@ extension ReaderWebController {
         let key = ObjectIdentifier(task)
         running[key]?.cancel()
         running[key] = nil
+        inFlightSources[key] = nil
         waiting.removeAll { $0.key == key }
         startWaitingImages()
     }
@@ -364,6 +396,7 @@ extension ReaderWebController {
                     result = .failure(error)
                 }
                 guard let self, self.running.removeValue(forKey: key) != nil else { return }
+                self.inFlightSources[key] = nil
                 switch result {
                 case .success(let image): self.respond(task, url: url, data: image.data, mimeType: image.mimeType)
                 case .failure: self.fail(task)
@@ -371,6 +404,7 @@ extension ReaderWebController {
                 self.startWaitingImages()
             }
         }
+        inFlightSources[key] = source
         waiting.append((key, start))
         startWaitingImages()
     }
@@ -396,5 +430,18 @@ extension ReaderWebController {
 
     private func fail(_ task: any WKURLSchemeTask) {
         task.didFailWithError(URLError(.resourceUnavailable))
+    }
+}
+
+// MARK: - Pictures cut by a stop (#1187)
+
+extension ReaderWebController {
+    /// The ready document is shown again after a stop that cut picture loads: the page asks for exactly those again, where
+    /// they are (an image that failed into a link comes back), so the page keeps its place and nothing else is fetched.
+    fileprivate func retryCutImages() {
+        let sources = Array(Set(cutImageSources))
+        cutImageSources = []
+        ReaderLog.debug("show retries \(sources.count) cut image(s) token=\(document?.token ?? -1)")
+        run("window.hfrReader.retryImages(sources); return true;", arguments: ["sources": sources])
     }
 }

@@ -52,9 +52,11 @@ struct ThemeAppearanceTests {
         let variables = Dictionary(uniqueKeysWithValues: appearance.readerVariables.map { ($0.name, $0.value) })
         #expect(variables["--app-action-light"] == "rgb(89, 227, 255)")
         #expect(variables["--app-action-dark"] == "rgb(73, 214, 242)")
-        #expect(variables["--app-dark-background"] == "rgb(0, 0, 0)")
-        // 0x1C1C1E: brightness 30/255 × 1.5 = 45/255.
-        #expect(variables["--app-dark-quote-background"] == "rgb(42, 42, 45)")
+        // The standard style (#1210): the legacy grey page and its quote surface are capped at 100 % (no headroom for secondary
+        // text); only its separator follows the slider above 100 %.
+        #expect(variables["--app-dark-background"] == "rgb(46, 47, 51)")
+        #expect(variables["--app-dark-quote-background"] == "rgb(38, 40, 47)")
+        #expect(variables["--app-dark-separator"] == appearance.adjustedDark(ThemeColor(hex: 0x4A4B50)).cssRGB)
         #expect(variables.count == 6)
     }
 
@@ -64,12 +66,17 @@ struct ThemeAppearanceTests {
         #expect(script.hasPrefix("(() => { const s = document.documentElement.style; "))
         #expect(script.hasSuffix(" })();"))
         #expect(script.contains("s.setProperty('--app-action-light', 'rgb(89, 227, 255)');"))
-        // Nothing but the six setters and Legacy's fixed attribute removal (LOT-188) between the prefix and the closing: no page
-        // text can reach it.
+        // Nothing but the six setters, the four fixed removals of « Blanc »'s light variables (#1213, a live switch back from
+        // « Doux ») and Legacy's fixed attribute removal (LOT-188) between the prefix and the closing: no page text can reach it.
         #expect(script.hasSuffix(" document.documentElement.removeAttribute('data-app-theme'); })();"))
-        let setters = script.split(separator: ";").dropFirst().dropLast(2)
+        let statements = script.split(separator: ";").dropFirst().dropLast(2)
+        let setters = statements.filter { $0.contains("s.setProperty(") }
+        let removals = statements.filter { $0.contains("s.removeProperty(") }
         #expect(setters.count == 6)
         #expect(setters.allSatisfy { $0.contains("s.setProperty('--app-") && $0.contains("'rgb(") })
+        #expect(removals.count == 4)
+        #expect(removals.allSatisfy { $0.contains("s.removeProperty('--app-light-") })
+        #expect(setters.count + removals.count == statements.count)
     }
 
     @Test @MainActor func theNativeAccentFollowsTheVariant() {
@@ -84,12 +91,24 @@ struct ThemeAppearanceTests {
         #expect(blue > 0.99 && red < 0.01)
     }
 
-    @Test func theStandardStyleKeepsTheReaderDarkPalette() {
+    /// #1210: the standard dark style is legacy's grey, not pure black: `body.ios7 { background: rgba(46, 47, 51, 1) }` and
+    /// `.message .content { background: rgba(46, 47, 51, 1) }` (`style-liste-dark.css:263-266, 563-564` @ 87fe0d1c). Its quote
+    /// surface is legacy's dark list row (`rgba(38, 40, 47, 1)`, `:330`); the placeholder and the quiet separator are re-derived to
+    /// stay distinct from the grey page while the placeholder keeps the secondary text at 4.5:1.
+    @Test func theStandardStyleIsLegacysGreyAndTheOtherStylesAreUnchanged() {
         let variables = Dictionary(uniqueKeysWithValues: ThemeAppearance.standard.readerVariables.map { ($0.name, $0.value) })
-        #expect(variables["--app-dark-background"] == "rgb(0, 0, 0)")
-        #expect(variables["--app-dark-quote-background"] == "rgb(28, 28, 30)")
-        #expect(variables["--app-dark-placeholder"] == "rgb(44, 44, 46)")
-        #expect(variables["--app-dark-separator"] == "rgb(56, 56, 58)")
+        #expect(variables["--app-dark-background"] == "rgb(46, 47, 51)")
+        #expect(variables["--app-dark-quote-background"] == "rgb(38, 40, 47)")
+        #expect(variables["--app-dark-placeholder"] == "rgb(53, 54, 59)")
+        #expect(variables["--app-dark-separator"] == "rgb(74, 75, 80)")
+        var darker = ThemeAppearance.standard
+        darker.darkStyle = .darker
+        #expect(Dictionary(uniqueKeysWithValues: darker.readerVariables.map { ($0.name, $0.value) })["--app-dark-background"]
+            == "rgb(11, 11, 12)")
+        var oled = ThemeAppearance.standard
+        oled.darkStyle = .oled
+        #expect(Dictionary(uniqueKeysWithValues: oled.readerVariables.map { ($0.name, $0.value) })["--app-dark-background"]
+            == "rgb(0, 0, 0)")
         #expect(ThemeAppearance.standard.darkScreenBackground == nil)
     }
 
@@ -110,9 +129,10 @@ struct ThemeAppearanceTests {
 
     /// Acceptance criterion of #213: text, secondary text and the default night accent are at least 4.5:1 on every surface of the
     /// dark styles as the reader shows them (`readerSurfaces`), at 100 % and, for darker and OLED, at every brightness up to 150 %.
-    /// Standard above 100 % is LOT-121's slider (the legacy surfaces scaled up), not claimed here.
+    /// No style lifts its page or placeholder above 100 % (`readerSurface`): the standard style's legacy grey (#1210) has no headroom.
     @Test(arguments: [
-        (DarkStyle.standard, 1.0), (.darker, 1.0), (.darker, 1.25), (.darker, 1.5), (.oled, 1.0), (.oled, 1.25), (.oled, 1.5)
+        (DarkStyle.standard, 1.0), (.standard, 1.25), (.standard, 1.5), (.darker, 1.0), (.darker, 1.25), (.darker, 1.5),
+        (.oled, 1.0), (.oled, 1.25), (.oled, 1.5)
     ])
     func textHasAtLeast4_5ToOneOnEveryDarkSurface(style: DarkStyle, brightness: Double) {
         var appearance = ThemeAppearance.standard
@@ -172,16 +192,17 @@ struct ThemeAppearanceTests {
         func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
         let accent = [appearance.nightAccent.red, appearance.nightAccent.green, appearance.nightAccent.blue].map { $0 * 255 }
         let header = mix(channels, accent, 0.03)
-        // Opacity 0.75 blends the header and the text toward the page behind them.
+        // Opacity 0.75 blends the header and the text toward the page behind them. The date is the page text colour in dark since
+        // #1210 (`.message.continuation .date`): secondary text at 75 % measured 3.45:1 on the legacy grey.
         let shownHeader = mix(channels, header, 0.75)
-        let shownText = mix(channels, [161, 161, 166], 0.75)
+        let shownText = mix(channels, [242, 242, 247], 0.75)
         #expect(colour(shownText).contrast(with: colour(shownHeader)) >= 4.5, "\(style) at \(brightness): \(channels)")
     }
 
-    /// #577 draws even messages on `--surface-alt` (text over the background, 9 % in dark) and their quotes on `--placeholder`:
-    /// the secondary text keeps 4.5:1 on both, in the darker and OLED styles at every brightness.
-    @Test(arguments: [DarkStyle.darker, .oled], [0.0, 0.5, 1.0, 1.5])
-    func secondaryTextHoldsOnTheAlternateSurfaceAndOnQuotes(style: DarkStyle, brightness: Double) throws {
+    /// The secondary text keeps 4.5:1 on the quote surface (`--placeholder`) in every dark style at every brightness. The alternating
+    /// message tint (#568, #577) is gone (#1210), so there is no alternate surface to check any more.
+    @Test(arguments: DarkStyle.allCases, [0.0, 0.5, 1.0, 1.5])
+    func secondaryTextHoldsOnTheQuoteSurface(style: DarkStyle, brightness: Double) throws {
         var appearance = ThemeAppearance.standard
         appearance.darkStyle = style
         appearance.darkBrightness = brightness
@@ -190,11 +211,17 @@ struct ThemeAppearanceTests {
             return value.dropFirst(4).dropLast().split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
         }
         func colour(_ rgb: [Double]) -> ThemeColor { ThemeColor(red: rgb[0] / 255, green: rgb[1] / 255, blue: rgb[2] / 255) }
-        let secondary = ThemeAppearance.darkSecondaryText
-        let background = try channels("--app-dark-background")
-        let alternate = zip(background, [242.0, 242, 247]).map { $0 * 0.91 + $1 * 0.09 }
-        #expect(secondary.contrast(with: colour(alternate)) >= 4.5, "\(style) at \(brightness): alternate surface")
         let placeholder = try channels("--app-dark-placeholder")
-        #expect(secondary.contrast(with: colour(placeholder)) >= 4.5, "\(style) at \(brightness): quote surface")
+        #expect(ThemeAppearance.darkSecondaryText.contrast(with: colour(placeholder)) >= 4.5, "\(style) at \(brightness): quote surface")
+        // The folded quote's header is secondary text on 3 % of the text colour over the page (`--blocked-tint` in dark, `reader.css`):
+        // 5 % measured 4.4999:1 on the legacy grey.
+        let page = try channels("--app-dark-background")
+        let folded = zip(page, [242.0, 242, 247]).map { $0 * 0.97 + $1 * 0.03 }
+        #expect(ThemeAppearance.darkSecondaryText.contrast(with: colour(folded)) >= 4.5, "\(style) at \(brightness): folded quote")
+        // The classic header is 15 % accent over the page; its date is the page text colour in dark (`.style-classic .message .date`):
+        // secondary text measured 3.75:1 there on the legacy grey, the text colour is 8.6:1.
+        let accent = [appearance.nightAccent.red, appearance.nightAccent.green, appearance.nightAccent.blue].map { $0 * 255 }
+        let header = zip(page, accent).map { $0 * 0.85 + $1 * 0.15 }
+        #expect(ThemeAppearance.darkText.contrast(with: colour(header)) >= 4.5, "\(style) at \(brightness): classic header date")
     }
 }

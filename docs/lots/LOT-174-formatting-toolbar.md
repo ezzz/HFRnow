@@ -23,7 +23,7 @@ None @ 2440d79 (new UX). The code says so in its `// Port of …` header: "none 
 ## Behaviour
 Delivered by #598 (the first slice; the rest of the lot is still to write), on top of the merged LOT-085:
 - **Size** (`ComposerBarMetrics`): a cell is 48 pt in regular density and 40 pt in compact, times Dynamic Type (`@ScaledMetric`, LOT-169) and the text scale; the colour swatch is half a cell, the symbol 0.4 of it.
-- **`[url]`**: with a selection, today's path (clipboard link → `[url=<clip>]sel[/url]`). With nothing selected and a non-blank clipboard text not already used, the alert offers both legacy forms (`HFRTextView.m:205-262`, `:308-350` @ 2440d79): `[url=<clip>][/url]` with the caret between the tags, or `[url]<clip>[/url]`; "Sans le presse-papiers" writes the empty `[url][/url]` and, as in legacy, does not mark the clipboard used (the choice is offered again until a form is picked); without such a clipboard text, `[url][/url]` is inserted with no choice.
+- **`[url]`**: with a selection, today's path (clipboard link → `[url=<clip>]sel[/url]`). With nothing selected and a non-blank clipboard text not already used, the question offers both legacy forms (as « Insérer [url=XXX] » / « Insérer [url]XXX[/url] », #1180) (`HFRTextView.m:205-262`, `:308-350` @ 2440d79): `[url=<clip>][/url]` with the caret between the tags, or `[url]<clip>[/url]`; « Insérer sans le presse-papiers » writes the empty `[url][/url]` and, as in legacy, does not mark the clipboard used (the choice is offered again until a form is picked); without such a clipboard text, `[url][/url]` is inserted with no choice.
 - **Icons**: the top upload button is `photo.badge.plus`; the bottom `[img]` tag keeps `photo`.
 
 ## Composer layout and control row ([#653](https://github.com/ezzz/HFRnow/issues/653), M4)
@@ -70,8 +70,9 @@ inside the card above the text, the two pills just under the editor so they move
   (draft, quote, edit prefill) is no step, and each step is saved like typing (LESSONS 48). Off while sending or closing (`canEdit`).
 - **Aa** shows the bar above the row (hidden on each opening, as legacy); the bar keeps #599 (off while the recipient or subject
   has focus, one view across focus changes) and the #602/#605 behaviour.
-- **Height (b·operator, GAP-653).** On an iPhone every composer opens at partial height: a reply (topic or MP) and an edit
-  (operator, 2026-11-08), a new topic and a new MP too (operator, 2026-11-10). At partial height the sheet is the docked card: its
+- **Height (b·operator, GAP-653).** On an iPhone a reply (topic or MP) and an edit open at partial height
+  (operator, 2026-11-08); a new topic and a new MP opened at partial height too (operator, 2026-11-10) until #1137 (operator,
+  2026-11-18): they open full screen with no toggle, their buttons in the top band above the fields. At partial height the sheet is the docked card: its
   detent is the card's measured height (`ComposerCardLayout`: header, banners, fields, image chips, the editor, the row), and the
   editor is as tall as its text, from 2 lines up to 6 lines of the body font (Dynamic Type included), past which it scrolls inside
   the card. Six lines keep about the third of the screen #653 first gave the text and the row on a 6.9" iPhone, so the page keeps
@@ -120,7 +121,7 @@ inside the card above the text, the two pills just under the editor so they move
   100 %) the slack is wider than the gap and is kept. After a banner or the recipient and subject fields, the gap is above the
   card too (`ComposerChrome.gapAboveCard`). The floating buttons' glyphs take the card tools' size and weight
   (`ComposerBarMetrics.glyphSize`), and the card's tools and its "Aa" bar keep 44 pt cells at the compact density. Variant D (each tool in a round
-  chip, `ComposerToolStyle`) is the one the build shows until the operator chooses on the device. Legacy's chrome (an iPad, or the
+  chip, `ComposerChip`) is the one the build shows: the operator's device check of 2026-11-16 kept it (#895) and the bare-glyph variant was deleted (#1196). Legacy's chrome (an iPad, or the
   option off) keeps its paddings.
 - **Image chips.** An image the panel uploaded and inserted shows as a 56 pt thumbnail (the host's mini rendition, as the panel's
   history) at the top of the card, with an ✕ ("Retirer l'image"). The snippet stays in the text where legacy puts it (at the caret,
@@ -136,9 +137,9 @@ inside the card above the text, the two pills just under the editor so they move
 1. Legacy's drafts button (`tray`, archived drafts per topic) belongs to LOT-101
    ([#192](https://github.com/ezzz/HFRnow/issues/192)), merged since: the top bar shows it where LOT-101 offers it, after "Fermer".
 2. The page behind the partial sheet scrolls; its taps are ignored while the composer is open (above).
-3. The chosen height is not remembered: every opening starts at a third of the screen.
+3. The chosen height is not remembered: every opening of a reply or an edit starts at a third of the screen.
 4. "Fermer" (×) stays at the top left, as in legacy.
-5. A new topic and a new MP open at partial height too, with the toggle.
+5. A new topic and a new MP opened at partial height too, with the toggle, until #1137: now full screen, no toggle.
 6. Legacy's button placement in the Claude app's layout (reference of 2026-11-10, above); send stays at the top right.
 7. Accessibility text sizes open at full height, with "Réduire"; the lists behind a new topic / new MP stay dimmed and inert
    (the author's two choices of round 2, confirmed by the operator on 2026-11-11).

@@ -8,8 +8,9 @@ import SwiftUI
 /// The smiley panel of the reply sheet (legacy `CombinedSmileyPickerView`, `HFRswift/Swift/AnswerView.swift:1051` @ 2440d79).
 ///
 /// Differences: the search field, history and keywords are LOT-105 (the field is `.searchable` since #600);
-/// section collapse states keep legacy's `@AppStorage` keys; detail is a sheet instead of an overlay card (decision of the
-/// lot, same actions). "Mes smileys" (the member's own created smileys) is new (#414).
+/// section collapse states keep legacy's `@AppStorage` keys; the detail is pushed inside the panel instead of legacy's in-panel
+/// card (same actions; it was a third sheet over the composer until #1177, with a swipe as the only way out). "Mes smileys"
+/// (the member's own created smileys) is new (#414).
 struct SmileyPickerView: View {
     @Bindable var model: SmileyPickerModel
     /// Called with the code to insert, right before the panel closes.
@@ -61,12 +62,18 @@ struct SmileyPickerView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
             }
             .overlay(alignment: .top) { noticeBanner }
+            // Pushed, not a third sheet over the composer (#1177; HIG › Sheets: one sheet at a time): the back button and
+            // the title come with it.
+            .navigationDestination(item: $model.presented) { smiley in
+                SmileyDetailView(model: model, smiley: smiley, requireAll: requireAll)
+                    .navigationTitle(smiley.code)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .appScreenBackground()
+                    // The favourite's notice (« Erreur :/ » included) shows over the detail too: the root's is covered.
+                    .overlay(alignment: .top) { noticeBanner }
+            }
         }
         .presentationDetents([.large])
-        .sheet(item: $model.presented) { smiley in
-            SmileyDetailView(model: model, smiley: smiley, requireAll: requireAll)
-                .presentationDetents([.medium, .large])
-        }
         .task { await model.loadFavorites() }
         .task { await model.loadForum() }
         .task { await model.loadOwn() }
@@ -185,10 +192,23 @@ struct SmileyPickerView: View {
         case .failed(let text):
             VStack(alignment: .leading, spacing: 8) {
                 Text(text).font(.subheadline).foregroundStyle(.secondary)
-                if section.kind == .forum { Button("Réessayer") { Task { await model.retryForum() } }.font(.subheadline) }
-                if section.kind == .own { Button("Réessayer") { Task { await model.retryOwn() } }.font(.subheadline) }
+                failureAction(section.kind).font(.subheadline)
             }
             .padding(.horizontal, 4)
+        }
+    }
+
+    /// What a failed section offers: a retry for what the forum serves, the way out of an unreadable store (#1182).
+    @ViewBuilder
+    private func failureAction(_ kind: PickerSectionKind) -> some View {
+        switch kind {
+        case .forum: Button("Réessayer") { Task { await model.retryForum() } }
+        case .own: Button("Réessayer") { Task { await model.retryOwn() } }
+        case .appFavorites:
+            if model.favoritesAreUnreadable {
+                UnreadableDataRecoveryButton(content: "les smileys favoris") { await model.discardUnreadableFavorites() }
+            }
+        case .basic: EmptyView()
         }
     }
 

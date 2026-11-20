@@ -1,6 +1,6 @@
 name: UX survey
 
-# Questionnaire UX (#634, #635) : go vet, go test -race, node --test, puis construction et démarrage de l'image
+# Questionnaire UX (#634, #635) : go vet, go test -race, node --test, govulncheck, puis construction et démarrage de l'image
 # (compose.yaml compris : utilisateur non root, lecture seule, en-têtes, contrôle de santé). Filtré pour qu'une correction de libellé dans
 # questions.md ou donnees.md relance le test de concordance.
 on:
@@ -39,6 +39,8 @@ jobs:
       - run: go vet ./...
       - run: go test -race ./...
       - run: node --test web/logique.test.mjs
+      # Vulnérabilités connues, dépendances et bibliothèque standard (F4). Outil de CI épinglé, hors de go.mod.
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   image:
     name: Docker image
@@ -76,8 +78,22 @@ jobs:
             echo "$h" | grep -qi "^$e" || { echo "en-tête absent : $e"; exit 1; }
           done
           test "$(docker image inspect -f '{{.Size}}' ux-survey:local)" -lt 30000000
-          # Rien d'identifiant dans les journaux du conteneur.
-          ! docker logs "$c" 2>&1 | grep -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | grep -v '0\.0\.0\.0:8080'
+          # Un vrai envoi, avec un agent, un référent, un texte libre et un pseudo reconnaissables, puis les journaux :
+          # rien de tout cela, ni aucune adresse, ne doit y figurer.
+          curl -fsS -o /dev/null -X POST http://127.0.0.1:18080/api/reponses \
+            -H 'Origin: https://exemple.invalid' -H 'Content-Type: application/json' \
+            -H 'X-Forwarded-For: 198.51.100.77' -H 'User-Agent: AgentSecretCI' -H 'Referer: https://referent-secret.invalid/' \
+            -d '{"version":"2026-11-v1","jeton":"00000000000000000000000000000abc","site_web":"","duree_s":60,"reponses":{"P1":"iphone","G1":"TexteSecretCI","I1":"PseudoSecretCI"}}'
+          curl -s -o /dev/null http://127.0.0.1:18080/inconnu-SecretCheminCI
+          logs=$(docker logs "$c" 2>&1)
+          echo "$logs"
+          echo "$logs" | grep -q '"chemin":"/api/reponses"' || { echo "aucune ligne d'envoi dans le journal : le contrôle ne prouverait rien"; exit 1; }
+          if echo "$logs" | grep -E 'SecretCI|referent-secret|00000000000000000000000000000abc|198\.51\.100|172\.31\.250'; then
+            echo "le journal contient une donnée identifiante"; exit 1
+          fi
+          if echo "$logs" | grep -v '"adresse":"0.0.0.0:8080"' | grep -E '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "une adresse apparaît dans le journal"; exit 1
+          fi
       - name: Stop
         if: always()
         working-directory: tooling/ux-survey/deploy

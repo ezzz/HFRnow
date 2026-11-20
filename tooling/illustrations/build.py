@@ -341,7 +341,7 @@ def b_events():
             '<div class="capsule" style="top:590px;background:#fff;color:#0055A4">Fête <span style="color:#EF4135">nationale</span></div><div class="timer">3–5 s</div>')
     body = '<div class="grid">' \
         + phone("legacy", "light", 0.528, overlay=sleigh, label="Noël 1 · premier lancement 01/12–26/12", note="le traîneau, tiré par les rennes, traverse l'écran ; activation auto de Noël soft seulement 01/12–24/12") \
-        + phone("noel-soft", "light", overlay=alert("Oh Oh Oh !", "Thème disponible dans les réglages"), label="Noël 2 · popup", note="Noël soft déjà actif ; Désactiver = retour au thème précédent pour l'année") \
+        + phone("noel-soft", "light", overlay=alert("Thème de Noël activé", "Thème disponible dans les réglages"), label="Noël 2 · popup", note="Noël soft déjà actif ; Désactiver = retour au thème précédent pour l'année") \
         + phone("noel-soft", "light", overlay=elves, label="Noël 3 · premier lancement 27/12–02/01", note="si un thème Noël était actif ; plus tard : retour silencieux au thème précédent") \
         + phone("legacy", "dark", 0.528, overlay=witchx, label="Samain 1 · premier lancement 01/10–31/10", note="sorcière, fantôme ou vampire (tirage)") \
         + phone("spooktober-soft", "dark", overlay=alert("Spooktober est là !", "Thème disponible dans les réglages"), label="Samain 2 · popup") \

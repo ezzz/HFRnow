@@ -56,6 +56,19 @@ struct ForumSearchModelTests {
         return ForumSearchModel(source: source, store: store, now: { now }, calendar: calendar)
     }
 
+    /// The search starts with a POST, never sent twice (LOT-046): a cancellation nobody asked for is a failure to retry by
+    /// hand, not a second POST (#1191).
+    @Test func anUnrequestedCancellationOfTheSearchIsAFailureAndSendsItOnce() async {
+        let source = FakeSearchSource()
+        source.searchHandler = { _ async throws(ListLoadError) -> TopicListPage in throw .cancelled }
+        let search = model(source)
+        search.text = "pâtes"
+        await search.search()
+        #expect(source.sentQueries.count == 1)
+        #expect(search.loader.error == .other)
+        #expect(!search.loader.isLoading)
+    }
+
     @Test func aBannedWordIsRefusedWithAWarningAndSendsNothing() async {
         let source = FakeSearchSource()
         let search = model(source)

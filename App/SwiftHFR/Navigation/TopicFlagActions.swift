@@ -96,7 +96,7 @@ struct TopicFlagActions: Sendable {
     /// Whether sending again may succeed without the user doing anything else first (logging in, refreshing the list).
     static func isRetryable(_ error: TopicFlagError) -> Bool {
         switch error {
-        case .sessionNotConfirmed(.unconfirmed), .network: true
+        case .sessionNotConfirmed(.unconfirmed), .sessionChanged, .network: true
         case .sessionNotConfirmed, .invalidLink, .invalidTopic, .missingToken, .notLoggedIn, .rejected, .unconfirmed: false
         }
     }
@@ -108,6 +108,9 @@ struct TopicFlagActions: Sendable {
             "Sujet invalide : rien n'a été envoyé."
         case .sessionNotConfirmed(let health):
             session(health)
+        case .sessionChanged:
+            // A login landed between the check and the write (#1200 P2): the same words as a check that saw it.
+            session(.unconfirmed(.sessionChanged))
         case .missingToken:
             "Session incomplète : rien n'a été envoyé. Actualisez la liste puis réessayez."
         case .notLoggedIn:

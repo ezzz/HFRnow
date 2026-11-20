@@ -31,7 +31,7 @@ final class MPStorageCreationChoice {
             if answer == .non, oldValue != .non { asksRefusalConfirmation = true }
         }
     }
-    /// True while the confirmation of a « Non » waits for its answer (« Confirmer » or « Revenir »).
+    /// True while the confirmation of a « Non » waits for its answer (« Ne pas créer » or « Annuler »).
     var asksRefusalConfirmation = false
 
     /// « Valider »: « Oui » decides now; « Non » (reachable only with the confirmation closed by other means) asks again and
@@ -45,13 +45,13 @@ final class MPStorageCreationChoice {
         }
     }
 
-    /// « Confirmer » in the confirmation: the refusal stands.
+    /// « Ne pas créer » in the confirmation: the refusal stands.
     func confirmRefusal() -> Decision {
         asksRefusalConfirmation = false
         return .decline
     }
 
-    /// « Revenir » in the confirmation: back to the question, « Oui » selected again.
+    /// « Annuler » in the confirmation: back to the question, « Oui » selected again.
     func goBack() {
         asksRefusalConfirmation = false
         answer = .oui

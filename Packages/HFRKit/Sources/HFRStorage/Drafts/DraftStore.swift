@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Persistence is one atomic JSON document. Every save rewrites it, so callers should debounce keystrokes.
 /// A document that cannot be decoded (corrupt, or from a newer version) is moved aside as `.corrupt` and the store starts
-/// empty: a draft is not worth blocking the composer. A document that cannot be *read* (I/O error) blocks writes
+/// empty: a draft is not worth blocking the composer. A document with some unreadable entries is copied aside as `.corrupt`
+/// and its readable drafts are kept (#1183). A document that cannot be *read* (I/O error) blocks writes
 /// instead, so a transient failure never replaces good data.
 public actor DraftStore {
     /// How long a draft lives after its last save: 30 days.
@@ -24,6 +25,7 @@ public actor DraftStore {
     let clock: @Sendable () -> Date
     private var state = State.unloaded
     private var recoveredCorruptData = false
+    private var recoveryNoticeTaken = false
 
     /// Creates a store; nothing is read until the first call. `clock` is injectable for tests.
     public init(
@@ -65,10 +67,18 @@ public actor DraftStore {
         return nil
     }
 
-    /// Whether the last load found undecodable data and moved it aside to `.corrupt`.
+    /// Whether the last load found undecodable data, or entries it could not read (#1183), and set it aside to `.corrupt`.
     public func didRecoverFromCorruptData() -> Bool {
         _ = loadedState()
         return recoveredCorruptData
+    }
+
+    /// True once, the first time it is asked after a load set undecodable data or entries aside: the screen tells the member once
+    /// (#1182). `didRecoverFromCorruptData()` keeps answering the fact.
+    public func takeRecoveredCorruptDataNotice() -> Bool {
+        guard didRecoverFromCorruptData(), !recoveryNoticeTaken else { return false }
+        recoveryNoticeTaken = true
+        return true
     }
 
     // MARK: Writing
@@ -78,6 +88,8 @@ public actor DraftStore {
         let now = clock()
         let key = AccountKey.make(account)
         let hasContent = !text.isEmpty || !(subject ?? "").isEmpty
+        // Removing (empty text) stays possible under any key; storing needs an account (#1184).
+        if hasContent, key.isEmpty { throw DraftError.emptyAccount }
         try mutate { drafts in
             let original = drafts
             drafts.removeAll { Self.matches($0, context, account) }
@@ -164,6 +176,8 @@ public actor DraftStore {
             let stored = try persistence.load() ?? DraftDocument()
             if stored.version > DraftDocument.currentVersion {
                 state = quarantine(reason: "newer format version \(stored.version)")
+            } else if stored.unreadableEntryCount > 0 {
+                state = setAsideUnreadableEntries(of: stored)
             } else {
                 state = .loaded(stored)
             }
@@ -173,6 +187,22 @@ public actor DraftStore {
             state = .failed(.loadFailed(reason: String(describing: error)))
         }
         return state
+    }
+
+    /// Some entries cannot be read (#1183): the file as it was is copied aside (`.corrupt`, never deleted), then the readable
+    /// drafts are written back, so the next load is clean and the others are kept. If either step fails, writes stay blocked
+    /// as for an I/O failure: a save must never drop entries that were not set aside.
+    private func setAsideUnreadableEntries(of stored: DraftDocument) -> State {
+        var readable = stored
+        readable.unreadableEntryCount = 0
+        do {
+            try persistence.backUpUnreadableData()
+            try persistence.save(readable)
+        } catch {
+            return .failed(.loadFailed(reason: "unreadable entries could not be set aside: \(error)"))
+        }
+        recoveredCorruptData = true
+        return .loaded(readable)
     }
 
     private func quarantine(reason: String) -> State {

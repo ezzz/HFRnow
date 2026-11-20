@@ -5,15 +5,15 @@ import SwiftUI
 /// What the « Style des messages » preview shows (#1063): two sample messages, an odd and an even one, built by the reader's own
 /// `TopicHTMLBuilder` so the preview cannot drift from `reader.css`. Sample content only: neutral pseudos, no image, no link, so
 /// nothing is requested. The two styles differ by what `reader.css` says at `.style-modern` / `.style-classic`: the header tint
-/// (3 % accent against 15 %) and where the text starts (`--indent`, under the pseudo, against the left margin). The band of every even
-/// message is the same in both styles (`article.message:nth-of-type(even)`), so the sentence does not claim it.
+/// (3 % accent against 15 %) and where the text starts (`--indent`, under the pseudo, against the left margin). Messages have no
+/// alternating band any more (#1210), so the sample text does not mention one.
 enum StylePreviewContent {
     /// The page of the two sample messages.
     static let page = ReaderPage(
         topicID: nil, title: "Aperçu", currentPage: 1, maxPage: 1,
         messages: [
             message(1, author: "Exemple A", text: "Premier message d’exemple."),
-            message(2, author: "Exemple B", text: "Second message d’exemple, pour voir l’alternance.")
+            message(2, author: "Exemple B", text: "Second message d’exemple.")
         ]
     )
 

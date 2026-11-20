@@ -19,18 +19,36 @@
   };
 
   // A refused or failed image becomes its URL as text, or a link when it is not already inside one (the app opens links).
+  // Returns how to put the picture back where it was.
   const replaceWithLink = (img, src) => {
-    if (img.classList.contains("avatar")) { dropAvatar(img); return; }
+    if (img.classList.contains("avatar")) {
+      const wrap = img.closest(".avatar-wrap");
+      const parent = img.parentNode;
+      const next = img.nextSibling;
+      dropAvatar(img);
+      return () => {
+        if (parent && parent.isConnected) { parent.insertBefore(img, next && next.parentNode === parent ? next : null); }
+        if (wrap) { wrap.classList.add("has-image"); }
+      };
+    }
     const insideLink = img.closest("a") !== null;
     const node = document.createElement(insideLink ? "span" : "a");
     node.className = "image-link";
     node.textContent = src;
     if (!insideLink) { node.setAttribute("href", src); }
     img.replaceWith(node);
+    return () => { if (node.isConnected) { node.replaceWith(img); } };
   };
 
+  // The pictures whose load failed, by source, with how to put each back: when a stop of the reader cut their loads, the app
+  // asks for them again on return (#1187).
+  const failedLoads = new Map();
+
   const load = (img, src) => {
-    img.addEventListener("error", () => replaceWithLink(img, src), { once: true });
+    img.addEventListener("error", () => {
+      const restore = replaceWithLink(img, src);
+      failedLoads.set(src, (failedLoads.get(src) || []).concat([() => { restore(); img.removeAttribute("src"); load(img, src); }]));
+    }, { once: true });
     // A posted picture without a description is read as "Image", not as its file name (LOT-163).
     // HFR's [img] writes the address itself as the alt, so an alt that is empty or an address counts as none.
     if (img.classList.contains("hfrplusimg")) {
@@ -61,7 +79,30 @@
     img.replaceWith(button);
   };
 
+  // A YouTube card's thumbnail (#1037): shown only once it has loaded; refused, failed or not asked for (images on tap, no Wi-Fi,
+  // a blocked host), the card stays the pill the builder wrote, with no placeholder and no link text in its place.
+  const applyThumb = (img, src, decision) => {
+    const card = img.closest(".video-card");
+    const fail = () => { img.remove(); if (card) { card.classList.remove("has-thumb"); } };
+    if (decision !== "load") { fail(); return; }
+    const parent = img.parentNode;
+    const next = img.nextSibling;
+    img.addEventListener("load", () => { if (card) { card.classList.add("has-thumb"); } }, { once: true });
+    img.addEventListener("error", () => {
+      fail();
+      // Put back and asked again when a stop of the reader cut it (#1187).
+      failedLoads.set(src, (failedLoads.get(src) || []).concat([() => {
+        if (parent && parent.isConnected) { parent.insertBefore(img, next && next.parentNode === parent ? next : null); }
+        img.removeAttribute("src");
+        applyThumb(img, src, "load");
+      }]));
+    }, { once: true });
+    img.dataset.thumbSrc = src;
+    img.setAttribute("src", proxied(src));
+  };
+
   const apply = (img, src, decision) => {
+    if (img.classList.contains("video-thumb")) { applyThumb(img, src, decision); return; }
     if (decision === "load") { load(img, src); }
     else if (decision === "tap") { placeholder(img, src); }
     else { replaceWithLink(img, src); }
@@ -75,6 +116,22 @@
       event.preventDefault();
       channel.postMessage({ type: "video", token, post: Number(video.dataset.post), index: Number(video.dataset.video) });
       return;
+    }
+    // The card of a plain YouTube link, or that link itself (same address, same message): the app opens it in the YouTube app or in
+    // Safari (#1037). Only the message's own text link counts: not one in a quote, a spoiler or a code block (a table), nor one around a
+    // picture (that tap is the picture's). The app checks the address again; nothing else of the page is sent.
+    const anchor = target.closest("a[href]");
+    if (anchor) {
+      const article = anchor.closest("article");
+      const href = anchor.getAttribute("href");
+      const isCard = anchor.classList.contains("video-card");
+      const isCardLink = anchor.matches(".content a.cLink") && !anchor.closest("table") && anchor.querySelector("img") === null
+        && article !== null && Array.from(article.querySelectorAll("a.video-card")).some((card) => card.getAttribute("href") === href);
+      if (isCard || isCardLink) {
+        event.preventDefault();
+        channel.postMessage({ type: "videolink", token, url: href });
+        return;
+      }
     }
     // A loaded posted picture opens the viewer (LOT-109). Smileys and avatars have no `hfrplusimg` class; a picture that is
     // still a placeholder or became a link is no longer an `img`, so it is not in the list the app receives.
@@ -234,6 +291,26 @@
   new ResizeObserver(repin).observe(document.documentElement);
 
   window.hfrReader = {
+    // The pictures of `sources` whose loads a stop of the reader cut (#1187): a failed one is put back where it was and
+    // asked again, one whose load never ended is asked again. Nothing else is fetched and the page does not move.
+    retryImages: (sources) => {
+      const wanted = new Set(sources);
+      // First the loads that never ended, then the failed ones put back (which start their own load).
+      // A cut load may end as `complete` with no picture and no `error`: only a picture that has its pixels is left alone.
+      document.querySelectorAll("img[data-viewer-src], img[data-thumb-src]").forEach((img) => {
+        const src = img.dataset.viewerSrc || img.dataset.thumbSrc;
+        if ((img.complete && img.naturalWidth > 0) || !wanted.has(src)) { return; }
+        const current = img.getAttribute("src");
+        img.removeAttribute("src");
+        img.setAttribute("src", current);
+      });
+      for (const src of wanted) {
+        const retries = failedLoads.get(src) || [];
+        failedLoads.delete(src);
+        retries.forEach((retry) => retry());
+      }
+      return true;
+    },
     scrollToPost: (number) => {
       releasePin();
       const element = document.getElementById("t" + number);

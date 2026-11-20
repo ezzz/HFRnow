@@ -85,6 +85,8 @@ final class SmileyPickerModel: Identifiable {
     var presented: PickerSmiley?
     /// A short French message after a favourite change or a store failure; nil when nothing to say.
     private(set) var notice: String?
+    /// The favourites store cannot be read: its section says so and offers « Repartir de zéro » (#1182).
+    private(set) var favoritesAreUnreadable = false
     /// The smiley the user chose to insert; the sheet reads it once and closes.
     private(set) var chosen: PickerSmiley?
 
@@ -118,9 +120,23 @@ final class SmileyPickerModel: Identifiable {
     /// Reads the favourites of the account from the store.
     func loadFavorites() async {
         favorites = await store.favorites(for: account).map { PickerSmiley(code: $0.code, imageURL: $0.url) }
-        if await store.loadFailure() != nil {
+        favoritesAreUnreadable = await store.loadFailure() != nil
+        if favoritesAreUnreadable {
             notice = "Les favoris sont illisibles pour le moment : ils ne seront pas enregistrés."
         }
+    }
+
+    /// « Repartir de zéro », after the member confirmed (#1182): the unreadable favourites file is set aside as `.corrupt`
+    /// (never deleted) and the favourites start empty and writable.
+    func discardUnreadableFavorites() async {
+        do throws(SmallStoreError) {
+            try await store.discardUnreadableData()
+        } catch {
+            notice = UnreadableDataRecovery.failure
+            return
+        }
+        notice = nil
+        await loadFavorites()
     }
 
     /// The sections in display order, each with its smileys or its empty, loading or failed message.
@@ -131,14 +147,24 @@ final class SmileyPickerModel: Identifiable {
                 : PickerSection(kind: .basic, smileys: basic, state: .smileys),
             forumSection,
             ownSection,
-            favorites.isEmpty
-                ? PickerSection(kind: .appFavorites, smileys: [], state: .empty(Self.noFavoritesText))
-                : PickerSection(kind: .appFavorites, smileys: favorites, state: .smileys)
+            favoritesSection
         ]
     }
 
     /// How to add a favourite, shown while the list is empty (the context menu was not discoverable, #600).
     static let noFavoritesText = "Aucun favori dans l’app pour le moment. Maintenez le doigt sur un smiley, puis « Ajouter aux favoris »."
+
+    private var favoritesSection: PickerSection {
+        if favoritesAreUnreadable {
+            return PickerSection(kind: .appFavorites, smileys: [], state: .failed(Self.unreadableFavoritesText))
+        }
+        return favorites.isEmpty
+            ? PickerSection(kind: .appFavorites, smileys: [], state: .empty(Self.noFavoritesText))
+            : PickerSection(kind: .appFavorites, smileys: favorites, state: .smileys)
+    }
+
+    /// The favourites section while the store cannot be read (#1182).
+    static let unreadableFavoritesText = "Les favoris de l’app sont illisibles : ils ne sont pas modifiés."
 
     private var forumSection: PickerSection {
         if let forum, !forum.isEmpty { return PickerSection(kind: .forum, smileys: forum, state: .smileys) }
@@ -245,7 +271,7 @@ final class SmileyPickerModel: Identifiable {
     /// The detail's "Insérer": the smiley goes to the composer.
     func insertPresented() {
         chosen = presented
-        // The detail goes away with the choice, so the panel never closes under a presented sheet.
+        // The detail goes away with the choice, so the panel never closes over a pushed detail (#1177).
         presented = nil
     }
 

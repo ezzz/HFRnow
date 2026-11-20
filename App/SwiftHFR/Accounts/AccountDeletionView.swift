@@ -120,6 +120,10 @@ struct AccountDeletionView: View {
             Button("Réessayer de supprimer l’élément du trousseau") { Task { await deletion.retry() } }
                 .disabled(deletion.isErasing)
         }
+        if deletion.positionsAreUnreadable {
+            UnreadableDataRecoveryButton(content: "les positions de lecture") { await deletion.discardUnreadablePositions() }
+                .disabled(deletion.isErasing)
+        }
     }
 
     private var eraseBinding: Binding<Bool> {

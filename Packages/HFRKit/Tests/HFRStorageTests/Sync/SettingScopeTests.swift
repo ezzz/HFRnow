@@ -17,7 +17,8 @@ import Testing
         "display_sig": .synced, "rehost_use_link": .synced, "rehost_resize_before_upload": .synced,
         "compact_mode": .device, "tabbar_minimize_on_scroll": .device, "text_size_scale": .device,
         "text_size_percent": .device, "haptics": .device, "landscape_mode": .device, "icon": .device,
-        "theme_dark_style": .device, "theme_id": .device, "mp_badge_enabled": .device, "display_images": .device,
+        "theme_dark_style": .device, "theme_light_style": .device, "theme_id": .device, "mp_badge_enabled": .device,
+        "display_images": .device,
         "recherche_categorie": .device,
         "FavoritesShowCollapsedSections": .device, "favorites_unread_only": .device, "HFRswiftGlobalTopicListFlag": .device,
         // Dropped or replaced: never synced. `size_smileys` has no reader (LOT-119), `embedded_videos` was removed from
@@ -38,7 +39,9 @@ import Testing
         // LOT-140: the background check runs on this device.
         "mp_check_interval": .device,
         // #1060: notifications follow this device's iOS permission, like the badge.
-        "mp_notifications_enabled": .device
+        "mp_notifications_enabled": .device,
+        // LOT-133: the last time this device showed the Alertes Qualitay list (ADR 0013 appendix E: "AQ counter and last check", No).
+        "last_check_aq": .device
     ]
 
     @Test func everyCatalogueKeyHasTheMatrixScope() {

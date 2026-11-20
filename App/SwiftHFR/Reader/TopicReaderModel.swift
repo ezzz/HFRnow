@@ -25,6 +25,12 @@ final class TopicReaderModel {
     private(set) var page: ReaderPage?
     /// A load is running.
     private(set) var isLoading = false
+    /// The page is pulled past its top or its end: the refresh icons' scales, 0 to 1 (#1207).
+    var pullTop: CGFloat = 0
+    /// The end's pull, same scale.
+    var pullBottom: CGFloat = 0
+    /// The end whose pull started the refresh that is running; only that icon turns (a first load or a page change turns none).
+    var pulledEdge: PullEdge?
     /// Failure of the latest load; cleared by the next success.
     private(set) var error: ListLoadError?
     /// The document for the web view; replaced by every successful load.
@@ -54,7 +60,8 @@ final class TopicReaderModel {
     var markUnreadState = MarkUnreadState.idle
     /// The reply the reader asks its screen to open: set by "Répondre" and by a quote, taken by `takePendingReply()` (LOT-086).
     var pendingReply: ReplyRequest?
-    /// A quote is being fetched: another one waits for it, as legacy's `isLoadingQuoteTemplate` (LOT-086).
+    /// A composer is being prepared (a quote being fetched, or an edit form, #1190): another waits for it, as legacy's
+    /// `isLoadingQuoteTemplate` (LOT-086).
     var isLoadingQuote = false
     /// The messages of this topic selected for a multi-quote, as last read from the session (the menu reads it again before it opens).
     var quoteSelected: Set<Int> = []
@@ -129,6 +136,10 @@ final class TopicReaderModel {
     /// which have no web view to make a page ready) never times out.
     private var isOnScreen = false
 
+    /// How many readers a followed link stacked below this one: 0 for a reader opened from a list, the opener's plus one for a
+    /// reader a link pushed (legacy `navigationDepth`, `MessagesView.swift:4021, 4720` @ 87fe0d1c; #682). The title shows it from 1.
+    let depth: Int
+
     /// A reader that will open `target`; nothing is fetched before `onAppear()`. With `opensAtLastMessage` the first load
     /// (and "Réessayer" after its failure) opens at the page's last message like a reply does, for a link that stands for
     /// "the latest message" (legacy `#bas`) rather than for a message of its own.
@@ -137,8 +148,10 @@ final class TopicReaderModel {
         title: String = "",
         source: any TopicPageSource,
         opensAtLastMessage: Bool = false,
+        depth: Int = 0,
         renderOptions: @escaping @Sendable () -> ReaderRenderOptions = { ReaderRenderOptions() }
     ) {
+        self.depth = max(depth, 0)
         self.requested = target
         self.requestedAnchor = opensAtLastMessage ? .lastMessage : .target
         self.initialTitle = title
@@ -277,7 +290,8 @@ final class TopicReaderModel {
             return
         }
         linkedReader = TopicReaderModel(
-            target: target, title: target.source == shown?.source ? title : "", source: source, renderOptions: renderOptions
+            target: target, title: target.source == shown?.source ? title : "", source: source, depth: depth + 1,
+            renderOptions: renderOptions
         )
     }
 
@@ -285,6 +299,7 @@ final class TopicReaderModel {
     var isPrivateConversation: Bool {
         switch requested.source {
         case .topic(let topic): topic.category == .privateMessages
+        case .quotingMessages(let link): link.topic.category == .privateMessages
         }
     }
 
@@ -391,7 +406,10 @@ final class TopicReaderModel {
     /// thread is not captured (`R24` is a public topic). Its last known page is asked for; when that page's pager says
     /// the reply opened a new one, that page is asked for next.
     func showLatestPost() async {
-        guard let page, let shown else { return }
+        guard let page, let current = shown else { return }
+        // A reply written in the quote view (#1039) lands at the end of its topic, not among the quoting posts.
+        var shown = current
+        if case .quotingMessages = current.source, let topic = page.topicID { shown = ReaderTarget(source: .topic(topic)) }
         guard page.topicID?.category == .privateMessages else {
             await load(shown.atPage(page.maxPage + 1), keepsScrollPosition: false, anchor: .lastMessage, followUp: .latestPost)
             return
@@ -543,11 +561,7 @@ final class TopicReaderModel {
         ReaderLog.debug("load start model=\(debugID) generation=\(mine) page=\(target.page)")
         let source = self.source
         let task = Task { [weak self] in
-            var result = await TopicReaderModel.fetch(target, from: source)
-            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (issue #566).
-            if case .failure(.cancelled) = result, !Task.isCancelled {
-                result = await TopicReaderModel.fetch(target, from: source)
-            }
+            let result = await TopicReaderModel.fetch(target, from: source)
             // Delivered, page or failure: what a write owed is settled, in the same turn (a failure shows "Réessayer").
             if settles { self?.settleFollowUp(generation: mine) }
             self?.finish(result, target: target, keepsScrollPosition: keepsScrollPosition, anchor: rule, generation: mine)
@@ -561,7 +575,10 @@ final class TopicReaderModel {
         _ target: ReaderTarget, from source: any TopicPageSource
     ) async -> Result<ReaderPage, ListLoadError> {
         do throws(ListLoadError) {
-            return .success(try await source.page(for: target))
+            // A cancellation nobody asked for (`cancel()` and a newer load cancel this task): asked once more (#566, #1191).
+            return .success(try await retryingUnrequestedCancellation(cancelledAs: .cancelled) {
+                () async throws(ListLoadError) -> ReaderPage in try await source.page(for: target)
+            })
         } catch {
             return .failure(error)
         }
@@ -585,7 +602,12 @@ final class TopicReaderModel {
         task = nil
         switch result {
         case .success(let loaded):
-            let source = loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
+            // The quote view stays the quote view (#1039): the page's topic would make a refresh ask for the whole topic.
+            let source: ReaderTarget.Source = if case .quotingMessages = target.source {
+                target.source
+            } else {
+                loaded.topicID.map(ReaderTarget.Source.topic) ?? target.source
+            }
             // HFR may serve another page than the one asked (past the end): the target follows the page served.
             shown = ReaderTarget(source: source).atPage(loaded.currentPage)
             page = loaded

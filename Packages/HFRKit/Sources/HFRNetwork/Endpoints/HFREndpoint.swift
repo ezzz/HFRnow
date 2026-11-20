@@ -64,15 +64,24 @@ public enum HFREndpoint {
 
     /// Turns a link found in a page (relative like `/forum2.php?…`, protocol-relative, or absolute) into an absolute URL.
     ///
-    /// Only the forum's own host is accepted, over `http` or `https`; anything else returns nil.
+    /// Only the forum's own host is accepted, over `http` or `https` on the scheme's default port and without user info;
+    /// anything else returns nil.
+    /// The result is always `https` with no explicit port (#1200 P5, LESSONS 37): an `http` link a page prints is upgraded,
+    /// so the session never sends its cookies in clear, whatever a parser hands back.
     public static func absoluteURL(href: String) -> URL? {
         let trimmed = href.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let base = URL(string: host), let url = URL(string: trimmed, relativeTo: base)?.absoluteURL else {
-            return nil
-        }
-        guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
-              url.host()?.lowercased() == base.host()?.lowercased() else { return nil }
-        return url
+        guard !trimmed.isEmpty, let base = URL(string: host), let url = URL(string: trimmed, relativeTo: base)?.absoluteURL,
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return nil }
+        let defaultPorts = ["https": 443, "http": 80]
+        guard let scheme = components.scheme?.lowercased(), let defaultPort = defaultPorts[scheme],
+              components.port == nil || components.port == defaultPort, components.user == nil, components.password == nil,
+              let linkHost = components.host?.lowercased(), linkHost == base.host()?.lowercased()
+        else { return nil }
+        components.scheme = "https"
+        components.host = linkHost
+        components.port = nil
+        return components.url
     }
 
     /// Builds `host + path + ?query` with each value percent-encoded; query order is the array order.

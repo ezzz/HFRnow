@@ -1,0 +1,16 @@
+{
+  "id": "R360c",
+  "account": "user2",
+  "method": "GET",
+  "url_template": "/message-smi-mp-aj.php?config=hfr.inc&findsmilies=%2Bchat%20%2Bnoir",
+  "url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=%2Bchat%20%2Bnoir",
+  "final_url": "https://forum.hardware.fr/message-smi-mp-aj.php?config=hfr.inc&findsmilies=%2Bchat%20%2Bnoir",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "date": "Wed, 18 Nov 2026 17:15:00 GMT",
+  "redirects": [],
+  "set_cookie_names": [],
+  "note": "Smiley search, all keywords (legacy %2B before each word), user2",
+  "file": "R360c-smiley-search-all-keywords-percent2b.html",
+  "private": false
+}

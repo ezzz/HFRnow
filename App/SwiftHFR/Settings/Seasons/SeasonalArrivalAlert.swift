@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 // Port of Classes/HFRplusAppDelegate.m (applicationDidBecomeActive, the alert `:665-676`) @ 87fe0d1c. Differences (GAP-147):
-// the operator's text and its « Désactiver » instead of legacy's one-button « C'est bientôt Noël ! »; shown only on a clear
-// screen and by one scene; kept until answered, across launches.
+// the operator's message and its « Désactiver » instead of legacy's one-button « C'est bientôt Noël ! », a title that names
+// the situation (#1174); shown only on a clear screen and by one scene; kept until answered, across launches.
 /// The arrival alert of one scene: it asks the model every second while an arrival is pending, and presents it once the lock,
 /// any sheet or alert and the keyboard are gone and no other scene shows it.
 struct SeasonalArrivalAlert: ViewModifier {
@@ -17,12 +17,13 @@ struct SeasonalArrivalAlert: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(WindowReader(reference: window))
-            // A normal alert, spoken by VoiceOver (THEMES.md §4 rule 6). The setter ignores the dismissal: each button answers.
-            .alert("Oh Oh Oh !", isPresented: Binding(get: { shown != nil }, set: { _ in }), presenting: shown) { _ in
-                Button("OK") { answer(disable: false) }
+            // A normal alert, spoken by VoiceOver (THEMES.md §4 rule 6). The setter ignores the dismissal: each button answers,
+            // « OK » being the cancel role, so Esc on a hardware keyboard keeps the theme (#1174).
+            .alert(shown.map(model.title(for:)) ?? "", isPresented: Binding(get: { shown != nil }, set: { _ in }), presenting: shown) { _ in
+                Button("OK", role: .cancel) { answer(disable: false) }
                 Button("Désactiver") { answer(disable: true) }
-            } message: { _ in
-                Text("Thème disponible dans les réglages")
+            } message: { alert in
+                Text(alert.message)
             }
             .task(id: model.pendingAlert) {
                 while !Task.isCancelled, model.pendingAlert != nil, shown == nil {

@@ -35,6 +35,9 @@ struct AppEnvironment {
     /// The unread private messages count behind the Messages badge: shared by every window of the app (LOT-146).
     /// Nil in a root built alone, which then counts for itself.
     let privateMessageCount: PrivateMessageCount?
+    /// Where the Plus tab's AQ list and badge come from (LOT-133); nil in an environment built by hand (tests), so no root
+    /// fetches the live feed with the address of the Info.plist. `make` sets the live one.
+    var qualityAlertsSource: (any QualityAlertsSource)?
 
     /// The environment for `session`.
     static func make(
@@ -56,7 +59,7 @@ struct AppEnvironment {
             store: avatars
         )
         let flagActions = accountName == nil ? nil : TopicFlagActions(writer: LiveTopicFlagWriter(session: session))
-        let reader = ReaderServices(
+        var reader = ReaderServices(
             imageFetcher: ReaderImageFetcher(),
             settings: .live(
                 store: UserDefaultsSettingsStore(), isOnWiFi: { NetworkMonitor.shared.isOnWiFi }, pseudo: accountName,
@@ -73,10 +76,15 @@ struct AppEnvironment {
             moderatorAlerts: accountName == nil ? nil : LiveModeratorAlerter(session: session),
             moderatorAlertMail: ModeratorAlertMail.address(from: Bundle.main.infoDictionary ?? [:])
         )
+        reader.qualityAlerts = LiveQualityAlertsSource.services(
+            from: Bundle.main.infoDictionary ?? [:], pseudo: accountName, settings: UserDefaultsSettingsStore()
+        )
         return AppEnvironment(
             session: session, dataSource: source, visibility: ForumVisibility(), currentAccountName: accountName,
             topicPages: pages, reader: reader,
-            privateMessages: LivePrivateMessageSource(fetcher: fetcher),
+            privateMessages: LivePrivateMessageSource(
+                fetcher: fetcher, storagePost: LivePrivateMessageSource.locatedStoragePost(of: accountName)
+            ),
             composer: .live(session: session, account: accountName),
             // The same lists as the reader's, refreshed at the start of each run (a run can start from a topic list, with no reader
             // load before it).
@@ -89,7 +97,8 @@ struct AppEnvironment {
             // Only the MP list asks, and it needs an account; the lookups themselves never carry the session.
             memberAvatars: accountName == nil ? nil : .live(fetcher: fetcher, store: avatars),
             pseudoListsSnapshot: lists, blocklistChanges: blocklistChanges,
-            privateMessageCount: privateMessageCount
+            privateMessageCount: privateMessageCount,
+            qualityAlertsSource: LiveQualityAlertsSource.configured(from: Bundle.main.infoDictionary ?? [:])
         )
     }
 

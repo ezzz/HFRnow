@@ -37,7 +37,7 @@ struct MPStorageCreationChoiceTests {
         #expect(!choice.asksRefusalConfirmation)
     }
 
-    /// « Revenir » puts « Oui » back, and a new deselection asks again.
+    /// « Annuler » puts « Oui » back, and a new deselection asks again.
     @Test func goingBackRestoresOuiAndADeselectionAsksAgain() {
         let choice = MPStorageCreationChoice()
         choice.answer = .non

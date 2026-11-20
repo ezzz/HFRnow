@@ -13,7 +13,6 @@ struct MPDarkTopicTests {
     // MARK: The option
 
     @Test func theOptionIsListedUnderMessagesAndOffByDefault() {
-        #expect(ExperimentalFeature.mpDarkTopic.isListed)
         #expect(ExperimentalTheme.messages.listedFeatures == [.mpDarkTopic])
         #expect(ExperimentalFeature.mpDarkTopic.issue == 1014)
         #expect(!ExperimentalSettings(store: InMemorySettingsStore()).isOn(.mpDarkTopic))

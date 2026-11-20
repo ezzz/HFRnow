@@ -117,8 +117,9 @@ Confirmed by the orchestrator on 2026-10-28, consistent with the operator's deci
   confirmed or unconfirmed send started and a disappearance stopped: it runs once on return, never under an open composer (#908).
 - A page beyond the last: HFR serves the last page; the reader shows it and its number.
 - An anchor not on the page served: the document opens at the top.
-- A huge page: one document per page (≈40 messages); the web content process can be killed under memory pressure, then the same
-  document is served again from memory (the topic page is not refetched).
+- A huge page: one document per page (≈40 messages); the web content process can be killed under memory pressure (or by iOS in
+  the background), then the same document is served again from memory (the topic page is not refetched). It lands on the last
+  message the ready page reported, not on the document's anchor, and the third-party images tapped in it stay allowed (#1188).
 - An image request after the document changed: the scheme serves only the current document; stopped tasks are never answered.
 
 ## Fixtures

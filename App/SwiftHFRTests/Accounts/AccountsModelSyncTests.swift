@@ -13,10 +13,10 @@ struct AccountsModelSyncTests {
     private let item = InMemorySecureDataItem()
 
     private func device(
-        _ accounts: [Account], login: ScriptedLogin = ScriptedLogin([])
+        _ accounts: [Account], login: ScriptedLogin = ScriptedLogin([]), state: InMemorySecureDataItem = InMemorySecureDataItem()
     ) throws -> (AccountsModel, InMemoryCredentialStore) {
         let store = try InMemoryCredentialStore(accounts: accounts)
-        let sync = AccountSync(accounts: store, item: item, state: InMemorySecureDataItem())
+        let sync = AccountSync(accounts: store, item: item, state: state)
         let model = AccountsModel(
             store: store, loginService: login, checker: ForumSessionCheck(refresher: ScriptedRefresher([:])),
             avatars: RecordingAvatars(), sync: sync
@@ -112,5 +112,66 @@ struct AccountsModelSyncTests {
         #expect(model.accountSyncNotice == AccountSyncMessages.problem(CredentialStoreError.corrupted))
         #expect(item.data == Data("not json".utf8))
         #expect(store.envelope == before)
+    }
+
+    @Test("#1200 P3: a state a later version wrote is shown, the switch stays off, no reset is offered, and the state is kept")
+    func aLaterVersionStateIsShownAndKept() throws {
+        let later = Data(#"{"version":2,"isOn":true,"enabledAt":1}"#.utf8)
+        let state = InMemorySecureDataItem(data: later)
+        let (model, _) = try device([Fake.account("user1", main: true)], state: state)
+        model.reconcileAccountSync()
+        #expect(!model.isAccountSyncDamaged)
+        model.setAccountSync(true)
+        model.setAccountSync(false)
+        #expect(!model.isAccountSyncOn)
+        #expect(!model.isAccountSyncDamaged)
+        #expect(model.accountSyncNotice == AccountSyncMessages.problem(AccountSyncError.stateFromLaterVersion))
+        #expect(state.data == later)
+        #expect(item.writeCount == 0)
+    }
+
+    @Test("#1200 P3: damaged state bytes are shown with a reset; nothing changes until the user resets them")
+    func aDamagedStateOffersAResetAndKeepsTheBytesUntilThen() throws {
+        let damaged = Data("garbage".utf8)
+        let state = InMemorySecureDataItem(data: damaged)
+        let (model, _) = try device([Fake.account("user1", main: true)], state: state)
+        model.reconcileAccountSync()
+        model.setAccountSync(true)
+        #expect(model.isAccountSyncDamaged)
+        #expect(!model.isAccountSyncOn)
+        #expect(model.accountSyncNotice == AccountSyncMessages.problem(AccountSyncError.damagedState))
+        #expect(state.data == damaged)
+        #expect(item.writeCount == 0)
+    }
+
+    @Test("#1200 P3: a state damaged while the switch showed on reads off, so turning it off is never an unconfirmed reset")
+    func aStateDamagedWhileOnShowsTheSwitchOff() throws {
+        let state = InMemorySecureDataItem()
+        let (model, _) = try device([Fake.account("user1", main: true)], state: state)
+        model.setAccountSync(true)
+        #expect(model.isAccountSyncOn)
+        state.data = Data("garbage".utf8)
+        model.reconcileAccountSync()
+        #expect(!model.isAccountSyncOn)
+        #expect(model.isAccountSyncDamaged)
+        #expect(state.data == Data("garbage".utf8))
+    }
+
+    @Test("#1200 P3: the user's reset writes a fresh off state, keeps the accounts and never touches the iCloud item")
+    func theResetClearsADamagedState() throws {
+        let state = InMemorySecureDataItem(data: Data("garbage".utf8))
+        let (model, store) = try device([Fake.account("user1", main: true)], state: state)
+        model.reconcileAccountSync()
+        let accounts = store.envelope
+        model.resetAccountSync()
+        #expect(!model.isAccountSyncDamaged)
+        #expect(!model.isAccountSyncOn)
+        #expect(model.accountSyncNotice == nil)
+        #expect(state.data != Data("garbage".utf8))
+        #expect(item.writeCount == 0)
+        #expect(store.envelope == accounts)
+        // The switch works again once the state is reset.
+        model.setAccountSync(true)
+        #expect(model.isAccountSyncOn)
     }
 }

@@ -2,31 +2,26 @@ import HFRClient
 import OSLog
 import UserNotifications
 
-// Port of HFRswift/Swift/MPBackgroundService.swift (requestNotificationAuthorization, updateAppIconBadge, scheduleNotification)
-// @ 87fe0d1c. Differences: the identifier and thread identifier of `MPNotificationPlan` instead of a random one, the `mp`
-// category for hidden previews, delivered at once instead of after 3 s (GAP-191; operator decisions of 2026-11-07 on #230).
-/// The live notification center of the MP check: permission, the `mp` category, notifications and the icon badge.
+// Port of HFRswift/Swift/MPBackgroundService.swift (updateAppIconBadge, scheduleNotification) @ 87fe0d1c. Differences: the
+// identifier and thread identifier of `MPNotificationPlan` instead of a random one, the `mp` category for hidden previews,
+// delivered at once instead of after 3 s (GAP-191; operator decisions of 2026-11-07 on #230). The permission request
+// (`requestNotificationAuthorization`) is `MPNotificationPrompt`'s and `LiveNotificationPermission`'s (#1172).
+/// The live notification center of the MP check: the `mp` category, notifications and the icon badge.
 struct MPNotificationCenter: MPNotificationDelivering {
     /// The category of every MP notification: its placeholder replaces the text when iOS hides previews.
     static let categoryIdentifier = "mp"
 
     private static let log = Logger(subsystem: "SwiftHFR", category: "MPNotificationCenter")
 
-    /// Registers the category, then asks for permission as legacy does at every launch (`HFRswiftApp.swift:27-29`): iOS
-    /// shows the prompt once and answers from the member's choice afterwards.
-    func prepare() async {
-        let center = UNUserNotificationCenter.current()
-        center.setNotificationCategories([
+    /// Registers the category at launch. The permission is not asked here (legacy asked at every launch,
+    /// `HFRswiftApp.swift:27-29` @ 87fe0d1c): `MPNotificationPrompt` asks once an account is current (#1172).
+    static func registerCategory() {
+        UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(
-                identifier: Self.categoryIdentifier, actions: [], intentIdentifiers: [],
+                identifier: categoryIdentifier, actions: [], intentIdentifiers: [],
                 hiddenPreviewsBodyPlaceholder: "%u nouveaux messages privés", options: []
             )
         ])
-        do {
-            _ = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-        } catch {
-            Self.log.error("Notification authorization failed")
-        }
     }
 
     func deliver(_ content: MPNotificationContent) async {

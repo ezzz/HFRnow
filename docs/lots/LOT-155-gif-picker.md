@@ -44,7 +44,7 @@ Lines of <https://github.com/ezzz/HFRnow> @ `2440d79`.
 - Trending first; the search field (submit) searches; an empty field goes back to trending. Rating `r` (legacy). 25 per page, the next page loads
   when the grid reaches its last five items; repeated ids are dropped; an empty page ends the list. A failed first page shows its reason and "Réessayer";
   a failed next page keeps the list and offers "Réessayer".
-- Tapping a GIF opens a confirmation (legacy `showConfirmationScreen`): preview and "Insérer"; the snippet is `[img]<url>[/img]` and a line break, put
+- Tapping a GIF opens a confirmation (legacy `showConfirmationScreen`), pushed inside the panel with the system back button (not a third sheet over the composer, #1177): preview and "Insérer"; the snippet is `[img]<url>[/img]` and a line break, put
   through `ComposerFormattingModel.insert`, so the draft autosave and every composer rule apply.
 - **Which URL is posted:** `images.original.url` **as served**, query included (what `T40`/`T41` verify and what the SDK's `gifUrl` gave). The
   query-less form (`originalURLWithoutTracking`) is not captured as serving the GIF, so it is not posted. The served `cid` carries a prefix replaced in the

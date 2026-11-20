@@ -5,7 +5,7 @@
 - **Issue:** [#279](https://github.com/ezzz/HFRnow/issues/279) (implements FEAT-003, [#147](https://github.com/ezzz/HFRnow/issues/147), proposed by Bybifok; related bug #104)
 
 ## Legacy sources
-None: new behaviour. The legacy app shows the last pager link as the page count; Bybifok reported it as a fake total (#104). LOT-082 ([#100](https://github.com/ezzz/HFRnow/issues/100), done) already shows "Page N" without a total. Legacy pager parsing: `ObjCTopicListParser.m:172-252` (see [LOT-022](LOT-022-topic-list-parser.md)).
+None: new behaviour. The legacy app shows the last pager link as the page count; Bybifok reported it as a fake total (#104). LOT-082 ([#100](https://github.com/ezzz/HFRnow/issues/100), done) first showed "Page N" without a total; the topic list shows « page x / y » with its menu since #980 (`y+` while the count is only a lower bound). Legacy pager parsing: `ObjCTopicListParser.m:172-252` (see [LOT-022](LOT-022-topic-list-parser.md)).
 
 ## Behaviour
 `PageNavigation` (`Packages/HFRKit/Sources/HFRModels/Lists/PageNavigation.swift`) gains `isExact: Bool`: true when `last` is the real page count, false when it is only the last page the pager links to (a lower bound). Source: HFR-PROTOCOL §7b B1, §6c LOT-022 and LOT-167 (captures `R04`, `R05a`, `R05b`, `R08-2`, `R13u1`, `R50b`).

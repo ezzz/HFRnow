@@ -22,7 +22,7 @@ public struct FileSmallStorePersistence<Document: SmallStoreDocument>: SmallStor
         guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data = try Data(contentsOf: fileURL)
         // The version first: a newer format may not decode as this one, and must still be reported as newer.
-        let version = try JSONDecoder().decode(VersionProbe.self, from: data).version
+        let version = try StoredVersion.read(data)
         guard version <= Document.currentVersion else { throw SmallStoreError.unsupportedVersion(version) }
         guard version >= 1 else { throw SmallStoreError.loadFailed(reason: "invalid version \(version)") }
         return try JSONDecoder().decode(Document.self, from: data)
@@ -45,9 +45,4 @@ public struct FileSmallStorePersistence<Document: SmallStoreDocument>: SmallStor
         }
         try manager.moveItem(at: fileURL, to: quarantineURL)
     }
-}
-
-/// The one field every small store document has, read before the rest.
-private struct VersionProbe: Decodable {
-    let version: Int
 }

@@ -29,6 +29,9 @@ enum HTMLEscaping {
 struct ReaderRenderOptions: Equatable, Sendable {
     /// Append each message's `signatureHTML` (`display_sig`, off by default as in legacy).
     var showsSignatures = false
+    /// A placeholder per video link, the player opening on a tap (« Vidéos: Intégrée », the default, #691); off leaves the link
+    /// a plain link (legacy @ 2fe43da3, `d645f525`).
+    var embedsVideos = true
     /// Give each message a `+` button (LOT-087, the legacy glyph again: #594). Off until a message-menu handler is registered.
     var showsMessageMenus = false
     /// Make each author tappable (legacy avatar popup). Off until an author-menu handler is registered.
@@ -37,9 +40,6 @@ struct ReaderRenderOptions: Equatable, Sendable {
     var style = ThemeStyle.modern
     /// Who is highlighted, collapsed or allowlisted (LOT-117); nothing by default.
     var visibility = VisibilityPolicy.none
-    /// End the page with the pull-to-refresh hint (#820): only the topic and MP reader refreshes on a pull
-    /// (`TopicReaderModel.currentRenderOptions`); "Filtrer les posts" builds its pages without it.
-    var offersPullToRefresh = false
 }
 
 /// Builds the reader's HTML document from a `ReaderPage` (LOT-083, audit C12).
@@ -98,10 +98,6 @@ enum TopicHTMLBuilder {
             }
         }
         html += "</main>\n"
-        if options.offersPullToRefresh {
-            // Under the last message, tone on tone, visible at rest (#820, #932). VoiceOver has the "Actualiser" buttons.
-            html += "<p class=\"pull-hint\" aria-hidden=\"true\">Tirer vers le haut pour actualiser</p>\n"
-        }
         html += "</body>\n</html>\n"
         return html
     }
@@ -129,7 +125,11 @@ enum TopicHTMLBuilder {
         // Body markup context only (LOT-034 contract).
         let content = QuoteMarkup.annotate(message.content.html, quotes: message.quotes, policy: options.visibility)
         html += "<div class=\"content\">\(content)</div>\n"
-        html += videos(of: message)
+        // « Vidéos: Lien » (#691) leaves every video link a plain link: no player placeholder, no thumbnail card (#1037).
+        if options.embedsVideos {
+            html += videos(of: message)
+            html += videoCards(of: message)
+        }
         if options.showsSignatures, let signature = message.content.signatureHTML {
             html += "<div class=\"signature\">\(signature)</div>\n"
         }
@@ -138,6 +138,14 @@ enum TopicHTMLBuilder {
         html += "</article>\n"
         return html
     }
+
+    /// The "+" of the message button (#1068): a 16 pt cross with 2 pt strokes, drawn rather than typeset so that its size depends on
+    /// neither the font nor Dynamic Type (legacy `plus-tinted@2x.png`: 64 px, an opaque 16 pt cross with 4 px strokes;
+    /// `style-liste-dark.css:590-595` @ 87fe0d1c). It takes the button's text colour.
+    private static let plusIcon = """
+        <svg class="plus" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">\
+        <path d="M8 0V16M0 8H16" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        """
 
     /// The message header: avatar, author (a button when the author menu is on), date and the `+` button (legacy
     /// `templatev2.htm:6` @ 87fe0d1c, operator decision of 2026-11-15 on #594: "+" again instead of "⋯").
@@ -161,7 +169,7 @@ enum TopicHTMLBuilder {
         if !message.dateText.isEmpty { html += "<span class=\"date\">\(date)</span>" }
         if showsMessageMenu {
             html += "<button type=\"button\" class=\"menu-button\" data-menu=\"message\" data-post=\"\(message.numreponse)\""
-            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">+</button>"
+            html += " aria-haspopup=\"menu\" aria-label=\"Actions du message de \(author)\">\(plusIcon)</button>"
         }
         html += "</header>\n"
         return html
@@ -218,14 +226,39 @@ enum TopicHTMLBuilder {
         return html + "</div>\n"
     }
 
+    /// A thumbnail card per plain YouTube link of the message (#1037), under the text, which keeps the link. The card reads as the
+    /// pill « Vidéo YouTube · toucher pour lire » until `reader.js` has the thumbnail: it goes through policy C and the cookie-less
+    /// client like every image, and a thumbnail that is refused, late or failed leaves the pill. The card's address is the posted
+    /// one, byte for byte (the reader tells the card from its link by it; the app opens it over `https`); the thumbnail comes from the
+    /// video id.
+    private static func videoCards(of message: ReaderMessage) -> String {
+        guard let cards = try? YouTubeLinkDetector.cards(inNormalizedHTML: message.content.html), !cards.isEmpty else { return "" }
+        var html = "<div class=\"videolinks\">"
+        for card in cards {
+            let address = HTMLEscaping.text(card.postedAddress)
+            html += "<a class=\"video-card\" href=\"\(address)\" data-post=\"\(message.numreponse)\" aria-label=\"Vidéo YouTube\">"
+            html += "<img class=\"video-thumb\" src=\"\(HTMLEscaping.text(card.thumbnailURL.absoluteString))\" alt=\"\">"
+            html += "<span class=\"video-play\" aria-hidden=\"true\"></span>"
+            html += "<span class=\"video-pill\">Vidéo YouTube · toucher pour lire</span></a>"
+        }
+        return html + "</div>\n"
+    }
+
     private static func trailer(of message: ReaderMessage) -> String {
         var lines: [String] = []
         if let note = message.editNote, !note.isEmpty { lines.append("Message édité par \(HTMLEscaping.text(note))") }
         // Legacy's count bubble (`LinkItem.m:237-238`, `.quotedhfrlink` of `style-liste.css:419-431` @ 87fe0d1c), at the right of the
-        // footer. Legacy made it a link to HFR's `quote_only=1` page; that page is not captured (#126), so it is inert here.
+        // footer, a link to HFR's `quote_only=1` page (capture `R126a`, #1039): a button for VoiceOver, with the link only when it is
+        // one the app can open (`HFRQuotingLink`); otherwise it stays the inert count.
         var bubble = ""
         if let count = message.quotedByCount, count > 0 {
-            bubble = "<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité \(count) fois\">\(count)</span>"
+            if let link = message.quotedByURL, HFRQuotingLink(url: link) != nil {
+                let label = count == 1 ? "Voir le message qui cite celui-ci" : "Voir les \(count) messages qui citent celui-ci"
+                bubble = "<a class=\"quoted-bubble\" role=\"button\" href=\"\(HTMLEscaping.text(link.absoluteString))\""
+                    + " aria-label=\"\(label)\">\(count)</a>"
+            } else {
+                bubble = "<span class=\"quoted-bubble\" role=\"img\" aria-label=\"Message cité \(count) fois\">\(count)</span>"
+            }
         }
         guard !lines.isEmpty || !bubble.isEmpty else { return "" }
         return "<footer class=\"trailer\">" + lines.map { "<p>\($0)</p>" }.joined() + bubble + "</footer>\n"

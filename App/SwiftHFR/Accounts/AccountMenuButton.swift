@@ -2,13 +2,23 @@ import SwiftUI
 
 // Port of HFRswift/Swift/MainToolbar.swift (MainToolbarContent, `:60-66`; ToolbarProfileImage) @ 87fe0d1c, of
 // HFRswift/Swift/MainWindow.swift (CategoriesListView.accountMenuItems) and HFRswift/Swift/AccountMenuViews.swift (AccountMenuRow)
-// @ 2440d79. Differences: a "manage accounts" entry (GAP-009, GAP-162); a pushed screen has none (its back button is leading, as in
-// legacy where only the root toolbars carry it); an expired session shows the badge symbol instead of the avatar.
+// @ 2440d79. Differences: a "manage accounts" entry (GAP-009, GAP-162); a pushed category topic list carries it after its back
+// button (#425, `MainWindow.swift:803-818` @ 87fe0d1c); other pushed screens have none; an expired session shows the badge symbol
+// instead of the avatar.
 /// Toolbar entry to the accounts, as legacy's account menu (`HFRswift/Swift/MainWindow.swift:267-290`): switch account,
 /// add one, manage them. Logged out, it offers to log in.
 struct AccountMenuButton: View {
     /// Top left, as legacy (`MainToolbar.swift:60-66` @ 87fe0d1c) and on every main root (#1057).
     static let placement = ToolbarItemPlacement.topBarLeading
+
+    /// The placement on `kind`'s display: top left, except on the iPhone Duo cover screen, where the bars are one column on the
+    /// right edge (no left or right in it) and the button is drawn at the same spot either way. There it takes the trailing slot:
+    /// iOS 27.2 lays a screen's `.bottomBar` items (a pushed list's « Retour », `coverScreenListActions`) in an empty trailing
+    /// slot, at the top of the column, and honours their flexible spacer only once that slot holds an item (measured on the Duo
+    /// simulator, #1239; the cause of GAP-713's legacy defect).
+    static func placement(on kind: PhoneDisplayKind) -> ToolbarItemPlacement {
+        kind.placesThumbActionsAtBottom ? .topBarTrailing : placement
+    }
 
     @Environment(AccountsModel.self) private var accounts
     @State private var showsAccounts = false
@@ -107,8 +117,16 @@ enum AccountMenuLabelContent: Equatable {
 }
 
 extension View {
-    /// Puts the account button at the top left of this main root's bar (#1057).
+    /// Puts the account button at the top left of this main root's bar (#1057; `AccountMenuButton.placement(on:)`).
     func accountMenuToolbarItem() -> some View {
-        toolbar { ToolbarItem(placement: AccountMenuButton.placement) { AccountMenuButton() } }
+        modifier(AccountMenuToolbarItem())
+    }
+}
+
+private struct AccountMenuToolbarItem: ViewModifier {
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
+
+    func body(content: Content) -> some View {
+        content.toolbar { ToolbarItem(placement: AccountMenuButton.placement(on: phoneDisplayKind)) { AccountMenuButton() } }
     }
 }

@@ -11,7 +11,7 @@ enum ImageLoadingChoice {
     /// The image mode: the stored `display_images` while the option is on (« Toujours » until the user picks another), always
     /// otherwise, whatever an earlier build stored. The reader reads this on every page and image request.
     static func autoLoad(store: any SettingsStore) -> ImageAutoLoad {
-        // Reads the store, not `ExperimentalSettings`: the reader calls this off the main actor. The option is listed (`isListed`).
+        // Reads the store, not `ExperimentalSettings`: the reader calls this off the main actor.
         guard store.value(for: SettingKey.experimentalImageLoadingChoice) else { return .always }
         return ImageAutoLoad(setting: store.value(for: SettingKey.displayImages))
     }

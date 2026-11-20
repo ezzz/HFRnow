@@ -208,7 +208,8 @@ struct MPStorageTransportWriteTests {
 
     @Test func anExistingThreadIsReadNotCreated() async throws {
         let outcome = await MPStorageHarness.run(
-            [try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.editForm()]
+            [try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.threadPage(),
+                try MPStorageCapture.editForm()]
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.create(stamp: Self.stamp, through: session)
         }
@@ -224,7 +225,8 @@ struct MPStorageTransportWriteTests {
         let outcome = await MPStorageHarness.run(
             [
                 try MPStorageCapture.list("R13a"), try PostingCapture.form("R45b"), try PostingCapture.answer("W10"),
-                try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.editForm()
+                try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.threadPage(),
+                try MPStorageCapture.editForm()
             ]
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.create(stamp: Self.stamp, through: session)
@@ -234,8 +236,9 @@ struct MPStorageTransportWriteTests {
             return
         }
         #expect(snapshot.location.post == MPStorageCapture.post)
-        // Search, form, POST, search again, thread page, edit form: never a POST before the first search.
-        #expect(outcome.requests.map(\.method) == [.get, .get, .post, .get, .get, .get])
+        // Search, form, POST, search again (list, then the candidate's first page, #1200 P1), thread page, edit form: never
+        // a POST before the first search.
+        #expect(outcome.requests.map(\.method) == [.get, .get, .post, .get, .get, .get, .get])
         #expect(outcome.requests[1].url == (try HFREndpoint.newPrivateMessageForm(to: MPStorageDocument.recipient).url))
         #expect(outcome.posts.first?.url.absoluteString == "https://forum.hardware.fr/bddpost.php?config=hfr.inc")
         #expect(outcome.postField("dest") == MPStorageDocument.recipient)
@@ -249,7 +252,8 @@ struct MPStorageTransportWriteTests {
         let outcome = await MPStorageHarness.run(
             [
                 try MPStorageCapture.list("R13a"), try PostingCapture.form("R45b"), try PostingCapture.answer("W440a"),
-                try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.editForm()
+                try MPStorageCapture.list("R13u1"), try MPStorageCapture.threadPage(), try MPStorageCapture.threadPage(),
+                try MPStorageCapture.editForm()
             ]
         ) { transport, session throws(MPStorageTransportError) in
             try await transport.create(stamp: Self.stamp, through: session)

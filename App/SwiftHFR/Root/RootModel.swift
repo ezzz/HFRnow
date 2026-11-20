@@ -1,3 +1,4 @@
+import Foundation
 import HFRModels
 import HFRStorage
 import Observation
@@ -29,6 +30,8 @@ final class RootModel {
     let blocklistSync: BlocklistSyncModel?
     /// The unread private messages count the list pages of this session announced, newest first (#762).
     let privateMessageCount: PrivateMessageCount
+    /// The Alertes Qualitay list and its "new since" count (LOT-133), shared by the Plus badge, the Plus row and the screen.
+    let qualityAlerts: QualityAlertsModel
     /// The app icon badge reads 0, not "leave it", until a page gives this root's count (LOT-156): true for a root built
     /// logged out or after the account changed, where the icon still shows another account's count.
     let clearsIconBadgeBeforeCount: Bool
@@ -116,12 +119,17 @@ final class RootModel {
         search: ForumSearchModel = ForumSearchModel(source: UnavailableForumSearch()),
         store: any SettingsStore, initial: SidebarDestination? = nil, favoriteOptions: FavoritesOptionsModel? = nil,
         mpStorage: MPStorageSyncModel? = nil, privateMessageCount: PrivateMessageCount = PrivateMessageCount(),
-        blocklistSync: BlocklistSyncModel? = nil, clearsIconBadgeBeforeCount: Bool = false
+        blocklistSync: BlocklistSyncModel? = nil, clearsIconBadgeBeforeCount: Bool = false,
+        qualityAlerts: QualityAlertsModel? = nil
     ) {
         self.clearsIconBadgeBeforeCount = clearsIconBadgeBeforeCount
         self.mpStorage = mpStorage
         self.blocklistSync = blocklistSync
         self.privateMessageCount = privateMessageCount
+        // A root built without one (tests) has no AQ address: no request, an empty badge.
+        self.qualityAlerts = qualityAlerts ?? QualityAlertsModel(
+            source: nil, isLoggedIn: { false }, accountName: { nil }, store: store
+        )
         self.favoriteOptions = favoriteOptions
         self.forums = forums
         self.categories = categories
@@ -138,11 +146,9 @@ final class RootModel {
         minimizesTabBarOnScroll = store.value(for: SettingKey.tabBarMinimizesOnScroll)
     }
 
-    /// The source each tab opens on: Catégories none (the user picks a forum), Favoris the favourites. The environment-built
-    /// Favoris tab opens on the list its favourites mode names instead (`TopicSource(mode:)`, LOT-124); this is the fallback of
-    /// a model built without options.
+    /// The source Catégories opens on: none (the user picks a forum). The Favoris tab opens on the list its favourites mode names
+    /// (`TopicSource(mode:)`, LOT-124), as `init(environment:)` builds it.
     static let categoriesStartupSource: TopicSource? = nil
-    static let favoritesStartupSource: TopicSource? = .flagged
 
     /// The Messages model over this session; the reader opens a conversation with the same page source. Private on purpose:
     /// the tab and the sidebar must take `messages`, never build a second model that would lose the open conversation.
@@ -206,7 +212,12 @@ final class RootModel {
             ),
             store: store, initial: initial, favoriteOptions: options, mpStorage: mpStorage, privateMessageCount: count,
             blocklistSync: Self.blocklistSync(environment, mpStorage: mpStorage),
-            clearsIconBadgeBeforeCount: Self.clearsIconBadgeBeforeCount(accountName: environment.currentAccountName, initial: initial)
+            clearsIconBadgeBeforeCount: Self.clearsIconBadgeBeforeCount(accountName: environment.currentAccountName, initial: initial),
+            qualityAlerts: QualityAlertsModel(
+                source: environment.qualityAlertsSource,
+                visibility: environment.visibility, isLoggedIn: environment.isLoggedIn, accountName: environment.accountName,
+                store: store
+            )
         )
     }
 
@@ -236,6 +247,15 @@ final class RootModel {
         guard privateMessageBadgeEnabled else { return 0 }
         return max(privateMessageCount.latest ?? 0, 0)
     }
+
+    /// The "new since" count shown on a Plus entry and on the Plus tab: Alertes Qualitay only (legacy `MainWindow.swift:1297`
+    /// @ 2440d79, GAP-005), 0 hides it.
+    func badge(for entry: PlusEntry) -> Int {
+        entry == .qualityAlerts ? qualityAlerts.unreadCount : 0
+    }
+
+    /// The badge of the Plus tab: what its entries announce.
+    var plusBadge: Int { badge(for: .qualityAlerts) }
 
     /// Regular-width iPad: shows `reader` in the detail column of `entry`, a topic-list Plus entry, in place of what it showed (a
     /// new stack: what a link had pushed there goes). Another entry is ignored: it has no detail column for a topic.
@@ -283,6 +303,15 @@ final class RootModel {
         // category was already open (`NavigationModel.selectedTopic`).
         categories.selectedTopic = nil
         selectedDestination = .tab(.categories)
+    }
+
+    /// The current session changed in place (a re-login, synced credentials, an expiry found by a check): the root is kept, so
+    /// the home page is read again, then the lists of both tabs, which take whether the account is signed in from it (#1195).
+    /// An expiry the home page already shows sends nothing.
+    func currentSessionChanged(expired: Bool) async {
+        guard await forums.sessionDidChange(expired: expired) else { return }
+        await categories.sessionDidChange()
+        await favorites.sessionDidChange()
     }
 
     /// Reads the badge and minimize settings again, so a change made in Réglages shows without a relaunch. The app icon badge

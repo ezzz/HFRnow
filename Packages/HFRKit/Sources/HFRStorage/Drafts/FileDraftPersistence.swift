@@ -29,11 +29,26 @@ public struct FileDraftPersistence: DraftPersistence {
     public func quarantineUnreadableData() throws {
         let manager = FileManager.default
         guard manager.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return }
-        if manager.fileExists(atPath: quarantineURL.path(percentEncoded: false)) {
-            // Never delete the earlier backup: keep it under a unique name.
-            try manager.moveItem(at: quarantineURL, to: quarantineURL.appendingPathExtension(UUID().uuidString))
-        }
+        try keepEarlierQuarantine()
         try manager.moveItem(at: fileURL, to: quarantineURL)
+    }
+
+    public func backUpUnreadableData() throws {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return }
+        // Already copied by a load whose write-back then failed (or a crash between the two): one copy is enough.
+        if manager.contentsEqual(atPath: fileURL.path(percentEncoded: false), andPath: quarantineURL.path(percentEncoded: false)) {
+            return
+        }
+        try keepEarlierQuarantine()
+        try manager.copyItem(at: fileURL, to: quarantineURL)
+    }
+
+    /// Never deletes an earlier backup: keeps it under a unique name.
+    private func keepEarlierQuarantine() throws {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: quarantineURL.path(percentEncoded: false)) else { return }
+        try manager.moveItem(at: quarantineURL, to: quarantineURL.appendingPathExtension(UUID().uuidString))
     }
 }
 

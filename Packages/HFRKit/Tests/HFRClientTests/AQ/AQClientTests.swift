@@ -53,7 +53,9 @@ struct AQClientTests {
         #expect(request.body == nil)
         #expect(request.headers["Cookie"] == nil)
         #expect(request.redirectPolicy == .doNotFollow)
-        #expect(request.timeout == 20)
+        // Legacy `HFRNetworkTimeout.content` (10 s), used by the feed request (`AQPlusView.swift:73, 278` @ 87fe0d1c).
+        #expect(request.timeout == 10)
+        #expect(AQClient.timeout == 10)
         #expect(request.maximumBodyBytes == AQClient.maximumResponseBytes)
     }
 
@@ -94,6 +96,7 @@ struct AQClientTests {
         for request in requests {
             #expect(request.url.absoluteString == "https://aq.super-h.fr/api/getAlertesByTopic.php?topic_id=8680")
             #expect(request.method == .get)
+            #expect(request.timeout == 10)
             #expect(request.headers["Cookie"] == nil)
             #expect(request.redirectPolicy == .doNotFollow)
         }

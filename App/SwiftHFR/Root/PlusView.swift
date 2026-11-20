@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: an entry shows a placeholder until its lot lands;
-// the account button is top left, as `MainToolbar.swift:60-66` @ 87fe0d1c (#1057). #1107: the list look of every list (`listLook`).
+// Port of HFRswift/Swift/PlusTab.swift (PlusHomeView, PlusRow) @ 2440d79. Differences: the account button is top left, as
+// `MainToolbar.swift:60-66` @ 87fe0d1c (#1057). #1107: the list look of every list (`listLook`).
 /// The Plus tab: the legacy menu (`PlusTab.swift:11-60`), one row per entry in legacy order.
 struct PlusView: View {
     let model: RootModel
@@ -23,6 +23,7 @@ struct PlusView: View {
                             Label(entry.title, systemImage: entry.symbol)
                                 .foregroundStyle(entry.isDestructive ? AccessibleColors.errorText : primaryText)
                             Spacer()
+                            PlusBadgeCount(value: model.badge(for: entry))
                             Image(systemName: "chevron.forward")
                                 .scaledFont(.footnote).fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
@@ -42,7 +43,7 @@ struct PlusView: View {
     private var primaryText: Color { appearance.listColors.map { Color(uiColor: $0.text) } ?? Color.primary }
 }
 
-/// The screen behind a Plus entry: the built screen, or a placeholder until the owning lot (`PlusEntry.owningLot`) brings it.
+/// The screen behind a Plus entry.
 struct PlusEntryView: View {
     let entry: PlusEntry
     let model: RootModel
@@ -64,16 +65,23 @@ struct PlusEntryView: View {
         case .bookmarks:
             BookmarksView(mpStorage: model.mpStorage, selection: model.bookmarkSelection, environment: environment)
         case .qualityAlerts:
-            placeholder
+            QualityAlertsView(model: model.qualityAlerts, environment: environment)
         }
     }
+}
 
-    private var placeholder: some View {
-        ContentUnavailableView(
-            entry.title, systemImage: entry.symbol,
-            description: Text("Cet écran arrive dans une prochaine version.")
-        )
-        .navigationTitle(entry.title)
-        .navigationBarTitleDisplayMode(.inline)
+/// The count a Plus row announces, as legacy's red tab badge does; nothing at 0.
+private struct PlusBadgeCount: View {
+    let value: Int
+
+    var body: some View {
+        if value > 0 {
+            Text(value, format: .number)
+                .scaledFont(.footnote).bold()
+                .foregroundStyle(.white)
+                .padding(.horizontal, 7).padding(.vertical, 2)
+                .background(.red, in: .capsule)
+                .accessibilityLabel("\(value) nouvelles")
+        }
     }
 }

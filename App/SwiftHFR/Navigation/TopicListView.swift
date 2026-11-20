@@ -3,10 +3,12 @@ import SwiftUI
 import UIKit
 
 // Port of HFRswift/Swift/MainWindow.swift (ForumTopicsListView, ForumTopicsPaginationBar) @ 87fe0d1c and HFRswift/Swift/Favorites.swift
-// (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: "Page N"
-// without a fake total (GAP-024; UXD); the sub-forum menu and the filter are `ForumScopeBar` (GAP-022, 023). LOT-185: the pager is the
-// system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending #545. #770: "+" is hidden, not greyed, when
-// the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); no haptic on refresh (`:382`; no haptics caller yet).
+// (FavoritesListView) @ 2440d79; the section title opens its category (`Favorites.swift:344-372` @ 87fe0d1c). Differences: « page x / y »
+// (« y+ » while HFR's pager gives a lower bound, no « last » then; GAP-024, #980); the sub-forum menu and the filter are `ForumScopeBar`
+// (GAP-022, 023). LOT-185: the pager is the system bottom bar (`PagerToolbar`), the store-problem strip a `safeAreaBar`; GAP row pending
+// #545. #770: "+" is hidden, not greyed, when the account cannot post (legacy `.disabled`, `MainWindow.swift:842` @ 87fe0d1c); the pull
+// plays a light impact when it fires (#1207; legacy's played on completion, `refreshCompleted`, `:99-100`, pull `:791-792`).
+// #1206: no refresh button in the top bar (legacy `:835-846`), the pull refreshes.
 // List look (#803): one rounded block per section, flat rows, highlights as pills (`RowTint`), as legacy (`Favorites.swift:429, 738`,
 // `MainWindow.swift:738-740`, `Common.swift:3677-3684` @ 87fe0d1c). Differences: Favoris and Drapeaux (legacy's one
 // Favoris view, `vos_sujets` 0 or 1) pill only super favourites, as legacy; the category lists pill every flagged row, as legacy's
@@ -31,7 +33,10 @@ struct TopicListView: View {
     var openCategory: ((TopicSource) -> Void)?
     /// How the title shows: a large title that becomes the pill on Favoris, the pill on the lists a forum row pushes (#977, #978).
     var titleStyle: ScreenTitleStyle = .pill
+    /// The account button after the back button of a pushed list (`MainWindow.swift:803-818` @ 87fe0d1c, #425); off on the Favoris root.
+    var showsAccountMenu = false
     @Environment(ExperimentalSettings.self) private var experimental: ExperimentalSettings?
+    @Environment(\.phoneDisplayKind) private var phoneDisplayKind
     @State private var titleVisibility = TitleVisibility()
     @State private var newTopic: ReplyComposerModel?
     /// The row whose "Page numéro…" prompt is shown.
@@ -68,11 +73,18 @@ struct TopicListView: View {
         .seasonalScrollTracking()
         .overlay { overlay(loader) }
         .safeAreaBar(edge: .top) {
-            if let problem = model.favorites?.storeProblem {
-                Label(problem, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if let favorites = model.favorites, let problem = favorites.storeProblem {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(problem, systemImage: "exclamationmark.triangle")
+                    if favorites.canDiscardUnreadable {
+                        UnreadableDataRecoveryButton(content: "les sections repliées et les super-favoris") {
+                            await favorites.discardUnreadable()
+                        }
+                    }
+                }
+                .font(.footnote)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .safeAreaInset(edge: .top) {
@@ -86,10 +98,11 @@ struct TopicListView: View {
                 }
             }
         }
-        .pagerBar(model.source.isPaged && loader.value != nil ? PageBar(model: model).pager : nil)
+        .pagerBar(PageBar.isShown(for: loader.value, source: model.source) ? PageBar(model: model).pager : nil)
         .toolbar {
-            // Legacy trailing group: "+" then refresh (`MainWindow.swift:835-846` @ 87fe0d1c). SwiftHFR has no cover-screen layout,
-            // so the refresh never moves to the bottom bar (`:849-851`).
+            if showsAccountMenu { ToolbarItem(placement: AccountMenuButton.placement(on: phoneDisplayKind)) { AccountMenuButton() } }
+            // Trailing group: "+" only. Legacy adds a refresh button after it (`MainWindow.swift:835-846` @ 87fe0d1c); here the list
+            // refreshes on a pull (`.pullToRefresh`, #1207), as the operator asked (#1206), on the Duo cover screen too (GAP-713).
             ToolbarItemGroup(placement: .topBarTrailing) {
                 // « Non lus / Tous » (#1058): a deliberate addition, only on the Favoris lists.
                 if let favorites = model.favorites { FavoritesUnreadFilterButton(options: favorites) }
@@ -98,12 +111,11 @@ struct TopicListView: View {
                         Label("Nouveau sujet", systemImage: "plus")
                     }
                 }
-                Button { Task { await model.refresh() } } label: {
-                    Label { Text("Actualiser") } icon: { ToolbarRefreshIcon(isLoading: model.loader.isLoading) }
-                }
-                .disabled(!model.canRefresh)
             }
         }
+        // The cover screen: « Retour » at the bottom of the column on a pushed category's list (`MainWindow.swift:854` @ 87fe0d1c; the
+        // Favoris root is no push); no « Actualiser » to move there (#1206).
+        .coverScreenListActions()
         .sheet(item: $newTopic) { composer in
             ReplyComposerView(model: composer) { reason in
                 Task { await model.newTopicDidClose(reason) }
@@ -113,7 +125,7 @@ struct TopicListView: View {
             // The banner is not on the focused element: say what HFR confirmed, once, when it arrives.
             if let text { AccessibilityNotification.Announcement(text).post() }
         }
-        .refreshable { await model.refresh() }
+        .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task(id: model.wantedFilter) { await model.onAppear() }
         .alert(
             "Action impossible", isPresented: Binding(get: { model.actionFailure != nil }, set: { if !$0 { model.clearActionFailure() } })
@@ -205,7 +217,8 @@ struct TopicListView: View {
         .disabled(removing)
     }
 
-    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter.
+    /// The row menu, in legacy order: the quick actions, then Lu, super favourite, Supprimer and the post filter. What cannot run
+    /// now is left out, not dimmed (HIG › Context menus, #1162).
     @ViewBuilder
     private func menu(_ topic: TopicSummary, isSuper: Bool) -> some View {
         if let open {
@@ -238,13 +251,12 @@ struct TopicListView: View {
                 Task { await favorites.toggleSuperFavorite(topic) }
             }
         }
-        if model.canRemoveFlag(topic) { removeButton(topic) }
-        if model.source == .favorites, let filtering, topic.topicID != nil {
+        if model.menuOffersRemove(topic) { removeButton(topic) }
+        if let filtering, model.menuOffersFilter(topic, filterIsBusy: filtering.isBusy) {
             Divider()
             Button { filtering.start(opening: topic) } label: {
                 Label("Filtrer les posts", systemImage: "line.3.horizontal.decrease.circle")
             }
-            .disabled(filtering.isBusy)
         }
     }
 
@@ -282,7 +294,9 @@ struct TopicListView: View {
         }
         .densityHeaderMargin())
     }
+}
 
+extension TopicListView {
     @ViewBuilder
     private func overlay(_ loader: ContentLoader<TopicListContent>) -> some View {
         if let content = loader.value {
@@ -297,89 +311,27 @@ struct TopicListView: View {
         } else if let error = loader.error {
             LoadFailureView(error: error, retry: model.retry)
         } else if loader.isLoading {
-            ProgressView("Chargement des sujets")
+            ProgressView()
         }
     }
 }
 
-/// Every section is folded and the options hide folded sections (legacy `allSectionsCollapsedState`).
-private struct AllSectionsCollapsedView: View {
-    let options: FavoritesOptionsModel
-
-    var body: some View {
-        ContentUnavailableView {
-            Label("Toutes les sections sont repliées", systemImage: "list.bullet.circle")
-        } description: {
-            Text("La vue filtrée masque les sections repliées.")
-        } actions: {
-            Button("Afficher les sections repliées") { options.showsCollapsedSections = true }
-            Button("Tout déplier") { Task { await options.expandAll() } }
-        }
-    }
-}
-
-private struct EmptyListView: View {
-    let reason: EmptyReason
-    let refresh: () async -> Void
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: "tray")
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
-        }
-    }
-
-    private var title: String {
-        switch reason {
-        case .nothing: "Aucun sujet"
-        case .signInRequired: "Connexion requise"
-        case .notice: "Rien à afficher"
-        }
-    }
-
-    private var message: String? {
-        switch reason {
-        case .nothing: nil
-        case .signInRequired(let notice): notice ?? "Connectez-vous pour voir cette liste."
-        case .notice(let notice): notice
-        }
-    }
-}
-
-/// Previous / next controls. Only "a next page exists" is known: the pager is a window, never a total.
+/// « page x / y » (y+ when HFR's pager gives only a lower bound) with its menu, and the ‹ › pills (#980, as the MP list's). Shown on a
+/// paged list of more than one page (legacy `shouldShowPagination`, `MainWindow.swift:407-409` @ 87fe0d1c).
 @MainActor private struct PageBar {
     let model: TopicListModel
-
+    static func isShown(for content: TopicListContent?, source: TopicSource) -> Bool {
+        source.isPaged && content.map { $0.page > 1 || $0.hasNext } == true
+    }
     var pager: PagerToolbar {
         PagerToolbar(
             first: .init(enabled: model.canGoToPrevious) { Task { await model.goToFirstPage() } },
             previous: .init(enabled: model.canGoToPrevious) { Task { await model.goToPreviousPage() } },
             next: .init(enabled: model.canGoToNext) { Task { await model.goToNextPage() } },
-            last: nil,
-            status: model.loader.isLoading ? .loading : .page(model.currentPage)
+            last: .init(enabled: model.canGoToLast) { Task { await model.goToLastPage() } },
+            status: .pageOf(model.currentPage, model.pageCount, isExact: model.pageCountIsExact),
+            jump: { jump in Task { await model.perform(jump) } }, isLoading: model.loader.isLoading
         )
-    }
-}
-
-/// HFR's confirmation of a new topic, above the list.
-private struct TopicSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }
 

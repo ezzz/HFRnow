@@ -1,5 +1,5 @@
 import Foundation
-import HFRClient
+@testable import HFRClient
 import HFRModels
 import HFRStorage
 @testable import SwiftHFR
@@ -231,12 +231,12 @@ struct BlocklistSyncModelTests {
         states.set(.on, for: account, at: MPStorageSyncModelTests.now.addingTimeInterval(-60))
         let copies = MPStorageCopyStore(persistence: InMemorySmallStorePersistence<MPStorageCopyDocument>())
         try await copies.save(Self.syncedCopy(["Alpha", "Beta"]), for: account)
+        let engine = MPStorageSync(
+            remote: GatedMPStorageRemote(inner: fake, gate: gate),
+            persistence: MPStorageCopyPersistence(store: copies, account: account)
+        )
         let model = MPStorageSyncModel(
-            account: account,
-            sync: MPStorageSync(
-                remote: GatedMPStorageRemote(inner: fake, gate: gate),
-                persistence: MPStorageCopyPersistence(store: copies, account: account)
-            ),
+            account: account, sync: engine,
             states: states, isLoggedIn: { true }, clock: { MPStorageSyncModelTests.now }
         )
         let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
@@ -248,9 +248,12 @@ struct BlocklistSyncModelTests {
         let starting = Task { await model.start() }
         while await gate.waiting == 0 { try await Task.sleep(for: .milliseconds(5)) }
         try await manager.remove("Delta", from: .blocklist)
+        let running = await engine.callsInFlight
         let handling = Task { await sync.handle(BlocklistChange(pseudo: "Delta", added: false)) }
-        // Lets the edit queue behind the read before the read answers.
-        try await Task.sleep(for: .milliseconds(50))
+        // The edit is queued behind the read before the read answers (#1194: a signal, not a delay).
+        var spins = 0
+        while await engine.callsInFlight <= running, spins < 100_000 { spins += 1; await Task.yield() }
+        #expect(await engine.callsInFlight == running + 1, "the edit waits behind the start's read")
         await gate.release()
         await starting.value
         await handling.value

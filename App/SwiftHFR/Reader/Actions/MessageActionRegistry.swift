@@ -58,7 +58,8 @@ struct MessageActionRegistry {
     }
 }
 
-/// "Link": copies the message's permalink (the only action implemented by LOT-087 itself).
+/// "Link": copies the message's permalink. The other actions' handlers live with the flow each one starts (quote, write,
+/// favourite, bookmark, profile, MP, quality alert, moderator alert, pseudo lists).
 @MainActor
 struct LinkActionHandler: MessageActionHandler {
     /// Puts the URL on the pasteboard (the view's side effect, replaced in tests).

@@ -17,9 +17,7 @@ struct ThemeSettingsView: View {
         Form {
             Section {
                 Group {
-                    Picker("Thème", selection: $theme.mode) {
-                        ForEach(ThemeSettingsModel.Mode.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
+                    ThemeModeTiles(appearance: theme.appearance, mode: $theme.mode)
                     if theme.theme.isLegacy {
                         legacyColors
                     }
@@ -29,10 +27,7 @@ struct ThemeSettingsView: View {
                     if seasonal.drawnTheme == .noelAbuse {
                         Text("Noël abusé est affiché jusqu’à la fin de la saison : ces réglages s’appliqueront ensuite.")
                     } else if theme.theme.isLegacy {
-                        Text(
-                            "Le style s’applique au thème sombre : fonds des écrans et du sujet ouvert. "
-                                + "La luminosité s’applique aux fonds sombres du sujet ouvert."
-                        )
+                        Text(Self.footer(for: theme.mode))
                     } else if theme.appearance.forcedColorScheme != nil {
                         Text("« \(theme.theme.name) » n’a qu’une variante : clair = sombre.")
                     }
@@ -49,7 +44,19 @@ struct ThemeSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// Legacy's accent hue, dark style and brightness (LOT-121, LOT-122).
+    /// What the style controls of `mode` do (#1213).
+    private static func footer(for mode: ThemeSettingsModel.Mode) -> String {
+        let light = "Le style clair s’applique aux fonds des écrans et du sujet ouvert."
+        let dark = "Le style sombre s’applique aux fonds des écrans et du sujet ouvert. "
+            + "La luminosité s’applique aux fonds sombres du sujet ouvert."
+        return switch mode {
+        case .light: light
+        case .dark: dark
+        case .system: light + " " + dark
+        }
+    }
+
+    /// Legacy's accent hue, then the light and dark controls the mode shows (LOT-121, LOT-122, #1213).
     @ViewBuilder private var legacyColors: some View {
         @Bindable var theme = theme
         VStack(alignment: .leading, spacing: 8) {
@@ -62,18 +69,51 @@ struct ThemeSettingsView: View {
                 .accessibilityLabel("Teinte d'accent")
                 .accessibilityValue(Text(theme.accentHue, format: .number.precision(.fractionLength(2))))
         }
-        Picker("Style du thème sombre", selection: $theme.darkStyle) {
-            ForEach(DarkStyle.allCases, id: \.self) { Text($0.title).tag($0) }
+        ForEach(theme.mode.controls, id: \.self) { control in
+            controlView(control)
         }
-        DarkStylePreview(appearance: theme.appearance)
-        VStack(alignment: .leading, spacing: 8) {
-            LabeledContent("Luminosité du thème sombre") {
-                Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0)))
+    }
+
+    /// One mode-dependent control. When both groups show (following iOS), each opens with its own title.
+    @ViewBuilder private func controlView(_ control: ThemeSettingsModel.ThemeControl) -> some View {
+        @Bindable var theme = theme
+        switch control {
+        case .lightStyle:
+            if theme.mode == .system { groupTitle("Thème clair") }
+            Picker("Style du thème clair", selection: $theme.lightStyle) {
+                ForEach(LightStyle.allCases, id: \.self) { Text($0.title).tag($0) }
             }
-            .accessibilityHidden(true)
-            Slider(value: $theme.darkBrightness, in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01)
-                .accessibilityLabel("Luminosité du thème sombre")
-                .accessibilityValue(Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0))))
+            LightStylePreview(appearance: theme.appearance)
+        case .darkStyle:
+            if theme.mode == .system { groupTitle("Thème sombre") }
+            Picker("Style du thème sombre", selection: $theme.darkStyle) {
+                ForEach(DarkStyle.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            DarkStylePreview(appearance: theme.appearance)
+        case .darkBrightness:
+            VStack(alignment: .leading, spacing: 8) {
+                LabeledContent("Luminosité du thème sombre") {
+                    Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0)))
+                }
+                .accessibilityHidden(true)
+                Slider(value: $theme.darkBrightness, in: 0...ThemeAppearance.maximumDarkBrightness, step: 0.01)
+                    .accessibilityLabel("Luminosité du thème sombre")
+                    .accessibilityValue(Text(theme.darkBrightness, format: .percent.precision(.fractionLength(0))))
+            }
+        }
+    }
+
+    private func groupTitle(_ title: String) -> some View {
+        Text(title).font(.footnote).fontWeight(.semibold).foregroundStyle(.secondary).accessibilityAddTraits(.isHeader)
+    }
+}
+
+extension LightStyle {
+    /// Picker label.
+    var title: String {
+        switch self {
+        case .blanc: "Blanc"
+        case .doux: "Doux"
         }
     }
 }
@@ -119,6 +159,36 @@ private struct DarkStylePreview: View {
         .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(Color(uiColor: separator.uiColor), lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Aperçu du thème sombre")
+    }
+}
+
+/// A sample of the chosen light surfaces: a message on the page with its separator, a border-only quote and the accent, drawn from
+/// what the reader receives for the light style (`ThemeAppearance+LightStyle`).
+private struct LightStylePreview: View {
+    let appearance: ThemeAppearance
+    @ScaledMetric(relativeTo: .callout) private var spacing = 6.0
+    @ScaledMetric(relativeTo: .callout) private var quotePadding = 6.0
+    @ScaledMetric(relativeTo: .callout) private var padding = 10.0
+    @ScaledMetric(relativeTo: .callout) private var radius = 8.0
+
+    var body: some View {
+        let look = appearance.tileLook(dark: false)
+        let surfaces = Dictionary(uniqueKeysWithValues: appearance.lightSurfaces.map { ($0.variable, $0.color) })
+        let separator = surfaces["--app-light-separator"] ?? ThemeColor(hex: 0xD1D1D6)
+        VStack(alignment: .leading, spacing: spacing) {
+            Text("Aperçu du thème clair").font(.caption).foregroundStyle(Color(uiColor: look.line.uiColor))
+            Text("Un message du sujet").foregroundStyle(Color(uiColor: ThemeColor(hex: 0x1C1C1E).uiColor))
+            Text("Une citation").font(.callout)
+                .foregroundStyle(Color(uiColor: look.line.uiColor))
+                .padding(quotePadding).frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .leading) { Rectangle().fill(Color(uiColor: ThemeColor(hex: 0x8E8E93).uiColor)).frame(width: 2) }
+            Rectangle().fill(Color(uiColor: separator.uiColor)).frame(height: 1)
+        }
+        .padding(padding)
+        .background(Color(uiColor: look.surface.uiColor), in: RoundedRectangle(cornerRadius: radius))
+        .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(Color(uiColor: separator.uiColor), lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Aperçu du thème clair")
     }
 }
 

@@ -33,7 +33,8 @@ import Testing
             "mp_badge_enabled", "recherche_categorie", "rehost_use_link", "rehost_resize_before_upload",
             "HFRswiftStartupScreen", "open_links_in_default_browser", "text_size_percent",
             "topic_page_swipe_navigation", "FavoritesShowCollapsedSections", "mp_list_display", "reply_button_behavior",
-            "theme_dark_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds", "HFRswiftGlobalTopicListFlag",
+            "theme_dark_style", "theme_light_style", "theme_id", "app_lock_enabled", "app_lock_grace_seconds",
+            "HFRswiftGlobalTopicListFlag",
             "icon_previous", "icon_revert_asked",
             // LOT-166: the two seasonal toggles, new.
             "season.automatic", "season.animations", "season.noel.activeYear",
@@ -47,7 +48,9 @@ import Testing
             // #1060: the « Notifications » switch of Réglages › Notifications MP, new.
             "mp_notifications_enabled",
             // #1058: the Favoris « Non lus / Tous » button, new.
-            "favorites_unread_only"
+            "favorites_unread_only",
+            // LOT-133: the Alertes Qualitay last check (legacy name, new encoding).
+            "last_check_aq"
         ]
         #expect(Set(SettingKey.allKeys) == legacy)
     }
@@ -312,4 +315,19 @@ import Testing
 /// A Noël season key built from its parts, as THEMES.md §5 names it: `season.noel.<year>.<name>`.
 private func noelKey(_ year: Int, _ name: String) -> String {
     ["season", "noel", String(year), name].joined(separator: ".")
+}
+
+@Suite struct LightStyleSettingTests {
+    /// #1213: `theme_light_style` is « Blanc » (0) when absent, and an unknown or unreadable value keeps that default (tolerant
+    /// decoding: a version that knows more styles may have written it).
+    @Test func theLightStyleIsReadFromItsKeyAndAnythingUnknownKeepsBlanc() {
+        #expect(InMemorySettingsStore().value(for: SettingKey.lightStyle) == .blanc)
+        #expect(InMemorySettingsStore(["theme_light_style": .int(1)]).value(for: SettingKey.lightStyle) == .doux)
+        #expect(InMemorySettingsStore(["theme_light_style": .string("1")]).value(for: SettingKey.lightStyle) == .doux)
+        #expect(InMemorySettingsStore(["theme_light_style": .int(7)]).value(for: SettingKey.lightStyle) == .blanc)
+        #expect(InMemorySettingsStore(["theme_light_style": .string("soft")]).value(for: SettingKey.lightStyle) == .blanc)
+        let store = InMemorySettingsStore()
+        store.set(LightStyle.doux, for: SettingKey.lightStyle)
+        #expect(store.value(for: SettingKey.lightStyle) == .doux)
+    }
 }

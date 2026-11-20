@@ -4,6 +4,14 @@ import UIKit
 
 /// `LAContext` with the `deviceOwnerAuthentication` policy: Face ID or Touch ID, then the device code. No PIN of our own.
 struct LocalAuthenticationAuthenticator: DeviceOwnerAuthenticating {
+    /// Read after `canEvaluatePolicy`, which is what makes `LAContext` fill `biometryType`.
+    var method: AppLockMethod {
+        let context = LAContext()
+        var error: NSError?
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        return AppLockMethod(biometry: context.biometryType)
+    }
+
     func availability() -> AppLockAvailability {
         var error: NSError?
         if LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) { return .available }

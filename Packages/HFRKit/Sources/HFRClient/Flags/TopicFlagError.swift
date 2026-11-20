@@ -2,7 +2,8 @@ import HFRNetwork
 
 /// Why a flag write or a read mark did not end with HFR's confirmation.
 ///
-/// `invalidLink`, `invalidTopic`, `sessionNotConfirmed`, `missingToken` and `network` mean the write was not sent.
+/// `invalidLink`, `invalidTopic`, `sessionNotConfirmed`, `sessionChanged`, `missingToken` and `network` mean the write was
+/// not sent.
 /// `notLoggedIn` and `rejected` mean HFR answered with a refusal by LOT-037's shape rule (no `addflag` or `delflag`
 /// refusal is captured), so the user may try again. `unconfirmed` means the request may have reached HFR: the app reloads
 /// the list or the topic to see the state instead of resending on its own.
@@ -17,6 +18,9 @@ public enum TopicFlagError: Error, Sendable, Equatable {
     /// `.valid` here); the write was not sent. HFR answers a write without a session with the success page (`P03q`), so
     /// the app asks for a new login or checks the session again instead of retrying.
     case sessionNotConfirmed(SessionHealth)
+    /// A login, a logout or another account landed in the session between its check and the write (#1200 P2); the write
+    /// was not sent. HFR would confirm an `addflag` sent with no session or another account's (`P03q` = `P03a`).
+    case sessionChanged
     /// The session holds no `hash_check` for the list removal; nothing was sent. Record the favourites page's token first.
     case missingToken
     /// HFR refused the write with its "vous devez être enregistré" sentence (`W17c`).
