@@ -274,7 +274,7 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         defer { plain.isHidden = true }
         #expect(await settle(plain) { seen.leafAppeared })
         #expect(seen.leafSawAnAction)
-        #expect(seen.actionWasBesideTheList == false)
+        #expect(!seen.actionIsBesideTheList)
         let reader = try #require(hosted.root.detailReaders[.qualityAlerts])
         let pushed = await settle(plain) { reader.page != nil && stack(topped: "Sujet 9 p1", in: plain)?.count == 2 }
         #expect(pushed, "\(stacks(in: plain))")
@@ -288,9 +288,12 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
                 .modifier(PlusStackReader(entry: .qualityAlerts, model: hosted.root, environment: hosted.environment))
         })
         #expect(await settle(column) { columnSeen.leafAppeared })
-        #expect(columnSeen.actionWasBesideTheList == true)
+        #expect(columnSeen.leafSawAnAction && columnSeen.actionIsBesideTheList)
         defer { column.isHidden = true }
         #expect(await settle(column) { hosted.root.detailReaders[.qualityAlerts] !== reader })
+        // The reader's title exists once its page is loaded: only then can a stack show it (#1277 review, round 1, detail 3).
+        let replacement = try #require(hosted.root.detailReaders[.qualityAlerts])
+        #expect(await settle(column) { replacement.page != nil })
         #expect(stack(topped: "Sujet 9 p1", in: column) == nil, "the column's list pushed the reader: \(stacks(in: column))")
     }
 
@@ -314,7 +317,7 @@ private struct StackProbe: View {
         Text("Liste")
             .onAppear {
                 seen.leafSawAnAction = openTopicInDetail != nil
-                seen.actionWasBesideTheList = openTopicInDetail?.besideTheList
+                seen.actionIsBesideTheList = openTopicInDetail?.besideTheList == true
                 seen.leafAppeared = true
                 openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
             }
@@ -328,8 +331,8 @@ private struct OpenerProbe: View {
     final class Seen {
         var leafAppeared = false
         var leafSawAnAction = false
-        /// `besideTheList` of the action the leaf saw; nil without one.
-        var actionWasBesideTheList: Bool?
+        /// `besideTheList` of the action the leaf saw; false without one (`leafSawAnAction` tells the two apart).
+        var actionIsBesideTheList = false
     }
 
     let seen: Seen
@@ -349,7 +352,7 @@ private struct OpenerProbe: View {
             Text("Écran poussé")
                 .onAppear {
                     seen.leafSawAnAction = openTopicInDetail != nil
-                    seen.actionWasBesideTheList = openTopicInDetail?.besideTheList
+                    seen.actionIsBesideTheList = openTopicInDetail?.besideTheList == true
                     seen.leafAppeared = true
                     openTopicInDetail?(ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 9))), title: "Sujet 9")
                 }

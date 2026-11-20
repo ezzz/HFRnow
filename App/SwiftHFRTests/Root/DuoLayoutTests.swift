@@ -113,7 +113,8 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
         return page
     }
 
-    func host(initial: SidebarDestination = .tab(.favorites)) throws -> Hosted {
+    /// `mpStorage` gives the Bookmarks list its rows (nil: « Connectez-vous »).
+    func host(initial: SidebarDestination = .tab(.favorites), mpStorage: MPStorageSyncModel? = nil) throws -> Hosted {
         let data = FakeDataSource()
         data.favoritesHandler = { _ in FavoritesPage(sections: [favoriteSection(13, (1...3).map { favoriteTopic($0) })]) }
         let pages = FakeTopicPages { target in Self.page(for: target) }
@@ -127,7 +128,7 @@ struct DuoLayoutHostedTests: ReaderWebTesting {
             // Logged in, as Favoris: a logged-out list's load (each time the list appears, a fold included) closes the open
             // conversation (`MessageListModel.load`, `.signedOut`), which raced the reader's title (#1124).
             messages: MessageListModel(source: messages, isLoggedIn: { true }, topicPages: pages),
-            store: InMemorySettingsStore(), initial: initial
+            store: InMemorySettingsStore(), initial: initial, mpStorage: mpStorage
         )
         let services = ReaderServices(
             imageFetcher: ReaderImageFetcher(transport: MockTransport(replies: [])),

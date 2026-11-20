@@ -120,4 +120,17 @@ struct RootModelDetailColumnTests {
         #expect(bookmark.linkedReader == nil)
         #expect(root.detailReaders[.qualityAlerts] === alert)
     }
+
+    // #1277 review (round 1, finding 2): back on the Plus stack closed the reader but left the bookmark selected, so an unfold
+    // highlighted its row beside the placeholder. Legacy's one target drives the highlight and the detail (`bookmarksTopicTarget`,
+    // `MainWindow.swift:1978`, cleared by `clearAllTopicTargets`, `:2186-2193` @ 87fe0d1c).
+    @Test func closingTheBookmarksDetailDropsTheSelectedBookmark() {
+        let root = model(initial: .plus(.bookmarks))
+        let target = ReaderTarget(source: .topic(TopicID(category: .forum(13), topic: 7)))
+        root.bookmarkSelection.id = "13-7-1"
+        root.openInDetail(TopicReaderModel(target: target, title: "Bookmark", source: FakeTopicPages()), for: .bookmarks)
+        root.closeDetail(for: .bookmarks)
+        #expect(root.detailReaders[.bookmarks] == nil)
+        #expect(root.bookmarkSelection.id == nil)
+    }
 }

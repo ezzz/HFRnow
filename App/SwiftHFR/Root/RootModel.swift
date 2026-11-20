@@ -267,10 +267,13 @@ final class RootModel {
     }
 
     /// Empties `entry`'s detail column (legacy's placeholder shows again: a deleted bookmark, `MainWindow.swift:2266-2271`) and pops
-    /// its reader off the Plus stack; back on that stack calls it too, so an unfold shows no topic the cover screen closed.
+    /// its reader off the Plus stack; back on that stack calls it too, so an unfold shows no topic the cover screen closed. The
+    /// bookmark selection goes with the reader: legacy's one target drives the row's highlight and the detail (`bookmarksTopicTarget`,
+    /// `:1978`, cleared by `clearAllTopicTargets`, `:2186-2193`), so no row stays selected beside the placeholder (#1277 round 1).
     func closeDetail(for entry: PlusEntry) {
         detailReaders[entry]?.closeLinkedReaders()
         detailReaders[entry] = nil
+        if entry == .bookmarks { bookmarkSelection.id = nil }
     }
 
     /// What the split root's detail column shows for the sidebar destination: one id per topic or conversation, nil when it
