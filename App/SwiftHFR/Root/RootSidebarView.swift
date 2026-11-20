@@ -140,8 +140,11 @@ struct RootSidebarView: View {
         }
     }
 
-    /// What a row of `entry`'s list calls to open a topic in the detail column: a new reader over this session's pages.
-    static func detailOpener(model: RootModel, environment: AppEnvironment, entry: PlusEntry) -> OpenTopicInDetail {
+    /// What a row of `entry`'s list calls to open a topic as the entry's reader (`RootModel.detailReaders`): a new reader over this
+    /// session's pages. Beside the list in the split; on the Plus stack of the tab bar (`PlusStackReader`, `besideTheList` false).
+    static func detailOpener(
+        model: RootModel, environment: AppEnvironment, entry: PlusEntry, besideTheList: Bool = true
+    ) -> OpenTopicInDetail {
         OpenTopicInDetail(
             open: { target, title in
                 model.openInDetail(
@@ -152,17 +155,21 @@ struct RootSidebarView: View {
                     for: entry
                 )
             },
-            close: { model.closeDetail(for: entry) }
+            close: { model.closeDetail(for: entry) },
+            besideTheList: besideTheList
         )
     }
 }
 
-/// Opens a topic in the detail column of the regular-width iPad split: set on the content column of Bookmarks and Alertes
-/// Qualitay (#685), nil elsewhere, where a list pushes the topic on its own stack (the Plus tab of the tab bar).
+/// Opens the topic a Bookmarks or Alertes Qualitay row names as the entry's reader (`RootModel.detailReaders`): set on the content
+/// column of the split (#685), where the reader shows beside the list, and on the Plus tab of the tab bar (`PlusStackReader`),
+/// where it is pushed over the list; nil on a plain stack.
 struct OpenTopicInDetail {
     let open: @MainActor (ReaderTarget, String) -> Void
     /// Empties the detail column (a deleted bookmark it showed, LOT-132).
     var close: @MainActor () -> Void = {}
+    /// The reader shows beside the list (the split's detail column, where the row opened stays selected), not over it.
+    var besideTheList = true
 
     @MainActor
     func callAsFunction(_ target: ReaderTarget, title: String) { open(target, title) }

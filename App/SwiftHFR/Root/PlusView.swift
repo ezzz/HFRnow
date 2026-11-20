@@ -64,9 +64,51 @@ struct PlusEntryView: View {
             AccountDeletionView()
         case .bookmarks:
             BookmarksView(mpStorage: model.mpStorage, selection: model.bookmarkSelection, environment: environment)
+                .modifier(PlusStackReader(entry: entry, model: model, environment: environment))
         case .qualityAlerts:
             QualityAlertsView(model: model.qualityAlerts, environment: environment)
+                .modifier(PlusStackReader(entry: entry, model: model, environment: environment))
         }
+    }
+}
+
+// Port of HFRswift/Swift/MainWindow.swift (handleRootSwap, the Plus tab: `:2157-2172`, `:1836-1839`) and
+// FoldHandoffDestination.swift (`:1-57`) @ 87fe0d1c. Differences: the reader is the entry's `RootModel.detailReaders` entry in
+// both roots, so no pending push and no reading registered; the topic sits over the entry's list, not over the Plus menu, and the
+// entry it came from shows it unfolded, whatever the sidebar showed before (legacy carries it towards the current sidebar
+// destination only when that is Bookmarks or Alertes Qualitay). GAP-217, LOT-147.
+/// The Plus tab of the tab bar: the topic a Bookmarks or Alertes Qualitay row opened, pushed over the list and read from
+/// `RootModel.detailReaders`, the reader the split's detail column shows, so a fold pushes the topic open in the detail column
+/// and an unfold shows the one open on the cover screen; back closes it, so an unfold does not bring it back. Inert where the
+/// list already has a detail column (`openTopicInDetail` set by `PlusListColumn`).
+struct PlusStackReader: ViewModifier {
+    let entry: PlusEntry
+    let model: RootModel
+    let environment: AppEnvironment
+    @Environment(\.openTopicInDetail) private var detailColumn
+
+    func body(content: Content) -> some View {
+        if detailColumn != nil {
+            content
+        } else {
+            content
+                .environment(
+                    \.openTopicInDetail,
+                    RootSidebarView.detailOpener(model: model, environment: environment, entry: entry, besideTheList: false)
+                )
+                .navigationDestination(isPresented: isPushing) {
+                    if let reader = model.detailReaders[entry] {
+                        TopicReaderView(model: reader, services: environment.reader, composer: environment.composer)
+                    }
+                }
+        }
+    }
+
+    private var isPushing: Binding<Bool> {
+        Binding(
+            get: { model.detailReaders[entry] != nil },
+            set: { if !$0 { model.closeDetail(for: entry) } }
+        )
     }
 }
 
