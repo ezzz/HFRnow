@@ -98,15 +98,6 @@ struct GeneralSettingsModelTests {
         #expect(store.rawValue(forKey: "text_size_percent") == .int(130))
     }
 
-    @Test func theMessageListDisplayDefaultsToOneListAndIsWritten() {
-        let store = InMemorySettingsStore()
-        let model = GeneralSettingsModel(store: store)
-        #expect(model.mpListDisplay == .single)
-        model.mpListDisplay = .split
-        #expect(store.rawValue(forKey: "mp_list_display") == .string("split"))
-        #expect(GeneralSettingsModel(store: store).mpListDisplay == .split)
-    }
-
     /// The Réglages › Général model no longer owns the image mode: a stored value is neither read nor rewritten by it.
     @Test func theGeneralModelLeavesDisplayImagesAlone() {
         let store = InMemorySettingsStore(["display_images": .string("no")])

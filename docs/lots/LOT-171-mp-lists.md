@@ -17,10 +17,10 @@ Legacy `2440d79` of <https://github.com/ezzz/HFRnow>; the issue cites `origin/ma
 ## Behaviour
 | Piece | Rule |
 |---|---|
-| Setting | `MPListDisplay` (HFRModels) stored under the **new** key `mp_list_display` (`SettingKey.mpListDisplay`): `single` "Tout en un" (default) / `split` "Deux listes". Absent or unknown reads `single`, so nothing changes for anyone who does not opt in. Réglages, section "Messages", picker "Affichage des MP" |
-| Reading it | `MessageListModel.onAppear` reads the store (`settings:`, given by `RootModel`) before it loads, so a change made in Réglages applies when the list is shown again |
-| Default | `visibleThreads` is every row of the page: LOT-126's list, no extra request (test `defaultShowsEveryRowOfTheListUnchanged`) |
-| Two lists | A segmented control above the list: "MP" (`!isGroup`) and "MP multiples" (`isGroup`). The split is client-side over the page on screen: no server filter of the MP list is known, so none is guessed |
+| Setting (replaced by #899) | The « Affichage des MP » picker is removed: the switch Tous / MP / MP multiples is always shown, its last position kept per account (#899 §Scope, "stored per account") in the **new** device-only keys `mp_list_segment.<account key>` (`MPListSegmentStore`, `MPSegment` in `HFRStorage`: `all` default, `oneToOne`, `group`; unknown reads `all`; logged out reads `all`). `mp_list_display` is read only to seed an account's first choice (`single` is Tous, `split` is MP), and ignored once that account's key is stored. Tests `MPListSegmentStoreTests`, `theSeedAppliesOncePerAccount`, `twoAccountsKeepTheirOwnChoiceAndLoggedOutReadsTous` |
+| Reading it | `MessageListModel.init` reads the current account's position from the store (`settings:` and `account:`, given by `RootModel`) and stores the seed; `chooseSegment` writes each change |
+| Default | Tous: `visibleThreads` is every row of the page, no extra request (test `tousNeverSearchesWhateverTheListHolds`) |
+| Two lists | A segmented control above the list: "Tous" (every row), "MP" (`!isGroup`) and "MP multiples" (`isGroup`). The split is client-side over the page on screen: no server filter of the MP list is known, so none is guessed |
 | Counts | Each segment shows its own unread count (`unreadCount(in:)`: HFR's state, minus what was read here, LOT-126 `isUnread`). **Page-bounded**, like `MessageListContent.unreadCount`: the mailbox total is the tab badge (LOT-170, home page count) and stays the total |
 | Empty segment | A page without a row of the segment, with a next page: the next pages are loaded by the model (`advanceWhileSegmentEmpty`), at most `maxAutoAdvance` (5) pages per trigger (appear, refresh, next, switch), stopping at the last page, on a failure (rows kept, banner) or when another load supersedes it. Progress is shown meanwhile, never "empty". When the bound is hit the segment may still be empty with a next page: the pager stays and "Aucun MP multiple" / "Aucun MP individuel" is shown. Going to the previous page never searches forward |
 | Group rows | LOT-126's row plus, for a group only, a line "N réponses · M pages" from `TopicSummary.repliesCount` / `pageCount` (shown when replies > 0; one-to-one rows are unchanged). Whether the MP list's reply count is the thread's real count is not verified against a capture: **Mac check** |
@@ -51,7 +51,7 @@ Existing captures only (`R13u1`: group and one-to-one rows, 7 pages; `R04`, `R08
 ## Intentional differences from legacy
 | # | Legacy | Port | Why |
 |---|---|---|---|
-| D1 | one list | optional split, default "Tout en un" | operator decision 2026-10-28 |
+| D1 | one list | switch Tous / MP / MP multiples, default Tous, last position remembered per account | operator decision 2026-10-28, replaced by #899 |
 | D2 | group detected by the text "multiples" | `isGroup` (LOT-023 D4) | LOT-023 |
 
 ## Learnings

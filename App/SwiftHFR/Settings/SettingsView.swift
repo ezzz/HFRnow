@@ -113,11 +113,6 @@ struct SettingsView: View {
                 FilterMinimumQuotesRow(general: general)
                 Toggle("Inclure les pseudos whitelistés", isOn: $general.filterIncludesAllowlist)
             }
-            ThemedSection("Messages") {
-                Picker("Affichage des MP", selection: $general.mpListDisplay) {
-                    ForEach(MPListDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-            }
             MPNotificationSettingsSection(model: notifications)
             MPStorageSettingsSection(model: mpStorage)
             ThemedSection("Thème") {
