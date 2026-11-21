@@ -334,10 +334,11 @@ extension View {
         }
     }
 
-    /// Workaround for an iOS 27.1 hang on the iPhone Duo inner display: once a large title has
+    /// Workaround for an iOS 27.1/27.2 hang on both iPhone Duo displays: once a large title has
     /// collapsed on scroll, the next push loops forever in `UINavigationController` layout.
     /// Applied to each tab's root view (inside its own `NavigationStack`) and to the split view
     /// columns that have no stack of their own; pushed views inherit the inline mode.
+    /// Rules in `PhoneDisplayPolicy.usesInlineRootTitle`.
     func expandedPhoneInlineNavigationTitle() -> some View {
         modifier(ExpandedPhoneInlineNavigationTitle())
     }
@@ -347,7 +348,17 @@ private struct ExpandedPhoneRootKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct PhoneDisplayKindKey: EnvironmentKey {
+    static let defaultValue = PhoneDisplayKind.other
+}
+
 extension EnvironmentValues {
+    /// Set by `RootTabView`: which iPhone Duo display the scene is on (`.other` elsewhere).
+    var hfrPhoneDisplayKind: PhoneDisplayKind {
+        get { self[PhoneDisplayKindKey.self] }
+        set { self[PhoneDisplayKindKey.self] = newValue }
+    }
+
     /// Set by `RootTabView` when a `.phone` scene shows the split view root (iPhone Duo inner
     /// display). Needed because split view columns report a compact width of their own, so the
     /// size classes read inside a column no longer describe the whole screen.
@@ -361,14 +372,18 @@ private struct ExpandedPhoneInlineNavigationTitle: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.hfrIsExpandedPhoneRoot) private var isExpandedPhoneRoot
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
 
-    private var isExpandedPhoneLayout: Bool {
-        guard UIDevice.current.userInterfaceIdiom == .phone else { return false }
-        return isExpandedPhoneRoot || (horizontalSizeClass == .regular && verticalSizeClass == .regular)
+    private var usesInlineTitle: Bool {
+        PhoneDisplayPolicy.usesInlineRootTitle(
+            kind: isExpandedPhoneRoot ? .duoInner : phoneDisplayKind,
+            isPhone: UIDevice.current.userInterfaceIdiom == .phone,
+            isRegularInBothDimensions: horizontalSizeClass == .regular && verticalSizeClass == .regular
+        )
     }
 
     func body(content: Content) -> some View {
-        content.navigationBarTitleDisplayMode(isExpandedPhoneLayout ? .inline : .automatic)
+        content.navigationBarTitleDisplayMode(usesInlineTitle ? .inline : .automatic)
     }
 }
 

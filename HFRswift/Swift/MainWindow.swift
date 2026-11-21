@@ -131,6 +131,7 @@ struct CategoriesListView: View {
     @StateObject private var viewModel: CategoriesListViewModel
     @StateObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     private let selectedTopicID: TopicNavigationID?
     private let onSelectTopic: ((TopicNavigationTarget) -> Void)?
     private let onSelectForum: ((Forum) -> Void)?
@@ -202,7 +203,7 @@ struct CategoriesListView: View {
                         ToolbarProfileImage(image: accountsStore.currentAvatarImage, url: nil)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: phoneDisplayKind.refreshToolbarPlacement) {
                     Button {
                         AppHaptics.refreshStarted()
                         viewModel.load(shouldTriggerHaptic: true)
@@ -300,6 +301,7 @@ struct ForumTopicsListView: View {
     @StateObject private var viewModel: ForumTopicsListViewModel
     @ObservedObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     @AppStorage("HFRswiftGlobalTopicListFlag") private var globalTopicListFlagRawValue = TopicListFlag.all.rawValue
     @State private var hasLoaded = false
     @State private var visitedURLs: Set<String> = []
@@ -369,6 +371,25 @@ struct ForumTopicsListView: View {
 
     private var persistedGlobalFlag: TopicListFlag {
         TopicListFlag(rawValue: globalTopicListFlagRawValue) ?? .all
+    }
+
+    /// iPhone Duo cover screen: « Actualiser » goes to the bottom of the toolbar column (thumb reach).
+    private var placesRefreshAtBottom: Bool {
+        PhoneDisplayPolicy.placesThumbActionsAtBottom(kind: phoneDisplayKind)
+    }
+
+    private func refreshToolbarButton() -> some View {
+        Button {
+            AppHaptics.refreshStarted()
+            viewModel.load(shouldTriggerHaptic: true)
+        } label: {
+            Label {
+                Text("Actualiser")
+            } icon: {
+                ToolbarRefreshIcon(isLoading: viewModel.isLoading)
+            }
+        }
+        .disabled(viewModel.isLoading)
     }
 
     private var initialFlagForCurrentPresentation: TopicListFlag {
@@ -820,19 +841,17 @@ struct ForumTopicsListView: View {
                 }
                 .disabled(!isLoggedIn || viewModel.newTopicURL == nil)
 
-                Button {
-                    AppHaptics.refreshStarted()
-                    viewModel.load(shouldTriggerHaptic: true)
-                } label: {
-                    Label {
-                        Text("Actualiser")
-                    } icon: {
-                        ToolbarRefreshIcon(isLoading: viewModel.isLoading)
-                    }
+                if !placesRefreshAtBottom {
+                    refreshToolbarButton()
                 }
-                .disabled(viewModel.isLoading)
+            }
+            if placesRefreshAtBottom {
+                ToolbarItem(placement: .bottomBar) {
+                    refreshToolbarButton()
+                }
             }
         }
+        .coverScreenBottomBackButton()
         .onAppear {
             if !hasLoaded {
                 let initialFlag = initialFlagForCurrentPresentation
@@ -1340,6 +1359,10 @@ struct RootTabView: View {
     @State private var detailNavigationResetToken = UUID()
     @State private var preferredCompactColumn = NavigationSplitViewColumn.content
     @State private var isPortraitLayout = false
+    /// Window orientation and side inset (iPhone Duo cover screen detection).
+    @State private var windowShape = WindowShape()
+    /// The split view root was shown on a `.phone` since launch (memory only, see `PhoneDisplayPolicy`).
+    @State private var hasShownExpandedPhoneLayout = false
     @State private var iPadDirectSidebarVisibility = NavigationSplitViewVisibility.all
     @State private var categoriesSelectedForum: Forum?
     @State private var categoriesInitialFlagOverride: TopicListFlag?
@@ -1371,6 +1394,20 @@ struct RootTabView: View {
     private var prefersDetailOnlyTopic: Bool {
         usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && isPortraitLayout
     }
+
+    /// iPhone Duo display the scene is on; drives the inline tab titles (freeze workaround)
+    /// and the thumb-reach toolbar of the cover screen.
+    private var phoneDisplayKind: PhoneDisplayKind {
+        PhoneDisplayPolicy.displayKind(
+            isPhone: UIDevice.current.userInterfaceIdiom == .phone,
+            usesSidebarRoot: usesSidebarRoot,
+            isFoldableModel: Self.isFoldableModel,
+            window: windowShape,
+            hasShownExpandedLayoutThisLaunch: hasShownExpandedPhoneLayout
+        )
+    }
+
+    private static let isFoldableModel = PhoneDisplayPolicy.isFoldableModel(PhoneDisplayPolicy.currentModelIdentifier)
 
     init() {
         let startupRawValue = UserDefaults.standard.string(forKey: AppStartupScreen.storageKey)
@@ -1637,7 +1674,23 @@ struct RootTabView: View {
             } action: { isPortrait in
                 isPortraitLayout = isPortrait
             }
+            .onGeometryChange(for: WindowShape.self) { proxy in
+                WindowShape(
+                    isPortrait: proxy.size.height > proxy.size.width,
+                    horizontalSafeAreaInset: max(proxy.safeAreaInsets.leading, proxy.safeAreaInsets.trailing)
+                )
+            } action: { shape in
+                windowShape = shape
+            }
+            .onChange(of: usesSidebarRoot, initial: true) { _, isSidebarRoot in
+                // Only a foldable iPhone shows the split view root on a `.phone`: remember it until
+                // the app quits, so the cover screen is recognised even if the other signals miss.
+                if isSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone && !hasShownExpandedPhoneLayout {
+                    hasShownExpandedPhoneLayout = true
+                }
+            }
             .environment(\.hfrIsExpandedPhoneRoot, usesSidebarRoot && UIDevice.current.userInterfaceIdiom == .phone)
+            .environment(\.hfrPhoneDisplayKind, phoneDisplayKind)
             .preferredColorScheme(appTheme.preferredColorScheme)
             .tint(appTheme.actionTintColor)
             .environment(\.appThemePalette, appTheme.palette)
