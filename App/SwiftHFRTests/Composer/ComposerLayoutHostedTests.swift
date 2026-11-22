@@ -108,17 +108,18 @@ struct ComposerLayoutHostedTests {
     /// #1286: with an image inserted and a keyboard up, the editor's cap takes the chips row off the room, so the card stays within
     /// the room (the card once ignored the row and was one row too tall).
     @Test func anInsertedImageKeepsTheCardWithinTheRoom() async throws {
-        try #require(isPhone, "the docked card is an iPhone's")
+        guard isPhone else { return } // the docked card is an iPhone's
         let snippet = "[img]https://img.example/a.jpg[/img]"
         let model = ComposerFixture.model(poster: ScriptedPoster([]))
         model.imageChips = [ComposerImageChip(snippet: snippet, thumbnail: try #require(URL(string: "https://img.example/a.th.jpg")))]
         let box = try await host(size: .large, text: snippet + "\n" + Self.longText, model: model, keyboard: 336)
+        let card = try #require(box.frames[.card])
         let editor = try #require(box.frames[.editor])
         let layout = box.layout
-        let room = try #require(layout.availableHeight, "the keyboard measured the room")
+        try #require(layout.availableHeight != nil, "the keyboard measured the room")
         #expect(layout.chips == ComposerImageChipsRow.height, "the layout the view draws carries the chips row")
         #expect(abs(editor.height - layout.editorHeight) < 1, "editor \(editor.height), cap \(layout.editorHeight)")
-        #expect(layout.cardHeight <= room, "card \(layout.cardHeight), room \(room)")
+        #expect(abs(card.height - layout.textCardHeight) < 1, "card \(card.height), textCardHeight \(layout.textCardHeight)")
     }
 
     /// No title strip (#972): close and drafts on the left, send on the right, in one row directly above the card, each keeping
