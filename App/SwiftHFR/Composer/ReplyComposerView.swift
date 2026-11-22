@@ -151,7 +151,7 @@ struct ReplyComposerView: View {
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
-        .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
+        .onChange(of: layoutWithChips, initial: true) { _, layout in probe?.layout(layout) }
         .modifier(ComposerRoomUpdates(layout: $measured, isDocked: chrome == .docked)) // the card's room (#1136)
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }

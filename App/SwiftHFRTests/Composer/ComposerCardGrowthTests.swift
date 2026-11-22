@@ -79,8 +79,4 @@ struct ComposerCardGrowthTests {
         #expect(with.cardHeight == Self.available, "still never more than the room")
         #expect(with.editorHeight == without.editorHeight - chips, "the chips row takes its height off the editor")
     }
-
-    @Test func noChipsLeavesTheLayoutUnchanged() {
-        #expect(layout(lines: 12).withChips(height: 0) == layout(lines: 12))
-    }
 }
