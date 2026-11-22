@@ -151,7 +151,7 @@ struct ReplyComposerView: View {
             focused = firstEmptyField
         }
         .task { await model.loadSubcategories() }
-        .onChange(of: measured, initial: true) { _, layout in probe?.layout(layout) }
+        .onChange(of: layoutWithChips, initial: true) { _, layout in probe?.layout(layout) }
         .modifier(ComposerRoomUpdates(layout: $measured, isDocked: chrome == .docked)) // the card's room (#1136)
         // The banners appear above the editor, away from VoiceOver's focus: say them when they appear (LOT-163).
         .onChange(of: model.errorMessage) { _, text in ReaderAccessibility.announce(text) }
@@ -201,7 +201,7 @@ struct ReplyComposerView: View {
         ComposerEditorCard(
             model: model, formatting: formatting, selection: $selection, focused: $focused, chips: model.shownImageChips,
             thumbnails: imageUpload.thumbnails,
-            editorHeight: height == .partial ? measured.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
+            editorHeight: height == .partial ? layoutWithChips.editorHeight : nil, toggle: offersHeightToggle ? height.toggled : nil,
             onToggle: { chosenHeight = height.toggled }, removeChip: removeImage,
             measure: { text, line in measured.text = text; measured.line = line },
             controls: chrome.controlsInCard ? AnyView(measuredControls) : nil
@@ -311,10 +311,10 @@ extension ReplyComposerView {
     }
 
     /// The sheet's only detent: the docked card's height at partial height (`ComposerCardLayout`), `.large` at full.
-    private var detent: PresentationDetent {
-        var layout = measured
-        layout.chips = model.shownImageChips.isEmpty ? 0 : ComposerImageChipsRow.height
-        return height.detent(cardHeight: layout.cardHeight)
+    private var detent: PresentationDetent { height.detent(cardHeight: layoutWithChips.cardHeight) }
+    /// The measured layout with the image chips row, for the detent and the editor's cap alike (#1286).
+    private var layoutWithChips: ComposerCardLayout {
+        measured.withChips(height: model.shownImageChips.isEmpty ? 0 : ComposerImageChipsRow.height)
     }
 
     /// The "Aa" bar when shown, above the control row: one view kept across focus changes (#599).
