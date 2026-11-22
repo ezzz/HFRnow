@@ -114,6 +114,14 @@ struct ComposerCardLayout: Equatable {
         return max(Self.maximumLines * lines, room)
     }
 
+    /// This layout with the image chips row `height` tall (0 without an image). The editor card and the sheet's detent both read
+    /// it, so the row is taken off the editor's cap in both (#1286: the card once ignored it).
+    func withChips(height: CGFloat) -> ComposerCardLayout {
+        var copy = self
+        copy.chips = height
+        return copy
+    }
+
     /// The rounded text card (#854): the image chips, the editor, then the controls on its bottom edge.
     var textCardHeight: CGFloat { chips + editorHeight + controls }
 

@@ -68,4 +68,19 @@ struct ComposerCardGrowthTests {
         #expect(ComposerCardLayout.room(window: 874, topInset: 62, keyboard: 0, line: 20) > room, "a hidden keyboard leaves more")
         #expect(ComposerCardLayout.room(window: 300, topInset: 62, keyboard: 336, line: 20) == 0, "never negative")
     }
+
+    /// #1286: the editor card and the sheet's detent read the same layout, so the image chips row is taken off the room in both
+    /// (the card once ignored it, and was a chips row too tall for the room with an image inserted).
+    @Test func theChipsRowIsTakenOffTheRoomWhenAnImageIsInserted() {
+        let chips: CGFloat = 60
+        let without = layout(lines: 40).withChips(height: 0)
+        let with = layout(lines: 40).withChips(height: chips)
+        #expect(without.cardHeight == Self.available)
+        #expect(with.cardHeight == Self.available, "still never more than the room")
+        #expect(with.editorHeight == without.editorHeight - chips, "the chips row takes its height off the editor")
+    }
+
+    @Test func noChipsLeavesTheLayoutUnchanged() {
+        #expect(layout(lines: 12).withChips(height: 0) == layout(lines: 12))
+    }
 }
