@@ -19,13 +19,13 @@ struct MPDarkTopicTests {
         #expect(!ExperimentalSettings.isOn(.mpDarkTopic, in: nil))
     }
 
-    /// The description sits under the switch with no ⓘ for this option only; the others keep their ⓘ.
-    @Test func onlyTheDarkTopicShowsItsDescriptionUnderTheSwitch() {
-        #expect(ExperimentalFeature.mpDarkTopic.showsExplanationUnderSwitch)
-        #expect(ExperimentalFeature.allCases.filter(\.showsExplanationUnderSwitch) == [.mpDarkTopic])
+    /// #1128 (replacing #1014's choice of 2026-11-17): the option works like the others, its description behind the ⓘ. The page
+    /// builds every listed option as an `ExperimentalFeatureRow`, so this one has a title and an explanation for that ⓘ to show.
+    @Test func theDarkTopicIsAnOrdinaryOptionWithAnExplanationForItsIcon() {
         #expect(ExperimentalFeature.mpDarkTopic.title == "MP multiples → dark topic")
         #expect(ExperimentalFeature.mpDarkTopic.explanation == MPDarkTopic.explanation)
         #expect(MPDarkTopic.explanation.contains("Désactivé"))
+        #expect(ExperimentalPageLayout.groups().flatMap(\.features).contains(.mpDarkTopic))
     }
 
     // MARK: The gate

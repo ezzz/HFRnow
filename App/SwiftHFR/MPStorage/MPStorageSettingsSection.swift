@@ -25,11 +25,14 @@ struct MPStorageSettingsSection: View {
 
 /// The rows of a logged-in account.
 struct MPStorageSettingsRows: View {
+    /// Between the switch's title and the account's state under it (`SettingsRowSpacing`, #1128).
+    static let descriptionSpacing = SettingsRowSpacing.titleToDescription
+
     let model: MPStorageSyncModel
 
     var body: some View {
         Toggle(isOn: Binding(get: { model.isOn }, set: { enabled in Task { await model.setEnabled(enabled) } })) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Self.descriptionSpacing) {
                 Text("Activer le stockage MP")
                 Text(Self.stateText(model.record?.state)).scaledFont(.footnote).foregroundStyle(.secondary)
             }
