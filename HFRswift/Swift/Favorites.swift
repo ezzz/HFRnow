@@ -440,6 +440,7 @@ struct FavoritesListView: View {
     @StateObject private var viewModel: FavoritesViewModel
     @StateObject private var accountsStore: AccountsStore
     @Environment(\.appThemePalette) private var themePalette
+    @Environment(\.hfrPhoneDisplayKind) private var phoneDisplayKind
     @AppStorage("vos_sujets") private var favoritesTabBehavior = "0"
     @AppStorage("sujets_avec_cat") private var favoritesSortedByCategories = true
     @AppStorage("favorites_auto_refresh") private var favoritesAutoRefresh = false
@@ -802,6 +803,7 @@ struct FavoritesListView: View {
                     isLoading: viewModel.isLoading,
                     profileImage: accountsStore.currentAvatarImage,
                     profileImageURL: nil,
+                    refreshPlacement: phoneDisplayKind.refreshToolbarPlacement,
                     leadingRefreshItem: AnyView(
                         Button {
                             AppHaptics.impact(.light)
