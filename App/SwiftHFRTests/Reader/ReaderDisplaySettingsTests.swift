@@ -139,4 +139,19 @@ struct ReaderDisplaySettingsTests {
         #expect(swipe(-121, predicted: -192) == .next)
         #expect(swipe(-200, down: 100, predicted: -400) == nil) // vertical exactly 0.5 x horizontal
     }
+
+    /// #672: a drag that began inside a block scrolling sideways is that block's, never a page change (legacy
+    /// `guard !isTouchInHorizontalScroller`, `MessagesView.swift:5398-5402` @ 87fe0d1c).
+    @Test func aDragThatStartedInASidewaysBlockIsNeverAPageSwipe() {
+        func swipe(inBlock: Bool, _ across: CGFloat) -> PageSwipe? {
+            PageSwipe.of(
+                translation: CGSize(width: across, height: 0), predictedEnd: CGSize(width: across * 2, height: 0),
+                page: 2, maxPage: 5, startedInHorizontalScroller: inBlock
+            )
+        }
+        #expect(swipe(inBlock: true, -150) == nil)
+        #expect(swipe(inBlock: true, 150) == nil)
+        #expect(swipe(inBlock: false, -150) == .next) // outside a block it still changes the page
+        #expect(swipe(inBlock: false, 150) == .previous)
+    }
 }

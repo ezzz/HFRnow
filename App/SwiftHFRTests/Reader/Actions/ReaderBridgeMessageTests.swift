@@ -30,6 +30,10 @@ struct ReaderBridgeMessageTests {
             == .success(.init(token: 3, message: .edge(atBottom: true))))
         #expect(decode(["type": "edge", "token": 3, "bottom": false])
             == .success(.init(token: 3, message: .edge(atBottom: false))))
+        #expect(decode(["type": "scroller", "token": 3, "inside": true])
+            == .success(.init(token: 3, message: .scroller(inside: true))))
+        #expect(decode(["type": "scroller", "token": 3, "inside": false])
+            == .success(.init(token: 3, message: .scroller(inside: false))))
     }
 
     /// #1037: the tap of a YouTube thumbnail card carries the link; the app re-checks it, so only a string of a sane length decodes.
@@ -45,9 +49,12 @@ struct ReaderBridgeMessageTests {
     /// Issue #820: the end of the page is a real boolean, nothing else; it is no tap, so an open composer lets it through.
     @Test func thePageEndNeedsARealBooleanAndIsNoTap() {
         #expect(decode(["type": "edge", "token": 3]) == .failure(.invalidPayload))
+        #expect(decode(["type": "scroller", "token": 3]) == .failure(.invalidPayload))
+        #expect(decode(["type": "scroller", "token": 3, "inside": NSNumber(value: 1)]) == .failure(.invalidPayload))
         #expect(decode(["type": "edge", "token": 3, "bottom": NSNumber(value: 1)]) == .failure(.invalidPayload))
         #expect(decode(["type": "edge", "token": 3, "bottom": "true"]) == .failure(.invalidPayload))
         #expect(!ReaderBridgeMessage.edge(atBottom: true).isTapAction)
+        #expect(!ReaderBridgeMessage.scroller(inside: true).isTapAction)
     }
 
     @Test func aQuoteNeedsAMessageANonBlankTextOfBoundedSizeAndARealBoolean() {

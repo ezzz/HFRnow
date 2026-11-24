@@ -32,6 +32,9 @@ final class ReaderWebController: NSObject {
     /// The message menu, a callout at the tapped "+" (#594), and the pull past the page's end (#820).
     let messageMenu = ReaderMessageEditMenu(), pullWatcher = ReaderPullWatcher()
     var events = Events()
+    /// The last touch started inside a block that scrolls sideways (#672): the page swipe ignores its drag. Reset by the next
+    /// touch (legacy) and by a new document, so the first swipe after a page change works.
+    private(set) var touchStartedInScroller = false
     var ignoresPageTaps = false // a composer is open over the page (#653): it scrolls, its taps (`isTapAction`) do nothing
     /// A composer is docked on the keyboard under the page (#853): dragging the page down pulls the keyboard down with the finger.
     var dismissesKeyboardInteractively = false {
@@ -159,6 +162,7 @@ final class ReaderWebController: NSObject {
         resetWatch.stop()
         self.document = document
         readyToken = nil
+        touchStartedInScroller = false
         reloadedAfterFailure = false
         imageRequests.removeAll()
         consented.removeAll()
@@ -237,6 +241,9 @@ final class ReaderWebController: NSObject {
             positionReported(post, token: document.token)
             return nil
         case .edge(let atBottom): return pageEndReported(atBottom, token: document.token)
+        case .scroller(let inside):
+            touchStartedInScroller = inside
+            return nil
         case .quote(let post, let text, let bold):
             events.quote(post, text, bold, document.token)
             return nil

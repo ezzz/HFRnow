@@ -222,7 +222,8 @@ struct TopicReaderView: View {
             guard services.settings.swipesPages(), let page = model.page,
                   let swipe = PageSwipe.of(
                       translation: value.translation, predictedEnd: value.predictedEndTranslation,
-                      page: page.currentPage, maxPage: page.maxPage
+                      page: page.currentPage, maxPage: page.maxPage,
+                      startedInHorizontalScroller: controller?.touchStartedInScroller ?? false
                   )
             else { return }
             Task { await model.swipe(swipe) }

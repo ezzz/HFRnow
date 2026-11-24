@@ -6,7 +6,7 @@ import Foundation
 // untyped values and ignored bad shapes silently.
 
 /// A message of `reader.js`, decoded into a closed set of cases (LOT-087, audit C14). The page never supplies code or a
-/// selector: the decoder knows ten names and takes only numbers and strings of the shape each one needs; anything else
+/// selector: the decoder knows a fixed set of names and takes only numbers and strings of the shape each one needs; anything else
 /// is rejected, never partly read.
 enum ReaderBridgeMessage: Equatable, Sendable {
     /// `src` of every image of the document, in order; an entry that is not a string is kept as nil (blocked).
@@ -38,6 +38,10 @@ enum ReaderBridgeMessage: Equatable, Sendable {
     /// The page's end came on screen (`atBottom`) or left it: legacy's `scrollState` message (`MessagesView.swift:1013-1035`
     /// @ 87fe0d1c), sent only on a change. It drives the end-of-page bar (#820).
     case edge(atBottom: Bool)
+
+    /// A touch started inside a block that scrolls sideways (`inside`) or outside any (legacy's `horizontalScrollTouch`,
+    /// `MessagesView.swift:1102-1142` @ 87fe0d1c, #672), sent only on a change: the page swipe ignores a drag that began in one.
+    case scroller(inside: Bool)
 
     /// Why a body was rejected.
     enum Failure: Error, Equatable, Sendable {
@@ -89,6 +93,9 @@ enum ReaderBridgeMessage: Equatable, Sendable {
         case "edge":
             guard let atBottom = boolean(object["bottom"]) else { throw .invalidPayload }
             return .edge(atBottom: atBottom)
+        case "scroller":
+            guard let inside = boolean(object["inside"]) else { throw .invalidPayload }
+            return .scroller(inside: inside)
         default:
             return try messageAboutAPost(ofType: type, in: object)
         }
@@ -190,7 +197,7 @@ extension ReaderBridgeMessage {
     var isTapAction: Bool {
         switch self {
         case .menu, .video, .videoLink, .image, .quote: true
-        case .images, .tap, .ready, .position, .edge: false
+        case .images, .tap, .ready, .position, .edge, .scroller: false
         }
     }
 }

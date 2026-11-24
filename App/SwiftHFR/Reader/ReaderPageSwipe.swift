@@ -20,8 +20,13 @@ enum PageSwipe: Equatable, Sendable {
     static let maximumVerticalRatio: CGFloat = 0.5
 
     /// What a drag that ended at `translation`, predicted to stop at `predictedEnd`, asks for; nil for a drag that is not a
-    /// page swipe or has no page to go to (`page` is 1-based).
-    static func of(translation: CGSize, predictedEnd: CGSize, page: Int, maxPage: Int) -> PageSwipe? {
+    /// page swipe or has no page to go to (`page` is 1-based). A drag that `startedInHorizontalScroller` (a [fixed], [code] or
+    /// wide block the finger scrolled sideways, #672) is never one: legacy `guard !isTouchInHorizontalScroller`
+    /// (`MessagesView.swift:5398-5402` @ 87fe0d1c).
+    static func of(
+        translation: CGSize, predictedEnd: CGSize, page: Int, maxPage: Int, startedInHorizontalScroller: Bool = false
+    ) -> PageSwipe? {
+        guard !startedInHorizontalScroller else { return nil }
         let horizontal = translation.width
         let vertical = translation.height
         let impulse = predictedEnd.width - horizontal
