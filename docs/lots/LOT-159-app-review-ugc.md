@@ -105,9 +105,10 @@ The posts are read cookie-less (LOT-093), so they carry no toolbar link: no aler
   gives once HFR redirects it;
 - "Alerter" is the moderators' mail with that permalink (LOT-135's fallback, R10); with an account and no alert link the reader
   does the same;
-- a message is the user's own when its author is the current account's pseudo (case-insensitive): no "Alerter", no
+- a message is the user's own when its author is the current account's pseudo (`PseudoListManager.isOwn`, the LOT-072 comparison): no "Alerter", no
   "Blacklist", no "Whitelist" on it (the reader reads the edit link instead, which a cookie-less page never has);
-- a change to the lists rebuilds the sheet's document, so a blocked member's posts are hidden at once (the reader does the same).
+- a change to the lists rebuilds the sheet's document, so a blocked member's posts are hidden at once (the reader does the same);
+- the confirmations ("Lien copié", the lists' sentences) show in the reader's banner and are announced to VoiceOver, as in the reader.
 
 The other actions of the reader's menus (quote, reply, edit, favourite, bookmark, AQ, profile, MP) are not offered there: the
 sheet stays read-only, as LOT-114 decided.
@@ -121,7 +122,7 @@ sheet stays read-only, as LOT-114 decided.
 
 ## Fixtures
 
-None new: the menu model is tested on built `ReaderPage`s; the AQ and forum list tests reuse LOT-133's `T01` and LOT-082's fakes.
+None new: the menu model is tested on batches built by `FilteredPostsModel.result(of:)` from made-up `FilteredPost`s; the AQ and forum list tests reuse LOT-133's `T01` and LOT-082's fakes.
 
 ## UX evolutions (app lots)
 
