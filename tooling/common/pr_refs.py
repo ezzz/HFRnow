@@ -7,8 +7,8 @@ Grammar (AGENTS.md §8 writes the line as `Closes #N`): a reference starts a lin
 marker, quote, bold or code marks, a `LOT-XXX ·` prefix), with a closing keyword (`close`, `closes`, `closed`, `fix`,
 `fixes`, `fixed`, `resolve`, `resolves`, `resolved`) or `Refs`/`Ref`, then `#N`, optionally followed by more numbers
 (`Closes #50, #51`). Numbers may be separated by commas, `and`, `&` or spaces. A reference may also open a new clause after `.`, `;`,
-`,` or `|` (`Closes #1, closes #2`), but then its clause must end right after the numbers (end of line or one of
-`.,;:()|·` or a markdown mark): `Fixes #12 will need a capture` and `the "Closes #152" line` are prose. Case does not
+`,` or `|` (`Closes #1, closes #2`), (after `.` it opens a sentence; after the others only right after another reference of the line), and its clause must end right after the numbers (end of line or one of
+`.,;:()|·—–` or a markdown mark): `Fixes #12 will need a capture` and `the "Closes #152" line` are prose. Case does not
 matter; `LOT-XXX` may be followed by a dot, dash or em/en dash. HTML comments, fenced code blocks and CR are ignored. Standard library only.
 """
 from __future__ import annotations
@@ -27,7 +27,8 @@ LINE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 EXTRA = re.compile(r"#(\d+)")
-CLAUSE_END = re.compile(r"[ \t]*(?:$|[.,;:()|·*_`])", re.MULTILINE)  # what may follow a reference that does not open its line
+CLAUSE_SEPARATOR = re.compile(r"(?:[ \t]*\([^()\n]*\))?[.,;|·]?")  # all that may sit between two references of one line
+CLAUSE_END = re.compile(r"[ \t]*(?:$|[.,;:()|·—–*_`])", re.MULTILINE)  # what may follow a reference that does not open its line
 
 
 def normalized(body: str | None) -> str:
@@ -43,9 +44,16 @@ def _unique(numbers) -> list[int]:
 def _refs(body: str | None, closing: bool) -> list[int]:
     found = []
     text = normalized(body)
+    previous_end = None  # end of the last accepted reference
     for match in LINE.finditer(text):
-        if match.group("mid") and not CLAUSE_END.match(text, match.end()):
-            continue  # prose: `Fixes #12 will need a capture`
+        if match.group("mid"):
+            # after `.` a sentence opens; after `, ; | ·` a clause opens only right after another reference of the line
+            after_reference = previous_end is not None and CLAUSE_SEPARATOR.fullmatch(text, previous_end, match.start())
+            if text[match.start() - 1] != "." and not after_reference:
+                continue  # prose: `This keeps legacy, fixes #12 (only partly).`
+            if not CLAUSE_END.match(text, match.end()):
+                continue  # prose: `Fixes #12 will need a capture`
+        previous_end = match.end()
         if match.group("kw").lower().startswith("ref") == closing:
             continue
         found.append(int(match.group("n")))

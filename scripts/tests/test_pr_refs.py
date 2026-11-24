@@ -41,6 +41,12 @@ BODIES = {
     "Closes #106 #107 and #108": ([106, 107, 108], [106, 107, 108]),
     "LOT-012 — Closes #45": ([45], [45]),
     "LOT-012 – Closes #46": ([46], [46]),
+    # round 2: a clause opens only after another reference
+    "This keeps legacy, fixes #12 (only partly).": ([], []),
+    "Not done; closes #12, maybe.": ([], []),
+    "Refs #368 (directive H.1–H.3), Refs #379 (M5 proposal)": ([], [368, 379]),
+    "Closes #1, resolves #2 — both.": ([1, 2], [1, 2]),
+    "Fixed it; closes #8 — later": ([], []),
 }
 
 
