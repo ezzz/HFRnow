@@ -52,6 +52,8 @@ extension ImageUploadModel {
 struct ComposerImageChipCross: View {
     let isEnabled: Bool
     let action: () -> Void
+    /// The glyph stops growing here: a 56 pt thumbnail must stay visible at accessibility text sizes; the region stays 44 pt.
+    private static let maximumGlyph: CGFloat = 28
     @ScaledMetric(relativeTo: .body) private var glyph: CGFloat = 18
 
     var body: some View {
@@ -59,7 +61,7 @@ struct ComposerImageChipCross: View {
             Image(systemName: "xmark.circle.fill")
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(.white, .black.opacity(0.6))
-                .font(.system(size: glyph))
+                .font(.system(size: min(glyph, Self.maximumGlyph)))
                 .minimumHitRegion()
         }
         .buttonStyle(.plain)
@@ -82,7 +84,7 @@ struct ComposerImageChipsRow: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
-                ForEach(chips) { chip in
+                ForEach(Array(chips.enumerated()), id: \.element.id) { index, chip in
                     RemoteThumbnail(url: chip.thumbnail, loader: thumbnails)
                     .frame(width: 56, height: 56)
                     .clipShape(.rect(cornerRadius: 10))
@@ -92,6 +94,9 @@ struct ComposerImageChipsRow: View {
                             // overhang stops at the row's 10 pt margin so the scroll view does not clip it (#1156).
                             .offset(x: 11, y: -10)
                     }
+                    // An earlier chip draws over the next thumbnail, so its ✕ region (11 pt past the thumbnail, the gap is 8)
+                    // is never covered by it (#1156).
+                    .zIndex(Double(chips.count - index))
                     .accessibilityElement(children: .contain)
                     .accessibilityLabel("Image insérée")
                 }

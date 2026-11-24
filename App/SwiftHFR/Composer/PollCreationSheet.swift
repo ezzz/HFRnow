@@ -117,6 +117,9 @@ struct PollCreationSheet: View {
                             answers.removeAll { $0.id == answer.id }
                             maxChoices = min(maxChoices, max(1, draft.filledAnswers.count))
                         }
+                        // The 44 pt region overflows the row's layout by 12 pt a side: the ⊖ and the field keep their place
+                        // and width (#1156).
+                        .padding(-12)
                     }
                 }
             }
