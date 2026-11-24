@@ -69,6 +69,10 @@ final class MessageListModel {
     private var loadCount = 0
     /// The reader of the selected conversation, created once per selection so a view update never refetches the page (E25).
     @ObservationIgnored private var currentReader: (id: String, model: TopicReaderModel)?
+    /// A row menu's opening, taken by the next `reader(for:)` of that conversation (#1311).
+    @ObservationIgnored private var requestedOpening: (id: String, opening: TopicOpening)?
+    /// Bumped by every `open(_:at:)`, so the reader's view is rebuilt even when the conversation stays selected.
+    private(set) var readerGeneration = 0
 
     /// Creates the model; `isLoggedIn` is read when a load starts.
     init(
@@ -215,13 +219,25 @@ final class MessageListModel {
     /// Nil when the row names no thread page.
     func reader(for thread: PrivateMessageThread) -> TopicReaderModel? {
         if let currentReader, currentReader.id == thread.id { return currentReader.model }
-        guard let opening = openingTarget(of: thread) else { return nil }
+        let requested = requestedOpening?.id == thread.id ? requestedOpening?.opening : nil
+        requestedOpening = nil
+        let opening = requested.map { (target: $0.target, fromLatestMessage: $0.atLastMessage) } ?? openingTarget(of: thread)
+        guard let opening else { return nil }
         let model = TopicReaderModel(
             target: opening.target, title: thread.summary.title, source: topicPages,
             opensAtLastMessage: opening.fromLatestMessage, renderOptions: renderOptions
         )
         currentReader = (thread.id, model)
         return model
+    }
+
+    /// Opens `thread` at `opening` (a row menu's "Première page", "Dernière page", "Page numéro…", #1311): a new reader, even
+    /// for the conversation on screen.
+    func open(_ thread: PrivateMessageThread, at opening: TopicOpening) {
+        requestedOpening = (thread.id, opening)
+        currentReader = nil
+        readerGeneration += 1
+        selected = thread
     }
 
     /// Where a row opens: the page of its latest message (legacy tap, `HFRMPViewController.m:255`), so a conversation with

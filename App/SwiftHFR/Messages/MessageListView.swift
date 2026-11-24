@@ -17,6 +17,9 @@ struct MessageListView: View {
     let composer: ComposerServices?
     @State private var newMessage: ReplyComposerModel?
     @State private var titleVisibility = TitleVisibility()
+    /// "Page numéro…" of a row menu: the row asked about, and the page typed.
+    @State private var pagePrompt: TopicSummary?
+    @State private var pageText = ""
 
     var body: some View {
         let loader = model.loader
@@ -37,6 +40,15 @@ struct MessageListView: View {
                         .rowPill(MessageRowView.rowTint(isUnread: model.isUnread(thread), isSelected: model.selected == thread))
                         .listLookRow(isSelected: model.selected == thread)
                         .tag(thread)
+                        // The legacy quick actions, then (#676) "Marquer non lu" and "Supprimer" after a divider.
+                        .contextMenu {
+                            TopicRowMenu(topic: thread.summary, context: .privateMessages, open: { _, opening in
+                                model.open(thread, at: opening)
+                            }, askPage: { topic in
+                                pageText = "\(TopicQuickActions.suggestedPage(of: topic))"
+                                pagePrompt = topic
+                            })
+                        }
                     }
                 }
             }
@@ -79,6 +91,10 @@ struct MessageListView: View {
                 Task { await model.newMessageDidClose(reason, subject: composer.subject) }
             }
         }
+        .modifier(TopicPagePrompt(topic: $pagePrompt, text: $pageText) { topic, opening in
+            // The prompt's row is a summary: its conversation is the one the page lists.
+            if let thread = loader.value?.threads.first(where: { $0.summary.id == topic.id }) { model.open(thread, at: opening) }
+        })
         .pullToRefresh(isRefreshing: model.loader.isLoading) { await model.refresh() }
         .task { await model.onAppear() }
         // Separate from the list's load, which never waits for MPStorage (LOT-130): the flags appear when the copy is read.
