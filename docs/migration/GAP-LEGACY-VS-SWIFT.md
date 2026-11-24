@@ -301,7 +301,6 @@ One row per screen, one column per behaviour. LOT-164 (#254) uses it as a gate i
 Other lists with the system `.refreshable` (top only, no haptic, not #1207's pull): Bookmarks (`MPStorage/BookmarksView.swift:55`) and AQ (`QualityAlerts/QualityAlertsView.swift:55`), same as legacy (`BookmarksPlusView.swift:233`, `AQPlusView.swift:442`); offline topics (`Offline/OfflineTopicsView.swift:65`; offline saving is disabled, GAP-180). Whether they follow #1207's pull is #1312's decision.
 
 Gap issues: #1309 state views (needs a decision), #1310 haptics, #1311 row menus of MP rows and search results, #1312 pull on the profile, Bookmarks, offline topics and AQ (needs a decision); #426 (UXD-04) and #676. Also: GAP-007 still says "not planned": UXD-04 chose A (#426).
-```
 
 ## Counts
 
