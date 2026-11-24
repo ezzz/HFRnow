@@ -12,25 +12,25 @@ struct SignInToBlockTests {
         let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
         let handlers = PseudoListActionHandler.all(
             manager: PseudoListManager(store: store, account: account), confirm: { _ in }, rebuild: {},
-            login: { opened.count += 1 }
+            login: { opened.taps += 1 }
         )
         return MessageActionRegistry(handlers)
     }
 
-    @MainActor final class Counter { var count = 0 }
+    @MainActor final class Counter { var taps = 0 }
 
     private func context() -> MessageMenuContext {
         MessageMenuContext(numreponse: 5, author: "autre", actions: MessageActions())
     }
 
-    @Test func loggedOutTheAuthorMenuHasTheSignInEntryAndNoBlacklist() async {
+    @Test func loggedOutTheAuthorMenuHasTheSignInEntryAndNoBlocklist() async {
         let opened = Counter()
         let registry = registry(account: nil, opened: opened)
         let entries = registry.entries(for: context(), source: .avatar)
         #expect(entries == [.signInToBlock, .allowlist])
         #expect(entries.first?.title == "Connectez-vous pour bloquer")
         #expect(await registry.perform(.signInToBlock, with: context()))
-        #expect(opened.count == 1)
+        #expect(opened.taps == 1)
     }
 
     @Test func loggedInTheAuthorMenuIsUnchanged() async {
@@ -38,7 +38,7 @@ struct SignInToBlockTests {
         let registry = registry(account: "moi", opened: opened)
         #expect(registry.entries(for: context(), source: .avatar) == [.blocklist, .allowlist])
         #expect(await !registry.perform(.signInToBlock, with: context()))
-        #expect(opened.count == 0)
+        #expect(opened.taps == 0)
     }
 
     // What the reader registers (`TopicReaderView` calls `pseudoListHandlers`): fails if it stops passing the sign-in handler or
