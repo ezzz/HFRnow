@@ -72,6 +72,16 @@ extension LegacyHapticsTests {
         #expect(recorder.played == [light, light], "a results page arriving is results arriving (legacy fetchPage)")
     }
 
+    @Test func anEmptyAnswerStillPlaysOneImpact() async {
+        let source = FakeSearchSource()
+        source.searchHandler = { _ in TopicListPage(topics: [], navigation: PageNavigation(current: 1, last: 1)) }
+        let recorder = Recorder()
+        let model = search(source, recorder)
+        await model.search()
+        #expect(model.loader.value?.topics.isEmpty == true)
+        #expect(recorder.played == [light], "legacy plays on every success, \"Aucun résultat\" included")
+    }
+
     @Test func aFailedSearchPlaysNothing() async {
         let source = FakeSearchSource()
         source.searchHandler = { _ throws(ListLoadError) in throw .offline }
@@ -136,6 +146,19 @@ extension LegacyHapticsTests {
         await ReaderRefresh.run(model: reader, controller: nil) { hap.impact(.light) }
         #expect(reader.error != nil)
         #expect(recorder.played == [light, light], "legacy finishes the haptic on failure too (MessagesView.swift:3793)")
+    }
+
+    /// A refresh the model refuses (a composer is open) sends nothing, so it plays nothing either.
+    @Test func aRefreshRefusedUnderAnOpenComposerPlaysNothingAndSendsNothing() async {
+        let pages = FakeTopicPages()
+        let reader = await shownReader(pages)
+        reader.composer(.reply, isOpen: true)
+        let before = pages.requests.count
+        let recorder = Recorder()
+        let hap = haptics(recorder)
+        await ReaderRefresh.run(model: reader, controller: nil) { hap.impact(.light) }
+        #expect(pages.requests.count == before)
+        #expect(recorder.played.isEmpty)
     }
 
     @Test func aRefreshIsSilentWithHapticsOff() async {
