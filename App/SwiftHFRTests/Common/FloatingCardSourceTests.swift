@@ -8,46 +8,66 @@ struct FloatingCardSourceTests {
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         .appending(path: "SwiftHFR")
 
-    /// One line of an app source file.
-    private struct SourceLine {
-        /// Relative to `App/SwiftHFR`.
-        let file: String
-        let number: Int
-        let text: String
-    }
+    private static let sharedFile = "Common/FloatingCard.swift"
 
-    /// Every Swift line of the app target.
-    private static func lines() throws -> [SourceLine] {
+    /// Every Swift file of the app target: its path relative to `App/SwiftHFR`, and its text.
+    private static func sources() throws -> [(file: String, text: String)] {
         let root = appSources.standardizedFileURL.path
         let enumerator = try #require(FileManager.default.enumerator(at: appSources, includingPropertiesForKeys: nil))
-        var result: [SourceLine] = []
+        var result: [(file: String, text: String)] = []
         for case let url as URL in enumerator where url.pathExtension == "swift" {
             let file = String(url.standardizedFileURL.path.dropFirst(root.count + 1))
-            let text = try String(contentsOf: url, encoding: .utf8)
-            for (index, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
-                result.append(SourceLine(file: file, number: index + 1, text: String(line)))
-            }
+            result.append((file, try String(contentsOf: url, encoding: .utf8)))
         }
         return result
     }
 
-    private static let sharedFile = "Common/FloatingCard.swift"
+    /// The 1-based lines of `text` that copy the card: the literal shape, or a material or glass at the 12-pt radius on the same
+    /// line or the line before it (a modifier split after `in:`). `120` and `12.5` are other radii.
+    static func cardCopies(in text: String) -> [Int] {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        return lines.indices.compactMap { index in
+            let line = lines[index]
+            if line.contains(/RoundedRectangle\(cornerRadius: 12(?![0-9.])/) { return index + 1 }
+            guard line.contains(/cornerRadius: 12(?![0-9.])/) else { return nil }
+            let context = (index > 0 ? lines[index - 1] : "") + line
+            return context.contains("Material") || context.contains("glassEffect") ? index + 1 : nil
+        }
+    }
 
     @Test func theAppSourcesAreFound() throws {
-        // Guards the two tests below against passing on an empty walk.
-        #expect(try Self.lines().contains { $0.file == Self.sharedFile && $0.text.contains("RoundedRectangle(cornerRadius: 12)") })
+        // Guards the test below against passing on an empty walk.
+        let shared = try #require(try Self.sources().first { $0.file == Self.sharedFile })
+        #expect(Self.cardCopies(in: shared.text) != [])
     }
 
-    @Test func onlyTheSharedCardSpellsTheCardShape() throws {
-        let copies = try Self.lines().filter { $0.file != Self.sharedFile && $0.text.contains("RoundedRectangle(cornerRadius: 12)") }
-        #expect(copies.map { "\($0.file):\($0.number)" } == [])
-    }
-
-    @Test func noScreenPutsAMaterialOrGlassOnTheCardShape() throws {
-        let copies = try Self.lines().filter { line in
-            line.file != Self.sharedFile && line.text.contains("cornerRadius: 12")
-                && (line.text.contains("Material") || line.text.contains("glassEffect"))
+    @Test func noScreenCopiesTheCard() throws {
+        let copies = try Self.sources().filter { $0.file != Self.sharedFile }.flatMap { source in
+            Self.cardCopies(in: source.text).map { "\(source.file):\($0)" }
         }
-        #expect(copies.map { "\($0.file):\($0.number)" } == [])
+        #expect(copies == [])
+    }
+
+    @Test(arguments: [
+        ".background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))",
+        ".glassEffect(.regular, in: .rect(cornerRadius: 12))",
+        ".background(.thinMaterial, in: .rect(cornerRadius: 12, style: .continuous))",
+        ".background(\n    .regularMaterial, in: .rect(cornerRadius: 12)\n)",
+        ".glassEffect(.regular, in:\n    .rect(cornerRadius: 12))",
+        ".clipShape(RoundedRectangle(cornerRadius: 12))",
+    ])
+    func aCopyIsCaught(_ source: String) {
+        #expect(Self.cardCopies(in: source) != [])
+    }
+
+    @Test(arguments: [
+        ".background(.regularMaterial, in: .rect(cornerRadius: 120))",
+        ".glassEffect(.regular, in: .rect(cornerRadius: 12.5))",
+        ".background(.regularMaterial, in: RoundedRectangle(cornerRadius: 120))",
+        ".clipShape(.rect(cornerRadius: 12))",
+        ".background(.regularMaterial, in: .capsule)\n.clipShape(.rect(cornerRadius: 10))",
+    ])
+    func anotherShapeIsNot(_ source: String) {
+        #expect(Self.cardCopies(in: source) == [])
     }
 }

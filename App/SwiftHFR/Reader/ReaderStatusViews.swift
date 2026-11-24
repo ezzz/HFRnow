@@ -25,7 +25,9 @@ struct ReaderStateOverlay: View {
     @ViewBuilder
     private var content: some View {
         if model.page == nil {
-            ScreenStateView(state: ScreenLoadState(error: model.error), loadingLabel: "Chargement des messages", retry: retry)
+            ScreenStateView(
+                state: ScreenLoadState(error: model.error, isLoading: true), loadingLabel: "Chargement des messages", retry: retry
+            )
         } else if let page = model.page, page.messages.isEmpty {
             EmptyStateView(
                 title: "Aucun message", symbol: "text.bubble", message: page.notice ?? "Cette page ne contient aucun message.",
@@ -33,7 +35,9 @@ struct ReaderStateOverlay: View {
             )
         } else if !model.hasShownDocument {
             // The web view could not show the page (issue #566): a retry, never an endless spinner.
-            ScreenStateView(state: ScreenLoadState(error: model.error), loadingLabel: "Chargement des messages", retry: retry)
+            ScreenStateView(
+                state: ScreenLoadState(error: model.error, isLoading: true), loadingLabel: "Chargement des messages", retry: retry
+            )
         }
     }
 }

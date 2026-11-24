@@ -68,7 +68,7 @@ struct UserProfileView: View {
             .listLook()
             .refreshable { await model.reload() }
         } else {
-            ScreenStateView(state: ScreenLoadState(error: model.error), retry: model.reload)
+            ScreenStateView(state: ScreenLoadState(error: model.error, isLoading: true), retry: model.reload)
         }
     }
 

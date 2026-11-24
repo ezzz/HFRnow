@@ -17,9 +17,7 @@ struct ScreenLoadStateTests {
         #expect(ScreenLoadState(error: nil, isLoading: false) == .idle)
     }
 
-    @Test func aScreenWaitingForItsFirstContentSpinsByDefault() {
-        // The profile and the reader show the spinner until their first page, whatever their loader says.
-        #expect(ScreenLoadState(error: nil) == .loading)
-        #expect(ScreenLoadState(error: .timedOut) == .failed(.timedOut))
+    @Test func aTimeOutIsAFailureLikeAnyOther() {
+        #expect(ScreenLoadState(error: .timedOut, isLoading: true) == .failed(.timedOut))
     }
 }

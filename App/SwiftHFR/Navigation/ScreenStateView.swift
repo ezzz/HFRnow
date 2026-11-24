@@ -7,8 +7,9 @@ enum ScreenLoadState: Equatable {
     case loading
     case idle
 
-    /// `isLoading` defaults to true for a screen that waits for its first content whatever its loader says (the profile, the reader).
-    init(error: ListLoadError?, isLoading: Bool = true) {
+    /// `isLoading` is explicit at every call site: a screen that waits for its first content whatever its loader says (the profile,
+    /// the reader) passes true; one omitted by mistake would spin forever.
+    init(error: ListLoadError?, isLoading: Bool) {
         if let error {
             self = .failed(error)
         } else {
