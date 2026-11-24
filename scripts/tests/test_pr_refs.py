@@ -47,6 +47,13 @@ BODIES = {
     "Refs #368 (directive H.1–H.3), Refs #379 (M5 proposal)": ([], [368, 379]),
     "Closes #1, resolves #2 — both.": ([1, 2], [1, 2]),
     "Fixed it; closes #8 — later": ([], []),
+    # #1291: known limit, kept on purpose (#303, #259, #257 read this way): after `.` a ref opens a sentence
+    "Not done. Closes #12 (later).": ([12], [12]),
+    "We tried it. Fixes #12, partly.": ([12], [12]),
+    # #1291: a `Refs LOT-XXX` counts as a preceding reference (as in #638)
+    "Refs LOT-118, Refs #209:": ([], [209]),
+    "Closes LOT-5; Closes #7": ([7], [7]),
+    "Fixes LOT-5, only partly": ([], []),
 }
 
 
