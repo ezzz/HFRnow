@@ -20,13 +20,13 @@ struct ReaderTextScaleTests: ReaderWebTesting {
 
     @Test func theTextSizeAppliesFromTheFirstRenderThenLiveWithoutAReload() async throws {
         let (controller, recorder) = makeController(transport: imageTransport())
-        controller.textScale = TextScale(percent: 70)
-        // Set from the document's start, so the first layout is already at 70 %.
+        controller.textScale = TextScale(percent: 80)
+        // Set from the document's start, so the first layout is already at 80 %.
         let sources = controller.webView.configuration.userContentController.userScripts.map(\.source)
-        #expect(sources.contains(ReaderWebController.textScaleScript(TextScale(percent: 70))))
+        #expect(sources.contains(ReaderWebController.textScaleScript(TextScale(percent: 80))))
         controller.show(document(token: 1))
         #expect(await until { recorder.ready == [1] }, "ready: \(recorder.ready)")
-        let small = await until(async: { abs(await factor(in: controller) - 0.7) < 0.01 })
+        let small = await until(async: { abs(await factor(in: controller) - 0.8) < 0.01 })
         let seen = await factor(in: controller)
         #expect(small, "factor: \(seen)")
 

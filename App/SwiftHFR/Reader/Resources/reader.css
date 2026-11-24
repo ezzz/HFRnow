@@ -33,6 +33,17 @@
      `MessagesView.swift:1827`; the classic style is flat, 10 px: same line). rem, not em: the body text is smaller than the header's. */
   --content-em: calc(var(--text-scale, 1) * 15 / 17 * 1rem);
   --indent: calc(var(--text-scale, 1) * 2.7rem);
+  /* Text-size floor (#1237), the rule of `TextScale.pointSize` (#1157): below 100 % a text never shrinks under 11 px, and a text the
+     system already gives under 11 px (a small Dynamic Type size) is kept as it is, so 100 % and above are unchanged. Each size is the
+     scaled one, floored per element (a ratio of the body's rem, or of the message text's `--content-em`), since an `em` chain would
+     floor the parent only. */
+  --floor: 11px;
+  --fs-body: max(calc(var(--text-scale, 1) * 1rem), min(1rem, var(--floor)));
+  --fs-content: max(var(--content-em), min(calc(15 / 17 * 1rem), var(--floor)));
+  --fs-85: max(calc(0.85 * var(--text-scale, 1) * 1rem), min(0.85rem, var(--floor)));
+  --fs-765: max(calc(0.765 * var(--text-scale, 1) * 1rem), min(0.765rem, var(--floor)));
+  --fs-70: max(calc(0.7 * var(--text-scale, 1) * 1rem), min(0.7rem, var(--floor)));
+  --fs-85-content: max(calc(0.85 * var(--content-em)), min(calc(0.85 * 15 / 17 * 1rem), var(--floor)));
   /* The grey silhouette of a member without an avatar (legacy `avatar_male_gray_*`, `style-liste-light.css:203-205`). */
   --silhouette: #aeaeb2;
   --silhouette-background: #e5e5ea;
@@ -75,7 +86,7 @@ html { font: -apple-system-body; -webkit-text-size-adjust: 100%; }
 /* The page ends `FloatingSpacing.gap` above the floating bottom bar (operator, #820, 2026-11-16: one gap with the composer's,
    #895), set on <html> by the builder. */
 body {
-  font-size: calc(var(--text-scale, 1) * 1rem);
+  font-size: var(--fs-body);
   margin: 0; padding: 0 0 var(--floating-gap, 8px); color: var(--text); background: var(--background); overflow-wrap: anywhere;
 }
 a { color: var(--action); }
@@ -101,7 +112,7 @@ a { color: var(--action); }
   content: "Nouveau"; position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%);
   padding: 0.1em 0.7em; border-radius: 999px; border: 1px solid var(--action); color: var(--text);
   background: color-mix(in srgb, var(--action) 20%, var(--background));
-  font-size: 0.7em; font-weight: 600; line-height: 1.3; white-space: nowrap;
+  font-size: var(--fs-70); font-weight: 600; line-height: 1.3; white-space: nowrap;
 }
 .message { padding: 0.6em 1em 0; border-bottom: 1px solid var(--separator-strong); }
 .message .header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.25em; }
@@ -129,7 +140,7 @@ a { color: var(--action); }
 /* The byline is the message's heading (role="heading", LOT-163): it takes the author's place in the header row. */
 .message .byline { display: flex; flex: 1 1 auto; min-width: 0; }
 .message .author { font-weight: 600; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
-.message .date { color: var(--secondary); font-size: 0.85em; margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
+.message .date { color: var(--secondary); font-size: var(--fs-85); margin-left: auto; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 /* Message style (`theme_style`, LOT-106; legacy MessagesView.swift:1363-1400 @ 2440d79, ObjCTopicHTMLRenderer.m:83): modern
    (default) tints the header with the accent at 3 %, classic at 15 % and adds the 8 px content padding legacy gave it. */
 .style-modern .message .header { background: color-mix(in srgb, var(--action) 3%, transparent); }
@@ -139,7 +150,7 @@ a { color: var(--action); }
 /* The legacy body (#819): smaller text, tight blocks. `* { margin: 0 }` of the legacy stylesheet (`style-liste.css:39-47`) leaves
    paragraphs without margin (legacy's `.content br` block rule, `style-liste-light.css:514-519`, is not ported: it did not tighten a blank
    line in a simulator capture); 10 px under the text (`div[id^=para]`, `:504-508`; its 10 px right padding is `--text-right` below, added to the message's own 1em: wider than legacy's 10 px in total, on purpose: the operator asked for wider margins earlier, #1038 to be confirmed on #893); lists keep 1em and 2em (`:343-347`). */
-.message .content { font-size: var(--content-em); padding-bottom: 10px; padding-right: var(--text-right); }
+.message .content { font-size: var(--fs-content); padding-bottom: 10px; padding-right: var(--text-right); }
 .content p { margin: 0; }
 .content ul, .content ol { margin: 1em 0; padding-left: 2em; }
 .style-modern .message .content { padding-left: var(--indent); }
@@ -151,7 +162,8 @@ a { color: var(--action); }
 .style-classic .message.me, .style-classic .message.whitelist { --text-inset: calc(0.6 * var(--content-em) + 2px); }
 .style-modern .message.me, .style-modern .message.whitelist { --text-inset: calc(var(--indent) + 0.5 * var(--content-em) + 2px); }
 .continuation { opacity: 0.75; }
-.continuation-note, .deleted-note, .trailer { color: var(--secondary); font-size: 0.85em; }
+.continuation-note, .deleted-note { color: var(--secondary); font-size: var(--fs-85); }
+.trailer { color: var(--secondary); font-size: var(--fs-85); }
 .trailer p { margin: 0.25em 0 0; }
 /* The "Message cité N fois" count (#1039): legacy's speech bubble at the right of the footer (`.quotedhfrlink`, `style-liste.css:419-431`
    @ 87fe0d1c), drawn in CSS instead of the `08-chat.png` image so it follows every theme. Raised by 0.2em (about 3 px at the default
@@ -161,7 +173,7 @@ a { color: var(--action); }
 .trailer { display: flex; align-items: flex-end; }
 .quoted-bubble {
   position: relative; top: -0.2em; margin: 0.25em 0 0 auto; min-width: 1.6em; box-sizing: border-box; padding: 0.15em 0.5em;
-  border-radius: 0.9em 0.9em 0.9em 0.2em; background: var(--secondary); color: var(--background); font-weight: 600; font-size: 0.9em;
+  border-radius: 0.9em 0.9em 0.9em 0.2em; background: var(--secondary); color: var(--background); font-weight: 600; font-size: var(--fs-765);
   line-height: 1.3; text-align: center; text-decoration: none;
 }
 a.quoted-bubble::before {
@@ -187,11 +199,11 @@ hr { visibility: hidden; height: 12px; margin: 0; }
 hr:last-child { display: none; }
 /* No rule above or below a quote (#1038): legacy draws the left bar only (`style-liste-dark.css:296-300` @ 87fe0d1c). */
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
-b.s1 { font-size: 0.85em; color: var(--secondary); }
+b.s1 { font-size: var(--fs-85-content); color: var(--secondary); }
 b.s1 a { color: var(--text); font-weight: 700; }
 
 /* Code: monospace, scroll sideways instead of widening the page. */
-table.code, table.fixed { font-size: 0.85em; }
+table.code, table.fixed { font-size: var(--fs-85-content); }
 table.code *, table.fixed * { font-family: ui-monospace, Menlo, monospace; }
 table.code td, table.fixed td { overflow-x: auto; }
 ol.olcode { margin: 0; padding-left: 2.5em; white-space: pre; }
@@ -210,7 +222,7 @@ table.spoiler.open div.masque { visibility: visible; }
    the article's padding, --edge) and the padding puts the text back at --text-inset, with the 10 px right padding of the text. */
 .signature {
   margin: 0.75em calc(-1 * var(--edge)) 0; padding: 0.5em calc(var(--edge) + var(--text-right)) 0 calc(var(--edge) + var(--text-inset));
-  border-top: 1px dashed var(--separator); font-size: calc(0.85 * var(--content-em)); color: var(--secondary);
+  border-top: 1px dashed var(--separator); font-size: var(--fs-85-content); color: var(--secondary);
 }
 /* A blocklisted post's children carry their own 1em margins (below), so the signature only needs the text inset. */
 .message.blocked .blocked-post > .signature:not(summary) {
@@ -220,7 +232,7 @@ table.spoiler.open div.masque { visibility: visible; }
 
 /* Images and videos that wait for a tap, and refused images shown as their URL (LOT-071 D-071-1, D-071-2). */
 button.image-tap, button.video {
-  font: inherit; font-size: 0.85em; color: var(--text); background: var(--placeholder);
+  font: inherit; font-size: var(--fs-85-content); color: var(--text); background: var(--placeholder);
   border: none; border-radius: 8px; padding: 0.6em 0.8em; margin: 0.25em 0; display: inline-block; max-width: 100%;
 }
 .videos { margin-top: 0.5em; }
@@ -228,13 +240,13 @@ button.image-tap, button.video {
    thumbnail (hqdefault is 4:3 with black bars: cropped to 16:9) under a play mark drawn here, no extra request. */
 .videolinks { margin-top: 0.5em; }
 a.video-card { display: block; position: relative; max-width: 480px; margin: 0.25em 0; text-decoration: none; }
-a.video-card .video-pill { display: inline-block; font-size: 0.85em; color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
+a.video-card .video-pill { display: inline-block; font-size: var(--fs-85-content); color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
 a.video-card img.video-thumb, a.video-card .video-play { display: none; }
 a.video-card.has-thumb img.video-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--placeholder); }
 a.video-card.has-thumb .video-pill { display: none; }
 a.video-card.has-thumb .video-play { display: block; position: absolute; top: 50%; left: 50%; width: 3.2em; height: 3.2em; margin: -1.6em 0 0 -1.6em; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
 a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top: 50%; left: 50%; margin: -0.7em 0 0 -0.45em; border-style: solid; border-width: 0.7em 0 0.7em 1.2em; border-color: transparent transparent transparent #fff; }
-.image-link { font-size: 0.85em; color: var(--secondary); word-break: break-all; }
+.image-link { font-size: var(--fs-85-content); color: var(--secondary); word-break: break-all; }
 
 /* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
@@ -272,7 +284,7 @@ table.quote-blocked { background: color-mix(in srgb, var(--text) var(--blocked-t
 .message.blocked { padding: 0; }
 .message.blocked .blocked-post > :not(summary) { margin-left: 1em; margin-right: 1em; }
 .message.blocked .blocked-post[open] { padding-bottom: 0.75em; }
-.blocked-summary { display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; color: var(--secondary); font-size: 0.85em; cursor: pointer; }
+.blocked-summary { display: flex; align-items: center; gap: 0.5em; padding: 0.5em 1em; color: var(--secondary); font-size: var(--fs-85); cursor: pointer; }
 .blocked-author { font-weight: 600; }
 .blocked-note { margin-left: auto; }
 .blocked-post[open] > .blocked-summary { border-bottom: 1px solid var(--separator); margin-bottom: 0.5em; }
@@ -286,7 +298,7 @@ table.quote-blocked { cursor: pointer; }
 table.quote-blocked > * > tr > td { padding: 0.4em 0.6em; }
 table.quote-blocked:not(.open) > * > tr > td { font-size: 0; padding: calc(0.4 * var(--content-em)) calc(0.6 * var(--content-em)); }
 table.quote-blocked:not(.open) > * > tr > td > :not(b.s1) { display: none; }
-table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: calc(0.85 * var(--content-em)); }
+table.quote-blocked:not(.open) > * > tr > td > b.s1 { font-size: var(--fs-85-content); }
 table.quote-blocked > * > tr > td > b.s1 { display: flex; justify-content: space-between; gap: 0.5em; }
 /* The header is a block line now, so the `<br>` that ended it would add a blank line: hide it. */
 table.quote-blocked > * > tr > td > b.s1 + br { display: none; }
