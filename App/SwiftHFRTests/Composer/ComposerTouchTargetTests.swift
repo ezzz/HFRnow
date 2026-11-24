@@ -22,13 +22,16 @@ private final class Hosted {
 struct ComposerTouchTargetTests {
     private static let minimum = ComposerHeader.hitSize
 
-    private func host<Content: View>(_ content: Content, dynamicType: DynamicTypeSize = .large) async throws -> Hosted {
+    private func host<Content: View>(
+        _ content: Content, dynamicType: DynamicTypeSize = .large, percent: Int = 100
+    ) async throws -> Hosted {
         let scene = try #require(UIApplication.shared.connectedScenes.first { $0 is UIWindowScene } as? UIWindowScene)
         let hosted = Hosted()
         let view = content
             .fixedSize()
             .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { hosted.frame = $0 }
             .environment(\.dynamicTypeSize, dynamicType)
+            .appTypography(TextScale(percent: percent), density: .regular)
         let window = UIWindow(windowScene: scene)
         window.frame = scene.effectiveGeometry.coordinateSpace.bounds
         let controller = UIHostingController(rootView: view)
@@ -55,9 +58,16 @@ struct ComposerTouchTargetTests {
         #expect(hosted.frame.width <= 44 && hosted.frame.height <= 44, "measured \(hosted.frame.size)")
     }
 
-    @Test func thePollAnswerRemoveButtonHasA44PointHitRegion() async throws {
-        let hosted = try await host(PollAnswerRemoveButton(number: 3) {})
-        #expect(hosted.frame.width >= Self.minimum && hosted.frame.height >= Self.minimum, "measured \(hosted.frame.size)")
+    /// The ⊖ takes its own glyph's room in the row (the text field keeps its width) at every text size, and its region (the
+    /// glyph plus the overhang each side) is 44 pt at least.
+    @Test(arguments: [(DynamicTypeSize.large, 100), (.accessibility5, 100), (.xSmall, 100), (.large, 70), (.xxxLarge, 100)])
+    func thePollAnswerRemoveButtonKeepsItsLayoutAndHasA44PointRegion(size: DynamicTypeSize, percent: Int) async throws {
+        let glyph = try await host(Image(systemName: "minus.circle.fill"), dynamicType: size, percent: percent).frame
+        let hosted = try await host(PollAnswerRemoveButton(number: 3) {}, dynamicType: size, percent: percent)
+        #expect(abs(hosted.frame.width - glyph.width) < 0.5 && abs(hosted.frame.height - glyph.height) < 0.5,
+                "layout \(hosted.frame.size) against the glyph's \(glyph.size)")
+        #expect(glyph.width + 2 * PollAnswerRemoveButton.overhang(of: glyph.width) >= Self.minimum)
+        #expect(glyph.height + 2 * PollAnswerRemoveButton.overhang(of: glyph.height) >= Self.minimum)
     }
 
     /// The control row's and the formatting toolbar's cells: legacy's bar clamps the hit region too (compact density and the

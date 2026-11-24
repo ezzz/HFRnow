@@ -117,9 +117,6 @@ struct PollCreationSheet: View {
                             answers.removeAll { $0.id == answer.id }
                             maxChoices = min(maxChoices, max(1, draft.filledAnswers.count))
                         }
-                        // The 44 pt region overflows the row's layout by 12 pt a side: the ⊖ and the field keep their place
-                        // and width (#1156).
-                        .padding(-12)
                     }
                 }
             }
@@ -149,16 +146,26 @@ struct PollCreationSheet: View {
     }
 }
 
-/// The ⊖ that removes an answer row, in a 44 pt hit region (#1156).
+/// The ⊖ that removes an answer row: a 44 pt hit region (#1156) that overflows the row's layout, so the ⊖ and the text field
+/// keep their place and width at every text size.
 struct PollAnswerRemoveButton: View {
     let number: Int
     let action: () -> Void
+    /// The glyph's size once laid out, which the overhang depends on (the default size until it is read).
+    @State private var glyph = CGSize(width: 20, height: 20)
+
+    /// How far the region reaches past a glyph of `side` points, each side.
+    static func overhang(of side: CGFloat) -> CGFloat { max(0, ComposerHeader.hitSize - side) / 2 }
 
     var body: some View {
         Button(role: .destructive, action: action) {
-            Image(systemName: "minus.circle.fill").minimumHitRegion()
+            Image(systemName: "minus.circle.fill")
+                .onGeometryChange(for: CGSize.self, of: \.size) { glyph = $0 }
+                .minimumHitRegion()
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, -Self.overhang(of: glyph.width))
+        .padding(.vertical, -Self.overhang(of: glyph.height))
         .accessibilityLabel("Supprimer la réponse \(number)")
     }
 }
