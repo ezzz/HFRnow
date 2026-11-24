@@ -53,8 +53,6 @@ struct TopicReaderView: View {
     /// The sign-in prompt of the search entry while logged out (#821), and the accounts screen it leads to.
     @State private var askingSignIn = false
     @State private var showsAccounts = false
-    /// « Connectez-vous pour bloquer » of the author menu (LOT-159 D3).
-    @State private var showsSignInToBlock = false
     @State private var external: ExternalLink?
     @State private var video: VideoItem?
     @State private var pictureLink: PendingPictureLink?
@@ -141,7 +139,7 @@ struct TopicReaderView: View {
             Text("Connectez-vous pour rechercher dans un sujet.")
         }
         .sheet(isPresented: $showsAccounts) { AccountsView() }
-        .signInToBlockSheet(isPresented: $showsSignInToBlock)
+        .signInToBlockSheet(isPresented: Bindable(model).asksLogin)
         .sheet(isPresented: $askingPage) {
             if let page = model.page {
                 ReaderPageSheet(currentPage: page.currentPage, maxPage: page.maxPage) { number in
@@ -370,9 +368,8 @@ extension TopicReaderView {
             confirm: confirm
         )
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
-        let signIn = $showsSignInToBlock
         handlers += services.pseudoLists.map {
-            PseudoListActionHandler.all(manager: $0, confirm: confirm, rebuild: rebuild, openLogin: { signIn.wrappedValue = true })
+            PseudoListActionHandler.all(manager: $0, confirm: confirm, rebuild: rebuild, login: { [weak model] in model?.asksLogin = true })
         } ?? []
         let openURL = self.openURL
         // Each appearance installs again: a fresh model with the current services, unless an alert is in progress.

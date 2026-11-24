@@ -12,7 +12,7 @@ struct SignInToBlockTests {
         let store = PseudoListStore(persistence: InMemoryPseudoListPersistence())
         let handlers = PseudoListActionHandler.all(
             manager: PseudoListManager(store: store, account: account), confirm: { _ in }, rebuild: {},
-            openLogin: { opened.count += 1 }
+            login: { opened.count += 1 }
         )
         return MessageActionRegistry(handlers)
     }

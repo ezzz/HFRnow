@@ -29,9 +29,9 @@ extension PseudoListActionHandler {
     /// author menu registers.
     static func all(
         manager: PseudoListManager, confirm: @escaping @MainActor (String) -> Void, rebuild: @escaping @MainActor () -> Void,
-        openLogin: @escaping @MainActor () -> Void
+        login: @escaping @MainActor () -> Void
     ) -> [any MessageActionHandler] {
-        pair(manager: manager, confirm: confirm, rebuild: rebuild) + [SignInToBlockActionHandler(manager: manager, openLogin: openLogin)]
+        pair(manager: manager, confirm: confirm, rebuild: rebuild) + [SignInToBlockActionHandler(manager: manager, openLogin: login)]
     }
 }
 

@@ -46,7 +46,7 @@ final class FilteredPostsMenuModel: MenuFeedbackShowing {
         if let lists {
             handlers += PseudoListActionHandler.all(
                 manager: lists, confirm: confirm, rebuild: { [weak self] in self?.listsRevision += 1 },
-                openLogin: { [weak self] in self?.wantsSignIn = true }
+                login: { [weak self] in self?.wantsSignIn = true }
             )
         }
         registry = MessageActionRegistry(handlers)
