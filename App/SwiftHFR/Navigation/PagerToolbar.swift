@@ -50,7 +50,7 @@ struct PagerToolbar {
         let isMenu = usesPageMenu
         ToolbarItemGroup(placement: .bottomBar) {
             if isMenu {
-                statusView(drawsGlass: false) // the bar's group draws the glass (#1155)
+                statusView(drawsGlass: Self.bottomBarPillDrawsGlass)
             } else {
                 Button("Première page", systemImage: "backward.end", action: first.action).disabled(!first.enabled)
                 Button("Page précédente", systemImage: "chevron.left", action: previous.action).disabled(!previous.enabled)
@@ -72,6 +72,9 @@ struct PagerToolbar {
             }
         }
     }
+
+    /// The system bottom bar's item group draws the glass behind the pill, so the pill adds none (#1155).
+    static let bottomBarPillDrawsGlass = false
 
     private var usesPageMenu: Bool {
         if case .pageOf = status { true } else { false }

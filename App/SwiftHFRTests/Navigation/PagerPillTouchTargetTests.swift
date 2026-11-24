@@ -8,7 +8,7 @@ import UIKit
 private final class SizeBox { var size: CGSize = .zero }
 
 /// #1155: the « page x / y » pill has a hit region of at least 44 x 44 pt (HIG, Buttons), measured on the real pill hosted in a
-/// window: its laid-out frame is the region (`contentShape(.capsule)`), in both the glass strip and the bottom bar.
+/// window (its laid-out frame is the region, `contentShape(.rect)`), while the visible capsule keeps hugging its text.
 /// The same technique as `ComposerTouchTargetTests` (#1156); the two can share one helper once that PR lands.
 @MainActor
 @Suite(.serialized)
@@ -35,10 +35,17 @@ struct PagerPillTouchTargetTests {
         return box.size
     }
 
-    @Test(arguments: [DynamicTypeSize.xSmall, .large, .accessibility3], [true, false])
+    @Test(arguments: [DynamicTypeSize.xSmall, .large], [true, false])
     func thePagePillHasA44PointHitRegion(size: DynamicTypeSize, drawsGlass: Bool) async throws {
         let pill = PagerPageMenuPill(current: 2, total: 9, onJump: { _ in }, drawsGlass: drawsGlass)
         let measured = try await measure(pill, dynamicType: size)
+        #expect(measured.width >= Self.minimum && measured.height >= Self.minimum, "measured \(measured)")
+    }
+
+    /// Guard: at an accessibility size the text already makes the pill taller than 44 pt.
+    @Test func thePagePillStaysAtLeast44PointsAtAnAccessibilitySize() async throws {
+        let pill = PagerPageMenuPill(current: 2, total: 9, onJump: { _ in })
+        let measured = try await measure(pill, dynamicType: .accessibility3)
         #expect(measured.width >= Self.minimum && measured.height >= Self.minimum, "measured \(measured)")
     }
 
@@ -46,5 +53,20 @@ struct PagerPillTouchTargetTests {
         let pill = PagerPageMenuPill(current: 2, total: 9, isLoading: true, onJump: { _ in })
         let measured = try await measure(pill)
         #expect(measured.width >= Self.minimum && measured.height >= Self.minimum, "measured \(measured)")
+    }
+
+    /// The look does not change: the visible capsule is the text plus its 12 / 6 pt padding, shorter than the hit frame around it.
+    @Test(arguments: [DynamicTypeSize.xSmall, .large])
+    func theVisibleCapsuleStillHugsItsText(size: DynamicTypeSize) async throws {
+        let menu = PagerPageMenu(current: 2, total: 9)
+        let text = try await measure(Text(menu.label).monospacedDigit(), dynamicType: size)
+        let label = try await measure(PagerPillLabel(menu: menu), dynamicType: size)
+        #expect(abs(label.height - (text.height + 12)) < 0.5 && abs(label.width - (text.width + 24)) < 0.5, "label \(label), text \(text)")
+        #expect(label.height < Self.minimum, "the capsule must not grow to the hit frame: \(label)")
+    }
+
+    /// The system bottom bar draws the glass behind the pill: the pill adds no capsule of its own there.
+    @Test func theBottomBarPillDrawsNoGlassOfItsOwn() {
+        #expect(PagerToolbar.bottomBarPillDrawsGlass == false)
     }
 }

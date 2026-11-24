@@ -105,17 +105,29 @@ struct PagerPageMenuPill: View {
     }
 
     private func pill(_ menu: PagerPageMenu) -> some View {
+        PagerPillLabel(menu: menu, isLoading: isLoading, drawsGlass: drawsGlass)
+            // The hit region is the frame around the visible capsule, so the capsule keeps hugging its text (#1155).
+            .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
+            .contentShape(.rect)
+            .accessibilityLabel(
+                isLoading ? "Chargement"
+                    : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
+            )
+    }
+}
+
+/// What the pill shows: the text or spinner in a glass capsule that hugs it (no capsule when the system bar draws one).
+struct PagerPillLabel: View {
+    let menu: PagerPageMenu
+    var isLoading = false
+    var drawsGlass = true
+
+    var body: some View {
         Group {
             if isLoading { ProgressView().accessibilityLabel("Chargement") } else { Text(menu.label).monospacedDigit() }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .frame(minWidth: Self.hitSize, minHeight: Self.hitSize)
-        .contentShape(.capsule)
         .modifier(PagerPillGlass(isOn: drawsGlass))
-        .accessibilityLabel(
-            isLoading ? "Chargement"
-                : menu.isExact ? "Page \(menu.current) sur \(menu.total)" : "Page \(menu.current), au moins \(menu.total) pages"
-        )
     }
 }
 
