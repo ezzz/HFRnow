@@ -59,7 +59,7 @@ struct ComposerTouchTargetTests {
         #expect(hosted.frame.width <= 44 && hosted.frame.height <= 44, "measured \(hosted.frame.size)")
     }
 
-    private nonisolated static let pollCases: [(DynamicTypeSize, Int)] =
+    nonisolated private static let pollCases: [(DynamicTypeSize, Int)] =
         [(.large, 100), (.accessibility5, 100), (.xSmall, 100), (.large, 70), (.xxxLarge, 100)]
 
     /// The ⊖ takes its own glyph's room in the row (the text field keeps its width) at every text size, and its region (the
