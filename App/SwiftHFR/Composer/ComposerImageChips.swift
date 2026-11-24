@@ -48,6 +48,28 @@ extension ImageUploadModel {
     }
 }
 
+/// The ✕ of a chip: an 18 pt glyph (growing with Dynamic Type) in a 44 pt hit region (#1156).
+struct ComposerImageChipCross: View {
+    let isEnabled: Bool
+    let action: () -> Void
+    /// The glyph stops growing here: a 56 pt thumbnail must stay visible at accessibility text sizes; the region stays 44 pt.
+    private static let maximumGlyph: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var glyph: CGFloat = 18
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark.circle.fill")
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, .black.opacity(0.6))
+                .font(.system(size: min(glyph, Self.maximumGlyph)))
+                .minimumHitRegion()
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityLabel("Retirer l'image")
+    }
+}
+
 /// The chips row at the top of the docked card: one thumbnail per image still in the text, each with its ✕.
 struct ComposerImageChipsRow: View {
     /// The row's height in the card: a 56 pt thumbnail under a 10 pt margin.
@@ -62,22 +84,19 @@ struct ComposerImageChipsRow: View {
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
-                ForEach(chips) { chip in
+                ForEach(Array(chips.enumerated()), id: \.element.id) { index, chip in
                     RemoteThumbnail(url: chip.thumbnail, loader: thumbnails)
                     .frame(width: 56, height: 56)
                     .clipShape(.rect(cornerRadius: 10))
                     .overlay(alignment: .topTrailing) {
-                        Button { remove(chip) } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, .black.opacity(0.6))
-                                .font(.system(size: 18))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!isEnabled)
-                        .accessibilityLabel("Retirer l'image")
-                        .padding(2)
+                        ComposerImageChipCross(isEnabled: isEnabled) { remove(chip) }
+                            // The 44 pt region is centred on where the 18 pt glyph sat (2 pt in from the corner); its top
+                            // overhang stops at the row's 10 pt margin so the scroll view does not clip it (#1156).
+                            .offset(x: 11, y: -10)
                     }
+                    // An earlier chip draws over the next thumbnail, so its ✕ region (11 pt past the thumbnail, the gap is 8)
+                    // is never covered by it (#1156).
+                    .zIndex(Double(chips.count - index))
                     .accessibilityElement(children: .contain)
                     .accessibilityLabel("Image insérée")
                 }

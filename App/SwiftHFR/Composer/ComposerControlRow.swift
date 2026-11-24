@@ -98,6 +98,10 @@ struct ComposerControlRow: View {
         inCard ? max(cell, ComposerHeader.hitSize) : cell
     }
 
+    /// The side of a button's hit region in either chrome (#1156): the drawn cell, at least the HIG's 44 pt. Only the region
+    /// grows: the circles the header draws keep `cellSize` (legacy's size outside the card).
+    static func hitCell(_ cell: CGFloat) -> CGFloat { max(cell, ComposerHeader.hitSize) }
+
     /// The size of a tool of this row: the one the top bar's buttons read too (#1126).
     static func toolSize(metrics: ComposerBarMetrics, inCard: Bool) -> ComposerToolSize {
         ComposerToolSize(metrics: metrics, inCard: inCard)
@@ -120,7 +124,7 @@ struct ComposerControlRow: View {
                 .font(.system(size: size.glyph, weight: ComposerToolSize.glyphWeight))
                 .foregroundStyle(tint ?? .primary)
                 .background { chip(size) }
-                .frame(minWidth: size.cell, minHeight: size.cell)
+                .frame(minWidth: Self.hitCell(size.cell), minHeight: Self.hitCell(size.cell))
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
