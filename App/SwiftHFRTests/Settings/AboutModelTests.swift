@@ -10,25 +10,18 @@ struct AboutModelTests {
         AboutModel(topicPages: FakeTopicPages())
     }
 
-    // LOT-159 (operator 2026-11-24): legacy's contact block, `credits.html:7-14` @ 87fe0d1c.
-    @Test func theContactRowsAreLegacysAndSayTheAppIsNotHardwareFrs() {
-        #expect(AboutContact.allCases.map(\.title) == ["Sur le forum : Topic Unique", "En privé : ezzz"])
-        #expect(AboutContact.forum.address == AboutTopicLink.superHFRPlus.address)
-        #expect(AboutContact.privately.address == "https://forum.hardware.fr/hfr/profil-15867.htm")
-        #expect(AboutContact.notice.hasPrefix("HFR+ n'est pas développé par l'équipe du site hardware.fr, mais de manière bénévole."))
-    }
-
-    @Test func theForumContactOpensTheAppsTopicAndThePrivateOneTheProfile() {
-        var asked: [Int] = []
-        let model = AboutModel(topicPages: FakeTopicPages(), makeProfile: { id in
-            asked.append(id)
-            return UserProfileModel(memberID: id, source: FakeUserProfiles([]), lists: nil)
-        })
-        model.open(.forum)
-        #expect(model.selected == .superHFRPlus)
-        model.open(.privately)
-        #expect(asked == [15867])
-        #expect(model.profile?.memberID == 15867)
+    // LOT-159 (operator 2026-11-24): « Sur le forum : Topic Unique » opens the app's topic (legacy `credits.html:12` @ 87fe0d1c,
+    // `sujet_1711`) in the reader, through the router as any topic link.
+    @Test func theForumContactOpensTheAppsTopicInTheReader() throws {
+        let model = model()
+        model.openForumContact()
+        let link = try #require(model.selected)
+        let reader = try #require(model.reader(for: link))
+        guard case .topic(let topic) = reader.requested.source else {
+            Issue.record("the contact does not open a topic")
+            return
+        }
+        #expect(topic == TopicID(category: .forum(25), topic: 1711))
     }
 
     @Test func versionShowsShortVersionAndBuild() {

@@ -50,7 +50,8 @@ Legacy reference `legacy/duo-inner-cover` @ `87fe0d1c` (AGENTS.md §2).
 - `App/SwiftHFR/FilteredPosts/FilteredPostsMenuModel.swift` (new): `HFRswift/Swift/MessagesView.swift (presentPopupMenu,
   presentAvatarActionSheet, in the favourite post filter mode)` @ `87fe0d1c`.
 - `App/SwiftHFR/Settings/AboutModel.swift` (`AboutContact`) and `AboutView.swift` (« Nous contacter »):
-  `SuperHFRplus/Assets/HTML/credits.html` (the "Mentions légales" contact block, `:7-14`) @ `87fe0d1c` (operator, 2026-11-24).
+  `SuperHFRplus/Assets/HTML/credits.html` (the "Mentions légales" contact block, `:7-12`, its forum contact only) @ `87fe0d1c`
+  (operator, 2026-11-24).
 - Everything else this lot checks is ported by its own lot: search (LOT-115), AQ (LOT-133), alert (LOT-135), lists (LOT-118),
   Plus menu, credits and charter (LOT-120, LOT-170).
 
@@ -74,7 +75,7 @@ by breaking that code (log paths in the PR), because the behaviour predates this
 | R11 | "Blacklist" (block) on every message of another member, for an account: hides that member's posts | guideline 1.2 (block); `MessagesView.swift:204-216` | `PseudoListActionHandler`, the author menu, the profile sheet | LOT-118 suites `PseudoListManagerTests`, `PseudoListActionHandlerTests`, `UserProfileListsTests` (file `PseudoListTests.swift`); the own-pseudo check with a URL-encoded key: `PseudoListManagerTests.theOwnPseudoIsFoundFromAURLEncodedAccountKey`, `UserProfileListsTests.theAccountsOwnProfileOffersNoListWithAURLEncodedKey` (LOT-159) |
 | R12 | Report and block also on the filtered posts (the favourite post filter, LOT-114), as in legacy | `MessagesView.swift:4767-4791` | `FilteredPostsMenuModel` (new), `FilteredPostsView` | `FilteredPostsMenuModelTests` (new, red without the change) |
 | R13 | The forum charter is one tap from the Plus menu | `PlusTab.swift:11-60` | `PlusEntry.charter`, `StaticPage.charter` | `StaticPageTests` (LOT-120) |
-| R14 | Contact: « Nous contacter » in Crédits, legacy's two contacts (the app's topic, the legacy maintainer's profile) and its "not developed by the hardware.fr team" sentence | `credits.html:7-14` | `AboutContact`, `AboutModel.open` | `AboutModelTests.theContactRowsAreLegacysAndSayTheAppIsNotHardwareFrs`, `theForumContactOpensTheAppsTopicAndThePrivateOneTheProfile` (LOT-159); D1 |
+| R14 | Contact: « Nous contacter » in Crédits: legacy's "not developed by the hardware.fr team" sentence above legacy's forum contact, which opens the app's topic | `credits.html:7-12` | `AboutContact`, `AboutModel.openForumContact` | `AboutModelTests.theForumContactOpensTheAppsTopicInTheReader` (LOT-159); D1 |
 | R15 | Account deletion from the Plus menu | guideline 5.1.1(v); `PlusTab.swift:11-60` | `PlusEntry.deleteAccount` | `AccountDeletionTests` (LOT-157) |
 
 **Not in the app, on HFR's side:** "filtering objectionable material from being posted" is HFR's moderation (the charter, the
@@ -128,7 +129,7 @@ sheet stays read-only, as LOT-114 decided.
 - Logged out: no blocklist anywhere (LOT-118, per-account lists); see D3.
 - **Pending capture:** how HFR encodes an accented pseudo in `md_user` (UTF-8 or Latin-1 percent-encoding) is not captured. A
   key that does not decode as UTF-8 is compared raw only (never guessed): an accented own pseudo may then not be recognised.
-  Capture: log in with an accented test account and record the `Set-Cookie: md_user` of `W03`'s request.
+  The capture is #140 (login with a pseudo holding a space or an accent: the `md_user` value set).
 
 ## Fixtures
 
@@ -139,7 +140,8 @@ None new: the menu model is tested on batches built by `FilteredPostsModel.resul
 - **GAP-036** (`UX change`, `b·needed`: App Review guideline 1.2, and the cookie-less reads of LOT-093): the filtered posts
   offer "Link", "Alerter" (always the mail) and "Blacklist" / "Whitelist", a subset of legacy's menus (difference 3). R12
   restores what SwiftHFR lacked since LOT-114.
-- **GAP-151**: Crédits gets legacy's contact block back (R14, operator 2026-11-24): same as legacy, in rows.
+- **GAP-151**: Crédits gets legacy's contact sentence and forum contact back (R14, operator 2026-11-24); legacy's private
+  contact is not ported (D1).
 
 ## Intentional differences from legacy
 
@@ -151,13 +153,15 @@ None new: the menu model is tested on batches built by `FilteredPostsModel.resul
 
 ## Decisions
 
-- **D1 — contact (operator, 2026-11-24).** As legacy: a « Nous contacter » section in Crédits with legacy's two contacts, "Sur le
-  forum : Topic Unique" (topic 1711, `credits.html:12`) and "En privé : ezzz" (the legacy maintainer's profile,
-  `profil-15867.htm`, `credits.html:13`), under legacy's sentence "HFR+ n'est pas développé par l'équipe du site hardware.fr,
-  mais de manière bénévole. Pour toutes questions, soucis, bugs, vous pouvez nous contacter :" (`credits.html:9`, accents fixed).
+- **D1 — contact (operator, 2026-11-24, on #249).** A « Nous contacter » section in Crédits: legacy's sentence "HFR+ n'est pas
+  développé par l'équipe du site hardware.fr, mais de manière bénévole. Pour toutes questions, soucis, bugs, vous pouvez nous
+  contacter :" (`credits.html:9`, accents fixed), shown above the row it introduces, then one row "Sur le forum : Topic Unique"
+  (`credits.html:12`) that opens the app's topic (topic 1711) in the reader. No private contact row (operator, 2026-11-24): legacy's
+  "En privé" line (`credits.html:13`) is not ported. The product name in the sentence is legacy's ("HFR+"); changing it is the
+  operator's call.
   **Risk accepted by the operator (Fable r1290 #6, guideline 1.2 "published contact information"):** the topic is in category 25
   (`AboutModel.swift`, `AboutTopicLink.superHFRPlus`), which the forum list hides from the review account and from logged-out
-  readers (D5), and writing there, or a private message to the profile, needs an HFR account. The row opens the topic directly,
+  readers (D5), and writing there needs an HFR account. The row opens the topic directly,
   so it reads, but the contact is reachable only through the forum.
 - **D2 — terms (operator, 2026-11-24).** No terms agreement: parity with legacy (the charter is a page, R13).
 - **D5 — the review account (operator, 2026-11-24).** The `applereview` filter stays as legacy (Q-7), and the App Review notes
@@ -189,7 +193,7 @@ No credential here: the sign-in name and password go in App Store Connect's "Sig
 >   expanded on purpose); Plus › Réglages › « Masquer les pseudos blacklistés » also hides their name on that line. Plus ›
 >   Réglages › « Liste noire » lists and removes them.
 > - Rules: Plus › Charte du forum shows the forum charter.
-> - Contact: Plus › Crédits › « Nous contacter »: the app's topic on the forum and its maintainer's forum profile.
+> - Contact: Plus › Crédits › « Nous contacter »: the app's topic on the forum.
 > - Account deletion: Plus › Supprimer mon compte prepares the deletion request to the forum.
 
 ## Learnings
