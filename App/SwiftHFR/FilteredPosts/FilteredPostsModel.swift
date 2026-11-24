@@ -19,6 +19,8 @@ struct FilteredPostsResult: Equatable, Sendable {
     let maxPage: Int
     /// The last page of the topic was read: there is nothing after this batch.
     let isFinished: Bool
+    /// The page each kept message was read on, by message number: its permalink (LOT-159).
+    var pages: [Int: Int] = [:]
 
     /// Messages kept in this batch.
     var count: Int { page.messages.count }
@@ -32,7 +34,7 @@ struct FilteredPostsResult: Equatable, Sendable {
     /// The batch with nothing left after it.
     func markingFinished() -> FilteredPostsResult {
         FilteredPostsResult(
-            topic: topic, page: page, startPage: startPage, endPage: endPage, maxPage: maxPage, isFinished: true
+            topic: topic, page: page, startPage: startPage, endPage: endPage, maxPage: maxPage, isFinished: true, pages: pages
         )
     }
 }
@@ -265,7 +267,8 @@ final class FilteredPostsModel {
         )
         return FilteredPostsResult(
             topic: topic, page: page, startPage: batch.startPage, endPage: batch.endPage, maxPage: page.maxPage,
-            isFinished: batch.isFinished
+            isFinished: batch.isFinished,
+            pages: Dictionary(batch.posts.map { ($0.block.numreponse, $0.page) }, uniquingKeysWith: { first, _ in first })
         )
     }
 

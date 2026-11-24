@@ -1,5 +1,6 @@
 import HFRModels
 import SwiftUI
+import UIKit
 
 // Port of HFRswift/Swift/Favorites.swift (FavoritePostFilterProgressBanner, FavoritePostFilterNavigationTarget) and of
 // HFRswift/Swift/MessagesView.swift (the filter mode: subtitle, "Résultats suivants" bottom bar) @ 2440d79.
@@ -83,7 +84,8 @@ struct FilteredPostsBanner: View {
     }
 }
 
-/// The kept posts of one batch, read-only, with "Résultats suivants" at the bottom.
+/// The kept posts of one batch, read-only, with "Résultats suivants" at the bottom. Each post has the reader's report and block
+/// entries (LOT-159, `FilteredPostsMenuModel`).
 struct FilteredPostsView: View {
     let model: FilteredPostsModel
     let services: ReaderServices
@@ -97,6 +99,8 @@ struct FilteredPostsView: View {
     @State private var video: VideoItem?
     /// The open image viewer (LOT-109): the shared `reader.js` swallows a picture's tap, so this reader must open it.
     @State private var viewer: ImageViewerModel?
+    /// The message and author menus (LOT-159).
+    @State private var menus: FilteredPostsMenuModel?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -131,6 +135,11 @@ struct FilteredPostsView: View {
             if let result = model.result { NextBatchBar(model: model, result: result) }
         }
         .filteredPostsAlert(model, shown: model.result != nil)
+        .overlay(alignment: .bottom) { if let menus { ReaderMenuFeedbackBanner(model: menus) } }
+        .onChange(of: menus?.menuFeedbackSerial) { ReaderAccessibility.announce(menus?.menuFeedback) }
+        .modifier(ReaderAlertFlow(alerts: menus?.alerts))
+        // A blocked or allowed author: the batch is built again with the lists as they are now.
+        .onChange(of: menus?.listsRevision) { _, _ in show(model.result) }
         .sheet(item: $external) { link in SafariView(url: link.url).ignoresSafeArea() }
         .sheet(item: $video) { item in VideoPlayerSheet(embed: item.embed) }
         .fullScreenCover(item: $viewer) { ImageViewerView(model: $0) }
@@ -156,13 +165,28 @@ struct FilteredPostsView: View {
         failed = false
         document = ReaderDocument(
             token: nextToken,
-            html: TopicHTMLBuilder.document(for: result.page, token: nextToken, options: services.settings.renderOptions()),
+            html: TopicHTMLBuilder.document(
+                for: result.page, token: nextToken,
+                options: menuModel().renderOptions(services.settings.renderOptions())
+            ),
             anchor: nil, keepsScrollPosition: false
         )
     }
 
+    /// The menus, made by whichever comes first of the controller and the first document (both need them).
+    private func menuModel() -> FilteredPostsMenuModel {
+        if let menus { return menus }
+        let openURL = self.openURL
+        let made = FilteredPostsMenuModel(
+            services: services, copy: { UIPasteboard.general.string = $0.absoluteString }, openMail: { openURL($0) }
+        )
+        menus = made
+        return made
+    }
+
     private func makeController() {
         guard controller == nil else { return }
+        let menus = menuModel()
         let controller = ReaderWebController(
             imageFetcher: services.imageFetcher, autoLoadsThirdPartyImages: services.settings.autoLoadsThirdPartyImages
         )
@@ -183,6 +207,14 @@ struct FilteredPostsView: View {
                       let message = model.result?.page.messages.first(where: { $0.numreponse == post }),
                       message.content.embeds.indices.contains(index) else { return }
                 video = VideoItem(embed: message.content.embeds[index])
+            },
+            menu: { [weak controller, weak menus] post, source, anchor, token in
+                guard token == document?.token, let result = model.result, let controller, let menus,
+                      let menu = menus.menu(post: post, source: source, anchor: anchor, in: result) else { return }
+                controller.messageMenu.present(
+                    menu, topInset: controller.obscuredInsets.top,
+                    pick: { action in Task { await menus.perform(action, in: menu) } }, closed: {}
+                )
             },
             image: { images, index, _ in
                 viewer = ImageViewerModel(images: images, index: index, services: .live(fetcher: services.imageFetcher))
