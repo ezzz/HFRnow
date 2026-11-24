@@ -12,6 +12,11 @@ enum RootTab: Int, CaseIterable, Hashable, Sendable {
     // EXPERIMENTAL(searchTab, #896): the fifth tab, in the bar only while the option is on; the sidebar shows Plus › Rechercher.
     case search
 
+    /// The tabs of the iPhone tab bar from the left, as `RootTabsView` lists them: Recherche, when on, sits before Plus.
+    static func barOrder(hasSearch: Bool) -> [RootTab] {
+        hasSearch ? [.categories, .favorites, .messages, .search, .more] : [.categories, .favorites, .messages, .more]
+    }
+
     /// Tab title (legacy `MainWindow.swift:1698-1725`).
     var title: String {
         switch self {

@@ -97,6 +97,13 @@ final class NavigationModel {
         }
     }
 
+    /// Reloads the topic lists on screen: the selection and a category pushed from Favoris, those `sessionDidChange` reloads too (#426).
+    func reloadShownTopicLists() async {
+        for source in Set([selectedSource, openedCategory].compactMap { $0 }) {
+            await topicList(for: source).refresh()
+        }
+    }
+
     /// The model of `source`, created once so going back keeps rows, page and scroll position.
     func topicList(for source: TopicSource) -> TopicListModel {
         if let existing = topicLists[source] { return existing }
