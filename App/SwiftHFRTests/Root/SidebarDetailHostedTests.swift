@@ -105,7 +105,6 @@ struct SidebarDetailHostedTests: ReaderWebTesting {
         #expect(stack(topped: "Sujet 4242 p4", in: window) == nil)
     }
 
-
     /// #685: Bookmarks and Alertes Qualitay list their topics in the content column and open them in the detail column, as
     /// Favoris (legacy `IPadSidebarDestination.usesTopicList`, `MainWindow.swift:1326-1333`, `iPadSidebarRoot` `:1849-1873`
     /// @ 87fe0d1c); Réglages, Rechercher, Crédits, Charte and Supprimer mon compte keep two columns. Réglages, Rechercher and
