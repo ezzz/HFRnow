@@ -4,7 +4,7 @@ import Testing
 import UIKit
 
 /// The tab bar wiring of the re-selection (#426) on the real root of `DuoLayoutHostedTests`: the tab bar controller's delegate. The
-/// sidebar's is in `SidebarDetailHostedTests`; the model's reloads are in `TabReselectTests`.
+/// sidebar's has no test in CI (#1323); the model's reloads are in `TabReselectTests`.
 @MainActor
 @Suite(.serialized)
 struct TabReselectHostedTests {
@@ -100,6 +100,24 @@ struct TabReselectHostedTests {
         #expect(first.shouldSelectCalls == 0)
     }
 
+    @Test func twoObserversOnOneControllerNeverChainOrRecurse() {
+        let original = OriginalDelegate()
+        let bar = plainTabBar(delegate: original)
+        var firstReselects: [Int] = []
+        var secondReselects: [Int] = []
+        let first = TabBarReselectionObserver.Coordinator(onReselect: { firstReselects.append($0) })
+        let second = TabBarReselectionObserver.Coordinator(onReselect: { secondReselects.append($0) })
+        // Two observers (a rebuilt view) taking the controller in turn: each adopts the original delegate, never the other observer.
+        first.attach(from: bar.host)
+        second.attach(from: bar.host)
+        first.attach(from: bar.host)
+        #expect(bar.controller.delegate === first)
+        #expect(first.tabBarController(bar.controller, shouldSelectTab: bar.tabs[0]) == true)
+        #expect(original.shouldSelectCalls == 1)
+        #expect(firstReselects == [0])
+        #expect(secondReselects.isEmpty)
+    }
+
     @Test func theRootTabBarReselectsOnlyTheSelectedTabAndFollowsTheSelection() async throws {
         let log = HapticLog()
         let hosted = try duo.host(initial: .tab(.favorites), haptics: log.haptics)
@@ -110,6 +128,20 @@ struct TabReselectHostedTests {
         let controller = try #require(tabBarController(in: window))
         let delegate = try #require(controller.delegate)
         #expect(controller.selectedIndex == 1)
+        // SwiftUI's own delegate was there before the observer: it is kept. Which delegate calls each side answers, for the log.
+        let observer = try #require(delegate as? TabBarReselectionObserver.Coordinator)
+        #expect(observer.previousDelegate != nil)
+        let selectors: [(String, Selector)] = [
+            ("shouldSelectTab", #selector(UITabBarControllerDelegate.tabBarController(_:shouldSelectTab:))),
+            ("didSelectTab", #selector(UITabBarControllerDelegate.tabBarController(_:didSelectTab:previousTab:))),
+            ("supportedOrientations", #selector(UITabBarControllerDelegate.tabBarControllerSupportedInterfaceOrientations(_:))),
+            ("preferredOrientation", #selector(UITabBarControllerDelegate.tabBarControllerPreferredInterfaceOrientationForPresentation(_:)))
+        ]
+        let previous = observer.previousDelegate.map { String(describing: type(of: $0)) } ?? "nil"
+        for (name, selector) in selectors {
+            print("[426] \(name): observer=\(observer.responds(to: selector)) swiftUI(\(previous))="
+                + "\(observer.previousDelegate?.responds(to: selector) ?? false)")
+        }
         let selected = controller.tabs[1]
         let other = controller.tabs[2]
 

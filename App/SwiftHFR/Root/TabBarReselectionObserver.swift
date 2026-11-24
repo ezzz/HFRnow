@@ -50,7 +50,9 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
         var onReselect: @MainActor (Int) -> Void
         var onSelect: @MainActor (Int) -> Void
         private weak var tabBarController: UITabBarController?
-        private var previousDelegate: (any UITabBarControllerDelegate)?
+        /// The delegate that was on the controller before: weak, as the controller's own reference is, and never another
+        /// observer (a rebuilt view attaches a new one), or two of them would forward to each other without end.
+        private(set) weak var previousDelegate: (any UITabBarControllerDelegate)?
 
         init(onReselect: @escaping @MainActor (Int) -> Void, onSelect: @escaping @MainActor (Int) -> Void = { _ in }) {
             self.onReselect = onReselect
@@ -61,7 +63,8 @@ struct TabBarReselectionObserver: UIViewControllerRepresentable {
         func attach(from host: UIViewController) {
             let found = host.tabBarController ?? Self.tabBarController(in: host.view.window?.rootViewController)
             guard let found, found.delegate !== self else { return }
-            previousDelegate = found.delegate
+            let current = found.delegate
+            previousDelegate = (current as? Coordinator).map(\.previousDelegate) ?? current
             tabBarController = found
             found.delegate = self
         }
