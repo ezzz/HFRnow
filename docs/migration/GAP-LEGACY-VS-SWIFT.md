@@ -59,7 +59,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-033 | Super favourites | Local set, orange-tinted row. | Favorites.swift:112-137; Common.swift:686-689 | Section, tint and swipe; set synced by iCloud KVS. | LOT-124, LOT-125, LOT-172 | ported with changes | port: ezzz Swift layer | a |
 | GAP-034 | Mark read (Lu) | Local only at `2440d79`. At `2fe43da3` (`96336bc9`) "Lu" removes the row and GETs the topic's last page in the session, answer ignored. | Favorites.swift:841-848; Favorites.swift:44-47, 102-115, 922-940 @ 2fe43da3 | Lu with "Annuler", kept until refresh; also marks the topic read on the forum (#675, M4). | LOT-125, #675 | UX change | new UX: Bybifok (FEAT-008) | b |
 | GAP-035 | Remove favourite | Menu and trailing swipe remove the flag. | Favorites.swift:848-872 | "Retirer" through confirmed flag writes. | LOT-125, LOT-051 | same | port: ezzz Swift layer | a |
-| GAP-036 | Filter posts from favourites | Menu "Filtrer les posts" with a progress banner. | Favorites.swift:743-780 | Filtered-posts flow and its view. | LOT-093, LOT-114 | same | port: ezzz Swift layer | a |
+| GAP-036 | Filter posts from favourites | Menu "Filtrer les posts" with a progress banner. | Favorites.swift:743-780 | Filtered-posts flow and its read-only sheet. Each post offers « Link », « Alerter » (always the mail to the moderators: the posts are read without cookies, so no alert link) and « Blacklist » / « Whitelist »; legacy offered every menu entry there (LOT-159). | LOT-093, LOT-114, LOT-159 | UX change | port: ezzz Swift layer | b·needed |
 | GAP-037 | Logged-out lists | Inline sign-in prompt on Favoris and Messages. | Favorites.swift:600-612 | "Connexion requise" screen; Catégories works logged out. | LOT-082, LOT-081 | same | port: ezzz Swift layer | a |
 | GAP-038 | Apple category for App Review | Hidden in the ObjC era (audit Q-7). | — | Category 25 hidden logged out and for the review account. | LOT-082 | ported with changes | new UX: spec | a |
 | GAP-039 | AQ list | Plus entry: initiator, relative date, refresh. | AQPlusView.swift:405-441 | AQ feed and badge. | LOT-133 | same | port: ezzz Swift layer | a |
@@ -184,7 +184,7 @@ Visual comparison (mock-ups, not captures): [iPhone 16 and 18 Pro Max](../assets
 | GAP-148 | Alternate icons | Picker of 8 icons. | AppSettingsView.swift:31-82, 360-367 | Picker grouped by pack (Legacy, Beta, X-face, Saisons) as a grid with a preview of every icon (as on the Home Screen, light or dark) and its name: the 9 shipped options on their legacy keys and names plus Noël REDFACE and Noël HFR (01/12 to 26/12), then (LOT-190) Orange, Classique Blue, Beta rouge, the X-face variations and the other season icons; dated icons only inside their window, with a one-time « Revenir à l'icône précédente ? » after it (docs/ICONS.md). | LOT-123, LOT-189, LOT-190 | UX change | port: ezzz Swift layer | b·operator |
 | GAP-149 | Haptics | "Retours haptiques" toggle, on. | AppSettingsView.swift:357 | Same toggle. | LOT-123 | same | port: ezzz Swift layer | a |
 | GAP-150 | Open links in default browser | Absent at `2440d79`; at `2fe43da3` (`9f15513d`) the "Navigateur par défaut" toggle (key `open_links_in_default_browser`, off: in-app browser). | Common.swift:257-259, AppSettingsView.swift:402-406 @ 2fe43da3 | "Navigateur par défaut" toggle; HFR links stay in the app. | LOT-119, LOT-137 | new | port: ezzz Swift layer | a·master |
-| GAP-151 | Crédits, Charte | Bundled HTML pages from Plus. | StaticInfoPageView.swift:10-47 | Static pages; About links to the app's topics, opened in the app. | LOT-120 | ported with changes | port: ezzz Swift layer | a |
+| GAP-151 | Crédits, Charte | Bundled HTML pages from Plus. | StaticInfoPageView.swift:10-47 | Static pages; About links to the app's topics, opened in the app, and a « Nous contacter » section: legacy's "not developed by the hardware.fr team" sentence above its forum contact, the app's topic (LOT-159); legacy's private contact is not ported. | LOT-120, LOT-159 | ported with changes | port: ezzz Swift layer | a |
 | GAP-152 | Maintenance | At `2440d79` system-settings shortcut, "Vider le cache" commented out. At `2fe43da3` (`c7693a88`) also "Caches de l'app" (total) and "Pages HTML" (size, file count) with the purge rule in a 7-day / 50 MB footer; clearing still unreachable (the alert is never presented). | AppSettingsView.swift:264-280, 476-486 @ `2440d79`; `AppSettingsView.swift:547-577, 637-644` @ `2fe43da3` | Cache sizes and the system-settings shortcut, as legacy at `2fe43da3`; "Pages HTML" counts the pages saved for offline reading (`Caches/cache/offline`, LOT-068) instead of the `topic-*.htm` files under `Caches/cache`, "fichier" is singular below two, and the footer gives the rule of the saved pages (kept whatever their age, 200 MB). Clearing is LOT-187 (M5). | LOT-120, LOT-179, LOT-066 | UX change | port: legacy evolution (2fe43da3) | a·master |
 | GAP-153 | Smiley size, video rows | Rows commented out, no effect. | AppSettingsView.swift:422-432 | Not ported. | LOT-119 | dropped | new UX: spec | — |
 | GAP-209 | Pseudo lists after a toggle from the profile | profile sheet dismissed, `loadPage(page)` (`MessagesView.swift:3663-3694`) | `MessagesView.swift:3663` | From a message's author, as legacy: the sheet closes, the reader shows the sentence as a toast and rebuilds its page, no request (#652). From a link: the sheet stays open with the sentence under the buttons; reader rebuilds on close | #209 | UX change | none | b |
@@ -286,10 +286,10 @@ Operator decision of 2026-11-07 on [#545](https://github.com/ezzz/HFRnow/issues/
 
 | Gap | Rows |
 |---|---|
-| same | 33 |
+| same | 32 |
 | ported with changes | 65 |
 | ported with changes (engine only) | 1 |
-| UX change | 58 |
+| UX change | 59 |
 | new | 29 |
 | dropped | 3 |
 | not planned | 3 |
@@ -323,13 +323,13 @@ Decisions the UX review (H.1) has to make; each names its rows.
 
 Directive H.1 of [#368](https://github.com/ezzz/HFRnow/issues/368), `cloud/ui-convergence`, 2026-11-01. Four Sonnet agents classified the rows, one per group of screens, with legacy symbols checked at `2440d79`; Opus consolidated them. The per-row class is the `H.1` column above.
 
-### GAP rows of type `ported with changes`, `UX change` or `new` (152)
+### GAP rows of type `ported with changes`, `UX change` or `new` (153)
 
 | H.1 | Rows | Count |
 |---|---|---|
 | a | 004, 005, 020, 021, 022, 023, 026, 027, 032, 033, 038, 040, 050, 053, 054, 055, 064, 067, 071, 080, 081, 082, 087, 090, 096, 098, 100, 111, 115, 116, 119, 134, 135, 136, 145, 151, 160, 164, 165, 170, 182, 183, 186, 201, 216, 220, 221, 230, 595, 1039 | 50 |
 | a·master | 002, 093, 117, 150, 152, 210, 217, 219, 682, 713 | 10 |
-| b·needed | 024, 056, 058, 070, 089, 133, 181, 192 | 8 |
+| b·needed | 024, 036, 056, 058, 070, 089, 133, 181, 192 | 9 |
 | b·operator | 011, 013, 016, 025, 065, 068, 069, 091, 099, 102, 110, 112, 141, 147, 148, 168, 169, 184, 185, 190, 191, 200, 222, 225, 226, 227, 246, 596, 653, 655, 703, 729, 750, 799, 807, 903, 978, 1035, 1037, 1058, 1172, 1207, 1213 | 43 |
 | b | 008, 009, 012, 014, 015, 028, 029, 034, 051, 057, 060, 061, 062, 063, 072, 073, 083, 085, 092, 094, 095, 097, 101, 113, 114, 118, 146, 163, 166, 193, 194, 195, 202, 203, 204, 209, 229, 912, 1073, 1074, 1107 | 41 |
 
