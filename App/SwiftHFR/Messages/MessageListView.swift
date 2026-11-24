@@ -2,7 +2,9 @@ import HFRModels
 import HFRStorage
 import SwiftUI
 
-// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: paged (legacy shows page 1 only); the conversation opens
+// Port of HFRswift/Swift/MPListView.swift (MPListView) @ 2440d79. Differences: logged out, the sign-in prompt of
+// `MPListView.swift:588` @ 87fe0d1c (#1317, GAP-037), « Se reconnecter » with a current account;
+// paged (legacy shows page 1 only); the conversation opens
 // in the reader column (GAP-110); the Tous / MP / MP multiples switch is new (LOT-171, #899), its last position remembered per account.
 // LOT-185: the pager (legacy shows page 1 only, no counterpart) is the system bottom bar (`PagerToolbar`); GAP row pending #545.
 // #1013: the switch is a row of the list under the large title, so it scrolls away with it.
@@ -116,7 +118,7 @@ struct MessageListView: View {
             } else if model.visibleThreads.isEmpty {
                 EmptyMessagesView(
                     reason: content.emptyReason ?? .nothing, segment: model.segment,
-                    refresh: model.refresh
+                    prompt: model.signInPrompt(current:), refresh: model.refresh
                 )
             }
         } else {
@@ -129,10 +131,17 @@ private struct EmptyMessagesView: View {
     let reason: EmptyReason
     /// The switch position: the page may hold none of it though later pages exist.
     let segment: MPSegment
+    /// Logged out: legacy's prompt with its button instead of a refresh (#1317).
+    let prompt: (AccountRow?) -> SignInPrompt?
     let refresh: () async -> Void
+    @Environment(AccountsModel.self) private var accounts: AccountsModel?
 
     var body: some View {
-        EmptyStateView(title: title, symbol: symbol, message: message, refresh: refresh)
+        if let prompt = prompt(accounts?.current) {
+            SignInPromptView(prompt: prompt, refresh: refresh)
+        } else {
+            EmptyStateView(title: title, symbol: symbol, message: message, refresh: refresh)
+        }
     }
 
     private var title: String {
