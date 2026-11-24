@@ -91,7 +91,7 @@ struct TopicListView: View {
             // Content-layer cards: they push the list down, so they stay materials in an inset (LOT-185).
             VStack(spacing: 8) {
                 if let confirmation = model.sentConfirmation {
-                    TopicSentBanner(text: confirmation, close: model.clearSentConfirmation)
+                    ConfirmationBanner(text: confirmation, close: model.clearSentConfirmation)
                 }
                 if let error = loader.error, loader.value != nil {
                     LoadFailureBanner(error: error, retry: model.retry)
@@ -308,10 +308,8 @@ extension TopicListView {
             } else if model.allSectionsHidden, let favorites = model.favorites {
                 AllSectionsCollapsedView(options: favorites)
             }
-        } else if let error = loader.error {
-            LoadFailureView(error: error, retry: model.retry)
-        } else if loader.isLoading {
-            ProgressView()
+        } else {
+            ScreenStateView(state: ScreenLoadState(error: loader.error, isLoading: loader.isLoading), retry: model.retry)
         }
     }
 }

@@ -14,7 +14,7 @@ struct ReaderEditFlow: ViewModifier {
             .overlay {
                 if let progress = writes?.progress {
                     // Floats over the page (LOT-185: glass for floating elements).
-                    ProgressView(progress).padding().glassEffect(in: .rect(cornerRadius: 12))
+                    ProgressView(progress).padding().floatingCard(.glass)
                 }
             }
             // The reader suspends its page's taps while `editor` is set (`TopicReaderView`, #653).

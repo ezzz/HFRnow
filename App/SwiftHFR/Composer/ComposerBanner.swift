@@ -17,7 +17,7 @@ struct ComposerBanner<Actions: View>: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .floatingCard()
         .padding(.horizontal)
         .padding(.top, 8)
     }

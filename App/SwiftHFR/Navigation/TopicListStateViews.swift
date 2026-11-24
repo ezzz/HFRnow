@@ -30,38 +30,22 @@ struct EmptyListView: View {
 
     var body: some View {
         if let prompt {
-            signInView(prompt)
-        } else {
-            emptyView
-        }
-    }
-
-    private func signInView(_ prompt: SignInPrompt) -> some View {
-        ContentUnavailableView {
-            Label(prompt.title, systemImage: prompt.systemImage)
-        } description: {
-            Text(prompt.message)
-        } actions: {
-            Button(prompt.action) {
-                // As the account button: a damaged account store is repaired in the accounts, not by adding another.
-                if accounts?.storeProblem == nil { loginTarget = .newAccount } else { showsAccounts = true }
+            EmptyStateView(
+                title: prompt.title, symbol: prompt.systemImage, message: prompt.message,
+                action: (prompt.action, openLogin), refresh: refresh
+            )
+            .sheet(item: $loginTarget) { target in
+                if let accounts { LoginView(target: target, accounts: accounts) }
             }
-            .buttonStyle(.borderedProminent)
+            .sheet(isPresented: $showsAccounts) { AccountsView() }
+        } else {
+            EmptyStateView(title: title, symbol: "tray", message: message, refresh: refresh)
         }
-        .sheet(item: $loginTarget) { target in
-            if let accounts { LoginView(target: target, accounts: accounts) }
-        }
-        .sheet(isPresented: $showsAccounts) { AccountsView() }
     }
 
-    private var emptyView: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: "tray")
-        } description: {
-            if let message { Text(message) }
-        } actions: {
-            Button("Actualiser") { Task { await refresh() } }
-        }
+    /// As the account button: a damaged account store is repaired in the accounts, not by adding another.
+    private func openLogin() {
+        if accounts?.storeProblem == nil { loginTarget = .newAccount } else { showsAccounts = true }
     }
 
     private var title: String {
@@ -78,24 +62,5 @@ struct EmptyListView: View {
         case .signInRequired(let notice): notice ?? "Connectez-vous pour voir cette liste."
         case .notice(let notice): notice
         }
-    }
-}
-
-/// HFR's confirmation of a new topic, above the list.
-struct TopicSentBanner: View {
-    let text: String
-    let close: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
-            Text(text).scaledFont(.subheadline)
-            Spacer()
-            Button(action: close) { Image(systemName: "xmark").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                .accessibilityLabel("Masquer")
-        }
-        .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }
