@@ -99,7 +99,8 @@ The filtered posts sheet (LOT-114) now draws the reader's "+" button and makes a
 UGC entries only:
 
 - message menu: "Link" (the message's permalink) and "Alerter";
-- author menu: "Blacklist" and "Whitelist" (for an account; the allowlist logged out too, as LOT-118).
+- author menu: "Blacklist" and "Whitelist" (for an account; the allowlist logged out too, as LOT-118); logged out,
+  « Connectez-vous pour bloquer » stands in for "Blacklist" and opens the login (D3).
 
 The posts are read cookie-less (LOT-093), so they carry no toolbar link: no alert link, no edit link. Hence:
 
@@ -126,7 +127,8 @@ sheet stays read-only, as LOT-114 decided.
 - A filtered message whose page is unknown (never: every kept post carries its page) gets no permalink, so neither "Link" nor
   the mail "Alerter".
 - A menu tap from a document that is no longer shown (a newer batch) opens nothing (token check, as the reader).
-- Logged out: no blocklist anywhere (LOT-118, per-account lists); see D3.
+- Logged out: no blocklist anywhere (LOT-118, per-account lists); the author menus and the profile sheet show
+  « Connectez-vous pour bloquer » instead, which opens the login (D3, #1297).
 - **Pending capture:** how HFR encodes an accented pseudo in `md_user` (UTF-8 or Latin-1 percent-encoding) is not captured. A
   key that does not decode as UTF-8 is compared raw only (never guessed): an accented own pseudo may then not be recognised.
   The capture is #140 (login with a pseudo holding a space or an accent: the `md_user` value set).
@@ -163,6 +165,18 @@ None new: the menu model is tested on batches built by `FilteredPostsModel.resul
   (`AboutModel.swift`, `AboutTopicLink.superHFRPlus`), which the forum list hides from the review account and from logged-out
   readers (D5), and writing there needs an HFR account. The row opens the topic directly,
   so it reads, but the contact is reachable only through the forum.
+- **D3 — blocking logged out (operator, 2026-11-24, #1297).** The blocklist stays per account (LOT-118), with no guest list, so a
+  logged-out reader can report (mail) but not block. Legacy does offer "Blacklist" logged out and reports success while keeping
+  nothing: `MessagesView.swift:213-216` adds it with no account check, and `BlackList.m:37-47` adds to the throwaway array that
+  `getBlackListForActiveCompte` returns without a current pseudo (`:92-94`) @ 87fe0d1c; a legacy bug fixed on purpose. Instead
+  of that false success, every author menu (the reader's
+  and the filtered posts sheet's) and the profile sheet show « Connectez-vous pour bloquer », which opens the login
+  (`SignInToBlockActionHandler`, `UserProfileModel.offersSignInToBlock`; VoiceOver reads the title, the profile button adds a
+  hint). "Blacklist" stays hidden; "Whitelist" keeps its LOT-118 rule (global, offered logged out too); "Alerter" is unchanged;
+  logged in, nothing changes. After the login the root is rebuilt and the block the reader asked for is not applied (deliberate:
+  the account's list has to be read first; the reader taps Blacklist again). GAP-1297. Tests:
+  `SignInToBlockTests`, `FilteredPostsMenuModelTests.loggedOutTheAuthorMenuSaysToSignInToBlockAndOpensTheLogin`,
+  `UserProfileListsTests.loggedOutTheProfileSaysToSignInToBlockAndOpensTheLogin`.
 - **D2 — terms (operator, 2026-11-24).** No terms agreement: parity with legacy (the charter is a page, R13).
 - **D5 — the review account (operator, 2026-11-24).** The `applereview` filter stays as legacy (Q-7), and the App Review notes
   do not mention it. The risk stated before the decision: guideline 2.3.1 asks for features to be described in the review notes
@@ -171,8 +185,6 @@ None new: the menu model is tested on batches built by `FilteredPostsModel.resul
 
 ## Open decisions (operator)
 
-- **D3 — blocking logged out.** The blocklist is per account (LOT-118), so a logged-out reader can report (mail) but not block.
-  The review account is logged in. Keep?
 - **D4 — "Home".** Read as the Plus tab (`PlusHomeView`) badge. Confirm.
 
 ## App Review notes (draft for the operator, App Store Connect › App Review Information › Notes)

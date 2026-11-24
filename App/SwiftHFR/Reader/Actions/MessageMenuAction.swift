@@ -18,6 +18,8 @@ struct MessageMenuAction: Equatable, Sendable {
     /// What a handler is registered for: the action without its display state.
     enum Kind: Hashable, Sendable, CaseIterable {
         case quote, quoteSelection, edit, profile, privateMessage, blocklist, allowlist
+        /// Logged out: stands in for the blocklist entries and opens the login (LOT-159 D3, #1297).
+        case signInToBlock
         case favorite, link, alert, qualityAlert, bookmark, delete
     }
 
@@ -37,6 +39,7 @@ struct MessageMenuAction: Equatable, Sendable {
         .privateMessage: Presentation(title: "MP", symbol: "message", priority: 4),
         .blocklist: Presentation(title: "Blacklist", symbol: "hand.raised", priority: 5),
         .allowlist: Presentation(title: "Whitelist", symbol: "heart", priority: 6),
+        .signInToBlock: Presentation(title: SignInToBlock.title, symbol: "person.crop.circle.badge.plus", priority: 5),
         .favorite: Presentation(title: "Favoris", symbol: "star", priority: 7),
         .link: Presentation(title: "Link", symbol: "link", priority: 8),
         .alert: Presentation(title: "Alerter", symbol: "exclamationmark.bubble", priority: 9),
@@ -62,6 +65,7 @@ struct MessageMenuAction: Equatable, Sendable {
     static let privateMessage = MessageMenuAction(kind: .privateMessage)
     static let blocklist = MessageMenuAction(kind: .blocklist)
     static let allowlist = MessageMenuAction(kind: .allowlist)
+    static let signInToBlock = MessageMenuAction(kind: .signInToBlock)
     static let favorite = MessageMenuAction(kind: .favorite)
     static let link = MessageMenuAction(kind: .link)
     static let alert = MessageMenuAction(kind: .alert)
@@ -136,6 +140,7 @@ enum MessageMenuPolicy {
         if !context.isOwnMessage, context.actions.privateMessageURL != nil { actions.append(.privateMessage) }
         if !context.isOwnMessage, !context.author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             actions.append(.blocklist)
+            actions.append(.signInToBlock)
             actions.append(.allowlist)
         }
         return actions

@@ -139,6 +139,7 @@ struct TopicReaderView: View {
             Text("Connectez-vous pour rechercher dans un sujet.")
         }
         .sheet(isPresented: $showsAccounts) { AccountsView() }
+        .signInToBlockSheet(isPresented: Bindable(model).asksLogin)
         .sheet(isPresented: $askingPage) {
             if let page = model.page {
                 ReaderPageSheet(currentPage: page.currentPage, maxPage: page.maxPage) { number in
@@ -368,9 +369,7 @@ extension TopicReaderView {
             confirm: confirm
         )
         if let flagActions = services.flagActions { handlers.append(FavoriteActionHandler(actions: flagActions, confirm: confirm)) }
-        handlers += services.pseudoLists.map {
-            PseudoListActionHandler.pair(manager: $0, confirm: confirm, rebuild: rebuild)
-        } ?? []
+        handlers += model.pseudoListHandlers(lists: services.pseudoLists, confirm: confirm, rebuild: rebuild)
         let openURL = self.openURL
         // Each appearance installs again: a fresh model with the current services, unless an alert is in progress.
         let alerts = self.alerts.flatMap { $0.isIdle ? nil : $0 } ?? ModeratorAlertModel(

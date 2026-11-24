@@ -52,6 +52,8 @@ final class TopicReaderModel {
     let confirmationTimer = ConfirmationAutoDismiss()
     /// The message menu on screen; nil when none.
     var presentedMenu: MessageMenu?
+    /// « Connectez-vous pour bloquer » was picked in the author menu: the reader opens the login (LOT-159 D3).
+    var asksLogin = false
     /// Short confirmation of the last menu action ("Lien copié"), shown until cleared.
     var menuFeedback: String?
     /// Grows with every confirmation, so the view restarts its timer when the same text comes twice.

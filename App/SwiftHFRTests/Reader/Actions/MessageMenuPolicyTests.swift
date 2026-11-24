@@ -49,7 +49,7 @@ struct MessageMenuPolicyTests {
             privateMessageURL: link("/message.php?cat=prive&dest=x")
         )
         #expect(titles(context(actions: actions, author: "Pseudo", permalink: true), .avatar)
-            == ["Profil", "MP", "Blacklist", "Whitelist"])
+            == ["Profil", "MP", "Blacklist", "Connectez-vous pour bloquer", "Whitelist"])
     }
 
     @Test func anOwnMessageHidesMPListsAndAlert() {

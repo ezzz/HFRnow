@@ -112,9 +112,24 @@ struct FilteredPostsMenuModelTests {
         #expect(!after.html.contains("class=\"message blocked\" id=\"t510\""), "the user's own post stays")
     }
 
-    @Test func loggedOutTheAuthorMenuOffersTheAllowlistOnly() async throws {
-        let menu = try #require(menus(account: nil).0.menu(post: 301, source: .avatar, anchor: nil, in: try await result()))
-        #expect(menu.entries == [.allowlist])
+    // LOT-159 D3 (#1297): no Blacklist logged out, but the way to the login; the sheet is asked to open it.
+    @Test func loggedOutTheAuthorMenuSaysToSignInToBlockAndOpensTheLogin() async throws {
+        let (model, _) = menus(account: nil)
+        let menu = try #require(model.menu(post: 301, source: .avatar, anchor: nil, in: try await result()))
+        #expect(menu.entries == [.signInToBlock, .allowlist])
+        #expect(menu.entries.first?.title == "Connectez-vous pour bloquer")
+        #expect(!model.wantsSignIn)
+        await model.perform(.signInToBlock, in: menu)
+        #expect(model.wantsSignIn)
+        #expect(model.listsRevision == 0)
+    }
+
+    @Test func loggedInTheAuthorMenuNeverOffersTheSignInEntry() async throws {
+        let (model, _) = menus()
+        let menu = try #require(model.menu(post: 301, source: .avatar, anchor: nil, in: try await result()))
+        #expect(!menu.entries.contains(.signInToBlock))
+        await model.perform(.signInToBlock, in: menu)
+        #expect(!model.wantsSignIn)
     }
 
     @Test func theUsersOwnPostIsNeitherReportedNorListed() async throws {
