@@ -46,11 +46,10 @@
   --fs-85-content: max(calc(0.85 * var(--content-em)), min(calc(0.85 * 15 / 17 * 1rem), var(--floor)));
   /* Nested 0.85 em steps: a code header (b.s1 in table.code) and what sits in the signature (0.85 of 0.85 of the message text), then a
      code header in a signature. The ratio is each element's real nesting at 100 %, not a shared one. */
-  /* These two are already under 11 px at 100 % (10.8 and 9.2 at the default size): unchanged there, and 11 px as soon as the text is
-     shrunk (the clamp is 0 at 100 % and above, 1 from 99 % down), so the whole reader holds the floor at 70 %. */
-  --below-100: clamp(0, calc((1 - var(--text-scale, 1)) * 1000), 1);
-  --fs-7225-content: max(calc(0.7225 * var(--content-em)), calc(var(--floor) * var(--below-100)));
-  --fs-614-content: max(calc(0.614125 * var(--content-em)), calc(var(--floor) * var(--below-100)));
+  /* Both are already under 11 px at 100 % (10.8 and 9.2 at the default size): they keep that size when shrunk, never smaller or
+     bigger (operator, #1237), the same `min(size at 100 %, 11 px)` as the others. */
+  --fs-7225-content: max(calc(0.7225 * var(--content-em)), min(calc(0.7225 * 15 / 17 * 1rem), var(--floor)));
+  --fs-614-content: max(calc(0.614125 * var(--content-em)), min(calc(0.614125 * 15 / 17 * 1rem), var(--floor)));
   /* sub and sup: `font-size: smaller` is the parent over 1.2 in WebKit; the unscaled size is the parent's over the scale. */
   --fs-smaller: max(calc(1em / 1.2), min(calc(1em / 1.2 / var(--text-scale, 1)), var(--floor)));
   /* The grey silhouette of a member without an avatar (legacy `avatar_male_gray_*`, `style-liste-light.css:203-205`). */

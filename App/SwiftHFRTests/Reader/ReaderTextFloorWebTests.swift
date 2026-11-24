@@ -85,11 +85,17 @@ struct ReaderTextFloorWebTests: ReaderWebTesting {
         return (try? JSONDecoder().decode([Double].self, from: Data(json.utf8))) ?? []
     }
 
-    @Test func at70PercentEveryTextIsAtLeast11Px() async {
+    /// The rule of `TextScale.pointSize`: below 100 % a size is at least `min(its size at 100 %, 11)`, and never above its size at
+    /// 100 %. A text already under 11 px at 100 % keeps that size (no jump up to 11).
+    @Test func at70PercentEveryTextHoldsTheFloorAndNeverGrows() async {
         let seen = await sizes(percent: 70, token: 1)
         #expect(seen.count == elements.count + 1, "seen: \(seen)")
+        guard seen.count == elements.count + 1 else { return }
+        let root = seen[elements.count]
         for (element, size) in zip(elements, seen) {
-            #expect(size >= 10.99, "\(element.name) computes to \(size) px at 70 %")
+            let unscaled = element.ratio * root
+            #expect(size >= min(unscaled, 11) - 0.01, "\(element.name) computes to \(size) px at 70 %, under the floor")
+            #expect(size <= unscaled + 0.01, "\(element.name) computes to \(size) px at 70 %, above its \(unscaled) px at 100 %")
         }
     }
 
