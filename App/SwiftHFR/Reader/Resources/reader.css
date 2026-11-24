@@ -44,6 +44,15 @@
   --fs-765: max(calc(0.765 * var(--text-scale, 1) * 1rem), min(0.765rem, var(--floor)));
   --fs-70: max(calc(0.7 * var(--text-scale, 1) * 1rem), min(0.7rem, var(--floor)));
   --fs-85-content: max(calc(0.85 * var(--content-em)), min(calc(0.85 * 15 / 17 * 1rem), var(--floor)));
+  /* Nested 0.85 em steps: a code header (b.s1 in table.code) and what sits in the signature (0.85 of 0.85 of the message text), then a
+     code header in a signature. The ratio is each element's real nesting at 100 %, not a shared one. */
+  /* These two are already under 11 px at 100 % (10.8 and 9.2 at the default size): unchanged there, and 11 px as soon as the text is
+     shrunk (the clamp is 0 at 100 % and above, 1 from 99 % down), so the whole reader holds the floor at 70 %. */
+  --below-100: clamp(0, calc((1 - var(--text-scale, 1)) * 1000), 1);
+  --fs-7225-content: max(calc(0.7225 * var(--content-em)), calc(var(--floor) * var(--below-100)));
+  --fs-614-content: max(calc(0.614125 * var(--content-em)), calc(var(--floor) * var(--below-100)));
+  /* sub and sup: `font-size: smaller` is the parent over 1.2 in WebKit; the unscaled size is the parent's over the scale. */
+  --fs-smaller: max(calc(1em / 1.2), min(calc(1em / 1.2 / var(--text-scale, 1)), var(--floor)));
   /* The grey silhouette of a member without an avatar (legacy `avatar_male_gray_*`, `style-liste-light.css:203-205`). */
   --silhouette: #aeaeb2;
   --silhouette-background: #e5e5ea;
@@ -201,11 +210,15 @@ hr:last-child { display: none; }
 table.citation td, table.oldcitation td, table.quote td, table.code td, table.fixed td { padding: 0 0 0 4px; }
 b.s1 { font-size: var(--fs-85-content); color: var(--secondary); }
 b.s1 a { color: var(--text); font-weight: 700; }
+table.code b.s1, table.fixed b.s1, .signature b.s1 { font-size: var(--fs-7225-content); }
+.signature table.code b.s1, .signature table.fixed b.s1 { font-size: var(--fs-614-content); }
+sub, sup { font-size: var(--fs-smaller); }
 
 /* Code: monospace, scroll sideways instead of widening the page. */
 table.code, table.fixed { font-size: var(--fs-85-content); }
 table.code *, table.fixed * { font-family: ui-monospace, Menlo, monospace; }
 table.code td, table.fixed td { overflow-x: auto; }
+.signature table.code, .signature table.fixed { font-size: var(--fs-7225-content); }
 ol.olcode { margin: 0; padding-left: 2.5em; white-space: pre; }
 /* Legacy turned the olcode keyword colour "blue" into the action colour (LinkItem.m:265, kept as served by LOT-034). */
 ol.olcode span[style="color:blue"] { color: var(--action) !important; }
@@ -235,18 +248,21 @@ button.image-tap, button.video {
   font: inherit; font-size: var(--fs-85-content); color: var(--text); background: var(--placeholder);
   border: none; border-radius: 8px; padding: 0.6em 0.8em; margin: 0.25em 0; display: inline-block; max-width: 100%;
 }
+/* The video button and pill are children of the article, not of the message text: 0.85 of the body. */
+button.video { font-size: var(--fs-85); }
 .videos { margin-top: 0.5em; }
 /* The thumbnail card of a plain YouTube link (#1037): the pill until the thumbnail has loaded (`reader.js` adds `has-thumb`), then the
    thumbnail (hqdefault is 4:3 with black bars: cropped to 16:9) under a play mark drawn here, no extra request. */
 .videolinks { margin-top: 0.5em; }
 a.video-card { display: block; position: relative; max-width: 480px; margin: 0.25em 0; text-decoration: none; }
-a.video-card .video-pill { display: inline-block; font-size: var(--fs-85-content); color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
+a.video-card .video-pill { display: inline-block; font-size: var(--fs-85); color: var(--text); background: var(--placeholder); border-radius: 8px; padding: 0.6em 0.8em; max-width: 100%; }
 a.video-card img.video-thumb, a.video-card .video-play { display: none; }
 a.video-card.has-thumb img.video-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--placeholder); }
 a.video-card.has-thumb .video-pill { display: none; }
 a.video-card.has-thumb .video-play { display: block; position: absolute; top: 50%; left: 50%; width: 3.2em; height: 3.2em; margin: -1.6em 0 0 -1.6em; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
 a.video-card.has-thumb .video-play::after { content: ""; position: absolute; top: 50%; left: 50%; margin: -0.7em 0 0 -0.45em; border-style: solid; border-width: 0.7em 0 0.7em 1.2em; border-color: transparent transparent transparent #fff; }
 .image-link { font-size: var(--fs-85-content); color: var(--secondary); word-break: break-all; }
+.signature button.image-tap, .signature .image-link { font-size: var(--fs-7225-content); }
 
 /* Message menu (LOT-087): the author and the "+" button are buttons that look like text. The padding grows the touch target
    (about 44 pt with the header's line height) and the negative margin gives it back, so the header keeps its height. */
