@@ -43,14 +43,16 @@ struct VisibilityPolicy: Equatable, Sendable {
     /// Show nothing about the author of a collapsed message and of a collapsed quote (`blacklist_hide_pseudo`,
     /// `LinkItem.m:81, 290`).
     var hidesBlockedPseudo: Bool
-    private var ownKey: String?
+    private var ownKeys: Set<String>
     private var blockedKeys: Set<String>
     private var allowedKeys: Set<String>
 
     /// A policy over the account's `ownPseudo` and its lists; pseudos are compared by `PseudoNormalizer.comparisonForm`.
     init(ownPseudo: String? = nil, blocklist: [String] = [], allowlist: [String] = [], hidesBlockedPseudo: Bool = false) {
-        let own = ownPseudo.map(PseudoNormalizer.comparisonForm)
-        ownKey = own?.isEmpty == false ? own : nil
+        // `ownPseudo` is the account key, the URL-encoded `md_user` (HFR-PROTOCOL §5, `W03`), while pages print the pseudo:
+        // compare its raw and percent-decoded forms, as `PseudoListManager.isOwn` does (#1293, LOT-159).
+        let ownForms = ownPseudo.map(PseudoListManager.keyForms(of:)) ?? []
+        ownKeys = Set(ownForms.map(PseudoNormalizer.comparisonForm).filter { !$0.isEmpty })
         blockedKeys = Set(blocklist.map(PseudoNormalizer.comparisonForm).filter { !$0.isEmpty })
         allowedKeys = Set(allowlist.map(PseudoNormalizer.comparisonForm).filter { !$0.isEmpty })
         self.hidesBlockedPseudo = hidesBlockedPseudo
@@ -60,14 +62,14 @@ struct VisibilityPolicy: Equatable, Sendable {
     static let none = VisibilityPolicy()
 
     /// Whether the policy can change how anything is shown.
-    var isNeutral: Bool { ownKey == nil && blockedKeys.isEmpty && allowedKeys.isEmpty }
+    var isNeutral: Bool { ownKeys.isEmpty && blockedKeys.isEmpty && allowedKeys.isEmpty }
 
     /// The same lists without the highlights of the account's own messages and of quotes of it. Legacy states that "ego quote"
     /// is not applied on private messages (`MessagesTableViewController.m:1401`); its `isMP:` parameter is never read, so
     /// the intent is applied here (issue #208).
     func withoutOwnHighlights() -> VisibilityPolicy {
         var copy = self
-        copy.ownKey = nil
+        copy.ownKeys = []
         return copy
     }
 
@@ -75,7 +77,7 @@ struct VisibilityPolicy: Equatable, Sendable {
     func post(by author: String) -> Post {
         if author == Self.moderationName { return .moderation }
         let key = PseudoNormalizer.comparisonForm(author)
-        if let ownKey, key == ownKey { return .own }
+        if ownKeys.contains(key) { return .own }
         if blockedKeys.contains(key) { return .blocked }
         if allowedKeys.contains(key) { return .allowlisted }
         return .normal
@@ -85,7 +87,7 @@ struct VisibilityPolicy: Equatable, Sendable {
     func quote(by author: String?) -> Quote {
         guard let author else { return .normal }
         let key = PseudoNormalizer.comparisonForm(author)
-        if let ownKey, key == ownKey { return .ofMe }
+        if ownKeys.contains(key) { return .ofMe }
         if allowedKeys.contains(key), !blockedKeys.contains(key) { return .allowlisted }
         if blockedKeys.contains(key) { return .blocked }
         return .normal

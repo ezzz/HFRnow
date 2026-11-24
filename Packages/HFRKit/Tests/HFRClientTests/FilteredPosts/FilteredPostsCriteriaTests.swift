@@ -69,6 +69,31 @@ struct FilteredPostsCriteriaTests {
         #expect(!criteria.keeps(block, quotes: [MessageQuote(author: nil, depth: 2), MessageQuote(author: "third")]))
     }
 
+    @Test("The account key is the URL-encoded `md_user` (W03): own posts, quotes and mentions of `user two` are kept (#1293)")
+    func encodedAccountKey() {
+        let criteria = FilteredPostsCriteria(minimumQuoteCount: 1_000, pseudo: "user%20two")
+        let own = MessageBlock(numreponse: 2, author: "user two", contentHTML: "<p>texte</p>")
+        let other = MessageBlock(numreponse: 3, author: "other", contentHTML: "<p>texte</p>")
+        let mention = MessageBlock(numreponse: 4, author: "other", contentHTML: "<p>merci user two</p>")
+        #expect(criteria.keeps(own, quotes: []))
+        #expect(criteria.keeps(other, quotes: [MessageQuote(author: "user two", depth: 1)]))
+        #expect(criteria.keeps(mention, quotes: []))
+        #expect(!criteria.keeps(other, quotes: [MessageQuote(author: "user three", depth: 1)]))
+        // A key that does not decode as UTF-8 (accents: not captured, #140) is compared raw only.
+        #expect(!FilteredPostsCriteria(minimumQuoteCount: 1_000, pseudo: "caf%E9").keeps(
+            MessageBlock(numreponse: 5, author: "café", contentHTML: "<p>texte</p>"), quotes: []
+        ))
+    }
+
+    @Test("Account key forms: raw, then percent-decoded when that differs and decodes as UTF-8")
+    func accountKeyForms() {
+        #expect(HFRText.accountKeyForms(of: "user2") == ["user2"])
+        #expect(HFRText.accountKeyForms(of: "user%20two") == ["user%20two", "user two"])
+        // Tolerance only: no capture shows HFR form-encoding a space as `+` in `md_user` (W03 shows URL-encoding).
+        #expect(HFRText.accountKeyForms(of: "user+two") == ["user+two", "user two"])
+        #expect(HFRText.accountKeyForms(of: "caf%E9") == ["caf%E9"])
+    }
+
     @Test("Authors compare by key: case and zero-width spaces do not matter")
     func authorKey() {
         // Both sides go through the key: the author as given (LOT-030 already drops U+200B, this does not rely on it).

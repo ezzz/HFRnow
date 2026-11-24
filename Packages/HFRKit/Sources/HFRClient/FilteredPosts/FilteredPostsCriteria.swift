@@ -5,7 +5,7 @@ import HFRParsing
 ///
 /// A message is kept when any rule holds:
 /// - it was quoted at least `minimumQuoteCount` times (HFR's own "Message cité N fois" trailer, `quotedByCount`);
-/// - its author is the account's `pseudo` (`:183-186`);
+/// - its author is the account's `pseudo`, read as the URL-encoded account key (raw and decoded, `:183-186`);
 /// - one of its quotes, at any depth, cites `pseudo` (LOT-032 authors, legacy rule `:198-206`);
 /// - its content mentions `pseudo`, as text anywhere in the content HTML, case-insensitive (`:327-331`);
 /// - `includesAllowlist` is on and its author is in `allowlist` (`:187-189`).
@@ -45,10 +45,12 @@ public struct FilteredPostsCriteria: Sendable, Hashable {
         if let count = block.quotedByCount, count >= effectiveMinimumQuoteCount { return true }
         let author = HFRText.pseudoComparisonKey(block.author)
         if includesAllowlist, allowlist.contains(where: { HFRText.pseudoComparisonKey($0) == author }) { return true }
-        let own = HFRText.pseudoComparisonKey(pseudo ?? "")
+        // `pseudo` is the account key, the URL-encoded `md_user`: compare its raw and decoded forms (#1293).
+        let own = Set(HFRText.accountKeyForms(of: pseudo ?? "").map(HFRText.pseudoComparisonKey).filter { !$0.isEmpty })
         guard !own.isEmpty else { return false }
-        if author == own { return true }
-        if quotes.contains(where: { $0.author.map(HFRText.pseudoComparisonKey) == own }) { return true }
-        return block.contentHTML.lowercased().contains(own)
+        if own.contains(author) { return true }
+        if quotes.contains(where: { $0.author.map(HFRText.pseudoComparisonKey).map(own.contains) ?? false }) { return true }
+        let content = block.contentHTML.lowercased()
+        return own.contains { content.contains($0) }
     }
 }

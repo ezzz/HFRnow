@@ -1,4 +1,5 @@
 import Foundation
+import HFRParsing
 import HFRStorage
 
 /// Which of the two pseudo lists an editor, a menu entry or a profile button works on.
@@ -67,10 +68,9 @@ struct PseudoListManager: Sendable {
         return Self.keyForms(of: account).contains { PseudoNormalizer.matches($0, pseudo) }
     }
 
-    /// `key` as stored and percent-decoded (`+` read as a space, as a form-encoded value).
+    /// `key` as stored and percent-decoded (`HFRText.accountKeyForms`; `+` is read as a space as a tolerance only).
     static func keyForms(of key: String) -> [String] {
-        let decoded = key.replacing("+", with: " ").removingPercentEncoding
-        return decoded.map { $0 == key ? [key] : [key, $0] } ?? [key]
+        HFRText.accountKeyForms(of: key)
     }
 
     /// Whether `kind` can be edited: the blocklist belongs to an account.
